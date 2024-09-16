@@ -43,6 +43,7 @@ func Parse(raw string) (Key, error) {
 var keyParsers = map[KeyType]func(string) (Key, error){
 	ResourceInstanceObjectType: parseResourceInstanceObject,
 	ComponentInstanceType:      parseComponentInstance,
+	OutputType:                 parseOutput,
 }
 
 // cutKeyField is a key parsing helper for key types that consist of

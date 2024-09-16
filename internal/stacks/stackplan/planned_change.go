@@ -652,11 +652,9 @@ func encodePathSet(pathSet cty.PathSet) ([]*stacks.AttributePath, error) {
 // This change type only includes an external description, and does not
 // contribute anything to the raw plan sequence.
 type PlannedChangeOutputValue struct {
-	Addr   stackaddrs.OutputValue // Covers only root stack output values
-	Action plans.Action
-
-	OldValue, NewValue                             plans.DynamicValue
-	OldValueSensitivePaths, NewValueSensitivePaths []cty.Path
+	Addr          stackaddrs.OutputValue // Covers only root stack output values
+	Action        plans.Action
+	Before, After cty.Value
 }
 
 var _ PlannedChange = (*PlannedChangeOutputValue)(nil)
@@ -668,10 +666,30 @@ func (pc *PlannedChangeOutputValue) PlannedChangeProto() (*stacks.PlannedChange,
 		return nil, err
 	}
 
+	before, err := stacks.ToDynamicValue(pc.Before, cty.DynamicPseudoType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode planned output value %s: %w", pc.Addr, err)
+	}
+
+	after, err := stacks.ToDynamicValue(pc.After, cty.DynamicPseudoType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode planned output value %s: %w", pc.Addr, err)
+	}
+
+	var raw []*anypb.Any
+	if pc.Action == plans.Delete {
+		var r anypb.Any
+		if err := anypb.MarshalFrom(&r, &tfstackdata1.DeletedRootOutputValue{
+			Name: pc.Addr.Name,
+		}, proto.MarshalOptions{}); err != nil {
+			return nil, fmt.Errorf("failed to encode raw state for %s: %w", pc.Addr, err)
+		}
+
+		raw = []*anypb.Any{&r}
+	}
+
 	return &stacks.PlannedChange{
-		// No "raw" representation for output values; we emit them only for
-		// external consumption, since Terraform Core will just recalculate
-		// them during apply anyway.
+		Raw: raw,
 		Descriptions: []*stacks.PlannedChange_ChangeDescription{
 			{
 				Description: &stacks.PlannedChange_ChangeDescription_OutputValuePlanned{
@@ -680,8 +698,8 @@ func (pc *PlannedChangeOutputValue) PlannedChangeProto() (*stacks.PlannedChange,
 						Actions: protoChangeTypes,
 
 						Values: &stacks.DynamicValueChange{
-							Old: stacks.NewDynamicValue(pc.OldValue, pc.OldValueSensitivePaths),
-							New: stacks.NewDynamicValue(pc.NewValue, pc.NewValueSensitivePaths),
+							Old: before,
+							New: after,
 						},
 					},
 				},

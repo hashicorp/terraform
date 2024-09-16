@@ -332,22 +332,22 @@ func TestPlanWithVariableDefaults(t *testing.T) {
 					TerraformVersion: version.SemVer,
 				},
 				&stackplan.PlannedChangeOutputValue{
-					Addr:     stackaddrs.OutputValue{Name: "beep"},
-					Action:   plans.Create,
-					OldValue: plans.DynamicValue{0xc0},               // MessagePack nil
-					NewValue: plans.DynamicValue([]byte("\xa4BEEP")), // MessagePack string "BEEP"
+					Addr:   stackaddrs.OutputValue{Name: "beep"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.StringVal("BEEP"),
 				},
 				&stackplan.PlannedChangeOutputValue{
-					Addr:     stackaddrs.OutputValue{Name: "defaulted"},
-					Action:   plans.Create,
-					OldValue: plans.DynamicValue{0xc0},               // MessagePack nil
-					NewValue: plans.DynamicValue([]byte("\xa4BOOP")), // MessagePack string "BOOP"
+					Addr:   stackaddrs.OutputValue{Name: "defaulted"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.StringVal("BOOP"),
 				},
 				&stackplan.PlannedChangeOutputValue{
-					Addr:     stackaddrs.OutputValue{Name: "specified"},
-					Action:   plans.Create,
-					OldValue: plans.DynamicValue{0xc0},               // MessagePack nil
-					NewValue: plans.DynamicValue([]byte("\xa4BEEP")), // MessagePack string "BEEP"
+					Addr:   stackaddrs.OutputValue{Name: "specified"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.StringVal("BEEP"),
 				},
 				&stackplan.PlannedChangePlannedTimestamp{
 					PlannedTimestamp: fakePlanTimestamp,
@@ -728,13 +728,13 @@ func TestPlanWithSingleResource(t *testing.T) {
 			TerraformVersion: version.SemVer,
 		},
 		&stackplan.PlannedChangeOutputValue{
-			Addr:     stackaddrs.OutputValue{Name: "obj"},
-			Action:   plans.Create,
-			OldValue: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
-			NewValue: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+			Addr:   stackaddrs.OutputValue{Name: "obj"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After: cty.ObjectVal(map[string]cty.Value{
 				"input":  cty.StringVal("hello"),
 				"output": cty.UnknownVal(cty.String),
-			})),
+			}),
 		},
 		&stackplan.PlannedChangePlannedTimestamp{
 			PlannedTimestamp: fakePlanTimestamp,
@@ -977,10 +977,10 @@ func TestPlanVariableOutputRoundtripNested(t *testing.T) {
 			TerraformVersion: version.SemVer,
 		},
 		&stackplan.PlannedChangeOutputValue{
-			Addr:     stackaddrs.OutputValue{Name: "msg"},
-			Action:   plans.Create,
-			OldValue: plans.DynamicValue{0xc0},                  // MessagePack nil
-			NewValue: plans.DynamicValue([]byte("\xa7default")), // MessagePack string "default"
+			Addr:   stackaddrs.OutputValue{Name: "msg"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.StringVal("default"),
 		},
 		&stackplan.PlannedChangePlannedTimestamp{
 			PlannedTimestamp: fakePlanTimestamp,
@@ -1053,13 +1053,10 @@ func TestPlanSensitiveOutput(t *testing.T) {
 			TerraformVersion: version.SemVer,
 		},
 		&stackplan.PlannedChangeOutputValue{
-			Addr:     stackaddrs.OutputValue{Name: "result"},
-			Action:   plans.Create,
-			OldValue: plans.DynamicValue{0xc0}, // MessagePack nil
-			NewValue: mustPlanDynamicValue(cty.StringVal("secret")),
-			NewValueSensitivePaths: []cty.Path{
-				nil, // the whole value is sensitive
-			},
+			Addr:   stackaddrs.OutputValue{Name: "result"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.StringVal("secret").Mark(marks.Sensitive),
 		},
 		&stackplan.PlannedChangePlannedTimestamp{
 			PlannedTimestamp: fakePlanTimestamp,
@@ -1109,13 +1106,10 @@ func TestPlanSensitiveOutputNested(t *testing.T) {
 			TerraformVersion: version.SemVer,
 		},
 		&stackplan.PlannedChangeOutputValue{
-			Addr:     stackaddrs.OutputValue{Name: "result"},
-			Action:   plans.Create,
-			OldValue: plans.DynamicValue{0xc0}, // MessagePack nil
-			NewValue: mustPlanDynamicValue(cty.StringVal("secret")),
-			NewValueSensitivePaths: []cty.Path{
-				nil, // the whole value is sensitive
-			},
+			Addr:   stackaddrs.OutputValue{Name: "result"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.StringVal("secret").Mark(marks.Sensitive),
 		},
 		&stackplan.PlannedChangePlannedTimestamp{
 			PlannedTimestamp: fakePlanTimestamp,
@@ -1211,13 +1205,10 @@ func TestPlanSensitiveOutputAsInput(t *testing.T) {
 			TerraformVersion: version.SemVer,
 		},
 		&stackplan.PlannedChangeOutputValue{
-			Addr:     stackaddrs.OutputValue{Name: "result"},
-			Action:   plans.Create,
-			OldValue: plans.DynamicValue{0xc0}, // MessagePack nil
-			NewValue: mustPlanDynamicValue(cty.StringVal("SECRET")),
-			NewValueSensitivePaths: []cty.Path{
-				nil, // the whole value is sensitive
-			},
+			Addr:   stackaddrs.OutputValue{Name: "result"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType), // MessagePack nil
+			After:  cty.StringVal("SECRET").Mark(marks.Sensitive),
 		},
 		&stackplan.PlannedChangePlannedTimestamp{
 			PlannedTimestamp: fakePlanTimestamp,
@@ -3883,10 +3874,10 @@ func TestPlan_plantimestamp_force_timestamp(t *testing.T) {
 			TerraformVersion: version.SemVer,
 		},
 		&stackplan.PlannedChangeOutputValue{
-			Addr:     stackaddrs.OutputValue{Name: "plantimestamp"},
-			Action:   plans.Create,
-			OldValue: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
-			NewValue: mustPlanDynamicValue(cty.StringVal(forcedPlanTimestamp)),
+			Addr:   stackaddrs.OutputValue{Name: "plantimestamp"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.StringVal(forcedPlanTimestamp),
 		},
 		&stackplan.PlannedChangePlannedTimestamp{PlannedTimestamp: fakePlanTimestamp},
 	}
@@ -3936,11 +3927,7 @@ func TestPlan_plantimestamp_later_than_when_writing_this_test(t *testing.T) {
 	changes, diags := collectPlanOutput(changesCh, diagsCh)
 	output := expectOutput(t, "plantimestamp", changes)
 
-	plantimestampValue, err := output.NewValue.Decode(cty.String)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	plantimestampValue := output.After
 	plantimestamp, err := time.Parse(time.RFC3339, plantimestampValue.AsString())
 	if err != nil {
 		t.Fatal(err)

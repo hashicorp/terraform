@@ -678,16 +678,6 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 
 	var diags tfdiags.Diagnostics
 
-	// For a root stack we'll return a PlannedChange for each of the output
-	// values, so the caller can see how these would change if this plan is
-	// applied.
-	resultVal := s.ResultValue(ctx, PlanPhase)
-	if !resultVal.Type().IsObjectType() || resultVal.IsNull() || !resultVal.IsKnown() {
-		// None of these situations should be possible if Stack.ResultValue is
-		// correctly implemented.
-		panic(fmt.Sprintf("invalid result from Stack.ResultValue: %#v", resultVal))
-	}
-
 	// We want to check that all of the components we have in state are
 	// targeted by something (either a component or a removed block) in
 	// the configuration.
@@ -763,63 +753,91 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 		))
 	}
 
+	// For a root stack we'll return a PlannedChange for each of the output
+	// values, so the caller can see how these would change if this plan is
+	// applied.
+	afterVal := s.ResultValue(ctx, PlanPhase)
+	if !afterVal.Type().IsObjectType() || afterVal.IsNull() || !afterVal.IsKnown() {
+		// None of these situations should be possible if Stack.ResultValue is
+		// correctly implemented.
+		panic(fmt.Sprintf("invalid result from Stack.ResultValue: %#v", afterVal))
+	}
+
+	beforeVal := s.main.PlanPrevState().RootOutputValues()
+
 	var changes []stackplan.PlannedChange
-	for it := resultVal.ElementIterator(); it.Next(); {
-		k, v := it.Element()
-		outputAddr := stackaddrs.OutputValue{Name: k.AsString()}
+	for it := afterVal.ElementIterator(); it.Next(); {
+		k, after := it.Element()
 
-		// TODO: For now we just assume that all values are being created.
-		// Once we have a prior state we should compare with that to
-		// produce accurate change actions. Also, once outputs are stored in
-		// state, we should update the definition of Applyable for a stack to
-		// reflect updates to outputs making a stack "applyable".
+		addr := stackaddrs.OutputValue{Name: k.AsString()}
+		before := cty.NullVal(cty.DynamicPseudoType)
+		action := plans.Create
 
-		v, markses := v.UnmarkDeepWithPaths()
-		sensitivePaths, otherMarkses := marks.PathsWithMark(markses, marks.Sensitive)
-		if len(otherMarkses) != 0 {
-			// Any other marks should've been dealt with by our caller before
-			// getting here, since we only know how to preserve the sensitive
-			// marking.
-			diags = diags.Append(fmt.Errorf(
-				"%s%s: unhandled value marks %#v (this is a bug in Terraform)",
-				outputAddr,
-				tfdiags.FormatCtyPath(otherMarkses[0].Path),
-				otherMarkses[0].Marks,
-			))
-			return nil, diags
-		}
-		dv, err := plans.NewDynamicValue(v, v.Type())
-		if err != nil {
-			// Should not be possible since we generated the value internally;
-			// suggests that there's a bug elsewhere in this package.
-			panic(fmt.Sprintf("%s has unencodable value: %s", outputAddr, err))
-		}
-		oldDV, err := plans.NewDynamicValue(cty.NullVal(cty.DynamicPseudoType), cty.DynamicPseudoType)
-		if err != nil {
-			// Should _definitely_ not be possible since the value is written
-			// directly above and should always be encodable.
-			panic(fmt.Sprintf("unencodable value: %s", err))
+		if actualBefore, exists := beforeVal[addr]; exists {
+			action = plans.Update
+			before = actualBefore
 		}
 
 		changes = append(changes, &stackplan.PlannedChangeOutputValue{
-			Addr:   outputAddr,
-			Action: plans.Create,
-
-			OldValue:               oldDV,
-			OldValueSensitivePaths: nil,
-
-			NewValue:               dv,
-			NewValueSensitivePaths: sensitivePaths,
+			Addr:   addr,
+			Action: action,
+			Before: before,
+			After:  after,
 		})
 	}
+
+	for addr, before := range beforeVal {
+		if afterVal.Type().HasAttribute(addr.Name) {
+			// Then we already processed this.
+			continue
+		}
+
+		// Otherwise, it's been removed from the configuration.
+		changes = append(changes, &stackplan.PlannedChangeOutputValue{
+			Addr:   addr,
+			Action: plans.Delete,
+			Before: before,
+			After:  cty.NullVal(cty.DynamicPseudoType),
+		})
+	}
+
 	return changes, diags
 }
 
 // CheckApply implements Applyable.
 func (s *Stack) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
-	// TODO: We should emit an AppliedChange for each output value,
-	// reporting its final value.
-	return nil, nil
+	if !s.IsRoot() {
+		return nil, nil
+	}
+
+	var diags tfdiags.Diagnostics
+
+	resultVal := s.ResultValue(ctx, ApplyPhase)
+	if !resultVal.Type().IsObjectType() || resultVal.IsNull() || !resultVal.IsKnown() {
+		// None of these situations should be possible if Stack.ResultValue is
+		// correctly implemented.
+		panic(fmt.Sprintf("invalid result from Stack.ResultValue: %#v", resultVal))
+	}
+
+	var changes []stackstate.AppliedChange
+	for it := resultVal.ElementIterator(); it.Next(); {
+		k, v := it.Element()
+		changes = append(changes, &stackstate.AppliedChangeOutputValue{
+			Addr:  stackaddrs.OutputValue{Name: k.AsString()},
+			Value: v,
+		})
+	}
+
+	for _, value := range s.main.PlanBeingApplied().DeletedOutputValues.Elems() {
+		// elements that are being deleted will explicitly not show up in our
+		// result value
+		changes = append(changes, &stackstate.AppliedChangeOutputValue{
+			Addr:  value,
+			Value: cty.NilVal,
+		})
+	}
+
+	return changes, diags
 }
 
 func (s *Stack) tracingName() string {

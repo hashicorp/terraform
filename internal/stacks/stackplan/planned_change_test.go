@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/go-version"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -763,8 +764,8 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				// NOTE: This is a bit unrealistic since we're reporting an
 				// update but there's no difference between these two values.
 				// In a real planned change this situation would be a "no-op".
-				OldValue: emptyObjectForPlan,
-				NewValue: emptyObjectForPlan,
+				Before: cty.EmptyObjectVal,
+				After:  cty.EmptyObjectVal,
 			},
 			Want: &stacks.PlannedChange{
 				// Output value changes don't generate any raw representation;
@@ -778,10 +779,10 @@ func TestPlannedChangeAsProto(t *testing.T) {
 								Actions: []stacks.ChangeType{stacks.ChangeType_UPDATE},
 								Values: &stacks.DynamicValueChange{
 									Old: &stacks.DynamicValue{
-										Msgpack: []byte{'\x80'}, // zero-length mapping
+										Msgpack: mustMsgPack(t, cty.EmptyObjectVal),
 									},
 									New: &stacks.DynamicValue{
-										Msgpack: []byte{'\x80'}, // zero-length mapping
+										Msgpack: mustMsgPack(t, cty.EmptyObjectVal),
 									},
 								},
 							},
@@ -898,4 +899,12 @@ func mustMarshalAnyPb(msg proto.Message) *anypb.Any {
 		panic(err)
 	}
 	return &ret
+}
+
+func mustMsgPack(t *testing.T, value cty.Value) []byte {
+	data, err := msgpack.Marshal(value, cty.DynamicPseudoType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
 }

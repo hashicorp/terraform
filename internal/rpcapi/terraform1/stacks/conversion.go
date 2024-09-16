@@ -9,8 +9,10 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // This file contains some hand-written type conversion helpers to complement
@@ -41,6 +43,31 @@ func ChangeTypesForPlanAction(action plans.Action) ([]ChangeType, error) {
 	default:
 		return nil, fmt.Errorf("unsupported action %s", action)
 	}
+}
+
+// ToDynamicValue uses NewDynamicValue to construct a DynamicValue from the
+// provider cty.Value. This function will strip out the sensitive paths and
+// include them in the returned dynamic value. If from contains marks other
+// than sensitive then this function will return an error.
+func ToDynamicValue(from cty.Value, ty cty.Type) (*DynamicValue, error) {
+	// Separate out sensitive marks from the decoded value so we can re-serialize it
+	// with MessagePack. Sensitive paths get encoded separately in the final message.
+	unmarkedValue, markses := from.UnmarkDeepWithPaths()
+	sensitivePaths, otherMarkses := marks.PathsWithMark(markses, marks.Sensitive)
+	if len(otherMarkses) != 0 {
+		// Any other marks should've been dealt with by our caller before
+		// getting here, since we only know how to preserve the sensitive
+		// marking.
+		return nil, fmt.Errorf(
+			"%s: unhandled value marks %#v (this is a bug in Terraform)",
+			tfdiags.FormatCtyPath(otherMarkses[0].Path), otherMarkses[0].Marks,
+		)
+	}
+	encValue, err := plans.NewDynamicValue(unmarkedValue, ty)
+	if err != nil {
+		return nil, err
+	}
+	return NewDynamicValue(encValue, sensitivePaths), nil
 }
 
 // NewDynamicValue constructs a [DynamicValue] message object from a

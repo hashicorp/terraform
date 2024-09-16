@@ -81,6 +81,11 @@ message PlanRootInputValue {
     bool required_on_apply = 3;
 }
 
+// Records that a root output should be deleted by the plan operation.
+message DeletedRootOutputValue {
+    string name = 1;
+}
+
 // ProviderFunctionResults stores a record of the results of provider functions
 // that were called during the planning phase. This is used to ensure that the
 // same results are returned during the apply phase.
