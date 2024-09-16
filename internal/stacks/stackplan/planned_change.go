@@ -74,6 +74,12 @@ type PlannedChangeRootInputValue struct {
 	// plan and apply, but a value set during planning can have a different
 	// value during apply.
 	RequiredOnApply bool
+
+	// DeleteOnApply is true if this variable should be removed from the state
+	// on apply even if it was not actively removed from the configuration in
+	// a delete action. This is typically the case during a destroy only plan
+	// in which we want to update the state to remove everything.
+	DeleteOnApply bool
 }
 
 var _ PlannedChange = (*PlannedChangeRootInputValue)(nil)
@@ -85,14 +91,18 @@ func (pc *PlannedChangeRootInputValue) PlannedChangeProto() (*stacks.PlannedChan
 		return nil, err
 	}
 
-	var raw anypb.Any
-	if pc.Action == plans.Delete {
+	var raws []*anypb.Any
+	if pc.Action == plans.Delete || pc.DeleteOnApply {
+		var raw anypb.Any
 		if err := anypb.MarshalFrom(&raw, &tfstackdata1.DeletedRootInputVariable{
 			Name: pc.Addr.Name,
 		}, proto.MarshalOptions{}); err != nil {
 			return nil, fmt.Errorf("failed to encode raw state for %s: %w", pc.Addr, err)
 		}
-	} else {
+		raws = append(raws, &raw)
+	}
+
+	if pc.Action != plans.Delete {
 		var ppdv *tfstackdata1.DynamicValue
 		if pc.After != cty.NilVal {
 			ppdv, err = tfstackdata1.DynamicValueToTFStackData1(pc.After, cty.DynamicPseudoType)
@@ -100,6 +110,7 @@ func (pc *PlannedChangeRootInputValue) PlannedChangeProto() (*stacks.PlannedChan
 				return nil, fmt.Errorf("failed to encode raw state for %s: %w", pc.Addr, err)
 			}
 		}
+		var raw anypb.Any
 		if err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanRootInputValue{
 			Name:            pc.Addr.Name,
 			Value:           ppdv,
@@ -107,6 +118,7 @@ func (pc *PlannedChangeRootInputValue) PlannedChangeProto() (*stacks.PlannedChan
 		}, proto.MarshalOptions{}); err != nil {
 			return nil, err
 		}
+		raws = append(raws, &raw)
 	}
 
 	var before, after *stacks.DynamicValue
@@ -124,7 +136,7 @@ func (pc *PlannedChangeRootInputValue) PlannedChangeProto() (*stacks.PlannedChan
 	}
 
 	return &stacks.PlannedChange{
-		Raw: []*anypb.Any{&raw},
+		Raw: raws,
 		Descriptions: []*stacks.PlannedChange_ChangeDescription{
 			{
 				Description: &stacks.PlannedChange_ChangeDescription_InputVariablePlanned{
