@@ -761,33 +761,59 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 		// correctly implemented.
 		panic(fmt.Sprintf("invalid result from Stack.ResultValue: %#v", afterVal))
 	}
-
 	beforeVal := s.main.PlanPrevState().RootOutputValues()
 
 	var changes []stackplan.PlannedChange
-	for it := afterVal.ElementIterator(); it.Next(); {
-		k, after := it.Element()
+	if s.main.PlanningOpts().PlanningMode == plans.DestroyMode {
+		// For a destroy plan, we'll actually cheat a little bit and swap out
+		// the values for null and destroy actions. We do this here because
+		// for most stacks and outputs we might have components that rely on
+		// the output being calculated based on the prior state rather than
+		// returning null. So, we leave the internals to compute the value
+		// in a helpful way and then just blanket say that all outputs will be
+		// destroyed during the plan.
+		for name, attr := range afterVal.Type().AttributeTypes() {
+			addr := stackaddrs.OutputValue{Name: name}
+			if before, exists := beforeVal[addr]; exists {
 
-		addr := stackaddrs.OutputValue{Name: k.AsString()}
-		before := cty.NullVal(cty.DynamicPseudoType)
-		action := plans.Create
-
-		if actualBefore, exists := beforeVal[addr]; exists {
-			before = actualBefore
-
-			if result := before.Equals(after); result.IsKnown() && result.True() {
-				action = plans.NoOp
-			} else {
-				action = plans.Update
+				// If the before doesn't exist, then we'll emit nothing for this
+				// change as it doesn't already exist in state so doesn't need
+				// to be destroyed.
+				changes = append(changes, &stackplan.PlannedChangeOutputValue{
+					Addr:   stackaddrs.OutputValue{Name: name},
+					Action: plans.Delete,
+					Before: before,
+					// We can set the right type here, as do have the
+					// configuration.
+					After: cty.NullVal(attr),
+				})
 			}
 		}
+	} else {
+		for it := afterVal.ElementIterator(); it.Next(); {
+			k, after := it.Element()
 
-		changes = append(changes, &stackplan.PlannedChangeOutputValue{
-			Addr:   addr,
-			Action: action,
-			Before: before,
-			After:  after,
-		})
+			addr := stackaddrs.OutputValue{Name: k.AsString()}
+			before := cty.NullVal(cty.DynamicPseudoType)
+			action := plans.Create
+
+			if actualBefore, exists := beforeVal[addr]; exists {
+				before = actualBefore
+
+				if result := before.Equals(after); result.IsKnown() && result.True() {
+					action = plans.NoOp
+				} else {
+					action = plans.Update
+				}
+			}
+
+			changes = append(changes, &stackplan.PlannedChangeOutputValue{
+				Addr:   addr,
+				Action: action,
+				Before: before,
+				After:  after,
+			})
+		}
 	}
 
 	for addr, before := range beforeVal {
@@ -843,16 +869,27 @@ func (s *Stack) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfd
 		panic(fmt.Sprintf("invalid result from Stack.ResultValue: %#v", resultVal))
 	}
 
+	deletedOutputValues := s.main.PlanBeingApplied().DeletedOutputValues
+
 	var changes []stackstate.AppliedChange
 	for it := resultVal.ElementIterator(); it.Next(); {
 		k, v := it.Element()
+
+		addr := stackaddrs.OutputValue{Name: k.AsString()}
+		if deletedOutputValues.Has(addr) {
+			// Then we are deleting this output value even though it is in the
+			// configuration for some reason (probably because this is a
+			// delete plan and we're deleting everything). So, we won't process
+			// it here and only below.
+			continue
+		}
 		changes = append(changes, &stackstate.AppliedChangeOutputValue{
-			Addr:  stackaddrs.OutputValue{Name: k.AsString()},
+			Addr:  addr,
 			Value: v,
 		})
 	}
 
-	for _, value := range s.main.PlanBeingApplied().DeletedOutputValues.Elems() {
+	for _, value := range deletedOutputValues.Elems() {
 		// elements that are being deleted will explicitly not show up in our
 		// result value
 		changes = append(changes, &stackstate.AppliedChangeOutputValue{

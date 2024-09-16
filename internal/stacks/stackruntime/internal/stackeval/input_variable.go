@@ -243,6 +243,8 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 		return nil, diags
 	}
 
+	destroy := v.main.PlanningOpts().PlanningMode == plans.DestroyMode
+
 	before, beforeEphemeral := v.main.PlanPrevState().RootInputVariable(v.Addr().Item)
 
 	decl := v.Declaration(ctx)
@@ -290,6 +292,7 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 			Before:          before,
 			After:           after,
 			RequiredOnApply: requiredOnApply,
+			DeleteOnApply:   destroy,
 		},
 	}, diags
 }
@@ -328,6 +331,15 @@ func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedCha
 
 	diags := v.checkValid(ctx, ApplyPhase)
 	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	if v.main.PlanBeingApplied().DeletedInputVariables.Has(v.Addr().Item) {
+		// If the plan being applied has this variable as being deleted, then
+		// we won't handle it here. This is usually the case during a destroy
+		// only plan in which we wanted to both capture the value for an input
+		// as we still need it, while also noting that everything is being
+		// destroyed.
 		return nil, diags
 	}
 
