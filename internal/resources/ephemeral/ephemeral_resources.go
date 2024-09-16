@@ -5,6 +5,7 @@ package ephemeral
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -27,6 +28,9 @@ import (
 type Resources struct {
 	active addrs.Map[addrs.ConfigResource, addrs.Map[addrs.AbsResourceInstance, *resourceInstanceInternal]]
 	mu     sync.Mutex
+
+	// WaitGroup to track renew goroutines
+	wg sync.WaitGroup
 }
 
 func NewResources() *Resources {
@@ -63,7 +67,9 @@ func (r *Resources) RegisterInstance(ctx context.Context, addr addrs.AbsResource
 	if reg.FirstRenewal != nil {
 		ctx, cancel := context.WithCancel(ctx)
 		ri.renewCancel = cancel
-		go ri.handleRenewal(ctx, reg.FirstRenewal)
+
+		r.wg.Add(1)
+		go ri.handleRenewal(ctx, &r.wg, reg.FirstRenewal)
 	}
 	r.active.Get(configAddr).Put(addr, ri)
 }
@@ -146,6 +152,25 @@ func (r *Resources) Close(ctx context.Context) tfdiags.Diagnostics {
 		}
 	}
 	r.active = addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.AbsResourceInstance, *resourceInstanceInternal]]()
+
+	// All renew loops should have returned, or else we're going to leak
+	// resources which could be continually renewing, or even interfering with
+	// the same resources during the next operation.
+	// Use an asynchronous check so we can timeout and report the problem.
+	done := make(chan int)
+	go func() {
+		r.wg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		// OK!
+	case <-time.After(time.Second):
+		// FIXME: add a more useful error message for users. Should probably
+		// have "this is a bug in Terraform" or something.
+		diags = diags.Append(errors.New("ephemeral renew operations still in progress"))
+	}
+
 	return diags
 }
 
@@ -189,7 +214,8 @@ func (r *resourceInstanceInternal) close(ctx context.Context) tfdiags.Diagnostic
 }
 
 // FIXME: a renew time of less than a minute will cause a runaway loop of renewals
-func (r *resourceInstanceInternal) handleRenewal(ctx context.Context, firstRenewal *providers.EphemeralRenew) {
+func (r *resourceInstanceInternal) handleRenewal(ctx context.Context, wg *sync.WaitGroup, firstRenewal *providers.EphemeralRenew) {
+	defer wg.Done()
 	t := time.NewTimer(time.Until(firstRenewal.ExpireTime.Add(-60 * time.Second)))
 	nextRenew := firstRenewal
 	for {
