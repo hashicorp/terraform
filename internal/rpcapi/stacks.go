@@ -231,6 +231,7 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 		cProto := &stacks.FindStackConfigurationComponents_Removed{
 			SourceAddr:    rc.FinalSourceAddr.String(),
 			ComponentAddr: stackaddrs.Config(stackAddr, stackaddrs.Component{Name: rc.FromComponent.Name}).String(),
+			Destroy:       rc.Destroy,
 		}
 		switch {
 		case rc.ForEach != nil:
