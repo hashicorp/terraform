@@ -85,6 +85,16 @@ func TestApplyDestroy(t *testing.T) {
 							NewStateSrc:                nil, // We should be removing this from the state file.
 							Schema:                     nil,
 						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("id"),
+							Value: cty.NullVal(cty.String),
+							// Removed: true, TODO: Enable this in a follow up PR.
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("input"),
+							Value: cty.StringVal("hello"),
+							// Removed: true, TODO: Enable this in a follow up PR.
+						},
 					},
 				},
 			},
@@ -127,7 +137,6 @@ func TestApplyDestroy(t *testing.T) {
 								mustInputVariable("resource"): cty.StringVal("bar"),
 							},
 						},
-
 						// This is a bit of a quirk of the system, this wasn't in the state
 						// file before so we don't need to emit this. But since Terraform
 						// pushes data sources into the refresh state, it's very difficult to
@@ -148,6 +157,16 @@ func TestApplyDestroy(t *testing.T) {
 							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
 							Schema:                     nil,
 							NewStateSrc:                nil,
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("id"),
+							Value: cty.StringVal("foo"),
+							// Removed: true, TODO: Enable this in a follow up PR.
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("resource"),
+							Value: cty.StringVal("bar"),
+							// Removed: true, TODO: Enable this in a follow up PR.
 						},
 					},
 				},
@@ -227,6 +246,16 @@ func TestApplyDestroy(t *testing.T) {
 							ProviderConfigAddr: mustDefaultRootProvider("testing"),
 							Schema:             stacks_testing_provider.TestingResourceSchema,
 						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("id"),
+							Value: cty.StringVal("foo"),
+							// Removed: true, TODO: Enable this in a follow up PR.
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("resource"),
+							Value: cty.StringVal("bar"),
+							// Removed: true, TODO: Enable this in a follow up PR.
+						},
 					},
 				},
 				{
@@ -256,6 +285,16 @@ func TestApplyDestroy(t *testing.T) {
 							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
 							Schema:                     nil,
 							NewStateSrc:                nil, // deleted
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("id"),
+							Value: cty.StringVal("foo"),
+							// Removed: true, TODO: Enable this in a follow up PR.
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("resource"),
+							Value: cty.StringVal("bar"),
+							// Removed: true, TODO: Enable this in a follow up PR.
 						},
 					},
 				},
@@ -411,6 +450,16 @@ func TestApplyDestroy(t *testing.T) {
 								Dependencies: make([]addrs.ConfigResource, 0),
 							},
 							Schema: stacks_testing_provider.FailedResourceSchema,
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("fail_apply"),
+							Value: cty.False,
+							// Removed: true, TODO: Enable this in a follow up PR.
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("fail_plan"),
+							Value: cty.False,
+							// Removed: true, TODO: Enable this in a follow up PR.
 						},
 					},
 					wantAppliedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {

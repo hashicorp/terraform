@@ -11,6 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -242,19 +243,30 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 		return nil, diags
 	}
 
+	before, beforeEphemeral := v.main.PlanPrevState().RootInputVariable(v.Addr().Item)
+
+	action := plans.Create
+	if beforeEphemeral || before != cty.NilVal {
+		action = plans.Update
+	} else {
+		before = cty.NullVal(cty.DynamicPseudoType)
+	}
+
 	decl := v.Declaration(ctx)
-	val := v.Value(ctx, PlanPhase)
+	after := v.Value(ctx, PlanPhase)
 	requiredOnApply := false
 	if decl.Ephemeral {
 		// we don't persist the value for an ephemeral variable, but we
 		// do need to remember whether it was set.
-		requiredOnApply = !val.IsNull()
-		val = cty.NilVal
+		requiredOnApply = !after.IsNull()
+		after = cty.NilVal
 	}
 	return []stackplan.PlannedChange{
 		&stackplan.PlannedChangeRootInputValue{
 			Addr:            v.Addr().Item,
-			Value:           val,
+			Action:          action,
+			Before:          before,
+			After:           after,
 			RequiredOnApply: requiredOnApply,
 		},
 	}, diags
@@ -288,7 +300,28 @@ func (v *InputVariable) References(ctx context.Context) []stackaddrs.AbsReferenc
 
 // CheckApply implements Applyable.
 func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
-	return nil, v.checkValid(ctx, ApplyPhase)
+	if !v.Addr().Stack.IsRoot() {
+		return nil, v.checkValid(ctx, ApplyPhase)
+	}
+
+	diags := v.checkValid(ctx, ApplyPhase)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	decl := v.Declaration(ctx)
+	value := v.Value(ctx, ApplyPhase)
+	if decl.Ephemeral {
+		value = cty.NilVal
+	}
+
+	return []stackstate.AppliedChange{
+		&stackstate.AppliedChangeInputVariable{
+			Addr:    v.Addr().Item,
+			Value:   value,
+			Removed: false,
+		},
+	}, diags
 }
 
 func (v *InputVariable) tracingName() string {

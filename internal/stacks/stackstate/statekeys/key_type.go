@@ -47,6 +47,7 @@ const (
 	ResourceInstanceObjectType KeyType = "RSRC"
 	ComponentInstanceType      KeyType = "CMPT"
 	OutputType                 KeyType = "OTPT"
+	VariableType               KeyType = "VRBL"
 )
 
 // UnrecognizedKeyHandling returns an indication of which of the three possible

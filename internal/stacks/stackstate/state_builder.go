@@ -66,6 +66,12 @@ func (s *StateBuilder) AddOutput(name string, value cty.Value) *StateBuilder {
 	return s
 }
 
+// AddInput adds an input variable to the state.
+func (s *StateBuilder) AddInput(name string, value cty.Value) *StateBuilder {
+	s.state.inputs[stackaddrs.InputVariable{Name: name}] = value
+	return s
+}
+
 type ResourceInstanceBuilder struct {
 	addr         *stackaddrs.AbsResourceInstanceObject
 	src          *states.ResourceInstanceObjectSrc

@@ -51,7 +51,7 @@ func ParseAbsOutputValue(traversal hcl.Traversal) (AbsOutputValue, tfdiags.Diagn
 	if traversal.IsRelative() {
 		// This is always a caller bug: caller must only pass absolute
 		// traversals in here.
-		panic("parseAbsComponentInstance with relative traversal")
+		panic("ParseAbsOutputValue with relative traversal")
 	}
 
 	stackInst, remain, diags := parseInStackInstancePrefix(traversal)

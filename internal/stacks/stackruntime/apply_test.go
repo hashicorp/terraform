@@ -68,7 +68,7 @@ func TestApply(t *testing.T) {
 		store  *stacks_testing_provider.ResourceStore
 		cycles []TestCycle
 	}{
-		"creating outputs": {
+		"creating inputs and outputs": {
 			path: "component-input-output",
 			cycles: []TestCycle{
 				{
@@ -92,8 +92,10 @@ func TestApply(t *testing.T) {
 							PlannedTimestamp: fakePlanTimestamp,
 						},
 						&stackplan.PlannedChangeRootInputValue{
-							Addr:  mustStackInputVariable("value"),
-							Value: cty.StringVal("foo"),
+							Addr:   mustStackInputVariable("value"),
+							Action: plans.Create,
+							Before: cty.NullVal(cty.DynamicPseudoType),
+							After:  cty.StringVal("foo"),
 						},
 					},
 					wantAppliedChanges: []stackstate.AppliedChange{
@@ -101,11 +103,15 @@ func TestApply(t *testing.T) {
 							Addr:  mustStackOutputValue("value"),
 							Value: cty.StringVal("foo"),
 						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("value"),
+							Value: cty.StringVal("foo"),
+						},
 					},
 				},
 			},
 		},
-		"updating outputs": {
+		"updating inputs and outputs": {
 			path: "component-input-output",
 			cycles: []TestCycle{
 				{
@@ -134,8 +140,10 @@ func TestApply(t *testing.T) {
 							PlannedTimestamp: fakePlanTimestamp,
 						},
 						&stackplan.PlannedChangeRootInputValue{
-							Addr:  mustStackInputVariable("value"),
-							Value: cty.StringVal("bar"),
+							Addr:   mustStackInputVariable("value"),
+							Action: plans.Update,
+							Before: cty.StringVal("foo"),
+							After:  cty.StringVal("bar"),
 						},
 					},
 					wantAppliedChanges: []stackstate.AppliedChange{
@@ -143,13 +151,18 @@ func TestApply(t *testing.T) {
 							Addr:  mustStackOutputValue("value"),
 							Value: cty.StringVal("bar"),
 						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("value"),
+							Value: cty.StringVal("bar"),
+						},
 					},
 				},
 			},
 		},
-		"deleting outputs": {
+		"deleting inputs and outputs": {
 			path: "component-input-output",
 			state: stackstate.NewStateBuilder().
+				AddInput("removed", cty.StringVal("bar")).
 				AddOutput("removed", cty.StringVal("bar")).
 				Build(),
 			cycles: []TestCycle{
@@ -180,8 +193,16 @@ func TestApply(t *testing.T) {
 							PlannedTimestamp: fakePlanTimestamp,
 						},
 						&stackplan.PlannedChangeRootInputValue{
-							Addr:  mustStackInputVariable("value"),
-							Value: cty.StringVal("foo"),
+							Addr:   mustStackInputVariable("removed"),
+							Action: plans.Delete,
+							Before: cty.StringVal("bar"),
+							After:  cty.NullVal(cty.DynamicPseudoType),
+						},
+						&stackplan.PlannedChangeRootInputValue{
+							Addr:   mustStackInputVariable("value"),
+							Action: plans.Create,
+							Before: cty.NullVal(cty.DynamicPseudoType),
+							After:  cty.StringVal("foo"),
 						},
 					},
 					wantAppliedChanges: []stackstate.AppliedChange{
@@ -190,6 +211,14 @@ func TestApply(t *testing.T) {
 						},
 						&stackstate.AppliedChangeOutputValue{
 							Addr:  mustStackOutputValue("value"),
+							Value: cty.StringVal("foo"),
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:    mustStackInputVariable("removed"),
+							Removed: true,
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("value"),
 							Value: cty.StringVal("foo"),
 						},
 					},
@@ -703,6 +732,10 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 				addrs.OutputValue{Name: "out"}: cty.StringVal("secret").Mark(marks.Sensitive),
 			},
 			InputVariables: make(map[addrs.InputVariable]cty.Value),
+		},
+		&stackstate.AppliedChangeInputVariable{
+			Addr:  mustStackInputVariable("id"),
+			Value: cty.StringVal("bb5cf32312ec"),
 		},
 	}
 
@@ -1639,6 +1672,10 @@ func TestApplyWithStateManipulation(t *testing.T) {
 					ProviderConfigAddr: mustDefaultRootProvider("testing"),
 					Schema:             stacks_testing_provider.TestingResourceSchema,
 				},
+				&stackstate.AppliedChangeInputVariable{
+					Addr:  mustStackInputVariable("id"),
+					Value: cty.StringVal("imported"),
+				},
 			},
 			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
 				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
@@ -1694,6 +1731,10 @@ func TestApplyWithStateManipulation(t *testing.T) {
 					},
 					ProviderConfigAddr: mustDefaultRootProvider("testing"),
 					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+				&stackstate.AppliedChangeInputVariable{
+					Addr:  mustStackInputVariable("id"),
+					Value: cty.StringVal("imported"),
 				},
 			},
 			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
@@ -2093,6 +2134,10 @@ func TestApplyWithChangedInputValues(t *testing.T) {
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
 			InputVariables:        make(map[addrs.InputVariable]cty.Value),
 		},
+		&stackstate.AppliedChangeInputVariable{
+			Addr:  mustStackInputVariable("id"),
+			Value: cty.NullVal(cty.String),
+		},
 		// no resources should have been created because the input variable was
 		// invalid.
 	}
@@ -2263,6 +2308,13 @@ func TestApplyAutomaticInputConversion(t *testing.T) {
 			ProviderConfigAddr: mustDefaultRootProvider("testing"),
 			Schema:             stacks_testing_provider.TestingResourceSchema,
 		},
+		&stackstate.AppliedChangeInputVariable{
+			Addr: mustStackInputVariable("input"),
+			Value: cty.MapVal(map[string]cty.Value{
+				"hello": cty.StringVal("hello"),
+				"world": cty.StringVal("world"),
+			}),
+		},
 	}
 
 	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
@@ -2399,6 +2451,14 @@ func TestApplyEphemeralInput(t *testing.T) {
 			},
 			ProviderConfigAddr: mustDefaultRootProvider("testing"),
 			Schema:             stacks_testing_provider.TestingResourceSchema,
+		},
+		&stackstate.AppliedChangeInputVariable{
+			Addr:  mustStackInputVariable("ephemeral"),
+			Value: cty.NilVal, // ephemeral
+		},
+		&stackstate.AppliedChangeInputVariable{
+			Addr:  mustStackInputVariable("input"),
+			Value: cty.StringVal("hello"),
 		},
 	}
 
@@ -2547,6 +2607,10 @@ func TestApplyMissingEphemeralInput(t *testing.T) {
 			ProviderConfigAddr: mustDefaultRootProvider("testing"),
 			Schema:             stacks_testing_provider.TestingResourceSchema,
 		},
+		&stackstate.AppliedChangeInputVariable{
+			Addr:  mustStackInputVariable("input"),
+			Value: cty.StringVal("hello"),
+		},
 	}
 
 	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
@@ -2676,6 +2740,14 @@ func TestApplyEphemeralInputWithDefault(t *testing.T) {
 			},
 			ProviderConfigAddr: mustDefaultRootProvider("testing"),
 			Schema:             stacks_testing_provider.TestingResourceSchema,
+		},
+		&stackstate.AppliedChangeInputVariable{
+			Addr:  mustStackInputVariable("ephemeral"),
+			Value: cty.NilVal, // ephemeral
+		},
+		&stackstate.AppliedChangeInputVariable{
+			Addr:  mustStackInputVariable("input"),
+			Value: cty.StringVal("hello"),
 		},
 	}
 
@@ -2905,8 +2977,10 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 			PlannedTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeRootInputValue{
-			Addr:  stackaddrs.InputVariable{Name: "input"},
-			Value: cty.StringVal("hello, world!"),
+			Addr:   stackaddrs.InputVariable{Name: "input"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.StringVal("hello, world!"),
 		},
 	}
 	if diff := cmp.Diff(wantPlanChanges, planChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
@@ -3000,6 +3074,10 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 		},
 		&stackstate.AppliedChangeOutputValue{
 			Addr:  stackaddrs.OutputValue{Name: "value"},
+			Value: cty.StringVal("hello, world!"),
+		},
+		&stackstate.AppliedChangeInputVariable{
+			Addr:  mustStackInputVariable("input"),
 			Value: cty.StringVal("hello, world!"),
 		},
 	}
@@ -3158,6 +3236,14 @@ func TestApplyFailedDependencyWithResourceInState(t *testing.T) {
 				Dependencies:       []addrs.ConfigResource{mustAbsResourceInstance("testing_failed_resource.data").ConfigResource()},
 			},
 			Schema: stacks_testing_provider.TestingResourceSchema,
+		},
+		&stackstate.AppliedChangeInputVariable{
+			Addr:  mustStackInputVariable("fail_apply"),
+			Value: cty.True,
+		},
+		&stackstate.AppliedChangeInputVariable{
+			Addr:  mustStackInputVariable("fail_plan"),
+			Value: cty.False,
 		},
 	}
 
@@ -3318,6 +3404,14 @@ func TestApplyManuallyRemovedResource(t *testing.T) {
 			ProviderConfigAddr:         mustDefaultRootProvider("testing"),
 			NewStateSrc:                nil, // We should be removing this from the state file.
 			Schema:                     nil,
+		},
+		&stackstate.AppliedChangeInputVariable{
+			Addr:  mustStackInputVariable("id"),
+			Value: cty.StringVal("foo"),
+		},
+		&stackstate.AppliedChangeInputVariable{
+			Addr:  mustStackInputVariable("input"),
+			Value: cty.StringVal("hello"),
 		},
 	}
 
@@ -3584,14 +3678,18 @@ func TestApply_RemovedBlocks(t *testing.T) {
 					PlannedTimestamp: fakePlanTimestamp,
 				},
 				&stackplan.PlannedChangeRootInputValue{
-					Addr: stackaddrs.InputVariable{Name: "input"},
-					Value: cty.SetVal([]cty.Value{
+					Addr:   stackaddrs.InputVariable{Name: "input"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After: cty.SetVal([]cty.Value{
 						cty.StringVal("added"),
 					}),
 				},
 				&stackplan.PlannedChangeRootInputValue{
-					Addr: stackaddrs.InputVariable{Name: "removed"},
-					Value: cty.SetVal([]cty.Value{
+					Addr:   stackaddrs.InputVariable{Name: "removed"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After: cty.SetVal([]cty.Value{
 						cty.StringVal("removed"),
 					}),
 				},
@@ -3634,6 +3732,18 @@ func TestApply_RemovedBlocks(t *testing.T) {
 					ProviderConfigAddr:         mustDefaultRootProvider("testing"),
 					NewStateSrc:                nil,
 					Schema:                     nil,
+				},
+				&stackstate.AppliedChangeInputVariable{
+					Addr: mustStackInputVariable("input"),
+					Value: cty.SetVal([]cty.Value{
+						cty.StringVal("added"),
+					}),
+				},
+				&stackstate.AppliedChangeInputVariable{
+					Addr: mustStackInputVariable("removed"),
+					Value: cty.SetVal([]cty.Value{
+						cty.StringVal("removed"),
+					}),
 				},
 			},
 			wantApplyDiags: []expectedDiagnostic{},
