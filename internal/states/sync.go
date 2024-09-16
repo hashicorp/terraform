@@ -365,6 +365,19 @@ func (s *SyncState) ForgetResourceInstanceAll(addr addrs.AbsResourceInstance) {
 	s.maybePruneModule(addr.Module)
 }
 
+// ForgetResourceInstanceCurrent removes the record of the current object with
+// the given address, if present. If not present, this is a no-op.
+func (s *SyncState) ForgetResourceInstanceCurrent(addr addrs.AbsResourceInstance) {
+	defer s.beginWrite()()
+
+	ms := s.state.Module(addr.Module)
+	if ms == nil {
+		return
+	}
+	ms.ForgetResourceInstanceCurrent(addr.Resource)
+	s.maybePruneModule(addr.Module)
+}
+
 // ForgetResourceInstanceDeposed removes the record of the deposed object with
 // the given address and key, if present. If not present, this is a no-op.
 func (s *SyncState) ForgetResourceInstanceDeposed(addr addrs.AbsResourceInstance, key DeposedKey) {
