@@ -76,9 +76,7 @@ func (n *NodeForgetResourceInstance) Execute(ctx EvalContext, op walkOperation) 
 		return diags
 	}
 
-	// TODO: Forget single resource instance
-
-	ctx.State().ForgetResourceInstanceAll(n.Addr)
+	ctx.State().ForgetResourceInstanceCurrent(n.Addr)
 
 	diags = diags.Append(updateStateHook(ctx))
 	return diags
