@@ -210,8 +210,19 @@ func TestResourcesCancellation(t *testing.T) {
 		Impl: testB,
 	})
 
-	// FIXME: we need a sleep because the renew goroutines are not synchronized anywhere
-	time.Sleep(100 * time.Millisecond)
+	// Use the internal WaitGroup to catch when the renew goroutines have exited from the cancellation.
+	cancelled := make(chan int)
+	go func() {
+		resources.wg.Wait()
+		close(cancelled)
+	}()
+	select {
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for cancellation")
+	case <-cancelled:
+		// this should be almost immediate, but we'll wait for a bit just in
+		// case of crazy slow integration test hosts
+	}
 
 	// ephemB has no call for renew, so shouldn't know about the cancel yet
 	_, live := resources.InstanceValue(ephemB)
@@ -234,7 +245,9 @@ func TestResourcesCancellation(t *testing.T) {
 
 	// close all instances, which should indicate the values are no longer "live"
 	diags := resources.CloseInstances(ctx, ephemA0.ConfigResource())
-	// FIXME: error string matching
+	if len(diags) != 2 {
+		t.Fatalf("expected 2 error diagnostics, got:\n%s", diags.ErrWithWarnings())
+	}
 	diagStr := diags.Err().Error()
 	if strings.Count(diagStr, "context canceled") != 2 {
 		t.Fatal("expected 2 context canceled errors, got:\n", diagStr)
