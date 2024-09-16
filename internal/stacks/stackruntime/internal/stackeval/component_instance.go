@@ -239,6 +239,9 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					}
 				}
 
+				// TODO: Remove from here if we want to implement the
+				//  workaround.
+
 				// We're also going to look through any upstream components
 				// that are being removed to make sure they are removed first.
 				for _, depAddr := range c.PlanPrevDependents(ctx).Elems() {

@@ -249,6 +249,12 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 			// We unmark the config before making the RPC call, as marks cannot
 			// be serialized.
 			unmarkedArgs, _ := p.ProviderArgs(ctx, phase).UnmarkDeep()
+			if unmarkedArgs == cty.NilVal {
+				// Then we had an error previously, so we'll rely on that error
+				// being exposed elsewhere.
+				return stubs.ErroredProvider(), diags
+			}
+
 			resp := client.ConfigureProvider(providers.ConfigureProviderRequest{
 				TerraformVersion: version.SemVer.String(),
 				Config:           unmarkedArgs,
