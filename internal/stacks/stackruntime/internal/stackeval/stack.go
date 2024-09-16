@@ -753,9 +753,8 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 		))
 	}
 
-	// For a root stack we'll return a PlannedChange for each of the output
-	// values, so the caller can see how these would change if this plan is
-	// applied.
+	// Now, we'll process all the output values for this stack.
+
 	afterVal := s.ResultValue(ctx, PlanPhase)
 	if !afterVal.Type().IsObjectType() || afterVal.IsNull() || !afterVal.IsKnown() {
 		// None of these situations should be possible if Stack.ResultValue is
@@ -801,6 +800,26 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 		})
 	}
 
+	// Finally, we'll look at the input variables we have in state and delete
+	// any that don't appear in the configuration any more.
+
+	for addr, variable := range s.main.PlanPrevState().RootInputVariables() {
+		if s.InputVariable(ctx, addr) != nil {
+			// Then this input variable is in the configuration, and will
+			// be processed independently.
+			continue
+		}
+
+		// Otherwise, we'll add a delete notification for this root input
+		// variable.
+		changes = append(changes, &stackplan.PlannedChangeRootInputValue{
+			Addr:   addr,
+			Action: plans.Delete,
+			Before: variable,
+			After:  cty.NullVal(cty.DynamicPseudoType),
+		})
+	}
+
 	return changes, diags
 }
 
@@ -834,6 +853,13 @@ func (s *Stack) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfd
 		changes = append(changes, &stackstate.AppliedChangeOutputValue{
 			Addr:  value,
 			Value: cty.NilVal,
+		})
+	}
+
+	for _, value := range s.main.PlanBeingApplied().DeletedInputVariables.Elems() {
+		changes = append(changes, &stackstate.AppliedChangeInputVariable{
+			Addr:    value,
+			Removed: true,
 		})
 	}
 

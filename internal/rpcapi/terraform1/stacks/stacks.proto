@@ -422,7 +422,7 @@ message PlannedChange {
       OutputValue output_value_planned = 3;
       bool plan_applyable = 4;
       ResourceInstanceDeferred resource_instance_deferred = 5;
-      InputVariableDuringApply apply_time_input_variable = 6;
+      InputVariable input_variable_planned = 6;
     }
   }
 
@@ -516,14 +516,14 @@ message PlannedChange {
     Deferred deferred = 2;
   }
 
-  // Describes an input variable that must have a value provided
-  // during the apply phase.
-  //
-  // This currently arises only when the variable was declared
-  // as ephemeral and was set to a non-null value during the planning
-  // phase.
-  message InputVariableDuringApply {
+  // Note: this is only for input variables from the topmost
+  // stack configuration, because all other input variables are
+  // internal to the configuration and not part of its public API.
+  message InputVariable {
     string name = 1;
+    repeated ChangeType actions = 2;
+    DynamicValueChange values = 3;
+    bool required_during_apply = 4;
   }
 }
 
@@ -621,6 +621,7 @@ message AppliedChange {
       Nothing moved = 6; // explicitly represents the absence of a description
       ResourceInstance resource_instance = 2;
       OutputValue output_value = 3;
+      InputVariable input_variable = 7;
       ComponentInstance component_instance = 5;
     }
     // Field number 20000 is reserved as a field number that will
@@ -664,6 +665,10 @@ message AppliedChange {
     map<string,DynamicValue> output_values = 2;
   }
   message OutputValue {
+    string name = 1;
+    DynamicValue new_value = 2;
+  }
+  message InputVariable {
     string name = 1;
     DynamicValue new_value = 2;
   }

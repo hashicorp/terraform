@@ -23,6 +23,7 @@ import (
 type State struct {
 	componentInstances collections.Map[stackaddrs.AbsComponentInstance, *componentInstanceState]
 	outputs            map[stackaddrs.OutputValue]cty.Value
+	inputs             map[stackaddrs.InputVariable]cty.Value
 
 	// discardUnsupportedKeys is the set of state keys that we encountered
 	// during decoding which are of types that are not supported by this
@@ -40,9 +41,31 @@ func NewState() *State {
 	return &State{
 		componentInstances:     collections.NewMap[stackaddrs.AbsComponentInstance, *componentInstanceState](),
 		outputs:                make(map[stackaddrs.OutputValue]cty.Value),
+		inputs:                 make(map[stackaddrs.InputVariable]cty.Value),
 		discardUnsupportedKeys: statekeys.NewKeySet(),
 		inputRaw:               nil,
 	}
+}
+
+// RootInputVariables returns the values for the input variables currently in
+// the state. An address that is in the map and maps to cty.NilVal is an
+// ephemeral input, so it was present during the last operation but the value
+// in unknown. Compared to an input variable not in the map at all, which
+// indicates a new input variable that wasn't in the configuration during the
+// last operation.
+func (s *State) RootInputVariables() map[stackaddrs.InputVariable]cty.Value {
+	return s.inputs
+}
+
+// RootInputVariable returns the input variable defined at the given address.
+// If the second return value is true, then the value is present but is
+// ephemeral and not known. If the first returned value is cty.NilVal and the
+// second is false then the value isn't present in the state.
+func (s *State) RootInputVariable(addr stackaddrs.InputVariable) (cty.Value, bool) {
+	if input, exists := s.inputs[addr]; exists {
+		return input, input == cty.NilVal
+	}
+	return cty.NilVal, false
 }
 
 func (s *State) RootOutputValues() map[stackaddrs.OutputValue]cty.Value {
@@ -272,6 +295,10 @@ func (s *State) InputRaw() map[string]*anypb.Any {
 
 func (s *State) addOutputValue(addr stackaddrs.OutputValue, value cty.Value) {
 	s.outputs[addr] = value
+}
+
+func (s *State) addInputVariable(addr stackaddrs.InputVariable, value cty.Value) {
+	s.inputs[addr] = value
 }
 
 func (s *State) ensureComponentInstanceState(addr stackaddrs.AbsComponentInstance) *componentInstanceState {

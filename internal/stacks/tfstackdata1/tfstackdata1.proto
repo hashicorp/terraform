@@ -81,7 +81,12 @@ message PlanRootInputValue {
     bool required_on_apply = 3;
 }
 
-// Records that a root output should be deleted by the plan operation.
+// Records that a root input variable should be deleted by the apply operation.
+message DeletedRootInputVariable {
+    string name = 1;
+}
+
+// Records that a root output should be deleted by the apply operation.
 message DeletedRootOutputValue {
     string name = 1;
 }

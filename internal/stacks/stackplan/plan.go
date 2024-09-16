@@ -44,17 +44,23 @@ type Plan struct {
 	// sure that the actions taken can be consistent with what was planned.
 	RootInputValues map[stackaddrs.InputVariable]cty.Value
 
+	// ApplyTimeInputVariables are the names of the root input variable
+	// values whose values must be re-supplied during the apply phase,
+	// instead of being persisted in [Plan.RootInputValues].
+	ApplyTimeInputVariables collections.Set[stackaddrs.InputVariable]
+
+	// DeletedInputVariables tracks the set of input variables that are being
+	// deleted by this plan. The apply operation will miss any values
+	// that are not defined in the configuration, but should still emit
+	// deletion events to remove them from the state.
+	DeletedInputVariables collections.Set[stackaddrs.InputVariable]
+
 	// DeletedOutputValues tracks the set of output values that are being
 	// deleted by this plan. The apply operation will miss any output values
 	// that are not defined in the configuration, but should still emit
 	// deletion events to remove them from the state. Output values not being
 	// deleted will be recomputed during the apply so are not needed.
 	DeletedOutputValues collections.Set[stackaddrs.OutputValue]
-
-	// ApplyTimeInputVariables are the names of the root input variable
-	// values whose values must be re-supplied during the apply phase,
-	// instead of being persisted in [Plan.RootInputValues].
-	ApplyTimeInputVariables collections.Set[stackaddrs.InputVariable]
 
 	// Components contains the separate plans for each of the compoonent
 	// instances defined in the overall stack configuration, including any

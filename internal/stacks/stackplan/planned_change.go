@@ -5,7 +5,6 @@ package stackplan
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/go-version"
@@ -53,10 +52,14 @@ type PlannedChange interface {
 type PlannedChangeRootInputValue struct {
 	Addr stackaddrs.InputVariable
 
-	// Value is the value we used for the variable during planning, or
-	// [cty.NilVal] if the variable was declared as ephemeral and therefore
-	// its value must not be persisted between phases.
-	Value cty.Value
+	// Action is the change being applied to this input variable.
+	Action plans.Action
+
+	// Before and After provide the values for before and after this plan.
+	// Both could be cty.NilValue if the before or after was ephemeral at the
+	// time it was set. Before will be cty.NullVal if Action is plans.Create.
+	Before cty.Value
+	After  cty.Value
 
 	// RequiredOnApply is true if a non-null value for this variable
 	// must be supplied during the apply phase.
@@ -77,84 +80,66 @@ var _ PlannedChange = (*PlannedChangeRootInputValue)(nil)
 
 // PlannedChangeProto implements PlannedChange.
 func (pc *PlannedChangeRootInputValue) PlannedChangeProto() (*stacks.PlannedChange, error) {
-	// We use cty.DynamicPseudoType here so that we'll save both the
-	// value _and_ its dynamic type in the plan, so we can recover
-	// exactly the same value later.
-	var ppdv *tfstackdata1.DynamicValue
-	if pc.Value != cty.NilVal {
-
-		value, paths := pc.Value.UnmarkDeepWithPaths()
-		var ps []*planproto.Path
-		for _, path := range paths {
-			var unknownMarks []string
-			for mark := range path.Marks {
-				if mark == marks.Sensitive {
-					path, err := planproto.NewPath(path.Path)
-					if err != nil {
-						return nil, err
-					}
-					ps = append(ps, path)
-					continue
-				}
-
-				// otherwise, we found a mark we shouldn't have
-				unknownMarks = append(unknownMarks, fmt.Sprintf("%v", mark))
-			}
-
-			if len(unknownMarks) > 0 {
-				// This shouldn't really happen, because the only marks
-				// we should have found are the sensitive mark, but we
-				// check just in case.
-				//
-				// The only other mark we support is ephemeral, but we shouldn't
-				// have any ephemeral values here as they shouldn't be exposed
-				// via the plan anyway.
-				return nil, fmt.Errorf("unexpected marks found on path: %v", strings.Join(unknownMarks, ", "))
-			}
-		}
-
-		dv, err := plans.NewDynamicValue(value, cty.DynamicPseudoType)
-		if err != nil {
-			return nil, fmt.Errorf("can't encode value for %s: %w", pc.Addr, err)
-		}
-		ppdv = &tfstackdata1.DynamicValue{
-			Value: &planproto.DynamicValue{
-				Msgpack: dv,
-			},
-			SensitivePaths: ps,
-		}
-
-	}
-
-	var raw anypb.Any
-	err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanRootInputValue{
-		Name:            pc.Addr.Name,
-		Value:           ppdv,
-		RequiredOnApply: pc.RequiredOnApply,
-	}, proto.MarshalOptions{})
+	protoChangeTypes, err := stacks.ChangeTypesForPlanAction(pc.Action)
 	if err != nil {
 		return nil, err
 	}
 
-	var descs []*stacks.PlannedChange_ChangeDescription
-	if pc.RequiredOnApply {
-		// We only include a change description for the subset of variables
-		// which must be re-supplied during apply. This allows an apply-time
-		// caller to know which subset of variables it needs to provide.
-		descs = []*stacks.PlannedChange_ChangeDescription{
-			{
-				Description: &stacks.PlannedChange_ChangeDescription_ApplyTimeInputVariable{
-					ApplyTimeInputVariable: &stacks.PlannedChange_InputVariableDuringApply{
-						Name: pc.Addr.Name,
-					},
-				},
-			},
+	var raw anypb.Any
+	if pc.Action == plans.Delete {
+		if err := anypb.MarshalFrom(&raw, &tfstackdata1.DeletedRootInputVariable{
+			Name: pc.Addr.Name,
+		}, proto.MarshalOptions{}); err != nil {
+			return nil, fmt.Errorf("failed to encode raw state for %s: %w", pc.Addr, err)
+		}
+	} else {
+		var ppdv *tfstackdata1.DynamicValue
+		if pc.After != cty.NilVal {
+			ppdv, err = tfstackdata1.DynamicValueToTFStackData1(pc.After, cty.DynamicPseudoType)
+			if err != nil {
+				return nil, fmt.Errorf("failed to encode raw state for %s: %w", pc.Addr, err)
+			}
+		}
+		if err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanRootInputValue{
+			Name:            pc.Addr.Name,
+			Value:           ppdv,
+			RequiredOnApply: pc.RequiredOnApply,
+		}, proto.MarshalOptions{}); err != nil {
+			return nil, err
+		}
+	}
+
+	var before, after *stacks.DynamicValue
+	if pc.Before != cty.NilVal {
+		before, err = stacks.ToDynamicValue(pc.Before, cty.DynamicPseudoType)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode before planned input variable %s: %w", pc.Addr, err)
+		}
+	}
+	if pc.After != cty.NilVal {
+		after, err = stacks.ToDynamicValue(pc.After, cty.DynamicPseudoType)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode after planned input variable %s: %w", pc.Addr, err)
 		}
 	}
 
 	return &stacks.PlannedChange{
-		Raw:          []*anypb.Any{&raw},
-		Descriptions: descs,
+		Raw: []*anypb.Any{&raw},
+		Descriptions: []*stacks.PlannedChange_ChangeDescription{
+			{
+				Description: &stacks.PlannedChange_ChangeDescription_InputVariablePlanned{
+					InputVariablePlanned: &stacks.PlannedChange_InputVariable{
+						Name:    pc.Addr.Name,
+						Actions: protoChangeTypes,
+						Values: &stacks.DynamicValueChange{
+							Old: before,
+							New: after,
+						},
+						RequiredDuringApply: pc.RequiredOnApply,
+					},
+				},
+			},
+		},
 	}, nil
 }
 
@@ -696,7 +681,6 @@ func (pc *PlannedChangeOutputValue) PlannedChangeProto() (*stacks.PlannedChange,
 					OutputValuePlanned: &stacks.PlannedChange_OutputValue{
 						Name:    pc.Addr.Name,
 						Actions: protoChangeTypes,
-
 						Values: &stacks.DynamicValueChange{
 							Old: before,
 							New: after,
