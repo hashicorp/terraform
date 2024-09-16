@@ -242,11 +242,29 @@ func handleProtoMsg(key statekeys.Key, msg protoreflect.ProtoMessage, state *Sta
 	case statekeys.ResourceInstanceObject:
 		return handleResourceInstanceObjectMsg(key, msg, state)
 
+	case statekeys.Output:
+		return handleOutputMsg(key, msg, state)
+
 	default:
 		// Should not get here: the above should be exhaustive for all
 		// possible key types.
 		panic(fmt.Sprintf("unsupported state key type %T", key))
 	}
+}
+
+func handleOutputMsg(key statekeys.Output, msg protoreflect.ProtoMessage, state *State) error {
+	outputState, ok := msg.(*tfstackdata1.DynamicValue)
+	if !ok {
+		return fmt.Errorf("unsupported message type %T for %s state", msg, key.OutputAddr)
+	}
+
+	value, err := tfstackdata1.DynamicValueFromTFStackData1(outputState, cty.DynamicPseudoType)
+	if err != nil {
+		return fmt.Errorf("failed to decode %s: %w", key.OutputAddr, err)
+	}
+
+	state.addOutputValue(key.OutputAddr, value)
+	return nil
 }
 
 func handleComponentInstanceMsg(key statekeys.ComponentInstance, msg protoreflect.ProtoMessage, state *State) error {
