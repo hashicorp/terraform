@@ -1,0 +1,50 @@
+---
+page_title: Collaborate with Terraform
+description: Ease collaboration and coordinate execution across your team.
+---
+
+# Collaborate with Terraform
+
+Multiple developers working on the same codebase introduces a new set of challenges, but solutions such as remote state backends help ease collaboration and coordinate execution.
+
+## Use remote state storage
+
+As more team members work on Terraform configuration, you should implement remote state storage to support collaboration. HCP Terraform and remote backends implement several features to help you safely manage your Terraform state:
+
+- **Storage:** Remote state storage lets you manage infrastructure collaboratively and securely. Different state stores may also support additional features for state management, such as encryption, versioning, automated backups, redundancy, and more.
+- **Locking:** Some remote state storage options support [state locking](/terraform/language/state/locking). State locking prevents concurrent Terraform operations on single state files. 
+- **Execution:** HCP Terraform and Terraform Enterprise support executing Terraform operations in stable, remote environments. 
+
+Since state files may contain sensitive data, refer to your backend documentation and, if supported, use [state encryption](/well-architected-framework/security/security-sensitive-data). [HCP Terraform and Terraform Enterprise](/terraform/cloud-docs/architectural-details/data-security#data-security) both automatically encrypt state, and [AWS, GCP, and Azure](/well-architected-framework/security/security-sensitive-data#storing-terraform-state) backends can implement encryption as well. 
+
+As your team grows, you may run into the risk of concurrent operations on state files. If supported by your remote storage solution, use [state locking](/terraform/language/state/locking) to prevent unpredictable outcomes or corrupted data. [HCP Terraform and Terraform Enterprise](/terraform/cli/cloud/settings) support state locking by default, but other state storage implementations require additional configuration. For example, the [AWS S3 remote backend](/terraform/language/backend/s3) requires that a [DynamoDB table](/terraform/language/backend/s3#dynamodb-table-permissions) for state locking.
+
+|                              | Storage |    Locking   | Execution |
+|------------------------------|---------|--------------|-----------|
+| HCP Terraform / Enterprise |   Yes   |     Yes      |    Yes    | 
+| Amazon S3                    |   Yes   | via DynamoDB |    No     |
+| Azure Storage                |   Yes   |     Yes      |    No     |
+| Google Cloud Storage         |   Yes   |     Yes      |    No     |
+
+[Get started with HCP Terraform](/terraform/tutorials/cloud-get-started) and learn how to [securely store your Terraform state](/well-architected-framework/security/security-sensitive-data#storing-terraform-state).
+
+## Implement code reviews
+
+Implement good code practices for your Terraform configuration, including using pull requests for code changes and performing proper code reviews.
+Code reviews can prevent introducing errors into your infrastructure configuration. They also help team members share their knowledge of the code base and enforce coding standards.
+
+Use the integrations offered by your version control system to help with your code reviews. For example, HCP Terraform's VCS integration [generates speculative plans](/terraform/cloud-docs/run/ui#speculative-plans-on-pull-requests) for each pull request, showing the exact changes that Terraform will make to your infrastructure.
+
+## Automate deployments with CI/CD
+
+A CI/CD pipeline offers a consistent process for  shipping new features and fixes. By storing your Terraform configuration in version control, you define a single source of truth for your infrastructure configuration and can automate your deployments. You can configure a CI pipeline to automatically start a Terraform plan and apply operation for any changes to your code.
+
+Terraform [integrates](/terraform/tutorials/automation/automate-terraform) with many automation solutions. If you do not have an existing CI/CD workflow, HashiCorp's [Setup Terraform GitHub action](/terraform/tutorials/automation/github-actions) sets up and configures the Terraform CLI in your Github Actions workflow.
+
+## Next steps
+
+As Terraform usage expands across your organization, you will need to decide how to define boundaries of infrastructure ownership.
+
+You will also need to decide on a cloud deployment strategy based on your organization's practices and needs. Possible approaches include using a single account in a single cloud provider, a hybrid or multi-cloud approach, or to divide up resources across accounts by environment. Regardless of your implementation, Terraform lets you manage your infrastructure with a consistent workflow. 
+
+[Learn how to scale Terraform](/terraform/intro/phases/scale).

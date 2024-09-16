@@ -1,0 +1,24 @@
+---
+page_title: CLI Configuration - Terraform CLI
+description: >-
+  Find documentation about the CLI config file and customizing Terraform
+  environment variables.
+---
+
+# CLI Configuration
+
+Terraform CLI can be configured with some global settings, which are separate
+from any Terraform configuration and which apply across all working directories.
+
+We've designed Terraform such that an average user running Terraform CLI
+interactively will not need to interact with any of these settings. As a result,
+most of the global settings relate to advanced or automated workflows, or
+unusual environmental conditions like running Terraform on an airgapped
+instance.
+
+- The [CLI config file](/terraform/cli/config/config-file) configures provider
+  installation and security features.
+- Several [environment variables](/terraform/cli/config/environment-variables) can
+  configure Terraform's inputs and outputs; this includes some alternate ways to
+  provide information that is usually passed on the command line or read from
+  the state of the shell.

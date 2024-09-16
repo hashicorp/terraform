@@ -1,0 +1,89 @@
+---
+page_title: 'Command: 0.13upgrade'
+description: >-
+  The 0.13upgrade subcommand updates existing configurations to use the new
+  provider source features from Terraform 0.13.
+---
+
+# Command: 0.13upgrade
+
+The `terraform 0.13upgrade` command updates existing configuration to add an
+explicit `source` attribute for each provider used in a given module. The
+provider source settings are stored in a `required_providers` block.
+
+-> **This command is available only in Terraform v0.13 releases.** For more information, see [the Terraform v0.13 upgrade guide](/terraform/language/v1.1.x/upgrade-guides/0-13).
+
+## Usage
+
+Usage: `terraform 0.13upgrade [options] [dir]`
+
+The primary purpose of the `0.13upgrade` command is to determine which
+providers are in use for a module, detect the source address for those
+providers where possible, and record this information in a
+[`required_providers` block][required-providers].
+
+[required-providers]: /terraform/language/providers/requirements
+
+~> Note: the command ignores `.tf.json` files and override files in the module.
+
+If the module already has a `required_providers` block, the command updates it
+in-place. Otherwise, a new block is added to the `versions.tf` file.
+
+By default, `0.13upgrade` changes configuration files in the current working
+directory. However, you can provide an explicit path to another directory if
+desired, which may be useful for automating migrations of several modules in
+the same repository.
+
+When run with no other options, the command will first explain what it is
+going to do and prompt for confirmation:
+
+```
+$ terraform 0.13upgrade
+
+This command will update the configuration files in the given directory to use
+the new provider source features from Terraform v0.13. It will also highlight
+any providers for which the source cannot be detected, and advise how to
+proceed.
+
+We recommend using this command in a clean version control work tree, so that
+you can easily see the proposed changes as a diff against the latest commit.
+If you have uncommited changes already present, we recommend aborting this
+command and dealing with them before running this command again.
+
+Would you like to upgrade the module in the current directory?
+  Only 'yes' will be accepted to confirm.
+
+  Enter a value: yes
+```
+
+We recommend running this command with a clean version control work tree so
+that you can use VCS tools to review the proposed changes, including any
+`TF-UPGRADE-TODO` comments, and make any revisions required before committing
+the change.
+
+There is one command-line option:
+
+* `-yes` - Skip the initial introduction messages and interactive confirmation.
+  Use this when running the command in batch from a script.
+
+## Batch Usage
+
+After you've experimented with the `0.13upgrade` command in some confined
+situations, if you have a repository containing multiple modules you may
+wish to batch-upgrade them all and review them together. Recursive upgrades
+are not supported by the tool itself, but if you are on a Unix-style system
+you can achieve this using the `find` command as follows:
+
+```
+$ find . -name '*.tf' | xargs -n1 dirname | uniq | xargs -n1 terraform 0.13upgrade -yes
+```
+
+On a Windows system with PowerShell, you can use this command:
+
+```
+Get-Childitem -Recurse -Include *.tf | Split-Path | `
+Select-Object -Unique | ForEach-Object { terraform 0.13upgrade -yes $_.FullName }
+```
+
+Note that the above commands include the `-yes` option to override the
+interactive prompt, so be sure you have a clean work tree before running it.

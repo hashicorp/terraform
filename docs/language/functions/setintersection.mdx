@@ -1,0 +1,75 @@
+---
+page_title: setintersection function reference - Functions - Configuration Language
+description: |-
+  The setintersection function takes multiple arrays and produces a single array
+  containing only the elements that all of the given arrays have in common.
+---
+
+# `setintersection` function reference
+
+This topic provides reference information about the `setintersection` function,
+which computes the intersection of the specified sets. 
+
+## Introduction
+
+The `setintersection` function takes multiple sets and produces a single set
+containing only the elements that all of the given sets have in common.
+In other words, `setintersection` computes the intersection of the sets. 
+Refer to Wikipedia's [Intersection (set
+theory)](https://en.wikipedia.org/wiki/Intersection_\(set_theory\)) article
+for a mathematical explanantion of set theory intersection. 
+
+## Syntax
+
+Use the `setintersection` function with the following syntax:
+
+```hcl
+setintersection(sets...)
+```
+
+Replace `sets...` with a comma-delimited list of sets such as `["a","b"], ["a","c","g"]`. The elements of
+the different sets do not have to be the same type. 
+
+The `setintersection` result is an unordered set.
+
+## Example use cases
+
+This example passes in sets of strings and returns a set with one element.
+
+```hcl
+> setintersection(["a", "b"], ["b", "c"], ["b", "d"])
+[
+  "b",
+]
+```
+
+This example passes in number sets of different sizes and returns a set with two elements.
+
+```hcl
+> setintersection([3,3.3,4], [4,3.3,65,99], [4.0,3.3])
+toset([
+  3.3,
+  4,
+])
+```
+
+This examples pass in sets of different lengths and element types. 
+The result is a set of two string elements.
+
+```hcl
+> setintersection(["bob","jane",3], ["jane",3,"ajax",10], ["3","jane",26,"nomad"])
+toset([
+  "3",
+  "jane",
+])
+```
+
+## Related Functions
+
+* [`contains`](/terraform/language/functions/contains) tests whether a given list or set contains
+  a given element value.
+* [`setproduct`](/terraform/language/functions/setproduct) computes the _Cartesian product_ of multiple
+  sets.
+* [`setsubtract`](/terraform/language/functions/setsubtract) computes the _relative complement_ of two sets
+* [`setunion`](/terraform/language/functions/setunion) computes the _union_ of
+  multiple sets.

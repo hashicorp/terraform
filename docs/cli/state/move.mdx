@@ -1,0 +1,47 @@
+---
+page_title: Moving Resources - Terraform CLI
+description: >-
+  Commands that allow you to manage the way that resources are tracked in state.
+  They are helpful when you move or change resources.
+---
+
+# Moving Resources
+
+Terraform's state associates each real-world object with a configured resource
+at a specific [resource address](/terraform/cli/state/resource-addressing). This
+is seamless when changing a resource's attributes, but Terraform will lose track
+of a resource if you change its name, move it to a different module, or change
+its provider.
+
+Usually that's fine: Terraform will destroy the old resource, replace it with a
+new one (using the new resource address), and update any resources that rely on
+its attributes.
+
+In cases where it's important to preserve an existing infrastructure object, you
+can explicitly tell Terraform to associate it with a different configured
+resource.
+
+For most cases we recommend using
+[the Terraform language's refactoring features](/terraform/language/modules/develop/refactoring)
+to document in your module exactly how the resource names have changed over
+time. Terraform reacts to this information automatically during planning, so users of your module do not need to take any unusual extra steps.
+
+> **Hands On:** Try the [Use Configuration to Move Resources](/terraform/tutorials/configuration-language/move-config) tutorial.
+
+There are some other situations which require explicit state modifications,
+though. For those, consider the following Terraform commands:
+
+- [The `terraform state mv` command](/terraform/cli/commands/state/mv) changes
+  which resource address in your configuration is associated with a particular
+  real-world object. Use this to preserve an object when renaming a resource, or
+  when moving a resource into or out of a child module.
+
+- [The `terraform state rm` command](/terraform/cli/commands/state/rm) tells
+  Terraform to stop managing a resource as part of the current working directory
+  and workspace, _without_ destroying the corresponding real-world object. (You
+  can later use `terraform import` to start managing that resource in a
+  different workspace or a different Terraform configuration.)
+
+- [The `terraform state replace-provider` command](/terraform/cli/commands/state/replace-provider)
+  transfers existing resources to a new provider without requiring them to be
+  re-created.

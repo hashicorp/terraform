@@ -1,0 +1,273 @@
+---
+page_title: Provider Network Mirror Protocol
+description: |-
+  The provider network mirror protocol is implemented by a server intending
+  to provide a mirror or read-through caching proxy for Terraform providers,
+  as an alternative distribution source from the provider's origin provider
+  registry.
+---
+
+# Provider Network Mirror Protocol
+
+-> Provider network mirrors are supported only in Terraform CLI v0.13.2 and later. Prior versions do not support this protocol.
+
+The provider network mirror protocol is an optional protocol which you can
+implement to provide an alternative installation source for Terraform providers,
+regardless of their origin registries.
+
+Terraform uses network mirrors only if you activate them explicitly in
+[the CLI configuration's `provider_installation` block](/terraform/cli/config/config-file#provider-installation).
+When enabled, a network mirror can serve providers belonging to any registry
+hostname, which can allow an organization to serve all of the Terraform
+providers they intend to use from an internal server, rather than from each
+provider's origin registry.
+
+This is _not_ the protocol that should be implemented by a host intending to
+serve as an origin registry for Terraform Providers. To provide an origin
+registry (whose hostname would then be included in the source addresses of the
+providers it hosts), implement
+[the provider registry protocol](/terraform/internals/provider-registry-protocol)
+instead.
+
+## Provider Addresses
+
+Each Terraform provider has an associated address which uniquely identifies it
+within Terraform. A provider address has the syntax `hostname/namespace/type`,
+which is described in more detail in
+[the Provider Requirements documentation](/terraform/language/providers/requirements).
+
+By default, the `hostname` portion of a provider address serves both as part
+of its unique identifier _and_ as the location of the registry to retrieve it
+from. However, when you configure Terraform to install providers from a network
+mirror, the `hostname` serves _only_ as an identifier and no longer as
+an installation source. A provider mirror can therefore serve providers
+belonging to a variety of different provider registry hostnames, including
+providers from the public Terraform Registry at `registry.terraform.io`, from a
+single server.
+
+In the relative URL patterns later in this document, the placeholder `:hostname`
+refers to the hostname from the address of the provider being requested, not
+the hostname where the provider network mirror is deployed.
+
+## Protocol Base URL
+
+Most Terraform-native services use
+[the remote service discovery protocol](/terraform/internals/remote-service-discovery) so
+that the physical location of the endpoints can potentially be separated from
+the hostname used in identifiers. The Provider Network Mirror protocol does
+_not_ use the service discovery indirection, because a network mirror location
+is only a physical location and is never used as part of the identifier of a
+dependency in a Terraform configuration.
+
+Instead, the provider installation section of the CLI configuration accepts
+a base URL directly. The given URL must use the scheme `https:`, and should
+end with a trailing slash so that the relative URLs of the individual operation
+endpoints will be resolved beneath it.
+
+```hcl
+provider_installation {
+  network_mirror {
+    url = "https://terraform.example.com/providers/"
+  }
+}
+```
+
+Terraform uses the base URL only as a stem to resolve the operation endpoint
+URLs against, and so it will never access the base URL directly. You can
+therefore, if desired, publish human-readable usage documentation for your
+network mirror at that URL.
+
+The following sections describe the various operations that a provider
+network mirror server must implement to be compatible with Terraform CLI's
+provider installer. The indicated URLs are all relative to the given base URL,
+as described above.
+
+The URLs are shown with the convention that a path portion with a colon `:`
+prefix is a placeholder for a dynamically-selected value, while all other
+path portions are literal. For example, in `:hostname/:namespace/:type/index.json`,
+the first three path portions are placeholders while the third is literally
+the string "index.json".
+
+The example requests in the following sections will assume the example mirror
+base URL from the above CLI configuration example.
+
+### Authentication
+
+If the CLI configuration includes
+[credentials](/terraform/cli/config/config-file#credentials) for the hostname
+given in the network mirror base URL, Terraform will include those credentials
+in its requests for operations described below.
+
+If the given URL uses a non-standard port number (other than 443) then the
+credentials must be associated with a hostname that includes the port number,
+such as `terraform.example.com:8443`.
+
+Terraform does _not_ send credentials when retrieving the archives whose
+URLs are given in the "List Available Installation Packages" response below.
+If a particular mirror considers the distribution packages themselves to be
+sensitive then it must use cryptographically-secure, user-specific, and
+time-limited URLs in the metadata response. Strategies for doing so are out
+of scope of this protocol documentation.
+
+## List Available Versions
+
+This operation determines which versions are currently available for a
+particular provider.
+
+| Method | Path                                    | Produces           |
+| ------ | --------------------------------------- | ------------------ |
+| `GET`  | `:hostname/:namespace/:type/index.json` | `application/json` |
+
+### Parameters
+
+* `hostname` (required): the hostname portion of the address of the requested
+  provider.
+* `namespace` (required): the namespace portion of the address of the requested
+  provider.
+* `type` (required): the type portion of the address of the requested provider.
+
+### Sample Request
+
+```
+curl 'https://terraform.example.com/providers/registry.terraform.io/hashicorp/random/index.json'
+```
+
+### Sample Response
+
+```json
+{
+  "versions": {
+    "2.0.0": {},
+    "2.0.1": {}
+  }
+}
+```
+
+### Response Properties
+
+A successful result is a JSON object containing a single property `versions`,
+which must be a JSON object.
+
+Each of the property names of the `versions` object represents an available
+version number. The property values must be objects, but no properties are defined for those objects. We recommend leaving those objects empty for forward compatibility.
+
+Return `404 Not Found` to signal that the mirror does not have a provider
+with the given address.
+
+## List Available Installation Packages
+
+This operation returns download URLs and associated metadata for the
+distribution packages for a particular version of a provider.
+
+Each distribution package is associated with a particular operating system
+and architecture. A network mirror may host only a subset of the available
+packages for a provider version, if the users of the mirror are known to all
+use only a subset of the target platforms that Terraform supports.
+
+Terraform CLI uses this operation after it has selected the newest available
+version matching the configured version constraints, in order to find a zip
+archive containing the plugin itself.
+
+| Method | Path                                       | Produces           |
+| ------ | ------------------------------------------ | ------------------ |
+| `GET`  | `:hostname/:namespace/:type/:version.json` | `application/json` |
+
+### Parameters
+
+* `hostname` (required): the hostname portion of the address of the requested
+  provider.
+* `namespace` (required): the namespace portion of the address of the requested
+  provider.
+* `type` (required): the type portion of the address of the requested provider.
+* `version` (required): the version selected to download. This will exactly
+  match one of the version strings returned from a previous call to
+  [List Available Versions](#list-available-versions).
+
+### Sample Request
+
+```
+curl 'https://terraform.example.com/providers/registry.terraform.io/hashicorp/random/2.0.0.json'
+```
+
+### Sample Response
+
+```json
+{
+  "archives": {
+    "darwin_amd64": {
+      "url": "terraform-provider-random_2.0.0_darwin_amd64.zip",
+      "hashes": [
+        "h1:4A07+ZFc2wgJwo8YNlQpr1rVlgUDlxXHhPJciaPY5gs="
+      ]
+    },
+    "linux_amd64": {
+      "url": "terraform-provider-random_2.0.0_linux_amd64.zip",
+      "hashes": [
+        "h1:lCJCxf/LIowc2IGS9TPjWDyXY4nOmdGdfcwwDQCOURQ="
+      ]
+    }
+  }
+}
+```
+
+### Response Properties
+
+A successful result is a JSON object with a property called `archives`, which
+must be a JSON object.
+
+Each of the property names of the `archives` object is a target platform
+identifier, which consists of an operating system and architecture concatenated
+with an underscore (`_`).
+
+Each property value in the `archives` object is itself a nested object with
+the following properties:
+
+* `url` (required): a string specifying the URL from which Terraform should
+  download the `.zip` archive containing the requested provider plugin version.
+
+  Terraform resolves the URL relative to the URL from which the current
+  JSON document was returned, so the examples above containing only a
+  filename would cause Terraform to construct a URL like:
+
+  ```
+  https://terraform.example.com/providers/registry.terraform.io/hashicorp/random/terraform-provider-random_2.0.0_darwin_amd64.zip
+  ```
+
+* `hashes` (optional): a JSON array of strings containing one or more hash
+  values for the indicated archive. These hashes use Terraform's provider
+  package hashing algorithm. At present, the easiest way to populate these
+  is to construct a mirror's JSON indices using the `terraform providers mirror`
+  command, as described in a later section, which will include the calculated
+  hashes of each provider.
+
+  If the response includes at least one hash, Terraform will select the hash
+  whose algorithm it considers to be strongest and verify that the downloaded
+  package matches that hash. If the response does not include a `hashes`
+  property then Terraform will install the indicated archive with no
+  verification.
+
+Terraform CLI will only attempt to download versions that it has previously
+seen in response to [List Available Versions](#list-available-versions).
+
+## Provider Mirror as a Static Website
+
+The provider mirror protocol is designed so that it can potentially be implemented
+by placing files on typical static website hosting services. When using this
+strategy, implement the JSON index responses described above as `.json` files
+in the appropriate nested subdirectories, and ensure that your system is
+configured to serve `.json` files with the `application/json` media type.
+
+As a convenience, Terraform CLI includes
+[the `terraform providers mirror` subcommand](/terraform/cli/commands/providers/mirror),
+which will analyze the current configuration for the providers it requires,
+download the packages for those providers from their origin registries, and
+place them into a local directory suitable for use as a mirror.
+
+The `terraform providers mirror` subcommand also generates `index.json` and
+version-specific `.json` files that can, when placed in a static website hosting
+system, produce responses compatible with the provider mirror protocol.
+
+If you wish to create a mirror with providers for a number of different
+Terraform configurations, run `terraform providers mirror` in each configuration
+in turn while providing the same output directory each time. Terraform will
+then merge together all of the requirements into a single set of JSON indices.

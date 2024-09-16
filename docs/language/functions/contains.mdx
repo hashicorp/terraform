@@ -1,0 +1,24 @@
+---
+page_title: contains - Functions - Configuration Language
+description: The contains function determines whether a list or set contains a given value.
+---
+
+# `contains` Function
+
+`contains` determines whether the list, tuple, or set given in its first
+argument contains at least one element that is equal to the value in the second
+argument, using the same definition of equality as the `==` operator described in
+[Equality Operators](/terraform/language/expressions/operators#equality-operators).
+
+```hcl
+contains(list, value)
+```
+
+## Examples
+
+```
+> contains(["a", "b", "c"], "a")
+true
+> contains(["a", "b", "c"], "d")
+false
+```

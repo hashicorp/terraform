@@ -1,0 +1,155 @@
+---
+page_title: Dynamic Blocks - Configuration Language
+description: >-
+  Dynamic blocks automatically construct multi-level, nested block structures.
+  Learn to configure dynamic blocks and understand their behavior.
+---
+
+# `dynamic` Blocks
+
+Within top-level block constructs like resources, expressions can usually be
+used only when assigning a value to an argument using the `name = expression`
+form. This covers many uses, but some resource types include repeatable _nested
+blocks_ in their arguments, which typically represent separate objects that
+are related to (or embedded within) the containing object:
+
+```hcl
+resource "aws_elastic_beanstalk_environment" "tfenvtest" {
+  name = "tf-test-name" # can use expressions here
+
+  setting {
+    # but the "setting" block is always a literal block
+  }
+}
+```
+
+You can dynamically construct repeatable nested blocks like `setting` using a
+special `dynamic` block type, which is supported inside `resource`, `data`,
+`provider`, and `provisioner` blocks:
+
+```hcl
+resource "aws_elastic_beanstalk_environment" "tfenvtest" {
+  name                = "tf-test-name"
+  application         = "${aws_elastic_beanstalk_application.tftest.name}"
+  solution_stack_name = "64bit Amazon Linux 2018.03 v2.11.4 running Go 1.12.6"
+
+  dynamic "setting" {
+    for_each = var.settings
+    content {
+      namespace = setting.value["namespace"]
+      name = setting.value["name"]
+      value = setting.value["value"]
+    }
+  }
+}
+```
+
+A `dynamic` block acts much like a [`for` expression](/terraform/language/expressions/for), but produces
+nested blocks instead of a complex typed value. It iterates over a given
+complex value, and generates a nested block for each element of that complex
+value.
+
+- The label of the dynamic block (`"setting"` in the example above) specifies
+  what kind of nested block to generate.
+- The `for_each` argument provides the complex value to iterate over.
+- The `iterator` argument (optional) sets the name of a temporary variable
+  that represents the current element of the complex value. If omitted, the name
+  of the variable defaults to the label of the `dynamic` block (`"setting"` in
+  the example above).
+- The `labels` argument (optional) is a list of strings that specifies the block
+  labels, in order, to use for each generated block. You can use the temporary
+  iterator variable in this value.
+- The nested `content` block defines the body of each generated block. You can
+  use the temporary iterator variable inside this block.
+
+Since the `for_each` argument accepts any collection or structural value,
+you can use a `for` expression or splat expression to transform an existing
+collection.
+
+The iterator object (`setting` in the example above) has two attributes:
+
+- `key` is the map key or list element index for the current element. If the
+  `for_each` expression produces a _set_ value then `key` is identical to
+  `value` and should not be used.
+- `value` is the value of the current element.
+
+A `dynamic` block can only generate arguments that belong to the resource type,
+data source, provider or provisioner being configured. It is _not_ possible
+to generate meta-argument blocks such as `lifecycle` and `provisioner`
+blocks, since Terraform must process these before it is safe to evaluate
+expressions.
+
+The `for_each` value must be a collection with one element per desired
+nested block. If you need to declare resource instances based on a nested
+data structure or combinations of elements from multiple data structures you
+can use Terraform expressions and functions to derive a suitable value.
+For some common examples of such situations, see the
+[`flatten`](/terraform/language/functions/flatten)
+and
+[`setproduct`](/terraform/language/functions/setproduct)
+functions.
+
+## Multi-level Nested Block Structures
+
+Some providers define resource types that include multiple levels of blocks
+nested inside one another. You can generate these nested structures dynamically
+when necessary by nesting `dynamic` blocks in the `content` portion of other
+`dynamic` blocks.
+
+For example, a module might accept a complex data structure like the following:
+
+```hcl
+variable "load_balancer_origin_groups" {
+  type = map(object({
+    origins = set(object({
+      hostname = string
+    }))
+  }))
+}
+```
+
+If you were defining a resource whose type expects a block for each origin
+group and then nested blocks for each origin within a group, you could ask
+Terraform to generate that dynamically using the following nested `dynamic`
+blocks:
+
+```hcl
+  dynamic "origin_group" {
+    for_each = var.load_balancer_origin_groups
+    content {
+      name = origin_group.key
+
+      dynamic "origin" {
+        for_each = origin_group.value.origins
+        content {
+          hostname = origin.value.hostname
+        }
+      }
+    }
+  }
+```
+
+When using nested `dynamic` blocks it's particularly important to pay attention
+to the iterator symbol for each block. In the above example,
+`origin_group.value` refers to the current element of the outer block, while
+`origin.value` refers to the current element of the inner block.
+
+If a particular resource type defines nested blocks that have the same type
+name as one of their parents, you can use the `iterator` argument in each of
+`dynamic` blocks to choose a different iterator symbol that makes the two
+easier to distinguish.
+
+## Best Practices for `dynamic` Blocks
+
+Overuse of `dynamic` blocks can make configuration hard to read and maintain, so
+we recommend using them only when you need to hide details in order to build a
+clean user interface for a re-usable module. Always write nested blocks out
+literally where possible.
+
+If you find yourself defining most or all of a `resource` block's arguments and
+nested blocks using directly-corresponding attributes from an input variable
+then that might suggest that your module is not creating a useful abstraction.
+It may be better for the calling module to define the resource itself then
+pass information about it into your module. For more information on this design
+tradeoff, see [When to Write a Module](/terraform/language/modules/develop#when-to-write-a-module)
+and [Module Composition](/terraform/language/modules/develop/composition).

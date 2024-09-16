@@ -1,0 +1,32 @@
+---
+page_title: 'Command: workspace select'
+description: The terraform workspace select command is used to choose a workspace.
+---
+
+# Command: workspace select
+
+The `terraform workspace select` command is used to choose a different
+workspace to use for further operations.
+
+## Usage
+
+Usage: `terraform workspace select NAME [DIR]`
+
+This command will select another workspace. The named workspace must already
+exist.
+
+The supported flags are:
+
+* `-or-create` - If the workspace that is being selected does not exist, create it. Default is `false`.
+
+## Example
+
+```
+$ terraform workspace list
+  default
+* development
+  jsmith-test
+
+$ terraform workspace select default
+Switched to workspace "default".
+```

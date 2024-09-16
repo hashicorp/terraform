@@ -1,0 +1,161 @@
+---
+page_title: regex - Functions - Configuration Language
+description: |-
+  The regex function applies a regular expression to a string and returns the
+  matching substrings.
+---
+
+# `regex` Function
+
+`regex` applies a
+[regular expression](https://en.wikipedia.org/wiki/Regular_expression)
+to a string and returns the matching substrings.
+
+```hcl
+regex(pattern, string)
+```
+
+The return type of `regex` depends on the capture groups, if any, in the
+pattern:
+
+- If the pattern has no capture groups at all, the result is a single string
+  covering the substring matched by the pattern as a whole.
+- If the pattern has one or more _unnamed_ capture groups, the result is a
+  list of the captured substrings in the same order as the definition of
+  the capture groups.
+- If the pattern has one or more _named_ capture groups, the result is a
+  map of the captured substrings, using the capture group names as map keys.
+
+It's not valid to mix both named and unnamed capture groups in the same pattern.
+
+If the given pattern does not match at all, the `regex` raises an error. To
+_test_ whether a given pattern matches a string, use
+[`regexall`](/terraform/language/functions/regexall) and test that the result has length greater than
+zero.
+
+The pattern is a string containing a mixture of literal characters and special
+matching operators as described in the following table. Note that when giving a
+regular expression pattern as a literal quoted string in the Terraform
+language, the quoted string itself already uses backslash `\` as an escape
+character for the string, so any backslashes intended to be recognized as part
+of the pattern must be escaped as `\\`.
+
+| Sequence               | Matches                                                                          |
+| ---------------------- | -------------------------------------------------------------------------------- |
+| `.`                    | Any character except newline                                                     |
+| `[xyz]`                | Any character listed between the brackets (`x`, `y`, and `z` in this example)    |
+| `[a-z]`                | Any character between `a` and `z`, inclusive                                     |
+| `[^xyz]`               | The opposite of `[xyz]`                                                          |
+| `\d`                   | ASCII digits (0 through 9, inclusive)                                            |
+| `\D`                   | Anything except ASCII digits                                                     |
+| `\s`                   | ASCII spaces (space, tab, newline, carriage return, form feed)                   |
+| `\S`                   | Anything except ASCII spaces                                                     |
+| `\w`                   | The same as `[0-9A-Za-z_]`                                                       |
+| `\W`                   | Anything except the characters matched by `\w`                                   |
+| `[[:alnum:]]`          | The same as `[0-9A-Za-z]`                                                        |
+| `[[:alpha:]]`          | The same as `[A-Za-z]`                                                           |
+| `[[:ascii:]]`          | Any ASCII character                                                              |
+| `[[:blank:]]`          | ASCII tab or space                                                               |
+| `[[:cntrl:]]`          | ASCII/Unicode control characters                                                 |
+| `[[:digit:]]`          | The same as `[0-9]`                                                              |
+| `[[:graph:]]`          | All "graphical" (printable) ASCII characters                                     |
+| `[[:lower:]]`          | The same as `[a-z]`                                                              |
+| `[[:print:]]`          | The same as `[[:graph:]]`                                                        |
+| `[[:punct:]]`          | The same as ``[!-/:-@[-`{-~]``                                                   |
+| `[[:space:]]`          | The same as `[\t\n\v\f\r ]`                                                      |
+| `[[:upper:]]`          | The same as `[A-Z]`                                                              |
+| `[[:word:]]`           | The same as `\w`                                                                 |
+| `[[:xdigit:]]`         | The same as `[0-9A-Fa-f]`                                                        |
+| `\pN`                  | Unicode character class by using single-letter class names ("N" in this example) |
+| `\p{Greek}`            | Unicode character class by unicode name ("Greek" in this example)                |
+| `\PN`                  | The opposite of `\pN`                                                            |
+| `\P{Greek}`            | The opposite of `\p{Greek}`                                                      |
+| `xy`                   | `x` followed immediately by `y`                                                  |
+| `x&#124;y`             | either `x` or `y`, preferring `x`                                                |
+| `x*`                   | zero or more `x`, preferring more                                                |
+| `x*?`                  | zero or more `x`, preferring fewer                                               |
+| `x+`                   | one or more `x`, preferring more                                                 |
+| `x+?`                  | one or more `x`, preferring fewer                                                |
+| `x?`                   | zero or one `x`, preferring one                                                  |
+| `x??`                  | zero or one `x`, preferring zero                                                 |
+| `x{n,m}`               | between `n` and `m` repetitions of `x`, preferring more                          |
+| `x{n,m}?`              | between `n` and `m` repetitions of `x`, preferring fewer                         |
+| `x{n,}`                | at least `n` repetitions of `x`, preferring more                                 |
+| `x{n,}?`               | at least `n` repetitions of `x`, preferring fewer                                |
+| `x{n}`                 | exactly `n` repetitions of `x`                                                   |
+| `(x)`                  | unnamed capture group for sub-pattern `x`                                        |
+| `(?P<name>x)`          | named capture group, named `name`, for sub-pattern `x`                           |
+| `(?:x)`                | non-capturing sub-pattern `x`                                                    |
+| `\*`                   | Literal `*` for any punctuation character `*`                                    |
+| `\Q...\E`              | Literal `...` for any text `...` as long as it does not include literally `\E`   |
+
+In addition to the above matching operators that consume the characters they
+match, there are some additional operators that _only_ match, but consume
+no characters. These are "zero-width" matching operators:
+
+| Sequence | Matches                                                                                          |
+| -------- | ------------------------------------------------------------------------------------------------ |
+| `^`      | At the beginning of the given string                                                             |
+| `$`      | At the end of the given string                                                                   |
+| `\A`     | At the beginning of the given string                                                             |
+| `\z`     | At the end of the given string                                                                   |
+| `\b`     | At an ASCII word boundary (transition between `\w` and either `\W`, `\A` or `\z`, or vice-versa) |
+| `\B`     | Not at an ASCII word boundary                                                                    |
+
+Terraform uses the
+[RE2](https://github.com/google/re2/wiki/Syntax) regular expression language.
+This engine does not support all of the features found in some other regular
+expression engines; in particular, it does not support backreferences.
+
+## Matching Flags
+
+Some of the matching behaviors described above can be modified by setting
+matching flags, activated using either the `(?flags)` operator (to activate
+within the current sub-pattern) or the `(?flags:x)` operator (to match `x` with
+the modified flags). Each flag is a single letter, and multiple flags can be
+set at once by listing multiple letters in the `flags` position.
+The available flags are listed in the table below:
+
+| Flag | Meaning                                                                                                                                                     |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `i`  | Case insensitive: a literal letter in the pattern matches both lowercase and uppercase versions of that letter                                              |
+| `m`  | The `^` and `$` operators also match the beginning and end of lines within the string, marked by newline characters; behavior of `\A` and `\z` is unchanged |
+| `s`  | The `.` operator also matches newline                                                                                                                       |
+| `U`  | The meaning of presence or absense `?` after a repetition operator is inverted. For example, `x*` is interpreted like `x*?` and vice-versa.                 |
+
+## Examples
+
+```
+> regex("[a-z]+", "53453453.345345aaabbbccc23454")
+aaabbbccc
+
+> regex("(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d)", "2019-02-01")
+[
+  "2019",
+  "02",
+  "01",
+]
+
+> regex("^(?:(?P<scheme>[^:/?#]+):)?(?://(?P<authority>[^/?#]*))?", "https://terraform.io/docs/")
+{
+  "authority" = "terraform.io"
+  "scheme" = "https"
+}
+
+> regex("[a-z]+", "53453453.34534523454")
+
+Error: Error in function call
+
+Call to function "regex" failed: pattern did not match any part of the given
+string.
+```
+
+## Related Functions
+
+- [`regexall`](/terraform/language/functions/regexall) searches for potentially multiple matches of a given pattern in a string.
+- [`replace`](/terraform/language/functions/replace) replaces a substring of a string with another string, optionally matching using the same regular expression syntax as `regex`.
+
+If Terraform already has a more specialized function to parse the syntax you
+are trying to match, prefer to use that function instead. Regular expressions
+can be hard to read and can obscure your intent, making a configuration harder
+to read and understand.

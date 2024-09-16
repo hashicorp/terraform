@@ -1,0 +1,90 @@
+---
+page_title: APT Packages for Debian and Ubuntu
+description: >-
+  The HashiCorp APT repositories contain distribution-specific Terraform
+  packages for both Debian and Ubuntu systems.
+---
+
+# APT Packages for Debian and Ubuntu
+
+The primary distribution packages for Terraform are `.zip` archives containing
+single executable files that you can extract anywhere on your system. However,
+for easier integration with configuration management tools and other systematic
+system configuration strategies, we also offer package repositories for
+Debian and Ubuntu systems, which allow you to install Terraform using the
+`apt install` command or any other APT frontend.
+
+If you are instead using Red Hat Enterprise Linux, CentOS, or Fedora, you
+might prefer to [install Terraform from our Yum repositories](/terraform/cli/install/yum).
+
+-> **Note:** The APT repositories discussed on this page are generic HashiCorp
+repositories that contain packages for a variety of different HashiCorp
+products, rather than just Terraform. Adding these repositories to your
+system will, by default, therefore make several other non-Terraform
+packages available for installation. That might then mask some packages that
+are available for some HashiCorp products in the main Debian and Ubuntu
+package repositories.
+
+## Repository Configuration
+
+Please follow the instructions in the [Official Packaging Guide](https://www.hashicorp.com/official-packaging-guide).
+
+## Supported Architectures
+
+The HashiCorp APT server has packages only for the `amd64`
+architecture, which is also sometimes known as `x86_64`.
+
+There are no official packages available for other architectures, such as
+`arm64`. If you wish to use Terraform on a non-`amd64` system,
+[download a normal release `.zip` file](/terraform/downloads) instead.
+
+## Supported Debian and Ubuntu Releases
+
+The HashiCorp APT server contains release repositories for a variety of
+supported distributions, which are outlined in the [Official Packaging Guide](https://www.hashicorp.com/official-packaging-guide).
+
+## Installing a Specific Version of Terraform
+
+The HashiCorp APT repositories contain multiple versions of Terraform, but
+because the packages are all named `terraform` it is impossible to install
+more than one version at a time, and `apt install` will default to selecting
+the latest version.
+
+It's often necessary to match your Terraform version with what a particular
+configuration is currently expecting. You can use the following command to
+see which versions are currently available in the repository index:
+
+```bash
+apt policy terraform
+```
+
+If your workflow requires using multiple versions of Terraform at the same
+time, for example when working through a gradual upgrade where not all
+of your configurations are upgraded yet, we recommend that you use the
+official release `.zip` files instead of the APT packages, so you can install
+multiple versions at once and then select which to use for each command you
+run.
+
+### Terraform 1.4.3 and Later
+
+As of Terraform 1.4.3, all published packages include a revision number by
+default, starting with `-1`. This change means that in the case that we need
+to publish an updated package for any reason, installers can automatically
+retrieve the latest revision. You can learn more about this packaging change
+in [the announcement](https://discuss.hashicorp.com/t/linux-packaging-debian-revision-change/42403).
+
+You can install the latest revision for a particular version by including the
+version in the `apt install` command, as follows:
+
+```bash
+sudo apt install terraform=1.4.4-*
+```
+
+### Terraform 1.4.2 and Earlier
+
+Terraform 1.4.2 and earlier did not include a revision number for the first
+revision, so you can use the following pattern to install a specific version:
+
+```bash
+sudo apt install terraform=1.4.0
+```

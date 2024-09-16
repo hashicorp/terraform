@@ -1,0 +1,20 @@
+---
+page_title: filemd5 - Functions - Configuration Language
+description: |-
+  The filemd5 function computes the MD5 hash of the contents of
+  a given file and encodes it as hex.
+---
+
+# `filemd5` Function
+
+`filemd5` is a variant of [`md5`](/terraform/language/functions/md5)
+that hashes the contents of a given file rather than a literal string.
+
+This is similar to `md5(file(filename))`, but
+because [`file`](/terraform/language/functions/file) accepts only UTF-8 text it cannot be used to
+create hashes for binary files.
+
+Collision attacks have been successfully performed against this hashing
+function. Before using this function for anything security-sensitive, refer to
+[RFC 6151](https://tools.ietf.org/html/rfc6151) for updated security
+considerations applying to the MD5 algorithm.

@@ -1,0 +1,21 @@
+---
+page_title: Inspecting State - Terraform CLI
+description: Commands that allow you to read and update state.
+---
+
+# Inspecting State
+
+Terraform includes some commands for reading and updating state without taking
+any other actions.
+
+- [The `terraform state list` command](/terraform/cli/commands/state/list)
+  shows the resource addresses for every resource Terraform knows about in a
+  configuration, optionally filtered by partial resource address.
+
+- [The `terraform state show` command](/terraform/cli/commands/state/show)
+  displays detailed state data about one resource.
+
+- [The `terraform refresh` command](/terraform/cli/commands/refresh) updates
+  state data to match the real-world condition of the managed resources. This is
+  done automatically during plans and applies, but not when interacting with
+  state directly.

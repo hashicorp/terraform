@@ -1,0 +1,41 @@
+---
+page_title: Publishing Modules
+description: A module is a container for multiple resources that are used together.
+---
+
+# Publishing Modules
+
+If you've built a module that you intend to be reused, we recommend
+[publishing the module](/terraform/registry/modules/publish) on the
+[Terraform Registry](https://registry.terraform.io). This will version
+your module, generate documentation, and more.
+
+Published modules can be easily consumed by Terraform, and users can
+[constrain module versions](/terraform/language/modules/syntax#version)
+for safe and predictable updates. The following example shows how a caller
+might use a module from the Terraform Registry:
+
+```hcl
+module "consul" {
+  source = "hashicorp/consul/aws"
+}
+```
+
+If you do not wish to publish your modules in the public registry, you can
+instead use a [private registry](/terraform/registry/private) to get
+the same benefits.
+
+We welcome contributions of Terraform modules from our community members, partners, and customers. Our ecosystem is made richer by each new module created or an existing one updated, as they reflect the wide range of experience and technical requirements of the community that uses them. Our cloud provider partners often seek to develop specific modules for popular or challenging use cases on their platform and utilize them as valuable learning experiences to empathize with their users. Similarly, our community module developers incorporate a variety of opinions and use cases from the broader Terraform community. Both types of modules have their place in the Terraform registry, accessible to practitioners who can decide which modules best fit their requirements.
+
+## Distribution via other sources
+
+Although the registry is the native mechanism for distributing re-usable
+modules, Terraform can also install modules from
+[various other sources](/terraform/language/modules/sources). The alternative sources
+do not support the first-class versioning mechanism, but some sources have
+their own mechanisms for selecting particular VCS commits, etc.
+
+We recommend that modules distributed via other protocols still use the
+[standard module structure](/terraform/language/modules/develop/structure) so that they can
+be used in a similar way as a registry module or be published on the registry
+at a later time.

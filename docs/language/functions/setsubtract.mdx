@@ -1,0 +1,42 @@
+---
+page_title: setsubtract - Functions - Configuration Language
+description: |-
+  The setsubtract function returns a new set containing the elements
+  from the first set that are not present in the second set
+---
+
+# `setsubtract` Function
+
+The `setsubtract` function returns a new set containing the elements from the first set that are not present in the second set. In other words, it computes the
+[relative complement](https://en.wikipedia.org/wiki/Complement_\(set_theory\)#Relative_complement) of the second set.
+
+```hcl
+setsubtract(a, b)
+```
+
+## Examples
+
+```
+> setsubtract(["a", "b", "c"], ["a", "c"])
+toset([
+  "b",
+])
+```
+
+### Set Difference (Symmetric Difference)
+
+```
+> setunion(setsubtract(["a", "b", "c"], ["a", "c", "d"]), setsubtract(["a", "c", "d"], ["a", "b", "c"]))
+toset([
+  "b",
+  "d",
+])
+```
+
+## Related Functions
+
+* [`setintersection`](/terraform/language/functions/setintersection) computes the _intersection_ of multiple sets
+* [`setproduct`](/terraform/language/functions/setproduct) computes the _Cartesian product_ of multiple
+  sets.
+* [`setunion`](/terraform/language/functions/setunion) computes the _union_ of
+  multiple sets.

@@ -1,0 +1,121 @@
+---
+page_title: 'Yum Packages for Red Hat Enterprise Linux, Fedora, and Amazon Linux'
+description: >-
+  The HashiCorp Yum repositories contain distribution-specific Terraform
+  packages for Red Hat Enterprise Linux, Fedora, and Amazon Linux systems.
+---
+
+# Yum/DNF Packages for RHEL, CentOS, and Fedora
+
+The primary distribution packages for Terraform are `.zip` archives containing
+single executable files that you can extract anywhere on your system. However,
+for easier integration with configuration management tools and other systematic
+system configuration strategies, we also offer package repositories for
+RedHat Enterprise Linux, Fedora, and Amazon Linux systems, which allow you to
+install Terraform using the `yum install` or `dnf install` commands.
+
+If you are instead using Debian or Ubuntu, you
+might prefer to [install Terraform from our APT repositories](/terraform/cli/install/apt).
+
+-> **Note:** The Yum repositories discussed on this page are generic HashiCorp
+repositories that contain packages for a variety of different HashiCorp
+products, rather than just Terraform. Adding these repositories to your
+system will, by default, therefore make a number of other non-Terraform
+packages available for installation. That might then mask the packages that are
+available for some HashiCorp products in the main distribution repositories.
+
+## Repository Configuration
+
+Before adding a repository you must determine which distribution you are using.
+The following command lines refer to a placeholder variable `$release` which
+you must replace with the appropriate value from the following list:
+
+* Red Hat Enterprise Linux: `RHEL`
+* Fedora: `fedora`
+* Amazon Linux: `AmazonLinux`
+
+If you are using a Yum-based distribution, add the repository using
+`yum-config-manager` as follows:
+
+```bash
+sudo yum install -y yum-utils
+sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/$release/hashicorp.repo
+```
+
+If you are using a DNF-based distribution, add the repository using
+`dnf config-manager` as follows:
+
+```bash
+sudo dnf install -y dnf-plugins-core
+sudo dnf config-manager --add-repo https://rpm.releases.hashicorp.com/$release/hashicorp.repo
+```
+
+In both cases, the Terraform package name is `terraform`. For example:
+
+```bash
+yum install terraform
+```
+
+## Supported Architectures
+
+The HashiCorp Yum/DNF server has packages only for the `x86_64`
+architecture, which is also sometimes known as `amd64`.
+
+There are no official packages available for other architectures, such as
+`aarch64`. If you wish to use Terraform on a non-`x86_64` system,
+[download a normal release `.zip` file](/terraform/downloads) instead.
+
+## Supported Distribution Releases
+
+The HashiCorp Yum server contains release repositories for the
+following distribution releases:
+
+* AmazonLinux 2 and "latest"
+* Fedora 33
+* Fedora 34
+* Fedora 35
+* Fedora 36
+* Fedora 37
+* RHEL 7 (and CentOS 7)
+* RHEL 8 (and CentOS 8)
+* RHEL 9 (and CentOS 9)
+
+No repositories are available for other versions of these distributions or for
+any other RPM-based Linux distributions. If you add the repository using
+the above commands on other systems then you will see a 404 Not Found error.
+
+Over time we will change the set of supported distributions, including both
+adding support for new releases and ceasing to publish new Terraform versions
+under older releases.
+
+## Choosing Terraform Versions
+
+The HashiCorp Yum repositories contain multiple versions of Terraform, but
+because the packages are all named `terraform` it is impossible to install
+more than one version at a time, and `yum install` or `dnf install` will
+default to selecting the latest version.
+
+It's often necessary to match your Terraform version with what a particular
+configuration is currently expecting. Use the following command to
+retrieve the available versions in the repository index:
+
+```bash
+yum --showduplicate list terraform
+```
+
+You can select a specific version to install by including it in the
+`yum install` command line, as follows:
+
+```bash
+yum install terraform-0.14.0-2.x86_64
+```
+
+If you are using a DNF-based distribution, similar use `dnf` instead of `yum`
+when following the above steps.
+
+If your workflow requires using multiple versions of Terraform at the same
+time, for example when working through a gradual upgrade where not all
+of your configurations are upgraded yet, we recommend that you use the
+official release `.zip` files instead of the Yum packages, so you can install
+multiple versions at once and then select which to use for each command you
+run.

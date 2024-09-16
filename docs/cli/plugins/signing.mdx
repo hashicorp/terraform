@@ -1,0 +1,27 @@
+---
+page_title: Plugin Signing
+description: >-
+  Learn about the types of signatures providers can have on the Terraform
+  Registry.
+---
+
+<!-- THIS PAGED IS LINKED TO IN THE CLI -->
+
+# Plugin Signing
+
+~> **Note** Terraform only authenticates provider plugins fetched from a registry.
+
+Terraform providers installed from the Registry are cryptographically signed, and the signature is verified at time of installation. There are three types of provider signatures, each with different trust implications:
+
+* **Signed by HashiCorp** - are built, signed, and supported by HashiCorp.
+* **Signed by Trusted Partners** - are built, signed, and supported by a third party. HashiCorp has
+  verified the ownership of the private key and we provide a chain of trust to the CLI to verify this
+  programatically.
+* **Self-signed** - are built, signed, and supported by a third party. HashiCorp does not provide a
+  verification or chain of trust for the signature. You may obtain and validate fingerprints manually
+  if you want to ensure you are using a binary you can trust.
+
+Terraform does **NOT** support fetching and using unsigned binaries, but you can manually install
+unsigned binaries. You should take extreme care when doing so as no programatic authentication is performed.
+
+Usage of plugins from the registry is subject to the Registry's [Terms of Use](https://registry.terraform.io/terms).

@@ -1,0 +1,344 @@
+---
+page_title: Provider Registry Protocol
+description: |-
+  The provider registry protocol is implemented by a host intending to be the
+  origin host for one or more Terraform providers, specifying which providers
+  are available and where to find their distribution packages.
+---
+
+# Provider Registry Protocol
+
+-> Third-party provider registries are supported only in Terraform CLI 0.13 and later. Prior versions do not support this protocol.
+
+The provider registry protocol is what Terraform CLI uses to discover metadata
+about providers available for installation and to locate the distribution
+packages for a selected provider.
+
+The primary implementation of this protocol is the public
+[Terraform Registry](https://registry.terraform.io/) at `registry.terraform.io`.
+By writing and deploying your own implementation of this protocol, you can
+create a separate _origin registry_ to distribute your own providers, as an
+alternative to publishing them on the public Terraform Registry.
+
+This page describes the provider _registry_ protocol, which is the protocol
+for finding providers available for installation. It _doesn't_ describe the
+API that provider plugins themselves implement to serve requests from Terraform
+CLI at runtime. For more information on the provider API, see the Terraform
+SDK documentation.
+
+The public Terraform Registry implements a superset of the API described on
+this page, in order to capture additional information used in the registry UI.
+Third-party implementations should not include those extensions because they
+may change in future without notice.
+
+## Provider Addresses
+
+Each Terraform provider has an associated address which uniquely identifies it
+within Terraform. A provider address has the syntax `hostname/namespace/type`,
+where:
+
+* `hostname` is the registry host that the provider is considered to have
+  originated from, and the default location Terraform will consult for
+  information about the provider
+  [unless overridden in the CLI configuration](/terraform/cli/config/config-file#provider-installation).
+* `namespace` is the name of a namespace, unique on a particular hostname, that
+  can contain one or more providers that are somehow related. On the public
+  Terraform Registry the "namespace" represents the organization that is
+  packaging and distributing the provider.
+* `type` is the provider type, like "azurerm", "aws", "google", "dns", etc.
+  A provider type is unique within a particular hostname and namespace.
+
+The `hostname/` portion of a provider address (including its slash delimiter)
+is optional, and if omitted defaults to `registry.terraform.io/`.
+
+For example:
+
+* `hashicorp/aws` is a shorthand for `registry.terraform.io/hashicorp/aws`,
+  which is the official AWS provider published by HashiCorp.
+* `example/foo` is a shorthand for `registry.terraform.io/example/foo`, which
+  is a hypothetical third-party provider published on the public
+  Terraform Registry.
+* `example.com/bar/baz` is a hypothetical third-party provider published at a
+  third-party provider registry on `example.com`.
+
+If you intend only to share a provider you've developed for use by all
+Terraform users, please consider publishing it into the public
+[Terraform Registry](https://registry.terraform.io/), which will make your
+provider discoverable. You only need to implement this provider registry
+protocol if you wish to publish providers whose addresses include a different
+hostname that is under your control.
+
+Terraform uses the full address (after normalization to always include a
+hostname) as its global identifier for providers internally, and so it's
+important to note that re-uploading the `hashicorp/azurerm` provider into
+another namespace or publishing it on a different hostname will cause Terraform
+to see it as an entirely separate provider that will _not_ be usable by modules
+that declare a dependency on `hashicorp/azurerm`. If your goal is to create
+an alternative local distribution source for an existing provider -- that is,
+a _mirror_ of the provider -- refer to
+[the provider installation method configuration](/terraform/cli/config/config-file#provider-installation)
+instead.
+
+## Provider Versions
+
+Each distinct provider address has associated with it a set of versions, each
+of which has an associated version number. Terraform assumes version numbers
+follow the [Semantic Versioning 2.0](https://semver.org/) conventions, with
+the schema and behavior of the provider as documented from the perspective of
+an end-user of Terraform serving as the "public API".
+
+All available versions for a particular provider address are considered to be
+the same provider by Terraform. Each Terraform configuration selects only one
+version of each provider for use in the entire configuration, so the version
+constraints across all modules are considered together for the purposes of
+version selection.
+
+## Service Discovery
+
+The providers protocol begins with Terraform CLI using
+[Terraform's remote service discovery protocol](/terraform/internals/remote-service-discovery),
+with the hostname in the provider address acting as the "User-facing Hostname".
+
+The service identifier for the provider registry protocol is `providers.v1`.
+Its associated string value is the base URL for the relative URLs defined in
+the sections that follow.
+
+For example, the service discovery document for a host that _only_ implements
+the provider registry protocol might contain the following:
+
+```json
+{
+  "providers.v1": "/terraform/providers/v1/"
+}
+```
+
+If the given URL is a relative URL then Terraform will interpret it as relative
+to the discovery document itself. The specific provider registry protocol
+endpoints are defined as URLs relative to the given base URL, and so the
+specified base URL should generally end with a slash to ensure that those
+relative paths will be resolved as expected.
+
+The following sections describe the various operations that a provider
+registry must implement to be compatible with Terraform CLI's provider
+installer. The indicated URLs are all relative to the URL resulting from
+service discovery, as described above. We use the current URLs on
+Terraform Registry as working examples, assuming that the caller already
+performed service discovery on `registry.terraform.io` to learn the base URL.
+
+The URLs are shown with the convention that a path portion with a colon `:`
+prefix is a placeholder for a dynamically-selected value, while all other
+path portions are literal. For example, in `:namespace/:type/versions`,
+the first two path portions are placeholders while the third is literally
+the string "versions".
+
+## List Available Versions
+
+This operation determines which versions are currently available for a
+particular provider.
+
+| Method | Path                        | Produces           |
+| ------ | --------------------------- | ------------------ |
+| `GET`  | `:namespace/:type/versions` | `application/json` |
+
+### Parameters
+
+* `namespace` (required): the namespace portion of the address of the requested
+  provider.
+* `type` (required): the type portion of the address of the requested provider.
+
+### Sample Request
+
+```
+curl 'https://registry.terraform.io/v1/providers/hashicorp/random/versions'
+```
+
+### Sample Response
+
+```json
+{
+  "versions": [
+    {
+      "version": "2.0.0",
+      "protocols": ["4.0", "5.1"],
+      "platforms": [
+        {"os": "darwin", "arch": "amd64"},
+        {"os": "linux", "arch": "amd64"},
+        {"os": "linux", "arch": "arm"},
+        {"os": "windows", "arch": "amd64"}
+      ]
+    },
+    {
+      "version": "2.0.1",
+      "protocols": ["5.2"],
+      "platforms": [
+        {"os": "darwin", "arch": "amd64"},
+        {"os": "linux", "arch": "amd64"},
+        {"os": "linux", "arch": "arm"},
+        {"os": "windows", "arch": "amd64"}
+      ]
+    }
+  ]
+}
+```
+
+### Response Properties
+
+A successful result is a JSON object containing a single property `versions`.
+`versions` is an array of objects that each describe one available version,
+with the following properties:
+
+* `version` (required): the version number this object is describing, using
+  the semantic versioning string notation. `version` must be unique across
+  all objects in the response.
+* `protocols` (recommended): an array of Terraform provider API versions that
+  this version supports, each given in `MAJOR.MINOR` format where each major
+  version appears only once and the given minor version is the highest minor
+  version supported. For example, `5.1` means that the provider supports both
+  protocol `5.0` and protocol `5.1`.
+
+  Terraform uses this information, when available, to provide hints to users
+  about upgrading or downgrading their version of a particular provider to
+  work with their current version of Terraform, if their currently-selected
+  versions are not compatible.
+
+  Which API versions are supported is, for most providers, decided by which
+  version of the Terraform SDK they are built against. Consult the Terraform
+  SDK documentation for more information.
+
+  Only Terraform 0.13 and later support third-party provider registries and
+  that Terraform version requires API version `5.0` or later, so in practice
+  it isn't useful to list major versions 4 or earlier in a third-party
+  provider registry.
+* `platforms` (recommended): an array of objects describing platforms that have
+  packages available for this version.
+
+  Terraform may use this information, when available, to provide hints to
+  users about upgrading or downgrading their version of a particular provider
+  for compatibility with their current platform.
+
+  The `platforms` objects have properties `os` and `arch`, whose values match
+  the properties of the same name in the response to
+  [Find a Provider Package](#find-a-provider-package).
+
+Return `404 Not Found` to signal that the registry does not have a provider
+with the given namespace and type.
+
+## Find a Provider Package
+
+This operation returns the download URL of and associated metadata about the
+distribution package for a particular version of a provider for a particular
+operating system and architecture.
+
+Terraform CLI uses this operation after it has selected the newest available
+version matching the configured version constraints, in order to find the zip
+archive containing the plugin itself.
+
+| Method | Path                                           | Produces           |
+| ------ | ---------------------------------------------- | ------------------ |
+| `GET`  | `:namespace/:type/:version/download/:os/:arch` | `application/json` |
+
+### Parameters
+
+* `namespace` (required): the namespace portion of the address of the requested
+  provider.
+* `type` (required): the type portion of the address of the requested provider.
+* `version` (required): the version selected to download. This will exactly
+  match one of the version strings returned from a previous call to
+  [List Available Versions](#list-available-versions).
+* `os` (required): a keyword identifying the operating system that the returned
+  package should be compatible with, like "linux" or "darwin".
+* `arch` (required): a keyword identifying the CPU architecture that the
+  returned package should be compatible with, like "amd64" or "arm".
+
+### Sample Request
+
+```
+curl 'https://registry.terraform.io/v1/providers/hashicorp/random/2.0.0/download/linux/amd64'
+```
+
+### Sample Response
+
+```json
+{
+  "protocols": ["4.0", "5.1"],
+  "os": "linux",
+  "arch": "amd64",
+  "filename": "terraform-provider-random_2.0.0_linux_amd64.zip",
+  "download_url": "https://releases.hashicorp.com/terraform-provider-random/2.0.0/terraform-provider-random_2.0.0_linux_amd64.zip",
+  "shasums_url": "https://releases.hashicorp.com/terraform-provider-random/2.0.0/terraform-provider-random_2.0.0_SHA256SUMS",
+  "shasums_signature_url": "https://releases.hashicorp.com/terraform-provider-random/2.0.0/terraform-provider-random_2.0.0_SHA256SUMS.sig",
+  "shasum": "5f9c7aa76b7c34d722fc9123208e26b22d60440cb47150dd04733b9b94f4541a",
+  "signing_keys": {
+    "gpg_public_keys": [
+      {
+        "key_id": "51852D87348FFC4C",
+        "ascii_armor": "-----BEGIN PGP PUBLIC KEY BLOCK-----\nVersion: GnuPG v1\n\nmQENBFMORM0BCADBRyKO1MhCirazOSVwcfTr1xUxjPvfxD3hjUwHtjsOy/bT6p9f\nW2mRPfwnq2JB5As+paL3UGDsSRDnK9KAxQb0NNF4+eVhr/EJ18s3wwXXDMjpIifq\nfIm2WyH3G+aRLTLPIpscUNKDyxFOUbsmgXAmJ46Re1fn8uKxKRHbfa39aeuEYWFA\n3drdL1WoUngvED7f+RnKBK2G6ZEpO+LDovQk19xGjiMTtPJrjMjZJ3QXqPvx5wca\nKSZLr4lMTuoTI/ZXyZy5bD4tShiZz6KcyX27cD70q2iRcEZ0poLKHyEIDAi3TM5k\nSwbbWBFd5RNPOR0qzrb/0p9ksKK48IIfH2FvABEBAAG0K0hhc2hpQ29ycCBTZWN1\ncml0eSA8c2VjdXJpdHlAaGFzaGljb3JwLmNvbT6JATgEEwECACIFAlMORM0CGwMG\nCwkIBwMCBhUIAgkKCwQWAgMBAh4BAheAAAoJEFGFLYc0j/xMyWIIAIPhcVqiQ59n\nJc07gjUX0SWBJAxEG1lKxfzS4Xp+57h2xxTpdotGQ1fZwsihaIqow337YHQI3q0i\nSqV534Ms+j/tU7X8sq11xFJIeEVG8PASRCwmryUwghFKPlHETQ8jJ+Y8+1asRydi\npsP3B/5Mjhqv/uOK+Vy3zAyIpyDOMtIpOVfjSpCplVRdtSTFWBu9Em7j5I2HMn1w\nsJZnJgXKpybpibGiiTtmnFLOwibmprSu04rsnP4ncdC2XRD4wIjoyA+4PKgX3sCO\nklEzKryWYBmLkJOMDdo52LttP3279s7XrkLEE7ia0fXa2c12EQ0f0DQ1tGUvyVEW\nWmJVccm5bq25AQ0EUw5EzQEIANaPUY04/g7AmYkOMjaCZ6iTp9hB5Rsj/4ee/ln9\nwArzRO9+3eejLWh53FoN1rO+su7tiXJA5YAzVy6tuolrqjM8DBztPxdLBbEi4V+j\n2tK0dATdBQBHEh3OJApO2UBtcjaZBT31zrG9K55D+CrcgIVEHAKY8Cb4kLBkb5wM\nskn+DrASKU0BNIV1qRsxfiUdQHZfSqtp004nrql1lbFMLFEuiY8FZrkkQ9qduixo\nmTT6f34/oiY+Jam3zCK7RDN/OjuWheIPGj/Qbx9JuNiwgX6yRj7OE1tjUx6d8g9y\n0H1fmLJbb3WZZbuuGFnK6qrE3bGeY8+AWaJAZ37wpWh1p0cAEQEAAYkBHwQYAQIA\nCQUCUw5EzQIbDAAKCRBRhS2HNI/8TJntCAClU7TOO/X053eKF1jqNW4A1qpxctVc\nz8eTcY8Om5O4f6a/rfxfNFKn9Qyja/OG1xWNobETy7MiMXYjaa8uUx5iFy6kMVaP\n0BXJ59NLZjMARGw6lVTYDTIvzqqqwLxgliSDfSnqUhubGwvykANPO+93BBx89MRG\nunNoYGXtPlhNFrAsB1VR8+EyKLv2HQtGCPSFBhrjuzH3gxGibNDDdFQLxxuJWepJ\nEK1UbTS4ms0NgZ2Uknqn1WRU1Ki7rE4sTy68iZtWpKQXZEJa0IGnuI2sSINGcXCJ\noEIgXTMyCILo34Fa/C6VCm2WBgz9zZO8/rHIiQm1J5zqz0DrDwKBUM9C\n=LYpS\n-----END PGP PUBLIC KEY BLOCK-----",
+        "trust_signature": "",
+        "source": "HashiCorp",
+        "source_url": "https://www.hashicorp.com/security.html"
+      }
+    ]
+  }
+}
+```
+
+### Response Properties
+
+A successful result is a JSON object with the following properties:
+
+* `protocols` (required): an array of Terraform provider API versions that
+  the provider supports, in the same format as for
+  [List Available Versions](#list-available-versions).
+
+  While this property is optional when listing available options, it is
+  _required_ for describing an individual provider package so that Terraform
+  CLI can avoid downloading a package that will not be compatible with it.
+
+* `os` (required): this must echo back the `os` parameter from the
+  request.
+
+* `arch` (required): this must echo back the `arch` parameter from the
+  request. 
+
+* `filename` (required): the filename for this provider's zip archive as
+  recorded in the "shasums" document, so that Terraform CLI can determine which
+  of the given checksums should be used for this specific package.
+
+* `download_url` (required): a URL from which Terraform can retrieve the
+  provider's zip archive. If this is a relative URL then it will be resolved
+  relative to the URL that returned the containing JSON object.
+
+* `shasums_url` (required): a URL from which Terraform can retrieve a text
+  document recording expected SHA256 checksums for this package and possibly
+  other packages for the same provider version on other platforms.
+
+  The indicated document must be in the format generated by the `sha256`
+  command available on many Unix systems, with one entry recording the
+  same filename given in the `filename` property (case sensitive).
+
+* `shasums_signature_url` (required): a URL from which Terraform can retrieve
+  a binary, detached GPG signature for the document at `shasums_url`, signed
+  by one of the keys indicated in the `signing_keys` property.
+  
+* `shasum` (required): the SHA256 checksum for this provider's zip archive as
+  recorded in the shasums document.
+
+* `signing_keys` (required): an object describing signing keys for this
+  provider package, one of which must have been used to produce the signature
+  at `shasums_signature_url`. The object has the following nested properties:
+
+  * `gpg_public_keys` (required): an array of objects, each describing one
+    GPG signing key that is allowed to sign the checksums for this provider
+    version. At least one element must be included, representing the key that
+    produced the signature at `shasums_signature_url`. These objects have
+    the following nested properties:
+
+    * `key_id` (required): uppercase-hexadecimal-formatted ID for this GPG key
+
+    * `ascii_armor` (required): an "ascii-armor" encoding of the **public key**
+      associated with this GPG key.
+
+Return `404 Not Found` to signal that the given provider version isn't
+available for the requested operating system and/or architecture. Terraform
+CLI will only attempt to download versions that it has previously seen in
+response to [List Available Versions](#list-available-versions).

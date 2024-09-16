@@ -1,0 +1,68 @@
+---
+page_title: templatestring - Functions - Configuration Language
+description: |-
+  The templatestring function takes a string from elsewhere in the module and renders its content as a template using a supplied set of template variables.
+---
+
+# `templatestring` function reference
+
+This topic provides reference information about the `templatestring` function. The `templatestring` function renders a string defined elsewhere in the module as a template using a set of variables.
+
+## Introduction
+
+The primary use case for the `templatestring` function is to render templates fetched as a single string from remote locations. The function enables advanced use cases where a [string template expression](/terraform/language/expressions/strings#string-templates) is insufficient, such as when the template is available from a named object declared in the current module. Refer to [Dynamic template construction](#dynamic-template-construction) for additional information. 
+
+To render a template from a file, use the [`templatefile` function](/terraform/language/functions/templatefile).
+
+## Syntax
+
+Write `templatestring` functions using the following syntax:
+
+```hcl
+templatestring(ARG1, ARG2, . . .)
+```
+
+Specify the following arguments:
+
+- The first argument is always a reference to an object defined in the module. You cannot supply the template expression directly as the first argument.
+- The second argument is an object that specifies a variable to use for rendering the template.
+- You can specify additional arguments to use multiple variables for the template.  
+
+In the following example, the function renders the string value located at `data.aws_s3_object.example.body` as the template:
+
+```hcl
+templatestring(data.aws_s3_object.example.body, {
+  name = var.name
+})
+```
+
+For information about the syntax you can use for the variables arguments, refer to [Strings and Templates](/terraform/language/expressions/strings).
+
+## Example use case
+
+The following example retrieves a template from S3 and dynamically renders it:
+
+```hcl
+data "aws_s3_object" "example" {
+  bucket = "example-example"
+  key    = "example.tmpl"
+}
+
+output "example" {
+  value = templatestring(data.aws_s3_object.example.body, {
+    name = var.name
+  })
+}
+```
+
+For more examples of how to use templates, refer to the documentation for [the `templatefile` function](/terraform/language/functions/templatefile#Examples).
+
+## Dynamic template construction
+
+You can write an expression that builds a template dynamically and then assigns it to a [local value](/terraform/language/values/locals). You can then use a reference to that local value as the first argument to the `templatestring` function.
+
+Note that you should only dynamically construct templates in this way when no other alternative is feasible. This is because the result can be difficult to understand and maintain and is susceptible to unexpected inputs. Built-in Terraform functions may interact with the local filesystem. As a result, the inputs may produce a template that includes data from arbitrary files on the system where Terraform is running.
+
+## Related Functions
+
+* [`templatefile`](/terraform/language/functions/templatefile) reads a file from disk and renders its content as a template.

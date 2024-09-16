@@ -1,0 +1,27 @@
+---
+page_title: startswith - Functions - Configuration Language
+description: |-
+  The startswith function  takes two values: a string to check and a prefix string. It returns true if the string begins with that exact prefix.
+---
+
+# `startswith` Function
+
+`startswith` takes two values: a string to check and a prefix string. The function returns true if the string begins with that exact prefix.
+
+```hcl
+startswith(string, prefix)
+```
+
+## Examples
+
+```
+> startswith("hello world", "hello")
+true
+
+> startswith("hello world", "world")
+false
+```
+
+## Related Functions
+
+- [`endswith`](/terraform/language/functions/endswith) takes two values: a string to check and a suffix string. The function returns true if the first string ends with that exact suffix.

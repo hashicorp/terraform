@@ -1,0 +1,27 @@
+---
+page_title: endswith - Functions - Configuration Language
+description: |-
+  The endswith function takes two values: a string to check and a suffix string. It returns true if the first string ends with that exact suffix.
+---
+
+# `endswith` Function
+
+`endswith` takes two values: a string to check and a suffix string. The function returns true if the first string ends with that exact suffix.
+
+```hcl
+endswith(string, suffix)
+```
+
+## Examples
+
+```
+> endswith("hello world", "world")
+true
+
+> endswith("hello world", "hello")
+false
+```
+
+## Related Functions
+
+- [`startswith`](/terraform/language/functions/startswith) takes two values: a string to check and a prefix string. The function returns true if the string begins with that exact prefix.

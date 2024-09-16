@@ -1,0 +1,50 @@
+---
+page_title: filesha256 - Functions - Configuration Language
+description: |-
+  The filesha256 function computes the SHA256 hash of the contents of
+  a given file and encodes it as hex.
+---
+
+# `filesha256` function reference
+
+This topic provides reference information about the `filesha256` function, which calculates the SHA-256 hash of a file's contents. 
+
+## Introduction
+
+The `filesha256` is a variant of [`sha256`](/terraform/language/functions/sha256)
+that hashes the contents of a given file rather than a literal string.
+
+Use the `filesha1` function instead of wrapping the `file` function in a `sha1` function, for example `sha1(file(filename))`, because [`file`](/terraform/language/functions/file) accepts only UTF-8 text. As a result, you cannot use `sha1(file(filename))` to create hashes for binary files.
+
+## Syntax
+
+Use the `filesha256` function with the following syntax:
+
+```hcl
+filesha256(path)
+```
+
+The `path` is the relative or absolute file path to the file whose SHA-256 hash you want to compute.
+
+In the following example, the function returns the SHA-256 value of `example.txt`.
+
+```hcl
+$ filesha512("example.txt")
+a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b0b571d0f6a26f2bb
+```
+
+## Example use case
+
+In the following example, the `filesha256` function computes the SHA-256 hash of the file `example.txt` located in the current module's directory.
+
+```hcl
+output "file_hash" {
+  value = filesha256("example.txt")
+}
+```
+
+## Related functions
+
+- [`sha256`](/terraform/language/functions/sha256) computes the SHA-1 hash of a given string and encodes it with hexadecimal digits.
+- [`filesha512`](/terraform/language/functions/filesha512) computes the SHA-512 hash of a given file and encodes it with hexadecimal digits.
+- [`filesha1`](/terraform/language/functions/filesha1)computes the SHA-1 hash of a given file and encodes it with hexadecimal digits.

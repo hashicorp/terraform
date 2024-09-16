@@ -1,0 +1,56 @@
+---
+page_title: base64gzip function reference - Functions - Configuration Language
+description: |-
+  The base64encode function compresses an HCL string using gzip, and then encodes it using Base64 encoding.
+---
+
+# `base64gzip` function reference
+
+This topic provides reference information about the `base64gzip` function.
+The `base64gzip` function compresses an HCL string using gzip and then encodes the string using Base64 encoding.
+
+## Introduction
+
+You can use the `base64gzip` function to compress an HCL string and then encode it in the Base64 format.
+Terraform uses the standard Base64 alphabet that is defined in [RFC 4648](https://datatracker.ietf.org/doc/html/rfc4648#section-4).
+
+While HashiCorp does not recommend manipulating large, raw binary data in HCL, Base64 encoding can be an effective way to represent small binary objects in memory when you need to pass them as values, rather than referring to files on disk.
+For example, you could use the `base64gzip` function to compress a large JSON string so that you can upload it to S3.
+
+Because HCL strings are sequences of unicode characters rather than bytes, `base64gzip` first encodes the characters in the string as UTF-8.
+Then it applies gzip compression and encodes the string using Base64 format.
+
+## Syntax
+
+Use the `base64gzip` function with the following syntax:
+
+```hcl
+base64gzip(ARGS)
+```
+
+The argument is the string that you want to compress and encode.
+
+In the following example, the function compresses the string at `local.my_data` and encodes it using the Base64 format.
+
+```hcl
+base64gzip(local.my_data)
+```
+
+## Example use case
+
+The following example defines a local value `my_data` that contains the string you want to compress and encode.
+The `base64gzip` function compresses and encodes the string, and then it is used to populate an S3 bucket.
+
+```hcl
+resource "aws_s3_object" "example" {
+  bucket = "my_bucket"
+  key = "example.txt"
+  content_base64 = base64gzip(local.my_data)
+  content_encoding = "gzip"
+}
+```
+
+## Related functions
+
+* [`base64encode`](/terraform/language/functions/base64encode) applies Base64 encoding to an HCL string without using gzip compression.
+* [`filebase64`](/terraform/language/functions/filebase64) reads a file from the local filesystem and encodes its raw bits using the Base64 format.

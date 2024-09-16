@@ -1,0 +1,35 @@
+---
+page_title: indent - Functions - Configuration Language
+description: |-
+  The indent function adds spaces to the beginning of each line but the first in a multi-line string.
+---
+
+# `indent` function reference
+
+This topic provides reference information about the `indent` function.
+You can use the `indent` function to add indentation to the beginning of each line, except the first, in a multi-line string.
+
+## Introduction
+
+The `indent` function adds a specified number of spaces to the beginning of each line in a multi-line string, except for the first line.
+You can use the `indent` function to help ensure that complex strings are properly formatted, consistent, and readable.
+The function can be especially useful when you work with YAML, JSON, Kubernetes, or other formats that require complex, structured text.
+
+## Syntax
+
+Use the `indent` function with the following syntax:
+
+```hcl
+indent(num_spaces, string)
+```
+
+- The first argument is numeric. It specifies the number of spaces you want to add to each line except the first.
+- The second argument is a string. It specifies the multi-line string to which you want to add spaces.
+
+In the following example, the `indent` function adds two spaces to the beginning of each line of the `description` variable to make it easier to read:
+
+```hcl
+output "formatted_description" {
+  value = indent(2, var.description)
+}
+```

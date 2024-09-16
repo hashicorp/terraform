@@ -1,0 +1,54 @@
+---
+page_title: plantimestamp - Functions - Configuration Language
+description: |-
+  The plantimestamp functions a string representation of the date and time
+  during the plan.
+---
+
+# `plantimestamp` Function
+
+-> **Note:** This function is only available in Terraform v1.5 and later.
+
+`plantimestamp` returns a UTC timestamp string in [RFC 3339](https://tools.ietf.org/html/rfc3339) format.
+
+In the Terraform language, timestamps are conventionally represented as
+strings using [RFC 3339](https://tools.ietf.org/html/rfc3339)
+"Date and Time format" syntax, and so `plantimestamp` returns a string
+in this format.
+
+The result of this function will change for every plan operation. It is intended
+for use within [Custom Conditions](/terraform/language/expressions/custom-conditions)
+as a way to validate time sensitive resources such as TLS certificates.
+
+There are circumstances, such as during a Terraform [Refresh-only](/terraform/cli/commands/plan#planning-modes) plan, where
+the value for this function will be recomputed but not propagated to resources
+defined within the configuration. As such, it is recommended that this function
+only be used to compare against timestamps exported by providers and not against
+timestamps generated in the configuration.
+
+The `plantimestamp` function is not available within the Terraform console.
+
+## Examples
+
+```
+> plantimestamp()
+2018-05-13T07:44:12Z
+```
+
+```terraform
+check "terraform_io_certificate" {
+  data "tls_certificate" "terraform_io" {
+    url = "https://www.terraform.io/"
+  }
+
+  assert {
+    condition = timecmp(plantimestamp(), data.tls_certificate.terraform_io.certificates[0].not_after) < 0
+    error_message = "terraform.io certificate has expired"
+  }
+}
+```
+
+## Related Functions
+
+* [`timestamp`](/terraform/language/functions/timestamp) returns the current timestamp when it is evaluated
+during the apply step.

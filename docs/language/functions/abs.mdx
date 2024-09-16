@@ -1,0 +1,51 @@
+---
+page_title: abs - Functions - Configuration Language
+description: The abs function returns the absolute value of the given number.
+---
+
+# `abs` function reference
+
+This topic provides reference information about the `abs` function. The `abs` function returns the absolute value of the given number.
+
+## Introduction
+
+The `abs` function returns the absolute value of the given number. If the number is zero or positive, the function returns the value as-is, but if it is negative, it is multiplied by -1 to make it positive before returning it.
+
+## Syntax
+
+Use the `abs` function with the following syntax:
+
+```hcl
+abs(number) 
+```
+
+The `number` argument is the number you want the absolute value of.
+
+In the following example, the function returns the absolute value of `23`, `0`, and `-12.4`.
+
+```hcl hideClipboard
+$ abs(23)
+23
+$ abs(0)
+0
+$ abs(-12.4)
+12.4
+```
+
+## Example use case
+
+The following example defines a variable `num` that is negative. The function outputs the absolute value of `num`, which is `10`.
+
+```hcl
+variable "num" {
+  default = -10
+}
+
+output "absolute_value" {
+  value = abs(var.num)
+}
+```
+
+## Related Functions
+
+- [`signum`](/terraform/language/functions/signum) determines the sign of a number, returning a number between -1 and 1 to represent the sign

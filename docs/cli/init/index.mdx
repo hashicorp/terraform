@@ -1,0 +1,74 @@
+---
+page_title: Initializing Working Directories - Terraform CLI
+description: >-
+  Working directories contain configurations, settings, cached plugins and
+  modules, and state data. Learn how to initialize and manage working
+  directories.
+---
+
+# Initializing Working Directories
+
+Terraform expects to be invoked from a working directory that contains
+configuration files written in
+[the Terraform language](/terraform/language). Terraform uses
+configuration content from this directory, and also uses the directory to store
+settings, cached plugins and modules, and sometimes state data.
+
+A working directory must be initialized before Terraform can perform any
+operations in it (like provisioning infrastructure or modifying state).
+
+## Working Directory Contents
+
+A Terraform working directory typically contains:
+
+- A Terraform configuration describing resources Terraform should manage. This
+  configuration is expected to change over time.
+- A hidden `.terraform` directory, which Terraform uses to manage cached
+  provider plugins and modules, record which
+  [workspace](/terraform/cli/workspaces) is currently active, and
+  record the last known backend configuration in case it needs to migrate state
+  on the next run. This directory is automatically managed by Terraform, and is
+  created during initialization.
+- State data, if the configuration uses the default `local` backend. This is
+  managed by Terraform in a `terraform.tfstate` file (if the directory only uses
+  the default workspace) or a `terraform.tfstate.d` directory (if the directory
+  uses multiple workspaces).
+
+## Initialization
+
+Run the `terraform init` command to initialize a working directory that contains
+a Terraform configuration. After initialization, you will be able to perform
+other commands, like `terraform plan` and `terraform apply`.
+
+If you try to run a command that relies on initialization without first
+initializing, the command will fail with an error and explain that you need to
+run init.
+
+Initialization performs several tasks to prepare a directory, including
+accessing state in the configured backend, downloading and installing provider
+plugins, and downloading modules. Under some conditions (usually when changing
+from one backend to another), it might ask the user for guidance or
+confirmation.
+
+For details, see [the `terraform init` command](/terraform/cli/commands/init).
+
+## Reinitialization
+
+Certain types of changes to a Terraform configuration can require
+reinitialization before normal operations can continue. This includes changes to
+provider requirements, module sources or version constraints, and backend
+configurations.
+
+You can reinitialize a directory by running `terraform init` again. In fact, you
+can reinitialize at any time; the init command is idempotent, and will have no
+effect if no changes are required.
+
+If reinitialization is required, any commands that rely on initialization will
+fail with an error and tell you so.
+
+## Reinitializing Only Modules
+
+The `terraform get` command will download modules referenced in the
+configuration, but will not perform the other required initialization tasks.
+This command is only useful for niche workflows, and most Terraform users can
+ignore it in favor of `terraform init`.

@@ -1,0 +1,145 @@
+---
+page_title: format - Functions - Configuration Language
+description: |-
+  The format function produces a string by formatting a number of other values
+  according to a specification string.
+---
+
+# `format` Function
+
+The `format` function produces a string by formatting a number of other values according
+to a specification string. It is similar to the `printf` function in C, and
+other similar functions in other programming languages.
+
+```hcl
+format(spec, values...)
+```
+
+## Examples
+
+```
+> format("Hello, %s!", "Ander")
+Hello, Ander!
+> format("There are %d lights", 4)
+There are 4 lights
+```
+
+Simple format verbs like `%s` and `%d` behave similarly to template
+interpolation syntax, which is often more readable.
+
+```
+> format("Hello, %s!", var.name)
+Hello, Valentina!
+> "Hello, ${var.name}!"
+Hello, Valentina!
+```
+
+The formatting verb `%#v` accepts a value of any type and presents it using JSON encoding, similar to jsonencode. This can be useful for describing the values given to a module in [custom condition check](/terraform/language/expressions/custom-conditions#error-messages) error messages.
+
+```
+> format("%#v", "hello")
+"\"hello\""
+> format("%#v", true)
+"true"
+> format("%#v", 1)
+"1"
+> format("%#v", {a = 1})
+"{\"a\":1}"
+> format("%#v", [true])
+"[true]"
+> format("%#v", null)
+"null"
+```
+
+The `format` function is most useful when you use more complex format specifications.
+
+## Specification Syntax
+
+The specification is a string that includes formatting verbs that are introduced
+with the `%` character. The function call must then have one additional argument
+for each verb sequence in the specification. The verbs are matched with
+consecutive arguments and formatted as directed, as long as each given argument
+is convertible to the type required by the format verb.
+
+By default, `%` sequences consume successive arguments starting with the first.
+Introducing a `[n]` sequence immediately before the verb letter, where `n` is a
+decimal integer, explicitly chooses a particular value argument by its
+one-based index. Subsequent calls without an explicit index will then proceed
+with `n`+1, `n`+2, etc.
+
+The function produces an error if the format string requests an impossible
+conversion or access more arguments than are given. An error is produced also
+for an unsupported format verb.
+
+### Verbs
+
+The specification may contain the following verbs.
+
+| Verb  | Result                                                                                    |
+| ----- | ----------------------------------------------------------------------------------------- |
+| `%%`  | Literal percent sign, consuming no value.                                                 |
+| `%v`  | Default formatting based on the [value type](#default-format-verbs). Accepts all types, including items of `null`, `list`, and `map` types.                           |
+| `%#v` | JSON serialization of the value, as with `jsonencode`. Accepts all types, including items of `null`, `list`, and `map` types.  |
+| `%t`  | Convert to boolean and produce `true` or `false`.                                         |
+| `%b`  | Convert to integer number and produce binary representation.                              |
+| `%d`  | Convert to integer number and produce decimal representation.                             |
+| `%o`  | Convert to integer number and produce octal representation.                               |
+| `%x`  | Convert to integer number and produce hexadecimal representation with lowercase letters.  |
+| `%X`  | Like `%x`, but use uppercase letters.                                                     |
+| `%e`  | Convert to number and produce scientific notation, like `-1.234456e+78`.                  |
+| `%E`  | Like `%e`, but use an uppercase `E` to introduce the exponent.                            |
+| `%f`  | Convert to number and produce decimal fraction notation with no exponent, like `123.456`. |
+| `%g`  | Like `%e` for large exponents or like `%f` otherwise.                                     |
+| `%G`  | Like `%E` for large exponents or like `%f` otherwise.                                     |
+| `%s`  | Convert to string and insert the string's characters.                                     |
+| `%q`  | Convert to string and produce a JSON quoted string representation.                        |
+
+### Default Format Verbs
+
+When `%v` is used, Terraform chooses the appropriate format verb based on the value type.
+
+| Type      | Verb  |
+| --------- | ----- |
+| `string`  | `%s`  |
+| `number`  | `%g`  |
+| `bool`    | `%t`  |
+| any other | `%#v` |
+
+Null values produce the string `null` if formatted with `%v` or `%#v`, and cause an error for other verbs.
+
+### Width Modifier
+
+Use a width modifier with an optional decimal number immediately
+preceding the verb letter to specify how many characters will be used to represent the value. You can specify precision after the (optional) width with a period (`.`) followed by a decimal number. If width or precision are omitted, Terraform selects default values based on the given value.
+
+The following examples demonstrate example use cases for the width modifier.
+
+| Sequence | Result                       |
+| -------- | ---------------------------- |
+| `%f`     | Default width and precision. |
+| `%9f`    | Width 9, default precision.  |
+| `%.2f`   | Default width, precision 2.  |
+| `%9.2f`  | Width 9, precision 2.        |
+
+-> **Note:** Width and precision modifiers with non-numeric types such as
+strings (`%s`) are interpreted differently. Setting either width or precision to
+zero is the same as not including them at all.
+
+### Additional Format Options
+
+Use the following symbols immediately after the `%` symbol to set additional formatting requirements.
+
+| Symbol | Result                                                         |
+| ------ | -------------------------------------------------------------- |
+| space  | Leave a space where the sign would be if a number is positive. |
+| `+`    | Show the sign of a number even if it is positive.              |
+| `-`    | Pad the width with spaces on the right rather than the left.   |
+| `0`    | Pad the width with leading zeros rather than spaces.           |
+
+
+## Related Functions
+
+* [`formatdate`](/terraform/language/functions/formatdate) is a specialized formatting function for
+  human-readable timestamps.
+* [`formatlist`](/terraform/language/functions/formatlist) uses the same specification syntax to
+  produce a list of strings.

@@ -1,0 +1,419 @@
+---
+page_title: Dependency Lock File (.terraform.lock.hcl) - Configuration Language
+description: >-
+  Terraform uses the dependency lock file .teraform.lock.hcl to track and select
+  provider versions. Learn about dependency installation and lock file changes.
+---
+
+# Dependency Lock File
+
+-> **Note:** This page is about a feature of Terraform 0.14 and later. Prior
+versions of Terraform did not track dependency selections at all, so the
+information here is not relevant to those versions.
+
+> **Hands-on:** Try the [Lock and Upgrade Provider Versions](/terraform/tutorials/configuration-language/provider-versioning?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+
+A Terraform configuration may refer to two different kinds of external
+dependency that come from outside of its own codebase:
+
+- [Providers](/terraform/language/providers/requirements), which are plugins for Terraform
+  that extend it with support for interacting with various external systems.
+- [Modules](/terraform/language/modules), which allow
+  splitting out groups of Terraform configuration constructs (written in the
+  Terraform language) into reusable abstractions.
+
+Both of these dependency types can be published and updated independently from
+Terraform itself and from the configurations that depend on them. For that
+reason, Terraform must determine which versions of those dependencies are
+potentially compatible with the current configuration and which versions are
+currently selected for use.
+
+[Version constraints](/terraform/language/expressions/version-constraints) within the configuration
+itself determine which versions of dependencies are _potentially_ compatible,
+but after selecting a specific version of each dependency Terraform remembers
+the decisions it made in a _dependency lock file_ so that it can (by default)
+make the same decisions again in future.
+
+At present, the dependency lock file tracks only _provider_ dependencies.
+Terraform does not remember version selections for remote modules, and so
+Terraform will always select the newest available module version that meets
+the specified version constraints. You can use an _exact_ version constraint
+to ensure that Terraform will always select the same module version.
+
+## Lock File Location
+
+The dependency lock file is a file that belongs to the configuration as a
+whole, rather than to each separate module in the configuration. For that reason
+Terraform creates it and expects to find it in your current working directory
+when you run Terraform, which is also the directory containing the `.tf` files
+for the root module of your configuration.
+
+The lock file is always named `.terraform.lock.hcl`, and this name is intended
+to signify that it is a lock file for various items that Terraform caches in
+the `.terraform` subdirectory of your working directory.
+
+Terraform automatically creates or updates the dependency lock file each time
+you run [the `terraform init` command](/terraform/cli/commands/init). You should
+include this file in your version control repository so that you can discuss
+potential changes to your external dependencies via code review, just as you
+would discuss potential changes to your configuration itself.
+
+The dependency lock file uses the same low-level syntax as the main Terraform
+language, but the dependency lock file is not itself a Terraform language
+configuration file. It is named with the suffix `.hcl` instead of `.tf` in
+order to signify that difference.
+
+## Dependency Installation Behavior
+
+When `terraform init` is working on installing all of the providers needed for
+a configuration, Terraform considers both the version constraints in the
+configuration _and_ the version selections recorded in the lock file.
+
+If a particular provider has no existing recorded selection, Terraform will
+select the newest available version that matches the given version constraint,
+and then update the lock file to include that selection.
+
+If a particular provider already has a selection recorded in the lock file,
+Terraform will always re-select that version for installation, even if a
+newer version has become available. You can override that behavior by adding
+the `-upgrade` option when you run `terraform init`, in which case Terraform
+will disregard the existing selections and once again select the newest
+available version matching the version constraint.
+
+If a particular `terraform init` call makes changes to the lock file, Terraform
+will mention that as part of its output:
+
+```
+Terraform has made some changes to the provider dependency selections recorded
+in the .terraform.lock.hcl file. Review those changes and commit them to your
+version control system if they represent changes you intended to make.
+```
+
+When you see this message, you can use your version control system to
+[review the changes Terraform has proposed in the file](#understanding-lock-file-changes),
+and if they represent changes you made intentionally you can send the change
+through your team's usual code review process.
+
+### Checksum verification
+
+Terraform will also verify that each package it installs matches at least one
+of the checksums it previously recorded in the lock file, if any, returning an
+error if none of the checksums match:
+
+```
+Error: Failed to install provider
+
+Error while installing hashicorp/azurerm v2.1.0: the current package for
+registry.terraform.io/hashicorp/azurerm 2.1.0 doesn't match any of the
+checksums previously recorded in the dependency lock file.
+```
+
+This checksum verification is intended to represent a
+_[trust on first use](https://en.wikipedia.org/wiki/Trust_on_first_use)_
+approach. When you add a new provider for the first time you can verify it
+in whatever way you choose or any way you are required to by relevant
+regulations, and then trust that Terraform will raise an error if a future
+run of `terraform init` encounters a non-matching package for the same
+provider version.
+
+There are two special considerations with the "trust on first use" model:
+
+- If you install a provider from an origin registry which provides checksums
+  that are signed with a cryptographic signature, Terraform will treat all
+  of the signed checksums as valid as long as one checksum matches. The lock
+  file will therefore include checksums for both the package you installed for
+  your current platform _and_ any other packages that might be available for
+  other platforms.
+
+  In this case, the `terraform init` output will include the fingerprint of
+  the key that signed the checksums, with a message like
+  `(signed by a HashiCorp partner, key ID DC9FC6B1FCE47986)`. You may wish to
+  confirm that you trust the holder of the given key before committing the
+  lock file containing the signed checksums, or to retrieve and verify the
+  full set of available packages for the given provider version.
+
+- If you install a provider for the first time using an alternative
+  installation method, such as a filesystem or network mirror, Terraform will
+  not be able to verify the checksums for any platform other than the one
+  where you ran `terraform init`, and so it will not record the checksums
+  for other platforms and so the configuration will not be usable on any other
+  platform.
+
+  To avoid this problem you can pre-populate checksums for a variety of
+  different platforms in your lock file using
+  [the `terraform providers lock` command](/terraform/cli/commands/providers/lock),
+  which will then allow future calls to `terraform init` to verify that the
+  packages available in your chosen mirror match the official packages from
+  the provider's origin registry.
+
+## Understanding Lock File Changes
+
+Because the dependency lock file is primarily maintained automatically by
+Terraform itself, rather than being updated manually by you or your team,
+your version control system may show you that the file has changed.
+
+There are a few different types of changes that Terraform can potentially make
+to your lock file, which you may need to understand in order to review the
+proposed changes. The following sections will describe these common situations.
+
+### Dependency on a new provider
+
+If you add a new entry to the
+[provider requirements](/terraform/language/providers/requirements) for any module in your
+configuration, or if you add an external module that includes a new provider
+dependency itself, `terraform init` will respond to that by selecting the
+newest version of that provider which meets all of the version constraints
+in the configuration, and it will record its decision as a new `provider`
+block in the dependency lock file.
+
+```diff
+--- .terraform.lock.hcl	2020-10-07 16:12:07.539570634 -0700
++++ .terraform.lock.hcl	2020-10-07 16:12:15.267487237 -0700
+@@ -6,6 +6,26 @@
+   ]
+ }
+
++provider "registry.terraform.io/hashicorp/azurerm" {
++  version     = "2.30.0"
++  constraints = "~> 2.12"
++  hashes = [
++    "h1:FJwsuowaG5CIdZ0WQyFZH9r6kIJeRKts9+GcRsTz1+Y=",
++    "h1:c/ntSXrDYM1mUir2KufijYebPcwKqS9CRGd3duDSGfY=",
++    "h1:yre4Ph76g9H84MbuhZ2z5MuldjSA4FsrX6538O7PCcY=",
++    "zh:04f0a50bb2ba92f3bea6f0a9e549ace5a4c13ef0cbb6975494cac0ef7d4acb43",
++    "zh:2082e12548ebcdd6fd73580e83f626ed4ed13f8cdfd51205d8696ffe54f30734",
++    "zh:246bcc449e9a92679fb30f3c0a77f05513886565e2dcc66b16c4486f51533064",
++    "zh:24de3930625ac9014594d79bfa42d600eca65e9022b9668b54bfd0d924e21d14",
++    "zh:2a22893a576ff6f268d9bf81cf4a56406f7ba79f77826f6df51ee787f6d2840a",
++    "zh:2b27485e19c2aaa9f15f29c4cff46154a9720647610171e30fc6c18ddc42ec28",
++    "zh:435f24ce1fb2b63f7f02aa3c84ac29c5757cd29ec4d297ed0618423387fe7bd4",
++    "zh:7d99725923de5240ff8b34b5510569aa4ebdc0bdb27b7bac2aa911a8037a3893",
++    "zh:7e3b5d0af3b7411dd9dc65ec9ab6caee8c191aee0fa7f20fc4f51716e67f50c0",
++    "zh:da0af4552bef5a29b88f6a0718253f3bf71ce471c959816eb7602b0dadb469ca",
++  ]
++}
++
+ provider "registry.terraform.io/newrelic/newrelic" {
+   version     = "2.1.2"
+   constraints = "~> 2.1.1"
+```
+
+The new lock file entry records several pieces of information:
+
+- `version`: the exact version that Terraform selected based on the version
+  constraints in the configuration.
+- `constraints`: all of the version constraints that Terraform considered when
+  making this selection. (Terraform doesn't actually use this information to
+  make installation decisions, but includes it to help explain to human readers
+  how the previous decision was made.)
+- `hashes`: a number of checksums that are all considered to be valid for
+  packages implementing the selected version of this provider on different
+  platforms. The meaning of these hashes is explained more under
+  _[New provider package checksums](#new-provider-package-checksums)_ below.
+
+### New version of an existing provider
+
+If you run `terraform init -upgrade` to ask Terraform to consider newer provider
+versions that still match the configured version constraints, Terraform may
+then select a newer version for a provider and update its existing `provider`
+block to reflect that change.
+
+```diff
+--- .terraform.lock.hcl	2020-10-07 16:44:25.819579509 -0700
++++ .terraform.lock.hcl	2020-10-07 16:43:42.785665945 -0700
+@@ -7,22 +7,22 @@
+ }
+
+ provider "registry.terraform.io/hashicorp/azurerm" {
+-  version     = "2.1.0"
+-  constraints = "~> 2.1.0"
++  version     = "2.0.0"
++  constraints = "2.0.0"
+   hashes      = [
+-    "h1:EOJImaEaVThWasdqnJjfYc6/P8N/MRAq1J7avx5ZbV4=",
+-    "zh:0015b491cf9151235e57e35ea6b89381098e61bd923f56dffc86026d58748880",
+-    "zh:4c5682ba1e0fc7e2e602d3f103af1638f868c31fe80cc1a884a97f6dad6e1c11",
+-    "zh:57bac885b108c91ade4a41590062309c832c9ab6bf6a68046161636fcaef1499",
+-    "zh:5810d48f574c0e363c969b3f45276369c8f0a35b34d6202fdfceb7b85b3ac597",
+-    "zh:5c6e37a44462b8662cf9bdd29ce30523712a45c27c5d4711738705be0785db41",
+-    "zh:64548940a3387aa3a752e709ee9eb9982fa820fe60eb60e5f212cc1d2c58549e",
+-    "zh:7f46749163da17330bbb5293dc825333c86304baa0a7c6256650ac536b4567c8",
+-    "zh:8f8970f2df75ac43ffdd112055ee069d8bd1030f7eb4367cc4cf494a1fa802c3",
+-    "zh:9ad693d00dc5d7d455d06faba70e716bce727c6706f7293288e87fd7956b8fe0",
+-    "zh:b6e3cb55e6aec62b47edd0d2bd5e14bd6a2bcfdac65930a6e9e819934734c57b",
+-    "zh:d6a3f3b9b05c28ecf3919e9e7afa185805a6d7442fc4b3eedba749c2731d1f0e",
+-    "zh:d81fb624a357c57c7ea457ce543d865b39b12f26c2edd58a2f7cd43326c91010",
++    "h1:bigGXBoRbp7dv79bEEn+aaju8575qEXHQ57XHVPJeB8=",
++    "zh:09c603c8904ca4a5bc19e82335afbc2837dcc4bee81e395f9daccef2f2cba1c8",
++    "zh:194a919d4836d6c6d4ce598d0c66cce00ddc0d0b5c40d01bb32789964d818b42",
++    "zh:1f269627df4e266c4e0ef9ee2486534caa3c8bea91a201feda4bca525005aa0a",
++    "zh:2bae3071bd5f8e553355c4b3a547d6efe1774a828142b762e9a4e85f79be7f63",
++    "zh:6c98dfa5c3468e8d02e2b3af7c4a8a14a5d469ce5a642909643b413a17ca338b",
++    "zh:7af78f61666fd45fbf428161c061ea2623162d601b79dc71d6a5158756853ffa",
++    "zh:883c2df86ae9ba2a5c167cf5c2c7deca0239171a224d6d335f0fd6dd9c283830",
++    "zh:a2028379078577d8ff5ecfca6e8a8b25a25ffb1686de0ee52a7fe8011783488b",
++    "zh:abe6ef399552fd3861a454a839cd978c1d15735658fdc00f9054435aff0f4620",
++    "zh:c30b1bf14077913c3cdf34979b1434dbb1353cb5995eb3956b191c50538b64a9",
++    "zh:ca64ae2ad9793e5631e3b0b9327f7cb22cb5d8e9de57be7d85821791b1d5a375",
++    "zh:fffe56904a38109bb8d613b02808a177c3ddfac19f03b3aac799281fea38f475",
+   ]
+ }
+```
+
+The primary effect of selecting a new provider version is to change the
+value of `version` in the `provider` block. If the upgrade came along with
+a change to the configured version constraints, Terraform will also record
+that change in the `constraints` value.
+
+Because each version has its own set of distribution packages, switching to
+a new version will also tend to replace all of the values in `hashes`, to
+reflect the checksums of the packages for the new version.
+
+### New provider package checksums
+
+A more subtle change you may see in a `provider` block is the addition of
+new checksums that were not previously recorded, even though nothing else
+in the `provider` block has changed:
+
+```diff
+--- .terraform.lock.hcl	2020-10-07 17:24:23.397892140 -0700
++++ .terraform.lock.hcl	2020-10-07 17:24:57.423130253 -0700
+@@ -10,6 +10,7 @@
+   version     = "2.1.0"
+   constraints = "~> 2.1.0"
+   hashes = [
++    "h1:1xvaS5D8B8t6J6XmXxX8spo97tAzjhacjedFX1B47Fk=",
+     "h1:EOJImaEaVThWasdqnJjfYc6/P8N/MRAq1J7avx5ZbV4=",
+     "zh:0015b491cf9151235e57e35ea6b89381098e61bd923f56dffc86026d58748880",
+     "zh:4c5682ba1e0fc7e2e602d3f103af1638f868c31fe80cc1a884a97f6dad6e1c11",
+```
+
+The addition of a new checksum into the `hashes` value represents Terraform
+gradually transitioning between different _hashing schemes_. The `h1:` and
+`zh:` prefixes on these values represent different hashing schemes, each
+of which represents calculating a checksum using a different algorithm.
+We may occasionally introduce new hashing schemes if we learn of limitations
+in the existing schemes or if a new scheme offers some considerable
+additional benefit.
+
+The two hashing schemes currently supported are:
+
+- `zh:`: a mnemonic for "zip hash", this is a legacy hash format which is
+  part of the Terraform provider registry protocol and is therefore used for
+  providers that you install directly from an origin registry.
+
+  This hashing scheme captures a SHA256 hash of each of the official `.zip`
+  packages indexed in the origin registry. This is an effective scheme for
+  verifying the official release packages when installed from a registry, but
+  it's not suitable for verifying packages that come from other
+  [provider installation methods](/terraform/cli/config/config-file#provider-installation),
+  such as filesystem mirrors using the unpacked directory layout.
+
+- `h1:`: a mnemonic for "hash scheme 1", which is the current preferred hashing
+  scheme.
+
+  Hash scheme 1 is also a SHA256 hash, but is one computed from the _contents_
+  of the provider distribution package, rather than of the `.zip` archive
+  it's contained within. This scheme therefore has the advantage that it can
+  be calculated for an official `.zip` file, an unpacked directory with the
+  same contents, or a recompressed `.zip` file which contains the same files
+  but potentially different metadata or compression schemes.
+
+  Due to the limited scope of the `zh:` scheme, Terraform will
+  opportunistically add in the corresponding `h1:` checksums as it learns
+  of them, which is what caused the addition of a second `h1:` checksum
+  in the example change shown above.
+
+Terraform will add a new hash to an existing provider only if the hash is
+calculated from a package that _also_ matches one of the existing hashes. In
+the above example, Terraform installed a `hashicorp/azurerm` package for a
+different platform than that which produced the original `h1:` checksum, but was
+able to match it against one of the `zh:` checksums recorded previously.
+After confirming the `zh:` checksum match, Terraform then recorded the
+corresponding `h1:` checksum in order to gradually migrate from the old scheme
+to the new scheme.
+
+When installing a particular provider for the first time (where there is no
+existing `provider` block for it), Terraform will pre-populate the `hashes`
+value with any checksums that are covered by the provider developer's
+cryptographic signature, which usually covers all of the available packages
+for that provider version across all supported platforms. However, because
+the provider registry protocol still uses the `zh:` scheme, the initial set
+will consist primarily of hashes using that scheme, which Terraform will then
+upgrade opportunistically as you install the packages on different platforms.
+
+If you wish to avoid ongoing additions of new `h1:` hashes as you work with
+your configuration on new target platforms, or if you are installing providers
+from a mirror that therefore can't provide official signed checksums, you
+can ask Terraform to pre-populate hashes for a chosen set of platforms
+using
+[the `terraform providers lock` command](/terraform/cli/commands/providers/lock):
+
+```
+terraform providers lock \
+  -platform=linux_arm64 \
+  -platform=linux_amd64 \
+  -platform=darwin_amd64 \
+  -platform=windows_amd64
+```
+
+The above command will download and verify the official packages for all of
+the required providers across all four of the given platforms, and then record
+both `zh:` and `h1:` checksums for each of them in the lock file, thus avoiding
+the case where Terraform will learn about a `h1:` equivalent only at a later
+time. See the `terraform providers lock` documentation for more information on
+this command.
+
+### Providers that are no longer required
+
+To determine whether there still exists a dependency on a given provider,
+Terraform uses two sources of truth: the configuration itself, and the state.
+If you remove the last dependency on a particular provider from both your
+configuration and state, then `terraform init` will remove any existing lock
+file entry for that provider.
+
+```diff
+--- .terraform.lock.hcl	2020-10-07 16:12:07.539570634 -0700
++++ .terraform.lock.hcl	2020-10-07 16:12:15.267487237 -0700
+@@ -6,26 +6,6 @@
+   ]
+ }
+
+-provider "registry.terraform.io/hashicorp/azurerm" {
+-  version     = "2.30.0"
+-  constraints = "~> 2.12"
+-  hashes = [
+-    "h1:FJwsuowaG5CIdZ0WQyFZH9r6kIJeRKts9+GcRsTz1+Y=",
+-    "h1:c/ntSXrDYM1mUir2KufijYebPcwKqS9CRGd3duDSGfY=",
+-    "h1:yre4Ph76g9H84MbuhZ2z5MuldjSA4FsrX6538O7PCcY=",
+-    "zh:04f0a50bb2ba92f3bea6f0a9e549ace5a4c13ef0cbb6975494cac0ef7d4acb43",
+-    "zh:2082e12548ebcdd6fd73580e83f626ed4ed13f8cdfd51205d8696ffe54f30734",
+-    "zh:246bcc449e9a92679fb30f3c0a77f05513886565e2dcc66b16c4486f51533064",
+-    "zh:24de3930625ac9014594d79bfa42d600eca65e9022b9668b54bfd0d924e21d14",
+-    "zh:2a22893a576ff6f268d9bf81cf4a56406f7ba79f77826f6df51ee787f6d2840a",
+-    "zh:2b27485e19c2aaa9f15f29c4cff46154a9720647610171e30fc6c18ddc42ec28",
+-    "zh:435f24ce1fb2b63f7f02aa3c84ac29c5757cd29ec4d297ed0618423387fe7bd4",
+-    "zh:7d99725923de5240ff8b34b5510569aa4ebdc0bdb27b7bac2aa911a8037a3893",
+-    "zh:7e3b5d0af3b7411dd9dc65ec9ab6caee8c191aee0fa7f20fc4f51716e67f50c0",
+-    "zh:da0af4552bef5a29b88f6a0718253f3bf71ce471c959816eb7602b0dadb469ca",
+-  ]
+-}
+-
+ provider "registry.terraform.io/newrelic/newrelic" {
+   version     = "2.1.2"
+   constraints = "~> 2.1.1"
+```
+
+If you add a new requirement for the same provider at a later date and run
+`terraform init` again, Terraform will treat it as if it were
+[an entirely new provider](#dependency-on-a-new-provider)
+and so will not necessarily select the same version that was previously
+selected and will not be able to verify that the checksums remained unchanged.
+
+-> **Note:** In Terraform v1.0 and earlier, `terraform init` does not
+automatically remove now-unneeded providers from the lock file, and instead
+just ignores them. If you removed a provider dependency while using an
+earlier version of Terraform and then upgraded to Terraform v1.1 or later
+then you may see the error "missing or corrupted provider plugins", referring to
+the stale lock file entries. If so, run `terraform init` with the new Terraform
+version to tidy those unneeded entries and then retry the previous operation.

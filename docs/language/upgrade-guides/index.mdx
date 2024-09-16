@@ -1,0 +1,45 @@
+---
+page_title: Upgrading to Terraform v1.9
+description: Upgrading to Terraform v1.9
+---
+
+# Upgrading to Terraform v1.9
+
+-> **Tip:** Use the version selector to view the upgrade guides for older Terraform versions.
+
+Terraform v1.9 is a minor release in the stable Terraform v1.0 series.
+
+Terraform v1.9 honors the
+[Terraform v1.0 Compatibility Promises](https://developer.hashicorp.com/terraform/language/v1-compatibility-promises),
+but there are two changes that may require additional upgrade steps:
+
+- `.tftest.hcl` files no longer support the `version` attribute in the `provider` block.
+- `import` blocks will now report an error if the `to` attribute points to a module that does not exist.
+
+See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.9/CHANGELOG.md)
+for more details. If you encounter any problems during upgrading which are not
+covered this guide, please start a new topic in
+[the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core)
+to discuss it.
+
+## Provider constraints in `.tftest.hcl` files
+
+In Terraform v1.9, the `version` attribute has been removed from the `provider`
+block in the `.tftest.hcl` files. Terraform test files are not meant to be used
+to specify provider versions, so this attribute has been removed to reflect the
+intent of the test files.
+
+If you are using the `version` attribute in the `provider` block in your test
+files, you will need to remove it before running `terraform test` with Terraform
+v1.9. Instead, you should update the `required_providers` block in your main
+configuration to specify the provider version constraints.
+
+
+## Invalid `import` blocks
+
+In Terraform v1.9, the `import` block will now report an error if the `to`
+attribute points to a module that does not exist. Previously, Terraform would
+silently ignore these `import` blocks.
+
+If you have `import` blocks that reference a module that does not exist, you
+will need to update your configuration to remove or correct them.

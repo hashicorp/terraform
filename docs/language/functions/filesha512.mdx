@@ -1,0 +1,52 @@
+---
+page_title: filesha512 - Functions - Configuration Language
+description: |-
+  The filesha512 function computes the SHA512 hash of the contents of
+  a given file and encodes it as hex.
+---
+
+# `filesha512` function reference
+
+This topic provides reference information about the `filesha512` function, which calculates the SHA-512 hash of a file's contents. 
+
+## Introduction
+
+The `filesha512` is a variant of [`sha512`](/terraform/language/functions/sha512)
+that hashes the contents of a given file rather than a literal string.
+
+This is similar to `sha512(file(filename))`, but
+because [`file`](/terraform/language/functions/file) accepts only UTF-8 text it cannot be used to
+create hashes for binary files.
+
+## Syntax
+
+Use the `filesha512` function with the following syntax:
+
+```hcl
+filesha512(path)
+```
+
+The `path` is the relative or absolute file path to the file whose SHA-512 hash you want to compute.
+
+In the following example, the function returns the SHA-512 value of `example.txt`.
+
+```hcl
+$ filesha512("example.txt")
+861844d6704e8573fec34d967e20bcfe6e061b3348b3b0c7e9b7c6a482f6f15a48bffd0fb928fd8c9f9196f7a8596d5e32b45d5a25488a8499396a67442c1d76
+```
+
+## Example use case
+
+In the following example, the `filesha512` function computes the SHA-512 hash of the file `example.txt` located in the current module's directory.
+
+```hcl
+output "file_hash" {
+  value = filesha512("example.txt")
+}
+```
+
+## Related functions
+
+- [`sha512`](/terraform/language/functions/sha512) computes the SHA-512 hash of a given string and encodes it with hexadecimal digits.
+- [`filesha256`](/terraform/language/functions/filesha256) computes the SHA-1 hash of a given file and encodes it with hexadecimal digits.
+- [`filesha1`](/terraform/language/functions/filesha1)computes the SHA-1 hash of a given file and encodes it with hexadecimal digits.
