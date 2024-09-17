@@ -273,6 +273,196 @@ func TestApply(t *testing.T) {
 				},
 			},
 		},
+		"forget with dependency": {
+			path: "forget_with_dependency",
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.one")).
+					AddDependent(mustAbsComponent("component.two")).
+					AddInputVariable("value", cty.StringVal("bar")).
+					AddOutputValue("id", cty.StringVal("foo"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.one.testing_resource.resource")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "foo",
+							"value": "bar",
+						}),
+						Status: states.ObjectReady,
+					})).
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.two")).
+					AddDependency(mustAbsComponent("component.one")).
+					AddInputVariable("value", cty.StringVal("foo")).
+					AddOutputValue("id", cty.StringVal("baz"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.two.testing_resource.resource")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "baz",
+							"value": "foo",
+						}),
+						Status: states.ObjectReady,
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("foo", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("foo"),
+					"value": cty.StringVal("bar"),
+				})).
+				AddResource("baz", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("baz"),
+					"value": cty.StringVal("foo"),
+				})).
+				Build(),
+			cycles: []TestCycle{
+				{
+					planMode: plans.NormalMode,
+					wantPlannedDiags: tfdiags.Diagnostics{
+						tfdiags.Sourceless(tfdiags.Warning, "Some objects will no longer be managed by Terraform", `If you apply this plan, Terraform will discard its tracking information for the following objects, but it will not delete them:
+ - testing_resource.resource
+
+After applying this plan, Terraform will no longer manage these objects. You will need to import them into Terraform to manage them again.`),
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.one"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.one"),
+							OutputValues: map[addrs.OutputValue]cty.Value{
+								addrs.OutputValue{Name: "id"}: cty.StringVal("foo"),
+							},
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								addrs.InputVariable{Name: "value"}: cty.StringVal("bar"),
+							},
+							Dependents: collections.NewSet(mustAbsComponent("component.two")),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.one.testing_resource.resource"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":    "foo",
+									"value": "bar",
+								}),
+								Status:             states.ObjectReady,
+								AttrSensitivePaths: make([]cty.Path, 0),
+							},
+							ProviderConfigAddr: addrs.AbsProviderConfig{
+								Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+							},
+							Schema: stacks_testing_provider.TestingResourceSchema,
+						},
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.two"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.two"),
+							OutputValues:          map[addrs.OutputValue]cty.Value{},
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								addrs.InputVariable{Name: "value"}: cty.StringVal("foo"),
+							},
+							Dependencies: collections.NewSet(mustAbsComponent("component.one")),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.two.testing_resource.resource"),
+							NewStateSrc:                nil, // Resource is forgotten
+							ProviderConfigAddr: addrs.AbsProviderConfig{
+								Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+							},
+						},
+					},
+				},
+			},
+		},
+		"forget with dependency on component to forget": {
+			path: "forget_with_dependency_to_forget",
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.one")).
+					AddDependent(mustAbsComponent("component.two")).
+					AddInputVariable("value", cty.StringVal("bar")).
+					AddOutputValue("id", cty.StringVal("foo"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.one.testing_resource.resource")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "foo",
+							"value": "bar",
+						}),
+						Status: states.ObjectReady,
+					})).
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.two")).
+					AddDependency(mustAbsComponent("component.one")).
+					AddInputVariable("value", cty.StringVal("foo")).
+					AddOutputValue("id", cty.StringVal("baz"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.two.testing_resource.resource")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "baz",
+							"value": "foo",
+						}),
+						Status: states.ObjectReady,
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("foo", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("foo"),
+					"value": cty.StringVal("bar"),
+				})).
+				AddResource("baz", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("baz"),
+					"value": cty.StringVal("foo"),
+				})).
+				Build(),
+			cycles: []TestCycle{
+				{
+					planMode: plans.NormalMode,
+					wantPlannedDiags: tfdiags.Diagnostics{
+						tfdiags.Sourceless(tfdiags.Warning, "Some objects will no longer be managed by Terraform", `If you apply this plan, Terraform will discard its tracking information for the following objects, but it will not delete them:
+ - testing_resource.resource
+
+After applying this plan, Terraform will no longer manage these objects. You will need to import them into Terraform to manage them again.`),
+						tfdiags.Sourceless(tfdiags.Warning, "Some objects will no longer be managed by Terraform", `If you apply this plan, Terraform will discard its tracking information for the following objects, but it will not delete them:
+ - testing_resource.resource
+
+After applying this plan, Terraform will no longer manage these objects. You will need to import them into Terraform to manage them again.`),
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.one"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.one"),
+							OutputValues:          map[addrs.OutputValue]cty.Value{}, // No output being read, we rely on the plan data
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								addrs.InputVariable{Name: "value"}: cty.StringVal("bar"),
+							},
+							Dependents: collections.NewSet(mustAbsComponent("component.two")),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.one.testing_resource.resource"),
+							NewStateSrc:                nil, // Resource is forgotten
+							ProviderConfigAddr: addrs.AbsProviderConfig{
+								Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+							},
+						},
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.two"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.two"),
+							OutputValues:          map[addrs.OutputValue]cty.Value{},
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								addrs.InputVariable{Name: "value"}: cty.StringVal("foo"),
+							},
+							Dependencies: collections.NewSet(mustAbsComponent("component.one")),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.two.testing_resource.resource"),
+							NewStateSrc:                nil, // Resource is forgotten
+							ProviderConfigAddr: addrs.AbsProviderConfig{
+								Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range tcs {

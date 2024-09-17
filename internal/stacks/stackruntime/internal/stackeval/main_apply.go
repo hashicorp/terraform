@@ -182,7 +182,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 
 						var waitForComponents collections.Set[stackaddrs.AbsComponent]
 						var waitForRemoveds collections.Set[stackaddrs.AbsComponent]
-						if action == plans.Delete {
+						if action == plans.Delete || action == plans.Forget {
 							// If the effect of this apply will be to destroy this
 							// component instance then we need to wait for all
 							// of our dependents to be destroyed first, because
