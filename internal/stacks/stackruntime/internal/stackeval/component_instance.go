@@ -519,7 +519,8 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 				// Weird, but we'll tolerate it.
 				return cty.DynamicVal
 			}
-			if ourPlan.PlannedAction == plans.Delete {
+
+			if ourPlan.PlannedAction == plans.Delete || ourPlan.PlannedAction == plans.Forget {
 				// In this case our result was already decided during the
 				// planning phase, because we can't block on anything else
 				// here to make sure we don't create a self-dependency
