@@ -132,11 +132,11 @@ func (r *Resources) CloseInstances(ctx context.Context, configAddr addrs.ConfigR
 // up during the graph walk, such as if an error prevents us from reaching
 // the cleanup node.
 func (r *Resources) Close(ctx context.Context) tfdiags.Diagnostics {
-	// FIXME: The following really ought to take into account dependency
-	// relationships between what's still running, because it's possible that
-	// one ephemeral resource depends on another ephemeral resource to operate
-	// correctly. Investigate making sure individual close calls are always
-	// called even after runtime errors.
+	// TODO: Investigate making sure individual close calls are always called
+	// even after runtime errors. If individual resources should always be
+	// closed before we get here, then we may not need this at all. If we only
+	// get here during exceptional circumstances, then we're probably exiting
+	// anyway so there's no cleanup needed.
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -156,6 +156,7 @@ func (r *Resources) Close(ctx context.Context) tfdiags.Diagnostics {
 	// All renew loops should have returned, or else we're going to leak
 	// resources which could be continually renewing, or even interfering with
 	// the same resources during the next operation.
+	//
 	// Use an asynchronous check so we can timeout and report the problem.
 	done := make(chan int)
 	go func() {
@@ -165,10 +166,12 @@ func (r *Resources) Close(ctx context.Context) tfdiags.Diagnostics {
 	select {
 	case <-done:
 		// OK!
-	case <-time.After(time.Second):
-		// FIXME: add a more useful error message for users. Should probably
-		// have "this is a bug in Terraform" or something.
-		diags = diags.Append(errors.New("ephemeral renew operations still in progress"))
+	case <-time.After(10 * time.Second):
+		// This is probably harmless a lot of time, but is also indicative of an
+		// ephemeral resource which would be misbehaving. The message isn't
+		// very helpful with no context, so we'll have to rely on correlating
+		// the problem via other log messages.
+		diags = diags.Append(errors.New("Ephemeral resources failed to Close during renew operations"))
 	}
 
 	return diags
@@ -207,8 +210,7 @@ func (r *resourceInstanceInternal) close(ctx context.Context) tfdiags.Diagnostic
 	// own responsibility to remember that it previously failed a renewal
 	// and to avoid returning redundant errors from close, but perhaps we'll
 	// revisit that in later work.
-	// FIXME: this should still be cancellable somehow, why are we stripping the cancel here?
-	diags = diags.Append(r.impl.Close(context.WithoutCancel(ctx)))
+	diags = diags.Append(r.impl.Close(ctx))
 
 	return diags
 }
