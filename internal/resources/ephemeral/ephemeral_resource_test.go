@@ -47,15 +47,17 @@ func TestResources(t *testing.T) {
 
 	ctx := context.TODO()
 
+	notifyRenew := make(chan string, 10)
+
 	testA0 := &testResourceInstance{
-		// FIXME: renewals are done one minute early, but this is not validated anywhere
-		renewInterval: time.Minute + time.Millisecond,
-		// allow some extra space to make sure no unexpected renew calls were made
-		notifyRenew: make(chan int, 10),
+		name:          ephemA0.String(),
+		renewInterval: 10 * time.Millisecond,
+		notifyRenew:   notifyRenew,
 	}
 	testA1 := &testResourceInstance{
-		renewInterval: time.Minute + time.Millisecond,
-		notifyRenew:   make(chan int, 10),
+		name:          ephemA1.String(),
+		renewInterval: 10 * time.Millisecond,
+		notifyRenew:   notifyRenew,
 	}
 	testB := &testResourceInstance{}
 
@@ -64,7 +66,7 @@ func TestResources(t *testing.T) {
 			"test": cty.StringVal("ephemeral.test.a[0]"),
 		}),
 		Impl:         testA0,
-		FirstRenewal: &providers.EphemeralRenew{ExpireTime: time.Now().Add(time.Millisecond)},
+		FirstRenewal: &providers.EphemeralRenew{ExpireTime: time.Now().Add(10 * time.Millisecond)},
 	})
 
 	resources.RegisterInstance(ctx, ephemA1, ResourceInstanceRegistration{
@@ -72,7 +74,7 @@ func TestResources(t *testing.T) {
 			"test": cty.StringVal("ephemeral.test.a[1]"),
 		}),
 		Impl:         testA1,
-		FirstRenewal: &providers.EphemeralRenew{ExpireTime: time.Now().Add(time.Millisecond)},
+		FirstRenewal: &providers.EphemeralRenew{ExpireTime: time.Now().Add(10 * time.Millisecond)},
 	})
 
 	resources.RegisterInstance(ctx, ephemB, ResourceInstanceRegistration{
@@ -81,6 +83,21 @@ func TestResources(t *testing.T) {
 		}),
 		Impl: testB,
 	})
+
+	// Make sure these are renewed the first time as expected from registration,
+	// and at least one additional time as requested by the instance.
+	renewed := map[string]int{}
+	for range 4 {
+		a := <-notifyRenew
+		renewed[a]++
+	}
+
+	if renewed[ephemA0.String()] != 2 {
+		t.Fatalf("%s not renewed at least twice as expected", ephemA0)
+	}
+	if renewed[ephemA1.String()] != 2 {
+		t.Fatalf("%s not renewed at least twice as expected", ephemA1)
+	}
 
 	for _, addr := range []addrs.AbsResourceInstance{ephemA0, ephemA1, ephemB} {
 		val, live := resources.InstanceValue(addr)
@@ -93,17 +110,6 @@ func TestResources(t *testing.T) {
 		if !want.RawEquals(val) {
 			t.Fatalf("wanted: %#v\ngot: %#v\n", want, val)
 		}
-	}
-
-	select {
-	case <-testA0.notifyRenew:
-	case <-time.After(time.Second):
-		t.Fatal("timeout waiting for renew")
-	}
-	select {
-	case <-testA1.notifyRenew:
-	case <-time.After(time.Second):
-		t.Fatal("timeout waiting for renew")
 	}
 
 	testB.Lock()
@@ -177,13 +183,10 @@ func TestResourcesCancellation(t *testing.T) {
 	cancel()
 
 	testA0 := &testResourceInstance{
-		renewInterval: 2 * time.Minute,
-		// allow some extra space to make sure no unexpected renew calls were made
-		notifyRenew: make(chan int, 10),
+		renewInterval: time.Second,
 	}
 	testA1 := &testResourceInstance{
-		renewInterval: 2 * time.Minute,
-		notifyRenew:   make(chan int, 10),
+		renewInterval: time.Second,
 	}
 	testB := &testResourceInstance{}
 
@@ -192,7 +195,7 @@ func TestResourcesCancellation(t *testing.T) {
 			"test": cty.StringVal("ephemeral.test.a[0]"),
 		}),
 		Impl:         testA0,
-		FirstRenewal: &providers.EphemeralRenew{ExpireTime: time.Now().Add(time.Millisecond)},
+		FirstRenewal: &providers.EphemeralRenew{ExpireTime: time.Now().Add(10 * time.Millisecond)},
 	})
 
 	resources.RegisterInstance(ctx, ephemA1, ResourceInstanceRegistration{
@@ -200,7 +203,7 @@ func TestResourcesCancellation(t *testing.T) {
 			"test": cty.StringVal("ephemeral.test.a[1]"),
 		}),
 		Impl:         testA1,
-		FirstRenewal: &providers.EphemeralRenew{ExpireTime: time.Now().Add(time.Millisecond)},
+		FirstRenewal: &providers.EphemeralRenew{ExpireTime: time.Now().Add(10 * time.Millisecond)},
 	})
 
 	resources.RegisterInstance(ctx, ephemB, ResourceInstanceRegistration{
@@ -220,7 +223,7 @@ func TestResourcesCancellation(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("timeout waiting for cancellation")
 	case <-cancelled:
-		// this should be almost immediate, but we'll wait for a bit just in
+		// this should be almost immediate, but we'll allow a second just in
 		// case of crazy slow integration test hosts
 	}
 
@@ -271,10 +274,10 @@ func TestResourcesCancellation(t *testing.T) {
 
 type testResourceInstance struct {
 	sync.Mutex
-
+	name          string
 	renewInterval time.Duration
 	renewed       int
-	notifyRenew   chan int
+	notifyRenew   chan string
 	closed        bool
 }
 
@@ -286,11 +289,11 @@ func (r *testResourceInstance) Renew(ctx context.Context, req providers.Ephemera
 	defer r.Unlock()
 	r.renewed++
 	select {
-	case r.notifyRenew <- r.renewed:
-	default:
-		panic("blocked on unexpected renew call")
+	case r.notifyRenew <- r.name:
+	case <-time.After(time.Second):
+		// stop renewing if no-one is listening
+		return nil, nil
 	}
-
 	return nextRenew, nil
 }
 
