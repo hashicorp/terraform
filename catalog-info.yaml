@@ -1,0 +1,17 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+#
+# Intended for internal HashiCorp use only
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: terraform
+  description: HashiCorp Terraform
+  annotations:
+    github.com/project-slug: hashicorp/terraform
+    jira/project-key: TF
+    jira/label: terraform
+spec:
+  type: library
+  owner: terraform-core
+  lifecycle: production
