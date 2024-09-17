@@ -155,6 +155,28 @@ func (pc *PlannedChangeRootInputValue) PlannedChangeProto() (*stacks.PlannedChan
 	}, nil
 }
 
+// PlannedChangeComponentInstanceRemoved is just a reminder for the apply
+// operation to delete this component from the state because it's not in
+// the configuration and is empty.
+type PlannedChangeComponentInstanceRemoved struct {
+	Addr stackaddrs.AbsComponentInstance
+}
+
+var _ PlannedChange = (*PlannedChangeComponentInstanceRemoved)(nil)
+
+func (pc *PlannedChangeComponentInstanceRemoved) PlannedChangeProto() (*stacks.PlannedChange, error) {
+	var raw anypb.Any
+	if err := anypb.MarshalFrom(&raw, &tfstackdata1.DeletedComponent{
+		ComponentInstanceAddr: pc.Addr.String(),
+	}, proto.MarshalOptions{}); err != nil {
+		return nil, err
+	}
+
+	return &stacks.PlannedChange{
+		Raw: []*anypb.Any{&raw},
+	}, nil
+}
+
 // PlannedChangeComponentInstance announces the existence of a component
 // instance and describes (using a plan action) whether it is being added
 // or removed.

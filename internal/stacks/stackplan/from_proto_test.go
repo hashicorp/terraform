@@ -91,6 +91,7 @@ func TestAddRaw(t *testing.T) {
 				ctydebug.CmpOptions,
 				cmpCollectionsSet[stackaddrs.InputVariable](),
 				cmpCollectionsSet[stackaddrs.OutputValue](),
+				cmpCollectionsSet[stackaddrs.AbsComponentInstance](),
 				cmpCollectionsMap[stackaddrs.AbsComponentInstance, *Component](),
 			}
 			if diff := cmp.Diff(test.Want, loader.ret, opts...); diff != "" {

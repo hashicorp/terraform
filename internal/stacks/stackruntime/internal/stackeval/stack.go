@@ -687,20 +687,26 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 	// for-each attributes that need to be expanded before we can determine
 	// if a component is targeted.
 
+	var changes []stackplan.PlannedChange
 	for _, inst := range s.main.PlanPrevState().AllComponentInstances().Elems() {
 
-		if s.main.PlanPrevState().ComponentInstanceResourceInstanceObjects(inst).Len() == 0 {
-			// Then this component instance doesn't have any resource instances
-			// associated with it, so it doesn't matter if it is or isn't
-			// targeted by anything in the configuration.
-			//
-			// Perhaps we should modify the applied state to remove empty
-			// components instead of keeping them around?
-			continue
-		}
+		// We track here whether this component instance has any associated
+		// resources. If this component is empty, and not referenced in the
+		// configuration, then we won't return an error. Instead, we'll just
+		// mark this as to-be deleted. There could have been some error
+		// marking the state previously, but whatever it is we can just fix
+		// this so why bother the user with it.
+		empty := s.main.PlanPrevState().ComponentInstanceResourceInstanceObjects(inst).Len() == 0
 
 		stack := s.main.Stack(ctx, inst.Stack, PlanPhase)
 		if stack == nil {
+			if empty {
+				changes = append(changes, &stackplan.PlannedChangeComponentInstanceRemoved{
+					Addr: inst,
+				})
+				continue
+			}
+
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Unclaimed component instance",
@@ -745,7 +751,17 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 		}
 
 		// Otherwise, we have a component that is not targeted by anything in
-		// the configuration. We should add an error.
+		// the configuration.
+
+		if empty {
+			// It's empty, so we can just remove it.
+			changes = append(changes, &stackplan.PlannedChangeComponentInstanceRemoved{
+				Addr: inst,
+			})
+			continue
+		}
+
+		// Otherwise, it's an error.
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Unclaimed component instance",
@@ -763,7 +779,6 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 	}
 	beforeVal := s.main.PlanPrevState().RootOutputValues()
 
-	var changes []stackplan.PlannedChange
 	if s.main.PlanningOpts().PlanningMode == plans.DestroyMode {
 		// For a destroy plan, we'll actually cheat a little bit and swap out
 		// the values for null and destroy actions. We do this here because
@@ -889,9 +904,11 @@ func (s *Stack) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfd
 		})
 	}
 
+	// We're also just going to quickly emit any cleanup . These remaining
+	// values are basically just everything that have been in the configuration
+	// in the past but is no longer and so needs to be removed from the state.
+
 	for _, value := range deletedOutputValues.Elems() {
-		// elements that are being deleted will explicitly not show up in our
-		// result value
 		changes = append(changes, &stackstate.AppliedChangeOutputValue{
 			Addr:  value,
 			Value: cty.NilVal,
@@ -902,6 +919,16 @@ func (s *Stack) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfd
 		changes = append(changes, &stackstate.AppliedChangeInputVariable{
 			Addr:    value,
 			Removed: true,
+		})
+	}
+
+	for _, value := range s.main.PlanBeingApplied().DeletedComponents.Elems() {
+		changes = append(changes, &stackstate.AppliedChangeComponentInstanceRemoved{
+			ComponentAddr: stackaddrs.AbsComponent{
+				Stack: value.Stack,
+				Item:  value.Item.Component,
+			},
+			ComponentInstanceAddr: value,
 		})
 	}
 

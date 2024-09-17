@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/states"
@@ -27,34 +28,11 @@ type StateProducer interface {
 	ResourceSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, resourceType string) (*configschema.Block, error)
 }
 
-func FromState(ctx context.Context, state *states.State, component *stackplan.Component, applyTimeInputs cty.Value, affectedResources addrs.Set[addrs.AbsResourceInstanceObject], producer StateProducer) ([]AppliedChange, tfdiags.Diagnostics) {
+func FromState(ctx context.Context, state *states.State, plan *stackplan.Component, applyTimeInputs cty.Value, affectedResources addrs.Set[addrs.AbsResourceInstanceObject], producer StateProducer) ([]AppliedChange, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var changes []AppliedChange
 
 	addr := producer.Addr()
-
-	ourChange := &AppliedChangeComponentInstance{
-		ComponentAddr: stackaddrs.AbsComponent{
-			Stack: addr.Stack,
-			Item:  addr.Item.Component,
-		},
-		ComponentInstanceAddr: addr,
-		Dependents:            component.Dependents,
-		Dependencies:          component.Dependencies,
-		OutputValues:          make(map[addrs.OutputValue]cty.Value, len(state.RootOutputValues)),
-		InputVariables:        make(map[addrs.InputVariable]cty.Value, len(applyTimeInputs.Type().AttributeTypes())),
-	}
-	for name, os := range state.RootOutputValues {
-		val := os.Value
-		if os.Sensitive {
-			val = val.Mark(marks.Sensitive)
-		}
-		ourChange.OutputValues[addrs.OutputValue{Name: name}] = val
-	}
-	for name, value := range applyTimeInputs.AsValueMap() {
-		ourChange.InputVariables[addrs.InputVariable{Name: name}] = value
-	}
-	changes = append(changes, ourChange)
 
 	for _, rioAddr := range affectedResources {
 		os := state.ResourceInstanceObjectSrc(rioAddr)
@@ -118,7 +96,7 @@ func FromState(ctx context.Context, state *states.State, component *stackplan.Co
 		}
 
 		var previousAddress *stackaddrs.AbsResourceInstanceObject
-		if plannedChange := component.ResourceInstancePlanned.Get(rioAddr); plannedChange != nil && plannedChange.Moved() {
+		if plannedChange := plan.ResourceInstancePlanned.Get(rioAddr); plannedChange != nil && plannedChange.Moved() {
 			// If we moved the resource instance object, we need to record
 			// the previous address in the applied change. The planned
 			// change might be nil if the resource instance object was
@@ -143,5 +121,57 @@ func FromState(ctx context.Context, state *states.State, component *stackplan.Co
 			Schema:                             schema,
 		})
 	}
+
+	destroyPlan := plan.PlannedAction == plans.Delete || plan.PlannedAction == plans.Forget
+	if plan.PlanComplete && destroyPlan && state.Empty() && !diags.HasErrors() {
+
+		// We'll publish a special change type for the case where the
+		// component instance was deleted and the state is now empty.
+		//
+		// We check here that we:
+		//   - were planning to delete the component instance
+		//   - have a complete plan (so no changes were deferred)
+		//   - the state is now empty (so everything was actually deleted)
+		//   - there were no errors in the diagnostics (so we published all changes)
+		//
+		// If all of the above are true, we'll happily publish this special
+		// change type to indicate that the component instance was deleted.
+		//
+		// If the above weren't true then we'll publish the normal update
+		// change type, which will mean this component stays in state for
+		// now and will be tidied up properly in a follow-up change.
+
+		changes = append(changes, &AppliedChangeComponentInstanceRemoved{
+			ComponentAddr: stackaddrs.AbsComponent{
+				Stack: addr.Stack,
+				Item:  addr.Item.Component,
+			},
+			ComponentInstanceAddr: addr,
+		})
+	} else {
+		ourChange := &AppliedChangeComponentInstance{
+			ComponentAddr: stackaddrs.AbsComponent{
+				Stack: addr.Stack,
+				Item:  addr.Item.Component,
+			},
+			ComponentInstanceAddr: addr,
+			Dependents:            plan.Dependents,
+			Dependencies:          plan.Dependencies,
+			OutputValues:          make(map[addrs.OutputValue]cty.Value, len(state.RootOutputValues)),
+			InputVariables:        make(map[addrs.InputVariable]cty.Value, len(applyTimeInputs.Type().AttributeTypes())),
+		}
+		for name, os := range state.RootOutputValues {
+			val := os.Value
+			if os.Sensitive {
+				val = val.Mark(marks.Sensitive)
+			}
+			ourChange.OutputValues[addrs.OutputValue{Name: name}] = val
+		}
+		for name, value := range applyTimeInputs.AsValueMap() {
+			ourChange.InputVariables[addrs.InputVariable{Name: name}] = value
+		}
+		changes = append(changes, ourChange)
+	}
+
 	return changes, diags
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
@@ -31,6 +32,13 @@ type Plan struct {
 	// some reason, such as if an error occurred during planning and so
 	// the planning process did not entirely run.
 	Applyable bool
+
+	// Complete is true for a plan that shouldn't need any follow-up plans to
+	// converge.
+	Complete bool
+
+	// Mode is the original mode of the plan.
+	Mode plans.Mode
 
 	// The raw representation of the raw state that was provided in the request
 	// to create the plan. We use this primarily to perform mundane state
@@ -66,6 +74,12 @@ type Plan struct {
 	// instances defined in the overall stack configuration, including any
 	// nested component instances from embedded stacks.
 	Components collections.Map[stackaddrs.AbsComponentInstance, *Component]
+
+	// DeletedComponents are a set of components that are in the state that
+	// should just be removed without any apply operation. This is typically
+	// because they are not referenced in the configuration and have no
+	// associated resources.
+	DeletedComponents collections.Set[stackaddrs.AbsComponentInstance]
 
 	// ProviderFunctionResults is a shared table of results from calling
 	// provider functions. This is stored and loaded from during the planning

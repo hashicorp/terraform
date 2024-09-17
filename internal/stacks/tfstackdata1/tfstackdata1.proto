@@ -91,6 +91,11 @@ message DeletedRootOutputValue {
     string name = 1;
 }
 
+// Records that a component should just be deleted from the state.
+message DeletedComponent {
+    string component_instance_addr = 1;
+}
+
 // ProviderFunctionResults stores a record of the results of provider functions
 // that were called during the planning phase. This is used to ensure that the
 // same results are returned during the apply phase.
