@@ -213,10 +213,9 @@ func (r *resourceInstanceInternal) close(ctx context.Context) tfdiags.Diagnostic
 	return diags
 }
 
-// FIXME: a renew time of less than a minute will cause a runaway loop of renewals
 func (r *resourceInstanceInternal) handleRenewal(ctx context.Context, wg *sync.WaitGroup, firstRenewal *providers.EphemeralRenew) {
 	defer wg.Done()
-	t := time.NewTimer(time.Until(firstRenewal.ExpireTime.Add(-60 * time.Second)))
+	t := time.NewTimer(time.Until(firstRenewal.ExpireTime))
 	nextRenew := firstRenewal
 	for {
 		select {
@@ -238,7 +237,7 @@ func (r *resourceInstanceInternal) handleRenewal(ctx context.Context, wg *sync.W
 				return
 			}
 			nextRenew = anotherRenew
-			t.Reset(time.Until(anotherRenew.ExpireTime.Add(-60 * time.Second)))
+			t.Reset(time.Until(anotherRenew.ExpireTime))
 			r.renewMu.Unlock()
 		case <-ctx.Done():
 			// If we're cancelled then we'll halt renewing immediately.
