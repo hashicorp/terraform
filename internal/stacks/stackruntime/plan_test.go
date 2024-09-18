@@ -4824,6 +4824,9 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 					ProviderConfigAddr: mustDefaultRootProvider("testing"),
 					Schema:             stacks_testing_provider.TestingResourceSchema,
 				},
+				&stackplan.PlannedChangeComponentInstanceRemoved{
+					Addr: mustAbsComponentInstance("component.self[\"removed\"]"),
+				},
 				&stackplan.PlannedChangeHeader{
 					TerraformVersion: version.SemVer,
 				},

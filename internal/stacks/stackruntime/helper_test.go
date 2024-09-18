@@ -383,6 +383,8 @@ func appliedChangeSortKey(change stackstate.AppliedChange) string {
 		return change.ResourceInstanceObjectAddr.String()
 	case *stackstate.AppliedChangeComponentInstance:
 		return change.ComponentInstanceAddr.String()
+	case *stackstate.AppliedChangeComponentInstanceRemoved:
+		return change.ComponentInstanceAddr.String()
 	case *stackstate.AppliedChangeOutputValue:
 		return change.Addr.String()
 	case *stackstate.AppliedChangeInputVariable:
@@ -406,6 +408,8 @@ func plannedChangeSortKey(change stackplan.PlannedChange) string {
 	case *stackplan.PlannedChangeRootInputValue:
 		return change.Addr.String()
 	case *stackplan.PlannedChangeComponentInstance:
+		return change.Addr.String()
+	case *stackplan.PlannedChangeComponentInstanceRemoved:
 		return change.Addr.String()
 	case *stackplan.PlannedChangeResourceInstancePlanned:
 		return change.ResourceInstanceObjectAddr.String()

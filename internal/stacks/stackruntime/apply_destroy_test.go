@@ -117,14 +117,9 @@ func TestApplyDestroy(t *testing.T) {
 						"input": cty.StringVal("hello"),
 					},
 					wantAppliedChanges: []stackstate.AppliedChange{
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.self"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-							OutputValues:          make(map[addrs.OutputValue]cty.Value),
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								mustInputVariable("id"):    cty.NullVal(cty.String),
-								mustInputVariable("input"): cty.StringVal("hello"),
-							},
 						},
 						// The resource that was in state but not in the data store should still
 						// be included to be destroyed.
@@ -175,14 +170,9 @@ func TestApplyDestroy(t *testing.T) {
 						"resource": cty.StringVal("bar"),
 					},
 					wantAppliedChanges: []stackstate.AppliedChange{
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.self"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-							OutputValues:          make(map[addrs.OutputValue]cty.Value),
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								mustInputVariable("id"):       cty.StringVal("foo"),
-								mustInputVariable("resource"): cty.StringVal("bar"),
-							},
 						},
 						// This is a bit of a quirk of the system, this wasn't in the state
 						// file before so we don't need to emit this. But since Terraform
@@ -308,14 +298,9 @@ func TestApplyDestroy(t *testing.T) {
 						"resource": cty.StringVal("bar"),
 					},
 					wantAppliedChanges: []stackstate.AppliedChange{
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.self"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-							OutputValues:          make(map[addrs.OutputValue]cty.Value),
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								mustInputVariable("id"):       cty.StringVal("foo"),
-								mustInputVariable("resource"): cty.StringVal("bar"),
-							},
 						},
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.data.testing_data_source.data"),
@@ -402,31 +387,17 @@ func TestApplyDestroy(t *testing.T) {
 				{
 					planMode: plans.DestroyMode,
 					wantAppliedChanges: []stackstate.AppliedChange{
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.self"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-							Dependencies:          collections.NewSet(mustAbsComponent("component.valid")),
-							OutputValues:          make(map[addrs.OutputValue]cty.Value),
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								mustInputVariable("id"): cty.StringVal("dependent"),
-								mustInputVariable("requirements"): cty.SetVal([]cty.Value{
-									cty.StringVal("valid"),
-								}),
-							},
 						},
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_blocked_resource.resource"),
 							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
 						},
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.valid"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.valid"),
-							Dependents:            collections.NewSet(mustAbsComponent("component.self")),
-							OutputValues:          make(map[addrs.OutputValue]cty.Value),
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								mustInputVariable("id"):    cty.StringVal("valid"),
-								mustInputVariable("input"): cty.StringVal("resource"),
-							},
 						},
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.valid.testing_resource.data"),
@@ -569,27 +540,13 @@ func TestApplyDestroy(t *testing.T) {
 				{
 					planMode: plans.DestroyMode,
 					wantAppliedChanges: []stackstate.AppliedChange{
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.child"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.child"),
-							Dependencies:          collections.NewSet(mustAbsComponent("component.self")),
-							OutputValues:          make(map[addrs.OutputValue]cty.Value),
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								mustInputVariable("id"):         cty.NullVal(cty.String),
-								mustInputVariable("input"):      cty.StringVal("child"),
-								mustInputVariable("fail_plan"):  cty.NullVal(cty.Bool),
-								mustInputVariable("fail_apply"): cty.True,
-							},
 						},
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.self"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-							Dependents:            collections.NewSet(mustAbsComponent("component.child")),
-							OutputValues:          make(map[addrs.OutputValue]cty.Value),
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								mustInputVariable("id"):    cty.StringVal("self"),
-								mustInputVariable("input"): cty.StringVal("value"),
-							},
 						},
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
@@ -644,25 +601,13 @@ func TestApplyDestroy(t *testing.T) {
 				{
 					planMode: plans.DestroyMode,
 					wantAppliedChanges: []stackstate.AppliedChange{
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.deferred"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.deferred"),
-							Dependencies:          collections.NewSet(mustAbsComponent("component.valid")),
-							OutputValues:          make(map[addrs.OutputValue]cty.Value),
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								mustInputVariable("id"):    cty.StringVal("deferred"),
-								mustInputVariable("defer"): cty.True,
-							},
 						},
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.valid"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.valid"),
-							Dependents:            collections.NewSet(mustAbsComponent("component.deferred")),
-							OutputValues:          make(map[addrs.OutputValue]cty.Value),
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								mustInputVariable("id"):    cty.StringVal("valid"),
-								mustInputVariable("input"): cty.StringVal("valid"),
-							},
 						},
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.valid.testing_resource.data"),
@@ -857,29 +802,17 @@ func TestApplyDestroy(t *testing.T) {
 				{
 					planMode: plans.DestroyMode,
 					wantAppliedChanges: []stackstate.AppliedChange{
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.child"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.child"),
-							Dependencies:          collections.NewSet(mustAbsComponent("component.parent")),
-							OutputValues:          make(map[addrs.OutputValue]cty.Value),
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								mustInputVariable("id"):    cty.StringVal("child"),
-								mustInputVariable("input"): cty.StringVal("parent"),
-							},
 						},
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.child.testing_resource.data"),
 							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
 						},
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.parent"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.parent"),
-							Dependents:            collections.NewSet(mustAbsComponent("component.child")),
-							OutputValues:          make(map[addrs.OutputValue]cty.Value),
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								mustInputVariable("id"):    cty.StringVal("parent"),
-								mustInputVariable("input"): cty.StringVal("parent"),
-							},
 						},
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.data"),
@@ -900,29 +833,17 @@ func TestApplyDestroy(t *testing.T) {
 				{
 					planMode: plans.DestroyMode,
 					wantAppliedChanges: []stackstate.AppliedChange{
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.child"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.child"),
-							Dependencies:          collections.NewSet(mustAbsComponent("component.parent")),
-							OutputValues:          make(map[addrs.OutputValue]cty.Value),
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								mustInputVariable("id"):    cty.StringVal("child"),
-								mustInputVariable("input"): cty.StringVal("child"),
-							},
 						},
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.child.testing_resource.data"),
 							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
 						},
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.parent"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.parent"),
-							Dependents:            collections.NewSet(mustAbsComponent("component.child")),
-							OutputValues:          make(map[addrs.OutputValue]cty.Value),
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								mustInputVariable("id"):    cty.StringVal("parent"),
-								mustInputVariable("input"): cty.StringVal("parent"),
-							},
 						},
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.data"),
@@ -943,29 +864,17 @@ func TestApplyDestroy(t *testing.T) {
 				{
 					planMode: plans.DestroyMode,
 					wantAppliedChanges: []stackstate.AppliedChange{
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.child"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.child[\"a\"]"),
-							Dependencies:          collections.NewSet(mustAbsComponent("component.parent")),
-							OutputValues:          make(map[addrs.OutputValue]cty.Value),
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								mustInputVariable("id"):    cty.StringVal("child:a"),
-								mustInputVariable("input"): cty.StringVal("child"),
-							},
 						},
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.child[\"a\"].testing_resource.data"),
 							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
 						},
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.parent"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.parent[\"a\"]"),
-							Dependents:            collections.NewSet(mustAbsComponent("component.child")),
-							OutputValues:          make(map[addrs.OutputValue]cty.Value),
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								mustInputVariable("id"):    cty.StringVal("a"),
-								mustInputVariable("input"): cty.StringVal("parent"),
-							},
 						},
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent[\"a\"].testing_resource.data"),

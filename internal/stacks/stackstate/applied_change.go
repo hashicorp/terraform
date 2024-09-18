@@ -189,6 +189,39 @@ func (ac *AppliedChangeResourceInstanceObject) protosForObject() ([]*stacks.Appl
 	return descs, raws, nil
 }
 
+// AppliedChangeComponentInstanceRemoved is the equivalent of
+// AppliedChangeComponentInstance but it represents the component instance
+// being removed from state instead of created or updated.
+type AppliedChangeComponentInstanceRemoved struct {
+	ComponentAddr         stackaddrs.AbsComponent
+	ComponentInstanceAddr stackaddrs.AbsComponentInstance
+}
+
+var _ AppliedChange = (*AppliedChangeComponentInstanceRemoved)(nil)
+
+// AppliedChangeProto implements AppliedChange.
+func (ac *AppliedChangeComponentInstanceRemoved) AppliedChangeProto() (*stacks.AppliedChange, error) {
+	stateKey := statekeys.String(statekeys.ComponentInstance{
+		ComponentInstanceAddr: ac.ComponentInstanceAddr,
+	})
+	return &stacks.AppliedChange{
+		Raw: []*stacks.AppliedChange_RawChange{
+			{
+				Key:   stateKey,
+				Value: nil,
+			},
+		},
+		Descriptions: []*stacks.AppliedChange_ChangeDescription{
+			{
+				Key: stateKey,
+				Description: &stacks.AppliedChange_ChangeDescription_Deleted{
+					Deleted: &stacks.AppliedChange_Nothing{},
+				},
+			},
+		},
+	}, nil
+}
+
 // AppliedChangeComponentInstance announces the result of applying changes to
 // an overall component instance.
 //
@@ -238,13 +271,9 @@ var _ AppliedChange = (*AppliedChangeComponentInstance)(nil)
 
 // AppliedChangeProto implements AppliedChange.
 func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*stacks.AppliedChange, error) {
-	ret := &stacks.AppliedChange{
-		Raw:          make([]*stacks.AppliedChange_RawChange, 0, 1),
-		Descriptions: make([]*stacks.AppliedChange_ChangeDescription, 0, 1),
-	}
-	stateKey := statekeys.ComponentInstance{
+	stateKey := statekeys.String(statekeys.ComponentInstance{
 		ComponentInstanceAddr: ac.ComponentInstanceAddr,
-	}
+	})
 
 	outputDescs := make(map[string]*stacks.DynamicValue, len(ac.OutputValues))
 	for addr, val := range ac.OutputValues {
@@ -298,21 +327,26 @@ func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*stacks.AppliedC
 		return nil, fmt.Errorf("encoding raw state for %s: %w", ac.ComponentInstanceAddr, err)
 	}
 
-	ret.Raw = append(ret.Raw, &stacks.AppliedChange_RawChange{
-		Key:   statekeys.String(stateKey),
-		Value: &raw,
-	})
-	ret.Descriptions = append(ret.Descriptions, &stacks.AppliedChange_ChangeDescription{
-		Key: statekeys.String(stateKey),
-		Description: &stacks.AppliedChange_ChangeDescription_ComponentInstance{
-			ComponentInstance: &stacks.AppliedChange_ComponentInstance{
-				ComponentAddr:         ac.ComponentAddr.String(),
-				ComponentInstanceAddr: ac.ComponentInstanceAddr.String(),
-				OutputValues:          outputDescs,
+	return &stacks.AppliedChange{
+		Raw: []*stacks.AppliedChange_RawChange{
+			{
+				Key:   stateKey,
+				Value: &raw,
 			},
 		},
-	})
-	return ret, nil
+		Descriptions: []*stacks.AppliedChange_ChangeDescription{
+			{
+				Key: stateKey,
+				Description: &stacks.AppliedChange_ChangeDescription_ComponentInstance{
+					ComponentInstance: &stacks.AppliedChange_ComponentInstance{
+						ComponentAddr:         ac.ComponentAddr.String(),
+						ComponentInstanceAddr: ac.ComponentInstanceAddr.String(),
+						OutputValues:          outputDescs,
+					},
+				},
+			},
+		},
+	}, nil
 }
 
 type AppliedChangeInputVariable struct {
