@@ -238,30 +238,36 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					return nil, diags
 				}
 
-				// If we're destroying this instance, then the dependencies
-				// should be reversed. Unfortunately, we can't compute that
-				// easily so instead we'll use the dependents computed at the
-				// last apply operation.
-				for _, depAddr := range c.PlanPrevDependents(ctx).Elems() {
-					depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
-					if depStack == nil {
-						// something weird has happened, but this means that
-						// whatever thing we're depending on being deleted first
-						// doesn't exist so it's fine.
-						break
-					}
-					depComponent := depStack.Component(ctx, depAddr.Item)
-					if depComponent == nil {
-						// again, the thing we need to wait to be deleted
-						// doesn't exist so it's fine.
-						break
-					}
-					if !depComponent.PlanIsComplete(ctx) {
-						// The other component couldn't be deleted in a single
-						// go, so to be safe we'll defer our deletions until
-						// the other one is complete.
-						opts.ExternalDependencyDeferred = true
-						break
+				if !refresh.Complete {
+					// If the refresh was deferred, then we'll defer the destroy
+					// plan as well.
+					opts.ExternalDependencyDeferred = true
+				} else {
+					// If we're destroying this instance, then the dependencies
+					// should be reversed. Unfortunately, we can't compute that
+					// easily so instead we'll use the dependents computed at the
+					// last apply operation.
+					for _, depAddr := range c.PlanPrevDependents(ctx).Elems() {
+						depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
+						if depStack == nil {
+							// something weird has happened, but this means that
+							// whatever thing we're depending on being deleted first
+							// doesn't exist so it's fine.
+							continue
+						}
+						depComponent := depStack.Component(ctx, depAddr.Item)
+						if depComponent == nil {
+							// again, the thing we need to wait to be deleted
+							// doesn't exist so it's fine.
+							continue
+						}
+						if !depComponent.PlanIsComplete(ctx) {
+							// The other component couldn't be deleted in a single
+							// go, so to be safe we'll defer our deletions until
+							// the other one is complete.
+							opts.ExternalDependencyDeferred = true
+							break
+						}
 					}
 				}
 
