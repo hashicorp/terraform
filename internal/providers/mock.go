@@ -289,6 +289,19 @@ func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceRespo
 	return response
 }
 
+func (m *Mock) ValidateEphemeralConfig(ValidateEphemeralConfigRequest) ValidateEphemeralConfigResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"No ephemeral resource types in mock providers",
+		"The provider mocking mechanism does not yet support ephemeral resource types.",
+		nil, // the topmost configuration object
+	))
+	return ValidateEphemeralConfigResponse{
+		Diagnostics: diags,
+	}
+}
+
 func (m *Mock) OpenEphemeral(OpenEphemeralRequest) OpenEphemeralResponse {
 	// FIXME: Design some means to mock an ephemeral resource type.
 	var diags tfdiags.Diagnostics

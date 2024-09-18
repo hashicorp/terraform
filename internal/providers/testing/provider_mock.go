@@ -94,18 +94,22 @@ type MockProvider struct {
 	ReadDataSourceRequest  providers.ReadDataSourceRequest
 	ReadDataSourceFn       func(providers.ReadDataSourceRequest) providers.ReadDataSourceResponse
 
-	OpenEphemeralCalled    bool
-	OpenEphemeralResponse  *providers.OpenEphemeralResponse
-	OpenEphemeralRequest   providers.OpenEphemeralRequest
-	OpenEphemeralFn        func(providers.OpenEphemeralRequest) providers.OpenEphemeralResponse
-	RenewEphemeralCalled   bool
-	RenewEphemeralResponse *providers.RenewEphemeralResponse
-	RenewEphemeralRequest  providers.RenewEphemeralRequest
-	RenewEphemeralFn       func(providers.RenewEphemeralRequest) providers.RenewEphemeralResponse
-	CloseEphemeralCalled   bool
-	CloseEphemeralResponse *providers.CloseEphemeralResponse
-	CloseEphemeralRequest  providers.CloseEphemeralRequest
-	CloseEphemeralFn       func(providers.CloseEphemeralRequest) providers.CloseEphemeralResponse
+	ValidateEphemeralConfigCalled   bool
+	ValidateEphemeralConfigResponse *providers.ValidateEphemeralConfigResponse
+	ValidateEphemeralConfigRequest  providers.ValidateEphemeralConfigRequest
+	ValidateEphemeralConfigFn       func(providers.ValidateEphemeralConfigRequest) providers.ValidateEphemeralConfigResponse
+	OpenEphemeralCalled             bool
+	OpenEphemeralResponse           *providers.OpenEphemeralResponse
+	OpenEphemeralRequest            providers.OpenEphemeralRequest
+	OpenEphemeralFn                 func(providers.OpenEphemeralRequest) providers.OpenEphemeralResponse
+	RenewEphemeralCalled            bool
+	RenewEphemeralResponse          *providers.RenewEphemeralResponse
+	RenewEphemeralRequest           providers.RenewEphemeralRequest
+	RenewEphemeralFn                func(providers.RenewEphemeralRequest) providers.RenewEphemeralResponse
+	CloseEphemeralCalled            bool
+	CloseEphemeralResponse          *providers.CloseEphemeralResponse
+	CloseEphemeralRequest           providers.CloseEphemeralRequest
+	CloseEphemeralFn                func(providers.CloseEphemeralRequest) providers.CloseEphemeralResponse
 
 	CallFunctionCalled   bool
 	CallFunctionResponse providers.CallFunctionResponse
@@ -213,6 +217,36 @@ func (p *MockProvider) ValidateDataResourceConfig(r providers.ValidateDataResour
 
 	if p.ValidateDataResourceConfigResponse != nil {
 		return *p.ValidateDataResourceConfigResponse
+	}
+
+	return resp
+}
+
+func (p *MockProvider) ValidateEphemeralConfig(r providers.ValidateEphemeralConfigRequest) (resp providers.ValidateEphemeralConfigResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.ValidateEphemeralConfigCalled = true
+	p.ValidateEphemeralConfigRequest = r
+
+	// Marshall the value to replicate behavior by the GRPC protocol
+	dataSchema, ok := p.getProviderSchema().EphemeralTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
+		return resp
+	}
+	_, err := msgpack.Marshal(r.Config, dataSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	if p.ValidateDataResourceConfigFn != nil {
+		return p.ValidateEphemeralConfigFn(r)
+	}
+
+	if p.ValidateDataResourceConfigResponse != nil {
+		return *p.ValidateEphemeralConfigResponse
 	}
 
 	return resp

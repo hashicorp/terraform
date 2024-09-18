@@ -25,7 +25,7 @@ func (ss ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeName
 		return ss.DataSources[typeName].Block, 0
 	case addrs.EphemeralResourceMode:
 		// Ephemeral resources don't have schema versions because their objects never outlive a single phase
-		return ss.EphemeralResourceTypes[typeName].Block, 0
+		return ss.EphemeralTypes[typeName].Block, 0
 	default:
 		// Shouldn't happen, because the above cases are comprehensive.
 		return nil, 0

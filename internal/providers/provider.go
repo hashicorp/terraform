@@ -31,6 +31,10 @@ type Interface interface {
 	// configuration values.
 	ValidateDataResourceConfig(ValidateDataResourceConfigRequest) ValidateDataResourceConfigResponse
 
+	// ValidateEphemeralConfig allows the provider to validate the
+	// ephemeral resource configuration values.
+	ValidateEphemeralConfig(ValidateEphemeralConfigRequest) ValidateEphemeralConfigResponse
+
 	// UpgradeResourceState is called when the state loader encounters an
 	// instance state whose schema version is less than the one reported by the
 	// currently-used version of the corresponding provider, and the upgraded
@@ -108,9 +112,9 @@ type GetProviderSchemaResponse struct {
 	// DataSources maps the data source name to that data source's schema.
 	DataSources map[string]Schema
 
-	// EphemeralResourceTypes maps the name of an ephemeral resource type
+	// EphemeralTypes maps the name of an ephemeral resource type
 	// to its schema.
-	EphemeralResourceTypes map[string]Schema
+	EphemeralTypes map[string]Schema
 
 	// Functions maps from local function name (not including an namespace
 	// prefix) to the declaration of a function.
@@ -200,6 +204,20 @@ type ValidateDataResourceConfigRequest struct {
 }
 
 type ValidateDataResourceConfigResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type ValidateEphemeralConfigRequest struct {
+	// TypeName is the name of the data source type to validate.
+	TypeName string
+
+	// Config is the configuration value to validate, which may contain unknown
+	// values.
+	Config cty.Value
+}
+
+type ValidateEphemeralConfigResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }
