@@ -92,8 +92,7 @@ type OpenEphemeralResponse struct {
 // of an ephemeral resource instance in order to continue using it.
 type EphemeralRenew struct {
 	// ExpireTime is the deadline before which Terraform must renew the
-	// ephemeral resource instance. Terraform will make the renew request
-	// at least one minute before the expiration time.
+	// ephemeral resource instance.
 	ExpireTime time.Time
 
 	// InternalContext is any internal data needed by the provider to
