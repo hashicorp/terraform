@@ -92,9 +92,9 @@ func (d *Declarations) addComponent(decl *Component) tfdiags.Diagnostics {
 		// method for more information.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Component exists for removed block",
+			Summary:  "Component exists for removed block without index",
 			Detail: fmt.Sprintf(
-				"A removed block for component %q was declared without an index, but a component block with the same name was declared at %s.\n\nA removed block without an index indicates that the component and all instances were removed from the configuration, and this is not the case.",
+				"A removed block for component %q was declared, but a component with the same address exists at %q. This is invalid, please either specify an index for the removed block or remove the component block if you want to remove the component or component instance.",
 				name, decl.DeclRange.ToHCL(),
 			),
 			Subject: removed.DeclRange.ToHCL().Ptr(),
@@ -284,9 +284,9 @@ func (d *Declarations) addRemoved(decl *Removed) tfdiags.Diagnostics {
 		if component, exists := d.Components[name]; exists {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Component exists for removed block",
+				Summary:  "Component exists for removed block without index",
 				Detail: fmt.Sprintf(
-					"A removed block for component %q was declared without an index, but a component block with the same name was declared at %s.\n\nA removed block without an index indicates that the component and all instances were removed from the configuration, and this is not the case.",
+					"A removed block for component %q was declared, but a component with the same address exists at %q. This is invalid, please either specify an index for the removed block or remove the component block if you want to remove the component or component instance.",
 					name, component.DeclRange.ToHCL(),
 				),
 				Subject: decl.DeclRange.ToHCL().Ptr(),
