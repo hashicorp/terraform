@@ -40,6 +40,7 @@ func NewLoader() *Loader {
 		DeletedInputVariables:   collections.NewSet[stackaddrs.InputVariable](),
 		DeletedOutputValues:     collections.NewSet[stackaddrs.OutputValue](),
 		Components:              collections.NewMap[stackaddrs.AbsComponentInstance, *Component](),
+		DeletedComponents:       collections.NewSet[stackaddrs.AbsComponentInstance](),
 		PrevRunStateRaw:         make(map[string]*anypb.Any),
 	}
 	return &Loader{
@@ -104,6 +105,15 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 
 	case *tfstackdata1.DeletedRootInputVariable:
 		l.ret.DeletedInputVariables.Add(stackaddrs.InputVariable{Name: msg.Name})
+
+	case *tfstackdata1.DeletedComponent:
+		addr, diags := stackaddrs.ParseAbsComponentInstanceStr(msg.ComponentInstanceAddr)
+		if diags.HasErrors() {
+			// Should not get here because the address we're parsing
+			// should've been produced by this same version of Terraform.
+			return fmt.Errorf("invalid component instance address syntax in %q", msg.ComponentInstanceAddr)
+		}
+		l.ret.DeletedComponents.Add(addr)
 
 	case *tfstackdata1.PlanRootInputValue:
 		addr := stackaddrs.InputVariable{
