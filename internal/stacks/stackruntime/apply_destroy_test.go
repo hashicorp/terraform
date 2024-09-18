@@ -40,6 +40,7 @@ func TestApplyDestroy(t *testing.T) {
 		description string
 		state       *stackstate.State
 		store       *stacks_testing_provider.ResourceStore
+		mutators    []func(*stacks_testing_provider.ResourceStore, TestContext) TestContext
 		cycles      []TestCycle
 	}{
 		"inputs-and-outputs": {
@@ -884,6 +885,46 @@ func TestApplyDestroy(t *testing.T) {
 				},
 			},
 		},
+		"destroy-with-provider-req": {
+			path: "auth-provider-w-data",
+			mutators: []func(store *stacks_testing_provider.ResourceStore, testContext TestContext) TestContext{
+				func(store *stacks_testing_provider.ResourceStore, testContext TestContext) TestContext {
+					store.Set("credentials", cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("credentials"),
+						"value": cty.StringVal("zero"),
+					}))
+					testContext.providers[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+						provider := stacks_testing_provider.NewProviderWithData(t, store)
+						provider.Authentication = "zero"
+						return provider, nil
+					}
+					return testContext
+				},
+				func(store *stacks_testing_provider.ResourceStore, testContext TestContext) TestContext {
+					store.Set("credentials", cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("credentials"),
+						"value": cty.StringVal("one"),
+					}))
+					testContext.providers[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+						provider := stacks_testing_provider.NewProviderWithData(t, store)
+						provider.Authentication = "one" // So we must reload the data source in order to authenticate.
+						return provider, nil
+					}
+					return testContext
+				},
+			},
+			cycles: []TestCycle{
+				{
+					planMode: plans.NormalMode,
+				},
+				{
+					planMode:           plans.DestroyMode,
+					wantAppliedChanges: []stackstate.AppliedChange{
+						// TODO: Populate these with the correct values.
+					},
+				},
+			},
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -915,6 +956,11 @@ func TestApplyDestroy(t *testing.T) {
 
 			state := tc.state
 			for ix, cycle := range tc.cycles {
+
+				if tc.mutators != nil {
+					testContext = tc.mutators[ix](store, testContext)
+				}
+
 				t.Run(strconv.FormatInt(int64(ix), 10), func(t *testing.T) {
 					var plan *stackplan.Plan
 					t.Run("plan", func(t *testing.T) {

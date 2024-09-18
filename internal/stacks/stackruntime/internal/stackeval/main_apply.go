@@ -203,6 +203,9 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 							// dependencies to finish applying their changes.
 							waitForComponents = dependencyAddrs
 
+							// TODO: Remove from here if we want to implement
+							//  the workaround.
+
 							// If we're not being destroyed we might have some
 							// depdendents that are being destroyed, and we need
 							// to wait for them to finish before we can start.
