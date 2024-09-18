@@ -82,6 +82,26 @@ func (mr *MockProviderClientMockRecorder) CallFunction(arg0, arg1 any, arg2 ...a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CallFunction", reflect.TypeOf((*MockProviderClient)(nil).CallFunction), varargs...)
 }
 
+// CloseEphemeral mocks base method.
+func (m *MockProviderClient) CloseEphemeral(arg0 context.Context, arg1 *tfplugin5.CloseEphemeral_Request, arg2 ...grpc.CallOption) (*tfplugin5.CloseEphemeral_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CloseEphemeral", varargs...)
+	ret0, _ := ret[0].(*tfplugin5.CloseEphemeral_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CloseEphemeral indicates an expected call of CloseEphemeral.
+func (mr *MockProviderClientMockRecorder) CloseEphemeral(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseEphemeral", reflect.TypeOf((*MockProviderClient)(nil).CloseEphemeral), varargs...)
+}
+
 // Configure mocks base method.
 func (m *MockProviderClient) Configure(arg0 context.Context, arg1 *tfplugin5.Configure_Request, arg2 ...grpc.CallOption) (*tfplugin5.Configure_Response, error) {
 	m.ctrl.T.Helper()
@@ -202,6 +222,26 @@ func (mr *MockProviderClientMockRecorder) MoveResourceState(arg0, arg1 any, arg2
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MoveResourceState", reflect.TypeOf((*MockProviderClient)(nil).MoveResourceState), varargs...)
 }
 
+// OpenEphemeral mocks base method.
+func (m *MockProviderClient) OpenEphemeral(arg0 context.Context, arg1 *tfplugin5.OpenEphemeral_Request, arg2 ...grpc.CallOption) (*tfplugin5.OpenEphemeral_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "OpenEphemeral", varargs...)
+	ret0, _ := ret[0].(*tfplugin5.OpenEphemeral_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// OpenEphemeral indicates an expected call of OpenEphemeral.
+func (mr *MockProviderClientMockRecorder) OpenEphemeral(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenEphemeral", reflect.TypeOf((*MockProviderClient)(nil).OpenEphemeral), varargs...)
+}
+
 // PlanResourceChange mocks base method.
 func (m *MockProviderClient) PlanResourceChange(arg0 context.Context, arg1 *tfplugin5.PlanResourceChange_Request, arg2 ...grpc.CallOption) (*tfplugin5.PlanResourceChange_Response, error) {
 	m.ctrl.T.Helper()
@@ -282,6 +322,26 @@ func (mr *MockProviderClientMockRecorder) ReadResource(arg0, arg1 any, arg2 ...a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadResource", reflect.TypeOf((*MockProviderClient)(nil).ReadResource), varargs...)
 }
 
+// RenewEphemeral mocks base method.
+func (m *MockProviderClient) RenewEphemeral(arg0 context.Context, arg1 *tfplugin5.RenewEphemeral_Request, arg2 ...grpc.CallOption) (*tfplugin5.RenewEphemeral_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "RenewEphemeral", varargs...)
+	ret0, _ := ret[0].(*tfplugin5.RenewEphemeral_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RenewEphemeral indicates an expected call of RenewEphemeral.
+func (mr *MockProviderClientMockRecorder) RenewEphemeral(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenewEphemeral", reflect.TypeOf((*MockProviderClient)(nil).RenewEphemeral), varargs...)
+}
+
 // Stop mocks base method.
 func (m *MockProviderClient) Stop(arg0 context.Context, arg1 *tfplugin5.Stop_Request, arg2 ...grpc.CallOption) (*tfplugin5.Stop_Response, error) {
 	m.ctrl.T.Helper()
@@ -340,6 +400,26 @@ func (mr *MockProviderClientMockRecorder) ValidateDataSourceConfig(arg0, arg1 an
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateDataSourceConfig", reflect.TypeOf((*MockProviderClient)(nil).ValidateDataSourceConfig), varargs...)
+}
+
+// ValidateEphemeralConfig mocks base method.
+func (m *MockProviderClient) ValidateEphemeralConfig(arg0 context.Context, arg1 *tfplugin5.ValidateEphemeralConfig_Request, arg2 ...grpc.CallOption) (*tfplugin5.ValidateEphemeralConfig_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ValidateEphemeralConfig", varargs...)
+	ret0, _ := ret[0].(*tfplugin5.ValidateEphemeralConfig_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ValidateEphemeralConfig indicates an expected call of ValidateEphemeralConfig.
+func (mr *MockProviderClientMockRecorder) ValidateEphemeralConfig(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateEphemeralConfig", reflect.TypeOf((*MockProviderClient)(nil).ValidateEphemeralConfig), varargs...)
 }
 
 // ValidateResourceTypeConfig mocks base method.
