@@ -472,7 +472,12 @@ func diagnosticSortFunc(diags tfdiags.Diagnostics) func(i, j int) bool {
 		if !cmp.Equal(id.Description(), jd.Description()) {
 			return sortDescription(id.Description(), jd.Description())
 		}
-		return sortRange(id.Source().Subject, jd.Source().Subject)
+		if id.Source().Subject != nil && jd.Source().Subject != nil {
+
+			return sortRange(id.Source().Subject, jd.Source().Subject)
+		}
+
+		return false
 	}
 }
 
