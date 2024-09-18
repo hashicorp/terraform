@@ -27,7 +27,7 @@ import (
 // remain live for the necessary duration.
 type Resources struct {
 	active addrs.Map[addrs.ConfigResource, addrs.Map[addrs.AbsResourceInstance, *resourceInstanceInternal]]
-	mu     sync.Mutex
+	mu     sync.RWMutex
 
 	// WaitGroup to track renew goroutines
 	wg sync.WaitGroup
@@ -104,23 +104,23 @@ func (r *Resources) InstanceValue(addr addrs.AbsResourceInstance) (val cty.Value
 // walk is complete, to catch any stragglers that we didn't reach for
 // piecemeal shutdown, e.g. due to errors during the graph walk.
 func (r *Resources) CloseInstances(ctx context.Context, configAddr addrs.ConfigResource) tfdiags.Diagnostics {
-	r.mu.Lock()
-
-	// TODO upgrade this to a RWMutex so we don't need to serialize all Close
-	// operations which may require network access
-
 	var diags tfdiags.Diagnostics
+
+	// Use a read-lock here so we can run multiple close calls concurrently for
+	// different resources. This needs to call CloseEphemeral which is sent to
+	// the provider and can take an unknown amount of time.
+	r.mu.RLock()
 	for _, elem := range r.active.Get(configAddr).Elems {
 		moreDiags := elem.Value.close(ctx)
 		diags = diags.Append(moreDiags.InConfigBody(elem.Value.configBody, elem.Key.String()))
 	}
+	r.mu.RUnlock()
 
 	// Stop tracking the objects we've just closed, so that we know we don't
 	// still need to close them.
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.active.Remove(configAddr)
-
-	// Unlock immediately because the Close operation may take some time.
-	r.mu.Unlock()
 
 	return diags
 }
