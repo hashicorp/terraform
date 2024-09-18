@@ -10,13 +10,11 @@ import (
 	"github.com/zclconf/go-cty/cty/msgpack"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
-	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -57,66 +55,13 @@ func ResourceInstanceObjectStateToTFStackData1(objSrc *states.ResourceInstanceOb
 	return rawMsg
 }
 
-func ComponentInstanceResultsToTFStackData1(dependencies collections.Set[stackaddrs.AbsComponent], dependents collections.Set[stackaddrs.AbsComponent], outputValues map[addrs.OutputValue]cty.Value, variables map[addrs.InputVariable]cty.Value) (*StateComponentInstanceV1, error) {
-	state := StateComponentInstanceV1{
-		OutputValues:   make(map[string]*DynamicValue, len(outputValues)),
-		InputVariables: make(map[string]*DynamicValue, len(variables)),
-	}
-	for _, addr := range dependencies.Elems() {
-		state.DependencyAddrs = append(state.DependencyAddrs, addr.String())
-	}
-	for _, addr := range dependents.Elems() {
-		state.DependentAddrs = append(state.DependentAddrs, addr.String())
-	}
-	for addr, val := range outputValues {
-		protoVal, err := DynamicValueToTFStackData1(val, cty.DynamicPseudoType)
-		if err != nil {
-			return nil, fmt.Errorf("encoding %s: %w", addr, err)
-		}
-		state.OutputValues[addr.Name] = protoVal
-	}
-	for addr, val := range variables {
-		protoVal, err := DynamicValueToTFStackData1(val, cty.DynamicPseudoType)
-		if err != nil {
-			return nil, fmt.Errorf("encoding %s: %w", addr, err)
-		}
-		state.InputVariables[addr.Name] = protoVal
-	}
-	return &state, nil
-}
-
-func DynamicValueToTFStackData1(val cty.Value, ty cty.Type) (*DynamicValue, error) {
-	unmarkedVal, markPaths := val.UnmarkDeepWithPaths()
-	sensitivePaths, withOtherMarks := marks.PathsWithMark(markPaths, marks.Sensitive)
-	if len(withOtherMarks) != 0 {
-		return nil, withOtherMarks[0].Path.NewErrorf(
-			"can't serialize value marked with %#v (this is a bug in Terraform)",
-			withOtherMarks[0].Marks,
-		)
-	}
-
-	rawVal, err := msgpack.Marshal(unmarkedVal, ty)
-	if err != nil {
-		return nil, err
-	}
-	ret := &DynamicValue{
+func Terraform1ToStackDataDynamicValue(value *stacks.DynamicValue) *DynamicValue {
+	return &DynamicValue{
 		Value: &planproto.DynamicValue{
-			Msgpack: rawVal,
+			Msgpack: value.Msgpack,
 		},
+		SensitivePaths: Terraform1ToPlanProtoAttributePaths(value.Sensitive),
 	}
-	if len(markPaths) == 0 {
-		return ret, nil
-	}
-
-	ret.SensitivePaths = make([]*planproto.Path, 0, len(markPaths))
-	for _, path := range sensitivePaths {
-		protoPath, err := planproto.NewPath(path)
-		if err != nil {
-			return nil, path.NewErrorf("failed to encode path: %w", err)
-		}
-		ret.SensitivePaths = append(ret.SensitivePaths, protoPath)
-	}
-	return ret, nil
 }
 
 func DynamicValueFromTFStackData1(protoVal *DynamicValue, ty cty.Type) (cty.Value, error) {

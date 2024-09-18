@@ -846,7 +846,7 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				Before: cty.NullVal(cty.String),
 				After:  cty.StringVal("boop").Mark(marks.Ephemeral),
 			},
-			WantErr: "failed to encode raw state for var.thingy_id: can't serialize value marked with cty.NewValueMarks(marks.Ephemeral) (this is a bug in Terraform)", // Ephemeral values should never make it this far.
+			WantErr: "failed to encode after planned input variable var.thingy_id: : unhandled value marks cty.NewValueMarks(marks.Ephemeral) (this is a bug in Terraform)", // Ephemeral values should never make it this far.
 		},
 		"update root input variable": {
 			Receiver: &PlannedChangeRootInputValue{
