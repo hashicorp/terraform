@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
 	providerTesting "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	stacks_testing_provider "github.com/hashicorp/terraform/internal/stacks/stackruntime/testing"
@@ -1053,9 +1054,9 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 }
 
 func mustPlanDynamicValue(t *testing.T, v cty.Value) *tfstackdata1.DynamicValue {
-	ret, err := tfstackdata1.DynamicValueToTFStackData1(v, cty.DynamicPseudoType)
+	ret, err := stacks.ToDynamicValue(v, cty.DynamicPseudoType)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return ret
+	return tfstackdata1.Terraform1ToStackDataDynamicValue(ret)
 }

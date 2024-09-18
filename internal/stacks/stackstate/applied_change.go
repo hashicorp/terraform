@@ -246,16 +246,6 @@ func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*stacks.AppliedC
 		ComponentInstanceAddr: ac.ComponentInstanceAddr,
 	}
 
-	rawMsg, err := tfstackdata1.ComponentInstanceResultsToTFStackData1(ac.Dependencies, ac.Dependents, ac.OutputValues, ac.InputVariables)
-	if err != nil {
-		return nil, fmt.Errorf("encoding raw state for %s: %w", ac.ComponentInstanceAddr, err)
-	}
-	var raw anypb.Any
-	err = anypb.MarshalFrom(&raw, rawMsg, proto.MarshalOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("encoding raw state for %s: %w", ac.ComponentInstanceAddr, err)
-	}
-
 	outputDescs := make(map[string]*stacks.DynamicValue, len(ac.OutputValues))
 	for addr, val := range ac.OutputValues {
 		protoValue, err := stacks.ToDynamicValue(val, cty.DynamicPseudoType)
@@ -263,6 +253,49 @@ func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*stacks.AppliedC
 			return nil, fmt.Errorf("encoding new state for %s in %s in preparation for saving it: %w", addr, ac.ComponentInstanceAddr, err)
 		}
 		outputDescs[addr.Name] = protoValue
+	}
+
+	inputDescs := make(map[string]*stacks.DynamicValue, len(ac.InputVariables))
+	for addr, val := range ac.InputVariables {
+		protoValue, err := stacks.ToDynamicValue(val, cty.DynamicPseudoType)
+		if err != nil {
+			return nil, fmt.Errorf("encoding new state for %s in %s in preparation for saving it: %w", addr, ac.ComponentInstanceAddr, err)
+		}
+		inputDescs[addr.Name] = protoValue
+	}
+
+	var raw anypb.Any
+	if err := anypb.MarshalFrom(&raw, &tfstackdata1.StateComponentInstanceV1{
+		OutputValues: func() map[string]*tfstackdata1.DynamicValue {
+			outputs := make(map[string]*tfstackdata1.DynamicValue, len(outputDescs))
+			for name, value := range outputDescs {
+				outputs[name] = tfstackdata1.Terraform1ToStackDataDynamicValue(value)
+			}
+			return outputs
+		}(),
+		InputVariables: func() map[string]*tfstackdata1.DynamicValue {
+			inputs := make(map[string]*tfstackdata1.DynamicValue, len(inputDescs))
+			for name, value := range inputDescs {
+				inputs[name] = tfstackdata1.Terraform1ToStackDataDynamicValue(value)
+			}
+			return inputs
+		}(),
+		DependencyAddrs: func() []string {
+			var dependencies []string
+			for _, dependency := range ac.Dependencies.Elems() {
+				dependencies = append(dependencies, dependency.String())
+			}
+			return dependencies
+		}(),
+		DependentAddrs: func() []string {
+			var dependents []string
+			for _, dependent := range ac.Dependents.Elems() {
+				dependents = append(dependents, dependent.String())
+			}
+			return dependents
+		}(),
+	}, proto.MarshalOptions{}); err != nil {
+		return nil, fmt.Errorf("encoding raw state for %s: %w", ac.ComponentInstanceAddr, err)
 	}
 
 	ret.Raw = append(ret.Raw, &stacks.AppliedChange_RawChange{
@@ -275,6 +308,7 @@ func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*stacks.AppliedC
 			ComponentInstance: &stacks.AppliedChange_ComponentInstance{
 				ComponentAddr:         ac.ComponentAddr.String(),
 				ComponentInstanceAddr: ac.ComponentInstanceAddr.String(),
+				OutputValues:          outputDescs,
 			},
 		},
 	})
@@ -328,17 +362,13 @@ func (ac *AppliedChangeInputVariable) AppliedChangeProto() (*stacks.AppliedChang
 			return nil, fmt.Errorf("encoding raw state for %s: %w", ac.Addr, err)
 		}
 	} else {
-		value, err := tfstackdata1.DynamicValueToTFStackData1(ac.Value, cty.DynamicPseudoType)
-		if err != nil {
-			return nil, fmt.Errorf("encoding raw state for %s: %w", ac.Addr, err)
-		}
-		if err := anypb.MarshalFrom(&raw, value, proto.MarshalOptions{}); err != nil {
-			return nil, fmt.Errorf("encoding raw state for %s: %w", ac.Addr, err)
-		}
-
-		description.NewValue, err = stacks.ToDynamicValue(ac.Value, cty.DynamicPseudoType)
+		value, err := stacks.ToDynamicValue(ac.Value, cty.DynamicPseudoType)
 		if err != nil {
 			return nil, fmt.Errorf("encoding new state for %s in preparation for saving it: %w", ac.Addr, err)
+		}
+		description.NewValue = value
+		if err := anypb.MarshalFrom(&raw, tfstackdata1.Terraform1ToStackDataDynamicValue(value), proto.MarshalOptions{}); err != nil {
+			return nil, fmt.Errorf("encoding raw state for %s: %w", ac.Addr, err)
 		}
 	}
 
@@ -392,18 +422,14 @@ func (ac *AppliedChangeOutputValue) AppliedChangeProto() (*stacks.AppliedChange,
 		}, nil
 	}
 
-	msg, err := tfstackdata1.DynamicValueToTFStackData1(ac.Value, cty.DynamicPseudoType)
-	if err != nil {
-		return nil, fmt.Errorf("encoding raw state for %s: %w", ac.Addr, err)
-	}
-	var raw anypb.Any
-	if err := anypb.MarshalFrom(&raw, msg, proto.MarshalOptions{}); err != nil {
-		return nil, fmt.Errorf("encoding raw state for %s: %w", ac.Addr, err)
-	}
-
 	value, err := stacks.ToDynamicValue(ac.Value, cty.DynamicPseudoType)
 	if err != nil {
 		return nil, fmt.Errorf("encoding new state for %s in preparation for saving it: %w", ac.Addr, err)
+	}
+
+	var raw anypb.Any
+	if err := anypb.MarshalFrom(&raw, tfstackdata1.Terraform1ToStackDataDynamicValue(value), proto.MarshalOptions{}); err != nil {
+		return nil, fmt.Errorf("encoding raw state for %s: %w", ac.Addr, err)
 	}
 
 	return &stacks.AppliedChange{
