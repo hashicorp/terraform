@@ -294,9 +294,6 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					break
 				}
 
-				// TODO: Remove from here if we want to implement the
-				//  workaround.
-
 				// We're also going to look through any upstream components
 				// that are being removed to make sure they are removed first.
 				for _, depAddr := range c.PlanPrevDependents(ctx).Elems() {
@@ -512,35 +509,9 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 	case PlanPhase:
 
 		if c.main.PlanningOpts().PlanningMode == plans.DestroyMode {
-			// If we are running a destroy plan, we should return the prior
-			// state's output values, as the new planned state will have nothing
-			// since it's been destroyed.
-			prevResult := c.PlanPrevResult(ctx)
-			obj := make(map[string]cty.Value, len(prevResult))
-			for k, v := range prevResult {
-				obj[k.Name] = v
-			}
-
-			moduleTree := c.call.Config(ctx).ModuleTree(ctx)
-			if moduleTree == nil {
-				return cty.DynamicVal
-			}
-
-			// This shouldn't matter as callers should use the configuration
-			// that was last applied when destroying, but just in case we'll
-			// add in any output values that were declared in the configuration
-			// but not yet present in the state.
-			for name := range moduleTree.Module.Outputs {
-				if _, exists := obj[name]; exists {
-					continue
-				}
-				// We can't do any better than DynamicVal here because
-				// output values in the modules language don't have static
-				// type constraints.
-				obj[name] = cty.DynamicVal
-			}
-
-			return cty.ObjectVal(obj)
+			// If we are running a destroy plan, then we'll return the result
+			// of our refresh operation.
+			return cty.ObjectVal(c.refresh.Result(ctx))
 		}
 
 		plan := c.ModuleTreePlan(ctx)

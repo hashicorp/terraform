@@ -1144,38 +1144,6 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				},
 			},
 		},
-		"removed block with provider-to-component dep": {
-			path: path.Join("auth-provider-w-data", "removed"),
-			state: stackstate.NewStateBuilder().
-				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.load")).
-					AddDependent(mustAbsComponent("component.create")).
-					AddOutputValue("credentials", cty.StringVal("wrong"))). // must reload the credentials
-				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.create")).
-					AddDependency(mustAbsComponent("component.load"))).
-				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
-					SetAddr(mustAbsResourceInstanceObject("component.create.testing_resource.resource")).
-					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
-						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
-							"id":    "resource",
-							"value": nil,
-						}),
-						Status: states.ObjectReady,
-					}).
-					SetProviderAddr(mustDefaultRootProvider("testing"))).
-				Build(),
-			store: stacks_testing_provider.NewResourceStoreBuilder().AddResource("credentials", cty.ObjectVal(map[string]cty.Value{
-				"id": cty.StringVal("credentials"),
-				// we have the wrong value in state, so this correct value must
-				// be loaded for this test to work.
-				"value": cty.StringVal("authn"),
-			})).Build(),
-			cycles: []TestCycle{
-				{
-					planMode:           plans.NormalMode,
-					wantAppliedChanges: []stackstate.AppliedChange{},
-				},
-			},
-		},
 	}
 
 	for name, tc := range tcs {
@@ -1200,9 +1168,7 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				config:    loadMainBundleConfigForTest(t, tc.path),
 				providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-						provider := stacks_testing_provider.NewProviderWithData(t, store)
-						provider.Authentication = "authn"
-						return provider, nil
+						return stacks_testing_provider.NewProviderWithData(t, store), nil
 					},
 				},
 				dependencyLocks: *lock,

@@ -43,7 +43,18 @@ func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, ref
 	var diags tfdiags.Diagnostics
 	var changes []PlannedChange
 
-	outputs := OutputsFromPlan(config, plan)
+	var outputs map[string]cty.Value
+	if refreshPlan != nil {
+		// we're going to be a little cheeky and publish the outputs as being
+		// the results from the refresh part of the plan. This will then be
+		// consumed by the apply part of the plan to ensure that the outputs
+		// are correctly updated. The refresh plan should only be present if the
+		// main plan was a destroy plan in which case the outputs that the
+		// apply needs do actually come from the refresh.
+		outputs = OutputsFromPlan(config, refreshPlan)
+	} else {
+		outputs = OutputsFromPlan(config, plan)
+	}
 
 	// We must always at least announce that the component instance exists,
 	// and that must come before any resource instance changes referring to it.

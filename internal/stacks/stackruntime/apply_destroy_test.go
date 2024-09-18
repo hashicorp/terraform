@@ -918,9 +918,24 @@ func TestApplyDestroy(t *testing.T) {
 					planMode: plans.NormalMode,
 				},
 				{
-					planMode:           plans.DestroyMode,
+					planMode: plans.DestroyMode,
 					wantAppliedChanges: []stackstate.AppliedChange{
-						// TODO: Populate these with the correct values.
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.create"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.create"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.create.testing_resource.resource"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+						},
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.load"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.load"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.load.data.testing_data_source.credentials"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+						},
 					},
 				},
 			},
