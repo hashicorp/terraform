@@ -33,6 +33,7 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		ResourceTypes: map[string]providers.Schema{
 			"terraform_data": dataStoreResourceSchema(),
 		},
+		EphemeralResourceTypes: map[string]providers.Schema{},
 		Functions: map[string]providers.FunctionDecl{
 			"encode_tfvars": {
 				Summary:     "Produce a string representation of an object using the same syntax as for `.tfvars` files",
@@ -172,7 +173,7 @@ func (p *Provider) ImportResourceState(req providers.ImportResourceStateRequest)
 		return importDataStore(req)
 	}
 
-	panic("unimplemented - terraform_remote_state has no resources")
+	panic("unimplemented: cannot import resource type " + req.TypeName)
 }
 
 // MoveResourceState requests that the given resource be moved.
@@ -192,6 +193,27 @@ func (p *Provider) MoveResourceState(req providers.MoveResourceStateRequest) pro
 // ValidateResourceConfig is used to to validate the resource configuration values.
 func (p *Provider) ValidateResourceConfig(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 	return validateDataStoreResourceConfig(req)
+}
+
+// OpenEphemeral implements providers.Interface.
+func (p *Provider) OpenEphemeral(req providers.OpenEphemeralRequest) providers.OpenEphemeralResponse {
+	var resp providers.OpenEphemeralResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
+	return resp
+}
+
+// RenewEphemeral implements providers.Interface.
+func (p *Provider) RenewEphemeral(req providers.RenewEphemeralRequest) providers.RenewEphemeralResponse {
+	var resp providers.RenewEphemeralResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
+	return resp
+}
+
+// CloseEphemeral implements providers.Interface.
+func (p *Provider) CloseEphemeral(req providers.CloseEphemeralRequest) providers.CloseEphemeralResponse {
+	var resp providers.CloseEphemeralResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
+	return resp
 }
 
 // CallFunction would call a function contributed by this provider, but this

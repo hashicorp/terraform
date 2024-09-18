@@ -247,6 +247,19 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 		remain := traversal[1:] // trim off "resource" so we can use our shared resource reference parser
 		return parseResourceRef(ManagedResourceMode, rootRange, remain)
 
+	case "ephemeral":
+		if len(traversal) < 3 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   `The "ephemeral" object must be followed by two attribute names: the ephemeral resource type and the resource name.`,
+				Subject:  traversal.SourceRange().Ptr(),
+			})
+			return nil, diags
+		}
+		remain := traversal[1:] // trim off "ephemeral" so we can use our shared resource reference parser
+		return parseResourceRef(EphemeralResourceMode, rootRange, remain)
+
 	case "local":
 		name, rng, remain, diags := parseSingleAttrRef(traversal)
 		return &Reference{
@@ -396,13 +409,40 @@ func parseResourceRef(mode ResourceMode, startRange hcl.Range, traversal hcl.Tra
 	case hcl.TraverseAttr:
 		typeName = tt.Name
 	default:
-		// If it isn't a TraverseRoot then it must be a "data" reference.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid reference",
-			Detail:   `The "data" object does not support this operation.`,
-			Subject:  traversal[0].SourceRange().Ptr(),
-		})
+		switch mode {
+		case ManagedResourceMode:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   `The "resource" object does not support this operation.`,
+				Subject:  traversal[0].SourceRange().Ptr(),
+			})
+		case DataResourceMode:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   `The "data" object does not support this operation.`,
+				Subject:  traversal[0].SourceRange().Ptr(),
+			})
+		case EphemeralResourceMode:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   `The "ephemeral" object does not support this operation.`,
+				Subject:  traversal[0].SourceRange().Ptr(),
+			})
+		default:
+			// Shouldn't get here because the above should be exhaustive for
+			// all of the resource modes. But we'll still return a
+			// minimally-passable error message so that the won't totally
+			// misbehave if we forget to update this in future.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   `The left operand does not support this operation.`,
+				Subject:  traversal[0].SourceRange().Ptr(),
+			})
+		}
 		return nil, diags
 	}
 
@@ -411,14 +451,16 @@ func parseResourceRef(mode ResourceMode, startRange hcl.Range, traversal hcl.Tra
 		var what string
 		switch mode {
 		case DataResourceMode:
-			what = "data source"
+			what = "a data source"
+		case EphemeralResourceMode:
+			what = "an ephemeral resource type"
 		default:
-			what = "resource type"
+			what = "a resource type"
 		}
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid reference",
-			Detail:   fmt.Sprintf(`A reference to a %s must be followed by at least one attribute access, specifying the resource name.`, what),
+			Detail:   fmt.Sprintf(`A reference to %s must be followed by at least one attribute access, specifying the resource name.`, what),
 			Subject:  traversal[1].SourceRange().Ptr(),
 		})
 		return nil, diags
