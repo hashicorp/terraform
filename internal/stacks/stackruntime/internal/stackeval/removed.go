@@ -79,7 +79,7 @@ func (r *Removed) Config(ctx context.Context) *RemovedConfig {
 }
 
 func (r *Removed) ForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
-	return doOnceWithDiags(ctx, r.forEachValue.For(phase), r.main, func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+	return doOnceWithDiags(ctx, r.forEachValue.For(phase), r, func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 		config := r.Config(ctx).config
 
 		switch {

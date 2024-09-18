@@ -39,7 +39,7 @@ type PlanProducer interface {
 	ResourceSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, resourceType string) (*configschema.Block, error)
 }
 
-func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, action plans.Action, producer PlanProducer) ([]PlannedChange, tfdiags.Diagnostics) {
+func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, refreshPlan *plans.Plan, action plans.Action, producer PlanProducer) ([]PlannedChange, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var changes []PlannedChange
 
@@ -212,6 +212,15 @@ func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, act
 		}
 	}
 
+	prevRunState := plan.PrevRunState
+	if refreshPlan != nil {
+		// If we executed a refresh plan as part of this, then the true
+		// previous run state is the one from the refresh plan, because
+		// the later plan used the output of the refresh plan as the
+		// previous state.
+		prevRunState = refreshPlan.PrevRunState
+	}
+
 	// We also have one more unusual case to deal with: if an object
 	// existed at the end of the previous run but was found to have
 	// been deleted when we refreshed during planning then it will
@@ -219,7 +228,7 @@ func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, act
 	// we still need to include a stubby object for it in the plan
 	// so we can remember to discard it from the state during the
 	// apply phase.
-	if prevRunState := plan.PrevRunState; prevRunState != nil {
+	if prevRunState != nil {
 		for _, addr := range prevRunState.AllResourceInstanceObjectAddrs() {
 			if seenObjects.Has(addr) {
 				// We're only interested in objects that didn't appear

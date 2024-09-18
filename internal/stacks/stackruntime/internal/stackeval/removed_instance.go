@@ -264,7 +264,7 @@ func (r *RemovedInstance) PlanChanges(ctx context.Context) ([]stackplan.PlannedC
 		} else {
 			action = plans.Forget
 		}
-		changes, moreDiags = stackplan.FromPlan(ctx, r.ModuleTree(ctx), plan, action, r)
+		changes, moreDiags = stackplan.FromPlan(ctx, r.ModuleTree(ctx), plan, nil, action, r)
 		diags = diags.Append(moreDiags)
 	}
 	return changes, diags
