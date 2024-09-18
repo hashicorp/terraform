@@ -5940,6 +5940,7 @@ output "staying" {
 					Before: cty.NullVal(cty.String),
 					After:  cty.NullVal(cty.DynamicPseudoType),
 				},
+				Ephemeral: true,
 			},
 			{
 				Addr: mustAbsOutputValue("output.staying"),

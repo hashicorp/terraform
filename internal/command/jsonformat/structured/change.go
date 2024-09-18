@@ -37,7 +37,6 @@ import (
 // the type would need to change between the before and after value. It is in
 // fact just easier to iterate through the values as generic JSON interfaces.
 type Change struct {
-
 	// BeforeExplicit matches AfterExplicit except references the Before value.
 	BeforeExplicit bool
 
@@ -83,6 +82,15 @@ type Change struct {
 	// sensitive.
 	AfterSensitive interface{}
 
+	// BeforeEphemeral TODO
+	BeforeEphemeral interface{}
+
+	// AfterEphemeral TODO
+	AfterEphemeral interface{}
+
+	// PlanAction TODO
+	PlanAction plans.Action
+
 	// ReplacePaths contains a set of paths that point to attributes/elements
 	// that are causing the overall resource to be replaced rather than simply
 	// updated.
@@ -111,6 +119,9 @@ func FromJsonChange(change jsonplan.Change, relevantAttributes attribute_path.Ma
 		Unknown:            unmarshalGeneric(change.AfterUnknown),
 		BeforeSensitive:    unmarshalGeneric(change.BeforeSensitive),
 		AfterSensitive:     unmarshalGeneric(change.AfterSensitive),
+		BeforeEphemeral:    unmarshalGeneric(change.BeforeEphemeral),
+		AfterEphemeral:     unmarshalGeneric(change.AfterEphemeral),
+		PlanAction:         jsonplan.UnmarshalActions(change.Actions),
 		ReplacePaths:       attribute_path.Parse(change.ReplacePaths, false),
 		RelevantAttributes: relevantAttributes,
 	}
@@ -158,6 +169,9 @@ func FromJsonOutput(output jsonstate.Output) Change {
 		BeforeSensitive: output.Sensitive,
 		AfterSensitive:  output.Sensitive,
 
+		BeforeEphemeral: output.Ephemeral,
+		AfterEphemeral:  output.Ephemeral,
+
 		// We don't display replacement data for resources, and all attributes
 		// are relevant.
 		ReplacePaths:       attribute_path.Empty(false),
@@ -178,6 +192,9 @@ func FromJsonViewsOutput(output viewsjson.Output) Change {
 		BeforeSensitive: output.Sensitive,
 		AfterSensitive:  output.Sensitive,
 
+		// TODO: BeforeEphemeral:
+		// TODO: AfterEphemeral:
+
 		// We don't display replacement data for resources, and all attributes
 		// are relevant.
 		ReplacePaths:       attribute_path.Empty(false),
@@ -190,6 +207,10 @@ func FromJsonViewsOutput(output viewsjson.Output) Change {
 // or sets it is likely more efficient to work out the action directly instead
 // of relying on this function.
 func (change Change) CalculateAction() plans.Action {
+	if change.IsBeforeEphemeral() || change.IsAfterEphemeral() {
+		return change.PlanAction
+	}
+
 	if (change.Before == nil && !change.BeforeExplicit) && (change.After != nil || change.AfterExplicit) {
 		return plans.Create
 	}

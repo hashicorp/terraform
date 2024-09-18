@@ -96,6 +96,9 @@ func (state State) renderHumanStateOutputs(renderer Renderer, opts computed.Rend
 
 		for _, key := range keys {
 			output := state.RootModuleOutputs[key]
+
+			// TODO: There is no reason to be rendering state as diff?!
+
 			change := structured.FromJsonOutput(output)
 			ctype, err := ctyjson.UnmarshalType(output.Type)
 			if err != nil {

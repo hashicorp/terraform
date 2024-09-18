@@ -58,6 +58,81 @@ func TestPathsWithMark(t *testing.T) {
 	}
 }
 
+func TestPathsWithMarks(t *testing.T) {
+	testCases := []struct {
+		pvms      []cty.PathValueMarks
+		wantMarks []any
+
+		expectedPaths   map[any][]cty.Path
+		unexpectedMarks []cty.PathValueMarks
+	}{
+		{
+			[]cty.PathValueMarks{
+				{
+					Path:  cty.GetAttrPath("sensitive"),
+					Marks: cty.NewValueMarks(Sensitive),
+				},
+			},
+			[]any{Sensitive},
+			map[any][]cty.Path{
+				Sensitive: {cty.GetAttrPath("sensitive")},
+			},
+			nil,
+		},
+		{
+			[]cty.PathValueMarks{
+				{
+					Path:  cty.GetAttrPath("sensitive_ephemeral"),
+					Marks: cty.NewValueMarks(Sensitive, Ephemeral),
+				},
+			},
+			[]any{Sensitive, Ephemeral},
+			map[any][]cty.Path{
+				Sensitive: {cty.GetAttrPath("sensitive_ephemeral")},
+				Ephemeral: {cty.GetAttrPath("sensitive_ephemeral")},
+			},
+			nil,
+		},
+		{
+			[]cty.PathValueMarks{
+				{
+					Path:  cty.GetAttrPath("sensitive"),
+					Marks: cty.NewValueMarks(Sensitive),
+				},
+				{
+					Path:  cty.GetAttrPath("extra"),
+					Marks: cty.NewValueMarks("extra"),
+				},
+				{
+					Path:  cty.GetAttrPath("ephemeral"),
+					Marks: cty.NewValueMarks(Ephemeral),
+				},
+			},
+			[]any{Sensitive, Ephemeral},
+			map[any][]cty.Path{
+				Sensitive: {cty.GetAttrPath("sensitive")},
+				Ephemeral: {cty.GetAttrPath("ephemeral")},
+			},
+			[]cty.PathValueMarks{
+				{
+					Path:  cty.GetAttrPath("extra"),
+					Marks: cty.NewValueMarks("extra"),
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		gotPaths, gotOthers := PathsWithMarks(tc.pvms, tc.wantMarks...)
+		if diff := cmp.Diff(tc.expectedPaths, gotPaths, ctydebug.CmpOptions); diff != "" {
+			t.Errorf("wrong matched paths\n%s", diff)
+		}
+		if diff := cmp.Diff(tc.unexpectedMarks, gotOthers, ctydebug.CmpOptions); diff != "" {
+			t.Errorf("wrong set of entries with other marks\n%s", diff)
+		}
+	}
+}
+
 func TestMarkPaths(t *testing.T) {
 	value := cty.ObjectVal(map[string]cty.Value{
 		"s": cty.StringVal(".s"),

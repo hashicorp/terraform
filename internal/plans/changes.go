@@ -519,6 +519,9 @@ type OutputChange struct {
 	// should elide the actual values while still indicating the action of the
 	// change.
 	Sensitive bool
+
+	// Ephemeral TODO
+	Ephemeral bool
 }
 
 // Encode produces a variant of the reciever that has its change values
@@ -528,10 +531,12 @@ func (oc *OutputChange) Encode() (*OutputChangeSrc, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &OutputChangeSrc{
 		Addr:      oc.Addr,
 		ChangeSrc: *cs,
 		Sensitive: oc.Sensitive,
+		Ephemeral: oc.Ephemeral,
 	}, err
 }
 
@@ -606,27 +611,28 @@ type Change struct {
 // directly with its embedded Change.
 func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 	// We can't serialize value marks directly so we'll need to extract the
-	// sensitive marks and store them in a separate field.
-	//
+	// those and store them in separate fields.
+	supportedMarks := []any{marks.Sensitive, marks.Ephemeral}
 	// We don't accept any other marks here. The caller should have dealt
 	// with those somehow and replaced them with unmarked placeholders before
 	// writing the value into the state.
-	unmarkedBefore, marksesBefore := c.Before.UnmarkDeepWithPaths()
-	unmarkedAfter, marksesAfter := c.After.UnmarkDeepWithPaths()
-	sensitiveAttrsBefore, unsupportedMarksesBefore := marks.PathsWithMark(marksesBefore, marks.Sensitive)
-	sensitiveAttrsAfter, unsupportedMarksesAfter := marks.PathsWithMark(marksesAfter, marks.Sensitive)
-	if len(unsupportedMarksesBefore) != 0 {
+	unmarkedBefore, marksBefore := c.Before.UnmarkDeepWithPaths()
+	unmarkedAfter, marksAfter := c.After.UnmarkDeepWithPaths()
+	supportedMarksBefore, unsupportedMarksBefore := marks.PathsWithMarks(marksBefore, supportedMarks...)
+	supportedMarksAfter, unsupportedMarksAfter := marks.PathsWithMarks(marksAfter, supportedMarks...)
+
+	if len(unsupportedMarksBefore) != 0 {
 		return nil, fmt.Errorf(
 			"prior value %s: can't serialize value marked with %#v (this is a bug in Terraform)",
-			tfdiags.FormatCtyPath(unsupportedMarksesBefore[0].Path),
-			unsupportedMarksesBefore[0].Marks,
+			tfdiags.FormatCtyPath(unsupportedMarksBefore[0].Path),
+			unsupportedMarksBefore[0].Marks,
 		)
 	}
-	if len(unsupportedMarksesAfter) != 0 {
+	if len(unsupportedMarksAfter) != 0 {
 		return nil, fmt.Errorf(
 			"new value %s: can't serialize value marked with %#v (this is a bug in Terraform)",
-			tfdiags.FormatCtyPath(unsupportedMarksesAfter[0].Path),
-			unsupportedMarksesAfter[0].Marks,
+			tfdiags.FormatCtyPath(unsupportedMarksAfter[0].Path),
+			unsupportedMarksAfter[0].Marks,
 		)
 	}
 
@@ -643,8 +649,10 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 		Action:               c.Action,
 		Before:               beforeDV,
 		After:                afterDV,
-		BeforeSensitivePaths: sensitiveAttrsBefore,
-		AfterSensitivePaths:  sensitiveAttrsAfter,
+		BeforeSensitivePaths: supportedMarksBefore[marks.Sensitive],
+		AfterSensitivePaths:  supportedMarksAfter[marks.Sensitive],
+		BeforeEphemeralPaths: supportedMarksBefore[marks.Ephemeral],
+		AfterEphemeralPaths:  supportedMarksAfter[marks.Ephemeral],
 		Importing:            c.Importing.Encode(),
 		GeneratedConfig:      c.GeneratedConfig,
 	}, nil

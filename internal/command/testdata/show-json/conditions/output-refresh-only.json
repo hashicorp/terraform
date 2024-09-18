@@ -15,6 +15,7 @@
     "outputs": {
       "foo_id": {
         "sensitive": false,
+        "ephemeral": false,
         "type": "string",
         "value": "placeholder"
       }
@@ -30,7 +31,9 @@
       "after": "placeholder",
       "after_unknown": false,
       "before_sensitive": false,
-      "after_sensitive": false
+      "after_sensitive": false,
+      "before_ephemeral": false,
+      "after_ephemeral": false
     }
   },
   "prior_state": {
@@ -40,6 +43,7 @@
       "outputs": {
         "foo_id": {
           "sensitive": false,
+          "ephemeral": false,
           "value": "placeholder",
           "type": "string"
         }

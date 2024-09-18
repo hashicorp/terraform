@@ -6,13 +6,16 @@
   "planned_values": {
     "outputs": {
       "bar": {
-        "sensitive": false
+        "sensitive": false,
+        "ephemeral": false
       },
       "baz": {
-        "sensitive": false
+        "sensitive": false,
+        "ephemeral": false
       },
       "foo": {
         "sensitive": false,
+        "ephemeral": false,
         "type": "string",
         "value": "hello"
       }
@@ -36,7 +39,9 @@
         false
       ],
       "before_sensitive": false,
-      "after_sensitive": false
+      "after_sensitive": false,
+      "before_ephemeral": false,
+      "after_ephemeral": false
     },
     "baz": {
       "actions": [
@@ -51,7 +56,9 @@
         "time": true
       },
       "before_sensitive": false,
-      "after_sensitive": false
+      "after_sensitive": false,
+      "before_ephemeral": false,
+      "after_ephemeral": false
     },
     "foo": {
       "actions": [
@@ -61,7 +68,9 @@
       "after": "hello",
       "after_unknown": false,
       "before_sensitive": false,
-      "after_sensitive": false
+      "after_sensitive": false,
+      "before_ephemeral": false,
+      "after_ephemeral": false
     }
   },
   "prior_state": {
@@ -71,6 +80,7 @@
       "outputs": {
         "foo": {
           "sensitive": false,
+          "ephemeral": false,
           "value": "hello",
           "type": "string"
         }

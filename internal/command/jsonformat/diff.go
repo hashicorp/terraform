@@ -75,6 +75,7 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 	}
 
 	for key, output := range plan.OutputChanges {
+		// TODO: Change all this
 		change := structured.FromJsonChange(output, attribute_path.AlwaysMatcher())
 		diffs.outputs[key] = differ.ComputeDiffForOutput(change)
 	}

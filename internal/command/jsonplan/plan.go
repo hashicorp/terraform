@@ -134,6 +134,11 @@ type Change struct {
 	BeforeSensitive json.RawMessage `json:"before_sensitive,omitempty"`
 	AfterSensitive  json.RawMessage `json:"after_sensitive,omitempty"`
 
+	// BeforeEphemeral TODO
+	BeforeEphemeral json.RawMessage `json:"before_ephemeral,omitempty"`
+	// AfterEphemeral TODO
+	AfterEphemeral json.RawMessage `json:"after_ephemeral,omitempty"`
+
 	// ReplacePaths is an array of arrays representing a set of paths into the
 	// object value which resulted in the action being "replace". This will be
 	// omitted if the action is not replace, or if no paths caused the
@@ -172,6 +177,7 @@ type Importing struct {
 
 type output struct {
 	Sensitive bool            `json:"sensitive"`
+	Ephemeral bool            `json:"ephemeral"`
 	Type      json.RawMessage `json:"type,omitempty"`
 	Value     json.RawMessage `json:"value,omitempty"`
 }
@@ -709,6 +715,15 @@ func MarshalOutputChanges(changes *plans.ChangesSrc) (map[string]Change, error) 
 			return nil, err
 		}
 
+		outputEphemeral := cty.False
+		if oc.Ephemeral {
+			outputEphemeral = cty.True
+		}
+		ephemeral, err := ctyjson.Marshal(outputEphemeral, outputEphemeral.Type())
+		if err != nil {
+			return nil, err
+		}
+
 		a, _ := ctyjson.Marshal(afterUnknown, afterUnknown.Type())
 
 		c := Change{
@@ -718,6 +733,8 @@ func MarshalOutputChanges(changes *plans.ChangesSrc) (map[string]Change, error) 
 			AfterUnknown:    a,
 			BeforeSensitive: json.RawMessage(sensitive),
 			AfterSensitive:  json.RawMessage(sensitive),
+			BeforeEphemeral: json.RawMessage(ephemeral),
+			AfterEphemeral:  json.RawMessage(ephemeral),
 
 			// Just to be explicit, outputs cannot be imported so this is always
 			// nil.

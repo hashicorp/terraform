@@ -86,6 +86,7 @@ func marshalPlannedOutputs(changes *plans.ChangesSrc) (map[string]output, error)
 			Value:     json.RawMessage(after),
 			Type:      json.RawMessage(afterType),
 			Sensitive: oc.Sensitive,
+			Ephemeral: oc.Ephemeral,
 		}
 	}
 

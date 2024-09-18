@@ -33,6 +33,8 @@ type ChangesSrc struct {
 	// can be easily re-calculated during the apply phase. Therefore only root
 	// module outputs will survive a round-trip through a plan file.
 	Outputs []*OutputChangeSrc
+
+	// TODO: Consider EphemeralOutputs []*EphemeralOutputChangeSrc
 }
 
 func NewChangesSrc() *ChangesSrc {
@@ -304,6 +306,9 @@ type OutputChangeSrc struct {
 	// should elide the actual values while still indicating the action of the
 	// change.
 	Sensitive bool
+
+	// Ephemeral, TODO
+	Ephemeral bool
 }
 
 // Decode unmarshals the raw representation of the output value being
@@ -317,6 +322,7 @@ func (ocs *OutputChangeSrc) Decode() (*OutputChange, error) {
 		Addr:      ocs.Addr,
 		Change:    *change,
 		Sensitive: ocs.Sensitive,
+		Ephemeral: ocs.Ephemeral,
 	}, nil
 }
 
@@ -388,6 +394,8 @@ type ChangeSrc struct {
 	// the serialized change.
 	BeforeSensitivePaths, AfterSensitivePaths []cty.Path
 
+	BeforeEphemeralPaths, AfterEphemeralPaths []cty.Path
+
 	// Importing is present if the resource is being imported as part of this
 	// change.
 	//
@@ -427,10 +435,18 @@ func (cs *ChangeSrc) Decode(ty cty.Type) (*Change, error) {
 		}
 	}
 
+	// reflect sensitivity
+	before = marks.MarkPaths(before, marks.Sensitive, cs.BeforeSensitivePaths)
+	after = marks.MarkPaths(after, marks.Sensitive, cs.AfterSensitivePaths)
+
+	// reflect ephemerality
+	before = marks.MarkPaths(before, marks.Ephemeral, cs.BeforeEphemeralPaths)
+	after = marks.MarkPaths(after, marks.Ephemeral, cs.AfterEphemeralPaths)
+
 	return &Change{
 		Action:          cs.Action,
-		Before:          marks.MarkPaths(before, marks.Sensitive, cs.BeforeSensitivePaths),
-		After:           marks.MarkPaths(after, marks.Sensitive, cs.AfterSensitivePaths),
+		Before:          before,
+		After:           after,
 		Importing:       cs.Importing.Decode(),
 		GeneratedConfig: cs.GeneratedConfig,
 	}, nil

@@ -56,6 +56,8 @@ func ComputeDiffForType(change structured.Change, ctype cty.Type) computed.Diff 
 		}
 	}
 
+	// TODO: check for ephemerality
+
 	if sensitive, ok := checkForSensitiveType(change, ctype); ok {
 		return sensitive
 	}

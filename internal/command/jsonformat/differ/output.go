@@ -12,6 +12,10 @@ import (
 )
 
 func ComputeDiffForOutput(change structured.Change) computed.Diff {
+	if ephemeral, ok := checkForEphemeralType(change); ok {
+		return ephemeral
+	}
+
 	if sensitive, ok := checkForSensitiveType(change, cty.DynamicPseudoType); ok {
 		return sensitive
 	}

@@ -5,6 +5,7 @@ package marks
 
 import (
 	"fmt"
+	"maps"
 	"sort"
 
 	"github.com/zclconf/go-cty/cty"
@@ -38,6 +39,35 @@ func PathsWithMark(pvms []cty.PathValueMarks, wantMark any) (withWanted []cty.Pa
 	}
 
 	return withWanted, withOthers
+}
+
+func PathsWithMarks(pvms []cty.PathValueMarks, wantMarks ...any) (wanted map[any][]cty.Path, withOthers []cty.PathValueMarks) {
+	if len(pvms) == 0 {
+		// No-allocations path for the common case where there are no marks at all.
+		return nil, nil
+	}
+
+	wanted = make(map[any][]cty.Path, 0)
+
+	for _, pvm := range pvms {
+		remainingMarks := maps.Clone(pvm.Marks)
+
+		for _, wantMark := range wantMarks {
+			if _, ok := pvm.Marks[wantMark]; ok {
+				if len(wanted[wantMark]) == 0 {
+					wanted[wantMark] = make([]cty.Path, 0)
+				}
+				wanted[wantMark] = append(wanted[wantMark], pvm.Path)
+				delete(remainingMarks, wantMark)
+			}
+		}
+
+		if len(remainingMarks) > 0 {
+			withOthers = append(withOthers, pvm)
+		}
+	}
+
+	return wanted, withOthers
 }
 
 // MarkPaths transforms the given value by marking each of the given paths

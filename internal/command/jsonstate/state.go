@@ -48,6 +48,7 @@ type stateValues struct {
 
 type Output struct {
 	Sensitive bool            `json:"sensitive"`
+	Ephemeral bool            `json:"ephemeral"`
 	Value     json.RawMessage `json:"value,omitempty"`
 	Type      json.RawMessage `json:"type,omitempty"`
 }
@@ -157,6 +158,8 @@ func MarshalForRenderer(sf *statefile.File, schemas *terraform.Schemas) (Module,
 	if err != nil {
 		return Module{}, nil, err
 	}
+
+	// TODO: MarshallEphemeralOutputs
 
 	root, err := marshalRootModule(sf.State, schemas)
 	if err != nil {

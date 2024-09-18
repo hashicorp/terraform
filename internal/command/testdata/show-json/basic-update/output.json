@@ -11,6 +11,7 @@
         "outputs": {
             "test": {
                 "sensitive": false,
+                "ephemeral": false,
                 "type": "string",
                 "value": "bar"
             }
@@ -67,7 +68,9 @@
             "after": "bar",
             "after_unknown": false,
             "before_sensitive": false,
-            "after_sensitive": false
+            "after_sensitive": false,
+            "before_ephemeral": false,
+            "after_ephemeral": false
         }
     },
     "prior_state": {
@@ -76,6 +79,7 @@
             "outputs": {
                 "test": {
                     "sensitive": false,
+                    "ephemeral": false,
                     "type": "string",
                     "value": "bar"
                 }

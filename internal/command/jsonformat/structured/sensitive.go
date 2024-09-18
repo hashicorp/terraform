@@ -25,6 +25,20 @@ func (change Change) IsAfterSensitive() bool {
 	return false
 }
 
+func (change Change) IsBeforeEphemeral() bool {
+	if ephemeral, ok := change.BeforeEphemeral.(bool); ok {
+		return ephemeral
+	}
+	return false
+}
+
+func (change Change) IsAfterEphemeral() bool {
+	if ephemeral, ok := change.AfterEphemeral.(bool); ok {
+		return ephemeral
+	}
+	return false
+}
+
 // CheckForSensitive is a helper function that handles all common functionality
 // for processing a sensitive value.
 //

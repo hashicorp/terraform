@@ -11,6 +11,7 @@
         "outputs": {
             "test": {
                 "sensitive": true,
+                "ephemeral": false,
                 "type": "string",
                 "value": "boop"
             }
@@ -68,7 +69,9 @@
             "after": "boop",
             "after_unknown": false,
             "before_sensitive": true,
-            "after_sensitive": true
+            "after_sensitive": true,
+            "before_ephemeral": false,
+            "after_ephemeral": false
         }
     },
     "prior_state": {
@@ -77,6 +80,7 @@
             "outputs": {
                 "test": {
                     "sensitive": true,
+                    "ephemeral": false,
                     "type": "string",
                     "value": "boop"
                 }

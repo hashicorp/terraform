@@ -114,7 +114,7 @@ func (renderer Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...pla
 			renderer.Colorize.Color("\n[bold][red]Warning:[reset][bold] This plan was generated using a different version of Terraform, the diff presented here may be missing representations of recent features."),
 			renderer.Streams.Stdout.Columns()))
 	}
-
+	// TODO: reflect ephemeral outputs
 	plan.renderHuman(renderer, mode, opts...)
 }
 

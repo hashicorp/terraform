@@ -14,7 +14,8 @@
   "planned_values": {
     "outputs": {
       "foo_id": {
-        "sensitive": false
+        "sensitive": false,
+        "ephemeral": false
       }
     },
     "root_module": {
@@ -98,7 +99,9 @@
       "before": null,
       "after_unknown": true,
       "before_sensitive": false,
-      "after_sensitive": false
+      "after_sensitive": false,
+      "before_ephemeral": false,
+      "after_ephemeral": false
     }
   },
   "configuration": {

@@ -390,9 +390,19 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 	val := cty.UnknownVal(cty.DynamicPseudoType)
 	changeRecorded := n.Change != nil
 	// we we have a change recorded, we don't need to re-evaluate if the value
-	// was known
-	if changeRecorded {
+	// was known unless it involves ephemeral value (i.e. effectively nil)
+	if changeRecorded && !n.Change.Ephemeral {
 		val = n.Change.After
+	}
+
+	if n.Addr.Module.IsRoot() && n.Config.Ephemeral {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Ephemeral output not allowed",
+			Detail:   "Ephemeral outputs are not allowed in context of a root module",
+			Subject:  n.Config.DeclRange.Ptr(),
+		})
+		return
 	}
 
 	// Checks are not evaluated during a destroy. The checks may fail, may not
@@ -623,6 +633,7 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 	// if this is a root module, try to get a before value from the state for
 	// the diff
 	sensitiveBefore := false
+	ephemeralBefore := false
 	before := cty.NullVal(cty.DynamicPseudoType)
 	mod := state.Module(n.Addr.Module)
 	if n.Addr.Module.IsRoot() && mod != nil {
@@ -632,6 +643,7 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 			before = o.Value
 		} else if o, ok := s.EphemeralRootOutputValues[n.Addr.OutputValue.Name]; ok {
 			sensitiveBefore = o.Sensitive
+			ephemeralBefore = true
 			before = o.Value
 		} else {
 			// If the output was not in state, a delete change would
@@ -647,6 +659,7 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 		change := &plans.OutputChange{
 			Addr:      n.Addr,
 			Sensitive: sensitiveBefore,
+			Ephemeral: ephemeralBefore,
 			Change: plans.Change{
 				Action: plans.Delete,
 				Before: before,
@@ -682,6 +695,7 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 		// if this is a root module, try to get a before value from the state for
 		// the diff
 		sensitiveBefore := false
+		ephemeralBefore := false
 		before := cty.NullVal(cty.DynamicPseudoType)
 
 		// is this output new to our state?
@@ -690,8 +704,8 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 		mod := state.Module(n.Addr.Module)
 		if n.Addr.Module.IsRoot() && mod != nil {
 			s := state.Lock()
-			rootOutputs := s.RootOutputValues
-			for name, o := range rootOutputs {
+
+			for name, o := range s.RootOutputValues {
 				if name == n.Addr.OutputValue.Name {
 					before = o.Value
 					sensitiveBefore = o.Sensitive
@@ -699,6 +713,15 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 					break
 				}
 			}
+			for name, o := range s.EphemeralRootOutputValues {
+				if name == n.Addr.OutputValue.Name {
+					before = o.Value
+					ephemeralBefore = o.Ephemeral
+					newOutput = false
+					break
+				}
+			}
+
 			state.Unlock()
 		}
 
@@ -706,6 +729,11 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 		// as sensitive. We can show the value again once sensitivity is
 		// removed from both the config and the state.
 		sensitiveChange := sensitiveBefore || n.Config.Sensitive
+
+		// We will not show the value if either the before or after value are
+		// marked as ephemeral. We can show the value again once ephemerality
+		// is removed from both the config and the state.
+		ephemeralChange := ephemeralBefore || n.Config.Ephemeral
 
 		// strip any marks here just to be sure we don't panic on the True comparison
 		unmarkedVal, _ := val.UnmarkDeep()
@@ -731,21 +759,32 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 			action = plans.NoOp
 		}
 
-		// Non-ephemeral output values get their changes recorded in the plan
-		if !n.Config.Ephemeral {
-			change := &plans.OutputChange{
-				Addr:      n.Addr,
-				Sensitive: sensitiveChange,
-				Change: plans.Change{
-					Action: action,
-					Before: before,
-					After:  val,
-				},
+		var pChange plans.Change
+		if ephemeralChange {
+			// ephemeral outputs get recorded without values
+			// to prevent accidental exposure or persistence
+			pChange = plans.Change{
+				Action: action,
+				Before: cty.NullVal(before.Type()),
+				After:  cty.NullVal(val.Type()),
 			}
-
-			log.Printf("[TRACE] setValue: Saving %s change for %s in changeset", change.Action, n.Addr)
-			changes.AppendOutputChange(change) // add the new planned change
+		} else {
+			pChange = plans.Change{
+				Action: action,
+				Before: before,
+				After:  val,
+			}
 		}
+
+		change := &plans.OutputChange{
+			Addr:      n.Addr,
+			Sensitive: sensitiveChange,
+			Ephemeral: ephemeralChange,
+			Change:    pChange,
+		}
+
+		log.Printf("[TRACE] setValue: Saving %s change for %s in changeset", change.Action, n.Addr)
+		changes.AppendOutputChange(change) // add the new planned change
 	}
 
 	if changes != nil && !n.Planning {

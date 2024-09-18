@@ -5,6 +5,7 @@
         "outputs": {
             "test": {
                 "sensitive": false,
+                "ephemeral": false,
                 "type": "string",
                 "value": "baz"
             }

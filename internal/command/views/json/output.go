@@ -67,6 +67,7 @@ func OutputsFromChanges(changes []*plans.OutputChangeSrc) Outputs {
 	for _, change := range changes {
 		outputs[change.Addr.OutputValue.Name] = Output{
 			Sensitive: change.Sensitive,
+			Ephemeral: change.Ephemeral,
 			Action:    changeAction(change.Action),
 		}
 	}
