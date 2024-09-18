@@ -341,7 +341,7 @@ func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*stacks.AppliedC
 					ComponentInstance: &stacks.AppliedChange_ComponentInstance{
 						ComponentAddr:         ac.ComponentAddr.String(),
 						ComponentInstanceAddr: ac.ComponentInstanceAddr.String(),
-						OutputValues: outputDescs,
+						OutputValues:          outputDescs,
 					},
 				},
 			},

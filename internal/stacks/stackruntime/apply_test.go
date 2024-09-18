@@ -1047,14 +1047,9 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 							},
 							Schema: stacks_testing_provider.TestingResourceSchema,
 						},
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.two"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.two"),
-							OutputValues:          map[addrs.OutputValue]cty.Value{},
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								addrs.InputVariable{Name: "value"}: cty.StringVal("foo"),
-							},
-							Dependencies: collections.NewSet(mustAbsComponent("component.one")),
 						},
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.two.testing_resource.resource"),
@@ -1123,14 +1118,9 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 After applying this plan, Terraform will no longer manage these objects. You will need to import them into Terraform to manage them again.`),
 					},
 					wantAppliedChanges: []stackstate.AppliedChange{
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.one"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.one"),
-							OutputValues:          map[addrs.OutputValue]cty.Value{}, // No output being read, we rely on the plan data
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								addrs.InputVariable{Name: "value"}: cty.StringVal("bar"),
-							},
-							Dependents: collections.NewSet(mustAbsComponent("component.two")),
 						},
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.one.testing_resource.resource"),
@@ -1139,14 +1129,9 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 								Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
 							},
 						},
-						&stackstate.AppliedChangeComponentInstance{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.two"),
 							ComponentInstanceAddr: mustAbsComponentInstance("component.two"),
-							OutputValues:          map[addrs.OutputValue]cty.Value{},
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								addrs.InputVariable{Name: "value"}: cty.StringVal("foo"),
-							},
-							Dependencies: collections.NewSet(mustAbsComponent("component.one")),
 						},
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.two.testing_resource.resource"),
