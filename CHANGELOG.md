@@ -1,4 +1,4 @@
-## 1.10.0 (Unreleased)
+## 1.10.0-alpha20240918 (September 18, 2024)
 
 NEW FEATURES:
  - **Ephemeral values**: Input variables and outputs can now be defined as ephemeral. Ephemeral values may only be used in certain contexts in Terraform configuration, and are not persisted to the plan or state files.
