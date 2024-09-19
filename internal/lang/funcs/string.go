@@ -134,32 +134,6 @@ var ReplaceFunc = function.New(&function.Spec{
 	},
 })
 
-// StrContainsFunc searches a given string for another given substring,
-// if found the function returns true, otherwise returns false.
-var StrContainsFunc = function.New(&function.Spec{
-	Params: []function.Parameter{
-		{
-			Name: "str",
-			Type: cty.String,
-		},
-		{
-			Name: "substr",
-			Type: cty.String,
-		},
-	},
-	Type: function.StaticReturnType(cty.Bool),
-	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		str := args[0].AsString()
-		substr := args[1].AsString()
-
-		if strings.Contains(str, substr) {
-			return cty.True, nil
-		}
-
-		return cty.False, nil
-	},
-})
-
 // TemplateStringFunc renders a template presented either as a literal string
 // or as a reference to a string from elsewhere.
 func MakeTemplateStringFunc(funcsCb func() (funcs map[string]function.Function, fsFuncs collections.Set[string], templateFuncs collections.Set[string])) function.Function {
@@ -437,8 +411,4 @@ func isValidTemplateStringExpr(expr hcl.Expression) bool {
 // and replaces all occurences with a given replacement string.
 func Replace(str, substr, replace cty.Value) (cty.Value, error) {
 	return ReplaceFunc.Call([]cty.Value{str, substr, replace})
-}
-
-func StrContains(str, substr cty.Value) (cty.Value, error) {
-	return StrContainsFunc.Call([]cty.Value{str, substr})
 }

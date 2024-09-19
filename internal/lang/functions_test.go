@@ -931,17 +931,6 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
-		"strcontains": {
-			{
-				`strcontains("hello", "llo")`,
-				cty.BoolVal(true),
-			},
-			{
-				`strcontains("hello", "a")`,
-				cty.BoolVal(false),
-			},
-		},
-
 		"strrev": {
 			{
 				`strrev("hello world")`,
