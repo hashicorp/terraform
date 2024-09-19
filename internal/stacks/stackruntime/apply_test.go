@@ -1171,8 +1171,40 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 			})).Build(),
 			cycles: []TestCycle{
 				{
-					planMode:           plans.NormalMode,
-					wantAppliedChanges: []stackstate.AppliedChange{},
+					planMode: plans.NormalMode,
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.create"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.create"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.create.testing_resource.resource"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+							NewStateSrc:                nil, // deleted
+						},
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.load"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.load"),
+							OutputValues: map[addrs.OutputValue]cty.Value{
+								addrs.OutputValue{Name: "credentials"}: cty.StringVal("authn").Mark(marks.Sensitive),
+							},
+							InputVariables: make(map[addrs.InputVariable]cty.Value),
+							Dependents:     collections.NewSet(mustAbsComponent("component.create")),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.load.data.testing_data_source.credentials"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":    "credentials",
+									"value": "authn",
+								}),
+								AttrSensitivePaths: make([]cty.Path, 0),
+								Status:             states.ObjectReady,
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingDataSourceSchema,
+						},
+					},
 				},
 			},
 		},

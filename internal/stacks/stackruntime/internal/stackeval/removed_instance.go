@@ -120,16 +120,12 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 				// doesn't exist so it's fine.
 				break
 			}
-			depComponent := depStack.Component(ctx, depAddr.Item)
-			if depComponent == nil {
-				// again, the thing we need to wait to be deleted
-				// doesn't exist so it's fine.
+			depComponent, depRemoved := depStack.ApplyableComponents(ctx, depAddr.Item)
+			if depComponent != nil && !depComponent.PlanIsComplete(ctx) {
+				deferred = true
 				break
 			}
-			if !depComponent.PlanIsComplete(ctx) {
-				// The other component couldn't be deleted in a single
-				// go, so to be safe we'll defer our deletions until
-				// the other one is complete.
+			if depRemoved != nil && !depRemoved.PlanIsComplete(ctx) {
 				deferred = true
 				break
 			}
