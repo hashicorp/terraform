@@ -24,7 +24,7 @@ type Trigger struct {
 
 	// IsSpeculativePlanExpr is an expression that should produce a boolean indicating if a plan should be speculative or not.
 	// It has a special context to access e.g. branch name / PR target / etc.
-	IsSpeculativePlan hcl.Expression
+	IsSpeculativePlanExpr string
 
 	DeclRange tfdiags.SourceRange
 }
@@ -53,8 +53,10 @@ func decodeTriggerBlock(file *hcl.File, block *hcl.Block) (*Trigger, tfdiags.Dia
 	if attr, ok := content.Attributes["check"]; ok {
 		ret.CheckAsStringExpr = string(attr.Expr.Range().SliceBytes(file.Bytes))
 	}
+	// TODO: This could be an expression later on, I'm hardcoding it as a boolean for now
+	// (Set to true by being present, false by being absent)
 	if attr, ok := content.Attributes["is_speculative"]; ok {
-		ret.IsSpeculativePlan = attr.Expr
+		ret.IsSpeculativePlanExpr = string(attr.Expr.Range().SliceBytes(file.Bytes))
 	}
 
 	return ret, diags

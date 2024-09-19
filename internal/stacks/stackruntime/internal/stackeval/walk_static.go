@@ -68,6 +68,10 @@ func walkStaticObjectsInStackConfig[Output any](
 		visit(ctx, walk, obj)
 	}
 
+	for _, obj := range stackConfig.Triggers(ctx) {
+		visit(ctx, walk, obj)
+	}
+
 	for _, obj := range stackConfig.StackCalls(ctx) {
 		visit(ctx, walk, obj)
 	}

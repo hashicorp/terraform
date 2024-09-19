@@ -102,6 +102,7 @@ message FindStackConfigurationComponents {
     map<string, InputVariable> input_variables = 3;
     map<string, OutputValue> output_values = 4;
     map<string, Removed> removed = 5;
+    map<string, Trigger> triggers = 6;
   }
   message EmbeddedStack {
     string source_addr = 1;
@@ -127,6 +128,10 @@ message FindStackConfigurationComponents {
   message OutputValue {
     bool sensitive = 1;
     bool ephemeral = 2;
+  }
+  message Trigger {
+    string check_expr = 1;  
+    string is_speculative_expr = 2;
   }
 }
 

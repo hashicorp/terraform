@@ -44,6 +44,7 @@ type StackConfig struct {
 	stackCalls     map[stackaddrs.StackCall]*StackCallConfig
 	components     map[stackaddrs.Component]*ComponentConfig
 	removed        map[stackaddrs.Component]*RemovedConfig
+	triggers       map[stackaddrs.Trigger]*TriggerConfig
 	providers      map[stackaddrs.ProviderConfig]*ProviderConfig
 }
 
@@ -65,6 +66,7 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.Confi
 		stackCalls:     make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
 		components:     make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
 		removed:        make(map[stackaddrs.Component]*RemovedConfig, len(config.Stack.Declarations.Removed)),
+		triggers:       make(map[stackaddrs.Trigger]*TriggerConfig, len(config.Stack.Declarations.Triggers)),
 		providers:      make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(config.Stack.Declarations.ProviderConfigs)),
 	}
 }
@@ -456,6 +458,40 @@ func (s *StackConfig) Removeds(ctx context.Context) map[stackaddrs.Component]*Re
 	for name := range s.config.Stack.Removed {
 		addr := stackaddrs.Component{Name: name}
 		ret[addr] = s.Removed(ctx, addr)
+	}
+	return ret
+}
+
+// Removed returns a [RemovedConfig] representing the component call
+// declared within this stack config that matches the given address, or nil if
+// there is no such declaration.
+func (s *StackConfig) Trigger(ctx context.Context, addr stackaddrs.Trigger) *TriggerConfig {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	ret, ok := s.triggers[addr]
+	if !ok {
+		cfg, ok := s.config.Stack.Triggers[addr.Name]
+		if !ok {
+			return nil
+		}
+		cfgAddr := stackaddrs.Config(s.Addr(), addr)
+		ret = newTriggerConfig(s.main, cfgAddr, cfg)
+		s.triggers[addr] = ret
+	}
+	return ret
+}
+
+// Removeds returns a map of the objects representing all of the
+// removed calls declared inside this stack configuration.
+func (s *StackConfig) Triggers(ctx context.Context) map[stackaddrs.Trigger]*TriggerConfig {
+	if len(s.config.Stack.Removed) == 0 {
+		return nil
+	}
+	ret := make(map[stackaddrs.Trigger]*TriggerConfig, len(s.config.Stack.Triggers))
+	for name := range s.config.Stack.Removed {
+		addr := stackaddrs.Trigger{Name: name}
+		ret[addr] = s.Trigger(ctx, addr)
 	}
 	return ret
 }

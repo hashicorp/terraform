@@ -178,6 +178,7 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 		InputVariables: make(map[string]*stacks.FindStackConfigurationComponents_InputVariable),
 		OutputValues:   make(map[string]*stacks.FindStackConfigurationComponents_OutputValue),
 		Removed:        make(map[string]*stacks.FindStackConfigurationComponents_Removed),
+		Triggers:       make(map[string]*stacks.FindStackConfigurationComponents_Trigger),
 	}
 
 	for name, cc := range cfgNode.Stack.Components {
@@ -240,6 +241,14 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 			cProto.Instances = stacks.FindStackConfigurationComponents_SINGLE
 		}
 		ret.Removed[name] = cProto
+	}
+
+	for name, tc := range cfgNode.Stack.Triggers {
+		tProto := &stacks.FindStackConfigurationComponents_Trigger{
+			CheckExpr:         tc.CheckAsStringExpr,
+			IsSpeculativeExpr: tc.IsSpeculativePlanExpr,
+		}
+		ret.Triggers[name] = tProto
 	}
 
 	return ret
