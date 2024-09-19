@@ -39,11 +39,22 @@ type PlanProducer interface {
 	ResourceSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, resourceType string) (*configschema.Block, error)
 }
 
-func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, action plans.Action, producer PlanProducer) ([]PlannedChange, tfdiags.Diagnostics) {
+func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, refreshPlan *plans.Plan, action plans.Action, producer PlanProducer) ([]PlannedChange, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var changes []PlannedChange
 
-	outputs := OutputsFromPlan(config, plan)
+	var outputs map[string]cty.Value
+	if refreshPlan != nil {
+		// we're going to be a little cheeky and publish the outputs as being
+		// the results from the refresh part of the plan. This will then be
+		// consumed by the apply part of the plan to ensure that the outputs
+		// are correctly updated. The refresh plan should only be present if the
+		// main plan was a destroy plan in which case the outputs that the
+		// apply needs do actually come from the refresh.
+		outputs = OutputsFromPlan(config, refreshPlan)
+	} else {
+		outputs = OutputsFromPlan(config, plan)
+	}
 
 	// We must always at least announce that the component instance exists,
 	// and that must come before any resource instance changes referring to it.
@@ -212,6 +223,15 @@ func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, act
 		}
 	}
 
+	prevRunState := plan.PrevRunState
+	if refreshPlan != nil {
+		// If we executed a refresh plan as part of this, then the true
+		// previous run state is the one from the refresh plan, because
+		// the later plan used the output of the refresh plan as the
+		// previous state.
+		prevRunState = refreshPlan.PrevRunState
+	}
+
 	// We also have one more unusual case to deal with: if an object
 	// existed at the end of the previous run but was found to have
 	// been deleted when we refreshed during planning then it will
@@ -219,7 +239,7 @@ func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, act
 	// we still need to include a stubby object for it in the plan
 	// so we can remember to discard it from the state during the
 	// apply phase.
-	if prevRunState := plan.PrevRunState; prevRunState != nil {
+	if prevRunState != nil {
 		for _, addr := range prevRunState.AllResourceInstanceObjectAddrs() {
 			if seenObjects.Has(addr) {
 				// We're only interested in objects that didn't appear
