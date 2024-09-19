@@ -305,14 +305,18 @@ func (n *nodeExpandPlannableResource) validateExpandedImportTargets(expandedImpo
 	return diags
 }
 
-func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, moduleInstances []addrs.ModuleInstance, imports addrs.Map[addrs.AbsResourceInstance, cty.Value]) (*Graph, tfdiags.Diagnostics) {
-	var g Graph
-	var diags tfdiags.Diagnostics
-
-	// Lock the state while we inspect it
-	state := ctx.State().Lock()
+func (n *nodeExpandPlannableResource) findOrphans(ctx EvalContext, moduleInstances []addrs.ModuleInstance) []*states.Resource {
+	if n.Addr.Resource.Mode == addrs.EphemeralResourceMode {
+		// ephemeral resources don't exist in state
+		return nil
+	}
 
 	var orphans []*states.Resource
+
+	// Lock the state while we inspect it
+	sMgr := ctx.State()
+	state := sMgr.Lock()
+
 	for _, res := range state.Resources(n.Addr) {
 		found := false
 		for _, m := range moduleInstances {
@@ -327,11 +331,16 @@ func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, moduleInsta
 			orphans = append(orphans, res)
 		}
 	}
+	sMgr.Unlock()
 
-	// We'll no longer use the state directly here, and the other functions
-	// we'll call below may use it so we'll release the lock.
-	state = nil
-	ctx.State().Unlock()
+	return orphans
+}
+
+func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, moduleInstances []addrs.ModuleInstance, imports addrs.Map[addrs.AbsResourceInstance, cty.Value]) (*Graph, tfdiags.Diagnostics) {
+	var g Graph
+	var diags tfdiags.Diagnostics
+
+	orphans := n.findOrphans(ctx, moduleInstances)
 
 	for _, res := range orphans {
 		for key := range res.Instances {
@@ -402,7 +411,7 @@ func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalCont
 	// writeResourceState is responsible for informing the expander of what
 	// repetition mode this resource has, which allows expander.ExpandResource
 	// to work below.
-	moreDiags := n.writeResourceState(moduleCtx, resAddr)
+	moreDiags := n.recordResourceData(moduleCtx, resAddr)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return nil, diags

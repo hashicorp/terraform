@@ -440,6 +440,9 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 
 		resp := provider.ValidateDataResourceConfig(req)
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
+	case addrs.EphemeralResourceMode:
+		// TODO!!
+		panic("not implemented")
 	}
 
 	return diags
