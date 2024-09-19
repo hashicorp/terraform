@@ -146,6 +146,25 @@ func (p *provider6) ValidateDataResourceConfig(_ context.Context, req *tfplugin6
 	return resp, nil
 }
 
+func (p *provider6) ValidateEphemeralConfig(_ context.Context, req *tfplugin6.ValidateEphemeralConfig_Request) (*tfplugin6.ValidateEphemeralConfig_Response, error) {
+	resp := &tfplugin6.ValidateEphemeralConfig_Response{}
+	ty := p.schema.DataSources[req.TypeName].Block.ImpliedType()
+
+	configVal, err := decodeDynamicValue6(req.Config, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	validateResp := p.provider.ValidateEphemeralConfig(providers.ValidateEphemeralConfigRequest{
+		TypeName: req.TypeName,
+		Config:   configVal,
+	})
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, validateResp.Diagnostics)
+	return resp, nil
+}
+
 func (p *provider6) UpgradeResourceState(_ context.Context, req *tfplugin6.UpgradeResourceState_Request) (*tfplugin6.UpgradeResourceState_Response, error) {
 	resp := &tfplugin6.UpgradeResourceState_Response{}
 	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
@@ -428,6 +447,18 @@ func (p *provider6) ReadDataSource(_ context.Context, req *tfplugin6.ReadDataSou
 	}
 
 	return resp, nil
+}
+
+func (p *provider6) OpenEphemeral(_ context.Context, req *tfplugin6.OpenEphemeral_Request) (*tfplugin6.OpenEphemeral_Response, error) {
+	panic("unimplemented")
+}
+
+func (p *provider6) RenewEphemeral(_ context.Context, req *tfplugin6.RenewEphemeral_Request) (*tfplugin6.RenewEphemeral_Response, error) {
+	panic("unimplemented")
+}
+
+func (p *provider6) CloseEphemeral(_ context.Context, req *tfplugin6.CloseEphemeral_Request) (*tfplugin6.CloseEphemeral_Response, error) {
+	panic("unimplemented")
 }
 
 func (p *provider6) GetFunctions(context.Context, *tfplugin6.GetFunctions_Request) (*tfplugin6.GetFunctions_Response, error) {

@@ -39,8 +39,9 @@ func (p *provider) GetMetadata(_ context.Context, req *tfplugin5.GetMetadata_Req
 
 func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema_Request) (*tfplugin5.GetProviderSchema_Response, error) {
 	resp := &tfplugin5.GetProviderSchema_Response{
-		ResourceSchemas:   make(map[string]*tfplugin5.Schema),
-		DataSourceSchemas: make(map[string]*tfplugin5.Schema),
+		ResourceSchemas:          make(map[string]*tfplugin5.Schema),
+		DataSourceSchemas:        make(map[string]*tfplugin5.Schema),
+		EphemeralResourceSchemas: make(map[string]*tfplugin5.Schema),
 	}
 
 	resp.Provider = &tfplugin5.Schema{
@@ -137,6 +138,25 @@ func (p *provider) ValidateDataSourceConfig(_ context.Context, req *tfplugin5.Va
 	}
 
 	validateResp := p.provider.ValidateDataResourceConfig(providers.ValidateDataResourceConfigRequest{
+		TypeName: req.TypeName,
+		Config:   configVal,
+	})
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, validateResp.Diagnostics)
+	return resp, nil
+}
+
+func (p *provider) ValidateEphemeralConfig(_ context.Context, req *tfplugin5.ValidateEphemeralConfig_Request) (*tfplugin5.ValidateEphemeralConfig_Response, error) {
+	resp := &tfplugin5.ValidateEphemeralConfig_Response{}
+	ty := p.schema.DataSources[req.TypeName].Block.ImpliedType()
+
+	configVal, err := decodeDynamicValue(req.Config, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	validateResp := p.provider.ValidateEphemeralConfig(providers.ValidateEphemeralConfigRequest{
 		TypeName: req.TypeName,
 		Config:   configVal,
 	})
@@ -429,9 +449,20 @@ func (p *provider) ReadDataSource(_ context.Context, req *tfplugin5.ReadDataSour
 	return resp, nil
 }
 
+func (p *provider) OpenEphemeral(_ context.Context, req *tfplugin5.OpenEphemeral_Request) (*tfplugin5.OpenEphemeral_Response, error) {
+	panic("unimplemented")
+}
+
+func (p *provider) RenewEphemeral(_ context.Context, req *tfplugin5.RenewEphemeral_Request) (*tfplugin5.RenewEphemeral_Response, error) {
+	panic("unimplemented")
+}
+
+func (p *provider) CloseEphemeral(_ context.Context, req *tfplugin5.CloseEphemeral_Request) (*tfplugin5.CloseEphemeral_Response, error) {
+	panic("unimplemented")
+}
+
 func (p *provider) GetFunctions(context.Context, *tfplugin5.GetFunctions_Request) (*tfplugin5.GetFunctions_Response, error) {
 	panic("unimplemented")
-	return nil, nil
 }
 
 func (p *provider) CallFunction(_ context.Context, req *tfplugin5.CallFunction_Request) (*tfplugin5.CallFunction_Response, error) {

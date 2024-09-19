@@ -72,6 +72,20 @@ func (o *offlineProvider) ValidateDataResourceConfig(request providers.ValidateD
 	}
 }
 
+// ValidateEphemeralConfig implements providers.Interface.
+func (p *offlineProvider) ValidateEphemeralConfig(providers.ValidateEphemeralConfigRequest) providers.ValidateEphemeralConfigResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ValidateEphemeralConfig on an unconfigured provider",
+		"Cannot validate this resource config because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ValidateEphemeralConfigResponse{
+		Diagnostics: diags,
+	}
+}
+
 func (o *offlineProvider) UpgradeResourceState(request providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(

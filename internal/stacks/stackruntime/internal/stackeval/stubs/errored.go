@@ -201,6 +201,14 @@ func (p *erroredProvider) ValidateProviderConfig(req providers.ValidateProviderC
 	}
 }
 
+// ValidateEphemeralConfig implements providers.Interface.
+func (p *erroredProvider) ValidateEphemeralConfig(providers.ValidateEphemeralConfigRequest) providers.ValidateEphemeralConfigResponse {
+
+	return providers.ValidateEphemeralConfigResponse{
+		Diagnostics: nil,
+	}
+}
+
 // ValidateResourceConfig implements providers.Interface.
 func (p *erroredProvider) ValidateResourceConfig(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 	// We'll just optimistically assume the configuration is valid, so that

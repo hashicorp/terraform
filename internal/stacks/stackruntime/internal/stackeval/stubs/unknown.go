@@ -57,6 +57,13 @@ func (u *unknownProvider) ValidateDataResourceConfig(request providers.ValidateD
 	return u.unconfiguredClient.ValidateDataResourceConfig(request)
 }
 
+// ValidateEphemeralConfig implements providers.Interface.
+func (p *unknownProvider) ValidateEphemeralConfig(providers.ValidateEphemeralConfigRequest) providers.ValidateEphemeralConfigResponse {
+	return providers.ValidateEphemeralConfigResponse{
+		Diagnostics: nil,
+	}
+}
+
 func (u *unknownProvider) UpgradeResourceState(request providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
 	// This is offline functionality, so we can hand it off to the unconfigured
 	// client.
