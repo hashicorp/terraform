@@ -48,6 +48,10 @@ type Declarations struct {
 	// Removed are the list of components that have been removed from the
 	// configuration.
 	Removed map[string]*Removed
+
+	// Triggers are the list of triggers that have been declared in the
+	// configuration.
+	Triggers map[string]*Trigger
 }
 
 func makeDeclarations() Declarations {
@@ -59,6 +63,7 @@ func makeDeclarations() Declarations {
 		OutputValues:    make(map[string]*OutputValue),
 		ProviderConfigs: make(map[addrs.LocalProviderConfig]*ProviderConfig),
 		Removed:         make(map[string]*Removed),
+		Triggers:        make(map[string]*Trigger),
 	}
 }
 
@@ -299,6 +304,15 @@ func (d *Declarations) addRemoved(decl *Removed) tfdiags.Diagnostics {
 	return diags
 }
 
+func (d *Declarations) addTrigger(decl *Trigger) tfdiags.Diagnostics {
+	if decl == nil {
+		return nil
+	}
+
+	d.Triggers[decl.Name] = decl
+	return nil
+}
+
 func (d *Declarations) merge(other *Declarations) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	for _, decl := range other.EmbeddedStacks {
@@ -337,6 +351,12 @@ func (d *Declarations) merge(other *Declarations) tfdiags.Diagnostics {
 	for _, decl := range other.Removed {
 		diags = diags.Append(
 			d.addRemoved(decl),
+		)
+	}
+
+	for _, decl := range other.Triggers {
+		diags = diags.Append(
+			d.addTrigger(decl),
 		)
 	}
 

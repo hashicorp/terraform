@@ -42,6 +42,7 @@ var (
 		"variable-output-roundtrip":        {},
 		"variable-output-roundtrip-nested": {},
 		"aliased-provider":                 {},
+		"trigger":                          {},
 		filepath.Join("with-single-input", "input-from-component"): {},
 		filepath.Join("with-single-input", "input-from-component-list"): {
 			planInputVars: map[string]cty.Value{

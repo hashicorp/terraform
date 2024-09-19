@@ -29,7 +29,7 @@ type File struct {
 	Declarations
 }
 
-// DecodeFileBody takes a body that is assumed to represent the root of a
+// DecodeFile takes a body that is assumed to represent the root of a
 // .tfstack.hcl or .tfstack.json file and decodes the declarations inside.
 //
 // If you have a []byte containing source code then consider using [ParseFile]
@@ -40,13 +40,14 @@ type File struct {
 // configuration tree. Some fields of the objects representing declarations in
 // the configuration will be unpopulated when loading through this entry point.
 // Prefer [LoadConfigDir] in most cases.
-func DecodeFileBody(body hcl.Body, fileAddr sourceaddrs.FinalSource) (*File, tfdiags.Diagnostics) {
+func DecodeFile(file *hcl.File, fileAddr sourceaddrs.FinalSource) (*File, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret := &File{
 		SourceAddr:   fileAddr,
 		Declarations: makeDeclarations(),
 	}
 
+	body := file.Body
 	content, hclDiags := body.Content(rootConfigSchema)
 	diags = diags.Append(hclDiags)
 	if content == nil {
@@ -144,6 +145,13 @@ func DecodeFileBody(body hcl.Body, fileAddr sourceaddrs.FinalSource) (*File, tfd
 				ret.Declarations.addRemoved(decl),
 			)
 
+		case "trigger":
+			decl, moreDiags := decodeTriggerBlock(file, block)
+			diags = diags.Append(moreDiags)
+			diags = diags.Append(
+				ret.Declarations.addTrigger(decl),
+			)
+
 		default:
 			// Should not get here because the cases above should be exhaustive
 			// for everything declared in rootConfigSchema.
@@ -156,7 +164,7 @@ func DecodeFileBody(body hcl.Body, fileAddr sourceaddrs.FinalSource) (*File, tfd
 
 // ParseFileSource parses the given source code as the content of either a
 // .tfstack.hcl or .tfstack.json file, and then delegates the result to
-// [DecodeFileBody] for analysis, returning that final result.
+// [DecodeFile] for analysis, returning that final result.
 //
 // ParseFileSource chooses between native vs. JSON syntax based on the suffix
 // of the filename in the given source address, which must be either
@@ -166,7 +174,7 @@ func ParseFileSource(src []byte, fileAddr sourceaddrs.FinalSource) (*File, tfdia
 
 	filename := sourceaddrs.FinalSourceFilename(fileAddr)
 
-	var body hcl.Body
+	var file *hcl.File
 	switch validFilenameSuffix(filename) {
 	case ".tfstack.hcl":
 		hclFile, hclDiags := hclsyntax.ParseConfig(src, fileAddr.String(), hcl.InitialPos)
@@ -174,14 +182,14 @@ func ParseFileSource(src []byte, fileAddr sourceaddrs.FinalSource) (*File, tfdia
 		if diags.HasErrors() {
 			return nil, diags
 		}
-		body = hclFile.Body
+		file = hclFile
 	case ".tfstack.json":
 		hclFile, hclDiags := hcljson.Parse(src, fileAddr.String())
 		diags = diags.Append(hclDiags)
 		if diags.HasErrors() {
 			return nil, diags
 		}
-		body = hclFile.Body
+		file = hclFile
 	default:
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -194,7 +202,7 @@ func ParseFileSource(src []byte, fileAddr sourceaddrs.FinalSource) (*File, tfdia
 		return nil, diags
 	}
 
-	ret, moreDiags := DecodeFileBody(body, fileAddr)
+	ret, moreDiags := DecodeFile(file, fileAddr)
 	diags = diags.Append(moreDiags)
 	return ret, diags
 }
@@ -229,5 +237,6 @@ var rootConfigSchema = &hcl.BodySchema{
 		{Type: "provider", LabelNames: []string{"type", "name"}},
 		{Type: "required_providers"},
 		{Type: "removed"},
+		{Type: "trigger", LabelNames: []string{"name"}},
 	},
 }

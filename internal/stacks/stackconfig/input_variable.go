@@ -37,7 +37,7 @@ type InputVariable struct {
 // For configurations loaded through the main entry point [LoadConfigDir],
 // Constraint is populated with the result of decoding Expression as a type
 // constraint only if the expression is a valid type constraint expression.
-// When loading through shallower entry points such as [DecodeFileBody],
+// When loading through shallower entry points such as [DecodeFile],
 // Constraint is not populated.
 //
 // Defaults is populated only if Constraint is, and if not nil represents any
