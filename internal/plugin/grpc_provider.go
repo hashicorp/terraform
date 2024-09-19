@@ -767,6 +767,11 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 	return resp
 }
 
+func (p *GRPCProvider) ValidateEphemeralConfig(req providers.ValidateEphemeralConfigRequest) providers.ValidateEphemeralConfigResponse {
+	logger.Trace("GRPCProvider: ValidateEphemeralConfig")
+	panic("ephemeral resources not supported")
+}
+
 func (p *GRPCProvider) OpenEphemeral(r providers.OpenEphemeralRequest) (resp providers.OpenEphemeralResponse) {
 	logger.Trace("GRPCProvider: OpenEphemeral")
 	panic("ephemeral resources not supported")

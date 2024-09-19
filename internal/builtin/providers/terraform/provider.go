@@ -33,7 +33,7 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		ResourceTypes: map[string]providers.Schema{
 			"terraform_data": dataStoreResourceSchema(),
 		},
-		EphemeralResourceTypes: map[string]providers.Schema{},
+		EphemeralTypes: map[string]providers.Schema{},
 		Functions: map[string]providers.FunctionDecl{
 			"encode_tfvars": {
 				Summary:     "Produce a string representation of an object using the same syntax as for `.tfvars` files",
@@ -193,6 +193,12 @@ func (p *Provider) MoveResourceState(req providers.MoveResourceStateRequest) pro
 // ValidateResourceConfig is used to to validate the resource configuration values.
 func (p *Provider) ValidateResourceConfig(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 	return validateDataStoreResourceConfig(req)
+}
+
+func (p *Provider) ValidateEphemeralConfig(req providers.ValidateEphemeralConfigRequest) providers.ValidateEphemeralConfigResponse {
+	var resp providers.ValidateEphemeralConfigResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
+	return resp
 }
 
 // OpenEphemeral implements providers.Interface.

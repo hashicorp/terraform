@@ -171,6 +171,12 @@ func (s simple) ReadDataSource(req providers.ReadDataSourceRequest) (resp provid
 	return resp
 }
 
+func (p simple) ValidateEphemeralConfig(req providers.ValidateEphemeralConfigRequest) providers.ValidateEphemeralConfigResponse {
+	// Our schema doesn't include any ephemeral resource types, so it should be
+	// impossible to get in here.
+	panic("ValidateEphemeralConfig on provider that didn't declare any ephemeral resource types")
+}
+
 func (s simple) OpenEphemeral(providers.OpenEphemeralRequest) providers.OpenEphemeralResponse {
 	// Our schema doesn't include any ephemeral resource types, so it should be
 	// impossible to get in here.
