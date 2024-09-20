@@ -197,22 +197,11 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 
 							// If we're being destroyed, then we're waiting for
 							// everything that depended on us anyway.
-							waitForRemoveds = collections.NewSet[stackaddrs.AbsComponent]()
+							waitForRemoveds = dependencyAddrs
 						} else {
 							// For all other actions, we must wait for our
 							// dependencies to finish applying their changes.
 							waitForComponents = dependencyAddrs
-
-							// If we're not being destroyed we might have some
-							// depdendents that are being destroyed, and we need
-							// to wait for them to finish before we can start.
-							waitForRemoveds = collections.NewSet[stackaddrs.AbsComponent]()
-							for _, dependent := range dependentAddrs.Elems() {
-								dependentStack := main.Stack(ctx, dependent.Stack, ApplyPhase)
-								if dependentStack.Removed(ctx, dependent.Item) != nil {
-									waitForRemoveds.Add(dependent)
-								}
-							}
 						}
 						if depCount := waitForComponents.Len(); depCount != 0 {
 							log.Printf("[TRACE] stackeval: %s waiting for its predecessors (%d) to complete", addr, depCount)

@@ -940,6 +940,65 @@ func TestApplyDestroy(t *testing.T) {
 				},
 			},
 		},
+		"destroy-with-provider-req-and-removed": {
+			path: path.Join("auth-provider-w-data", "removed"),
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.load")).
+					AddDependent(mustAbsComponent("component.create")).
+					AddOutputValue("credentials", cty.StringVal("wrong"))). // must reload the credentials
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.create")).
+					AddDependency(mustAbsComponent("component.load"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.create.testing_resource.resource")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "resource",
+							"value": nil,
+						}),
+						Status: states.ObjectReady,
+					}).
+					SetProviderAddr(mustDefaultRootProvider("testing"))).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().AddResource("credentials", cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("credentials"),
+				// we have the wrong value in state, so this correct value must
+				// be loaded for this test to work.
+				"value": cty.StringVal("authn"),
+			})).Build(),
+			mutators: []func(store *stacks_testing_provider.ResourceStore, testContext TestContext) TestContext{
+				func(store *stacks_testing_provider.ResourceStore, testContext TestContext) TestContext {
+					testContext.providers[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+						provider := stacks_testing_provider.NewProviderWithData(t, store)
+						provider.Authentication = "authn" // So we must reload the data source in order to authenticate.
+						return provider, nil
+					}
+					return testContext
+				},
+			},
+			cycles: []TestCycle{
+				{
+					planMode: plans.DestroyMode,
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.create"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.create"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.create.testing_resource.resource"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+						},
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.load"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.load"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.load.data.testing_data_source.credentials"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+						},
+					},
+				},
+			},
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
