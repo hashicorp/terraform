@@ -22,7 +22,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendbase"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -55,20 +54,9 @@ func New() backend.Backend {
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"secret_suffix": {
-						Type:        schema.TypeString,
+						Type:        cty.String,
 						Required:    true,
 						Description: "Suffix used when creating the secret. The secret will be named in the format: `tfstate-{workspace}-{secret_suffix}`. Note that the backend may append its own numeric index to the secret name when chunking large state files into multiple secrets. In this case, there will be multiple secrets named in the format: `tfstate-{workspace}-{secret_suffix}-{index}`.",
-						ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-							value := v.(string)
-							// Check if the last segment is a number
-							if hasNumericSuffix(value, "-") {
-								// If the last segment is a number, it's considered invalid.
-								// The backend automatically appends its own numeric suffix when chunking large state files into multiple secrets.
-								// Allowing a user-defined numeric suffix could cause conflicts with this mechanism.
-								return nil, []error{fmt.Errorf("secret_suffix must not end with '-<number>', got %q", value)}
-							}
-							return nil, nil
-						},
 					},
 					"labels": {
 						Type:        cty.Map(cty.String),
@@ -336,7 +324,17 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 
 	ns := data.String("namespace")
 	b.namespace = ns
+
 	b.nameSuffix = data.String("secret_suffix")
+	if hasNumericSuffix(b.nameSuffix, "-") {
+		// If the last segment is a number, it's considered invalid.
+		// The backend automatically appends its own numeric suffix when chunking large state files into multiple secrets.
+		// Allowing a user-defined numeric suffix could cause conflicts with this mechanism.
+		return backendbase.ErrorAsDiagnostics(
+			fmt.Errorf("secret_suffix must not end with '-<number>', got %q", b.nameSuffix),
+		)
+	}
+
 	b.config = cfg
 
 	return nil
