@@ -68,7 +68,7 @@ func New() backend.Backend {
 									// If the last segment is a number, it's considered invalid.
 									// The backend automatically appends its own numeric suffix when chunking large state files into multiple secrets.
 									// Allowing a user-defined numeric suffix could cause conflicts with this mechanism.
-									return nil, []error{fmt.Errorf("secret_suffix must not end with '-<number>', got '%s'", value)}
+									return nil, []error{fmt.Errorf("secret_suffix must not end with '-<number>', got %q", value)}
 								}
 							}
 							return nil, nil
