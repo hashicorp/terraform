@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -49,6 +50,10 @@ type Evaluator struct {
 	// NamedValues is where we keep the values of already-evaluated input
 	// variables, local values, and output values.
 	NamedValues *namedvals.State
+
+	// EphemeralResources tracks the currently-open instances of any ephemeral
+	// resources.
+	EphemeralResources *ephemeral.Resources
 
 	// Deferrals tracks resources and modules that have had either their
 	// expansion or their specific planned actions deferred to a future
