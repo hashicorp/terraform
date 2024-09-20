@@ -31,9 +31,9 @@ type Interface interface {
 	// configuration values.
 	ValidateDataResourceConfig(ValidateDataResourceConfigRequest) ValidateDataResourceConfigResponse
 
-	// ValidateEphemeralConfig allows the provider to validate the
+	// ValidateEphemeralResourceConfig allows the provider to validate the
 	// ephemeral resource configuration values.
-	ValidateEphemeralConfig(ValidateEphemeralConfigRequest) ValidateEphemeralConfigResponse
+	ValidateEphemeralResourceConfig(ValidateEphemeralResourceConfigRequest) ValidateEphemeralResourceConfigResponse
 
 	// UpgradeResourceState is called when the state loader encounters an
 	// instance state whose schema version is less than the one reported by the
@@ -78,14 +78,14 @@ type Interface interface {
 	// ReadDataSource returns the data source's current state.
 	ReadDataSource(ReadDataSourceRequest) ReadDataSourceResponse
 
-	// OpenEphemeral opens an ephemeral resource instance.
-	OpenEphemeral(OpenEphemeralRequest) OpenEphemeralResponse
-	// RenewEphemeral extends the validity of a previously-opened ephemeral
+	// OpenEphemeralResource opens an ephemeral resource instance.
+	OpenEphemeralResource(OpenEphemeralResourceRequest) OpenEphemeralResourceResponse
+	// RenewEphemeralResource extends the validity of a previously-opened ephemeral
 	// resource instance.
-	RenewEphemeral(RenewEphemeralRequest) RenewEphemeralResponse
-	// CloseEphemeral closes an ephemeral resource instance, with the intent
+	RenewEphemeralResource(RenewEphemeralResourceRequest) RenewEphemeralResourceResponse
+	// CloseEphemeralResource closes an ephemeral resource instance, with the intent
 	// of rendering it invalid as soon as possible.
-	CloseEphemeral(CloseEphemeralRequest) CloseEphemeralResponse
+	CloseEphemeralResource(CloseEphemeralResourceRequest) CloseEphemeralResourceResponse
 
 	// CallFunction calls a provider-contributed function.
 	CallFunction(CallFunctionRequest) CallFunctionResponse
@@ -208,7 +208,7 @@ type ValidateDataResourceConfigResponse struct {
 	Diagnostics tfdiags.Diagnostics
 }
 
-type ValidateEphemeralConfigRequest struct {
+type ValidateEphemeralResourceConfigRequest struct {
 	// TypeName is the name of the data source type to validate.
 	TypeName string
 
@@ -217,7 +217,7 @@ type ValidateEphemeralConfigRequest struct {
 	Config cty.Value
 }
 
-type ValidateEphemeralConfigResponse struct {
+type ValidateEphemeralResourceConfigResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }

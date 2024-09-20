@@ -767,23 +767,23 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 	return resp
 }
 
-func (p *GRPCProvider) ValidateEphemeralConfig(req providers.ValidateEphemeralConfigRequest) providers.ValidateEphemeralConfigResponse {
-	logger.Trace("GRPCProvider: ValidateEphemeralConfig")
+func (p *GRPCProvider) ValidateEphemeralResourceConfig(req providers.ValidateEphemeralResourceConfigRequest) providers.ValidateEphemeralResourceConfigResponse {
+	logger.Trace("GRPCProvider: ValidateEphemeralResourceConfig")
 	panic("ephemeral resources not supported")
 }
 
-func (p *GRPCProvider) OpenEphemeral(r providers.OpenEphemeralRequest) (resp providers.OpenEphemeralResponse) {
-	logger.Trace("GRPCProvider: OpenEphemeral")
+func (p *GRPCProvider) OpenEphemeralResource(r providers.OpenEphemeralResourceRequest) (resp providers.OpenEphemeralResourceResponse) {
+	logger.Trace("GRPCProvider: OpenEphemeralResource")
 	panic("ephemeral resources not supported")
 }
 
-func (p *GRPCProvider) RenewEphemeral(r providers.RenewEphemeralRequest) (resp providers.RenewEphemeralResponse) {
-	logger.Trace("GRPCProvider: RenewEphemeral")
+func (p *GRPCProvider) RenewEphemeralResource(r providers.RenewEphemeralResourceRequest) (resp providers.RenewEphemeralResourceResponse) {
+	logger.Trace("GRPCProvider: RenewEphemeralResource")
 	panic("ephemeral resources not supported")
 }
 
-func (p *GRPCProvider) CloseEphemeral(r providers.CloseEphemeralRequest) (resp providers.CloseEphemeralResponse) {
-	logger.Trace("GRPCProvider: CloseEphemeral")
+func (p *GRPCProvider) CloseEphemeralResource(r providers.CloseEphemeralResourceRequest) (resp providers.CloseEphemeralResourceResponse) {
+	logger.Trace("GRPCProvider: CloseEphemeralResource")
 	panic("ephemeral resources not supported")
 }
 

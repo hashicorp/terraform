@@ -57,9 +57,9 @@ func (u *unknownProvider) ValidateDataResourceConfig(request providers.ValidateD
 	return u.unconfiguredClient.ValidateDataResourceConfig(request)
 }
 
-// ValidateEphemeralConfig implements providers.Interface.
-func (p *unknownProvider) ValidateEphemeralConfig(providers.ValidateEphemeralConfigRequest) providers.ValidateEphemeralConfigResponse {
-	return providers.ValidateEphemeralConfigResponse{
+// ValidateEphemeralResourceConfig implements providers.Interface.
+func (p *unknownProvider) ValidateEphemeralResourceConfig(providers.ValidateEphemeralResourceConfigRequest) providers.ValidateEphemeralResourceConfigResponse {
+	return providers.ValidateEphemeralResourceConfigResponse{
 		Diagnostics: nil,
 	}
 }
@@ -240,8 +240,8 @@ func (u *unknownProvider) ReadDataSource(request providers.ReadDataSourceRequest
 	}
 }
 
-// OpenEphemeral implements providers.Interface.
-func (u *unknownProvider) OpenEphemeral(providers.OpenEphemeralRequest) providers.OpenEphemeralResponse {
+// OpenEphemeralResource implements providers.Interface.
+func (u *unknownProvider) OpenEphemeralResource(providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
 	// TODO: Once there's a definition for how deferred actions ought to work
 	// for ephemeral resource instances, make this report that this one needs
 	// to be deferred if the client announced that it supports deferral.
@@ -255,23 +255,23 @@ func (u *unknownProvider) OpenEphemeral(providers.OpenEphemeralRequest) provider
 		"Cannot open this resource instance because its associated provider configuration is unknown.",
 		nil, // nil attribute path means the overall configuration block
 	))
-	return providers.OpenEphemeralResponse{
+	return providers.OpenEphemeralResourceResponse{
 		Diagnostics: diags,
 	}
 }
 
-// RenewEphemeral implements providers.Interface.
-func (u *unknownProvider) RenewEphemeral(providers.RenewEphemeralRequest) providers.RenewEphemeralResponse {
-	// We don't have anything to do here because OpenEphemeral didn't really
+// RenewEphemeralResource implements providers.Interface.
+func (u *unknownProvider) RenewEphemeralResource(providers.RenewEphemeralResourceRequest) providers.RenewEphemeralResourceResponse {
+	// We don't have anything to do here because OpenEphemeralResource didn't really
 	// actually "open" anything.
-	return providers.RenewEphemeralResponse{}
+	return providers.RenewEphemeralResourceResponse{}
 }
 
-// CloseEphemeral implements providers.Interface.
-func (u *unknownProvider) CloseEphemeral(providers.CloseEphemeralRequest) providers.CloseEphemeralResponse {
-	// We don't have anything to do here because OpenEphemeral didn't really
+// CloseEphemeralResource implements providers.Interface.
+func (u *unknownProvider) CloseEphemeralResource(providers.CloseEphemeralResourceRequest) providers.CloseEphemeralResourceResponse {
+	// We don't have anything to do here because OpenEphemeralResource didn't really
 	// actually "open" anything.
-	return providers.CloseEphemeralResponse{}
+	return providers.CloseEphemeralResourceResponse{}
 }
 
 func (u *unknownProvider) CallFunction(request providers.CallFunctionRequest) providers.CallFunctionResponse {

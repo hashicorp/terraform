@@ -146,8 +146,8 @@ func (p *provider) ValidateDataSourceConfig(_ context.Context, req *tfplugin5.Va
 	return resp, nil
 }
 
-func (p *provider) ValidateEphemeralConfig(_ context.Context, req *tfplugin5.ValidateEphemeralConfig_Request) (*tfplugin5.ValidateEphemeralConfig_Response, error) {
-	resp := &tfplugin5.ValidateEphemeralConfig_Response{}
+func (p *provider) ValidateEphemeralResourceConfig(_ context.Context, req *tfplugin5.ValidateEphemeralResourceConfig_Request) (*tfplugin5.ValidateEphemeralResourceConfig_Response, error) {
+	resp := &tfplugin5.ValidateEphemeralResourceConfig_Response{}
 	ty := p.schema.DataSources[req.TypeName].Block.ImpliedType()
 
 	configVal, err := decodeDynamicValue(req.Config, ty)
@@ -156,7 +156,7 @@ func (p *provider) ValidateEphemeralConfig(_ context.Context, req *tfplugin5.Val
 		return resp, nil
 	}
 
-	validateResp := p.provider.ValidateEphemeralConfig(providers.ValidateEphemeralConfigRequest{
+	validateResp := p.provider.ValidateEphemeralResourceConfig(providers.ValidateEphemeralResourceConfigRequest{
 		TypeName: req.TypeName,
 		Config:   configVal,
 	})
@@ -449,15 +449,15 @@ func (p *provider) ReadDataSource(_ context.Context, req *tfplugin5.ReadDataSour
 	return resp, nil
 }
 
-func (p *provider) OpenEphemeral(_ context.Context, req *tfplugin5.OpenEphemeral_Request) (*tfplugin5.OpenEphemeral_Response, error) {
+func (p *provider) OpenEphemeralResource(_ context.Context, req *tfplugin5.OpenEphemeralResource_Request) (*tfplugin5.OpenEphemeralResource_Response, error) {
 	panic("unimplemented")
 }
 
-func (p *provider) RenewEphemeral(_ context.Context, req *tfplugin5.RenewEphemeral_Request) (*tfplugin5.RenewEphemeral_Response, error) {
+func (p *provider) RenewEphemeralResource(_ context.Context, req *tfplugin5.RenewEphemeralResource_Request) (*tfplugin5.RenewEphemeralResource_Response, error) {
 	panic("unimplemented")
 }
 
-func (p *provider) CloseEphemeral(_ context.Context, req *tfplugin5.CloseEphemeral_Request) (*tfplugin5.CloseEphemeral_Response, error) {
+func (p *provider) CloseEphemeralResource(_ context.Context, req *tfplugin5.CloseEphemeralResource_Request) (*tfplugin5.CloseEphemeralResource_Response, error) {
 	panic("unimplemented")
 }
 

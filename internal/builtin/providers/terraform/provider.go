@@ -195,29 +195,29 @@ func (p *Provider) ValidateResourceConfig(req providers.ValidateResourceConfigRe
 	return validateDataStoreResourceConfig(req)
 }
 
-func (p *Provider) ValidateEphemeralConfig(req providers.ValidateEphemeralConfigRequest) providers.ValidateEphemeralConfigResponse {
-	var resp providers.ValidateEphemeralConfigResponse
+func (p *Provider) ValidateEphemeralResourceConfig(req providers.ValidateEphemeralResourceConfigRequest) providers.ValidateEphemeralResourceConfigResponse {
+	var resp providers.ValidateEphemeralResourceConfigResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
 	return resp
 }
 
-// OpenEphemeral implements providers.Interface.
-func (p *Provider) OpenEphemeral(req providers.OpenEphemeralRequest) providers.OpenEphemeralResponse {
-	var resp providers.OpenEphemeralResponse
+// OpenEphemeralResource implements providers.Interface.
+func (p *Provider) OpenEphemeralResource(req providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
+	var resp providers.OpenEphemeralResourceResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
 	return resp
 }
 
-// RenewEphemeral implements providers.Interface.
-func (p *Provider) RenewEphemeral(req providers.RenewEphemeralRequest) providers.RenewEphemeralResponse {
-	var resp providers.RenewEphemeralResponse
+// RenewEphemeralResource implements providers.Interface.
+func (p *Provider) RenewEphemeralResource(req providers.RenewEphemeralResourceRequest) providers.RenewEphemeralResourceResponse {
+	var resp providers.RenewEphemeralResourceResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
 	return resp
 }
 
-// CloseEphemeral implements providers.Interface.
-func (p *Provider) CloseEphemeral(req providers.CloseEphemeralRequest) providers.CloseEphemeralResponse {
-	var resp providers.CloseEphemeralResponse
+// CloseEphemeralResource implements providers.Interface.
+func (p *Provider) CloseEphemeralResource(req providers.CloseEphemeralResourceRequest) providers.CloseEphemeralResourceResponse {
+	var resp providers.CloseEphemeralResourceResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
 	return resp
 }

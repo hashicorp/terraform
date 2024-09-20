@@ -146,8 +146,8 @@ func (p *provider6) ValidateDataResourceConfig(_ context.Context, req *tfplugin6
 	return resp, nil
 }
 
-func (p *provider6) ValidateEphemeralConfig(_ context.Context, req *tfplugin6.ValidateEphemeralConfig_Request) (*tfplugin6.ValidateEphemeralConfig_Response, error) {
-	resp := &tfplugin6.ValidateEphemeralConfig_Response{}
+func (p *provider6) ValidateEphemeralResourceConfig(_ context.Context, req *tfplugin6.ValidateEphemeralResourceConfig_Request) (*tfplugin6.ValidateEphemeralResourceConfig_Response, error) {
+	resp := &tfplugin6.ValidateEphemeralResourceConfig_Response{}
 	ty := p.schema.DataSources[req.TypeName].Block.ImpliedType()
 
 	configVal, err := decodeDynamicValue6(req.Config, ty)
@@ -156,7 +156,7 @@ func (p *provider6) ValidateEphemeralConfig(_ context.Context, req *tfplugin6.Va
 		return resp, nil
 	}
 
-	validateResp := p.provider.ValidateEphemeralConfig(providers.ValidateEphemeralConfigRequest{
+	validateResp := p.provider.ValidateEphemeralResourceConfig(providers.ValidateEphemeralResourceConfigRequest{
 		TypeName: req.TypeName,
 		Config:   configVal,
 	})
@@ -449,15 +449,15 @@ func (p *provider6) ReadDataSource(_ context.Context, req *tfplugin6.ReadDataSou
 	return resp, nil
 }
 
-func (p *provider6) OpenEphemeral(_ context.Context, req *tfplugin6.OpenEphemeral_Request) (*tfplugin6.OpenEphemeral_Response, error) {
+func (p *provider6) OpenEphemeralResource(_ context.Context, req *tfplugin6.OpenEphemeralResource_Request) (*tfplugin6.OpenEphemeralResource_Response, error) {
 	panic("unimplemented")
 }
 
-func (p *provider6) RenewEphemeral(_ context.Context, req *tfplugin6.RenewEphemeral_Request) (*tfplugin6.RenewEphemeral_Response, error) {
+func (p *provider6) RenewEphemeralResource(_ context.Context, req *tfplugin6.RenewEphemeralResource_Request) (*tfplugin6.RenewEphemeralResource_Response, error) {
 	panic("unimplemented")
 }
 
-func (p *provider6) CloseEphemeral(_ context.Context, req *tfplugin6.CloseEphemeral_Request) (*tfplugin6.CloseEphemeral_Response, error) {
+func (p *provider6) CloseEphemeralResource(_ context.Context, req *tfplugin6.CloseEphemeralResource_Request) (*tfplugin6.CloseEphemeralResource_Response, error) {
 	panic("unimplemented")
 }
 
