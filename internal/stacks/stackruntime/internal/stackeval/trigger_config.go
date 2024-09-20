@@ -75,7 +75,9 @@ func (c *TriggerConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 }
 
 func (c *TriggerConfig) tracingName() string {
-	return c.Addr().String()
+	// TODO: Fix this
+	// return c.Addr().String()
+	return "trigger"
 }
 
 // reportNamedPromises implements namedPromiseReporter.
