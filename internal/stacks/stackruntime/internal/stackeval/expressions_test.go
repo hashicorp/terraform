@@ -352,8 +352,8 @@ func (s staticExpressionScope) ResolveExpressionReference(ctx context.Context, r
 }
 
 // ExternalFunctions implements ExpressionScope
-func (s staticExpressionScope) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, func(), tfdiags.Diagnostics) {
-	return lang.ExternalFuncs{}, func() {}, nil
+func (s staticExpressionScope) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
+	return lang.ExternalFuncs{}, nil
 }
 
 // PlanTimestamp implements ExpressionScope

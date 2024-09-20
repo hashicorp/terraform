@@ -14,8 +14,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -74,18 +72,7 @@ func (i *stacksInspector) InspectExpressionResult(ctx context.Context, req *stac
 		}, nil
 	}
 
-	val, markses := val.UnmarkDeepWithPaths()
-	sensitivePaths, otherMarkses := marks.PathsWithMark(markses, marks.Sensitive)
-	if len(otherMarkses) != 0 {
-		// Any other marks should've been dealt with by the stacks runtime
-		// before getting here, since we only know how to preserve the sensitive
-		// marking.
-		return nil, fmt.Errorf(
-			"%s: unhandled value marks %#v (this is a bug in Terraform)",
-			tfdiags.FormatCtyPath(otherMarkses[0].Path), otherMarkses[0].Marks,
-		)
-	}
-	valRaw, err := plans.NewDynamicValue(val, cty.DynamicPseudoType)
+	result, err := stacks.ToDynamicValue(val, cty.DynamicPseudoType)
 	if err != nil {
 		// We might get here if the result was of a type we cannot send
 		// over the wire, such as a reference to a provider configuration.
@@ -94,13 +81,10 @@ func (i *stacksInspector) InspectExpressionResult(ctx context.Context, req *stac
 			"Result is not serializable",
 			fmt.Sprintf("Cannot return the result of the given expression: %s.", err),
 		))
-		return &stacks.InspectExpressionResult_Response{
-			Diagnostics: diagnosticsToProto(diags),
-		}, nil
 	}
 
 	return &stacks.InspectExpressionResult_Response{
-		Result:      stacks.NewDynamicValue(valRaw, sensitivePaths),
+		Result:      result,
 		Diagnostics: diagnosticsToProto(diags),
 	}, nil
 }

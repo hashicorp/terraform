@@ -433,6 +433,13 @@ jsonencode(
 			},
 			expected: "0 -> (known after apply)",
 		},
+		"computed_update_from_null": {
+			diff: computed.Diff{
+				Renderer: Unknown(computed.Diff{}),
+				Action:   plans.Update,
+			},
+			expected: "(known after apply)",
+		},
 		"computed_create_forces_replacement": {
 			diff: computed.Diff{
 				Renderer: Unknown(computed.Diff{}),

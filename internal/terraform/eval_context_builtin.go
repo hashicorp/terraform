@@ -68,6 +68,10 @@ type BuiltinEvalContext struct {
 	// DeferralsValue is the object returned by [BuiltinEvalContext.Deferrals].
 	DeferralsValue *deferring.Deferred
 
+	// forget if set to true will cause the plan to forget all resources. This is
+	// only allowd in the context of a destroy plan.
+	forget bool
+
 	Hooks                 []Hook
 	InputValue            UIInput
 	ProviderCache         map[string]providers.Interface
@@ -597,4 +601,8 @@ func (ctx *BuiltinEvalContext) MoveResults() refactoring.MoveResults {
 
 func (ctx *BuiltinEvalContext) Overrides() *mocking.Overrides {
 	return ctx.OverrideValues
+}
+
+func (ctx *BuiltinEvalContext) Forget() bool {
+	return ctx.forget
 }

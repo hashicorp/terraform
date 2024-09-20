@@ -12,11 +12,12 @@ import (
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/typeexpr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // maxEmbeddedStackNesting is an arbitrary, hopefully-reasonable limit on
@@ -188,6 +189,24 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 		}
 
 		cmpn.FinalSourceAddr = effectiveSourceAddr
+	}
+
+	for _, rmvd := range stack.Removed {
+		effectiveSourceAddr, err := resolveFinalSourceAddr(sourceAddr, rmvd.SourceAddr, rmvd.VersionConstraints, sources)
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid source address",
+				Detail: fmt.Sprintf(
+					"Cannot use %q as a source address here: %s.",
+					rmvd.SourceAddr, err,
+				),
+				Subject: rmvd.SourceAddrRange.ToHCL().Ptr(),
+			})
+			continue
+		}
+
+		rmvd.FinalSourceAddr = effectiveSourceAddr
 	}
 
 	return ret, diags

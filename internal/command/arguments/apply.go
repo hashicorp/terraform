@@ -57,6 +57,14 @@ func ParseApply(args []string) (*Apply, tfdiags.Diagnostics) {
 		))
 	}
 
+	if apply.State.StatePath != "" {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Deprecated flag: -state",
+			"Use `path` attribute within the `local` backend instead: https://developer.hashicorp.com/terraform/language/v1.10.x/settings/backends/local#path",
+		))
+	}
+
 	args = cmdFlags.Args()
 	if len(args) > 0 {
 		apply.PlanPath = args[0]

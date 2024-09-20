@@ -63,7 +63,7 @@ In order to be respectful of the time of community contributors, we aim to discu
 
 If the bug you wish to fix or enhancement you wish to implement isn't already covered by a GitHub issue that contains feedback from the Terraform team, please do start a discussion (either in [a new GitHub issue](https://github.com/hashicorp/terraform/issues/new/choose) or an existing one, as appropriate) before you invest significant development time. If you mention your intent to implement the change described in your issue, the Terraform team can, as best as possible, prioritize including implementation-related feedback in the subsequent discussion.
 
-At this time, we do not have a formal process for reviewing outside proposals that significantly change Terraform's workflow, its primary usage patterns, and its language. Additionally, some seemingly simple proposals can have deep effects across Terraform, which is why we strongly suggest starting with an issue-based proposal. 
+At this time, we do not have a formal process for reviewing outside proposals that significantly change Terraform's workflow, its primary usage patterns, and its language. Additionally, some seemingly simple proposals can have deep effects across Terraform, which is why we strongly suggest starting with an issue-based proposal. Also, we do not normally accept minor changes in comments or help text.
 
 For large proposals that could entail a significant design phase, we wish to be up front with potential contributors that, unfortunately, we are unlikely to be able to give prompt feedback. We are still interested to hear about your use-cases so that we can consider ways to meet them as part of other larger projects.
 

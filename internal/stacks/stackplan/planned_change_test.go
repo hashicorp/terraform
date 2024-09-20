@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/go-version"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -763,8 +764,8 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				// NOTE: This is a bit unrealistic since we're reporting an
 				// update but there's no difference between these two values.
 				// In a real planned change this situation would be a "no-op".
-				OldValue: emptyObjectForPlan,
-				NewValue: emptyObjectForPlan,
+				Before: cty.EmptyObjectVal,
+				After:  cty.EmptyObjectVal,
 			},
 			Want: &stacks.PlannedChange{
 				// Output value changes don't generate any raw representation;
@@ -778,10 +779,10 @@ func TestPlannedChangeAsProto(t *testing.T) {
 								Actions: []stacks.ChangeType{stacks.ChangeType_UPDATE},
 								Values: &stacks.DynamicValueChange{
 									Old: &stacks.DynamicValue{
-										Msgpack: []byte{'\x80'}, // zero-length mapping
+										Msgpack: mustMsgPack(t, cty.EmptyObjectVal),
 									},
 									New: &stacks.DynamicValue{
-										Msgpack: []byte{'\x80'}, // zero-length mapping
+										Msgpack: mustMsgPack(t, cty.EmptyObjectVal),
 									},
 								},
 							},
@@ -790,10 +791,12 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				},
 			},
 		},
-		"sensitive root input variable": {
+		"create sensitive root input variable": {
 			Receiver: &PlannedChangeRootInputValue{
-				Addr:  stackaddrs.InputVariable{Name: "thingy_id"},
-				Value: cty.StringVal("boop").Mark(marks.Sensitive),
+				Addr:   stackaddrs.InputVariable{Name: "thingy_id"},
+				Action: plans.Create,
+				Before: cty.NullVal(cty.String),
+				After:  cty.StringVal("boop").Mark(marks.Sensitive),
 			},
 			Want: &stacks.PlannedChange{
 				Raw: []*anypb.Any{
@@ -811,19 +814,46 @@ func TestPlannedChangeAsProto(t *testing.T) {
 						},
 					}),
 				},
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
+					{
+						Description: &stacks.PlannedChange_ChangeDescription_InputVariablePlanned{
+							InputVariablePlanned: &stacks.PlannedChange_InputVariable{
+								Name:    "thingy_id",
+								Actions: []stacks.ChangeType{stacks.ChangeType_CREATE},
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.NullVal(cty.String)),
+									},
+									New: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.StringVal("boop")),
+										Sensitive: []*stacks.AttributePath{
+											{
+												Steps: make([]*stacks.AttributePath_Step, 0), // no steps as it is the root value
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 		"ephemeral root input variable": {
 			Receiver: &PlannedChangeRootInputValue{
-				Addr:  stackaddrs.InputVariable{Name: "thingy_id"},
-				Value: cty.StringVal("boop").Mark(marks.Ephemeral),
+				Addr:   stackaddrs.InputVariable{Name: "thingy_id"},
+				Action: plans.Create,
+				Before: cty.NullVal(cty.String),
+				After:  cty.StringVal("boop").Mark(marks.Ephemeral),
 			},
-			WantErr: "unexpected marks found on path: Ephemeral", // Ephemeral values should never make it this far.
+			WantErr: "failed to encode after planned input variable var.thingy_id: : unhandled value marks cty.NewValueMarks(marks.Ephemeral) (this is a bug in Terraform)", // Ephemeral values should never make it this far.
 		},
-		"root input variable": {
+		"update root input variable": {
 			Receiver: &PlannedChangeRootInputValue{
-				Addr:  stackaddrs.InputVariable{Name: "thingy_id"},
-				Value: cty.StringVal("boop"),
+				Addr:   stackaddrs.InputVariable{Name: "thingy_id"},
+				Action: plans.Update,
+				Before: cty.StringVal("beep"),
+				After:  cty.StringVal("boop"),
 			},
 			Want: &stacks.PlannedChange{
 				Raw: []*anypb.Any{
@@ -836,14 +866,34 @@ func TestPlannedChangeAsProto(t *testing.T) {
 						},
 					}),
 				},
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
+					{
+						Description: &stacks.PlannedChange_ChangeDescription_InputVariablePlanned{
+							InputVariablePlanned: &stacks.PlannedChange_InputVariable{
+								Name:    "thingy_id",
+								Actions: []stacks.ChangeType{stacks.ChangeType_UPDATE},
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.StringVal("beep")),
+									},
+									New: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.StringVal("boop")),
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 		"root input variable that must be re-supplied during apply": {
 			Receiver: &PlannedChangeRootInputValue{
-				Addr:            stackaddrs.InputVariable{Name: "thingy_id"},
-				RequiredOnApply: true,
-				// No value in this case: the value must be re-supplied during
+				Addr:   stackaddrs.InputVariable{Name: "thingy_id"},
+				Action: plans.Create,
+				Before: cty.NullVal(cty.String),
+				// No after in this case: the value must be re-supplied during
 				// apply specifically so that we can avoid the need to store it.
+				RequiredOnApply: true,
 			},
 			Want: &stacks.PlannedChange{
 				Raw: []*anypb.Any{
@@ -853,10 +903,18 @@ func TestPlannedChangeAsProto(t *testing.T) {
 					}),
 				},
 				Descriptions: []*stacks.PlannedChange_ChangeDescription{
-					&stacks.PlannedChange_ChangeDescription{
-						Description: &stacks.PlannedChange_ChangeDescription_ApplyTimeInputVariable{
-							ApplyTimeInputVariable: &stacks.PlannedChange_InputVariableDuringApply{
-								Name: "thingy_id",
+					{
+						Description: &stacks.PlannedChange_ChangeDescription_InputVariablePlanned{
+							InputVariablePlanned: &stacks.PlannedChange_InputVariable{
+								Name:    "thingy_id",
+								Actions: []stacks.ChangeType{stacks.ChangeType_CREATE},
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.NullVal(cty.String)),
+									},
+									// New is empty because it is ephemeral.
+								},
+								RequiredDuringApply: true,
 							},
 						},
 					},
@@ -898,4 +956,12 @@ func mustMarshalAnyPb(msg proto.Message) *anypb.Any {
 		panic(err)
 	}
 	return &ret
+}
+
+func mustMsgPack(t *testing.T, value cty.Value) []byte {
+	data, err := msgpack.Marshal(value, cty.DynamicPseudoType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
 }

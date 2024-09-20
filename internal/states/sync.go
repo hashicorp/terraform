@@ -118,6 +118,47 @@ func (s *SyncState) RemoveOutputValue(addr addrs.AbsOutputValue) {
 	s.state.RemoveOutputValue(addr)
 }
 
+// EphemeralOutputValue returns a snapshot of the state of the ephemeral output
+// value with the given address, or nil if no such ephemeral output value is
+// tracked.
+//
+// The return value is a pointer to a copy of the output value state, which the
+// caller may then freely access and mutate.
+func (s *SyncState) EphemeralOutputValue(addr addrs.AbsOutputValue) *OutputValue {
+	s.lock.RLock()
+	ret := s.state.EphemeralOutputValue(addr).DeepCopy()
+	s.lock.RUnlock()
+	return ret
+}
+
+// SetEphemeralOutputValue writes a given ephemeral output value into the
+// state, overwriting any existing value of the same name.
+//
+// The state only tracks output values for the root module, so attempts to
+// write output values for any other module will be silently ignored.
+func (s *SyncState) SetEphemeralOutputValue(addr addrs.AbsOutputValue, value cty.Value, sensitive bool) {
+	if !addr.Module.IsRoot() {
+		return
+	}
+
+	defer s.beginWrite()()
+	s.state.SetEphemeralOutputValue(addr, value, sensitive)
+}
+
+// RemoveEphemeralOutputValue removes the stored value for the ephemeral output
+// value with the given address.
+//
+// The state only tracks output values for the root module, so attempts to
+// remove output values for any other module will be silently ignored.
+func (s *SyncState) RemoveEphemeralOutputValue(addr addrs.AbsOutputValue) {
+	if !addr.Module.IsRoot() {
+		return
+	}
+
+	defer s.beginWrite()()
+	s.state.RemoveEphemeralOutputValue(addr)
+}
+
 // Resource returns a snapshot of the state of the resource with the given
 // address, or nil if no such resource is tracked.
 //
@@ -321,6 +362,19 @@ func (s *SyncState) ForgetResourceInstanceAll(addr addrs.AbsResourceInstance) {
 		return
 	}
 	ms.ForgetResourceInstanceAll(addr.Resource)
+	s.maybePruneModule(addr.Module)
+}
+
+// ForgetResourceInstanceCurrent removes the record of the current object with
+// the given address, if present. If not present, this is a no-op.
+func (s *SyncState) ForgetResourceInstanceCurrent(addr addrs.AbsResourceInstance) {
+	defer s.beginWrite()()
+
+	ms := s.state.Module(addr.Module)
+	if ms == nil {
+		return
+	}
+	ms.ForgetResourceInstanceCurrent(addr.Resource)
 	s.maybePruneModule(addr.Module)
 }
 

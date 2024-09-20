@@ -32,6 +32,7 @@ type Component struct {
 }
 
 var _ Plannable = (*Component)(nil)
+var _ Applyable = (*Component)(nil)
 var _ Referenceable = (*Component)(nil)
 
 func newComponent(main *Main, addr stackaddrs.AbsComponent) *Component {
@@ -168,7 +169,7 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 			}
 
 			result := instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ComponentInstance {
-				return newComponentInstance(c, ik, rd)
+				return newComponentInstance(c, ik, rd, false)
 			})
 
 			addrs := make([]stackaddrs.AbsComponentInstance, 0, len(result.insts))
@@ -189,8 +190,8 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 }
 
 func (c *Component) UnknownInstance(ctx context.Context, phase EvalPhase) *ComponentInstance {
-	inst, err := c.unknownInstance.For(PlanPhase).Do(ctx, func(ctx context.Context) (*ComponentInstance, error) {
-		return newComponentInstance(c, addrs.WildcardKey, instances.UnknownForEachRepetitionData(c.ForEachValue(ctx, phase).Type())), nil
+	inst, err := c.unknownInstance.For(phase).Do(ctx, func(ctx context.Context) (*ComponentInstance, error) {
+		return newComponentInstance(c, addrs.WildcardKey, instances.UnknownForEachRepetitionData(c.ForEachValue(ctx, phase).Type()), true), nil
 	})
 	if err != nil {
 		// Since we never return an error from the function we pass to Do,
@@ -336,12 +337,12 @@ func (c *Component) References(ctx context.Context) []stackaddrs.AbsReference {
 	return makeReferencesAbsolute(ret, c.Addr().Stack)
 }
 
-// RequiredComponents implements Applyable
+// RequiredComponents returns the set of required components for this component.
 func (c *Component) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
 	return c.main.requiredComponentsForReferrer(ctx, c, PlanPhase)
 }
 
-// CheckApply implements ApplyChecker.
+// CheckApply implements Applyable.
 func (c *Component) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	return nil, c.checkValid(ctx, ApplyPhase)
 }

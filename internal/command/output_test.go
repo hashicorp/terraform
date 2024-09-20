@@ -80,7 +80,43 @@ func TestOutput_json(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(output.Stdout())
-	expected := "{\n  \"foo\": {\n    \"sensitive\": false,\n    \"type\": \"string\",\n    \"value\": \"bar\"\n  }\n}"
+	expected := "{\n  \"foo\": {\n    \"ephemeral\": false,\n    \"sensitive\": false,\n    \"type\": \"string\",\n    \"value\": \"bar\"\n  }\n}"
+	if actual != expected {
+		t.Fatalf("wrong output\ngot:  %#v\nwant: %#v", actual, expected)
+	}
+}
+
+func TestOutput_jsonEphemeral(t *testing.T) {
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetEphemeralOutputValue(
+			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar"),
+			false,
+		)
+	})
+
+	statePath := testStateFile(t, originalState)
+
+	view, done := testView(t)
+	c := &OutputCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-json",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: \n%s", output.Stderr())
+	}
+
+	actual := strings.TrimSpace(output.Stdout())
+	expected := "{\n  \"foo\": {\n    \"ephemeral\": true,\n    \"sensitive\": false,\n    \"type\": \"string\",\n    \"value\": null\n  }\n}"
 	if actual != expected {
 		t.Fatalf("wrong output\ngot:  %#v\nwant: %#v", actual, expected)
 	}

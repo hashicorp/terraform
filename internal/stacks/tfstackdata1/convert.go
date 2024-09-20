@@ -55,52 +55,13 @@ func ResourceInstanceObjectStateToTFStackData1(objSrc *states.ResourceInstanceOb
 	return rawMsg
 }
 
-func ComponentInstanceResultsToTFStackData1(outputValues map[addrs.OutputValue]cty.Value) (*StateComponentInstanceV1, error) {
-	protoOutputs := make(map[string]*DynamicValue, len(outputValues))
-	for addr, val := range outputValues {
-		protoVal, err := DynamicValueToTFStackData1(val, cty.DynamicPseudoType)
-		if err != nil {
-			return nil, fmt.Errorf("encoding %s: %w", addr, err)
-		}
-		protoOutputs[addr.Name] = protoVal
-	}
-	return &StateComponentInstanceV1{
-		OutputValues: protoOutputs,
-	}, nil
-}
-
-func DynamicValueToTFStackData1(val cty.Value, ty cty.Type) (*DynamicValue, error) {
-	unmarkedVal, markPaths := val.UnmarkDeepWithPaths()
-	sensitivePaths, withOtherMarks := marks.PathsWithMark(markPaths, marks.Sensitive)
-	if len(withOtherMarks) != 0 {
-		return nil, withOtherMarks[0].Path.NewErrorf(
-			"can't serialize value marked with %#v (this is a bug in Terraform)",
-			withOtherMarks[0].Marks,
-		)
-	}
-
-	rawVal, err := msgpack.Marshal(unmarkedVal, ty)
-	if err != nil {
-		return nil, err
-	}
-	ret := &DynamicValue{
+func Terraform1ToStackDataDynamicValue(value *stacks.DynamicValue) *DynamicValue {
+	return &DynamicValue{
 		Value: &planproto.DynamicValue{
-			Msgpack: rawVal,
+			Msgpack: value.Msgpack,
 		},
+		SensitivePaths: Terraform1ToPlanProtoAttributePaths(value.Sensitive),
 	}
-	if len(markPaths) == 0 {
-		return ret, nil
-	}
-
-	ret.SensitivePaths = make([]*planproto.Path, 0, len(markPaths))
-	for _, path := range sensitivePaths {
-		protoPath, err := planproto.NewPath(path)
-		if err != nil {
-			return nil, path.NewErrorf("failed to encode path: %w", err)
-		}
-		ret.SensitivePaths = append(ret.SensitivePaths, protoPath)
-	}
-	return ret, nil
 }
 
 func DynamicValueFromTFStackData1(protoVal *DynamicValue, ty cty.Type) (cty.Value, error) {
@@ -193,4 +154,51 @@ func Terraform1ToPlanProtoAttributePathStep(step *stacks.AttributePath_Step) *pl
 		panic(fmt.Sprintf("unsupported path step selector type %T", sel))
 	}
 	return ret
+}
+
+func DecodeProtoResourceInstanceObject(protoObj *StateResourceInstanceObjectV1) (*states.ResourceInstanceObjectSrc, error) {
+	objSrc := &states.ResourceInstanceObjectSrc{
+		SchemaVersion:       protoObj.SchemaVersion,
+		AttrsJSON:           protoObj.ValueJson,
+		CreateBeforeDestroy: protoObj.CreateBeforeDestroy,
+		Private:             protoObj.ProviderSpecificData,
+	}
+
+	switch protoObj.Status {
+	case StateResourceInstanceObjectV1_READY:
+		objSrc.Status = states.ObjectReady
+	case StateResourceInstanceObjectV1_DAMAGED:
+		objSrc.Status = states.ObjectTainted
+	default:
+		return nil, fmt.Errorf("unsupported status %s", protoObj.Status.String())
+	}
+
+	paths := make([]cty.Path, 0, len(protoObj.SensitivePaths))
+	for _, p := range protoObj.SensitivePaths {
+		path, err := planfile.PathFromProto(p)
+		if err != nil {
+			return nil, err
+		}
+		paths = append(paths, path)
+	}
+	objSrc.AttrSensitivePaths = paths
+
+	if len(protoObj.Dependencies) != 0 {
+		objSrc.Dependencies = make([]addrs.ConfigResource, len(protoObj.Dependencies))
+		for i, raw := range protoObj.Dependencies {
+			instAddr, diags := addrs.ParseAbsResourceInstanceStr(raw)
+			if diags.HasErrors() {
+				return nil, fmt.Errorf("invalid dependency %q", raw)
+			}
+			// We used the resource instance address parser here but we
+			// actually want the "config resource" subset of that syntax only.
+			configAddr := instAddr.ConfigResource()
+			if configAddr.String() != instAddr.String() {
+				return nil, fmt.Errorf("invalid dependency %q", raw)
+			}
+			objSrc.Dependencies[i] = configAddr
+		}
+	}
+
+	return objSrc, nil
 }

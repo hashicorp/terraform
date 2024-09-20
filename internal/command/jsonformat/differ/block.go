@@ -56,6 +56,7 @@ func ComputeDiffForBlock(change structured.Change, block *jsonprovider.Block) co
 		ReplaceBlocks:         make(map[string]bool),
 		BeforeSensitiveBlocks: make(map[string]bool),
 		AfterSensitiveBlocks:  make(map[string]bool),
+		UnknownBlocks:         make(map[string]bool),
 		SingleBlocks:          make(map[string]computed.Diff),
 		ListBlocks:            make(map[string][]computed.Diff),
 		SetBlocks:             make(map[string][]computed.Diff),
@@ -73,46 +74,40 @@ func ComputeDiffForBlock(change structured.Change, block *jsonprovider.Block) co
 		beforeSensitive := childValue.IsBeforeSensitive()
 		afterSensitive := childValue.IsAfterSensitive()
 		forcesReplacement := childValue.ReplacePaths.Matches()
-
-		if unknown, ok := checkForUnknownBlock(childValue, block); ok {
-			// An unknown block doesn't render any type information, so we can
-			// render it as a single block rather than switching on all types.
-			blocks.AddSingleBlock(key, unknown, forcesReplacement, beforeSensitive, afterSensitive)
-			continue
-		}
+		unknown := childValue.IsUnknown()
 
 		switch NestingMode(blockType.NestingMode) {
 		case nestingModeSet:
 			diffs, action := computeBlockDiffsAsSet(childValue, blockType.Block)
-			if action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
+			if action == plans.NoOp && childValue.Before == nil && childValue.After == nil && !unknown {
 				// Don't record nil values in blocks.
 				continue
 			}
-			blocks.AddAllSetBlock(key, diffs, forcesReplacement, beforeSensitive, afterSensitive)
+			blocks.AddAllSetBlock(key, diffs, forcesReplacement, beforeSensitive, afterSensitive, unknown)
 			current = collections.CompareActions(current, action)
 		case nestingModeList:
 			diffs, action := computeBlockDiffsAsList(childValue, blockType.Block)
-			if action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
+			if action == plans.NoOp && childValue.Before == nil && childValue.After == nil && !unknown {
 				// Don't record nil values in blocks.
 				continue
 			}
-			blocks.AddAllListBlock(key, diffs, forcesReplacement, beforeSensitive, afterSensitive)
+			blocks.AddAllListBlock(key, diffs, forcesReplacement, beforeSensitive, afterSensitive, unknown)
 			current = collections.CompareActions(current, action)
 		case nestingModeMap:
 			diffs, action := computeBlockDiffsAsMap(childValue, blockType.Block)
-			if action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
+			if action == plans.NoOp && childValue.Before == nil && childValue.After == nil && !unknown {
 				// Don't record nil values in blocks.
 				continue
 			}
-			blocks.AddAllMapBlocks(key, diffs, forcesReplacement, beforeSensitive, afterSensitive)
+			blocks.AddAllMapBlocks(key, diffs, forcesReplacement, beforeSensitive, afterSensitive, unknown)
 			current = collections.CompareActions(current, action)
 		case nestingModeSingle, nestingModeGroup:
 			diff := ComputeDiffForBlock(childValue, blockType.Block)
-			if diff.Action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
+			if diff.Action == plans.NoOp && childValue.Before == nil && childValue.After == nil && !unknown {
 				// Don't record nil values in blocks.
 				continue
 			}
-			blocks.AddSingleBlock(key, diff, forcesReplacement, beforeSensitive, afterSensitive)
+			blocks.AddSingleBlock(key, diff, forcesReplacement, beforeSensitive, afterSensitive, unknown)
 			current = collections.CompareActions(current, diff.Action)
 		default:
 			panic("unrecognized nesting mode: " + blockType.NestingMode)

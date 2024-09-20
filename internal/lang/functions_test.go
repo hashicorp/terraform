@@ -364,10 +364,10 @@ func TestFunctions(t *testing.T) {
 		},
 
 		"ephemeralasnull": {
-			// We can't actually test the main behavior of this one here
-			// because we don't have any ephemeral values in scope, so
-			// this is just to check that the function is registered. The
-			// real tests for this function are in package funcs.
+			{
+				`ephemeralasnull(local.ephemeral)`,
+				cty.NullVal(cty.String),
+			},
 			{
 				`ephemeralasnull("not ephemeral")`,
 				cty.StringVal("not ephemeral"),
@@ -1340,6 +1340,7 @@ func TestFunctions(t *testing.T) {
 					data := &dataForTests{
 						LocalValues: map[string]cty.Value{
 							"greeting_template": cty.StringVal("Hello, ${name}!"),
+							"ephemeral":         cty.StringVal("ephemeral").Mark(marks.Ephemeral),
 						},
 					}
 					scope := &Scope{

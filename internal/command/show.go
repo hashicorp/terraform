@@ -286,7 +286,7 @@ func (c *ShowCommand) getDataFromCloudPlan(plan *cloudplan.SavedPlanBookmark, re
 	cl, ok := b.(*cloud.Cloud)
 	if !ok {
 		errMessage := fmt.Sprintf("can't show a saved cloud plan unless the current root module is connected to %s", cl.AppName())
-		return nil, errUnusable(fmt.Errorf(errMessage), "cloud plan")
+		return nil, errUnusable(errors.New(errMessage), "cloud plan")
 	}
 
 	result, err := cl.ShowPlanForRun(context.Background(), plan.RunID, plan.Hostname, redacted)
