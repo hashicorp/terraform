@@ -10,9 +10,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// OpenEphemeralRequest represents the arguments for the OpenEphemeral
+// OpenEphemeralResourceRequest represents the arguments for the OpenEphemeralResource
 // operation on a provider.
-type OpenEphemeralRequest struct {
+type OpenEphemeralResourceRequest struct {
 	// TypeName is the type of ephemeral resource to open. This should
 	// only be one of the type names previously reported in the provider's
 	// schema.
@@ -29,9 +29,9 @@ type OpenEphemeralRequest struct {
 	Config cty.Value
 }
 
-// OpenEphemeralRequest represents the response from an OpenEphemeral
+// OpenEphemeralResourceRequest represents the response from an OpenEphemeralResource
 // operation on a provider.
-type OpenEphemeralResponse struct {
+type OpenEphemeralResourceResponse struct {
 	// Deferred, if present, signals that the provider doesn't have enough
 	// information to open this ephemeral resource instance.
 	//
@@ -55,7 +55,7 @@ type OpenEphemeralResponse struct {
 	Result cty.Value
 
 	// InternalContext is any internal data needed by the provider to perform a
-	// subsequent [Interface.CloseEphemeral] request for the same object. The
+	// subsequent [Interface.CloseEphemeralResource] request for the same object. The
 	// provider may choose any encoding format to represent the needed data,
 	// because Terraform Core treats this field as opaque.
 	//
@@ -67,7 +67,7 @@ type OpenEphemeralResponse struct {
 	// reasonable thing to encode here.
 	//
 	// Because ephemeral resource instances never outlive a single Terraform
-	// Core phase, it's guaranteed that a CloseEphemeral request will be
+	// Core phase, it's guaranteed that a CloseEphemeralResource request will be
 	// received by exactly the same plugin instance that returned this value,
 	// and so it's valid for this to refer to in-memory state belonging to the
 	// provider instance.
@@ -78,7 +78,7 @@ type OpenEphemeralResponse struct {
 	// expiration time.
 	//
 	// If a provider sets this field then it may receive a subsequent
-	// [Interface.RenewEphemeral] call, if Terraform expects to need the
+	// [Interface.RenewEphemeralResource] call, if Terraform expects to need the
 	// object beyond the expiration time.
 	Renew *EphemeralRenew
 
@@ -96,7 +96,7 @@ type EphemeralRenew struct {
 	ExpireTime time.Time
 
 	// InternalContext is any internal data needed by the provider to
-	// perform a subsequent [Interface.RenewEphemeral] request. The provider
+	// perform a subsequent [Interface.RenewEphemeralResource] request. The provider
 	// may choose any encoding format to represent the needed data, because
 	// Terraform Core treats this field as opaque.
 	//
@@ -108,33 +108,33 @@ type EphemeralRenew struct {
 	// remote system is a reasonable thing to encode here.
 	//
 	// Because ephemeral resource instances never outlive a single Terraform
-	// Core phase, it's guaranteed that a RenewEphemeral request will be
+	// Core phase, it's guaranteed that a RenewEphemeralResource request will be
 	// received by exactly the same plugin instance that previously handled
-	// the OpenEphemeral or RenewEphemeral request that produced this internal
+	// the OpenEphemeralResource or RenewEphemeralResource request that produced this internal
 	// context, and so it's valid for this to refer to in-memory state in the
 	// provider object.
 	InternalContext []byte
 }
 
-// RenewEphemeralRequest represents the arguments for the RenewEphemeral
+// RenewEphemeralResourceRequest represents the arguments for the RenewEphemeralResource
 // operation on a provider.
-type RenewEphemeralRequest struct {
+type RenewEphemeralResourceRequest struct {
 	// TypeName is the type of ephemeral resource being renewed. This should
 	// only be one of the type names previously sent in a successful
-	// [OpenEphemeralRequest].
+	// [OpenEphemeralResourceRequest].
 	TypeName string
 
 	// InternalContext echoes verbatim the value from the field of the same
 	// name from the most recent [EphemeralRenew] object, received from either
-	// an [OpenEphemeralResponse] or a [RenewEphemeralResponse] object.
+	// an [OpenEphemeralResourceResponse] or a [RenewEphemeralResourceResponse] object.
 	InternalContext []byte
 }
 
-// RenewEphemeralRequest represents the response from a RenewEphemeral
+// RenewEphemeralResourceRequest represents the response from a RenewEphemeralResource
 // operation on a provider.
-type RenewEphemeralResponse struct {
+type RenewEphemeralResourceResponse struct {
 	// RenewAgain, if set, describes a new expiration deadline for the
-	// object, possibly causing a further call to [Interface.RenewEphemeral]
+	// object, possibly causing a further call to [Interface.RenewEphemeralResource]
 	// if Terraform needs to exceed the updated deadline.
 	//
 	// If this is not set then Terraform Core will not make any further
@@ -155,22 +155,22 @@ type RenewEphemeralResponse struct {
 	Diagnostics tfdiags.Diagnostics
 }
 
-// CloseEphemeralRequest represents the arguments for the CloseEphemeral
+// CloseEphemeralResourceRequest represents the arguments for the CloseEphemeralResource
 // operation on a provider.
-type CloseEphemeralRequest struct {
+type CloseEphemeralResourceRequest struct {
 	// TypeName is the type of ephemeral resource being closed. This should
 	// only be one of the type names previously sent in a successful
-	// [OpenEphemeralRequest].
+	// [OpenEphemeralResourceRequest].
 	TypeName string
 
 	// InternalContext echoes verbatim the value from the field of the same
-	// name from the corresponding [OpenEphemeralResponse] object.
+	// name from the corresponding [OpenEphemeralResourceResponse] object.
 	InternalContext []byte
 }
 
-// CloseEphemeralRequest represents the response from a CloseEphemeral
+// CloseEphemeralResourceRequest represents the response from a CloseEphemeralResource
 // operation on a provider.
-type CloseEphemeralResponse struct {
+type CloseEphemeralResourceResponse struct {
 	// Diagnostics describes any problems encountered while closing the
 	// ephemeral resource instance. If this contains errors then the other
 	// response fields must be assumed invalid.

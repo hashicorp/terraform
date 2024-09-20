@@ -107,7 +107,7 @@ func (r *Resources) CloseInstances(ctx context.Context, configAddr addrs.ConfigR
 	var diags tfdiags.Diagnostics
 
 	// Use a read-lock here so we can run multiple close calls concurrently for
-	// different resources. This needs to call CloseEphemeral which is sent to
+	// different resources. This needs to call CloseEphemeralResource which is sent to
 	// the provider and can take an unknown amount of time.
 	r.mu.RLock()
 	for _, elem := range r.active.Get(configAddr).Elems {

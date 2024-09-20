@@ -94,18 +94,22 @@ type MockProvider struct {
 	ReadDataSourceRequest  providers.ReadDataSourceRequest
 	ReadDataSourceFn       func(providers.ReadDataSourceRequest) providers.ReadDataSourceResponse
 
-	OpenEphemeralCalled    bool
-	OpenEphemeralResponse  *providers.OpenEphemeralResponse
-	OpenEphemeralRequest   providers.OpenEphemeralRequest
-	OpenEphemeralFn        func(providers.OpenEphemeralRequest) providers.OpenEphemeralResponse
-	RenewEphemeralCalled   bool
-	RenewEphemeralResponse *providers.RenewEphemeralResponse
-	RenewEphemeralRequest  providers.RenewEphemeralRequest
-	RenewEphemeralFn       func(providers.RenewEphemeralRequest) providers.RenewEphemeralResponse
-	CloseEphemeralCalled   bool
-	CloseEphemeralResponse *providers.CloseEphemeralResponse
-	CloseEphemeralRequest  providers.CloseEphemeralRequest
-	CloseEphemeralFn       func(providers.CloseEphemeralRequest) providers.CloseEphemeralResponse
+	ValidateEphemeralResourceConfigCalled   bool
+	ValidateEphemeralResourceConfigResponse *providers.ValidateEphemeralResourceConfigResponse
+	ValidateEphemeralResourceConfigRequest  providers.ValidateEphemeralResourceConfigRequest
+	ValidateEphemeralResourceConfigFn       func(providers.ValidateEphemeralResourceConfigRequest) providers.ValidateEphemeralResourceConfigResponse
+	OpenEphemeralResourceCalled             bool
+	OpenEphemeralResourceResponse           *providers.OpenEphemeralResourceResponse
+	OpenEphemeralResourceRequest            providers.OpenEphemeralResourceRequest
+	OpenEphemeralResourceFn                 func(providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse
+	RenewEphemeralResourceCalled            bool
+	RenewEphemeralResourceResponse          *providers.RenewEphemeralResourceResponse
+	RenewEphemeralResourceRequest           providers.RenewEphemeralResourceRequest
+	RenewEphemeralResourceFn                func(providers.RenewEphemeralResourceRequest) providers.RenewEphemeralResourceResponse
+	CloseEphemeralResourceCalled            bool
+	CloseEphemeralResourceResponse          *providers.CloseEphemeralResourceResponse
+	CloseEphemeralResourceRequest           providers.CloseEphemeralResourceRequest
+	CloseEphemeralResourceFn                func(providers.CloseEphemeralResourceRequest) providers.CloseEphemeralResourceResponse
 
 	CallFunctionCalled   bool
 	CallFunctionResponse providers.CallFunctionResponse
@@ -213,6 +217,36 @@ func (p *MockProvider) ValidateDataResourceConfig(r providers.ValidateDataResour
 
 	if p.ValidateDataResourceConfigResponse != nil {
 		return *p.ValidateDataResourceConfigResponse
+	}
+
+	return resp
+}
+
+func (p *MockProvider) ValidateEphemeralResourceConfig(r providers.ValidateEphemeralResourceConfigRequest) (resp providers.ValidateEphemeralResourceConfigResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.ValidateEphemeralResourceConfigCalled = true
+	p.ValidateEphemeralResourceConfigRequest = r
+
+	// Marshall the value to replicate behavior by the GRPC protocol
+	dataSchema, ok := p.getProviderSchema().EphemeralTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
+		return resp
+	}
+	_, err := msgpack.Marshal(r.Config, dataSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	if p.ValidateDataResourceConfigFn != nil {
+		return p.ValidateEphemeralResourceConfigFn(r)
+	}
+
+	if p.ValidateDataResourceConfigResponse != nil {
+		return *p.ValidateEphemeralResourceConfigResponse
 	}
 
 	return resp
@@ -566,70 +600,70 @@ func (p *MockProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 	return resp
 }
 
-func (p *MockProvider) OpenEphemeral(r providers.OpenEphemeralRequest) (resp providers.OpenEphemeralResponse) {
+func (p *MockProvider) OpenEphemeralResource(r providers.OpenEphemeralResourceRequest) (resp providers.OpenEphemeralResourceResponse) {
 	p.Lock()
 	defer p.Unlock()
 
 	if !p.ConfigureProviderCalled {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before OpenEphemeral %q", r.TypeName))
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before OpenEphemeralResource %q", r.TypeName))
 		return resp
 	}
 
-	p.OpenEphemeralCalled = true
-	p.OpenEphemeralRequest = r
+	p.OpenEphemeralResourceCalled = true
+	p.OpenEphemeralResourceRequest = r
 
-	if p.OpenEphemeralFn != nil {
-		return p.OpenEphemeralFn(r)
+	if p.OpenEphemeralResourceFn != nil {
+		return p.OpenEphemeralResourceFn(r)
 	}
 
-	if p.OpenEphemeralResponse != nil {
-		resp = *p.OpenEphemeralResponse
+	if p.OpenEphemeralResourceResponse != nil {
+		resp = *p.OpenEphemeralResourceResponse
 	}
 
 	return resp
 }
 
-func (p *MockProvider) RenewEphemeral(r providers.RenewEphemeralRequest) (resp providers.RenewEphemeralResponse) {
+func (p *MockProvider) RenewEphemeralResource(r providers.RenewEphemeralResourceRequest) (resp providers.RenewEphemeralResourceResponse) {
 	p.Lock()
 	defer p.Unlock()
 
 	if !p.ConfigureProviderCalled {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before RenewEphemeral %q", r.TypeName))
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before RenewEphemeralResource %q", r.TypeName))
 		return resp
 	}
 
-	p.RenewEphemeralCalled = true
-	p.RenewEphemeralRequest = r
+	p.RenewEphemeralResourceCalled = true
+	p.RenewEphemeralResourceRequest = r
 
-	if p.RenewEphemeralFn != nil {
-		return p.RenewEphemeralFn(r)
+	if p.RenewEphemeralResourceFn != nil {
+		return p.RenewEphemeralResourceFn(r)
 	}
 
-	if p.RenewEphemeralResponse != nil {
-		resp = *p.RenewEphemeralResponse
+	if p.RenewEphemeralResourceResponse != nil {
+		resp = *p.RenewEphemeralResourceResponse
 	}
 
 	return resp
 }
 
-func (p *MockProvider) CloseEphemeral(r providers.CloseEphemeralRequest) (resp providers.CloseEphemeralResponse) {
+func (p *MockProvider) CloseEphemeralResource(r providers.CloseEphemeralResourceRequest) (resp providers.CloseEphemeralResourceResponse) {
 	p.Lock()
 	defer p.Unlock()
 
 	if !p.ConfigureProviderCalled {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before CloseEphemeral %q", r.TypeName))
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before CloseEphemeralResource %q", r.TypeName))
 		return resp
 	}
 
-	p.CloseEphemeralCalled = true
-	p.CloseEphemeralRequest = r
+	p.CloseEphemeralResourceCalled = true
+	p.CloseEphemeralResourceRequest = r
 
-	if p.CloseEphemeralFn != nil {
-		return p.CloseEphemeralFn(r)
+	if p.CloseEphemeralResourceFn != nil {
+		return p.CloseEphemeralResourceFn(r)
 	}
 
-	if p.CloseEphemeralResponse != nil {
-		resp = *p.CloseEphemeralResponse
+	if p.CloseEphemeralResourceResponse != nil {
+		resp = *p.CloseEphemeralResourceResponse
 	}
 
 	return resp
