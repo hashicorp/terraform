@@ -19,8 +19,8 @@ on the S3 bucket to allow for state recovery in the case of accidental deletions
 ```hcl
 terraform {
   backend "s3" {
-    bucket = "mybucket"
-    key    = "path/to/my/key"
+    bucket = "example-bucket"
+    key    = "path/to/state"
     region = "us-east-1"
   }
 }
@@ -118,9 +118,8 @@ This is seen in the following AWS IAM Statement:
 
 ## Data Source Configuration
 
-To make use of the S3 remote state in another configuration, use the
-[`terraform_remote_state` data
-source](/terraform/language/state/remote-state-data).
+To make use of the S3 remote state in another configuration,
+use the [`terraform_remote_state` data source](/terraform/language/state/remote-state-data).
 
 ```hcl
 data "terraform_remote_state" "network" {
@@ -258,8 +257,8 @@ Multiple `assume_role` values can be specified, and the roles will be assumed in
 ```terraform
 terraform {
   backend "s3" {
-    bucket = "terraform-state-prod"
-    key    = "network/terraform.tfstate"
+    bucket = "example-bucket"
+    key    = "path/to/state"
     region = "us-east-1"
     assume_role = {
       role_arn = "arn:aws:iam::PRODUCTION-ACCOUNT-ID:role/Terraform"
@@ -292,8 +291,8 @@ The following `assume_role_with_web_identity` configuration block is optional:
 ```terraform
 terraform {
   backend "s3" {
-    bucket = "terraform-state-prod"
-    key    = "network/terraform.tfstate"
+    bucket = "example-bucket"
+    key    = "path/to/state"
     region = "us-east-1"
     assume_role_with_web_identity = {
       role_arn           = "arn:aws:iam::PRODUCTION-ACCOUNT-ID:role/Terraform"
@@ -532,17 +531,17 @@ to only a single state object within an S3 bucket is shown below:
     {
       "Effect": "Allow",
       "Action": "s3:ListBucket",
-      "Resource": "arn:aws:s3:::BucketName",
+      "Resource": "arn:aws:s3:::example-bucket",
       "Condition": {
         "StringEquals": {
-          "s3:prefix": "myapp/production/tfstate"
+          "s3:prefix": "path/to/state"
         }
       }
     },
     {
       "Effect": "Allow",
       "Action": ["s3:GetObject", "s3:PutObject"],
-      "Resource": "arn:aws:s3:::BucketName/myapp/production/tfstate"
+      "Resource": "arn:aws:s3:::example-bucket/myapp/production/tfstate"
     }
   ]
 }
@@ -553,8 +552,8 @@ The example backend configuration below documents the corresponding `bucket` and
 ```hcl
 terraform {
   backend "s3" {
-    bucket = "BucketName"
-    key    = "myapp/production/tfstate"
+    bucket = "example-bucket"
+    key    = "path/to/state"
     region = "us-east-1"
   }
 }
@@ -576,12 +575,12 @@ For example, you can use the `dynamodb:LeadingKeys` condition key to match on th
         "dynamodb:GetItem",
         "dynamodb:PutItem"
       ],
-      "Resource": "arn:aws:dynamodb:us-east-1:12341234:table/TableName",
+      "Resource": "arn:aws:dynamodb:us-east-1:12341234:table/example-table",
       "Condition": {
         "ForAllValues:StringEquals": {
           "dynamodb:LeadingKeys": [
-            "BucketName/myapp/production/tfstate",
-            "BucketName/myapp/production/tfstate-md5"
+            "example-bucket/path/to/state",
+            "example-bucket/path/to/state-md5"
           ]
         }
       }
@@ -597,10 +596,10 @@ The example backend configuration below documents the corresponding arguments:
 ```hcl
 terraform {
   backend "s3" {
-    bucket         = "BucketName"
-    key            = "myapp/production/tfstate"
+    bucket         = "example-bucket"
+    key            = "path/to/state"
     region         = "us-east-1"
-    dynamodb_table = "TableName"
+    dynamodb_table = "example-table"
   }
 }
 ```
