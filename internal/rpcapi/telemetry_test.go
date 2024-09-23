@@ -194,6 +194,9 @@ func TestTelemetryInTests(t *testing.T) {
 			InstrumentationLibrary: instrumentation.Scope{
 				Name: "test thingy",
 			},
+			InstrumentationScope: instrumentation.Scope{
+				Name: "test thingy",
+			},
 		},
 		{
 			Name:           "parent span",
@@ -204,6 +207,9 @@ func TestTelemetryInTests(t *testing.T) {
 			ChildSpanCount: 1,
 			Resource:       testResource,
 			InstrumentationLibrary: instrumentation.Scope{
+				Name: "test thingy",
+			},
+			InstrumentationScope: instrumentation.Scope{
 				Name: "test thingy",
 			},
 		},

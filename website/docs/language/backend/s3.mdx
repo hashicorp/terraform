@@ -253,6 +253,7 @@ The argument `assume_role` contains the following arguments:
 * `tags` - (Optional) Map of assume role session tags.
 * `transitive_tag_keys` - (Optional) Set of assume role session tag keys to pass to any subsequent sessions.
 
+Multiple `assume_role` values can be specified, and the roles will be assumed in order.
 
 ```terraform
 terraform {
