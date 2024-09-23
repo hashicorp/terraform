@@ -50,7 +50,7 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) tfdiags.
 		return diags
 	}
 
-	resources := ctx.EphemeralResources()
+	ephemerals := ctx.EphemeralResources()
 	allInsts := ctx.InstanceExpander()
 	keyData := allInsts.GetResourceInstanceRepetitionData(inp.addr)
 
@@ -72,11 +72,12 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) tfdiags.
 	}
 	unmarkedConfigVal, configMarks := configVal.UnmarkDeepWithPaths()
 
-	diags = diags.Append(provider.ValidateEphemeralResourceConfig(providers.ValidateEphemeralResourceConfigRequest{
+	validateResp := provider.ValidateEphemeralResourceConfig(providers.ValidateEphemeralResourceConfigRequest{
 		TypeName: inp.addr.Resource.Resource.Type,
 		Config:   unmarkedConfigVal,
-	}))
+	})
 
+	diags = diags.Append(validateResp.Diagnostics)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -128,7 +129,7 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) tfdiags.
 	// down?
 	// TODO: The context Stopped channel should probably be updated
 	// finally to a Context
-	resources.RegisterInstance(context.TODO(), inp.addr, ephemeral.ResourceInstanceRegistration{
+	ephemerals.RegisterInstance(context.TODO(), inp.addr, ephemeral.ResourceInstanceRegistration{
 		Value:        resultVal,
 		ConfigBody:   config.Config,
 		Impl:         impl,

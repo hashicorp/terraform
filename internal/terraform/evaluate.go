@@ -541,6 +541,8 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// (We can't get in here for a single-instance resource because in that
 			// case we would know that there's only one key and it's addrs.NoKey,
 			// so we'll fall through to the other logic below.)
+			//
+			// FIXME: this could catch ephemeral values too
 			return cty.DynamicVal, diags
 		}
 	}
