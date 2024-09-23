@@ -64,6 +64,7 @@ type diagValidator func(*testing.T, tfdiags.Diagnostic)
 
 func ExpectDiags(validators ...diagValidator) DiagsValidator {
 	return func(t *testing.T, diags tfdiags.Diagnostics) {
+		t.Helper()
 		count := len(validators)
 		if l := len(diags); l < count {
 			count = l
@@ -79,6 +80,7 @@ func ExpectDiags(validators ...diagValidator) DiagsValidator {
 
 func diagMatching(severity tfdiags.Severity, summary matcher, detail matcher) diagValidator {
 	return func(t *testing.T, diag tfdiags.Diagnostic) {
+		t.Helper()
 		if severity != diag.Severity() || !summary.Match(diag.Description().Summary) || !detail.Match(diag.Description().Detail) {
 			t.Errorf("expected Diagnostic matching %#v, got %#v",
 				tfdiags.Sourceless(
@@ -1069,6 +1071,45 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 					newRegexpMatcher(`IAM Role \(.+\) cannot be assumed.`),
 				),
 			),
+		},
+
+		"empty role_arn": {
+			config: map[string]any{
+				"access_key": servicemocks.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+				"assume_role": []any{
+					map[string]any{
+						"role_arn": "",
+					},
+				},
+			},
+			ValidateDiags: ExpectDiagsEqual(tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					"The value cannot be empty or all whitespace",
+					cty.GetAttrPath("assume_role").IndexInt(0).GetAttr("role_arn"),
+				),
+			}),
+		},
+
+		"nil role_arn": {
+			config: map[string]any{
+				"access_key": servicemocks.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+				"assume_role": []any{
+					map[string]any{
+						"role_arn": nil,
+					},
+				},
+			},
+			ValidateDiags: ExpectDiagsEqual(tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Missing Required Value",
+					`The attribute "assume_role[0].role_arn" is required by the backend.`+"\n\n"+
+						"Refer to the backend documentation for additional information which attributes are required.",
+					cty.GetAttrPath("assume_role").IndexInt(0).GetAttr("role_arn"),
+				),
+			}),
 		},
 	}
 

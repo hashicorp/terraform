@@ -298,6 +298,7 @@ var assumeRoleSchema = listNestedAttribute{
 				},
 				validateString{
 					Validators: []stringValidator{
+						validateStringNotEmpty,
 						validateARN(
 							validateIAMRoleARN,
 						),
@@ -421,6 +422,7 @@ var assumeRoleWithWebIdentitySchema = singleNestedAttribute{
 			},
 			validateString{
 				Validators: []stringValidator{
+					validateStringNotEmpty,
 					validateARN(
 						validateIAMRoleARN,
 					),
@@ -1436,19 +1438,19 @@ func validateNestedObject(objSchema nestedObjectSchema, val cty.Value, path cty.
 		attrPath := path.GetAttr(name)
 		attrVal := val.GetAttr(name)
 
+		if attrVal.IsNull() {
+			if attrSchema.SchemaAttribute().Required {
+				*diags = diags.Append(requiredAttributeErrDiag(attrPath))
+			}
+			continue
+		}
+
 		if a, e := attrVal.Type(), attrSchema.SchemaAttribute().Type; a != e {
 			*diags = diags.Append(attributeErrDiag(
 				"Internal Error",
 				fmt.Sprintf(`Expected type to be %s, got: %s`, e.FriendlyName(), a.FriendlyName()),
 				attrPath,
 			))
-			continue
-		}
-
-		if attrVal.IsNull() {
-			if attrSchema.SchemaAttribute().Required {
-				*diags = diags.Append(requiredAttributeErrDiag(attrPath))
-			}
 			continue
 		}
 

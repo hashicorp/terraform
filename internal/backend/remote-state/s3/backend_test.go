@@ -2471,6 +2471,26 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 			},
 		},
 
+		"nil role_arn": {
+			config: map[string]cty.Value{},
+			expectedDiags: tfdiags.Diagnostics{
+				requiredAttributeErrDiag(path.IndexInt(0).GetAttr("role_arn")),
+			},
+		},
+
+		"empty role_arn": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal(""),
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					"The value cannot be empty or all whitespace",
+					path.IndexInt(0).GetAttr("role_arn"),
+				),
+			},
+		},
+
 		"with duration": {
 			config: map[string]cty.Value{
 				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
