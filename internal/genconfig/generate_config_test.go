@@ -600,6 +600,94 @@ resource "tfcoremock_sensitive_values" "values" {
   string       = null # sensitive
 }`,
 		},
+		"simple_map_with_whitespace_in_keys": {
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"map": {
+						Type:     cty.Map(cty.String),
+						Optional: true,
+					},
+				},
+			},
+			addr: addrs.AbsResourceInstance{
+				Module: addrs.RootModuleInstance,
+				Resource: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "resource",
+					},
+					Key: addrs.NoKey,
+				},
+			},
+			provider: addrs.LocalProviderConfig{
+				LocalName: "testing",
+			},
+			value: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"key with spaces":      cty.StringVal("spaces"),
+					"key_with_underscores": cty.StringVal("underscores"),
+				}),
+			}),
+			expected: `resource "testing_resource" "resource" {
+  map = {
+    "key with spaces"    = "spaces"
+    key_with_underscores = "underscores"
+  }
+}`,
+		},
+		"nested_map_with_whitespace_in_keys": {
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"map": {
+						NestedType: &configschema.Object{
+							Attributes: map[string]*configschema.Attribute{
+								"value": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+							Nesting: configschema.NestingMap,
+						},
+						Optional: true,
+					},
+				},
+			},
+			addr: addrs.AbsResourceInstance{
+				Module: addrs.RootModuleInstance,
+				Resource: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "resource",
+					},
+					Key: addrs.NoKey,
+				},
+			},
+			provider: addrs.LocalProviderConfig{
+				LocalName: "testing",
+			},
+			value: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"key with spaces": cty.ObjectVal(map[string]cty.Value{
+						"value": cty.StringVal("spaces"),
+					}),
+					"key_with_underscores": cty.ObjectVal(map[string]cty.Value{
+						"value": cty.StringVal("underscores"),
+					}),
+				}),
+			}),
+			expected: `resource "testing_resource" "resource" {
+  map = {
+    "key with spaces" = {
+      value = "spaces"
+    }
+    key_with_underscores = {
+      value = "underscores"
+    }
+  }
+}`,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
