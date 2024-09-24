@@ -483,16 +483,6 @@ If you do intend to export this data, annotate the output value as sensitive by 
 		return diags
 	}
 
-	if val.RawEquals(cty.DynamicVal) && n.Config.Ephemeral {
-		// FIXME: During validation ephemeral resources can't be evaluated, and
-		// will result in a DynamicVal. HCL however may not always return marks
-		// here, because traversing into a dynamic value immediately returns a
-		// raw cty.DynamicVal. This should probably be fixed in HCL, however we
-		// need to take care because it has implications for all marks, and
-		// dynamic object attributes.
-		val = val.Mark(marks.Ephemeral)
-	}
-
 	// The checks below this point are intentionally not opted out by
 	// "flagWarnOutputErrors", because they relate to features that were added
 	// more recently than the historical change to treat invalid output values
