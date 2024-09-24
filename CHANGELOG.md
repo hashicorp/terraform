@@ -1,5 +1,9 @@
 ## 1.9.7 (Unreleased)
 
+BUG FIXES:
+
+* config generation: escape map keys with whitespaces ([#35754](https://github.com/hashicorp/terraform/pull/35754))
+
 ## 1.9.6 (September 18, 2024)
 
 BUG FIXES:
