@@ -87,7 +87,14 @@ func TestAddRaw(t *testing.T) {
 				return
 			}
 
-			if diff := cmp.Diff(test.Want, loader.ret, ctydebug.CmpOptions, cmpCollectionsSet[stackaddrs.InputVariable](), cmpCollectionsMap[stackaddrs.AbsComponentInstance, *Component]()); diff != "" {
+			opts := cmp.Options{
+				ctydebug.CmpOptions,
+				cmpCollectionsSet[stackaddrs.InputVariable](),
+				cmpCollectionsSet[stackaddrs.OutputValue](),
+				cmpCollectionsSet[stackaddrs.AbsComponentInstance](),
+				cmpCollectionsMap[stackaddrs.AbsComponentInstance, *Component](),
+			}
+			if diff := cmp.Diff(test.Want, loader.ret, opts...); diff != "" {
 				t.Errorf("AddRaw() mismatch (-want +got):\n%s", diff)
 			}
 		})

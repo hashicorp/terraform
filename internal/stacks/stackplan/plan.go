@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
@@ -32,6 +33,13 @@ type Plan struct {
 	// the planning process did not entirely run.
 	Applyable bool
 
+	// Complete is true for a plan that shouldn't need any follow-up plans to
+	// converge.
+	Complete bool
+
+	// Mode is the original mode of the plan.
+	Mode plans.Mode
+
 	// The raw representation of the raw state that was provided in the request
 	// to create the plan. We use this primarily to perform mundane state
 	// data structure maintenence operations, such as discarding keys that
@@ -49,10 +57,29 @@ type Plan struct {
 	// instead of being persisted in [Plan.RootInputValues].
 	ApplyTimeInputVariables collections.Set[stackaddrs.InputVariable]
 
+	// DeletedInputVariables tracks the set of input variables that are being
+	// deleted by this plan. The apply operation will miss any values
+	// that are not defined in the configuration, but should still emit
+	// deletion events to remove them from the state.
+	DeletedInputVariables collections.Set[stackaddrs.InputVariable]
+
+	// DeletedOutputValues tracks the set of output values that are being
+	// deleted by this plan. The apply operation will miss any output values
+	// that are not defined in the configuration, but should still emit
+	// deletion events to remove them from the state. Output values not being
+	// deleted will be recomputed during the apply so are not needed.
+	DeletedOutputValues collections.Set[stackaddrs.OutputValue]
+
 	// Components contains the separate plans for each of the compoonent
 	// instances defined in the overall stack configuration, including any
 	// nested component instances from embedded stacks.
 	Components collections.Map[stackaddrs.AbsComponentInstance, *Component]
+
+	// DeletedComponents are a set of components that are in the state that
+	// should just be removed without any apply operation. This is typically
+	// because they are not referenced in the configuration and have no
+	// associated resources.
+	DeletedComponents collections.Set[stackaddrs.AbsComponentInstance]
 
 	// ProviderFunctionResults is a shared table of results from calling
 	// provider functions. This is stored and loaded from during the planning
@@ -61,6 +88,23 @@ type Plan struct {
 
 	// PlanTimestamp is the time at which the plan was created.
 	PlanTimestamp time.Time
+}
+
+// ComponentInstances returns a set of the component instances that belong to
+// the given component.
+func (p *Plan) ComponentInstances(addr stackaddrs.AbsComponent) collections.Set[stackaddrs.ComponentInstance] {
+	ret := collections.NewSet[stackaddrs.ComponentInstance]()
+	for _, elem := range p.Components.Elems() {
+		if elem.K.Stack.String() != addr.Stack.String() {
+			// Then
+			continue
+		}
+		if elem.K.Item.Component.Name != addr.Item.Name {
+			continue
+		}
+		ret.Add(elem.K.Item)
+	}
+	return ret
 }
 
 // RequiredProviderInstances returns a description of all of the provider

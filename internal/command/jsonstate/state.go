@@ -221,6 +221,12 @@ func MarshalOutputs(outputs map[string]*states.OutputValue) (map[string]Output, 
 
 	ret := make(map[string]Output)
 	for k, v := range outputs {
+
+		if v.Ephemeral {
+			// should never happen
+			panic(fmt.Sprintf("Ephemeral output value %s passed to state.MarshalOutputs. This is a bug in Terraform - please report it.", k))
+		}
+
 		ty := v.Value.Type()
 		ov, err := ctyjson.Marshal(v.Value, ty)
 		if err != nil {

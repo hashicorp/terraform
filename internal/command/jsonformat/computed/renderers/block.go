@@ -138,7 +138,7 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 			// know about the replace function if it was set on them
 			// specifically, and not if it was set for all the blocks.
 			blockOpts := opts.Clone()
-			blockOpts.OverrideForcesReplacement = renderer.blocks.ReplaceBlocks[key]
+			blockOpts.ForceForcesReplacement = renderer.blocks.ReplaceBlocks[key]
 
 			for _, warning := range diff.WarningsHuman(indent+1, blockOpts) {
 				buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
@@ -157,18 +157,31 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 			}
 			sort.Strings(keys)
 
+			if renderer.blocks.UnknownBlocks[key] {
+				renderBlock(computed.NewDiff(Unknown(computed.Diff{}), diff.Action, false), "", opts)
+			}
+
 			for _, innerKey := range keys {
 				renderBlock(renderer.blocks.MapBlocks[key][innerKey], fmt.Sprintf(" %q", innerKey), opts)
 			}
 		case renderer.blocks.IsSetBlock(key):
 
 			setOpts := opts.Clone()
-			setOpts.OverrideForcesReplacement = diff.Replace
+			setOpts.ForceForcesReplacement = diff.Replace
+
+			if renderer.blocks.UnknownBlocks[key] {
+				renderBlock(computed.NewDiff(Unknown(computed.Diff{}), diff.Action, false), "", opts)
+			}
 
 			for _, block := range renderer.blocks.SetBlocks[key] {
 				renderBlock(block, "", opts)
 			}
 		case renderer.blocks.IsListBlock(key):
+
+			if renderer.blocks.UnknownBlocks[key] {
+				renderBlock(computed.NewDiff(Unknown(computed.Diff{}), diff.Action, false), "", opts)
+			}
+
 			for _, block := range renderer.blocks.ListBlocks[key] {
 				renderBlock(block, "", opts)
 			}

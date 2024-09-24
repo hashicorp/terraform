@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -5898,5 +5899,68 @@ resource "test_object" "a" {
 	if planResult.Status != checks.StatusUnknown {
 		// checks should not have been evaluated, because the variable is not required for destroy.
 		t.Errorf("expected checks to be pass but was %s", planResult.Status)
+	}
+}
+
+func TestContext2Plan_orphanOutput(t *testing.T) {
+	// ensure the planned replacement of the data source is evaluated properly
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+output "staying" {
+  value = "foo"
+}
+`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(mustAbsOutputValue("output.old"), cty.StringVal("old_value"), false)
+		s.SetOutputValue(mustAbsOutputValue("output.staying"), cty.StringVal("foo"), false)
+		s.SetEphemeralOutputValue(mustAbsOutputValue("output.old_ephemeral"), cty.NullVal(cty.String), false)
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	assertNoErrors(t, diags)
+
+	expectedChanges := &plans.Changes{
+		Outputs: []*plans.OutputChange{
+			{
+				Addr: mustAbsOutputValue("output.old"),
+				Change: plans.Change{
+					Action: plans.Delete,
+					Before: cty.StringVal("old_value"),
+					After:  cty.NullVal(cty.DynamicPseudoType),
+				},
+			},
+			{
+				Addr: mustAbsOutputValue("output.old_ephemeral"),
+				Change: plans.Change{
+					Action: plans.Delete,
+					Before: cty.NullVal(cty.String),
+					After:  cty.NullVal(cty.DynamicPseudoType),
+				},
+			},
+			{
+				Addr: mustAbsOutputValue("output.staying"),
+				Change: plans.Change{
+					Action: plans.NoOp,
+					Before: cty.StringVal("foo"),
+					After:  cty.StringVal("foo"),
+				},
+			},
+		},
+	}
+	changes, err := plan.Changes.Decode(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sort.SliceStable(changes.Outputs, func(i, j int) bool {
+		return changes.Outputs[i].Addr.String() < changes.Outputs[j].Addr.String()
+	})
+
+	if diff := cmp.Diff(expectedChanges, changes, ctydebug.CmpOptions); diff != "" {
+		t.Fatalf("unexpected changes: %s", diff)
 	}
 }

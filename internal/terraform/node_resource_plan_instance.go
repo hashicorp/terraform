@@ -496,7 +496,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		// here, if there was one.
 		if refreshDeferred != nil {
 			ctx.Deferrals().ReportResourceInstanceDeferred(addr, deferred.Reason, &plans.ResourceInstanceChange{
-				Addr: n.Addr,
+				Addr:         n.Addr,
+				PrevRunAddr:  n.Addr,
+				ProviderAddr: n.ResolvedProvider,
 				Change: plans.Change{
 					Action: plans.Read,
 					Before: priorInstanceRefreshState.Value,

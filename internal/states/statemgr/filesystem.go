@@ -251,6 +251,20 @@ func (s *Filesystem) GetRootOutputValues(ctx context.Context) (map[string]*state
 	return state.RootOutputValues, nil
 }
 
+func (s *Filesystem) GetEphemeralRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
+	err := s.RefreshState()
+	if err != nil {
+		return nil, err
+	}
+
+	state := s.State()
+	if state == nil {
+		state = states.NewState()
+	}
+
+	return state.EphemeralRootOutputValues, nil
+}
+
 func (s *Filesystem) refreshState() error {
 	var reader io.Reader
 

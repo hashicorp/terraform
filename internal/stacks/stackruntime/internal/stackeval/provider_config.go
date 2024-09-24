@@ -82,7 +82,7 @@ func (p *ProviderConfig) ProviderArgs(ctx context.Context, phase EvalPhase) cty.
 	return v
 }
 
-func CheckProviderInLockfile(locks depsfile.Locks, providerType *ProviderType, declRange tfdiags.SourceRange) (diags tfdiags.Diagnostics) {
+func CheckProviderInLockfile(locks depsfile.Locks, providerType *ProviderType, declRange *hcl.Range) (diags tfdiags.Diagnostics) {
 	if !depsfile.ProviderIsLockable(providerType.Addr()) {
 		return diags
 	}
@@ -95,7 +95,7 @@ func CheckProviderInLockfile(locks depsfile.Locks, providerType *ProviderType, d
 				"Provider %q is not in the lockfile. This provider must be in the lockfile to be used in the configuration. Please run `tfstacks providers lock` to update the lockfile and run this operation again with an updated configuration.",
 				providerType.Addr(),
 			),
-			Subject: declRange.ToHCL().Ptr(),
+			Subject: declRange,
 		})
 	}
 	return diags
@@ -114,7 +114,7 @@ func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase)
 			if depLocks != nil {
 				// Check if the provider is in the lockfile,
 				// if it is not we can not read the provider schema
-				lockfileDiags := CheckProviderInLockfile(*depLocks, providerType, decl.DeclRange)
+				lockfileDiags := CheckProviderInLockfile(*depLocks, providerType, decl.DeclRange.ToHCL().Ptr())
 				if lockfileDiags.HasErrors() {
 					return cty.DynamicVal, lockfileDiags
 				}
@@ -135,7 +135,7 @@ func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase)
 				return cty.DynamicVal, diags
 			}
 
-			client, err := providerType.UnconfiguredClient(ctx)
+			client, err := providerType.UnconfiguredClient()
 			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -148,7 +148,6 @@ func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase)
 				})
 				return cty.UnknownVal(hcldec.ImpliedType(spec)), diags
 			}
-			defer client.Close()
 
 			body := decl.Config
 			if body == nil {
@@ -210,7 +209,7 @@ func (p *ProviderConfig) ResolveExpressionReference(ctx context.Context, ref sta
 }
 
 // ExternalFunctions implements ExpressionScope.
-func (p *ProviderConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, func(), tfdiags.Diagnostics) {
+func (p *ProviderConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
 	return p.main.ProviderFunctions(ctx, p.main.StackConfig(ctx, p.Addr().Stack))
 }
 

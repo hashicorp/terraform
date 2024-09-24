@@ -11,7 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
-	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -243,20 +243,56 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 		return nil, diags
 	}
 
+	destroy := v.main.PlanningOpts().PlanningMode == plans.DestroyMode
+
+	before, beforeEphemeral := v.main.PlanPrevState().RootInputVariable(v.Addr().Item)
+
 	decl := v.Declaration(ctx)
-	val := v.Value(ctx, PlanPhase)
+	after := v.Value(ctx, PlanPhase)
 	requiredOnApply := false
 	if decl.Ephemeral {
 		// we don't persist the value for an ephemeral variable, but we
 		// do need to remember whether it was set.
-		requiredOnApply = !val.IsNull()
-		val = cty.NilVal
+		requiredOnApply = !after.IsNull()
+		after = cty.NilVal
 	}
+
+	var action plans.Action
+	if beforeEphemeral {
+		// We can't tell the difference between an Update and NoOp change for
+		// an ephemeral input so we just always mark it as updated.
+		action = plans.Update
+	} else if before != cty.NilVal {
+		if decl.Ephemeral {
+			// if the new value is ephemeral, and the old value wasn't, then
+			// we'll set the operation to an update even if the actual hasn't
+			// changed
+			action = plans.Update
+		} else if result := before.Equals(after); result.IsKnown() && result.True() {
+			// The values are definitely equal, so NoOp change.
+			action = plans.NoOp
+		} else {
+			// If we don't know for sure that the values are equal, then we'll
+			// call this an update.
+			action = plans.Update
+		}
+	} else {
+		action = plans.Create
+
+		// We think this is a brand new input variable so we'll also mark the
+		// before as being a null value (as opposed to NilVal which means it
+		// existed before but was ephemeral).
+		before = cty.NullVal(cty.DynamicPseudoType)
+	}
+
 	return []stackplan.PlannedChange{
 		&stackplan.PlannedChangeRootInputValue{
 			Addr:            v.Addr().Item,
-			Value:           val,
+			Action:          action,
+			Before:          before,
+			After:           after,
 			RequiredOnApply: requiredOnApply,
+			DeleteOnApply:   destroy,
 		},
 	}, diags
 }
@@ -287,14 +323,39 @@ func (v *InputVariable) References(ctx context.Context) []stackaddrs.AbsReferenc
 	return call.References(ctx)
 }
 
-// RequiredComponents implements Applyable
-func (v *InputVariable) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
-	return v.main.requiredComponentsForReferrer(ctx, v, PlanPhase)
-}
-
 // CheckApply implements Applyable.
 func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
-	return nil, v.checkValid(ctx, ApplyPhase)
+	if !v.Addr().Stack.IsRoot() {
+		return nil, v.checkValid(ctx, ApplyPhase)
+	}
+
+	diags := v.checkValid(ctx, ApplyPhase)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	if v.main.PlanBeingApplied().DeletedInputVariables.Has(v.Addr().Item) {
+		// If the plan being applied has this variable as being deleted, then
+		// we won't handle it here. This is usually the case during a destroy
+		// only plan in which we wanted to both capture the value for an input
+		// as we still need it, while also noting that everything is being
+		// destroyed.
+		return nil, diags
+	}
+
+	decl := v.Declaration(ctx)
+	value := v.Value(ctx, ApplyPhase)
+	if decl.Ephemeral {
+		value = cty.NilVal
+	}
+
+	return []stackstate.AppliedChange{
+		&stackstate.AppliedChangeInputVariable{
+			Addr:    v.Addr().Item,
+			Value:   value,
+			Removed: false,
+		},
+	}, diags
 }
 
 func (v *InputVariable) tracingName() string {

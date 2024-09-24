@@ -21,7 +21,7 @@ type DeferredTransformer struct {
 }
 
 func (t *DeferredTransformer) Transform(g *Graph) error {
-	if t.DeferredChanges == nil || len(t.DeferredChanges) == 0 {
+	if len(t.DeferredChanges) == 0 {
 		return nil
 	}
 

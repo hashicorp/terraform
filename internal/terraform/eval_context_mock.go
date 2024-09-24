@@ -152,6 +152,9 @@ type MockEvalContext struct {
 
 	OverridesCalled bool
 	OverrideValues  *mocking.Overrides
+
+	ForgetCalled bool
+	ForgetValues bool
 }
 
 // MockEvalContext implements EvalContext
@@ -401,4 +404,9 @@ func (c *MockEvalContext) InstanceExpander() *instances.Expander {
 func (c *MockEvalContext) Overrides() *mocking.Overrides {
 	c.OverridesCalled = true
 	return c.OverrideValues
+}
+
+func (c *MockEvalContext) Forget() bool {
+	c.ForgetCalled = true
+	return c.ForgetValues
 }

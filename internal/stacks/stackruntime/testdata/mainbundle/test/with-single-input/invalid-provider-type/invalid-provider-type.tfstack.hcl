@@ -26,3 +26,14 @@ component "self" {
     input = var.input
   }
 }
+
+removed {
+  from = component.removed
+
+  source = "../"
+
+  providers = {
+    // Everything looks okay here, but the provider types are actually wrong.
+    testing = provider.testing.default
+  }
+}

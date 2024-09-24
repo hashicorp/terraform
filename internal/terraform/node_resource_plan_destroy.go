@@ -6,11 +6,13 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // NodePlanDestroyableResourceInstance represents a resource that is ready
@@ -97,10 +99,10 @@ func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalCon
 	}
 
 	if deferred != nil {
-		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, &plans.ResourceInstanceChange{
-			Addr:   n.Addr,
-			Change: change.Change,
-		})
+		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, change)
+		return diags
+	} else if ctx.Deferrals().ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies) {
+		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
 		return diags
 	}
 

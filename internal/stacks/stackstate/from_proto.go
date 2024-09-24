@@ -12,13 +12,12 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
-	"github.com/hashicorp/terraform/internal/states"
 )
 
 // A helper for loading prior state snapshots in a streaming manner.
@@ -244,6 +243,12 @@ func handleProtoMsg(key statekeys.Key, msg protoreflect.ProtoMessage, state *Sta
 	case statekeys.ResourceInstanceObject:
 		return handleResourceInstanceObjectMsg(key, msg, state)
 
+	case statekeys.Output:
+		return handleOutputMsg(key, msg, state)
+
+	case statekeys.Variable:
+		return handleVariableMsg(key, msg, state)
+
 	default:
 		// Should not get here: the above should be exhaustive for all
 		// possible key types.
@@ -251,15 +256,86 @@ func handleProtoMsg(key statekeys.Key, msg protoreflect.ProtoMessage, state *Sta
 	}
 }
 
+func handleVariableMsg(key statekeys.Variable, msg protoreflect.ProtoMessage, state *State) error {
+	switch msg := msg.(type) {
+	case *emptypb.Empty:
+		state.addInputVariable(key.VariableAddr, cty.NilVal)
+		return nil
+	case *tfstackdata1.DynamicValue:
+		value, err := tfstackdata1.DynamicValueFromTFStackData1(msg, cty.DynamicPseudoType)
+		if err != nil {
+			return fmt.Errorf("failed to decode %s: %w", key.VariableAddr, err)
+		}
+		state.addInputVariable(key.VariableAddr, value)
+		return nil
+	default:
+		return fmt.Errorf("unsupported message type %T for %s state", msg, key.VariableAddr)
+	}
+}
+
+func handleOutputMsg(key statekeys.Output, msg protoreflect.ProtoMessage, state *State) error {
+	outputState, ok := msg.(*tfstackdata1.DynamicValue)
+	if !ok {
+		return fmt.Errorf("unsupported message type %T for %s state", msg, key.OutputAddr)
+	}
+
+	value, err := tfstackdata1.DynamicValueFromTFStackData1(outputState, cty.DynamicPseudoType)
+	if err != nil {
+		return fmt.Errorf("failed to decode %s: %w", key.OutputAddr, err)
+	}
+
+	state.addOutputValue(key.OutputAddr, value)
+	return nil
+}
+
 func handleComponentInstanceMsg(key statekeys.ComponentInstance, msg protoreflect.ProtoMessage, state *State) error {
 	// For this particular object type all of the information is in the key,
 	// for now at least.
-	_, ok := msg.(*tfstackdata1.StateComponentInstanceV1)
+	componentState, ok := msg.(*tfstackdata1.StateComponentInstanceV1)
 	if !ok {
 		return fmt.Errorf("unsupported message type %T for %s state", msg, key.ComponentInstanceAddr)
 	}
 
-	state.ensureComponentInstanceState(key.ComponentInstanceAddr)
+	instance := state.ensureComponentInstanceState(key.ComponentInstanceAddr)
+
+	for _, addr := range componentState.DependencyAddrs {
+		stackaddr, diags := stackaddrs.ParseAbsComponentInstanceStr(addr)
+		if diags.HasErrors() {
+			return fmt.Errorf("invalid required component address %q for %s", addr, key.ComponentInstanceAddr)
+		}
+		instance.dependencies.Add(stackaddrs.AbsComponent{
+			Stack: stackaddr.Stack,
+			Item:  stackaddr.Item.Component,
+		})
+	}
+
+	for _, addr := range componentState.DependentAddrs {
+		stackaddr, diags := stackaddrs.ParseAbsComponentInstanceStr(addr)
+		if diags.HasErrors() {
+			return fmt.Errorf("invalid required component address %q for %s", addr, key.ComponentInstanceAddr)
+		}
+		instance.dependents.Add(stackaddrs.AbsComponent{
+			Stack: stackaddr.Stack,
+			Item:  stackaddr.Item.Component,
+		})
+	}
+
+	for name, output := range componentState.OutputValues {
+		value, err := tfstackdata1.DynamicValueFromTFStackData1(output, cty.DynamicPseudoType)
+		if err != nil {
+			return fmt.Errorf("decoding output value %q for %s: %w", name, key.ComponentInstanceAddr, err)
+		}
+		instance.outputValues[addrs.OutputValue{Name: name}] = value
+	}
+
+	for name, input := range componentState.InputVariables {
+		value, err := tfstackdata1.DynamicValueFromTFStackData1(input, cty.DynamicPseudoType)
+		if err != nil {
+			return fmt.Errorf("decoding input value %q for %s: %w", name, key.ComponentInstanceAddr, err)
+		}
+		instance.inputVariables[addrs.InputVariable{Name: name}] = value
+	}
+
 	return nil
 }
 
@@ -277,7 +353,7 @@ func handleResourceInstanceObjectMsg(key statekeys.ResourceInstanceObject, msg p
 		return fmt.Errorf("unsupported message type %T for state of %s", msg, fullAddr.String())
 	}
 
-	objSrc, err := DecodeProtoResourceInstanceObject(riMsg)
+	objSrc, err := tfstackdata1.DecodeProtoResourceInstanceObject(riMsg)
 	if err != nil {
 		return fmt.Errorf("invalid stored state object for %s: %w", fullAddr, err)
 	}
@@ -289,51 +365,4 @@ func handleResourceInstanceObjectMsg(key statekeys.ResourceInstanceObject, msg p
 
 	state.addResourceInstanceObject(fullAddr, objSrc, providerConfigAddr)
 	return nil
-}
-
-func DecodeProtoResourceInstanceObject(protoObj *tfstackdata1.StateResourceInstanceObjectV1) (*states.ResourceInstanceObjectSrc, error) {
-	objSrc := &states.ResourceInstanceObjectSrc{
-		SchemaVersion:       protoObj.SchemaVersion,
-		AttrsJSON:           protoObj.ValueJson,
-		CreateBeforeDestroy: protoObj.CreateBeforeDestroy,
-		Private:             protoObj.ProviderSpecificData,
-	}
-
-	switch protoObj.Status {
-	case tfstackdata1.StateResourceInstanceObjectV1_READY:
-		objSrc.Status = states.ObjectReady
-	case tfstackdata1.StateResourceInstanceObjectV1_DAMAGED:
-		objSrc.Status = states.ObjectTainted
-	default:
-		return nil, fmt.Errorf("unsupported status %s", protoObj.Status.String())
-	}
-
-	paths := make([]cty.Path, 0, len(protoObj.SensitivePaths))
-	for _, p := range protoObj.SensitivePaths {
-		path, err := planfile.PathFromProto(p)
-		if err != nil {
-			return nil, err
-		}
-		paths = append(paths, path)
-	}
-	objSrc.AttrSensitivePaths = paths
-
-	if len(protoObj.Dependencies) != 0 {
-		objSrc.Dependencies = make([]addrs.ConfigResource, len(protoObj.Dependencies))
-		for i, raw := range protoObj.Dependencies {
-			instAddr, diags := addrs.ParseAbsResourceInstanceStr(raw)
-			if diags.HasErrors() {
-				return nil, fmt.Errorf("invalid dependency %q", raw)
-			}
-			// We used the resource instance address parser here but we
-			// actually want the "config resource" subset of that syntax only.
-			configAddr := instAddr.ConfigResource()
-			if configAddr.String() != instAddr.String() {
-				return nil, fmt.Errorf("invalid dependency %q", raw)
-			}
-			objSrc.Dependencies[i] = configAddr
-		}
-	}
-
-	return objSrc, nil
 }

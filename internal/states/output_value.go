@@ -16,4 +16,5 @@ type OutputValue struct {
 	Addr      addrs.AbsOutputValue
 	Value     cty.Value
 	Sensitive bool
+	Ephemeral bool
 }

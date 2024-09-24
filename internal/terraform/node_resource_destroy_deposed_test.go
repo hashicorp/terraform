@@ -6,12 +6,14 @@ package terraform
 import (
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
@@ -127,6 +129,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 		ProviderProvider:     p,
 		ProviderSchemaSchema: schema,
 		ChangesChanges:       plans.NewChanges().SyncWrapper(),
+		DeferralsState:       deferring.NewDeferred(false),
 	}
 
 	node := NodeDestroyDeposedResourceInstanceObject{

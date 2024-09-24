@@ -412,9 +412,7 @@ func (b *Cloud) checkPolicy(stopCtx, cancelCtx context.Context, op *backendrun.O
 				}
 				err = b.confirm(stopCtx, op, opts, r, "override")
 				if err != nil && err != errRunOverridden {
-					return fmt.Errorf(
-						fmt.Sprintf("Failed to override: %s\n%s\n", err.Error(), runURL),
-					)
+					return fmt.Errorf("Failed to override: %w\n%s\n", err, runURL)
 				}
 
 				if err != errRunOverridden {

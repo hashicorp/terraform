@@ -5,6 +5,8 @@ package testing
 
 import (
 	"fmt"
+	"runtime/debug"
+	"testing"
 
 	"github.com/hashicorp/go-uuid"
 	"github.com/zclconf/go-cty/cty"
@@ -41,6 +43,14 @@ var (
 		},
 	}
 
+	BlockedResourceSchema = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id":                 {Type: cty.String, Optional: true, Computed: true},
+			"value":              {Type: cty.String, Optional: true},
+			"required_resources": {Type: cty.Set(cty.String), Optional: true},
+		},
+	}
+
 	TestingDataSourceSchema = &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
 			"id":    {Type: cty.String, Required: true},
@@ -55,29 +65,55 @@ type MockProvider struct {
 	*testing_provider.MockProvider
 
 	ResourceStore *ResourceStore
+
+	// If set, authentication means the configuration must provide a value
+	// that matches the value here otherwise the Configure function will
+	// fail.
+	Authentication string
 }
 
 // NewProvider returns a new MockProvider with an empty data store.
-func NewProvider() *MockProvider {
-	return NewProviderWithData(NewResourceStore())
+func NewProvider(t *testing.T) *MockProvider {
+	provider := NewProviderWithData(t, NewResourceStore())
+	return provider
 }
 
 // NewProviderWithData returns a new MockProvider with the given data store.
-func NewProviderWithData(store *ResourceStore) *MockProvider {
+func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 	if store == nil {
 		store = NewResourceStore()
 	}
 
-	return &MockProvider{
+	// grab the current stack trace so we know where the provider was created
+	// in case it isn't being cleaned up properly
+	currentStackTrace := debug.Stack()
+
+	provider := &MockProvider{
 		MockProvider: &testing_provider.MockProvider{
 			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 				Provider: providers.Schema{
 					Block: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
+							// if the provider sets the authentication attribute,
+							// then it must match the internal Authentication
+							// value for the provider.
+							"authentication": {
+								Type:      cty.String,
+								Sensitive: true,
+								Optional:  true,
+							},
+
+							// If this value is provider, the Configure
+							// function call will fail and return the value
+							// here as part of the error.
 							"configure_error": {
 								Type:     cty.String,
 								Optional: true,
 							},
+
+							// ignored allows the configuration to create
+							// dependencies from this provider to component
+							// blocks and inputs without affecting behaviour.
 							"ignored": {
 								Type:     cty.String,
 								Optional: true,
@@ -94,6 +130,9 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 					},
 					"testing_failed_resource": {
 						Block: FailedResourceSchema,
+					},
+					"testing_blocked_resource": {
+						Block: BlockedResourceSchema,
 					},
 				},
 				DataSources: map[string]providers.Schema{
@@ -113,134 +152,14 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 					MoveResourceState: true,
 				},
 			},
-			ConfigureProviderFn: func(request providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
-				// If configure_error is set, return an error.
-				err := request.Config.GetAttr("configure_error")
-				if err.IsKnown() && !err.IsNull() {
-					return providers.ConfigureProviderResponse{
-						Diagnostics: tfdiags.Diagnostics{
-							tfdiags.AttributeValue(tfdiags.Error, err.AsString(), "configure_error attribute was set", cty.GetAttrPath("configure_error")),
-						},
-					}
-				}
-				return providers.ConfigureProviderResponse{}
-			},
 			PlanResourceChangeFn: func(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
-				if request.ProposedNewState.IsNull() {
-					// Deleting, so just return the proposed change.
-					return providers.PlanResourceChangeResponse{
-						PlannedState: request.ProposedNewState,
-					}
-				}
-
-				// We're creating or updating, so we need to return the new
-				// state with any computed values filled in.
-
-				value := request.ProposedNewState
-				if id := value.GetAttr("id"); id.IsNull() {
-					vals := value.AsValueMap()
-					vals["id"] = cty.UnknownVal(cty.String)
-					value = cty.ObjectVal(vals)
-				}
-
-				if request.TypeName == "testing_deferred_resource" {
-					if value.GetAttr("deferred").True() {
-						return providers.PlanResourceChangeResponse{
-							PlannedState: value,
-							Deferred: &providers.Deferred{
-								Reason: providers.DeferredReasonResourceConfigUnknown,
-							},
-						}
-					}
-				}
-
-				if request.TypeName == "testing_failed_resource" {
-					// First, populate the fail attributes with null if they are
-					// null
-					if value.GetAttr("fail_apply").IsNull() {
-						vals := value.AsValueMap()
-						vals["fail_apply"] = cty.False
-						value = cty.ObjectVal(vals)
-					}
-					if value.GetAttr("fail_plan").IsNull() {
-						vals := value.AsValueMap()
-						vals["fail_plan"] = cty.False
-						value = cty.ObjectVal(vals)
-					}
-
-					// If fail_plan is set, return a planned failure.
-					if value.GetAttr("fail_plan").True() {
-						return providers.PlanResourceChangeResponse{
-							PlannedState: value,
-							Diagnostics: tfdiags.Diagnostics{
-								tfdiags.Sourceless(tfdiags.Error, "planned failure", "plan failure"),
-							},
-						}
-					}
-				}
-
-				return providers.PlanResourceChangeResponse{
-					PlannedState: value,
-				}
+				return getResource(request.TypeName).Plan(request, store)
 			},
 			ApplyResourceChangeFn: func(request providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
-				if request.PlannedState.IsNull() {
-					// Deleting, so just update the store and return.
-					store.Delete(request.PriorState.GetAttr("id").AsString())
-					return providers.ApplyResourceChangeResponse{
-						NewState: request.PlannedState,
-					}
-				}
-
-				// Creating or updating, so update the store and return.
-
-				// First, populate the computed value if we have to.
-				value := request.PlannedState
-				if id := value.GetAttr("id"); !id.IsKnown() {
-					vals := value.AsValueMap()
-					vals["id"] = cty.StringVal(mustGenerateUUID())
-					value = cty.ObjectVal(vals)
-				}
-
-				if request.TypeName == "testing_failed_resource" {
-					if value.GetAttr("fail_apply").True() {
-						return providers.ApplyResourceChangeResponse{
-							Diagnostics: tfdiags.Diagnostics{
-								tfdiags.Sourceless(tfdiags.Error, "planned failure", "apply failure"),
-							},
-						}
-					}
-				}
-
-				// Finally, update the store and return.
-				store.Set(value.GetAttr("id").AsString(), value)
-				return providers.ApplyResourceChangeResponse{
-					NewState: value,
-				}
+				return getResource(request.TypeName).Apply(request, store)
 			},
 			ReadResourceFn: func(request providers.ReadResourceRequest) providers.ReadResourceResponse {
-				var diags tfdiags.Diagnostics
-
-				id := request.PriorState.GetAttr("id").AsString()
-				value, exists := store.Get(id)
-				if !exists {
-					// Then we'll just behave as if the resource was destroyed
-					// externally.
-					switch request.TypeName {
-					case "testing_failed_resource":
-						value = cty.NullVal(FailedResourceSchema.ImpliedType())
-					case "testing_deferred_resource":
-						value = cty.NullVal(DeferredResourceSchema.ImpliedType())
-					case "testing_resource":
-						value = cty.NullVal(TestingResourceSchema.ImpliedType())
-					default:
-						panic(fmt.Sprintf("unknown resource type %q", request.TypeName))
-					}
-				}
-				return providers.ReadResourceResponse{
-					NewState:    value,
-					Diagnostics: diags,
-				}
+				return getResource(request.TypeName).Read(request, store)
 			},
 			ReadDataSourceFn: func(request providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 				var diags tfdiags.Diagnostics
@@ -317,6 +236,48 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 		},
 		ResourceStore: store,
 	}
+
+	// We want to use internal fields in this function so we have to set it
+	// like this.
+	provider.ConfigureProviderFn = provider.configure
+
+	t.Cleanup(func() {
+		// Fail the test if this provider is not closed.
+		if !provider.CloseCalled {
+			t.Log(string(currentStackTrace))
+			t.Fatalf("provider.Close was not called")
+		}
+	})
+
+	return provider
+}
+
+func (provider *MockProvider) configure(request providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+	// If configure_error is set, return an error.
+	err := request.Config.GetAttr("configure_error")
+	if err.IsKnown() && !err.IsNull() {
+		return providers.ConfigureProviderResponse{
+			Diagnostics: tfdiags.Diagnostics{
+				tfdiags.AttributeValue(tfdiags.Error, err.AsString(), "configure_error attribute was set", cty.GetAttrPath("configure_error")),
+			},
+		}
+	}
+
+	authn := request.Config.GetAttr("authentication")
+	if !authn.IsNull() && authn.IsKnown() {
+		// We deliberately only check the authentication if the configuration
+		// is providing it. It's entirely up to the config to opt into the
+		// authentication which would be crazy for a real provider but just
+		// makes things so much simpler for us in testing world.
+		if authn.AsString() != provider.Authentication {
+			return providers.ConfigureProviderResponse{
+				Diagnostics: tfdiags.Diagnostics{
+					tfdiags.AttributeValue(tfdiags.Error, "Authentication failed", "authentication field did not match expected", cty.GetAttrPath("authentication")),
+				},
+			}
+		}
+	}
+	return providers.ConfigureProviderResponse{}
 }
 
 // mustGenerateUUID is a helper to generate a UUID and panic if it fails.

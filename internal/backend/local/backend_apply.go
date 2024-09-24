@@ -376,6 +376,8 @@ func (b *Local) opApply(
 		return
 	}
 
+	runningOp.EphemeralOutputValues = applyState.EphemeralRootOutputValues
+
 	// Store the final state
 	runningOp.State = applyState
 	err := statemgr.WriteAndPersist(opState, applyState, schemas)

@@ -13,7 +13,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -120,7 +119,7 @@ func (p *ProviderInstance) CheckProviderArgs(ctx context.Context, phase EvalPhas
 				return cty.UnknownVal(hcldec.ImpliedType(spec)), diags
 			}
 
-			unconfClient, err := providerType.UnconfiguredClient(ctx)
+			unconfClient, err := providerType.UnconfiguredClient()
 			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -133,7 +132,6 @@ func (p *ProviderInstance) CheckProviderArgs(ctx context.Context, phase EvalPhas
 				})
 				return cty.DynamicVal, diags
 			}
-			defer unconfClient.Close()
 			// We unmark the config before making the RPC call, but will still
 			// return the original possibly-marked config if successful.
 			unmarkedConfigVal, _ := configVal.UnmarkDeep()
@@ -251,6 +249,12 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 			// We unmark the config before making the RPC call, as marks cannot
 			// be serialized.
 			unmarkedArgs, _ := p.ProviderArgs(ctx, phase).UnmarkDeep()
+			if unmarkedArgs == cty.NilVal {
+				// Then we had an error previously, so we'll rely on that error
+				// being exposed elsewhere.
+				return stubs.ErroredProvider(), diags
+			}
+
 			resp := client.ConfigureProvider(providers.ConfigureProviderRequest{
 				TerraformVersion: version.SemVer.String(),
 				Config:           unmarkedArgs,
@@ -268,12 +272,7 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 				return stubs.ErroredProvider(), diags
 			}
 
-			return providerClose{
-				close: func() error {
-					// We just totally ignore close for configured providers,
-					// because we'll deal with them in the cleanup phase instead.
-					return nil
-				},
+			return unconfigurableProvider{
 				Interface: client,
 			}, diags
 		},
@@ -289,7 +288,7 @@ func (p *ProviderInstance) ResolveExpressionReference(ctx context.Context, ref s
 }
 
 // ExternalFunctions implements ExpressionScope.
-func (p *ProviderInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, func(), tfdiags.Diagnostics) {
+func (p *ProviderInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
 	return p.main.ProviderFunctions(ctx, p.main.StackConfig(ctx, p.Addr().Stack.ConfigAddr()))
 }
 
@@ -317,11 +316,6 @@ func (p *ProviderInstance) checkValid(ctx context.Context, phase EvalPhase) tfdi
 // PlanChanges implements Plannable.
 func (p *ProviderInstance) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	return nil, p.checkValid(ctx, PlanPhase)
-}
-
-// RequiredComponents implements Applyable
-func (p *ProviderInstance) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
-	return p.provider.RequiredComponents(ctx)
 }
 
 // CheckApply implements Applyable.

@@ -439,9 +439,7 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backendrun.
 				}
 				err = b.confirm(stopCtx, op, opts, r, "override")
 				if err != nil && err != errRunOverridden {
-					return fmt.Errorf(
-						fmt.Sprintf("Failed to override: %s\n%s\n", err.Error(), runURL),
-					)
+					return fmt.Errorf("Failed to override: %w\n%s\n", err, runURL)
 				}
 
 				if err != errRunOverridden {
