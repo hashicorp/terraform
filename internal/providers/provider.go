@@ -31,6 +31,10 @@ type Interface interface {
 	// configuration values.
 	ValidateDataResourceConfig(ValidateDataResourceConfigRequest) ValidateDataResourceConfigResponse
 
+	// ValidateEphemeralResourceConfig allows the provider to validate the
+	// ephemeral resource configuration values.
+	ValidateEphemeralResourceConfig(ValidateEphemeralResourceConfigRequest) ValidateEphemeralResourceConfigResponse
+
 	// UpgradeResourceState is called when the state loader encounters an
 	// instance state whose schema version is less than the one reported by the
 	// currently-used version of the corresponding provider, and the upgraded
@@ -74,14 +78,14 @@ type Interface interface {
 	// ReadDataSource returns the data source's current state.
 	ReadDataSource(ReadDataSourceRequest) ReadDataSourceResponse
 
-	// OpenEphemeral opens an ephemeral resource instance.
-	OpenEphemeral(OpenEphemeralRequest) OpenEphemeralResponse
-	// RenewEphemeral extends the validity of a previously-opened ephemeral
+	// OpenEphemeralResource opens an ephemeral resource instance.
+	OpenEphemeralResource(OpenEphemeralResourceRequest) OpenEphemeralResourceResponse
+	// RenewEphemeralResource extends the validity of a previously-opened ephemeral
 	// resource instance.
-	RenewEphemeral(RenewEphemeralRequest) RenewEphemeralResponse
-	// CloseEphemeral closes an ephemeral resource instance, with the intent
+	RenewEphemeralResource(RenewEphemeralResourceRequest) RenewEphemeralResourceResponse
+	// CloseEphemeralResource closes an ephemeral resource instance, with the intent
 	// of rendering it invalid as soon as possible.
-	CloseEphemeral(CloseEphemeralRequest) CloseEphemeralResponse
+	CloseEphemeralResource(CloseEphemeralResourceRequest) CloseEphemeralResourceResponse
 
 	// CallFunction calls a provider-contributed function.
 	CallFunction(CallFunctionRequest) CallFunctionResponse
@@ -108,9 +112,9 @@ type GetProviderSchemaResponse struct {
 	// DataSources maps the data source name to that data source's schema.
 	DataSources map[string]Schema
 
-	// EphemeralResourceTypes maps the name of an ephemeral resource type
+	// EphemeralTypes maps the name of an ephemeral resource type
 	// to its schema.
-	EphemeralResourceTypes map[string]Schema
+	EphemeralTypes map[string]Schema
 
 	// Functions maps from local function name (not including an namespace
 	// prefix) to the declaration of a function.
@@ -200,6 +204,20 @@ type ValidateDataResourceConfigRequest struct {
 }
 
 type ValidateDataResourceConfigResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type ValidateEphemeralResourceConfigRequest struct {
+	// TypeName is the name of the data source type to validate.
+	TypeName string
+
+	// Config is the configuration value to validate, which may contain unknown
+	// values.
+	Config cty.Value
+}
+
+type ValidateEphemeralResourceConfigResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }

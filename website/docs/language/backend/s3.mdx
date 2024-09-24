@@ -19,8 +19,8 @@ on the S3 bucket to allow for state recovery in the case of accidental deletions
 ```hcl
 terraform {
   backend "s3" {
-    bucket = "mybucket"
-    key    = "path/to/my/key"
+    bucket = "example-bucket"
+    key    = "path/to/state"
     region = "us-east-1"
   }
 }
@@ -118,9 +118,8 @@ This is seen in the following AWS IAM Statement:
 
 ## Data Source Configuration
 
-To make use of the S3 remote state in another configuration, use the
-[`terraform_remote_state` data
-source](/terraform/language/state/remote-state-data).
+To make use of the S3 remote state in another configuration,
+use the [`terraform_remote_state` data source](/terraform/language/state/remote-state-data).
 
 ```hcl
 data "terraform_remote_state" "network" {
@@ -238,9 +237,6 @@ Endpoints set for specific services will override the base endpoint configured i
 
 #### Assume Role Configuration
 
-Assuming an IAM Role can be configured in two ways.
-The preferred way is to use the argument `assume_role`, the other, which is deprecated, is with arguments at the top level.
-
 The argument `assume_role` contains the following arguments:
 
 * `role_arn` - (Required) Amazon Resource Name (ARN) of the IAM Role to assume.
@@ -257,30 +253,13 @@ The argument `assume_role` contains the following arguments:
 * `tags` - (Optional) Map of assume role session tags.
 * `transitive_tag_keys` - (Optional) Set of assume role session tag keys to pass to any subsequent sessions.
 
-The following arguments on the top level are deprecated:
-
-* `assume_role_duration_seconds` - (Optional) Number of seconds to restrict the assume role session duration.
-  Use `assume_role.duration` instead.
-* `assume_role_policy` - (Optional) IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.
-  Use `assume_role.policy` instead.
-* `assume_role_policy_arns` - (Optional) Set of Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.
-  Use `assume_role.policy_arns` instead.
-* `assume_role_tags` - (Optional) Map of assume role session tags.
-  Use `assume_role.tags` instead.
-* `assume_role_transitive_tag_keys` - (Optional) Set of assume role session tag keys to pass to any subsequent sessions.
-  Use `assume_role.transitive_tag_keys` instead.
-* `external_id` - (Optional) External identifier to use when assuming the role.
-  Use `assume_role.external_id` instead.
-* `role_arn` - (Optional) Amazon Resource Name (ARN) of the IAM Role to assume.
-  Use `assume_role.role_arn` instead.
-* `session_name` - (Optional) Session name to use when assuming the role.
-  Use `assume_role.session_name` instead.
+Multiple `assume_role` values can be specified, and the roles will be assumed in order.
 
 ```terraform
 terraform {
   backend "s3" {
-    bucket = "terraform-state-prod"
-    key    = "network/terraform.tfstate"
+    bucket = "example-bucket"
+    key    = "path/to/state"
     region = "us-east-1"
     assume_role = {
       role_arn = "arn:aws:iam::PRODUCTION-ACCOUNT-ID:role/Terraform"
@@ -313,8 +292,8 @@ The following `assume_role_with_web_identity` configuration block is optional:
 ```terraform
 terraform {
   backend "s3" {
-    bucket = "terraform-state-prod"
-    key    = "network/terraform.tfstate"
+    bucket = "example-bucket"
+    key    = "path/to/state"
     region = "us-east-1"
     assume_role_with_web_identity = {
       role_arn           = "arn:aws:iam::PRODUCTION-ACCOUNT-ID:role/Terraform"
@@ -553,17 +532,17 @@ to only a single state object within an S3 bucket is shown below:
     {
       "Effect": "Allow",
       "Action": "s3:ListBucket",
-      "Resource": "arn:aws:s3:::myorg-terraform-states",
+      "Resource": "arn:aws:s3:::example-bucket",
       "Condition": {
         "StringEquals": {
-          "s3:prefix": "myapp/production/tfstate"
+          "s3:prefix": "path/to/state"
         }
       }
     },
     {
       "Effect": "Allow",
       "Action": ["s3:GetObject", "s3:PutObject"],
-      "Resource": "arn:aws:s3:::myorg-terraform-states/myapp/production/tfstate"
+      "Resource": "arn:aws:s3:::example-bucket/myapp/production/tfstate"
     }
   ]
 }
@@ -574,8 +553,8 @@ The example backend configuration below documents the corresponding `bucket` and
 ```hcl
 terraform {
   backend "s3" {
-    bucket = "myorg-terraform-states"
-    key    = "myapp/production/tfstate"
+    bucket = "example-bucket"
+    key    = "path/to/state"
     region = "us-east-1"
   }
 }
@@ -597,12 +576,12 @@ For example, you can use the `dynamodb:LeadingKeys` condition key to match on th
         "dynamodb:GetItem",
         "dynamodb:PutItem"
       ],
-      "Resource": "arn:aws:dynamodb:us-east-1:12341234:table/TableName",
+      "Resource": "arn:aws:dynamodb:us-east-1:12341234:table/example-table",
       "Condition": {
         "ForAllValues:StringEquals": {
           "dynamodb:LeadingKeys": [
-            "TableName/myapp/production/tfstate",
-            "TableName/myapp/production/tfstate-md5"
+            "example-bucket/path/to/state",
+            "example-bucket/path/to/state-md5"
           ]
         }
       }
@@ -618,10 +597,10 @@ The example backend configuration below documents the corresponding arguments:
 ```hcl
 terraform {
   backend "s3" {
-    bucket         = "myorg-terraform-states"
-    key            = "myapp/production/tfstate"
+    bucket         = "example-bucket"
+    key            = "path/to/state"
     region         = "us-east-1"
-    dynamodb_table = "TableName"
+    dynamodb_table = "example-table"
   }
 }
 ```

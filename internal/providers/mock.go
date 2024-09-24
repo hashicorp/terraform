@@ -289,8 +289,7 @@ func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceRespo
 	return response
 }
 
-func (m *Mock) OpenEphemeral(OpenEphemeralRequest) OpenEphemeralResponse {
-	// FIXME: Design some means to mock an ephemeral resource type.
+func (m *Mock) ValidateEphemeralResourceConfig(ValidateEphemeralResourceConfigRequest) ValidateEphemeralResourceConfigResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -298,12 +297,12 @@ func (m *Mock) OpenEphemeral(OpenEphemeralRequest) OpenEphemeralResponse {
 		"The provider mocking mechanism does not yet support ephemeral resource types.",
 		nil, // the topmost configuration object
 	))
-	return OpenEphemeralResponse{
+	return ValidateEphemeralResourceConfigResponse{
 		Diagnostics: diags,
 	}
 }
 
-func (m *Mock) RenewEphemeral(RenewEphemeralRequest) RenewEphemeralResponse {
+func (m *Mock) OpenEphemeralResource(OpenEphemeralResourceRequest) OpenEphemeralResourceResponse {
 	// FIXME: Design some means to mock an ephemeral resource type.
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
@@ -312,12 +311,12 @@ func (m *Mock) RenewEphemeral(RenewEphemeralRequest) RenewEphemeralResponse {
 		"The provider mocking mechanism does not yet support ephemeral resource types.",
 		nil, // the topmost configuration object
 	))
-	return RenewEphemeralResponse{
+	return OpenEphemeralResourceResponse{
 		Diagnostics: diags,
 	}
 }
 
-func (m *Mock) CloseEphemeral(CloseEphemeralRequest) CloseEphemeralResponse {
+func (m *Mock) RenewEphemeralResource(RenewEphemeralResourceRequest) RenewEphemeralResourceResponse {
 	// FIXME: Design some means to mock an ephemeral resource type.
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
@@ -326,7 +325,21 @@ func (m *Mock) CloseEphemeral(CloseEphemeralRequest) CloseEphemeralResponse {
 		"The provider mocking mechanism does not yet support ephemeral resource types.",
 		nil, // the topmost configuration object
 	))
-	return CloseEphemeralResponse{
+	return RenewEphemeralResourceResponse{
+		Diagnostics: diags,
+	}
+}
+
+func (m *Mock) CloseEphemeralResource(CloseEphemeralResourceRequest) CloseEphemeralResourceResponse {
+	// FIXME: Design some means to mock an ephemeral resource type.
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"No ephemeral resource types in mock providers",
+		"The provider mocking mechanism does not yet support ephemeral resource types.",
+		nil, // the topmost configuration object
+	))
+	return CloseEphemeralResourceResponse{
 		Diagnostics: diags,
 	}
 }

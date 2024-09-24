@@ -292,3 +292,8 @@ func (s testLogTraceSpan) TracerProvider() trace.TracerProvider {
 		spanTracker: s.spanTracker,
 	}
 }
+
+// AddLink implements trace.Span.
+func (s testLogTraceSpan) AddLink(link trace.Link) {
+	// Noop
+}
