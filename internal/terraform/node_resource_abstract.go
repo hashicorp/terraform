@@ -390,16 +390,10 @@ func (n *NodeAbstractResource) DotNode(name string, opts *dag.DotOpts) *dag.DotN
 	}
 }
 
-// writeResourceState ensures that a suitable resource-level state record is
-// present in the state, if that's required for the "each mode" of that
-// resource.
-//
-// This is important primarily for the situation where count = 0, since this
-// eval is the only change we get to set the resource "each mode" to list
-// in that case, allowing expression evaluation to see it as a zero-element list
-// rather than as not set at all.
-func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.AbsResource) (diags tfdiags.Diagnostics) {
-	state := ctx.State()
+// recordResourceData records some metadata for the resource as a whole in
+// various locations. This currently includes adding resource expansion info to
+// the instance expander, and recording the provider used in the state.
+func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.AbsResource) (diags tfdiags.Diagnostics) {
 
 	// We'll record our expansion decision in the shared "expander" object
 	// so that later operations (i.e. DynamicExpand and expression evaluation)
@@ -422,7 +416,6 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 			return diags
 		}
 
-		state.SetResourceProvider(addr, n.ResolvedProvider)
 		if count >= 0 {
 			expander.SetResourceCount(addr.Module, n.Addr.Resource, count)
 		} else {
@@ -439,7 +432,6 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 
 		// This method takes care of all of the business logic of updating this
 		// while ensuring that any existing instances are preserved, etc.
-		state.SetResourceProvider(addr, n.ResolvedProvider)
 		if known {
 			expander.SetResourceForEach(addr.Module, n.Addr.Resource, forEach)
 		} else {
@@ -447,9 +439,16 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 		}
 
 	default:
-		state.SetResourceProvider(addr, n.ResolvedProvider)
 		expander.SetResourceSingle(addr.Module, n.Addr.Resource)
 	}
+
+	if addr.Resource.Mode == addrs.EphemeralResourceMode {
+		// ephemeral resources are not included in the state
+		return diags
+	}
+
+	state := ctx.State()
+	state.SetResourceProvider(addr, n.ResolvedProvider)
 
 	return diags
 }

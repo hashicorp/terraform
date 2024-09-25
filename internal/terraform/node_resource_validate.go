@@ -440,6 +440,32 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 
 		resp := provider.ValidateDataResourceConfig(req)
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
+	case addrs.EphemeralResourceMode:
+		schema, _ := providerSchema.SchemaForResourceType(n.Config.Mode, n.Config.Type)
+		if schema == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid ephemeral resource",
+				Detail:   fmt.Sprintf("The provider %s does not support ephemeral resource %q.", n.Provider().ForDisplay(), n.Config.Type),
+				Subject:  &n.Config.TypeRange,
+			})
+			return diags
+		}
+
+		configVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema, nil, keyData)
+		diags = diags.Append(valDiags)
+		if valDiags.HasErrors() {
+			return diags
+		}
+		// Use unmarked value for validate request
+		unmarkedConfigVal, _ := configVal.UnmarkDeep()
+		req := providers.ValidateEphemeralResourceConfigRequest{
+			TypeName: n.Config.Type,
+			Config:   unmarkedConfigVal,
+		}
+
+		resp := provider.ValidateEphemeralResourceConfig(req)
+		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
 	}
 
 	return diags

@@ -54,7 +54,7 @@ func (n *nodeExpandApplyableResource) Execute(globalCtx EvalContext, op walkOper
 	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
 	for _, module := range moduleInstances {
 		moduleCtx := evalContextForModuleInstance(globalCtx, module)
-		diags = diags.Append(n.writeResourceState(moduleCtx, n.Addr.Resource.Absolute(module)))
+		diags = diags.Append(n.recordResourceData(moduleCtx, n.Addr.Resource.Absolute(module)))
 	}
 
 	return diags

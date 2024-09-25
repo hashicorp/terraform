@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -149,6 +150,9 @@ type MockEvalContext struct {
 
 	InstanceExpanderCalled   bool
 	InstanceExpanderExpander *instances.Expander
+
+	EphemeralResourcesCalled    bool
+	EphemeralResourcesResources *ephemeral.Resources
 
 	OverridesCalled bool
 	OverrideValues  *mocking.Overrides
@@ -359,6 +363,11 @@ func (c *MockEvalContext) LanguageExperimentActive(experiment experiments.Experi
 func (c *MockEvalContext) NamedValues() *namedvals.State {
 	c.NamedValuesCalled = true
 	return c.NamedValuesState
+}
+
+func (c *MockEvalContext) EphemeralResources() *ephemeral.Resources {
+	c.EphemeralResourcesCalled = true
+	return c.EphemeralResourcesResources
 }
 
 func (c *MockEvalContext) Deferrals() *deferring.Deferred {
