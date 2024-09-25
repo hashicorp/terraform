@@ -168,7 +168,10 @@ var _ EvalContext = (*MockEvalContext)(nil)
 
 func (c *MockEvalContext) StopCtx() context.Context {
 	c.StopCtxCalled = true
-	return c.StopCtxValue
+	if c.StopCtxValue != nil {
+		return c.StopCtxValue
+	}
+	return context.TODO()
 }
 
 func (c *MockEvalContext) Hook(fn func(Hook) (HookAction, error)) error {
