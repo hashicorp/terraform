@@ -11,6 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -268,13 +269,17 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 			// we'll set the operation to an update even if the actual hasn't
 			// changed
 			action = plans.Update
-		} else if result := before.Equals(after); result.IsKnown() && result.True() {
-			// The values are definitely equal, so NoOp change.
-			action = plans.NoOp
 		} else {
-			// If we don't know for sure that the values are equal, then we'll
-			// call this an update.
-			action = plans.Update
+			unmarkedBefore, beforePaths := before.UnmarkDeepWithPaths()
+			unmarkedAfter, afterPaths := after.UnmarkDeepWithPaths()
+			result := unmarkedBefore.Equals(unmarkedAfter)
+			if result.IsKnown() && result.True() && marks.MarksEqual(beforePaths, afterPaths) {
+				action = plans.NoOp
+			} else {
+				// If we don't know for sure that the values are equal, then we'll
+				// call this an update.
+				action = plans.Update
+			}
 		}
 	} else {
 		action = plans.Create
