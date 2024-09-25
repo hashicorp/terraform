@@ -102,13 +102,13 @@ func (ctx *BuiltinEvalContext) withScope(scope evalContextScope) EvalContext {
 	return &newCtx
 }
 
-func (ctx *BuiltinEvalContext) Stopped() <-chan struct{} {
+func (ctx *BuiltinEvalContext) StopCtx() context.Context {
 	// This can happen during tests. During tests, we just block forever.
 	if ctx.StopContext == nil {
-		return nil
+		return context.TODO()
 	}
 
-	return ctx.StopContext.Done()
+	return ctx.StopContext
 }
 
 func (ctx *BuiltinEvalContext) Hook(fn func(Hook) (HookAction, error)) error {
