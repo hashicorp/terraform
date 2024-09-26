@@ -2530,6 +2530,60 @@ func TestBackendPrefixInWorkspace(t *testing.T) {
 	}
 }
 
+// ensure that we create the lock file in the correct location when using a
+// workspace prefix.
+func TestBackendLockFileWithPrefix(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+
+	workspacePrefix := "prefix"
+	key := "test/test-env.tfstate"
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":               bucketName,
+		"use_lockfile":         true,
+		"key":                  key,
+		"workspace_key_prefix": workspacePrefix,
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
+
+	// get a state that contains the prefix as a substring
+	sMgr, err := b.StateMgr("env-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := sMgr.RefreshState(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkStateList(b, []string{"default", "env-1"}); err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(20 * time.Second)
+
+	// Check if the lock file is created in the correct location
+	lockFileKey := fmt.Sprintf("%s/%s.tflock", workspacePrefix, key)
+	_, err = b.s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(lockFileKey),
+	})
+
+	if err != nil {
+		if IsA[*s3types.NoSuchKey](err) {
+			t.Fatalf("lock file %q not found in expected location", lockFileKey)
+		} else {
+			// For other errors, provide the exact failure context
+			t.Fatalf("failed to retrieve lock file %q from S3: %v", lockFileKey, err)
+		}
+	}
+}
+
 func TestBackendRestrictedRoot_Default(t *testing.T) {
 	testACC(t)
 

@@ -36,9 +36,6 @@ const (
 
 	// Store the last saved serial in dynamo with this suffix for consistency checks.
 	stateIDSuffix = "-md5"
-
-	// Delimits file lock ID and DynamoDB lock ID, supporting both locking mechanisms.
-	LockDelimiter = "::"
 )
 
 type RemoteClient struct {
