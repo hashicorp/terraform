@@ -3297,6 +3297,31 @@ resource "test" "a" {
 			},
 		},
 	}
+
+	ephemeralResourceOpenDeferral = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+ephemeral "test" "data" {
+  name = "deferred_open"
+}
+
+output "data" {
+  ephemeral = true
+  value = ephemeral.test.data.value
+}
+		`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				complete:    false,
+				wantActions: map[string]plans.Action{},
+				wantPlanned: map[string]cty.Value{},
+				wantDeferred: map[string]ExpectedDeferred{
+					"ephemeral.test.data": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+				},
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
@@ -3346,6 +3371,8 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"plan_update_external_deferral":                           planUpdateExternalDeferral,
 		"plan_delete_external_deferral":                           planDeleteExternalDeferral,
 		"plan_delete_mode_external_deferral":                      planDeleteModeExternalDeferral,
+		"ephemeral_open_deferral":                                 ephemeralResourceOpenDeferral,
+		// TODO: Add a deferred ephemeral resource expansion test case
 	}
 
 	for name, test := range tests {
@@ -3590,6 +3617,22 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 					},
 				},
 			},
+			EphemeralTypes: map[string]providers.Schema{
+				"test": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"name": {
+								Type:     cty.String,
+								Required: true,
+							},
+							"value": {
+								Type:     cty.String,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
 		},
 		ReadResourceFn: func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
 			if key := req.PriorState.GetAttr("name"); key.IsKnown() && key.AsString() == "deferred_read" {
@@ -3702,6 +3745,24 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 					},
 				},
 			}
+		},
+		OpenEphemeralResourceFn: func(op providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
+			name := op.Config.GetAttr("name").AsString()
+
+			res := providers.OpenEphemeralResourceResponse{
+				Result: cty.ObjectVal(map[string]cty.Value{
+					"name":  cty.StringVal(name),
+					"value": cty.StringVal("ephemeral_value"),
+				}),
+			}
+
+			if name == "deferred_open" {
+				res.Deferred = &providers.Deferred{
+					Reason: providers.DeferredReasonProviderConfigUnknown,
+				}
+			}
+
+			return res
 		},
 	}
 }

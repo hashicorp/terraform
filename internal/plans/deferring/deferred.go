@@ -10,6 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -292,7 +293,13 @@ func (d *Deferred) GetDeferredResourceInstances(addr addrs.AbsResource) map[addr
 		// to filter out the instances that are not part of the module we are
 		// interested in.
 		if addr.Equal(instanceAddr.ContainingResource()) {
-			result[instanceAddr.Resource.Key] = change.Change.After
+			// TODO: Think about how this should work with deferred actions
+			if change.Change == nil {
+				result[instanceAddr.Resource.Key] = cty.DynamicVal.Mark(marks.Ephemeral)
+			} else {
+
+				result[instanceAddr.Resource.Key] = change.Change.After
+			}
 		}
 	}
 	return result
