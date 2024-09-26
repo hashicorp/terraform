@@ -64,6 +64,7 @@ func (r *Resources) RegisterInstance(ctx context.Context, addr addrs.AbsResource
 		impl:        reg.Impl,
 		renewCancel: noopCancel,
 	}
+
 	if reg.FirstRenewal != nil {
 		ctx, cancel := context.WithCancel(ctx)
 		ri.renewCancel = cancel
@@ -210,7 +211,11 @@ func (r *resourceInstanceInternal) close(ctx context.Context) tfdiags.Diagnostic
 	// own responsibility to remember that it previously failed a renewal
 	// and to avoid returning redundant errors from close, but perhaps we'll
 	// revisit that in later work.
-	diags = diags.Append(r.impl.Close(ctx))
+
+	// If we have deferred this instance there might be no impl provided for close
+	if r.impl != nil {
+		diags = diags.Append(r.impl.Close(ctx))
+	}
 
 	return diags
 }

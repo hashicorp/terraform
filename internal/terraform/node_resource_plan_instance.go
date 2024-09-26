@@ -155,11 +155,42 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 }
 
 func (n *NodePlannableResourceInstance) ephemeralResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
-	return ephemeralResourceOpen(ctx, ephemeralResourceInput{
+	deferrals := ctx.Deferrals()
+
+	// If a dependency is deferred then we should defer this ephemeral resource instance
+	if deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies) {
+		deferrals.ReportEphemeralResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, &plans.ResourceInstanceChange{
+			Addr:        n.ResourceInstanceAddr(),
+			PrevRunAddr: n.prevRunAddr(ctx),
+			Change: plans.Change{
+				Action: plans.Read,
+			},
+			ProviderAddr: n.ResolvedProvider,
+		})
+		return nil
+	}
+
+	deferred, diags := ephemeralResourceOpen(ctx, ephemeralResourceInput{
 		addr:           n.Addr,
 		config:         n.Config,
 		providerConfig: n.ResolvedProvider,
 	})
+
+	if deferred != nil {
+		// Then this resource has been deferred either during the import,
+		// refresh or planning stage. We'll report the deferral and
+		// store what we could produce in the deferral tracker.
+		deferrals.ReportEphemeralResourceInstanceDeferred(n.Addr, deferred.Reason, &plans.ResourceInstanceChange{
+			Addr:        n.ResourceInstanceAddr(),
+			PrevRunAddr: n.prevRunAddr(ctx),
+			Change: plans.Change{
+				Action: plans.Read,
+			},
+			ProviderAddr: n.ResolvedProvider,
+		})
+	}
+
+	return diags
 }
 
 func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {

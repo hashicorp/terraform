@@ -55,6 +55,8 @@ type nodeApplyableDeferredPartialInstance struct {
 
 func (n *nodeApplyableDeferredPartialInstance) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+
+	// TODO: I think ephemeral value changeSrc might be nil since we don't persist the change
 	change, err := n.ChangeSrc.Decode(n.Schema.ImpliedType())
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode ", fmt.Sprintf("Terraform failed to decode a deferred change: %v\n\nThis is a bug in Terraform; please report it!", err)))
@@ -65,6 +67,8 @@ func (n *nodeApplyableDeferredPartialInstance) Execute(ctx EvalContext, _ walkOp
 		ctx.Deferrals().ReportResourceExpansionDeferred(n.PartialAddr, change)
 	case addrs.DataResourceMode:
 		ctx.Deferrals().ReportDataSourceExpansionDeferred(n.PartialAddr, change)
+	case addrs.EphemeralResourceMode:
+		ctx.Deferrals().ReportEphemeralResourceExpansionDeferred(n.PartialAddr, change)
 	}
 	return diags
 }

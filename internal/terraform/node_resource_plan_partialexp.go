@@ -97,6 +97,10 @@ func (n *nodePlannablePartialExpandedResource) Execute(ctx EvalContext, op walkO
 		change, changeDiags := n.dataResourceExecute(ctx)
 		diags = diags.Append(changeDiags)
 		ctx.Deferrals().ReportDataSourceExpansionDeferred(n.addr, change)
+	case addrs.EphemeralResourceMode:
+		change, changeDiags := n.ephemeralResourceExecute(ctx)
+		diags = diags.Append(changeDiags)
+		ctx.Deferrals().ReportEphemeralResourceExpansionDeferred(n.addr, change)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.config.Mode))
 	}
@@ -355,6 +359,20 @@ func (n *nodePlannablePartialExpandedResource) dataResourceExecute(ctx EvalConte
 	// yay we made it
 	change.After = proposedNewVal
 	return &change, diags
+}
+
+// ephemeral resources are a special case since the change produced is only needed to communicate the deferral
+func (n *nodePlannablePartialExpandedResource) ephemeralResourceExecute(ctx EvalContext) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
+	return &plans.ResourceInstanceChange{
+		Addr:         n.addr.UnknownResourceInstance(),
+		ProviderAddr: n.resolvedProvider,
+		Change: plans.Change{
+			Action: plans.Read,
+		},
+		// For now, this is the default reason for deferred data source reads.
+		// It's _basically_ the truth!
+		ActionReason: plans.ResourceInstanceReadBecauseConfigUnknown,
+	}, nil
 }
 
 // keyData returns suitable unknown values for count.index, each.key, and
