@@ -140,8 +140,11 @@ func (r *Resources) Close(ctx context.Context) tfdiags.Diagnostics {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// We might be closing due to a context cancellation, but we still need
-	// to be able to make non-canceled Close requests.
+	// We might be closing due to a context cancellation, but we still need to
+	// be able to make non-canceled Close requests.
+	//
+	// TODO: if we're going to ignore the cancellation to ensure that Close is
+	// always called, should we add some sort of timeout?
 	ctx = context.WithoutCancel(ctx)
 
 	var diags tfdiags.Diagnostics

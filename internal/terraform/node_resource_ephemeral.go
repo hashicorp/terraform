@@ -124,12 +124,8 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) tfdiags.
 		provider: provider,
 		internal: resp.InternalContext,
 	}
-	// TODO: What can we use as a signal to cancel the context we're passing in
-	// here, so that the object will stop renewing things when we start shutting
-	// down?
-	// TODO: The context Stopped channel should probably be updated
-	// finally to a Context
-	ephemerals.RegisterInstance(context.TODO(), inp.addr, ephemeral.ResourceInstanceRegistration{
+
+	ephemerals.RegisterInstance(ctx.StopCtx(), inp.addr, ephemeral.ResourceInstanceRegistration{
 		Value:        resultVal,
 		ConfigBody:   config.Config,
 		Impl:         impl,
@@ -172,7 +168,7 @@ func (n *nodeEphemeralResourceClose) ModulePath() addrs.Module {
 func (n *nodeEphemeralResourceClose) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	log.Printf("[TRACE] nodeEphemeralResourceClose: closing all instances of %s", n.addr)
 	resources := ctx.EphemeralResources()
-	return resources.CloseInstances(context.TODO(), n.addr)
+	return resources.CloseInstances(ctx.StopCtx(), n.addr)
 }
 
 // ephemeralResourceInstImpl implements ephemeral.ResourceInstance as an
