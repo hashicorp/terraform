@@ -541,9 +541,13 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// (We can't get in here for a single-instance resource because in that
 			// case we would know that there's only one key and it's addrs.NoKey,
 			// so we'll fall through to the other logic below.)
-			//
-			// FIXME: this could catch ephemeral values too
-			return cty.DynamicVal, diags
+			unknownVal := cty.DynamicVal
+
+			// If an ephemeral resource is deferred we need to mark the returned unknown value as ephemeral
+			if addr.Mode == addrs.EphemeralResourceMode {
+				unknownVal = unknownVal.Mark(marks.Ephemeral)
+			}
+			return unknownVal, diags
 		}
 	}
 
@@ -818,6 +822,13 @@ func (d *evaluationStateData) getEphemeralResource(addr addrs.Resource, rng tfdi
 	ephems := d.Evaluator.EphemeralResources
 	getInstValue := func(addr addrs.AbsResourceInstance) (cty.Value, tfdiags.Diagnostics) {
 		var diags tfdiags.Diagnostics
+
+		// If we have a deferred instance with this key we don't need to check if it is live or not,
+		// it has not been created so we can just return the deferred value.
+		if v, ok := instances[addr.Resource.Key]; ok {
+			return v, diags
+		}
+
 		val, isLive := ephems.InstanceValue(addr)
 		if !isLive {
 			// If the instance is no longer "live" by the time we're accessing

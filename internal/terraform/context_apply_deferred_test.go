@@ -3308,11 +3308,11 @@ ephemeral "test" "data" {
 		},
 		stages: []deferredActionsTestStage{
 			{
-				complete:    false,
-				wantActions: map[string]plans.Action{},
-				wantPlanned: map[string]cty.Value{},
+				complete:     false,
+				wantActions:  map[string]plans.Action{},
+				wantPlanned:  map[string]cty.Value{},
 				wantDeferred: map[string]ExpectedDeferred{
-					"ephemeral.test.data": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Read},
+					// We don't record the ephemeral deferrals
 				},
 			},
 		},
@@ -3332,12 +3332,11 @@ ephemeral "test" "dep" {
 		},
 		stages: []deferredActionsTestStage{
 			{
-				complete:    false,
-				wantActions: map[string]plans.Action{},
-				wantPlanned: map[string]cty.Value{},
+				complete:     false,
+				wantActions:  map[string]plans.Action{},
+				wantPlanned:  map[string]cty.Value{},
 				wantDeferred: map[string]ExpectedDeferred{
-					"ephemeral.test.data": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Read},
-					"ephemeral.test.dep":  {Reason: providers.DeferredReasonResourceConfigUnknown, Action: plans.Read},
+					// We don't record the ephemeral deferrals
 				},
 			},
 		},
@@ -3363,11 +3362,11 @@ ephemeral "test" "data" {
 				inputs: map[string]cty.Value{
 					"each": cty.DynamicVal,
 				},
-				complete:    false,
-				wantActions: map[string]plans.Action{},
-				wantPlanned: map[string]cty.Value{},
+				complete:     false,
+				wantActions:  map[string]plans.Action{},
+				wantPlanned:  map[string]cty.Value{},
 				wantDeferred: map[string]ExpectedDeferred{
-					"ephemeral.test.*.data": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Read},
+					// We don't record the ephemeral deferrals
 				},
 			},
 		},
