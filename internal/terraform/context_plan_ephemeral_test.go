@@ -29,7 +29,7 @@ output "data" {
 
 	p := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			EphemeralTypes: map[string]providers.Schema{
+			EphemeralResourceTypes: map[string]providers.Schema{
 				"test_resource": {
 					Block: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
@@ -95,7 +95,7 @@ resource "test_object" "test" {
 
 	ephem := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			EphemeralTypes: map[string]providers.Schema{
+			EphemeralResourceTypes: map[string]providers.Schema{
 				"ephem_resource": {
 					Block: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
