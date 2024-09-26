@@ -1,8 +1,11 @@
 .DS_Store
 .vagrant
 .bundle
-build
-node_modules
-vendor
-public
-website-preview
+website/build
+website/node_modules
+website/vendor
+website/public
+website/website-preview
+
+LICENSE
+
