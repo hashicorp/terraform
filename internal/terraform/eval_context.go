@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"context"
+
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
@@ -21,15 +23,16 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // EvalContext is the interface that is given to eval nodes to execute.
 type EvalContext interface {
-	// Stopped returns a channel that is closed when evaluation is stopped
-	// via Terraform.Context.Stop()
-	Stopped() <-chan struct{}
+	// Stopped returns a context that is canceled when evaluation is stopped via
+	// Terraform.Context.Stop()
+	StopCtx() context.Context
 
 	// Path is the current module path.
 	Path() addrs.ModuleInstance
@@ -140,6 +143,10 @@ type EvalContext interface {
 	// active in the module associated with this EvalContext, or false
 	// otherwise.
 	LanguageExperimentActive(experiment experiments.Experiment) bool
+
+	// EphemeralResources returns a helper object for tracking active
+	// instances of ephemeral resources declared in the configuration.
+	EphemeralResources() *ephemeral.Resources
 
 	// NamedValues returns the object that tracks the gradual evaluation of
 	// all input variables, local values, and output values during a graph

@@ -216,7 +216,7 @@ func (n *nodeExpandPlannableResource) expandKnownModule(globalCtx EvalContext, r
 
 	moduleCtx := evalContextForModuleInstance(globalCtx, resAddr.Module)
 
-	moreDiags := n.writeResourceState(moduleCtx, resAddr)
+	moreDiags := n.recordResourceData(moduleCtx, resAddr)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return nil, nil, nil, diags

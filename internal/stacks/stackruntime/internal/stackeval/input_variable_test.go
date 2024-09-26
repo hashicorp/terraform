@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
@@ -350,6 +351,137 @@ func TestInputVariablePlanApply(t *testing.T) {
 			})
 			if err != nil {
 				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestInputVariablePlanChanges(t *testing.T) {
+	ctx := context.Background()
+	cfg := testStackConfig(t, "input_variable", "basics")
+
+	tests := map[string]struct {
+		PlanVal            cty.Value
+		PreviousPlanVal    cty.Value
+		WantPlannedChanges []stackplan.PlannedChange
+	}{
+		"unmarked": {
+			PlanVal:         cty.StringVal("value_1"),
+			PreviousPlanVal: cty.NullVal(cty.String),
+			WantPlannedChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:            stackaddrs.InputVariable{Name: "name"},
+					Action:          plans.Update,
+					Before:          cty.NullVal(cty.String),
+					After:           cty.StringVal("value_1"),
+					RequiredOnApply: false,
+					DeleteOnApply:   false,
+				},
+			},
+		},
+		"sensitive": {
+			PlanVal:         cty.StringVal("value_2").Mark(marks.Sensitive),
+			PreviousPlanVal: cty.NullVal(cty.String),
+			WantPlannedChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:            stackaddrs.InputVariable{Name: "name"},
+					Action:          plans.Update,
+					Before:          cty.NullVal(cty.String),
+					After:           cty.StringVal("value_2").Mark(marks.Sensitive),
+					RequiredOnApply: false,
+					DeleteOnApply:   false,
+				},
+			},
+		},
+		"ephemeral": {
+			PlanVal:         cty.StringVal("value_3").Mark(marks.Ephemeral),
+			PreviousPlanVal: cty.NullVal(cty.String),
+			WantPlannedChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:            stackaddrs.InputVariable{Name: "name"},
+					Action:          plans.Update,
+					Before:          cty.NullVal(cty.String),
+					After:           cty.StringVal("value_3").Mark(marks.Ephemeral),
+					RequiredOnApply: false,
+					DeleteOnApply:   false,
+				},
+			},
+		},
+		"sensitive_and_ephemeral": {
+			PlanVal:         cty.StringVal("value_4").Mark(marks.Ephemeral).Mark(marks.Sensitive),
+			PreviousPlanVal: cty.NullVal(cty.String),
+			WantPlannedChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:            stackaddrs.InputVariable{Name: "name"},
+					Action:          plans.Update,
+					Before:          cty.NullVal(cty.String),
+					After:           cty.StringVal("value_4").Mark(marks.Ephemeral).Mark(marks.Sensitive),
+					RequiredOnApply: false,
+					DeleteOnApply:   false,
+				},
+			},
+		},
+		"from_non_null_to_sensitive": {
+			PlanVal:         cty.StringVal("value_2").Mark(marks.Sensitive),
+			PreviousPlanVal: cty.StringVal("value_1"),
+			WantPlannedChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:            stackaddrs.InputVariable{Name: "name"},
+					Action:          plans.Update,
+					Before:          cty.StringVal("value_1"),
+					After:           cty.StringVal("value_2").Mark(marks.Sensitive),
+					RequiredOnApply: false,
+					DeleteOnApply:   false,
+				},
+			},
+		},
+		"from_ephemeral_to_unmark": {
+			PlanVal:         cty.StringVal("value_2"),
+			PreviousPlanVal: cty.StringVal("value_1").Mark(marks.Ephemeral),
+			WantPlannedChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:            stackaddrs.InputVariable{Name: "name"},
+					Action:          plans.Update,
+					Before:          cty.StringVal("value_1").Mark(marks.Ephemeral),
+					After:           cty.StringVal("value_2"),
+					RequiredOnApply: false,
+					DeleteOnApply:   false,
+				},
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := promising.MainTask(ctx, func(ctx context.Context) (*planOutputTester, error) {
+				previousState := stackstate.NewStateBuilder().AddInput("name", test.PreviousPlanVal).Build()
+
+				main := NewForPlanning(cfg, previousState, PlanOpts{
+					PlanningMode:  plans.NormalMode,
+					PlanTimestamp: time.Now().UTC(),
+					InputVariableValues: map[stackaddrs.InputVariable]ExternalInputValue{
+						{Name: "name"}: {
+							Value: test.PlanVal,
+						},
+					},
+				})
+
+				mainStack := main.MainStack(ctx)
+				rootVar := mainStack.InputVariable(ctx, stackaddrs.InputVariable{Name: "name"})
+				got, diags := rootVar.PlanChanges(ctx)
+				if diags.HasErrors() {
+					t.Errorf("unexpected errors\n%s", diags.Err().Error())
+				}
+
+				opts := cmp.Options{ctydebug.CmpOptions}
+				if diff := cmp.Diff(test.WantPlannedChanges, got, opts); len(diff) > 0 {
+					t.Errorf("wrong planned changes\n%s", diff)
+				}
+
+				return nil, nil
+			})
+			if err != nil {
+				t.Fatalf("planning failed: %s", err)
 			}
 		})
 	}

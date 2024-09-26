@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -49,6 +50,10 @@ type Evaluator struct {
 	// NamedValues is where we keep the values of already-evaluated input
 	// variables, local values, and output values.
 	NamedValues *namedvals.State
+
+	// EphemeralResources tracks the currently-open instances of any ephemeral
+	// resources.
+	EphemeralResources *ephemeral.Resources
 
 	// Deferrals tracks resources and modules that have had either their
 	// expansion or their specific planned actions deferred to a future
@@ -536,6 +541,8 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// (We can't get in here for a single-instance resource because in that
 			// case we would know that there's only one key and it's addrs.NoKey,
 			// so we'll fall through to the other logic below.)
+			//
+			// FIXME: this could catch ephemeral values too
 			return cty.DynamicVal, diags
 		}
 	}
@@ -557,6 +564,17 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		return cty.DynamicVal, diags
 	}
 	ty := schema.ImpliedType()
+
+	if addr.Mode == addrs.EphemeralResourceMode {
+		// FIXME: This does not yet work with deferrals, and it would be nice to
+		// find some way to refactor this so that the following code is not so
+		// tethered to the current implementation details. Instead we should
+		// have an abstract idea of first determining what instances the
+		// resource has (using d.Evaluator.Instances.ResourceInstanceKeys) and
+		// then retrieving the value for each instance to assemble into the
+		// result, using some per-resource-mode logic maintained elsewhere.
+		return d.getEphemeralResource(addr, rng)
+	}
 
 	rs := d.Evaluator.State.Resource(addr.Absolute(d.ModulePath))
 
@@ -764,6 +782,106 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	}
 
 	return ret, diags
+}
+
+func (d *evaluationStateData) getEphemeralResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	if d.Operation == walkValidate {
+		// Ephemeral instances are never live during the validate walk
+		return cty.DynamicVal.Mark(marks.Ephemeral), diags
+	}
+
+	// Now, we're going to build up a value that represents the resource
+	// or resources that are in the state.
+	instances := map[addrs.InstanceKey]cty.Value{}
+
+	// First, we're going to load any instances that we have written into the
+	// deferrals system. A deferred resource overrides anything that might be
+	// in the state for the resource, so we do this first.
+	for key, value := range d.Evaluator.Deferrals.GetDeferredResourceInstances(addr.Absolute(d.ModulePath)) {
+		instances[key] = value
+	}
+
+	absAddr := addr.Absolute(d.ModulePath)
+	keyType, keys, haveUnknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(absAddr)
+	if haveUnknownKeys {
+		// We can probably do better than totally unknown at least for a
+		// single-instance resource, but we'll just keep it simple for now.
+		// Result must be marked as ephemeral so that we can still catch
+		// attempts to use the results in non-ephemeral locations, so that
+		// the operator doesn't end up trapped with an error on a subsequent
+		// plan/apply round.
+		return cty.DynamicVal.Mark(marks.Ephemeral), diags
+	}
+
+	ephems := d.Evaluator.EphemeralResources
+	getInstValue := func(addr addrs.AbsResourceInstance) (cty.Value, tfdiags.Diagnostics) {
+		var diags tfdiags.Diagnostics
+		val, isLive := ephems.InstanceValue(addr)
+		if !isLive {
+			// If the instance is no longer "live" by the time we're accessing
+			// it then that suggests that it needed renewal and renewal has
+			// failed, and so the object's value is no longer usable. We'll
+			// still return the value in case it's somehow useful for diagnosis,
+			// but we return an error to prevent further evaluation of whatever
+			// other expression depended on the liveness of this object.
+			//
+			// This error message is written on the assumption that it will
+			// always appear alongside the provider's renewal error, but that'll
+			// be exposed only once the (now-zombied) ephemeral resource is
+			// eventually closed, so that we can avoid returning the same error
+			// multiple times.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Ephemeral resource instance has expired",
+				Detail: fmt.Sprintf(
+					"The remote object for %s is no longer available due to a renewal error, so Terraform cannot evaluate this expression.",
+					addr,
+				),
+				Subject: rng.ToHCL().Ptr(),
+			})
+		}
+		if val == cty.NilVal {
+			val = cty.DynamicVal.Mark(marks.Ephemeral)
+		}
+		return val, diags
+	}
+
+	switch keyType {
+	case addrs.NoKeyType:
+		// For "no key" we're returning just a single object representing
+		// the single instance of this resource.
+		instVal, moreDiags := getInstValue(absAddr.Instance(addrs.NoKey))
+		diags = diags.Append(moreDiags)
+		return instVal, diags
+	case addrs.IntKeyType:
+		// For integer keys we're returning a tuple-typed value whose
+		// indices are the keys.
+		elems := make([]cty.Value, len(keys))
+		for _, key := range keys {
+			idx := int(key.(addrs.IntKey))
+			instAddr := absAddr.Instance(key)
+			instVal, moreDiags := getInstValue(instAddr)
+			diags = diags.Append(moreDiags)
+			elems[idx] = instVal
+		}
+		return cty.TupleVal(elems), diags
+	case addrs.StringKeyType:
+		// For string keys we're returning an object-typed value whose
+		// attributes are the keys.
+		attrs := make(map[string]cty.Value, len(keys))
+		for _, key := range keys {
+			attrName := string(key.(addrs.StringKey))
+			instAddr := absAddr.Instance(key)
+			instVal, moreDiags := getInstValue(instAddr)
+			diags = diags.Append(moreDiags)
+			attrs[attrName] = instVal
+		}
+		return cty.ObjectVal(attrs), diags
+	default:
+		panic(fmt.Sprintf("unhandled instance key type %#v", keyType))
+	}
 }
 
 func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.Provider) *configschema.Block {

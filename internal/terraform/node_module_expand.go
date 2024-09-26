@@ -213,6 +213,9 @@ func (n *nodeCloseModule) Execute(ctx EvalContext, op walkOperation) (diags tfdi
 	// any running plugins
 	diags = diags.Append(ctx.ClosePlugins())
 
+	// We also close up the ephemeral resource manager
+	diags = diags.Append(ctx.EphemeralResources().Close(ctx.StopCtx()))
+
 	switch op {
 	case walkApply, walkDestroy:
 		state := ctx.State().Lock()

@@ -13,7 +13,7 @@ require (
 	github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.58
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-uuid v1.0.3
-	github.com/hashicorp/hcl/v2 v2.21.0
+	github.com/hashicorp/hcl/v2 v2.22.1-0.20240924195505-78fe99307e88
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
 	github.com/zclconf/go-cty v1.15.0
 )

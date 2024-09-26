@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"context"
+
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
@@ -23,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -30,8 +33,8 @@ import (
 // MockEvalContext is a mock version of EvalContext that can be used
 // for tests.
 type MockEvalContext struct {
-	StoppedCalled bool
-	StoppedValue  <-chan struct{}
+	StopCtxCalled bool
+	StopCtxValue  context.Context
 
 	HookCalled bool
 	HookHook   Hook
@@ -150,6 +153,9 @@ type MockEvalContext struct {
 	InstanceExpanderCalled   bool
 	InstanceExpanderExpander *instances.Expander
 
+	EphemeralResourcesCalled    bool
+	EphemeralResourcesResources *ephemeral.Resources
+
 	OverridesCalled bool
 	OverrideValues  *mocking.Overrides
 
@@ -160,9 +166,12 @@ type MockEvalContext struct {
 // MockEvalContext implements EvalContext
 var _ EvalContext = (*MockEvalContext)(nil)
 
-func (c *MockEvalContext) Stopped() <-chan struct{} {
-	c.StoppedCalled = true
-	return c.StoppedValue
+func (c *MockEvalContext) StopCtx() context.Context {
+	c.StopCtxCalled = true
+	if c.StopCtxValue != nil {
+		return c.StopCtxValue
+	}
+	return context.TODO()
 }
 
 func (c *MockEvalContext) Hook(fn func(Hook) (HookAction, error)) error {
@@ -359,6 +368,11 @@ func (c *MockEvalContext) LanguageExperimentActive(experiment experiments.Experi
 func (c *MockEvalContext) NamedValues() *namedvals.State {
 	c.NamedValuesCalled = true
 	return c.NamedValuesState
+}
+
+func (c *MockEvalContext) EphemeralResources() *ephemeral.Resources {
+	c.EphemeralResourcesCalled = true
+	return c.EphemeralResourcesResources
 }
 
 func (c *MockEvalContext) Deferrals() *deferring.Deferred {

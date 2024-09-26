@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
@@ -72,23 +73,24 @@ type BuiltinEvalContext struct {
 	// only allowd in the context of a destroy plan.
 	forget bool
 
-	Hooks                 []Hook
-	InputValue            UIInput
-	ProviderCache         map[string]providers.Interface
-	ProviderFuncCache     map[string]providers.Interface
-	ProviderFuncResults   *providers.FunctionResults
-	ProviderInputConfig   map[string]map[string]cty.Value
-	ProviderLock          *sync.Mutex
-	ProvisionerCache      map[string]provisioners.Interface
-	ProvisionerLock       *sync.Mutex
-	ChangesValue          *plans.ChangesSync
-	StateValue            *states.SyncState
-	ChecksValue           *checks.State
-	RefreshStateValue     *states.SyncState
-	PrevRunStateValue     *states.SyncState
-	InstanceExpanderValue *instances.Expander
-	MoveResultsValue      refactoring.MoveResults
-	OverrideValues        *mocking.Overrides
+	Hooks                   []Hook
+	InputValue              UIInput
+	ProviderCache           map[string]providers.Interface
+	ProviderFuncCache       map[string]providers.Interface
+	ProviderFuncResults     *providers.FunctionResults
+	ProviderInputConfig     map[string]map[string]cty.Value
+	ProviderLock            *sync.Mutex
+	ProvisionerCache        map[string]provisioners.Interface
+	ProvisionerLock         *sync.Mutex
+	ChangesValue            *plans.ChangesSync
+	StateValue              *states.SyncState
+	ChecksValue             *checks.State
+	EphemeralResourcesValue *ephemeral.Resources
+	RefreshStateValue       *states.SyncState
+	PrevRunStateValue       *states.SyncState
+	InstanceExpanderValue   *instances.Expander
+	MoveResultsValue        refactoring.MoveResults
+	OverrideValues          *mocking.Overrides
 }
 
 // BuiltinEvalContext implements EvalContext
@@ -100,13 +102,13 @@ func (ctx *BuiltinEvalContext) withScope(scope evalContextScope) EvalContext {
 	return &newCtx
 }
 
-func (ctx *BuiltinEvalContext) Stopped() <-chan struct{} {
+func (ctx *BuiltinEvalContext) StopCtx() context.Context {
 	// This can happen during tests. During tests, we just block forever.
 	if ctx.StopContext == nil {
-		return nil
+		return context.TODO()
 	}
 
-	return ctx.StopContext.Done()
+	return ctx.StopContext
 }
 
 func (ctx *BuiltinEvalContext) Hook(fn func(Hook) (HookAction, error)) error {
@@ -605,4 +607,8 @@ func (ctx *BuiltinEvalContext) Overrides() *mocking.Overrides {
 
 func (ctx *BuiltinEvalContext) Forget() bool {
 	return ctx.forget
+}
+
+func (ctx *BuiltinEvalContext) EphemeralResources() *ephemeral.Resources {
+	return ctx.EphemeralResourcesValue
 }
