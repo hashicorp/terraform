@@ -65,16 +65,16 @@ func TestResources(t *testing.T) {
 		Value: cty.ObjectVal(map[string]cty.Value{
 			"test": cty.StringVal("ephemeral.test.a[0]"),
 		}),
-		Impl:         testA0,
-		FirstRenewal: &providers.EphemeralRenew{ExpireTime: time.Now().Add(10 * time.Millisecond)},
+		Impl:    testA0,
+		RenewAt: time.Now().Add(10 * time.Millisecond),
 	})
 
 	resources.RegisterInstance(ctx, ephemA1, ResourceInstanceRegistration{
 		Value: cty.ObjectVal(map[string]cty.Value{
 			"test": cty.StringVal("ephemeral.test.a[1]"),
 		}),
-		Impl:         testA1,
-		FirstRenewal: &providers.EphemeralRenew{ExpireTime: time.Now().Add(10 * time.Millisecond)},
+		Impl:    testA1,
+		RenewAt: time.Now().Add(10 * time.Millisecond),
 	})
 
 	resources.RegisterInstance(ctx, ephemB, ResourceInstanceRegistration{
@@ -194,16 +194,16 @@ func TestResourcesCancellation(t *testing.T) {
 		Value: cty.ObjectVal(map[string]cty.Value{
 			"test": cty.StringVal("ephemeral.test.a[0]"),
 		}),
-		Impl:         testA0,
-		FirstRenewal: &providers.EphemeralRenew{ExpireTime: time.Now().Add(10 * time.Millisecond)},
+		Impl:    testA0,
+		RenewAt: time.Now().Add(10 * time.Millisecond),
 	})
 
 	resources.RegisterInstance(ctx, ephemA1, ResourceInstanceRegistration{
 		Value: cty.ObjectVal(map[string]cty.Value{
 			"test": cty.StringVal("ephemeral.test.a[1]"),
 		}),
-		Impl:         testA1,
-		FirstRenewal: &providers.EphemeralRenew{ExpireTime: time.Now().Add(10 * time.Millisecond)},
+		Impl:    testA1,
+		RenewAt: time.Now().Add(10 * time.Millisecond),
 	})
 
 	resources.RegisterInstance(ctx, ephemB, ResourceInstanceRegistration{
@@ -283,7 +283,7 @@ type testResourceInstance struct {
 
 func (r *testResourceInstance) Renew(ctx context.Context, req providers.EphemeralRenew) (*providers.EphemeralRenew, tfdiags.Diagnostics) {
 	nextRenew := &providers.EphemeralRenew{
-		ExpireTime: time.Now().Add(r.renewInterval),
+		RenewAt: time.Now().Add(r.renewInterval),
 	}
 	r.Lock()
 	defer r.Unlock()

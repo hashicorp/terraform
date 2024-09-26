@@ -122,14 +122,15 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) tfdiags.
 	impl := &ephemeralResourceInstImpl{
 		addr:     inp.addr,
 		provider: provider,
-		internal: resp.InternalContext,
+		internal: resp.Private,
 	}
 
 	ephemerals.RegisterInstance(ctx.StopCtx(), inp.addr, ephemeral.ResourceInstanceRegistration{
-		Value:        resultVal,
-		ConfigBody:   config.Config,
-		Impl:         impl,
-		FirstRenewal: resp.Renew,
+		Value:      resultVal,
+		ConfigBody: config.Config,
+		Impl:       impl,
+		RenewAt:    resp.RenewAt,
+		Private:    resp.Private,
 	})
 
 	return diags
@@ -185,8 +186,8 @@ var _ ephemeral.ResourceInstance = (*ephemeralResourceInstImpl)(nil)
 func (impl *ephemeralResourceInstImpl) Close(ctx context.Context) tfdiags.Diagnostics {
 	log.Printf("[TRACE] ephemeralResourceInstImpl: closing %s", impl.addr)
 	resp := impl.provider.CloseEphemeralResource(providers.CloseEphemeralResourceRequest{
-		TypeName:        impl.addr.Resource.Resource.Type,
-		InternalContext: impl.internal,
+		TypeName: impl.addr.Resource.Resource.Type,
+		Private:  impl.internal,
 	})
 	return resp.Diagnostics
 }
@@ -195,8 +196,14 @@ func (impl *ephemeralResourceInstImpl) Close(ctx context.Context) tfdiags.Diagno
 func (impl *ephemeralResourceInstImpl) Renew(ctx context.Context, req providers.EphemeralRenew) (nextRenew *providers.EphemeralRenew, diags tfdiags.Diagnostics) {
 	log.Printf("[TRACE] ephemeralResourceInstImpl: renewing %s", impl.addr)
 	resp := impl.provider.RenewEphemeralResource(providers.RenewEphemeralResourceRequest{
-		TypeName:        impl.addr.Resource.Resource.Type,
-		InternalContext: req.InternalContext,
+		TypeName: impl.addr.Resource.Resource.Type,
+		Private:  req.Private,
 	})
-	return resp.RenewAgain, resp.Diagnostics
+
+	if !resp.RenewAt.IsZero() {
+		nextRenew.RenewAt = resp.RenewAt
+		nextRenew.Private = resp.Private
+	}
+
+	return nextRenew, resp.Diagnostics
 }
