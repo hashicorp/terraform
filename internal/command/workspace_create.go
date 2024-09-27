@@ -18,19 +18,19 @@ import (
 	"github.com/posener/complete"
 )
 
-type WorkspaceNewCommand struct {
+type WorkspaceCreateCommand struct {
 	Meta
 	LegacyName bool
 }
 
-func (c *WorkspaceNewCommand) Run(args []string) int {
+func (c *WorkspaceCreateCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
 	var stateLock bool
 	var stateLockTimeout time.Duration
 	var statePath string
-	cmdFlags := c.Meta.defaultFlagSet("workspace new")
+	cmdFlags := c.Meta.defaultFlagSet("workspace create")
 	cmdFlags.BoolVar(&stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.StringVar(&statePath, "state", "", "terraform state file")
@@ -129,7 +129,7 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 
 	if stateLock {
 		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
-		if diags := stateLocker.Lock(stateMgr, "workspace-new"); diags.HasErrors() {
+		if diags := stateLocker.Lock(stateMgr, "workspace-create"); diags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
 		}
@@ -168,22 +168,22 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *WorkspaceNewCommand) AutocompleteArgs() complete.Predictor {
+func (c *WorkspaceCreateCommand) AutocompleteArgs() complete.Predictor {
 	return completePredictSequence{
 		complete.PredictAnything,
 		complete.PredictDirs(""),
 	}
 }
 
-func (c *WorkspaceNewCommand) AutocompleteFlags() complete.Flags {
+func (c *WorkspaceCreateCommand) AutocompleteFlags() complete.Flags {
 	return complete.Flags{
 		"-state": complete.PredictFiles("*.tfstate"),
 	}
 }
 
-func (c *WorkspaceNewCommand) Help() string {
+func (c *WorkspaceCreateCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] workspace new [OPTIONS] NAME
+Usage: terraform [global options] workspace create [OPTIONS] NAME
 
   Create a new Terraform workspace.
 
@@ -201,6 +201,6 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func (c *WorkspaceNewCommand) Synopsis() string {
+func (c *WorkspaceCreateCommand) Synopsis() string {
 	return "Create a new workspace"
 }

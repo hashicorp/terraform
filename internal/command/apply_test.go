@@ -1881,7 +1881,7 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	// Create new env
 	{
 		ui := new(cli.MockUi)
-		newCmd := &WorkspaceNewCommand{
+		newCmd := &WorkspaceCreateCommand{
 			Meta: Meta{
 				Ui: ui,
 			},

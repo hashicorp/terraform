@@ -27,9 +27,9 @@ func TestWorkspace_createAndChange(t *testing.T) {
 	os.MkdirAll(td, 0755)
 	defer testChdir(t, td)()
 
-	newCmd := &WorkspaceNewCommand{}
+	createCmd := &WorkspaceCreateCommand{}
 
-	current, _ := newCmd.Workspace()
+	current, _ := createCmd.Workspace()
 	if current != backend.DefaultStateName {
 		t.Fatal("current workspace should be 'default'")
 	}
@@ -37,12 +37,12 @@ func TestWorkspace_createAndChange(t *testing.T) {
 	args := []string{"test"}
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	newCmd.Meta = Meta{Ui: ui, View: view}
-	if code := newCmd.Run(args); code != 0 {
+	createCmd.Meta = Meta{Ui: ui, View: view}
+	if code := createCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
-	current, _ = newCmd.Workspace()
+	current, _ = createCmd.Workspace()
 	if current != "test" {
 		t.Fatalf("current workspace should be 'test', got %q", current)
 	}
@@ -55,7 +55,7 @@ func TestWorkspace_createAndChange(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
-	current, _ = newCmd.Workspace()
+	current, _ = createCmd.Workspace()
 	if current != backend.DefaultStateName {
 		t.Fatal("current workspace should be 'default'")
 	}
@@ -86,10 +86,10 @@ func TestWorkspace_createAndList(t *testing.T) {
 	for _, env := range envs {
 		ui := new(cli.MockUi)
 		view, _ := testView(t)
-		newCmd := &WorkspaceNewCommand{
+		createCmd := &WorkspaceCreateCommand{
 			Meta: Meta{Ui: ui, View: view},
 		}
-		if code := newCmd.Run([]string{env}); code != 0 {
+		if code := createCmd.Run([]string{env}); code != 0 {
 			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 		}
 	}
@@ -145,14 +145,14 @@ func TestWorkspace_createAndShow(t *testing.T) {
 		t.Fatalf("\nexpected: %q\nactual:  %q", expected, actual)
 	}
 
-	newCmd := &WorkspaceNewCommand{}
+	createCmd := &WorkspaceCreateCommand{}
 
 	env := []string{"test_a"}
 
 	// create test_a workspace
 	ui = new(cli.MockUi)
-	newCmd.Meta = Meta{Ui: ui, View: view}
-	if code := newCmd.Run(env); code != 0 {
+	createCmd.Meta = Meta{Ui: ui, View: view}
+	if code := createCmd.Run(env); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
@@ -192,10 +192,10 @@ func TestWorkspace_createInvalid(t *testing.T) {
 	for _, env := range envs {
 		ui := new(cli.MockUi)
 		view, _ := testView(t)
-		newCmd := &WorkspaceNewCommand{
+		createCmd := &WorkspaceCreateCommand{
 			Meta: Meta{Ui: ui, View: view},
 		}
-		if code := newCmd.Run([]string{env}); code == 0 {
+		if code := createCmd.Run([]string{env}); code == 0 {
 			t.Fatalf("expected failure: \n%s", ui.OutputWriter)
 		}
 	}
@@ -261,10 +261,10 @@ func TestWorkspace_createWithState(t *testing.T) {
 
 	args := []string{"-state", "test.tfstate", workspace}
 	ui = new(cli.MockUi)
-	newCmd := &WorkspaceNewCommand{
+	createCmd := &WorkspaceCreateCommand{
 		Meta: Meta{Ui: ui, View: view},
 	}
-	if code := newCmd.Run(args); code != 0 {
+	if code := createCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 

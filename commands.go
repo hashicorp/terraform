@@ -160,8 +160,8 @@ func initCommands(
 			}, nil
 		},
 
-		"env new": func() (cli.Command, error) {
-			return &command.WorkspaceNewCommand{
+		"env create": func() (cli.Command, error) {
+			return &command.WorkspaceCreateCommand{
 				Meta:       meta,
 				LegacyName: true,
 			}, nil
@@ -340,8 +340,8 @@ func initCommands(
 			}, nil
 		},
 
-		"workspace new": func() (cli.Command, error) {
-			return &command.WorkspaceNewCommand{
+		"workspace create": func() (cli.Command, error) {
+			return &command.WorkspaceCreateCommand{
 				Meta: meta,
 			}, nil
 		},
