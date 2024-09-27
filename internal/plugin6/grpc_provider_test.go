@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -16,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	mockproto "github.com/hashicorp/terraform/internal/plugin6/mock_proto"
 	proto "github.com/hashicorp/terraform/internal/tfplugin6"
@@ -95,6 +97,19 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 							Name:     "attr",
 							Type:     []byte(`"string"`),
 							Required: true,
+						},
+					},
+				},
+			},
+		},
+		EphemeralResourceSchemas: map[string]*proto.Schema{
+			"ephemeral": &proto.Schema{
+				Block: &proto.Schema_Block{
+					Attributes: []*proto.Schema_Attribute{
+						{
+							Name:     "attr",
+							Type:     []byte(`"string"`),
+							Computed: true,
 						},
 					},
 				},
@@ -920,4 +935,96 @@ func TestGRPCProvider_ReadDataSourceJSON(t *testing.T) {
 	if !cmp.Equal(expected, resp.State, typeComparer, valueComparer, equateEmpty) {
 		t.Fatal(cmp.Diff(expected, resp.State, typeComparer, valueComparer, equateEmpty))
 	}
+}
+
+func TestGRPCProvider_openEphemeralResource(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	client.EXPECT().OpenEphemeralResource(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.OpenEphemeralResource_Response{
+		Result: &proto.DynamicValue{
+			Msgpack: []byte("\x81\xa4attr\xa3bar"),
+		},
+		RenewAt: timestamppb.New(time.Now().Add(time.Second)),
+		Private: []byte("private data"),
+	}, nil)
+
+	resp := p.OpenEphemeralResource(providers.OpenEphemeralResourceRequest{
+		TypeName: "ephemeral",
+		Config: cty.ObjectVal(map[string]cty.Value{
+			"attr": cty.NullVal(cty.String),
+		}),
+	})
+
+	checkDiags(t, resp.Diagnostics)
+
+	expected := cty.ObjectVal(map[string]cty.Value{
+		"attr": cty.StringVal("bar"),
+	})
+
+	if !cmp.Equal(expected, resp.Result, typeComparer, valueComparer, equateEmpty) {
+		t.Fatal(cmp.Diff(expected, resp.Result, typeComparer, valueComparer, equateEmpty))
+	}
+
+	if !resp.RenewAt.After(time.Now()) {
+		t.Fatal("invalid RenewAt:", resp.RenewAt)
+	}
+
+	if !bytes.Equal(resp.Private, []byte("private data")) {
+		t.Fatalf("invalid private data: %q", resp.Private)
+	}
+}
+
+func TestGRPCProvider_renewEphemeralResource(t *testing.T) {
+	client := mockproto.NewMockProviderClient(gomock.NewController(t))
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	client.EXPECT().RenewEphemeralResource(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.RenewEphemeralResource_Response{
+		RenewAt: timestamppb.New(time.Now().Add(time.Second)),
+		Private: []byte("private data"),
+	}, nil)
+
+	resp := p.RenewEphemeralResource(providers.RenewEphemeralResourceRequest{
+		TypeName: "ephemeral",
+		Private:  []byte("private data"),
+	})
+
+	checkDiags(t, resp.Diagnostics)
+
+	if !resp.RenewAt.After(time.Now()) {
+		t.Fatal("invalid RenewAt:", resp.RenewAt)
+	}
+
+	if !bytes.Equal(resp.Private, []byte("private data")) {
+		t.Fatalf("invalid private data: %q", resp.Private)
+	}
+}
+
+func TestGRPCProvider_closeEphemeralResource(t *testing.T) {
+	client := mockproto.NewMockProviderClient(gomock.NewController(t))
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	client.EXPECT().CloseEphemeralResource(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.CloseEphemeralResource_Response{}, nil)
+
+	resp := p.CloseEphemeralResource(providers.CloseEphemeralResourceRequest{
+		TypeName: "ephemeral",
+		Private:  []byte("private data"),
+	})
+
+	checkDiags(t, resp.Diagnostics)
 }
