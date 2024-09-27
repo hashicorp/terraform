@@ -254,10 +254,10 @@ func TestStatePush_forceRemoteState(t *testing.T) {
 
 	// create a new workspace
 	ui = new(cli.MockUi)
-	newCmd := &WorkspaceCreateCommand{
+	createCmd := &WorkspaceCreateCommand{
 		Meta: Meta{Ui: ui, View: view},
 	}
-	if code := newCmd.Run([]string{"test"}); code != 0 {
+	if code := createCmd.Run([]string{"test"}); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 

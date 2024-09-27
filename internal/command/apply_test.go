@@ -1881,12 +1881,12 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	// Create new env
 	{
 		ui := new(cli.MockUi)
-		newCmd := &WorkspaceCreateCommand{
+		createCmd := &WorkspaceCreateCommand{
 			Meta: Meta{
 				Ui: ui,
 			},
 		}
-		if code := newCmd.Run([]string{"test"}); code != 0 {
+		if code := createCmd.Run([]string{"test"}); code != 0 {
 			t.Fatal("error creating workspace")
 		}
 	}
