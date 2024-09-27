@@ -33,7 +33,7 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		ResourceTypes: map[string]providers.Schema{
 			"terraform_data": dataStoreResourceSchema(),
 		},
-		EphemeralResourceTypes: map[string]providers.Schema{},
+		EphemeralTypes: map[string]providers.Schema{},
 		Functions: map[string]providers.FunctionDecl{
 			"encode_tfvars": {
 				Summary:     "Produce a string representation of an object using the same syntax as for `.tfvars` files",
@@ -195,23 +195,29 @@ func (p *Provider) ValidateResourceConfig(req providers.ValidateResourceConfigRe
 	return validateDataStoreResourceConfig(req)
 }
 
-// OpenEphemeral implements providers.Interface.
-func (p *Provider) OpenEphemeral(req providers.OpenEphemeralRequest) providers.OpenEphemeralResponse {
-	var resp providers.OpenEphemeralResponse
+func (p *Provider) ValidateEphemeralResourceConfig(req providers.ValidateEphemeralResourceConfigRequest) providers.ValidateEphemeralResourceConfigResponse {
+	var resp providers.ValidateEphemeralResourceConfigResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
 	return resp
 }
 
-// RenewEphemeral implements providers.Interface.
-func (p *Provider) RenewEphemeral(req providers.RenewEphemeralRequest) providers.RenewEphemeralResponse {
-	var resp providers.RenewEphemeralResponse
+// OpenEphemeralResource implements providers.Interface.
+func (p *Provider) OpenEphemeralResource(req providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
+	var resp providers.OpenEphemeralResourceResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
 	return resp
 }
 
-// CloseEphemeral implements providers.Interface.
-func (p *Provider) CloseEphemeral(req providers.CloseEphemeralRequest) providers.CloseEphemeralResponse {
-	var resp providers.CloseEphemeralResponse
+// RenewEphemeralResource implements providers.Interface.
+func (p *Provider) RenewEphemeralResource(req providers.RenewEphemeralResourceRequest) providers.RenewEphemeralResourceResponse {
+	var resp providers.RenewEphemeralResourceResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
+	return resp
+}
+
+// CloseEphemeralResource implements providers.Interface.
+func (p *Provider) CloseEphemeralResource(req providers.CloseEphemeralResourceRequest) providers.CloseEphemeralResourceResponse {
+	var resp providers.CloseEphemeralResourceResponse
 	resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
 	return resp
 }

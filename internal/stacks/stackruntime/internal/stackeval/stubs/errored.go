@@ -128,8 +128,8 @@ func (p *erroredProvider) ReadResource(req providers.ReadResourceRequest) provid
 	}
 }
 
-// OpenEphemeral implements providers.Interface.
-func (p *erroredProvider) OpenEphemeral(providers.OpenEphemeralRequest) providers.OpenEphemeralResponse {
+// OpenEphemeralResource implements providers.Interface.
+func (p *erroredProvider) OpenEphemeralResource(providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -137,23 +137,23 @@ func (p *erroredProvider) OpenEphemeral(providers.OpenEphemeralRequest) provider
 		"Cannot open this ephemeral resource instance because its associated provider configuration is invalid.",
 		nil, // nil attribute path means the overall configuration block
 	))
-	return providers.OpenEphemeralResponse{
+	return providers.OpenEphemeralResourceResponse{
 		Diagnostics: diags,
 	}
 }
 
-// RenewEphemeral implements providers.Interface.
-func (p *erroredProvider) RenewEphemeral(providers.RenewEphemeralRequest) providers.RenewEphemeralResponse {
-	// We don't have anything to do here because OpenEphemeral didn't really
+// RenewEphemeralResource implements providers.Interface.
+func (p *erroredProvider) RenewEphemeralResource(providers.RenewEphemeralResourceRequest) providers.RenewEphemeralResourceResponse {
+	// We don't have anything to do here because OpenEphemeralResource didn't really
 	// actually "open" anything.
-	return providers.RenewEphemeralResponse{}
+	return providers.RenewEphemeralResourceResponse{}
 }
 
-// CloseEphemeral implements providers.Interface.
-func (p *erroredProvider) CloseEphemeral(providers.CloseEphemeralRequest) providers.CloseEphemeralResponse {
-	// We don't have anything to do here because OpenEphemeral didn't really
+// CloseEphemeralResource implements providers.Interface.
+func (p *erroredProvider) CloseEphemeralResource(providers.CloseEphemeralResourceRequest) providers.CloseEphemeralResourceResponse {
+	// We don't have anything to do here because OpenEphemeralResource didn't really
 	// actually "open" anything.
-	return providers.CloseEphemeralResponse{}
+	return providers.CloseEphemeralResourceResponse{}
 }
 
 // Stop implements providers.Interface.
@@ -198,6 +198,14 @@ func (p *erroredProvider) ValidateProviderConfig(req providers.ValidateProviderC
 	return providers.ValidateProviderConfigResponse{
 		PreparedConfig: req.Config,
 		Diagnostics:    nil,
+	}
+}
+
+// ValidateEphemeralResourceConfig implements providers.Interface.
+func (p *erroredProvider) ValidateEphemeralResourceConfig(providers.ValidateEphemeralResourceConfigRequest) providers.ValidateEphemeralResourceConfigResponse {
+
+	return providers.ValidateEphemeralResourceConfigResponse{
+		Diagnostics: nil,
 	}
 }
 

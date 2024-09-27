@@ -107,7 +107,7 @@ func (r *Resources) CloseInstances(ctx context.Context, configAddr addrs.ConfigR
 	var diags tfdiags.Diagnostics
 
 	// Use a read-lock here so we can run multiple close calls concurrently for
-	// different resources. This needs to call CloseEphemeral which is sent to
+	// different resources. This needs to call CloseEphemeralResource which is sent to
 	// the provider and can take an unknown amount of time.
 	r.mu.RLock()
 	for _, elem := range r.active.Get(configAddr).Elems {
@@ -140,8 +140,11 @@ func (r *Resources) Close(ctx context.Context) tfdiags.Diagnostics {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// We might be closing due to a context cancellation, but we still need
-	// to be able to make non-canceled Close requests.
+	// We might be closing due to a context cancellation, but we still need to
+	// be able to make non-canceled Close requests.
+	//
+	// TODO: if we're going to ignore the cancellation to ensure that Close is
+	// always called, should we add some sort of timeout?
 	ctx = context.WithoutCancel(ctx)
 
 	var diags tfdiags.Diagnostics

@@ -9,9 +9,10 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
@@ -213,59 +214,6 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Description: "The base64-encoded encryption key to use for server-side encryption with customer-provided keys (SSE-C).",
 				Sensitive:   true,
 			},
-			"role_arn": {
-				Type:        cty.String,
-				Optional:    true,
-				Description: "The role to be assumed",
-				Deprecated:  true,
-			},
-			"session_name": {
-				Type:        cty.String,
-				Optional:    true,
-				Description: "The session name to use when assuming the role.",
-				Deprecated:  true,
-			},
-			"external_id": {
-				Type:        cty.String,
-				Optional:    true,
-				Description: "The external ID to use when assuming the role",
-				Deprecated:  true,
-			},
-
-			"assume_role_duration_seconds": {
-				Type:        cty.Number,
-				Optional:    true,
-				Description: "Seconds to restrict the assume role session duration.",
-				Deprecated:  true,
-			},
-
-			"assume_role_policy": {
-				Type:        cty.String,
-				Optional:    true,
-				Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
-				Deprecated:  true,
-			},
-
-			"assume_role_policy_arns": {
-				Type:        cty.Set(cty.String),
-				Optional:    true,
-				Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
-				Deprecated:  true,
-			},
-
-			"assume_role_tags": {
-				Type:        cty.Map(cty.String),
-				Optional:    true,
-				Description: "Assume role session tags.",
-				Deprecated:  true,
-			},
-
-			"assume_role_transitive_tag_keys": {
-				Type:        cty.Set(cty.String),
-				Optional:    true,
-				Description: "Assume role session tag keys to pass to any subsequent sessions.",
-				Deprecated:  true,
-			},
 
 			"workspace_key_prefix": {
 				Type:        cty.String,
@@ -339,124 +287,127 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 	}
 }
 
-var assumeRoleSchema = singleNestedAttribute{
-	Attributes: map[string]schemaAttribute{
-		"role_arn": stringAttribute{
-			configschema.Attribute{
-				Type:        cty.String,
-				Required:    true,
-				Description: "The role to be assumed.",
-			},
-			validateString{
-				Validators: []stringValidator{
-					validateARN(
-						validateIAMRoleARN,
-					),
+var assumeRoleSchema = listNestedAttribute{
+	NestedObject: nestedObjectSchema{
+		Attributes: map[string]schemaAttribute{
+			"role_arn": stringAttribute{
+				configschema.Attribute{
+					Type:        cty.String,
+					Required:    true,
+					Description: "The role to be assumed.",
 				},
-			},
-		},
-
-		"duration": stringAttribute{
-			configschema.Attribute{
-				Type:        cty.String,
-				Optional:    true,
-				Description: "The duration, between 15 minutes and 12 hours, of the role session. Valid time units are ns, us (or µs), ms, s, h, or m.",
-			},
-			validateString{
-				Validators: []stringValidator{
-					validateDuration(
-						validateDurationBetween(15*time.Minute, 12*time.Hour),
-					),
-				},
-			},
-		},
-
-		"external_id": stringAttribute{
-			configschema.Attribute{
-				Type:        cty.String,
-				Optional:    true,
-				Description: "The external ID to use when assuming the role",
-			},
-			validateString{
-				Validators: []stringValidator{
-					validateStringLenBetween(2, 1224),
-					validateStringMatches(
-						regexp.MustCompile(`^[\w+=,.@:\/\-]*$`),
-						`Value can only contain letters, numbers, or the following characters: =,.@/-`,
-					),
-				},
-			},
-		},
-
-		"policy": stringAttribute{
-			configschema.Attribute{
-				Type:        cty.String,
-				Optional:    true,
-				Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
-			},
-			validateString{
-				Validators: []stringValidator{
-					validateStringNotEmpty,
-					validateIAMPolicyDocument,
-				},
-			},
-		},
-
-		"policy_arns": setAttribute{
-			configschema.Attribute{
-				Type:        cty.Set(cty.String),
-				Optional:    true,
-				Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
-			},
-			validateSet{
-				Validators: []setValidator{
-					validateSetStringElements(
+				validateString{
+					Validators: []stringValidator{
+						validateStringNotEmpty,
 						validateARN(
-							validateIAMPolicyARN,
+							validateIAMRoleARN,
 						),
-					),
+					},
 				},
 			},
-		},
 
-		"session_name": stringAttribute{
-			configschema.Attribute{
-				Type:        cty.String,
-				Optional:    true,
-				Description: "The session name to use when assuming the role.",
+			"duration": stringAttribute{
+				configschema.Attribute{
+					Type:        cty.String,
+					Optional:    true,
+					Description: "The duration, between 15 minutes and 12 hours, of the role session. Valid time units are ns, us (or µs), ms, s, h, or m.",
+				},
+				validateString{
+					Validators: []stringValidator{
+						validateDuration(
+							validateDurationBetween(15*time.Minute, 12*time.Hour),
+						),
+					},
+				},
 			},
-			validateString{
-				Validators: assumeRoleNameValidator,
-			},
-		},
 
-		"source_identity": stringAttribute{
-			configschema.Attribute{
-				Type:        cty.String,
-				Optional:    true,
-				Description: "Source identity specified by the principal assuming the role.",
+			"external_id": stringAttribute{
+				configschema.Attribute{
+					Type:        cty.String,
+					Optional:    true,
+					Description: "The external ID to use when assuming the role",
+				},
+				validateString{
+					Validators: []stringValidator{
+						validateStringLenBetween(2, 1224),
+						validateStringMatches(
+							regexp.MustCompile(`^[\w+=,.@:\/\-]*$`),
+							`Value can only contain letters, numbers, or the following characters: =,.@/-`,
+						),
+					},
+				},
 			},
-			validateString{
-				Validators: assumeRoleNameValidator,
-			},
-		},
 
-		"tags": mapAttribute{
-			configschema.Attribute{
-				Type:        cty.Map(cty.String),
-				Optional:    true,
-				Description: "Assume role session tags.",
+			"policy": stringAttribute{
+				configschema.Attribute{
+					Type:        cty.String,
+					Optional:    true,
+					Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
+				},
+				validateString{
+					Validators: []stringValidator{
+						validateStringNotEmpty,
+						validateIAMPolicyDocument,
+					},
+				},
 			},
-			validateMap{},
-		},
 
-		"transitive_tag_keys": setAttribute{
-			configschema.Attribute{
-				Type:        cty.Set(cty.String),
-				Optional:    true,
-				Description: "Assume role session tag keys to pass to any subsequent sessions.",
+			"policy_arns": setAttribute{
+				configschema.Attribute{
+					Type:        cty.Set(cty.String),
+					Optional:    true,
+					Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
+				},
+				validateSet{
+					Validators: []setValidator{
+						validateSetStringElements(
+							validateARN(
+								validateIAMPolicyARN,
+							),
+						),
+					},
+				},
 			},
-			validateSet{},
+
+			"session_name": stringAttribute{
+				configschema.Attribute{
+					Type:        cty.String,
+					Optional:    true,
+					Description: "The session name to use when assuming the role.",
+				},
+				validateString{
+					Validators: assumeRoleNameValidator,
+				},
+			},
+
+			"source_identity": stringAttribute{
+				configschema.Attribute{
+					Type:        cty.String,
+					Optional:    true,
+					Description: "Source identity specified by the principal assuming the role.",
+				},
+				validateString{
+					Validators: assumeRoleNameValidator,
+				},
+			},
+
+			"tags": mapAttribute{
+				configschema.Attribute{
+					Type:        cty.Map(cty.String),
+					Optional:    true,
+					Description: "Assume role session tags.",
+				},
+				validateMap{},
+			},
+
+			"transitive_tag_keys": setAttribute{
+				configschema.Attribute{
+					Type:        cty.Set(cty.String),
+					Optional:    true,
+					Description: "Assume role session tag keys to pass to any subsequent sessions.",
+				},
+				validateSet{},
+			},
 		},
 	},
 }
@@ -471,6 +422,7 @@ var assumeRoleWithWebIdentitySchema = singleNestedAttribute{
 			},
 			validateString{
 				Validators: []stringValidator{
+					validateStringNotEmpty,
 					validateARN(
 						validateIAMRoleARN,
 					),
@@ -715,40 +667,12 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		keyPrefixValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
-	var assumeRoleDeprecatedFields = map[string]string{
-		"role_arn":                        "assume_role.role_arn",
-		"session_name":                    "assume_role.session_name",
-		"external_id":                     "assume_role.external_id",
-		"assume_role_duration_seconds":    "assume_role.duration",
-		"assume_role_policy":              "assume_role.policy",
-		"assume_role_policy_arns":         "assume_role.policy_arns",
-		"assume_role_tags":                "assume_role.tags",
-		"assume_role_transitive_tag_keys": "assume_role.transitive_tag_keys",
-	}
-
 	if val := obj.GetAttr("assume_role"); !val.IsNull() {
-		validateNestedAttribute(assumeRoleSchema, val, cty.GetAttrPath("assume_role"), &diags)
-
-		if defined := findDeprecatedFields(obj, assumeRoleDeprecatedFields); len(defined) != 0 {
-			diags = diags.Append(tfdiags.WholeContainingBody(
-				tfdiags.Error,
-				"Conflicting Parameters",
-				`The following deprecated parameters conflict with the parameter "assume_role". Replace them as follows:`+"\n"+
-					formatDeprecations(defined),
-			))
-		}
-	} else {
-		if defined := findDeprecatedFields(obj, assumeRoleDeprecatedFields); len(defined) != 0 {
-			diags = diags.Append(wholeBodyWarningDiag(
-				"Deprecated Parameters",
-				`The following parameters have been deprecated. Replace them as follows:`+"\n"+
-					formatDeprecations(defined),
-			))
-		}
+		validateListNestedAttribute(assumeRoleSchema, val, cty.GetAttrPath("assume_role"), &diags)
 	}
 
 	if val := obj.GetAttr("assume_role_with_web_identity"); !val.IsNull() {
-		validateNestedAttribute(assumeRoleWithWebIdentitySchema, val, cty.GetAttrPath("assume_role_with_web_identity"), &diags)
+		validateSingleNestedAttribute(assumeRoleWithWebIdentitySchema, val, cty.GetAttrPath("assume_role_with_web_identity"), &diags)
 	}
 
 	validateAttributesConflict(
@@ -791,7 +715,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	}
 
 	if val := obj.GetAttr("endpoints"); !val.IsNull() {
-		validateNestedAttribute(endpointsSchema, val, cty.GetAttrPath("endpoints"), &diags)
+		validateSingleNestedAttribute(endpointsSchema, val, cty.GetAttrPath("endpoints"), &diags)
 	}
 
 	endpointValidators := validateString{
@@ -854,36 +778,6 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	return obj, diags
 }
 
-func findDeprecatedFields(obj cty.Value, attrs map[string]string) map[string]string {
-	defined := make(map[string]string)
-	for attr, v := range attrs {
-		if val := obj.GetAttr(attr); !val.IsNull() {
-			defined[attr] = v
-		}
-	}
-	return defined
-}
-
-func formatDeprecations(attrs map[string]string) string {
-	names := make([]string, 0, len(attrs))
-	var maxLen int
-	for attr := range attrs {
-		names = append(names, attr)
-		if l := len(attr); l > maxLen {
-			maxLen = l
-		}
-	}
-	sort.Strings(names)
-
-	var buf strings.Builder
-
-	for _, attr := range names {
-		replacement := attrs[attr]
-		fmt.Fprintf(&buf, "  * %-[1]*[2]s -> %[3]s\n", maxLen, attr, replacement)
-	}
-	return buf.String()
-}
-
 // Configure uses the provided configuration to set configuration fields
 // within the backend.
 //
@@ -910,7 +804,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
 				"Invalid region value",
-				err.Error(),
+				firstToUpper(err.Error()),
 				cty.GetAttrPath("region"),
 			))
 			return diags
@@ -1081,58 +975,42 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		cfg.StsRegion = v
 	}
 
-	if assumeRole := obj.GetAttr("assume_role"); !assumeRole.IsNull() {
-		ar := &awsbase.AssumeRole{}
-		if val, ok := stringAttrOk(assumeRole, "role_arn"); ok {
-			ar.RoleARN = val
-		}
-		if val, ok := stringAttrOk(assumeRole, "duration"); ok {
-			duration, _ := time.ParseDuration(val)
-			ar.Duration = duration
-		}
-		if val, ok := stringAttrOk(assumeRole, "external_id"); ok {
-			ar.ExternalID = val
-		}
-		if val, ok := stringAttrOk(assumeRole, "policy"); ok {
-			ar.Policy = strings.TrimSpace(val)
-		}
-		if val, ok := stringSetAttrOk(assumeRole, "policy_arns"); ok {
-			ar.PolicyARNs = val
-		}
-		if val, ok := stringAttrOk(assumeRole, "session_name"); ok {
-			ar.SessionName = val
-		}
-		if val, ok := stringAttrOk(assumeRole, "source_identity"); ok {
-			ar.SourceIdentity = val
-		}
-		if val, ok := stringMapAttrOk(assumeRole, "tags"); ok {
-			ar.Tags = val
-		}
-		if val, ok := stringSetAttrOk(assumeRole, "transitive_tag_keys"); ok {
-			ar.TransitiveTagKeys = val
-		}
-		cfg.AssumeRole = ar
-	} else if arn, ok := stringAttrOk(obj, "role_arn"); ok {
-		ar := &awsbase.AssumeRole{}
-		ar.RoleARN = arn
-		ar.SessionName = stringAttr(obj, "session_name")
-		ar.Duration = time.Duration(intAttr(obj, "assume_role_duration_seconds")) * time.Second
-		ar.ExternalID = stringAttr(obj, "external_id")
-		if val, ok := stringAttrOk(obj, "assume_role_policy"); ok {
-			ar.Policy = strings.TrimSpace(val)
-		}
-		if val, ok := stringSetAttrOk(obj, "assume_role_policy_arns"); ok {
-			ar.PolicyARNs = val
-		}
-
-		if val, ok := stringMapAttrOk(obj, "assume_role_tags"); ok {
-			ar.Tags = val
-		}
-
-		if val, ok := stringSetAttrOk(obj, "assume_role_transitive_tag_keys"); ok {
-			ar.TransitiveTagKeys = val
-		}
-		cfg.AssumeRole = ar
+	if assumeRoles := obj.GetAttr("assume_role"); !assumeRoles.IsNull() {
+		ars := make([]awsbase.AssumeRole, 0, assumeRoles.LengthInt())
+		assumeRoles.ForEachElement(func(_, assumeRole cty.Value) bool {
+			ar := awsbase.AssumeRole{}
+			if val, ok := stringAttrOk(assumeRole, "role_arn"); ok {
+				ar.RoleARN = val
+			}
+			if val, ok := stringAttrOk(assumeRole, "duration"); ok {
+				duration, _ := time.ParseDuration(val)
+				ar.Duration = duration
+			}
+			if val, ok := stringAttrOk(assumeRole, "external_id"); ok {
+				ar.ExternalID = val
+			}
+			if val, ok := stringAttrOk(assumeRole, "policy"); ok {
+				ar.Policy = strings.TrimSpace(val)
+			}
+			if val, ok := stringSetAttrOk(assumeRole, "policy_arns"); ok {
+				ar.PolicyARNs = val
+			}
+			if val, ok := stringAttrOk(assumeRole, "session_name"); ok {
+				ar.SessionName = val
+			}
+			if val, ok := stringAttrOk(assumeRole, "source_identity"); ok {
+				ar.SourceIdentity = val
+			}
+			if val, ok := stringMapAttrOk(assumeRole, "tags"); ok {
+				ar.Tags = val
+			}
+			if val, ok := stringSetAttrOk(assumeRole, "transitive_tag_keys"); ok {
+				ar.TransitiveTagKeys = val
+			}
+			ars = append(ars, ar)
+			return false
+		})
+		cfg.AssumeRole = ars
 	}
 
 	if assumeRoleWithWebIdentity := obj.GetAttr("assume_role_with_web_identity"); !assumeRoleWithWebIdentity.IsNull() {
@@ -1493,20 +1371,15 @@ The "kms_key_id" is used for encryption with KMS-Managed Keys (SSE-KMS)
 while "AWS_SSE_CUSTOMER_KEY" is used for encryption with customer-managed keys (SSE-C).
 Please choose one or the other.`
 
-func validateNestedAttribute(objSchema schemaAttribute, obj cty.Value, objPath cty.Path, diags *tfdiags.Diagnostics) {
+func validateSingleNestedAttribute(objSchema singleNestedAttribute, obj cty.Value, objPath cty.Path, diags *tfdiags.Diagnostics) {
 	if obj.IsNull() {
-		return
-	}
-
-	na, ok := objSchema.(singleNestedAttribute)
-	if !ok {
 		return
 	}
 
 	validator := objSchema.Validator()
 	validator.ValidateAttr(obj, objPath, diags)
 
-	for name, attrSchema := range na.Attributes {
+	for name, attrSchema := range objSchema.Attributes {
 		attrPath := objPath.GetAttr(name)
 		attrVal := obj.GetAttr(name)
 
@@ -1523,6 +1396,61 @@ func validateNestedAttribute(objSchema schemaAttribute, obj cty.Value, objPath c
 			if attrSchema.SchemaAttribute().Required {
 				*diags = diags.Append(requiredAttributeErrDiag(attrPath))
 			}
+			continue
+		}
+
+		validator := attrSchema.Validator()
+		validator.ValidateAttr(attrVal, attrPath, diags)
+	}
+}
+
+func validateListNestedAttribute(listSchema listNestedAttribute, val cty.Value, path cty.Path, diags *tfdiags.Diagnostics) {
+	if val.IsNull() {
+		return
+	}
+
+	validator := listSchema.Validator()
+	validator.ValidateAttr(val, path, diags)
+
+	eltPath := make(cty.Path, len(path)+1)
+	copy(eltPath, path)
+	idxIdx := len(path)
+
+	iter := val.ElementIterator()
+	for iter.Next() {
+		idx, elt := iter.Element()
+
+		eltPath[idxIdx] = cty.IndexStep{Key: idx}
+
+		validateNestedObject(listSchema.NestedObject, elt, eltPath, diags)
+	}
+}
+
+func validateNestedObject(objSchema nestedObjectSchema, val cty.Value, path cty.Path, diags *tfdiags.Diagnostics) {
+	if val.IsNull() {
+		return
+	}
+
+	validator := objSchema.Validator()
+	validator.ValidateAttr(val, path, diags)
+
+	for name, attrSchema := range objSchema.Attributes {
+		attrPath := path.GetAttr(name)
+		attrVal := val.GetAttr(name)
+
+		if attrVal.IsNull() {
+			if attrSchema.SchemaAttribute().Required {
+				*diags = diags.Append(requiredAttributeErrDiag(attrPath))
+			}
+			continue
+		}
+
+		if a, e := attrVal.Type(), attrSchema.SchemaAttribute().Type; a != e {
+			*diags = diags.Append(attributeErrDiag(
+				"Internal Error",
+				fmt.Sprintf(`Expected type to be %s, got: %s`, e.FriendlyName(), a.FriendlyName()),
+				attrPath,
+			))
 			continue
 		}
 
@@ -1590,6 +1518,10 @@ func (v validateString) ValidateAttr(val cty.Value, attrPath cty.Path, diags *tf
 		}
 	}
 }
+
+type validateList struct{}
+
+func (v validateList) ValidateAttr(val cty.Value, attrPath cty.Path, diags *tfdiags.Diagnostics) {}
 
 type validateMap struct{}
 
@@ -1678,6 +1610,38 @@ func (s objectSchema) SchemaAttributes() map[string]*configschema.Attribute {
 	return m
 }
 
+type nestedObjectSchema struct {
+	Attributes objectSchema
+	validateObject
+}
+
+func (a nestedObjectSchema) Validator() validateSchema {
+	return a.validateObject
+}
+
+var _ schemaAttribute = listNestedAttribute{}
+
+type listNestedAttribute struct {
+	NestedObject nestedObjectSchema
+	Required     bool
+	validateList
+}
+
+func (a listNestedAttribute) SchemaAttribute() *configschema.Attribute {
+	return &configschema.Attribute{
+		NestedType: &configschema.Object{
+			Nesting:    configschema.NestingList,
+			Attributes: a.NestedObject.Attributes.SchemaAttributes(),
+		},
+		Required: a.Required,
+		Optional: !a.Required,
+	}
+}
+
+func (a listNestedAttribute) Validator() validateSchema {
+	return a.validateList
+}
+
 var _ schemaAttribute = singleNestedAttribute{}
 
 type singleNestedAttribute struct {
@@ -1714,4 +1678,16 @@ func deprecatedEnvVarDiag(envvar, replacement string) tfdiags.Diagnostic {
 		"Deprecated Environment Variable",
 		fmt.Sprintf(`The environment variable "%s" is deprecated. Use environment variable "%s" instead.`, envvar, replacement),
 	)
+}
+
+func firstToUpper(s string) string {
+	r, size := utf8.DecodeRuneInString(s)
+	if r == utf8.RuneError && size <= 1 {
+		return s
+	}
+	lc := unicode.ToUpper(r)
+	if r == lc {
+		return s
+	}
+	return string(lc) + s[size:]
 }

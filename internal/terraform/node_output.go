@@ -487,7 +487,6 @@ If you do intend to export this data, annotate the output value as sensitive by 
 	// "flagWarnOutputErrors", because they relate to features that were added
 	// more recently than the historical change to treat invalid output values
 	// as errors rather than warnings.
-
 	if n.Config.Ephemeral && !marks.Has(val, marks.Ephemeral) {
 		// An ephemeral output value must always be ephemeral
 		// This is to prevent accidental persistence upstream

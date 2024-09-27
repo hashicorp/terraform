@@ -815,7 +815,10 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 			if actualBefore, exists := beforeVal[addr]; exists {
 				before = actualBefore
 
-				if result := before.Equals(after); result.IsKnown() && result.True() {
+				unmarkedBefore, beforePaths := before.UnmarkDeepWithPaths()
+				unmarkedAfter, afterPaths := after.UnmarkDeepWithPaths()
+				result := unmarkedBefore.Equals(unmarkedAfter)
+				if result.IsKnown() && result.True() && marks.MarksEqual(beforePaths, afterPaths) {
 					action = plans.NoOp
 				} else {
 					action = plans.Update

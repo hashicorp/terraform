@@ -262,6 +262,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
 
+		// Close any ephemeral resource instances.
+		&ephemeralResourceCloseTransformer{skip: b.Operation == walkValidate},
+
 		// Close the root module
 		&CloseRootModuleTransformer{},
 
