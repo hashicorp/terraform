@@ -19,11 +19,6 @@ func TestContext2Plan_ephemeralBasic(t *testing.T) {
 		"main.tf": `
 ephemeral "test_resource" "data" {
 }
-
-output "data" {
-  ephemeral = true
-  value = ephemeral.test_resource.data.value
-}
 `,
 	})
 
