@@ -25,6 +25,7 @@ var (
 	_ GraphNodeAttachResourceConfig = (*nodeExpandApplyableResource)(nil)
 	_ graphNodeExpandsInstances     = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeTargetable           = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeDynamicExpandable    = (*nodeExpandApplyableResource)(nil)
 )
 
 func (n *nodeExpandApplyableResource) expandsInstances() {
@@ -48,7 +49,23 @@ func (n *nodeExpandApplyableResource) Name() string {
 	return n.NodeAbstractResource.Name() + " (expand)"
 }
 
+func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
+	if n.Addr.Resource.Mode == addrs.EphemeralResourceMode {
+		// FIXME: we need to expand the ephemeral resources the same as we do
+		// during planning, so we convert this into the plannable node on the
+		// fly, and skip Execute later on.
+		return (&nodeExpandPlannableResource{
+			NodeAbstractResource: n.NodeAbstractResource,
+		}).DynamicExpand(ctx)
+	}
+	return nil, nil
+}
+
 func (n *nodeExpandApplyableResource) Execute(globalCtx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	if n.Addr.Resource.Mode == addrs.EphemeralResourceMode {
+		return nil
+	}
+
 	var diags tfdiags.Diagnostics
 	expander := globalCtx.InstanceExpander()
 	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
