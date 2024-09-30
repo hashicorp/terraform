@@ -53,7 +53,7 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 		// no up edges.
 		descendents, _ := g.Descendents(v)
 		// FIXME: some of these graph methods still return unused errors. It
-		// would be nice to be able to use Descendants as a range argument for
+		// would be nice to be able to use Descendents as a range argument for
 		// example.
 		for _, des := range descendents {
 			// We want something which is both a referencer and has no incoming
@@ -73,7 +73,7 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 			}
 
 			up := g.UpEdges(des)
-			up.Filter(func(v any) bool {
+			up = up.Filter(func(v any) bool {
 				_, ok := v.(GraphNodeReferencer)
 				return ok
 			})

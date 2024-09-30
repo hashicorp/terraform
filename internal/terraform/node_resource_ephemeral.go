@@ -202,6 +202,7 @@ var _ ephemeral.ResourceInstance = (*ephemeralResourceInstImpl)(nil)
 // Close implements ephemeral.ResourceInstance.
 func (impl *ephemeralResourceInstImpl) Close(ctx context.Context) tfdiags.Diagnostics {
 	log.Printf("[TRACE] ephemeralResourceInstImpl: closing %s", impl.addr)
+
 	resp := impl.provider.CloseEphemeralResource(providers.CloseEphemeralResourceRequest{
 		TypeName: impl.addr.Resource.Resource.Type,
 		Private:  impl.internal,
@@ -212,14 +213,17 @@ func (impl *ephemeralResourceInstImpl) Close(ctx context.Context) tfdiags.Diagno
 // Renew implements ephemeral.ResourceInstance.
 func (impl *ephemeralResourceInstImpl) Renew(ctx context.Context, req providers.EphemeralRenew) (nextRenew *providers.EphemeralRenew, diags tfdiags.Diagnostics) {
 	log.Printf("[TRACE] ephemeralResourceInstImpl: renewing %s", impl.addr)
+
 	resp := impl.provider.RenewEphemeralResource(providers.RenewEphemeralResourceRequest{
 		TypeName: impl.addr.Resource.Resource.Type,
 		Private:  req.Private,
 	})
 
 	if !resp.RenewAt.IsZero() {
-		nextRenew.RenewAt = resp.RenewAt
-		nextRenew.Private = resp.Private
+		nextRenew = &providers.EphemeralRenew{
+			RenewAt: resp.RenewAt,
+			Private: resp.Private,
+		}
 	}
 
 	return nextRenew, resp.Diagnostics
