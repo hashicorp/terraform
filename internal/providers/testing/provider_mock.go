@@ -632,6 +632,11 @@ func (p *MockProvider) RenewEphemeralResource(r providers.RenewEphemeralResource
 		return resp
 	}
 
+	if p.CloseEphemeralResourceCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("CloseEphemeralResource called on %q before RenewEphemeralResource", r.TypeName))
+		return resp
+	}
+
 	p.RenewEphemeralResourceCalled = true
 	p.RenewEphemeralResourceRequest = r
 
