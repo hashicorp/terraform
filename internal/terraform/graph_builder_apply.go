@@ -216,11 +216,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
 
-		// Close opened plugin connections
-		&CloseProviderTransformer{},
-
 		// Close any ephemeral resource instances.
 		&ephemeralResourceCloseTransformer{},
+
+		// Close opened plugin connections
+		&CloseProviderTransformer{},
 
 		// close the root module
 		&CloseRootModuleTransformer{},

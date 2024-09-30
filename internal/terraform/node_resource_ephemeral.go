@@ -150,11 +150,16 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) tfdiags.
 // and apply graphs, where the former only deals in whole resources while the
 // latter contains individual instances.
 type nodeEphemeralResourceClose struct {
-	addr addrs.ConfigResource
+	// The provider must remain active for the lifetime of the value. Proxy the
+	// provider methods from the original resource to ensure the references are
+	// create correctly.
+	resourceNode GraphNodeProviderConsumer
+	addr         addrs.ConfigResource
 }
 
 var _ GraphNodeExecutable = (*nodeEphemeralResourceClose)(nil)
 var _ GraphNodeModulePath = (*nodeEphemeralResourceClose)(nil)
+var _ GraphNodeProviderConsumer = (*nodeEphemeralResourceClose)(nil)
 
 func (n *nodeEphemeralResourceClose) Name() string {
 	return n.addr.String() + " (close)"
@@ -170,6 +175,18 @@ func (n *nodeEphemeralResourceClose) Execute(ctx EvalContext, op walkOperation) 
 	log.Printf("[TRACE] nodeEphemeralResourceClose: closing all instances of %s", n.addr)
 	resources := ctx.EphemeralResources()
 	return resources.CloseInstances(ctx.StopCtx(), n.addr)
+}
+
+func (n *nodeEphemeralResourceClose) ProvidedBy() (addrs.ProviderConfig, bool) {
+	return n.resourceNode.ProvidedBy()
+}
+
+func (n *nodeEphemeralResourceClose) Provider() addrs.Provider {
+	return n.resourceNode.Provider()
+}
+
+func (n *nodeEphemeralResourceClose) SetProvider(provider addrs.AbsProviderConfig) {
+	// the provider should not be set through this proxy node
 }
 
 // ephemeralResourceInstImpl implements ephemeral.ResourceInstance as an
