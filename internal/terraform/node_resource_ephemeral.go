@@ -122,14 +122,15 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) tfdiags.
 	impl := &ephemeralResourceInstImpl{
 		addr:     inp.addr,
 		provider: provider,
-		internal: resp.InternalContext,
+		internal: resp.Private,
 	}
 
 	ephemerals.RegisterInstance(ctx.StopCtx(), inp.addr, ephemeral.ResourceInstanceRegistration{
-		Value:        resultVal,
-		ConfigBody:   config.Config,
-		Impl:         impl,
-		FirstRenewal: resp.Renew,
+		Value:      resultVal,
+		ConfigBody: config.Config,
+		Impl:       impl,
+		RenewAt:    resp.RenewAt,
+		Private:    resp.Private,
 	})
 
 	return diags
@@ -149,11 +150,16 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) tfdiags.
 // and apply graphs, where the former only deals in whole resources while the
 // latter contains individual instances.
 type nodeEphemeralResourceClose struct {
-	addr addrs.ConfigResource
+	// The provider must remain active for the lifetime of the value. Proxy the
+	// provider methods from the original resource to ensure the references are
+	// create correctly.
+	resourceNode GraphNodeProviderConsumer
+	addr         addrs.ConfigResource
 }
 
 var _ GraphNodeExecutable = (*nodeEphemeralResourceClose)(nil)
 var _ GraphNodeModulePath = (*nodeEphemeralResourceClose)(nil)
+var _ GraphNodeProviderConsumer = (*nodeEphemeralResourceClose)(nil)
 
 func (n *nodeEphemeralResourceClose) Name() string {
 	return n.addr.String() + " (close)"
@@ -171,6 +177,18 @@ func (n *nodeEphemeralResourceClose) Execute(ctx EvalContext, op walkOperation) 
 	return resources.CloseInstances(ctx.StopCtx(), n.addr)
 }
 
+func (n *nodeEphemeralResourceClose) ProvidedBy() (addrs.ProviderConfig, bool) {
+	return n.resourceNode.ProvidedBy()
+}
+
+func (n *nodeEphemeralResourceClose) Provider() addrs.Provider {
+	return n.resourceNode.Provider()
+}
+
+func (n *nodeEphemeralResourceClose) SetProvider(provider addrs.AbsProviderConfig) {
+	// the provider should not be set through this proxy node
+}
+
 // ephemeralResourceInstImpl implements ephemeral.ResourceInstance as an
 // adapter to the relevant provider API calls.
 type ephemeralResourceInstImpl struct {
@@ -184,9 +202,10 @@ var _ ephemeral.ResourceInstance = (*ephemeralResourceInstImpl)(nil)
 // Close implements ephemeral.ResourceInstance.
 func (impl *ephemeralResourceInstImpl) Close(ctx context.Context) tfdiags.Diagnostics {
 	log.Printf("[TRACE] ephemeralResourceInstImpl: closing %s", impl.addr)
+
 	resp := impl.provider.CloseEphemeralResource(providers.CloseEphemeralResourceRequest{
-		TypeName:        impl.addr.Resource.Resource.Type,
-		InternalContext: impl.internal,
+		TypeName: impl.addr.Resource.Resource.Type,
+		Private:  impl.internal,
 	})
 	return resp.Diagnostics
 }
@@ -194,9 +213,18 @@ func (impl *ephemeralResourceInstImpl) Close(ctx context.Context) tfdiags.Diagno
 // Renew implements ephemeral.ResourceInstance.
 func (impl *ephemeralResourceInstImpl) Renew(ctx context.Context, req providers.EphemeralRenew) (nextRenew *providers.EphemeralRenew, diags tfdiags.Diagnostics) {
 	log.Printf("[TRACE] ephemeralResourceInstImpl: renewing %s", impl.addr)
+
 	resp := impl.provider.RenewEphemeralResource(providers.RenewEphemeralResourceRequest{
-		TypeName:        impl.addr.Resource.Resource.Type,
-		InternalContext: req.InternalContext,
+		TypeName: impl.addr.Resource.Resource.Type,
+		Private:  req.Private,
 	})
-	return resp.RenewAgain, resp.Diagnostics
+
+	if !resp.RenewAt.IsZero() {
+		nextRenew = &providers.EphemeralRenew{
+			RenewAt: resp.RenewAt,
+			Private: resp.Private,
+		}
+	}
+
+	return nextRenew, resp.Diagnostics
 }

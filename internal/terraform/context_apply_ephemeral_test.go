@@ -5,7 +5,9 @@ package terraform
 
 import (
 	"fmt"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -14,66 +16,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func TestContext2Plan_ephemeralBasic(t *testing.T) {
-	m := testModuleInline(t, map[string]string{
-		"main.tf": `
-ephemeral "test_resource" "data" {
-}
-`,
-	})
-
-	p := &testing_provider.MockProvider{
-		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			EphemeralResourceTypes: map[string]providers.Schema{
-				"test_resource": {
-					Block: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"value": {
-								Type:     cty.String,
-								Computed: true,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	p.OpenEphemeralResourceFn = func(providers.OpenEphemeralResourceRequest) (resp providers.OpenEphemeralResourceResponse) {
-		resp.Result = cty.ObjectVal(map[string]cty.Value{
-			"value": cty.StringVal("test string"),
-		})
-		return resp
-	}
-
-	ctx := testContext2(t, &ContextOpts{
-		Providers: map[addrs.Provider]providers.Factory{
-			// The providers never actually going to get called here, we should
-			// catch the error long before anything happens.
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
-		},
-	})
-
-	diags := ctx.Validate(m, &ValidateOpts{})
-	assertNoDiagnostics(t, diags)
-
-	if !p.ValidateEphemeralResourceConfigCalled {
-		t.Fatal("ValidateEphemeralResourceConfig not called")
-	}
-
-	_, diags = ctx.Plan(m, nil, DefaultPlanOpts)
-	assertNoDiagnostics(t, diags)
-
-	if !p.OpenEphemeralResourceCalled {
-		t.Fatal("OpenEphemeralResource not called")
-	}
-
-	if !p.CloseEphemeralResourceCalled {
-		t.Fatal("CloseEphemeralResource not called")
-	}
-}
-
-func TestContext2Plan_ephemeralProviderRef(t *testing.T) {
+func TestContext2Apply_ephemeralProviderRef(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 ephemeral "ephem_resource" "data" {
@@ -109,11 +52,31 @@ resource "test_object" "test" {
 		resp.Result = cty.ObjectVal(map[string]cty.Value{
 			"value": cty.StringVal("test string"),
 		})
+		resp.RenewAt = time.Now().Add(11 * time.Millisecond)
+		resp.Private = []byte("private data")
+		return resp
+	}
+
+	// make sure we can wait for renew to be called
+	renewed := make(chan bool)
+	renewDone := sync.OnceFunc(func() { close(renewed) })
+
+	ephem.RenewEphemeralResourceFn = func(req providers.RenewEphemeralResourceRequest) (resp providers.RenewEphemeralResourceResponse) {
+		defer renewDone()
+		if string(req.Private) != "private data" {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("invalid private data %q", req.Private))
+			return resp
+		}
+
+		resp.RenewAt = time.Now().Add(10 * time.Millisecond)
+		resp.Private = req.Private
 		return resp
 	}
 
 	p := simpleMockProvider()
 	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+		// wait here for the ephemeral value to be renewed at least once
+		<-renewed
 		if req.Config.GetAttr("test_string").AsString() != "test string" {
 			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("received config did not contain \"test string\", got %#v\n", req.Config))
 		}
@@ -129,13 +92,38 @@ resource "test_object" "test" {
 		},
 	})
 
-	diags := ctx.Validate(m, &ValidateOpts{})
+	plan, diags := ctx.Plan(m, nil, DefaultPlanOpts)
 	assertNoDiagnostics(t, diags)
 
-	if !ephem.ValidateEphemeralResourceConfigCalled {
-		t.Fatal("ValidateEphemeralResourceConfig not called")
+	if !ephem.OpenEphemeralResourceCalled {
+		t.Error("OpenEphemeralResourceCalled not called")
+	}
+	if !ephem.RenewEphemeralResourceCalled {
+		t.Error("RenewEphemeralResourceCalled not called")
+	}
+	if !ephem.CloseEphemeralResourceCalled {
+		t.Error("CloseEphemeralResourceCalled not called")
 	}
 
-	_, diags = ctx.Plan(m, nil, DefaultPlanOpts)
+	// reset the ephemeral call flags and the gate
+	ephem.OpenEphemeralResourceCalled = false
+	ephem.RenewEphemeralResourceCalled = false
+	ephem.CloseEphemeralResourceCalled = false
+	renewed = make(chan bool)
+	renewDone = sync.OnceFunc(func() { close(renewed) })
+
+	_, diags = ctx.Apply(plan, m, nil)
 	assertNoDiagnostics(t, diags)
+
+	if !ephem.OpenEphemeralResourceCalled {
+		t.Error("OpenEphemeralResourceCalled not called")
+	}
+	if !ephem.RenewEphemeralResourceCalled {
+		t.Error("RenewEphemeralResourceCalled not called")
+	}
+	if !ephem.CloseEphemeralResourceCalled {
+		t.Error("CloseEphemeralResourceCalled not called")
+	}
+
+	time.Sleep(time.Second)
 }

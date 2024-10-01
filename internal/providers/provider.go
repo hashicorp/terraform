@@ -112,9 +112,9 @@ type GetProviderSchemaResponse struct {
 	// DataSources maps the data source name to that data source's schema.
 	DataSources map[string]Schema
 
-	// EphemeralTypes maps the name of an ephemeral resource type
+	// EphemeralResourceTypes maps the name of an ephemeral resource type
 	// to its schema.
-	EphemeralTypes map[string]Schema
+	EphemeralResourceTypes map[string]Schema
 
 	// Functions maps from local function name (not including an namespace
 	// prefix) to the declaration of a function.

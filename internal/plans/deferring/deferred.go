@@ -208,6 +208,8 @@ func (d *Deferred) GetDeferredResourceInstanceValue(addr addrs.AbsResourceInstan
 		instancesMap = d.resourceInstancesDeferred
 	case addrs.DataResourceMode:
 		instancesMap = d.dataSourceInstancesDeferred
+	case addrs.EphemeralResourceMode:
+		return cty.NilVal, false
 	default:
 		panic(fmt.Sprintf("unexpected resource mode %q for %s", addr.Resource.Resource.Mode, addr))
 	}
@@ -238,6 +240,8 @@ func (d *Deferred) GetDeferredResourceInstances(addr addrs.AbsResource) map[addr
 		instancesMap = d.resourceInstancesDeferred
 	case addrs.DataResourceMode:
 		instancesMap = d.dataSourceInstancesDeferred
+	case addrs.EphemeralResourceMode:
+		return nil
 	default:
 		panic(fmt.Sprintf("unexpected resource mode %q for %s", addr.Resource.Mode, addr))
 	}

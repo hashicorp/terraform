@@ -230,7 +230,7 @@ func (p *MockProvider) ValidateEphemeralResourceConfig(r providers.ValidateEphem
 	p.ValidateEphemeralResourceConfigRequest = r
 
 	// Marshall the value to replicate behavior by the GRPC protocol
-	dataSchema, ok := p.getProviderSchema().EphemeralTypes[r.TypeName]
+	dataSchema, ok := p.getProviderSchema().EphemeralResourceTypes[r.TypeName]
 	if !ok {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
 		return resp
@@ -629,6 +629,11 @@ func (p *MockProvider) RenewEphemeralResource(r providers.RenewEphemeralResource
 
 	if !p.ConfigureProviderCalled {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before RenewEphemeralResource %q", r.TypeName))
+		return resp
+	}
+
+	if p.CloseEphemeralResourceCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("CloseEphemeralResource called on %q before RenewEphemeralResource", r.TypeName))
 		return resp
 	}
 
