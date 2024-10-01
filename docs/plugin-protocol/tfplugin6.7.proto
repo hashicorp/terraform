@@ -623,8 +623,7 @@ message OpenEphemeralResource {
 message RenewEphemeralResource {
     message Request {
         string type_name = 1;
-        DynamicValue state = 2;
-        optional bytes private = 4;
+        optional bytes private = 2;
     }
     message Response {
         repeated Diagnostic diagnostics = 1;
@@ -636,8 +635,7 @@ message RenewEphemeralResource {
 message CloseEphemeralResource {
     message Request {
         string type_name = 1;
-        DynamicValue state = 2;
-        optional bytes private = 3;
+        optional bytes private = 2;
     }
     message Response {
         repeated Diagnostic diagnostics = 1;
