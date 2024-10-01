@@ -26,9 +26,10 @@ func TestMarshalProvider(t *testing.T) {
 		{
 			providers.ProviderSchema{},
 			&Provider{
-				Provider:          &Schema{},
-				ResourceSchemas:   map[string]*Schema{},
-				DataSourceSchemas: map[string]*Schema{},
+				Provider:                 &Schema{},
+				ResourceSchemas:          map[string]*Schema{},
+				DataSourceSchemas:        map[string]*Schema{},
+				EphemeralResourceSchemas: map[string]*Schema{},
 			},
 		},
 		{
@@ -147,6 +148,7 @@ func TestMarshalProvider(t *testing.T) {
 						},
 					},
 				},
+				EphemeralResourceSchemas: map[string]*Schema{},
 			},
 		},
 	}
@@ -154,8 +156,8 @@ func TestMarshalProvider(t *testing.T) {
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			got := marshalProvider(test.Input)
-			if !cmp.Equal(got, test.Want, cmpOpts) {
-				t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, test.Want, cmpOpts))
+			if diff := cmp.Diff(test.Want, got, cmpOpts); diff != "" {
+				t.Fatalf("wrong result:\n %s\n", diff)
 			}
 		})
 	}
