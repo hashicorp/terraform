@@ -629,21 +629,21 @@ message OpenEphemeralResource {
     message Request {
         string type_name = 1;
         DynamicValue config = 2;
+        ClientCapabilities client_capabilities = 3;
     }
     message Response {
         repeated Diagnostic diagnostics = 1;
         optional google.protobuf.Timestamp renew_at = 2;
-        bool is_closable = 3;
-        DynamicValue state = 4;
-        optional bytes private = 5;
+        DynamicValue result = 3;
+        optional bytes private = 4;
+        Deferred deferred = 5;
     }
 }
 
 message RenewEphemeralResource {
     message Request {
         string type_name = 1;
-        DynamicValue state = 2;
-        optional bytes private = 4;
+        optional bytes private = 2;
     }
     message Response {
         repeated Diagnostic diagnostics = 1;
@@ -655,8 +655,7 @@ message RenewEphemeralResource {
 message CloseEphemeralResource {
     message Request {
         string type_name = 1;
-        DynamicValue state = 2;
-        optional bytes private = 3;
+        optional bytes private = 2;
     }
     message Response {
         repeated Diagnostic diagnostics = 1;

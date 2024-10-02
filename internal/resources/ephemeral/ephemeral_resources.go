@@ -40,10 +40,11 @@ func NewResources() *Resources {
 }
 
 type ResourceInstanceRegistration struct {
-	Value        cty.Value
-	ConfigBody   hcl.Body
-	Impl         ResourceInstance
-	FirstRenewal *providers.EphemeralRenew
+	Value      cty.Value
+	ConfigBody hcl.Body
+	Impl       ResourceInstance
+	RenewAt    time.Time
+	Private    []byte
 }
 
 func (r *Resources) RegisterInstance(ctx context.Context, addr addrs.AbsResourceInstance, reg ResourceInstanceRegistration) {
@@ -64,12 +65,17 @@ func (r *Resources) RegisterInstance(ctx context.Context, addr addrs.AbsResource
 		impl:        reg.Impl,
 		renewCancel: noopCancel,
 	}
-	if reg.FirstRenewal != nil {
+	if !reg.RenewAt.IsZero() {
 		ctx, cancel := context.WithCancel(ctx)
 		ri.renewCancel = cancel
 
+		renewal := &providers.EphemeralRenew{
+			RenewAt: reg.RenewAt,
+			Private: reg.Private,
+		}
+
 		r.wg.Add(1)
-		go ri.handleRenewal(ctx, &r.wg, reg.FirstRenewal)
+		go ri.handleRenewal(ctx, &r.wg, renewal)
 	}
 	r.active.Get(configAddr).Put(addr, ri)
 }
@@ -220,7 +226,7 @@ func (r *resourceInstanceInternal) close(ctx context.Context) tfdiags.Diagnostic
 
 func (r *resourceInstanceInternal) handleRenewal(ctx context.Context, wg *sync.WaitGroup, firstRenewal *providers.EphemeralRenew) {
 	defer wg.Done()
-	t := time.NewTimer(time.Until(firstRenewal.ExpireTime))
+	t := time.NewTimer(time.Until(firstRenewal.RenewAt))
 	nextRenew := firstRenewal
 	for {
 		select {
@@ -242,7 +248,7 @@ func (r *resourceInstanceInternal) handleRenewal(ctx context.Context, wg *sync.W
 				return
 			}
 			nextRenew = anotherRenew
-			t.Reset(time.Until(anotherRenew.ExpireTime))
+			t.Reset(time.Until(anotherRenew.RenewAt))
 			r.renewMu.Unlock()
 		case <-ctx.Done():
 			// If we're cancelled then we'll halt renewing immediately.

@@ -395,6 +395,16 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 		val = n.Change.After
 	}
 
+	if n.Addr.Module.IsRoot() && n.Config.Ephemeral {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Ephemeral output not allowed",
+			Detail:   "Ephemeral outputs are not allowed in context of a root module",
+			Subject:  n.Config.DeclRange.Ptr(),
+		})
+		return
+	}
+
 	// Checks are not evaluated during a destroy. The checks may fail, may not
 	// be valid, or may not have been registered at all.
 	// We also don't evaluate checks for overridden outputs. This is because
