@@ -6,12 +6,14 @@ package terraform
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -3031,4 +3033,64 @@ output "foo" {
 			t.Errorf("unexpected error: %s", detail)
 		}
 	}
+}
+
+func TestContext2Validate_ephemeralOutput_root(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "foo" {
+  ephemeral = true
+  default   = "foo"
+}
+output "test" {
+  ephemeral = true
+  value     = var.foo
+}
+`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+	diags := ctx.Validate(m, &ValidateOpts{})
+	var wantDiags tfdiags.Diagnostics
+	wantDiags = wantDiags.Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Ephemeral output not allowed",
+			Detail:   "Ephemeral outputs are not allowed in context of a root module",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 6, Column: 1, Byte: 59},
+				End:      hcl.Pos{Line: 6, Column: 14, Byte: 72},
+			},
+		},
+	)
+	assertDiagnosticsMatch(t, diags, wantDiags)
+}
+
+func TestContext2Validate_ephemeralOutput_child(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"child/main.tf": `
+variable "child-eph" {
+  ephemeral = true
+}
+output "out" {
+  ephemeral = true
+  value     = var.child-eph
+}`,
+		"main.tf": `
+variable "eph" {
+  ephemeral = true
+  default   = "foo"
+}
+
+module "child" {
+  source    = "./child"
+  child-eph = var.eph
+}
+`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+	diags := ctx.Validate(m, &ValidateOpts{})
+	assertNoDiagnostics(t, diags)
 }

@@ -127,7 +127,7 @@ For example, to correlate with indices of a referring resource, use:
 						},
 					},
 				},
-				EphemeralTypes: map[string]providers.Schema{
+				EphemeralResourceTypes: map[string]providers.Schema{
 					"beep": {
 						Block: &configschema.Block{},
 					},

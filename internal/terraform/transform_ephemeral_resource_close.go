@@ -38,13 +38,22 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 			continue
 		}
 
+		closeNode := &nodeEphemeralResourceClose{
+			// the node must also be a ProviderConsumer
+			resourceNode: v.(GraphNodeProviderConsumer),
+			addr:         addr,
+		}
+		log.Printf("[TRACE] ephemeralResourceCloseTransformer: adding close node for %s", addr)
+		g.Add(closeNode)
+		g.Connect(dag.BasicEdge(closeNode, v))
+
 		// Now we have an ephemeral resource, we need to depend on all
 		// dependents of that resource. Rather than connect directly to them all
 		// however, we'll only connect to leaf nodes by finding those that have
 		// no up edges.
 		descendents, _ := g.Descendents(v)
 		// FIXME: some of these graph methods still return unused errors. It
-		// would be nice to be able to use Descendants and a range argument for
+		// would be nice to be able to use Descendents as a range argument for
 		// example.
 		for _, des := range descendents {
 			// We want something which is both a referencer and has no incoming
@@ -64,7 +73,7 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 			}
 
 			up := g.UpEdges(des)
-			up.Filter(func(v any) bool {
+			up = up.Filter(func(v any) bool {
 				_, ok := v.(GraphNodeReferencer)
 				return ok
 			})
@@ -74,11 +83,6 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 				continue
 			}
 
-			closeNode := &nodeEphemeralResourceClose{
-				addr: addr,
-			}
-			log.Printf("[TRACE] ephemeralResourceCloseTransformer: adding close node for %s", addr)
-			g.Add(closeNode)
 			g.Connect(dag.BasicEdge(closeNode, des))
 		}
 	}

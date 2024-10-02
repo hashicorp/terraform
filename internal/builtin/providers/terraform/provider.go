@@ -33,7 +33,7 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		ResourceTypes: map[string]providers.Schema{
 			"terraform_data": dataStoreResourceSchema(),
 		},
-		EphemeralTypes: map[string]providers.Schema{},
+		EphemeralResourceTypes: map[string]providers.Schema{},
 		Functions: map[string]providers.FunctionDecl{
 			"encode_tfvars": {
 				Summary:     "Produce a string representation of an object using the same syntax as for `.tfvars` files",
