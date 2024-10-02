@@ -3206,13 +3206,31 @@ func deleteS3Bucket(ctx context.Context, t *testing.T, s3Client *s3.Client, buck
 	warning := "WARNING: Failed to delete the test S3 bucket. It may have been left in your AWS account and may incur storage charges. (error was %s)"
 
 	// first we have to get rid of the env objects, or we can't delete the bucket
-	resp, err := s3Client.ListObjects(ctx, &s3.ListObjectsInput{Bucket: &bucketName}, s3WithRegion(region))
+	resp, err := s3Client.ListObjectVersions(ctx, &s3.ListObjectVersionsInput{Bucket: &bucketName}, s3WithRegion(region))
 	if err != nil {
 		t.Logf(warning, err)
 		return
 	}
-	for _, obj := range resp.Contents {
-		if _, err := s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{Bucket: &bucketName, Key: obj.Key}, s3WithRegion(region)); err != nil {
+
+	for _, obj := range resp.Versions {
+		input := &s3.DeleteObjectInput{
+			Bucket:    &bucketName,
+			Key:       obj.Key,
+			VersionId: obj.VersionId,
+		}
+		if _, err := s3Client.DeleteObject(ctx, input, s3WithRegion(region)); err != nil {
+			// this will need cleanup no matter what, so just warn and exit
+			t.Logf(warning, err)
+			return
+		}
+	}
+	for _, obj := range resp.DeleteMarkers {
+		input := &s3.DeleteObjectInput{
+			Bucket:    &bucketName,
+			Key:       obj.Key,
+			VersionId: obj.VersionId,
+		}
+		if _, err := s3Client.DeleteObject(ctx, input, s3WithRegion(region)); err != nil {
 			// this will need cleanup no matter what, so just warn and exit
 			t.Logf(warning, err)
 			return
