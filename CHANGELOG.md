@@ -1,4 +1,4 @@
-## 1.9.7 (Unreleased)
+## 1.9.7 (October 2, 2024)
 
 BUG FIXES:
 
