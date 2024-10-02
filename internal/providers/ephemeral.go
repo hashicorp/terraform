@@ -27,6 +27,9 @@ type OpenEphemeralResourceRequest struct {
 	// Computed-only attributes are always null in the configuration, because
 	// they can be set only in the response.
 	Config cty.Value
+
+	// ClientCapabilities contains information about the client's capabilities.
+	ClientCapabilities ClientCapabilities
 }
 
 // OpenEphemeralResourceRequest represents the response from an OpenEphemeralResource
@@ -54,7 +57,7 @@ type OpenEphemeralResourceResponse struct {
 	// where a final value cannot be predicted.
 	Result cty.Value
 
-	// InternalContext is any internal data needed by the provider to perform a
+	// Private is any internal data needed by the provider to perform a
 	// subsequent [Interface.CloseEphemeralResource] request for the same object. The
 	// provider may choose any encoding format to represent the needed data,
 	// because Terraform Core treats this field as opaque.
@@ -71,16 +74,16 @@ type OpenEphemeralResourceResponse struct {
 	// received by exactly the same plugin instance that returned this value,
 	// and so it's valid for this to refer to in-memory state belonging to the
 	// provider instance.
-	InternalContext []byte
+	Private []byte
 
-	// Renew, if set, signals that the opened object has an inherent expration
-	// time and so must be "renewed" if Terraform needs to use it beyond that
-	// expiration time.
+	// RenewAt, if non-zero, signals that the opened object has an inherent
+	// expiration time and so must be "renewed" if Terraform needs to use it
+	// beyond that expiration time.
 	//
 	// If a provider sets this field then it may receive a subsequent
-	// [Interface.RenewEphemeralResource] call, if Terraform expects to need the
+	// Interface.RenewEphemeralResource call, if Terraform expects to need the
 	// object beyond the expiration time.
-	Renew *EphemeralRenew
+	RenewAt time.Time
 
 	// Diagnostics describes any problems encountered while opening the
 	// ephemeral resource. If this contains errors then the other response
@@ -91,11 +94,11 @@ type OpenEphemeralResourceResponse struct {
 // EphemeralRenew describes when and how Terraform Core must request renewal
 // of an ephemeral resource instance in order to continue using it.
 type EphemeralRenew struct {
-	// ExpireTime is the deadline before which Terraform must renew the
+	// RenewAt is the deadline before which Terraform must renew the
 	// ephemeral resource instance.
-	ExpireTime time.Time
+	RenewAt time.Time
 
-	// InternalContext is any internal data needed by the provider to
+	// Private is any internal data needed by the provider to
 	// perform a subsequent [Interface.RenewEphemeralResource] request. The provider
 	// may choose any encoding format to represent the needed data, because
 	// Terraform Core treats this field as opaque.
@@ -113,7 +116,7 @@ type EphemeralRenew struct {
 	// the OpenEphemeralResource or RenewEphemeralResource request that produced this internal
 	// context, and so it's valid for this to refer to in-memory state in the
 	// provider object.
-	InternalContext []byte
+	Private []byte
 }
 
 // RenewEphemeralResourceRequest represents the arguments for the RenewEphemeralResource
@@ -124,22 +127,28 @@ type RenewEphemeralResourceRequest struct {
 	// [OpenEphemeralResourceRequest].
 	TypeName string
 
-	// InternalContext echoes verbatim the value from the field of the same
+	// Private echoes verbatim the value from the field of the same
 	// name from the most recent [EphemeralRenew] object, received from either
 	// an [OpenEphemeralResourceResponse] or a [RenewEphemeralResourceResponse] object.
-	InternalContext []byte
+	Private []byte
 }
 
 // RenewEphemeralResourceRequest represents the response from a RenewEphemeralResource
 // operation on a provider.
 type RenewEphemeralResourceResponse struct {
-	// RenewAgain, if set, describes a new expiration deadline for the
+	// RenewAt, if non-zero, describes a new expiration deadline for the
 	// object, possibly causing a further call to [Interface.RenewEphemeralResource]
 	// if Terraform needs to exceed the updated deadline.
 	//
 	// If this is not set then Terraform Core will not make any further
 	// renewal requests for the remaining life of the object.
-	RenewAgain *EphemeralRenew
+	RenewAt time.Time
+
+	// Private is any internal data needed by the provider to
+	// perform a subsequent [Interface.RenewEphemeralResource] request. The provider
+	// may choose any encoding format to represent the needed data, because
+	// Terraform Core treats this field as opaque.
+	Private []byte
 
 	// Diagnostics describes any problems encountered while renewing the
 	// ephemeral resource instance. If this contains errors then the other
@@ -163,9 +172,9 @@ type CloseEphemeralResourceRequest struct {
 	// [OpenEphemeralResourceRequest].
 	TypeName string
 
-	// InternalContext echoes verbatim the value from the field of the same
+	// Private echoes verbatim the value from the field of the same
 	// name from the corresponding [OpenEphemeralResourceResponse] object.
-	InternalContext []byte
+	Private []byte
 }
 
 // CloseEphemeralResourceRequest represents the response from a CloseEphemeralResource
