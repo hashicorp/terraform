@@ -2549,7 +2549,7 @@ func TestBackendLockFileWithPrefix(t *testing.T) {
 		"workspace_key_prefix": workspacePrefix,
 	})).(*Backend)
 
-	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
+	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region, s3BucketWithVersioning)
 	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
 	// get a state that contains the prefix as a substring
@@ -2565,22 +2565,23 @@ func TestBackendLockFileWithPrefix(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	time.Sleep(20 * time.Second)
-
 	// Check if the lock file is created in the correct location
-	lockFileKey := fmt.Sprintf("%s/%s.tflock", workspacePrefix, key)
-	_, err = b.s3Client.GetObject(ctx, &s3.GetObjectInput{
+	//
+	// If created and cleaned up correctly, a delete marker should
+	// be present at the lock file key location.
+	lockFileKey := fmt.Sprintf("%s/env-1/%s.tflock", workspacePrefix, key)
+	out, err := b.s3Client.ListObjectVersions(ctx, &s3.ListObjectVersionsInput{
 		Bucket: aws.String(bucketName),
-		Key:    aws.String(lockFileKey),
 	})
 
-	if err != nil {
-		if IsA[*s3types.NoSuchKey](err) {
-			t.Fatalf("lock file %q not found in expected location", lockFileKey)
-		} else {
-			// For other errors, provide the exact failure context
-			t.Fatalf("failed to retrieve lock file %q from S3: %v", lockFileKey, err)
+	found := false
+	for _, item := range out.DeleteMarkers {
+		if aws.ToString(item.Key) == lockFileKey {
+			found = true
 		}
+	}
+	if !found {
+		t.Fatalf("lock file %q not found in expected location", lockFileKey)
 	}
 }
 
