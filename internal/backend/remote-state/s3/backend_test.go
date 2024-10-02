@@ -2713,6 +2713,7 @@ func TestBackendWrongRegion(t *testing.T) {
 
 func TestBackendS3ObjectLock(t *testing.T) {
 	testACC(t)
+	objectLockPreCheck(t)
 
 	ctx := context.TODO()
 
@@ -3550,4 +3551,22 @@ func defaultEndpointS3(region string) string {
 	}
 
 	return ep.URI.String()
+}
+
+// objectLockPreCheck gates tests using object lock enabled buckets
+// by checking for a configured environment variable.
+//
+// With object lock enabled, the statefile object written to the bucket
+// cannot be deleted by the deleteS3Bucket test helper, resulting in an
+// orphaned bucket after acceptance tests complete. Deletion of this
+// leftover resource must be completed out of band by waiting until the
+// default "Compliance" retention period of the objects has expired
+// (1 day), emptying the bucket, and deleting it.
+//
+// Because clean up requires additional action outside the scope of the
+// acceptance test, tests including this check are skipped by default.
+func objectLockPreCheck(t *testing.T) {
+	if os.Getenv("TF_S3_OBJECT_LOCK_TEST") == "" {
+		t.Skip("s3 backend tests using object lock enabled buckets require setting TF_S3_OBJECT_LOCK_TEST")
+	}
 }
