@@ -63,7 +63,7 @@ require (
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
 	github.com/zclconf/go-cty v1.15.0
 	github.com/zclconf/go-cty-debug v0.0.0-20240509010212-0d6042c53940
-	github.com/zclconf/go-cty-yaml v1.0.3
+	github.com/zclconf/go-cty-yaml v1.1.0
 	go.opentelemetry.io/contrib/exporters/autoexport v0.45.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.46.0
 	go.opentelemetry.io/otel v1.30.0
