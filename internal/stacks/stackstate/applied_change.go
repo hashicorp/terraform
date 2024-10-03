@@ -311,14 +311,14 @@ func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*stacks.AppliedC
 		}(),
 		DependencyAddrs: func() []string {
 			var dependencies []string
-			for _, dependency := range ac.Dependencies.Elems() {
+			for dependency := range ac.Dependencies.All() {
 				dependencies = append(dependencies, dependency.String())
 			}
 			return dependencies
 		}(),
 		DependentAddrs: func() []string {
 			var dependents []string
-			for _, dependent := range ac.Dependents.Elems() {
+			for dependent := range ac.Dependents.All() {
 				dependents = append(dependents, dependent.String())
 			}
 			return dependents
@@ -500,13 +500,13 @@ func (ac *AppliedChangeDiscardKeys) AppliedChangeProto() (*stacks.AppliedChange,
 		Raw:          make([]*stacks.AppliedChange_RawChange, 0, ac.DiscardRawKeys.Len()),
 		Descriptions: make([]*stacks.AppliedChange_ChangeDescription, 0, ac.DiscardDescKeys.Len()),
 	}
-	for _, key := range ac.DiscardRawKeys.Elems() {
+	for key := range ac.DiscardRawKeys.All() {
 		ret.Raw = append(ret.Raw, &stacks.AppliedChange_RawChange{
 			Key:   statekeys.String(key),
 			Value: nil, // nil represents deletion
 		})
 	}
-	for _, key := range ac.DiscardDescKeys.Elems() {
+	for key := range ac.DiscardDescKeys.All() {
 		ret.Descriptions = append(ret.Descriptions, &stacks.AppliedChange_ChangeDescription{
 			Key:         statekeys.String(key),
 			Description: &stacks.AppliedChange_ChangeDescription_Deleted{

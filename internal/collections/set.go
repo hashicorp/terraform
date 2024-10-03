@@ -3,6 +3,8 @@
 
 package collections
 
+import "iter"
+
 // Set represents an unordered set of values of a particular type.
 //
 // A caller-provided "key function" defines how to produce a comparable unique
@@ -81,8 +83,8 @@ func (s Set[T]) Remove(v T) {
 	delete(s.members, k)
 }
 
-// Elems exposes the internal underlying map representation of the set
-// directly, as a pragmatic compromise for efficient iteration.
+// All returns an iterator over the elements of the set, in an unspecified
+// order.
 //
 // The result of this function is part of the internal state of the set
 // and so callers MUST NOT modify it. If a caller is using locks to ensure
@@ -90,20 +92,24 @@ func (s Set[T]) Remove(v T) {
 // guarded by the same lock as would be used for other methods that read
 // data from the set.
 //
-// The only correct use of this function is as part of a "for ... range"
-// statement using only the values of the resulting map:
+// All returns an iterator over the elements of the set, in an unspecified
+// order.
 //
-//	for _, elem := range set.Elems() {
-//	    // ...
+//	for elem := range set.All() {
+//		// do something with elem
 //	}
 //
-// Do not access or make any assumptions about the keys of the resulting
-// map. Their exact values are an implementation detail of the set.
-func (s Set[T]) Elems() map[UniqueKey[T]]T {
-	// This is regrettable but the only viable way to support efficient
-	// iteration over set members until Go gains support for range
-	// loops over custom iterator functions.
-	return s.members
+// Modifying the set during iteration causes unspecified results. Modifying
+// the set concurrently with advancing the iterator causes undefined behavior
+// including possible memory unsafety.
+func (s Set[T]) All() iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for _, v := range s.members {
+			if !yield(v) {
+				return
+			}
+		}
+	}
 }
 
 // Len returns the number of unique elements in the set.
