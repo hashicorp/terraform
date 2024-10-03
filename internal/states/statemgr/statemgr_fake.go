@@ -74,10 +74,6 @@ func (m *fakeFull) GetRootOutputValues(ctx context.Context) (map[string]*states.
 	return m.State().RootOutputValues, nil
 }
 
-func (m *fakeFull) GetEphemeralRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
-	return m.State().EphemeralRootOutputValues, nil
-}
-
 func (m *fakeFull) Lock(info *LockInfo) (string, error) {
 	m.lockLock.Lock()
 	defer m.lockLock.Unlock()
@@ -125,10 +121,6 @@ func (m *fakeErrorFull) State() *states.State {
 }
 
 func (m *fakeErrorFull) GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
-	return nil, errors.New("fake state manager error")
-}
-
-func (m *fakeErrorFull) GetEphemeralRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
 	return nil, errors.New("fake state manager error")
 }
 
