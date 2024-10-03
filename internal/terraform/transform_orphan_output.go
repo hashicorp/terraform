@@ -32,20 +32,8 @@ func (t *OrphanOutputTransformer) Transform(g *Graph) error {
 			continue
 		}
 		g.Add(&NodeDestroyableOutput{
-			Addr:        addrs.OutputValue{Name: name}.Absolute(addrs.RootModuleInstance),
-			Planning:    t.Planning,
-			IsEphemeral: false,
-		})
-	}
-
-	for name := range t.State.EphemeralRootOutputValues {
-		if _, exists := cfgs[name]; exists {
-			continue
-		}
-		g.Add(&NodeDestroyableOutput{
-			Addr:        addrs.OutputValue{Name: name}.Absolute(addrs.RootModuleInstance),
-			Planning:    t.Planning,
-			IsEphemeral: true,
+			Addr:     addrs.OutputValue{Name: name}.Absolute(addrs.RootModuleInstance),
+			Planning: t.Planning,
 		})
 	}
 

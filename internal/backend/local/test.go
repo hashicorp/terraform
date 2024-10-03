@@ -781,6 +781,9 @@ func (runner *TestFileRunner) apply(tfCtx *terraform.Context, plan *plans.Plan, 
 		defer done()
 		log.Printf("[DEBUG] TestFileRunner: starting apply for %s/%s", file.Name, run.Name)
 		updated, newScope, applyDiags = tfCtx.ApplyAndEval(plan, config, nil)
+		// if updated == nil {
+		// 	updated = state
+		// }
 		log.Printf("[DEBUG] TestFileRunner: completed apply for %s/%s", file.Name, run.Name)
 	}()
 	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, created, progress, start)
@@ -903,6 +906,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 	for key, state := range runner.RelevantStates {
 
 		empty := true
+		// TODO: Why is state.State nil here during cleanup?
 		for _, module := range state.State.Modules {
 			for _, resource := range module.Resources {
 				if resource.Addr.Resource.Mode == addrs.ManagedResourceMode {

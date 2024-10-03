@@ -4071,10 +4071,6 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 		addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
 		cty.StringVal("bar-val"), false,
 	)
-	state.SetEphemeralOutputValue(
-		addrs.OutputValue{Name: "eph"}.Absolute(addrs.RootModuleInstance),
-		cty.StringVal("eph-val"), false,
-	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
