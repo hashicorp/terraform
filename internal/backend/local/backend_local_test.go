@@ -266,10 +266,6 @@ func (s *stateStorageThatFailsRefresh) GetRootOutputValues(ctx context.Context) 
 	return nil, fmt.Errorf("unimplemented")
 }
 
-func (s *stateStorageThatFailsRefresh) GetEphemeralRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
-	return nil, fmt.Errorf("unimplemented")
-}
-
 func (s *stateStorageThatFailsRefresh) WriteState(*states.State) error {
 	return fmt.Errorf("unimplemented")
 }

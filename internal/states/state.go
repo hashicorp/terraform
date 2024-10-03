@@ -29,20 +29,13 @@ type State struct {
 	// an implementation detail and must not be used by outside callers.
 	Modules map[string]*Module
 
-	// RootOutputValues contains the state for each non-ephemeral output value
-	// defined in the root module.
+	// OutputValues contains the state for each output value defined in the
+	// root module.
 	//
 	// Output values in other modules don't persist anywhere between runs,
 	// so Terraform Core tracks those only internally and does not expose
 	// them in any artifacts that survive between runs.
 	RootOutputValues map[string]*OutputValue
-
-	// EphemeralRootOutputValues contains the state for each ephemeral output
-	// value defined in the root module.
-	//
-	// Ephemeral outputs are treated separately from non-ephemeral outputs, to
-	// ensure that their values are never written to the state file.
-	EphemeralRootOutputValues map[string]*OutputValue
 
 	// CheckResults contains a snapshot of the statuses of checks at the
 	// end of the most recent update to the state. Callers might compare
@@ -63,9 +56,8 @@ func NewState() *State {
 	modules := map[string]*Module{}
 	modules[addrs.RootModuleInstance.String()] = NewModule(addrs.RootModuleInstance)
 	return &State{
-		Modules:                   modules,
-		RootOutputValues:          make(map[string]*OutputValue),
-		EphemeralRootOutputValues: make(map[string]*OutputValue),
+		Modules:          modules,
+		RootOutputValues: make(map[string]*OutputValue),
 	}
 }
 
@@ -85,7 +77,7 @@ func (s *State) Empty() bool {
 	if s == nil {
 		return true
 	}
-	if len(s.RootOutputValues) != 0 || len(s.EphemeralRootOutputValues) != 0 {
+	if len(s.RootOutputValues) != 0 {
 		return false
 	}
 	for _, ms := range s.Modules {
@@ -309,9 +301,9 @@ func (s *State) OutputValue(addr addrs.AbsOutputValue) *OutputValue {
 // SetOutputValue updates the value stored for the given output value if and
 // only if it's a root module output value.
 //
-// All child module output values will just be silently ignored, because we
-// don't store those here any more. (They live in a namedvals.State object
-// hidden in the internals of Terraform Core.)
+// All other output values will just be silently ignored, because we don't
+// store those here anymore. (They live in a namedvals.State object hidden
+// in the internals of Terraform Core.)
 func (s *State) SetOutputValue(addr addrs.AbsOutputValue, value cty.Value, sensitive bool) {
 	if !addr.Module.IsRoot() {
 		return
@@ -329,41 +321,6 @@ func (s *State) RemoveOutputValue(addr addrs.AbsOutputValue) {
 		return
 	}
 	delete(s.RootOutputValues, addr.OutputValue.Name)
-}
-
-// EphemeralOutputValue returns the state for the output value with the given
-// address, or nil if no such ephemeral output value is tracked in the state.
-//
-// Only root module output values are tracked in the state, so this always
-// returns nil for output values in any other module.
-func (s *State) EphemeralOutputValue(addr addrs.AbsOutputValue) *OutputValue {
-	if !addr.Module.IsRoot() {
-		return nil
-	}
-	return s.EphemeralRootOutputValues[addr.OutputValue.Name]
-}
-
-// SetEphemeralOutputValue updates the value stored for the given ephemeral
-// output value if and only if it's a root module output value.
-func (s *State) SetEphemeralOutputValue(addr addrs.AbsOutputValue, value cty.Value, sensitive bool) {
-	if !addr.Module.IsRoot() {
-		return
-	}
-	s.EphemeralRootOutputValues[addr.OutputValue.Name] = &OutputValue{
-		Addr:      addr,
-		Value:     value,
-		Sensitive: sensitive,
-		Ephemeral: true,
-	}
-}
-
-// RemoveOutputValue removes the record of a previously-stored ephemeral output
-// value.
-func (s *State) RemoveEphemeralOutputValue(addr addrs.AbsOutputValue) {
-	if !addr.Module.IsRoot() {
-		return
-	}
-	delete(s.EphemeralRootOutputValues, addr.OutputValue.Name)
 }
 
 // ProviderAddrs returns a list of all of the provider configuration addresses

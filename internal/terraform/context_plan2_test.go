@@ -5915,7 +5915,6 @@ output "staying" {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetOutputValue(mustAbsOutputValue("output.old"), cty.StringVal("old_value"), false)
 		s.SetOutputValue(mustAbsOutputValue("output.staying"), cty.StringVal("foo"), false)
-		s.SetEphemeralOutputValue(mustAbsOutputValue("output.old_ephemeral"), cty.NullVal(cty.String), false)
 	})
 
 	ctx := testContext2(t, &ContextOpts{})
@@ -5930,14 +5929,6 @@ output "staying" {
 				Change: plans.Change{
 					Action: plans.Delete,
 					Before: cty.StringVal("old_value"),
-					After:  cty.NullVal(cty.DynamicPseudoType),
-				},
-			},
-			{
-				Addr: mustAbsOutputValue("output.old_ephemeral"),
-				Change: plans.Change{
-					Action: plans.Delete,
-					Before: cty.NullVal(cty.String),
 					After:  cty.NullVal(cty.DynamicPseudoType),
 				},
 			},

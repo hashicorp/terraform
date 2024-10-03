@@ -122,9 +122,8 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 			switch {
 			case module.IsRoot() && n.Destroying:
 				node = &NodeDestroyableOutput{
-					Addr:        absAddr,
-					Planning:    n.Planning,
-					IsEphemeral: n.Config.Ephemeral,
+					Addr:     absAddr,
+					Planning: n.Planning,
 				}
 
 			default:
@@ -599,9 +598,8 @@ func (n *nodeOutputInPartialModule) Execute(ctx EvalContext, op walkOperation) t
 // NodeDestroyableOutput represents an output that is "destroyable":
 // its application will remove the output from the state.
 type NodeDestroyableOutput struct {
-	Addr        addrs.AbsOutputValue
-	Planning    bool
-	IsEphemeral bool
+	Addr     addrs.AbsOutputValue
+	Planning bool
 }
 
 var (
@@ -637,10 +635,8 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 	mod := state.Module(n.Addr.Module)
 	if n.Addr.Module.IsRoot() && mod != nil {
 		s := state.Lock()
-		if o, ok := s.RootOutputValues[n.Addr.OutputValue.Name]; ok {
-			sensitiveBefore = o.Sensitive
-			before = o.Value
-		} else if o, ok := s.EphemeralRootOutputValues[n.Addr.OutputValue.Name]; ok {
+		rootOutputs := s.RootOutputValues
+		if o, ok := rootOutputs[n.Addr.OutputValue.Name]; ok {
 			sensitiveBefore = o.Sensitive
 			before = o.Value
 		} else {
@@ -667,12 +663,8 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 		changes.RemoveOutputChange(n.Addr) // remove any existing planned change, if present
 		changes.AppendOutputChange(change) // add the new planned change
 	}
+	state.RemoveOutputValue(n.Addr)
 
-	if n.IsEphemeral {
-		state.RemoveEphemeralOutputValue(n.Addr)
-	} else {
-		state.RemoveOutputValue(n.Addr)
-	}
 	return nil
 }
 
@@ -767,10 +759,7 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 	// Null outputs must be saved for modules so that they can still be
 	// evaluated. Null root outputs are removed entirely, which is always fine
 	// because they can't be referenced by anything else in the configuration.
-	//
-	// This does not apply to ephemeral outputs, which always have a value of
-	// null in the state file.
-	if n.Addr.Module.IsRoot() && val.IsNull() && !n.Config.Ephemeral {
+	if n.Addr.Module.IsRoot() && val.IsNull() {
 		log.Printf("[TRACE] setValue: Removing %s from state (it is now null)", n.Addr)
 		state.RemoveOutputValue(n.Addr)
 		return
@@ -790,26 +779,24 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 	}
 
 	// Non-ephemeral output values get saved in the state too
-	// The state itself doesn't represent unknown values, so we null them
-	// out here and then we'll save the real unknown value in the planned
-	// changeset, if we have one on this graph walk.
-	log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
-	// non-root outputs need to keep sensitive marks for evaluation, but are
-	// not serialized.
-	if n.Addr.Module.IsRoot() {
-		val, _ = val.UnmarkDeep()
-		if deferred.DependenciesDeferred(n.Dependencies) {
-			// If the output is from deferred resources then we return a
-			// simple null value representing that the value is really
-			// unknown as the dependencies were not properly computed.
-			val = cty.NullVal(val.Type())
-		} else {
-			val = cty.UnknownAsNull(val)
+	if !n.Config.Ephemeral {
+		// The state itself doesn't represent unknown values, so we null them
+		// out here and then we'll save the real unknown value in the planned
+		// changeset, if we have one on this graph walk.
+		log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
+		// non-root outputs need to keep sensitive marks for evaluation, but are
+		// not serialized.
+		if n.Addr.Module.IsRoot() {
+			val, _ = val.UnmarkDeep()
+			if deferred.DependenciesDeferred(n.Dependencies) {
+				// If the output is from deferred resources then we return a
+				// simple null value representing that the value is really
+				// unknown as the dependencies were not properly computed.
+				val = cty.NullVal(val.Type())
+			} else {
+				val = cty.UnknownAsNull(val)
+			}
 		}
 	}
-	if n.Config.Ephemeral {
-		state.SetEphemeralOutputValue(n.Addr, val, n.Config.Sensitive)
-	} else {
-		state.SetOutputValue(n.Addr, val, n.Config.Sensitive)
-	}
+	state.SetOutputValue(n.Addr, val, n.Config.Sensitive)
 }

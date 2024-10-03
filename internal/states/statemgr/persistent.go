@@ -33,13 +33,8 @@ type Persistent interface {
 // the output values from it because enhanced backends can apply special permissions
 // to differentiate reading the state and reading the outputs within the state.
 type OutputReader interface {
-	// GetRootOutputValues fetches the non-ephemeral root module output values
-	// from state or another source.
+	// GetRootOutputValues fetches the root module output values from state or another source
 	GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error)
-
-	// GetEphemeralRootOutputValues fetches the ephemeral root module output values
-	// from state or another source.
-	GetEphemeralRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error)
 }
 
 // Refresher is the interface for managers that can read snapshots from
