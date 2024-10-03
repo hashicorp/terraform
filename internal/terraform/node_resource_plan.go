@@ -114,6 +114,12 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	expander := ctx.InstanceExpander()
 	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
 
+	if n.Addr.Resource.Mode == addrs.EphemeralResourceMode {
+		g, expandDiags := n.dynamicExpand(ctx, moduleInstances, addrs.Map[addrs.AbsResourceInstance, cty.Value]{})
+		diags = diags.Append(expandDiags)
+		return g, diags
+	}
+
 	// The possibility of partial-expanded modules and resources is guarded by a
 	// top-level option for the whole plan, so that we can preserve mainline
 	// behavior for the modules runtime. So, we currently branch off into an
