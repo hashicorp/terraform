@@ -247,7 +247,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 		ms.SetResourceProvider(rAddr, providerAddr)
 	}
 
-	// The root module is special in that we persist its outputs and thus
+	// The root module is special in that we persist its attributes and thus
 	// need to reload them now. (For descendent modules we just re-calculate
 	// them based on the latest configuration on each run.)
 	{
@@ -260,7 +260,6 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 				},
 			}
 			os.Sensitive = fos.Sensitive
-			os.Ephemeral = fos.Ephemeral
 
 			ty, err := ctyjson.UnmarshalType([]byte(fos.ValueTypeRaw))
 			if err != nil {
@@ -283,11 +282,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 			}
 
 			os.Value = val
-			if os.Ephemeral {
-				state.EphemeralRootOutputValues[name] = os
-			} else {
-				state.RootOutputValues[name] = os
-			}
+			state.RootOutputValues[name] = os
 		}
 	}
 
@@ -357,26 +352,6 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 		sV4.RootOutputs[name] = outputStateV4{
 			Sensitive:    os.Sensitive,
 			ValueRaw:     json.RawMessage(src),
-			ValueTypeRaw: json.RawMessage(typeSrc),
-		}
-	}
-
-	// Ephemeral outputs are always saved to the state with a value of null.
-	for name, eos := range file.State.EphemeralRootOutputValues {
-		typeSrc, err := ctyjson.MarshalType(eos.Value.Type())
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Failed to serialize output value in state",
-				fmt.Sprintf("An error occured while serializing the type of output value %q: %s.", name, err),
-			))
-			continue
-		}
-
-		sV4.RootOutputs[name] = outputStateV4{
-			Ephemeral:    true,
-			Sensitive:    eos.Sensitive,
-			ValueRaw:     json.RawMessage("null"),
 			ValueTypeRaw: json.RawMessage(typeSrc),
 		}
 	}
@@ -705,7 +680,6 @@ type outputStateV4 struct {
 	ValueRaw     json.RawMessage `json:"value"`
 	ValueTypeRaw json.RawMessage `json:"type"`
 	Sensitive    bool            `json:"sensitive,omitempty"`
-	Ephemeral    bool            `json:"ephemeral,omitempty"`
 }
 
 type resourceStateV4 struct {

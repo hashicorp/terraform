@@ -301,6 +301,9 @@ func (n *nodeExpandPlannableResource) knownModuleSubgraph(ctx EvalContext, addr 
 		DynamicTransformer(func(graph *Graph) error {
 			// We'll add nodes for any orphaned resources.
 			rs := state.Resource(addr)
+			if rs == nil {
+				return nil
+			}
 		Instances:
 			for key, inst := range rs.Instances {
 				if inst.Current == nil {

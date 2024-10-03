@@ -217,11 +217,7 @@ func (v *OutputJSON) Output(name string, outputs map[string]*states.OutputValue)
 	// show in the single value case. We must now maintain that behavior
 	// for compatibility, so this is an emulation of the JSON
 	// serialization of outputs used in state format version 3.
-	//
-	// Note that when running the output command, the value of an ephemeral
-	// output is always nil and its type is always cty.DynamicPseudoType.
 	type OutputMeta struct {
-		Ephemeral bool            `json:"ephemeral"`
 		Sensitive bool            `json:"sensitive"`
 		Type      json.RawMessage `json:"type"`
 		Value     json.RawMessage `json:"value"`
@@ -240,7 +236,6 @@ func (v *OutputJSON) Output(name string, outputs map[string]*states.OutputValue)
 			return diags
 		}
 		outputMetas[n] = OutputMeta{
-			Ephemeral: os.Ephemeral,
 			Sensitive: os.Sensitive,
 			Type:      json.RawMessage(jsonType),
 			Value:     json.RawMessage(jsonVal),

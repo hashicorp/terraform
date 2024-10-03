@@ -286,6 +286,30 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 		}
 	}
 
+	// FIXME: this is a hack to get around the limited provider closer behavior
+	// above. All resources that need a provider should implement
+	// GraphNodeProviderConsumer and return the correct provider
+	for _, v := range g.Vertices() {
+		pc, ok := v.(GraphNodeProviderConsumer)
+		if !ok {
+			continue
+		}
+
+		if _, ok := pc.(*nodeEphemeralResourceClose); !ok {
+			// we're only looking for ephemeral closers
+			continue
+		}
+
+		p, _ := pc.ProvidedBy()
+		provider, ok := p.(addrs.AbsProviderConfig)
+		if !ok {
+			return fmt.Errorf("%s failed to return a provider reference", dag.VertexName(pc))
+		}
+
+		closer := cpm[provider.String()]
+		g.Connect(dag.BasicEdge(closer, v))
+	}
+
 	return err
 }
 
