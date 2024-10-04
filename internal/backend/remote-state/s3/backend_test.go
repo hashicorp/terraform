@@ -2194,6 +2194,39 @@ func TestBackend_KmsKeyId(t *testing.T) {
 	backend.TestBackendStateForceUnlock(t, b1, b2)
 }
 
+func TestBackend_ACL(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+		"acl":          "bucket-owner-full-control",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+		"acl":          "bucket-owner-full-control",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
+}
+
 func TestBackendConfigKmsKeyId(t *testing.T) {
 	testACC(t)
 

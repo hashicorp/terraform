@@ -356,6 +356,10 @@ func (c *RemoteClient) lockWithFile(ctx context.Context, info *statemgr.LockInfo
 		}
 	}
 
+	if c.acl != "" {
+		input.ACL = s3types.ObjectCannedACL(c.acl)
+	}
+
 	log.Debug("Uploading lock file")
 
 	_, err = c.s3Client.PutObject(ctx, input)
