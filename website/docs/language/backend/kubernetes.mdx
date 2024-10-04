@@ -48,7 +48,7 @@ data "terraform_remote_state" "foo" {
 
 The following configuration options are supported:
 
-* `secret_suffix` - (Required) Suffix used when creating secrets. Secrets will be named in the format: `tfstate-{workspace}-{secret_suffix}`.
+* `secret_suffix` - (Required) Suffix used when creating the secret. The secret will be named in the format: `tfstate-{workspace}-{secret_suffix}`. Note that the backend may append its own numeric index to the secret name when chunking large state files into multiple secrets. In this case, there will be multiple secrets named in the format: `tfstate-{workspace}-{secret_suffix}-{index}`.
 * `labels` - (Optional) Map of additional labels to be applied to the secret and lease.
 * `namespace` - (Optional) Namespace to store the secret and lease in. Can be sourced from `KUBE_NAMESPACE`.
 * `in_cluster_config` - (Optional) Used to authenticate to the cluster from inside a pod. Can be sourced from `KUBE_IN_CLUSTER_CONFIG`.
