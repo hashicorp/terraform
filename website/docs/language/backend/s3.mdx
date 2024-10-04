@@ -322,13 +322,23 @@ The following configuration is optional:
 * `use_path_style` - (Optional) Enable path-style S3 URLs (`https://<HOST>/<BUCKET>` instead of `https://<BUCKET>.<HOST>`).
 * `workspace_key_prefix` - (Optional) Prefix applied to the state path inside the bucket. This is only relevant when using a non-default workspace. Defaults to `env:`.
 
-### DynamoDB State Locking
+### State Locking
 
-The following configuration is optional:
+State locking is an opt-in feature of the S3 backend.
+
+Locking can be enabled via an S3 "lockfile" (introduced as **experimental** in Terraform 1.10) or DynamoDB.
+To support migration from older versions of Terraform which only support DynamoDB-based locking, the S3 and DynamoDB arguments below can be configured simultaneously.
+In a future minor version the DynamoDB locking mechanism will be removed.
+
+To enable S3 state locking, use the following optional argument:
+
+* `use_lockfile` - (Optional, Experimental) Whether to use a lockfile for locking the state file. Defaults to `false`.
+
+To enable DynamoDB state locking, use the following optional arguments:
 
 * `dynamodb_endpoint` - (Optional, **Deprecated**) Custom endpoint URL for the AWS DynamoDB API.
   Use `endpoints.dynamodb` instead.
-* `dynamodb_table` - (Optional) Name of DynamoDB Table to use for state locking and consistency. The table must have a partition key named `LockID` with type of `String`. If not configured, state locking will be disabled.
+* `dynamodb_table` - (Optional) Name of DynamoDB Table to use for state locking and consistency. The table must have a partition key named `LockID` with type of `String`.
 
 ## Multi-account AWS Architecture
 
