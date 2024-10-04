@@ -16,6 +16,7 @@ BUG FIXES:
 
 ENHANCEMENTS:
 
+- The `secret_suffix` in the `kubernetes` backend now includes validation to prevent it from ending with a number ([35666](https://github.com/hashicorp/terraform/pull/35666))
 - The `element` function now accepts negative indices ([#35501](https://github.com/hashicorp/terraform/issues/35501))
 - Import block validation has been improved to provide more useful errors and catch more invalid cases during `terraform validate` ([#35543](https://github.com/hashicorp/terraform/issues/35543))
 - Performance enhancements for resource evaluation, especially when large numbers of resource instances are involved ([#35558](https://github.com/hashicorp/terraform/issues/35558))
