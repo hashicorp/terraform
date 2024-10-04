@@ -38,6 +38,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -2157,6 +2158,31 @@ func TestBackend_LockFileCleanupOnDynamoDBLock(t *testing.T) {
 	}
 }
 
+func TestBackend_LockDeletedOutOfBand(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   true,
+		"dynamodb_table": bucketName,
+		"region":         "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+
+	testBackendStateLockDeletedOutOfBand(ctx, t, b1)
+}
+
 func TestBackend_KmsKeyId(t *testing.T) {
 	testACC(t)
 	kmsKeyID := os.Getenv("TF_S3_TEST_KMS_KEY_ID")
@@ -3159,6 +3185,84 @@ func TestBackend_CoerceValue(t *testing.T) {
 	}
 }
 
+func testBackendStateLockDeletedOutOfBand(ctx context.Context, t *testing.T, b1 *Backend) {
+	t.Helper()
+
+	tableName := b1.ddbTable
+	bucketName := b1.bucketName
+	s3StateKey := b1.keyName
+	s3LockKey := s3StateKey + lockFileSuffix
+	// The dynamoDB LockID value is the full statfile path (not the generated UUID)
+	ddbLockID := fmt.Sprintf("%s/%s", bucketName, s3StateKey)
+
+	// Get the default state
+	b1StateMgr, err := b1.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+	if err := b1StateMgr.RefreshState(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Fast exit if this doesn't support locking at all
+	if _, ok := b1StateMgr.(statemgr.Locker); !ok {
+		t.Logf("TestBackend: backend %T doesn't support state locking, not testing", b1)
+		return
+	}
+
+	t.Logf("testing deletion of a dynamoDB state lock out of band")
+
+	// Reassign so its obvious whats happening
+	locker := b1StateMgr.(statemgr.Locker)
+
+	info := statemgr.NewLockInfo()
+	info.Operation = "test"
+	info.Who = "clientA"
+
+	lockID, err := locker.Lock(info)
+	if err != nil {
+		t.Fatal("unable to get initial lock:", err)
+	}
+
+	getInput := &s3.GetObjectInput{
+		Bucket: &bucketName,
+		Key:    &s3LockKey,
+	}
+
+	// Verify the s3 lock file exists
+	if _, err = b1.s3Client.GetObject(ctx, getInput); err != nil {
+		t.Fatal("failed to get s3 lock file:", err)
+	}
+
+	deleteInput := &dynamodb.DeleteItemInput{
+		Key: map[string]dynamodbtypes.AttributeValue{
+			"LockID": &dynamodbtypes.AttributeValueMemberS{
+				Value: ddbLockID,
+			},
+		},
+		TableName: aws.String(tableName),
+	}
+
+	// Delete the DynamoDB lock out of band
+	if _, err = b1.dynClient.DeleteItem(ctx, deleteInput); err != nil {
+		t.Fatal("failed to delete dynamodb item:", err)
+	}
+
+	if err = locker.Unlock(lockID); err == nil {
+		t.Fatal("expected unlock failure, no error returned")
+	}
+
+	// Verify the s3 lock file was still cleaned up by Unlock
+	_, err = b1.s3Client.GetObject(ctx, getInput)
+	if err != nil {
+		if !IsA[*s3types.NoSuchKey](err) {
+			t.Fatalf("unexpected error getting s3 lock file: %s", err)
+		}
+	} else {
+		t.Fatalf("expected error getting s3 lock file, got none")
+	}
+}
+
 func testGetWorkspaceForKey(b *Backend, key string, expected string) error {
 	if actual := b.keyEnv(key); actual != expected {
 		return fmt.Errorf("incorrect workspace for key[%q]. Expected[%q]: Actual[%q]", key, expected, actual)
@@ -3341,6 +3445,7 @@ func createDynamoDBTable(ctx context.Context, t *testing.T, dynClient *dynamodb.
 		TableName: aws.String(tableName),
 	}
 
+	t.Logf("creating DynamoDB table %s", tableName)
 	_, err := dynClient.CreateTable(ctx, createInput)
 	if err != nil {
 		t.Fatal(err)

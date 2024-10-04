@@ -429,21 +429,26 @@ func (c *RemoteClient) Unlock(id string) error {
 
 	log.Info("Unlocking remote state")
 
+	if c.ddbTable != "" {
+		err := c.unlockWithDynamoDB(ctx, id, lockErr)
+		if err != nil {
+			// Release the file lock if attempting to unlock DynamoDB fails.
+			if c.useLockFile {
+				if fileErr := c.unlockWithFile(ctx, id, lockErr, log); fileErr != nil {
+					err = fmt.Errorf("error when attempting to clean up the file lock after failing to unlock DynamoDB: %v; original DynamoDB unlock error: %w", fileErr, err)
+				}
+			}
+			lockErr.Err = err
+			return lockErr
+		}
+	}
+
 	if c.useLockFile {
 		err := c.unlockWithFile(ctx, id, lockErr, log)
 		if err != nil {
 			lockErr.Err = err
 			return lockErr
 		}
-	}
-
-	if c.ddbTable != "" {
-		err := c.unlockWithDynamoDB(ctx, id, lockErr)
-		if err != nil {
-			lockErr.Err = err
-			return lockErr
-		}
-		return nil
 	}
 
 	return nil
