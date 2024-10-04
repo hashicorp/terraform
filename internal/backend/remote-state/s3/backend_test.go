@@ -2019,7 +2019,7 @@ func TestBackendLockedWithFile(t *testing.T) {
 		"key":          keyName,
 		"encrypt":      true,
 		"use_lockfile": true,
-		"region":       "us-west-1",
+		"region":       "us-west-2",
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -2027,7 +2027,7 @@ func TestBackendLockedWithFile(t *testing.T) {
 		"key":          keyName,
 		"encrypt":      true,
 		"use_lockfile": true,
-		"region":       "us-west-1",
+		"region":       "us-west-2",
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
@@ -2051,7 +2051,7 @@ func TestBackendLockedWithFileAndDynamoDB(t *testing.T) {
 		"encrypt":        true,
 		"use_lockfile":   true,
 		"dynamodb_table": bucketName,
-		"region":         "us-west-1",
+		"region":         "us-west-2",
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -2060,7 +2060,7 @@ func TestBackendLockedWithFileAndDynamoDB(t *testing.T) {
 		"encrypt":        true,
 		"use_lockfile":   true,
 		"dynamodb_table": bucketName,
-		"region":         "us-west-1",
+		"region":         "us-west-2",
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
@@ -2086,7 +2086,7 @@ func TestBackendLockedMixedFileAndDynamoDB(t *testing.T) {
 		"encrypt":        true,
 		"use_lockfile":   true,
 		"dynamodb_table": bucketName,
-		"region":         "us-west-1",
+		"region":         "us-west-2",
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -2094,7 +2094,7 @@ func TestBackendLockedMixedFileAndDynamoDB(t *testing.T) {
 		"key":          keyName,
 		"encrypt":      true,
 		"use_lockfile": true,
-		"region":       "us-west-1",
+		"region":       "us-west-2",
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
@@ -2120,7 +2120,7 @@ func TestBackend_LockFileCleanupOnDynamoDBLock(t *testing.T) {
 		"encrypt":        true,
 		"use_lockfile":   false, // Only use DynamoDB
 		"dynamodb_table": bucketName,
-		"region":         "us-west-1",
+		"region":         "us-west-2",
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -2129,7 +2129,7 @@ func TestBackend_LockFileCleanupOnDynamoDBLock(t *testing.T) {
 		"encrypt":        true,
 		"use_lockfile":   true, // Use both DynamoDB and lockfile
 		"dynamodb_table": bucketName,
-		"region":         "us-west-1",
+		"region":         "us-west-2",
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
@@ -2157,7 +2157,44 @@ func TestBackend_LockFileCleanupOnDynamoDBLock(t *testing.T) {
 	}
 }
 
-func TestBackendKmsKeyId(t *testing.T) {
+func TestBackend_KmsKeyId(t *testing.T) {
+	testACC(t)
+	kmsKeyID := os.Getenv("TF_S3_TEST_KMS_KEY_ID")
+	if kmsKeyID == "" {
+		t.Skip("TF_S3_KMS_KEY_ID is empty. Set this variable to an existing KMS key ID to run this test.")
+	}
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"kms_key_id":   kmsKeyID,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"kms_key_id":   kmsKeyID,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
+}
+
+func TestBackendConfigKmsKeyId(t *testing.T) {
 	testACC(t)
 
 	testCases := map[string]struct {

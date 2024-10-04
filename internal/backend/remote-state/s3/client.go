@@ -343,6 +343,19 @@ func (c *RemoteClient) lockWithFile(ctx context.Context, info *statemgr.LockInfo
 		IfNoneMatch: aws.String("*"),
 	}
 
+	if c.serverSideEncryption {
+		if c.kmsKeyID != "" {
+			input.SSEKMSKeyId = aws.String(c.kmsKeyID)
+			input.ServerSideEncryption = s3types.ServerSideEncryptionAwsKms
+		} else if c.customerEncryptionKey != nil {
+			input.SSECustomerKey = aws.String(base64.StdEncoding.EncodeToString(c.customerEncryptionKey))
+			input.SSECustomerAlgorithm = aws.String(string(s3EncryptionAlgorithm))
+			input.SSECustomerKeyMD5 = aws.String(c.getSSECustomerKeyMD5())
+		} else {
+			input.ServerSideEncryption = s3EncryptionAlgorithm
+		}
+	}
+
 	log.Debug("Uploading lock file")
 
 	_, err = c.s3Client.PutObject(ctx, input)
@@ -438,10 +451,18 @@ func (c *RemoteClient) Unlock(id string) error {
 // to manage state locking. The function deletes the lock file to release the lock, allowing other
 // Terraform clients to acquire the lock on the same state file.
 func (c *RemoteClient) unlockWithFile(ctx context.Context, id string, lockErr *statemgr.LockError, log hclog.Logger) error {
-	getOutput, err := c.s3Client.GetObject(ctx, &s3.GetObjectInput{
+	getInput := &s3.GetObjectInput{
 		Bucket: aws.String(c.bucketName),
 		Key:    aws.String(c.lockFilePath),
-	})
+	}
+
+	if c.serverSideEncryption && c.customerEncryptionKey != nil {
+		getInput.SSECustomerKey = aws.String(base64.StdEncoding.EncodeToString(c.customerEncryptionKey))
+		getInput.SSECustomerAlgorithm = aws.String(s3EncryptionAlgorithm)
+		getInput.SSECustomerKeyMD5 = aws.String(c.getSSECustomerKeyMD5())
+	}
+
+	getOutput, err := c.s3Client.GetObject(ctx, getInput)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve file from S3 bucket '%s' with key '%s': %w", c.bucketName, c.lockFilePath, err)
 	}
