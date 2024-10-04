@@ -8,6 +8,7 @@ NEW FEATURES:
 
 BUG FIXES:
 
+- The `secret_suffix` in the `kubernetes` backend now includes validation to prevent it from ending with a number ([35666](https://github.com/hashicorp/terraform/pull/35666))
 - The error message for an invalid default value for an input variable now indicates when the problem is with a nested value in a complex data type. ([#35465](https://github.com/hashicorp/terraform/issues/35465))
 - Sensitive marks could be incorrectly transferred to nested resource values, causing erroneous changes during a plan ([#35501](https://github.com/hashicorp/terraform/issues/35501))
 - Allow unknown `error_message` values to pass the core validate step, so variable validation can be completed later during plan
