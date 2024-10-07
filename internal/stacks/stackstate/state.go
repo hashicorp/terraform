@@ -95,8 +95,8 @@ func (s *State) AllComponentInstances() collections.Set[stackaddrs.AbsComponentI
 		return ret
 	}
 	ret = collections.NewSet[stackaddrs.AbsComponentInstance]()
-	for _, elem := range s.componentInstances.Elems() {
-		ret.Add(elem.K)
+	for key := range s.componentInstances.All() {
+		ret.Add(key)
 	}
 	return ret
 }
@@ -108,15 +108,15 @@ func (s *State) AllComponentInstances() collections.Set[stackaddrs.AbsComponentI
 // This will always be a subset of AllComponentInstances.
 func (s *State) ComponentInstances(addr stackaddrs.AbsComponent) collections.Set[stackaddrs.ComponentInstance] {
 	ret := collections.NewSet[stackaddrs.ComponentInstance]()
-	for _, elem := range s.componentInstances.Elems() {
-		if elem.K.Stack.String() != addr.Stack.String() {
+	for key := range s.componentInstances.All() {
+		if key.Stack.String() != addr.Stack.String() {
 			// Then
 			continue
 		}
-		if elem.K.Item.Component.Name != addr.Item.Name {
+		if key.Item.Component.Name != addr.Item.Name {
 			continue
 		}
-		ret.Add(elem.K.Item)
+		ret.Add(key.Item)
 	}
 	return ret
 }
@@ -191,9 +191,9 @@ func (s *State) ComponentInstanceResourceInstanceObjects(addr stackaddrs.AbsComp
 // instance objects that are tracked in the state, across all components.
 func (s *State) AllResourceInstanceObjects() collections.Set[stackaddrs.AbsResourceInstanceObject] {
 	ret := collections.NewSet[stackaddrs.AbsResourceInstanceObject]()
-	for _, elem := range s.componentInstances.Elems() {
-		componentAddr := elem.K
-		for _, elem := range elem.V.resourceInstanceObjects.Elems {
+	for key, elem := range s.componentInstances.All() {
+		componentAddr := key
+		for _, elem := range elem.resourceInstanceObjects.Elems {
 			objKey := stackaddrs.AbsResourceInstanceObject{
 				Component: componentAddr,
 				Item:      elem.Key,
@@ -256,7 +256,7 @@ func (s *State) resourceInstanceObjectState(addr stackaddrs.AbsResourceInstanceO
 func (s *State) ComponentInstanceStateForModulesRuntime(addr stackaddrs.AbsComponentInstance) *states.State {
 	return states.BuildState(func(ss *states.SyncState) {
 		objAddrs := s.ComponentInstanceResourceInstanceObjects(addr)
-		for _, objAddr := range objAddrs.Elems() {
+		for objAddr := range objAddrs.All() {
 			rios := s.resourceInstanceObjectState(objAddr)
 
 			if objAddr.Item.IsCurrent() {

@@ -688,7 +688,7 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 	// if a component is targeted.
 
 	var changes []stackplan.PlannedChange
-	for _, inst := range s.main.PlanPrevState().AllComponentInstances().Elems() {
+	for inst := range s.main.PlanPrevState().AllComponentInstances().All() {
 
 		// We track here whether this component instance has any associated
 		// resources. If this component is empty, and not referenced in the
@@ -911,21 +911,21 @@ func (s *Stack) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfd
 	// values are basically just everything that have been in the configuration
 	// in the past but is no longer and so needs to be removed from the state.
 
-	for _, value := range deletedOutputValues.Elems() {
+	for value := range deletedOutputValues.All() {
 		changes = append(changes, &stackstate.AppliedChangeOutputValue{
 			Addr:  value,
 			Value: cty.NilVal,
 		})
 	}
 
-	for _, value := range s.main.PlanBeingApplied().DeletedInputVariables.Elems() {
+	for value := range s.main.PlanBeingApplied().DeletedInputVariables.All() {
 		changes = append(changes, &stackstate.AppliedChangeInputVariable{
 			Addr:    value,
 			Removed: true,
 		})
 	}
 
-	for _, value := range s.main.PlanBeingApplied().DeletedComponents.Elems() {
+	for value := range s.main.PlanBeingApplied().DeletedComponents.All() {
 		changes = append(changes, &stackstate.AppliedChangeComponentInstanceRemoved{
 			ComponentAddr: stackaddrs.AbsComponent{
 				Stack: value.Stack,

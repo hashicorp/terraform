@@ -247,7 +247,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					// should be reversed. Unfortunately, we can't compute that
 					// easily so instead we'll use the dependents computed at the
 					// last apply operation.
-					for _, depAddr := range c.PlanPrevDependents(ctx).Elems() {
+					for depAddr := range c.PlanPrevDependents(ctx).All() {
 						depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
 						if depStack == nil {
 							// something weird has happened, but this means that
@@ -280,7 +280,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			// If any of our upstream components have incomplete plans then
 			// we need to force treating everything in this component as
 			// deferred so we can preserve the correct dependency ordering.
-			for _, depAddr := range c.call.RequiredComponents(ctx).Elems() {
+			for depAddr := range c.call.RequiredComponents(ctx).All() {
 				depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
 				if depStack == nil {
 					opts.ExternalDependencyDeferred = true // to be conservative

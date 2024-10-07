@@ -329,28 +329,26 @@ func (l *Loader) Plan() (*Plan, error) {
 	}
 
 	// Before we return we'll calculate the reverse dependency information
-	// based on the forward dependency information we loaded earlier.
-	for _, elem := range l.ret.Components.Elems() {
-		dependentInstAddr := elem.K
+	// based on the forward dependency information we loaded above.
+	for dependentInstAddr, dependencyInst := range l.ret.Components.All() {
 		dependentAddr := stackaddrs.AbsComponent{
 			Stack: dependentInstAddr.Stack,
 			Item:  dependentInstAddr.Item.Component,
 		}
 
-		for _, dependencyAddr := range elem.V.Dependencies.Elems() {
+		for dependencyAddr := range dependencyInst.Dependencies.All() {
 			// FIXME: This is very inefficient because the current data structure doesn't
 			// allow looking up all of the component instances that have a particular
 			// component. This'll be okay as long as the number of components is
 			// small, but we'll need to improve this if we ever want to support stacks
 			// with a large number of components.
-			for _, elem := range l.ret.Components.Elems() {
-				maybeDependencyInstAddr := elem.K
+			for maybeDependencyInstAddr, dependencyInst := range l.ret.Components.All() {
 				maybeDependencyAddr := stackaddrs.AbsComponent{
 					Stack: maybeDependencyInstAddr.Stack,
 					Item:  maybeDependencyInstAddr.Item.Component,
 				}
 				if dependencyAddr.UniqueKey() == maybeDependencyAddr.UniqueKey() {
-					elem.V.Dependents.Add(dependentAddr)
+					dependencyInst.Dependents.Add(dependentAddr)
 				}
 			}
 		}
