@@ -89,6 +89,11 @@ type PlanOpts struct {
 	// that would be unplannable until after the apply.
 	DeferralAllowed bool
 
+	// EphemeralRootOutputsAllowed specifies that the plan allows the root module
+	// to have outputs with the "ephemeral" attribute set to true. This is used
+	// so that we can return ephemeral values to the stacks runtime.
+	EphemeralRootOutputsAllowed bool
+
 	// ExternalReferences allows the external caller to pass in references to
 	// nodes that should not be pruned even if they are not referenced within
 	// the actual graph.
@@ -713,17 +718,18 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	providerFuncResults := providers.NewFunctionResultsTable(nil)
 
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
-		Config:                     config,
-		InputState:                 prevRunState,
-		ExternalProviderConfigs:    externalProviderConfigs,
-		DeferralAllowed:            opts.DeferralAllowed,
-		ExternalDependencyDeferred: opts.ExternalDependencyDeferred,
-		Changes:                    changes,
-		MoveResults:                moveResults,
-		Overrides:                  opts.Overrides,
-		PlanTimeTimestamp:          timestamp,
-		ProviderFuncResults:        providerFuncResults,
-		Forget:                     opts.Forget,
+		Config:                      config,
+		InputState:                  prevRunState,
+		ExternalProviderConfigs:     externalProviderConfigs,
+		DeferralAllowed:             opts.DeferralAllowed,
+		ExternalDependencyDeferred:  opts.ExternalDependencyDeferred,
+		EphemeralRootOutputsAllowed: opts.EphemeralRootOutputsAllowed,
+		Changes:                     changes,
+		MoveResults:                 moveResults,
+		Overrides:                   opts.Overrides,
+		PlanTimeTimestamp:           timestamp,
+		ProviderFuncResults:         providerFuncResults,
+		Forget:                      opts.Forget,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)

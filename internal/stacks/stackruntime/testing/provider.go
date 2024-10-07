@@ -140,6 +140,18 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 						Block: TestingDataSourceSchema,
 					},
 				},
+				EphemeralResourceTypes: map[string]providers.Schema{
+					"testing_ephem_resource": {
+						Block: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"value": {
+									Type:     cty.String,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
 				Functions: map[string]providers.FunctionDecl{
 					"echo": {
 						Parameters: []providers.FunctionParam{
@@ -232,6 +244,26 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 				return providers.CallFunctionResponse{
 					Result: request.Arguments[0],
 				}
+			},
+			OpenEphemeralResourceFn: func(providers.OpenEphemeralResourceRequest) (resp providers.OpenEphemeralResourceResponse) {
+				// TODO: We need to test the renew and close functions.
+				resp.Result = cty.ObjectVal(map[string]cty.Value{
+					"value": cty.StringVal("test string"),
+				})
+				resp.Private = []byte("private data")
+				return resp
+			},
+
+			RenewEphemeralResourceFn: func(req providers.RenewEphemeralResourceRequest) (resp providers.RenewEphemeralResourceResponse) {
+				// defer renewDone()
+				if string(req.Private) != "private data" {
+					resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("invalid private data %q", req.Private))
+					return resp
+				}
+
+				// resp.RenewAt = time.Now().Add(10 * time.Millisecond)
+				resp.Private = req.Private
+				return resp
 			},
 		},
 		ResourceStore: store,

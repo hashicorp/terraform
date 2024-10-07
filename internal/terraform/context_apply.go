@@ -188,7 +188,10 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		Overrides:               plan.Overrides,
 		ExternalProviderConfigs: opts.ExternalProviders,
 
-		DeferralAllowed: true,
+		// The only way deferred changes / ephemeral values can be configured in the apply phase
+		// is that they were allowed in the plan phase, so we can set them to true.
+		DeferralAllowed:             true,
+		EphemeralRootOutputsAllowed: true,
 
 		// We need to propagate the check results from the plan phase,
 		// because that will tell us which checkable objects we're expecting

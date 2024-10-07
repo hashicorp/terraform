@@ -180,12 +180,13 @@ func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipR
 
 	plantimestamp := c.main.PlanTimestamp()
 	return &terraform.PlanOpts{
-		Mode:                       mode,
-		SkipRefresh:                skipRefresh,
-		SetVariables:               inputValues,
-		ExternalProviders:          providerClients,
-		ExternalDependencyDeferred: c.deferred,
-		DeferralAllowed:            true,
+		Mode:                        mode,
+		SkipRefresh:                 skipRefresh,
+		SetVariables:                inputValues,
+		ExternalProviders:           providerClients,
+		ExternalDependencyDeferred:  c.deferred,
+		DeferralAllowed:             true,
+		EphemeralRootOutputsAllowed: true,
 		// We want the same plantimestamp between all components and the stacks language
 		ForcePlanTimestamp: &plantimestamp,
 	}, nil

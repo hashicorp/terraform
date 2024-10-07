@@ -395,7 +395,7 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 		val = n.Change.After
 	}
 
-	if n.Addr.Module.IsRoot() && n.Config.Ephemeral {
+	if n.Addr.Module.IsRoot() && n.Config.Ephemeral && !ctx.EphemeralRootOutputsAllowed() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Ephemeral output not allowed",

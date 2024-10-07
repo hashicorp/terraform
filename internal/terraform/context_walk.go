@@ -48,6 +48,11 @@ type graphWalkOpts struct {
 	// DeferralAlowed indicates that the current runtime supports deferred actions.
 	DeferralAllowed bool
 
+	// EphemeralRootOutputsAllowed specifies that the plan allows the root module
+	// to have outputs with the "ephemeral" attribute set to true. This is used
+	// so that we can return ephemeral values to the stacks runtime.
+	EphemeralRootOutputsAllowed bool
+
 	// ExternalDependencyDeferred indicates that something that this entire
 	// configuration depends on (outside the view of this modules runtime)
 	// has deferred changes, and therefore we must treat _all_ actions
@@ -179,24 +184,25 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 	}
 
 	return &ContextGraphWalker{
-		Context:                 c,
-		State:                   state,
-		Config:                  opts.Config,
-		RefreshState:            refreshState,
-		Overrides:               opts.Overrides,
-		PrevRunState:            prevRunState,
-		Changes:                 changes.SyncWrapper(),
-		NamedValues:             namedvals.NewState(),
-		EphemeralResources:      ephemeral.NewResources(),
-		Deferrals:               deferred,
-		Checks:                  checkState,
-		InstanceExpander:        instances.NewExpander(opts.Overrides),
-		ExternalProviderConfigs: opts.ExternalProviderConfigs,
-		MoveResults:             opts.MoveResults,
-		Operation:               operation,
-		StopContext:             c.runContext,
-		PlanTimestamp:           opts.PlanTimeTimestamp,
-		providerFuncResults:     opts.ProviderFuncResults,
-		Forget:                  opts.Forget,
+		Context:                     c,
+		State:                       state,
+		Config:                      opts.Config,
+		RefreshState:                refreshState,
+		Overrides:                   opts.Overrides,
+		PrevRunState:                prevRunState,
+		Changes:                     changes.SyncWrapper(),
+		NamedValues:                 namedvals.NewState(),
+		EphemeralResources:          ephemeral.NewResources(),
+		EphemeralRootOutputsAllowed: opts.EphemeralRootOutputsAllowed,
+		Deferrals:                   deferred,
+		Checks:                      checkState,
+		InstanceExpander:            instances.NewExpander(opts.Overrides),
+		ExternalProviderConfigs:     opts.ExternalProviderConfigs,
+		MoveResults:                 opts.MoveResults,
+		Operation:                   operation,
+		StopContext:                 c.runContext,
+		PlanTimestamp:               opts.PlanTimeTimestamp,
+		providerFuncResults:         opts.ProviderFuncResults,
+		Forget:                      opts.Forget,
 	}
 }

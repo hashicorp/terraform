@@ -156,6 +156,9 @@ type MockEvalContext struct {
 	EphemeralResourcesCalled    bool
 	EphemeralResourcesResources *ephemeral.Resources
 
+	EphemeralRootOutputsAllowedCalled bool
+	EphemeralRootOutputsAllowedValue  bool
+
 	OverridesCalled bool
 	OverrideValues  *mocking.Overrides
 
@@ -373,6 +376,11 @@ func (c *MockEvalContext) NamedValues() *namedvals.State {
 func (c *MockEvalContext) EphemeralResources() *ephemeral.Resources {
 	c.EphemeralResourcesCalled = true
 	return c.EphemeralResourcesResources
+}
+
+func (c *MockEvalContext) EphemeralRootOutputsAllowed() bool {
+	c.EphemeralRootOutputsAllowedCalled = true
+	return c.EphemeralRootOutputsAllowedValue
 }
 
 func (c *MockEvalContext) Deferrals() *deferring.Deferred {

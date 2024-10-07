@@ -33,6 +33,11 @@ type ValidateOpts struct {
 	// not available to this function. Therefore, it is the responsibility of
 	// the caller to ensure that the provider configurations are valid.
 	ExternalProviders map[addrs.RootProviderConfig]providers.Interface
+
+	// EphemeralRootOutputsAllowed specifies that the plan allows the root module
+	// to have outputs with the "ephemeral" attribute set to true. This is used
+	// so that we can return ephemeral values to the stacks runtime.
+	EphemeralRootOutputsAllowed bool
 }
 
 // Validate performs semantic validation of a configuration, and returns
@@ -111,9 +116,10 @@ func (c *Context) Validate(config *configs.Config, opts *ValidateOpts) tfdiags.D
 	}
 
 	walker, walkDiags := c.walk(graph, walkValidate, &graphWalkOpts{
-		Config:                  config,
-		ProviderFuncResults:     providers.NewFunctionResultsTable(nil),
-		ExternalProviderConfigs: opts.ExternalProviders,
+		Config:                      config,
+		ProviderFuncResults:         providers.NewFunctionResultsTable(nil),
+		ExternalProviderConfigs:     opts.ExternalProviders,
+		EphemeralRootOutputsAllowed: opts.EphemeralRootOutputsAllowed,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)

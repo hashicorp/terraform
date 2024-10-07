@@ -43,6 +43,8 @@ func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, ref
 	var diags tfdiags.Diagnostics
 	var changes []PlannedChange
 
+	fmt.Printf("\n\t plan --> %#v \n", plan)
+
 	var outputs map[string]cty.Value
 	if refreshPlan != nil {
 		// we're going to be a little cheeky and publish the outputs as being

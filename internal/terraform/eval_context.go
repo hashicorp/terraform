@@ -148,6 +148,10 @@ type EvalContext interface {
 	// instances of ephemeral resources declared in the configuration.
 	EphemeralResources() *ephemeral.Resources
 
+	// EphemeralRootOutputsAllowed returns true if the module is allowed to
+	// declare root outputs that are ephemeral resources, or false otherwise.
+	EphemeralRootOutputsAllowed() bool
+
 	// NamedValues returns the object that tracks the gradual evaluation of
 	// all input variables, local values, and output values during a graph
 	// walk.
