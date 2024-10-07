@@ -259,7 +259,10 @@ func handleProtoMsg(key statekeys.Key, msg protoreflect.ProtoMessage, state *Sta
 func handleVariableMsg(key statekeys.Variable, msg protoreflect.ProtoMessage, state *State) error {
 	switch msg := msg.(type) {
 	case *emptypb.Empty:
-		state.addInputVariable(key.VariableAddr, cty.NilVal)
+		// for backwards compatibility reasons, ephemeral values used to be
+		// stored in state as empty messages. We'll upgrade these to null
+		// values with ephemeral marks.
+		state.addInputVariable(key.VariableAddr, cty.NullVal(cty.DynamicPseudoType))
 		return nil
 	case *tfstackdata1.DynamicValue:
 		value, err := tfstackdata1.DynamicValueFromTFStackData1(msg, cty.DynamicPseudoType)

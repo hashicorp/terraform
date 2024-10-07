@@ -888,17 +888,21 @@ func TestPlannedChangeAsProto(t *testing.T) {
 		},
 		"root input variable that must be re-supplied during apply": {
 			Receiver: &PlannedChangeRootInputValue{
-				Addr:   stackaddrs.InputVariable{Name: "thingy_id"},
-				Action: plans.Create,
-				Before: cty.NullVal(cty.String),
-				// No after in this case: the value must be re-supplied during
-				// apply specifically so that we can avoid the need to store it.
+				Addr:            stackaddrs.InputVariable{Name: "thingy_id"},
+				Action:          plans.Create,
+				Before:          cty.NullVal(cty.String),
+				After:           cty.NullVal(cty.String),
 				RequiredOnApply: true,
 			},
 			Want: &stacks.PlannedChange{
 				Raw: []*anypb.Any{
 					mustMarshalAnyPb(&tfstackdata1.PlanRootInputValue{
-						Name:            "thingy_id",
+						Name: "thingy_id",
+						Value: &tfstackdata1.DynamicValue{
+							Value: &planproto.DynamicValue{
+								Msgpack: mustMsgPack(t, cty.NullVal(cty.String)),
+							},
+						},
 						RequiredOnApply: true,
 					}),
 				},
@@ -912,7 +916,9 @@ func TestPlannedChangeAsProto(t *testing.T) {
 									Old: &stacks.DynamicValue{
 										Msgpack: mustMsgPack(t, cty.NullVal(cty.String)),
 									},
-									// New is empty because it is ephemeral.
+									New: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.NullVal(cty.String)),
+									},
 								},
 								RequiredDuringApply: true,
 							},

@@ -61,11 +61,8 @@ func (s *State) RootInputVariables() map[stackaddrs.InputVariable]cty.Value {
 // If the second return value is true, then the value is present but is
 // ephemeral and not known. If the first returned value is cty.NilVal and the
 // second is false then the value isn't present in the state.
-func (s *State) RootInputVariable(addr stackaddrs.InputVariable) (cty.Value, bool) {
-	if input, exists := s.inputs[addr]; exists {
-		return input, input == cty.NilVal
-	}
-	return cty.NilVal, false
+func (s *State) RootInputVariable(addr stackaddrs.InputVariable) cty.Value {
+	return s.inputs[addr]
 }
 
 func (s *State) RootOutputValues() map[stackaddrs.OutputValue]cty.Value {

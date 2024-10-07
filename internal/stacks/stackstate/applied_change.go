@@ -352,11 +352,6 @@ func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*stacks.AppliedC
 type AppliedChangeInputVariable struct {
 	Addr  stackaddrs.InputVariable
 	Value cty.Value
-
-	// A Value field of cty.NilValue indicates the input variable is ephemeral
-	// rather than being deleted. We have a dedicated field to indicate
-	// deletion to make up for this.
-	Removed bool
 }
 
 var _ AppliedChange = (*AppliedChangeInputVariable)(nil)
@@ -366,7 +361,7 @@ func (ac *AppliedChangeInputVariable) AppliedChangeProto() (*stacks.AppliedChang
 		VariableAddr: ac.Addr,
 	})
 
-	if ac.Removed {
+	if ac.Value == cty.NilVal {
 		// Then we're deleting this input variable from the state.
 		return &stacks.AppliedChange{
 			Raw: []*stacks.AppliedChange_RawChange{
