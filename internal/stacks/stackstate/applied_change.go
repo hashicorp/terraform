@@ -9,7 +9,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
-	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
@@ -352,11 +351,6 @@ func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*stacks.AppliedC
 type AppliedChangeInputVariable struct {
 	Addr  stackaddrs.InputVariable
 	Value cty.Value
-
-	// A Value field of cty.NilValue indicates the input variable is ephemeral
-	// rather than being deleted. We have a dedicated field to indicate
-	// deletion to make up for this.
-	Removed bool
 }
 
 var _ AppliedChange = (*AppliedChangeInputVariable)(nil)
@@ -366,7 +360,7 @@ func (ac *AppliedChangeInputVariable) AppliedChangeProto() (*stacks.AppliedChang
 		VariableAddr: ac.Addr,
 	})
 
-	if ac.Removed {
+	if ac.Value == cty.NilVal {
 		// Then we're deleting this input variable from the state.
 		return &stacks.AppliedChange{
 			Raw: []*stacks.AppliedChange_RawChange{
@@ -391,19 +385,13 @@ func (ac *AppliedChangeInputVariable) AppliedChangeProto() (*stacks.AppliedChang
 		Name: ac.Addr.Name,
 	}
 
-	if ac.Value == cty.NilVal {
-		if err := anypb.MarshalFrom(&raw, new(emptypb.Empty), proto.MarshalOptions{}); err != nil {
-			return nil, fmt.Errorf("encoding raw state for %s: %w", ac.Addr, err)
-		}
-	} else {
-		value, err := stacks.ToDynamicValue(ac.Value, cty.DynamicPseudoType)
-		if err != nil {
-			return nil, fmt.Errorf("encoding new state for %s in preparation for saving it: %w", ac.Addr, err)
-		}
-		description.NewValue = value
-		if err := anypb.MarshalFrom(&raw, tfstackdata1.Terraform1ToStackDataDynamicValue(value), proto.MarshalOptions{}); err != nil {
-			return nil, fmt.Errorf("encoding raw state for %s: %w", ac.Addr, err)
-		}
+	value, err := stacks.ToDynamicValue(ac.Value, cty.DynamicPseudoType)
+	if err != nil {
+		return nil, fmt.Errorf("encoding new state for %s in preparation for saving it: %w", ac.Addr, err)
+	}
+	description.NewValue = value
+	if err := anypb.MarshalFrom(&raw, tfstackdata1.Terraform1ToStackDataDynamicValue(value), proto.MarshalOptions{}); err != nil {
+		return nil, fmt.Errorf("encoding raw state for %s: %w", ac.Addr, err)
 	}
 
 	return &stacks.AppliedChange{

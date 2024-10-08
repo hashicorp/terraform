@@ -119,15 +119,14 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 		addr := stackaddrs.InputVariable{
 			Name: msg.Name,
 		}
-		if msg.Value != nil {
-			val, err := tfstackdata1.DynamicValueFromTFStackData1(msg.Value, cty.DynamicPseudoType)
-			if err != nil {
-				return fmt.Errorf("invalid stored value for %s: %w", addr, err)
-			}
-			l.ret.RootInputValues[addr] = val
+
+		val, err := tfstackdata1.DynamicValueFromTFStackData1(msg.Value, cty.DynamicPseudoType)
+		if err != nil {
+			return fmt.Errorf("invalid stored value for %s: %w", addr, err)
 		}
+		l.ret.RootInputValues[addr] = val
 		if msg.RequiredOnApply {
-			if msg.Value != nil {
+			if !val.IsNull() {
 				// A variable can't be both persisted _and_ required on apply.
 				return fmt.Errorf("plan has value for required-on-apply input variable %s", addr)
 			}

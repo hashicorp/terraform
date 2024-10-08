@@ -246,7 +246,7 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 
 	destroy := v.main.PlanningOpts().PlanningMode == plans.DestroyMode
 
-	before, beforeEphemeral := v.main.PlanPrevState().RootInputVariable(v.Addr().Item)
+	before := v.main.PlanPrevState().RootInputVariable(v.Addr().Item)
 
 	decl := v.Declaration(ctx)
 	after := v.Value(ctx, PlanPhase)
@@ -255,19 +255,16 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 		// we don't persist the value for an ephemeral variable, but we
 		// do need to remember whether it was set.
 		requiredOnApply = !after.IsNull()
-		after = cty.NilVal
+
+		// we'll set the after value to null now that we've captured the
+		// requiredOnApply flag.
+		after = cty.NullVal(after.Type())
 	}
 
 	var action plans.Action
-	if beforeEphemeral {
-		// We can't tell the difference between an Update and NoOp change for
-		// an ephemeral input so we just always mark it as updated.
-		action = plans.Update
-	} else if before != cty.NilVal {
+	if before != cty.NilVal {
 		if decl.Ephemeral {
-			// if the new value is ephemeral, and the old value wasn't, then
-			// we'll set the operation to an update even if the actual hasn't
-			// changed
+			// if the value is ephemeral, we always mark is as an update
 			action = plans.Update
 		} else {
 			unmarkedBefore, beforePaths := before.UnmarkDeepWithPaths()
@@ -283,10 +280,6 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 		}
 	} else {
 		action = plans.Create
-
-		// We think this is a brand new input variable so we'll also mark the
-		// before as being a null value (as opposed to NilVal which means it
-		// existed before but was ephemeral).
 		before = cty.NullVal(cty.DynamicPseudoType)
 	}
 
@@ -351,14 +344,13 @@ func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedCha
 	decl := v.Declaration(ctx)
 	value := v.Value(ctx, ApplyPhase)
 	if decl.Ephemeral {
-		value = cty.NilVal
+		value = cty.NullVal(value.Type())
 	}
 
 	return []stackstate.AppliedChange{
 		&stackstate.AppliedChangeInputVariable{
-			Addr:    v.Addr().Item,
-			Value:   value,
-			Removed: false,
+			Addr:  v.Addr().Item,
+			Value: value,
 		},
 	}, diags
 }

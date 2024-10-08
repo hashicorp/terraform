@@ -876,7 +876,7 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 				},
 				Action:          plans.Create,
 				Before:          cty.NullVal(cty.DynamicPseudoType),
-				After:           cty.NilVal, // ephemeral
+				After:           cty.NullVal(cty.String), // ephemeral
 				RequiredOnApply: true,
 			},
 			&stackplan.PlannedChangeRootInputValue{
@@ -939,7 +939,7 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 				},
 				Action:          plans.Create,
 				Before:          cty.NullVal(cty.DynamicPseudoType),
-				After:           cty.NilVal, // ephemeral
+				After:           cty.NullVal(cty.String), // ephemeral
 				RequiredOnApply: false,
 			},
 			&stackplan.PlannedChangeRootInputValue{
