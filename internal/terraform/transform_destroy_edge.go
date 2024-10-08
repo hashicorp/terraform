@@ -346,6 +346,16 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 					}
 
 				case graphNodeExpandsInstances:
+					// FIXME: Ephemeral resources have kind of broken this
+					// transformer. They work like temporary values in that they
+					// should not exist when there are no dependencies, but also
+					// share expansion nodes with all other resource modes. We
+					// can't use graphNodeTemporaryValue because then all
+					// resources will be caught by the previous case here.
+					if n, ok := n.(GraphNodeConfigResource); ok && n.ResourceAddr().Resource.Mode == addrs.EphemeralResourceMode {
+						return
+					}
+
 					// Any nodes that expand instances are kept when their
 					// instances may need to be evaluated.
 					for _, v := range g.UpEdges(n) {

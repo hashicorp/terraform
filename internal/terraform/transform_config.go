@@ -35,7 +35,8 @@ type ConfigTransformer struct {
 	ModeFilter bool
 	Mode       addrs.ResourceMode
 
-	skip bool
+	// some actions are skipped during the destroy process
+	destroy bool
 
 	// importTargets specifies a slice of addresses that will have state
 	// imported for them.
@@ -52,11 +53,6 @@ type ConfigTransformer struct {
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
-	// no import ops happen during destroy
-	if t.skip {
-		return nil
-	}
-
 	// If no configuration is available, we don't do anything
 	if t.Config == nil {
 		return nil
@@ -97,12 +93,17 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 	log.Printf("[TRACE] ConfigTransformer: Starting for path: %v", path)
 
 	var allResources []*configs.Resource
-	for _, r := range module.ManagedResources {
-		allResources = append(allResources, r)
+	if !t.destroy {
+		for _, r := range module.ManagedResources {
+			allResources = append(allResources, r)
+		}
+		for _, r := range module.DataResources {
+			allResources = append(allResources, r)
+		}
 	}
-	for _, r := range module.DataResources {
-		allResources = append(allResources, r)
-	}
+
+	// ephemeral resources act like temporary values and must be added to the
+	// graph even during destroy operations.
 	for _, r := range module.EphemeralResources {
 		allResources = append(allResources, r)
 	}
@@ -204,6 +205,9 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 // validateImportTargets ensures that the import target module exists in the
 // configuration. Individual resources will be check by the validation node.
 func (t *ConfigTransformer) validateImportTargets() error {
+	if t.destroy {
+		return nil
+	}
 	var diags tfdiags.Diagnostics
 
 	for _, i := range t.importTargets {
