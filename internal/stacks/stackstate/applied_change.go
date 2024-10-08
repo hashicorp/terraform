@@ -9,7 +9,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
-	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
@@ -386,19 +385,13 @@ func (ac *AppliedChangeInputVariable) AppliedChangeProto() (*stacks.AppliedChang
 		Name: ac.Addr.Name,
 	}
 
-	if ac.Value == cty.NilVal {
-		if err := anypb.MarshalFrom(&raw, new(emptypb.Empty), proto.MarshalOptions{}); err != nil {
-			return nil, fmt.Errorf("encoding raw state for %s: %w", ac.Addr, err)
-		}
-	} else {
-		value, err := stacks.ToDynamicValue(ac.Value, cty.DynamicPseudoType)
-		if err != nil {
-			return nil, fmt.Errorf("encoding new state for %s in preparation for saving it: %w", ac.Addr, err)
-		}
-		description.NewValue = value
-		if err := anypb.MarshalFrom(&raw, tfstackdata1.Terraform1ToStackDataDynamicValue(value), proto.MarshalOptions{}); err != nil {
-			return nil, fmt.Errorf("encoding raw state for %s: %w", ac.Addr, err)
-		}
+	value, err := stacks.ToDynamicValue(ac.Value, cty.DynamicPseudoType)
+	if err != nil {
+		return nil, fmt.Errorf("encoding new state for %s in preparation for saving it: %w", ac.Addr, err)
+	}
+	description.NewValue = value
+	if err := anypb.MarshalFrom(&raw, tfstackdata1.Terraform1ToStackDataDynamicValue(value), proto.MarshalOptions{}); err != nil {
+		return nil, fmt.Errorf("encoding raw state for %s: %w", ac.Addr, err)
 	}
 
 	return &stacks.AppliedChange{
