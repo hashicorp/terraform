@@ -32,7 +32,7 @@ func (t *DiffTransformer) hasConfigConditions(addr addrs.AbsResourceInstance) bo
 		return false
 	}
 
-	cfg := t.Config.DescendentForInstance(addr.Module)
+	cfg := t.Config.DescendantForInstance(addr.Module)
 	if cfg == nil {
 		return false
 	}

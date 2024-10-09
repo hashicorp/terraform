@@ -138,9 +138,9 @@ func (g DirectedGraph[T]) DirectDependentsOf(addr T) Set[T] {
 func (g DirectedGraph[T]) TransitiveDependentsOf(addr T) Set[T] {
 	k := addr.UniqueKey()
 	ret := MakeSet[T]()
-	raw, err := g.g.Descendents(k)
+	raw, err := g.g.Descendants(k)
 	if err != nil {
-		// It should be impossible for "Descendents" to fail
+		// It should be impossible for "Descendants" to fail
 		panic(err)
 	}
 	for otherKI := range raw {

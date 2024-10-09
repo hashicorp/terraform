@@ -51,11 +51,11 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 		// dependents of that resource. Rather than connect directly to them all
 		// however, we'll only connect to leaf nodes by finding those that have
 		// no up edges.
-		descendents, _ := g.Descendents(v)
+		descendants, _ := g.Descendants(v)
 		// FIXME: some of these graph methods still return unused errors. It
-		// would be nice to be able to use Descendents as a range argument for
+		// would be nice to be able to use Descendants as a range argument for
 		// example.
-		for _, des := range descendents {
+		for _, des := range descendants {
 			// We want something which is both a referencer and has no incoming
 			// edges from referencers. While it wouldn't be incorrect to just
 			// check for all leaf nodes, we are trying to connect to the end of

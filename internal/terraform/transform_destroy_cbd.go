@@ -45,14 +45,14 @@ func (t *ForcedCBDTransformer) Transform(g *Graph) error {
 		}
 
 		if !dn.CreateBeforeDestroy() {
-			// If there are no CBD decendent (dependent nodes), then we
+			// If there are no CBD decendant (dependent nodes), then we
 			// do nothing here.
-			if !t.hasCBDDescendent(g, v) {
-				log.Printf("[TRACE] ForcedCBDTransformer: %q (%T) has no CBD descendent, so skipping", dag.VertexName(v), v)
+			if !t.hasCBDDescendant(g, v) {
+				log.Printf("[TRACE] ForcedCBDTransformer: %q (%T) has no CBD descendant, so skipping", dag.VertexName(v), v)
 				continue
 			}
 
-			// If this isn't naturally a CBD node, this means that an descendent is
+			// If this isn't naturally a CBD node, this means that an descendant is
 			// and we need to auto-upgrade this node to CBD. We do this because
 			// a CBD node depending on non-CBD will result in cycles. To avoid this,
 			// we always attempt to upgrade it.
@@ -71,10 +71,10 @@ func (t *ForcedCBDTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-// hasCBDDescendent returns true if any descendent (node that depends on this)
+// hasCBDDescendant returns true if any descendant (node that depends on this)
 // has CBD set.
-func (t *ForcedCBDTransformer) hasCBDDescendent(g *Graph, v dag.Vertex) bool {
-	s, _ := g.Descendents(v)
+func (t *ForcedCBDTransformer) hasCBDDescendant(g *Graph, v dag.Vertex) bool {
+	s, _ := g.Descendants(v)
 	if s == nil {
 		return true
 	}
@@ -86,8 +86,8 @@ func (t *ForcedCBDTransformer) hasCBDDescendent(g *Graph, v dag.Vertex) bool {
 		}
 
 		if dn.CreateBeforeDestroy() {
-			// some descendent is CreateBeforeDestroy, so we need to follow suit
-			log.Printf("[TRACE] ForcedCBDTransformer: %q has CBD descendent %q", dag.VertexName(v), dag.VertexName(ov))
+			// some descendant is CreateBeforeDestroy, so we need to follow suit
+			log.Printf("[TRACE] ForcedCBDTransformer: %q has CBD descendant %q", dag.VertexName(v), dag.VertexName(ov))
 			return true
 		}
 	}

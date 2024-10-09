@@ -53,7 +53,7 @@ func (g *AcyclicGraph) Ancestors(vs ...Vertex) (Set, error) {
 
 // Returns a Set that includes every Vertex yielded by walking up from the
 // provided starting Vertex v.
-func (g *AcyclicGraph) Descendents(vs ...Vertex) (Set, error) {
+func (g *AcyclicGraph) Descendants(vs ...Vertex) (Set, error) {
 	s := make(Set)
 	memoFunc := func(v Vertex, d int) error {
 		s.Add(v)

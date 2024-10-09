@@ -14,7 +14,7 @@ import (
 
 // LoadConfig reads the Terraform module in the given directory and uses it as the
 // root module to build the static module tree that represents a configuration,
-// assuming that all required descendent modules have already been installed.
+// assuming that all required descendant modules have already been installed.
 //
 // If error diagnostics are returned, the returned configuration may be either
 // nil or incomplete. In the latter case, cautious static analysis is possible

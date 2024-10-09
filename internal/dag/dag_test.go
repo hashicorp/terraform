@@ -259,7 +259,7 @@ func TestAcyclicGraphAncestors(t *testing.T) {
 	}
 }
 
-func TestAcyclicGraphDescendents(t *testing.T) {
+func TestAcyclicGraphDescendants(t *testing.T) {
 	var g AcyclicGraph
 	g.Add(1)
 	g.Add(2)
@@ -272,7 +272,7 @@ func TestAcyclicGraphDescendents(t *testing.T) {
 	g.Connect(BasicEdge(3, 4))
 	g.Connect(BasicEdge(4, 5))
 
-	actual, err := g.Descendents(2)
+	actual, err := g.Descendants(2)
 	if err != nil {
 		t.Fatalf("err: %#v", err)
 	}

@@ -69,7 +69,7 @@ func (d *evaluationData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRang
 		return cty.StringVal(filepath.ToSlash(wd)), diags
 
 	case "module":
-		moduleConfig := d.Evaluator.Config.Descendent(d.Module)
+		moduleConfig := d.Evaluator.Config.Descendant(d.Module)
 		if moduleConfig == nil {
 			// should never happen, since we can't be evaluating in a module
 			// that wasn't mentioned in configuration.

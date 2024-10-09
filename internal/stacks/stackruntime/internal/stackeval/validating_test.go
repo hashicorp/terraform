@@ -53,7 +53,7 @@ func TestValidate_modulesWithProviderConfigs(t *testing.T) {
 
 		var wantDiags tfdiags.Diagnostics
 		// Configurations in the root module get a different detail message
-		// than those in descendent modules, because for descendents we don't
+		// than those in descendant modules, because for descendants we don't
 		// assume that the author is empowered to make the module
 		// stacks-compatible, while for the root it's more likely to be
 		// directly intended for stacks use, at least for now while things are

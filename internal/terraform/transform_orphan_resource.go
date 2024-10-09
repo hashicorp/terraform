@@ -71,7 +71,7 @@ func (t *OrphanResourceInstanceTransformer) transform(g *Graph, ms *states.Modul
 	// nil if the module was removed from the configuration. This is okay,
 	// this just means that every resource is an orphan.
 	var m *configs.Module
-	if c := t.Config.DescendentForInstance(moduleAddr); c != nil {
+	if c := t.Config.DescendantForInstance(moduleAddr); c != nil {
 		m = c.Module
 	}
 
