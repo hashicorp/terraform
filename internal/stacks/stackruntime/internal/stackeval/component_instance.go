@@ -208,6 +208,26 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 
 			mode := c.main.PlanningOpts().PlanningMode
 			if mode == plans.DestroyMode {
+
+				if !c.main.PlanPrevState().HasComponentInstance(c.Addr()) {
+					// If the component instance doesn't exist in the previous
+					// state at all, then we don't need to do anything.
+					//
+					// This means the component instance was added to the config
+					// and never applied, or that it was previously destroyed
+					// via an earlier destroy operation.
+					//
+					// Return a dummy plan:
+					return &plans.Plan{
+						UIMode:    plans.DestroyMode,
+						Complete:  true,
+						Applyable: true,
+						Errored:   false,
+						Timestamp: c.main.PlanTimestamp(),
+						Changes:   plans.NewChangesSrc(), // no changes
+					}, nil
+				}
+
 				// If we are destroying, then we are going to do the refresh
 				// and destroy plan in two separate stages. This helps resolves
 				// cycles within the dependency graph, as anything requiring
@@ -329,6 +349,18 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 	var diags tfdiags.Diagnostics
 	if !c.main.Applying() {
 		panic("called ApplyModuleTreePlan with an evaluator not instantiated for applying")
+	}
+
+	if plan.UIMode == plans.DestroyMode && plan.Changes.Empty() {
+		stackPlan := c.main.PlanBeingApplied().Components.Get(c.Addr())
+
+		// If we're destroying and there's nothing to destroy, then we can
+		// consider this a no-op.
+		return &ComponentInstanceApplyResult{
+			FinalState:                      plan.PriorState, // after refresh
+			AffectedResourceInstanceObjects: resourceInstanceObjectsAffectedByStackPlan(stackPlan),
+			Complete:                        true,
+		}, diags
 	}
 
 	// This is the result to return along with any errors that prevent us from
