@@ -10,6 +10,7 @@ provider "testing" "main" {}
 
 provider "testing" "credentialed" {
   config {
+    require_auth = true
     authentication = component.load.credentials
   }
 }

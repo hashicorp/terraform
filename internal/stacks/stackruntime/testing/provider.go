@@ -94,13 +94,17 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 				Provider: providers.Schema{
 					Block: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
-							// if the provider sets the authentication attribute,
-							// then it must match the internal Authentication
-							// value for the provider.
+							// if the configuration sets require_auth then it
+							// must also provide the correct value for
+							// authentication
 							"authentication": {
 								Type:      cty.String,
 								Sensitive: true,
 								Optional:  true,
+							},
+							"require_auth": {
+								Type:     cty.Bool,
+								Optional: true,
 							},
 
 							// If this value is provider, the Configure
@@ -164,8 +168,15 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 			ReadDataSourceFn: func(request providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 				var diags tfdiags.Diagnostics
 
-				id := request.Config.GetAttr("id").AsString()
-				value, exists := store.Get(id)
+				id := request.Config.GetAttr("id")
+				if id.IsNull() {
+					diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "missing id", "id is required"))
+					return providers.ReadDataSourceResponse{
+						Diagnostics: diags,
+					}
+				}
+
+				value, exists := store.Get(id.AsString())
 				if !exists {
 					diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "not found", fmt.Sprintf("%q not found", id)))
 				}
@@ -263,12 +274,20 @@ func (provider *MockProvider) configure(request providers.ConfigureProviderReque
 		}
 	}
 
-	authn := request.Config.GetAttr("authentication")
-	if !authn.IsNull() && authn.IsKnown() {
-		// We deliberately only check the authentication if the configuration
-		// is providing it. It's entirely up to the config to opt into the
-		// authentication which would be crazy for a real provider but just
-		// makes things so much simpler for us in testing world.
+	// We deliberately only check the authentication if the configuration
+	// is providing it. It's entirely up to the config to opt into the
+	// authentication which would be crazy for a real provider but just
+	// makes things so much simpler for us in testing world.
+	requireAuth := request.Config.GetAttr("require_auth")
+	if requireAuth.True() {
+		authn := request.Config.GetAttr("authentication")
+		if authn.IsNull() || !authn.IsKnown() {
+			return providers.ConfigureProviderResponse{
+				Diagnostics: tfdiags.Diagnostics{
+					tfdiags.AttributeValue(tfdiags.Error, "Authentication failed", "authentication field is required", cty.GetAttrPath("authentication")),
+				},
+			}
+		}
 		if authn.AsString() != provider.Authentication {
 			return providers.ConfigureProviderResponse{
 				Diagnostics: tfdiags.Diagnostics{
@@ -277,6 +296,7 @@ func (provider *MockProvider) configure(request providers.ConfigureProviderReque
 			}
 		}
 	}
+
 	return providers.ConfigureProviderResponse{}
 }
 
