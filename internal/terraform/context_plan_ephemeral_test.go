@@ -5,10 +5,14 @@ package terraform
 
 import (
 	"fmt"
+	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -18,8 +22,8 @@ import (
 func TestContext2Plan_ephemeralValues(t *testing.T) {
 	for name, tc := range map[string]struct {
 		module                                      map[string]string
-		expectValidateDiagnostics                   []tfdiags.Diagnostic
-		expectPlanDiagnostics                       []tfdiags.Diagnostic
+		expectValidateDiagnostics                   func(m *configs.Config) tfdiags.Diagnostics
+		expectPlanDiagnostics                       func(m *configs.Config) tfdiags.Diagnostics
 		expectOpenEphemeralResourceCalled           bool
 		expectValidateEphemeralResourceConfigCalled bool
 		expectCloseEphemeralResourceCalled          bool
@@ -54,10 +58,188 @@ resource "test_object" "test" {
 			expectValidateEphemeralResourceConfigCalled: true,
 			expectCloseEphemeralResourceCalled:          true,
 			assertTestProviderConfigure: func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
-				if req.Config.GetAttr("test_string").AsString() != "test string" {
+				attr := req.Config.GetAttr("test_string")
+				if !attr.HasMark(marks.Ephemeral) {
+					resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("expected test_string to be marked as ephemeral"))
+				}
+				if attr.AsString() != "test string" {
 					resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("received config did not contain \"test string\", got %#v\n", req.Config))
 				}
 				return resp
+			},
+		},
+
+		"provider reference through module": {
+			module: map[string]string{
+				"child/main.tf": `
+ephemeral "ephem_resource" "data" {
+}
+
+output "value" {
+    value = ephemeral.ephem_resource.data.value
+    ephemeral = true
+}
+`,
+				"main.tf": `
+module "child" {
+    source = "./child"
+}
+
+provider "test" {
+  test_string = module.child.value
+}
+
+resource "test_object" "test" {
+}
+`,
+			},
+			expectOpenEphemeralResourceCalled:           true,
+			expectValidateEphemeralResourceConfigCalled: true,
+			expectCloseEphemeralResourceCalled:          true,
+			assertTestProviderConfigure: func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+				attr := req.Config.GetAttr("test_string")
+				if !attr.HasMark(marks.Ephemeral) {
+					resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("expected test_string to be marked as ephemeral"))
+				}
+				if attr.AsString() != "test string" {
+					resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("received config did not contain \"test string\", got %#v\n", req.Config))
+				}
+				return resp
+			},
+		},
+
+		"resource expansion - for_each": {
+			module: map[string]string{
+				"main.tf": `
+ephemeral "ephem_resource" "data" {}
+resource "test_object" "test" {
+  for_each = toset(ephemeral.ephem_resource.data.list)
+  test_string = each.value
+}
+`,
+			},
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Ephemeral output not allowed",
+					Detail:   "Ephemeral outputs are not allowed in for_each expressions",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 6, Column: 1, Byte: 59},
+						End:      hcl.Pos{Line: 6, Column: 14, Byte: 72},
+					},
+				})
+			},
+		},
+
+		"resource expansion - count": {
+			module: map[string]string{
+
+				"main.tf": `
+ephemeral "ephem_resource" "data" {}
+resource "test_object" "test" {
+  count = length(ephemeral.ephem_resource.data.list)
+  test_string = count.index
+}
+`,
+			},
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid count argument",
+					Detail:   `The given "count" is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify the number of resource instances.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 4, Column: 13, Byte: 67},
+						End:      hcl.Pos{Line: 4, Column: 55, Byte: 109},
+					},
+				})
+			},
+		},
+
+		"module expansion - for_each": {
+			module: map[string]string{
+				"child/main.tf": `
+output "value" {
+    value = "static value"
+}
+`,
+				"main.tf": `
+ephemeral "ephem_resource" "data" {
+}
+module "child" {
+    for_each = toset(ephemeral.ephem_resource.data.list)
+    source = "./child"
+}
+`,
+			},
+
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Ephemeral output not allowed",
+					Detail:   "Ephemeral outputs are not allowed in for_each expressions",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 6, Column: 1, Byte: 59},
+						End:      hcl.Pos{Line: 6, Column: 14, Byte: 72},
+					},
+				})
+			},
+		},
+
+		"module expansion - count": {
+			module: map[string]string{
+				"child/main.tf": `
+output "value" {
+    value = "static value"
+}
+`,
+				"main.tf": `
+ephemeral "ephem_resource" "data" {}
+module "child" {
+    count = length(ephemeral.ephem_resource.data.list)
+    source = "./child"
+}
+`,
+			},
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid count argument",
+					Detail:   `The given "count" is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify the number of resource instances.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 4, Column: 13, Byte: 67},
+						End:      hcl.Pos{Line: 4, Column: 55, Byte: 109},
+					},
+				})
+			},
+		},
+
+		"import expansion": {
+			module: map[string]string{
+				"main.tf": `
+ephemeral "ephem_resource" "data" {}
+
+import {
+  for_each = toset(ephemeral.ephem_resource.data.value)
+  id = each.value.id
+  to = each.value.to
+}
+`,
+			},
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Ephemeral output not allowed",
+					Detail:   "Ephemeral outputs are not allowed in for_each expressions",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 6, Column: 1, Byte: 59},
+						End:      hcl.Pos{Line: 6, Column: 14, Byte: 72},
+					},
+				})
 			},
 		},
 	} {
@@ -74,6 +256,16 @@ resource "test_object" "test" {
 										Type:     cty.String,
 										Computed: true,
 									},
+
+									"list": {
+										Type:     cty.List(cty.String),
+										Computed: true,
+									},
+
+									"map": {
+										Type:     cty.List(cty.Map(cty.String)),
+										Computed: true,
+									},
 								},
 							},
 						},
@@ -84,6 +276,17 @@ resource "test_object" "test" {
 			ephem.OpenEphemeralResourceFn = func(providers.OpenEphemeralResourceRequest) (resp providers.OpenEphemeralResourceResponse) {
 				resp.Result = cty.ObjectVal(map[string]cty.Value{
 					"value": cty.StringVal("test string"),
+					"list":  cty.ListVal([]cty.Value{cty.StringVal("test string 1"), cty.StringVal("test string 2")}),
+					"map": cty.ListVal([]cty.Value{
+						cty.MapVal(map[string]cty.Value{
+							"id": cty.StringVal("id-0"),
+							"to": cty.StringVal("aws_instance.a"),
+						}),
+						cty.MapVal(map[string]cty.Value{
+							"id": cty.StringVal("id-1"),
+							"to": cty.StringVal("aws_instance.b"),
+						}),
+					}),
 				})
 				return resp
 			}
@@ -106,8 +309,11 @@ resource "test_object" "test" {
 			})
 
 			diags := ctx.Validate(m, &ValidateOpts{})
-			if len(tc.expectValidateDiagnostics) > 0 {
-				assertDiagnosticsMatch(t, diags, tc.expectValidateDiagnostics)
+			if tc.expectValidateDiagnostics != nil {
+				assertDiagnosticsMatch(t, diags, tc.expectValidateDiagnostics(m))
+				// If we expect diagnostics, we should not continue with the plan
+				// as it will fail.
+				return
 			} else {
 				assertNoDiagnostics(t, diags)
 			}
@@ -119,8 +325,8 @@ resource "test_object" "test" {
 			}
 
 			_, diags = ctx.Plan(m, nil, DefaultPlanOpts)
-			if len(tc.expectPlanDiagnostics) > 0 {
-				assertDiagnosticsMatch(t, diags, tc.expectPlanDiagnostics)
+			if tc.expectPlanDiagnostics != nil {
+				assertDiagnosticsMatch(t, diags, tc.expectPlanDiagnostics(m))
 			} else {
 				assertNoDiagnostics(t, diags)
 			}
