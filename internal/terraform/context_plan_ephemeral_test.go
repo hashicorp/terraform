@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/zclconf/go-cty/cty"
@@ -114,6 +115,10 @@ resource "test_object" "test" {
 
 	p := simpleMockProvider()
 	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+		if !req.Config.GetAttr("test_string").HasMark(marks.Ephemeral) {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("expected test_string to be marked as ephemeral"))
+		}
+
 		if req.Config.GetAttr("test_string").AsString() != "test string" {
 			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("received config did not contain \"test string\", got %#v\n", req.Config))
 		}
@@ -138,4 +143,50 @@ resource "test_object" "test" {
 
 	_, diags = ctx.Plan(m, nil, DefaultPlanOpts)
 	assertNoDiagnostics(t, diags)
+}
+
+func TestContext2Plan_terraformApplying(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+provider "test" {
+  test_bool = terraform.applying
+}
+
+resource "test_object" "test" {
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	hasBeenCalled := false
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+		hasBeenCalled = true
+		testBool := req.Config.GetAttr("test_bool")
+
+		if !testBool.HasMark(marks.Ephemeral) {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("expected terraform.applying to be marked as ephemeral"))
+		}
+
+		if testBool.True() {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("expected terraform.applying to be false"))
+		}
+
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	assertNoDiagnostics(t, diags)
+
+	_, diags = ctx.Plan(m, nil, DefaultPlanOpts)
+	assertNoDiagnostics(t, diags)
+
+	if !hasBeenCalled {
+		t.Fatal("ConfigureProvider not called")
+	}
 }
