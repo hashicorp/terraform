@@ -1,6 +1,5 @@
 > Note: Internal clone of the [Terraform website directory](https://github.com/hashicorp/terraform/tree/main/website)
 
-To sync `hashicorp/terraform-docs-internal` with a `hashicorp/terraform` repository, focusing only on the website directory, you can follow these steps:
 
 # Syncing the website directory from `hashicorp/terraform` to `hashicorp/terraform-docs-internal`
 1. Check if `hashicorp/terraform` is added as a remote:
@@ -104,6 +103,26 @@ git push terraform-public <your-branch-name>:<hashicorp/terraform-target-branch>
 ```
 
 These steps will help keep the website directory in sync between your `hashicorp/terraform-docs-internal` and `hashicorp/terraform` repositories and allow you to cherry-pick specific commits that should only apply to the website directory.
+
+# Creating Vercel deployments
+Unfortunately, there have been issues connecting Vercel to this git repository for automatic deploy previews. For now, deployments will need to be done using the Vercel CLI.
+
+If it's not installed already, please install the [Vercel CLI](https://vercel.com/cli).
+
+Verify you have a role with permission to create deployments by visiting your [account page](https://vercel.com/account). You should have a `Member`, `Developer` or `Contributor` role listed under **Teams > HashiCorp**. If you don't, please request a new role in Doormat [here](https://doormat.hashicorp.services/applications/access/vercel/roles). You can also review Vercel's Access Roles [here](https://vercel.com/docs/accounts/team-members-and-roles/access-roles) to learn about different permissions.
+
+1. Log in to Vercel with `vercel login`
+1. Select `Continue with SAML Single Sign-On` from the login options
+1. Enter `hashicorp` when prompted to `Enter your Team slug`
+1. From the root directory in this project execute `vercel deploy`
+
+You should see an output similar to this:
+```
+Vercel CLI 34.2.6
+🔍  Inspect: https://vercel.com/hashicorp/terraform-docs-internal/8rBqJrHh8LtnLJNofoJQR83PZZqt [4s]
+✅  Preview: https://terraform-docs-internal-29mq7ze6j-hashicorp.vercel.app [4s]
+⠼ Building
+```
 
 ---
 
