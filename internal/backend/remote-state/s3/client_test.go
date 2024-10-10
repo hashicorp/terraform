@@ -345,6 +345,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 
 func TestRemoteClientPutLargeUploadWithObjectLock(t *testing.T) {
 	testACC(t)
+	objectLockPreCheck(t)
 
 	ctx := context.TODO()
 
