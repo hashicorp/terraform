@@ -1020,6 +1020,35 @@ func assertDiagnosticsMatch(t *testing.T, got, want tfdiags.Diagnostics) {
 	}
 }
 
+type SummaryAndDetail struct {
+	Subject     string
+	Description string
+}
+
+// assertDiagnosticsSummaryAndDetailMatch fails the test in progress (using t.Fatal) if the
+// two sets of diagnostics don't match their subjects / descriptions after being normalized using the "ForRPC" processing step.
+func assertDiagnosticsSummaryAndDetailMatch(t *testing.T, got, want tfdiags.Diagnostics) {
+
+	got = got.ForRPC()
+	want = want.ForRPC()
+	got.Sort()
+	want.Sort()
+
+	gotSummaryAndDetail := make([]SummaryAndDetail, len(got))
+	for i, diag := range got {
+		gotSummaryAndDetail[i] = SummaryAndDetail{diag.Description().Summary, diag.Description().Detail}
+	}
+
+	wantSummaryAndDetail := make([]SummaryAndDetail, len(want))
+	for i, diag := range want {
+		wantSummaryAndDetail[i] = SummaryAndDetail{diag.Description().Summary, diag.Description().Detail}
+	}
+
+	if diff := cmp.Diff(wantSummaryAndDetail, gotSummaryAndDetail); diff != "" {
+		t.Fatalf("wrong diagnostics\n%s", diff)
+	}
+}
+
 // checkPlanCompleteAndApplyable reports testing errors if the plan is not
 // flagged as being both complete and applyable.
 //
