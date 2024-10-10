@@ -419,6 +419,47 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"directoryexists": {
+			{
+				`directoryexists("subdirectory")`,
+				cty.BoolVal(true),
+			},
+			{
+				`directoryexists("nope")`,
+				cty.BoolVal(false),
+			},
+		},
+
+		"directoryset": {
+			{
+				`directoryset(".", "*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("subdirectory"),
+				}),
+			},
+			{
+				`directoryset(".", "some-nonexistent-directory")`,
+				cty.SetValEmpty(cty.String),
+			},
+			{
+				`directoryset(".", "**")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("subdirectory"),
+					cty.StringVal("subdirectory/subsubdirectory"),
+				}),
+			},
+			{
+				`directoryset(".", "**/nope")`,
+				cty.SetValEmpty(cty.String),
+			},
+			{
+				`directoryset("subdirectory", "*")`,
+				cty.SetVal([]cty.Value{
+					cty.StringVal("subsubdirectory"),
+				}),
+			},
+		},
+
 		"filebase64": {
 			{
 				`filebase64("hello.txt")`,

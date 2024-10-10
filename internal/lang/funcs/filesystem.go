@@ -279,6 +279,147 @@ func MakeFileSetFunc(baseDir string) function.Function {
 	})
 }
 
+// MakeFileExistsFunc constructs a function that takes a path
+// and determines whether a file exists at that path
+func MakeDirectoryExistsFunc(baseDir string) function.Function {
+	return function.New(&function.Spec{
+		Params: []function.Parameter{
+			{
+				Name:        "path",
+				Type:        cty.String,
+				AllowMarked: true,
+			},
+		},
+		Type:         function.StaticReturnType(cty.Bool),
+		RefineResult: refineNotNull,
+		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+			pathArg, pathMarks := args[0].Unmark()
+			path := pathArg.AsString()
+			path, err := homedir.Expand(path)
+			if err != nil {
+				return cty.UnknownVal(cty.Bool), fmt.Errorf("failed to expand ~: %w", err)
+			}
+
+			if !filepath.IsAbs(path) {
+				path = filepath.Join(baseDir, path)
+			}
+
+			// Ensure that the path is canonical for the host OS
+			path = filepath.Clean(path)
+
+			fi, err := os.Stat(path)
+			if err != nil {
+				if os.IsNotExist(err) {
+					return cty.False.WithMarks(pathMarks), nil
+				}
+				return cty.UnknownVal(cty.Bool), fmt.Errorf("failed to stat %s", redactIfSensitive(path, pathMarks))
+			}
+
+			if fi.Mode().IsDir() {
+				return cty.True.WithMarks(pathMarks), nil
+			}
+
+			// The Go stat API only provides convenient access to whether it's
+			// a directory or not, so we need to do some bit fiddling to
+			// recognize other irregular file types.
+			filename := redactIfSensitive(path, pathMarks)
+			fileType := fi.Mode().Type()
+			switch {
+			case (fileType & os.ModeDevice) != 0:
+				err = function.NewArgErrorf(1, "%s is a device node, not a directory", filename)
+			case (fileType & os.ModeNamedPipe) != 0:
+				err = function.NewArgErrorf(1, "%s is a named pipe, not a directory", filename)
+			case (fileType & os.ModeSocket) != 0:
+				err = function.NewArgErrorf(1, "%s is a unix domain socket, not a directory", filename)
+			default:
+				// If it's not a type we recognize then we'll just return a
+				// generic error message. This should be very rare.
+				err = function.NewArgErrorf(1, "%s is not a directory", filename)
+
+				// Note: os.ModeSymlink should be impossible because we used
+				// os.Stat above, not os.Lstat.
+			}
+
+			return cty.False, err
+		},
+	})
+}
+
+// MakeDirectorySetFunc constructs a function that takes a glob pattern
+// and enumerates a directory set from that pattern
+func MakeDirectorySetFunc(baseDir string) function.Function {
+	return function.New(&function.Spec{
+		Params: []function.Parameter{
+			{
+				Name:        "path",
+				Type:        cty.String,
+				AllowMarked: true,
+			},
+			{
+				Name:        "pattern",
+				Type:        cty.String,
+				AllowMarked: true,
+			},
+		},
+		Type:         function.StaticReturnType(cty.Set(cty.String)),
+		RefineResult: refineNotNull,
+		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+			pathArg, pathMarks := args[0].Unmark()
+			path := pathArg.AsString()
+			patternArg, patternMarks := args[1].Unmark()
+			pattern := patternArg.AsString()
+
+			marks := []cty.ValueMarks{pathMarks, patternMarks}
+
+			if !filepath.IsAbs(path) {
+				path = filepath.Join(baseDir, path)
+			}
+
+			// Join the path to the glob pattern, while ensuring the full
+			// pattern is canonical for the host OS. The joined path is
+			// automatically cleaned during this operation.
+			pattern = filepath.Join(path, pattern)
+
+			matches, err := doublestar.Glob(pattern)
+			if err != nil {
+				return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to glob pattern %s: %w", redactIfSensitive(pattern, marks...), err)
+			}
+
+			var matchVals []cty.Value
+			for _, match := range matches {
+				fi, err := os.Stat(match)
+
+				if err != nil {
+					return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to stat %s: %w", redactIfSensitive(match, marks...), err)
+				}
+
+				if !fi.Mode().IsDir() {
+					continue
+				}
+
+				// Remove the path and file separator from matches.
+				match, err = filepath.Rel(path, match)
+
+				if err != nil {
+					return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to trim path of match %s: %w", redactIfSensitive(match, marks...), err)
+				}
+
+				// Replace any remaining file separators with forward slash (/)
+				// separators for cross-system compatibility.
+				match = filepath.ToSlash(match)
+
+				matchVals = append(matchVals, cty.StringVal(match))
+			}
+
+			if len(matchVals) == 0 {
+				return cty.SetValEmpty(cty.String).WithMarks(marks...), nil
+			}
+
+			return cty.SetVal(matchVals).WithMarks(marks...), nil
+		},
+	})
+}
+
 // BasenameFunc constructs a function that takes a string containing a filesystem path
 // and removes all except the last portion from it.
 var BasenameFunc = function.New(&function.Spec{
@@ -408,6 +549,26 @@ func FileExists(baseDir string, path cty.Value) (cty.Value, error) {
 // construct the underlying function before calling it.
 func FileSet(baseDir string, path, pattern cty.Value) (cty.Value, error) {
 	fn := MakeFileSetFunc(baseDir)
+	return fn.Call([]cty.Value{path, pattern})
+}
+
+// DirectoryExists determines whether a directory exists at the given path.
+//
+// The underlying function implementation works relative to a particular base
+// directory, so this wrapper takes a base directory string and uses it to
+// construct the underlying function before calling it.
+func DirectoryExists(baseDir string, path cty.Value) (cty.Value, error) {
+	fn := MakeDirectoryExistsFunc(baseDir)
+	return fn.Call([]cty.Value{path})
+}
+
+// FileSet enumerates a set of files given a glob pattern
+//
+// The underlying function implementation works relative to a particular base
+// directory, so this wrapper takes a base directory string and uses it to
+// construct the underlying function before calling it.
+func DirectorySet(baseDir string, path, pattern cty.Value) (cty.Value, error) {
+	fn := MakeDirectorySetFunc(baseDir)
 	return fn.Call([]cty.Value{path, pattern})
 }
 

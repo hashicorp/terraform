@@ -1,0 +1,78 @@
+---
+page_title: directoryset - Functions - Configuration Language
+description: The directoryset function enumerates a set of directory names given a pattern.
+---
+
+# `directoryset` Function
+
+The directoryset function enumerates a set of directory names given a pattern.
+The path is automatically removed from the resulting set of directory names and
+any result still containing path separators always returns forward slash (`/`)
+as the path separator for cross-system compatibility.
+
+```hcl
+directoryset(path, pattern)
+```
+
+Supported pattern matches:
+
+- `*` - matches any sequence of non-separator characters
+- `**` - matches any sequence of characters, including separator characters
+- `?` - matches any single non-separator character
+- `{alternative1,...}` - matches a sequence of characters if one of the comma-separated alternatives matches
+- `[CLASS]` - matches any single non-separator character inside a class of characters (see below)
+- `[^CLASS]` - matches any single non-separator character outside a class of characters (see below)
+
+Note that the doublestar (`**`) must appear as a path component by itself. A
+pattern such as /path\*\* is invalid and will be treated the same as /path\*, but
+/path\*/\*\* should achieve the desired result.
+
+Character classes support the following:
+
+- `[abc]` - matches any single character within the set
+- `[a-z]` - matches any single character within the range
+
+Functions are evaluated during configuration parsing rather than at apply time,
+so this function can only be used with directories that are already present on
+disk before Terraform takes any actions.
+
+## Examples
+
+```
+> directoryset(path.module, "*") # Get all directories
+toset([
+  ".git",
+  ".github",
+  ".release",
+  "docs",
+  "internal",
+  "scripts",
+  "testing",
+  "tools",
+  "version",
+  "website",
+])
+
+> directoryset(path.module, ".git*") # Get only directories starting with ".git"
+toset([
+  ".git",
+  ".github",
+])
+
+> directoryset(path.module, "[^.]*") # Filter out dotfiles
+toset([
+  "docs",
+  "internal",
+  "scripts",
+  "testing",
+  "tools",
+  "version",
+  "website",
+])
+
+> directoryset("${path.module}/.github", "actions/**") # Start from a different base, and get everything under the "actions" directory
+toset([
+  "actions/equivalence-test",
+  "actions/go-version",
+])
+```
