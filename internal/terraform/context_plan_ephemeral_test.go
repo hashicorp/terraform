@@ -89,6 +89,26 @@ resource "test_object" "test" {
 			},
 		},
 
+		"normal attribute": {
+			module: map[string]string{
+				"main.tf": `
+ephemeral "ephem_resource" "data" {
+}
+
+resource "test_object" "test" {
+  test_string = ephemeral.ephem_resource.data.value
+}
+`,
+			},
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid use of ephemeral value",
+					Detail:   "Ephemeral values are not valid in resource arguments, because resource instances must persist between Terraform phases.",
+				})
+			},
+		},
+
 		"provider reference through module": {
 			module: map[string]string{
 				"child/main.tf": `
