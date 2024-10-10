@@ -41,6 +41,8 @@ func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targ
 	if err != nil {
 		return nil, fmt.Errorf("invalid provider download request: %s", err)
 	}
+	req.Header.Set("Accept", "application/octet-stream")
+	req.Header.Set("Authorization", meta.AuthHeader)
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		if ctx.Err() == context.Canceled {

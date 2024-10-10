@@ -299,6 +299,7 @@ func (c *registryClient) PackageMeta(ctx context.Context, provider addrs.Provide
 		},
 		Filename: body.Filename,
 		Location: PackageHTTPURL(downloadURL.String()),
+		AuthHeader: req.Header.Get("Authorization"),
 		// "Authentication" is populated below
 	}
 
@@ -410,6 +411,7 @@ func (c *registryClient) addHeadersToRequest(req *http.Request) {
 	if c.creds != nil {
 		c.creds.PrepareRequest(req)
 	}
+	req.Header.Set("Accept", "application/octet-stream")
 	req.Header.Set(terraformVersionHeader, version.String())
 }
 
@@ -433,7 +435,13 @@ func (c *registryClient) errUnauthorized(hostname svchost.Hostname) error {
 }
 
 func (c *registryClient) getFile(url *url.URL) ([]byte, error) {
-	resp, err := c.httpClient.Get(url.String())
+	req, err := retryablehttp.NewRequest("", url.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	c.addHeadersToRequest(req.Request)
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

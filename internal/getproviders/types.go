@@ -159,6 +159,7 @@ type PackageMeta struct {
 	Filename string
 	Location PackageLocation
 
+	AuthHeader string
 	// Authentication, if non-nil, is a request from the source that produced
 	// this meta for verification of the target package after it has been
 	// retrieved from the indicated Location.
