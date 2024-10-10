@@ -378,11 +378,13 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 					// earlier, however there may be more to prune now based on
 					// targeting or a destroy with no related instances in the
 					// state.
-					for _, v := range g.Descendants(n) {
-						switch v.(type) {
-						case GraphNodeProviderConsumer:
-							return
+					if g.MatchDescendant(n, func(v dag.Vertex) bool {
+						if _, ok := v.(GraphNodeProviderConsumer); ok {
+							return true
 						}
+						return false
+					}) {
+						return
 					}
 
 				default:
