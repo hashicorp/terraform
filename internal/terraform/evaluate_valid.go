@@ -41,7 +41,7 @@ func (e *Evaluator) StaticValidateReferences(refs []*addrs.Reference, modAddr ad
 }
 
 func (e *Evaluator) StaticValidateReference(ref *addrs.Reference, modAddr addrs.Module, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
-	modCfg := e.Config.Descendent(modAddr)
+	modCfg := e.Config.Descendant(modAddr)
 	if modCfg == nil {
 		// This is a bug in the caller rather than a problem with the
 		// reference, but rather than crashing out here in an unhelpful way

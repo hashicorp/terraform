@@ -50,7 +50,7 @@ func TestDirFromModule_registry(t *testing.T) {
 
 	wantCalls := []testInstallHookCall{
 		// The module specified to populate the root directory is not mentioned
-		// here, because the hook mechanism is defined to talk about descendent
+		// here, because the hook mechanism is defined to talk about descendant
 		// modules only and so a caller to InitDirFromModule is expected to
 		// produce its own user-facing announcement about the root module being
 		// installed.

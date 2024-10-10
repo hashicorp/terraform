@@ -23,7 +23,7 @@ type Module struct {
 type WalkFunc func(path []string, parent *Module, current *Module) error
 
 // WalkTree calls the given callback once for the receiver and then
-// once for each descendent, in an order such that parents are called
+// once for each descendant, in an order such that parents are called
 // before their children and siblings are called in the order they
 // appear in the Children slice.
 //
@@ -42,7 +42,7 @@ type WalkFunc func(path []string, parent *Module, current *Module) error
 // data structure, so it's the caller's responsibility to arrange for that
 // should it be needed.
 //
-// It is safe for a callback to modify the descendents of the "current"
+// It is safe for a callback to modify the descendants of the "current"
 // module, including the ordering of the Children slice itself, but the
 // callback MUST NOT modify the parent module.
 func (m *Module) WalkTree(cb WalkFunc) error {
@@ -74,9 +74,9 @@ func (m *Module) SortChildren() {
 	sort.Sort(sortModules{m.Children})
 }
 
-// SortDescendents is a convenience wrapper for calling SortChildren on
-// the receiver and all of its descendent modules.
-func (m *Module) SortDescendents() {
+// SortDescendants is a convenience wrapper for calling SortChildren on
+// the receiver and all of its descendant modules.
+func (m *Module) SortDescendants() {
 	m.WalkTree(func(path []string, parent *Module, current *Module) error {
 		current.SortChildren()
 		return nil
@@ -126,7 +126,7 @@ func (m *Module) ProviderRequirements() discovery.PluginRequirements {
 }
 
 // AllProviderRequirements calls ProviderRequirements for the receiver and all
-// of its descendents, and merges the result into a single PluginRequirements
+// of its descendants, and merges the result into a single PluginRequirements
 // structure that would satisfy all of the modules together.
 //
 // Requirements returned by this method include only version constraints,
@@ -145,7 +145,7 @@ func (m *Module) AllProviderRequirements() discovery.PluginRequirements {
 // the equality of all downstream modules too.
 //
 // The children are considered to be ordered, so callers may wish to use
-// SortDescendents first to normalize the order of the slices of child nodes.
+// SortDescendants first to normalize the order of the slices of child nodes.
 //
 // The implementation of this function is not optimized since it is provided
 // primarily for use in tests.

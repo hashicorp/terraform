@@ -192,7 +192,7 @@ type hookSeq struct {
 // calls that are related to whatever multi-step operation this hook sequence
 // represents, so that the hook subscriber can use this mechanism to propagate
 // distributed tracing spans to downstream operations. Callers MUST also use
-// descendents of the resulting context for any subsequent calls to
+// descendants of the resulting context for any subsequent calls to
 // [runHookBegin] using the returned [hookSeq].
 func hookBegin[Msg any](ctx context.Context, cb hooks.BeginFunc[Msg], ctxCb hooks.ContextAttachFunc, msg Msg) (*hookSeq, context.Context) {
 	tracking := runHookBegin(ctx, cb, msg)

@@ -207,7 +207,7 @@ type fixupBlocksExpr struct {
 
 func (e *fixupBlocksExpr) Value(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 	// In order to produce a suitable value for our expression we need to
-	// now decode the whole descendent block structure under each of our block
+	// now decode the whole descendant block structure under each of our block
 	// bodies.
 	//
 	// That requires us to do something rather strange: we must construct a

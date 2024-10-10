@@ -8,7 +8,7 @@ module "child" {
   #
   # Note that we're intentionally using the special // delimiter to
   # tell Terraform that it should treat the "package" directory as a
-  # whole as a module package, with all of its descendents "downloaded"
+  # whole as a module package, with all of its descendants "downloaded"
   # (copied) together into ./.terraform/modules/child so that child
   # can refer to ../grandchild successfully.
   source = "%%BASE%%/package//child"

@@ -69,7 +69,7 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 		}
 
 		// Get the configuration.
-		config := t.Config.Descendent(addr.Module)
+		config := t.Config.Descendant(addr.Module)
 
 		if config == nil {
 			log.Printf("[TRACE] AttachResourceConfigTransformer: %q (%T) has no configuration available", dag.VertexName(v), v)

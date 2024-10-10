@@ -43,7 +43,7 @@ func validateRemoveStatements(cfg *configs.Config, stmts addrs.Map[addrs.ConfigM
 	for _, rst := range stmts.Keys() {
 		switch rst := rst.(type) {
 		case addrs.ConfigResource:
-			m := cfg.Descendent(rst.Module)
+			m := cfg.Descendant(rst.Module)
 			if m == nil {
 				break
 			}
@@ -57,7 +57,7 @@ func validateRemoveStatements(cfg *configs.Config, stmts addrs.Map[addrs.ConfigM
 				})
 			}
 		case addrs.Module:
-			if m := cfg.Descendent(rst); m != nil {
+			if m := cfg.Descendant(rst); m != nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Removed module still exists",

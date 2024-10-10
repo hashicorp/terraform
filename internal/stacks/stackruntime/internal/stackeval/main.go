@@ -559,7 +559,7 @@ func (m *Main) ResolveAbsExpressionReference(ctx context.Context, ref stackaddrs
 //
 // This is intended for cleaning up any resources that would not naturally
 // be cleaned up as a result of garbage-collecting the [Main] object and its
-// many descendents.
+// many descendants.
 //
 // The context passed to a callback function may be already cancelled by the
 // time the callback is running, if the cleanup is running in response to

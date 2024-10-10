@@ -137,7 +137,7 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 	}
 	walker := i.moduleInstallWalker(ctx, manifest, upgrade, hooks, fetcher)
 
-	cfg, instDiags := i.installDescendentModules(rootMod, manifest, walker, installErrsOnly)
+	cfg, instDiags := i.installDescendantModules(rootMod, manifest, walker, installErrsOnly)
 	diags = append(diags, instDiags...)
 
 	return cfg, diags
@@ -202,7 +202,7 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 					log.Printf("[TRACE] ModuleInstaller: discarding previous record of %s prior to reinstall", key)
 				}
 				delete(manifest, key)
-				// Deleting a module invalidates all of its descendent modules too.
+				// Deleting a module invalidates all of its descendant modules too.
 				keyPrefix := key + "."
 				for subKey := range manifest {
 					if strings.HasPrefix(subKey, keyPrefix) {
@@ -292,7 +292,7 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 	)
 }
 
-func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, manifest modsdir.Manifest, installWalker configs.ModuleWalker, installErrsOnly bool) (*configs.Config, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) installDescendantModules(rootMod *configs.Module, manifest modsdir.Manifest, installWalker configs.ModuleWalker, installErrsOnly bool) (*configs.Config, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// When attempting to initialize the current directory with a module

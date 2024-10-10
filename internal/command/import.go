@@ -113,7 +113,7 @@ func (c *ImportCommand) Run(args []string) int {
 	// This is to reduce the risk that a typo in the resource address will
 	// import something that Terraform will want to immediately destroy on
 	// the next plan, and generally acts as a reassurance of user intent.
-	targetConfig := config.DescendentForInstance(addr.Module)
+	targetConfig := config.DescendantForInstance(addr.Module)
 	if targetConfig == nil {
 		modulePath := addr.Module.String()
 		diags = diags.Append(&hcl.Diagnostic{

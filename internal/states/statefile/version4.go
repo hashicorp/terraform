@@ -248,7 +248,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 	}
 
 	// The root module is special in that we persist its attributes and thus
-	// need to reload them now. (For descendent modules we just re-calculate
+	// need to reload them now. (For descendant modules we just re-calculate
 	// them based on the latest configuration on each run.)
 	{
 		for name, fos := range sV4.RootOutputs {

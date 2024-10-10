@@ -155,7 +155,7 @@ func (d *evaluationPlaceholderData) GetModule(addr addrs.ModuleCall, rng tfdiags
 		return cty.DynamicVal, diags
 	}
 
-	callerCfg := d.Evaluator.Config.Descendent(d.ModulePath.Module())
+	callerCfg := d.Evaluator.Config.Descendant(d.ModulePath.Module())
 	if callerCfg == nil {
 		// Strange! The above StaticValidateReference should've failed if
 		// the module we're in isn't even declared. But we'll just tolerate
@@ -184,7 +184,7 @@ func (d *evaluationPlaceholderData) GetModule(addr addrs.ModuleCall, rng tfdiags
 	// the child module's declared output values represented, which could
 	// then potentially allow detecting a downstream error referring to
 	// an output value that doesn't actually exist.
-	calledCfg := d.Evaluator.Config.Descendent(d.ModulePath.Module().Child(addr.Name))
+	calledCfg := d.Evaluator.Config.Descendant(d.ModulePath.Module().Child(addr.Name))
 	if calledCfg == nil {
 		// This suggests that the config wasn't constructed correctly, since
 		// there should always be a child config node for any module call,

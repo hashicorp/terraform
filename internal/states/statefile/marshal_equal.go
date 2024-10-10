@@ -14,7 +14,7 @@ import (
 //
 // This function compares only the portions of the state that are persisted
 // in state files, so for example it will not return false if the only
-// differences between the two states are local values or descendent module
+// differences between the two states are local values or descendant module
 // outputs.
 func StatesMarshalEqual(a, b *states.State) bool {
 	var aBuf bytes.Buffer

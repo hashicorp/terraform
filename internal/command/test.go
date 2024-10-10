@@ -128,7 +128,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	}
 
 	// The specified testing directory must be a relative path, and it must
-	// point to a directory that is a descendent of the configuration directory.
+	// point to a directory that is a descendant of the configuration directory.
 	if !filepath.IsLocal(args.TestDirectory) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,

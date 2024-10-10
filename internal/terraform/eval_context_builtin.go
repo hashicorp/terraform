@@ -360,7 +360,7 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	}
 
 	// Do some validation to make sure we are expecting a change at all
-	cfg := ctx.Evaluator.Config.Descendent(ctx.Path().Module())
+	cfg := ctx.Evaluator.Config.Descendant(ctx.Path().Module())
 	resCfg := cfg.Module.ResourceByAddr(resourceAddr)
 	if resCfg == nil {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -441,7 +441,7 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source 
 		// package itself works. The nil check here is for robustness in
 		// incompletely-mocked testing situations; mc should never be nil in
 		// real situations.
-		if mc := ctx.Evaluator.Config.DescendentForInstance(scope.Addr); mc != nil {
+		if mc := ctx.Evaluator.Config.DescendantForInstance(scope.Addr); mc != nil {
 			evalScope.SetActiveExperiments(mc.Module.ActiveExperiments)
 		}
 		return evalScope
@@ -457,7 +457,7 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source 
 			Operation:      ctx.Evaluator.Operation,
 		}
 		evalScope := ctx.Evaluator.Scope(data, self, source, ctx.evaluationExternalFunctions())
-		if mc := ctx.Evaluator.Config.Descendent(scope.Addr.Module()); mc != nil {
+		if mc := ctx.Evaluator.Config.Descendant(scope.Addr.Module()); mc != nil {
 			evalScope.SetActiveExperiments(mc.Module.ActiveExperiments)
 		}
 		return evalScope
@@ -479,7 +479,7 @@ func (ctx *BuiltinEvalContext) evaluationExternalFunctions() lang.ExternalFuncs 
 	// by the module author.
 	ret := lang.ExternalFuncs{}
 
-	cfg := ctx.Evaluator.Config.Descendent(ctx.scope.evalContextScopeModule())
+	cfg := ctx.Evaluator.Config.Descendant(ctx.scope.evalContextScopeModule())
 	if cfg == nil {
 		// It's weird to not have a configuration by this point, but we'll
 		// tolerate it for robustness and just return no functions at all.
@@ -558,7 +558,7 @@ func (ctx *BuiltinEvalContext) LanguageExperimentActive(experiment experiments.E
 		// is module-scoped.
 		return false
 	}
-	cfg := ctx.Evaluator.Config.Descendent(scope.evalContextScopeModule())
+	cfg := ctx.Evaluator.Config.Descendant(scope.evalContextScopeModule())
 	if cfg == nil {
 		return false
 	}

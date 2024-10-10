@@ -227,7 +227,7 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 //
 // This must be used only after any side-effects that make the value of the
 // variable available for use in expression evaluation, such as
-// EvalModuleCallArgument for variables in descendent modules.
+// EvalModuleCallArgument for variables in descendant modules.
 func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContext, rules []*configs.CheckRule, valueRng hcl.Range, validateWalk bool) (diags tfdiags.Diagnostics) {
 	if len(rules) == 0 {
 		log.Printf("[TRACE] evalVariableValidations: no validation rules declared for %s, so skipping", addr)

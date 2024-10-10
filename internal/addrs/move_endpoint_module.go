@@ -434,7 +434,7 @@ func (e *MoveEndpointInModule) NestedWithin(other *MoveEndpointInModule) bool {
 
 // matchModuleInstancePrefix is an internal helper to decide whether the given
 // module instance address refers to either the module where the move endpoint
-// was declared or some descendent of that module.
+// was declared or some descendant of that module.
 //
 // If so, it will split the given address into two parts: the "prefix" part
 // which corresponds with the module where the statement was declared, and

@@ -555,7 +555,7 @@ type expanderModule struct {
 	resources      map[addrs.Resource]expansion
 	childInstances map[addrs.ModuleInstanceStep]*expanderModule
 
-	// overrides ensures that any overriden modules instances will not be
+	// overrides ensures that any overridden modules instances will not be
 	// returned as options for expansion. A nil overrides indicates there are
 	// no overrides and we're not operating within the testing framework.
 	overrides *mocking.Overrides
@@ -678,7 +678,7 @@ func (m *expanderModule) partialExpandedModuleInstances(addr addrs.Module, paren
 	}
 
 	// If this step already has everything expanded then we need to
-	// search inside it to see if it has any unexpanded descendents.
+	// search inside it to see if it has any unexpanded descendants.
 	if len(addr) > 1 {
 		for step, inst := range m.childInstances {
 			if step.Name != callName {

@@ -544,7 +544,7 @@ func loadRefactoringFixture(t *testing.T, dir string) (*configs.Config, instance
 func staticPopulateExpanderModule(t *testing.T, rootCfg *configs.Config, moduleAddr addrs.ModuleInstance, expander *instances.Expander) {
 	t.Helper()
 
-	modCfg := rootCfg.DescendentForInstance(moduleAddr)
+	modCfg := rootCfg.DescendantForInstance(moduleAddr)
 	if modCfg == nil {
 		t.Fatalf("no configuration for %s", moduleAddr)
 	}

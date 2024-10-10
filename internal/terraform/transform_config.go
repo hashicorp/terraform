@@ -215,7 +215,7 @@ func (t *ConfigTransformer) validateImportTargets() error {
 			toResource = i.LegacyAddr.ConfigResource()
 		}
 
-		moduleCfg := t.Config.Root.Descendent(toResource.Module)
+		moduleCfg := t.Config.Root.Descendant(toResource.Module)
 		if moduleCfg == nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
