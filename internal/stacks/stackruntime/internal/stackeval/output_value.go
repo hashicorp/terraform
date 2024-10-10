@@ -147,7 +147,26 @@ func (v *OutputValue) CheckResultValue(ctx context.Context, phase EvalPhase) (ct
 				return cfg.markResultValue(cty.UnknownVal(ty)), diags
 			}
 
-			if !cfg.Declaration(ctx).Ephemeral {
+			if cfg.Declaration(ctx).Ephemeral {
+				// Verify that ephemeral outputs are not declared on the root stack.
+				if v.Addr().Stack.IsRoot() {
+					diags = diags.Append(result.Diagnostic(
+						tfdiags.Error,
+						"Ephemeral output value not allowed on root stack",
+						fmt.Sprintf("Output value %q is marked as ephemeral, this is only allowed in embedded stacks.", v.Addr().Item.Name),
+					))
+				}
+
+				// Verify that the value is ephemeral.
+				if !marks.Contains(result.Value, marks.Ephemeral) {
+					diags = diags.Append(result.Diagnostic(
+						tfdiags.Error,
+						"Expected ephemeral value",
+						fmt.Sprintf("The output value %q is marked as ephemeral, but the value is not ephemeral.", v.Addr().Item.Name),
+					))
+				}
+
+			} else {
 				_, markses := result.Value.UnmarkDeepWithPaths()
 				problemPaths, _ := marks.PathsWithMark(markses, marks.Ephemeral)
 				var moreDiags tfdiags.Diagnostics
