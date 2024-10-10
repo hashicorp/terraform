@@ -74,20 +74,15 @@ func (t *ForcedCBDTransformer) Transform(g *Graph) error {
 // hasCBDDescendant returns true if any descendant (node that depends on this)
 // has CBD set.
 func (t *ForcedCBDTransformer) hasCBDDescendant(g *Graph, v dag.Vertex) bool {
-	for _, ov := range g.Descendants(v) {
+	return g.MatchDescendant(v, func(ov dag.Vertex) bool {
 		dn, ok := ov.(GraphNodeDestroyerCBD)
-		if !ok {
-			continue
-		}
-
-		if dn.CreateBeforeDestroy() {
+		if ok && dn.CreateBeforeDestroy() {
 			// some descendant is CreateBeforeDestroy, so we need to follow suit
 			log.Printf("[TRACE] ForcedCBDTransformer: %q has CBD descendant %q", dag.VertexName(v), dag.VertexName(ov))
 			return true
 		}
-	}
-
-	return false
+		return false
+	})
 }
 
 // CBDEdgeTransformer modifies the edges of create-before-destroy ("CBD") nodes
