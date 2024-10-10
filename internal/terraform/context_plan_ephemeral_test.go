@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -27,6 +28,7 @@ func TestContext2Plan_ephemeralValues(t *testing.T) {
 		expectValidateEphemeralResourceConfigCalled bool
 		expectCloseEphemeralResourceCalled          bool
 		assertTestProviderConfigure                 func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse)
+		assertPlan                                  func(*testing.T, *plans.Plan)
 	}{
 		"basic": {
 			module: map[string]string{
@@ -328,6 +330,32 @@ module "child" {
 				})
 			},
 		},
+
+		"check blocks": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"main.tf": `
+ephemeral "ephem_resource" "data" {}
+
+check "check_using_ephemeral_value" {
+  assert {
+    condition = ephemeral.ephem_resource.data.bool
+    error_message = "This should not fail"
+  }
+}
+				`,
+			},
+			expectOpenEphemeralResourceCalled:           true,
+			expectValidateEphemeralResourceConfigCalled: true,
+			expectCloseEphemeralResourceCalled:          true,
+
+			assertPlan: func(t *testing.T, p *plans.Plan) {
+				// Checks using ephemeral values should not be included in the plan
+				if p.Checks.ConfigResults.Len() > 0 {
+					t.Fatalf("Expected no checks to be included in the plan, but got %d", p.Checks.ConfigResults.Len())
+				}
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -353,6 +381,11 @@ module "child" {
 
 									"map": {
 										Type:     cty.List(cty.Map(cty.String)),
+										Computed: true,
+									},
+
+									"bool": {
+										Type:     cty.Bool,
 										Computed: true,
 									},
 								},
@@ -391,6 +424,7 @@ module "child" {
 							"to": cty.StringVal("aws_instance.b"),
 						}),
 					}),
+					"bool": cty.True,
 				})
 				return resp
 			}
@@ -433,11 +467,15 @@ module "child" {
 				}
 			}
 
-			_, diags = ctx.Plan(m, nil, DefaultPlanOpts)
+			plan, diags := ctx.Plan(m, nil, DefaultPlanOpts)
 			if tc.expectPlanDiagnostics != nil {
 				assertDiagnosticsSummaryAndDetailMatch(t, diags, tc.expectPlanDiagnostics(m))
 			} else {
 				assertNoDiagnostics(t, diags)
+			}
+
+			if tc.assertPlan != nil {
+				tc.assertPlan(t, plan)
 			}
 
 			if tc.expectOpenEphemeralResourceCalled {
