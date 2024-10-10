@@ -19,6 +19,7 @@ import (
 
 func TestContext2Plan_ephemeralValues(t *testing.T) {
 	for name, tc := range map[string]struct {
+		toBeImplemented                             bool // Skip the test
 		module                                      map[string]string
 		expectValidateDiagnostics                   func(m *configs.Config) tfdiags.Diagnostics
 		expectPlanDiagnostics                       func(m *configs.Config) tfdiags.Diagnostics
@@ -245,8 +246,73 @@ resource "test_object" "test" {
 				)
 			},
 		},
+
+		"functions": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"child/main.tf": `
+ephemeral "ephem_resource" "data" {}
+
+# We expect this to error since it should be an ephemeral value
+output "value" {
+    value = max(42, length(ephemeral.ephem_resource.data.list))
+}
+`,
+				"main.tf": `
+module "child" {
+    source = "./child"
+}
+				`,
+			},
+
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Ephemeral value not allowed",
+					Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
+				})
+			},
+		},
+
+		"provider-defined functions": {
+			toBeImplemented: true,
+			module: map[string]string{
+				"child/main.tf": `
+				
+terraform {
+    required_providers {
+        ephem = {
+            source = "hashicorp/ephem"
+        }
+    }
+}
+ephemeral "ephem_resource" "data" {}
+
+# We expect this to error since it should be an ephemeral value
+output "value" {
+    value = provider::ephem::either(ephemeral.ephem_resource.data.value, "b")
+}
+`,
+				"main.tf": `
+module "child" {
+    source = "./child"
+}
+				`,
+			},
+
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Ephemeral value not allowed",
+					Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
+				})
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
+			if tc.toBeImplemented {
+				t.Skip("To be implemented")
+			}
 			m := testModuleInline(t, tc.module)
 
 			ephem := &testing_provider.MockProvider{
@@ -273,6 +339,21 @@ resource "test_object" "test" {
 							},
 						},
 					},
+					Functions: map[string]providers.FunctionDecl{
+						"either": providers.FunctionDecl{
+							Parameters: []providers.FunctionParam{
+								{
+									Name: "a",
+									Type: cty.String,
+								},
+								{
+									Name: "b",
+									Type: cty.String,
+								},
+							},
+							ReturnType: cty.String,
+						},
+					},
 				},
 			}
 
@@ -291,6 +372,11 @@ resource "test_object" "test" {
 						}),
 					}),
 				})
+				return resp
+			}
+
+			ephem.CallFunctionFn = func(req providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
+				resp.Result = cty.StringVal(req.Arguments[0].AsString())
 				return resp
 			}
 
