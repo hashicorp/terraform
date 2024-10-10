@@ -41,14 +41,13 @@ type httpClient struct {
 }
 
 func (c *httpClient) httpRequest(method string, url *url.URL, data *[]byte, what string) (*http.Response, error) {
-	// If we have data we need a reader
-	var reader io.Reader = nil
+	var body interface{}
 	if data != nil {
-		reader = bytes.NewReader(*data)
+		body = *data
 	}
 
 	// Create the request
-	req, err := retryablehttp.NewRequest(method, url.String(), reader)
+	req, err := retryablehttp.NewRequest(method, url.String(), body)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make %s HTTP request: %s", what, err)
 	}
@@ -100,7 +99,6 @@ func (c *httpClient) Lock(info *statemgr.LockInfo) (string, error) {
 	case http.StatusForbidden:
 		return "", fmt.Errorf("HTTP remote state endpoint invalid auth")
 	case http.StatusConflict, http.StatusLocked:
-		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return "", &statemgr.LockError{
