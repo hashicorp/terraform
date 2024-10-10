@@ -3371,6 +3371,35 @@ ephemeral "test" "data" {
 			},
 		},
 	}
+
+	ephemeralResourceOpenDeferralProviderUsage = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+ephemeral "test" "data" {
+  name = "deferred_open"
+}
+
+
+provider "other" {
+  test_string = ephemeral.test.data.value
+}
+
+resource "test_object" "test" {
+  provider = other
+}
+		`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				complete:    false,
+				wantActions: map[string]plans.Action{},
+				wantPlanned: map[string]cty.Value{},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test_object.test": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+				},
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
@@ -3423,6 +3452,7 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"ephemeral_open_deferral":                                 ephemeralResourceOpenDeferral,
 		"ephemeral_open_deferral_dependencies":                    ephemeralResourceOpenDeferralWithDependency,
 		"ephemeral_open_deferral_expanded":                        ephemeralResourceOpenDeferralExpanded,
+		"ephemeral_open_deferral_provider_usage":                  ephemeralResourceOpenDeferralProviderUsage,
 	}
 
 	for name, test := range tests {
@@ -3453,10 +3483,12 @@ func TestContextApply_deferredActions(t *testing.T) {
 							changes: make(map[string]cty.Value),
 						},
 					}
+					other := simpleMockProvider()
 
 					ctx := testContext2(t, &ContextOpts{
 						Providers: map[addrs.Provider]providers.Factory{
-							addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider.Provider()),
+							addrs.NewDefaultProvider("test"):  testProviderFuncFixed(provider.Provider()),
+							addrs.NewDefaultProvider("other"): testProviderFuncFixed(other),
 						},
 					})
 
@@ -3540,7 +3572,9 @@ func TestContextApply_deferredActions(t *testing.T) {
 						// provider.
 						for _, change := range plan.DeferredResources {
 							if diff := cmp.Diff("provider[\"registry.terraform.io/hashicorp/test\"]", change.ChangeSrc.ProviderAddr.String()); diff != "" {
-								t.Errorf("wrong provider address in plan\n%s", diff)
+								if otherDiff := cmp.Diff("provider[\"registry.terraform.io/hashicorp/other\"]", change.ChangeSrc.ProviderAddr.String()); otherDiff != "" {
+									t.Errorf("wrong provider address in plan\n, should be hashicorp/test or hashicorp/other %s", diff)
+								}
 							}
 						}
 					})
