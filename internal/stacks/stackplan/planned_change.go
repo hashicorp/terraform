@@ -102,29 +102,20 @@ func (pc *PlannedChangeRootInputValue) PlannedChangeProto() (*stacks.PlannedChan
 		raws = append(raws, &raw)
 	}
 
-	var before, after *stacks.DynamicValue
-	if pc.Before != cty.NilVal {
-		before, err = stacks.ToDynamicValue(pc.Before, cty.DynamicPseudoType)
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode before planned input variable %s: %w", pc.Addr, err)
-		}
+	before, err := stacks.ToDynamicValue(pc.Before, cty.DynamicPseudoType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode before planned input variable %s: %w", pc.Addr, err)
 	}
-	if pc.After != cty.NilVal {
-		after, err = stacks.ToDynamicValue(pc.After, cty.DynamicPseudoType)
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode after planned input variable %s: %w", pc.Addr, err)
-		}
+	after, err := stacks.ToDynamicValue(pc.After, cty.DynamicPseudoType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode after planned input variable %s: %w", pc.Addr, err)
 	}
 
 	if pc.Action != plans.Delete {
-		var ppdv *tfstackdata1.DynamicValue
-		if after != nil {
-			ppdv = tfstackdata1.Terraform1ToStackDataDynamicValue(after)
-		}
 		var raw anypb.Any
 		if err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanRootInputValue{
 			Name:            pc.Addr.Name,
-			Value:           ppdv,
+			Value:           tfstackdata1.Terraform1ToStackDataDynamicValue(after),
 			RequiredOnApply: pc.RequiredOnApply,
 		}, proto.MarshalOptions{}); err != nil {
 			return nil, err
@@ -270,7 +261,7 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*stacks.PlannedC
 	}
 
 	componentAddrsRaw := make([]string, 0, pc.RequiredComponents.Len())
-	for _, componentAddr := range pc.RequiredComponents.Elems() {
+	for componentAddr := range pc.RequiredComponents.All() {
 		componentAddrsRaw = append(componentAddrsRaw, componentAddr.String())
 	}
 

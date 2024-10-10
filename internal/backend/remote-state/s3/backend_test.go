@@ -2918,7 +2918,7 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 				attributeErrDiag(
 					"Invalid ARN",
 					`The value "not an arn" cannot be parsed as an ARN: arn: invalid prefix`,
-					path.IndexInt(0).GetAttr("role_arn"),
+					path.GetAttr("role_arn"),
 				),
 			},
 		},
@@ -2926,14 +2926,14 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 		"no role_arn": {
 			config: map[string]cty.Value{},
 			expectedDiags: tfdiags.Diagnostics{
-				requiredAttributeErrDiag(path.IndexInt(0).GetAttr("role_arn")),
+				requiredAttributeErrDiag(path.GetAttr("role_arn")),
 			},
 		},
 
 		"nil role_arn": {
 			config: map[string]cty.Value{},
 			expectedDiags: tfdiags.Diagnostics{
-				requiredAttributeErrDiag(path.IndexInt(0).GetAttr("role_arn")),
+				requiredAttributeErrDiag(path.GetAttr("role_arn")),
 			},
 		},
 
@@ -2945,7 +2945,7 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 				attributeErrDiag(
 					"Invalid Value",
 					"The value cannot be empty or all whitespace",
-					path.IndexInt(0).GetAttr("role_arn"),
+					path.GetAttr("role_arn"),
 				),
 			},
 		},
@@ -2966,7 +2966,7 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 				attributeErrDiag(
 					"Invalid Duration",
 					`The value "two hours" cannot be parsed as a duration: time: invalid duration "two hours"`,
-					path.IndexInt(0).GetAttr("duration"),
+					path.GetAttr("duration"),
 				),
 			},
 		},
@@ -2987,7 +2987,7 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 				attributeErrDiag(
 					"Invalid Value Length",
 					`Length must be between 2 and 1224, had 0`,
-					path.IndexInt(0).GetAttr("external_id"),
+					path.GetAttr("external_id"),
 				),
 			},
 		},
@@ -3008,7 +3008,7 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 				attributeErrDiag(
 					"Invalid Value",
 					`The value cannot be empty or all whitespace`,
-					path.IndexInt(0).GetAttr("policy"),
+					path.GetAttr("policy"),
 				),
 			},
 		},
@@ -3033,7 +3033,7 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 				attributeErrDiag(
 					"Invalid ARN",
 					`The value "not an arn" cannot be parsed as an ARN: arn: invalid prefix`,
-					path.IndexInt(0).GetAttr("policy_arns").IndexString("not an arn"),
+					path.GetAttr("policy_arns").IndexString("not an arn"),
 				),
 			},
 		},
@@ -3073,7 +3073,7 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			schema := assumeRoleSchema.NestedObject.Attributes
+			schema := assumeRoleSchema.Attributes
 			vals := make(map[string]cty.Value, len(schema))
 			for name, attrSchema := range schema {
 				if val, ok := tc.config[name]; ok {
@@ -3082,10 +3082,10 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 					vals[name] = cty.NullVal(attrSchema.SchemaAttribute().Type)
 				}
 			}
-			config := cty.ListVal([]cty.Value{cty.ObjectVal(vals)})
+			config := cty.ObjectVal(vals)
 
 			var diags tfdiags.Diagnostics
-			validateListNestedAttribute(assumeRoleSchema, config, path, &diags)
+			validateNestedAttribute(assumeRoleSchema, config, path, &diags)
 
 			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
@@ -3129,22 +3129,18 @@ func TestBackend_CoerceValue(t *testing.T) {
 			Input: cty.ObjectVal(map[string]cty.Value{
 				"bucket": cty.StringVal("test"),
 				"key":    cty.StringVal("test"),
-				"assume_role": cty.ListVal([]cty.Value{
-					cty.ObjectVal(map[string]cty.Value{
-						"role_arn": cty.StringVal("test"),
-					}),
+				"assume_role": cty.ObjectVal(map[string]cty.Value{
+					"role_arn": cty.StringVal("test"),
 				}),
 			}),
 		},
 		"assume_role missing role_arn": {
 			Input: cty.ObjectVal(map[string]cty.Value{
-				"bucket": cty.StringVal("test"),
-				"key":    cty.StringVal("test"),
-				"assume_role": cty.ListVal([]cty.Value{
-					cty.ObjectVal(map[string]cty.Value{}),
-				}),
+				"bucket":      cty.StringVal("test"),
+				"key":         cty.StringVal("test"),
+				"assume_role": cty.ObjectVal(map[string]cty.Value{}),
 			}),
-			WantErr: `.assume_role: incorrect list element type: attribute "role_arn" is required`,
+			WantErr: `.assume_role: attribute "role_arn" is required`,
 		},
 		"assume_role_with_web_identity": {
 			Input: cty.ObjectVal(map[string]cty.Value{
@@ -3502,8 +3498,8 @@ func unmarshal(value cty.Value, ty cty.Type, path cty.Path) (cty.Value, error) {
 	switch {
 	case ty.IsPrimitiveType():
 		return value, nil
-	case ty.IsListType():
-		return unmarshalList(value, ty.ElementType(), path)
+	// case ty.IsListType():
+	// 	return unmarshalList(value, ty.ElementType(), path)
 	case ty.IsSetType():
 		return unmarshalSet(value, ty.ElementType(), path)
 	case ty.IsMapType():
@@ -3530,7 +3526,6 @@ func unmarshalSet(dec cty.Value, ety cty.Type, path cty.Path) (cty.Value, error)
 
 	vals := make([]cty.Value, 0, length)
 	dec.ForEachElement(func(key, val cty.Value) (stop bool) {
-		// vals = append(vals, must(unmarshal(val, ety, path.Index(key))))
 		vals = append(vals, val)
 		return
 	})
@@ -3538,25 +3533,25 @@ func unmarshalSet(dec cty.Value, ety cty.Type, path cty.Path) (cty.Value, error)
 	return cty.SetVal(vals), nil
 }
 
-func unmarshalList(dec cty.Value, ety cty.Type, path cty.Path) (cty.Value, error) {
-	if dec.IsNull() {
-		return dec, nil
-	}
+// func unmarshalList(dec cty.Value, ety cty.Type, path cty.Path) (cty.Value, error) {
+// 	if dec.IsNull() {
+// 		return dec, nil
+// 	}
 
-	length := dec.LengthInt()
+// 	length := dec.LengthInt()
 
-	if length == 0 {
-		return cty.ListValEmpty(ety), nil
-	}
+// 	if length == 0 {
+// 		return cty.ListValEmpty(ety), nil
+// 	}
 
-	vals := make([]cty.Value, 0, length)
-	dec.ForEachElement(func(key, val cty.Value) (stop bool) {
-		vals = append(vals, must(unmarshal(val, ety, path.Index(key))))
-		return
-	})
+// 	vals := make([]cty.Value, 0, length)
+// 	dec.ForEachElement(func(key, val cty.Value) (stop bool) {
+// 		vals = append(vals, must(unmarshal(val, ety, path.Index(key))))
+// 		return
+// 	})
 
-	return cty.ListVal(vals), nil
-}
+// 	return cty.ListVal(vals), nil
+// }
 
 func unmarshalMap(dec cty.Value, ety cty.Type, path cty.Path) (cty.Value, error) {
 	if dec.IsNull() {
@@ -3572,7 +3567,6 @@ func unmarshalMap(dec cty.Value, ety cty.Type, path cty.Path) (cty.Value, error)
 	vals := make(map[string]cty.Value, length)
 	dec.ForEachElement(func(key, val cty.Value) (stop bool) {
 		k := stringValue(key)
-		// vals[k] = must(unmarshal(val, ety, path.Index(key)))
 		vals[k] = val
 		return
 	})

@@ -112,7 +112,7 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 		providerClients := configuredProviderClients(ctx, r.main, known, unknown, PlanPhase)
 
 		deferred := r.deferred
-		for _, depAddr := range r.PlanPrevDependents(ctx).Elems() {
+		for depAddr := range r.PlanPrevDependents(ctx).All() {
 			depStack := r.main.Stack(ctx, depAddr.Stack, PlanPhase)
 			if depStack == nil {
 				// something weird has happened, but this means that

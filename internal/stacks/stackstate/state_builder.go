@@ -51,10 +51,10 @@ func (s *StateBuilder) AddComponentInstance(builder *ComponentInstanceBuilder) *
 	component.outputValues = builder.outputValues
 	component.inputVariables = builder.inputVariables
 
-	for _, dep := range builder.dependencies.Elems() {
+	for dep := range builder.dependencies.All() {
 		component.dependencies.Add(dep)
 	}
-	for _, dep := range builder.dependents.Elems() {
+	for dep := range builder.dependents.All() {
 		component.dependents.Add(dep)
 	}
 	return s
