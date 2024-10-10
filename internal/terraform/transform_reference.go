@@ -254,15 +254,10 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 			}
 		}
 
-		ans, err := g.Ancestors(v)
-		if err != nil {
-			return err
-		}
-
 		// dedupe addrs when there's multiple instances involved, or
 		// multiple paths in the un-reduced graph
 		depMap := map[string]addrs.ConfigResource{}
-		for _, d := range ans {
+		for _, d := range g.Ancestors(v) {
 			var addr addrs.ConfigResource
 
 			switch d := d.(type) {
@@ -386,8 +381,7 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Ve
 			// upstream managed resource in order to check for a planned
 			// change.
 			if _, ok := rv.(GraphNodeConfigResource); !ok {
-				ans, _ := g.Ancestors(rv)
-				for _, v := range ans {
+				for _, v := range g.Ancestors(rv) {
 					if isDependableResource(v) {
 						res = append(res, v)
 					}
@@ -460,8 +454,7 @@ func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsO
 			}
 		}
 
-		ans, _ := g.Ancestors(deps...)
-		for _, v := range ans {
+		for _, v := range g.Ancestors(deps...) {
 			if isDependableResource(v) {
 				res = append(res, v)
 			}

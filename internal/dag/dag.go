@@ -30,7 +30,7 @@ func (g *AcyclicGraph) DirectedGraph() Grapher {
 
 // Returns a Set that includes every Vertex yielded by walking down from the
 // provided starting Vertex v.
-func (g *AcyclicGraph) Ancestors(vs ...Vertex) (Set, error) {
+func (g *AcyclicGraph) Ancestors(vs ...Vertex) Set {
 	s := make(Set)
 	memoFunc := func(v Vertex, d int) error {
 		s.Add(v)
@@ -45,10 +45,10 @@ func (g *AcyclicGraph) Ancestors(vs ...Vertex) (Set, error) {
 	}
 
 	if err := g.DepthFirstWalk(start, memoFunc); err != nil {
-		return nil, err
+		return nil
 	}
 
-	return s, nil
+	return s
 }
 
 // Descendants returns a Set that includes every Vertex yielded by walking up

@@ -107,12 +107,7 @@ func (g DirectedGraph[T]) DirectDependenciesOf(addr T) Set[T] {
 func (g DirectedGraph[T]) TransitiveDependenciesOf(addr T) Set[T] {
 	k := addr.UniqueKey()
 	ret := MakeSet[T]()
-	raw, err := g.g.Ancestors(k)
-	if err != nil {
-		// It should be impossible for "Ancestors" to fail
-		panic(err)
-	}
-	for otherKI := range raw {
+	for otherKI := range g.g.Ancestors(k) {
 		ret.Add(g.nodes[otherKI.(UniqueKey)])
 	}
 	return ret
