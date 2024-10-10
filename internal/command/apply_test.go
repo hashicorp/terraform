@@ -292,6 +292,7 @@ func TestApply_parallelism(t *testing.T) {
 	// called once we reach the desired concurrency, allowing all apply calls
 	// to proceed in unison.
 	beginCtx, begin := context.WithCancel(context.Background())
+	t.Cleanup(begin)
 
 	// Since our mock provider has its own mutex preventing concurrent calls
 	// to ApplyResourceChange, we need to use a number of separate providers
