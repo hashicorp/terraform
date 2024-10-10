@@ -278,13 +278,13 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	ctx := context.TODO()
 	log := c.logger(operationLockerLock)
 
+	// no file, no dynamodb
 	if !c.useLockFile && c.ddbTable == "" {
 		return "", nil
 	}
 
 	info.Path = c.lockPath()
 
-	var err error
 	if info.ID == "" {
 		lockID, err := uuid.GenerateUUID()
 		if err != nil {
@@ -298,29 +298,45 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	ctx, baselog := baselogging.NewHcLogger(ctx, log)
 	ctx = baselogging.RegisterLogger(ctx, baselog)
 
-	log.Info("Locking remote state")
-
-	if c.useLockFile {
-		err = c.lockWithFile(ctx, info, log)
-		if err != nil {
+	// file only, no dynamodb
+	if c.useLockFile && c.ddbTable == "" {
+		log.Info("Attempting to lock remote state (S3 Native only)...")
+		if err := c.lockWithFile(ctx, info, log); err != nil {
 			return "", err
 		}
+
+		log.Info("Locked remote state (S3 Native only)")
+		return info.ID, nil
 	}
 
-	if c.ddbTable != "" {
-		err = c.lockWithDynamoDB(ctx, info)
-		if err != nil {
-			// Release the file lock if attempting to acquire the DynamoDB lock fails.
-			if c.useLockFile {
-				if unlockErr := c.unlockWithFile(ctx, info.ID, &statemgr.LockError{}, log); unlockErr != nil {
-					err = fmt.Errorf("error when attempting to clean up the file lock after failing to acquire DynamoDB lock: %v; original DynamoDB lock error: %w", unlockErr, err)
-				}
-			}
+	// dynamodb only, no file
+	if !c.useLockFile && c.ddbTable != "" {
+		log.Info("Attempting to lock remote state (DynamoDB only)...")
+		if err := c.lockWithDynamoDB(ctx, info); err != nil {
 			return "", err
 		}
+
+		log.Info("Locked remote state (DynamoDB only)")
+		return info.ID, nil
 	}
 
-	return info.ID, err
+	// double locking: dynamodb + file (design decision: both must succeed)
+	log.Info("Attempting to lock remote state (S3 Native and DynamoDB)...")
+	if err := c.lockWithFile(ctx, info, log); err != nil {
+		return "", err
+	}
+
+	if err := c.lockWithDynamoDB(ctx, info); err != nil {
+		// Release the file lock if attempting to acquire the DynamoDB lock fails.
+		if unlockErr := c.unlockWithFile(ctx, info.ID, &statemgr.LockError{}, log); unlockErr != nil {
+			return "", fmt.Errorf("failed to clean up file lock after DynamoDB lock error: %v; original error: %w", unlockErr, err)
+		}
+
+		return "", err
+	}
+
+	log.Info("Locked remote state (S3 Native and DynamoDB)")
+	return info.ID, nil
 }
 
 // lockWithFile attempts to acquire a lock on the remote state by uploading a lock file to Amazon S3.
@@ -416,41 +432,63 @@ func (c *RemoteClient) Unlock(id string) error {
 	ctx := context.TODO()
 	log := c.logger(operationLockerUnlock)
 
-	log = logWithLockID(log, id)
-
-	ctx, baselog := baselogging.NewHcLogger(ctx, log)
-	ctx = baselogging.RegisterLogger(ctx, baselog)
-
+	// no file, no dynamodb
 	if !c.useLockFile && c.ddbTable == "" {
 		return nil
 	}
 
+	log = logWithLockID(log, id)
+	ctx, baselog := baselogging.NewHcLogger(ctx, log)
+	ctx = baselogging.RegisterLogger(ctx, baselog)
+
 	lockErr := &statemgr.LockError{}
 
-	log.Info("Unlocking remote state")
-
-	if c.ddbTable != "" {
-		err := c.unlockWithDynamoDB(ctx, id, lockErr)
-		if err != nil {
-			// Release the file lock if attempting to unlock DynamoDB fails.
-			if c.useLockFile {
-				if fileErr := c.unlockWithFile(ctx, id, lockErr, log); fileErr != nil {
-					err = fmt.Errorf("error when attempting to clean up the file lock after failing to unlock DynamoDB: %v; original DynamoDB unlock error: %w", fileErr, err)
-				}
-			}
+	// file only, no dynamodb
+	if c.useLockFile && c.ddbTable == "" {
+		log.Info("Attempting to unlock remote state (S3 Native only)...")
+		if err := c.unlockWithFile(ctx, id, lockErr, log); err != nil {
 			lockErr.Err = err
 			return lockErr
 		}
+
+		log.Info("Unlocked remote state (S3 Native only)")
+		return nil
 	}
 
-	if c.useLockFile {
-		err := c.unlockWithFile(ctx, id, lockErr, log)
-		if err != nil {
+	// dynamodb only, no file
+	if !c.useLockFile && c.ddbTable != "" {
+		log.Info("Attempting to unlock remote state (DynamoDB only)...")
+		if err := c.unlockWithDynamoDB(ctx, id, lockErr); err != nil {
 			lockErr.Err = err
 			return lockErr
 		}
+
+		log.Info("Unlocked remote state (DynamoDB only)")
+		return nil
 	}
 
+	// Double unlocking: DynamoDB + file
+	log.Info("Attempting to unlock remote state (S3 Native and DynamoDB)...")
+
+	ferr := c.unlockWithFile(ctx, id, lockErr, log)
+	derr := c.unlockWithDynamoDB(ctx, id, lockErr)
+
+	if ferr != nil && derr != nil {
+		lockErr.Err = fmt.Errorf("failed to unlock both S3 and DynamoDB: S3 error: %v, DynamoDB error: %v", ferr, derr)
+		return lockErr
+	}
+
+	if ferr != nil {
+		lockErr.Err = fmt.Errorf("failed to unlock S3: %v", ferr)
+		return lockErr
+	}
+
+	if derr != nil {
+		lockErr.Err = fmt.Errorf("failed to unlock DynamoDB: %v", derr)
+		return lockErr
+	}
+
+	log.Info("Unlocked remote state (S3 Native and DynamoDB)")
 	return nil
 }
 
@@ -475,7 +513,11 @@ func (c *RemoteClient) unlockWithFile(ctx context.Context, id string, lockErr *s
 	if err != nil {
 		return fmt.Errorf("unable to retrieve file from S3 bucket '%s' with key '%s': %w", c.bucketName, c.lockFilePath, err)
 	}
-	defer getOutput.Body.Close()
+	defer func() {
+		if cerr := getOutput.Body.Close(); cerr != nil {
+			log.Warn(fmt.Sprintf("failed to close S3 object body: %v", cerr))
+		}
+	}()
 
 	data, err := io.ReadAll(getOutput.Body)
 	if err != nil {
@@ -499,11 +541,11 @@ func (c *RemoteClient) unlockWithFile(ctx context.Context, id string, lockErr *s
 		Key:    aws.String(c.lockFilePath),
 	})
 
-	log.Debug(fmt.Sprintf("Deleted lock file: '%q'", c.lockFilePath))
-
 	if err != nil {
 		return fmt.Errorf("failed to delete the lock file: %w", err)
 	}
+
+	log.Debug(fmt.Sprintf("Deleted lock file: '%q'", c.lockFilePath))
 
 	return nil
 }
@@ -633,7 +675,11 @@ func (c *RemoteClient) getLockInfoWithFile(ctx context.Context) (*statemgr.LockI
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve file from S3 bucket '%s' with key '%s': %w", c.bucketName, c.lockFilePath, err)
 	}
-	defer getOutput.Body.Close()
+	defer func() {
+		if cerr := getOutput.Body.Close(); cerr != nil {
+			log.Printf("failed to close S3 object body: %v", cerr)
+		}
+	}()
 
 	data, err := io.ReadAll(getOutput.Body)
 	if err != nil {
