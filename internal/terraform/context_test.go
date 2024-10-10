@@ -1021,6 +1021,7 @@ func assertDiagnosticsMatch(t *testing.T, got, want tfdiags.Diagnostics) {
 }
 
 type SummaryAndDetail struct {
+	Severity    tfdiags.Severity
 	Subject     string
 	Description string
 }
@@ -1031,17 +1032,19 @@ func assertDiagnosticsSummaryAndDetailMatch(t *testing.T, got, want tfdiags.Diag
 
 	got = got.ForRPC()
 	want = want.ForRPC()
+
 	got.Sort()
 	want.Sort()
 
 	gotSummaryAndDetail := make([]SummaryAndDetail, len(got))
 	for i, diag := range got {
-		gotSummaryAndDetail[i] = SummaryAndDetail{diag.Description().Summary, diag.Description().Detail}
+
+		gotSummaryAndDetail[i] = SummaryAndDetail{diag.Severity(), diag.Description().Summary, diag.Description().Detail}
 	}
 
 	wantSummaryAndDetail := make([]SummaryAndDetail, len(want))
 	for i, diag := range want {
-		wantSummaryAndDetail[i] = SummaryAndDetail{diag.Description().Summary, diag.Description().Detail}
+		wantSummaryAndDetail[i] = SummaryAndDetail{diag.Severity(), diag.Description().Summary, diag.Description().Detail}
 	}
 
 	if diff := cmp.Diff(wantSummaryAndDetail, gotSummaryAndDetail); diff != "" {

@@ -134,11 +134,11 @@ resource "test_object" "test" {
 }
 `,
 			},
-			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Ephemeral output not allowed",
-					Detail:   "Ephemeral outputs are not allowed in for_each expressions",
+					Summary:  "Invalid for_each argument",
+					Detail:   `The given "for_each" value is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify a resource's instance keys.`,
 				})
 			},
 		},
@@ -154,7 +154,7 @@ resource "test_object" "test" {
 }
 `,
 			},
-			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid count argument",
@@ -180,11 +180,11 @@ module "child" {
 `,
 			},
 
-			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Ephemeral output not allowed",
-					Detail:   "Ephemeral outputs are not allowed in for_each expressions",
+					Summary:  "Invalid for_each argument",
+					Detail:   `The given "for_each" value is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify a resource's instance keys.`,
 				})
 			},
 		},
@@ -219,18 +219,30 @@ module "child" {
 ephemeral "ephem_resource" "data" {}
 
 import {
-  for_each = toset(ephemeral.ephem_resource.data.value)
-  id = each.value.id
-  to = each.value.to
+  for_each = toset(ephemeral.ephem_resource.data.list)
+  id = each.value
+  to = test_object.test[each.value]
+}
+
+resource "test_object" "test" {
+    for_each = toset(ephemeral.ephem_resource.data.list)
+    test_string = each.value
 }
 `,
 			},
-			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
-				return diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Ephemeral output not allowed",
-					Detail:   "Ephemeral outputs are not allowed in for_each expressions",
-				})
+			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid for_each argument",
+						Detail:   `The given "for_each" value is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify a resource's instance keys.`,
+					},
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid for_each argument",
+						Detail:   `The given "for_each" value is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify a resource's instance keys.`,
+					},
+				)
 			},
 		},
 	} {
@@ -317,7 +329,7 @@ import {
 
 			_, diags = ctx.Plan(m, nil, DefaultPlanOpts)
 			if tc.expectPlanDiagnostics != nil {
-				assertDiagnosticsMatch(t, diags, tc.expectPlanDiagnostics(m))
+				assertDiagnosticsSummaryAndDetailMatch(t, diags, tc.expectPlanDiagnostics(m))
 			} else {
 				assertNoDiagnostics(t, diags)
 			}
