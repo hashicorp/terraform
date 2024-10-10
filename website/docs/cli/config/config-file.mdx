@@ -115,6 +115,24 @@ is available at multiple hostnames, use only one of them consistently.
 HCP Terraform responds to API calls at both its current hostname
 `app.terraform.io`, and its historical hostname `atlas.hashicorp.com`.
 
+### mTLS Mirror Registry Credentials
+
+Terraform allows you to configure credentials for mutual TLS (mTLS) mirror registries, such as JFrog, in the CLI configuration file. The following attributes can be set in the `credentials` block for the appropriate host:
+
+- `client_cert` — Specifies the path to the client certificate file. This is required if `client_key` is also specified.
+- `client_key` — Specifies the path to the client key file. This is required if `client_cert` is specified.
+- `ca_cert` — _(Optional)_ Specifies the path to the CA certificate file.
+
+Example:
+
+```hcl
+credentials "app.terraform.io" {
+  client_cert = "/path/to/client-cert.pem"
+  client_key  = "/path/to/client-key.pem"
+  ca_cert     = "/path/to/ca-cert.pem"
+}
+```
+
 ### Environment Variable Credentials
 
 -> **Note:** Environment variable credentials are supported in Terraform v1.2.0 and later.
@@ -134,6 +152,23 @@ may be encoded as double underscores. For example, you can set a token for the d
 `café.fr` as `TF_TOKEN_xn--caf-dma.fr`, `TF_TOKEN_xn--caf-dma_fr`,  or `TF_TOKEN_xn____caf__dma_fr`.
 If multiple variables evaluate to the same hostname, Terraform will choose the one defined last
 in the operating system's variable table.
+
+
+### Environment Variable Credentials for mTLS
+You can also configure mTLS credentials using environment variables with the following prefixes:
+
+* `TF_CLIENT_CERT_` — The value should be the path to the client certificate file.
+* `TF_CLIENT_KEY_` — The value should be the path to the client key file.
+* `TF_CA_CERT_` — (Optional) The value should be the path to the CA certificate file.
+The environment variable names should include the registry domain name, with periods replaced by underscores. For example, to set credentials for app.terraform.io, use:
+
+```bash
+export TF_CLIENT_CERT_app_terraform_io="/path/to/client-cert.pem"
+export TF_CLIENT_KEY_app_terraform_io="/path/to/client-key.pem"
+export TF_CA_CERT_app_terraform_io="/path/to/ca-cert.pem"
+```
+
+If you are interacting with multiple registries, you can set the respective environment variables for each one following this pattern.
 
 ### Credentials Helpers
 
