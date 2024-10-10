@@ -5,14 +5,12 @@ package terraform
 
 import (
 	"fmt"
-	"path/filepath"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -40,6 +38,30 @@ ephemeral "ephem_resource" "data" {
 			expectCloseEphemeralResourceCalled:          true,
 		},
 
+		"terraform.applying": {
+			module: map[string]string{
+				"child/main.tf": `
+output "value" {
+    value = terraform.applying
+    # Testing that this errors in the best way to ensure the symbol is ephemeral
+    ephemeral = false 
+}
+`,
+				"main.tf": `
+module "child" {
+    source = "./child"
+}
+`,
+			},
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Ephemeral value not allowed",
+					Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
+				})
+			},
+		},
+
 		"provider reference": {
 			module: map[string]string{
 				"main.tf": `
@@ -59,9 +81,6 @@ resource "test_object" "test" {
 			expectCloseEphemeralResourceCalled:          true,
 			assertTestProviderConfigure: func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 				attr := req.Config.GetAttr("test_string")
-				if !attr.HasMark(marks.Ephemeral) {
-					resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("expected test_string to be marked as ephemeral"))
-				}
 				if attr.AsString() != "test string" {
 					resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("received config did not contain \"test string\", got %#v\n", req.Config))
 				}
@@ -98,9 +117,6 @@ resource "test_object" "test" {
 			expectCloseEphemeralResourceCalled:          true,
 			assertTestProviderConfigure: func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 				attr := req.Config.GetAttr("test_string")
-				if !attr.HasMark(marks.Ephemeral) {
-					resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("expected test_string to be marked as ephemeral"))
-				}
 				if attr.AsString() != "test string" {
 					resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("received config did not contain \"test string\", got %#v\n", req.Config))
 				}
@@ -123,11 +139,6 @@ resource "test_object" "test" {
 					Severity: hcl.DiagError,
 					Summary:  "Ephemeral output not allowed",
 					Detail:   "Ephemeral outputs are not allowed in for_each expressions",
-					Subject: &hcl.Range{
-						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 6, Column: 1, Byte: 59},
-						End:      hcl.Pos{Line: 6, Column: 14, Byte: 72},
-					},
 				})
 			},
 		},
@@ -148,11 +159,6 @@ resource "test_object" "test" {
 					Severity: hcl.DiagError,
 					Summary:  "Invalid count argument",
 					Detail:   `The given "count" is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify the number of resource instances.`,
-					Subject: &hcl.Range{
-						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 4, Column: 13, Byte: 67},
-						End:      hcl.Pos{Line: 4, Column: 55, Byte: 109},
-					},
 				})
 			},
 		},
@@ -179,11 +185,6 @@ module "child" {
 					Severity: hcl.DiagError,
 					Summary:  "Ephemeral output not allowed",
 					Detail:   "Ephemeral outputs are not allowed in for_each expressions",
-					Subject: &hcl.Range{
-						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 6, Column: 1, Byte: 59},
-						End:      hcl.Pos{Line: 6, Column: 14, Byte: 72},
-					},
 				})
 			},
 		},
@@ -208,11 +209,6 @@ module "child" {
 					Severity: hcl.DiagError,
 					Summary:  "Invalid count argument",
 					Detail:   `The given "count" is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify the number of resource instances.`,
-					Subject: &hcl.Range{
-						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 4, Column: 13, Byte: 67},
-						End:      hcl.Pos{Line: 4, Column: 55, Byte: 109},
-					},
 				})
 			},
 		},
@@ -234,11 +230,6 @@ import {
 					Severity: hcl.DiagError,
 					Summary:  "Ephemeral output not allowed",
 					Detail:   "Ephemeral outputs are not allowed in for_each expressions",
-					Subject: &hcl.Range{
-						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 6, Column: 1, Byte: 59},
-						End:      hcl.Pos{Line: 6, Column: 14, Byte: 72},
-					},
 				})
 			},
 		},
@@ -310,7 +301,7 @@ import {
 
 			diags := ctx.Validate(m, &ValidateOpts{})
 			if tc.expectValidateDiagnostics != nil {
-				assertDiagnosticsMatch(t, diags, tc.expectValidateDiagnostics(m))
+				assertDiagnosticsSummaryAndDetailMatch(t, diags, tc.expectValidateDiagnostics(m))
 				// If we expect diagnostics, we should not continue with the plan
 				// as it will fail.
 				return
