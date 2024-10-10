@@ -6,7 +6,6 @@ package azure
 import (
 	"log"
 	"net/http"
-	"net/http/httputil"
 
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -36,13 +35,7 @@ func withRequestLogging() autorest.SendDecorator {
 				r.Header.Del(authHeaderName)
 			}
 
-			// dump request to wire format
-			if dump, err := httputil.DumpRequestOut(r, true); err == nil {
-				log.Printf("[DEBUG] Azure Backend Request: \n%s\n", dump)
-			} else {
-				// fallback to basic message
-				log.Printf("[DEBUG] Azure Backend Request: %s to %s\n", r.Method, r.URL)
-			}
+			log.Printf("[DEBUG] Azure Backend Request: %s to %s\n", r.Method, r.URL)
 
 			// add the auth header back
 			if auth != "" {
@@ -51,13 +44,7 @@ func withRequestLogging() autorest.SendDecorator {
 
 			resp, err := s.Do(r)
 			if resp != nil {
-				// dump response to wire format
-				if dump, err2 := httputil.DumpResponse(resp, true); err2 == nil {
-					log.Printf("[DEBUG] Azure Backend Response for %s: \n%s\n", r.URL, dump)
-				} else {
-					// fallback to basic message
-					log.Printf("[DEBUG] Azure Backend Response: %s for %s\n", resp.Status, r.URL)
-				}
+				log.Printf("[DEBUG] Azure Backend Response: %s for %s\n", resp.Status, r.URL)
 			} else {
 				log.Printf("[DEBUG] Request to %s completed with no response", r.URL)
 			}
