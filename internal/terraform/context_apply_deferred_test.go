@@ -3297,6 +3297,109 @@ resource "test" "a" {
 			},
 		},
 	}
+
+	ephemeralResourceOpenDeferral = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+ephemeral "test" "data" {
+  name = "deferred_open"
+}
+		`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				complete:     false,
+				wantActions:  map[string]plans.Action{},
+				wantPlanned:  map[string]cty.Value{},
+				wantDeferred: map[string]ExpectedDeferred{
+					// We don't record the ephemeral deferrals
+				},
+			},
+		},
+	}
+
+	ephemeralResourceOpenDeferralWithDependency = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+ephemeral "test" "data" {
+  name = "deferred_open"
+}
+
+ephemeral "test" "dep" {
+  name = ephemeral.test.data.value
+}
+		`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				complete:     false,
+				wantActions:  map[string]plans.Action{},
+				wantPlanned:  map[string]cty.Value{},
+				wantDeferred: map[string]ExpectedDeferred{
+					// We don't record the ephemeral deferrals
+				},
+			},
+		},
+	}
+
+	ephemeralResourceOpenDeferralExpanded = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+			
+variable "each" {
+  type = set(string)
+}
+
+ephemeral "test" "data" {
+  for_each = var.each
+
+  name = each.value
+}
+		`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"each": cty.DynamicVal,
+				},
+				complete:     false,
+				wantActions:  map[string]plans.Action{},
+				wantPlanned:  map[string]cty.Value{},
+				wantDeferred: map[string]ExpectedDeferred{
+					// We don't record the ephemeral deferrals
+				},
+			},
+		},
+	}
+
+	ephemeralResourceOpenDeferralProviderUsage = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+ephemeral "test" "data" {
+  name = "deferred_open"
+}
+
+
+provider "other" {
+  test_string = ephemeral.test.data.value
+}
+
+resource "test_object" "test" {
+  provider = other
+}
+		`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				complete:    false,
+				wantActions: map[string]plans.Action{},
+				wantPlanned: map[string]cty.Value{},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test_object.test": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+				},
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
@@ -3346,6 +3449,10 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"plan_update_external_deferral":                           planUpdateExternalDeferral,
 		"plan_delete_external_deferral":                           planDeleteExternalDeferral,
 		"plan_delete_mode_external_deferral":                      planDeleteModeExternalDeferral,
+		"ephemeral_open_deferral":                                 ephemeralResourceOpenDeferral,
+		"ephemeral_open_deferral_dependencies":                    ephemeralResourceOpenDeferralWithDependency,
+		"ephemeral_open_deferral_expanded":                        ephemeralResourceOpenDeferralExpanded,
+		"ephemeral_open_deferral_provider_usage":                  ephemeralResourceOpenDeferralProviderUsage,
 	}
 
 	for name, test := range tests {
@@ -3376,10 +3483,12 @@ func TestContextApply_deferredActions(t *testing.T) {
 							changes: make(map[string]cty.Value),
 						},
 					}
+					other := simpleMockProvider()
 
 					ctx := testContext2(t, &ContextOpts{
 						Providers: map[addrs.Provider]providers.Factory{
-							addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider.Provider()),
+							addrs.NewDefaultProvider("test"):  testProviderFuncFixed(provider.Provider()),
+							addrs.NewDefaultProvider("other"): testProviderFuncFixed(other),
 						},
 					})
 
@@ -3463,10 +3572,11 @@ func TestContextApply_deferredActions(t *testing.T) {
 						// provider.
 						for _, change := range plan.DeferredResources {
 							if diff := cmp.Diff("provider[\"registry.terraform.io/hashicorp/test\"]", change.ChangeSrc.ProviderAddr.String()); diff != "" {
-								t.Errorf("wrong provider address in plan\n%s", diff)
+								if otherDiff := cmp.Diff("provider[\"registry.terraform.io/hashicorp/other\"]", change.ChangeSrc.ProviderAddr.String()); otherDiff != "" {
+									t.Errorf("wrong provider address in plan\n, should be hashicorp/test or hashicorp/other %s", diff)
+								}
 							}
 						}
-
 					})
 
 					if stage.wantApplied == nil {
@@ -3590,6 +3700,22 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 					},
 				},
 			},
+			EphemeralResourceTypes: map[string]providers.Schema{
+				"test": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"name": {
+								Type:     cty.String,
+								Required: true,
+							},
+							"value": {
+								Type:     cty.String,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
 		},
 		ReadResourceFn: func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
 			if key := req.PriorState.GetAttr("name"); key.IsKnown() && key.AsString() == "deferred_read" {
@@ -3702,6 +3828,24 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 					},
 				},
 			}
+		},
+		OpenEphemeralResourceFn: func(op providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
+			name := op.Config.GetAttr("name").AsString()
+
+			res := providers.OpenEphemeralResourceResponse{
+				Result: cty.ObjectVal(map[string]cty.Value{
+					"name":  cty.StringVal(name),
+					"value": cty.StringVal("ephemeral_value"),
+				}),
+			}
+
+			if name == "deferred_open" {
+				res.Deferred = &providers.Deferred{
+					Reason: providers.DeferredReasonProviderConfigUnknown,
+				}
+			}
+
+			return res
 		},
 	}
 }
