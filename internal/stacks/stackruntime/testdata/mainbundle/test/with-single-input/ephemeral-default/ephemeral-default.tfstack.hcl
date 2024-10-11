@@ -33,9 +33,3 @@ component "self" {
     id = "2f9f3b84"
   }
 }
-
-output "ephemeral" {
-  value = var.ephemeral
-  type = string
-  ephemeral = true
-}
