@@ -1243,10 +1243,6 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 							ProviderConfigAddr: mustDefaultRootProvider("testing"),
 							Schema:             stacks_testing_provider.TestingResourceSchema,
 						},
-						&stackstate.AppliedChangeOutputValue{
-							Addr:  mustStackOutputValue("ephemeral"),
-							Value: cty.NullVal(cty.String), // ephemeral
-						},
 						&stackstate.AppliedChangeInputVariable{
 							Addr:  mustStackInputVariable("ephemeral"),
 							Value: cty.NullVal(cty.String), // ephemeral
@@ -1291,10 +1287,6 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 							},
 							ProviderConfigAddr: mustDefaultRootProvider("testing"),
 							Schema:             stacks_testing_provider.TestingResourceSchema,
-						},
-						&stackstate.AppliedChangeOutputValue{
-							Addr:  mustStackOutputValue("ephemeral"),
-							Value: cty.NullVal(cty.String), // ephemeral
 						},
 						&stackstate.AppliedChangeInputVariable{
 							Addr:  mustStackInputVariable("input"),
@@ -1356,10 +1348,6 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 							},
 							ProviderConfigAddr: mustDefaultRootProvider("testing"),
 							Schema:             stacks_testing_provider.TestingResourceSchema,
-						},
-						&stackstate.AppliedChangeOutputValue{
-							Addr:  mustStackOutputValue("ephemeral"),
-							Value: cty.NullVal(cty.String), // ephemeral
 						},
 						&stackstate.AppliedChangeInputVariable{
 							Addr:  mustStackInputVariable("ephemeral"),
