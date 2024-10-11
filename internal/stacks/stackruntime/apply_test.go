@@ -261,8 +261,8 @@ func TestApply(t *testing.T) {
 							Value: cty.StringVal("foo"),
 						},
 						&stackstate.AppliedChangeInputVariable{
-							Addr:    mustStackInputVariable("removed"),
-							Removed: true,
+							Addr:  mustStackInputVariable("removed"),
+							Value: cty.NilVal, // destroyed
 						},
 						&stackstate.AppliedChangeInputVariable{
 							Addr:  mustStackInputVariable("value"),
@@ -1203,6 +1203,159 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 							},
 							ProviderConfigAddr: mustDefaultRootProvider("testing"),
 							Schema:             stacks_testing_provider.TestingDataSourceSchema,
+						},
+					},
+				},
+			},
+		},
+		"ephemeral": {
+			path: path.Join("with-single-input", "ephemeral"),
+			cycles: []TestCycle{
+				{
+					planMode: plans.NormalMode,
+					planInputs: map[string]cty.Value{
+						"input":     cty.StringVal("hello"),
+						"ephemeral": cty.StringVal("planning"),
+					},
+					applyInputs: map[string]cty.Value{
+						"ephemeral": cty.StringVal("applying"),
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.self"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("id"):    cty.StringVal("2f9f3b84"),
+								mustInputVariable("input"): cty.StringVal("hello"),
+							},
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":    "2f9f3b84",
+									"value": "hello",
+								}),
+								Status:       states.ObjectReady,
+								Dependencies: make([]addrs.ConfigResource, 0),
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("ephemeral"),
+							Value: cty.NullVal(cty.String), // ephemeral
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("input"),
+							Value: cty.StringVal("hello"),
+						},
+					},
+				},
+			},
+		},
+		"missing-ephemeral": {
+			path: path.Join("with-single-input", "ephemeral"),
+			cycles: []TestCycle{
+				{
+					planMode: plans.NormalMode,
+					planInputs: map[string]cty.Value{
+						"input":     cty.StringVal("hello"),
+						"ephemeral": cty.StringVal("planning"),
+					},
+					applyInputs: make(map[string]cty.Value), // deliberately omitting ephemeral
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.self"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("id"):    cty.StringVal("2f9f3b84"),
+								mustInputVariable("input"): cty.StringVal("hello"),
+							},
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":    "2f9f3b84",
+									"value": "hello",
+								}),
+								Status:       states.ObjectReady,
+								Dependencies: make([]addrs.ConfigResource, 0),
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("input"),
+							Value: cty.StringVal("hello"),
+						},
+					},
+					wantAppliedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+						return diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "No value for required variable",
+							Detail:   "The root input variable \"var.ephemeral\" is not set, and has no default value.",
+							Subject: &hcl.Range{
+								Filename: "git::https://example.com/test.git//with-single-input/ephemeral/ephemeral.tfstack.hcl",
+								Start: hcl.Pos{
+									Line:   14,
+									Column: 1,
+									Byte:   175,
+								},
+								End: hcl.Pos{
+									Line:   14,
+									Column: 21,
+									Byte:   195,
+								},
+							},
+						})
+					}),
+				},
+			},
+		},
+		"ephemeral-default": {
+			path: path.Join("with-single-input", "ephemeral-default"),
+			cycles: []TestCycle{
+				{
+					planMode: plans.NormalMode,
+					planInputs: map[string]cty.Value{
+						"input": cty.StringVal("hello"),
+						// deliberately omitting ephemeral
+					},
+					applyInputs: make(map[string]cty.Value), // deliberately omitting ephemeral
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.self"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("id"):    cty.StringVal("2f9f3b84"),
+								mustInputVariable("input"): cty.StringVal("hello"),
+							},
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":    "2f9f3b84",
+									"value": "hello",
+								}),
+								Status:       states.ObjectReady,
+								Dependencies: make([]addrs.ConfigResource, 0),
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("ephemeral"),
+							Value: cty.NullVal(cty.String), // ephemeral
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("input"),
+							Value: cty.StringVal("hello"),
 						},
 					},
 				},
@@ -2711,24 +2864,24 @@ func TestApplyWithStateManipulation(t *testing.T) {
 			}
 
 			wantCounts := tc.counts
-			for _, elem := range wantCounts.Elems() {
+			for key, elem := range wantCounts.All() {
 				// First, make sure everything we wanted is present.
-				if !gotCounts.HasKey(elem.K) {
-					t.Errorf("wrong counts: wanted %s but didn't get it", elem.K)
+				if !gotCounts.HasKey(key) {
+					t.Errorf("wrong counts: wanted %s but didn't get it", key)
 				}
 
 				// And that the values actually match.
-				got, want := gotCounts.Get(elem.K), elem.V
+				got, want := gotCounts.Get(key), elem
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("wrong counts for %s: %s", want.Addr, diff)
 				}
 
 			}
 
-			for _, elem := range gotCounts.Elems() {
+			for key := range gotCounts.All() {
 				// Then, make sure we didn't get anything we didn't want.
-				if !wantCounts.HasKey(elem.K) {
-					t.Errorf("wrong counts: got %s but didn't want it", elem.K)
+				if !wantCounts.HasKey(key) {
+					t.Errorf("wrong counts: got %s but didn't want it", key)
 				}
 			}
 		})
@@ -3028,440 +3181,6 @@ func TestApplyAutomaticInputConversion(t *testing.T) {
 				"hello": cty.StringVal("hello"),
 				"world": cty.StringVal("world"),
 			}),
-		},
-	}
-
-	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
-		t.Errorf("wrong changes\n%s", diff)
-	}
-}
-
-func TestApplyEphemeralInput(t *testing.T) {
-	ctx := context.Background()
-	cfg := loadMainBundleConfigForTest(t, filepath.Join("with-single-input", "ephemeral"))
-
-	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	changesCh := make(chan stackplan.PlannedChange)
-	diagsCh := make(chan tfdiags.Diagnostic)
-	lock := depsfile.NewLocks()
-	lock.SetProvider(
-		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
-		providerreqs.PreferredHashes([]providerreqs.Hash{}),
-	)
-	req := PlanRequest{
-		Config: cfg,
-		ProviderFactories: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(t), nil
-			},
-		},
-		DependencyLocks: *lock,
-
-		ForcePlanTimestamp: &fakePlanTimestamp,
-
-		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
-			stackaddrs.InputVariable{Name: "input"}: {
-				Value: cty.StringVal("hello"),
-			},
-			stackaddrs.InputVariable{Name: "ephemeral"}: {
-				Value: cty.StringVal("ephemeral"),
-			},
-		},
-	}
-
-	resp := PlanResponse{
-		PlannedChanges: changesCh,
-		Diagnostics:    diagsCh,
-	}
-
-	go Plan(ctx, &req, &resp)
-	planChanges, planDiags := collectPlanOutput(changesCh, diagsCh)
-	if len(planDiags) > 0 {
-		t.Fatalf("expected no diagnostics, got %s", planDiags.ErrWithWarnings())
-	}
-
-	planLoader := stackplan.NewLoader()
-	for _, change := range planChanges {
-		proto, err := change.PlannedChangeProto()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		for _, rawMsg := range proto.Raw {
-			err = planLoader.AddRaw(rawMsg)
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
-	plan, err := planLoader.Plan()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	applyReq := ApplyRequest{
-		Config: cfg,
-		Plan:   plan,
-		ProviderFactories: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(t), nil
-			},
-		},
-		DependencyLocks: *lock,
-		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
-			stackaddrs.InputVariable{Name: "input"}: {
-				Value: cty.StringVal("hello"),
-			},
-			stackaddrs.InputVariable{Name: "ephemeral"}: {
-				// This has changed, and that should be okay.
-				Value: cty.StringVal("applying"),
-			},
-		},
-	}
-
-	applyChangesCh := make(chan stackstate.AppliedChange)
-	diagsCh = make(chan tfdiags.Diagnostic)
-
-	applyResp := ApplyResponse{
-		AppliedChanges: applyChangesCh,
-		Diagnostics:    diagsCh,
-	}
-
-	go Apply(ctx, &applyReq, &applyResp)
-	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, diagsCh)
-	if len(applyDiags) > 0 {
-		t.Fatalf("expected no diagnostics, got %s", applyDiags.ErrWithWarnings())
-	}
-
-	sort.SliceStable(applyChanges, func(i, j int) bool {
-		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
-	})
-
-	wantChanges := []stackstate.AppliedChange{
-		&stackstate.AppliedChangeComponentInstance{
-			ComponentAddr:         mustAbsComponent("component.self"),
-			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
-			InputVariables: map[addrs.InputVariable]cty.Value{
-				mustInputVariable("id"):    cty.StringVal("2f9f3b84"),
-				mustInputVariable("input"): cty.StringVal("hello"),
-			},
-		},
-		&stackstate.AppliedChangeResourceInstanceObject{
-			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
-			NewStateSrc: &states.ResourceInstanceObjectSrc{
-				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
-					"id":    "2f9f3b84",
-					"value": "hello",
-				}),
-				Status:       states.ObjectReady,
-				Dependencies: make([]addrs.ConfigResource, 0),
-			},
-			ProviderConfigAddr: mustDefaultRootProvider("testing"),
-			Schema:             stacks_testing_provider.TestingResourceSchema,
-		},
-		&stackstate.AppliedChangeInputVariable{
-			Addr:  mustStackInputVariable("ephemeral"),
-			Value: cty.NilVal, // ephemeral
-		},
-		&stackstate.AppliedChangeInputVariable{
-			Addr:  mustStackInputVariable("input"),
-			Value: cty.StringVal("hello"),
-		},
-	}
-
-	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
-		t.Errorf("wrong changes\n%s", diff)
-	}
-}
-
-func TestApplyMissingEphemeralInput(t *testing.T) {
-	ctx := context.Background()
-	cfg := loadMainBundleConfigForTest(t, filepath.Join("with-single-input", "ephemeral"))
-
-	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	changesCh := make(chan stackplan.PlannedChange)
-	diagsCh := make(chan tfdiags.Diagnostic)
-	lock := depsfile.NewLocks()
-	lock.SetProvider(
-		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
-		providerreqs.PreferredHashes([]providerreqs.Hash{}),
-	)
-	req := PlanRequest{
-		Config: cfg,
-		ProviderFactories: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(t), nil
-			},
-		},
-		DependencyLocks: *lock,
-
-		ForcePlanTimestamp: &fakePlanTimestamp,
-
-		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
-			stackaddrs.InputVariable{Name: "input"}: {
-				Value: cty.StringVal("hello"),
-			},
-			stackaddrs.InputVariable{Name: "ephemeral"}: {
-				Value: cty.StringVal("ephemeral"),
-			},
-		},
-	}
-
-	resp := PlanResponse{
-		PlannedChanges: changesCh,
-		Diagnostics:    diagsCh,
-	}
-
-	go Plan(ctx, &req, &resp)
-	planChanges, planDiags := collectPlanOutput(changesCh, diagsCh)
-	if len(planDiags) > 0 {
-		t.Fatalf("expected no diagnostics, got %s", planDiags.ErrWithWarnings())
-	}
-
-	planLoader := stackplan.NewLoader()
-	for _, change := range planChanges {
-		proto, err := change.PlannedChangeProto()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		for _, rawMsg := range proto.Raw {
-			err = planLoader.AddRaw(rawMsg)
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
-	plan, err := planLoader.Plan()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	applyReq := ApplyRequest{
-		Config: cfg,
-		Plan:   plan,
-		ProviderFactories: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(t), nil
-			},
-		},
-		DependencyLocks: *lock,
-		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
-			stackaddrs.InputVariable{Name: "input"}: {
-				Value: cty.StringVal("hello"),
-			},
-		},
-	}
-
-	applyChangesCh := make(chan stackstate.AppliedChange)
-	diagsCh = make(chan tfdiags.Diagnostic)
-
-	applyResp := ApplyResponse{
-		AppliedChanges: applyChangesCh,
-		Diagnostics:    diagsCh,
-	}
-
-	go Apply(ctx, &applyReq, &applyResp)
-	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, diagsCh)
-	if len(applyDiags) != 1 {
-		t.Fatalf("expected exactly 1 diagnostic, got %s", applyDiags.ErrWithWarnings())
-	}
-
-	gotSeverity, wantSeverity := applyDiags[0].Severity(), tfdiags.Error
-	gotSummary, wantSummary := applyDiags[0].Description().Summary, "No value for required variable"
-	gotDetail, wantDetail := applyDiags[0].Description().Detail, "The root input variable \"var.ephemeral\" is not set, and has no default value."
-
-	if gotSeverity != wantSeverity {
-		t.Errorf("expected severity %q, got %q", wantSeverity, gotSeverity)
-	}
-	if gotSummary != wantSummary {
-		t.Errorf("expected summary %q, got %q", wantSummary, gotSummary)
-	}
-	if gotDetail != wantDetail {
-		t.Errorf("expected detail %q, got %q", wantDetail, gotDetail)
-	}
-
-	sort.SliceStable(applyChanges, func(i, j int) bool {
-		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
-	})
-
-	wantChanges := []stackstate.AppliedChange{
-		&stackstate.AppliedChangeComponentInstance{
-			ComponentAddr:         mustAbsComponent("component.self"),
-			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
-			InputVariables: map[addrs.InputVariable]cty.Value{
-				mustInputVariable("id"):    cty.StringVal("2f9f3b84"),
-				mustInputVariable("input"): cty.StringVal("hello"),
-			},
-		},
-		&stackstate.AppliedChangeResourceInstanceObject{
-			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
-			NewStateSrc: &states.ResourceInstanceObjectSrc{
-				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
-					"id":    "2f9f3b84",
-					"value": "hello",
-				}),
-				Status:       states.ObjectReady,
-				Dependencies: make([]addrs.ConfigResource, 0),
-			},
-			ProviderConfigAddr: mustDefaultRootProvider("testing"),
-			Schema:             stacks_testing_provider.TestingResourceSchema,
-		},
-		&stackstate.AppliedChangeInputVariable{
-			Addr:  mustStackInputVariable("input"),
-			Value: cty.StringVal("hello"),
-		},
-	}
-
-	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
-		t.Errorf("wrong changes\n%s", diff)
-	}
-}
-
-func TestApplyEphemeralInputWithDefault(t *testing.T) {
-	ctx := context.Background()
-	cfg := loadMainBundleConfigForTest(t, filepath.Join("with-single-input", "ephemeral-default"))
-
-	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	changesCh := make(chan stackplan.PlannedChange)
-	diagsCh := make(chan tfdiags.Diagnostic)
-	lock := depsfile.NewLocks()
-	lock.SetProvider(
-		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
-		providerreqs.PreferredHashes([]providerreqs.Hash{}),
-	)
-	req := PlanRequest{
-		Config: cfg,
-		ProviderFactories: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(t), nil
-			},
-		},
-		DependencyLocks: *lock,
-
-		ForcePlanTimestamp: &fakePlanTimestamp,
-
-		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
-			stackaddrs.InputVariable{Name: "input"}: {
-				Value: cty.StringVal("hello"),
-			},
-		},
-	}
-
-	resp := PlanResponse{
-		PlannedChanges: changesCh,
-		Diagnostics:    diagsCh,
-	}
-
-	go Plan(ctx, &req, &resp)
-	planChanges, planDiags := collectPlanOutput(changesCh, diagsCh)
-	if len(planDiags) > 0 {
-		t.Fatalf("expected no diagnostics, got %s", planDiags.ErrWithWarnings())
-	}
-
-	planLoader := stackplan.NewLoader()
-	for _, change := range planChanges {
-		proto, err := change.PlannedChangeProto()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		for _, rawMsg := range proto.Raw {
-			err = planLoader.AddRaw(rawMsg)
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
-	plan, err := planLoader.Plan()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	applyReq := ApplyRequest{
-		Config: cfg,
-		Plan:   plan,
-		ProviderFactories: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(t), nil
-			},
-		},
-		DependencyLocks: *lock,
-		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
-			stackaddrs.InputVariable{Name: "input"}: {
-				Value: cty.StringVal("hello"),
-			},
-		},
-	}
-
-	applyChangesCh := make(chan stackstate.AppliedChange)
-	diagsCh = make(chan tfdiags.Diagnostic)
-
-	applyResp := ApplyResponse{
-		AppliedChanges: applyChangesCh,
-		Diagnostics:    diagsCh,
-	}
-
-	go Apply(ctx, &applyReq, &applyResp)
-	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, diagsCh)
-	if len(applyDiags) > 0 {
-		t.Fatalf("expected no diagnostics, got %s", applyDiags.ErrWithWarnings())
-	}
-
-	sort.SliceStable(applyChanges, func(i, j int) bool {
-		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
-	})
-
-	wantChanges := []stackstate.AppliedChange{
-		&stackstate.AppliedChangeComponentInstance{
-			ComponentAddr:         mustAbsComponent("component.self"),
-			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
-			InputVariables: map[addrs.InputVariable]cty.Value{
-				mustInputVariable("id"):    cty.StringVal("2f9f3b84"),
-				mustInputVariable("input"): cty.StringVal("hello"),
-			},
-		},
-		&stackstate.AppliedChangeResourceInstanceObject{
-			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
-			NewStateSrc: &states.ResourceInstanceObjectSrc{
-				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
-					"id":    "2f9f3b84",
-					"value": "hello",
-				}),
-				Status:       states.ObjectReady,
-				Dependencies: make([]addrs.ConfigResource, 0),
-			},
-			ProviderConfigAddr: mustDefaultRootProvider("testing"),
-			Schema:             stacks_testing_provider.TestingResourceSchema,
-		},
-		&stackstate.AppliedChangeInputVariable{
-			Addr:  mustStackInputVariable("ephemeral"),
-			Value: cty.NilVal, // ephemeral
-		},
-		&stackstate.AppliedChangeInputVariable{
-			Addr:  mustStackInputVariable("input"),
-			Value: cty.StringVal("hello"),
 		},
 	}
 

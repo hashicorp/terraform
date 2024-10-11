@@ -76,9 +76,9 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 		// can error rather than deadlock if something goes wrong and causes
 		// us to try to depend on a result that isn't coming.
 		results, begin := ChangeExec(ctx, func(ctx context.Context, reg *ChangeExecRegistry[*Main]) {
-			for _, elem := range plan.Components.Elems() {
-				addr := elem.K
-				componentInstPlan := elem.V
+			for key, elem := range plan.Components.All() {
+				addr := key
+				componentInstPlan := elem
 				action := componentInstPlan.PlannedAction
 				dependencyAddrs := componentInstPlan.Dependencies
 				dependentAddrs := componentInstPlan.Dependents
@@ -206,7 +206,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 						if depCount := waitForComponents.Len(); depCount != 0 {
 							log.Printf("[TRACE] stackeval: %s waiting for its predecessors (%d) to complete", addr, depCount)
 						}
-						for _, waitComponentAddr := range waitForComponents.Elems() {
+						for waitComponentAddr := range waitForComponents.All() {
 							if stack := main.Stack(ctx, waitComponentAddr.Stack, ApplyPhase); stack != nil {
 								if component := stack.Component(ctx, waitComponentAddr.Item); component != nil {
 									span.AddEvent("awaiting predecessor", trace.WithAttributes(
@@ -232,7 +232,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 								}
 							}
 						}
-						for _, waitComponentAddr := range waitForRemoveds.Elems() {
+						for waitComponentAddr := range waitForRemoveds.All() {
 							if stack := main.Stack(ctx, waitComponentAddr.Stack, ApplyPhase); stack != nil {
 								if removed := stack.Removed(ctx, waitComponentAddr.Item); removed != nil {
 									span.AddEvent("awaiting predecessor", trace.WithAttributes(

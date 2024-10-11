@@ -174,6 +174,108 @@ func TestPlan_invalid(t *testing.T) {
 	}
 }
 
+// TestPlan uses a generic framework for running plan integration tests
+// against Stacks. Generally, new tests should be added into this function
+// rather than copying the large amount of duplicate code from the other
+// tests in this file.
+//
+// If you are editing other tests in this file, please consider moving them
+// into this test function so they can reuse the shared setup and boilerplate
+// code managing the boring parts of the test.
+func TestPlan(t *testing.T) {
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tcs := map[string]struct {
+		path  string
+		state *stackstate.State
+		store *stacks_testing_provider.ResourceStore
+		cycle TestCycle
+	}{
+		"empty-destroy-with-data-source": {
+			path: path.Join("with-data-source", "dependent"),
+			cycle: TestCycle{
+				planMode: plans.DestroyMode,
+				planInputs: map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				},
+				wantPlannedChanges: []stackplan.PlannedChange{
+					&stackplan.PlannedChangeApplyable{
+						Applyable: true,
+					},
+					&stackplan.PlannedChangeComponentInstance{
+						Addr:                mustAbsComponentInstance("component.data"),
+						PlanApplyable:       true,
+						PlanComplete:        true,
+						Action:              plans.Delete,
+						Mode:                plans.DestroyMode,
+						RequiredComponents:  collections.NewSet(mustAbsComponent("component.self")),
+						PlannedOutputValues: make(map[string]cty.Value),
+						PlanTimestamp:       fakePlanTimestamp,
+					},
+					&stackplan.PlannedChangeComponentInstance{
+						Addr:          mustAbsComponentInstance("component.self"),
+						PlanComplete:  true,
+						PlanApplyable: true,
+						Action:        plans.Delete,
+						Mode:          plans.DestroyMode,
+						PlannedOutputValues: map[string]cty.Value{
+							"id": cty.NullVal(cty.DynamicPseudoType),
+						},
+						PlanTimestamp: fakePlanTimestamp,
+					},
+					&stackplan.PlannedChangeHeader{
+						TerraformVersion: version.SemVer,
+					},
+					&stackplan.PlannedChangePlannedTimestamp{
+						PlannedTimestamp: fakePlanTimestamp,
+					},
+					&stackplan.PlannedChangeRootInputValue{
+						Addr:          mustStackInputVariable("id"),
+						Action:        plans.Create,
+						Before:        cty.NullVal(cty.DynamicPseudoType),
+						After:         cty.StringVal("foo"),
+						DeleteOnApply: true,
+					},
+				},
+			},
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+
+			lock := depsfile.NewLocks()
+			lock.SetProvider(
+				addrs.NewDefaultProvider("testing"),
+				providerreqs.MustParseVersion("0.0.0"),
+				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
+
+			store := tc.store
+			if store == nil {
+				store = stacks_testing_provider.NewResourceStore()
+			}
+
+			testContext := TestContext{
+				timestamp: &fakePlanTimestamp,
+				config:    loadMainBundleConfigForTest(t, tc.path),
+				providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProviderWithData(t, store), nil
+					},
+				},
+				dependencyLocks: *lock,
+			}
+
+			testContext.Plan(t, ctx, tc.state, tc.cycle)
+		})
+	}
+}
+
 func TestPlanWithMissingInputVariable(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, "plan-undeclared-variable-in-component")
@@ -876,7 +978,7 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 				},
 				Action:          plans.Create,
 				Before:          cty.NullVal(cty.DynamicPseudoType),
-				After:           cty.NilVal, // ephemeral
+				After:           cty.NullVal(cty.String), // ephemeral
 				RequiredOnApply: true,
 			},
 			&stackplan.PlannedChangeRootInputValue{
@@ -939,7 +1041,7 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 				},
 				Action:          plans.Create,
 				Before:          cty.NullVal(cty.DynamicPseudoType),
-				After:           cty.NilVal, // ephemeral
+				After:           cty.NullVal(cty.String), // ephemeral
 				RequiredOnApply: false,
 			},
 			&stackplan.PlannedChangeRootInputValue{
@@ -3783,24 +3885,24 @@ func TestPlanWithStateManipulation(t *testing.T) {
 			}
 
 			wantCounts := tc.counts
-			for _, elem := range wantCounts.Elems() {
+			for key, elem := range wantCounts.All() {
 				// First, make sure everything we wanted is present.
-				if !gotCounts.HasKey(elem.K) {
-					t.Errorf("wrong counts: wanted %s but didn't get it", elem.K)
+				if !gotCounts.HasKey(key) {
+					t.Errorf("wrong counts: wanted %s but didn't get it", key)
 				}
 
 				// And that the values actually match.
-				got, want := gotCounts.Get(elem.K), elem.V
+				got, want := gotCounts.Get(key), elem
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("wrong counts for %s: %s", want.Addr, diff)
 				}
 
 			}
 
-			for _, elem := range gotCounts.Elems() {
+			for key := range gotCounts.All() {
 				// Then, make sure we didn't get anything we didn't want.
-				if !wantCounts.HasKey(elem.K) {
-					t.Errorf("wrong counts: got %s but didn't want it", elem.K)
+				if !wantCounts.HasKey(key) {
+					t.Errorf("wrong counts: got %s but didn't want it", key)
 				}
 			}
 		})
@@ -5233,7 +5335,7 @@ var cmpCollectionsSet = cmp.Comparer(func(x, y collections.Set[stackaddrs.AbsCom
 		return false
 	}
 
-	for _, v := range x.Elems() {
+	for v := range x.All() {
 		if !y.Has(v) {
 			return false
 		}

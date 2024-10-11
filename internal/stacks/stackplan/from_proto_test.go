@@ -107,7 +107,7 @@ func cmpCollectionsSet[V any]() cmp.Option {
 			return false
 		}
 
-		for _, v := range x.Elems() {
+		for v := range x.All() {
 			if !y.Has(v) {
 				return false
 			}
@@ -123,12 +123,12 @@ func cmpCollectionsMap[K, V any]() cmp.Option {
 			return false
 		}
 
-		for _, entry := range x.Elems() {
-			if !y.HasKey(entry.K) {
+		for key, entry := range x.All() {
+			if !y.HasKey(key) {
 				return false
 			}
 
-			if !cmp.Equal(entry.V, y.Get(entry.K)) {
+			if !cmp.Equal(entry, y.Get(key)) {
 				return false
 			}
 		}

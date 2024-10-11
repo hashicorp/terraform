@@ -94,15 +94,15 @@ type Plan struct {
 // the given component.
 func (p *Plan) ComponentInstances(addr stackaddrs.AbsComponent) collections.Set[stackaddrs.ComponentInstance] {
 	ret := collections.NewSet[stackaddrs.ComponentInstance]()
-	for _, elem := range p.Components.Elems() {
-		if elem.K.Stack.String() != addr.Stack.String() {
+	for elem := range p.Components.All() {
+		if elem.Stack.String() != addr.Stack.String() {
 			// Then
 			continue
 		}
-		if elem.K.Item.Component.Name != addr.Item.Name {
+		if elem.Item.Component.Name != addr.Item.Name {
 			continue
 		}
-		ret.Add(elem.K.Item)
+		ret.Add(elem.Item)
 	}
 	return ret
 }

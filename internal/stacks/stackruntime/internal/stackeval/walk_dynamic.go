@@ -157,7 +157,7 @@ func walkDynamicObjectsInStack[Output any](
 					}
 				}
 
-				for _, inst := range knownInstances.Elems() {
+				for inst := range knownInstances.All() {
 					if claimedInstances.Has(inst) {
 						// Then this instance is claimed by the removed block.
 						continue
@@ -218,7 +218,7 @@ func walkDynamicObjectsInStack[Output any](
 					}
 				}
 
-				for _, inst := range knownInstances.Elems() {
+				for inst := range knownInstances.All() {
 					if claimedInstances.Has(inst) {
 						// Then this instance is claimed by the component block.
 						continue

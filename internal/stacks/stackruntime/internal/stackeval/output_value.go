@@ -12,6 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -146,7 +147,26 @@ func (v *OutputValue) CheckResultValue(ctx context.Context, phase EvalPhase) (ct
 				return cfg.markResultValue(cty.UnknownVal(ty)), diags
 			}
 
-			if !cfg.Declaration(ctx).Ephemeral {
+			if cfg.Declaration(ctx).Ephemeral {
+				// Verify that ephemeral outputs are not declared on the root stack.
+				if v.Addr().Stack.IsRoot() {
+					diags = diags.Append(result.Diagnostic(
+						tfdiags.Error,
+						"Ephemeral output value not allowed on root stack",
+						fmt.Sprintf("Output value %q is marked as ephemeral, this is only allowed in embedded stacks.", v.Addr().Item.Name),
+					))
+				}
+
+				// Verify that the value is ephemeral.
+				if !marks.Contains(result.Value, marks.Ephemeral) {
+					diags = diags.Append(result.Diagnostic(
+						tfdiags.Error,
+						"Expected ephemeral value",
+						fmt.Sprintf("The output value %q is marked as ephemeral, but the value is not ephemeral.", v.Addr().Item.Name),
+					))
+				}
+
+			} else {
 				_, markses := result.Value.UnmarkDeepWithPaths()
 				problemPaths, _ := marks.PathsWithMark(markses, marks.Ephemeral)
 				var moreDiags tfdiags.Diagnostics
@@ -199,7 +219,72 @@ func (v *OutputValue) checkValid(ctx context.Context, phase EvalPhase) tfdiags.D
 // PlanChanges implements Plannable as a plan-time validation of the variable's
 // declaration and of the caller's definition of the variable.
 func (v *OutputValue) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
-	return nil, v.checkValid(ctx, PlanPhase)
+	diags := v.checkValid(ctx, PlanPhase)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// Only the root stack's outputs are exposed externally.
+	if !v.Addr().Stack.IsRoot() {
+		return nil, diags
+	}
+
+	before := v.main.PlanPrevState().RootOutputValue(v.Addr().Item)
+	if v.main.PlanningOpts().PlanningMode == plans.DestroyMode {
+		if before == cty.NilVal {
+			// If the value didn't exist before and we're in destroy mode,
+			// then we'll just ignore this value.
+			return nil, diags
+		}
+
+		// Otherwise, return a planned change deleting the value.
+		ty, _ := v.ResultType(ctx)
+		return []stackplan.PlannedChange{
+			&stackplan.PlannedChangeOutputValue{
+				Addr:   v.Addr().Item,
+				Action: plans.Delete,
+				Before: before,
+				After:  cty.NullVal(ty),
+			},
+		}, diags
+	}
+
+	decl := v.Declaration(ctx)
+	after := v.ResultValue(ctx, PlanPhase)
+	if decl.Ephemeral {
+		after = cty.NullVal(after.Type())
+	}
+
+	var action plans.Action
+	if before != cty.NilVal {
+		if decl.Ephemeral {
+			// if the value is ephemeral, we always consider it to be updated
+			action = plans.Update
+		} else {
+			unmarkedBefore, beforePaths := before.UnmarkDeepWithPaths()
+			unmarkedAfter, afterPaths := after.UnmarkDeepWithPaths()
+			result := unmarkedBefore.Equals(unmarkedAfter)
+			if result.IsKnown() && result.True() && marks.MarksEqual(beforePaths, afterPaths) {
+				action = plans.NoOp
+			} else {
+				// If we don't know for sure that the values are equal, then we'll
+				// call this an update.
+				action = plans.Update
+			}
+		}
+	} else {
+		action = plans.Create
+		before = cty.NullVal(cty.DynamicPseudoType)
+	}
+
+	return []stackplan.PlannedChange{
+		&stackplan.PlannedChangeOutputValue{
+			Addr:   v.Addr().Item,
+			Action: action,
+			Before: before,
+			After:  after,
+		},
+	}, diags
 }
 
 // References implements Referrer
@@ -212,7 +297,34 @@ func (v *OutputValue) References(ctx context.Context) []stackaddrs.AbsReference 
 
 // CheckApply implements Applyable.
 func (v *OutputValue) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
-	return nil, v.checkValid(ctx, ApplyPhase)
+	if !v.Addr().Stack.IsRoot() {
+		return nil, v.checkValid(ctx, ApplyPhase)
+	}
+
+	diags := v.checkValid(ctx, ApplyPhase)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	if v.main.PlanBeingApplied().DeletedOutputValues.Has(v.Addr().Item) {
+		// If the plan being applied has marked this output value for deletion,
+		// we won't handle it here. The stack will take care of removing
+		// everything related to this output value.
+		return nil, diags
+	}
+
+	decl := v.Declaration(ctx)
+	value := v.ResultValue(ctx, ApplyPhase)
+	if decl.Ephemeral {
+		value = cty.NullVal(value.Type())
+	}
+
+	return []stackstate.AppliedChange{
+		&stackstate.AppliedChangeOutputValue{
+			Addr:  v.Addr().Item,
+			Value: value,
+		},
+	}, diags
 }
 
 func (v *OutputValue) tracingName() string {

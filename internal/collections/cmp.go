@@ -40,7 +40,7 @@ func (s Set[T]) transformForCmp() any {
 	ret := make(map[any]any, s.Len())
 	// It's okay to access the keys here because this package is allowed to
 	// depend on its own implementation details.
-	for k, v := range s.Elems() {
+	for k, v := range s.members {
 		ret[k] = v
 	}
 	return ret
@@ -50,7 +50,7 @@ func (m Map[K, V]) transformForCmp() any {
 	ret := make(map[any]any, m.Len())
 	// It's okay to access the keys here because this package is allowed to
 	// depend on its own implementation details.
-	for k, v := range m.Elems() {
+	for k, v := range m.elems {
 		ret[k] = v
 	}
 	return ret

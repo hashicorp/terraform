@@ -479,6 +479,10 @@ func (s *Stack) OutputValues(ctx context.Context) map[stackaddrs.OutputValue]*Ou
 	return ret
 }
 
+func (s *Stack) OutputValue(ctx context.Context, addr stackaddrs.OutputValue) *OutputValue {
+	return s.OutputValues(ctx)[addr]
+}
+
 func (s *Stack) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
 	ovs := s.OutputValues(ctx)
 	elems := make(map[string]cty.Value, len(ovs))
@@ -688,7 +692,7 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 	// if a component is targeted.
 
 	var changes []stackplan.PlannedChange
-	for _, inst := range s.main.PlanPrevState().AllComponentInstances().Elems() {
+	for inst := range s.main.PlanPrevState().AllComponentInstances().All() {
 
 		// We track here whether this component instance has any associated
 		// resources. If this component is empty, and not referenced in the
@@ -769,74 +773,13 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 		))
 	}
 
-	// Now, we'll process all the output values for this stack.
+	// Finally, we'll look at the input and output values we have in state
+	// and any that do not appear in the configuration we'll mark as deleted.
 
-	afterVal := s.ResultValue(ctx, PlanPhase)
-	if !afterVal.Type().IsObjectType() || afterVal.IsNull() || !afterVal.IsKnown() {
-		// None of these situations should be possible if Stack.ResultValue is
-		// correctly implemented.
-		panic(fmt.Sprintf("invalid result from Stack.ResultValue: %#v", afterVal))
-	}
-	beforeVal := s.main.PlanPrevState().RootOutputValues()
-
-	if s.main.PlanningOpts().PlanningMode == plans.DestroyMode {
-		// For a destroy plan, we'll actually cheat a little bit and swap out
-		// the values for null and destroy actions. We do this here because
-		// for most stacks and outputs we might have components that rely on
-		// the output being calculated based on the prior state rather than
-		// returning null. So, we leave the internals to compute the value
-		// in a helpful way and then just blanket say that all outputs will be
-		// destroyed during the plan.
-		for name, attr := range afterVal.Type().AttributeTypes() {
-			addr := stackaddrs.OutputValue{Name: name}
-			if before, exists := beforeVal[addr]; exists {
-
-				// If the before doesn't exist, then we'll emit nothing for this
-				// change as it doesn't already exist in state so doesn't need
-				// to be destroyed.
-				changes = append(changes, &stackplan.PlannedChangeOutputValue{
-					Addr:   stackaddrs.OutputValue{Name: name},
-					Action: plans.Delete,
-					Before: before,
-					// We can set the right type here, as do have the
-					// configuration.
-					After: cty.NullVal(attr),
-				})
-			}
-		}
-	} else {
-		for it := afterVal.ElementIterator(); it.Next(); {
-			k, after := it.Element()
-
-			addr := stackaddrs.OutputValue{Name: k.AsString()}
-			before := cty.NullVal(cty.DynamicPseudoType)
-			action := plans.Create
-
-			if actualBefore, exists := beforeVal[addr]; exists {
-				before = actualBefore
-
-				unmarkedBefore, beforePaths := before.UnmarkDeepWithPaths()
-				unmarkedAfter, afterPaths := after.UnmarkDeepWithPaths()
-				result := unmarkedBefore.Equals(unmarkedAfter)
-				if result.IsKnown() && result.True() && marks.MarksEqual(beforePaths, afterPaths) {
-					action = plans.NoOp
-				} else {
-					action = plans.Update
-				}
-			}
-
-			changes = append(changes, &stackplan.PlannedChangeOutputValue{
-				Addr:   addr,
-				Action: action,
-				Before: before,
-				After:  after,
-			})
-		}
-	}
-
-	for addr, before := range beforeVal {
-		if afterVal.Type().HasAttribute(addr.Name) {
-			// Then we already processed this.
+	for addr, value := range s.main.PlanPrevState().RootOutputValues() {
+		if s.OutputValue(ctx, addr) != nil {
+			// Then this output value is in the configuration, and will be
+			// processed independently.
 			continue
 		}
 
@@ -844,7 +787,7 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 		changes = append(changes, &stackplan.PlannedChangeOutputValue{
 			Addr:   addr,
 			Action: plans.Delete,
-			Before: before,
+			Before: value,
 			After:  cty.NullVal(cty.DynamicPseudoType),
 		})
 	}
@@ -879,53 +822,27 @@ func (s *Stack) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfd
 	}
 
 	var diags tfdiags.Diagnostics
-
-	resultVal := s.ResultValue(ctx, ApplyPhase)
-	if !resultVal.Type().IsObjectType() || resultVal.IsNull() || !resultVal.IsKnown() {
-		// None of these situations should be possible if Stack.ResultValue is
-		// correctly implemented.
-		panic(fmt.Sprintf("invalid result from Stack.ResultValue: %#v", resultVal))
-	}
-
-	deletedOutputValues := s.main.PlanBeingApplied().DeletedOutputValues
-
 	var changes []stackstate.AppliedChange
-	for it := resultVal.ElementIterator(); it.Next(); {
-		k, v := it.Element()
-
-		addr := stackaddrs.OutputValue{Name: k.AsString()}
-		if deletedOutputValues.Has(addr) {
-			// Then we are deleting this output value even though it is in the
-			// configuration for some reason (probably because this is a
-			// delete plan and we're deleting everything). So, we won't process
-			// it here and only below.
-			continue
-		}
-		changes = append(changes, &stackstate.AppliedChangeOutputValue{
-			Addr:  addr,
-			Value: v,
-		})
-	}
 
 	// We're also just going to quickly emit any cleanup . These remaining
 	// values are basically just everything that have been in the configuration
 	// in the past but is no longer and so needs to be removed from the state.
 
-	for _, value := range deletedOutputValues.Elems() {
+	for value := range s.main.PlanBeingApplied().DeletedOutputValues.All() {
 		changes = append(changes, &stackstate.AppliedChangeOutputValue{
 			Addr:  value,
 			Value: cty.NilVal,
 		})
 	}
 
-	for _, value := range s.main.PlanBeingApplied().DeletedInputVariables.Elems() {
+	for value := range s.main.PlanBeingApplied().DeletedInputVariables.All() {
 		changes = append(changes, &stackstate.AppliedChangeInputVariable{
-			Addr:    value,
-			Removed: true,
+			Addr:  value,
+			Value: cty.NilVal,
 		})
 	}
 
-	for _, value := range s.main.PlanBeingApplied().DeletedComponents.Elems() {
+	for value := range s.main.PlanBeingApplied().DeletedComponents.All() {
 		changes = append(changes, &stackstate.AppliedChangeComponentInstanceRemoved{
 			ComponentAddr: stackaddrs.AbsComponent{
 				Stack: value.Stack,

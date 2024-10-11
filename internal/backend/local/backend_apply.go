@@ -273,7 +273,7 @@ func (b *Local) opApply(
 					// ephemeral variable that was set (non-null) during the
 					// planning phase.
 					applyTimeVar := false
-					for _, avName := range plan.ApplyTimeVariables.Elems() {
+					for avName := range plan.ApplyTimeVariables.All() {
 						if varName == avName {
 							applyTimeVar = true
 						}
