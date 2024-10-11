@@ -659,16 +659,45 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 	// Finally we are ready to try actually loading the module.
 	mod, mDiags := i.loader.Parser().LoadConfigDir(modDir)
 	if mod == nil {
-		// nil indicates missing or unreadable directory, so we'll
-		// discard the returned diags and return a more specific
-		// error message here. For registry modules this actually
-		// indicates a bug in the code above, since it's not the
-		// user's responsibility to create the directory in this case.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Unreadable module directory",
-			Detail:   fmt.Sprintf("The directory %s could not be read. This is a bug in Terraform and should be reported.", modDir),
-		})
+		// a nil module indicates a missing or unreadable directory, typically
+		// this would indicate that Terraform has done something wrong.
+		// However, if the subDir is not empty then it is possible that the
+		// module was properly downloaded but the user is trying to read a
+		// subdirectory that doesn't exist. In this case, it's not a problem
+		// with Terraform.
+		if len(subDir) > 0 {
+			// Let's make this error message as precise as possible.
+			_, instErr := os.Stat(instPath)
+			_, subErr := os.Stat(modDir)
+			if instErr == nil && os.IsNotExist(subErr) {
+				// Then the root directory the module was downloaded to could
+				// be loaded fine, but the subdirectory does not exist. This
+				// definitely means the user is trying to read a subdirectory
+				// that doesn't exist.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unreadable module subdirectory",
+					Detail:   fmt.Sprintf("The directory %s does not exist. The target submodule %s does not exist within the target module.", modDir, subDir),
+				})
+			} else {
+				// There's something else gone wrong here, so we'll report it
+				// as a bug in Terraform.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unreadable module directory",
+					Detail:   fmt.Sprintf("The directory %s could not be read. This is a bug in Terraform and should be reported.", modDir),
+				})
+			}
+		} else {
+			// If there is no subDir, then somehow the module was downloaded but
+			// could not be read even at the root directory it was downloaded into.
+			// This is definitely something that Terraform is doing wrong.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unreadable module directory",
+				Detail:   fmt.Sprintf("The directory %s could not be read. This is a bug in Terraform and should be reported.", modDir),
+			})
+		}
 	} else if vDiags := mod.CheckCoreVersionRequirements(req.Path, req.SourceAddr); vDiags.HasErrors() {
 		// If the core version requirements are not met, we drop any other
 		// diagnostics, as they may reflect language changes from future
