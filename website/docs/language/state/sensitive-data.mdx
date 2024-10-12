@@ -7,19 +7,25 @@ description: Sensitive data in Terraform state.
 
 Terraform state can contain sensitive data, depending on the resources in use
 and your definition of "sensitive." The state contains resource IDs and all
-resource attributes. For resources such as databases, this may contain initial
+resource attributes unless your mark those resources as [`ephmeral`](#ephemeral-data). For resources such as databases, this may contain initial
 passwords.
 
 When using local state, state is stored in plain-text JSON files.
 
-When using [remote state](/terraform/language/state/remote), state is only ever held in
-memory when used by Terraform. It may be encrypted at rest, but this depends on
-the specific remote state backend.
+When using [remote state](/terraform/language/state/remote), state is only ever held in memory when used by Terraform. It may be encrypted at rest, but this depends on the specific remote state backend.
+
+## Ephemeral data
+
+-> **Note**: Ephmeral values are in public beta, and the workflows and API of ephemeral values may change.
+
+Terraform allows you to mark `input` variables, `outputs` variables, and `resources` as ephemeral.  Marking sensitive data as `ephmeral` tells Terraform that the data is available during runtime, but Terraform should not write data to state or plan files. The `ephmeral` property is useful if you are managing credentials, tokens, or other temporary resources that you do not want to store in Terraform state files.
+
+Learn more about defining `ephemeral` [output variables](/terraform/language/values/outputs#ephemeral), [input variables](/terraform/language/values/varibales#ephemeral), and [resources]().
 
 ## Recommendations
 
 If you manage any sensitive data with Terraform (like database passwords, user
-passwords, or private keys), treat the state itself as sensitive data.
+passwords, or private keys) that isn't marked as `ephemeral`, then treat the state itself as sensitive data.
 
 Storing state remotely can provide better security. As of Terraform 0.9,
 Terraform does not persist state to the local disk when remote state is in use,

@@ -32,7 +32,7 @@ The command-line flags are all optional. The following flags are available:
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
   Ignored when [remote state](/terraform/language/state/remote) is used.
 
--> **Note:** When using the `-json` or `-raw` command-line flag, any sensitive
+-> **Note:** When using the `-json` or `-raw` command-line flag, any `sensitive`
 values in Terraform state will be displayed in plain text. For more information,
 see [Sensitive Data in State](/terraform/language/state/sensitive-data).
 
@@ -53,6 +53,11 @@ output "password" {
   sensitive = true
   value = var.secret_password
 }
+
+output "session_token" {
+  ephemeral = true
+  value = var.session_token
+}
 ```
 
 To list all outputs:
@@ -66,13 +71,21 @@ instance_ips = [
 ]
 lb_address = "my-app-alb-1657023003.us-east-1.elb.amazonaws.com"
 password = <sensitive>
+session_token = <ephemeral>
 ```
 
-Note that Terraform does not redact the value when you specify the output by name:
+Note that Terraform does not redact `sensitive` values when you specify the output by name:
 
 ```shellsession
 $ terraform output password
 password = notasecurepassword
+```
+
+However, Terraform does redact `ephemeral` values even you specify the output by name:
+
+```shellsession
+$ terraform output session_token
+session_token = <ephemeral>
 ```
 
 To query for the DNS address of the load balancer:
