@@ -85,7 +85,7 @@ Refer to [Custom Condition Checks](/terraform/language/expressions/custom-condit
 
 ## Optional Arguments
 
-`output` blocks can optionally include `description`, `sensitive`, `ephemeral`,and `depends_on` arguments, which are described in the following sections.
+`output` blocks can optionally include `description`, `sensitive`, `ephemeral`, and `depends_on` arguments, which are described in the following sections.
 
 <a id="description"></a>
 
@@ -123,7 +123,7 @@ output "session_token" {
   ephemeral = true
 }
 ```
-The value of ephemeral `output` blocks are available during Terraform's runtime.However, during plan or apply operations Terraform still hides the values for ephmeral outputs.
+The value of ephemeral `output` blocks are available during Terraform's runtime.However, during plan or apply operations Terraform still hides the values for ephemeral outputs.
 
 ```shell
 Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
