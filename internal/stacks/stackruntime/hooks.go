@@ -41,7 +41,7 @@ type Hooks = stackeval.Hooks
 // ContextWithHooks returns a context that carries the given [Hooks] as
 // one of its values.
 //
-// Pass the resulting context -- or a descendent that preserves the values --
+// Pass the resulting context -- or a descendant that preserves the values --
 // to [Plan] or [Apply] to be notified when the different hookable events
 // occur during that plan or apply process.
 func ContextWithHooks(parent context.Context, hooks *Hooks) context.Context {

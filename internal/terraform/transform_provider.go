@@ -741,7 +741,7 @@ func (t *ProviderConfigTransformer) attachProviderConfigs(g *Graph) error {
 		addr := apn.ProviderAddr()
 
 		// Get the configuration.
-		mc := t.Config.Descendent(addr.Module)
+		mc := t.Config.Descendant(addr.Module)
 		if mc == nil {
 			log.Printf("[TRACE] ProviderConfigTransformer: no configuration available for %s", addr.String())
 			continue

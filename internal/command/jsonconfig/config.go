@@ -520,9 +520,9 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 	return rs, nil
 }
 
-// Flatten all resource provider keys in a module and its descendents, such
+// Flatten all resource provider keys in a module and its descendants, such
 // that any resources from providers using a configuration passed through the
-// module call have a direct refernce to that provider configuration.
+// module call have a direct reference to that provider configuration.
 func normalizeModuleProviderKeys(m *module, pcs map[string]providerConfig) {
 	for i, r := range m.Resources {
 		if pc, exists := pcs[r.ProviderConfigKey]; exists {

@@ -27,7 +27,7 @@ func (t *RemovedModuleTransformer) Transform(g *Graph) error {
 	removed := map[string]addrs.Module{}
 
 	for _, m := range t.State.Modules {
-		cc := t.Config.DescendentForInstance(m.Addr)
+		cc := t.Config.DescendantForInstance(m.Addr)
 		if cc != nil {
 			continue
 		}
