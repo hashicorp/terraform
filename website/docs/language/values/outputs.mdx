@@ -85,7 +85,7 @@ Refer to [Custom Condition Checks](/terraform/language/expressions/custom-condit
 
 ## Optional Arguments
 
-`output` blocks can optionally include `description`, `sensitive`, and `depends_on` arguments, which are described in the following sections.
+`output` blocks can optionally include `description`, `sensitive`, `ephemeral`,and `depends_on` arguments, which are described in the following sections.
 
 <a id="description"></a>
 
@@ -107,6 +107,35 @@ purpose of the output and what kind of value is expected. This description
 string might be included in documentation about the module, and so it should be
 written from the perspective of the user of the module rather than its
 maintainer. For commentary for module maintainers, use comments.
+
+<a id="ephemeral"></a>
+
+### `ephemeral` — Avoid storing values in state or plan files
+
+You can mark `output` values as `ephemeral` to avoid persisting those values in your state or plan files. Use the `ephemeral` argument for temporary values that you do not want Terraform to save, such as short-lived credentials, session tokens, or other transient data. 
+
+You can mark an `output` as ephemeral by setting the `ephemeral` field to `true`:
+
+```hcl
+output "session_token" {
+  value     = aws_iam_role.session_token
+  description = "Temporary session token for AWS access."
+  ephemeral = true
+}
+```
+The value of ephemeral `output` blocks are available during Terraform's runtime.However, during plan or apply operations Terraform still hides the values for ephmeral outputs.
+
+```shell
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+session_token = "session_token" (ephemeral)
+
+Output values marked "(ephemeral)" may change on the next apply, and are not saved to the state.
+```
+
+At the end of a plan or apply operation, Terraform does not persist the value of any ephemeral outputs and does not write them to the state file. 
 
 <a id="sensitive"></a>
 
@@ -168,16 +197,10 @@ Changes to Outputs:
   + out = (sensitive value)
 ```
 
--> **Note:** In Terraform versions prior to Terraform 0.14, setting an output
-value in the root module as sensitive would prevent Terraform from showing its
-value in the list of outputs at the end of `terraform apply`. However, the
-value could still display in the CLI output for other reasons, like if the
-value is referenced in an expression for a resource argument.
-
 Terraform will still record sensitive values in the [state](/terraform/language/state),
 and so anyone who can access the state data will have access to the sensitive
 values in cleartext. For more information, see
-[_Sensitive Data in State_](/terraform/language/state/sensitive-data).
+[Sensitive Data in State](/terraform/language/state/sensitive-data).
 
 <a id="depends_on"></a>
 
