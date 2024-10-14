@@ -376,32 +376,6 @@ module "child" {
 			expectValidateEphemeralResourceConfigCalled: true,
 			expectCloseEphemeralResourceCalled:          true,
 		},
-
-		"function ephemeral": {
-			toBeImplemented: true,
-			module: map[string]string{
-				"child/main.tf": `
-
-# We expect this to error since it should be an ephemeral value
-output "value" {
-    value = ephemeral("hello world")
-}
-`,
-				"main.tf": `
-module "child" {
-    source = "./child"
-}
-			`,
-			},
-
-			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
-				return diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Ephemeral value not allowed",
-					Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
-				})
-			},
-		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {

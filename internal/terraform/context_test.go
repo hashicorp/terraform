@@ -1029,7 +1029,6 @@ type SummaryAndDetail struct {
 // assertDiagnosticsSummaryAndDetailMatch fails the test in progress (using t.Fatal) if the
 // two sets of diagnostics don't match their subjects / descriptions after being normalized using the "ForRPC" processing step.
 func assertDiagnosticsSummaryAndDetailMatch(t *testing.T, got, want tfdiags.Diagnostics) {
-
 	got = got.ForRPC()
 	want = want.ForRPC()
 
@@ -1038,7 +1037,6 @@ func assertDiagnosticsSummaryAndDetailMatch(t *testing.T, got, want tfdiags.Diag
 
 	gotSummaryAndDetail := make([]SummaryAndDetail, len(got))
 	for i, diag := range got {
-
 		gotSummaryAndDetail[i] = SummaryAndDetail{diag.Severity(), diag.Description().Summary, diag.Description().Detail}
 	}
 
