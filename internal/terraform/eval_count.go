@@ -56,7 +56,7 @@ func evaluateCountExpression(expr hcl.Expression, ctx EvalContext, allowUnknown 
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid count argument",
-			Detail:   "The count value cannot depend on ephemeral values.",
+			Detail:   `The given "count" value is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values here.`,
 			Subject:  expr.Range().Ptr(),
 			Extra:    diagnosticCausedByEphemeral(true),
 		})
