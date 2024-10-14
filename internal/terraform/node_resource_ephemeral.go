@@ -28,14 +28,14 @@ type ephemeralResourceInput struct {
 // ephemeralResourceOpen implements the "open" step of the ephemeral resource
 // instance lifecycle, which behaves the same way in both the plan and apply
 // walks.
-func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) tfdiags.Diagnostics {
+func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*providers.Deferred, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] ephemeralResourceOpen: opening %s", inp.addr)
 	var diags tfdiags.Diagnostics
 
 	provider, providerSchema, err := getProvider(ctx, inp.providerConfig)
 	if err != nil {
 		diags = diags.Append(err)
-		return diags
+		return nil, diags
 	}
 
 	config := inp.config
@@ -47,7 +47,7 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) tfdiags.
 				inp.providerConfig, inp.addr.ContainingResource().Resource.Type,
 			),
 		)
-		return diags
+		return nil, diags
 	}
 
 	ephemerals := ctx.EphemeralResources()
@@ -62,13 +62,13 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) tfdiags.
 	)
 	diags = diags.Append(checkDiags)
 	if diags.HasErrors() {
-		return diags // failed preconditions prevent further evaluation
+		return nil, diags // failed preconditions prevent further evaluation
 	}
 
 	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
 	if diags.HasErrors() {
-		return diags
+		return nil, diags
 	}
 	unmarkedConfigVal, configMarks := configVal.UnmarkDeepWithPaths()
 
@@ -79,20 +79,19 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) tfdiags.
 
 	diags = diags.Append(validateResp.Diagnostics)
 	if diags.HasErrors() {
-		return diags
+		return nil, diags
 	}
 
 	resp := provider.OpenEphemeralResource(providers.OpenEphemeralResourceRequest{
 		TypeName: inp.addr.ContainingResource().Resource.Type,
 		Config:   unmarkedConfigVal,
 	})
-	if resp.Deferred != nil {
-		// FIXME: Actually implement this.
-		diags = diags.Append(fmt.Errorf("we don't support deferral of ephemeral resource instances yet"))
-	}
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, inp.addr.String()))
 	if diags.HasErrors() {
-		return diags
+		return nil, diags
+	}
+	if resp.Deferred != nil {
+		return resp.Deferred, diags
 	}
 	resultVal := resp.Result.MarkWithPaths(configMarks)
 
@@ -110,7 +109,7 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) tfdiags.
 		)).InConfigBody(config.Config, inp.addr.String())
 	}
 	if diags.HasErrors() {
-		return diags
+		return nil, diags
 	}
 
 	// We are going to wholesale mark the entire resource as ephemeral. This
@@ -133,7 +132,7 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) tfdiags.
 		Private:    resp.Private,
 	})
 
-	return diags
+	return nil, diags
 }
 
 // nodeEphemeralResourceClose is the node type for closing the previously-opened
