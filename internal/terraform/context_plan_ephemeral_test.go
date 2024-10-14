@@ -378,7 +378,6 @@ module "child" {
 		},
 
 		"function ephemeral": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"child/main.tf": `
 
