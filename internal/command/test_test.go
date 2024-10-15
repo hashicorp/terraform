@@ -261,6 +261,22 @@ func TestTest_Runs(t *testing.T) {
 			},
 			code: 0,
 		},
+		"ephemeral_input": {
+			expectedOut: "2 passed, 0 failed.",
+			code:        0,
+		},
+		"ephemeral_input_with_error": {
+			expectedOut: "1 passed, 1 failed.",
+			// TODO: This error should not print baz but display the ephemeral value otherwise
+			expectedErr: []string{"Expecting this to fail, real value is: baz"},
+			code:        1,
+		},
+		"ephemeral_resource": {
+			expectedOut: "0 passed, 1 failed.",
+			// TODO: Improve error message, say something about ephemeral resources not being accessible in tests due to their ephemeral nature
+			expectedErr: []string{"Ephemeral resource instance has expired"},
+			code:        1,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {

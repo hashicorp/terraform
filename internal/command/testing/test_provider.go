@@ -63,6 +63,18 @@ var (
 				},
 			},
 		},
+		EphemeralResourceTypes: map[string]providers.Schema{
+			"test_ephemeral_resource": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"value": {
+							Type:     cty.String,
+							Computed: true,
+						},
+					},
+				},
+			},
+		},
 		Functions: map[string]providers.FunctionDecl{
 			"is_true": {
 				Parameters: []providers.FunctionParam{
@@ -110,6 +122,8 @@ func NewProvider(store *ResourceStore) *TestProvider {
 	provider.Provider.ReadResourceFn = provider.ReadResource
 	provider.Provider.ReadDataSourceFn = provider.ReadDataSource
 	provider.Provider.CallFunctionFn = provider.CallFunction
+	provider.Provider.OpenEphemeralResourceFn = provider.OpenEphemeralResource
+	provider.Provider.CloseEphemeralResourceFn = provider.CloseEphemeralResource
 
 	return provider
 }
@@ -338,6 +352,17 @@ func (provider *TestProvider) CallFunction(request providers.CallFunctionRequest
 			Err: fmt.Errorf("unknown function %q", request.FunctionName),
 		}
 	}
+}
+
+func (provider *TestProvider) OpenEphemeralResource(providers.OpenEphemeralResourceRequest) (resp providers.OpenEphemeralResourceResponse) {
+	resp.Result = cty.ObjectVal(map[string]cty.Value{
+		"value": cty.StringVal("bar"),
+	})
+	return resp
+}
+
+func (provider *TestProvider) CloseEphemeralResource(providers.CloseEphemeralResourceRequest) (resp providers.CloseEphemeralResourceResponse) {
+	return resp
 }
 
 // ResourceStore manages a set of cty.Value resources that can be shared between
