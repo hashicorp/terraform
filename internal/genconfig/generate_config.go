@@ -6,11 +6,11 @@ package genconfig
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -18,12 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-)
-
-var (
-	// whitespace is a regular expression that matches one or more whitespace
-	// characters.
-	whitespace = regexp.MustCompile(`\s+`)
 )
 
 // GenerateResourceContents generates HCL configuration code for the provided
@@ -592,7 +586,7 @@ func ctyCollectionValues(val cty.Value) []cty.Value {
 func hclEscapeString(str string) string {
 	// TODO: Replace this with more complete HCL logic instead of the simple
 	// go workaround.
-	if whitespace.MatchString(str) {
+	if !hclsyntax.ValidIdentifier(str) {
 		return fmt.Sprintf("%q", str)
 	}
 	return str
