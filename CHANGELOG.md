@@ -1,5 +1,9 @@
 ## 1.9.8 (Unreleased)
 
+BUG FIXES:
+
+* config generation: Escape all invalid syntax in generate map keys with quotes. ([#35837](https://github.com/hashicorp/terraform/pull/35837))
+
 ## 1.9.7 (October 2, 2024)
 
 BUG FIXES:
