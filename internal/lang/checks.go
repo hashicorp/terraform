@@ -79,9 +79,7 @@ You can correct this by removing references to sensitive values, or by carefully
 			Detail: `The error expression used to explain this condition refers to ephemeral values, so Terraform will not display the resulting message.
 
 You can correct this by removing references to ephemeral values, or by using the ephemeralasnull() function on the references to not reveal ephemeral data.`,
-			Subject:     expr.Range().Ptr(),
-			Expression:  expr,
-			EvalContext: hclCtx,
+			Subject: expr.Range().Ptr(),
 		})
 		return "", diags
 	}
