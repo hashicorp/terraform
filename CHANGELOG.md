@@ -2,6 +2,8 @@
 
 BUG FIXES:
 
+* init: Highlight missing subdirectories of registry modules in error message. ([#35848](https://github.com/hashicorp/terraform/pull/35848)).
+* init: Prevent crash when loading `provider_meta` blocks with invalid names. ([#35842](https://github.com/hashicorp/terraform/pull/35842))
 * config generation: Escape all invalid syntax in generate map keys with quotes. ([#35837](https://github.com/hashicorp/terraform/pull/35837))
 
 ## 1.9.7 (October 2, 2024)
