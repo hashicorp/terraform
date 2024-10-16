@@ -313,6 +313,17 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 							}
 						}
 						switch {
+						case val.HasMark(marks.Sensitive) && val.HasMark(marks.Ephemeral):
+							// We only mention the combination of sensitive and ephemeral
+							// values if the diagnostic we're rendering is explicitly
+							// marked as being caused by sensitive and ephemeral values,
+							// because otherwise readers tend to be misled into thinking the error
+							// is caused by the sensitive value even when it isn't.
+							if !includeSensitive || !includeEphemeral {
+								continue Traversals
+							}
+
+							value.Statement = "has an ephemeral, sensitive value"
 						case val.HasMark(marks.Sensitive):
 							// We only mention a sensitive value if the diagnostic
 							// we're rendering is explicitly marked as being
