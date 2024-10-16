@@ -347,6 +347,15 @@ func (c *Config) ProviderRequirements() (providerreqs.Requirements, hcl.Diagnost
 	return reqs, diags
 }
 
+// ProviderRequirementsConfigOnly searches the full tree of configuration
+// files for all providers. This function does not consider any test files.
+func (c *Config) ProviderRequirementsConfigOnly() (providerreqs.Requirements, hcl.Diagnostics) {
+	reqs := make(providerreqs.Requirements)
+	diags := c.addProviderRequirements(reqs, true, false)
+
+	return reqs, diags
+}
+
 // ProviderRequirementsShallow searches only the direct receiver for explicit
 // and implicit dependencies on providers. Descendant modules are ignored.
 //
