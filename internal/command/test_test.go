@@ -272,8 +272,7 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"ephemeral_resource": {
 			expectedOut: []string{"0 passed, 1 failed."},
-			// TODO: Improve error message, say something about ephemeral resources not being accessible in tests due to their ephemeral nature
-			expectedErr: []string{"Ephemeral resource instance has expired", "Ephemeral resources not supported in the context of tests"},
+			expectedErr: []string{"Ephemeral resource instance has expired", "Ephemeral resources cannot be asserted"},
 			code:        1,
 		},
 	}

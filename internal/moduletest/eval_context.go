@@ -211,8 +211,8 @@ func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnost
 			if v.Resource.Mode == addrs.EphemeralResourceMode {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Ephemeral resources not supported in the context of tests",
-					Detail:   "Ephemeral resources are not supported in the context of terraform test.",
+					Summary:  "Ephemeral resources cannot be asserted",
+					Detail:   "Ephemeral resources are closed when the test is finished, and are not available within the test context for assertions.",
 					Subject:  ref.SourceRange.ToHCL().Ptr(),
 				})
 			}
