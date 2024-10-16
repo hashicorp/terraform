@@ -469,7 +469,7 @@ check "error" {
 						AttrsJSON: []byte(`{"number": -1}`),
 					},
 					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
+						Provider: addrs.NewDefaultProvider("checks"),
 						Module:   addrs.RootModule,
 					})
 			}),
@@ -569,7 +569,7 @@ check "passing" {
 						AttrsJSON: []byte(`{"number": -1}`),
 					},
 					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
+						Provider: addrs.NewDefaultProvider("checks"),
 						Module:   addrs.RootModule,
 					})
 			}),
