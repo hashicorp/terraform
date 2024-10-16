@@ -203,6 +203,29 @@ resource "implicit_thing" "b" {
 		"main.tf": configSrc,
 	})
 
+	state := states.BuildState(func(state *states.SyncState) {
+		state.SetResourceInstanceCurrent(addrs.AbsResourceInstance{
+			Resource: addrs.ResourceInstance{
+				Resource: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "implicit3_thing",
+					Name: "c",
+				},
+			},
+		},
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustParseJson(map[string]interface{}{}),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.Provider{
+					Type:      "implicit3",
+					Namespace: "hashicorp",
+					Hostname:  "registry.terraform.io",
+				},
+			})
+	})
+
 	// Validate and Plan are the two entry points where we explicitly verify
 	// the available plugins match what the configuration needs. For other
 	// operations we typically fail more deeply in Terraform Core, with
@@ -211,7 +234,7 @@ resource "implicit_thing" "b" {
 	// be worth the complexity to check for them.
 
 	validateDiags := ctx.Validate(cfg, nil)
-	_, planDiags := ctx.Plan(cfg, nil, DefaultPlanOpts)
+	_, planDiags := ctx.Plan(cfg, state, DefaultPlanOpts)
 
 	tests := map[string]tfdiags.Diagnostics{
 		"validate": validateDiags,
@@ -248,6 +271,17 @@ resource "implicit_thing" "b" {
 					`This configuration requires provisioner plugin "nonexist", which isn't available. If you're intending to use an external provisioner plugin, you must install it manually into one of the plugin search directories before running Terraform.`,
 				),
 			)
+
+			if testName == "plan" {
+				// the plan also validates the state
+				wantDiags = wantDiags.Append(
+					tfdiags.Sourceless(
+						tfdiags.Error,
+						"Missing required provider",
+						"This state requires provider registry.terraform.io/hashicorp/implicit3, but that provider isn't available. You may be able to install it automatically by running:\n  terraform init",
+					),
+				)
+			}
 			assertDiagnosticsMatch(t, gotDiags, wantDiags)
 		})
 	}

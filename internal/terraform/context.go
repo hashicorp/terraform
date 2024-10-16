@@ -10,6 +10,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -17,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // InputMode defines what sort of input will be asked for when Input
@@ -337,6 +338,51 @@ func (c *Context) watchStop(walker *ContextGraphWalker) (chan struct{}, <-chan s
 	return stop, wait
 }
 
+func (c *Context) checkStateDependencies(state *states.State) tfdiags.Diagnostics {
+	if state == nil {
+		// no state is fine, first time execution etc
+		return nil
+	}
+
+	var diags tfdiags.Diagnostics
+	for providerAddr := range state.ProviderRequirements() {
+		if !c.plugins.HasProvider(providerAddr) {
+			if c.plugins.HasPreloadedSchemaForProvider(providerAddr) {
+				// If the caller provided a preloaded schema for this provider
+				// then we'll take that as a hint that the caller is intending
+				// to handle some of these pre-validation tasks itself and
+				// so we'll just optimistically assume that the caller
+				// has arranged for this to work some other way, or will
+				// return its own version of this error before calling
+				// into here if not.
+				continue
+			}
+			if !providerAddr.IsBuiltIn() {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Missing required provider",
+					fmt.Sprintf(
+						"This state requires provider %s, but that provider isn't available. You may be able to install it automatically by running:\n  terraform init",
+						providerAddr,
+					),
+				))
+			} else {
+				// Built-in providers can never be installed by "terraform init",
+				// so no point in confusing the user by suggesting that.
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Missing required provider",
+					fmt.Sprintf(
+						"This state requires built-in provider %s, but that provider isn't available in this Terraform version.",
+						providerAddr,
+					),
+				))
+			}
+		}
+	}
+	return diags
+}
+
 // checkConfigDependencies checks whether the recieving context is able to
 // support the given configuration, returning error diagnostics if not.
 //
@@ -364,7 +410,7 @@ func (c *Context) checkConfigDependencies(config *configs.Config) tfdiags.Diagno
 	// We only check that we have a factory for each required provider, and
 	// assume the caller already assured that any separately-installed
 	// plugins are of a suitable version, match expected checksums, etc.
-	providerReqs, hclDiags := config.ProviderRequirements()
+	providerReqs, hclDiags := config.ProviderRequirementsConfigOnly()
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
 		return diags
