@@ -778,17 +778,17 @@ func (runner *TestFileRunner) apply(tfCtx *terraform.Context, plan *plans.Plan, 
 
 	// We only need to pass ephemeral variables to the apply operation, as the
 	// plan has already been evaluated with the full set of variables.
-	ephermeralVariables := make(terraform.InputValues)
+	ephemeralVariables := make(terraform.InputValues)
 	for k, v := range config.Root.Module.Variables {
 		if v.EphemeralSet {
 			if value, ok := variables[k]; ok {
-				ephermeralVariables[k] = value
+				ephemeralVariables[k] = value
 			}
 		}
 	}
 
 	applyOpts := &terraform.ApplyOpts{
-		SetVariables: ephermeralVariables,
+		SetVariables: ephemeralVariables,
 	}
 
 	go func() {
