@@ -1,4 +1,4 @@
-## 1.9.8 (Unreleased)
+## 1.9.8 (October 16, 2024)
 
 BUG FIXES:
 
