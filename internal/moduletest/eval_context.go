@@ -92,6 +92,12 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 		ruleDiags = ruleDiags.Append(moreDiags)
 		refs = append(refs, moreRefs...)
 
+		// We want to emit diagnostics if users are using ephemeral resources in their checks
+		// as they are not supported since they are closed before this is evaluated.
+		// We do not remove the diagnostic about the ephemeral resource being closed already as it
+		// might be useful to the user.
+		ruleDiags = ruleDiags.Append(diagsForEphemeralResources(refs))
+
 		hclCtx, moreDiags := scope.EvalContext(refs)
 		ruleDiags = ruleDiags.Append(moreDiags)
 		if moreDiags.HasErrors() {
@@ -196,6 +202,23 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 	}
 
 	return status, cty.ObjectVal(outputVals), diags
+}
+
+func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnostics) {
+	for _, ref := range refs {
+		switch v := ref.Subject.(type) {
+		case addrs.ResourceInstance:
+			if v.Resource.Mode == addrs.EphemeralResourceMode {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Ephemeral resources not supported in the context of tests",
+					Detail:   "Ephemeral resources are not supported in the context of terraform test.",
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+			}
+		}
+	}
+	return diags
 }
 
 // evaluationData augments an underlying lang.Data -- presumably resulting
