@@ -386,10 +386,10 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Ve
 			// upstream managed resource in order to check for a planned
 			// change.
 			if _, ok := rv.(GraphNodeConfigResource); !ok {
-				for _, v := range g.Ancestors(rv) {
-					if isDependableResource(v) {
-						res = append(res, v)
-					}
+				for _, v := range g.FirstAncestorsWith(rv, func(v dag.Vertex) bool {
+					return isDependableResource(v)
+				}) {
+					res = append(res, v)
 				}
 			}
 		}
@@ -459,8 +459,10 @@ func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsO
 			}
 		}
 
-		for _, v := range g.Ancestors(deps...) {
-			if isDependableResource(v) {
+		for _, dep := range deps {
+			for _, v := range g.FirstAncestorsWith(dep, func(v dag.Vertex) bool {
+				return isDependableResource(v)
+			}) {
 				res = append(res, v)
 			}
 		}
