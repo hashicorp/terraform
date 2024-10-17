@@ -22,11 +22,13 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	backendinit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -1428,7 +1430,7 @@ func TestPlan_parallelism(t *testing.T) {
 	// called once we reach the desired concurrency, allowing all apply calls
 	// to proceed in unison.
 	beginCtx, begin := context.WithCancel(context.Background())
-
+	t.Cleanup(begin)
 	// Since our mock provider has its own mutex preventing concurrent calls
 	// to ApplyResourceChange, we need to use a number of separate providers
 	// here. They will all have the same mock implementation function assigned
@@ -1581,6 +1583,95 @@ func TestPlan_jsonGoldenReference(t *testing.T) {
 	}
 
 	checkGoldenReference(t, output, "plan")
+}
+
+func TestPlan_ephemeralValues(t *testing.T) {
+	testCases := []struct {
+		fixturePath    string
+		expectedCode   int
+		expectedOutput string
+	}{
+		{
+			"plan-ephemeral-values-invalid-eph-var-in-non-eph-output",
+			1,
+			`Error: Ephemeral value not allowed`,
+		},
+		{
+			"plan-ephemeral-values-invalid-module-eph-output",
+			1,
+			`Error: Value not allowed in ephemeral output`,
+		},
+		{
+			"plan-ephemeral-values-invalid-module-input",
+			1,
+			"Error: Ephemeral value not allowed",
+		},
+		{
+			"plan-ephemeral-values-invalid-module-non-eph-output",
+			1,
+			`Error: Ephemeral value not allowed`,
+		},
+		{
+			"plan-ephemeral-values-invalid-noneph-var-in-eph-output",
+			1,
+			`Error: Value not allowed in ephemeral output`,
+		},
+		{
+			"plan-ephemeral-values-valid",
+			0,
+			"",
+		},
+		{
+			"plan-ephemeral-values-valid-module-input",
+			0,
+			"",
+		},
+		{
+			"plan-ephemeral-values-variable-validation",
+			1,
+			"Error: Invalid value for variable",
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("%2d-%s", i, tc.fixturePath), func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(tc.fixturePath), td)
+			defer testChdir(t, td)()
+
+			p := planFixtureProvider()
+			p.GetProviderSchemaResponse.Provider = providers.Schema{
+				Version: 0,
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"token": {
+							Type:      cty.String,
+							Optional:  true,
+							Sensitive: true,
+						},
+					},
+				},
+			}
+
+			streams, done := terminal.StreamsForTesting(t)
+			c := &PlanCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					View:             views.NewView(streams),
+				},
+			}
+			code := c.Run([]string{"-json"})
+			out := done(t)
+			if code != tc.expectedCode {
+				t.Fatalf("expected exit code %d, given %d\noutput: %q", tc.expectedCode, code, out.All())
+			}
+
+			stdout := out.Stdout()
+			if tc.expectedOutput != "" && !strings.Contains(stdout, tc.expectedOutput) {
+				t.Fatalf("unexpected output: %s", stdout)
+			}
+		})
+	}
 }
 
 // planFixtureSchema returns a schema suitable for processing the
