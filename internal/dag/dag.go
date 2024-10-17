@@ -51,6 +51,56 @@ func (g *AcyclicGraph) Ancestors(vs ...Vertex) Set {
 	return s
 }
 
+// FirstAncestorsWith returns a Set that includes every Vertex yielded by
+// walking down from the provided starting Vertex v, and stopping each branch when
+// match returns true. This will return the set of all first ancestors
+// encountered which match some criteria.
+func (g *AcyclicGraph) FirstAncestorsWith(v Vertex, match func(Vertex) bool) Set {
+	s := make(Set)
+	searchFunc := func(v Vertex, d int) error {
+		if match(v) {
+			s.Add(v)
+			return errStopWalkBranch
+		}
+
+		return nil
+	}
+
+	start := make(Set)
+	for _, dep := range g.downEdgesNoCopy(v) {
+		start.Add(dep)
+	}
+
+	// our memoFunc doesn't return an error
+	g.DepthFirstWalk(start, searchFunc)
+
+	return s
+}
+
+// MatchAncestor returns true if the given match function returns true for any
+// descendants of the given Vertex.
+func (g *AcyclicGraph) MatchAncestor(v Vertex, match func(Vertex) bool) bool {
+	var ret bool
+	matchFunc := func(v Vertex, d int) error {
+		if match(v) {
+			ret = true
+			return errStopWalk
+		}
+
+		return nil
+	}
+
+	start := make(Set)
+	for _, dep := range g.downEdgesNoCopy(v) {
+		start.Add(dep)
+	}
+
+	// our memoFunc doesn't return an error
+	g.DepthFirstWalk(start, matchFunc)
+
+	return ret
+}
+
 // Descendants returns a Set that includes every Vertex yielded by walking up
 // from the provided starting Vertex v.
 func (g *AcyclicGraph) Descendants(v Vertex) Set {

@@ -317,7 +317,7 @@ func TestAcyclicGraphFindDescendants(t *testing.T) {
 		return v.(int) == 1
 	})
 	if !foundOne {
-		t.Fatal("did not match 6 in the graph")
+		t.Fatal("did not match 1 in the graph")
 	}
 
 	foundSix := g.MatchDescendant(6, func(v Vertex) bool {
@@ -328,6 +328,57 @@ func TestAcyclicGraphFindDescendants(t *testing.T) {
 	}
 
 	foundTen := g.MatchDescendant(6, func(v Vertex) bool {
+		return v.(int) == 10
+	})
+	if foundTen {
+		t.Fatal("10 is not in the graph at all")
+	}
+}
+
+func TestAcyclicGraphFindAncestors(t *testing.T) {
+	var g AcyclicGraph
+	g.Add(0)
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Add(5)
+	g.Add(6)
+	g.Connect(BasicEdge(1, 0))
+	g.Connect(BasicEdge(2, 1))
+	g.Connect(BasicEdge(6, 2))
+	g.Connect(BasicEdge(4, 3))
+	g.Connect(BasicEdge(5, 4))
+	g.Connect(BasicEdge(6, 5))
+
+	actual := g.FirstAncestorsWith(6, func(v Vertex) bool {
+		// looking for first odd ancestors
+		return v.(int)%2 != 0
+	})
+
+	expected := make(Set)
+	expected.Add(1)
+	expected.Add(5)
+
+	if expected.Intersection(actual).Len() != expected.Len() {
+		t.Fatalf("expected %#v, got %#v\n", expected, actual)
+	}
+
+	foundOne := g.MatchAncestor(6, func(v Vertex) bool {
+		return v.(int) == 1
+	})
+	if !foundOne {
+		t.Fatal("did not match 1 in the graph")
+	}
+
+	foundSix := g.MatchAncestor(6, func(v Vertex) bool {
+		return v.(int) == 6
+	})
+	if foundSix {
+		t.Fatal("6 should not be a descendant of itself")
+	}
+
+	foundTen := g.MatchAncestor(6, func(v Vertex) bool {
 		return v.(int) == 10
 	})
 	if foundTen {
