@@ -376,6 +376,55 @@ module "child" {
 			expectValidateEphemeralResourceConfigCalled: true,
 			expectCloseEphemeralResourceCalled:          true,
 		},
+
+		"locals": {
+			module: map[string]string{
+				"child/main.tf": `
+ephemeral "ephem_resource" "data" {}
+
+locals {
+  composedString = "prefix-${ephemeral.ephem_resource.data.value}-suffix"
+  composedList = ["a", ephemeral.ephem_resource.data.value, "c"]
+  composedObj = {
+    key = ephemeral.ephem_resource.data.value
+    foo = "bar"
+  }
+}
+
+# We expect this to error since it should be an ephemeral value
+output "composedString" {
+    value = local.composedString
+}
+output "composedList" {
+    value = local.composedList
+}
+output "composedObj" {
+    value = local.composedObj
+}
+`,
+				"main.tf": `
+module "child" {
+    source = "./child"
+}
+				`,
+			},
+
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Ephemeral value not allowed",
+					Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
+				}, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Ephemeral value not allowed",
+					Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
+				}, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Ephemeral value not allowed",
+					Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
+				})
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
