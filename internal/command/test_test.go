@@ -27,7 +27,7 @@ func TestTest_Runs(t *testing.T) {
 		override              string
 		args                  []string
 		envVars               map[string]string
-		expectedOut           string
+		expectedOut           []string
 		expectedErr           []string
 		expectedResourceCount int
 		code                  int
@@ -35,27 +35,27 @@ func TestTest_Runs(t *testing.T) {
 		skip                  bool
 	}{
 		"simple_pass": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"simple_pass_nested": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"simple_pass_nested_alternate": {
 			args:        []string{"-test-directory", "other"},
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"simple_pass_very_nested": {
 			args:        []string{"-test-directory", "tests/subdir"},
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"simple_pass_very_nested_alternate": {
 			override:    "simple_pass_very_nested",
 			args:        []string{"-test-directory", "./tests/subdir"},
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"simple_pass_bad_test_directory": {
@@ -71,155 +71,155 @@ func TestTest_Runs(t *testing.T) {
 			code:        1,
 		},
 		"pass_with_locals": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"pass_with_outputs": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"pass_with_variables": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"plan_then_apply": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"expect_failures_checks": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"expect_failures_inputs": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"expect_failures_outputs": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"expect_failures_resources": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"multiple_files": {
-			expectedOut: "2 passed, 0 failed",
+			expectedOut: []string{"2 passed, 0 failed"},
 			code:        0,
 		},
 		"multiple_files_with_filter": {
 			override:    "multiple_files",
 			args:        []string{"-filter=one.tftest.hcl"},
-			expectedOut: "1 passed, 0 failed",
+			expectedOut: []string{"1 passed, 0 failed"},
 			code:        0,
 		},
 		"variables": {
-			expectedOut: "2 passed, 0 failed",
+			expectedOut: []string{"2 passed, 0 failed"},
 			code:        0,
 		},
 		"variables_overridden": {
 			override:    "variables",
 			args:        []string{"-var=input=foo"},
-			expectedOut: "1 passed, 1 failed",
+			expectedOut: []string{"1 passed, 1 failed"},
 			expectedErr: []string{`invalid value`},
 			code:        1,
 		},
 		"simple_fail": {
-			expectedOut: "0 passed, 1 failed.",
+			expectedOut: []string{"0 passed, 1 failed."},
 			expectedErr: []string{"invalid value"},
 			code:        1,
 		},
 		"custom_condition_checks": {
-			expectedOut: "0 passed, 1 failed.",
+			expectedOut: []string{"0 passed, 1 failed."},
 			expectedErr: []string{"this really should fail"},
 			code:        1,
 		},
 		"custom_condition_inputs": {
-			expectedOut: "0 passed, 1 failed.",
+			expectedOut: []string{"0 passed, 1 failed."},
 			expectedErr: []string{"this should definitely fail"},
 			code:        1,
 		},
 		"custom_condition_outputs": {
-			expectedOut: "0 passed, 1 failed.",
+			expectedOut: []string{"0 passed, 1 failed."},
 			expectedErr: []string{"this should fail"},
 			code:        1,
 		},
 		"custom_condition_resources": {
-			expectedOut: "0 passed, 1 failed.",
+			expectedOut: []string{"0 passed, 1 failed."},
 			expectedErr: []string{"this really should fail"},
 			code:        1,
 		},
 		"no_providers_in_main": {
-			expectedOut: "1 passed, 0 failed",
+			expectedOut: []string{"1 passed, 0 failed"},
 			code:        0,
 		},
 		"default_variables": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"undefined_variables": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"shared_state": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"shared_state_object": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"variable_references": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			args:        []string{"-var=global=\"triple\""},
 			code:        0,
 		},
 		"unreferenced_global_variable": {
 			override:    "variable_references",
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			// The other variable shouldn't pass validation, but it won't be
 			// referenced anywhere so should just be ignored.
 			args: []string{"-var=global=\"triple\"", "-var=other=bad"},
 			code: 0,
 		},
 		"variables_types": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			args:        []string{"-var=number_input=0", "-var=string_input=Hello, world!", "-var=list_input=[\"Hello\",\"world\"]"},
 			code:        0,
 		},
 		"null-outputs": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"destroy_fail": {
-			expectedOut:           "1 passed, 0 failed.",
+			expectedOut:           []string{"1 passed, 0 failed."},
 			expectedErr:           []string{`Terraform left the following resources in state`},
 			code:                  1,
 			expectedResourceCount: 1,
 		},
 		"default_optional_values": {
-			expectedOut: "4 passed, 0 failed.",
+			expectedOut: []string{"4 passed, 0 failed."},
 			code:        0,
 		},
 		"tfvars_in_test_dir": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"auto_tfvars_in_test_dir": {
 			override:    "tfvars_in_test_dir",
 			args:        []string{"-test-directory=alternate"},
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"functions_available": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"provider-functions-available": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"mocking": {
-			expectedOut: "6 passed, 0 failed.",
+			expectedOut: []string{"6 passed, 0 failed."},
 			code:        0,
 		},
 		"mocking-invalid": {
@@ -227,39 +227,53 @@ func TestTest_Runs(t *testing.T) {
 			initCode:    1,
 		},
 		"dangling_data_block": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"skip_destroy_on_empty": {
-			expectedOut: "3 passed, 0 failed.",
+			expectedOut: []string{"3 passed, 0 failed."},
 			code:        0,
 		},
 		"empty_module_with_output": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"global_var_refs": {
-			expectedOut: "1 passed, 2 failed.",
+			expectedOut: []string{"1 passed, 2 failed."},
 			expectedErr: []string{"The input variable \"env_var_input\" is not available to the current context", "The input variable \"setup\" is not available to the current context"},
 			code:        1,
 		},
 		"global_var_ref_in_suite_var": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"env-vars": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			envVars: map[string]string{
 				"TF_VAR_input": "foo",
 			},
 			code: 0,
 		},
 		"env-vars-in-module": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			envVars: map[string]string{
 				"TF_VAR_input": "foo",
 			},
 			code: 0,
+		},
+		"ephemeral_input": {
+			expectedOut: []string{"2 passed, 0 failed."},
+			code:        0,
+		},
+		"ephemeral_input_with_error": {
+			expectedOut: []string{"Error message refers to ephemeral values", "1 passed, 1 failed."},
+			expectedErr: []string{"Test assertion failed", "has an ephemeral value"},
+			code:        1,
+		},
+		"ephemeral_resource": {
+			expectedOut: []string{"0 passed, 1 failed."},
+			expectedErr: []string{"Ephemeral resource instance has expired", "Ephemeral resources cannot be asserted"},
+			code:        1,
 		},
 	}
 	for name, tc := range tcs {
@@ -319,8 +333,12 @@ func TestTest_Runs(t *testing.T) {
 				output := done(t).All()
 				stdout, stderr := output, output
 
-				if !strings.Contains(stdout, tc.expectedOut) {
-					t.Errorf("output didn't contain expected string:\n\n%s", stdout)
+				if len(tc.expectedOut) > 0 {
+					for _, expectedOut := range tc.expectedOut {
+						if !strings.Contains(stdout, expectedOut) {
+							t.Errorf("output didn't contain expected string:\n\n%s", stdout)
+						}
+					}
 				}
 
 				if len(tc.expectedErr) > 0 {
@@ -358,8 +376,12 @@ func TestTest_Runs(t *testing.T) {
 				t.Errorf("expected status code %d but got %d:\n\n%s", tc.code, code, output.All())
 			}
 
-			if !strings.Contains(output.Stdout(), tc.expectedOut) {
-				t.Errorf("output didn't contain expected string:\n\n%s", output.Stdout())
+			if len(tc.expectedOut) > 0 {
+				for _, expectedOut := range tc.expectedOut {
+					if !strings.Contains(output.Stdout(), expectedOut) {
+						t.Errorf("output didn't contain expected string:\n\n%s", output.Stdout())
+					}
+				}
 			}
 
 			if len(tc.expectedErr) > 0 {

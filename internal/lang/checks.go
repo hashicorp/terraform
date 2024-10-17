@@ -72,6 +72,18 @@ You can correct this by removing references to sensitive values, or by carefully
 		return "", diags
 	}
 
+	if _, ephemeral := valMarks[marks.Ephemeral]; ephemeral {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Error message refers to ephemeral values",
+			Detail: `The error expression used to explain this condition refers to ephemeral values, so Terraform will not display the resulting message.
+
+You can correct this by removing references to ephemeral values, or by using the ephemeralasnull() function on the references to not reveal ephemeral data.`,
+			Subject: expr.Range().Ptr(),
+		})
+		return "", diags
+	}
+
 	// NOTE: We've discarded any other marks the string might have been carrying,
 	// aside from the sensitive mark.
 
