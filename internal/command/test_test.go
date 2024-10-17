@@ -267,7 +267,7 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"ephemeral_input_with_error": {
 			expectedOut: []string{"Error message refers to ephemeral values", "1 passed, 1 failed."},
-			expectedErr: []string{"Test assertion failed"},
+			expectedErr: []string{"Test assertion failed", "has an ephemeral value"},
 			code:        1,
 		},
 		"ephemeral_resource": {
