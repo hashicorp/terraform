@@ -3582,3 +3582,53 @@ resource "test_instance" "obj" {
 		t.Fatal("old instance not destroyed")
 	}
 }
+
+// each resource only needs to record the first dependency in a chain
+func TestContext2Apply_limitDependencies(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+}
+
+resource "test_object" "b" {
+  test_string = test_object.a.test_string
+}
+
+resource "test_object" "c" {
+  test_string = test_object.b.test_string
+}
+`,
+	})
+
+	p := simpleMockProvider()
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	assertNoErrors(t, diags)
+
+	for _, res := range state.RootModule().Resources {
+		deps := res.Instances[addrs.NoKey].Current.Dependencies
+		switch res.Addr.Resource.Name {
+		case "a":
+			if len(deps) > 0 {
+				t.Error(res.Addr, "should have no dependencies")
+			}
+		case "b":
+			if len(deps) != 1 || deps[0].Resource.Name != "a" {
+				t.Error(res.Addr, "should only depend on 'a', got", deps)
+			}
+		case "c":
+			if len(deps) != 1 || deps[0].Resource.Name != "b" {
+				t.Error(res.Addr, "should only record a dependency of 'b', got", deps)
+			}
+		}
+	}
+}
