@@ -410,8 +410,7 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 	sV4.CheckResults = encodeCheckResultsV4(file.State.CheckResults)
 
 	sV4.normalize()
-
-	src, err := json.MarshalIndent(sV4, "", "  ")
+	src, err := json.Marshal(sV4)
 	if err != nil {
 		// Shouldn't happen if we do our conversion to *stateV4 correctly above.
 		diags = diags.Append(tfdiags.Sourceless(
