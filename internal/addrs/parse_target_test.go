@@ -431,6 +431,61 @@ func TestParseTarget(t *testing.T) {
 			nil,
 			`Unexpected extra operators after address.`,
 		},
+		{
+			`each.key`,
+			nil,
+			`The keyword "each" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`module.foo[1].each`,
+			nil,
+			`The keyword "each" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`count.index`,
+			nil,
+			`The keyword "count" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`local.value`,
+			nil,
+			`The keyword "local" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`path.root`,
+			nil,
+			`The keyword "path" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`self.id`,
+			nil,
+			`The keyword "self" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`terraform.planning`,
+			nil,
+			`The keyword "terraform" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`var.foo`,
+			nil,
+			`The keyword "var" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`template`,
+			nil,
+			`The keyword "template" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`lazy`,
+			nil,
+			`The keyword "lazy" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`arg`,
+			nil,
+			`The keyword "arg" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
 	}
 
 	for _, test := range tests {
