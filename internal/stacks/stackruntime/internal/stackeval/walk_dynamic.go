@@ -8,6 +8,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -166,11 +167,23 @@ func walkDynamicObjectsInStack[Output any](
 					// This instance is not claimed by the removed block, so
 					// we'll mark it as being deferred until the foreach is
 					// known.
-					inst := newComponentInstance(component, inst.Key, instances.RepetitionData{
-						EachKey:   inst.Key.Value(),
-						EachValue: cty.UnknownVal(cty.DynamicPseudoType),
-					}, true)
-					visit(ctx, walk, inst)
+
+					if inst.Key == addrs.WildcardKey {
+						// If the key we retrieved is a wildcard key, then we'll
+						// recreate a "proper" unknown instance as we'll
+						// recompute a properly typed each value with this
+						// function.
+						inst := component.UnknownInstance(ctx, phase)
+						visit(ctx, walk, inst)
+					} else {
+						// Otherwise, the key is a known key and the instance
+						// actually does exist.
+						inst := newComponentInstance(component, inst.Key, instances.RepetitionData{
+							EachKey:   inst.Key.Value(),
+							EachValue: cty.UnknownVal(cty.DynamicPseudoType),
+						}, true)
+						visit(ctx, walk, inst)
+					}
 				}
 
 				return

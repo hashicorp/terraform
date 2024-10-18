@@ -242,6 +242,173 @@ func TestPlan(t *testing.T) {
 				},
 			},
 		},
+		"deferred-provider-with-data-sources": {
+			path: path.Join("with-data-source", "deferred-provider-for-each"),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("data_known", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("data_known"),
+					"value": cty.StringVal("known"),
+				})).
+				Build(),
+			cycle: TestCycle{
+				planInputs: map[string]cty.Value{
+					"providers": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				wantPlannedChanges: []stackplan.PlannedChange{
+					&stackplan.PlannedChangeApplyable{
+						Applyable: true,
+					},
+					&stackplan.PlannedChangeComponentInstance{
+						Addr:          mustAbsComponentInstance("component.const"),
+						PlanApplyable: true,
+						PlanComplete:  true,
+						Action:        plans.Create,
+						PlannedInputValues: map[string]plans.DynamicValue{
+							"id":       mustPlanDynamicValueDynamicType(cty.StringVal("data_known")),
+							"resource": mustPlanDynamicValueDynamicType(cty.StringVal("resource_known")),
+						},
+						PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+							"id":       nil,
+							"resource": nil,
+						},
+						PlannedOutputValues: make(map[string]cty.Value),
+						PlannedCheckResults: &states.CheckResults{},
+						PlanTimestamp:       fakePlanTimestamp,
+					},
+					&stackplan.PlannedChangeResourceInstancePlanned{
+						ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.const.data.testing_data_source.data"),
+						ChangeSrc:                  nil,
+						PriorStateSrc: &states.ResourceInstanceObjectSrc{
+							AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+								"id":    "data_known",
+								"value": "known",
+							}),
+							Status:       states.ObjectReady,
+							Dependencies: make([]addrs.ConfigResource, 0),
+						},
+						ProviderConfigAddr: mustDefaultRootProvider("testing"),
+						Schema:             stacks_testing_provider.TestingDataSourceSchema,
+					},
+					&stackplan.PlannedChangeResourceInstancePlanned{
+						ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.const.testing_resource.data"),
+						ChangeSrc: &plans.ResourceInstanceChangeSrc{
+							Addr:         mustAbsResourceInstance("testing_resource.data"),
+							PrevRunAddr:  mustAbsResourceInstance("testing_resource.data"),
+							ProviderAddr: mustDefaultRootProvider("testing"),
+							ChangeSrc: plans.ChangeSrc{
+								Action: plans.Create,
+								Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+								After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+									"id":    cty.StringVal("resource_known"),
+									"value": cty.StringVal("known"),
+								})),
+							},
+						},
+						PriorStateSrc:      nil,
+						ProviderConfigAddr: mustDefaultRootProvider("testing"),
+						Schema:             stacks_testing_provider.TestingResourceSchema,
+					},
+					&stackplan.PlannedChangeComponentInstance{
+						Addr:          mustAbsComponentInstance("component.main[*]"),
+						PlanApplyable: false, // only deferred changes
+						PlanComplete:  false, // deferred
+						Action:        plans.Create,
+						PlannedInputValues: map[string]plans.DynamicValue{
+							"id":       mustPlanDynamicValueDynamicType(cty.StringVal("data_unknown")),
+							"resource": mustPlanDynamicValueDynamicType(cty.StringVal("resource_unknown")),
+						},
+						PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+							"id":       nil,
+							"resource": nil,
+						},
+						PlannedOutputValues: make(map[string]cty.Value),
+						PlannedCheckResults: &states.CheckResults{},
+						PlanTimestamp:       fakePlanTimestamp,
+					},
+					&stackplan.PlannedChangeDeferredResourceInstancePlanned{
+						ResourceInstancePlanned: stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+								Component: stackaddrs.AbsComponentInstance{
+									Item: stackaddrs.ComponentInstance{
+										Component: stackaddrs.Component{
+											Name: "main",
+										},
+										Key: addrs.WildcardKey,
+									},
+								},
+								Item: addrs.AbsResourceInstanceObject{
+									ResourceInstance: mustAbsResourceInstance("data.testing_data_source.data"),
+								},
+							},
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("data.testing_data_source.data"),
+								PrevRunAddr:  mustAbsResourceInstance("data.testing_data_source.data"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Read,
+									Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+									After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":    cty.StringVal("data_unknown"),
+										"value": cty.UnknownVal(cty.String),
+									})),
+								},
+								ActionReason: plans.ResourceInstanceReadBecauseDependencyPending,
+							},
+							PriorStateSrc:      nil,
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingDataSourceSchema,
+						},
+						DeferredReason: providers.DeferredReasonProviderConfigUnknown,
+					},
+					&stackplan.PlannedChangeDeferredResourceInstancePlanned{
+						ResourceInstancePlanned: stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+								Component: stackaddrs.AbsComponentInstance{
+									Item: stackaddrs.ComponentInstance{
+										Component: stackaddrs.Component{
+											Name: "main",
+										},
+										Key: addrs.WildcardKey,
+									},
+								},
+								Item: addrs.AbsResourceInstanceObject{
+									ResourceInstance: mustAbsResourceInstance("testing_resource.data"),
+								},
+							},
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("testing_resource.data"),
+								PrevRunAddr:  mustAbsResourceInstance("testing_resource.data"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Create,
+									Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+									After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":    cty.StringVal("resource_unknown"),
+										"value": cty.UnknownVal(cty.String),
+									})),
+								},
+							},
+							PriorStateSrc:      nil,
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						DeferredReason: providers.DeferredReasonProviderConfigUnknown,
+					},
+					&stackplan.PlannedChangeHeader{
+						TerraformVersion: version.SemVer,
+					},
+					&stackplan.PlannedChangePlannedTimestamp{
+						PlannedTimestamp: fakePlanTimestamp,
+					},
+					&stackplan.PlannedChangeRootInputValue{
+						Addr:   mustStackInputVariable("providers"),
+						Action: plans.Create,
+						Before: cty.NullVal(cty.DynamicPseudoType),
+						After:  cty.UnknownVal(cty.Set(cty.String)),
+					},
+				},
+			},
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {

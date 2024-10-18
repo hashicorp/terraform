@@ -142,7 +142,7 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 		}
 
 	case *tfstackdata1.PlanComponentInstance:
-		addr, diags := stackaddrs.ParseAbsComponentInstanceStr(msg.ComponentInstanceAddr)
+		addr, diags := stackaddrs.ParsePartialComponentInstanceStr(msg.ComponentInstanceAddr)
 		if diags.HasErrors() {
 			// Should not get here because the address we're parsing
 			// should've been produced by this same version of Terraform.
