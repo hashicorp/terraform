@@ -197,7 +197,7 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 		return nil, nil, diags
 	}
 
-	providerCfgDiags := checkExternalProviders(config, opts.ExternalProviders)
+	providerCfgDiags := checkExternalProviders(config, nil, prevRunState, opts.ExternalProviders)
 	diags = diags.Append(providerCfgDiags)
 	if providerCfgDiags.HasErrors() {
 		return nil, nil, diags
