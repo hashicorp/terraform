@@ -205,8 +205,7 @@ When every field is defined, a `removed` block has the following form:
 removed {
     source = "<The module that the component you want to remove uses>"
 
-
-    from = "component.component_name""
+    from = component.component_name
     providers = {
         aws = provider.aws.this
     }
