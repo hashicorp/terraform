@@ -23,12 +23,14 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -992,65 +994,78 @@ func TestApply_planVarsEphemeral_applyTime(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := applyFixtureProvider()
-	view, done := testView(t)
-	c := &ApplyCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			View:             view,
-		},
-	}
+
+	var view *views.View
+	var done func(t *testing.T) *terminal.TestOutput
+	var c *ApplyCommand
+	var args []string
+	var code int
+	var output *terminal.TestOutput
 
 	// Test first that an apply supplying only the apply-time variable "foo"
 	// succeeds.
-	args := []string{
-		"-state", statePath,
-		"-var", "foo=bar",
-		planPath,
-	}
-	code := c.Run(args)
-	output := done(t)
-	if code != 0 {
-		t.Fatal("should've succeeded: ", output.Stderr())
-	}
+	t.Run("only passing ephemeral variable", func(t *testing.T) {
+		view, done = testView(t)
+		c = &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+		args = []string{
+			"-state", statePath,
+			"-var", "foo=bar",
+			planPath,
+		}
+		code = c.Run(args)
+		output = done(t)
+		if code != 0 {
+			t.Fatal("should've succeeded: ", output.Stderr())
+		}
+	})
 
 	// Now test that supplying "bar", which is not an apply-time variable, fails.
-	view, done = testView(t)
-	c = &ApplyCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			View:             view,
-		},
-	}
-	args = []string{
-		"-state", statePath,
-		"-var", "foo=bar",
-		"-var", "bar=bar",
-		planPath,
-	}
-	code = c.Run(args)
-	output = done(t)
-	if code == 0 {
-		t.Fatal("should've failed: ", output.Stdout())
-	}
+	t.Run("passing non-ephemeral variable", func(t *testing.T) {
+		view, done = testView(t)
+		c = &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+		args = []string{
+			"-state", statePath,
+			"-var", "foo=bar",
+			"-var", "bar=bar",
+			planPath,
+		}
+		code = c.Run(args)
+		output = done(t)
+		if code == 0 {
+			t.Fatal("should've failed: ", output.Stdout())
+		}
+	})
 
 	// Finally, test that the apply also fails if we do *not* supply a value for
 	// the apply-time variable foo.
-	view, done = testView(t)
-	c = &ApplyCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			View:             view,
-		},
-	}
-	args = []string{
-		"-state", statePath,
-		planPath,
-	}
-	code = c.Run(args)
-	output = done(t)
-	if code == 0 {
-		t.Fatal("should've failed: ", output.Stdout())
-	}
+	t.Run("missing ephemeral variable", func(t *testing.T) {
+		view, done = testView(t)
+		c = &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+		args = []string{
+			"-state", statePath,
+			planPath,
+		}
+		code = c.Run(args)
+		output = done(t)
+		if code == 0 {
+			t.Fatal("should've failed: ", output.Stdout())
+		}
+	})
 }
 
 // we should be able to apply a plan file with no other file dependencies
