@@ -155,11 +155,25 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 }
 
 func (n *NodePlannableResourceInstance) ephemeralResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
-	return ephemeralResourceOpen(ctx, ephemeralResourceInput{
+	deferrals := ctx.Deferrals()
+	// For deferred ephemeral resources, we don't need to do anything here.
+	if deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies) {
+		deferrals.ReportEphemeralResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq)
+		return nil
+	}
+
+	deferred, diags := ephemeralResourceOpen(ctx, ephemeralResourceInput{
 		addr:           n.Addr,
 		config:         n.Config,
 		providerConfig: n.ResolvedProvider,
 	})
+
+	if deferred != nil {
+		// Then this ephemeral resource has been deferred while opening.
+		deferrals.ReportEphemeralResourceInstanceDeferred(n.Addr, deferred.Reason)
+	}
+
+	return diags
 }
 
 func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {

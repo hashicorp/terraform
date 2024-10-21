@@ -272,7 +272,7 @@ The following example illustrates the structure of a `<values-representation>`:
 ```javascript
 {
   // "outputs" describes the outputs from the root module. Outputs from
-  // descendent modules are not available because they are not retained in all
+  // descendant modules are not available because they are not retained in all
   // of the underlying structures we will build this values representation from.
   "outputs": {
     "private_ip": {
@@ -404,7 +404,7 @@ Because the configuration models are produced at a stage prior to expression eva
       "alias": "foo",
 
       // "module_address" is included only for provider configurations that are
-      // declared in a descendent module, and gives the opaque address for the
+      // declared in a descendant module, and gives the opaque address for the
       // module that contains the provider configuration.
       "module_address": "module.child",
 
@@ -416,7 +416,7 @@ Because the configuration models are produced at a stage prior to expression eva
   },
 
   // "root_module" describes the root module in the configuration, and serves
-  // as the root of a tree of similar objects describing descendent modules.
+  // as the root of a tree of similar objects describing descendant modules.
   "root_module": {
 
     // "outputs" describes the output value configurations in the module.

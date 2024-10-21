@@ -26,7 +26,7 @@ func TestNodeExpandApplyableResourceExecute(t *testing.T) {
 				Config: nil,
 			},
 		}
-		diags := node.Execute(ctx, walkApply)
+		_, diags := node.DynamicExpand(ctx)
 		if diags.HasErrors() {
 			t.Fatalf("unexpected error: %s", diags.Err())
 		}
@@ -57,10 +57,11 @@ func TestNodeExpandApplyableResourceExecute(t *testing.T) {
 				},
 			},
 		}
-		diags := node.Execute(ctx, walkApply)
+		_, diags := node.DynamicExpand(ctx)
 		if diags.HasErrors() {
 			t.Fatalf("unexpected error: %s", diags.Err())
 		}
+
 		if state.Empty() {
 			t.Fatal("expected resources in state, got empty state")
 		}

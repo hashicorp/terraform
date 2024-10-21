@@ -8,6 +8,7 @@ NEW FEATURES:
 
 BUG FIXES:
 
+- The `secret_suffix` in the `kubernetes` backend now includes validation to prevent errors when the `secret_suffix` ends with a number ([#35666](https://github.com/hashicorp/terraform/pull/35666)).
 - The error message for an invalid default value for an input variable now indicates when the problem is with a nested value in a complex data type. ([#35465](https://github.com/hashicorp/terraform/issues/35465))
 - Sensitive marks could be incorrectly transferred to nested resource values, causing erroneous changes during a plan ([#35501](https://github.com/hashicorp/terraform/issues/35501))
 - Allow unknown `error_message` values to pass the core validate step, so variable validation can be completed later during plan
@@ -24,6 +25,8 @@ ENHANCEMENTS:
 UPGRADE NOTES:
 
 - backend/s3: Removes deprecated attributes for assuming IAM role. Must use the `assume_role` block ([#35721](https://github.com/hashicorp/terraform/issues/35721))
+- backend/s3: The s3 backend now supports S3 native state locking. When used with DynamoDB-based locking, locks will be acquired from both sources. In a future minor release of Terraform the DynamoDB locking mechanism and associated arguments will be deprecated. ([#35661](https://github.com/hashicorp/terraform/issues/35661))
+- `moved`: Moved blocks now respect reserved keywords when parsing resource addresses. Configurations that reference resources with type names that match top level blocks and keywords from `moved` blocks will need to prepend the `resource.` identifier to these references. ([#35850](https://github.com/hashicorp/terraform/issues/35850))
 
 EXPERIMENTS:
 

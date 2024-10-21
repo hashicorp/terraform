@@ -431,6 +431,45 @@ func TestModuleInstaller_symlink(t *testing.T) {
 	assertResultDeepEqual(t, gotTraces, wantTraces)
 }
 
+func TestLoaderInstallModules_invalidRegistry(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("this test accesses registry.terraform.io and github.com; set TF_ACC=1 to run it")
+	}
+
+	fixtureDir := filepath.Clean("testdata/invalid-registry-modules")
+	tmpDir, done := tempChdir(t, fixtureDir)
+	// the module installer runs filepath.EvalSymlinks() on the destination
+	// directory before copying files, and the resultant directory is what is
+	// returned by the install hooks. Without this, tests could fail on machines
+	// where the default temp dir was a symlink.
+	dir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Error(err)
+	}
+
+	defer done()
+
+	hooks := &testInstallHooks{}
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+
+	loader, close := configload.NewLoaderForTests(t)
+	defer close()
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
+	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
+
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	} else {
+		assertDiagnosticCount(t, diags, 1)
+		assertDiagnosticSummary(t, diags, "Unreadable module subdirectory")
+
+		// the diagnostic should specifically call out the submodule that failed
+		if !strings.Contains(diags[0].Description().Detail, "target submodule modules/child_c") {
+			t.Errorf("unmatched error detail")
+		}
+	}
+}
+
 func TestLoaderInstallModules_registry(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
 		t.Skip("this test accesses registry.terraform.io and github.com; set TF_ACC=1 to run it")
@@ -980,13 +1019,14 @@ func assertDiagnosticSummary(t *testing.T, diags tfdiags.Diagnostics, want strin
 
 	for _, diag := range diags {
 		if diag.Description().Summary == want {
+			t.Logf("matching diagnostic detail %q", diag.Description().Detail)
 			return false
 		}
 	}
 
 	t.Errorf("missing diagnostic summary %q", want)
 	for _, diag := range diags {
-		t.Logf("- %#v", diag)
+		t.Logf("- %#v", diag.Description().Summary)
 	}
 	return true
 }

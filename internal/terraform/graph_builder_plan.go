@@ -137,7 +137,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&ConfigTransformer{
 			Concrete: b.ConcreteResource,
 			Config:   b.Config,
-			skip:     b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
+			destroy:  b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
 
 			importTargets: b.ImportTargets,
 

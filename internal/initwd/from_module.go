@@ -33,7 +33,7 @@ const initFromModuleRootKeyPrefix = initFromModuleRootCallName + "."
 // DirFromModule populates the given directory (which must exist and be
 // empty) with the contents of the module at the given source address.
 //
-// It does this by installing the given module and all of its descendent
+// It does this by installing the given module and all of its descendant
 // modules in a temporary root directory and then copying the installed
 // files into suitable locations. As a consequence, any diagnostics it
 // generates will reveal the location of this temporary directory to the
@@ -43,7 +43,7 @@ const initFromModuleRootKeyPrefix = initFromModuleRootCallName + "."
 // installation proceeds in a manner identical to normal module installation.
 //
 // If the given source address specifies a sub-directory of the given
-// package then only the sub-directory and its descendents will be copied
+// package then only the sub-directory and its descendants will be copied
 // into the given root directory, which will cause any relative module
 // references using ../ from that module to be unresolvable. Error diagnostics
 // are produced in that case, to prompt the user to rewrite the source strings
@@ -167,7 +167,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	fetcher := getmodules.NewPackageFetcher()
 
 	walker := inst.moduleInstallWalker(ctx, instManifest, true, wrapHooks, fetcher)
-	_, cDiags := inst.installDescendentModules(fakeRootModule, instManifest, walker, true)
+	_, cDiags := inst.installDescendantModules(fakeRootModule, instManifest, walker, true)
 	if cDiags.HasErrors() {
 		return diags.Append(cDiags)
 	}
@@ -252,7 +252,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 		if !strings.HasPrefix(record.Key, initFromModuleRootKeyPrefix) {
 			// Ignore the *real* root module, whose key is empty, since
 			// we're only interested in the module named "root" and its
-			// descendents.
+			// descendants.
 			continue
 		}
 
@@ -352,7 +352,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Failed to copy descendent module",
+				"Failed to copy descendant module",
 				fmt.Sprintf("Error copying module %q from %s to %s: %s.", newKey, tempPath, rootDir, err),
 			))
 			continue

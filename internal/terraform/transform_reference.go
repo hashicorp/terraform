@@ -254,33 +254,33 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 			}
 		}
 
-		ans, err := g.Ancestors(v)
-		if err != nil {
-			return err
-		}
-
 		// dedupe addrs when there's multiple instances involved, or
 		// multiple paths in the un-reduced graph
 		depMap := map[string]addrs.ConfigResource{}
-		for _, d := range ans {
-			var addr addrs.ConfigResource
 
+		// since we need to type-switch over the nodes anyway, we're going to
+		// insert the address directly into depMap and forget about the returned
+		// set.
+		g.FirstAncestorsWith(v, func(d dag.Vertex) bool {
+			var addr addrs.ConfigResource
 			switch d := d.(type) {
-			case GraphNodeResourceInstance:
-				instAddr := d.ResourceInstanceAddr()
+			case GraphNodeCreator:
+				// most of the time we'll hit a GraphNodeConfigResource first since that represents the config structure, but
+				instAddr := d.CreateAddr()
 				addr = instAddr.ContainingResource().Config()
 			case GraphNodeConfigResource:
 				addr = d.ResourceAddr()
 			default:
-				continue
+				return false
 			}
 
 			if matchesSelf(addr) {
-				continue
+				return false
 			}
 
 			depMap[addr.String()] = addr
-		}
+			return true
+		})
 
 		deps := make([]addrs.ConfigResource, 0, len(depMap))
 		for _, d := range depMap {
@@ -386,11 +386,10 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Ve
 			// upstream managed resource in order to check for a planned
 			// change.
 			if _, ok := rv.(GraphNodeConfigResource); !ok {
-				ans, _ := g.Ancestors(rv)
-				for _, v := range ans {
-					if isDependableResource(v) {
-						res = append(res, v)
-					}
+				for _, v := range g.FirstAncestorsWith(rv, func(v dag.Vertex) bool {
+					return isDependableResource(v)
+				}) {
+					res = append(res, v)
 				}
 			}
 		}
@@ -460,9 +459,10 @@ func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsO
 			}
 		}
 
-		ans, _ := g.Ancestors(deps...)
-		for _, v := range ans {
-			if isDependableResource(v) {
+		for _, dep := range deps {
+			for _, v := range g.FirstAncestorsWith(dep, func(v dag.Vertex) bool {
+				return isDependableResource(v)
+			}) {
 				res = append(res, v)
 			}
 		}

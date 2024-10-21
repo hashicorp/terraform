@@ -236,7 +236,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 
 	// First we'll make sure the requested value is declared in configuration,
 	// so we can produce a nice message if not.
-	moduleConfig := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
+	moduleConfig := d.Evaluator.Config.DescendantForInstance(d.ModulePath)
 	if moduleConfig == nil {
 		// should never happen, since we can't be evaluating in a module
 		// that wasn't mentioned in configuration.
@@ -309,7 +309,7 @@ func (d *evaluationStateData) GetLocalValue(addr addrs.LocalValue, rng tfdiags.S
 
 	// First we'll make sure the requested value is declared in configuration,
 	// so we can produce a nice message if not.
-	moduleConfig := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
+	moduleConfig := d.Evaluator.Config.DescendantForInstance(d.ModulePath)
 	if moduleConfig == nil {
 		// should never happen, since we can't be evaluating in a module
 		// that wasn't mentioned in configuration.
@@ -348,7 +348,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	moduleAddr := d.ModulePath.Module().Child(addr.Name)
 	absAddr := addr.Absolute(d.ModulePath)
 
-	parentCfg := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
+	parentCfg := d.Evaluator.Config.DescendantForInstance(d.ModulePath)
 	callConfig, ok := parentCfg.Module.ModuleCalls[addr.Name]
 	if !ok {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -363,7 +363,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// We'll consult the configuration to see what output names we are
 	// expecting, so we can ensure the resulting object is of the expected
 	// type even if our data is incomplete for some reason.
-	moduleConfig := d.Evaluator.Config.Descendent(moduleAddr)
+	moduleConfig := d.Evaluator.Config.Descendant(moduleAddr)
 	if moduleConfig == nil {
 		// should never happen, since we have a valid module call above, this
 		// should be caught during static validation.
@@ -498,7 +498,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// First we'll consult the configuration to see if an resource of this
 	// name is declared at all.
 	moduleAddr := d.ModulePath
-	moduleConfig := d.Evaluator.Config.DescendentForInstance(moduleAddr)
+	moduleConfig := d.Evaluator.Config.DescendantForInstance(moduleAddr)
 	if moduleConfig == nil {
 		// should never happen, since we can't be evaluating in a module
 		// that wasn't mentioned in configuration.
@@ -541,9 +541,13 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// (We can't get in here for a single-instance resource because in that
 			// case we would know that there's only one key and it's addrs.NoKey,
 			// so we'll fall through to the other logic below.)
-			//
-			// FIXME: this could catch ephemeral values too
-			return cty.DynamicVal, diags
+			unknownVal := cty.DynamicVal
+
+			// If an ephemeral resource is deferred we need to mark the returned unknown value as ephemeral
+			if addr.Mode == addrs.EphemeralResourceMode {
+				unknownVal = unknownVal.Mark(marks.Ephemeral)
+			}
+			return unknownVal, diags
 		}
 	}
 
@@ -818,6 +822,13 @@ func (d *evaluationStateData) getEphemeralResource(addr addrs.Resource, rng tfdi
 	ephems := d.Evaluator.EphemeralResources
 	getInstValue := func(addr addrs.AbsResourceInstance) (cty.Value, tfdiags.Diagnostics) {
 		var diags tfdiags.Diagnostics
+
+		// If we have a deferred instance with this key we don't need to check if it is live or not,
+		// it has not been created so we can just return the deferred value.
+		if v, ok := instances[addr.Resource.Key]; ok {
+			return v, diags
+		}
+
 		val, isLive := ephems.InstanceValue(addr)
 		if !isLive {
 			// If the instance is no longer "live" by the time we're accessing
@@ -900,7 +911,7 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 
 	// First we'll make sure the requested value is declared in configuration,
 	// so we can produce a nice message if not.
-	moduleConfig := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
+	moduleConfig := d.Evaluator.Config.DescendantForInstance(d.ModulePath)
 	if moduleConfig == nil {
 		// should never happen, since we can't be evaluating in a module
 		// that wasn't mentioned in configuration.

@@ -101,7 +101,7 @@ described in a later section.
 
 The top-level configuration structure is represented by model types in
 [package `configs`](http://localhost:8080/github.com/hashicorp/terraform/internal/configs).
-A whole configuration (the root module plus all of its descendent modules)
+A whole configuration (the root module plus all of its descendant modules)
 is represented by
 [`configs.Config`](http://localhost:8080/github.com/hashicorp/terraform/internal/configs#Config).
 

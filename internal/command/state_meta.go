@@ -105,7 +105,7 @@ func (c *StateMeta) lookupResourceInstanceAddr(state *states.State, allowMissing
 	switch addr := targetAddr.(type) {
 	case addrs.ModuleInstance:
 		// Matches all instances within the indicated module and all of its
-		// descendent modules.
+		// descendant modules.
 
 		// found is used to identify cases where the selected module has no
 		// resources, but one or more of its submodules does.

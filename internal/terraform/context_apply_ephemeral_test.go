@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/zclconf/go-cty/cty"
@@ -85,8 +86,6 @@ resource "test_object" "test" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			// The providers never actually going to get called here, we should
-			// catch the error long before anything happens.
 			addrs.NewDefaultProvider("ephem"): testProviderFuncFixed(ephem),
 			addrs.NewDefaultProvider("test"):  testProviderFuncFixed(p),
 		},
@@ -124,6 +123,155 @@ resource "test_object" "test" {
 	if !ephem.CloseEphemeralResourceCalled {
 		t.Error("CloseEphemeralResourceCalled not called")
 	}
+}
 
-	time.Sleep(time.Second)
+func TestContext2Apply_ephemeralApplyAndDestroy(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "test" {
+  for_each = toset(["a"])
+  source = "./mod"
+  input = each.value
+}
+
+provider "test" {
+  test_string = module.test["a"].data
+}
+
+resource "test_object" "test" {
+}
+`,
+		"./mod/main.tf": `
+variable input {
+}
+
+ephemeral "ephem_resource" "data" {
+}
+
+output "data" {
+  ephemeral = true
+  value = ephemeral.ephem_resource.data.value
+}
+`,
+	})
+
+	ephem := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			EphemeralResourceTypes: map[string]providers.Schema{
+				"ephem_resource": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Type:     cty.String,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ephemeralData := struct {
+		sync.Mutex
+		data string
+	}{}
+
+	ephem.OpenEphemeralResourceFn = func(providers.OpenEphemeralResourceRequest) (resp providers.OpenEphemeralResourceResponse) {
+		ephemeralData.Lock()
+		defer ephemeralData.Unlock()
+		// open sets the data
+		ephemeralData.data = "test string"
+
+		resp.Result = cty.ObjectVal(map[string]cty.Value{
+			"value": cty.StringVal(ephemeralData.data),
+		})
+		return resp
+	}
+
+	// closing with invalidate the ephemeral data
+	ephem.CloseEphemeralResourceFn = func(providers.CloseEphemeralResourceRequest) (resp providers.CloseEphemeralResourceResponse) {
+		ephemeralData.Lock()
+		defer ephemeralData.Unlock()
+
+		// close invalidates the data
+		ephemeralData.data = ""
+		return resp
+	}
+
+	p := simpleMockProvider()
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+		// wait here for the ephemeral value to be renewed at least once
+		if req.Config.GetAttr("test_string").AsString() != "test string" {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("received config did not contain \"test string\", got %#v\n", req.Config))
+
+			// check if the ephemeral data is actually valid, as if we were
+			// using something like a temporary authentication token which gets
+			// revoked.
+			ephemeralData.Lock()
+			defer ephemeralData.Unlock()
+			if ephemeralData.data == "" {
+				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("ephemeralData from config not valid: %#v", req.Config))
+			}
+		}
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("ephem"): testProviderFuncFixed(ephem),
+			addrs.NewDefaultProvider("test"):  testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, nil, DefaultPlanOpts)
+	assertNoDiagnostics(t, diags)
+
+	if !ephem.OpenEphemeralResourceCalled {
+		t.Error("OpenEphemeralResourceCalled not called")
+	}
+	if !ephem.CloseEphemeralResourceCalled {
+		t.Error("CloseEphemeralResourceCalled not called")
+	}
+
+	// reset the ephemeral call flags and data
+	ephem.OpenEphemeralResourceCalled = false
+	ephem.CloseEphemeralResourceCalled = false
+
+	state, diags := ctx.Apply(plan, m, nil)
+	assertNoDiagnostics(t, diags)
+
+	if !ephem.OpenEphemeralResourceCalled {
+		t.Error("OpenEphemeralResourceCalled not called")
+	}
+	if !ephem.CloseEphemeralResourceCalled {
+		t.Error("CloseEphemeralResourceCalled not called")
+	}
+
+	// now reverse the process
+	ephem.OpenEphemeralResourceCalled = false
+	ephem.CloseEphemeralResourceCalled = false
+
+	plan, diags = ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode})
+	assertNoDiagnostics(t, diags)
+
+	if !ephem.OpenEphemeralResourceCalled {
+		t.Error("OpenEphemeralResourceCalled not called")
+	}
+	if !ephem.CloseEphemeralResourceCalled {
+		t.Error("CloseEphemeralResourceCalled not called")
+	}
+
+	ephem.OpenEphemeralResourceCalled = false
+	ephem.CloseEphemeralResourceCalled = false
+
+	_, diags = ctx.Apply(plan, m, nil)
+	assertNoDiagnostics(t, diags)
+
+	if !ephem.OpenEphemeralResourceCalled {
+		t.Error("OpenEphemeralResourceCalled not called")
+	}
+	if !ephem.CloseEphemeralResourceCalled {
+		t.Error("CloseEphemeralResourceCalled not called")
+	}
 }

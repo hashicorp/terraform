@@ -24,6 +24,7 @@ func NewProvider() providers.Interface {
 // GetSchema returns the complete schema for the provider.
 func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	resp := providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{},
 		ServerCapabilities: providers.ServerCapabilities{
 			MoveResourceState: true,
 		},

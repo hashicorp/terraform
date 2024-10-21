@@ -187,6 +187,9 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 
 	moreDiags := c.checkConfigDependencies(config)
 	diags = diags.Append(moreDiags)
+	moreDiags = c.checkStateDependencies(prevRunState)
+	diags = diags.Append(moreDiags)
+
 	// If required dependencies are not available then we'll bail early since
 	// otherwise we're likely to just see a bunch of other errors related to
 	// incompatibilities, which could be overwhelming for the user.
@@ -378,6 +381,7 @@ func (c *Context) checkApplyGraph(plan *plans.Plan, config *configs.Config, opts
 		return nil
 	}
 	log.Println("[DEBUG] building apply graph to check for errors")
+
 	_, _, diags := c.applyGraph(plan, config, opts.ApplyOpts(), true)
 	return diags
 }

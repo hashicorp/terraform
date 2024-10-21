@@ -16,7 +16,7 @@ import (
 )
 
 // BuildConfig constructs a Config from a root module by loading all of its
-// descendent modules via the given ModuleWalker. This function also side loads
+// descendant modules via the given ModuleWalker. This function also side loads
 // and installs any mock data files needed by the testing framework via the
 // MockDataLoader.
 //
