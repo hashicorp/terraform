@@ -7,10 +7,12 @@ import (
 	"encoding/json"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/terraform/internal/moduleref"
 )
 
 func TestModules_noJsonFlag(t *testing.T) {
@@ -130,7 +132,7 @@ func TestModules_uninstalledModules(t *testing.T) {
 }
 
 func compareJSONOutput(t *testing.T, got string, want string) {
-	var expected, actual map[string]interface{}
+	var expected, actual moduleref.Manifest
 
 	if err := json.Unmarshal([]byte(got), &actual); err != nil {
 		t.Fatalf("Failed to unmarshal actual JSON: %v", err)
@@ -139,6 +141,13 @@ func compareJSONOutput(t *testing.T, got string, want string) {
 	if err := json.Unmarshal([]byte(want), &expected); err != nil {
 		t.Fatalf("Failed to unmarshal expected JSON: %v", err)
 	}
+
+	sort.Slice(actual.Records, func(i, j int) bool {
+		return actual.Records[i].Key < actual.Records[j].Key
+	})
+	sort.Slice(expected.Records, func(i, j int) bool {
+		return expected.Records[i].Key < expected.Records[j].Key
+	})
 
 	if !reflect.DeepEqual(expected, actual) {
 		t.Fatalf("unexpected output, got: %s\n, want:%s\n", got, want)
