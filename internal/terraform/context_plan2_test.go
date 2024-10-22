@@ -4579,6 +4579,62 @@ resource "test_object" "a" {
 	}
 }
 
+func TestContext2Plan_externalProvidersWithState(t *testing.T) {
+	// In this test we're going to use an external provider for a resource
+	// that is already in the state. Terraform should allow this, even though
+	// the provider isn't defined in the configuration.
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": ``, // no resources
+	})
+
+	state := states.BuildState(func(state *states.SyncState) {
+		state.SetResourceInstanceCurrent(mustResourceInstanceAddr("foo.a"), &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["hashicorp/foo"]`))
+	})
+
+	fooProvider := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"foo": {
+					Block: &configschema.Block{},
+				},
+			},
+		},
+		ConfigureProviderFn: func(providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+			return providers.ConfigureProviderResponse{
+				Diagnostics: tfdiags.Diagnostics{
+					tfdiags.Sourceless(
+						tfdiags.Error,
+						"Pre-configured provider was reconfigured by the modules runtime",
+						"An externally-configured provider should not have its ConfigureProvider function called during planning.",
+					),
+				},
+			}
+		},
+	}
+
+	ctx, diags := NewContext(&ContextOpts{
+		PreloadedProviderSchemas: map[addrs.Provider]providers.GetProviderSchemaResponse{
+			addrs.MustParseProviderSourceString("hashicorp/foo"): *fooProvider.GetProviderSchemaResponse,
+		},
+	})
+	assertNoDiagnostics(t, diags)
+
+	fooProvider.ConfigureProviderCalled = true
+	_, diags = ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		ExternalProviders: map[addrs.RootProviderConfig]providers.Interface{
+			addrs.RootProviderConfig{
+				Provider: addrs.MustParseProviderSourceString("hashicorp/foo"),
+			}: fooProvider,
+		},
+	})
+	assertNoDiagnostics(t, diags)
+}
+
 func TestContext2Plan_externalProviders(t *testing.T) {
 	// This test exercises the option for callers to pass in their own
 	// already-configured provider instances, instead of the modules runtime
