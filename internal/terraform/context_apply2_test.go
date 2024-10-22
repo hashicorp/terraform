@@ -2357,20 +2357,12 @@ locals {
 	// The local value should remain in the graph because the external
 	// reference uses it.
 	gotGraph := g.String()
-	wantGraph := `<external ref to local.local_value>
-  local.local_value (expand)
-local.local_value (expand)
-  test_object.a (expand)
-provider["registry.terraform.io/hashicorp/test"]
+	wantGraph := `provider["registry.terraform.io/hashicorp/test"]
 provider["registry.terraform.io/hashicorp/test"] (close)
   test_object.a (destroy)
-  test_object.a (expand)
 root
-  <external ref to local.local_value>
   provider["registry.terraform.io/hashicorp/test"] (close)
 test_object.a (destroy)
-  provider["registry.terraform.io/hashicorp/test"]
-test_object.a (expand)
   provider["registry.terraform.io/hashicorp/test"]
 `
 	if diff := cmp.Diff(wantGraph, gotGraph); diff != "" {

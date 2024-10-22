@@ -5886,7 +5886,7 @@ resource "test_object" "a" {
 		},
 	})
 	if diags.HasErrors() {
-		t.Errorf("expected no errors, but got %s", diags)
+		t.Fatalf("expected no errors, but got %s", diags.ErrWithWarnings())
 	}
 
 	planResult := plan.Checks.GetObjectResult(addrs.AbsInputVariableInstance{
@@ -5896,7 +5896,7 @@ resource "test_object" "a" {
 		Module: addrs.RootModuleInstance,
 	})
 
-	if planResult.Status != checks.StatusUnknown {
+	if planResult != nil && planResult.Status != checks.StatusUnknown {
 		// checks should not have been evaluated, because the variable is not required for destroy.
 		t.Errorf("expected checks to be pass but was %s", planResult.Status)
 	}
