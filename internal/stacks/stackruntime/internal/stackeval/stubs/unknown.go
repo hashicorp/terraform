@@ -212,7 +212,7 @@ func (u *unknownProvider) ReadDataSource(request providers.ReadDataSourceRequest
 		// unknown values. This isn't the original use case for the mocking
 		// library, but it is doing exactly what we need it to do.
 
-		schema := u.GetProviderSchema().ResourceTypes[request.TypeName]
+		schema := u.GetProviderSchema().DataSources[request.TypeName]
 		val, diags := mocking.PlanComputedValuesForResource(request.Config, schema.Block)
 		if diags.HasErrors() {
 			// All the potential errors we get back from this function are
