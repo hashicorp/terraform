@@ -5,6 +5,7 @@ go 1.23.1
 require (
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/terraform/internal/legacy v0.0.0-00010101000000-000000000000
+	github.com/mitchellh/go-homedir v1.1.0
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.588
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sts v1.0.588
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/tag v1.0.233
