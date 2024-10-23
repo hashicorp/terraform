@@ -553,6 +553,12 @@ func testTempFile(t *testing.T) string {
 	return filepath.Join(testTempDir(t), "state.tfstate")
 }
 
+func testVarsFile(t *testing.T) string {
+	t.Helper()
+
+	return filepath.Join(testTempDir(t), "variables.tfvars")
+}
+
 func testTempDir(t *testing.T) string {
 	t.Helper()
 	d, err := filepath.EvalSymlinks(t.TempDir())
