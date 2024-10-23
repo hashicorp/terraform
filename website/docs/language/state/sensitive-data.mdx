@@ -20,7 +20,7 @@ When using [remote state](/terraform/language/state/remote), state is only ever 
 
 Terraform allows you to mark `input` variables, `output` values, and `resources` as ephemeral.  Marking sensitive data as `ephemeral` tells Terraform that the data is available during runtime, but Terraform does not write data to state or plan files. The `ephemeral` property is useful if you are managing credentials, tokens, or other temporary resources that you do not want to store in Terraform state files.
 
-Learn more about defining `ephemeral` [output variables](/terraform/language/values/outputs#ephemeral), [input variables](/terraform/language/values/varibales#ephemeral), and [resources]().
+Learn more about defining `ephemeral` [output values](/terraform/language/values/outputs#ephemeral), [input variables](/terraform/language/values/variables#ephemeral), and [resources](/terraform/language/resources/syntax).
 
 ## Recommendations
 
