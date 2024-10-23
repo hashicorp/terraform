@@ -51,12 +51,12 @@ output "lb_address" {
 
 output "password" {
   sensitive = true
-  value = var.secret_password
+  value     = var.secret_password
 }
 
 output "session_token" {
   ephemeral = true
-  value = var.session_token
+  value     = var.session_token
 }
 ```
 
