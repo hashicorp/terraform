@@ -178,9 +178,9 @@ Refer to [Custom Condition Checks](/terraform/language/expressions/custom-condit
 
 ### Exclude values from state
 
-Setting a variable as `ephemeral` makes an variable available during runtime, but Terraform omits that value from state or plan files. Marking an input variable as `ephemeral` is useful for data that only needs to exist temporarily, such as short-lived tokens or session identifiers.
+Setting a variable as `ephemeral` makes it available during runtime, but Terraform omits ephemeral values from state and plan files. Marking an input variable as `ephemeral` is useful for data that only needs to exist temporarily, such as a short-lived token or session identifier.
 
-Mark an `input` variable as `ephemeral` by setting the `ephemeral` argument to `true`:
+Mark an input variable as ephemeral by setting the `ephemeral` argument to `true`:
 
 ```hcl
 variable "session_token" {
