@@ -65,7 +65,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 When every field is defined, an `orchestrate` block has the following form:
 
 ```hcl
-# auto-approve is the rule type
+# auto_approve is the rule type
 orchestrate "auto_approve" "name_of_check" {
   check {
     condition = <the condition that HCP Terraform evaluates>
@@ -95,7 +95,7 @@ orchestrate "auto_approve" "no_pet_changes" {
 }
 ```
 
-By default, each Stack has an `auto-approve` rule named `empty_plan`, which auto-approves a plan if it contains no changes. 
+By default, each Stack has an `auto_approve` rule named `empty_plan`, which automatically approves a plan if it contains no changes. 
 
 ### Specification
 
