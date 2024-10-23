@@ -20,7 +20,7 @@ There are two orchestration rule types to choose from:
 1. The `auto_approve` rule executes after a Stack creates a plan and automatically approves a plan if all checks pass.  
 1. The `replan` rule executes after a Stack applies a plan, automatically triggering a replan if all the checks pass.
 
-The `auto-approve` rule is helpful when you know you want a certain type of plan to go ahead without manual intervention. For example, Stacks have a default `auto-approve` rule named `empty_plan`, which auto-approves a plan if it has no changes. 
+The `auto_approve` rule is helpful when you know you want a certain type of plan to go ahead without manual intervention. For example, Stacks have a default `auto_approve` rule named `empty_plan`, which automatically approves a plan if it has no changes. 
 
 As another example, you could create a rule that automatically approves deployments if a component has not changed. 
 
@@ -31,7 +31,7 @@ orchestrate "auto_approve" "no_pet_changes" {
     check {
         # Check that the pet component has no changes
         condition = context.plan.component_changes["component.pet"].total == 0
-        reason = "Not auto-approved because changes proposed to pet component."
+        reason = "Not automatically approved because changes proposed to pet component."
     }
 }
 ```
@@ -67,7 +67,7 @@ The above `orchestrate` block triggers a replan if the production development of
 
 The `orchestrate` block can use the `context` variable, which provides access to detailed information about the deployment plan, such as the number of changes, the specific components involved, and the deployment’s status.
 
-Use `context` to create more sophisticated checks and conditions. For example, you can auto-approve all planning operations.
+Use `context` to create more sophisticated checks and conditions. For example, you can automatically approve all planning operations.
 
 ```hcl
 # deployments.tfdeploy.hcl
