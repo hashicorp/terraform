@@ -57,7 +57,7 @@ All other commands:
 Global options (use these before the subcommand, if any):
   -chdir=DIR    Switch to a different working directory before executing the
                 given subcommand.
-  -help         Show this help output, or the help for a specified subcommand.
+  -help         Show this help output or the help for a specified subcommand.
   -version      An alias for the "version" subcommand.
 ```
 
@@ -68,7 +68,7 @@ To get specific help for any specific command, use the `-help` option with the
 relevant subcommand. For example, to see help about the "validate" subcommand
 you can run `terraform validate -help`.
 
-The inline help built in to Terraform CLI describes the most important
+The inline help built into Terraform CLI describes the most important
 characteristics of each command. For more detailed information, refer to each
 command's page for details.
 
@@ -130,7 +130,7 @@ terraform -uninstall-autocomplete
 
 The Terraform CLI commands interact with the HashiCorp service
 [Checkpoint](https://checkpoint.hashicorp.com/) to check for the availability
-of new versions and for critical security bulletins about the current version.
+of new versions and critical security bulletins about the current version.
 
 One place where the effect of this can be seen is in `terraform version`, where
 it is used by default to indicate in the output when a newer version is
