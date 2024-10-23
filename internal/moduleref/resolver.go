@@ -21,7 +21,7 @@ type Resolver struct {
 // that is passed.
 func NewResolver(internalManifest modsdir.Manifest) *Resolver {
 	// Since maps are pointers, create a copy of the internal manifest to
-	// prevent introducing sideffects to the original
+	// prevent introducing side effects to the original
 	internalManifestCopy := make(modsdir.Manifest, len(internalManifest))
 	for k, v := range internalManifest {
 		internalManifestCopy[k] = v
@@ -34,7 +34,8 @@ func NewResolver(internalManifest modsdir.Manifest) *Resolver {
 	return &Resolver{
 		internalManifest: internalManifestCopy,
 		manifest: &Manifest{
-			Records: []Record{},
+			FormatVersion: FormatVersion,
+			Records:       []Record{},
 		},
 	}
 }
@@ -44,11 +45,6 @@ func NewResolver(internalManifest modsdir.Manifest) *Resolver {
 func (r *Resolver) Resolve(cfg *configs.Config) *Manifest {
 	// First find all the referenced modules.
 	r.findAndTrimReferencedEntries(cfg)
-
-	// Lastly append any entry with no reference found
-	for _, entry := range r.internalManifest {
-		r.manifest.AddModuleEntry(entry, false)
-	}
 
 	return r.manifest
 }
@@ -68,8 +64,7 @@ func (r *Resolver) findAndTrimReferencedEntries(cfg *configs.Config) {
 			// This is a sufficient check as caller keys are unique per module
 			// entry.
 			if callerKey == entryKey {
-				// We found a reference!
-				r.manifest.AddModuleEntry(entry, true)
+				r.manifest.addModuleEntry(entry)
 				// "Trim" the entry from the internal manifest, saving us cycles
 				// as we descend into the module tree.
 				delete(r.internalManifest, entryKey)

@@ -5,29 +5,27 @@ package moduleref
 
 import "github.com/hashicorp/terraform/internal/modsdir"
 
+const FormatVersion = "1.0"
+
 // ModuleRecord is the implementation of a module entry defined in the module
-// manifest including config reference information
+// manifest that is declared by configuration.
 type Record struct {
-	Source                    string `json:"Source"`
-	Version                   string `json:"Version"`
-	Key                       string `json:"Key"`
-	Dir                       string `json:"Dir"`
-	ReferencedInConfiguration bool   `json:"Referenced"`
+	Key     string `json:"key"`
+	Source  string `json:"source"`
+	Version string `json:"version"`
 }
 
-// ModuleRecordManifest is the ModuleView implementation of the module manifest
+// ModuleRecordManifest is the view implementation of module entries declared
+// in configuration
 type Manifest struct {
-	Records []Record `json:"Modules"`
+	FormatVersion string   `json:"format_version"`
+	Records       []Record `json:"modules"`
 }
 
-// AddModuleEntry will append an module manifest record and includes whether or
-// not the entry is referenced by configuration.
-func (m *Manifest) AddModuleEntry(entry modsdir.Record, referenced bool) {
+func (m *Manifest) addModuleEntry(entry modsdir.Record) {
 	m.Records = append(m.Records, Record{
-		Source:                    entry.SourceAddr,
-		Version:                   entry.VersionStr,
-		Key:                       entry.Key,
-		Dir:                       entry.Dir,
-		ReferencedInConfiguration: referenced,
+		Key:     entry.Key,
+		Source:  entry.SourceAddr,
+		Version: entry.VersionStr,
 	})
 }

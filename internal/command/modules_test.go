@@ -70,7 +70,7 @@ func TestModules_fullCmd(t *testing.T) {
 	}
 
 	output := done(t).All()
-	compareJSONOutput(t, output, expected_fullCmd)
+	compareJSONOutput(t, output, expectedOutput)
 }
 
 func TestModules_fullCmd_unreferencedEntries(t *testing.T) {
@@ -96,7 +96,7 @@ func TestModules_fullCmd_unreferencedEntries(t *testing.T) {
 		t.Fatalf("Got a non-zero exit code: %d\n", code)
 	}
 	output := done(t).All()
-	compareJSONOutput(t, output, expected_fullCmd_unreferencedEntries)
+	compareJSONOutput(t, output, expectedOutput)
 }
 
 func TestModules_uninstalledModules(t *testing.T) {
@@ -154,6 +154,4 @@ func compareJSONOutput(t *testing.T, got string, want string) {
 	}
 }
 
-var expected_fullCmd = `{"Modules":[{"Source":"./child","Version":"","Key":"child","Dir":"child","Referenced":true},{"Source":"./child","Version":"","Key":"count_child","Dir":"child","Referenced":true}]}`
-
-var expected_fullCmd_unreferencedEntries = `{"Modules":[{"Source":"./child","Version":"","Key":"child","Dir":"child","Referenced":true},{"Source":"./child","Version":"","Key":"count_child","Dir":"child","Referenced":true},{"Source":"./child","Version":"","Key":"old_count_child","Dir":"child","Referenced":false}]}`
+var expectedOutput = `{"format_version":"1.0","modules":[{"key":"child","source":"./child","version":""},{"key":"count_child","source":"./child","version":""}]}`

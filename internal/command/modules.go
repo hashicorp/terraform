@@ -16,7 +16,7 @@ import (
 )
 
 // ModulesCommand is a Command implementation that prints out information
-// about the modules used in the current configuration.
+// about the modules declared by the current configuration.
 type ModulesCommand struct {
 	Meta
 	viewType arguments.ViewType
@@ -27,7 +27,7 @@ func (c *ModulesCommand) Help() string {
 }
 
 func (c *ModulesCommand) Synopsis() string {
-	return "Show all installed modules in a working directory"
+	return "Show all declared modules in a working directory"
 }
 
 func (c *ModulesCommand) Run(rawArgs []string) int {
@@ -65,14 +65,14 @@ func (c *ModulesCommand) Run(rawArgs []string) int {
 	}
 
 	// Read the root module path so we can then traverse the tree
-	rootModEarly, earlyConfDiags := c.loadSingleModuleWithTests(rootModPath, ".")
+	rootModEarly, earlyConfDiags := c.loadSingleModule(rootModPath)
 	if rootModEarly == nil {
 		diags = diags.Append(errors.New("root module not found. Please run terraform init"), earlyConfDiags)
 		view.Diagnostics(diags)
 		return 1
 	}
 
-	config, confDiags := c.loadConfigWithTests(rootModPath, ".")
+	config, confDiags := c.loadConfig(rootModPath)
 	// Here we check if there are any uninstalled dependencies
 	versionDiags := terraform.CheckCoreVersionRequirements(config)
 	if versionDiags.HasErrors() {
@@ -131,7 +131,6 @@ func (c *ModulesCommand) internalManifest() (modsdir.Manifest, tfdiags.Diagnosti
 const modulesCommandHelp = `
 Usage: terraform [global options] modules -json
 
-  Prints out a list of all installed Terraform modules, their resolved versions
-  and whether they are currently referenced by Terraform configuration in the
-  current working directory.
+  Prints out a list of all declared Terraform modules and their resolved versions
+  in a Terraform working directory.
 `

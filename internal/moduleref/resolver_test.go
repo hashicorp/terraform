@@ -33,18 +33,13 @@ func TestResolver_Resolve(t *testing.T) {
 	resolver := NewResolver(manifest)
 	result := resolver.Resolve(cfg)
 
-	if len(result.Records) != 2 {
-		t.Fatalf("expected the resolved number of entries to match the manifest, got: %d", len(result.Records))
+	if len(result.Records) != 1 {
+		t.Fatalf("expected the resolved number of entries to equal 1, got: %d", len(result.Records))
 	}
 
 	// For the foo record
-	if !result.Records[0].ReferencedInConfiguration {
+	if result.Records[0].Key != "foo" {
 		t.Fatal("expected to find reference for module \"foo\"")
-	}
-
-	// For the bar record
-	if result.Records[1].ReferencedInConfiguration {
-		t.Fatal("expected module \"bar\" to not be referenced in config")
 	}
 }
 
@@ -106,8 +101,8 @@ func TestResolver_ResolveNestedChildren(t *testing.T) {
 	resolver := NewResolver(manifest)
 	result := resolver.Resolve(cfg)
 
-	if len(result.Records) != 5 {
-		t.Fatalf("expected the resolved number of entries to match the manifest, got: %d", len(result.Records))
+	if len(result.Records) != 3 {
+		t.Fatalf("expected the resolved number of entries to equal 3, got: %d", len(result.Records))
 	}
 
 	assertions := map[string]bool{
@@ -120,12 +115,8 @@ func TestResolver_ResolveNestedChildren(t *testing.T) {
 
 	for _, record := range result.Records {
 		referenced, ok := assertions[record.Key]
-		if !ok {
-			t.Fatalf("expected to find entry with key: %s", record.Key)
-		}
-
-		if referenced != record.ReferencedInConfiguration {
-			t.Fatalf("expected key %s to be referenced: %t, got: %t", record.Key, referenced, record.ReferencedInConfiguration)
+		if !ok || !referenced {
+			t.Fatalf("expected to find referenced entry with key: %s", record.Key)
 		}
 	}
 }
