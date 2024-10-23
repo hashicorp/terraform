@@ -118,9 +118,9 @@ You can mark an `output` as ephemeral by setting the `ephemeral` field to `true`
 
 ```hcl
 output "session_token" {
-  value     = aws_iam_role.session_token
+  value       = aws_iam_role.session_token
   description = "Temporary session token for AWS access."
-  ephemeral = true
+  ephemeral   = true
 }
 ```
 The value of ephemeral `output` blocks are available to Terraform during the plan and apply steps. However Terraform still hides the values for ephemeral outputs when it prints out the results of a plan or apply.
