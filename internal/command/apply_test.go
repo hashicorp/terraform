@@ -1046,7 +1046,7 @@ func TestApply_planVarsEphemeral_applyTime(t *testing.T) {
 		}
 	})
 
-	// Finally, test that the apply also fails if we do *not* supply a value for
+	// Test that the apply also fails if we do *not* supply a value for
 	// the apply-time variable foo.
 	t.Run("missing ephemeral variable", func(t *testing.T) {
 		view, done = testView(t)
@@ -1065,6 +1065,47 @@ func TestApply_planVarsEphemeral_applyTime(t *testing.T) {
 		if code == 0 {
 			t.Fatal("should've failed: ", output.Stdout())
 		}
+	})
+
+	t.Run("passing ephemeral variable through vars file", func(t *testing.T) {
+		view, done = testView(t)
+		c = &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+		const planVarFile = `
+foo = "bar"
+`
+
+		// Write a tfvars file with the variable
+		tfVarsPath := testVarsFile(t)
+		err := os.WriteFile(tfVarsPath, []byte(planVarFile), 0600)
+		if err != nil {
+			t.Fatalf("Could not write vars file %e", err)
+		}
+
+		args = []string{
+			"-state", statePath,
+			"-var-file", tfVarsPath,
+			planPath,
+		}
+		code = c.Run(args)
+		output = done(t)
+		if code != 0 {
+			t.Fatal("should've succeeded: ", output.Stderr())
+		}
+	})
+
+	t.Run("passing ephemeral variable through environment variable", func(t *testing.T) {
+		// https://github.com/hashicorp/terraform/blob/b21a5703bdc0af3d7730c0b8b9f68e41a4bc9645/internal/command/meta_vars.go#L95
+		t.Skip("TODO")
+	})
+
+	t.Run("passing ephemeral variable through interactive prompts", func(t *testing.T) {
+		// Look at https://github.com/hashicorp/terraform/blob/b21a5703bdc0af3d7730c0b8b9f68e41a4bc9645/internal/command/plan_test.go#L794 for inspiration
+		t.Skip("TODO")
 	})
 }
 
