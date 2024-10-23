@@ -14,6 +14,7 @@ BUG FIXES:
 - Allow unknown `error_message` values to pass the core validate step, so variable validation can be completed later during plan
   ([#35537](https://github.com/hashicorp/terraform/issues/35537))
 - Unencoded slashes within GitHub module source refs were being truncated and incorrectly used as subdirectories in the request path ([#35552](https://github.com/hashicorp/terraform/issues/35552))
+- Terraform refresh-only plans with output only changes are now applyable. ([#35812](https://github.com/hashicorp/terraform/issues/35812))
 
 ENHANCEMENTS:
 
