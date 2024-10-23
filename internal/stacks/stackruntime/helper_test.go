@@ -510,7 +510,7 @@ func mustAbsResourceInstanceObjectPtr(addr string) *stackaddrs.AbsResourceInstan
 }
 
 func mustAbsComponentInstance(addr string) stackaddrs.AbsComponentInstance {
-	ret, diags := stackaddrs.ParseAbsComponentInstanceStr(addr)
+	ret, diags := stackaddrs.ParsePartialComponentInstanceStr(addr)
 	if len(diags) > 0 {
 		panic(fmt.Sprintf("failed to parse component instance address %q: %s", addr, diags))
 	}
@@ -518,7 +518,7 @@ func mustAbsComponentInstance(addr string) stackaddrs.AbsComponentInstance {
 }
 
 func mustAbsComponent(addr string) stackaddrs.AbsComponent {
-	ret, diags := stackaddrs.ParseAbsComponentInstanceStr(addr)
+	ret, diags := stackaddrs.ParsePartialComponentInstanceStr(addr)
 	if len(diags) > 0 {
 		panic(fmt.Sprintf("failed to parse component instance address %q: %s", addr, diags))
 	}

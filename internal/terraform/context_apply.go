@@ -162,7 +162,7 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		return nil, nil, diags
 	}
 
-	moreDiags = checkExternalProviders(config, opts.ExternalProviders)
+	moreDiags = checkExternalProviders(config, plan, nil, opts.ExternalProviders)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return nil, nil, diags
