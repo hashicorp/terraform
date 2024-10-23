@@ -367,6 +367,70 @@ func TestStateHasResourceInstanceObjects(t *testing.T) {
 
 }
 
+func TestStateHasRootOutputValues(t *testing.T) {
+	tests := map[string]struct {
+		Setup func(ss *SyncState)
+		Want  bool
+	}{
+		"empty": {
+			func(ss *SyncState) {},
+			false,
+		},
+		"one output value": {
+			func(ss *SyncState) {
+				ss.SetOutputValue(
+					addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("bar value"), false,
+				)
+			},
+			true,
+		},
+		"one secret output value": {
+			func(ss *SyncState) {
+				ss.SetOutputValue(
+					addrs.OutputValue{Name: "secret"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("secret value"), true,
+				)
+			},
+			true,
+		},
+
+		// The output value tests below are in other modules and do not persist between runs.
+		// Terraform Core tracks them internally and does not expose them in any
+		// artifacts that survive between executions.
+		"one output value in child module": {
+			func(ss *SyncState) {
+				ss.SetOutputValue(
+					addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance.Child("child", addrs.NoKey)),
+					cty.StringVal("bar value"), false,
+				)
+			},
+			false,
+		},
+		"one output value in multi module": {
+			func(ss *SyncState) {
+				ss.state.EnsureModule(addrs.RootModuleInstance.Child("multi", addrs.StringKey("a")))
+				ss.SetOutputValue(
+					addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance.Child("multi", addrs.StringKey("a"))),
+					cty.StringVal("bar"), false,
+				)
+			},
+			false,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			state := BuildState(test.Setup)
+			got := state.HasRootOutputValues()
+			if got != test.Want {
+				t.Errorf("wrong result\nstate content: (using legacy state string format; might not be comprehensive)\n%s\n\ngot:  %t\nwant: %t", state, got, test.Want)
+			}
+		})
+	}
+
+}
+
 func TestState_MoveAbsResource(t *testing.T) {
 	// Set up a starter state for the embedded tests, which should start from a copy of this state.
 	state := NewState()
