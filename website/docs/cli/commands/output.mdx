@@ -81,7 +81,7 @@ $ terraform output password
 password = notasecurepassword
 ```
 
-However, Terraform does redact `ephemeral` values even you specify the output by name:
+However, Terraform does not print out `ephemeral` values even if you specify an output by name. Ephemeral values are never stored in state or included in Terraform plans.
 
 ```shellsession
 $ terraform output session_token
