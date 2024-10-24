@@ -88,9 +88,9 @@ terraform {
     bucket = "bucket-for-terraform-state-{appid}"
     prefix = "terraform/state"
     assume_role {
-      role_arn = "qcs::cam::uin/xxx:roleName/yyy"
-      session_name = "my-session-name"
-      session_duration = 3600
+      role_arn         = "qcs::cam::uin/xxx:roleName/yyy"
+      session_name     = "my-session-name"
+      session_duration = 7200
     }
   }
 }
@@ -106,7 +106,101 @@ $ export TENCENTCLOUD_SECRET_KEY="my-secret-key"
 $ export TENCENTCLOUD_REGION="ap-guangzhou"
 $ export TENCENTCLOUD_ASSUME_ROLE_ARN="qcs::cam::uin/xxx:roleName/yyy"
 $ export TENCENTCLOUD_ASSUME_ROLE_SESSION_NAME="my-session-name"
-$ export TENCENTCLOUD_ASSUME_ROLE_SESSION_DURATION=3600
+$ export TENCENTCLOUD_ASSUME_ROLE_SESSION_DURATION=7200
+$ terraform plan
+```
+
+### Shared credentials
+You can use [Tencent Cloud credentials](https://www.tencentcloud.com/document/product/1013/33464) to specify your credentials. The default location is `$HOME/.tccli` on Linux and macOS, And `"%USERPROFILE%\.tccli"` on Windows. You can optionally specify a different location in the Terraform configuration by providing the `shared_credentials_dir` argument or using the `TENCENTCLOUD_SHARED_CREDENTIALS_DIR` environment variable. This method also supports a `profile` configuration and matching `TENCENTCLOUD_PROFILE` environment variable:
+
+- `shared_credentials_dir` - (Optional) The directory of the shared credentials. It can also be sourced from the `TENCENTCLOUD_SHARED_CREDENTIALS_DIR` environment variable. If not set this defaults to ~/.tccli.
+- `profile` - (Optional) The profile name as set in the shared credentials. It can also be sourced from the `TENCENTCLOUD_PROFILE` environment variable. If not set, the default profile created with `tccli configure` will be used.
+
+Usage:
+
+On Linux/MacOS
+
+```hcl
+terraform {
+  backend "cos" {
+    region                 = "ap-guangzhou"
+    bucket                 = "bucket-for-terraform-state-{appid}"
+    prefix                 = "terraform/state"
+    shared_credentials_dir = "/Users/tf_user/.tccli"
+    profile                = "default"
+  }
+}
+```
+
+On Windows
+
+```hcl
+terraform {
+  backend "cos" {
+    region                 = "ap-guangzhou"
+    bucket                 = "bucket-for-terraform-state-{appid}"
+    prefix                 = "terraform/state"
+    shared_credentials_dir = "C:\\Users\\tf_user\\.tccli"
+    profile                = "default"
+  }
+}
+```
+
+In addition, these `shared_credentials_dir`, `profile` configurations can also be provided by environment variables.
+
+Usage:
+
+```shell
+$ export PROVIDER_SHARED_CREDENTIALS_DIR="/Users/tf_user/.tccli"
+$ export PROVIDER_PROFILE="default"
+$ terraform plan
+```
+
+### Cam role name
+If provided with a Cam role name, Terraform will just access the metadata URL: `http://metadata.tencentyun.com/latest/meta-data/cam/security-credentials/<cam_role_name>` to obtain the STS credential. The CVM Instance Role also can be set using the `TENCENTCLOUD_CAM_ROLE_NAME` environment variables.
+
+- `cam_role_name` - (Optional) The name of the CVM instance CAM role. It can be sourced from the `TENCENTCLOUD_CAM_ROLE_NAME` environment variable.
+
+Usage:
+
+```hcl
+terraform {
+  backend "cos" {
+    region        = "ap-guangzhou"
+    bucket        = "bucket-for-terraform-state-{appid}"
+    prefix        = "terraform/state"
+    cam_role_name = "my-cam-role-name"
+  }
+}
+```
+
+It can also be authenticated together with method Assume role. Authentication process: Perform CAM authentication first, then proceed with Assume role authentication.
+
+Usage:
+
+```hcl
+terraform {
+  backend "cos" {
+    region        = "ap-guangzhou"
+    bucket        = "bucket-for-terraform-state-{appid}"
+    prefix        = "terraform/state"
+    cam_role_name = "my-cam-role-name"
+    assume_role {
+      role_arn         = "qcs::cam::uin/xxx:roleName/yyy"
+      session_name     = "my-session-name"
+      session_duration = 7200
+      external_id      = "my-external-id"
+    }
+  }
+}
+```
+
+In addition, these `cam_role_name` configurations can also be provided by environment variables.
+
+Usage:
+
+```shell
+$ export PROVIDER_CAM_ROLE_NAME="my-cam-role-name"
 $ terraform plan
 ```
 
