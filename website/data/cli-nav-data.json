@@ -278,6 +278,7 @@
       { "title": "<code>init</code>", "href": "/cli/commands/init" },
       { "title": "<code>login</code>", "href": "/cli/commands/login" },
       { "title": "<code>logout</code>", "href": "/cli/commands/logout" },
+      { "title": "<code>modules</code>", "href": "/cli/commands/modules" },
       { "title": "<code>output</code>", "href": "/cli/commands/output" },
       { "title": "<code>plan</code>", "href": "/cli/commands/plan" },
       { "title": "<code>providers</code>", "href": "/cli/commands/providers" },
@@ -375,6 +376,7 @@
       { "title": "init", "path": "commands/init" },
       { "title": "login", "path": "commands/login" },
       { "title": "logout", "path": "commands/logout" },
+      { "title": "modules", "path": "commands/modules" },
       { "title": "output", "path": "commands/output" },
       { "title": "plan", "path": "commands/plan" },
       {

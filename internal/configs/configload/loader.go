@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/modsdir"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/spf13/afero"
 )
@@ -105,6 +106,10 @@ func (l *Loader) RefreshModules() error {
 // for this loader and can thus be shown as snippets in diagnostic messages.
 func (l *Loader) Parser() *configs.Parser {
 	return l.parser
+}
+
+func (l *Loader) ModuleManifest() modsdir.Manifest {
+	return l.modules.manifest
 }
 
 // Sources returns the source code cache for the underlying parser of this
