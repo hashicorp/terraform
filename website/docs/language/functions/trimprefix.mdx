@@ -7,7 +7,7 @@ description: |-
 
 # `trimprefix` Function
 
-`trimprefix` removes the specified prefix from the start of the given string. If the string does not start with the prefix, the string is returned unchanged.
+`trimprefix` removes the specified prefix from the start of the given string, but only once. If the string does not begin with the prefix, the original string is returned unchanged.
 
 ## Examples
 
@@ -19,6 +19,11 @@ world
 ```
 > trimprefix("helloworld", "cat")
 helloworld
+```
+
+```
+> trimprefix("--hello", "-")
+-hello
 ```
 
 ## Related Functions
