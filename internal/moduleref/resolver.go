@@ -56,9 +56,12 @@ func (r *Resolver) Resolve(cfg *configs.Config) *Manifest {
 func (r *Resolver) findAndTrimReferencedEntries(cfg *configs.Config) {
 	for entryKey, entry := range r.internalManifest {
 		for callerKey := range cfg.Module.ModuleCalls {
-			normalizedPath := r.normalizeModulePath(cfg.Path.String())
-			if normalizedPath != "" {
-				callerKey = normalizedPath + "." + callerKey
+			// Construct the module path with the caller key to get
+			// the full module entry key. If it's a root module caller
+			// do nothing since the path will be empty.
+			path := strings.Join(cfg.Path, ".")
+			if path != "" {
+				callerKey = path + "." + callerKey
 			}
 
 			// This is a sufficient check as caller keys are unique per module
@@ -77,14 +80,4 @@ func (r *Resolver) findAndTrimReferencedEntries(cfg *configs.Config) {
 	for _, childCfg := range cfg.Children {
 		r.findAndTrimReferencedEntries(childCfg)
 	}
-}
-
-// normalizeModulePath will attempt to strip path prefixes from a given module
-// path. The intent is so that the path is converted to a internal manifest entry
-// key.
-// Example: module.foo_module.module.bar becomes foo_module.bar
-func (r *Resolver) normalizeModulePath(path string) string {
-	path = strings.ReplaceAll(path, ".module.", ".")
-	path = strings.TrimPrefix(path, "module.")
-	return path
 }
