@@ -23,7 +23,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
-	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -945,168 +944,165 @@ func TestApply_planVars(t *testing.T) {
 // that supplying a declared ephemeral input variable that is *not* in the list
 // of apply-time variables fails.
 func TestApply_planVarsEphemeral_applyTime(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("apply-ephemeral-variable"), td)
-	defer testChdir(t, td)()
-
-	_, snap := testModuleWithSnapshot(t, "apply-ephemeral-variable")
-	plannedVal := cty.ObjectVal(map[string]cty.Value{
-		"id":  cty.UnknownVal(cty.String),
-		"ami": cty.StringVal("bar"),
-	})
-	priorValRaw, err := plans.NewDynamicValue(cty.NullVal(plannedVal.Type()), plannedVal.Type())
-	if err != nil {
-		t.Fatal(err)
-	}
-	plannedValRaw, err := plans.NewDynamicValue(plannedVal, plannedVal.Type())
-	if err != nil {
-		t.Fatal(err)
-	}
-	plan := testPlan(t)
-	plan.Changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
-		Addr: addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "test_instance",
-			Name: "foo",
-		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-		ProviderAddr: addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
-			Module:   addrs.RootModule,
+	for name, tc := range map[string]func(*testing.T, *ApplyCommand, string, string, func(*testing.T) *terminal.TestOutput){
+		// Test first that an apply supplying only the apply-time variable "foo"
+		// succeeds.
+		"only passing ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			args := []string{
+				"-state", statePath,
+				"-var", "foo=bar",
+				planPath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.Stderr())
+			}
 		},
-		ChangeSrc: plans.ChangeSrc{
-			Action: plans.Create,
-			Before: priorValRaw,
-			After:  plannedValRaw,
+
+		// Now test that supplying "bar", which is not an apply-time variable, fails.
+		"passing non-ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			args := []string{
+				"-state", statePath,
+				"-var", "foo=bar",
+				"-var", "bar=bar",
+				planPath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code == 0 {
+				t.Fatal("should've failed: ", output.Stdout())
+			}
 		},
-	})
-	applyTimeVariables := collections.NewSetCmp[string]()
-	applyTimeVariables.Add("foo")
-	plan.ApplyTimeVariables = applyTimeVariables
 
-	planPath := testPlanFileMatchState(
-		t,
-		snap,
-		states.NewState(),
-		plan,
-		statemgr.SnapshotMeta{},
-	)
+		// Test that the apply also fails if we do *not* supply a value for
+		// the apply-time variable foo.
+		"missing ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			args := []string{
+				"-state", statePath,
+				planPath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code == 0 {
+				t.Fatal("should've failed: ", output.Stdout())
+			}
+		},
 
-	statePath := testTempFile(t)
-
-	p := applyFixtureProvider()
-
-	var view *views.View
-	var done func(t *testing.T) *terminal.TestOutput
-	var c *ApplyCommand
-	var args []string
-	var code int
-	var output *terminal.TestOutput
-
-	// Test first that an apply supplying only the apply-time variable "foo"
-	// succeeds.
-	t.Run("only passing ephemeral variable", func(t *testing.T) {
-		view, done = testView(t)
-		c = &ApplyCommand{
-			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(p),
-				View:             view,
-			},
-		}
-		args = []string{
-			"-state", statePath,
-			"-var", "foo=bar",
-			planPath,
-		}
-		code = c.Run(args)
-		output = done(t)
-		if code != 0 {
-			t.Fatal("should've succeeded: ", output.Stderr())
-		}
-	})
-
-	// Now test that supplying "bar", which is not an apply-time variable, fails.
-	t.Run("passing non-ephemeral variable", func(t *testing.T) {
-		view, done = testView(t)
-		c = &ApplyCommand{
-			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(p),
-				View:             view,
-			},
-		}
-		args = []string{
-			"-state", statePath,
-			"-var", "foo=bar",
-			"-var", "bar=bar",
-			planPath,
-		}
-		code = c.Run(args)
-		output = done(t)
-		if code == 0 {
-			t.Fatal("should've failed: ", output.Stdout())
-		}
-	})
-
-	// Test that the apply also fails if we do *not* supply a value for
-	// the apply-time variable foo.
-	t.Run("missing ephemeral variable", func(t *testing.T) {
-		view, done = testView(t)
-		c = &ApplyCommand{
-			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(p),
-				View:             view,
-			},
-		}
-		args = []string{
-			"-state", statePath,
-			planPath,
-		}
-		code = c.Run(args)
-		output = done(t)
-		if code == 0 {
-			t.Fatal("should've failed: ", output.Stdout())
-		}
-	})
-
-	t.Run("passing ephemeral variable through vars file", func(t *testing.T) {
-		view, done = testView(t)
-		c = &ApplyCommand{
-			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(p),
-				View:             view,
-			},
-		}
-		const planVarFile = `
+		"passing ephemeral variable through vars file": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			const planVarFile = `
 foo = "bar"
 `
 
-		// Write a tfvars file with the variable
-		tfVarsPath := testVarsFile(t)
-		err := os.WriteFile(tfVarsPath, []byte(planVarFile), 0600)
-		if err != nil {
-			t.Fatalf("Could not write vars file %e", err)
-		}
+			// Write a tfvars file with the variable
+			tfVarsPath := testVarsFile(t)
+			err := os.WriteFile(tfVarsPath, []byte(planVarFile), 0600)
+			if err != nil {
+				t.Fatalf("Could not write vars file %e", err)
+			}
 
-		args = []string{
-			"-state", statePath,
-			"-var-file", tfVarsPath,
-			planPath,
-		}
-		code = c.Run(args)
-		output = done(t)
-		if code != 0 {
-			t.Fatal("should've succeeded: ", output.Stderr())
-		}
-	})
+			args := []string{
+				"-state", statePath,
+				"-var-file", tfVarsPath,
+				planPath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.Stderr())
+			}
+		},
 
-	t.Run("passing ephemeral variable through environment variable", func(t *testing.T) {
-		// https://github.com/hashicorp/terraform/blob/b21a5703bdc0af3d7730c0b8b9f68e41a4bc9645/internal/command/meta_vars.go#L95
-		t.Skip("TODO")
-	})
+		"passing ephemeral variable through environment variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			t.Setenv("TF_VAR_foo", "bar")
 
-	t.Run("passing ephemeral variable through interactive prompts", func(t *testing.T) {
-		// Look at https://github.com/hashicorp/terraform/blob/b21a5703bdc0af3d7730c0b8b9f68e41a4bc9645/internal/command/plan_test.go#L794 for inspiration
-		t.Skip("TODO")
-	})
+			args := []string{
+				"-state", statePath,
+				planPath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.Stderr())
+			}
+		},
+
+		"passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			close := testInteractiveInput(t, []string{"bar"})
+			defer close()
+
+			args := []string{
+				"-state", statePath,
+				planPath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.Stderr())
+			}
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath("apply-ephemeral-variable"), td)
+			defer testChdir(t, td)()
+
+			_, snap := testModuleWithSnapshot(t, "apply-ephemeral-variable")
+			plannedVal := cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"ami": cty.StringVal("bar"),
+			})
+			priorValRaw, err := plans.NewDynamicValue(cty.NullVal(plannedVal.Type()), plannedVal.Type())
+			if err != nil {
+				t.Fatal(err)
+			}
+			plannedValRaw, err := plans.NewDynamicValue(plannedVal, plannedVal.Type())
+			if err != nil {
+				t.Fatal(err)
+			}
+			plan := testPlan(t)
+			plan.Changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+				Addr: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_instance",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				ProviderAddr: addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				},
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+					Before: priorValRaw,
+					After:  plannedValRaw,
+				},
+			})
+			applyTimeVariables := collections.NewSetCmp[string]()
+			applyTimeVariables.Add("foo")
+			plan.ApplyTimeVariables = applyTimeVariables
+
+			planPath := testPlanFileMatchState(
+				t,
+				snap,
+				states.NewState(),
+				plan,
+				statemgr.SnapshotMeta{},
+			)
+
+			statePath := testTempFile(t)
+
+			p := applyFixtureProvider()
+			view, done := testView(t)
+			c := &ApplyCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					View:             view,
+				},
+			}
+
+			tc(t, c, statePath, planPath, done)
+		})
+	}
 }
 
 // we should be able to apply a plan file with no other file dependencies
