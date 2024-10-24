@@ -4579,6 +4579,62 @@ resource "test_object" "a" {
 	}
 }
 
+func TestContext2Plan_externalProvidersWithState(t *testing.T) {
+	// In this test we're going to use an external provider for a resource
+	// that is already in the state. Terraform should allow this, even though
+	// the provider isn't defined in the configuration.
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": ``, // no resources
+	})
+
+	state := states.BuildState(func(state *states.SyncState) {
+		state.SetResourceInstanceCurrent(mustResourceInstanceAddr("foo.a"), &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["hashicorp/foo"]`))
+	})
+
+	fooProvider := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"foo": {
+					Block: &configschema.Block{},
+				},
+			},
+		},
+		ConfigureProviderFn: func(providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+			return providers.ConfigureProviderResponse{
+				Diagnostics: tfdiags.Diagnostics{
+					tfdiags.Sourceless(
+						tfdiags.Error,
+						"Pre-configured provider was reconfigured by the modules runtime",
+						"An externally-configured provider should not have its ConfigureProvider function called during planning.",
+					),
+				},
+			}
+		},
+	}
+
+	ctx, diags := NewContext(&ContextOpts{
+		PreloadedProviderSchemas: map[addrs.Provider]providers.GetProviderSchemaResponse{
+			addrs.MustParseProviderSourceString("hashicorp/foo"): *fooProvider.GetProviderSchemaResponse,
+		},
+	})
+	assertNoDiagnostics(t, diags)
+
+	fooProvider.ConfigureProviderCalled = true
+	_, diags = ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		ExternalProviders: map[addrs.RootProviderConfig]providers.Interface{
+			addrs.RootProviderConfig{
+				Provider: addrs.MustParseProviderSourceString("hashicorp/foo"),
+			}: fooProvider,
+		},
+	})
+	assertNoDiagnostics(t, diags)
+}
+
 func TestContext2Plan_externalProviders(t *testing.T) {
 	// This test exercises the option for callers to pass in their own
 	// already-configured provider instances, instead of the modules runtime
@@ -5886,7 +5942,7 @@ resource "test_object" "a" {
 		},
 	})
 	if diags.HasErrors() {
-		t.Errorf("expected no errors, but got %s", diags)
+		t.Fatalf("expected no errors, but got %s", diags.ErrWithWarnings())
 	}
 
 	planResult := plan.Checks.GetObjectResult(addrs.AbsInputVariableInstance{
@@ -5896,7 +5952,7 @@ resource "test_object" "a" {
 		Module: addrs.RootModuleInstance,
 	})
 
-	if planResult.Status != checks.StatusUnknown {
+	if planResult != nil && planResult.Status != checks.StatusUnknown {
 		// checks should not have been evaluated, because the variable is not required for destroy.
 		t.Errorf("expected checks to be pass but was %s", planResult.Status)
 	}
@@ -5954,4 +6010,61 @@ output "staying" {
 	if diff := cmp.Diff(expectedChanges, changes, ctydebug.CmpOptions); diff != "" {
 		t.Fatalf("unexpected changes: %s", diff)
 	}
+}
+
+func TestContext2Plan_multiInstanceSelfRef(t *testing.T) {
+	// The postcondition here references self, but because instances are
+	// processed concurrently some instances may not be registered yet during
+	// evaluation. This should still evaluate without error, because we know our
+	// self value exists.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "test" {
+}
+
+data "test_data_source" "foo" {
+  count = 100
+  lifecycle {
+    postcondition {
+      condition = self.attr == null
+      error_message = "error"
+    }
+  }
+  depends_on = [test_resource.test]
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		DataSources: map[string]*configschema.Block{
+			"test_data_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
 }

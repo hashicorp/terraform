@@ -187,6 +187,9 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 
 	moreDiags := c.checkConfigDependencies(config)
 	diags = diags.Append(moreDiags)
+	moreDiags = c.checkStateDependencies(prevRunState)
+	diags = diags.Append(moreDiags)
+
 	// If required dependencies are not available then we'll bail early since
 	// otherwise we're likely to just see a bunch of other errors related to
 	// incompatibilities, which could be overwhelming for the user.
@@ -194,7 +197,7 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 		return nil, nil, diags
 	}
 
-	providerCfgDiags := checkExternalProviders(config, opts.ExternalProviders)
+	providerCfgDiags := checkExternalProviders(config, nil, prevRunState, opts.ExternalProviders)
 	diags = diags.Append(providerCfgDiags)
 	if providerCfgDiags.HasErrors() {
 		return nil, nil, diags
@@ -827,7 +830,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 			// In refresh-only mode we explicitly don't expect to propose any
 			// actions, but the plan is applyable if the state was changed
 			// in an interesting way by the refresh step.
-			plan.Applyable = !plan.PriorState.ManagedResourcesEqual(plan.PrevRunState)
+			plan.Applyable = !plan.PriorState.ManagedResourcesEqual(plan.PrevRunState) || !plan.PriorState.RootOutputValuesEqual(plan.PrevRunState)
 		} else {
 			// For other planning modes a plan is applyable if its "changes"
 			// are not considered empty (by whatever rules the plans package

@@ -1361,6 +1361,134 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				},
 			},
 		},
+		"deferred-components": {
+			path: path.Join("with-data-source", "deferred-provider-for-each"),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("data_known", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("data_known"),
+					"value": cty.StringVal("known"),
+				})).
+				Build(),
+			cycles: []TestCycle{
+				{
+					planMode: plans.NormalMode,
+					planInputs: map[string]cty.Value{
+						"providers": cty.UnknownVal(cty.Set(cty.String)),
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.const"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.const"),
+							Dependencies:          collections.NewSet[stackaddrs.AbsComponent](),
+							Dependents:            collections.NewSet[stackaddrs.AbsComponent](),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("id"):       cty.StringVal("data_known"),
+								mustInputVariable("resource"): cty.StringVal("resource_known"),
+							},
+							OutputValues: make(map[addrs.OutputValue]cty.Value),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.const.data.testing_data_source.data"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":    "data_known",
+									"value": "known",
+								}),
+								AttrSensitivePaths: make([]cty.Path, 0),
+								Status:             states.ObjectReady,
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingDataSourceSchema,
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.const.testing_resource.data"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":    "resource_known",
+									"value": "known",
+								}),
+								Dependencies: []addrs.ConfigResource{
+									mustAbsResourceInstance("data.testing_data_source.data").ConfigResource(),
+								},
+								Status: states.ObjectReady,
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("providers"),
+							Value: cty.UnknownVal(cty.Set(cty.String)),
+						},
+					},
+				},
+				{
+					planMode: plans.DestroyMode,
+					planInputs: map[string]cty.Value{
+						"providers": cty.UnknownVal(cty.Set(cty.String)),
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.const"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.const"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.const.data.testing_data_source.data"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+							NewStateSrc:                nil,
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.const.testing_resource.data"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+							NewStateSrc:                nil,
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("providers"),
+							Value: cty.NilVal, // destroyed
+						},
+					},
+				},
+			},
+		},
+		"unknown-component-input": {
+			path: path.Join("map-object-input", "for-each-input"),
+			cycles: []TestCycle{
+				{
+					planMode: plans.NormalMode,
+					planInputs: map[string]cty.Value{
+						"inputs": cty.UnknownVal(cty.Map(cty.String)),
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.main"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.main"),
+							Dependencies:          collections.NewSet(mustAbsComponent("component.self")),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables:        make(map[addrs.InputVariable]cty.Value),
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("inputs"),
+							Value: cty.UnknownVal(cty.Map(cty.String)),
+						},
+					},
+				},
+				{
+					planMode: plans.DestroyMode,
+					planInputs: map[string]cty.Value{
+						"inputs": cty.MapValEmpty(cty.String),
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.main"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.main"),
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("inputs"),
+							Value: cty.NilVal, // destroyed
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range tcs {

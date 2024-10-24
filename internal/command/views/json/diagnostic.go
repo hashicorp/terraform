@@ -313,6 +313,17 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 							}
 						}
 						switch {
+						case val.HasMark(marks.Sensitive) && val.HasMark(marks.Ephemeral):
+							// We only mention the combination of sensitive and ephemeral
+							// values if the diagnostic we're rendering is explicitly
+							// marked as being caused by sensitive and ephemeral values,
+							// because otherwise readers tend to be misled into thinking the error
+							// is caused by the sensitive value even when it isn't.
+							if !includeSensitive || !includeEphemeral {
+								continue Traversals
+							}
+
+							value.Statement = "has an ephemeral, sensitive value"
 						case val.HasMark(marks.Sensitive):
 							// We only mention a sensitive value if the diagnostic
 							// we're rendering is explicitly marked as being
@@ -326,6 +337,11 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 							// in order to minimize the chance of giving away
 							// whatever was sensitive about it.
 							value.Statement = "has a sensitive value"
+						case val.HasMark(marks.Ephemeral):
+							if !includeEphemeral {
+								continue Traversals
+							}
+							value.Statement = "has an ephemeral value"
 						case !val.IsKnown():
 							// We'll avoid saying anything about unknown or
 							// "known after apply" unless the diagnostic is
@@ -367,9 +383,6 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 							}
 						default:
 							value.Statement = fmt.Sprintf("is %s", compactValueStr(val))
-						}
-						if includeEphemeral && val.HasMark(marks.Ephemeral) {
-							value.Statement += ", and is ephemeral"
 						}
 						values = append(values, value)
 						seen[traversalStr] = struct{}{}

@@ -271,7 +271,7 @@ func (ev *forEachEvaluator) ensureNotEphemeral(forEachVal cty.Value) tfdiags.Dia
 			Subject:     ev.expr.Range().Ptr(),
 			Expression:  ev.expr,
 			EvalContext: ev.hclCtx,
-			Extra:       diagnosticCausedByEphemeral(true),
+			Extra:       DiagnosticCausedByEphemeral(true),
 		})
 	}
 

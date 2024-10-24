@@ -92,6 +92,12 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 		ruleDiags = ruleDiags.Append(moreDiags)
 		refs = append(refs, moreRefs...)
 
+		// We want to emit diagnostics if users are using ephemeral resources in their checks
+		// as they are not supported since they are closed before this is evaluated.
+		// We do not remove the diagnostic about the ephemeral resource being closed already as it
+		// might be useful to the user.
+		ruleDiags = ruleDiags.Append(diagsForEphemeralResources(refs))
+
 		hclCtx, moreDiags := scope.EvalContext(refs)
 		ruleDiags = ruleDiags.Append(moreDiags)
 		if moreDiags.HasErrors() {
@@ -173,6 +179,8 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 				Subject:     rule.Condition.Range().Ptr(),
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
+				// Make the ephemerality visible
+				Extra: terraform.DiagnosticCausedByEphemeral(true),
 			})
 			continue
 		} else {
@@ -196,6 +204,23 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 	}
 
 	return status, cty.ObjectVal(outputVals), diags
+}
+
+func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnostics) {
+	for _, ref := range refs {
+		switch v := ref.Subject.(type) {
+		case addrs.ResourceInstance:
+			if v.Resource.Mode == addrs.EphemeralResourceMode {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Ephemeral resources cannot be asserted",
+					Detail:   "Ephemeral resources are closed when the test is finished, and are not available within the test context for assertions.",
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+			}
+		}
+	}
+	return diags
 }
 
 // evaluationData augments an underlying lang.Data -- presumably resulting
