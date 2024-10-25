@@ -6,25 +6,22 @@ description: |-
 
 # The `terraform.applying` symbol
 
-You can use the `terraform.applying` symbol in your configuration to determine if Terraform is currently applying a plan.
+-> The `terraform.applying` symbol is in public beta and available in Terraform v1.10 and later. The workflows of `terraform.applying` are subject to change.
 
-Terraform automatically sets `terraform.applying` to `true` when you [apply a plan](/terraform/cli/commands/apply), and `false` during any other phase. The [planning mode](/terraform/cli/commands/plan#planning-modes) you apply Terraform in does not affect `terraform.applying`, meaning that even in destroy mode, `terraform.applying` is still set to `true`.
+You can use the `terraform.applying` symbol in your configuration to determine if Terraform is currently running an apply operation.
 
-A common example of where `terraform.applying` can be helpful is when you want to use different credentials for planning and applying a Terraform configuration.
+Terraform automatically sets `terraform.applying` to `true` when you run an [apply](/terraform/cli/commands/apply) operation, and `false` during any other operation. The [planning mode](/terraform/cli/commands/plan#planning-modes) you run `terraform apply` in does not affect `terraform.applying`, meaning that even in destroy mode, `terraform.applying` is still `true`.
+
+A common example of where `terraform.applying` can be helpful is when you want to use different credentials if Terraform is either planning or applying.
 
 ```hcl
 locals {
   aws_read_role_arn  = "arn:aws:iam::XXXXX:role/terraform-read"
   aws_write_role_arn = "arn:aws:iam::XXXXX:role/terraform-full"
-}
 
-provider "aws" {
-  region = "us-west-2"
-
-  assume_role_with_web_identity {
-  # Our plan credentials are read-only, so if Terraform is applying a plan then  # we want to use our AWS role that allows us to write.
-    role_arn           = terraform.applying ? local.aws_write_role_arn : local.aws_read_role_arn
-  }
+  # We only need read-only credentials to plan, so if Terraform is applying 
+  # we want to use our AWS role that allows us to write.
+  role_arn = terraform.applying ? local.aws_write_role_arn : local.aws_read_role_arn
 }
 ```
 
@@ -32,5 +29,5 @@ The `terraform.applying` symbol is an ephemeral value, meaning it is only availa
 
 * In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)  
 * In [local values](/terraform/language/values/locals#ephemeral-values)  
-* In [ephemeral resources](terraform/language/resources/ephemeral)  
+* In [ephemeral resources](/terraform/language/resources/ephemeral)  
 * In [ephemeral outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files)

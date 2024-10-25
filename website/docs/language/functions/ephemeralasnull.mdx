@@ -6,11 +6,13 @@ description: |-
 
 # `ephemeralasnull` function reference
 
+-> The `ephemeralasnull` function is in public beta and available in Terraform v1.10 and later. The workflows of `ephemeralasnull` are subject to change.
+
 This topic provides reference information about the `ephemeralasnull` function. The `ephemeralasnull` function accepts an ephemeral value and returns `null`. 
 
 ## Introduction
 
-You can use the `ephemeralasnull` function to nullify ephemeral values. For example, if you pass an object with a nested ephemeral value to `ephemeralasnull`, the `ephemeralasnull` function nullifies any ephemeral values within that object.
+You can use the `ephemeralasnull` function to nullify ephemeral values. For example, if you pass an object with a nested ephemeral value to `ephemeralasnull`,it nullifies any ephemeral values within that object.
 
 ## Syntax
 
@@ -23,20 +25,19 @@ ephemeralasnull(var.my_ephemeral_value)
 In the following example, you can pass the `ephemeralasnull` function an ephemeral value, and the function returns `null`:
 
 ```hcl
-variable "session_token" {
+variable "example" {
   type      = string
   default   = "test"
   ephemeral = true
 }
 
-# This output returns null, meaning that this output is not written to your state.
-output "session_token_output" {
-  value       = ephemeralasnull(local.things_with_token)
-  description = "Temporary session token for AWS access."
+# This output returns null.
+output "example_output" {
+  value       = ephemeralasnull(var.example)
 }
 ```
 
-For more information on which Terraform blocks can be ephemeral, refer to ephemeral [inputs](/terraform/language/values/variables#exclude-values-from-state), [outputs](terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files), and [resources]().
+For more information on which Terraform blocks can be ephemeral, refer to ephemeral [inputs](/terraform/language/values/variables#exclude-values-from-state), [outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files), and [resources](/terraform/language/resources/ephemeral).
 
 ## Example use case
 
@@ -66,9 +67,9 @@ locals {
 }
 
 output "configuration_settings" {
-# Using ephemeralasnull enables you to access the non-ephemeral 
+# Using ephemeralasnull enables you to output the non-ephemeral values.
   value       = ephemeralasnull(local.things_with_token)
-  description = "Temporary session token for AWS access."
+  description = "Environment setting."
 }
 ```
 
@@ -82,3 +83,4 @@ configuration_settings = {
   "session_token" = tostring(null)
 }
 ```
+Allowing you to output the non-ephemeral value `env`.

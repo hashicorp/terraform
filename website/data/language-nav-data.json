@@ -905,6 +905,7 @@
       { "title": "distinct", "path": "functions/distinct", "hidden": true },
       { "title": "element", "path": "functions/element", "hidden": true },
       { "title": "endswith", "path": "functions/endswith", "hidden": true },
+      { "title": "ephemeralasnull", "path": "functions/ephemeralasnull", "hidden": true },
       { "title": "file", "path": "functions/file", "hidden": true },
       { "title": "filebase64", "path": "functions/filebase64", "hidden": true },
       {
@@ -999,6 +1000,11 @@
       {
         "title": "templatestring",
         "path": "functions/templatestring",
+        "hidden": true
+      },
+      {
+        "title": "terraform.applying",
+        "path": "functions/terraform-applying",
         "hidden": true
       },
       { "title": "terraform-encode_tfvars", "path": "functions/terraform-encode_tfvars", "hidden": true },
