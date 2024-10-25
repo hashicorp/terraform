@@ -1027,6 +1027,22 @@ foo = "bar"
 			}
 		},
 
+		"over-supplying environment variables": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			t.Setenv("TF_VAR_foo", "bar")
+			// We don't want this to error as it would be a breaking change
+			t.Setenv("TF_VAR_not_in_config", "bar")
+
+			args := []string{
+				"-state", statePath,
+				planPath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.Stderr())
+			}
+		},
+
 		"passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
 			close := testInteractiveInput(t, []string{"bar"})
 			defer close()

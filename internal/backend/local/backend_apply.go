@@ -344,6 +344,7 @@ func (b *Local) opApply(
 				})
 			}
 		}
+
 		applyOpts = &terraform.ApplyOpts{
 			SetVariables: applyTimeValues,
 		}
@@ -352,6 +353,42 @@ func (b *Local) opApply(
 			return
 		}
 	}
+
+	// TODO: Rethink initial if
+
+	// We need to search for the ephemeral variables not supplied so far to query them interactively
+	interactiveVars := make(map[string]backendrun.UnparsedVariableValue)
+	for name, decl := range lr.Config.Module.Variables {
+		fmt.Printf("\n\t name --> %#v \n", name)
+		present := false
+		if applyOpts != nil && applyOpts.SetVariables != nil {
+			if _, x := applyOpts.SetVariables[name]; x {
+				present = true
+			}
+		}
+		fmt.Printf("\n\t present --> %#v \n", present)
+		if decl.Ephemeral && !present {
+			variableValue := b.interactiveCollectVariable(stopCtx, decl, b.ContextOpts.UIInput)
+			// If the variable is not set, we should not add it to the applyOpts. This will error in a different place.
+			if variableValue != nil {
+				interactiveVars[name] = *variableValue
+			}
+		}
+	}
+
+	variables, varDiags := backendrun.ParseVariableValues(interactiveVars, lr.Config.Module.Variables)
+	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		op.ReportResult(runningOp, diags)
+		return
+	}
+
+	if applyOpts == nil {
+		applyOpts = &terraform.ApplyOpts{}
+	}
+
+	// TODO: Merge variables
+	applyOpts.SetVariables = variables
 
 	// Start the apply in a goroutine so that we can be interrupted.
 	var applyState *states.State

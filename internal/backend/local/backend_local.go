@@ -41,6 +41,7 @@ func (b *Local) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statem
 
 func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *configload.Snapshot, statemgr.Full, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	fmt.Println("localRun")
 
 	// Get the latest state.
 	log.Printf("[TRACE] backend/local: requesting state manager for workspace %q", op.Workspace)
@@ -84,6 +85,9 @@ func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *confi
 		diags = diags.Append(fmt.Errorf("error: using a saved cloud plan when executing Terraform locally is not supported"))
 		return nil, nil, nil, diags
 	}
+
+	_, x := op.PlanFile.Local()
+	fmt.Printf("\n\t x --> %#v \n", x)
 
 	if lp, ok := op.PlanFile.Local(); ok {
 		var stateMeta *statemgr.SnapshotMeta
@@ -405,26 +409,34 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 	}
 	for _, name := range needed {
 		vc := vcs[name]
-		query := fmt.Sprintf("var.%s", name)
-		if vc.Ephemeral {
-			query += " (ephemeral)"
+		collectedVar := b.interactiveCollectVariable(ctx, vc, uiInput)
+		if collectedVar != nil {
+			ret[name] = collectedVar
 		}
-		rawValue, err := uiInput.Input(ctx, &terraform.InputOpts{
-			Id:          fmt.Sprintf("var.%s", name),
-			Query:       query,
-			Description: vc.Description,
-			Secret:      vc.Sensitive,
-		})
-		if err != nil {
-			// Since interactive prompts are best-effort, we'll just continue
-			// here and let subsequent validation report this as a variable
-			// not specified.
-			log.Printf("[WARN] backend/local: Failed to request user input for variable %q: %s", name, err)
-			continue
-		}
-		ret[name] = unparsedInteractiveVariableValue{Name: name, RawValue: rawValue}
 	}
 	return ret
+}
+
+func (b *Local) interactiveCollectVariable(ctx context.Context, vc *configs.Variable, uiInput terraform.UIInput) *unparsedInteractiveVariableValue {
+	query := fmt.Sprintf("var.%s", vc.Name)
+	if vc.Ephemeral {
+		query += " (ephemeral)"
+	}
+	rawValue, err := uiInput.Input(ctx, &terraform.InputOpts{
+		Id:          fmt.Sprintf("var.%s", vc.Name),
+		Query:       query,
+		Description: vc.Description,
+		Secret:      vc.Sensitive,
+	})
+	if err != nil {
+		// Since interactive prompts are best-effort, we'll just continue
+		// here and let subsequent validation report this as a variable
+		// not specified.
+		log.Printf("[WARN] backend/local: Failed to request user input for variable %q: %s", vc.Name, err)
+		return nil
+	}
+
+	return &unparsedInteractiveVariableValue{Name: vc.Name, RawValue: rawValue}
 }
 
 // stubUnsetVariables ensures that all required variables defined in the
