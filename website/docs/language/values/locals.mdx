@@ -56,10 +56,9 @@ locals {
 
 ## Ephemeral values
 
--> Ephemeral resources are in public beta and available in Terraform v1.10 and later. The workflows of ephemeral resources are subject to change.
+-> Ephemeral local values are in public beta and available in Terraform v1.10 and later. The workflows of ephemeral locals are subject to change.
 
-Local values implicitly become ephemeral if you reference an ephemeral value when
-you assign that local a value. For example, you can create a local that references an ephemeral `service_token`.
+Local values implicitly become ephemeral if you reference an ephemeral value when you assign that local a value. For example, you can create a local that references an ephemeral `service_token`.
 
 ```hcl
 variable "service_name" {
@@ -83,9 +82,7 @@ locals {
 }
 ```
 
-The `local.session_token` value is implicitly ephemeral because it relies on an ephemeral variable. Terraform treats ephemeral local values the same way as it does other ephemeral values.
-Terraform does not store ephemeral local values in state or plan files, or output them as part of a plan
-or apply.
+The `local.session_token` value is implicitly ephemeral because it relies on an ephemeral variable. Terraform treats ephemeral local values the same way as it does other ephemeral values. Terraform does not store ephemeral local values in state or plan files, or output them as part of a plan or apply.
 
 ## Using Local Values
 

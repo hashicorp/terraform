@@ -844,7 +844,8 @@
         "routes": [
           { "title": "<code>provider::terraform::encode_tfvars</code>", "href": "/language/functions/terraform-encode_tfvars" },
           { "title": "<code>provider::terraform::decode_tfvars</code>", "href": "/language/functions/terraform-decode_tfvars" },
-          { "title": "<code>provider::terraform::encode_expr</code>", "href": "/language/functions/terraform-encode_expr" }
+          { "title": "<code>provider::terraform::encode_expr</code>", "href": "/language/functions/terraform-encode_expr" },
+          { "title": "<code>terraform.applying</code>", "href": "/language/functions/terraform-applying" }
         ]
       },
       { "title": "abs", "path": "functions/abs", "hidden": true },
