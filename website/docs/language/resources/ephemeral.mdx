@@ -69,23 +69,22 @@ ephemeral resources:
 The lifecycle of ephemeral resources is different from resources and data sources.
 When Terraform provisions ephemeral resources, it will take the following steps:
 
-1. When Terraform needs to access the ephemeral resource result, it will open
-the ephemeral resource. For example, opening a vault secret ephemeral resource
-means the Vault provider will obtain the lease and return the secret.
+1. If Terraform needs to access an ephemeral resource's result, it opens
+that ephemeral resource. For example, if Terraform opens an ephemeral resource for a Vault secret, the Vault provider obtains a lease and returns a secret. 
 
 1. If Terraform needs access to the ephemeral resource for longer than the
-expiration time enforced by the remote system, Terraform will ask the provider
-to renew it periodically. For example, renewing a Vault secret ephemeral
-resource means the Vault provider will call Vault's lease renewal API endpoint
+remote system's enforced expiration time, Terraform asks the provider
+to renew it periodically. For example, if Terraform renews a Vault secret ephemeral
+resource, the Vault provider then calls Vault's lease renewal API endpoint
 to extend the expiration time.
 
-1. Once Terraform no longer needs the ephemeral resource, Terraform will close
-it. This will happen once any providers that depend on the ephemeral resource
-have completed all of their work for the current phase. For example, closing a
-Vault secret ephemeral resource means the Vault provider will explicitly end the
+1. Once Terraform no longer needs an ephemeral resource, Terraform closes
+it. This happens once the providers that depend on a certain ephemeral resource
+complete all of their work for the current Terraform run phase. For example, closing a
+Vault secret ephemeral resource means the Vault provider explicitly ends the
 lease, allowing Vault to immediately revoke the associated credentials.
 
-Terraform will follow these lifecycle steps for each instance of an ephemeral
+Terraform follows these lifecycle steps for each instance of an ephemeral
 resource in a given configuration.
 
 ### Dependency graph
