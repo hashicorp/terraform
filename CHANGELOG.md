@@ -16,6 +16,7 @@ BUG FIXES:
 - Unencoded slashes within GitHub module source refs were being truncated and incorrectly used as subdirectories in the request path ([#35552](https://github.com/hashicorp/terraform/issues/35552))
 - Terraform refresh-only plans with output only changes are now applyable. ([#35812](https://github.com/hashicorp/terraform/issues/35812))
 - Postconditions referencing `self` with many instances could encounter an error during evaluation [GH-35895]
+- The `plantimestamp()` function would return an invalid date during validation [GH-35902]
 
 ENHANCEMENTS:
 
