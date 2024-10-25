@@ -82,7 +82,7 @@ locals {
 ```
 
 The `local.session_token` value is implicitly ephemeral because it relies on an ephemeral variable. Terraform treats ephemeral local values the same way as it does other ephemeral values.
-It will not store them in state or plan files, or output them as part of a plan
+Terraform does not store ephemeral local values in state or plan files, or output them as part of a plan
 or apply.
 
 ## Using Local Values
