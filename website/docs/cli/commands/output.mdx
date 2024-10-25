@@ -54,6 +54,7 @@ output "password" {
   value     = var.secret_password
 }
 
+# Ephemeral outputs are only available in child modules.
 output "session_token" {
   ephemeral = true
   value     = var.session_token
