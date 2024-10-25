@@ -6,8 +6,7 @@ description: Sensitive data in Terraform state.
 # Sensitive Data in State
 
 Terraform state can contain sensitive data, depending on the resources in use
-and your definition of "sensitive." The state contains resource IDs and all
-resource attributes unless your mark those resources as [`ephemeral`](#ephemeral-data). For resources such as databases, this can contain initial
+and your definition of "sensitive." Unless your variables or resources are `ephemeral`, the state contains resource IDs and all resource attributes. For resources such as databases, this can contain initial
 passwords.
 
 When using local state, state is stored in plain-text JSON files.
@@ -16,16 +15,15 @@ When using [remote state](/terraform/language/state/remote), state is only ever 
 
 ## Ephemeral data
 
--> Ephemeral variables, outputs and resources are in public beta and available in Terraform v1.1.0 and later. The workflows of ephemeral values are subject to change.
+-> Ephemeral variables, outputs, and resources are in public beta and available in Terraform v1.1.0 and later. The workflows of ephemeral values are subject to change.
 
-Terraform allows you to mark variables, locals, outputs, and resources as ephemeral.  Marking a block with the `ephemeral` attribute tells Terraform that this data is available during runtime, but Terraform does not write that data to state or plan files. The `ephemeral` property is useful if you are managing credentials, tokens, or other temporary resources that you do not want to store in Terraform state files.
+Terraform allows you to mark variables, locals, outputs, and resources as ephemeral.  Marking a block with the `ephemeral` attribute tells Terraform that this data is available during runtime, but Terraform does not write that data to state or plan files. The `ephemeral` property is helpful when managing credentials, tokens, or other temporary resources you do not want to store in Terraform state files.
 
 Learn more about defining ephemeral [input variables](/terraform/language/values/variables#exclude-values-from-state), [outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files), and [resources](/terraform/language/resources/ephemeral).
 
 ## Recommendations
 
-If you manage any sensitive data with Terraform (like database passwords, user
-passwords, or private keys) that isn't marked as `ephemeral`, then treat the state itself as sensitive data.
+Treat the state as sensitive data if you manage secret credentials like database passwords, user passwords, or private keys with Terraform. You can also mark your sensitive data as `ephemeral` to prevent Terraform from writing that data for your state and plan files.
 
 Storing state remotely can provide better security. As of Terraform 0.9,
 Terraform does not persist state to the local disk when remote state is in use,
