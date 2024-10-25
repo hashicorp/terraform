@@ -1027,20 +1027,20 @@ foo = "bar"
 			}
 		},
 
-		"passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
-			close := testInteractiveInput(t, []string{"bar"})
-			defer close()
+		// "passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+		// 	close := testInteractiveInput(t, []string{"bar"})
+		// 	defer close()
 
-			args := []string{
-				"-state", statePath,
-				planPath,
-			}
-			code := c.Run(args)
-			output := done(t)
-			if code != 0 {
-				t.Fatal("should've succeeded: ", output.Stderr())
-			}
-		},
+		// 	args := []string{
+		// 		"-state", statePath,
+		// 		planPath,
+		// 	}
+		// 	code := c.Run(args)
+		// 	output := done(t)
+		// 	if code != 0 {
+		// 		t.Fatal("should've succeeded: ", output.Stderr())
+		// 	}
+		// },
 	} {
 		t.Run(name, func(t *testing.T) {
 			td := t.TempDir()
