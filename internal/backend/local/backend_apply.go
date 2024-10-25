@@ -272,7 +272,7 @@ func (b *Local) opApply(
 			}
 
 			// If the var is declared as ephemeral in config, go ahead and handle it
-			if decl.Ephemeral {
+			if ok && decl.Ephemeral {
 				// Determine whether this is an apply-time variable, i.e. an
 				// ephemeral variable that was set (non-null) during the
 				// planning phase.
