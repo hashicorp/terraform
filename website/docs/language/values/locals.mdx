@@ -56,12 +56,14 @@ locals {
 
 ## Ephemeral values
 
+-> Ephemeral resources are in public beta and available in Terraform v1.10 and later. The workflows of ephemeral resources are subject to change.
+
 Local values implicitly become ephemeral if you reference an ephemeral value when
 you assign that local a value. For example, you can create a local that references an ephemeral `service_token`.
 
 ```hcl
 variable "service_name" {
-	type    = string
+  type    = string
   default = "forum"
 }
 

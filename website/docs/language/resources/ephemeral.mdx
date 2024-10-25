@@ -7,7 +7,7 @@ description: Learn about ephemeral resource blocks that you can specify in Terra
 
 This topic provides reference information for the `ephemeral` block. 
 
--> Ephemeral resources are in public beta and available in Terraform v1.1.0 and later. The workflows of ephemeral resources are subject to change.
+-> Ephemeral resources are in public beta and available in Terraform v1.10 and later. The workflows of ephemeral resources are subject to change.
 
 ## Introduction
 
@@ -32,14 +32,13 @@ Most of the arguments within the body of an `ephemeral` block are specific to
 the ephemeral resource you are defining. The ephemeral resource type's documentation in the [Registry](https://registry.terraform.io/) 
 lists which arguments are available and how you should format your resource's values.
 
-
 ### Resource types
 
 As with resources and data sources, each provider in the [Terraform
 Registry](https://registry.terraform.io/browse/providers) includes documentation
 for the ephemeral resources it supports, if any.
 
-## Meta-arguments
+### Meta-arguments
 
 The Terraform language defines the following meta-arguments, which you can use
 with any ephemeral resource type to change the behavior of those resources. These
@@ -54,11 +53,21 @@ resources:
 
 Ephemeral resources to not support the `provisioner` meta-argument.
 
+### Referring to ephemeral resources
+
+You can only reference ephemeral resources in specific ephemeral contexts or
+Terraform throws an error. The following are valid contexts for referencing
+ephemeral resources:
+
+* In another ephemeral resource
+* In [local values](/terraform/language/values/locals#ephemeral-values)
+* In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)
+* In [ephemeral outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files)
+
 ## Ephemeral resource lifecycle
 
-The lifecycle of ephemeral resources is different resources and data sources.
-When provisioning ephemeral resources, Terraform will open the resource,
-optionally renew it one or more times, and then close it.
+The lifecycle of ephemeral resources is different from resources and data sources.
+When Terraform provisions ephemeral resources, it will take the following steps:
 
 1. When Terraform needs to access the ephemeral resource result, it will open
 the ephemeral resource. For example, opening a vault secret ephemeral resource
@@ -105,21 +114,6 @@ ephemeral "<resource_type>" "<resource_name>" {
   <meta-arguments>
 }
 ```
-
-## Specification
-
-This section provides details about the fields you can configure in the `ephemeral` block.
-
-### `ephemeral`
-
-Map that specifies addresses for the resource. The following table describes the fields you can set in the `moved` block.
-
-<!--FIXME: Not sure how to format/address this for this type of block -->
-
-| Field | Description | Type | Required |
-| ---   | ---         | ---  | ---      |
-| `from` | Specifies a resource's previous address. The syntax allows Terraform to select modules, resources, and resources inside child modules. | string | required |
-| `to` | Specifies the new address to relocate the resource to. The syntax allows Terraform to select modules, resources, and resources inside child modules. | string | required |
 
 ## Example
 
