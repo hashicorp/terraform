@@ -135,6 +135,10 @@
       {
         "title": "The <code>terraform_data</code> Resource Type",
         "path": "resources/terraform-data"
+      },
+      {
+        "title": "Ephemeral Resources",
+        "path": "resources/ephemeral"
       }
     ]
   },
