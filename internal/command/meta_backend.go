@@ -230,7 +230,7 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 			name, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
 				Id:          "create-workspace",
 				Query:       "\n[reset][bold][yellow]No workspaces found.[reset]",
-				Description: fmt.Sprintf(inputCloudInitCreateWorkspace, strings.Join(c.WorkspaceMapping.Tags, ", ")),
+				Description: fmt.Sprintf(inputCloudInitCreateWorkspace, c.WorkspaceMapping.DescribeTags()),
 			})
 			if err != nil {
 				return fmt.Errorf("Couldn't create initial workspace: %w", err)
