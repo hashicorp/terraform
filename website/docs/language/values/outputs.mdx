@@ -112,13 +112,15 @@ maintainer. For commentary for module maintainers, use comments.
 
 ### `ephemeral` — Avoid storing values in state or plan files
 
--> Ephemeral outputs are in public beta and available in Terraform v1.1.0 and later. The workflows of ephemeral outputs are subject to change.
+-> **Note**: Ephemeral outputs are in public beta and available in Terraform v1.1.0 and later. The workflows of ephemeral outputs are subject to change.
 
-You can mark `output` values as `ephemeral` in child modules to pass ephermeral values between modules while avoiding persisting those values to state or plan files. This is useful for managing credentials, tokens, or other temporary resources that you do not want to store in Terraform state files.
+You can mark `output` values as `ephemeral` in child modules to pass ephemeral values between modules while avoiding persisting those values to state or plan files. This is useful for managing credentials, tokens, or other temporary resources you do not want to store in Terraform state files.
 
-You can mark an `output` in a child module as ephemeral by setting the `ephemeral` field to `true`:
+You can mark an `output` in a child module as ephemeral by setting the `ephemeral` attribute to `true`:
 
 ```hcl
+# modules/db/main.tf
+
 output "secret_id" {
   value       = aws_secretsmanager_secret.secret_id
   description = "Temporary secret ID for accessing database in AWS."
@@ -126,12 +128,12 @@ output "secret_id" {
 }
 ```
 
-The value of ephemeral `output` blocks are available to Terraform during the plan and apply steps. At the end of a plan or apply operation, Terraform does not persist the value of any ephemeral outputs and does not write them to the state file.
+Terraform has access to the value of `output` blocks during plan and apply operations. At the end of a plan or apply operation, Terraform does not persist the value of any ephemeral outputs.
 
 You can only reference ephemeral outputs in specific contexts or Terraform throws an error. The following are valid contexts for referencing ephemeral outputs:
+* In another child module's ephemeral `output` block
 * In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)
 * In [ephemeral resources](/terraform/language/resources/ephemeral)
-* In another child module's ephemeral output block
 
 Note that you cannot set an `output` value as `ephemeral` in the root module.
 
