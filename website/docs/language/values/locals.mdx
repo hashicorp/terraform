@@ -57,7 +57,7 @@ locals {
 ## Ephemeral values
 
 Local values implicitly become ephemeral if you reference an ephemeral value when
-referenced in their assignment. For example:
+you assign that local a value. For example, you can create a local that references an ephemeral `service_token`.
 
 ```hcl
 variable "service_name" {
