@@ -60,7 +60,7 @@ The lifecycle of ephemeral resources differs from other resources and data sourc
 When provisioning ephemeral resources, Terraform opens the resource and optionally renews it one or more times before closing it.
 
 1. If Terraform needs to access an ephemeral resource's result, it opens
-the ephemeral resource. For example, opening a vault secret ephemeral resource
+that ephemeral resource. For example, if Terraform opens an ephemeral resource for a Vault secret, the Vault provider obtains a lease and returns a secret. 
 means the Vault provider will obtain the lease and return the secret.
 
 1. If Terraform needs access to the ephemeral resource for longer than the
