@@ -63,7 +63,7 @@ When provisioning ephemeral resources, Terraform opens the resource and optional
 that ephemeral resource. For example, if Terraform opens an ephemeral resource for a Vault secret, the Vault provider obtains a lease and returns a secret. 
 
 1. If Terraform needs access to the ephemeral resource for longer than the
-expiration time enforced by the remote system, Terraform will ask the provider
+remote system's enforced expiration time, Terraform asks the provider
 to renew it periodically. For example, renewing a Vault secret ephemeral
 resource means the Vault provider will call Vault's lease renewal API endpoint
 to extend the expiration time.
