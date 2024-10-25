@@ -203,7 +203,7 @@ Unlike [`sensitive`](#sensitive) inputs, `ephemeral` inputs are excluded from th
 You can only reference ephemeral variables in specific contexts or Terraform throws an error. The following are valid contexts for referencing ephemeral variables:
 * In another ephemeral variable
 * In [local values](/terraform/language/values/locals#ephemeral-values)
-* In [ephemeral resources](terraform/language/resources/ephemeral)
+* In [ephemeral resources](/terraform/language/resources/ephemeral)
 * In [ephemeral outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files)
 
 If another expression references an `ephemeral` variable, then that expression implicitly becomes ephemeral as well.

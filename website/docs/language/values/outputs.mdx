@@ -129,8 +129,8 @@ output "secret_id" {
 The value of ephemeral `output` blocks are available to Terraform during the plan and apply steps. At the end of a plan or apply operation, Terraform does not persist the value of any ephemeral outputs and does not write them to the state file.
 
 You can only reference ephemeral outputs in specific contexts or Terraform throws an error. The following are valid contexts for referencing ephemeral outputs:
-* In [ephemeral variables](terraform/language/values/variables#exclude-values-from-state)
-* In [ephemeral resources](terraform/language/resources/ephemeral)
+* In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)
+* In [ephemeral resources](/terraform/language/resources/ephemeral)
 * In another child module's ephemeral output block
 
 Note that you cannot set an `output` value as `ephemeral` in the root module.
