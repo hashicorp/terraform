@@ -69,7 +69,7 @@ resource, the Vault provider then calls Vault's lease renewal API endpoint
 to extend the expiration time.
 
 1. Once Terraform no longer needs an ephemeral resource, Terraform closes
-it. This will happen once any providers that depend on the ephemeral resource
+it. This happens once the providers that depend on a certain ephemeral resource
 have completed all of their work for the current phase. For example, closing a
 Vault secret ephemeral resource means the Vault provider will explicitly end the
 lease, allowing Vault to immediately revoke the associated credentials.
