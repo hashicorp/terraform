@@ -178,6 +178,10 @@ Refer to [Custom Condition Checks](/terraform/language/expressions/custom-condit
 
 ### Exclude values from state
 
+-> Ephemeral variables are in public beta and available in Terraform v1.1.0 and later. The workflows of ephemeral variables are subject to change.
+
+[inpage-ephemeral]: #exclude-values-from-state
+
 Setting a variable as `ephemeral` makes it available during runtime, but Terraform omits ephemeral values from state and plan files. Marking an input variable as `ephemeral` is useful for data that only needs to exist temporarily, such as a short-lived token or session identifier.
 
 Mark an input variable as ephemeral by setting the `ephemeral` argument to `true`:
@@ -195,6 +199,28 @@ resource "aws_instance" "example" {
 ```
 
 Unlike [`sensitive`](#sensitive) inputs, `ephemeral` inputs are excluded from the Terraform state file altogether, ensuring the value is not stored beyond the lifetime of the current Terraform run.
+
+You can only reference ephemeral variables in specific contexts or Terraform throws an error. The following are valid contexts for referencing ephemeral variables:
+* In another ephemeral variable
+* In [local values](/terraform/language/values/locals#ephemeral-values)
+* In [ephemeral resources](terraform/language/resources/ephemeral)
+* In [ephemeral outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files)
+
+If another expression references an `ephemeral` variable, then that expression implicitly becomes ephemeral as well.
+
+```hcl
+variable "password" {
+  type      = string
+  ephemeral = true
+}
+
+locals {
+  # local.database_password is implicitly ephemeral because 
+  # var.password is ephemeral.
+  database_password = var.password
+}
+```
+The `local.database_password` value is implicitly ephemeral because it depends on `var.password`.
 
 ### Suppressing Values in CLI Output
 

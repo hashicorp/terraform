@@ -112,30 +112,29 @@ maintainer. For commentary for module maintainers, use comments.
 
 ### `ephemeral` — Avoid storing values in state or plan files
 
-You can mark `output` values as `ephemeral` to avoid persisting those values in your state or plan files. Use the `ephemeral` argument for temporary values that you do not want Terraform to save, such as short-lived credentials, session tokens, or other transient data. 
+-> Ephemeral outputs are in public beta and available in Terraform v1.1.0 and later. The workflows of ephemeral outputs are subject to change.
 
-You can mark an `output` as ephemeral by setting the `ephemeral` field to `true`:
+You can mark `output` values as `ephemeral` in child modules to pass ephermeral values between modules while avoiding persisting those values to state or plan files. This is useful for managing credentials, tokens, or other temporary resources that you do not want to store in Terraform state files.
+
+You can mark an `output` in a child module as ephemeral by setting the `ephemeral` field to `true`:
 
 ```hcl
-output "session_token" {
-  value       = aws_iam_role.session_token
-  description = "Temporary session token for AWS access."
+output "secret_id" {
+  value       = aws_secretsmanager_secret.secret_id
+  description = "Temporary secret ID for accessing database in AWS."
   ephemeral   = true
 }
 ```
-The value of ephemeral `output` blocks are available to Terraform during the plan and apply steps. However Terraform still hides the values for ephemeral outputs when it prints out the results of a plan or apply.
 
-```shell
-Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+The value of ephemeral `output` blocks are available to Terraform during the plan and apply steps. At the end of a plan or apply operation, Terraform does not persist the value of any ephemeral outputs and does not write them to the state file.
 
-Outputs:
+You can only reference ephemeral outputs in specific contexts or Terraform throws an error. The following are valid contexts for referencing ephemeral outputs:
+* In [ephemeral variables](terraform/language/values/variables#exclude-values-from-state)
+* In [ephemeral resources](terraform/language/resources/ephemeral)
+* In another child module's ephemeral output block
 
-session_token = "session_token" (ephemeral)
+Note that you cannot set an `output` value as `ephemeral` in the root module.
 
-Output values marked "(ephemeral)" may change on the next apply, and are not saved to the state.
-```
-
-At the end of a plan or apply operation, Terraform does not persist the value of any ephemeral outputs and does not write them to the state file. 
 
 <a id="sensitive"></a>
 

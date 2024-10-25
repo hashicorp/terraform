@@ -94,7 +94,7 @@ This section provides details about the fields you can configure in the `variabl
 | `default` | A default value for the variable which Terraform uses if no value is provided. | any | Optional |
 | `sensitive` | Marks the variable as sensitive, which prevents its value from being displayed in logs or in the HCP Terraform user interface. | bool | Optional |
 | `nullable` | Specifies whether the variable can be null. | bool | Optional |
-| `ephemeral` | Marks that this variable’s value is not static and may change. For example, an expiring authentication token is `ephemeral`. | bool | Optional |
+| `ephemeral` | Marks that this variable’s value is dynamic. For example, an expiring authentication token is `ephemeral`. Learn more about [Ephemeral variables](/terraform/language/values/variables#exclude-values-from-state). | bool | Optional |
 
 ## `output` block configuration
 

@@ -7,7 +7,7 @@ description: Sensitive data in Terraform state.
 
 Terraform state can contain sensitive data, depending on the resources in use
 and your definition of "sensitive." The state contains resource IDs and all
-resource attributes unless your mark those resources as [`ephemeral`](#ephemeral-data). For resources such as databases, this may contain initial
+resource attributes unless your mark those resources as [`ephemeral`](#ephemeral-data). For resources such as databases, this can contain initial
 passwords.
 
 When using local state, state is stored in plain-text JSON files.
@@ -16,11 +16,11 @@ When using [remote state](/terraform/language/state/remote), state is only ever 
 
 ## Ephemeral data
 
--> **Note**: Ephemeral values are in public beta, and the workflows and API of ephemeral values may change.
+-> Ephemeral variables, outputs and resources are in public beta and available in Terraform v1.1.0 and later. The workflows of ephemeral values are subject to change.
 
-Terraform allows you to mark `input` variables, `output` values, and `resources` as ephemeral.  Marking sensitive data as `ephemeral` tells Terraform that the data is available during runtime, but Terraform does not write data to state or plan files. The `ephemeral` property is useful if you are managing credentials, tokens, or other temporary resources that you do not want to store in Terraform state files.
+Terraform allows you to mark variables, locals, outputs, and resources as ephemeral.  Marking a block with the `ephemeral` attribute tells Terraform that this data is available during runtime, but Terraform does not write that data to state or plan files. The `ephemeral` property is useful if you are managing credentials, tokens, or other temporary resources that you do not want to store in Terraform state files.
 
-Learn more about defining `ephemeral` [output values](/terraform/language/values/outputs#ephemeral), [input variables](/terraform/language/values/variables#ephemeral), and [resources](/terraform/language/resources/syntax).
+Learn more about defining ephemeral [input variables](/terraform/language/values/variables#exclude-values-from-state), [outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files), and [resources](/terraform/language/resources/ephemeral).
 
 ## Recommendations
 
