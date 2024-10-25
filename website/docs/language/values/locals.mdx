@@ -54,6 +54,37 @@ locals {
 }
 ```
 
+## Ephemeral values
+
+Local values will implicitly become ephemeral if an ephemeral value is
+referenced in their assignment. For example:
+
+```hcl
+variable "service_name" {
+	type    = string
+  default = "forum"
+}
+
+variable "environment" {
+  type    = string
+  default = "dev"
+}
+
+variable "service_token" {
+  type      = string
+  ephemeral = true
+}
+
+locals {
+  service_tag   = "${var.service_name}-${var.environment}"
+  session_token = "${var.service_name}:${var.service_token}"
+}
+```
+
+Terraform treats ephemeral local values the same way as other ephemeral values.
+It will not store them in state or plan files, or output them as part of a plan
+or apply.
+
 ## Using Local Values
 
 Once a local value is declared, you can reference it in
