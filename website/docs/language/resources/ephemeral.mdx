@@ -59,7 +59,7 @@ Ephemeral resources to not support the `provisioner` meta-argument.
 The lifecycle of ephemeral resources differs from other resources and data sources.
 When provisioning ephemeral resources, Terraform opens the resource and optionally renews it one or more times before closing it.
 
-1. When Terraform needs to access the ephemeral resource result, it will open
+1. If Terraform needs to access an ephemeral resource's result, it opens
 the ephemeral resource. For example, opening a vault secret ephemeral resource
 means the Vault provider will obtain the lease and return the secret.
 
