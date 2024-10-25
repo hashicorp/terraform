@@ -64,7 +64,7 @@ that ephemeral resource. For example, if Terraform opens an ephemeral resource f
 
 1. If Terraform needs access to the ephemeral resource for longer than the
 remote system's enforced expiration time, Terraform asks the provider
-to renew it periodically. For example, renewing a Vault secret ephemeral
+to renew it periodically. For example, if Terraform renews a Vault secret ephemeral
 resource means the Vault provider will call Vault's lease renewal API endpoint
 to extend the expiration time.
 
