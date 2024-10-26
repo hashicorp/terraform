@@ -74,6 +74,29 @@ resource "aws_instance" "example" {
 A local value can only be accessed in expressions within the module where it
 was declared.
 
+## locals with loops iteration:
+When using locals, we can’t directly leverage count.index since locals does not support iteration with count. However, you can achieve similar conditional logic by using for expressions to create a list or map in locals. Here’s an example of how to implement a conditional expression in locals based on an environment variable list:
+
+variable "environment" {
+  type    = list(string)
+  default = ["backend", "frontend", "backend"]
+}
+
+locals {
+  instance_types = [
+    for env in var.environment :
+    env == "backend" ? "t3.small" : "t3.micro"
+  ]
+}
+
+resource "aws_instance" "example" {
+  count         = length(var.environment)
+  instance_type = local.instance_types[count.index]
+  tags = {
+    Name = "example-instance-${count.index}"
+  }
+}
+
 ## When To Use Local Values
 
 Local values can be helpful to avoid repeating the same values or expressions
