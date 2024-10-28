@@ -191,21 +191,6 @@ variable "session_token" {
   type      = string
   ephemeral = true
 }
-
-data "aws_secretsmanager_secret_version" "db_master" {
-  secret_id = data.aws_db_instance.example.master_user_secret[0].secret_arn
-}
-locals {
-  credentials = jsondecode(data.aws_secretsmanager_secret_version.db_master.secret_string)
-}
-
-provider "postgresql" {
-  host     = data.aws_db_instance.example.address
-  port     = data.aws_db_instance.example.port
-  username = local.credentials["username"]
-  password = local.credentials["password"]
-}
-
 ```
 
 Ephemeral variables are available during the current Terraform operation, and Terraform does not store them in state or plan files. So, unlike [`sensitive`](#sensitive) inputs, Terraform ensures ephemeral values are not available beyond the lifetime of the current Terraform run.
