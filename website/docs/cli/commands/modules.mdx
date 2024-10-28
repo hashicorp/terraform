@@ -1,0 +1,70 @@
+---
+page_title: 'Command: modules'
+description: >-
+  The terraform modules command prints source and version data about all declared
+  modules in Terraform configuration.
+---
+
+# Command: modules
+
+The `terraform modules` command provides a holistic view of all Terraform modules
+declared in Terraform configuration for the current working directory.
+This command can be useful for auditing or setting policies on module consumption.
+The output of `terraform modules` includes a list of each declared module's
+key, source, and version.
+
+-> **Note**: The `terraform modules` command requires **Terraform v1.10.0 or later**.
+
+## Usage
+
+Usage: `terraform modules -json`
+
+The following flags are available:
+
+- `-json` - Displays the module declarations in a machine-readable, JSON format.
+
+The `-json` flag is _required_ to run the `terraform modules` command. In future releases, we will extend this command to allow for additional options.
+
+The output of `terraform modules` includes a `format_version` key, which is set to the value of `"1.0"` in Terraform 1.10.0. The semantics of this version are:
+
+- For minor versions, such as `"1.1"`, changes or additions will be backward-compatible.
+  Ignore object properties that are unrecognized to remain forward-compatible
+  with future minor versions.
+- For major versions, e.g. `"2.0"`, changes will not be backward-compatible. Reject any input which reports an unsupported major version.
+
+We will introduce new major versions only within the bounds of
+[the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
+
+## Output Format
+
+The following example is a representation of the JSON output format that `terraform modules -json` returns.
+
+```javascript
+{
+    "format_version": "1.0",
+    "modules": [
+        {
+            "key": "my_local_module",
+            "source": "./path/to/local/module",
+            "version": ""
+        },
+        {
+            "key": "my_private_registry_module",
+            "source": "app.terraform.io/hashicorp/label/null",
+            "version": "1.0.0"
+        },
+        {
+            "key": "my_public_registry_module",
+            "source": "terraform-aws-modules/iam/aws",
+            "version": "5.47.1"
+        },
+        {
+            "key": "my_remote_module",
+            "source": "https://example.com/vpc-module.zip",
+            "version": ""
+        }
+    ]
+}
+```
+
+
