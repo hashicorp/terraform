@@ -61,6 +61,9 @@ output "session_token" {
 }
 ```
 
+-> **Note**: Ephemeral outputs are in public beta and available in Terraform v1.10 and later. The workflows of ephemeral outputs are subject to change.
+
+Ephemeral outputs are only available in child modules, you cannot mark an output as `sensitive` in the root module.
 To list all outputs:
 
 ```shellsession
