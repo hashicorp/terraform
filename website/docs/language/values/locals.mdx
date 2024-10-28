@@ -58,15 +58,6 @@ locals {
 
 -> **Note**: Ephemeral local values are in public beta and available in Terraform v1.10 and later. The workflows of ephemeral locals are subject to change.
 
-You can explicitly mark a `local` block as ephemeral by setting the `ephemeral` attribute to `true`. Ephemeral local values are available during the current Terraform operation, and Terraform does not store them in state or plan files or output as part of a plan or apply.
-
-```hcl 
-locals {
-  session_token = var.session_token
-  ephemeral     = true
-}
-```
-
 Local values implicitly become ephemeral if you reference an ephemeral value when you assign that local a value. For example, you can create a local that references an ephemeral `service_token`.
 
 ```hcl

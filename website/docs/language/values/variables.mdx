@@ -192,20 +192,23 @@ variable "session_token" {
   ephemeral = true
 }
 
+data "aws_secretsmanager_secret_version" "db_master" {
+  secret_id = data.aws_db_instance.example.master_user_secret[0].secret_arn
+}
 locals {
-  session_token_test = var.session_token ? var.session_token : "default"
+  credentials = jsondecode(data.aws_secretsmanager_secret_version.db_master.secret_string)
 }
 
-resource "aws_instance" "example" {
-  instance_type = "t2.micro"
-  # You cannot use ephemeral variables in non-ephemeral contexts. So, we
-  # use the local value here.
-  user_data = local.session_token_test
+provider "postgresql" {
+  host     = data.aws_db_instance.example.address
+  port     = data.aws_db_instance.example.port
+  username = local.credentials["username"]
+  password = local.credentials["password"]
 }
+
 ```
 
 Ephemeral variables are available during the current Terraform operation, and Terraform does not store them in state or plan files. So, unlike [`sensitive`](#sensitive) inputs, Terraform ensures ephemeral values are not available beyond the lifetime of the current Terraform run.
-
 
 You can only reference ephemeral variables in specific contexts or Terraform throws an error. The following are valid contexts for referencing ephemeral variables:
 * Another ephemeral variable
