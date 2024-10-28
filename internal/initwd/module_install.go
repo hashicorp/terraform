@@ -480,10 +480,23 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 
 	modMeta := resp.Modules[0]
 
-	var latestMatch *version.Version
-	var latestVersion *version.Version
+	// switch over to apparentlymart/go-versions for version constraint checking
+	acceptableVersions, err := versions.MeetingConstraintsString(req.VersionConstraint.Required.String())
+	if err != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid version constraint",
+			Detail:   fmt.Sprintf("The version constraint %q for module %q (%s:%d) could not be parsed: %s", req.VersionConstraint.Required.String(), req.Name, req.CallRange.Filename, req.CallRange.Start.Line, err),
+			Subject:  req.CallRange.Ptr(),
+		})
+		return nil, nil, diags
+	}
+
+	var latestMatch *versions.Version
+	var latestVersion *versions.Version
 	for _, mv := range modMeta.Versions {
-		v, err := version.NewVersion(mv.Version)
+
+		v, err := versions.ParseVersion(mv.Version)
 		if err != nil {
 			// Should never happen if the registry server is compliant with
 			// the protocol, but we'll warn if not to assist someone who
@@ -497,56 +510,13 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 			continue
 		}
 
-		// If we've found a pre-release version then we'll ignore it unless
-		// it was exactly requested.
-		//
-		// The prerelease checking will be handled by a different library for
-		// 2 reasons. First, this other library automatically includes the
-		// "prerelease versions must be exactly requested" behaviour that we are
-		// looking for. Second, this other library is used to handle all version
-		// constraints for the provider logic and this is the first step to
-		// making the module and provider version logic match.
-		if v.Prerelease() != "" {
-			// At this point all versions published by the module with
-			// prerelease metadata will be checked. Users may not have even
-			// requested this prerelease so don't print lots of unnecessary #
-			// warnings.
-			acceptableVersions, err := versions.MeetingConstraintsString(req.VersionConstraint.Required.String())
-			if err != nil {
-				log.Printf("[WARN] ModuleInstaller: %s ignoring %s because the version constraints (%s) could not be parsed: %s", key, v, req.VersionConstraint.Required.String(), err.Error())
-				continue
-			}
-
-			// Validate the version is also readable by the other versions
-			// library.
-			version, err := versions.ParseVersion(v.String())
-			if err != nil {
-				log.Printf("[WARN] ModuleInstaller: %s ignoring %s because the version (%s) reported by the module could not be parsed: %s", key, v, v.String(), err.Error())
-				continue
-			}
-
-			// Finally, check if the prerelease is acceptable to version. As
-			// highlighted previously, we go through all of this because the
-			// apparentlymart/go-versions library handles prerelease constraints
-			// in the apporach we want to.
-			if !acceptableVersions.Has(version) {
-				log.Printf("[TRACE] ModuleInstaller: %s ignoring %s because it is a pre-release and was not requested exactly", key, v)
-				continue
-			}
-
-			// If we reach here, it means this prerelease version was exactly
-			// requested according to the extra constraints of this library.
-			// We fall through and allow the other library to also validate it
-			// for consistency.
+		if latestVersion == nil || v.GreaterThan(*latestVersion) {
+			latestVersion = &v
 		}
 
-		if latestVersion == nil || v.GreaterThan(latestVersion) {
-			latestVersion = v
-		}
-
-		if req.VersionConstraint.Required.Check(v) {
-			if latestMatch == nil || v.GreaterThan(latestMatch) {
-				latestMatch = v
+		if acceptableVersions.Has(v) {
+			if latestMatch == nil || v.GreaterThan(*latestMatch) {
+				latestMatch = &v
 			}
 		}
 	}
@@ -571,8 +541,21 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 		return nil, nil, diags
 	}
 
+	// switch back to our handling
+	matchedVersion, err := version.NewVersion(latestMatch.String())
+	if err != nil {
+		// bit crazy
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid version string",
+			Detail:   fmt.Sprintf("The registry at %s returned an invalid version string %q for module %q (%s:%d): %s", hostname, latestMatch, req.Name, req.CallRange.Filename, req.CallRange.Start.Line, err),
+			Subject:  req.CallRange.Ptr(),
+		})
+		return nil, nil, diags
+	}
+
 	// Report up to the caller that we're about to start downloading.
-	hooks.Download(key, packageAddr.String(), latestMatch)
+	hooks.Download(key, packageAddr.String(), matchedVersion)
 
 	// If we manage to get down here then we've found a suitable version to
 	// install, so we need to ask the registry where we should download it from.
@@ -621,7 +604,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 
 	log.Printf("[TRACE] ModuleInstaller: %s %s %s is available at %q", key, packageAddr, latestMatch, dlAddr.Package)
 
-	err := fetcher.FetchPackage(ctx, instPath, dlAddr.Package.String())
+	err = fetcher.FetchPackage(ctx, instPath, dlAddr.Package.String())
 	if errors.Is(err, context.Canceled) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -710,14 +693,14 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 	// Note the local location in our manifest.
 	manifest[key] = modsdir.Record{
 		Key:        key,
-		Version:    latestMatch,
+		Version:    matchedVersion,
 		Dir:        modDir,
 		SourceAddr: req.SourceAddr.String(),
 	}
 	log.Printf("[DEBUG] Module installer: %s installed at %s", key, modDir)
-	hooks.Install(key, latestMatch, modDir)
+	hooks.Install(key, matchedVersion, modDir)
 
-	return mod, latestMatch, diags
+	return mod, matchedVersion, diags
 }
 
 func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*configs.Module, hcl.Diagnostics) {
