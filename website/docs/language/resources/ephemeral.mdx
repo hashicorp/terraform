@@ -90,6 +90,7 @@ ephemeral resources:
 * In [local values](/terraform/language/values/locals#ephemeral-values)
 * In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)
 * In [ephemeral outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files)
+* Configuring providers in the `provider` block
 
 ## Meta-arguments
 
@@ -102,4 +103,4 @@ resources:
 - [`provider`, for selecting a non-default provider configuration](/terraform/language/meta-arguments/resource-provider)
 - [`lifecycle`, for lifecycle customizations](/terraform/language/meta-arguments/lifecycle)
 
-Ephemeral resources to not support the `provisioner` meta-argument.
+Ephemeral resources do not support the `provisioner` meta-argument.
