@@ -32,9 +32,8 @@ The command-line flags are all optional. The following flags are available:
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
   Ignored when [remote state](/terraform/language/state/remote) is used.
 
--> **Note:** When using the `-json` or `-raw` command-line flag, any `sensitive`
-values in Terraform state will be displayed in plain text. For more information,
-see [Sensitive Data in State](/terraform/language/state/sensitive-data).
+-> **Note:** When using the `-json` or `-raw` command-line flags, Terraform displays `sensitive` values in plain text. For more information,
+refer to [Sensitive data in state](/terraform/language/state/sensitive-data).
 
 ## Examples
 
@@ -53,17 +52,8 @@ output "password" {
   sensitive = true
   value     = var.secret_password
 }
-
-# Ephemeral outputs are only available in child modules.
-output "session_token" {
-  ephemeral = true
-  value     = var.session_token
-}
 ```
 
--> **Note**: Ephemeral outputs are in public beta and available in Terraform v1.10 and later. The workflows of ephemeral outputs are subject to change.
-
-Ephemeral outputs are only available in child modules, you cannot mark an output as `ephemeral` in the root module.
 To list all outputs:
 
 ```shellsession
@@ -75,7 +65,6 @@ instance_ips = [
 ]
 lb_address = "my-app-alb-1657023003.us-east-1.elb.amazonaws.com"
 password = <sensitive>
-session_token = <ephemeral>
 ```
 
 Note that Terraform does not redact `sensitive` values when you specify the output by name:
@@ -85,12 +74,7 @@ $ terraform output password
 password = notasecurepassword
 ```
 
-However, Terraform does not print out `ephemeral` values even if you specify an output by name. Ephemeral values are never stored in state or included in Terraform plans.
-
-```shellsession
-$ terraform output session_token
-session_token = <ephemeral>
-```
+However, Terraform completely omits any `ephemeral` values, even if you specify an output by name. Ephemeral values are never stored in state or included in Terraform plans. For more information, refer to [Sensitive data in state](/terraform/language/state/sensitive-data).
 
 To query for the DNS address of the load balancer:
 

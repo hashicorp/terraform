@@ -65,21 +65,6 @@ ephemeral "<resource_type>" "<resource_name>" {
 }
 ```
 
-## Example
-
-The following example uses the `random` provider to provision an ephemeral
-resource representing a password:
-
-```hcl
-provider random {}
-
-ephemeral "random_password" "password" {
-  length           = 16
-  special          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"
-}
-```
-
 ## Referencing ephemeral resources
 
 You can only reference ephemeral resources in specific ephemeral contexts or
@@ -108,8 +93,7 @@ Ephemeral resources do not support the `provisioner` meta-argument.
 ## Example
 
 The following example configures the `postgresql` provider with credentials from
-an ephemeral resource. Since they are managed by an ephemeral resource,
-Terraform will not store these credentials in your state or plan files.
+an ephemeral resource. Since these credentials are managed by an ephemeral resource, Terraform does not store them in your state or plan files.
 
 ```hcl
 ephemeral "aws_secretsmanager_secret_version" "db_master" {
