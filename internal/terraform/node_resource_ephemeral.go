@@ -132,6 +132,18 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 		Private:    resp.Private,
 	})
 
+	// Postconditions for ephemerals validate only what is returned by
+	// OpenEphemeralResource. These will block downstream dependency operations
+	// if an error is returned, but don't prevent renewal or closing of the
+	// resource.
+	checkDiags = evalCheckRules(
+		addrs.ResourcePostcondition,
+		config.Postconditions,
+		ctx, inp.addr, keyData,
+		tfdiags.Error,
+	)
+	diags = diags.Append(checkDiags)
+
 	return nil, diags
 }
 

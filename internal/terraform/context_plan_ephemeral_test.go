@@ -425,6 +425,54 @@ module "child" {
 				})
 			},
 		},
+		"resource precondition": {
+			module: map[string]string{
+				"main.tf": `
+locals {
+  test_value = 2
+}
+ephemeral "ephem_resource" "data" {
+  lifecycle {
+    precondition {
+      condition = local.test_value != 2
+	  error_message = "value should not be 2"
+    }
+  }
+}
+`,
+			},
+			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Resource precondition failed",
+					Detail:   "value should not be 2",
+				})
+			},
+		},
+		"resource postcondition": {
+			module: map[string]string{
+				"main.tf": `
+locals {
+  test_value = 2
+}
+ephemeral "ephem_resource" "data" {
+  lifecycle {
+    postcondition {
+      condition = self.value == "pass"
+	  error_message = "value should be \"pass\""
+    }
+  }
+}
+`,
+			},
+			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Resource postcondition failed",
+					Detail:   `value should be "pass"`,
+				})
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
