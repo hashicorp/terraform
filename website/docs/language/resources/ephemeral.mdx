@@ -104,3 +104,26 @@ resources:
 - [`lifecycle`, for lifecycle customizations](/terraform/language/meta-arguments/lifecycle)
 
 Ephemeral resources do not support the `provisioner` meta-argument.
+
+## Example
+
+The following example configures the `postgresql` provider with credentials from
+an ephemeral resource. Since they are managed by an ephemeral resource,
+Terraform will not store these credentials in your state or plan files.
+
+```hcl
+ephemeral "aws_secretsmanager_secret_version" "db_master" {
+  secret_id = data.aws_db_instance.example.master_user_secret[0].secret_arn
+}
+
+locals {
+  credentials = jsondecode(ephemeral.aws_secretsmanager_secret_version.db_master.secret_string)
+}
+
+provider "postgresql" {
+  host     = data.aws_db_instance.example.address
+  port     = data.aws_db_instance.example.port
+  username = local.credentials["username"]
+  password = local.credentials["password"]
+}
+```
