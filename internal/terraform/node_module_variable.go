@@ -230,7 +230,6 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 		val, err = n.evalModuleVariable(ctx, false)
 		diags = diags.Append(err)
 	}
-
 	if diags.HasErrors() {
 		return diags
 	}
