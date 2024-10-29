@@ -763,7 +763,7 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 // from the backend state. This should be used only when a user runs
 // `terraform init -backend=false`. This function returns a local backend if
 // there is no backend state or no backend configured.
-func (m *Meta) backendFromState(ctx context.Context) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backendFromState(_ context.Context) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	// Get the path to where we store a local cache of backend configuration
 	// if we're using a remote backend. This may not yet exist which means

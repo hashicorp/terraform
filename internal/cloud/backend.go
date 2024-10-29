@@ -22,7 +22,6 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/gocty"
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -499,21 +498,36 @@ func resolveCloudConfig(obj cty.Value) (cloudConfig, tfdiags.Diagnostics) {
 			tagsAsMap := make(map[string]string)
 			if val.Type().IsObjectType() || val.Type().IsMapType() {
 				for k, v := range val.AsValueMap() {
+					if v.Type() != cty.String {
+						diags = diags.Append(errors.New("tag object values must be strings"))
+						return ret, diags
+					}
 					tagsAsMap[k] = v.AsString()
 				}
 				log.Printf("[TRACE] cloud: using tags %q from cloud config block", tagsAsMap)
 				ret.workspaceMapping.TagsAsMap = tagsAsMap
-			} else if val.Type().IsSetType() {
+			} else if val.Type().IsTupleType() || val.Type().IsSetType() {
 				var tagsAsSet []string
-				err := gocty.FromCtyValue(val, &tagsAsSet)
-				if err != nil {
-					diags = diags.Append(fmt.Errorf("an unexpected error occurred: %w", err))
-				} else {
-					log.Printf("[TRACE] cloud: using tags %q from cloud config block", tagsAsSet)
+				length := val.LengthInt()
+				if length > 0 {
+					it := val.ElementIterator()
+					for it.Next() {
+						_, v := it.Element()
+						if !v.Type().Equals(cty.String) {
+							diags = diags.Append(errors.New("tag elements must be strings"))
+							return ret, diags
+						}
+						if vs := v.AsString(); vs != "" {
+							tagsAsSet = append(tagsAsSet, vs)
+						}
+					}
 				}
+
+				log.Printf("[TRACE] cloud: using tags %q from cloud config block", tagsAsSet)
 				ret.workspaceMapping.TagsAsSet = tagsAsSet
 			} else {
 				diags = diags.Append(fmt.Errorf("tags must be a set or object, not %s", val.Type().FriendlyName()))
+				return ret, diags
 			}
 		}
 		if val := workspaces.GetAttr("project"); !val.IsNull() {

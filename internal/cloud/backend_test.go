@@ -687,6 +687,34 @@ func TestCloud_config(t *testing.T) {
 			})),
 			confErr: `tags must be a set or object, not string`,
 		},
+		"invalid tags dynamic type, object with non-string": {
+			config: cty.ObjectVal((map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"token":        cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.NullVal(cty.String),
+					"tags": cty.MapVal(map[string]cty.Value{
+						"dept": cty.NumberIntVal(1),
+					}),
+					"project": cty.NullVal(cty.String),
+				}),
+			})),
+			confErr: `tag object values must be strings`,
+		},
+		"invalid tags dynamic type, tuple non-string": {
+			config: cty.ObjectVal((map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"token":        cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":    cty.NullVal(cty.String),
+					"tags":    cty.TupleVal([]cty.Value{cty.NumberIntVal(1)}),
+					"project": cty.NullVal(cty.String),
+				}),
+			})),
+			confErr: `tag elements must be strings`,
+		},
 		"null config": {
 			config: cty.NullVal(cty.EmptyObject),
 		},
