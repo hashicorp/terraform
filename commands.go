@@ -228,6 +228,12 @@ func initCommands(
 			}, nil
 		},
 
+		"modules": func() (cli.Command, error) {
+			return &command.ModulesCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"output": func() (cli.Command, error) {
 			return &command.OutputCommand{
 				Meta: meta,
