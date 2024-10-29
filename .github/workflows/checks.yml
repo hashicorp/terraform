@@ -37,7 +37,8 @@ permissions:
 jobs:
   unit-tests:
     name: "Unit Tests"
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+             macos
 
     steps:
       - name: "Fetch source code"
