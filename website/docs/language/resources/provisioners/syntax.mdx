@@ -235,7 +235,7 @@ variables](/terraform/language/values/variables#ephemeral), or [`ephemeral`
 output
 values](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files).
 
-Terraform will not store these values in your plan or state, or output them in
+Terraform does not store these values in your plan or state, or output them in
 logs.
 
 ### Sensitive values
@@ -243,7 +243,7 @@ logs.
 The configuration for a `provisioner` block may use sensitive values, such as
 [`sensitive` variables](/terraform/language/values/variables#suppressing-values-in-cli-output)
 or [`sensitive` output values](/terraform/language/values/outputs#sensitive-suppressing-values-in-cli-output).
-Terraform will suppress sensitive values in all log output.
+Terraform suppresses sensitive values in all log output.
 
 ## Creation-Time Provisioners
 
