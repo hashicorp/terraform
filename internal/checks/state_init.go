@@ -33,6 +33,10 @@ func collectInitialStatuses(into addrs.Map[addrs.ConfigCheckable, *configCheckab
 		addr := rc.Addr().InModule(moduleAddr)
 		collectInitialStatusForResource(into, addr, rc)
 	}
+	for _, rc := range cfg.Module.EphemeralResources {
+		addr := rc.Addr().InModule(moduleAddr)
+		collectInitialStatusForResource(into, addr, rc)
+	}
 
 	for _, oc := range cfg.Module.Outputs {
 		addr := oc.Addr().InModule(moduleAddr)
