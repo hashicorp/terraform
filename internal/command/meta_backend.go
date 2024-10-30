@@ -386,9 +386,11 @@ func (m *Meta) backendCLIOpts() (*backendrun.CLIOpts, error) {
 		return nil, err
 	}
 	return &backendrun.CLIOpts{
-		CLI:                 m.Ui,
-		CLIColor:            m.Colorize(),
-		Streams:             m.Streams,
+		CLI:      m.Ui,
+		CLIColor: m.Colorize(),
+		Streams:  m.Streams,
+		//FIXME: something
+		View:                views.NewView(m.Streams),
 		StatePath:           m.statePath,
 		StateOutPath:        m.stateOutPath,
 		StateBackupPath:     m.backupPath,

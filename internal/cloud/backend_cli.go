@@ -25,6 +25,8 @@ func (b *Cloud) CLIInit(opts *backendrun.CLIOpts) error {
 		Streams:  opts.Streams,
 		Colorize: opts.CLIColor,
 	}
+	//FIXME: something
+	b.View = opts.View
 
 	return nil
 }

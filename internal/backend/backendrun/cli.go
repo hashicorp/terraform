@@ -8,6 +8,7 @@ import (
 	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
@@ -59,6 +60,9 @@ type CLIOpts struct {
 	// should go via the object in field CLI above, but Streams can be useful
 	// for tailoring the output to fit the attached terminal, for example.
 	Streams *terminal.Streams
+
+	//FIXME: something
+	View *views.View
 
 	// StatePath is the local path where state is read from.
 	//

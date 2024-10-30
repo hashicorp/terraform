@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package views
 
 import (
@@ -30,7 +33,7 @@ func NewRetryLoghook(view *View) *RetryLogHook {
 //
 // If colorize is true, then the value returned by this function should be
 // processed by a colorizer.
-func (hooks *RetryLogHook) RetryLogHook(attemptNum int, resp *http.Response, colorize bool) string {
+func (hook *RetryLogHook) RetryLogHook(attemptNum int, resp *http.Response, colorize bool) string {
 	// Ignore the first retry to make sure any delayed output will
 	// be written to the console before we start logging retries.
 	//
@@ -38,7 +41,7 @@ func (hooks *RetryLogHook) RetryLogHook(attemptNum int, resp *http.Response, col
 	// requests and server errors, but in the cloud backend we only
 	// care about server errors so we ignore rate limit (429) errors.
 	if attemptNum == 0 || (resp != nil && resp.StatusCode == 429) {
-		hooks.lastRetry = time.Now()
+		hook.lastRetry = time.Now()
 		return ""
 	}
 
@@ -46,13 +49,13 @@ func (hooks *RetryLogHook) RetryLogHook(attemptNum int, resp *http.Response, col
 	if attemptNum == 1 {
 		msg = initialRetryError
 	} else {
-		msg = fmt.Sprintf(repeatedRetryError, time.Since(hooks.lastRetry).Round(time.Second))
+		msg = fmt.Sprintf(repeatedRetryError, time.Since(hook.lastRetry).Round(time.Second))
 	}
 
 	if colorize {
 		return strings.TrimSpace(fmt.Sprintf("[reset][yellow]%s[reset]", msg))
 	}
-	return hooks.view.colorize.Color(strings.TrimSpace(msg))
+	return hook.view.colorize.Color(strings.TrimSpace(msg))
 }
 
 // The newline in this error is to make it look good in the CLI!
