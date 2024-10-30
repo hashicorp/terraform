@@ -131,6 +131,17 @@ type MockHook struct {
 	PostApplyImportReturn HookAction
 	PostApplyImportError  error
 
+	PreEphemeralOpCalled      bool
+	PreEphemeralOpAddr        addrs.AbsResourceInstance
+	PreEphemeralOpReturn      HookAction
+	PreEphemeralOpReturnError error
+
+	PostEphemeralOpCalled      bool
+	PostEphemeralOpAddr        addrs.AbsResourceInstance
+	PostEphemeralOpError       error
+	PostEphemeralOpReturn      HookAction
+	PostEphemeralOpReturnError error
+
 	StoppingCalled bool
 
 	PostStateUpdateCalled bool
@@ -314,6 +325,25 @@ func (h *MockHook) PostApplyImport(id HookResourceIdentity, importing plans.Impo
 	h.PostApplyImportCalled = true
 	h.PostApplyImportAddr = id.Addr
 	return h.PostApplyImportReturn, h.PostApplyImportError
+}
+
+func (h *MockHook) PreEphemeralOp(id HookResourceIdentity, action plans.Action) (HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+
+	h.PreEphemeralOpCalled = true
+	h.PreEphemeralOpAddr = id.Addr
+	return h.PreEphemeralOpReturn, h.PreEphemeralOpReturnError
+}
+
+func (h *MockHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action, opErr error) (HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+
+	h.PostEphemeralOpCalled = true
+	h.PostEphemeralOpAddr = id.Addr
+	h.PostEphemeralOpError = opErr
+	return h.PostEphemeralOpReturn, h.PostEphemeralOpReturnError
 }
 
 func (h *MockHook) Stopping() {

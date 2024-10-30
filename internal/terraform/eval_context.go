@@ -28,6 +28,8 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+type hookFunc func(func(Hook) (HookAction, error)) error
+
 // EvalContext is the interface that is given to eval nodes to execute.
 type EvalContext interface {
 	// Stopped returns a context that is canceled when evaluation is stopped via
