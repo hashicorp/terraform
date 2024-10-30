@@ -14,7 +14,11 @@ When using local state, state is stored in plain-text JSON files.
 When using [remote state](/terraform/language/state/remote), state is only ever held in memory when used by Terraform. It may be encrypted at rest, but this depends on the specific remote state backend.
 
 ## Ephemeral data
+<Note title="Public beta">
 
+Ephemeral variables, outputs, and resources are in public beta and available in Terraform v1.10 and later. The workflows of ephemeral values are subject to change.
+
+</Note>
 -> **Note**: Ephemeral variables, outputs, and resources are in public beta and available in Terraform v1.10 and later. The workflows of ephemeral values are subject to change.
 
 Terraform allows you to mark variables and outputs as ephemeral. Providers can also support specific `ephemeral` resources. Ephemerality in Terraform means that the data of a block is available during runtime, but Terraform does not write that data to state or plan files. The `ephemeral` property is helpful when managing credentials, tokens, or other temporary resources you do not want to store in Terraform state files.

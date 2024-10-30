@@ -6,7 +6,11 @@ description: |-
 
 # `ephemeralasnull` function reference
 
--> The `ephemeralasnull` function is in public beta and available in Terraform v1.10 and later. The workflows of `ephemeralasnull` are subject to change.
+<Note title="Public beta">
+
+The `ephemeralasnull` function is in public beta and available in Terraform v1.10 and later. The workflows of `ephemeralasnull` are subject to change.
+
+</Note>
 
 This topic provides reference information about the `ephemeralasnull` function. The `ephemeralasnull` function accepts an ephemeral value and returns `null`. 
 
@@ -73,7 +77,7 @@ output "configuration_settings" {
 }
 ```
 
-Applying the above configuration returns the `ephemeral` values in `locals.configuration_settings` as `null`.
+When you apply the above configuration, Terraform returns the `ephemeral` values in `locals.configuration_settings` as `null`. This lets you output the non-ephemeral value `env`.
 
 ```hcl
 Outputs:
@@ -83,4 +87,3 @@ configuration_settings = {
   "session_token" = tostring(null)
 }
 ```
-Allowing you to output the non-ephemeral value `env`.
