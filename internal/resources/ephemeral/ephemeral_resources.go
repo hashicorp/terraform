@@ -91,7 +91,14 @@ func (r *Resources) InstanceValue(addr addrs.AbsResourceInstance) (val cty.Value
 	}
 	inst, ok := insts.GetOk(addr)
 	if !ok {
-		return cty.DynamicVal, false
+		// Here we can assume that if the entire resource exists, the instance
+		// is valid because Close removes resources as a whole. Individual
+		// instances may not actually be present when checks are evaluated,
+		// because they are evaluated from instance nodes that are using "self".
+		// The way an instance gets "self" is to call GetResource which needs to
+		// compile all instances into a suitable value, so we may be missing
+		// instances which have not yet been opened.
+		return cty.DynamicVal, true
 	}
 	// If renewal has failed then we can't assume that the object is still
 	// live, but we can still return the original value regardless.
