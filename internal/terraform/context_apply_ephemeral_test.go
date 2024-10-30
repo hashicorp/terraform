@@ -353,6 +353,9 @@ resource "test_object" "test" {
 	})
 	assertNoDiagnostics(t, diags)
 
+	// reset the ephemeral call flags
+	ephem.ConfigureProviderCalled = false
+
 	_, diags = ctx.Apply(plan, m, nil)
 	assertNoDiagnostics(t, diags)
 }
