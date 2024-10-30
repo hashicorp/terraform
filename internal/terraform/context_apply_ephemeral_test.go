@@ -285,6 +285,7 @@ variable "input" {
 }
 
 ephemeral "ephem_resource" "data" {
+  for_each = toset(["a", "b"])
   lifecycle {
     precondition {
       condition = var.input == "ok"
@@ -298,7 +299,7 @@ ephemeral "ephem_resource" "data" {
 }
 
 provider "test" {
-  test_string = ephemeral.ephem_resource.data.value
+  test_string = ephemeral.ephem_resource.data["a"].value
 }
 
 resource "test_object" "test" {
