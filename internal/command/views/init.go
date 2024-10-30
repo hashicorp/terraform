@@ -10,12 +10,14 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // The Init view is used for the init command.
 type Init interface {
 	Diagnostics(diags tfdiags.Diagnostics)
+	Hooks() []terraform.Hook
 	Output(messageCode InitMessageCode, params ...any)
 	LogInitMessage(messageCode InitMessageCode, params ...any)
 	Log(message string, params ...any)
@@ -48,6 +50,12 @@ var _ Init = (*InitHuman)(nil)
 
 func (v *InitHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
+}
+
+func (v *InitHuman) Hooks() []terraform.Hook {
+	return []terraform.Hook{
+		NewRetryLoghook(v.view),
+	}
 }
 
 func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
@@ -88,6 +96,12 @@ var _ Init = (*InitJSON)(nil)
 
 func (v *InitJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
+}
+
+func (v *InitJSON) Hooks() []terraform.Hook {
+	return []terraform.Hook{
+		NewRetryLoghook(v.view.view),
+	}
 }
 
 func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {

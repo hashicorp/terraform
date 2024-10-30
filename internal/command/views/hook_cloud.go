@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package views
 
 import (
@@ -8,13 +5,24 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
-// CloudHooks provides functions that help with integrating directly into
-// the go-tfe tfe.Client struct.
-type CloudHooks struct {
-	// lastRetry is set to the last time a request was retried.
+type RetryLogHook struct {
+	terraform.NilHook
+
+	view *View
+
 	lastRetry time.Time
+}
+
+var _ terraform.Hook = (*UiHook)(nil)
+
+func NewRetryLoghook(view *View) *RetryLogHook {
+	return &RetryLogHook{
+		view: view,
+	}
 }
 
 // RetryLogHook returns a string providing an update about a request from the
@@ -22,7 +30,7 @@ type CloudHooks struct {
 //
 // If colorize is true, then the value returned by this function should be
 // processed by a colorizer.
-func (hooks *CloudHooks) RetryLogHook(attemptNum int, resp *http.Response, colorize bool) string {
+func (hooks *RetryLogHook) RetryLogHook(attemptNum int, resp *http.Response, colorize bool) string {
 	// Ignore the first retry to make sure any delayed output will
 	// be written to the console before we start logging retries.
 	//
