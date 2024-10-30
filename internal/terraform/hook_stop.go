@@ -90,6 +90,14 @@ func (h *stopHook) PostApplyImport(id HookResourceIdentity, importing plans.Impo
 	return h.hook()
 }
 
+func (h *stopHook) PreEphemeralOp(id HookResourceIdentity, action plans.Action) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action, opErr error) (HookAction, error) {
+	return h.hook()
+}
+
 func (h *stopHook) Stopping() {}
 
 func (h *stopHook) PostStateUpdate(new *states.State) (HookAction, error) {

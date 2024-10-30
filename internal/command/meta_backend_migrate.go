@@ -630,7 +630,7 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 		return m.backendMigrateState_s_s(opts)
 	}
 
-	destinationTagsStrategy := cloudBackendDestination.WorkspaceMapping.Strategy() == cloud.WorkspaceTagsStrategy
+	destinationTagsStrategy := cloudBackendDestination.WorkspaceMapping.IsTagsStrategy()
 	destinationNameStrategy := cloudBackendDestination.WorkspaceMapping.Strategy() == cloud.WorkspaceNameStrategy
 
 	multiSource := !sourceSingleState && len(sourceWorkspaces) > 1

@@ -98,6 +98,11 @@ type Hook interface {
 	PreApplyImport(id HookResourceIdentity, importing plans.ImportingSrc) (HookAction, error)
 	PostApplyImport(id HookResourceIdentity, importing plans.ImportingSrc) (HookAction, error)
 
+	// PreEphemeralOp and PostEphemeralOp are called during an operation on ephemeral resource
+	// such as opening, renewal or closing
+	PreEphemeralOp(id HookResourceIdentity, action plans.Action) (HookAction, error)
+	PostEphemeralOp(id HookResourceIdentity, action plans.Action, opErr error) (HookAction, error)
+
 	// Stopping is called if an external signal requests that Terraform
 	// gracefully abort an operation in progress.
 	//
@@ -193,6 +198,14 @@ func (h *NilHook) PreApplyImport(id HookResourceIdentity, importing plans.Import
 }
 
 func (h *NilHook) PostApplyImport(id HookResourceIdentity, importing plans.ImportingSrc) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) PreEphemeralOp(id HookResourceIdentity, action plans.Action) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action, opErr error) (HookAction, error) {
 	return HookActionContinue, nil
 }
 

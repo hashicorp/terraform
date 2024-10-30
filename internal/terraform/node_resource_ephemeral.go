@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/resources/ephemeral"
@@ -82,9 +83,20 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 		return nil, diags
 	}
 
+	rId := HookResourceIdentity{
+		Addr:         inp.addr,
+		ProviderAddr: inp.providerConfig.Provider,
+	}
+
+	ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PreEphemeralOp(rId, plans.Open)
+	})
 	resp := provider.OpenEphemeralResource(providers.OpenEphemeralResourceRequest{
 		TypeName: inp.addr.ContainingResource().Resource.Type,
 		Config:   unmarkedConfigVal,
+	})
+	ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostEphemeralOp(rId, plans.Open, resp.Diagnostics.Err())
 	})
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, inp.addr.String()))
 	if diags.HasErrors() {
@@ -119,9 +131,11 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 	resultVal = resultVal.Mark(marks.Ephemeral)
 
 	impl := &ephemeralResourceInstImpl{
-		addr:     inp.addr,
-		provider: provider,
-		internal: resp.Private,
+		addr:        inp.addr,
+		providerCfg: inp.providerConfig,
+		provider:    provider,
+		hook:        ctx.Hook,
+		internal:    resp.Private,
 	}
 
 	ephemerals.RegisterInstance(ctx.StopCtx(), inp.addr, ephemeral.ResourceInstanceRegistration{
@@ -131,6 +145,18 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 		RenewAt:    resp.RenewAt,
 		Private:    resp.Private,
 	})
+
+	// Postconditions for ephemerals validate only what is returned by
+	// OpenEphemeralResource. These will block downstream dependency operations
+	// if an error is returned, but don't prevent renewal or closing of the
+	// resource.
+	checkDiags = evalCheckRules(
+		addrs.ResourcePostcondition,
+		config.Postconditions,
+		ctx, inp.addr, keyData,
+		tfdiags.Error,
+	)
+	diags = diags.Append(checkDiags)
 
 	return nil, diags
 }
@@ -191,9 +217,11 @@ func (n *nodeEphemeralResourceClose) SetProvider(provider addrs.AbsProviderConfi
 // ephemeralResourceInstImpl implements ephemeral.ResourceInstance as an
 // adapter to the relevant provider API calls.
 type ephemeralResourceInstImpl struct {
-	addr     addrs.AbsResourceInstance
-	provider providers.Interface
-	internal []byte
+	addr        addrs.AbsResourceInstance
+	providerCfg addrs.AbsProviderConfig
+	provider    providers.Interface
+	hook        hookFunc
+	internal    []byte
 }
 
 var _ ephemeral.ResourceInstance = (*ephemeralResourceInstImpl)(nil)
@@ -201,10 +229,19 @@ var _ ephemeral.ResourceInstance = (*ephemeralResourceInstImpl)(nil)
 // Close implements ephemeral.ResourceInstance.
 func (impl *ephemeralResourceInstImpl) Close(ctx context.Context) tfdiags.Diagnostics {
 	log.Printf("[TRACE] ephemeralResourceInstImpl: closing %s", impl.addr)
-
+	rId := HookResourceIdentity{
+		Addr:         impl.addr,
+		ProviderAddr: impl.providerCfg.Provider,
+	}
+	impl.hook(func(h Hook) (HookAction, error) {
+		return h.PreEphemeralOp(rId, plans.Close)
+	})
 	resp := impl.provider.CloseEphemeralResource(providers.CloseEphemeralResourceRequest{
 		TypeName: impl.addr.Resource.Resource.Type,
 		Private:  impl.internal,
+	})
+	impl.hook(func(h Hook) (HookAction, error) {
+		return h.PostEphemeralOp(rId, plans.Close, resp.Diagnostics.Err())
 	})
 	return resp.Diagnostics
 }
@@ -213,11 +250,20 @@ func (impl *ephemeralResourceInstImpl) Close(ctx context.Context) tfdiags.Diagno
 func (impl *ephemeralResourceInstImpl) Renew(ctx context.Context, req providers.EphemeralRenew) (nextRenew *providers.EphemeralRenew, diags tfdiags.Diagnostics) {
 	log.Printf("[TRACE] ephemeralResourceInstImpl: renewing %s", impl.addr)
 
+	rId := HookResourceIdentity{
+		Addr:         impl.addr,
+		ProviderAddr: impl.providerCfg.Provider,
+	}
+	impl.hook(func(h Hook) (HookAction, error) {
+		return h.PreEphemeralOp(rId, plans.Renew)
+	})
 	resp := impl.provider.RenewEphemeralResource(providers.RenewEphemeralResourceRequest{
 		TypeName: impl.addr.Resource.Resource.Type,
 		Private:  req.Private,
 	})
-
+	impl.hook(func(h Hook) (HookAction, error) {
+		return h.PostEphemeralOp(rId, plans.Renew, resp.Diagnostics.Err())
+	})
 	if !resp.RenewAt.IsZero() {
 		nextRenew = &providers.EphemeralRenew{
 			RenewAt: resp.RenewAt,
