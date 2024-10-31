@@ -1942,35 +1942,51 @@ func newMockWorkspaces(client *MockClient) *MockWorkspaces {
 func (m *MockWorkspaces) List(ctx context.Context, organization string, options *tfe.WorkspaceListOptions) (*tfe.WorkspaceList, error) {
 	wl := &tfe.WorkspaceList{}
 	// Get all the workspaces that match the Search value
-	searchValue := ""
 	var ws []*tfe.Workspace
-	var tags []string
+	searchValue := ""
+	searchTags := make(map[string]string)
 
 	if options != nil {
 		if len(options.Search) > 0 {
 			searchValue = options.Search
 		}
 		if len(options.Tags) > 0 {
-			tags = strings.Split(options.Tags, ",")
+			for _, tag := range strings.Split(options.Tags, ",") {
+				searchTags[tag] = ""
+			}
+		}
+		if len(options.TagBindings) > 0 {
+			for _, kvTag := range options.TagBindings {
+				searchTags[kvTag.Key] = kvTag.Value
+			}
 		}
 	}
 
 	for _, w := range m.workspaceIDs {
-		wTags := make(map[string]struct{})
+		wTags := make(map[string]string)
 		for _, wTag := range w.Tags {
-			wTags[wTag.Name] = struct{}{}
+			wTags[wTag.Name] = ""
 		}
 
-		if strings.Contains(w.Name, searchValue) {
-			tagsSatisfied := true
-			for _, tag := range tags {
-				if _, ok := wTags[tag]; !ok {
+		for _, kvTag := range w.TagBindings {
+			wTags[kvTag.Key] = kvTag.Value
+		}
+
+		tagsSatisfied := true
+		for k, v := range searchTags {
+			if value, ok := wTags[k]; ok {
+				if value != v {
 					tagsSatisfied = false
+					break
 				}
+			} else {
+				tagsSatisfied = false
+				break
 			}
-			if tagsSatisfied {
-				ws = append(ws, w)
-			}
+		}
+
+		if strings.Contains(w.Name, searchValue) && tagsSatisfied {
+			ws = append(ws, w)
 		}
 	}
 
