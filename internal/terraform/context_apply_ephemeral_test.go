@@ -275,3 +275,87 @@ output "data" {
 		t.Error("CloseEphemeralResourceCalled not called")
 	}
 }
+
+func TestContext2Apply_ephemeralChecks(t *testing.T) {
+	// test the full validate-plan-apply lifecycle for ephemeral conditions
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "input" {
+  type = string
+}
+
+ephemeral "ephem_resource" "data" {
+  for_each = toset(["a", "b"])
+  lifecycle {
+    precondition {
+      condition = var.input == "ok"
+      error_message = "input not ok"
+    }
+    postcondition {
+      condition = self.value != null
+      error_message = "value is null"
+    }
+  }
+}
+
+provider "test" {
+  test_string = ephemeral.ephem_resource.data["a"].value
+}
+
+resource "test_object" "test" {
+}
+`,
+	})
+
+	ephem := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			EphemeralResourceTypes: map[string]providers.Schema{
+				"ephem_resource": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Type:     cty.String,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ephem.OpenEphemeralResourceFn = func(providers.OpenEphemeralResourceRequest) (resp providers.OpenEphemeralResourceResponse) {
+		resp.Result = cty.ObjectVal(map[string]cty.Value{
+			"value": cty.StringVal("test string"),
+		})
+		return resp
+	}
+
+	p := simpleMockProvider()
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("ephem"): testProviderFuncFixed(ephem),
+			addrs.NewDefaultProvider("test"):  testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	assertNoDiagnostics(t, diags)
+
+	plan, diags := ctx.Plan(m, nil, &PlanOpts{
+		SetVariables: InputValues{
+			"input": &InputValue{
+				Value:      cty.StringVal("ok"),
+				SourceType: ValueFromConfig,
+			},
+		},
+	})
+	assertNoDiagnostics(t, diags)
+
+	// reset the ephemeral call flags
+	ephem.ConfigureProviderCalled = false
+
+	_, diags = ctx.Apply(plan, m, nil)
+	assertNoDiagnostics(t, diags)
+}

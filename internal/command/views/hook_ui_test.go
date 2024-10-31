@@ -619,7 +619,7 @@ func TestUiHookEphemeralOp_progress(t *testing.T) {
 		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
 
-	time.Sleep(3100 * time.Millisecond)
+	time.Sleep(2005 * time.Millisecond)
 
 	action, err = h.PostEphemeralOp(testUiHookResourceID(addr), plans.Open, nil)
 	if err != nil {
@@ -634,8 +634,7 @@ func TestUiHookEphemeralOp_progress(t *testing.T) {
 	want := `ephemeral.test_instance.foo: Opening...
 ephemeral.test_instance.foo: Still opening... [1s elapsed]
 ephemeral.test_instance.foo: Still opening... [2s elapsed]
-ephemeral.test_instance.foo: Still opening... [3s elapsed]
-ephemeral.test_instance.foo: Opening complete after 3s
+ephemeral.test_instance.foo: Opening complete after 2s
 `
 	if got := result.Stdout(); got != want {
 		t.Fatalf("unexpected output\n got: %q\nwant: %q", got, want)
