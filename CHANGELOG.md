@@ -1,4 +1,4 @@
-## 1.10.0 (Unreleased)
+## 1.10.0-beta1 (October 31, 2024)
 
 NEW FEATURES:
  - **Ephemeral resources**: Ephemeral resources are read anew during each phase of Terraform evaluation, and cannot be persisted to state storage. Ephemeral resources always produce ephemeral values.
@@ -15,8 +15,8 @@ BUG FIXES:
   ([#35537](https://github.com/hashicorp/terraform/issues/35537))
 - Unencoded slashes within GitHub module source refs were being truncated and incorrectly used as subdirectories in the request path ([#35552](https://github.com/hashicorp/terraform/issues/35552))
 - Terraform refresh-only plans with output only changes are now applyable. ([#35812](https://github.com/hashicorp/terraform/issues/35812))
-- Postconditions referencing `self` with many instances could encounter an error during evaluation [GH-35895]
-- The `plantimestamp()` function would return an invalid date during validation [GH-35902]
+- Postconditions referencing `self` with many instances could encounter an error during evaluation ([#35895](https://github.com/hashicorp/terraform/issues/35895))
+- The `plantimestamp()` function would return an invalid date during validation ([#35902](https://github.com/hashicorp/terraform/issues/35902))
 
 ENHANCEMENTS:
 
