@@ -101,7 +101,7 @@ func NewTest(vt arguments.ViewType, view *View) Test {
 }
 
 type TestHuman struct {
-	RetryLogHook
+	Cloud
 
 	view *View
 }
@@ -371,11 +371,11 @@ func (t *TestHuman) TFCStatusUpdate(status tfe.TestRunStatus, elapsed time.Durat
 }
 
 func (t *TestHuman) TFCRetryHook(attemptNum int, resp *http.Response) {
-	t.view.streams.Println(t.view.colorize.Color(t.RetryLogHook.RetryLogHook(attemptNum, resp, true)))
+	t.Cloud.RetryLog(attemptNum, resp)
 }
 
 type TestJSON struct {
-	RetryLogHook
+	Cloud
 
 	view *JSONView
 }
@@ -729,10 +729,7 @@ func (t *TestJSON) TFCStatusUpdate(status tfe.TestRunStatus, elapsed time.Durati
 }
 
 func (t *TestJSON) TFCRetryHook(attemptNum int, resp *http.Response) {
-	t.view.log.Error(
-		t.RetryLogHook.RetryLogHook(attemptNum, resp, false),
-		"type", json.MessageTestRetry,
-	)
+	t.Cloud.RetryLog(attemptNum, resp)
 }
 
 // TestJUnitXMLFile produces a JUnit XML file at the conclusion of a test
