@@ -606,8 +606,8 @@ func cliConfigToken(hostname svchost.Hostname, services *disco.Disco) (string, e
 // backend to log any connection issues to prevent data loss.
 func (b *Cloud) retryLogHook(attemptNum int, resp *http.Response) {
 	if b.CLI != nil {
-		retryLogHook := views.NewRetryLoghook(b.View)
-		if output := retryLogHook.RetryLogHook(attemptNum, resp, true); len(output) > 0 {
+		h := views.NewRetryLoghook(b.View)
+		if output := h.RetryLogHook(attemptNum, resp, true); len(output) > 0 {
 			b.CLI.Output(b.Colorize().Color(output))
 		}
 	}

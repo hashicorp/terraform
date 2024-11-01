@@ -55,7 +55,7 @@ func (hook *RetryLogHook) RetryLogHook(attemptNum int, resp *http.Response, colo
 	if colorize {
 		return strings.TrimSpace(fmt.Sprintf("[reset][yellow]%s[reset]", msg))
 	}
-	return hook.view.colorize.Color(strings.TrimSpace(msg))
+	return strings.TrimSpace(msg)
 }
 
 // The newline in this error is to make it look good in the CLI!
