@@ -151,6 +151,11 @@ func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags
 	}
 	cliOpts.Validation = true
 
+	// FIXME: Temporarily exposing ViewType to the backend.
+	// This is a workaround until the backend is refactored to support
+	// native View handling.
+	cliOpts.ViewType = opts.ViewType
+
 	// If the backend supports CLI initialization, do it.
 	if cli, ok := b.(backendrun.CLI); ok {
 		if err := cli.CLIInit(cliOpts); err != nil {
@@ -386,11 +391,9 @@ func (m *Meta) backendCLIOpts() (*backendrun.CLIOpts, error) {
 		return nil, err
 	}
 	return &backendrun.CLIOpts{
-		CLI:      m.Ui,
-		CLIColor: m.Colorize(),
-		Streams:  m.Streams,
-		//FIXME: something
-		View:                views.NewView(m.Streams),
+		CLI:                 m.Ui,
+		CLIColor:            m.Colorize(),
+		Streams:             m.Streams,
 		StatePath:           m.statePath,
 		StateOutPath:        m.stateOutPath,
 		StateBackupPath:     m.backupPath,

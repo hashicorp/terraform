@@ -6,6 +6,7 @@ package cloud
 import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
+	"github.com/hashicorp/terraform/internal/command/views"
 )
 
 // CLIInit implements backendrun.CLI
@@ -25,8 +26,8 @@ func (b *Cloud) CLIInit(opts *backendrun.CLIOpts) error {
 		Streams:  opts.Streams,
 		Colorize: opts.CLIColor,
 	}
-	//FIXME: something
-	b.View = opts.View
+	view := views.NewView(opts.Streams)
+	b.View = views.NewCloud(opts.ViewType, view)
 
 	return nil
 }

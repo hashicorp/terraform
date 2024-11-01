@@ -8,7 +8,7 @@ import (
 	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
@@ -61,8 +61,10 @@ type CLIOpts struct {
 	// for tailoring the output to fit the attached terminal, for example.
 	Streams *terminal.Streams
 
-	//FIXME: something
-	View *views.View
+	// FIXME: Temporarily exposing ViewType to the backend.
+	// This is a workaround until the backend is refactored to support
+	// native View handling.
+	ViewType arguments.ViewType
 
 	// StatePath is the local path where state is read from.
 	//
