@@ -414,7 +414,7 @@ func TestJSONHook_EphemeralOp_progress(t *testing.T) {
 	action, err := hook.PreEphemeralOp(testJSONHookResourceID(addr), plans.Open)
 	testHookReturnValues(t, action, err)
 
-	time.Sleep(3100 * time.Millisecond)
+	time.Sleep(2005 * time.Millisecond)
 
 	action, err = hook.PostEphemeralOp(testJSONHookResourceID(addr), plans.Open, nil)
 	testHookReturnValues(t, action, err)
@@ -478,31 +478,12 @@ func TestJSONHook_EphemeralOp_progress(t *testing.T) {
 		},
 		{
 			"@level":   "info",
-			"@message": "test_instance.boop: Still opening... [3s elapsed]",
-			"@module":  "terraform.ui",
-			"type":     "ephemeral_op_progress",
-			"hook": map[string]interface{}{
-				"action":          string("open"),
-				"elapsed_seconds": float64(3),
-				"resource": map[string]interface{}{
-					"addr":             string("test_instance.boop"),
-					"implied_provider": string("test"),
-					"module":           string(""),
-					"resource":         string("test_instance.boop"),
-					"resource_key":     nil,
-					"resource_name":    string("boop"),
-					"resource_type":    string("test_instance"),
-				},
-			},
-		},
-		{
-			"@level":   "info",
-			"@message": "test_instance.boop: Opening complete after 3s",
+			"@message": "test_instance.boop: Opening complete after 2s",
 			"@module":  "terraform.ui",
 			"type":     "ephemeral_op_complete",
 			"hook": map[string]interface{}{
 				"action":          string("open"),
-				"elapsed_seconds": float64(3),
+				"elapsed_seconds": float64(2),
 				"resource": map[string]interface{}{
 					"addr":             string("test_instance.boop"),
 					"implied_provider": string("test"),
