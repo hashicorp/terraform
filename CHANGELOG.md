@@ -3,7 +3,6 @@
 NEW FEATURES:
  - **Ephemeral resources**: Ephemeral resources are read anew during each phase of Terraform evaluation, and cannot be persisted to state storage. Ephemeral resources always produce ephemeral values.
  - **Ephemeral values**: Input variables and outputs can now be defined as ephemeral. Ephemeral values may only be used in certain contexts in Terraform configuration, and are not persisted to the plan or state files.
-    - `terraform output -json` now displays ephemeral outputs. The value of an ephemeral output is always `null` unless a plan or apply is being run. Note that `terraform output` (without the `-json`) flag does not yet display ephemeral outputs.
     - **`ephemeralasnull` function**: a function takes a value of any type and returns a similar value of the same type with any ephemeral values replaced with non-ephemeral null values and all non-ephemeral values preserved.
 
 BUG FIXES:
