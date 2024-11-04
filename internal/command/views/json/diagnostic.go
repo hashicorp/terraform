@@ -438,13 +438,17 @@ func parseRange(src []byte, rng hcl.Range) (*hcl.File, int) {
 	return file, offset
 }
 
-// compactValueStr produces a compact, single-line summary of a given value
+// CompactValueStr produces a compact, single-line summary of a given value
 // that is suitable for display in the UI.
 //
 // For primitives it returns a full representation, while for more complex
 // types it instead summarizes the type, size, etc to produce something
 // that is hopefully still somewhat useful but not as verbose as a rendering
 // of the entire data structure.
+func CompactValueStr(val cty.Value) string {
+	return compactValueStr(val)
+}
+
 func compactValueStr(val cty.Value) string {
 	// This is a specialized subset of value rendering tailored to producing
 	// helpful but concise messages in diagnostics. It is not comprehensive
