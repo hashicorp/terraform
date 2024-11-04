@@ -19,6 +19,7 @@ type Cloud interface {
 	RetryLog(attemptNum int, resp *http.Response)
 	Diagnostics(diags tfdiags.Diagnostics)
 	Output(messageCode CloudMessageCode, params ...any)
+	PrepareMessage(messageCode CloudMessageCode, params ...any) string
 }
 
 // NewCloud returns Cloud implementation for the given ViewType.
