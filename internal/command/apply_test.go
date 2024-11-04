@@ -860,6 +860,7 @@ func TestApply_planWithVarFile(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// The value of foo is the same as in the var file
 	planPath := applyFixturePlanFileWithVariableValue(t, "bar")
 	statePath := testTempFile(t)
 
@@ -898,6 +899,96 @@ func TestApply_planWithVarFile(t *testing.T) {
 	state := testStateRead(t, statePath)
 	if state == nil {
 		t.Fatal("state should not be nil")
+	}
+}
+
+func TestApply_planWithVarFilePreviouslyUnset(t *testing.T) {
+	varFileDir := testTempDir(t)
+	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
+	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// The value of foo is not set
+	planPath := applyFixturePlanFile(t)
+	statePath := testTempFile(t)
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(varFileDir); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	p := applyFixtureProvider()
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-state-out", statePath,
+		planPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code == 0 {
+		t.Fatalf("expected to fail, but succeeded. \n\n%s", output.All())
+	}
+
+	expectedTitle := "Can't set variable when applying a saved plan"
+	if !strings.Contains(output.Stderr(), expectedTitle) {
+		t.Fatalf("Expected stderr to contain %q, got %q", expectedTitle, output.Stderr())
+	}
+}
+
+func TestApply_planWithVarFileChangingVariableValue(t *testing.T) {
+	varFileDir := testTempDir(t)
+	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
+	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// The value of foo is differnet from the var file
+	planPath := applyFixturePlanFileWithVariableValue(t, "lorem ipsum")
+	statePath := testTempFile(t)
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(varFileDir); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	p := applyFixtureProvider()
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-state-out", statePath,
+		planPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code == 0 {
+		t.Fatalf("expected to fail, but succeeded. \n\n%s", output.All())
+	}
+
+	expectedTitle := "Can't change variable when applying a saved plan"
+	if !strings.Contains(output.Stderr(), expectedTitle) {
+		t.Fatalf("Expected stderr to contain %q, got %q", expectedTitle, output.Stderr())
 	}
 }
 
