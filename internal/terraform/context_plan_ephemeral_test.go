@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -332,15 +333,18 @@ module "child" {
 		},
 
 		"check blocks": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"main.tf": `
 ephemeral "ephem_resource" "data" {}
 
 check "check_using_ephemeral_value" {
   assert {
-    condition = ephemeral.ephem_resource.data.bool
-    error_message = "This should not fail"
+    condition = ephemeral.ephem_resource.data.bool == false
+    error_message = "Fine to persist"
+  }
+  assert {
+    condition = ephemeral.ephem_resource.data.bool == false
+    error_message = "Shall not be persisted ${ephemeral.ephem_resource.data.bool}"
   }
 }
 				`,
@@ -350,10 +354,49 @@ check "check_using_ephemeral_value" {
 			expectCloseEphemeralResourceCalled:          true,
 
 			assertPlan: func(t *testing.T, p *plans.Plan) {
-				// Checks using ephemeral values should not be included in the plan
-				if p.Checks.ConfigResults.Len() > 0 {
-					t.Fatalf("Expected no checks to be included in the plan, but got %d", p.Checks.ConfigResults.Len())
+				key := addrs.ConfigCheck{
+					Module: addrs.RootModule,
+					Check: addrs.Check{
+						Name: "check_using_ephemeral_value",
+					},
 				}
+				result, ok := p.Checks.ConfigResults.GetOk(key)
+				if !ok {
+					t.Fatalf("expected to find check result for %q", key)
+				}
+				objKey := addrs.AbsCheck{
+					Module: addrs.RootModuleInstance,
+					Check: addrs.Check{
+						Name: "check_using_ephemeral_value",
+					},
+				}
+				obj, ok := result.ObjectResults.GetOk(objKey)
+				if !ok {
+					t.Fatalf("expected to find object for %q", objKey)
+				}
+				expectedMessages := []string{"Fine to persist"}
+				if diff := cmp.Diff(expectedMessages, obj.FailureMessages); diff != "" {
+					t.Fatalf("unexpected messages: %s", diff)
+				}
+			},
+			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Check block assertion failed",
+					Detail:   "Fine to persist",
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Check block assertion failed",
+					Detail:   "This check failed, but has an invalid error message as described in the other accompanying messages.",
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Error message refers to ephemeral values",
+					Detail: "The error expression used to explain this condition refers to ephemeral values, so Terraform will not display the resulting message." +
+						"\n\nYou can correct this by removing references to ephemeral values, or by using the ephemeralasnull() function on the references to not reveal ephemeral data.",
+				})
+				return diags
 			},
 		},
 
@@ -510,7 +553,7 @@ ephemeral "ephem_resource" "data" {
 						},
 					},
 					Functions: map[string]providers.FunctionDecl{
-						"either": providers.FunctionDecl{
+						"either": {
 							Parameters: []providers.FunctionParam{
 								{
 									Name: "a",
