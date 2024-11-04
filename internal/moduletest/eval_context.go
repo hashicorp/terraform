@@ -109,7 +109,7 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 			continue
 		}
 
-		errorMessage, moreDiags := lang.EvalCheckErrorMessage(rule.ErrorMessage, hclCtx)
+		errorMessage, moreDiags := lang.EvalCheckErrorMessage(rule.ErrorMessage, hclCtx, nil)
 		ruleDiags = ruleDiags.Append(moreDiags)
 
 		runVal, hclDiags := rule.Condition.Value(hclCtx)
