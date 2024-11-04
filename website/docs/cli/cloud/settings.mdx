@@ -41,9 +41,9 @@ Add a `cloud` block to your Terraform configuration and configure the connection
 Specify the following settings in the `cloud` block:
 
 - `organization`:  Specifies the name of an HCP Terraform organization to connect to.
-- `workspaces.tags`: Specifies a list of single-value string tags. Terraform links the working directory to existing workspaces in the organization that have matching tags. If there are no existing workspaces with matching tags, the Terraform CLI prompts you to create a new workspace that inherits the tags you specify in this field when you initialize the configuration.
+- `workspaces.tags`: Specifies either a map of tag strings or a list of key-only string tags (legacy style). Terraform links the working directory to existing workspaces in the organization that have matching tags. If there are no existing workspaces with matching tags, the Terraform CLI prompts you to create a new workspace that applies the tags you specify in this field when you initialize the configuration.
 - `workspaces.name`: You can specify the name of an existing workspace to associate with the Terraform configuration instead of using tags. If you configure the `name`, you cannot use the `tags` configuration.
-- `workspaces.project`: You can specify the name of an existing project. Terraform associates the configuration with workspaces in the project that match the `name` or `tags`. 
+- `workspaces.project`: You can specify the name of an existing project. Terraform associates the configuration with workspaces in the project that match the `name` or `tags`.
 
 Refer to the [`cloud` block reference](/terraform/language/terraform#terraform-cloud) for details about configuring the `cloud` block.
 
@@ -57,7 +57,11 @@ terraform {
 
     workspaces {
       project = "networking-development"
-      tags = ["networking", "source:cli"]
+
+      tags = {
+        layer = "networking"
+        source = "cli"
+      }
     }
   }
 }
@@ -110,9 +114,9 @@ terraform {
 }
 ```
 
-If the `terraform` block or `terraform.tf` file uses the `prefix` argument to connect to multiple workspaces, you can specify a list of single-value string tags in the `tags` argument instead of using the `name` argument. During `terraform plan` or `terraform apply` operations, Terraform associates the configuration with workspaces that match the specified tags.
+If the `terraform` block or `terraform.tf` file uses the `prefix` argument to connect to multiple workspaces, you can specify a list of key-value string tags in the `tags` argument instead of using the `name` argument. During `terraform plan` or `terraform apply` operations, Terraform associates the configuration with workspaces that match the specified tags.
 
-The following example replaces the `my-app-` prefix with the `app:mine` tag:
+The following example replaces the `my-app-` prefix with the `app=mine` tag:
 
 ```hcl
 terraform {
@@ -122,7 +126,9 @@ terraform {
 
     workspaces {
 -      prefix = "my-app-"
-+      tags = ["app:mine"]
++      tags = {
++        app = "mine"
++      }
     }
    }
  }
@@ -150,4 +156,3 @@ The rules for defining `.terraformignore` are based on
 - Negate a pattern by starting it with an exclamation point `!`. When ignoring large directories, negation patterns can impact performance. Place negation rules as early as possible within `.terraformignore` or avoid using them if possible.
 
 Terraform parses the `.terraformignore` at the root of the configuration directory.
-
