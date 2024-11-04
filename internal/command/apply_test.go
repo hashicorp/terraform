@@ -860,7 +860,7 @@ func TestApply_planWithVarFile(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	planPath := applyFixturePlanFile(t)
+	planPath := applyFixturePlanFileWithVariableValue(t, "bar")
 	statePath := testTempFile(t)
 
 	cwd, err := os.Getwd()
@@ -2407,6 +2407,53 @@ func applyFixturePlanFileMatchState(t *testing.T, stateMeta statemgr.SnapshotMet
 	)
 }
 
+// applyFixturePlanFileWithVariableValue creates a plan file at a temporary location containing
+// a single change to create the test_instance.foo and a variable value that is included in the
+// "apply" test fixture, returning the location of that plan file.
+func applyFixturePlanFileWithVariableValue(t *testing.T, value string) string {
+	_, snap := testModuleWithSnapshot(t, "apply")
+	plannedVal := cty.ObjectVal(map[string]cty.Value{
+		"id":  cty.UnknownVal(cty.String),
+		"ami": cty.StringVal("bar"),
+	})
+	priorValRaw, err := plans.NewDynamicValue(cty.NullVal(plannedVal.Type()), plannedVal.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	plannedValRaw, err := plans.NewDynamicValue(plannedVal, plannedVal.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan := testPlan(t)
+	plan.Changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+		Addr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+		ProviderAddr: addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+		ChangeSrc: plans.ChangeSrc{
+			Action: plans.Create,
+			Before: priorValRaw,
+			After:  plannedValRaw,
+		},
+	})
+
+	plan.VariableValues = map[string]plans.DynamicValue{
+		"foo": mustNewDynamicValue(value, cty.DynamicPseudoType),
+	}
+	return testPlanFileMatchState(
+		t,
+		snap,
+		states.NewState(),
+		plan,
+		statemgr.SnapshotMeta{},
+	)
+}
+
 const applyVarFile = `
 foo = "bar"
 `
@@ -2414,3 +2461,12 @@ foo = "bar"
 const applyVarFileJSON = `
 { "foo": "bar" }
 `
+
+func mustNewDynamicValue(val string, ty cty.Type) plans.DynamicValue {
+	realVal := cty.StringVal(val)
+	ret, err := plans.NewDynamicValue(realVal, ty)
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}

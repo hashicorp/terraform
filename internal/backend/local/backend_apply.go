@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -325,23 +326,41 @@ func (b *Local) opApply(
 				// its value on to the ApplyOpts.
 				applyTimeValues[varName] = val
 			} else {
-				// TODO: We should probably actually tolerate this if the new
-				// value is equal to the value that was saved in the plan, since
-				// that'd make it possible to, for example, reuse a .tfvars file
-				// containing a mixture of ephemeral and non-ephemeral definitions
-				// during the apply phase, rather than having to split ephemeral
-				// and non-ephemeral definitions into separate files. For initial
-				// experiment we'll keep things a little simpler, though, and
-				// just skip this check if we're doing a combined plan/apply where
-				// the apply phase will therefore always have exactly the same
-				// inputs as the plan phase.
+				// If a non-ephemeral variable is set differently between plan and apply, we should emit a diagnostic.
+				value, ok := plan.VariableValues[varName]
+				if !ok {
+					if v.Value.IsNull() {
+						continue
+					} else {
+						// TODO: Add test for this case
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Can't set variable when applying a saved plan",
+							Detail:   fmt.Sprintf("The variable %s cannot be set using the -var and -var-file options when applying a saved plan file, because a saved plan includes the variable values that were set when it was created. To declare an ephemeral variable which is not saved in the plan file, use ephemeral = true.", varName),
+							Subject:  rng,
+						})
+					}
+				}
 
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Can't set variable when applying a saved plan",
-					Detail:   fmt.Sprintf("The variable %s cannot be set using the -var and -var-file options when applying a saved plan file, because a saved plan includes the variable values that were set when it was created. To declare an ephemeral variable which is not saved in the plan file, use ephemeral = true.", varName),
-					Subject:  rng,
-				})
+				val, err := value.Decode(cty.DynamicPseudoType)
+				if err != nil {
+					// TODO: Reword error message
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Variable was set with a different type when applying a saved plan",
+						Detail:   fmt.Sprintf("The variable %s was set to a different type of value during plan than during apply. Please either don't supply the value or supply the same value if the variable.", varName),
+						Subject:  rng,
+					})
+				} else {
+					if v.Value.Equals(val) == cty.False {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Can't set variable when applying a saved plan",
+							Detail:   fmt.Sprintf("The variable %s cannot be set using the -var and -var-file options when applying a saved plan file, because a saved plan includes the variable values that were set when it was created. The saved plan specifies %q as the value whereas during apply the value %q was %s. To declare an ephemeral variable which is not saved in the plan file, use ephemeral = true.", varName, v.Value.GoString(), val.GoString(), v.SourceType.DiagnosticLabel()),
+							Subject:  rng,
+						})
+					}
+				}
 			}
 		}
 		applyOpts = &terraform.ApplyOpts{
