@@ -455,7 +455,7 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 						Summary:  "Output refers to sensitive values",
 						Detail: `To reduce the risk of accidentally exporting sensitive data that was intended to be only internal, Terraform requires that any root module output containing sensitive data be explicitly marked as sensitive, to confirm your intent.
 
-If you do intend to export this data, annotate the output value as sensitive by adding the following argument:
+If you do not intend to export this data, annotate the output value as sensitive by adding the following argument:
     sensitive = true`,
 						Subject: n.Config.DeclRange.Ptr(),
 					})
