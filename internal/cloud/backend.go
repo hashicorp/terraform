@@ -65,6 +65,7 @@ type Cloud struct {
 	// client is the HCP Terraform or Terraform Enterprise API client.
 	client *tfe.Client
 
+	// View handles rendering output in human-readable or machine-readable format from cloud-specific operations.
 	View views.Cloud
 
 	// Hostname of HCP Terraform or Terraform Enterprise
