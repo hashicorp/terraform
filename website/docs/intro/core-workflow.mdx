@@ -239,7 +239,14 @@ terraform {
     hostname = "app.terraform.io" # Optional; defaults to app.terraform.io
 
     workspaces {
-      tags = ["networking", "source:cli"]
+      tags = {
+        layer = "networking"
+        source = "cli"
+      }
+      
+      # For terraform versions below 1.10, you must specify key-only tags
+      # using a list of strings. Example:
+      # tags = ["networking", "source:cli"]
     }
   }
 }
