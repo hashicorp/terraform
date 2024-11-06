@@ -1034,11 +1034,12 @@ func TestApply_planVars(t *testing.T) {
 // Test that an apply supplying all apply-time variables succeeds, and then test
 // that supplying a declared ephemeral input variable that is *not* in the list
 // of apply-time variables fails.
+//
+// In the fixture used for this test foo is a required ephemeral variable, whereas bar is
+// an optional one.
 func TestApply_planVarsEphemeral_applyTime(t *testing.T) {
 	for name, tc := range map[string]func(*testing.T, *ApplyCommand, string, string, func(*testing.T) *terminal.TestOutput){
-		// Test first that an apply supplying only the apply-time variable "foo"
-		// succeeds.
-		"only passing ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+		"with planfile only passing ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
 			args := []string{
 				"-state", statePath,
 				"-var", "foo=bar",
@@ -1047,12 +1048,11 @@ func TestApply_planVarsEphemeral_applyTime(t *testing.T) {
 			code := c.Run(args)
 			output := done(t)
 			if code != 0 {
-				t.Fatal("should've succeeded: ", output.Stderr())
+				t.Fatal("should've succeeded: ", output.All())
 			}
 		},
 
-		// Now test that supplying "bar", which is not an apply-time variable, fails.
-		"passing non-ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+		"with planfile passing non-ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
 			args := []string{
 				"-state", statePath,
 				"-var", "foo=bar",
@@ -1062,13 +1062,11 @@ func TestApply_planVarsEphemeral_applyTime(t *testing.T) {
 			code := c.Run(args)
 			output := done(t)
 			if code == 0 {
-				t.Fatal("should've failed: ", output.Stdout())
+				t.Fatal("should've failed: ", output.All())
 			}
 		},
 
-		// Test that the apply also fails if we do *not* supply a value for
-		// the apply-time variable foo.
-		"missing ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+		"with planfile missing ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
 			args := []string{
 				"-state", statePath,
 				planPath,
@@ -1076,11 +1074,11 @@ func TestApply_planVarsEphemeral_applyTime(t *testing.T) {
 			code := c.Run(args)
 			output := done(t)
 			if code == 0 {
-				t.Fatal("should've failed: ", output.Stdout())
+				t.Fatal("should've failed: ", output.All())
 			}
 		},
 
-		"passing ephemeral variable through vars file": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+		"with planfile passing ephemeral variable through vars file": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
 			const planVarFile = `
 foo = "bar"
 `
@@ -1100,12 +1098,13 @@ foo = "bar"
 			code := c.Run(args)
 			output := done(t)
 			if code != 0 {
-				t.Fatal("should've succeeded: ", output.Stderr())
+				t.Fatal("should've succeeded: ", output.All())
 			}
 		},
 
-		"passing ephemeral variable through environment variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+		"with planfile passing ephemeral variable through environment variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
 			t.Setenv("TF_VAR_foo", "bar")
+			defer t.Setenv("TF_VAR_foo", "")
 
 			args := []string{
 				"-state", statePath,
@@ -1114,24 +1113,114 @@ foo = "bar"
 			code := c.Run(args)
 			output := done(t)
 			if code != 0 {
-				t.Fatal("should've succeeded: ", output.Stderr())
+				t.Fatal("should've succeeded: ", output.All())
 			}
 		},
 
-		// "passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
-		// 	close := testInteractiveInput(t, []string{"bar"})
-		// 	defer close()
+		"with planfile passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			close := testInteractiveInput(t, []string{"bar"})
+			defer close()
 
-		// 	args := []string{
-		// 		"-state", statePath,
-		// 		planPath,
-		// 	}
-		// 	code := c.Run(args)
-		// 	output := done(t)
-		// 	if code != 0 {
-		// 		t.Fatal("should've succeeded: ", output.Stderr())
-		// 	}
-		// },
+			args := []string{
+				"-state", statePath,
+				planPath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code == 0 {
+				// We don't support interactive inputs for apply-time variables
+				t.Fatal("should have failed: ", output.All())
+			}
+		},
+
+		"without planfile only passing ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			args := []string{
+				"-state", statePath,
+				"-var", "foo=bar",
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.All())
+			}
+		},
+
+		"without planfile passing non-ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			args := []string{
+				"-state", statePath,
+				"-var", "foo=bar",
+				"-var", "bar=bar",
+			}
+			code := c.Run(args)
+			output := done(t)
+
+			// For a combined plan & apply operation it's okay (and expected) to also be able to pass non-ephemeral variables
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.All())
+			}
+		},
+
+		"without planfile missing ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			args := []string{
+				"-state", statePath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code == 0 {
+				t.Fatal("should've failed: ", output.All())
+			}
+		},
+
+		"without planfile passing ephemeral variable through vars file": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			const planVarFile = `
+foo = "bar"
+`
+
+			// Write a tfvars file with the variable
+			tfVarsPath := testVarsFile(t)
+			err := os.WriteFile(tfVarsPath, []byte(planVarFile), 0600)
+			if err != nil {
+				t.Fatalf("Could not write vars file %e", err)
+			}
+
+			args := []string{
+				"-state", statePath,
+				"-var-file", tfVarsPath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.All())
+			}
+		},
+
+		"without planfile passing ephemeral variable through environment variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			t.Setenv("TF_VAR_foo", "bar")
+			defer t.Setenv("TF_VAR_foo", "")
+
+			args := []string{
+				"-state", statePath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.All())
+			}
+		},
+
+		"without planfile passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			close := testInteractiveInput(t, []string{"bar"})
+			defer close()
+
+			args := []string{
+				"-state", statePath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code == 0 {
+				t.Fatal("should've failed: ", output.All())
+			}
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			td := t.TempDir()
