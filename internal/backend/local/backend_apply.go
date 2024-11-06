@@ -346,7 +346,7 @@ func (b *Local) opApply(
 						Subject:  rng,
 					})
 				} else {
-					if v.Value.Equals(val) == cty.False {
+					if v.Value.Equals(val).False() {
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
 							Summary:  "Can't change variable when applying a saved plan",
