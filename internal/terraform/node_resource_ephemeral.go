@@ -51,6 +51,11 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 		return nil, diags
 	}
 
+	rId := HookResourceIdentity{
+		Addr:         inp.addr,
+		ProviderAddr: inp.providerConfig.Provider,
+	}
+
 	ephemerals := ctx.EphemeralResources()
 	allInsts := ctx.InstanceExpander()
 	keyData := allInsts.GetResourceInstanceRepetitionData(inp.addr)
@@ -91,6 +96,13 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 			Value:      unknownResult,
 			ConfigBody: config.Config,
 		})
+
+		ctx.Hook(func(h Hook) (HookAction, error) {
+			// ephemeral resources aren't stored in the plan, so use a hook to
+			// give some feedback to the user that this can't be opened
+			return h.PreEphemeralOp(rId, plans.Read)
+		})
+
 		return nil, diags
 	}
 
@@ -102,11 +114,6 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 	diags = diags.Append(validateResp.Diagnostics)
 	if diags.HasErrors() {
 		return nil, diags
-	}
-
-	rId := HookResourceIdentity{
-		Addr:         inp.addr,
-		ProviderAddr: inp.providerConfig.Provider,
 	}
 
 	ctx.Hook(func(h Hook) (HookAction, error) {
