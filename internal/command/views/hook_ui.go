@@ -351,6 +351,12 @@ func (h *UiHook) PreEphemeralOp(rId terraform.HookResourceIdentity, action plans
 	var operation string
 	var op uiResourceOp
 	switch action {
+	case plans.Read:
+		// FIXME: this uses the same semantics as data sources, where "read"
+		// means deferred until apply, but because data sources don't implement
+		// hooks, and the meaning of Read is overloaded, we can't rely on any
+		// existing hooks
+		operation = "Configuration unknown, deferring..."
 	case plans.Open:
 		operation = "Opening..."
 		op = uiResourceOpen
@@ -367,6 +373,15 @@ func (h *UiHook) PreEphemeralOp(rId terraform.HookResourceIdentity, action plans
 		return terraform.HookActionContinue, nil
 	}
 
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]%s: %s"),
+		rId.Addr, operation,
+	))
+
+	if action == plans.Read {
+		return terraform.HookActionContinue, nil
+	}
+
 	uiState := uiResourceState{
 		Address: key,
 		Op:      op,
@@ -378,11 +393,6 @@ func (h *UiHook) PreEphemeralOp(rId terraform.HookResourceIdentity, action plans
 	h.resourcesLock.Lock()
 	h.resources[key] = uiState
 	h.resourcesLock.Unlock()
-
-	h.println(fmt.Sprintf(
-		h.view.colorize.Color("[reset][bold]%s: %s"),
-		rId.Addr, operation,
-	))
 
 	go h.stillRunning(uiState)
 
