@@ -90,10 +90,8 @@ func (b *Local) opApply(
 	stateHook.PersistInterval = time.Duration(op.StatePersistInterval) * time.Second
 
 	var plan *plans.Plan
-	combinedPlanApply := false
 	// If we weren't given a plan, then we refresh/plan
 	if op.PlanFile == nil {
-		combinedPlanApply = true
 		// Perform the plan
 		log.Printf("[INFO] backend/local: apply calling Plan")
 		plan, moreDiags = lr.Core.Plan(lr.Config, lr.InputState, lr.PlanOpts)
@@ -235,7 +233,7 @@ func (b *Local) opApply(
 	stateHook.StateMgr = opState
 
 	var applyOpts *terraform.ApplyOpts
-	if len(op.Variables) != 0 && !combinedPlanApply {
+	if len(op.Variables) != 0 {
 		applyTimeValues := make(terraform.InputValues, plan.ApplyTimeVariables.Len())
 		for varName, rawV := range op.Variables {
 			// We're "parsing" only to get the resulting value's SourceType,
