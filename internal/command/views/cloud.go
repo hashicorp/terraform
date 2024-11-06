@@ -53,10 +53,14 @@ func (v *CloudHuman) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 func (v *CloudHuman) RetryLog(attemptNum int, resp *http.Response) {
-	msg := retryLogMessage(attemptNum, resp, &v.lastRetry)
-	// retryLogMessage returns an empty string for the first attempt or rate-limited responses
+	msg, elapsed := retryLogMessage(attemptNum, resp, &v.lastRetry)
+	// retryLogMessage returns an empty string for the first attempt or for rate-limited responses (HTTP 429)
 	if msg != "" {
-		v.Output(msg)
+		if elapsed != nil {
+			v.Output(msg, elapsed)
+		} else {
+			v.Output(msg)
+		}
 	}
 }
 
@@ -94,10 +98,14 @@ func (v *CloudJSON) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 func (v *CloudJSON) RetryLog(attemptNum int, resp *http.Response) {
-	msg := retryLogMessage(attemptNum, resp, &v.lastRetry)
-	// retryLogMessage returns an empty string for the first attempt or rate-limited responses
+	msg, elapsed := retryLogMessage(attemptNum, resp, &v.lastRetry)
+	// retryLogMessage returns an empty string for the first attempt or for rate-limited responses (HTTP 429)
 	if msg != "" {
-		v.Output(msg)
+		if elapsed != nil {
+			v.Output(msg, elapsed)
+		} else {
+			v.Output(msg)
+		}
 	}
 }
 
@@ -144,8 +152,8 @@ var CloudMessageRegistry map[CloudMessageCode]CloudMessage = map[CloudMessageCod
 		JSONValue:  initialRetryErrorJSON,
 	},
 	"repeated_retry_error_message": {
-		HumanValue: repeatdRetryError,
-		JSONValue:  repeatdRetryErrorJSON,
+		HumanValue: repeatedRetryError,
+		JSONValue:  repeatedRetryErrorJSON,
 	},
 }
 
@@ -165,33 +173,22 @@ There was an error connecting to HCP Terraform. Please do not exit
 Terraform to prevent data loss! Trying to restore the connection...
 `
 
-const repeatdRetryError = `[reset][yellow]Still trying to restore the connection... (%s elapsed)[reset]`
-const repeatdRetryErrorJSON = `Still trying to restore the connection... (%s elapsed)`
+const repeatedRetryError = `[reset][yellow]Still trying to restore the connection... (%s elapsed)[reset]`
+const repeatedRetryErrorJSON = `Still trying to restore the connection... (%s elapsed)`
 
-// retryLogMessage determines the appropriate retry message based on the attempt number
-// and the response status, and updates the `lastRetry` timestamp. It returns a
-// message code that indicates whether a retry message should be logged.
-//
-// The `RetryLog` function uses the returned message to decide if the retry message
-// should be logged, based on the retry attempt and response status.
-//
-// The function:
-// - Skips logging for the first retry or if the response indicates a rate-limited request (HTTP 429).
-// - Logs an initial retry message on the first retry attempt.
-// - Logs a repeated retry message on subsequent attempts, including the elapsed time since the last retry.
-func retryLogMessage(attemptNum int, resp *http.Response, lastRetry *time.Time) CloudMessageCode {
-	// Ignore the first retry to ensure any delayed output is written before logging retries.
-	// Skip rate-limited requests (HTTP 429), which are handled differently.
+func retryLogMessage(attemptNum int, resp *http.Response, lastRetry *time.Time) (CloudMessageCode, *time.Duration) {
+	// Skips logging for the first attempt or for rate-limited requests (HTTP 429)
 	if attemptNum == 0 || (resp != nil && resp.StatusCode == 429) {
-		*lastRetry = time.Now() // Update the retry timestamp
-		return ""               // No message to log
+		*lastRetry = time.Now() // Update the retry timestamp for subsequent attempts
+		return "", nil
 	}
 
-	// Return the initial retry message on the first retry attempt
+	// Logs initial retry message on the first retry attempt
 	if attemptNum == 1 {
-		return InitialRetryErrorMessage
+		return InitialRetryErrorMessage, nil
 	}
 
-	// Return a repeated retry message with the time since the last retry for subsequent attempts
-	return CloudMessageCode(fmt.Sprint(RepeatedRetryErrorMessage, time.Since(*lastRetry).Round(time.Second)))
+	// Logs repeated retry message on subsequent attempts with elapsed time
+	elapsed := time.Since(*lastRetry).Round(time.Second)
+	return RepeatedRetryErrorMessage, &elapsed
 }
