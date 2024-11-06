@@ -53,25 +53,11 @@ func (v *CloudHuman) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 func (v *CloudHuman) RetryLog(attemptNum int, resp *http.Response) {
-	// Ignore the first retry to make sure any delayed output will
-	// be written to the console before we start logging retries.
-	//
-	// The retry logic in the TFE client will retry both rate limited
-	// requests and server errors, but in the cloud backend we only
-	// care about server errors so we ignore rate limit (429) errors.
-	if attemptNum == 0 || (resp != nil && resp.StatusCode == 429) {
-		v.lastRetry = time.Now()
-		return
+	msg := retryLogMessage(attemptNum, resp, &v.lastRetry)
+	// retryLogMessage returns an empty string for the first attempt or rate-limited responses
+	if msg != "" {
+		v.Output(msg)
 	}
-
-	var msg string
-	if attemptNum == 1 {
-		msg = v.PrepareMessage(InitialRetryErrorMessage)
-	} else {
-		msg = v.PrepareMessage(RepeatedRetryErrorMessage, time.Since(v.lastRetry).Round(time.Second))
-	}
-
-	v.view.streams.Println(msg)
 }
 
 func (v *CloudHuman) Output(messageCode CloudMessageCode, params ...any) {
@@ -108,25 +94,11 @@ func (v *CloudJSON) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 func (v *CloudJSON) RetryLog(attemptNum int, resp *http.Response) {
-	// Ignore the first retry to make sure any delayed output will
-	// be written to the console before we start logging retries.
-	//
-	// The retry logic in the TFE client will retry both rate limited
-	// requests and server errors, but in the cloud backend we only
-	// care about server errors so we ignore rate limit (429) errors.
-	if attemptNum == 0 || (resp != nil && resp.StatusCode == 429) {
-		v.lastRetry = time.Now()
-		return
+	msg := retryLogMessage(attemptNum, resp, &v.lastRetry)
+	// retryLogMessage returns an empty string for the first attempt or rate-limited responses
+	if msg != "" {
+		v.Output(msg)
 	}
-
-	var msg string
-	if attemptNum == 1 {
-		msg = v.PrepareMessage(InitialRetryErrorMessage)
-	} else {
-		msg = v.PrepareMessage(RepeatedRetryErrorMessage, time.Since(v.lastRetry).Round(time.Second))
-	}
-
-	v.view.view.streams.Println(msg)
 }
 
 func (v *CloudJSON) Output(messageCode CloudMessageCode, params ...any) {
@@ -195,3 +167,31 @@ Terraform to prevent data loss! Trying to restore the connection...
 
 const repeatdRetryError = `[reset][yellow]Still trying to restore the connection... (%s elapsed)[reset]`
 const repeatdRetryErrorJSON = `Still trying to restore the connection... (%s elapsed)`
+
+// retryLogMessage determines the appropriate retry message based on the attempt number
+// and the response status, and updates the `lastRetry` timestamp. It returns a
+// message code that indicates whether a retry message should be logged.
+//
+// The `RetryLog` function uses the returned message to decide if the retry message
+// should be logged, based on the retry attempt and response status.
+//
+// The function:
+// - Skips logging for the first retry or if the response indicates a rate-limited request (HTTP 429).
+// - Logs an initial retry message on the first retry attempt.
+// - Logs a repeated retry message on subsequent attempts, including the elapsed time since the last retry.
+func retryLogMessage(attemptNum int, resp *http.Response, lastRetry *time.Time) CloudMessageCode {
+	// Ignore the first retry to ensure any delayed output is written before logging retries.
+	// Skip rate-limited requests (HTTP 429), which are handled differently.
+	if attemptNum == 0 || (resp != nil && resp.StatusCode == 429) {
+		*lastRetry = time.Now() // Update the retry timestamp
+		return ""               // No message to log
+	}
+
+	// Return the initial retry message on the first retry attempt
+	if attemptNum == 1 {
+		return InitialRetryErrorMessage
+	}
+
+	// Return a repeated retry message with the time since the last retry for subsequent attempts
+	return CloudMessageCode(fmt.Sprint(RepeatedRetryErrorMessage, time.Since(*lastRetry).Round(time.Second)))
+}
