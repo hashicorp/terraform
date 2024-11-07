@@ -519,7 +519,6 @@ func (p *provider6) CloseEphemeralResource(_ context.Context, req *tfplugin6.Clo
 
 func (p *provider6) GetFunctions(context.Context, *tfplugin6.GetFunctions_Request) (*tfplugin6.GetFunctions_Response, error) {
 	panic("unimplemented")
-	return nil, nil
 }
 
 func (p *provider6) CallFunction(_ context.Context, req *tfplugin6.CallFunction_Request) (*tfplugin6.CallFunction_Response, error) {
