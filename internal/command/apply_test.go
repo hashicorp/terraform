@@ -1217,8 +1217,8 @@ foo = "bar"
 			}
 			code := c.Run(args)
 			output := done(t)
-			if code == 0 {
-				t.Fatal("should've failed: ", output.All())
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.All())
 			}
 		},
 	} {

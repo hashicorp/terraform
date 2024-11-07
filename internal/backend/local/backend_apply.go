@@ -90,8 +90,10 @@ func (b *Local) opApply(
 	stateHook.PersistInterval = time.Duration(op.StatePersistInterval) * time.Second
 
 	var plan *plans.Plan
+	combinedPlanApply := false
 	// If we weren't given a plan, then we refresh/plan
 	if op.PlanFile == nil {
+		combinedPlanApply = true
 		// Perform the plan
 		log.Printf("[INFO] backend/local: apply calling Plan")
 		plan, moreDiags = lr.Core.Plan(lr.Config, lr.InputState, lr.PlanOpts)
@@ -232,9 +234,24 @@ func (b *Local) opApply(
 	// Set up our hook for continuous state updates
 	stateHook.StateMgr = opState
 
-	var applyOpts *terraform.ApplyOpts
+	applyTimeValues := make(terraform.InputValues, plan.ApplyTimeVariables.Len())
+
+	// In a combined plan/apply run, getting the context already gathers the interactive
+	// input, therefore we need to make sure to pass the ephemeral variables to the applyOpts.
+	if combinedPlanApply {
+		for varName, v := range lr.PlanOpts.SetVariables {
+			decl, ok := lr.Config.Module.Variables[varName]
+			if !ok {
+				continue // This should never happen, but we'll ignore it if it does.
+			}
+
+			if v.SourceType == terraform.ValueFromInput && decl.Ephemeral {
+				applyTimeValues[varName] = v
+			}
+		}
+	}
+
 	if len(op.Variables) != 0 {
-		applyTimeValues := make(terraform.InputValues, plan.ApplyTimeVariables.Len())
 		for varName, rawV := range op.Variables {
 			// We're "parsing" only to get the resulting value's SourceType,
 			// so we'll use configs.VariableParseLiteral just because it's
@@ -357,9 +374,6 @@ func (b *Local) opApply(
 				}
 			}
 		}
-		applyOpts = &terraform.ApplyOpts{
-			SetVariables: applyTimeValues,
-		}
 		if diags.HasErrors() {
 			op.ReportResult(runningOp, diags)
 			return
@@ -375,7 +389,9 @@ func (b *Local) opApply(
 		defer close(doneCh)
 
 		log.Printf("[INFO] backend/local: apply calling Apply")
-		applyState, applyDiags = lr.Core.Apply(plan, lr.Config, applyOpts)
+		applyState, applyDiags = lr.Core.Apply(plan, lr.Config, &terraform.ApplyOpts{
+			SetVariables: applyTimeValues,
+		})
 	}()
 
 	if b.opWait(doneCh, stopCtx, cancelCtx, lr.Core, opState, op.View) {
