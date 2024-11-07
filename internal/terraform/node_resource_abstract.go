@@ -86,6 +86,8 @@ type NodeAbstractResource struct {
 	// generateConfigPath tells this node which file to write generated config
 	// into. If empty, then config should not be generated.
 	generateConfigPath string
+
+	forceCreateBeforeDestroy bool
 }
 
 var (
@@ -102,6 +104,7 @@ var (
 	_ GraphNodeTargetable                  = (*NodeAbstractResource)(nil)
 	_ graphNodeAttachDataResourceDependsOn = (*NodeAbstractResource)(nil)
 	_ dag.GraphNodeDotter                  = (*NodeAbstractResource)(nil)
+	_ GraphNodeDestroyerCBD                = (*NodeAbstractResource)(nil)
 )
 
 // NewNodeAbstractResource creates an abstract resource graph node for
@@ -142,6 +145,24 @@ func (n *NodeAbstractResource) ModulePath() addrs.Module {
 // GraphNodeReferenceable
 func (n *NodeAbstractResource) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr.Resource}
+}
+
+// CreateBeforeDestroy returns this node's CreateBeforeDestroy status.
+func (n *NodeAbstractResource) CreateBeforeDestroy() bool {
+	if n.forceCreateBeforeDestroy {
+		return n.forceCreateBeforeDestroy
+	}
+
+	if n.Config != nil && n.Config.Managed != nil {
+		return n.Config.Managed.CreateBeforeDestroy
+	}
+
+	return false
+}
+
+func (n *NodeAbstractResource) ModifyCreateBeforeDestroy(v bool) error {
+	n.forceCreateBeforeDestroy = v
+	return nil
 }
 
 // GraphNodeReferencer
