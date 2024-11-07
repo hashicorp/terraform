@@ -1,6 +1,5 @@
 variable "foo" {
   type      = string
-  default   = null
   ephemeral = true
 }
 
