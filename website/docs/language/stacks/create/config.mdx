@@ -25,7 +25,7 @@ Before you begin writing your Stack configuration, ensure you have the `terrafor
 
 We recommend [designing your Stack](/terraform/language/stacks/design) before you begin writing your configuration files. 
 
-All of your Stack’s configuration files must use the `.tfstack.hcl` file type. You can set up your Stack configuration into multiple files as in traditional Terraform configurations. For example, you can have `variables.stack.hcl`, `providers.tfstack.hcl`, and we recommend creating one root-level file for your `component` blocks, such as `components.tfstack.hcl`. 
+All of your Stack’s configuration files must use the `.tfstack.hcl` file type. You can set up your Stack configuration into multiple files as in traditional Terraform configurations. For example, you can have `variables.tfstack.hcl`, `providers.tfstack.hcl`, and we recommend creating one root-level file for your `component` blocks, such as `components.tfstack.hcl`. 
     
 The `component` block defines the pieces that make up your Stack. Add a `component` block for each top-level module you want to include in the Stack. Specify the source module, inputs, and providers for each component. 
 

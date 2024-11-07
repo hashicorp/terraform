@@ -5942,7 +5942,7 @@ resource "test_object" "a" {
 		},
 	})
 	if diags.HasErrors() {
-		t.Errorf("expected no errors, but got %s", diags)
+		t.Fatalf("expected no errors, but got %s", diags.ErrWithWarnings())
 	}
 
 	planResult := plan.Checks.GetObjectResult(addrs.AbsInputVariableInstance{
@@ -5952,7 +5952,7 @@ resource "test_object" "a" {
 		Module: addrs.RootModuleInstance,
 	})
 
-	if planResult.Status != checks.StatusUnknown {
+	if planResult != nil && planResult.Status != checks.StatusUnknown {
 		// checks should not have been evaluated, because the variable is not required for destroy.
 		t.Errorf("expected checks to be pass but was %s", planResult.Status)
 	}
@@ -6010,4 +6010,61 @@ output "staying" {
 	if diff := cmp.Diff(expectedChanges, changes, ctydebug.CmpOptions); diff != "" {
 		t.Fatalf("unexpected changes: %s", diff)
 	}
+}
+
+func TestContext2Plan_multiInstanceSelfRef(t *testing.T) {
+	// The postcondition here references self, but because instances are
+	// processed concurrently some instances may not be registered yet during
+	// evaluation. This should still evaluate without error, because we know our
+	// self value exists.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "test" {
+}
+
+data "test_data_source" "foo" {
+  count = 100
+  lifecycle {
+    postcondition {
+      condition = self.attr == null
+      error_message = "error"
+    }
+  }
+  depends_on = [test_resource.test]
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		DataSources: map[string]*configschema.Block{
+			"test_data_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
 }

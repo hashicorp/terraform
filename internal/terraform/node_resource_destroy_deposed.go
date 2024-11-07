@@ -61,7 +61,12 @@ var (
 	_ GraphNodeExecutable                    = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProviderConsumer              = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProvisionerConsumer           = (*NodePlanDeposedResourceInstanceObject)(nil)
+	_ GraphNodeDestroyer                     = (*NodePlanDeposedResourceInstanceObject)(nil)
 )
+
+func (n *NodePlanDeposedResourceInstanceObject) DestroyAddr() *addrs.AbsResourceInstance {
+	return &n.Addr
+}
 
 func (n *NodePlanDeposedResourceInstanceObject) Name() string {
 	return fmt.Sprintf("%s (deposed %s)", n.ResourceInstanceAddr().String(), n.DeposedKey)
@@ -226,6 +231,7 @@ var (
 	_ GraphNodeExecutable                    = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProviderConsumer              = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProvisionerConsumer           = (*NodeDestroyDeposedResourceInstanceObject)(nil)
+	_ GraphNodeDestroyer                     = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 )
 
 func (n *NodeDestroyDeposedResourceInstanceObject) Name() string {
@@ -344,10 +350,15 @@ var (
 	_ GraphNodeExecutable                    = (*NodeForgetDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProviderConsumer              = (*NodeForgetDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProvisionerConsumer           = (*NodeForgetDeposedResourceInstanceObject)(nil)
+	_ GraphNodeDestroyer                     = (*NodeForgetDeposedResourceInstanceObject)(nil)
 )
 
 func (n *NodeForgetDeposedResourceInstanceObject) Name() string {
 	return fmt.Sprintf("%s (forget deposed %s)", n.ResourceInstanceAddr(), n.DeposedKey)
+}
+
+func (n *NodeForgetDeposedResourceInstanceObject) DestroyAddr() *addrs.AbsResourceInstance {
+	return &n.Addr
 }
 
 func (n *NodeForgetDeposedResourceInstanceObject) DeposedInstanceObjectKey() states.DeposedKey {

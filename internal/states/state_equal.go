@@ -23,7 +23,7 @@ func (s *State) Equal(other *State) bool {
 }
 
 // ManagedResourcesEqual returns true if all of the managed resources tracked
-// in the reciever are functionally equivalent to the same tracked in the
+// in the receiver are functionally equivalent to the same tracked in the
 // other given state.
 //
 // This is a more constrained version of Equal that disregards other
@@ -68,4 +68,37 @@ func sameManagedResources(s1, s2 *State) bool {
 
 	return true
 
+}
+
+// RootOutputValuesEqual returns true if the root output values tracked in the
+// receiver are functionally equivalent to the same tracked in the other given
+// state.
+func (s *State) RootOutputValuesEqual(s2 *State) bool {
+	if s == nil && s2 == nil {
+		return true
+	}
+	if s == nil {
+		return !s2.HasRootOutputValues()
+	}
+	if s2 == nil {
+		return !s.HasRootOutputValues()
+	}
+
+	return sameRootOutputValues(s, s2)
+}
+
+// sameRootOutputValues returns true if the two states have the same root output values.
+func sameRootOutputValues(s1, s2 *State) bool {
+	if len(s1.RootOutputValues) != len(s2.RootOutputValues) {
+		return false
+	}
+
+	for k, v1 := range s1.RootOutputValues {
+		v2, ok := s2.RootOutputValues[k]
+		if !ok || !reflect.DeepEqual(v1, v2) {
+			return false
+		}
+	}
+
+	return true
 }

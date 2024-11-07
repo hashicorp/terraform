@@ -4,6 +4,7 @@
 package views
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"testing"
@@ -556,6 +557,119 @@ func TestUiHookPostImportState(t *testing.T) {
 	want := `test_instance.foo: Import prepared!
   Prepared test_some_instance for import
   Prepared test_other_instance for import
+`
+	if got := result.Stdout(); got != want {
+		t.Fatalf("unexpected output\n got: %q\nwant: %q", got, want)
+	}
+}
+
+func TestUiHookEphemeralOp(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	h := NewUiHook(view)
+
+	addr := addrs.Resource{
+		Mode: addrs.EphemeralResourceMode,
+		Type: "test_instance",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	action, err := h.PreEphemeralOp(testUiHookResourceID(addr), plans.Close)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+
+	action, err = h.PostEphemeralOp(testUiHookResourceID(addr), plans.Close, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+	result := done(t)
+
+	want := `ephemeral.test_instance.foo: Closing...
+ephemeral.test_instance.foo: Closing complete after 0s
+`
+	if got := result.Stdout(); got != want {
+		t.Fatalf("unexpected output\n got: %q\nwant: %q", got, want)
+	}
+}
+
+func TestUiHookEphemeralOp_progress(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	h := NewUiHook(view)
+	h.periodicUiTimer = 1 * time.Second
+
+	addr := addrs.Resource{
+		Mode: addrs.EphemeralResourceMode,
+		Type: "test_instance",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	action, err := h.PreEphemeralOp(testUiHookResourceID(addr), plans.Open)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+
+	time.Sleep(2005 * time.Millisecond)
+
+	action, err = h.PostEphemeralOp(testUiHookResourceID(addr), plans.Open, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+
+	result := done(t)
+
+	want := `ephemeral.test_instance.foo: Opening...
+ephemeral.test_instance.foo: Still opening... [1s elapsed]
+ephemeral.test_instance.foo: Still opening... [2s elapsed]
+ephemeral.test_instance.foo: Opening complete after 2s
+`
+	if got := result.Stdout(); got != want {
+		t.Fatalf("unexpected output\n got: %q\nwant: %q", got, want)
+	}
+}
+
+func TestUiHookEphemeralOp_error(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	h := NewUiHook(view)
+
+	addr := addrs.Resource{
+		Mode: addrs.EphemeralResourceMode,
+		Type: "test_instance",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	action, err := h.PreEphemeralOp(testUiHookResourceID(addr), plans.Close)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+
+	action, err = h.PostEphemeralOp(testUiHookResourceID(addr), plans.Close, errors.New("test error"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+	result := done(t)
+
+	want := `ephemeral.test_instance.foo: Closing...
 `
 	if got := result.Stdout(); got != want {
 		t.Fatalf("unexpected output\n got: %q\nwant: %q", got, want)

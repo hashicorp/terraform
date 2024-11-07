@@ -135,6 +135,10 @@
       {
         "title": "The <code>terraform_data</code> Resource Type",
         "path": "resources/terraform-data"
+      },
+      {
+        "title": "Ephemeral Resources",
+        "path": "resources/ephemeral"
       }
     ]
   },
@@ -794,6 +798,7 @@
         "title": "Type Conversion Functions",
         "routes": [
           { "title": "<code>can</code>", "href": "/language/functions/can" },
+          { "title": "<code>ephemeralasnull</code>", "href": "/language/functions/ephemeralasnull" },
           {
             "title": "<code>issensitive</code>",
             "href": "/language/functions/issensitive"
@@ -839,7 +844,8 @@
         "routes": [
           { "title": "<code>provider::terraform::encode_tfvars</code>", "href": "/language/functions/terraform-encode_tfvars" },
           { "title": "<code>provider::terraform::decode_tfvars</code>", "href": "/language/functions/terraform-decode_tfvars" },
-          { "title": "<code>provider::terraform::encode_expr</code>", "href": "/language/functions/terraform-encode_expr" }
+          { "title": "<code>provider::terraform::encode_expr</code>", "href": "/language/functions/terraform-encode_expr" },
+          { "title": "<code>terraform.applying</code>", "href": "/language/functions/terraform-applying" }
         ]
       },
       { "title": "abs", "path": "functions/abs", "hidden": true },
@@ -899,6 +905,7 @@
       { "title": "distinct", "path": "functions/distinct", "hidden": true },
       { "title": "element", "path": "functions/element", "hidden": true },
       { "title": "endswith", "path": "functions/endswith", "hidden": true },
+      { "title": "ephemeralasnull", "path": "functions/ephemeralasnull", "hidden": true },
       { "title": "file", "path": "functions/file", "hidden": true },
       { "title": "filebase64", "path": "functions/filebase64", "hidden": true },
       {
@@ -993,6 +1000,11 @@
       {
         "title": "templatestring",
         "path": "functions/templatestring",
+        "hidden": true
+      },
+      {
+        "title": "terraform.applying",
+        "path": "functions/terraform-applying",
         "hidden": true
       },
       { "title": "terraform-encode_tfvars", "path": "functions/terraform-encode_tfvars", "hidden": true },

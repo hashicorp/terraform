@@ -7,7 +7,7 @@ description: Stacks help you provision and coordinate your infrastructure lifecy
 
 A deployment configuration file defines how to deploy your Stack's infrastructure. Each Stack deployment runs in its agent, wholly isolated from other Stack deployments.
 
-Every Stack needs a deployment configuration file, `tfdeploy.hcl`, and this page describes all of the blocks you can use within a deployment configuration file. Note that none of the blocks in the deployment configuration file support [meta-arguments](/terraform/language/meta-arguments). 
+Every Stack needs a deployment configuration file, `tfdeploy.hcl`, and this page describes all of the blocks you can use within a deployment configuration file. Note that none of the blocks in the deployment configuration file support [meta-arguments](/terraform/language/resources/syntax#meta-arguments). 
 
 ## `deployment` block configuration
 
@@ -65,7 +65,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 When every field is defined, an `orchestrate` block has the following form:
 
 ```hcl
-# auto-approve is the rule type
+# auto_approve is the rule type
 orchestrate "auto_approve" "name_of_check" {
   check {
     condition = <the condition that HCP Terraform evaluates>
@@ -95,7 +95,7 @@ orchestrate "auto_approve" "no_pet_changes" {
 }
 ```
 
-By default, each Stack has an `auto-approve` rule named `empty_plan`, which auto-approves a plan if it contains no changes. 
+By default, each Stack has an `auto_approve` rule named `empty_plan`, which automatically approves a plan if it contains no changes. 
 
 ### Specification
 
@@ -273,49 +273,6 @@ Use the `varset` store to enable your Stacks to access [variable sets](/terrafor
 This section details the fields you can configure in the `store` block that uses the `varset` store type.
 
 ```hcl
-store "varset" "store_name" {
-  id       = "<variable_set_id>"
-  category = <"terraform" or "env">
-}
-```
-
-The `varset` store type accepts the following fields.
-
-| Field | Description | Type | Required |
-| :---- | :---- | :---- | :---- |
-| `id` | The external ID of the variable set you want to access. | string | Required |
-| `category` | The `category` argument specifies whether to use Terraform or environment variables from the variable set. Specify "terraform" or "env" depending on the variable you want to access. | string | Required |
-
-The `store.varset` block can only use a variable set’s Terraform or environment variables. You can define two `store` blocks if you need to access Terraform and environment variables in your deployment configuration.
-
-```hcl
-store "varset" "tokens" {
-  id       = "varset-###"
-  category = "terraform"
-}
-
-store "varset" "available_regions" {
-  id       = "varset-###"
-  category = "env"
-}
-
-deployment "main" {
-  inputs = {
-    regions = store.varset.available_regions.regions
-    tfe_token        = store.varset.tokens.tfe_token
-  }
-}
-```
-
-You can access specific environment variables by key from the `store.varset.available_regions` store, and you can access specific Terraform variables by key using the `store.varset.tokens` store.
-
-### `varset` specification and configuration
-
-Use the `varset` store to enable your Stacks to access [variable sets](/terraform/cloud-docs/workspaces/variables/managing-variables#variable-sets) in HCP Terraform. Your Stack must have access to the variable set you are targeting, meaning it must be globally available or assigned to the project containing your Stack.
-
-This section details the fields you can configure in the `store` block that uses the `varset` store type.
-
-```
 store "varset" "store_name" {
   id       = "<variable_set_id>"
   category = <"terraform" or "env">

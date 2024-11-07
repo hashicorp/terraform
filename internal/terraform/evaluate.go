@@ -629,9 +629,9 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			}
 
 		default:
-			// We should only end up here during the validate walk,
-			// since later walks should have at least partial states populated
-			// for all resources in the configuration.
+			// We should only end up here during the validate walk (or
+			// console/eval), since later walks should have at least partial
+			// states populated for all resources in the configuration.
 			return cty.DynamicVal, diags
 		}
 	}
@@ -681,15 +681,14 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		// and need to be replaced by the planned value here.
 		if is.Current.Status == states.ObjectPlanned {
 			if change == nil {
-				// If the object is in planned status then we should not get
-				// here, since we should have found a pending value in the plan
-				// above instead.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Missing pending object in plan",
-					Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", instAddr),
-					Subject:  &config.DeclRange,
-				})
+				// FIXME: This is usually an unfortunate case where we need to
+				// lookup an individual instance referenced via "self" for
+				// postconditions which we know exists, but because evaluation
+				// must always get the resource in aggregate some instance
+				// changes may not yet be registered.
+				instances[key] = cty.DynamicVal
+				// log the problem for debugging, since it may be a legitimate error we can't catch
+				log.Printf("[WARN] instance %s is marked as having a change pending but that change is not recorded in the plan", instAddr)
 				continue
 			}
 			instances[key] = change.After
@@ -791,8 +790,10 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 func (d *evaluationStateData) getEphemeralResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if d.Operation == walkValidate {
-		// Ephemeral instances are never live during the validate walk
+	if d.Operation == walkValidate || d.Operation == walkEval {
+		// Ephemeral instances are never live during the validate walk. Eval is
+		// similarly offline, and since there is no value stored we can't return
+		// anything other than dynamic.
 		return cty.DynamicVal.Mark(marks.Ephemeral), diags
 	}
 
