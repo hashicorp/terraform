@@ -30,6 +30,7 @@ func TestContext2Plan_ephemeralValues(t *testing.T) {
 		expectCloseEphemeralResourceCalled          bool
 		assertTestProviderConfigure                 func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse)
 		assertPlan                                  func(*testing.T, *plans.Plan)
+		inputs                                      InputValues
 	}{
 		"basic": {
 			module: map[string]string{
@@ -516,6 +517,46 @@ ephemeral "ephem_resource" "data" {
 				})
 			},
 		},
+
+		"variable validation": {
+			module: map[string]string{
+				"main.tf": `
+variable "ephem" {
+  type        = string
+  ephemeral   = true
+  
+  validation {
+    condition     = length(var.ephem) > 4
+    error_message = "This should fail but not show the value: ${var.ephem}"
+  }
+}
+  
+output "out" {
+  value = ephemeralasnull(var.ephem)
+}
+`,
+			},
+			inputs: InputValues{
+				"ephem": &InputValue{
+					Value: cty.StringVal("ami"),
+				},
+			},
+			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid value for variable",
+					Detail: fmt.Sprintf(`The error message included a sensitive value, so it will not be displayed.
+
+This was checked by the validation rule at %s.`, m.Module.Variables["ephem"].Validations[0].DeclRange.String()),
+				}).Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Error message refers to ephemeral values",
+					Detail: `The error expression used to explain this condition refers to ephemeral values. Terraform will not display the resulting message.
+
+You can correct this by removing references to ephemeral values, or by carefully using the ephemeralasnull() function if the expression will not reveal the ephemeral data.`,
+				})
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -627,7 +668,12 @@ ephemeral "ephem_resource" "data" {
 				}
 			}
 
-			plan, diags := ctx.Plan(m, nil, DefaultPlanOpts)
+			inputs := tc.inputs
+			if inputs == nil {
+				inputs = InputValues{}
+			}
+
+			plan, diags := ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, inputs))
 			if tc.expectPlanDiagnostics != nil {
 				assertDiagnosticsSummaryAndDetailMatch(t, diags, tc.expectPlanDiagnostics(m))
 			} else {
