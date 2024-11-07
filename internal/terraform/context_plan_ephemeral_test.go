@@ -652,3 +652,84 @@ ephemeral "ephem_resource" "data" {
 		})
 	}
 }
+
+func TestContext2Apply_ephemeralUnknownPlan(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "test" {
+}
+
+ephemeral "ephem_resource" "data" {
+  input = test_instance.test.id
+  lifecycle {
+    postcondition {
+      condition = self.value != nil
+      error_message = "should return a value"
+    }
+  }
+}
+
+locals {
+  value = ephemeral.ephem_resource.data.value
+}
+
+// create a sink for the ephemeral value to test
+provider "sink" {
+  test_string = local.value
+}
+
+// we need a resource to ensure the sink provider is configured
+resource "sink_object" "empty" {
+}
+`,
+	})
+
+	ephem := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			EphemeralResourceTypes: map[string]providers.Schema{
+				"ephem_resource": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Type:     cty.String,
+								Computed: true,
+							},
+							"input": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	sink := simpleMockProvider()
+	sink.GetProviderSchemaResponse.ResourceTypes = map[string]providers.Schema{
+		"sink_object": {Block: simpleTestSchema()},
+	}
+	sink.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+		if req.Config.GetAttr("test_string").IsKnown() {
+			t.Error("sink provider config should not be known in this test")
+		}
+		return resp
+	}
+
+	p := testProvider("test")
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("ephem"): testProviderFuncFixed(ephem),
+			addrs.NewDefaultProvider("test"):  testProviderFuncFixed(p),
+			addrs.NewDefaultProvider("sink"):  testProviderFuncFixed(sink),
+		},
+	})
+
+	_, diags := ctx.Plan(m, nil, DefaultPlanOpts)
+	assertNoDiagnostics(t, diags)
+
+	if ephem.OpenEphemeralResourceCalled {
+		t.Error("OpenEphemeralResourceCalled called when config was not known")
+	}
+}
