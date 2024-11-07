@@ -665,7 +665,7 @@ ephemeral "ephem_resource" "data" {
     postcondition {
       condition = self.value != nil
       error_message = "should return a value"
-	}
+    }
   }
 }
 
