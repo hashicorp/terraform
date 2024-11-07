@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package local
 
 import (
@@ -7,8 +10,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -17,10 +22,10 @@ import (
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestLocal_planBasic(t *testing.T) {
@@ -36,7 +41,7 @@ func TestLocal_planBasic(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("plan operation failed")
 	}
 
@@ -74,7 +79,7 @@ func TestLocal_planInAutomation(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("plan operation failed")
 	}
 
@@ -85,7 +90,7 @@ func TestLocal_planInAutomation(t *testing.T) {
 
 func TestLocal_planNoConfig(t *testing.T) {
 	b := TestLocal(t)
-	TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
+	TestLocalProvider(t, b, "test", providers.ProviderSchema{})
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/empty")
 	defer configCleanup()
@@ -99,7 +104,7 @@ func TestLocal_planNoConfig(t *testing.T) {
 
 	output := done(t)
 
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("plan operation succeeded; want failure")
 	}
 
@@ -141,7 +146,7 @@ func TestLocal_plan_context_error(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationFailure {
+	if run.Result != backendrun.OperationFailure {
 		t.Fatalf("plan operation succeeded")
 	}
 
@@ -209,7 +214,7 @@ func TestLocal_planOutputsChanged(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("plan operation failed")
 	}
 	if run.PlanEmpty {
@@ -265,7 +270,7 @@ func TestLocal_planModuleOutputsChanged(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("plan operation failed")
 	}
 	if !run.PlanEmpty {
@@ -307,7 +312,7 @@ func TestLocal_planTainted(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("plan operation failed")
 	}
 	if !p.ReadResourceCalled {
@@ -386,7 +391,7 @@ func TestLocal_planDeposedOnly(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("plan operation failed")
 	}
 	if !p.ReadResourceCalled {
@@ -477,7 +482,7 @@ func TestLocal_planTainted_createBeforeDestroy(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("plan operation failed")
 	}
 	if !p.ReadResourceCalled {
@@ -520,7 +525,7 @@ func TestLocal_planRefreshFalse(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("plan operation failed")
 	}
 
@@ -569,7 +574,7 @@ func TestLocal_planDestroy(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("plan operation failed")
 	}
 
@@ -621,7 +626,7 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("plan operation failed")
 	}
 
@@ -629,7 +634,7 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
 		t.Fatal("plan should not be empty")
 	}
 
-	// Data source should still exist in the the plan file
+	// Data source should still exist in the plan file
 	plan := testReadPlan(t, planPath)
 	if len(plan.Changes.Resources) != 2 {
 		t.Fatalf("Expected exactly 1 resource for destruction, %d given: %q",
@@ -694,7 +699,7 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("plan operation failed")
 	}
 
@@ -709,10 +714,10 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 	}
 }
 
-func testOperationPlan(t *testing.T, configDir string) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
+func testOperationPlan(t *testing.T, configDir string) (*backendrun.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
@@ -722,8 +727,8 @@ func testOperationPlan(t *testing.T, configDir string) (*backend.Operation, func
 	depLocks := depsfile.NewLocks()
 	depLocks.SetProviderOverridden(addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test"))
 
-	return &backend.Operation{
-		Type:            backend.OperationTypePlan,
+	return &backendrun.Operation{
+		Type:            backendrun.OperationTypePlan,
 		ConfigDir:       configDir,
 		ConfigLoader:    configLoader,
 		StateLocker:     clistate.NewNoopLocker(),
@@ -851,32 +856,60 @@ func testReadPlan(t *testing.T, path string) *plans.Plan {
 // planFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/plan . This schema should be
 // assigned to a mock provider named "test".
-func planFixtureSchema() *terraform.ProviderSchema {
-	return &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+func planFixtureSchema() providers.ProviderSchema {
+	return providers.ProviderSchema{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"ami": {Type: cty.String, Optional: true},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"network_interface": {
-						Nesting: configschema.NestingList,
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"device_index": {Type: cty.Number, Optional: true},
-								"description":  {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"ami": {Type: cty.String, Optional: true},
+					},
+					BlockTypes: map[string]*configschema.NestedBlock{
+						"network_interface": {
+							Nesting: configschema.NestingList,
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"device_index": {Type: cty.Number, Optional: true},
+									"description":  {Type: cty.String, Optional: true},
+								},
 							},
 						},
 					},
 				},
 			},
 		},
-		DataSources: map[string]*configschema.Block{
+		DataSources: map[string]providers.Schema{
 			"test_ds": {
-				Attributes: map[string]*configschema.Attribute{
-					"filter": {Type: cty.String, Required: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"filter": {Type: cty.String, Required: true},
+					},
 				},
 			},
 		},
+	}
+}
+
+func TestLocal_invalidOptions(t *testing.T) {
+	b := TestLocal(t)
+	TestLocalProvider(t, b, "test", planFixtureSchema())
+
+	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
+	defer configCleanup()
+	op.PlanRefresh = true
+	op.PlanMode = plans.RefreshOnlyMode
+	op.ForceReplace = []addrs.AbsResourceInstance{mustResourceInstanceAddr("test_instance.foo")}
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	<-run.Done()
+	if run.Result == backendrun.OperationSuccess {
+		t.Fatalf("plan operation failed")
+	}
+
+	if errOutput := done(t).Stderr(); errOutput == "" {
+		t.Fatal("expected error output")
 	}
 }

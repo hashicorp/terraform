@@ -18,25 +18,25 @@ setsubtract(a, b)
 
 ```
 > setsubtract(["a", "b", "c"], ["a", "c"])
-[
+toset([
   "b",
-]
+])
 ```
 
 ### Set Difference (Symmetric Difference)
 
 ```
 > setunion(setsubtract(["a", "b", "c"], ["a", "c", "d"]), setsubtract(["a", "c", "d"], ["a", "b", "c"]))
-[
+toset([
   "b",
   "d",
-]
+])
 ```
 
 ## Related Functions
 
-* [`setintersection`](/language/functions/setintersection) computes the _intersection_ of multiple sets
-* [`setproduct`](/language/functions/setproduct) computes the _Cartesian product_ of multiple
+* [`setintersection`](/terraform/language/functions/setintersection) computes the _intersection_ of multiple sets
+* [`setproduct`](/terraform/language/functions/setproduct) computes the _Cartesian product_ of multiple
   sets.
-* [`setunion`](/language/functions/setunion) computes the _union_ of
+* [`setunion`](/terraform/language/functions/setunion) computes the _union_ of
   multiple sets.

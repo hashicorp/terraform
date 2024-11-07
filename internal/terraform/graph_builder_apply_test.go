@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -10,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -18,7 +22,7 @@ func TestApplyGraphBuilder_impl(t *testing.T) {
 }
 
 func TestApplyGraphBuilder(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.create"),
@@ -72,7 +76,7 @@ func TestApplyGraphBuilder(t *testing.T) {
 // This tests the ordering of two resources where a non-CBD depends
 // on a CBD. GH-11349.
 func TestApplyGraphBuilder_depCbd(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.A"),
@@ -165,7 +169,7 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 // This tests the ordering of two resources that are both CBD that
 // require destroy/create.
 func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.A"),
@@ -237,7 +241,7 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 // This tests the ordering of two resources being destroyed that depend
 // on each other from only state. GH-11749
 func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("module.child.test_object.A"),
@@ -299,7 +303,7 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 
 // This tests the ordering of destroying a single count of a resource.
 func TestApplyGraphBuilder_destroyCount(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.A[1]"),
@@ -361,7 +365,7 @@ func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 }
 
 func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("module.A.test_object.foo"),
@@ -419,7 +423,7 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 }
 
 func TestApplyGraphBuilder_targetModule(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.foo"),
@@ -463,14 +467,14 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 		cty.ObjectVal(map[string]cty.Value{
 			"id":          cty.StringVal("b_id"),
 			"test_string": cty.StringVal("a_id"),
-		}), instanceSchema.ImpliedType())
+		}), instanceSchema.Block.ImpliedType())
 	bAfter, _ := plans.NewDynamicValue(
 		cty.ObjectVal(map[string]cty.Value{
 			"id":          cty.StringVal("b_id"),
 			"test_string": cty.StringVal("changed"),
-		}), instanceSchema.ImpliedType())
+		}), instanceSchema.Block.ImpliedType())
 
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.a"),
@@ -568,14 +572,14 @@ func TestApplyGraphBuilder_updateFromCBDOrphan(t *testing.T) {
 		cty.ObjectVal(map[string]cty.Value{
 			"id":          cty.StringVal("b_id"),
 			"test_string": cty.StringVal("a_id"),
-		}), instanceSchema.ImpliedType())
+		}), instanceSchema.Block.ImpliedType())
 	bAfter, _ := plans.NewDynamicValue(
 		cty.ObjectVal(map[string]cty.Value{
 			"id":          cty.StringVal("b_id"),
 			"test_string": cty.StringVal("changed"),
-		}), instanceSchema.ImpliedType())
+		}), instanceSchema.Block.ImpliedType())
 
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.a"),
@@ -660,7 +664,7 @@ test_object.b
 
 // The orphan clean up node should not be connected to a provider
 func TestApplyGraphBuilder_orphanedWithProvider(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.A"),
@@ -699,6 +703,90 @@ func TestApplyGraphBuilder_orphanedWithProvider(t *testing.T) {
 	testGraphNotContains(t, g, "provider.test")
 }
 
+func TestApplyGraphBuilder_withChecks(t *testing.T) {
+	awsProvider := mockProviderWithResourceTypeSchema("aws_instance", simpleTestSchema())
+
+	changes := &plans.ChangesSrc{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: mustResourceInstanceAddr("aws_instance.foo"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+				},
+			},
+			{
+				Addr: mustResourceInstanceAddr("aws_instance.baz"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+				},
+			},
+			{
+				Addr: mustResourceInstanceAddr("data.aws_data_source.bar"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Read,
+				},
+				ActionReason: plans.ResourceInstanceReadBecauseCheckNested,
+			},
+		},
+	}
+
+	plugins := newContextPlugins(map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("aws"): providers.FactoryFixed(awsProvider),
+	}, nil, nil)
+
+	b := &ApplyGraphBuilder{
+		Config:    testModule(t, "apply-with-checks"),
+		Changes:   changes,
+		Plugins:   plugins,
+		State:     states.NewState(),
+		Operation: walkApply,
+	}
+
+	g, err := b.Build(addrs.RootModuleInstance)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if g.Path.String() != addrs.RootModuleInstance.String() {
+		t.Fatalf("wrong path %q", g.Path.String())
+	}
+
+	got := strings.TrimSpace(g.String())
+	// We're especially looking for the edge here, where aws_instance.bat
+	// has a dependency on aws_instance.boo
+	want := strings.TrimSpace(testPlanWithCheckGraphBuilderStr)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("\ngot:\n%s\n\nwant:\n%s\n\ndiff:\n%s", got, want, diff)
+	}
+
+}
+
+const testPlanWithCheckGraphBuilderStr = `
+(execute checks)
+  aws_instance.baz
+aws_instance.baz
+  aws_instance.baz (expand)
+aws_instance.baz (expand)
+  aws_instance.foo
+aws_instance.foo
+  aws_instance.foo (expand)
+aws_instance.foo (expand)
+  provider["registry.terraform.io/hashicorp/aws"]
+check.my_check (expand)
+  data.aws_data_source.bar
+data.aws_data_source.bar
+  (execute checks)
+  data.aws_data_source.bar (expand)
+data.aws_data_source.bar (expand)
+  provider["registry.terraform.io/hashicorp/aws"]
+provider["registry.terraform.io/hashicorp/aws"]
+provider["registry.terraform.io/hashicorp/aws"] (close)
+  data.aws_data_source.bar
+root
+  check.my_check (expand)
+  provider["registry.terraform.io/hashicorp/aws"] (close)
+`
+
 const testApplyGraphBuilderStr = `
 module.child (close)
   module.child.test_object.other
@@ -709,11 +797,9 @@ module.child.test_object.create (expand)
   module.child (expand)
   provider["registry.terraform.io/hashicorp/test"]
 module.child.test_object.other
-  module.child.test_object.create
   module.child.test_object.other (expand)
 module.child.test_object.other (expand)
-  module.child (expand)
-  provider["registry.terraform.io/hashicorp/test"]
+  module.child.test_object.create
 provider["registry.terraform.io/hashicorp/test"]
 provider["registry.terraform.io/hashicorp/test"] (close)
   module.child.test_object.other
@@ -726,10 +812,9 @@ test_object.create
 test_object.create (expand)
   provider["registry.terraform.io/hashicorp/test"]
 test_object.other
-  test_object.create
   test_object.other (expand)
 test_object.other (expand)
-  provider["registry.terraform.io/hashicorp/test"]
+  test_object.create
 `
 
 const testApplyGraphBuilderDestroyCountStr = `
@@ -743,9 +828,8 @@ test_object.A (expand)
 test_object.A[1] (destroy)
   provider["registry.terraform.io/hashicorp/test"]
 test_object.B
-  test_object.A (expand)
   test_object.A[1] (destroy)
   test_object.B (expand)
 test_object.B (expand)
-  provider["registry.terraform.io/hashicorp/test"]
+  test_object.A (expand)
 `

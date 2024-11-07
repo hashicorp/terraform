@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configschema
 
 import (
@@ -173,8 +176,9 @@ func TestBlockValueMarks(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got := tc.given.MarkWithPaths(schema.ValueMarks(tc.given, nil))
-			if !got.RawEquals(tc.expect) {
+			sensitivePaths := schema.SensitivePaths(tc.given, nil)
+			got := marks.MarkPaths(tc.given, marks.Sensitive, sensitivePaths)
+			if !tc.expect.RawEquals(got) {
 				t.Fatalf("\nexpected: %#v\ngot:      %#v\n", tc.expect, got)
 			}
 		})

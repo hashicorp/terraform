@@ -1,0 +1,76 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+name: Documentation Issue
+description: Report an issue or suggest a change in the documentation.
+labels: ["documentation", "new"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # Thank you for opening a documentation change request.
+
+        Please only use the [hashicorp/terraform](https://github.com/hashicorp/terraform) `Documentation` issue type to report problems with the documentation on [https://www.terraform.io/docs](). Only technical writers (not engineers) monitor this issue type. Report Terraform bugs or feature requests with the `Bug report` or `Feature Request` issue types instead to get engineering attention.
+
+        For general usage questions, please see: https://www.terraform.io/community.html.
+
+  - type: textarea
+    id: tf-version
+    attributes:
+      label: Terraform Version
+      description: Run `terraform version` to show the version, and paste the result below. If you're not using the latest version, please check to see if something related to your request has already been implemented in a later version.
+      render: shell
+      placeholder: ...output of `terraform version`...
+      value:
+    validations:
+      required: true
+
+  - type: textarea
+    id: tf-affected-pages
+    attributes:
+      label: Affected Pages
+      description: |
+          Link to the pages relevant to your documentation change request.
+      placeholder:
+      value:
+    validations:
+      required: false
+
+  - type: textarea
+    id: tf-problem
+    attributes:
+      label: What is the docs issue?
+      description: What problems or suggestions do you have about the documentation?
+      placeholder:
+      value:
+    validations:
+      required: true
+
+  - type: textarea
+    id: tf-proposal
+    attributes:
+      label: Proposal
+      description: What documentation changes would fix this issue and where would you expect to find them? Are one or more page headings unclear? Do one or more pages need additional context, examples, or warnings? Do we need a new page or section dedicated to a specific topic?  Your ideas help us understand what you and other users need from our documentation and how we can improve the content.
+      placeholder:
+      value:
+    validations:
+      required: false
+
+  - type: textarea
+    id: tf-references
+    attributes:
+      label: References
+      description: |
+        Are there any other open or closed GitHub issues related to the problem or solution you described? If so, list them below. For example:
+        ```
+          - #6017
+        ```
+      placeholder:
+      value:
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        **Note:** If the submit button is disabled and you have filled out all required fields, please check that you did not forget a **Title** for the issue.

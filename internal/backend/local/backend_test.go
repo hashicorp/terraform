@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package local
 
 import (
@@ -9,14 +12,15 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
 func TestLocal_impl(t *testing.T) {
-	var _ backend.Enhanced = New()
-	var _ backend.Local = New()
-	var _ backend.CLI = New()
+	var _ backendrun.OperationsBackend = New()
+	var _ backendrun.Local = New()
+	var _ backendrun.CLI = New()
 }
 
 func TestLocal_backend(t *testing.T) {
@@ -133,7 +137,7 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expectedStates, states)
 	}
 
-	if err := b.DeleteWorkspace(expectedA); err != nil {
+	if err := b.DeleteWorkspace(expectedA, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -147,7 +151,7 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expectedStates, states)
 	}
 
-	if err := b.DeleteWorkspace(expectedB); err != nil {
+	if err := b.DeleteWorkspace(expectedB, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -161,7 +165,7 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expectedStates, states)
 	}
 
-	if err := b.DeleteWorkspace(dflt); err == nil {
+	if err := b.DeleteWorkspace(dflt, true); err == nil {
 		t.Fatal("expected error deleting default state")
 	}
 }
@@ -196,7 +200,7 @@ func (b *testDelegateBackend) Workspaces() ([]string, error) {
 	return []string{"default"}, nil
 }
 
-func (b *testDelegateBackend) DeleteWorkspace(name string) error {
+func (b *testDelegateBackend) DeleteWorkspace(name string, force bool) error {
 	if b.deleteErr {
 		return errTestDelegateDeleteState
 	}
@@ -220,7 +224,7 @@ func TestLocal_multiStateBackend(t *testing.T) {
 		t.Fatal("expected errTestDelegateStates, got:", err)
 	}
 
-	if err := b.DeleteWorkspace("test"); err != errTestDelegateDeleteState {
+	if err := b.DeleteWorkspace("test", true); err != errTestDelegateDeleteState {
 		t.Fatal("expected errTestDelegateDeleteState, got:", err)
 	}
 }

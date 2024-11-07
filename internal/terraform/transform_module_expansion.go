@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -29,7 +32,7 @@ type ModuleExpansionTransformer struct {
 func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 	t.closers = make(map[string]*nodeCloseModule)
 	// The root module is always a singleton and so does not need expansion
-	// processing, but any descendent modules do. We'll process them
+	// processing, but any descendant modules do. We'll process them
 	// recursively using t.transform.
 	for _, cfg := range t.Config.Children {
 		err := t.transform(g, cfg, nil)

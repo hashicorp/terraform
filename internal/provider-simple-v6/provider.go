@@ -1,15 +1,20 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // simple provider a minimal provider implementation for testing
 package simple
 
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
+
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 type simple struct {
@@ -43,8 +48,29 @@ func Provider() providers.Interface {
 			DataSources: map[string]providers.Schema{
 				"simple_resource": simpleResource,
 			},
+			EphemeralResourceTypes: map[string]providers.Schema{
+				"simple_resource": simpleResource,
+			},
 			ServerCapabilities: providers.ServerCapabilities{
-				PlanDestroy: true,
+				PlanDestroy:               true,
+				GetProviderSchemaOptional: true,
+			},
+			Functions: map[string]providers.FunctionDecl{
+				"noop": providers.FunctionDecl{
+					Parameters: []providers.FunctionParam{
+						{
+							Name:               "noop",
+							Type:               cty.DynamicPseudoType,
+							AllowNullValue:     true,
+							AllowUnknownValues: true,
+							Description:        "any value",
+							DescriptionKind:    configschema.StringPlain,
+						},
+					},
+					ReturnType:      cty.DynamicPseudoType,
+					Description:     "noop takes any single argument and returns the same value",
+					DescriptionKind: configschema.StringPlain,
+				},
 			},
 		},
 	}
@@ -135,10 +161,59 @@ func (s simple) ImportResourceState(providers.ImportResourceStateRequest) (resp 
 	return resp
 }
 
+func (s simple) MoveResourceState(providers.MoveResourceStateRequest) (resp providers.MoveResourceStateResponse) {
+	// We don't expose the move_resource_state capability, so this should never
+	// be called.
+	resp.Diagnostics = resp.Diagnostics.Append(errors.New("unsupported"))
+	return resp
+}
+
 func (s simple) ReadDataSource(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
 	m := req.Config.AsValueMap()
 	m["id"] = cty.StringVal("static_id")
 	resp.State = cty.ObjectVal(m)
+	return resp
+}
+
+func (p simple) ValidateEphemeralResourceConfig(req providers.ValidateEphemeralResourceConfigRequest) (resp providers.ValidateEphemeralResourceConfigResponse) {
+	return resp
+}
+
+func (s simple) OpenEphemeralResource(req providers.OpenEphemeralResourceRequest) (resp providers.OpenEphemeralResourceResponse) {
+	// we only have one type, so no need to check
+	m := req.Config.AsValueMap()
+	m["id"] = cty.StringVal("ephemeral secret")
+	resp.Result = cty.ObjectVal(m)
+	resp.Private = []byte("private data")
+	resp.RenewAt = time.Now().Add(time.Second)
+	return resp
+}
+
+func (s simple) RenewEphemeralResource(req providers.RenewEphemeralResourceRequest) (resp providers.RenewEphemeralResourceResponse) {
+	log.Printf("[DEBUG] renewing ephemeral resource")
+	if string(req.Private) != "private data" {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("invalid private data %q, cannot renew ephemeral resource", req.Private))
+	}
+	resp.Private = req.Private
+	resp.RenewAt = time.Now().Add(time.Second)
+	return resp
+}
+
+func (s simple) CloseEphemeralResource(req providers.CloseEphemeralResourceRequest) (resp providers.CloseEphemeralResourceResponse) {
+	log.Printf("[DEBUG] closing ephemeral resource")
+	if string(req.Private) != "private data" {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("invalid private data %q, cannot close ephemeral resource", req.Private))
+	}
+	return resp
+}
+
+func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
+	if req.FunctionName != "noop" {
+		resp.Err = fmt.Errorf("CallFunction for undefined function %q", req.FunctionName)
+		return resp
+	}
+
+	resp.Result = req.Arguments[0]
 	return resp
 }
 

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonconfig
 
 import (
@@ -11,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -176,7 +179,7 @@ func marshalProviderConfigs(
 		// version argument) and more accurate (as it reflects the full set of
 		// constraints, in case there are multiple).
 		if vc, ok := reqs[providerFqn]; ok {
-			p.VersionConstraint = getproviders.VersionConstraintsString(vc)
+			p.VersionConstraint = providerreqs.VersionConstraintsString(vc)
 		}
 
 		key := opaqueProviderKey(k, c.Path.String())
@@ -205,7 +208,7 @@ func marshalProviderConfigs(
 			}
 
 			if vc, ok := reqs[pr.Type]; ok {
-				p.VersionConstraint = getproviders.VersionConstraintsString(vc)
+				p.VersionConstraint = providerreqs.VersionConstraintsString(vc)
 			}
 
 			m[key] = p
@@ -228,7 +231,7 @@ func marshalProviderConfigs(
 		}
 
 		if vc, ok := reqs[pr.Type]; ok {
-			p.VersionConstraint = getproviders.VersionConstraintsString(vc)
+			p.VersionConstraint = providerreqs.VersionConstraintsString(vc)
 		}
 
 		if c.Parent != nil {
@@ -411,6 +414,7 @@ func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terra
 	schema.Attributes = make(map[string]*configschema.Attribute)
 	for _, variable := range c.Module.Variables {
 		schema.Attributes[variable.Name] = &configschema.Attribute{
+			Type:     cty.DynamicPseudoType,
 			Required: variable.Default == cty.NilVal,
 		}
 	}
@@ -516,9 +520,9 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 	return rs, nil
 }
 
-// Flatten all resource provider keys in a module and its descendents, such
+// Flatten all resource provider keys in a module and its descendants, such
 // that any resources from providers using a configuration passed through the
-// module call have a direct refernce to that provider configuration.
+// module call have a direct reference to that provider configuration.
 func normalizeModuleProviderKeys(m *module, pcs map[string]providerConfig) {
 	for i, r := range m.Resources {
 		if pc, exists := pcs[r.ProviderConfigKey]; exists {

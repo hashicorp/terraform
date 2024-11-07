@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configschema
 
 import (
@@ -442,6 +445,20 @@ func TestCoerceValue(t *testing.T) {
 				"foo": cty.NullVal(cty.String),
 			}),
 			``,
+		},
+		"omitted attribute requirements": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"foo": {
+						Type: cty.String,
+					},
+				},
+			},
+			cty.EmptyObjectVal,
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.UnknownVal(cty.String),
+			}),
+			`attribute "foo" has none of required, optional, or computed set`,
 		},
 		"dynamic value attributes": {
 			&Block{

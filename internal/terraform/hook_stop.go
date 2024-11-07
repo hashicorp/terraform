@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -20,56 +23,82 @@ type stopHook struct {
 
 var _ Hook = (*stopHook)(nil)
 
-func (h *stopHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (h *stopHook) PreApply(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, err error) (HookAction, error) {
+func (h *stopHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newState cty.Value, err error) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PreDiff(addr addrs.AbsResourceInstance, gen states.Generation, priorState, proposedNewState cty.Value) (HookAction, error) {
+func (h *stopHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PostDiff(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (h *stopHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PreProvisionInstance(addr addrs.AbsResourceInstance, state cty.Value) (HookAction, error) {
+func (h *stopHook) PreProvisionInstance(id HookResourceIdentity, state cty.Value) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PostProvisionInstance(addr addrs.AbsResourceInstance, state cty.Value) (HookAction, error) {
+func (h *stopHook) PostProvisionInstance(id HookResourceIdentity, state cty.Value) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PreProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string) (HookAction, error) {
+func (h *stopHook) PreProvisionInstanceStep(id HookResourceIdentity, typeName string) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PostProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string, err error) (HookAction, error) {
+func (h *stopHook) PostProvisionInstanceStep(id HookResourceIdentity, typeName string, err error) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName string, line string) {
+func (h *stopHook) ProvisionOutput(id HookResourceIdentity, typeName string, line string) {
 }
 
-func (h *stopHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value) (HookAction, error) {
+func (h *stopHook) PreRefresh(id HookResourceIdentity, dk addrs.DeposedKey, priorState cty.Value) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PostRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value, newState cty.Value) (HookAction, error) {
+func (h *stopHook) PostRefresh(id HookResourceIdentity, dk addrs.DeposedKey, priorState cty.Value, newState cty.Value) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PreImportState(addr addrs.AbsResourceInstance, importID string) (HookAction, error) {
+func (h *stopHook) PreImportState(id HookResourceIdentity, importID string) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error) {
+func (h *stopHook) PostImportState(id HookResourceIdentity, imported []providers.ImportedResource) (HookAction, error) {
 	return h.hook()
 }
+
+func (h *stopHook) PrePlanImport(id HookResourceIdentity, importID string) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) PostPlanImport(id HookResourceIdentity, imported []providers.ImportedResource) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) PreApplyImport(id HookResourceIdentity, importing plans.ImportingSrc) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) PostApplyImport(id HookResourceIdentity, importing plans.ImportingSrc) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) PreEphemeralOp(id HookResourceIdentity, action plans.Action) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action, opErr error) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) Stopping() {}
 
 func (h *stopHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	return h.hook()

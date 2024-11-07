@@ -1,0 +1,30 @@
+{
+  "terraform_source_bundle": 1,
+  "packages": [
+    {
+      "source": "git::https://example.com/foo.git",
+      "local": "foo",
+      "meta": {}
+    },
+    {
+      "source": "git::https://example.com/bar.git",
+      "local": "bar",
+      "meta": {}
+    },
+    {
+      "source": "git::https://example.com/import.git",
+      "local": "import",
+      "meta": {}
+    },
+    {
+      "source": "git::https://example.com/moved.git",
+      "local": "moved",
+      "meta": {}
+    },
+    {
+      "source": "git::https://example.com/removed.git",
+      "local": "removed",
+      "meta": {}
+    }
+  ]
+}

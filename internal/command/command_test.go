@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -7,7 +10,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/google/go-cmp/cmp"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -20,8 +22,12 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
@@ -34,19 +40,17 @@ import (
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/initwd"
-	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 	_ "github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/version"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // These are the directories for our test data and fixtures.
@@ -83,8 +87,9 @@ func TestMain(m *testing.M) {
 }
 
 // tempWorkingDir constructs a workdir.Dir object referring to a newly-created
+// tempWorkingDir constructs a workdir.Dir object referring to a newly-created
 // temporary directory. The temporary directory is automatically removed when
-//the test and all its subtests complete.
+// the test and all its subtests complete.
 //
 // Although workdir.Dir is built to support arbitrary base directories, the
 // not-yet-migrated behaviors in command.Meta tend to expect the root module
@@ -92,8 +97,8 @@ func TestMain(m *testing.M) {
 // to use the result inside a command.Meta object you must use a pattern
 // similar to the following when initializing your test:
 //
-//     wd := tempWorkingDir(t)
-//     defer testChdir(t, wd.RootModuleDir())()
+//	wd := tempWorkingDir(t)
+//	defer testChdir(t, wd.RootModuleDir())()
 //
 // Note that testChdir modifies global state for the test process, and so a
 // test using this pattern must never call t.Parallel().
@@ -153,8 +158,8 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
-	_, instDiags := inst.InstallModules(context.Background(), dir, true, initwd.ModuleInstallHooksImpl{})
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
@@ -190,7 +195,13 @@ func testPlan(t *testing.T) *plans.Plan {
 			Type:   "local",
 			Config: backendConfigRaw,
 		},
-		Changes: plans.NewChanges(),
+		Changes: plans.NewChangesSrc(),
+
+		// We'll default to the fake plan being both applyable and complete,
+		// since that's what most tests expect. Tests can override these
+		// back to false again afterwards if they need to.
+		Applyable: true,
+		Complete:  true,
 	}
 }
 
@@ -246,6 +257,24 @@ func testPlanFileNoop(t *testing.T) string {
 	state := states.NewState()
 	plan := testPlan(t)
 	return testPlanFile(t, snap, state, plan)
+}
+
+func testFileEquals(t *testing.T, got, want string) {
+	t.Helper()
+
+	actual, err := os.ReadFile(got)
+	if err != nil {
+		t.Fatalf("error reading %s", got)
+	}
+
+	expected, err := os.ReadFile(want)
+	if err != nil {
+		t.Fatalf("error reading %s", want)
+	}
+
+	if diff := cmp.Diff(string(actual), string(expected)); len(diff) > 0 {
+		t.Fatalf("got:\n%s\nwant:\n%s\ndiff:\n%s", actual, expected, diff)
+	}
 }
 
 func testReadPlan(t *testing.T, path string) *plans.Plan {
@@ -327,11 +356,14 @@ func testStateMgrCurrentLineage(mgr statemgr.Persistent) string {
 // The given mark string is returned verbatim, to allow the following pattern
 // in tests:
 //
-//     mark := markStateForMatching(state, "foo")
-//     // (do stuff to the state)
-//     assertStateHasMarker(state, mark)
+//	mark := markStateForMatching(state, "foo")
+//	// (do stuff to the state)
+//	assertStateHasMarker(state, mark)
 func markStateForMatching(state *states.State, mark string) string {
-	state.RootModule().SetOutputValue("testing_mark", cty.StringVal(mark), false)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "testing_mark"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal(mark), false,
+	)
 	return mark
 }
 
@@ -339,7 +371,7 @@ func markStateForMatching(state *states.State, mark string) string {
 // mark string previously added to the given state. If no such mark is present,
 // the result is an empty string.
 func getStateMatchingMarker(state *states.State) string {
-	os := state.RootModule().OutputValues["testing_mark"]
+	os := state.RootOutputValues["testing_mark"]
 	if os == nil {
 		return ""
 	}
@@ -426,7 +458,7 @@ func testStateFileWorkspaceDefault(t *testing.T, workspace string, s *states.Sta
 
 // testStateFileRemote writes the state out to the remote statefile
 // in the cwd. Use `testCwd` to change into a temp cwd.
-func testStateFileRemote(t *testing.T, s *legacy.State) string {
+func testStateFileRemote(t *testing.T, s *workdir.BackendStateFile) string {
 	t.Helper()
 
 	path := filepath.Join(DefaultDataDir, DefaultStateFilename)
@@ -434,14 +466,12 @@ func testStateFileRemote(t *testing.T, s *legacy.State) string {
 		t.Fatalf("err: %s", err)
 	}
 
-	f, err := os.Create(path)
+	raw, err := workdir.EncodeBackendStateFile(s)
 	if err != nil {
-		t.Fatalf("err: %s", err)
+		t.Fatalf("encoding backend state file: %s", err)
 	}
-	defer f.Close()
-
-	if err := legacy.WriteState(s, f); err != nil {
-		t.Fatalf("err: %s", err)
+	if err := os.WriteFile(path, raw, os.ModePerm); err != nil {
+		t.Fatalf("writing backend state file: %s", err)
 	}
 
 	return path
@@ -465,12 +495,9 @@ func testStateRead(t *testing.T, path string) *states.State {
 	return sf.State
 }
 
-// testDataStateRead reads a "data state", which is a file format resembling
+// testDataStateRead reads a backend state, which is a file format resembling
 // our state format v3 that is used only to track current backend settings.
-//
-// This old format still uses *legacy.State, but should be replaced with
-// a more specialized type in a later release.
-func testDataStateRead(t *testing.T, path string) *legacy.State {
+func testDataStateRead(t *testing.T, path string) *workdir.BackendStateFile {
 	t.Helper()
 
 	f, err := os.Open(path)
@@ -479,7 +506,12 @@ func testDataStateRead(t *testing.T, path string) *legacy.State {
 	}
 	defer f.Close()
 
-	s, err := legacy.ReadState(f)
+	raw, err := io.ReadAll(f)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	s, err := workdir.ParseBackendStateFile(raw)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -500,8 +532,8 @@ func testStateOutput(t *testing.T, path string, expected string) {
 	}
 }
 
-func testProvider() *terraform.MockProvider {
-	p := new(terraform.MockProvider)
+func testProvider() *testing_provider.MockProvider {
+	p := new(testing_provider.MockProvider)
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 		resp.PlannedState = req.ProposedNewState
 		return resp
@@ -704,16 +736,16 @@ func testInputMap(t *testing.T, answers map[string]string) func() {
 // When using this function, the configuration fixture for the test must
 // include an empty configuration block for the HTTP backend, like this:
 //
-// terraform {
-//   backend "http" {
-//   }
-// }
+//	terraform {
+//	  backend "http" {
+//	  }
+//	}
 //
 // If such a block isn't present, or if it isn't empty, then an error will
 // be returned about the backend configuration having changed and that
 // "terraform init" must be run, since the test backend config cache created
 // by this function contains the hash for an empty configuration.
-func testBackendState(t *testing.T, s *states.State, c int) (*legacy.State, *httptest.Server) {
+func testBackendState(t *testing.T, s *states.State, c int) (*workdir.BackendStateFile, *httptest.Server) {
 	t.Helper()
 
 	var b64md5 string
@@ -753,8 +785,8 @@ func testBackendState(t *testing.T, s *states.State, c int) (*legacy.State, *htt
 	configSchema := b.ConfigSchema()
 	hash := backendConfig.Hash(configSchema)
 
-	state := legacy.NewState()
-	state.Backend = &legacy.BackendState{
+	state := workdir.NewBackendStateFile()
+	state.Backend = &workdir.BackendState{
 		Type:      "http",
 		ConfigRaw: json.RawMessage(fmt.Sprintf(`{"address":%q}`, srv.URL)),
 		Hash:      uint64(hash),
@@ -766,10 +798,10 @@ func testBackendState(t *testing.T, s *states.State, c int) (*legacy.State, *htt
 // testRemoteState is used to make a test HTTP server to return a given
 // state file that can be used for testing legacy remote state.
 //
-// The return values are a *legacy.State instance that should be written
-// as the "data state" (really: backend state) and the server that the
-// returned data state refers to.
-func testRemoteState(t *testing.T, s *states.State, c int) (*legacy.State, *httptest.Server) {
+// The return values are a [workdir.BackendStateFile] instance that should be
+// written as the backend state and the server that the returned data state
+// refers to.
+func testRemoteState(t *testing.T, s *states.State, c int) (*workdir.BackendStateFile, *httptest.Server) {
 	t.Helper()
 
 	var b64md5 string
@@ -789,10 +821,10 @@ func testRemoteState(t *testing.T, s *states.State, c int) (*legacy.State, *http
 		resp.Write(buf.Bytes())
 	}
 
-	retState := legacy.NewState()
+	retState := workdir.NewBackendStateFile()
 
 	srv := httptest.NewServer(http.HandlerFunc(cb))
-	b := &legacy.BackendState{
+	b := &workdir.BackendState{
 		Type: "http",
 	}
 	b.SetConfig(cty.ObjectVal(map[string]cty.Value{
@@ -1058,8 +1090,8 @@ func testView(t *testing.T) (*views.View, func(*testing.T) *terminal.TestOutput)
 // checkGoldenReference compares the given test output with a known "golden" output log
 // located under the specified fixture path.
 //
-// If any of these tests fail, please communicate with Terraform Cloud folks before resolving,
-// as changes to UI output may also affect the behavior of Terraform Cloud's structured run output.
+// If any of these tests fail, please communicate with HCP Terraform folks before resolving,
+// as changes to UI output may also affect the behavior of HCP Terraform's structured run output.
 func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePathName string) {
 	t.Helper()
 
@@ -1087,8 +1119,8 @@ func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePath
 
 	if len(gotLines) != len(wantLines) {
 		t.Errorf("unexpected number of log lines: got %d, want %d\n"+
-			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on TFC.\n"+
-			"Please communicate with Terraform Cloud team before resolving", len(gotLines), len(wantLines))
+			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on HCP Terraform.\n"+
+			"Please communicate with HCP Terraform team before resolving", len(gotLines), len(wantLines))
 	}
 
 	// Verify that the log starts with a version message
@@ -1140,6 +1172,6 @@ func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePath
 	if diff := cmp.Diff(wantLineMaps, gotLineMaps); diff != "" {
 		t.Errorf("wrong output lines\n%s\n"+
 			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on TFC.\n"+
-			"Please communicate with Terraform Cloud team before resolving", diff)
+			"Please communicate with HCP Terraform team before resolving", diff)
 	}
 }

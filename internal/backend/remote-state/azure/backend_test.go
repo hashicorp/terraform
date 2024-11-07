@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package azure
 
 import (
@@ -6,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/legacy/helper/acctest"
 )
 
 func TestBackend_impl(t *testing.T) {
@@ -41,7 +43,7 @@ func TestBackendConfig(t *testing.T) {
 
 func TestAccBackendAccessKeyBasic(t *testing.T) {
 	testAccAzureBackend(t)
-	rs := acctest.RandString(4)
+	rs := randString(4)
 	res := testResourceNames(rs, "testState")
 	armClient := buildTestClient(t, res)
 
@@ -67,7 +69,7 @@ func TestAccBackendAccessKeyBasic(t *testing.T) {
 
 func TestAccBackendSASTokenBasic(t *testing.T) {
 	testAccAzureBackend(t)
-	rs := acctest.RandString(4)
+	rs := randString(4)
 	res := testResourceNames(rs, "testState")
 	armClient := buildTestClient(t, res)
 
@@ -97,7 +99,7 @@ func TestAccBackendSASTokenBasic(t *testing.T) {
 
 func TestAccBackendOIDCBasic(t *testing.T) {
 	testAccAzureBackend(t)
-	rs := acctest.RandString(4)
+	rs := randString(4)
 	res := testResourceNames(rs, "testState")
 	armClient := buildTestClient(t, res)
 
@@ -125,7 +127,7 @@ func TestAccBackendOIDCBasic(t *testing.T) {
 
 func TestAccBackendAzureADAuthBasic(t *testing.T) {
 	testAccAzureBackend(t)
-	rs := acctest.RandString(4)
+	rs := randString(4)
 	res := testResourceNames(rs, "testState")
 	res.useAzureADAuth = true
 	armClient := buildTestClient(t, res)
@@ -153,7 +155,7 @@ func TestAccBackendAzureADAuthBasic(t *testing.T) {
 
 func TestAccBackendManagedServiceIdentityBasic(t *testing.T) {
 	testAccAzureBackendRunningInAzure(t)
-	rs := acctest.RandString(4)
+	rs := randString(4)
 	res := testResourceNames(rs, "testState")
 	armClient := buildTestClient(t, res)
 
@@ -188,7 +190,7 @@ func TestAccBackendServicePrincipalClientCertificateBasic(t *testing.T) {
 		t.Skip("Skipping since `ARM_CLIENT_CERTIFICATE_PATH` is not specified!")
 	}
 
-	rs := acctest.RandString(4)
+	rs := randString(4)
 	res := testResourceNames(rs, "testState")
 	armClient := buildTestClient(t, res)
 
@@ -218,7 +220,7 @@ func TestAccBackendServicePrincipalClientCertificateBasic(t *testing.T) {
 
 func TestAccBackendServicePrincipalClientSecretBasic(t *testing.T) {
 	testAccAzureBackend(t)
-	rs := acctest.RandString(4)
+	rs := randString(4)
 	res := testResourceNames(rs, "testState")
 	armClient := buildTestClient(t, res)
 
@@ -254,7 +256,7 @@ func TestAccBackendServicePrincipalClientSecretCustomEndpoint(t *testing.T) {
 		t.Skip("Skipping as ARM_ENDPOINT isn't configured")
 	}
 
-	rs := acctest.RandString(4)
+	rs := randString(4)
 	res := testResourceNames(rs, "testState")
 	armClient := buildTestClient(t, res)
 
@@ -283,7 +285,7 @@ func TestAccBackendServicePrincipalClientSecretCustomEndpoint(t *testing.T) {
 
 func TestAccBackendAccessKeyLocked(t *testing.T) {
 	testAccAzureBackend(t)
-	rs := acctest.RandString(4)
+	rs := randString(4)
 	res := testResourceNames(rs, "testState")
 	armClient := buildTestClient(t, res)
 
@@ -321,7 +323,7 @@ func TestAccBackendAccessKeyLocked(t *testing.T) {
 
 func TestAccBackendServicePrincipalLocked(t *testing.T) {
 	testAccAzureBackend(t)
-	rs := acctest.RandString(4)
+	rs := randString(4)
 	res := testResourceNames(rs, "testState")
 	armClient := buildTestClient(t, res)
 

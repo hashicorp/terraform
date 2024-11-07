@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configs
 
 import (
@@ -208,9 +211,10 @@ func TestModule_required_provider_overrides(t *testing.T) {
 // Resources without explicit provider configuration are assigned a provider
 // implied based on the resource type. For example, this resource:
 //
-//  resource foo_instance "test" { }
+//	resource "foo_instance" "test" {}
 //
-// is assigned a provider with type "foo".
+// ...is assigned to whichever provider has local name "foo" in the current
+// module.
 //
 // To find the correct provider, we first look in the module's provider
 // requirements map for a local name matching the resource type, and fall back
@@ -407,7 +411,7 @@ func TestModule_cloud_override(t *testing.T) {
 
 func TestModule_cloud_duplicate_overrides(t *testing.T) {
 	_, diags := testModuleFromDir("testdata/invalid-modules/override-cloud-duplicates")
-	want := `Duplicate Terraform Cloud configurations`
+	want := `Duplicate HCP Terraform configurations`
 	if got := diags.Error(); !strings.Contains(got, want) {
 		t.Fatalf("expected module error to contain %q\nerror was:\n%s", want, got)
 	}

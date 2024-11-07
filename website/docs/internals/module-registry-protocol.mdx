@@ -23,7 +23,7 @@ publishing them on the public Terraform Registry.
 The public Terraform Registry implements a superset of the API described on
 this page, in order to capture additional information used in the registry UI.
 For information on those extensions, see
-[Terraform Registry HTTP API](/registry/api-docs). Third-party registry
+[Terraform Registry HTTP API](/terraform/registry/api-docs). Third-party registry
 implementations may choose to implement those extensions if desired, but
 Terraform CLI itself does not use them.
 
@@ -81,7 +81,7 @@ blocks have the same source address.
 ## Service Discovery
 
 The module registry protocol begins with Terraform CLI using
-[Terraform's remote service discovery protocol](/internals/remote-service-discovery),
+[Terraform's remote service discovery protocol](/terraform/internals/remote-service-discovery),
 with the hostname in the module address acting as the "User-facing Hostname".
 
 The service identifier for the module registry protocol is `modules.v1`.
@@ -121,9 +121,9 @@ the string "versions".
 This is the primary endpoint for resolving module sources, returning the
 available versions for a given fully-qualified module.
 
-| Method | Path                                  | Produces           |
-| ------ | ------------------------------------- | ------------------ |
-| `GET`  | `:namespace/:name/:provider/versions` | `application/json` |
+| Method | Path                                | Produces           |
+| ------ | ----------------------------------- | ------------------ |
+| `GET`  | `:namespace/:name/:system/versions` | `application/json` |
 
 ### Parameters
 
@@ -147,9 +147,7 @@ $ curl 'https://registry.terraform.io/v1/modules/hashicorp/consul/aws/versions'
 The `modules` array in the response always includes the requested module as the
 first element.
 
-Other elements of this list are not currently used. Third-party implementations
-should always use a single-element list for forward compatiblity with possible
-future extensions to the protocol.
+Terraform does not use the other elements of this list. However, third-party implementations should always use a single-element list for forward compatiblity.
 
 Each returned module has an array of available versions, which Terraform
 matches against any version constraints given in configuration.
@@ -169,11 +167,11 @@ matches against any version constraints given in configuration.
 ```
 
 Return `404 Not Found` to indicate that no module is available with the
-requested namespace, name, and provider
+requested namespace, name, and target system.
 
 ## Download Source Code for a Specific Module Version
 
-This endpoint downloads the specified version of a module for a single provider.
+This endpoint downloads the specified version of a module for a single target system.
 
 | Method | Path                                         | Produces           |
 | ------ | -------------------------------------------- | ------------------ |
@@ -187,7 +185,7 @@ This endpoint downloads the specified version of a module for a single provider.
 - `name` `(string: <required>)` - The name of the module.
   This is required and is specified as part of the URL path.
 
-- `provider` `(string: <required>)` - The name of the target system.
+- `system` `(string: <required>)` - The name of the target system.
   This is required and is specified as part of the URL path.
 
 - `version` `(string: <required>)` - The version of the module.
@@ -211,10 +209,10 @@ A successful response has no body, and includes the location from which the
 module version's source can be downloaded in the `X-Terraform-Get` header.
 The value of this header accepts the same values as the `source` argument
 in a `module` block in Terraform configuration, as described in
-[Module Sources](/language/modules/sources),
+[Module Sources](/terraform/language/modules/sources),
 except that it may not recursively refer to another module registry address.
 
 The value of `X-Terraform-Get` may instead be a relative URL, indicated by
 beginning with `/`, `./` or `../`, in which case it is resolved relative to
 the full URL of the download endpoint to produce
-[an HTTP URL module source](/language/modules/sources#http-urls).
+[an HTTP URL module source](/terraform/language/modules/sources#http-urls).

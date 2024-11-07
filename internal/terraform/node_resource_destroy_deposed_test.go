@@ -1,14 +1,19 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
@@ -37,13 +42,15 @@ func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
 		PrevRunStateState: state.DeepCopy().SyncWrapper(),
 		RefreshStateState: state.DeepCopy().SyncWrapper(),
 		ProviderProvider:  p,
-		ProviderSchemaSchema: &ProviderSchema{
-			ResourceTypes: map[string]*configschema.Block{
+		ProviderSchemaSchema: providers.ProviderSchema{
+			ResourceTypes: map[string]providers.Schema{
 				"test_instance": {
-					Attributes: map[string]*configschema.Attribute{
-						"id": {
-							Type:     cty.String,
-							Computed: true,
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id": {
+								Type:     cty.String,
+								Computed: true,
+							},
 						},
 					},
 				},
@@ -74,7 +81,7 @@ func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
 	}
 
 	change := ctx.Changes().GetResourceInstanceChange(absResource, deposedKey)
-	if got, want := change.ChangeSrc.Action, plans.Delete; got != want {
+	if got, want := change.Change.Action, plans.Delete; got != want {
 		t.Fatalf("wrong planned action\ngot:  %s\nwant: %s", got, want)
 	}
 }
@@ -93,13 +100,15 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
-	schema := &ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	schema := providers.ProviderSchema{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {
-						Type:     cty.String,
-						Computed: true,
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -108,7 +117,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 
 	p := testProvider("test")
 	p.ConfigureProvider(providers.ConfigureProviderRequest{})
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
+	p.GetProviderSchemaResponse = &schema
 
 	p.UpgradeResourceStateResponse = &providers.UpgradeResourceStateResponse{
 		UpgradedState: cty.ObjectVal(map[string]cty.Value{
@@ -120,6 +129,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 		ProviderProvider:     p,
 		ProviderSchemaSchema: schema,
 		ChangesChanges:       plans.NewChanges().SyncWrapper(),
+		DeferralsState:       deferring.NewDeferred(false),
 	}
 
 	node := NodeDestroyDeposedResourceInstanceObject{
@@ -146,7 +156,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_WriteResourceInstanceState(t *
 	state := states.NewState()
 	ctx := new(MockEvalContext)
 	ctx.StateState = state.SyncWrapper()
-	ctx.PathPath = addrs.RootModuleInstance
+	ctx.Scope = evalContextModuleInstance{Addr: addrs.RootModuleInstance}
 	mockProvider := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
 			"id": {
@@ -156,7 +166,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_WriteResourceInstanceState(t *
 		},
 	})
 	ctx.ProviderProvider = mockProvider
-	ctx.ProviderSchemaSchema = mockProvider.ProviderSchema()
+	ctx.ProviderSchemaSchema = mockProvider.GetProviderSchema()
 
 	obj := &states.ResourceInstanceObject{
 		Value: cty.ObjectVal(map[string]cty.Value{
@@ -191,7 +201,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_ExecuteMissingState(t *testing
 	ctx := &MockEvalContext{
 		StateState:           states.NewState().SyncWrapper(),
 		ProviderProvider:     simpleMockProvider(),
-		ProviderSchemaSchema: p.ProviderSchema(),
+		ProviderSchemaSchema: p.GetProviderSchema(),
 		ChangesChanges:       plans.NewChanges().SyncWrapper(),
 	}
 

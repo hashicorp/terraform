@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package getproviders
 
 import (
@@ -5,6 +8,7 @@ import (
 	"net/url"
 
 	svchost "github.com/hashicorp/terraform-svchost"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
@@ -210,7 +214,7 @@ func (err ErrQueryFailed) Unwrap() error {
 	return err.Wrapped
 }
 
-// ErrRequestCancelled is an error type used to indicate that an operation
+// ErrRequestCanceled is an error type used to indicate that an operation
 // failed due to being cancelled via the given context.Context object.
 //
 // This error type doesn't include information about what was cancelled,

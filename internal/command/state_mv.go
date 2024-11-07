@@ -1,17 +1,22 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/cli"
+
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/mitchellh/cli"
 )
 
 // StateMvCommand is a Command implementation that shows a single resource.
@@ -71,7 +76,7 @@ func (c *StateMvCommand) Run(args []string) int {
 
 		// If currentBackend is nil and diags didn't have errors,
 		// this means we have an implicit local backend
-		_, isLocalBackend := currentBackend.(backend.Local)
+		_, isLocalBackend := currentBackend.(backendrun.Local)
 		if currentBackend != nil && !isLocalBackend {
 			diags = diags.Append(
 				tfdiags.Sourceless(
@@ -385,12 +390,27 @@ func (c *StateMvCommand) Run(args []string) int {
 		return 0 // This is as far as we go in dry-run mode
 	}
 
+	b, backendDiags := c.Backend(nil)
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// Get schemas, if possible, before writing state
+	var schemas *terraform.Schemas
+	if isCloudMode(b) {
+		var schemaDiags tfdiags.Diagnostics
+		schemas, schemaDiags = c.MaybeGetSchemas(stateTo, nil)
+		diags = diags.Append(schemaDiags)
+	}
+
 	// Write the new state
 	if err := stateToMgr.WriteState(stateTo); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}
-	if err := stateToMgr.PersistState(); err != nil {
+	if err := stateToMgr.PersistState(schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}
@@ -401,7 +421,7 @@ func (c *StateMvCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 			return 1
 		}
-		if err := stateFromMgr.PersistState(); err != nil {
+		if err := stateFromMgr.PersistState(schemas); err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 			return 1
 		}

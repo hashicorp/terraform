@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package dag
 
 import (
@@ -238,10 +241,7 @@ func TestAcyclicGraphAncestors(t *testing.T) {
 	g.Connect(BasicEdge(3, 4))
 	g.Connect(BasicEdge(4, 5))
 
-	actual, err := g.Ancestors(2)
-	if err != nil {
-		t.Fatalf("err: %#v", err)
-	}
+	actual := g.Ancestors(2)
 
 	expected := []Vertex{3, 4, 5}
 
@@ -256,7 +256,7 @@ func TestAcyclicGraphAncestors(t *testing.T) {
 	}
 }
 
-func TestAcyclicGraphDescendents(t *testing.T) {
+func TestAcyclicGraphDescendants(t *testing.T) {
 	var g AcyclicGraph
 	g.Add(1)
 	g.Add(2)
@@ -269,10 +269,7 @@ func TestAcyclicGraphDescendents(t *testing.T) {
 	g.Connect(BasicEdge(3, 4))
 	g.Connect(BasicEdge(4, 5))
 
-	actual, err := g.Descendents(2)
-	if err != nil {
-		t.Fatalf("err: %#v", err)
-	}
+	actual := g.Descendants(2)
 
 	expected := []Vertex{0, 1}
 
@@ -284,6 +281,108 @@ func TestAcyclicGraphDescendents(t *testing.T) {
 		if !actual.Include(e) {
 			t.Fatalf("expected: %#v to include: %#v", expected, actual)
 		}
+	}
+}
+
+func TestAcyclicGraphFindDescendants(t *testing.T) {
+	var g AcyclicGraph
+	g.Add(0)
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Add(5)
+	g.Add(6)
+	g.Connect(BasicEdge(0, 1))
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(2, 6))
+	g.Connect(BasicEdge(3, 4))
+	g.Connect(BasicEdge(4, 5))
+	g.Connect(BasicEdge(5, 6))
+
+	actual := g.FirstDescendantsWith(6, func(v Vertex) bool {
+		// looking for first odd descendants
+		return v.(int)%2 != 0
+	})
+
+	expected := make(Set)
+	expected.Add(1)
+	expected.Add(5)
+
+	if expected.Intersection(actual).Len() != expected.Len() {
+		t.Fatalf("expected %#v, got %#v\n", expected, actual)
+	}
+
+	foundOne := g.MatchDescendant(6, func(v Vertex) bool {
+		return v.(int) == 1
+	})
+	if !foundOne {
+		t.Fatal("did not match 1 in the graph")
+	}
+
+	foundSix := g.MatchDescendant(6, func(v Vertex) bool {
+		return v.(int) == 6
+	})
+	if foundSix {
+		t.Fatal("6 should not be a descendant of itself")
+	}
+
+	foundTen := g.MatchDescendant(6, func(v Vertex) bool {
+		return v.(int) == 10
+	})
+	if foundTen {
+		t.Fatal("10 is not in the graph at all")
+	}
+}
+
+func TestAcyclicGraphFindAncestors(t *testing.T) {
+	var g AcyclicGraph
+	g.Add(0)
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Add(5)
+	g.Add(6)
+	g.Connect(BasicEdge(1, 0))
+	g.Connect(BasicEdge(2, 1))
+	g.Connect(BasicEdge(6, 2))
+	g.Connect(BasicEdge(4, 3))
+	g.Connect(BasicEdge(5, 4))
+	g.Connect(BasicEdge(6, 5))
+
+	actual := g.FirstAncestorsWith(6, func(v Vertex) bool {
+		// looking for first odd ancestors
+		return v.(int)%2 != 0
+	})
+
+	expected := make(Set)
+	expected.Add(1)
+	expected.Add(5)
+
+	if expected.Intersection(actual).Len() != expected.Len() {
+		t.Fatalf("expected %#v, got %#v\n", expected, actual)
+	}
+
+	foundOne := g.MatchAncestor(6, func(v Vertex) bool {
+		return v.(int) == 1
+	})
+	if !foundOne {
+		t.Fatal("did not match 1 in the graph")
+	}
+
+	foundSix := g.MatchAncestor(6, func(v Vertex) bool {
+		return v.(int) == 6
+	})
+	if foundSix {
+		t.Fatal("6 should not be a descendant of itself")
+	}
+
+	foundTen := g.MatchAncestor(6, func(v Vertex) bool {
+		return v.(int) == 10
+	})
+	if foundTen {
+		t.Fatal("10 is not in the graph at all")
 	}
 }
 
@@ -403,10 +502,7 @@ func BenchmarkDAG(b *testing.B) {
 		b.StartTimer()
 		// Find dependencies for every node
 		for _, v := range g.Vertices() {
-			_, err := g.Ancestors(v)
-			if err != nil {
-				b.Fatal(err)
-			}
+			_ = g.Ancestors(v)
 		}
 
 		// reduce the final graph
@@ -414,34 +510,136 @@ func BenchmarkDAG(b *testing.B) {
 	}
 }
 
-func TestAcyclicGraph_ReverseDepthFirstWalk_WithRemoval(t *testing.T) {
+func TestAcyclicGraphWalkOrder(t *testing.T) {
+	/* Sample dependency graph,
+	   all edges pointing downwards.
+	       1    2
+	      / \  /  \
+	     3    4    5
+	    /      \  /
+	   6         7
+	           / | \
+	          8  9  10
+	           \ | /
+	             11
+	*/
+
 	var g AcyclicGraph
-	g.Add(1)
-	g.Add(2)
-	g.Add(3)
-	g.Connect(BasicEdge(3, 2))
-	g.Connect(BasicEdge(2, 1))
+	for i := 1; i <= 11; i++ {
+		g.Add(i)
+	}
+	g.Connect(BasicEdge(1, 3))
+	g.Connect(BasicEdge(1, 4))
+	g.Connect(BasicEdge(2, 4))
+	g.Connect(BasicEdge(2, 5))
+	g.Connect(BasicEdge(3, 6))
+	g.Connect(BasicEdge(4, 7))
+	g.Connect(BasicEdge(5, 7))
+	g.Connect(BasicEdge(7, 8))
+	g.Connect(BasicEdge(7, 9))
+	g.Connect(BasicEdge(7, 10))
+	g.Connect(BasicEdge(8, 11))
+	g.Connect(BasicEdge(9, 11))
+	g.Connect(BasicEdge(10, 11))
 
-	var visits []Vertex
-	var lock sync.Mutex
-	root := make(Set)
-	root.Add(1)
+	start := make(Set)
+	start.Add(2)
+	start.Add(1)
+	reverse := make(Set)
+	reverse.Add(11)
+	reverse.Add(6)
 
-	err := g.ReverseDepthFirstWalk(root, func(v Vertex, d int) error {
-		lock.Lock()
-		defer lock.Unlock()
-		visits = append(visits, v)
-		g.Remove(v)
-		return nil
+	t.Run("DepthFirst", func(t *testing.T) {
+		var visits []vertexAtDepth
+		g.walk(depthFirst|downOrder, true, start, func(v Vertex, d int) error {
+			visits = append(visits, vertexAtDepth{v, d})
+			return nil
+
+		})
+		expect := []vertexAtDepth{
+			{2, 0}, {5, 1}, {7, 2}, {9, 3}, {11, 4}, {8, 3}, {10, 3}, {4, 1}, {1, 0}, {3, 1}, {6, 2},
+		}
+		if !reflect.DeepEqual(visits, expect) {
+			t.Errorf("expected visits:\n%v\ngot:\n%v\n", expect, visits)
+		}
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	t.Run("ReverseDepthFirst", func(t *testing.T) {
+		var visits []vertexAtDepth
+		g.walk(depthFirst|upOrder, true, reverse, func(v Vertex, d int) error {
+			visits = append(visits, vertexAtDepth{v, d})
+			return nil
 
-	expected := []Vertex{1, 2, 3}
-	if !reflect.DeepEqual(visits, expected) {
-		t.Fatalf("expected: %#v, got: %#v", expected, visits)
-	}
+		})
+		expect := []vertexAtDepth{
+			{6, 0}, {3, 1}, {1, 2}, {11, 0}, {9, 1}, {7, 2}, {5, 3}, {2, 4}, {4, 3}, {8, 1}, {10, 1},
+		}
+		if !reflect.DeepEqual(visits, expect) {
+			t.Errorf("expected visits:\n%v\ngot:\n%v\n", expect, visits)
+		}
+	})
+	t.Run("BreadthFirst", func(t *testing.T) {
+		var visits []vertexAtDepth
+		g.walk(breadthFirst|downOrder, true, start, func(v Vertex, d int) error {
+			visits = append(visits, vertexAtDepth{v, d})
+			return nil
+
+		})
+		expect := []vertexAtDepth{
+			{1, 0}, {2, 0}, {3, 1}, {4, 1}, {5, 1}, {6, 2}, {7, 2}, {10, 3}, {8, 3}, {9, 3}, {11, 4},
+		}
+		if !reflect.DeepEqual(visits, expect) {
+			t.Errorf("expected visits:\n%v\ngot:\n%v\n", expect, visits)
+		}
+	})
+	t.Run("ReverseBreadthFirst", func(t *testing.T) {
+		var visits []vertexAtDepth
+		g.walk(breadthFirst|upOrder, true, reverse, func(v Vertex, d int) error {
+			visits = append(visits, vertexAtDepth{v, d})
+			return nil
+
+		})
+		expect := []vertexAtDepth{
+			{11, 0}, {6, 0}, {10, 1}, {8, 1}, {9, 1}, {3, 1}, {7, 2}, {1, 2}, {4, 3}, {5, 3}, {2, 4},
+		}
+		if !reflect.DeepEqual(visits, expect) {
+			t.Errorf("expected visits:\n%v\ngot:\n%v\n", expect, visits)
+		}
+	})
+
+	t.Run("TopologicalOrder", func(t *testing.T) {
+		order := g.topoOrder(downOrder)
+
+		// Validate the order by checking it against the initial graph. We only
+		// need to verify that each node has it's direct dependencies
+		// satisfied.
+		completed := map[Vertex]bool{}
+		for _, v := range order {
+			deps := g.DownEdges(v)
+			for _, dep := range deps {
+				if !completed[dep] {
+					t.Fatalf("walking node %v, but dependency %v was not yet seen", v, dep)
+				}
+			}
+			completed[v] = true
+		}
+	})
+	t.Run("ReverseTopologicalOrder", func(t *testing.T) {
+		order := g.topoOrder(upOrder)
+
+		// Validate the order by checking it against the initial graph. We only
+		// need to verify that each node has it's direct dependencies
+		// satisfied.
+		completed := map[Vertex]bool{}
+		for _, v := range order {
+			deps := g.UpEdges(v)
+			for _, dep := range deps {
+				if !completed[dep] {
+					t.Fatalf("walking node %v, but dependency %v was not yet seen", v, dep)
+				}
+			}
+			completed[v] = true
+		}
+	})
 }
 
 const testGraphTransReductionStr = `

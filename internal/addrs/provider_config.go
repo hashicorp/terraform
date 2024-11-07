@@ -1,11 +1,15 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package addrs
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -50,6 +54,7 @@ type LocalProviderConfig struct {
 }
 
 var _ ProviderConfig = LocalProviderConfig{}
+var _ UniqueKeyer = LocalProviderConfig{}
 
 // NewDefaultLocalProviderConfig returns the address of the default (un-aliased)
 // configuration for the provider with the given local type name.
@@ -84,6 +89,14 @@ func (pc LocalProviderConfig) StringCompact() string {
 	return pc.LocalName
 }
 
+// UniqueKey implements UniqueKeyer.
+func (pc LocalProviderConfig) UniqueKey() UniqueKey {
+	// LocalProviderConfig acts as its own unique key.
+	return pc
+}
+
+func (pc LocalProviderConfig) uniqueKeySigil() {}
+
 // AbsProviderConfig is the absolute address of a provider configuration
 // within a particular module instance.
 type AbsProviderConfig struct {
@@ -93,22 +106,23 @@ type AbsProviderConfig struct {
 }
 
 var _ ProviderConfig = AbsProviderConfig{}
+var _ UniqueKeyer = AbsProviderConfig{}
 
 // ParseAbsProviderConfig parses the given traversal as an absolute provider
-// address. The following are examples of traversals that can be successfully
-// parsed as absolute provider configuration addresses:
+// configuration address. The following are examples of traversals that can be
+// successfully parsed as absolute provider configuration addresses:
 //
-//     provider["registry.terraform.io/hashicorp/aws"]
-//     provider["registry.terraform.io/hashicorp/aws"].foo
-//     module.bar.provider["registry.terraform.io/hashicorp/aws"]
-//     module.bar.module.baz.provider["registry.terraform.io/hashicorp/aws"].foo
+//   - provider["registry.terraform.io/hashicorp/aws"]
+//   - provider["registry.terraform.io/hashicorp/aws"].foo
+//   - module.bar.provider["registry.terraform.io/hashicorp/aws"]
+//   - module.bar.module.baz.provider["registry.terraform.io/hashicorp/aws"].foo
 //
 // This type of address is used, for example, to record the relationships
 // between resources and provider configurations in the state structure.
-// This type of address is not generally used in the UI, except in error
-// messages that refer to provider configurations.
+// This type of address is typically not used prominently in the UI, except in
+// error messages that refer to provider configurations.
 func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags.Diagnostics) {
-	modInst, remain, diags := parseModuleInstancePrefix(traversal)
+	modInst, remain, diags := parseModuleInstancePrefix(traversal, false)
 	var ret AbsProviderConfig
 
 	// Providers cannot resolve within module instances, so verify that there
@@ -230,19 +244,24 @@ func ParseLegacyAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Dia
 }
 
 // ParseLegacyAbsProviderConfig parses the given traversal as an absolute
-// provider address. The following are examples of traversals that can be
-// successfully parsed as legacy absolute provider configuration addresses:
+// provider address in the legacy form used by Terraform v0.12 and earlier.
+// The following are examples of traversals that can be successfully parsed as
+// legacy absolute provider configuration addresses:
 //
-//     provider.aws
-//     provider.aws.foo
-//     module.bar.provider.aws
-//     module.bar.module.baz.provider.aws.foo
+//   - provider.aws
+//   - provider.aws.foo
+//   - module.bar.provider.aws
+//   - module.bar.module.baz.provider.aws.foo
 //
-// This type of address is used in legacy state and may appear in state v4 if
-// the provider config addresses have not been normalized to include provider
-// FQN.
+// We can encounter this kind of address in a historical state snapshot that
+// hasn't yet been upgraded by refreshing or applying a plan with
+// Terraform v0.13. Later versions of Terraform reject state snapshots using
+// this format, and so users must follow the Terraform v0.13 upgrade guide
+// in that case.
+//
+// We will not use this address form for any new file formats.
 func ParseLegacyAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags.Diagnostics) {
-	modInst, remain, diags := parseModuleInstancePrefix(traversal)
+	modInst, remain, diags := parseModuleInstancePrefix(traversal, false)
 	var ret AbsProviderConfig
 
 	// Providers cannot resolve within module instances, so verify that there
@@ -383,12 +402,12 @@ func (pc AbsProviderConfig) LegacyString() string {
 	return fmt.Sprintf("%s.%s.%s", pc.Module.String(), "provider", pc.Provider.LegacyString())
 }
 
-// String() returns a string representation of an AbsProviderConfig in the following format:
+// String() returns a string representation of an AbsProviderConfig in a format like the following examples:
 //
-// 	provider["example.com/namespace/name"]
-// 	provider["example.com/namespace/name"].alias
-// 	module.module-name.provider["example.com/namespace/name"]
-// 	module.module-name.provider["example.com/namespace/name"].alias
+//   - provider["example.com/namespace/name"]
+//   - provider["example.com/namespace/name"].alias
+//   - module.module-name.provider["example.com/namespace/name"]
+//   - module.module-name.provider["example.com/namespace/name"].alias
 func (pc AbsProviderConfig) String() string {
 	var parts []string
 	if len(pc.Module) > 0 {
@@ -403,3 +422,73 @@ func (pc AbsProviderConfig) String() string {
 
 	return strings.Join(parts, ".")
 }
+
+func (pc AbsProviderConfig) Equal(other AbsProviderConfig) bool {
+	if !pc.Provider.Equals(other.Provider) {
+		return false
+	}
+	if pc.Alias != other.Alias {
+		return false
+	}
+	if !pc.Module.Equal(other.Module) {
+		return false
+	}
+	return true
+}
+
+// UniqueKey returns a unique key suitable for including the receiver in a
+// generic collection type such as `Map` or `Set`.
+//
+// As a special case, the [UniqueKey] for an AbsProviderConfig that belongs
+// to the root module is equal to the UniqueKey of the [RootProviderConfig]
+// address describing the same provider configuration. [Equivalent] will
+// return true if given an [AbsProviderConfig] and a [RootProviderConfig]
+// that both represent the same address.
+//
+// Non-root provider configurations never have keys equal to a
+// [RootProviderConfig].
+func (pc AbsProviderConfig) UniqueKey() UniqueKey {
+	if pc.Module.IsRoot() {
+		return RootProviderConfig{pc.Provider, pc.Alias}.UniqueKey()
+	}
+	return absProviderConfigUniqueKey(pc.String())
+}
+
+type absProviderConfigUniqueKey string
+
+func (k absProviderConfigUniqueKey) uniqueKeySigil() {}
+
+// RootProviderConfig is essentially a special variant of AbsProviderConfig
+// for situations where only root module provider configurations are allowed.
+//
+// It represents the same configuration as a corresponding [AbsProviderConfig]
+// whose Module field is set to [RootModule].
+type RootProviderConfig struct {
+	Provider Provider
+	Alias    string
+}
+
+// AbsProviderConfig returns the [AbsProviderConfig] value that represents the
+// same provider configuration as the receiver.
+//
+// Specifically, it sets [AbsProviderConfig.Module] to [RootModule] and
+// preserves the two other corresponding fields between these two types.
+func (p RootProviderConfig) AbsProviderConfig() AbsProviderConfig {
+	return AbsProviderConfig{
+		Module:   RootModule,
+		Provider: p.Provider,
+		Alias:    p.Alias,
+	}
+}
+
+func (p RootProviderConfig) String() string {
+	return p.AbsProviderConfig().String()
+}
+
+// UniqueKey returns a comparable unique key for the reciever suitable for
+// use in generic collection types such as [Set] and [Map].
+func (p RootProviderConfig) UniqueKey() UniqueKey {
+	// A RootProviderConfig is inherently comparable and so can be its own key
+	return p
+}
+func (p RootProviderConfig) uniqueKeySigil() {}

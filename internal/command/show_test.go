@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -9,16 +12,17 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/cli"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/version"
-	"github.com/mitchellh/cli"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestShow_badArgs(t *testing.T) {
@@ -76,7 +80,7 @@ func TestShow_noArgsWithState(t *testing.T) {
 	view, done := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
 			View:             view,
 		},
 	}
@@ -105,7 +109,7 @@ func TestShow_argsWithState(t *testing.T) {
 	view, done := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
 			View:             view,
 		},
 	}
@@ -153,7 +157,7 @@ func TestShow_argsWithStateAliasedProvider(t *testing.T) {
 	view, done := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
 			View:             view,
 		},
 	}
@@ -198,9 +202,13 @@ func TestShow_argsPlanFileDoesNotExist(t *testing.T) {
 	}
 
 	got := output.Stderr()
-	want := `Plan read error: open doesNotExist.tfplan:`
-	if !strings.Contains(got, want) {
-		t.Errorf("unexpected output\ngot: %s\nwant:\n%s", got, want)
+	want1 := `Plan read error: couldn't load the provided path`
+	want2 := `open doesNotExist.tfplan: no such file or directory`
+	if !strings.Contains(got, want1) {
+		t.Errorf("unexpected output\ngot: %s\nwant:\n%s", got, want1)
+	}
+	if !strings.Contains(got, want2) {
+		t.Errorf("unexpected output\ngot: %s\nwant:\n%s", got, want2)
 	}
 }
 
@@ -253,9 +261,13 @@ func TestShow_json_argsPlanFileDoesNotExist(t *testing.T) {
 	}
 
 	got := output.Stderr()
-	want := `Plan read error: open doesNotExist.tfplan:`
-	if !strings.Contains(got, want) {
-		t.Errorf("unexpected output\ngot: %s\nwant:\n%s", got, want)
+	want1 := `Plan read error: couldn't load the provided path`
+	want2 := `open doesNotExist.tfplan: no such file or directory`
+	if !strings.Contains(got, want1) {
+		t.Errorf("unexpected output\ngot: %s\nwant:\n%s", got, want1)
+	}
+	if !strings.Contains(got, want2) {
+		t.Errorf("unexpected output\ngot: %s\nwant:\n%s", got, want2)
 	}
 }
 
@@ -365,7 +377,7 @@ func TestShow_planWithForceReplaceChange(t *testing.T) {
 		t.Fatal(err)
 	}
 	plan := testPlan(t)
-	plan.Changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+	plan.Changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
 		Addr: addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: "test_instance",
@@ -418,7 +430,43 @@ func TestShow_planWithForceReplaceChange(t *testing.T) {
 	if !strings.Contains(got, want) {
 		t.Fatalf("unexpected output\ngot: %s\nwant: %s", got, want)
 	}
+}
 
+func TestShow_planErrored(t *testing.T) {
+	_, snap := testModuleWithSnapshot(t, "show")
+	plan := testPlan(t)
+	plan.Errored = true
+	planFilePath := testPlanFile(
+		t,
+		snap,
+		states.NewState(),
+		plan,
+	)
+
+	view, done := testView(t)
+	c := &ShowCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		planFilePath,
+		"-no-color",
+	}
+	code := c.Run(args)
+	output := done(t)
+
+	if code != 0 {
+		t.Fatalf("unexpected exit status %d; want 0\ngot: %s", code, output.Stderr())
+	}
+
+	got := output.Stdout()
+	want := `Planning failed. Terraform encountered an error while generating this plan.`
+	if !strings.Contains(got, want) {
+		t.Fatalf("unexpected output\ngot: %s\nwant: %s", got, want)
+	}
 }
 
 func TestShow_plan_json(t *testing.T) {
@@ -447,13 +495,23 @@ func TestShow_plan_json(t *testing.T) {
 
 func TestShow_state(t *testing.T) {
 	originalState := testState()
+	originalState.SetOutputValue(
+		addrs.OutputValue{Name: "test"}.Absolute(addrs.RootModuleInstance),
+		cty.ObjectVal(map[string]cty.Value{
+			"attr": cty.NullVal(cty.DynamicPseudoType),
+			"null": cty.NullVal(cty.String),
+			"list": cty.ListVal([]cty.Value{cty.NullVal(cty.Number)}),
+		}),
+		false,
+	)
+
 	statePath := testStateFile(t, originalState)
 	defer os.RemoveAll(filepath.Dir(statePath))
 
 	view, done := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
 			View:             view,
 		},
 	}
@@ -500,10 +558,12 @@ func TestShow_json_output(t *testing.T) {
 
 			// init
 			ui := new(cli.MockUi)
+			view, _ := testView(t)
 			ic := &InitCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(p),
 					Ui:               ui,
+					View:             view,
 					ProviderSource:   providerSource,
 				},
 			}
@@ -514,6 +574,20 @@ func TestShow_json_output(t *testing.T) {
 				}
 				t.Fatalf("init failed\n%s", ui.ErrorWriter)
 			}
+
+			// read expected output
+			wantFile, err := os.Open("output.json")
+			if err != nil {
+				t.Fatalf("unexpected err: %s", err)
+			}
+			defer wantFile.Close()
+			byteValue, err := ioutil.ReadAll(wantFile)
+			if err != nil {
+				t.Fatalf("unexpected err: %s", err)
+			}
+
+			var want plan
+			json.Unmarshal([]byte(byteValue), &want)
 
 			// plan
 			planView, planDone := testView(t)
@@ -532,8 +606,15 @@ func TestShow_json_output(t *testing.T) {
 			code := pc.Run(args)
 			planOutput := planDone(t)
 
-			if code != 0 {
-				t.Fatalf("unexpected exit status %d; want 0\ngot: %s", code, planOutput.Stderr())
+			var wantedCode int
+			if want.Errored {
+				wantedCode = 1
+			} else {
+				wantedCode = 0
+			}
+
+			if code != wantedCode {
+				t.Fatalf("unexpected exit status %d; want %d\ngot: %s", code, wantedCode, planOutput.Stderr())
 			}
 
 			// show
@@ -559,21 +640,10 @@ func TestShow_json_output(t *testing.T) {
 			}
 
 			// compare view output to wanted output
-			var got, want plan
+			var got plan
 
 			gotString := showOutput.Stdout()
 			json.Unmarshal([]byte(gotString), &got)
-
-			wantFile, err := os.Open("output.json")
-			if err != nil {
-				t.Fatalf("unexpected err: %s", err)
-			}
-			defer wantFile.Close()
-			byteValue, err := ioutil.ReadAll(wantFile)
-			if err != nil {
-				t.Fatalf("unexpected err: %s", err)
-			}
-			json.Unmarshal([]byte(byteValue), &want)
 
 			// Disregard format version to reduce needless test fixture churn
 			want.FormatVersion = got.FormatVersion
@@ -598,10 +668,12 @@ func TestShow_json_output_sensitive(t *testing.T) {
 
 	// init
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	ic := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 			ProviderSource:   providerSource,
 		},
 	}
@@ -691,10 +763,12 @@ func TestShow_json_output_conditions_refresh_only(t *testing.T) {
 
 	// init
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	ic := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 			ProviderSource:   providerSource,
 		},
 	}
@@ -800,10 +874,12 @@ func TestShow_json_output_state(t *testing.T) {
 
 			// init
 			ui := new(cli.MockUi)
+			view, _ := testView(t)
 			ic := &InitCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(p),
 					Ui:               ui,
+					View:             view,
 					ProviderSource:   providerSource,
 				},
 			}
@@ -989,7 +1065,7 @@ func showFixtureSensitiveSchema() *providers.GetProviderSchemaResponse {
 // GetSchemaResponse, PlanResourceChangeFn, and ApplyResourceChangeFn populated,
 // with the plan/apply steps just passing through the data determined by
 // Terraform Core.
-func showFixtureProvider() *terraform.MockProvider {
+func showFixtureProvider() *testing_provider.MockProvider {
 	p := testProvider()
 	p.GetProviderSchemaResponse = showFixtureSchema()
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
@@ -1052,7 +1128,7 @@ func showFixtureProvider() *terraform.MockProvider {
 // GetSchemaResponse, PlanResourceChangeFn, and ApplyResourceChangeFn populated,
 // with the plan/apply steps just passing through the data determined by
 // Terraform Core. It also has a sensitive attribute in the provider schema.
-func showFixtureSensitiveProvider() *terraform.MockProvider {
+func showFixtureSensitiveProvider() *testing_provider.MockProvider {
 	p := testProvider()
 	p.GetProviderSchemaResponse = showFixtureSensitiveSchema()
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
@@ -1103,7 +1179,7 @@ func showFixturePlanFile(t *testing.T, action plans.Action) string {
 		t.Fatal(err)
 	}
 	plan := testPlan(t)
-	plan.Changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+	plan.Changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
 		Addr: addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: "test_instance",
@@ -1140,6 +1216,9 @@ type plan struct {
 	OutputChanges   map[string]interface{} `json:"output_changes,omitempty"`
 	PriorState      priorState             `json:"prior_state,omitempty"`
 	Config          map[string]interface{} `json:"configuration,omitempty"`
+	Applyable       bool                   `json:"applyable"`
+	Complete        bool                   `json:"complete"`
+	Errored         bool                   `json:"errored"`
 }
 
 type priorState struct {

@@ -1,0 +1,121 @@
+[
+  {
+    "@level": "info",
+    "@message": "tfcoremock_complex_resource.complex: Refreshing state... [id=64564E36-BFCB-458B-9405-EBBF6A3CAC7A]",
+    "@module": "terraform.ui",
+    "hook": {
+      "id_key": "id",
+      "id_value": "64564E36-BFCB-458B-9405-EBBF6A3CAC7A",
+      "resource": {
+        "addr": "tfcoremock_complex_resource.complex",
+        "implied_provider": "tfcoremock",
+        "module": "",
+        "resource": "tfcoremock_complex_resource.complex",
+        "resource_key": null,
+        "resource_name": "complex",
+        "resource_type": "tfcoremock_complex_resource"
+      }
+    },
+    "type": "refresh_start"
+  },
+  {
+    "@level": "info",
+    "@message": "tfcoremock_complex_resource.complex: Refresh complete [id=64564E36-BFCB-458B-9405-EBBF6A3CAC7A]",
+    "@module": "terraform.ui",
+    "hook": {
+      "id_key": "id",
+      "id_value": "64564E36-BFCB-458B-9405-EBBF6A3CAC7A",
+      "resource": {
+        "addr": "tfcoremock_complex_resource.complex",
+        "implied_provider": "tfcoremock",
+        "module": "",
+        "resource": "tfcoremock_complex_resource.complex",
+        "resource_key": null,
+        "resource_name": "complex",
+        "resource_type": "tfcoremock_complex_resource"
+      }
+    },
+    "type": "refresh_complete"
+  },
+  {
+    "@level": "info",
+    "@message": "tfcoremock_complex_resource.complex: Plan to delete",
+    "@module": "terraform.ui",
+    "change": {
+      "action": "delete",
+      "resource": {
+        "addr": "tfcoremock_complex_resource.complex",
+        "implied_provider": "tfcoremock",
+        "module": "",
+        "resource": "tfcoremock_complex_resource.complex",
+        "resource_key": null,
+        "resource_name": "complex",
+        "resource_type": "tfcoremock_complex_resource"
+      }
+    },
+    "type": "planned_change"
+  },
+  {
+    "@level": "info",
+    "@message": "Plan: 0 to add, 0 to change, 1 to destroy.",
+    "@module": "terraform.ui",
+    "changes": {
+      "add": 0,
+      "change": 0,
+      "operation": "plan",
+      "remove": 1
+    },
+    "type": "change_summary"
+  },
+  {
+    "@level": "info",
+    "@message": "tfcoremock_complex_resource.complex: Destroying... [id=64564E36-BFCB-458B-9405-EBBF6A3CAC7A]",
+    "@module": "terraform.ui",
+    "hook": {
+      "action": "delete",
+      "id_key": "id",
+      "id_value": "64564E36-BFCB-458B-9405-EBBF6A3CAC7A",
+      "resource": {
+        "addr": "tfcoremock_complex_resource.complex",
+        "implied_provider": "tfcoremock",
+        "module": "",
+        "resource": "tfcoremock_complex_resource.complex",
+        "resource_key": null,
+        "resource_name": "complex",
+        "resource_type": "tfcoremock_complex_resource"
+      }
+    },
+    "type": "apply_start"
+  },
+  {
+    "@level": "info",
+    "@message": "tfcoremock_complex_resource.complex: Destruction complete after 0s",
+    "@module": "terraform.ui",
+    "hook": {
+      "action": "delete",
+      "elapsed_seconds": 0,
+      "resource": {
+        "addr": "tfcoremock_complex_resource.complex",
+        "implied_provider": "tfcoremock",
+        "module": "",
+        "resource": "tfcoremock_complex_resource.complex",
+        "resource_key": null,
+        "resource_name": "complex",
+        "resource_type": "tfcoremock_complex_resource"
+      }
+    },
+    "type": "apply_complete"
+  },
+  {
+    "@level": "info",
+    "@message": "Destroy complete! Resources: 1 destroyed.",
+    "@module": "terraform.ui",
+    "changes": {
+      "add": 0,
+      "change": 0,
+      "operation": "destroy",
+      "remove": 1
+    },
+    "type": "change_summary"
+  }
+]

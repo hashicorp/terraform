@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package refactoring
 
 import (
@@ -7,6 +10,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty/gocty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
@@ -14,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 func TestValidateMoves(t *testing.T) {
@@ -334,7 +338,7 @@ Each resource can have moved from only one source resource.`,
 					`test.thing`,
 				),
 			},
-			WantError: `Cross-package move statement: This statement declares a move from an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
+			WantError: ``,
 		},
 		"move to resource in another module package": {
 			Statements: []MoveStatement{
@@ -344,7 +348,7 @@ Each resource can have moved from only one source resource.`,
 					`module.fake_external.test.thing`,
 				),
 			},
-			WantError: `Cross-package move statement: This statement declares a move to an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
+			WantError: ``,
 		},
 		"move from module call in another module package": {
 			Statements: []MoveStatement{
@@ -354,7 +358,7 @@ Each resource can have moved from only one source resource.`,
 					`module.b`,
 				),
 			},
-			WantError: `Cross-package move statement: This statement declares a move from an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
+			WantError: ``,
 		},
 		"move to module call in another module package": {
 			Statements: []MoveStatement{
@@ -364,7 +368,7 @@ Each resource can have moved from only one source resource.`,
 					`module.fake_external.module.b`,
 				),
 			},
-			WantError: `Cross-package move statement: This statement declares a move to an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
+			WantError: ``,
 		},
 		"implied move from resource in another module package": {
 			Statements: []MoveStatement{
@@ -429,24 +433,6 @@ Each resource can have moved from only one source resource.`,
 				),
 			},
 			WantError: ``, // This is okay because the call itself is not considered to be inside the package it refers to
-		},
-		"resource type mismatch": {
-			Statements: []MoveStatement{
-				makeTestMoveStmt(t, ``,
-					`test.nonexist1`,
-					`other.single`,
-				),
-			},
-			WantError: `Resource type mismatch: This statement declares a move from test.nonexist1 to other.single, which is a resource of a different type.`,
-		},
-		"resource instance type mismatch": {
-			Statements: []MoveStatement{
-				makeTestMoveStmt(t, ``,
-					`test.nonexist1[0]`,
-					`other.single`,
-				),
-			},
-			WantError: `Resource type mismatch: This statement declares a move from test.nonexist1[0] to other.single, which is a resource instance of a different type.`,
 		},
 		"crossing nested statements": {
 			// overlapping nested moves will result in a cycle.
@@ -533,8 +519,8 @@ func loadRefactoringFixture(t *testing.T, dir string) (*configs.Config, instance
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
 
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
-	_, instDiags := inst.InstallModules(context.Background(), dir, true, initwd.ModuleInstallHooksImpl{})
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
@@ -550,7 +536,7 @@ func loadRefactoringFixture(t *testing.T, dir string) (*configs.Config, instance
 		t.Fatalf("failed to load root module: %s", diags.Error())
 	}
 
-	expander := instances.NewExpander()
+	expander := instances.NewExpander(nil)
 	staticPopulateExpanderModule(t, rootCfg, addrs.RootModuleInstance, expander)
 	return rootCfg, expander.AllInstances()
 }
@@ -558,7 +544,7 @@ func loadRefactoringFixture(t *testing.T, dir string) (*configs.Config, instance
 func staticPopulateExpanderModule(t *testing.T, rootCfg *configs.Config, moduleAddr addrs.ModuleInstance, expander *instances.Expander) {
 	t.Helper()
 
-	modCfg := rootCfg.DescendentForInstance(moduleAddr)
+	modCfg := rootCfg.DescendantForInstance(moduleAddr)
 	if modCfg == nil {
 		t.Fatalf("no configuration for %s", moduleAddr)
 	}
@@ -611,7 +597,7 @@ func staticPopulateExpanderModule(t *testing.T, rootCfg *configs.Config, moduleA
 
 		// We need to recursively analyze the child modules too.
 		calledMod := modCfg.Path.Child(call.Name)
-		for _, inst := range expander.ExpandModule(calledMod) {
+		for _, inst := range expander.ExpandModule(calledMod, false) {
 			staticPopulateExpanderModule(t, rootCfg, inst, expander)
 		}
 	}

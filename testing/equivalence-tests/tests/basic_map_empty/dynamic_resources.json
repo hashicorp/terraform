@@ -1,0 +1,13 @@
+{
+  "tfcoremock_map": {
+    "attributes": {
+      "map": {
+        "type": "map",
+        "optional": true,
+        "map": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

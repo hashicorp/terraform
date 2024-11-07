@@ -1,0 +1,99 @@
+---
+name: build_terraform
+
+# This workflow is intended to be called by the build workflow. The crt make
+# targets that are utilized automatically determine build metadata and
+# handle building and packing Terraform.
+
+on:
+  workflow_call:
+    inputs:
+      cgo-enabled:
+        type: string
+        default: 0
+        required: true
+      goos:
+        required: true
+        type: string
+      goarch:
+        required: true
+        type: string
+      go-version:
+        type: string
+      package-name:
+        type: string
+        default: terraform
+      product-version:
+        type: string
+        required: true
+      ld-flags:
+        type: string
+        required: true
+      runson:
+        type: string
+        required: true
+
+jobs:
+  build:
+    runs-on: ${{ inputs.runson }}
+    name: Terraform ${{ inputs.goos }} ${{ inputs.goarch }} v${{ inputs.product-version }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        with:
+          go-version: ${{ inputs.go-version }}
+      - name: Build Terraform
+        env:
+          GOOS: ${{ inputs.goos }}
+          GOARCH: ${{ inputs.goarch }}
+          GO_LDFLAGS: ${{ inputs.ld-flags }}
+          ACTIONSOS: ${{ inputs.runson }}
+          CGO_ENABLED: ${{ inputs.cgo-enabled }}
+        uses: hashicorp/actions-go-build@37358f6098ef21b09542d84a9814ebb843aa4e3e # v1
+        with:
+          product_name: ${{ inputs.package-name }}
+          product_version: ${{ inputs.product-version }}
+          go_version: ${{ inputs.go-version }}
+          os: ${{ inputs.goos }}
+          arch: ${{ inputs.goarch }}
+          reproducible: nope
+          instructions: |-
+            go build -ldflags "${{ inputs.ld-flags }}" -o "$BIN_PATH" -trimpath -buildvcs=false
+            cp LICENSE "$TARGET_DIR/LICENSE.txt"
+      - name: Copy license file to config_dir
+        if: ${{ inputs.goos == 'linux' }}
+        env:
+          LICENSE_DIR: ".release/linux/package/usr/share/doc/${{ inputs.package-name }}"
+        run: |
+          mkdir -p "$LICENSE_DIR" && cp LICENSE "$LICENSE_DIR/LICENSE.txt"
+      - if: ${{ inputs.goos == 'linux' }}
+        uses: hashicorp/actions-packaging-linux@8d55a640bb30b5508f16757ea908b274564792d4 # v1.9
+        with:
+          name: "terraform"
+          description: "Terraform enables you to safely and predictably create, change, and improve infrastructure. It is a tool that codifies APIs into declarative configuration files that can be shared amongst team members, treated as code, edited, reviewed, and versioned."
+          arch: ${{ inputs.goarch }}
+          version: ${{ inputs.product-version }}
+          maintainer: "HashiCorp"
+          homepage: "https://terraform.io/"
+          license: "BUSL-1.1"
+          binary: "dist/terraform"
+          deb_depends: "git"
+          rpm_depends: "git"
+          config_dir: ".release/linux/package/"
+      - if: ${{ inputs.goos == 'linux' }}
+        name: Determine package file names
+        run: |
+          echo "RPM_PACKAGE=$(basename out/*.rpm)" >> $GITHUB_ENV
+          echo "DEB_PACKAGE=$(basename out/*.deb)" >> $GITHUB_ENV
+      - if: ${{ inputs.goos == 'linux' }}
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: ${{ env.RPM_PACKAGE }}
+          path: out/${{ env.RPM_PACKAGE }}
+          if-no-files-found: error
+      - if: ${{ inputs.goos == 'linux' }}
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: ${{ env.DEB_PACKAGE }}
+          path: out/${{ env.DEB_PACKAGE }}
+          if-no-files-found: error

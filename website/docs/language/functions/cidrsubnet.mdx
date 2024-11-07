@@ -27,7 +27,7 @@ additional bits added to the prefix.
 This function accepts both IPv6 and IPv4 prefixes, and the result always uses
 the same addressing scheme as the given prefix.
 
-Unlike the related function [`cidrsubnets`](/language/functions/cidrsubnets), `cidrsubnet`
+Unlike the related function [`cidrsubnets`](/terraform/language/functions/cidrsubnets), `cidrsubnet`
 allows you to give a specific network number to use. `cidrsubnets` can allocate
 multiple network addresses at once, but numbers them automatically starting
 with zero.
@@ -93,7 +93,7 @@ This gives us some additional information but also confirms (using a slightly
 different notation) the conversion from decimal to binary and shows the range
 of possible host addresses in this network.
 
-While [`cidrhost`](/language/functions/cidrhost) allows calculating single host IP addresses,
+While [`cidrhost`](/terraform/language/functions/cidrhost) allows calculating single host IP addresses,
 `cidrsubnet` on the other hand creates a new network prefix _within_ the given
 network prefix. In other words, it creates a subnet.
 
@@ -148,7 +148,7 @@ Hosts/Net: 14                    Class A, Private Internet
 The new subnet has four bits available for host numbering, which means
 that there are 14 host addresses available for assignment once we subtract
 the network's own address and the broadcast address. You can thus use
-[`cidrhost`](/language/functions/cidrhost) function to calculate those host addresses by
+[`cidrhost`](/terraform/language/functions/cidrhost) function to calculate those host addresses by
 providing it a value between 1 and 14:
 
 ```
@@ -163,9 +163,9 @@ For more information on CIDR notation and subnetting, see
 
 ## Related Functions
 
-* [`cidrhost`](/language/functions/cidrhost) calculates the IP address for a single host
+* [`cidrhost`](/terraform/language/functions/cidrhost) calculates the IP address for a single host
   within a given network address prefix.
-* [`cidrnetmask`](/language/functions/cidrnetmask) converts an IPv4 network prefix in CIDR
+* [`cidrnetmask`](/terraform/language/functions/cidrnetmask) converts an IPv4 network prefix in CIDR
   notation into netmask notation.
-* [`cidrsubnets`](/language/functions/cidrsubnets) can allocate multiple consecutive
+* [`cidrsubnets`](/terraform/language/functions/cidrsubnets) can allocate multiple consecutive
   addresses under a prefix at once, numbering them automatically.

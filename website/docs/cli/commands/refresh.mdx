@@ -7,7 +7,7 @@ description: |-
 
 # Command: refresh
 
-> **Hands-on:** Try the [Use Refresh-Only Mode to Sync Terraform State](https://learn.hashicorp.com/tutorials/terraform/refresh) tutorial on HashiCorp Learn.
+> **Hands-on:** Try the [Use Refresh-Only Mode to Sync Terraform State](/terraform/tutorials/state/refresh) tutorial.
 
 The `terraform refresh` command reads the current settings from all managed
 remote objects and updates the Terraform state to match.
@@ -17,14 +17,14 @@ unsafe if you have misconfigured credentials for any of your providers.
 See below for more information and recommended alternatives.
 
 This won't modify your real remote objects, but it will modify the
-[Terraform state](/language/state).
+[Terraform state](/terraform/language/state).
 
 You shouldn't typically need to use this command, because Terraform
 automatically performs the same refreshing actions as a part of creating
 a plan in both the
-[`terraform plan`](/cli/commands/plan)
+[`terraform plan`](/terraform/cli/commands/plan)
 and
-[`terraform apply`](/cli/commands/apply)
+[`terraform apply`](/terraform/cli/commands/apply)
 commands. This command is here primarily for backward compatibility, but
 we don't recommend using it because it provides no opportunity to review
 the effects of the operation before updating the state.
@@ -40,7 +40,7 @@ terraform apply -refresh-only -auto-approve
 ```
 
 Consequently, it supports all of the same options as
-[`terraform apply`](/cli/commands/apply) except that it does not accept a saved
+[`terraform apply`](/terraform/cli/commands/apply) except that it does not accept a saved
 plan file, it doesn't allow selecting a planning mode other than "refresh only",
 and `-auto-approve` is always enabled.
 

@@ -1,9 +1,14 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package statemgr
 
 import (
+	"context"
 	"errors"
 	"sync"
 
+	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -61,8 +66,12 @@ func (m *fakeFull) RefreshState() error {
 	return m.t.WriteState(m.fakeP.State())
 }
 
-func (m *fakeFull) PersistState() error {
+func (m *fakeFull) PersistState(schemas *schemarepo.Schemas) error {
 	return m.fakeP.WriteState(m.t.State())
+}
+
+func (m *fakeFull) GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
+	return m.State().RootOutputValues, nil
 }
 
 func (m *fakeFull) Lock(info *LockInfo) (string, error) {
@@ -111,6 +120,10 @@ func (m *fakeErrorFull) State() *states.State {
 	return nil
 }
 
+func (m *fakeErrorFull) GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
+	return nil, errors.New("fake state manager error")
+}
+
 func (m *fakeErrorFull) WriteState(s *states.State) error {
 	return errors.New("fake state manager error")
 }
@@ -119,7 +132,7 @@ func (m *fakeErrorFull) RefreshState() error {
 	return errors.New("fake state manager error")
 }
 
-func (m *fakeErrorFull) PersistState() error {
+func (m *fakeErrorFull) PersistState(schemas *schemarepo.Schemas) error {
 	return errors.New("fake state manager error")
 }
 

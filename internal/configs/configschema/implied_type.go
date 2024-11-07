@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configschema
 
 import (
@@ -33,7 +36,7 @@ func (b *Block) specType() cty.Type {
 }
 
 // ContainsSensitive returns true if any of the attributes of the receiving
-// block or any of its descendent blocks are marked as sensitive.
+// block or any of its descendant blocks are marked as sensitive.
 //
 // Blocks themselves cannot be sensitive as a whole -- sensitivity is a
 // per-attribute idea -- but sometimes we want to include a whole object
@@ -54,6 +57,20 @@ func (b *Block) ContainsSensitive() bool {
 		}
 	}
 	return false
+}
+
+// ImpliedType returns the cty.Type that would result from decoding a Block's
+// ImpliedType and getting the resulting AttributeType.
+//
+// ImpliedType always returns a result, even if the given schema is
+// inconsistent. Code that creates configschema.Object objects should be tested
+// using the InternalValidate method to detect any inconsistencies that would
+// cause this method to fall back on defaults and assumptions.
+func (a *Attribute) ImpliedType() cty.Type {
+	if a.NestedType != nil {
+		return a.NestedType.specType().WithoutOptionalAttributesDeep()
+	}
+	return a.Type
 }
 
 // ImpliedType returns the cty.Type that would result from decoding a

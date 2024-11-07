@@ -1,0 +1,31 @@
+{
+  "values": {
+    "id": {
+      "string": "502B0348-B796-4F6A-8694-A5A397237B85"
+    },
+    "maps": {
+      "map": {
+        "first_nested_map": {
+          "map": {
+            "first_key": {
+              "string": "9E858021-953F-4DD3-8842-F2C782780422"
+            },
+            "second_key": {
+              "string": "D55D0E1E-51D9-4BCE-9021-7D201906D3C0"
+            }
+          }
+        },
+        "second_nested_map": {
+          "map": {
+            "first_key": {
+              "string": "6E80C701-A823-43FE-A520-699851EF9052"
+            },
+            "second_key": {
+              "string": "79CBEBB1-1192-480A-B4A8-E816A1A9D2FC"
+            }
+          }
+        }
+      }
+    }
+  }
+}

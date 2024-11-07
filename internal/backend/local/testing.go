@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package local
 
 import (
@@ -10,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -39,28 +43,11 @@ func TestLocal(t *testing.T) *Local {
 
 // TestLocalProvider modifies the ContextOpts of the *Local parameter to
 // have a provider with the given name.
-func TestLocalProvider(t *testing.T, b *Local, name string, schema *terraform.ProviderSchema) *terraform.MockProvider {
+func TestLocalProvider(t *testing.T, b *Local, name string, schema providers.ProviderSchema) *testing_provider.MockProvider {
 	// Build a mock resource provider for in-memory operations
-	p := new(terraform.MockProvider)
+	p := new(testing_provider.MockProvider)
 
-	if schema == nil {
-		schema = &terraform.ProviderSchema{} // default schema is empty
-	}
-	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-		Provider:      providers.Schema{Block: schema.Provider},
-		ProviderMeta:  providers.Schema{Block: schema.ProviderMeta},
-		ResourceTypes: map[string]providers.Schema{},
-		DataSources:   map[string]providers.Schema{},
-	}
-	for name, res := range schema.ResourceTypes {
-		p.GetProviderSchemaResponse.ResourceTypes[name] = providers.Schema{
-			Block:   res,
-			Version: int64(schema.ResourceTypeSchemaVersions[name]),
-		}
-	}
-	for name, dat := range schema.DataSources {
-		p.GetProviderSchemaResponse.DataSources[name] = providers.Schema{Block: dat}
-	}
+	p.GetProviderSchemaResponse = &schema
 
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 		// this is a destroy plan,
@@ -135,7 +122,7 @@ func (b *TestLocalSingleState) Workspaces() ([]string, error) {
 	return nil, backend.ErrWorkspacesNotSupported
 }
 
-func (b *TestLocalSingleState) DeleteWorkspace(string) error {
+func (b *TestLocalSingleState) DeleteWorkspace(string, bool) error {
 	return backend.ErrWorkspacesNotSupported
 }
 
@@ -177,11 +164,11 @@ func (b *TestLocalNoDefaultState) Workspaces() ([]string, error) {
 	return filtered, nil
 }
 
-func (b *TestLocalNoDefaultState) DeleteWorkspace(name string) error {
+func (b *TestLocalNoDefaultState) DeleteWorkspace(name string, force bool) error {
 	if name == backend.DefaultStateName {
 		return backend.ErrDefaultWorkspaceNotSupported
 	}
-	return b.Local.DeleteWorkspace(name)
+	return b.Local.DeleteWorkspace(name, force)
 }
 
 func (b *TestLocalNoDefaultState) StateMgr(name string) (statemgr.Full, error) {

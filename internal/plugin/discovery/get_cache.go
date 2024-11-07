@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package discovery
 
 // PluginCache is an interface implemented by objects that are able to maintain

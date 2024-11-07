@@ -1,7 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
-	"sync"
+	"fmt"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -10,8 +13,13 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -21,11 +29,14 @@ func TestEvaluatorGetTerraformAttr(t *testing.T) {
 		Meta: &ContextMeta{
 			Env: "foo",
 		},
+		NamedValues: namedvals.NewState(),
 	}
 	data := &evaluationStateData{
-		Evaluator: evaluator,
+		evaluationData: &evaluationData{
+			Evaluator: evaluator,
+		},
 	}
-	scope := evaluator.Scope(data, nil)
+	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 
 	t.Run("workspace", func(t *testing.T) {
 		want := cty.StringVal("foo")
@@ -51,11 +62,14 @@ func TestEvaluatorGetPathAttr(t *testing.T) {
 				SourceDir: "bar/baz",
 			},
 		},
+		NamedValues: namedvals.NewState(),
 	}
 	data := &evaluationStateData{
-		Evaluator: evaluator,
+		evaluationData: &evaluationData{
+			Evaluator: evaluator,
+		},
 	}
-	scope := evaluator.Scope(data, nil)
+	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 
 	t.Run("module", func(t *testing.T) {
 		want := cty.StringVal("bar/baz")
@@ -84,9 +98,83 @@ func TestEvaluatorGetPathAttr(t *testing.T) {
 	})
 }
 
+func TestEvaluatorGetOutputValue(t *testing.T) {
+	evaluator := &Evaluator{
+		Meta: &ContextMeta{
+			Env: "foo",
+		},
+		Config: &configs.Config{
+			Module: &configs.Module{
+				Outputs: map[string]*configs.Output{
+					"some_output": {
+						Name:      "some_output",
+						Sensitive: true,
+					},
+					"some_other_output": {
+						Name: "some_other_output",
+					},
+				},
+			},
+		},
+		State: states.BuildState(func(state *states.SyncState) {
+			state.SetOutputValue(addrs.AbsOutputValue{
+				Module: addrs.RootModuleInstance,
+				OutputValue: addrs.OutputValue{
+					Name: "some_output",
+				},
+			}, cty.StringVal("first"), true)
+			state.SetOutputValue(addrs.AbsOutputValue{
+				Module: addrs.RootModuleInstance,
+				OutputValue: addrs.OutputValue{
+					Name: "some_other_output",
+				},
+			}, cty.StringVal("second"), false)
+		}).SyncWrapper(),
+	}
+
+	data := &evaluationStateData{
+		evaluationData: &evaluationData{
+			Evaluator: evaluator,
+		},
+	}
+	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
+
+	want := cty.StringVal("first").Mark(marks.Sensitive)
+	got, diags := scope.Data.GetOutput(addrs.OutputValue{
+		Name: "some_output",
+	}, tfdiags.SourceRange{})
+
+	if len(diags) != 0 {
+		t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
+	}
+	if !got.RawEquals(want) {
+		t.Errorf("wrong result %#v; want %#v", got, want)
+	}
+
+	want = cty.StringVal("second")
+	got, diags = scope.Data.GetOutput(addrs.OutputValue{
+		Name: "some_other_output",
+	}, tfdiags.SourceRange{})
+
+	if len(diags) != 0 {
+		t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
+	}
+	if !got.RawEquals(want) {
+		t.Errorf("wrong result %#v; want %#v", got, want)
+	}
+}
+
 // This particularly tests that a sensitive attribute in config
 // results in a value that has a "sensitive" cty Mark
 func TestEvaluatorGetInputVariable(t *testing.T) {
+	namedValues := namedvals.NewState()
+	namedValues.SetInputVariableValue(
+		addrs.RootModuleInstance.InputVariable("some_var"), cty.StringVal("bar"),
+	)
+	namedValues.SetInputVariableValue(
+		addrs.RootModuleInstance.InputVariable("some_other_var"), cty.StringVal("boop").Mark(marks.Sensitive),
+	)
+
 	evaluator := &Evaluator{
 		Meta: &ContextMeta{
 			Env: "foo",
@@ -112,19 +200,15 @@ func TestEvaluatorGetInputVariable(t *testing.T) {
 				},
 			},
 		},
-		VariableValues: map[string]map[string]cty.Value{
-			"": {
-				"some_var":       cty.StringVal("bar"),
-				"some_other_var": cty.StringVal("boop").Mark(marks.Sensitive),
-			},
-		},
-		VariableValuesLock: &sync.Mutex{},
+		NamedValues: namedValues,
 	}
 
 	data := &evaluationStateData{
-		Evaluator: evaluator,
+		evaluationData: &evaluationData{
+			Evaluator: evaluator,
+		},
 	}
-	scope := evaluator.Scope(data, nil)
+	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 
 	want := cty.StringVal("bar").Mark(marks.Sensitive)
 	got, diags := scope.Data.GetInputVariable(addrs.InputVariable{
@@ -162,6 +246,14 @@ func TestEvaluatorGetResource(t *testing.T) {
 			&states.ResourceInstanceObjectSrc{
 				Status:    states.ObjectReady,
 				AttrsJSON: []byte(`{"id":"foo", "nesting_list": [{"sensitive_value":"abc"}], "nesting_map": {"foo":{"foo":"x"}}, "nesting_set": [{"baz":"abc"}], "nesting_single": {"boop":"abc"}, "nesting_nesting": {"nesting_list":[{"sensitive_value":"abc"}]}, "value":"hello"}`),
+				AttrSensitivePaths: []cty.Path{
+					cty.GetAttrPath("nesting_list").IndexInt(0).GetAttr("sensitive_value"),
+					cty.GetAttrPath("nesting_map").IndexString("foo").GetAttr("foo"),
+					cty.GetAttrPath("nesting_nesting").GetAttr("nesting_list").IndexInt(0).GetAttr("sensitive_value"),
+					cty.GetAttrPath("nesting_set"),
+					cty.GetAttrPath("nesting_single").GetAttr("boop"),
+					cty.GetAttrPath("value"),
+				},
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewDefaultProvider("test"),
@@ -196,72 +288,75 @@ func TestEvaluatorGetResource(t *testing.T) {
 				},
 			},
 		},
-		State: stateSync,
-		Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]*ProviderSchema{
+		State:       stateSync,
+		NamedValues: namedvals.NewState(),
+		Deferrals:   deferring.NewDeferred(false),
+		Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]providers.ProviderSchema{
 			addrs.NewDefaultProvider("test"): {
-				Provider: &configschema.Block{},
-				ResourceTypes: map[string]*configschema.Block{
+				ResourceTypes: map[string]providers.Schema{
 					"test_resource": {
-						Attributes: map[string]*configschema.Attribute{
-							"id": {
-								Type:     cty.String,
-								Computed: true,
-							},
-							"value": {
-								Type:      cty.String,
-								Computed:  true,
-								Sensitive: true,
-							},
-						},
-						BlockTypes: map[string]*configschema.NestedBlock{
-							"nesting_list": {
-								Block: configschema.Block{
-									Attributes: map[string]*configschema.Attribute{
-										"value":           {Type: cty.String, Optional: true},
-										"sensitive_value": {Type: cty.String, Optional: true, Sensitive: true},
-									},
+						Block: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"id": {
+									Type:     cty.String,
+									Computed: true,
 								},
-								Nesting: configschema.NestingList,
-							},
-							"nesting_map": {
-								Block: configschema.Block{
-									Attributes: map[string]*configschema.Attribute{
-										"foo": {Type: cty.String, Optional: true, Sensitive: true},
-									},
+								"value": {
+									Type:      cty.String,
+									Computed:  true,
+									Sensitive: true,
 								},
-								Nesting: configschema.NestingMap,
 							},
-							"nesting_set": {
-								Block: configschema.Block{
-									Attributes: map[string]*configschema.Attribute{
-										"baz": {Type: cty.String, Optional: true, Sensitive: true},
-									},
-								},
-								Nesting: configschema.NestingSet,
-							},
-							"nesting_single": {
-								Block: configschema.Block{
-									Attributes: map[string]*configschema.Attribute{
-										"boop": {Type: cty.String, Optional: true, Sensitive: true},
-									},
-								},
-								Nesting: configschema.NestingSingle,
-							},
-							"nesting_nesting": {
-								Block: configschema.Block{
-									BlockTypes: map[string]*configschema.NestedBlock{
-										"nesting_list": {
-											Block: configschema.Block{
-												Attributes: map[string]*configschema.Attribute{
-													"value":           {Type: cty.String, Optional: true},
-													"sensitive_value": {Type: cty.String, Optional: true, Sensitive: true},
-												},
-											},
-											Nesting: configschema.NestingList,
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"nesting_list": {
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"value":           {Type: cty.String, Optional: true},
+											"sensitive_value": {Type: cty.String, Optional: true, Sensitive: true},
 										},
 									},
+									Nesting: configschema.NestingList,
 								},
-								Nesting: configschema.NestingSingle,
+								"nesting_map": {
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"foo": {Type: cty.String, Optional: true, Sensitive: true},
+										},
+									},
+									Nesting: configschema.NestingMap,
+								},
+								"nesting_set": {
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"baz": {Type: cty.String, Optional: true, Sensitive: true},
+										},
+									},
+									Nesting: configschema.NestingSet,
+								},
+								"nesting_single": {
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"boop": {Type: cty.String, Optional: true, Sensitive: true},
+										},
+									},
+									Nesting: configschema.NestingSingle,
+								},
+								"nesting_nesting": {
+									Block: configschema.Block{
+										BlockTypes: map[string]*configschema.NestedBlock{
+											"nesting_list": {
+												Block: configschema.Block{
+													Attributes: map[string]*configschema.Attribute{
+														"value":           {Type: cty.String, Optional: true},
+														"sensitive_value": {Type: cty.String, Optional: true, Sensitive: true},
+													},
+												},
+												Nesting: configschema.NestingList,
+											},
+										},
+									},
+									Nesting: configschema.NestingSingle,
+								},
 							},
 						},
 					},
@@ -271,9 +366,11 @@ func TestEvaluatorGetResource(t *testing.T) {
 	}
 
 	data := &evaluationStateData{
-		Evaluator: evaluator,
+		evaluationData: &evaluationData{
+			Evaluator: evaluator,
+		},
 	}
-	scope := evaluator.Scope(data, nil)
+	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 
 	want := cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("foo"),
@@ -358,39 +455,40 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":              cty.StringVal("foo"),
 				"to_mark_val":     cty.StringVal("pizza").Mark(marks.Sensitive),
-				"sensitive_value": cty.StringVal("abc"),
+				"sensitive_value": cty.StringVal("abc").Mark(marks.Sensitive),
 				"sensitive_collection": cty.MapVal(map[string]cty.Value{
 					"boop": cty.StringVal("beep"),
-				}),
+				}).Mark(marks.Sensitive),
 			}),
 		},
 	}
 
 	// Set up our schemas
 	schemas := &Schemas{
-		Providers: map[addrs.Provider]*ProviderSchema{
+		Providers: map[addrs.Provider]providers.ProviderSchema{
 			addrs.NewDefaultProvider("test"): {
-				Provider: &configschema.Block{},
-				ResourceTypes: map[string]*configschema.Block{
+				ResourceTypes: map[string]providers.Schema{
 					"test_resource": {
-						Attributes: map[string]*configschema.Attribute{
-							"id": {
-								Type:     cty.String,
-								Computed: true,
-							},
-							"to_mark_val": {
-								Type:     cty.String,
-								Computed: true,
-							},
-							"sensitive_value": {
-								Type:      cty.String,
-								Computed:  true,
-								Sensitive: true,
-							},
-							"sensitive_collection": {
-								Type:      cty.Map(cty.String),
-								Computed:  true,
-								Sensitive: true,
+						Block: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"id": {
+									Type:     cty.String,
+									Computed: true,
+								},
+								"to_mark_val": {
+									Type:     cty.String,
+									Computed: true,
+								},
+								"sensitive_value": {
+									Type:      cty.String,
+									Computed:  true,
+									Sensitive: true,
+								},
+								"sensitive_collection": {
+									Type:      cty.Map(cty.String),
+									Computed:  true,
+									Sensitive: true,
+								},
 							},
 						},
 					},
@@ -405,10 +503,8 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 		Type: "test_resource",
 		Name: "foo",
 	}
-	schema, _ := schemas.ResourceTypeConfig(addrs.NewDefaultProvider("test"), addr.Mode, addr.Type)
-	// This encoding separates out the After's marks into its AfterValMarks
-	csrc, _ := change.Encode(schema.ImpliedType())
-	changesSync.AppendResourceInstanceChange(csrc)
+
+	changesSync.AppendResourceInstanceChange(change)
 
 	evaluator := &Evaluator{
 		Meta: &ContextMeta{
@@ -431,14 +527,18 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 				},
 			},
 		},
-		State:   stateSync,
-		Plugins: schemaOnlyProvidersForTesting(schemas.Providers),
+		State:       stateSync,
+		NamedValues: namedvals.NewState(),
+		Deferrals:   deferring.NewDeferred(false),
+		Plugins:     schemaOnlyProvidersForTesting(schemas.Providers),
 	}
 
 	data := &evaluationStateData{
-		Evaluator: evaluator,
+		evaluationData: &evaluationData{
+			Evaluator: evaluator,
+		},
 	}
-	scope := evaluator.Scope(data, nil)
+	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 
 	want := cty.ObjectVal(map[string]cty.Value{
 		"id":              cty.StringVal("foo"),
@@ -461,19 +561,18 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 }
 
 func TestEvaluatorGetModule(t *testing.T) {
-	// Create a new evaluator with an existing state
-	stateSync := states.BuildState(func(ss *states.SyncState) {
-		ss.SetOutputValue(
-			addrs.OutputValue{Name: "out"}.Absolute(addrs.ModuleInstance{addrs.ModuleInstanceStep{Name: "mod"}}),
-			cty.StringVal("bar"),
-			true,
-		)
-	}).SyncWrapper()
-	evaluator := evaluatorForModule(stateSync, plans.NewChanges().SyncWrapper())
+	evaluator := evaluatorForModule(states.NewState().SyncWrapper(), plans.NewChanges().SyncWrapper())
+	evaluator.Instances.SetModuleSingle(addrs.RootModuleInstance, addrs.ModuleCall{Name: "mod"})
+	evaluator.NamedValues.SetOutputValue(
+		addrs.OutputValue{Name: "out"}.Absolute(addrs.ModuleInstance{addrs.ModuleInstanceStep{Name: "mod"}}),
+		cty.StringVal("bar").Mark(marks.Sensitive),
+	)
 	data := &evaluationStateData{
-		Evaluator: evaluator,
+		evaluationData: &evaluationData{
+			Evaluator: evaluator,
+		},
 	}
-	scope := evaluator.Scope(data, nil)
+	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 	want := cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("bar").Mark(marks.Sensitive)})
 	got, diags := scope.Data.GetModule(addrs.ModuleCall{
 		Name: "mod",
@@ -483,53 +582,7 @@ func TestEvaluatorGetModule(t *testing.T) {
 		t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
 	}
 	if !got.RawEquals(want) {
-		t.Errorf("wrong result %#v; want %#v", got, want)
-	}
-
-	// Changes should override the state value
-	changesSync := plans.NewChanges().SyncWrapper()
-	change := &plans.OutputChange{
-		Addr:      addrs.OutputValue{Name: "out"}.Absolute(addrs.ModuleInstance{addrs.ModuleInstanceStep{Name: "mod"}}),
-		Sensitive: true,
-		Change: plans.Change{
-			After: cty.StringVal("baz"),
-		},
-	}
-	cs, _ := change.Encode()
-	changesSync.AppendOutputChange(cs)
-	evaluator = evaluatorForModule(stateSync, changesSync)
-	data = &evaluationStateData{
-		Evaluator: evaluator,
-	}
-	scope = evaluator.Scope(data, nil)
-	want = cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("baz").Mark(marks.Sensitive)})
-	got, diags = scope.Data.GetModule(addrs.ModuleCall{
-		Name: "mod",
-	}, tfdiags.SourceRange{})
-
-	if len(diags) != 0 {
-		t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
-	}
-	if !got.RawEquals(want) {
-		t.Errorf("wrong result %#v; want %#v", got, want)
-	}
-
-	// Test changes with empty state
-	evaluator = evaluatorForModule(states.NewState().SyncWrapper(), changesSync)
-	data = &evaluationStateData{
-		Evaluator: evaluator,
-	}
-	scope = evaluator.Scope(data, nil)
-	want = cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("baz").Mark(marks.Sensitive)})
-	got, diags = scope.Data.GetModule(addrs.ModuleCall{
-		Name: "mod",
-	}, tfdiags.SourceRange{})
-
-	if len(diags) != 0 {
-		t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
-	}
-	if !got.RawEquals(want) {
-		t.Errorf("wrong result %#v; want %#v", got, want)
+		t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
 	}
 }
 
@@ -560,7 +613,108 @@ func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesS
 				},
 			},
 		},
-		State:   stateSync,
-		Changes: changesSync,
+		State:       stateSync,
+		Changes:     changesSync,
+		Instances:   instances.NewExpander(nil),
+		NamedValues: namedvals.NewState(),
 	}
+}
+
+// fakeEvaluationData is an implementation of [lang.Data] that answers most
+// questions just by returning data directly from the maps stored inside it.
+type fakeEvaluationData struct {
+	checkBlocks    map[addrs.Check]cty.Value
+	countAttrs     map[addrs.CountAttr]cty.Value
+	forEachAttrs   map[addrs.ForEachAttr]cty.Value
+	inputVariables map[addrs.InputVariable]cty.Value
+	localValues    map[addrs.LocalValue]cty.Value
+	modules        map[addrs.ModuleCall]cty.Value
+	outputValues   map[addrs.OutputValue]cty.Value
+	pathAttrs      map[addrs.PathAttr]cty.Value
+	resources      map[addrs.Resource]cty.Value
+	runBlocks      map[addrs.Run]cty.Value
+	terraformAttrs map[addrs.TerraformAttr]cty.Value
+
+	// staticValidateRefs optionally implements [lang.Data.StaticValidateReferences],
+	// but can be left as nil to just skip static validation altogether.
+	staticValidateRefs func(refs []*addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics
+}
+
+var _ lang.Data = (*fakeEvaluationData)(nil)
+
+func fakeEvaluationDataLookup[Addr interface {
+	comparable
+	addrs.Referenceable
+}](addr Addr, _ tfdiags.SourceRange, table map[Addr]cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	ret, ok := table[addr]
+	if !ok {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(fmt.Errorf("fakeEvaluationData does not know about %s", addr))
+		return cty.DynamicVal, diags
+	}
+	return ret, nil
+}
+
+// GetCheckBlock implements lang.Data.
+func (d *fakeEvaluationData) GetCheckBlock(addr addrs.Check, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.checkBlocks)
+}
+
+// GetCountAttr implements lang.Data.
+func (d *fakeEvaluationData) GetCountAttr(addr addrs.CountAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.countAttrs)
+}
+
+// GetForEachAttr implements lang.Data.
+func (d *fakeEvaluationData) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.forEachAttrs)
+}
+
+// GetInputVariable implements lang.Data.
+func (d *fakeEvaluationData) GetInputVariable(addr addrs.InputVariable, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.inputVariables)
+}
+
+// GetLocalValue implements lang.Data.
+func (d *fakeEvaluationData) GetLocalValue(addr addrs.LocalValue, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.localValues)
+}
+
+// GetModule implements lang.Data.
+func (d *fakeEvaluationData) GetModule(addr addrs.ModuleCall, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.modules)
+}
+
+// GetOutput implements lang.Data.
+func (d *fakeEvaluationData) GetOutput(addr addrs.OutputValue, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.outputValues)
+}
+
+// GetPathAttr implements lang.Data.
+func (d *fakeEvaluationData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.pathAttrs)
+}
+
+// GetResource implements lang.Data.
+func (d *fakeEvaluationData) GetResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.resources)
+}
+
+// GetRunBlock implements lang.Data.
+func (d *fakeEvaluationData) GetRunBlock(addr addrs.Run, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.runBlocks)
+}
+
+// GetTerraformAttr implements lang.Data.
+func (d *fakeEvaluationData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.terraformAttrs)
+}
+
+// StaticValidateReferences implements lang.Data.
+func (d *fakeEvaluationData) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
+	if d.staticValidateRefs == nil {
+		// By default we just skip static validation
+		return nil
+	}
+	return d.staticValidateRefs(refs, self, source)
 }

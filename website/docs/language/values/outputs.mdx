@@ -10,8 +10,8 @@ command line, and can expose information for other Terraform configurations to
 use. Output values are similar to return values in programming languages.
 
 > **Hands-on:** Try the [Output Data From
-> Terraform](https://learn.hashicorp.com/tutorials/terraform/outputs)
-> tutorial on HashiCorp Learn.
+> Terraform](/terraform/tutorials/configuration-language/outputs)
+> tutorial.
 
 Output values have several uses:
 
@@ -19,9 +19,9 @@ Output values have several uses:
   to a parent module.
 - A root module can use outputs to print certain values in the CLI output after
   running `terraform apply`.
-- When using [remote state](/language/state/remote), root module outputs can be
+- When using [remote state](/terraform/language/state/remote), root module outputs can be
   accessed by other configurations via a
-  [`terraform_remote_state` data source](/language/state/remote-state-data).
+  [`terraform_remote_state` data source](/terraform/language/state/remote-state-data).
 
 Resource instances managed by Terraform each export attributes whose values
 can be used elsewhere in configuration. Output values are a way to expose some
@@ -42,11 +42,11 @@ output "instance_ip_addr" {
 ```
 
 The label immediately after the `output` keyword is the name, which must be a
-valid [identifier](/language/syntax/configuration#identifiers). In a root module, this name is
+valid [identifier](/terraform/language/syntax/configuration#identifiers). In a root module, this name is
 displayed to the user; in a child module, it can be used to access the output's
 value.
 
-The `value` argument takes an [expression](/language/expressions)
+The `value` argument takes an [expression](/terraform/language/expressions)
 whose result is to be returned to the user. In this example, the expression
 refers to the `private_ip` attribute exposed by an `aws_instance` resource
 defined elsewhere in this module (not shown). Any valid expression is allowed
@@ -81,11 +81,11 @@ output "api_base_url" {
 
 Custom conditions can help capture assumptions, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
-Refer to [Custom Condition Checks](/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
+Refer to [Custom Condition Checks](/terraform/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
 
 ## Optional Arguments
 
-`output` blocks can optionally include `description`, `sensitive`, and `depends_on` arguments, which are described in the following sections.
+`output` blocks can optionally include `description`, `sensitive`, `ephemeral`, and `depends_on` arguments, which are described in the following sections.
 
 <a id="description"></a>
 
@@ -107,6 +107,36 @@ purpose of the output and what kind of value is expected. This description
 string might be included in documentation about the module, and so it should be
 written from the perspective of the user of the module rather than its
 maintainer. For commentary for module maintainers, use comments.
+
+<a id="ephemeral"></a>
+
+### `ephemeral` — Avoid storing values in state or plan files
+
+-> **Note**: Ephemeral outputs are in public beta and available in Terraform v1.10 and later. The workflows of ephemeral outputs are subject to change.
+
+You can mark `output` values as `ephemeral` in child modules to pass ephemeral values between modules while avoiding persisting those values to state or plan files. This is useful for managing credentials, tokens, or other temporary resources you do not want to store in Terraform state files.
+
+You can mark an `output` in a child module as ephemeral by setting the `ephemeral` attribute to `true`:
+
+```hcl
+# modules/db/main.tf
+
+output "secret_id" {
+  value       = aws_secretsmanager_secret.secret_id
+  description = "Temporary secret ID for accessing database in AWS."
+  ephemeral   = true
+}
+```
+
+Terraform has access to the value of `output` blocks during plan and apply operations. At the end of a plan or apply operation, Terraform does not persist the value of any ephemeral outputs.
+
+You can only reference ephemeral outputs in specific contexts or Terraform throws an error. The following are valid contexts for referencing ephemeral outputs:
+* In another child module's ephemeral `output` block
+* In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)
+* In [ephemeral resources](/terraform/language/resources/ephemeral)
+
+Note that you cannot set an `output` value as `ephemeral` in the root module.
+
 
 <a id="sensitive"></a>
 
@@ -159,7 +189,7 @@ Terraform will perform the following actions:
 
   # test_instance.x will be created
   + resource "test_instance" "x" {
-      + some_attribute    = (sensitive)
+      + some_attribute    = (sensitive value)
     }
 
 Plan: 1 to add, 0 to change, 0 to destroy.
@@ -168,16 +198,10 @@ Changes to Outputs:
   + out = (sensitive value)
 ```
 
--> **Note:** In Terraform versions prior to Terraform 0.14, setting an output
-value in the root module as sensitive would prevent Terraform from showing its
-value in the list of outputs at the end of `terraform apply`. However, the
-value could still display in the CLI output for other reasons, like if the
-value is referenced in an expression for a resource argument.
-
-Terraform will still record sensitive values in the [state](/language/state),
+Terraform will still record sensitive values in the [state](/terraform/language/state),
 and so anyone who can access the state data will have access to the sensitive
 values in cleartext. For more information, see
-[_Sensitive Data in State_](/language/state/sensitive-data).
+[Sensitive Data in State](/terraform/language/state/sensitive-data).
 
 <a id="depends_on"></a>
 
@@ -193,7 +217,7 @@ correctly determine the dependencies between resources defined in different
 modules.
 
 Just as with
-[resource dependencies](/language/resources/behavior#resource-dependencies),
+[resource dependencies](/terraform/language/resources/behavior#resource-dependencies),
 Terraform analyzes the `value` expression for an output value and automatically
 determines a set of dependencies, but in less-common cases there are
 dependencies that cannot be recognized implicitly. In these rare cases, the

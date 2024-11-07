@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -13,7 +16,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -556,7 +559,7 @@ func TestRefresh_backup(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	// Output path
-	outf, err := ioutil.TempFile(td, "tf")
+	outf, err := os.CreateTemp(td, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -571,7 +574,7 @@ func TestRefresh_backup(t *testing.T) {
 	}
 
 	// Backup path
-	backupf, err := ioutil.TempFile(td, "tf")
+	backupf, err := os.CreateTemp(td, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

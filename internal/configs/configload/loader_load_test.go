@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configload
 
 import (
@@ -94,6 +97,33 @@ func TestLoaderLoadConfig_loadDiags(t *testing.T) {
 	cfg, diags := loader.LoadConfig(fixtureDir)
 	if !diags.HasErrors() {
 		t.Fatal("success; want error")
+	}
+
+	if cfg == nil {
+		t.Fatal("partial config not returned with diagnostics")
+	}
+
+	if cfg.Module == nil {
+		t.Fatal("expected config module")
+	}
+}
+
+func TestLoaderLoadConfig_loadDiagsFromSubmodules(t *testing.T) {
+	// building a config which didn't load correctly may cause configs to panic
+	fixtureDir := filepath.Clean("testdata/invalid-names-in-submodules")
+	loader, err := NewLoader(&Config{
+		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error from NewLoader: %s", err)
+	}
+
+	cfg, diags := loader.LoadConfig(fixtureDir)
+	if !diags.HasErrors() {
+		t.Fatalf("loading succeeded; want an error")
+	}
+	if got, want := diags.Error(), " Invalid provider local name"; !strings.Contains(got, want) {
+		t.Errorf("missing expected error\nwant substring: %s\ngot: %s", want, got)
 	}
 
 	if cfg == nil {

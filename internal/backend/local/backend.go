@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package local
 
 import (
@@ -12,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -180,6 +184,10 @@ func (b *Local) Configure(obj cty.Value) tfdiags.Diagnostics {
 	return diags
 }
 
+func (b *Local) ServiceDiscoveryAliases() ([]backendrun.HostAlias, error) {
+	return []backendrun.HostAlias{}, nil
+}
+
 func (b *Local) Workspaces() ([]string, error) {
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
@@ -214,10 +222,10 @@ func (b *Local) Workspaces() ([]string, error) {
 // DeleteWorkspace removes a workspace.
 //
 // The "default" workspace cannot be removed.
-func (b *Local) DeleteWorkspace(name string) error {
+func (b *Local) DeleteWorkspace(name string, force bool) error {
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
-		return b.Backend.DeleteWorkspace(name)
+		return b.Backend.DeleteWorkspace(name, force)
 	}
 
 	if name == "" {
@@ -261,7 +269,7 @@ func (b *Local) StateMgr(name string) (statemgr.Full, error) {
 	return s, nil
 }
 
-// Operation implements backend.Enhanced
+// Operation implements backendrun.OperationsBackend
 //
 // This will initialize an in-memory terraform.Context to perform the
 // operation within this process.
@@ -269,19 +277,19 @@ func (b *Local) StateMgr(name string) (statemgr.Full, error) {
 // The given operation parameter will be merged with the ContextOpts on
 // the structure with the following rules. If a rule isn't specified and the
 // name conflicts, assume that the field is overwritten if set.
-func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
+func (b *Local) Operation(ctx context.Context, op *backendrun.Operation) (*backendrun.RunningOperation, error) {
 	if op.View == nil {
 		panic("Operation called with nil View")
 	}
 
 	// Determine the function to call for our operation
-	var f func(context.Context, context.Context, *backend.Operation, *backend.RunningOperation)
+	var f func(context.Context, context.Context, *backendrun.Operation, *backendrun.RunningOperation)
 	switch op.Type {
-	case backend.OperationTypeRefresh:
+	case backendrun.OperationTypeRefresh:
 		f = b.opRefresh
-	case backend.OperationTypePlan:
+	case backendrun.OperationTypePlan:
 		f = b.opPlan
-	case backend.OperationTypeApply:
+	case backendrun.OperationTypeApply:
 		f = b.opApply
 	default:
 		return nil, fmt.Errorf(
@@ -297,7 +305,7 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	// Build our running operation
 	// the runninCtx is only used to block until the operation returns.
 	runningCtx, done := context.WithCancel(context.Background())
-	runningOp := &backend.RunningOperation{
+	runningOp := &backendrun.RunningOperation{
 		Context: runningCtx,
 	}
 
@@ -344,7 +352,7 @@ func (b *Local) opWait(
 
 		// try to force a PersistState just in case the process is terminated
 		// before we can complete.
-		if err := opStateMgr.PersistState(); err != nil {
+		if err := opStateMgr.PersistState(nil); err != nil {
 			// We can't error out from here, but warn the user if there was an error.
 			// If this isn't transient, we will catch it again below, and
 			// attempt to save the state another way.

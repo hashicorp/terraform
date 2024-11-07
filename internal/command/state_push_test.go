@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -5,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/mitchellh/cli"
 )
 
 func TestStatePush_empty(t *testing.T) {
@@ -267,7 +270,7 @@ func TestStatePush_forceRemoteState(t *testing.T) {
 	if err := sMgr.WriteState(states.NewState()); err != nil {
 		t.Fatal(err)
 	}
-	if err := sMgr.PersistState(); err != nil {
+	if err := sMgr.PersistState(nil); err != nil {
 		t.Fatal(err)
 	}
 

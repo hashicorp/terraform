@@ -1,8 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package statemgr
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,8 +17,7 @@ import (
 	"sync"
 	"time"
 
-	multierror "github.com/hashicorp/go-multierror"
-
+	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 )
@@ -223,7 +227,7 @@ func (s *Filesystem) writeState(state *states.State, meta *SnapshotMeta) error {
 
 // PersistState is an implementation of Persister that does nothing because
 // this type's Writer implementation does its own persistence.
-func (s *Filesystem) PersistState() error {
+func (s *Filesystem) PersistState(schemas *schemarepo.Schemas) error {
 	return nil
 }
 
@@ -231,6 +235,20 @@ func (s *Filesystem) PersistState() error {
 func (s *Filesystem) RefreshState() error {
 	defer s.mutex()()
 	return s.refreshState()
+}
+
+func (s *Filesystem) GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
+	err := s.RefreshState()
+	if err != nil {
+		return nil, err
+	}
+
+	state := s.State()
+	if state == nil {
+		state = states.NewState()
+	}
+
+	return state.RootOutputValues, nil
 }
 
 func (s *Filesystem) refreshState() error {
@@ -309,7 +327,7 @@ func (s *Filesystem) Lock(info *LockInfo) (string, error) {
 	if err := s.lock(); err != nil {
 		info, infoErr := s.lockInfo()
 		if infoErr != nil {
-			err = multierror.Append(err, infoErr)
+			err = errors.Join(err, infoErr)
 		}
 
 		lockErr := &LockError{
@@ -336,7 +354,7 @@ func (s *Filesystem) Unlock(id string) error {
 		idErr := fmt.Errorf("invalid lock id: %q. current id: %q", id, s.lockID)
 		info, err := s.lockInfo()
 		if err != nil {
-			idErr = multierror.Append(idErr, err)
+			idErr = errors.Join(idErr, err)
 		}
 
 		return &LockError{

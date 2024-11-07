@@ -18,7 +18,7 @@ to this need:
   current Terraform configuration, serving a similar (though not identical)
   purpose than `terraform-bundle` had served.
 
-For those using Terraform CLI alone, without Terraform Cloud, we recommend
+For those using Terraform CLI alone, without HCP Terraform or Terraform Enterprise, we recommend
 planning to transition to the above features instead of using
 `terraform-bundle`.
 
@@ -53,7 +53,7 @@ Terraform v0.13's introduction of automatic third-party provider installation.
 ## Terraform Enterprise Users
 
 If you use Terraform Enterprise, the self-hosted distribution of
-Terraform Cloud, you can use `terraform-bundle` as described above to build
+HCP Terraform, you can use `terraform-bundle` as described above to build
 custom Terraform packages with bundled provider plugins.
 
 For more information, see

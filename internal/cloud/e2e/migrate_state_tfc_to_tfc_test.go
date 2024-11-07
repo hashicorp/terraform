@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package main
 
 import (
@@ -35,7 +38,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized!`,
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -60,7 +63,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:         []string{"init", "-ignore-remote-version"},
-							postInputOutput: []string{`Terraform Cloud has been successfully initialized!`},
+							postInputOutput: []string{`HCP Terraform has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -95,7 +98,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized!`,
 						},
 						{
 							command:         []string{"apply", "-auto-approve"},
@@ -116,7 +119,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 							userInput:         []string{"new-workspace"},
 							postInputOutput: []string{
 								`Terraform can create a properly tagged workspace for you now.`,
-								`Terraform Cloud has been successfully initialized!`},
+								`HCP Terraform has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -153,7 +156,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized!`,
 						},
 						{
 							command:         []string{"apply", "-auto-approve"},
@@ -181,7 +184,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 							userInput:         []string{"new-workspace"},
 							postInputOutput: []string{
 								`Terraform can create a properly tagged workspace for you now.`,
-								`Terraform Cloud has been successfully initialized!`},
+								`HCP Terraform has been successfully initialized!`},
 						},
 					},
 				},
@@ -234,7 +237,7 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 							command:           []string{"init"},
 							expectedCmdOutput: `The currently selected workspace (default) does not exist.`,
 							userInput:         []string{"1"},
-							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
+							postInputOutput:   []string{`HCP Terraform has been successfully initialized!`},
 						},
 						{
 							command:           []string{"apply"},
@@ -272,7 +275,7 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-ignore-remote-version"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized!`,
 							postInputOutput:   []string{`tag_val = "service"`},
 						},
 						{
@@ -315,7 +318,7 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 							command:           []string{"init"},
 							expectedCmdOutput: `The currently selected workspace (default) does not exist.`,
 							userInput:         []string{"1"},
-							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
+							postInputOutput:   []string{`HCP Terraform has been successfully initialized!`},
 						},
 						{
 							command:           []string{"apply", "-auto-approve"},
@@ -342,7 +345,7 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 							command:           []string{"init", "-ignore-remote-version"},
 							expectedCmdOutput: `There are no workspaces with the configured tags (billing)`,
 							userInput:         []string{"new-app-prod"},
-							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
+							postInputOutput:   []string{`HCP Terraform has been successfully initialized!`},
 						},
 					},
 				},

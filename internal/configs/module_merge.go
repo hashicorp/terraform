@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configs
 
 import (
@@ -45,6 +48,10 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 	if ov.SensitiveSet {
 		v.Sensitive = ov.Sensitive
 		v.SensitiveSet = ov.SensitiveSet
+	}
+	if ov.EphemeralSet {
+		v.Ephemeral = ov.Ephemeral
+		v.EphemeralSet = ov.EphemeralSet
 	}
 	if ov.Default != cty.NilVal {
 		v.Default = ov.Default
@@ -145,6 +152,10 @@ func (o *Output) merge(oo *Output) hcl.Diagnostics {
 		o.Sensitive = oo.Sensitive
 		o.SensitiveSet = oo.SensitiveSet
 	}
+	if oo.EphemeralSet {
+		o.Ephemeral = oo.Ephemeral
+		o.EphemeralSet = oo.EphemeralSet
+	}
 
 	// We don't allow depends_on to be overridden because that is likely to
 	// cause confusing misbehavior.
@@ -190,12 +201,12 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 
 	// We don't allow depends_on to be overridden because that is likely to
 	// cause confusing misbehavior.
-	if len(mc.DependsOn) != 0 {
+	if len(omc.DependsOn) != 0 {
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Unsupported override",
 			Detail:   "The depends_on argument may not be overridden.",
-			Subject:  mc.DependsOn[0].SourceRange().Ptr(), // the first item is the closest range we have
+			Subject:  omc.DependsOn[0].SourceRange().Ptr(), // the first item is the closest range we have
 		})
 	}
 

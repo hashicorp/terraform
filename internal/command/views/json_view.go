@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package views
 
 import (
@@ -5,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
@@ -13,7 +17,7 @@ import (
 // This version describes the schema of JSON UI messages. This version must be
 // updated after making any changes to this view, the jsonHook, or any of the
 // command/views/json package.
-const JSON_UI_VERSION = "1.0"
+const JSON_UI_VERSION = "1.2"
 
 func NewJSONView(view *View) *JSONView {
 	log := hclog.New(&hclog.LoggerOptions{
@@ -66,23 +70,19 @@ func (v *JSONView) StateDump(state string) {
 	)
 }
 
-func (v *JSONView) Diagnostics(diags tfdiags.Diagnostics) {
+func (v *JSONView) Diagnostics(diags tfdiags.Diagnostics, metadata ...interface{}) {
 	sources := v.view.configSources()
 	for _, diag := range diags {
 		diagnostic := json.NewDiagnostic(diag, sources)
+
+		args := []interface{}{"type", json.MessageDiagnostic, "diagnostic", diagnostic}
+		args = append(args, metadata...)
+
 		switch diag.Severity() {
 		case tfdiags.Warning:
-			v.log.Warn(
-				fmt.Sprintf("Warning: %s", diag.Description().Summary),
-				"type", json.MessageDiagnostic,
-				"diagnostic", diagnostic,
-			)
+			v.log.Warn(fmt.Sprintf("Warning: %s", diag.Description().Summary), args...)
 		default:
-			v.log.Error(
-				fmt.Sprintf("Error: %s", diag.Description().Summary),
-				"type", json.MessageDiagnostic,
-				"diagnostic", diagnostic,
-			)
+			v.log.Error(fmt.Sprintf("Error: %s", diag.Description().Summary), args...)
 		}
 	}
 }

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package statemgr
 
 import (
@@ -45,7 +48,10 @@ func TestFull(t *testing.T, s Full) {
 	current := s.State()
 
 	// Write a new state and verify that we have it
-	current.RootModule().SetOutputValue("bar", cty.StringVal("baz"), false)
+	current.SetOutputValue(
+		addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("baz"), false,
+	)
 
 	if err := s.WriteState(current); err != nil {
 		t.Fatalf("err: %s", err)
@@ -56,7 +62,7 @@ func TestFull(t *testing.T, s Full) {
 	}
 
 	// Test persistence
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -81,7 +87,7 @@ func TestFull(t *testing.T, s Full) {
 	if err := s.WriteState(current); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -98,13 +104,15 @@ func TestFull(t *testing.T, s Full) {
 
 	// Change the serial
 	current = current.DeepCopy()
-	current.EnsureModule(addrs.RootModuleInstance).SetOutputValue(
-		"serialCheck", cty.StringVal("true"), false,
+	current.SetOutputValue(
+		addrs.OutputValue{Name: "serialCheck"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("true"), false,
 	)
+
 	if err := s.WriteState(current); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -155,5 +163,15 @@ func TestFullInitialState() *states.State {
 		Module:   addrs.RootModule,
 	}
 	childMod.SetResourceProvider(rAddr, providerAddr)
+
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "sensitive_output"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("it's a secret"), true,
+	)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "nonsensitive_output"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("hello, world!"), false,
+	)
+
 	return state
 }

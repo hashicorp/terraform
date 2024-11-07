@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -7,10 +10,19 @@ import (
 	"os"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+)
+
+type providersLockChangeType string
+
+const (
+	providersLockChangeTypeNoChange    providersLockChangeType = "providersLockChangeTypeNoChange"
+	providersLockChangeTypeNewProvider providersLockChangeType = "providersLockChangeTypeNewProvider"
+	providersLockChangeTypeNewHashes   providersLockChangeType = "providersLockChangeTypeNewHashes"
 )
 
 // ProvidersLockCommand is a Command implementation that implements the
@@ -29,12 +41,14 @@ func (c *ProvidersLockCommand) Synopsis() string {
 func (c *ProvidersLockCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	cmdFlags := c.Meta.defaultFlagSet("providers lock")
-	var optPlatforms FlagStringSlice
+	var optPlatforms arguments.FlagStringSlice
 	var fsMirrorDir string
 	var netMirrorURL string
+
 	cmdFlags.Var(&optPlatforms, "platform", "target platform")
 	cmdFlags.StringVar(&fsMirrorDir, "fs-mirror", "", "filesystem mirror directory")
 	cmdFlags.StringVar(&netMirrorURL, "net-mirror", "", "network mirror base URL")
+	pluginCache := cmdFlags.Bool("enable-plugin-cache", false, "")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
@@ -73,6 +87,10 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 			platforms = append(platforms, platform)
 		}
 	}
+
+	// Installation steps can be cancelled by SIGINT and similar.
+	ctx, done := c.InterruptibleContext(c.CommandContext())
+	defer done()
 
 	// Unlike other commands, this command ignores the installation methods
 	// selected in the CLI configuration and instead chooses an installation
@@ -174,8 +192,6 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 	// merge all of the generated locks together at the end.
 	updatedLocks := map[getproviders.Platform]*depsfile.Locks{}
 	selectedVersions := map[addrs.Provider]getproviders.Version{}
-	ctx, cancel := c.InterruptibleContext()
-	defer cancel()
 	for _, platform := range platforms {
 		tempDir, err := ioutil.TempDir("", "terraform-providers-lock")
 		if err != nil {
@@ -225,7 +241,7 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 				if keyID != "" {
 					keyID = c.Colorize().Color(fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID))
 				}
-				c.Ui.Output(fmt.Sprintf("- Obtained %s checksums for %s (%s%s)", provider.ForDisplay(), platform, auth, keyID))
+				c.Ui.Output(fmt.Sprintf("- Retrieved %s %s for %s (%s%s)", provider.ForDisplay(), version, platform, auth, keyID))
 			},
 		}
 		ctx := evts.OnContext(ctx)
@@ -233,7 +249,14 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 		dir := providercache.NewDirWithPlatform(tempDir, platform)
 		installer := providercache.NewInstaller(dir, source)
 
-		newLocks, err := installer.EnsureProviderVersions(ctx, oldLocks, reqs, providercache.InstallNewProvidersOnly)
+		// Use global plugin cache for extra speed if present and flag is set
+		globalCacheDir := c.providerGlobalCacheDir()
+		if *pluginCache && globalCacheDir != nil {
+			installer.SetGlobalCacheDir(globalCacheDir.WithPlatform(platform))
+			installer.SetGlobalCacheDirMayBreakDependencyLockFile(c.PluginCacheMayBreakDependencyLockFile)
+		}
+
+		newLocks, err := installer.EnsureProviderVersions(ctx, oldLocks, reqs, providercache.InstallNewProvidersForce)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -251,6 +274,10 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
+
+	// Track whether we've made any changes to the lock file as part of this
+	// operation. We can customise the final message based on our actions.
+	madeAnyChange := false
 
 	// We now have a separate updated locks object for each platform. We need
 	// to merge those all together so that the final result has the union of
@@ -270,7 +297,7 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 			constraints = oldLock.VersionConstraints()
 			hashes = append(hashes, oldLock.AllHashes()...)
 		}
-		for _, platformLocks := range updatedLocks {
+		for platform, platformLocks := range updatedLocks {
 			platformLock := platformLocks.Provider(provider)
 			if platformLock == nil {
 				continue // weird, but we'll tolerate it to avoid crashing
@@ -282,6 +309,32 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 			// platforms here, because the SetProvider method we call below
 			// handles that automatically.
 			hashes = append(hashes, platformLock.AllHashes()...)
+
+			// At this point, we've merged all the hashes for this (provider, platform)
+			// combo into the combined hashes for this provider. Let's take this
+			// opportunity to print out a summary for this particular combination.
+			switch providersLockCalculateChangeType(oldLock, platformLock) {
+			case providersLockChangeTypeNewProvider:
+				madeAnyChange = true
+				c.Ui.Output(
+					fmt.Sprintf(
+						"- Obtained %s checksums for %s; This was a new provider and the checksums for this platform are now tracked in the lock file",
+						provider.ForDisplay(),
+						platform))
+			case providersLockChangeTypeNewHashes:
+				madeAnyChange = true
+				c.Ui.Output(
+					fmt.Sprintf(
+						"- Obtained %s checksums for %s; Additional checksums for this platform are now tracked in the lock file",
+						provider.ForDisplay(),
+						platform))
+			case providersLockChangeTypeNoChange:
+				c.Ui.Output(
+					fmt.Sprintf(
+						"- Obtained %s checksums for %s; All checksums for this platform were already tracked in the lock file",
+						provider.ForDisplay(),
+						platform))
+			}
 		}
 		newLocks.SetProvider(provider, version, constraints, hashes)
 	}
@@ -294,8 +347,12 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(c.Colorize().Color("\n[bold][green]Success![reset] [bold]Terraform has updated the lock file.[reset]"))
-	c.Ui.Output("\nReview the changes in .terraform.lock.hcl and then commit to your\nversion control system to retain the new checksums.\n")
+	if madeAnyChange {
+		c.Ui.Output(c.Colorize().Color("\n[bold][green]Success![reset] [bold]Terraform has updated the lock file.[reset]"))
+		c.Ui.Output("\nReview the changes in .terraform.lock.hcl and then commit to your\nversion control system to retain the new checksums.\n")
+	} else {
+		c.Ui.Output(c.Colorize().Color("\n[bold][green]Success![reset] [bold]Terraform has validated the lock file and found no need for changes.[reset]"))
+	}
 	return 0
 }
 
@@ -323,37 +380,66 @@ Usage: terraform [global options] providers lock [options] [providers...]
 
 Options:
 
-  -fs-mirror=dir     Consult the given filesystem mirror directory instead
-                     of the origin registry for each of the given providers.
+  -fs-mirror=dir         Consult the given filesystem mirror directory instead
+                         of the origin registry for each of the given providers.
 
-                     This would be necessary to generate lock file entries for
-                     a provider that is available only via a mirror, and not
-                     published in an upstream registry. In this case, the set
-                     of valid checksums will be limited only to what Terraform
-                     can learn from the data in the mirror directory.
+                         This would be necessary to generate lock file entries for
+                         a provider that is available only via a mirror, and not
+                         published in an upstream registry. In this case, the set
+                         of valid checksums will be limited only to what Terraform
+                         can learn from the data in the mirror directory.
 
-  -net-mirror=url    Consult the given network mirror (given as a base URL)
-                     instead of the origin registry for each of the given
-                     providers.
+  -net-mirror=url        Consult the given network mirror (given as a base URL)
+                         instead of the origin registry for each of the given
+                         providers.
 
-                     This would be necessary to generate lock file entries for
-                     a provider that is available only via a mirror, and not
-                     published in an upstream registry. In this case, the set
-                     of valid checksums will be limited only to what Terraform
-                     can learn from the data in the mirror indices.
+                         This would be necessary to generate lock file entries for
+                         a provider that is available only via a mirror, and not
+                         published in an upstream registry. In this case, the set
+                         of valid checksums will be limited only to what Terraform
+                         can learn from the data in the mirror indices.
 
-  -platform=os_arch  Choose a target platform to request package checksums
-                     for.
+  -platform=os_arch      Choose a target platform to request package checksums
+                         for.
 
-                     By default Terraform will request package checksums
-                     suitable only for the platform where you run this
-                     command. Use this option multiple times to include
-                     checksums for multiple target systems.
+                         By default Terraform will request package checksums
+                         suitable only for the platform where you run this
+                         command. Use this option multiple times to include
+                         checksums for multiple target systems.
 
-                     Target names consist of an operating system and a CPU
-                     architecture. For example, "linux_amd64" selects the
-                     Linux operating system running on an AMD64 or x86_64
-                     CPU. Each provider is available only for a limited
-                     set of target platforms.
+                         Target names consist of an operating system and a CPU
+                         architecture. For example, "linux_amd64" selects the
+                         Linux operating system running on an AMD64 or x86_64
+                         CPU. Each provider is available only for a limited
+                         set of target platforms.
+
+  -enable-plugin-cache   Enable the usage of the globally configured plugin cache.
+                         This will speed up the locking process, but the providers
+                         wont be loaded from an authoritative source.
 `
+}
+
+// providersLockCalculateChangeType works out whether there is any difference
+// between oldLock and newLock and returns a variable the main function can use
+// to decide on which message to print.
+//
+// One assumption made here that is not obvious without the context from the
+// main function is that while platformLock contains the lock information for a
+// single platform after the current run, oldLock contains the combined
+// information of all platforms from when the versions were last checked. A
+// simple equality check is not sufficient for deciding on change as we expect
+// that oldLock will be a superset of platformLock if no new hashes have been
+// found.
+//
+// We've separated this function out so we can write unit tests around the
+// logic. This function assumes the platformLock is not nil, as the main
+// function explicitly checks this before calling this function.
+func providersLockCalculateChangeType(oldLock *depsfile.ProviderLock, platformLock *depsfile.ProviderLock) providersLockChangeType {
+	if oldLock == nil {
+		return providersLockChangeTypeNewProvider
+	}
+	if oldLock.ContainsAll(platformLock) {
+		return providersLockChangeTypeNoChange
+	}
+	return providersLockChangeTypeNewHashes
 }

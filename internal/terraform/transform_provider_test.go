@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -176,7 +179,7 @@ func TestMissingProviderTransformer_grandchildMissing(t *testing.T) {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		transform := transformProviders(concrete, mod)
+		transform := transformProviders(concrete, mod, nil)
 		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -241,7 +244,7 @@ func TestProviderConfigTransformer_parentProviders(t *testing.T) {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		tf := transformProviders(concrete, mod)
+		tf := transformProviders(concrete, mod, nil)
 		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -261,7 +264,7 @@ func TestProviderConfigTransformer_grandparentProviders(t *testing.T) {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		tf := transformProviders(concrete, mod)
+		tf := transformProviders(concrete, mod, nil)
 		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -295,7 +298,7 @@ resource "test_object" "a" {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		tf := transformProviders(concrete, mod)
+		tf := transformProviders(concrete, mod, nil)
 		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -373,7 +376,7 @@ resource "test_object" "a" {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		tf := transformProviders(concrete, mod)
+		tf := transformProviders(concrete, mod, nil)
 		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}

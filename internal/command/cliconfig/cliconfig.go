@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package cliconfig has the types representing and the logic to load CLI-level
 // configuration settings.
 //
@@ -9,11 +12,14 @@
 package cliconfig
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/hcl"
 
@@ -22,6 +28,7 @@ import (
 )
 
 const pluginCacheDirEnvVar = "TF_PLUGIN_CACHE_DIR"
+const pluginCacheMayBreakLockFileEnvVar = "TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE"
 
 // Config is the structure of the configuration for the Terraform CLI.
 //
@@ -37,6 +44,17 @@ type Config struct {
 	// If set, enables local caching of plugins in this directory to
 	// avoid repeatedly re-downloading over the Internet.
 	PluginCacheDir string `hcl:"plugin_cache_dir"`
+
+	// PluginCacheMayBreakDependencyLockFile is an interim accommodation for
+	// those who wish to use the Plugin Cache Dir even in cases where doing so
+	// will cause the dependency lock file to be incomplete.
+	//
+	// This is likely to become a silent no-op in future Terraform versions but
+	// is here in recognition of the fact that the dependency lock file is not
+	// yet a good fit for all Terraform workflows and folks in that category
+	// would prefer to have the plugin cache dir's behavior to take priority
+	// over the requirements of the dependency lock file.
+	PluginCacheMayBreakDependencyLockFile bool `hcl:"plugin_cache_may_break_dependency_lock_file"`
 
 	Hosts map[string]*ConfigHost `hcl:"host"`
 
@@ -89,12 +107,14 @@ func LoadConfig() (*Config, tfdiags.Diagnostics) {
 	configVal := BuiltinConfig // copy
 	config := &configVal
 
-	if mainFilename, err := cliConfigFile(); err == nil {
+	if mainFilename, mainFileDiags := cliConfigFile(); len(mainFileDiags) == 0 {
 		if _, err := os.Stat(mainFilename); err == nil {
 			mainConfig, mainDiags := loadConfigFile(mainFilename)
 			diags = diags.Append(mainDiags)
 			config = config.Merge(mainConfig)
 		}
+	} else {
+		diags = diags.Append(mainFileDiags)
 	}
 
 	// Unless the user has specifically overridden the configuration file
@@ -209,9 +229,14 @@ func loadConfigDir(path string) (*Config, tfdiags.Diagnostics) {
 // Any values specified in this config should override those set in the
 // configuration file.
 func EnvConfig() *Config {
+	env := makeEnvMap(os.Environ())
+	return envConfig(env)
+}
+
+func envConfig(env map[string]string) *Config {
 	config := &Config{}
 
-	if envPluginCacheDir := os.Getenv(pluginCacheDirEnvVar); envPluginCacheDir != "" {
+	if envPluginCacheDir := env[pluginCacheDirEnvVar]; envPluginCacheDir != "" {
 		// No Expandenv here, because expanding environment variables inside
 		// an environment variable would be strange and seems unnecessary.
 		// (User can expand variables into the value while setting it using
@@ -219,7 +244,32 @@ func EnvConfig() *Config {
 		config.PluginCacheDir = envPluginCacheDir
 	}
 
+	if envMayBreak := env[pluginCacheMayBreakLockFileEnvVar]; envMayBreak != "" && envMayBreak != "0" {
+		// This is an environment variable analog to the
+		// plugin_cache_may_break_dependency_lock_file setting. If either this
+		// or the config file setting are enabled then it's enabled; there is
+		// no way to override back to false if either location sets this to
+		// true.
+		config.PluginCacheMayBreakDependencyLockFile = true
+	}
+
 	return config
+}
+
+func makeEnvMap(environ []string) map[string]string {
+	if len(environ) == 0 {
+		return nil
+	}
+
+	ret := make(map[string]string, len(environ))
+	for _, entry := range environ {
+		eq := strings.IndexByte(entry, '=')
+		if eq == -1 {
+			continue
+		}
+		ret[entry[:eq]] = entry[eq+1:]
+	}
+	return ret
 }
 
 // Validate checks for errors in the configuration that cannot be detected
@@ -317,6 +367,12 @@ func (c *Config) Merge(c2 *Config) *Config {
 		result.PluginCacheDir = c2.PluginCacheDir
 	}
 
+	if c.PluginCacheMayBreakDependencyLockFile || c2.PluginCacheMayBreakDependencyLockFile {
+		// This setting saturates to "on"; once either configuration sets it,
+		// there is no way to override it back to off again.
+		result.PluginCacheMayBreakDependencyLockFile = true
+	}
+
 	if (len(c.Hosts) + len(c2.Hosts)) > 0 {
 		result.Hosts = make(map[string]*ConfigHost)
 		for name, host := range c.Hosts {
@@ -358,7 +414,8 @@ func (c *Config) Merge(c2 *Config) *Config {
 	return &result
 }
 
-func cliConfigFile() (string, error) {
+func cliConfigFile() (string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	mustExist := true
 
 	configFilePath := cliConfigFileOverride()
@@ -378,15 +435,19 @@ func cliConfigFile() (string, error) {
 	f, err := os.Open(configFilePath)
 	if err == nil {
 		f.Close()
-		return configFilePath, nil
+		return configFilePath, diags
 	}
 
-	if mustExist || !os.IsNotExist(err) {
-		return "", err
+	if mustExist || !errors.Is(err, fs.ErrNotExist) {
+		diags = append(diags, tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Unable to open CLI configuration file",
+			fmt.Sprintf("The CLI configuration file at %q does not exist.", configFilePath),
+		))
 	}
 
 	log.Println("[DEBUG] File doesn't exist, but doesn't need to. Ignoring.")
-	return "", nil
+	return "", diags
 }
 
 func cliConfigFileOverride() string {

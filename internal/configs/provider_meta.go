@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configs
 
 import "github.com/hashicorp/hcl/v2"
@@ -26,7 +29,11 @@ func decodeProviderMetaBlock(block *hcl.Block) (*ProviderMeta, hcl.Diagnostics) 
 	}
 
 	// verify that the local name is already localized or produce an error.
-	diags = append(diags, checkProviderNameNormalized(block.Labels[0], block.DefRange)...)
+	nameDiags := checkProviderNameNormalized(block.Labels[0], block.DefRange)
+	diags = append(diags, nameDiags...)
+	if nameDiags.HasErrors() {
+		return nil, diags
+	}
 
 	return &ProviderMeta{
 		Provider:      block.Labels[0],

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -6,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -30,18 +34,20 @@ func TestTransitiveReductionTransformer(t *testing.T) {
 
 	{
 		transform := &AttachSchemaTransformer{
-			Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]*ProviderSchema{
+			Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]providers.ProviderSchema{
 				addrs.NewDefaultProvider("aws"): {
-					ResourceTypes: map[string]*configschema.Block{
+					ResourceTypes: map[string]providers.Schema{
 						"aws_instance": {
-							Attributes: map[string]*configschema.Attribute{
-								"A": {
-									Type:     cty.String,
-									Optional: true,
-								},
-								"B": {
-									Type:     cty.String,
-									Optional: true,
+							Block: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"A": {
+										Type:     cty.String,
+										Optional: true,
+									},
+									"B": {
+										Type:     cty.String,
+										Optional: true,
+									},
 								},
 							},
 						},

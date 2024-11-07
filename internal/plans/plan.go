@@ -1,13 +1,21 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package plans
 
 import (
 	"sort"
+	"time"
+
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Plan is the top-level type representing a planned set of changes.
@@ -28,15 +36,79 @@ type Plan struct {
 	// to the end-user, and so it must not be used to influence apply-time
 	// behavior. The actions during apply must be described entirely by
 	// the Changes field, regardless of how the plan was created.
+	//
+	// FIXME: destroy operations still rely on DestroyMode being set, because
+	// there is no other source of this information in the plan. New behavior
+	// should not be added based on this flag, and changing the flag should be
+	// checked carefully against existing destroy behaviors.
 	UIMode Mode
 
-	VariableValues    map[string]DynamicValue
-	Changes           *Changes
-	Conditions        Conditions
+	// VariableValues, VariableMarks, and ApplyTimeVariables together describe
+	// how Terraform should decide the input variable values for the apply
+	// phase if this plan is to be applied.
+	//
+	// VariableValues and VariableMarks describe persisted (non-ephemeral)
+	// values that were set as part of the planning options and are to be
+	// re-used during the apply phase. VariableValues can potentially contain
+	// unknown values for a speculative plan, but the variable values must
+	// all be known for a plan that will subsequently be applied.
+	//
+	// ApplyTimeVariables retains the names of any ephemeral variables that were
+	// set (non-null) during the planning phase and must therefore be
+	// re-supplied by the caller (potentially with different values) during
+	// the apply phase. Ephemeral input variables are intended for populating
+	// arguments for other ephemeral objects in the configuration, such as
+	// provider configurations. Although the values for these variables can
+	// change between plan and apply, their "nullness" may not.
+	VariableValues     map[string]DynamicValue
+	VariableMarks      map[string][]cty.PathValueMarks
+	ApplyTimeVariables collections.Set[string]
+
+	Changes           *ChangesSrc
 	DriftedResources  []*ResourceInstanceChangeSrc
+	DeferredResources []*DeferredResourceInstanceChangeSrc
 	TargetAddrs       []addrs.Targetable
 	ForceReplaceAddrs []addrs.AbsResourceInstance
 	Backend           Backend
+
+	// Complete is true if Terraform considers this to be a "complete" plan,
+	// which is to say that it includes a planned action (even if no-op)
+	// for every resource instance object that was mentioned across both
+	// the desired state and prior state.
+	//
+	// If Complete is false then the plan might still be applyable (check
+	// [Plan.Applyable]) but after applying it the operator should be reminded
+	// to plan and apply again to hopefully make more progress towards
+	// convergence.
+	//
+	// For an incomplete plan, other fields of this type may give more context
+	// about why the plan is incomplete, which a UI layer could present to
+	// the user as part of a warning that the plan is incomplete.
+	Complete bool
+
+	// Applyable is true if both Terraform was able to create a plan
+	// successfully and if the plan calls for making some sort of meaningful
+	// change.
+	//
+	// If [Plan.Errored] is also set then that means the plan is non-applyable
+	// due to an error. If not then the plan was created successfully but found
+	// no material differences between desired and prior state, and so
+	// applying this plan would achieve nothing.
+	Applyable bool
+
+	// Errored is true if the Changes information is incomplete because
+	// the planning operation failed. An errored plan cannot be applied,
+	// but can be cautiously inspected for debugging purposes.
+	Errored bool
+
+	// Checks captures a snapshot of the (probably-incomplete) check results
+	// at the end of the planning process.
+	//
+	// If this plan is applyable (that is, if the planning process completed
+	// without errors) then the set of checks here should be complete even
+	// though some of them will likely have StatusUnknown where the check
+	// condition depends on values we won't know until the apply step.
+	Checks *states.CheckResults
 
 	// RelevantAttributes is a set of resource instance addresses and
 	// attributes that are either directly affected by proposed changes or may
@@ -65,46 +137,32 @@ type Plan struct {
 	// order to report to the user any out-of-band changes we've detected.
 	PrevRunState *states.State
 	PriorState   *states.State
-}
 
-// CanApply returns true if and only if the recieving plan includes content
-// that would make sense to apply. If it returns false, the plan operation
-// should indicate that there's nothing to do and Terraform should exit
-// without prompting the user to confirm the changes.
-//
-// This function represents our main business logic for making the decision
-// about whether a given plan represents meaningful "changes", and so its
-// exact definition may change over time; the intent is just to centralize the
-// rules for that rather than duplicating different versions of it at various
-// locations in the UI code.
-func (p *Plan) CanApply() bool {
-	switch {
-	case !p.Changes.Empty():
-		// "Empty" means that everything in the changes is a "NoOp", so if
-		// not empty then there's at least one non-NoOp change.
-		return true
+	// ExternalReferences are references that are being made to resources within
+	// the plan from external sources.
+	//
+	// This is never recorded outside of Terraform. It is not written into the
+	// binary plan file, and it is not written into the JSON structured outputs.
+	// The testing framework never writes the plans out but holds everything in
+	// memory as it executes, so there is no need to add any kind of
+	// serialization for this field. This does mean that you shouldn't rely on
+	// this field existing unless you have just generated the plan.
+	ExternalReferences []*addrs.Reference
 
-	case !p.PriorState.ManagedResourcesEqual(p.PrevRunState):
-		// If there are no changes planned but we detected some
-		// outside-Terraform changes while refreshing then we consider
-		// that applyable in isolation only if this was a refresh-only
-		// plan where we expect updating the state to include these
-		// changes was the intended goal.
-		//
-		// (We don't treat a "refresh only" plan as applyable in normal
-		// planning mode because historically the refresh result wasn't
-		// considered part of a plan at all, and so it would be
-		// a disruptive breaking change if refreshing alone suddenly
-		// became applyable in the normal case and an existing configuration
-		// was relying on ignore_changes in order to be convergent in spite
-		// of intentional out-of-band operations.)
-		return p.UIMode == RefreshOnlyMode
+	// Overrides contains the set of overrides that were applied while making
+	// this plan. We need to provide the same set of overrides when applying
+	// the plan so we preserve them here. As with  ExternalReferences, this is
+	// only used by the testing framework and so isn't written into any external
+	// representation of the plan.
+	Overrides *mocking.Overrides
 
-	default:
-		// Otherwise, there are either no changes to apply or they are changes
-		// our cases above don't consider as worthy of applying in isolation.
-		return false
-	}
+	// Timestamp is the record of truth for when the plan happened.
+	Timestamp time.Time
+
+	// ProviderFunctionResults stores hashed results from all provider
+	// function calls, so that calls during apply can be checked for
+	// consistency.
+	ProviderFunctionResults []providers.FunctionHash
 }
 
 // ProviderAddrs returns a list of all of the provider configuration addresses

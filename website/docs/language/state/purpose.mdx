@@ -59,7 +59,7 @@ of dependencies within the state. Now Terraform can still determine the correct
 order for destruction from the state when you delete one or more items from
 the configuration.
 
-One way to avoid this would be for Terraform to know a required ordering
+Terraform could take another approach to dependency order by using an underlying hierarchy of order
 between resource types. For example, Terraform could know that servers must be
 deleted before the subnets they are a part of. The complexity for this approach
 quickly explodes, however: in addition to Terraform having to understand the
@@ -102,7 +102,7 @@ started, but when using Terraform in a team it is important for everyone
 to be working with the same state so that operations will be applied to the
 same remote objects.
 
-[Remote state](/language/state/remote) is the recommended solution
+[Remote state](/terraform/language/state/remote) is the recommended solution
 to this problem. With a fully-featured state backend, Terraform can use
 remote locking as a measure to avoid two or more different users accidentally
 running Terraform at the same time, and thus ensure that each Terraform run

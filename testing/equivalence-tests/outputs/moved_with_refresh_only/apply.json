@@ -1,0 +1,21 @@
+[
+  {
+    "@level": "info",
+    "@message": "Apply complete! Resources: 0 added, 0 changed, 0 destroyed.",
+    "@module": "terraform.ui",
+    "changes": {
+      "add": 0,
+      "change": 0,
+      "operation": "apply",
+      "remove": 0
+    },
+    "type": "change_summary"
+  },
+  {
+    "@level": "info",
+    "@message": "Outputs: 0",
+    "@module": "terraform.ui",
+    "outputs": {},
+    "type": "outputs"
+  }
+]

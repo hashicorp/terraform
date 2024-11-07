@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package convert
 
 import (
@@ -259,7 +262,7 @@ func configschemaObjectToProto(b *configschema.Object) *proto.Schema_Object {
 		nesting = proto.Schema_Object_INVALID
 	}
 
-	attributes := make([]*proto.Schema_Attribute, len(b.Attributes))
+	attributes := make([]*proto.Schema_Attribute, 0, len(b.Attributes))
 
 	for _, name := range sortedKeys(b.Attributes) {
 		a := b.Attributes[name]

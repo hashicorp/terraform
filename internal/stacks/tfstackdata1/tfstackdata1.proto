@@ -1,0 +1,388 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+package tfstackdata1;
+
+import "planfile.proto"; // tfplan, from internal/plans/planproto
+import "google/protobuf/any.proto";
+
+// These definitions describe the PRIVATE raw format that we use to persist
+// stack and plan information for stacks between operations.
+//
+// Nothing outside of this codebase should attempt to produce or consume
+// these formats. They are subject to change at any time.
+
+///////////// PLAN SEQUENCE MESSAGES
+//
+// A "stack plan" consists of a sequence of messages emitted gradually from
+// the streaming Stacks.PlanStackChanges RPC in the Terraform Core RPC API.
+//
+// From the perspective of that protocol the objects in the sequence are
+// opaque and to be preserved byte-for-byte without any external interpretation,
+// in the same order they were emitted from Terraform Core.
+//
+// Internally, we decode each one based on the type field of google.protobuf.Any,
+// treating each one as some kind of mutation of our in-memory plan data
+// structure.
+//
+// These message types only cover the data that Terraform needs to apply the
+// plan, and so don't cover any information that Terraform Core might emit
+// only for the caller's benefit.
+//////////////
+
+// Appears early in a raw plan sequence to capture some metadata that we need
+// to process subsequent messages, or to abort if we're being asked to decode
+// a plan created by a different version of Terraform.
+message PlanHeader {
+    // The canonical version string for the version of Terraform that created
+    // the plan sequence that this message belongs to.
+    //
+    // The raw plan sequence loader will fail if it finds a message of this
+    // type with a version string that disagrees with the version of Terraform
+    // decoding the message, because we always expect plans to be applied by
+    // the same version of Terraform that created them.
+    string terraform_version = 1;
+}
+
+// Captures one element from the raw prior state that was provided when
+// creating the plan. A valid plan includes a copy of its entire prior state
+// represented as zero or more messages of this type, which we then interpret
+// as a map from key to raw during load.
+message PlanPriorStateElem {
+    string key = 1;
+    google.protobuf.Any raw = 2;
+}
+
+// Confirms whether the overall plan whose raw plan sequence includes this
+// message is complete enough and valid enough to be applied.
+//
+// If a the sequence of raw plan messages includes multiple messages of this
+// type then the one with the latest position in the list "wins" during
+// decoding of the overall sequence, although in practice there isn't yet
+// any clear reason to include more than one instance of this message type in a
+// plan.
+message PlanApplyable {
+    bool applyable = 1;
+}
+
+// Records the plan timestamp to be used for all components and the stacks language.
+message PlanTimestamp {
+    string plan_timestamp = 1;
+}
+
+// Records the value of one of the main stack's input values during planning.
+//
+// These values get fixed during the plan phase so that we can ensure that we
+// use identical values when subsequently applying the plan.
+message PlanRootInputValue {
+    string name = 1;
+    DynamicValue value = 2;
+    bool required_on_apply = 3;
+}
+
+// Records that a root input variable should be deleted by the apply operation.
+message DeletedRootInputVariable {
+    string name = 1;
+}
+
+// Records that a root output should be deleted by the apply operation.
+message DeletedRootOutputValue {
+    string name = 1;
+}
+
+// Records that a component should just be deleted from the state.
+message DeletedComponent {
+    string component_instance_addr = 1;
+}
+
+// ProviderFunctionResults stores a record of the results of provider functions
+// that were called during the planning phase. This is used to ensure that the
+// same results are returned during the apply phase.
+message ProviderFunctionResults {
+    repeated tfplan.ProviderFunctionCallHash provider_function_results = 1;
+}
+
+// Represents the existence of a particular component instance, and so must
+// always appear before any messages representing objects that belong to that
+// component instance.
+//
+// This message type exists to avoid the ambiguity between a component instance
+// existing with zero resource instances inside vs. a component instance
+// not existing at all.
+message PlanComponentInstance {
+    string component_instance_addr = 1;
+
+    // plan_timestamp records the time when the plan for this component
+    // instance was created, exclusively for making sure that the
+    // "plantimestamp" function can return the same value during the apply
+    // phase. It must not be used for any other purpose.
+    string plan_timestamp = 2;
+
+    // Captures an approximation of the input values for this component with
+    // as much detail as we knew during the planning phase. This might
+    // contain unknown values as placeholders for values that won't be
+    // determined until the apply phase, so this isn't usable directly as
+    // the input to subsequently applying the component plan but the final
+    // input values should be a valid concretization of what's described here.
+    map<string, DynamicValue> planned_input_values = 3;
+
+    // The action planned for the component as a whole.
+    //
+    // This does not directly incorporate actions planned for resource
+    // instances within this component instance, but does capture a sense
+    // of the overall action being taken for this particular component
+    // instance.
+    //
+    // The currently-possible values are:
+    //   - CREATE and UPDATE both describe applying a "normal" plan, where
+    //     CREATE additionally represents that the component instance
+    //     did not previously exist.
+    //   - READ describes a refresh-only plan. This is currently possible only
+    //     if the overall stack plan is refresh-only.
+    //   - DELETE describes applying a destroy plan, with the intent of
+    //     deleting all remote objects currently bound to resource instances
+    //     in this component instance.
+    //
+    // The value recorded here is used to achieve a few variations needed in
+    // the apply phase.
+    tfplan.Action planned_action = 4;
+
+    // The mode that was used to plan this component.
+    //
+    // This is used to determine the behavior of the apply phase for this
+    // component instance.
+    //
+    // Ideally, we wouldn't need to include this at all as the plan should
+    // contain everything we need without a general mode. However, this is
+    // not currently the case. See context_apply.go:332 for more details.
+    // TODO: Remove this once walkDestroy has been properly audited.
+    tfplan.Mode mode = 10;
+
+    // The appliability flag decided by the modules runtime for this component's
+    // plan. See the docs for plans.Plan.Applyable for details on what this
+    // represents. (It's here largely just so that we can repopulate it
+    // faithfully when we rebuild a plans.Plan object at apply time.)
+    bool plan_applyable = 7;
+
+    // The completion flag decided by the modules runtime for this component's
+    // plan. See the docs for plans.Plan.Complete for details on what this
+    // represents. (It's here largely just so that we can repopulate it
+    // faithfully when we rebuild a plans.Plan object at apply time.)
+    bool plan_complete = 8;
+
+    // A list of absolute component addresses that this component
+    // instance depends on according to the configuration the plan was
+    // created from. (These are components rather than component instances
+    // because the stacks language evaluation model uses components as the
+    // most specific granularity for dependency resolution.)
+    //
+    // Applying this component instance's plan must wait until any
+    // CREATE or UPDATE plans for any of the listed component instances have
+    // completed successfully. Additionally, if any of the component instances
+    // listed here have DELETE plans then this component instance must also
+    // have a DELETE plan and the upstream DELETE must wait until this one
+    // has completed.
+    //
+    // A component instance plan that is not DELETE cannot depend on another
+    // component instance that is not also DELETE, since that would imply that
+    // this component instance's configuration refers to a component that isn't
+    // declared, which should therefore have failed validation.
+    repeated string depends_on_component_addrs = 5;
+
+    // Captures an approximation of the output values for this component with
+    // as much detail as we knew during the planning phase.
+    //
+    // For any planned action other than DELETE this might contain unknown
+    // values as placeholders for values that won't be determined until the
+    // apply phase
+    //
+    // For a DELETE plan the values should always be known because they are
+    // based on the prior state for the component, before it has been destroyed.
+    // The apply phase should use these values to build the representation of
+    // the component instance as an expression, because for DELETE any
+    // dependent objects must also be pending DELETE and their delete must
+    // happen before this instance is destroyed.
+    map<string, DynamicValue> planned_output_values = 6;
+
+    // A list of check results for this component instance, as produced by
+    // the modules runtime during the planning phase. The apply expects to
+    // update check results which were unknown during planning to reflect
+    // the actual results from the apply phase.
+    repeated tfplan.CheckResults planned_check_results = 9;
+
+    // The set of provider function results that were produced during the
+    // planning phase for this component instance. These results are used
+    // to ensure that the same results are returned during the apply phase.
+    repeated tfplan.ProviderFunctionCallHash provider_function_results = 11;
+}
+
+// Represents a planned change to a particular resource instance within a
+// particular component instance.
+message PlanResourceInstanceChangePlanned {
+    // The same string must previously have been announced with a
+    // PlanComponentInstance message, or the overall plan sequence is invalid.
+    string component_instance_addr = 1;
+    string resource_instance_addr = 4;
+    string deposed_key = 5;
+
+    // The address of the provider configuration that planned this change,
+    // or that produced the prior state for messages where "change" is
+    // unpopulated. This is a module-centric view relative to the root module
+    // of the component identified in component_instance_addr.
+    string provider_config_addr = 6;
+
+    // Description of the planned change in the standard "tfplan" (planproto)
+    // format.
+    tfplan.ResourceInstanceChange change = 2;
+
+    // A snapshot of the "prior state", which is the result of upgrading and
+    // refreshing the previous run's state.
+    //
+    // The very first action on applying this plan should be to update the
+    // raw state for the resource instance to match this value, since
+    // the main apply phase for each component instance assumes that the
+    // prior state has already been updated to match the "old" value from
+    // the "change" message.
+    StateResourceInstanceObjectV1 prior_state = 3;
+}
+
+// Represents a deferred change to a particular resource instance within a
+// particular component instance.
+message PlanDeferredResourceInstanceChange {
+    tfplan.Deferred deferred = 1;
+    PlanResourceInstanceChangePlanned change = 2;
+}
+
+// Represents that we need to emit "delete" requests for one or more raw
+// state and/or state description objects during the apply phase.
+//
+// This situation arises if the previous state (given as input to the apply
+// phase) contains keys that are of a type unrecognized by the current
+// version of Terraform and that are marked as "discard if unrecognized",
+// suggesting that their content is likely to become somehow invalid if
+// other parts of the state were to get updated.
+message PlanDiscardStateMapKeys {
+    // A set of keys to delete from the "raw state".
+    repeated string raw_state_keys = 1;
+
+    // A set of keys to delete from the "state description".
+    repeated string description_keys = 2;
+}
+
+///////////// STATE MAP MESSAGES
+//
+// A "stack state snapshot" is a mapping from arbitrary keys to messages
+// emitted gradually from the streaming Stacks.ApplyStackChanges RPC in the
+// Terraform Core RPC API.
+//
+// From the perspective of that protocol the keys and values in the map are
+// opaque and to be preserved verbatim without any external interpretation,
+// overwriting any previous value that had the same key.
+//
+// Internally, we decode each one based on the type field of google.protobuf.Any,
+// treating each one as some kind of mutation of our in-memory plan data
+// structure.
+//
+// These message types only cover the data that Terraform needs to produce
+// a future plan based on this snapshot, and don't cover any information that
+// Terraform Core might emit only for the caller's benefit.
+//
+// Because state messages survive from one run to the next, all top-level
+// messages used for state snapshots have a format version suffix that is
+// currently always 1. The functions that load a state map into the in-memory
+// state structure will fail if any of the messages are of an unknown type, so
+// we should increment the format version only as a last resort because this
+// will prevent users from downgrading to an earlier version of Terraform once
+// they've got at least one state map message that is of a newer version.
+//////////////
+
+// Represents the existence of a particular component instance.
+//
+// This is here mainly to remove the ambiguity between a component instance that
+// exists but contains no resource instances vs. a component instance that
+// doesn't exist at all.
+//
+// Because the state map is updated on a per-element basis rather than
+// atomically, it's possible that the state map might contain resource instances
+// which belong to a component instance that is not tracked by a message of
+// this type. In that case, the state loader will just assume an implied
+// message of this type with a matching component instance address and with
+// all other fields unset.
+message StateComponentInstanceV1 {
+    // The component instance's output values as reported from the most recent
+    // apply action. We retain this only so that we have some values to use
+    // in cases where the values in the configuration are unavailable or
+    // insufficient, such as when we're making a destroy-mode plan and therefore
+    // the desired state would be for the component instance to cease existing
+    // but yet we still need to have _some_ output values to use when planning
+    // and applying other component instances that refer to this one.
+    map<string, DynamicValue> output_values = 1;
+
+    // The input variables for this component instance as reported from the
+    // most recent apply action. We retain this only for usage within removed
+    // blocks, where we need to know the input variables to be able to plan
+    // and apply the destroy action without asking the user to resupply or
+    // remember them.
+    map<string, DynamicValue> input_variables = 2;
+
+    // The absolute configuration addresses of components that this component
+    // instance depended on when it was created. We preserve this information
+    // to help with plan and apply ordering during destroy plans or for removed
+    // blocks.
+    repeated string dependency_addrs = 3;
+
+    // The absolute configuration addresses of components that depended on this
+    // component instance when it was created. We preserve this information
+    // to help with plan and apply ordering during destroy plans or for removed
+    // blocks.
+    repeated string dependent_addrs = 4;
+}
+
+// Represents the existence of a particular resource instance object in a
+// particular component instance.
+//
+// A resource instance message object should typically be accompanied by a
+// StateComponentInstanceV1 (or later version) that represents the existence
+// of the component itself, but for robustness we tolerate the absense of
+// such a message and just assume that all of its fields (other than the
+// component instance address) are unset.
+message StateResourceInstanceObjectV1 {
+    // value_json is a JSON representation of the object value representing
+    // this resource instance object.
+    //
+    // This is JSON-serialized rather than MessagePack serialized (as we do
+    // for everything else in this format and in the RPC API) because
+    // the provider protocol only supports legacy flatmap and JSON as input
+    // to the state upgrade process, and we won't be able to transcode from
+    // MessagePack to JSON once we decode this because we won't know the
+    // schema that the value was encoded with.
+    //
+    // This is a pragmatic exception for this particular quirk of Terraform's
+    // provider API design. Other parts of this format and associated protocol
+    // should use tfplan.DynamicValue and MessagePack encoding for consistency.
+    bytes value_json = 1;
+    repeated tfplan.Path sensitive_paths = 2;
+    uint64 schema_version = 3;
+
+    Status status = 4;
+    repeated string dependencies = 5;
+    bool create_before_destroy = 6;
+    string provider_config_addr = 7;
+
+    // provider_specific_data is arbitrary bytes produced by the provider
+    // in its apply response which we preserve and pass back to it in any
+    // subsequent plan operation.
+    bytes provider_specific_data = 8;
+
+    enum Status {
+        UNKNOWN = 0;
+        READY = 1;
+        DAMAGED = 2; // (formerly known as "tainted")
+    }
+}
+
+message DynamicValue {
+    tfplan.DynamicValue value = 1;
+    repeated tfplan.Path sensitive_paths = 2;
+}

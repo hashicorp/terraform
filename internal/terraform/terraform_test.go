@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -19,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/states"
@@ -63,8 +67,8 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
-	_, instDiags := inst.InstallModules(context.Background(), dir, true, initwd.ModuleInstallHooksImpl{})
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
@@ -85,7 +89,7 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 
 // testModuleInline takes a map of path -> config strings and yields a config
 // structure with those files loaded from disk
-func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
+func testModuleInline(t testing.TB, sources map[string]string) *configs.Config {
 	t.Helper()
 
 	cfgPath := t.TempDir()
@@ -120,8 +124,8 @@ func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
-	_, instDiags := inst.InstallModules(context.Background(), cfgPath, true, initwd.ModuleInstallHooksImpl{})
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
@@ -132,7 +136,7 @@ func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	config, diags := loader.LoadConfig(cfgPath)
+	config, diags := loader.LoadConfigWithTests(cfgPath, "tests")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
@@ -167,32 +171,33 @@ func testSetResourceInstanceTainted(module *states.Module, resource, attrsJson, 
 }
 
 func testProviderFuncFixed(rp providers.Interface) providers.Factory {
-	return func() (providers.Interface, error) {
-		if p, ok := rp.(*MockProvider); ok {
-			// make sure none of the methods were "called" on this new instance
-			p.GetProviderSchemaCalled = false
-			p.ValidateProviderConfigCalled = false
-			p.ValidateResourceConfigCalled = false
-			p.ValidateDataResourceConfigCalled = false
-			p.UpgradeResourceStateCalled = false
-			p.ConfigureProviderCalled = false
-			p.StopCalled = false
-			p.ReadResourceCalled = false
-			p.PlanResourceChangeCalled = false
-			p.ApplyResourceChangeCalled = false
-			p.ImportResourceStateCalled = false
-			p.ReadDataSourceCalled = false
-			p.CloseCalled = false
-		}
+	if p, ok := rp.(*testing_provider.MockProvider); ok {
+		// make sure none of the methods were "called" on this new instance
+		p.GetProviderSchemaCalled = false
+		p.ValidateProviderConfigCalled = false
+		p.ValidateResourceConfigCalled = false
+		p.ValidateDataResourceConfigCalled = false
+		p.UpgradeResourceStateCalled = false
+		p.ConfigureProviderCalled = false
+		p.StopCalled = false
+		p.ReadResourceCalled = false
+		p.PlanResourceChangeCalled = false
+		p.ApplyResourceChangeCalled = false
+		p.ImportResourceStateCalled = false
+		p.ReadDataSourceCalled = false
+		p.CloseCalled = false
+	}
 
+	return func() (providers.Interface, error) {
 		return rp, nil
 	}
 }
 
 func testProvisionerFuncFixed(rp *MockProvisioner) provisioners.Factory {
+	// make sure this provisioner has has not been closed
+	rp.CloseCalled = false
+
 	return func() (provisioners.Interface, error) {
-		// make sure this provisioner has has not been closed
-		rp.CloseCalled = false
 		return rp, nil
 	}
 }
@@ -221,8 +226,32 @@ func mustAbsResourceAddr(s string) addrs.AbsResource {
 	return addr
 }
 
+func mustAbsOutputValue(s string) addrs.AbsOutputValue {
+	p, diags := addrs.ParseAbsOutputValueStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return p
+}
+
 func mustProviderConfig(s string) addrs.AbsProviderConfig {
 	p, diags := addrs.ParseAbsProviderConfigStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return p
+}
+
+func mustReference(s string) *addrs.Reference {
+	p, diags := addrs.ParseRefStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return p
+}
+
+func mustModuleInstance(s string) addrs.ModuleInstance {
+	p, diags := addrs.ParseModuleInstanceStr(s)
 	if diags.HasErrors() {
 		panic(diags.Err())
 	}
@@ -243,7 +272,7 @@ type HookRecordApplyOrder struct {
 	l sync.Mutex
 }
 
-func (h *HookRecordApplyOrder) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (h *HookRecordApplyOrder) PreApply(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	if plannedNewState.RawEquals(priorState) {
 		return HookActionContinue, nil
 	}
@@ -252,7 +281,7 @@ func (h *HookRecordApplyOrder) PreApply(addr addrs.AbsResourceInstance, gen stat
 		h.l.Lock()
 		defer h.l.Unlock()
 
-		h.IDs = append(h.IDs, addr.String())
+		h.IDs = append(h.IDs, id.Addr.String())
 		h.Diffs = append(h.Diffs, &plans.Change{
 			Action: action,
 			Before: priorState,
@@ -626,13 +655,6 @@ module.child:
 
     Dependencies:
       aws_instance.foo
-`
-
-const testTerraformApplyOutputOrphanStr = `
-<no state>
-Outputs:
-
-foo = bar
 `
 
 const testTerraformApplyOutputOrphanModuleStr = `

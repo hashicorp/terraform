@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonprovider
 
 import (
@@ -7,9 +10,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-type attribute struct {
+type Attribute struct {
 	AttributeType       json.RawMessage `json:"type,omitempty"`
-	AttributeNestedType *nestedType     `json:"nested_type,omitempty"`
+	AttributeNestedType *NestedType     `json:"nested_type,omitempty"`
 	Description         string          `json:"description,omitempty"`
 	DescriptionKind     string          `json:"description_kind,omitempty"`
 	Deprecated          bool            `json:"deprecated,omitempty"`
@@ -19,8 +22,8 @@ type attribute struct {
 	Sensitive           bool            `json:"sensitive,omitempty"`
 }
 
-type nestedType struct {
-	Attributes  map[string]*attribute `json:"attributes,omitempty"`
+type NestedType struct {
+	Attributes  map[string]*Attribute `json:"attributes,omitempty"`
 	NestingMode string                `json:"nesting_mode,omitempty"`
 }
 
@@ -33,8 +36,8 @@ func marshalStringKind(sk configschema.StringKind) string {
 	}
 }
 
-func marshalAttribute(attr *configschema.Attribute) *attribute {
-	ret := &attribute{
+func marshalAttribute(attr *configschema.Attribute) *Attribute {
+	ret := &Attribute{
 		Description:     attr.Description,
 		DescriptionKind: marshalStringKind(attr.DescriptionKind),
 		Required:        attr.Required,
@@ -52,10 +55,10 @@ func marshalAttribute(attr *configschema.Attribute) *attribute {
 	}
 
 	if attr.NestedType != nil {
-		nestedTy := nestedType{
+		nestedTy := NestedType{
 			NestingMode: nestingModeString(attr.NestedType.Nesting),
 		}
-		attrs := make(map[string]*attribute, len(attr.NestedType.Attributes))
+		attrs := make(map[string]*Attribute, len(attr.NestedType.Attributes))
 		for k, attr := range attr.NestedType.Attributes {
 			attrs[k] = marshalAttribute(attr)
 		}

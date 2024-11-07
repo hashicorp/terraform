@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package addrs
 
 import (
@@ -156,6 +159,47 @@ func TestModuleInstance_IsDeclaredByCall(t *testing.T) {
 			got := test.instance.IsDeclaredByCall(test.call)
 			if got != test.want {
 				t.Fatal("wrong result")
+			}
+		})
+	}
+}
+
+func TestModuleInstance_ContainingModule(t *testing.T) {
+	tcs := map[string]struct {
+		module   string
+		expected string
+	}{
+		"no_instances": {
+			module:   "module.parent.module.child",
+			expected: "module.parent.module.child",
+		},
+		"last_instance": {
+			module:   "module.parent.module.child[0]",
+			expected: "module.parent.module.child",
+		},
+		"middle_instance": {
+			module:   "module.parent[0].module.child",
+			expected: "module.parent[0].module.child",
+		},
+		"all_instances": {
+			module:   "module.parent[0].module.child[0]",
+			expected: "module.parent[0].module.child",
+		},
+		"single_no_instance": {
+			module:   "module.parent",
+			expected: "module.parent",
+		},
+		"single_instance": {
+			module:   "module.parent[0]",
+			expected: "module.parent",
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			module := mustParseModuleInstanceStr(tc.module)
+			actual, expected := module.ContainingModule().String(), tc.expected
+			if actual != expected {
+				t.Errorf("expected: %s\nactual:  %s", expected, actual)
 			}
 		})
 	}

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package plans
 
 import (
@@ -12,7 +15,7 @@ func TestProviderAddrs(t *testing.T) {
 
 	plan := &Plan{
 		VariableValues: map[string]DynamicValue{},
-		Changes: &Changes{
+		Changes: &ChangesSrc{
 			Resources: []*ResourceInstanceChangeSrc{
 				{
 					Addr: addrs.Resource{
@@ -71,7 +74,7 @@ func TestProviderAddrs(t *testing.T) {
 
 // Module outputs should not effect the result of Empty
 func TestModuleOutputChangesEmpty(t *testing.T) {
-	changes := &Changes{
+	changes := &ChangesSrc{
 		Outputs: []*OutputChangeSrc{
 			{
 				Addr: addrs.AbsOutputValue{

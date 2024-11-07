@@ -19,9 +19,13 @@ cidrhost(prefix, hostnum)
 
 `hostnum` is a whole number that can be represented as a binary integer with
 no more than the number of digits remaining in the address after the given
-prefix. For more details on how this function interprets CIDR prefixes and
+prefix. If `hostnum` is negative, the count starts from the end of the range.
+For example, `cidrhost("10.0.0.0/8", 2)` returns `10.0.0.2` and
+`cidrhost("10.0.0.0/8", -2)` returns `10.255.255.254`.
+
+For more details on how this function interprets CIDR prefixes and
 populates host numbers, see the worked example for
-[`cidrsubnet`](/language/functions/cidrsubnet).
+[`cidrsubnet`](/terraform/language/functions/cidrsubnet).
 
 Conventionally host number zero is used to represent the address of the
 network itself and the host number that would fill all the host bits with
@@ -50,5 +54,5 @@ fd00:fd12:3456:7890::22
 
 ## Related Functions
 
-* [`cidrsubnet`](/language/functions/cidrsubnet) calculates a subnet address under a given
+* [`cidrsubnet`](/terraform/language/functions/cidrsubnet) calculates a subnet address under a given
   network address prefix.

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package main
 
 import (
@@ -6,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 func TestMain_cliArgsFromEnv(t *testing.T) {
@@ -31,7 +34,7 @@ func TestMain_cliArgsFromEnv(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Args     []string
-		Value    string
+		EnvValue string
 		Expected []string
 		Err      bool
 	}{
@@ -46,8 +49,8 @@ func TestMain_cliArgsFromEnv(t *testing.T) {
 		{
 			"both env var and CLI",
 			[]string{testCommandName, "foo", "bar"},
-			"-foo bar",
-			[]string{"-foo", "bar", "foo", "bar"},
+			"-foo baz",
+			[]string{"-foo", "baz", "foo", "bar"},
 			false,
 		},
 
@@ -108,19 +111,36 @@ func TestMain_cliArgsFromEnv(t *testing.T) {
 			[]string{"-foo", "'bar baz'", "foo"},
 			false,
 		},
+
+		{
+			"backticks taken literally",
+			// The shellwords library we use to parse the environment variables
+			// has the option to automatically execute commands written in
+			// backticks. This test is here to make sure we don't accidentally
+			// enable that.
+			[]string{testCommandName, "foo"},
+			"-foo `echo nope`",
+			[]string{"-foo", "`echo nope`", "foo"},
+			false,
+		},
+
+		{
+			"no nested environment variable expansion",
+			// The shellwords library we use to parse the environment variables
+			// has the option to automatically expand sequences that appear
+			// to be environment variable interpolations. This test is here to
+			// make sure we don't accidentally enable that.
+			[]string{testCommandName, "foo"},
+			"-foo $OTHER_ENV",
+			[]string{"-foo", "$OTHER_ENV", "foo"},
+			false,
+		},
 	}
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			os.Unsetenv(EnvCLI)
-			defer os.Unsetenv(EnvCLI)
-
-			// Set the env var value
-			if tc.Value != "" {
-				if err := os.Setenv(EnvCLI, tc.Value); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-			}
+			t.Setenv(EnvCLI, tc.EnvValue)
+			t.Setenv("OTHER_ENV", "placeholder")
 
 			// Set up the args
 			args := make([]string, len(tc.Args)+1)
@@ -140,7 +160,7 @@ func TestMain_cliArgsFromEnv(t *testing.T) {
 
 			// Verify
 			if !reflect.DeepEqual(testCommand.Args, tc.Expected) {
-				t.Fatalf("bad: %#v", testCommand.Args)
+				t.Fatalf("expected args %#v but got %#v", tc.Expected, testCommand.Args)
 			}
 		})
 	}

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package state exposes common helpers for working with state from the CLI.
 //
 // This is a separate package so that backends can use this for consistent

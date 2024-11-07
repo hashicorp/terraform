@@ -1,15 +1,20 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	hcljson "github.com/hashicorp/hcl/v2/json"
-	"github.com/hashicorp/terraform/internal/backend"
+
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -19,6 +24,67 @@ import (
 // for root module input variables.
 const VarEnvPrefix = "TF_VAR_"
 
+// collectVariableValuesForTests inspects the various places that test
+// values can come from and constructs a map ready to be passed to the
+// backend as part of a backend.Operation.
+//
+// This method returns diagnostics relating to the collection of the values,
+// but the values themselves may produce additional diagnostics when finally
+// parsed.
+func (m *Meta) collectVariableValuesForTests(testsFilePath string) (map[string]backendrun.UnparsedVariableValue, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ret := map[string]backendrun.UnparsedVariableValue{}
+
+	// We collect the variables from the ./tests directory
+	// there is no other need to process environmental variables
+	// as this is done via collectVariableValues function
+	if testsFilePath == "" {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Missing test directory",
+			"The test directory was unspecified when it should always be set. This is a bug in Terraform - please report it."))
+		return ret, diags
+	}
+
+	// Firstly we collect variables from .tfvars file
+	testVarsFilename := filepath.Join(testsFilePath, DefaultVarsFilename)
+	if _, err := os.Stat(testVarsFilename); err == nil {
+		moreDiags := m.addVarsFromFile(testVarsFilename, terraform.ValueFromAutoFile, ret)
+		diags = diags.Append(moreDiags)
+
+	}
+
+	// Then we collect variables from .tfvars.json file
+	const defaultVarsFilenameJSON = DefaultVarsFilename + ".json"
+	testVarsFilenameJSON := filepath.Join(testsFilePath, defaultVarsFilenameJSON)
+
+	if _, err := os.Stat(testVarsFilenameJSON); err == nil {
+		moreDiags := m.addVarsFromFile(testVarsFilenameJSON, terraform.ValueFromAutoFile, ret)
+		diags = diags.Append(moreDiags)
+	}
+
+	// Also, load any variables from the *.auto.tfvars files.
+	if infos, err := os.ReadDir(testsFilePath); err == nil {
+		for _, info := range infos {
+			if info.IsDir() {
+				continue
+			}
+
+			if !isAutoVarFile(info.Name()) {
+				continue
+			}
+
+			moreDiags := m.addVarsFromFile(filepath.Join(testsFilePath, info.Name()), terraform.ValueFromAutoFile, ret)
+			diags = diags.Append(moreDiags)
+		}
+	}
+
+	// Also, no need to additionally process variables from command line,
+	// as this is also done via collectVariableValues
+
+	return ret, diags
+}
+
 // collectVariableValues inspects the various places that root module input variable
 // values can come from and constructs a map ready to be passed to the
 // backend as part of a backend.Operation.
@@ -26,9 +92,9 @@ const VarEnvPrefix = "TF_VAR_"
 // This method returns diagnostics relating to the collection of the values,
 // but the values themselves may produce additional diagnostics when finally
 // parsed.
-func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue, tfdiags.Diagnostics) {
+func (m *Meta) collectVariableValues() (map[string]backendrun.UnparsedVariableValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ret := map[string]backend.UnparsedVariableValue{}
+	ret := map[string]backendrun.UnparsedVariableValue{}
 
 	// First we'll deal with environment variables, since they have the lowest
 	// precedence.
@@ -84,13 +150,13 @@ func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue
 
 	// Finally we process values given explicitly on the command line, either
 	// as individual literal settings or as additional files to read.
-	for _, rawFlag := range m.variableArgs.AllItems() {
-		switch rawFlag.Name {
+	for _, flagNameValue := range m.variableArgs.AllItems() {
+		switch flagNameValue.Name {
 		case "-var":
 			// Value should be in the form "name=value", where value is a
 			// raw string whose interpretation will depend on the variable's
 			// parsing mode.
-			raw := rawFlag.Value
+			raw := flagNameValue.Value
 			eq := strings.Index(raw, "=")
 			if eq == -1 {
 				diags = diags.Append(tfdiags.Sourceless(
@@ -117,20 +183,20 @@ func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue
 			}
 
 		case "-var-file":
-			moreDiags := m.addVarsFromFile(rawFlag.Value, terraform.ValueFromNamedFile, ret)
+			moreDiags := m.addVarsFromFile(flagNameValue.Value, terraform.ValueFromNamedFile, ret)
 			diags = diags.Append(moreDiags)
 
 		default:
 			// Should never happen; always a bug in the code that built up
 			// the contents of m.variableArgs.
-			diags = diags.Append(fmt.Errorf("unsupported variable option name %q (this is a bug in Terraform)", rawFlag.Name))
+			diags = diags.Append(fmt.Errorf("unsupported variable option name %q (this is a bug in Terraform)", flagNameValue.Name))
 		}
 	}
 
 	return ret, diags
 }
 
-func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSourceType, to map[string]backend.UnparsedVariableValue) tfdiags.Diagnostics {
+func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSourceType, to map[string]backendrun.UnparsedVariableValue) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	src, err := ioutil.ReadFile(filename)
@@ -220,7 +286,7 @@ func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSource
 	return diags
 }
 
-// unparsedVariableValueLiteral is a backend.UnparsedVariableValue
+// unparsedVariableValueLiteral is a backendrun.UnparsedVariableValue
 // implementation that was actually already parsed (!). This is
 // intended to deal with expressions inside "tfvars" files.
 type unparsedVariableValueExpression struct {
@@ -242,7 +308,7 @@ func (v unparsedVariableValueExpression) ParseVariableValue(mode configs.Variabl
 	}, diags
 }
 
-// unparsedVariableValueString is a backend.UnparsedVariableValue
+// unparsedVariableValueString is a backendrun.UnparsedVariableValue
 // implementation that parses its value from a string. This can be used
 // to deal with values given directly on the command line and via environment
 // variables.

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package main
 
 import (
@@ -21,7 +24,7 @@ func Test_backend_apply_before_init(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"apply"},
-							expectedCmdOutput: `Terraform Cloud initialization required: please run "terraform init"`,
+							expectedCmdOutput: `HCP Terraform initialization required: please run "terraform init"`,
 							expectError:       true,
 						},
 					},
@@ -55,7 +58,7 @@ func Test_backend_apply_before_init(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"apply"},
-							expectedCmdOutput: `Terraform Cloud initialization required: please run "terraform init"`,
+							expectedCmdOutput: `HCP Terraform initialization required: please run "terraform init"`,
 							expectError:       true,
 						},
 					},

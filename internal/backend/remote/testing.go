@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package remote
 
 import (
@@ -10,11 +13,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/cli"
 	tfe "github.com/hashicorp/go-tfe"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -24,10 +32,6 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
-	"github.com/mitchellh/cli"
-	"github.com/zclconf/go-cty/cty"
-
-	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 )
 
 const (
@@ -144,6 +148,7 @@ func testBackend(t *testing.T, obj cty.Value) (*Remote, func()) {
 	b.client.Plans = mc.Plans
 	b.client.PolicyChecks = mc.PolicyChecks
 	b.client.Runs = mc.Runs
+	b.client.RunEvents = mc.RunEvents
 	b.client.StateVersions = mc.StateVersions
 	b.client.Variables = mc.Variables
 	b.client.Workspaces = mc.Workspaces
@@ -174,15 +179,17 @@ func testBackend(t *testing.T, obj cty.Value) (*Remote, func()) {
 	return b, s.Close
 }
 
-func testLocalBackend(t *testing.T, remote *Remote) backend.Enhanced {
+func testLocalBackend(t *testing.T, remote *Remote) backendrun.OperationsBackend {
 	b := backendLocal.NewWithBackend(remote)
 
 	// Add a test provider to the local backend.
-	p := backendLocal.TestLocalProvider(t, b, "null", &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p := backendLocal.TestLocalProvider(t, b, "null", providers.ProviderSchema{
+		ResourceTypes: map[string]providers.Schema{
 			"null_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Computed: true},
+					},
 				},
 			},
 		},
@@ -309,8 +316,8 @@ func (v *unparsedVariableValue) ParseVariableValue(mode configs.VariableParsingM
 }
 
 // testVariable returns a backend.UnparsedVariableValue used for testing.
-func testVariables(s terraform.ValueSourceType, vs ...string) map[string]backend.UnparsedVariableValue {
-	vars := make(map[string]backend.UnparsedVariableValue, len(vs))
+func testVariables(s terraform.ValueSourceType, vs ...string) map[string]backendrun.UnparsedVariableValue {
+	vars := make(map[string]backendrun.UnparsedVariableValue, len(vs))
 	for _, v := range vs {
 		vars[v] = &unparsedVariableValue{
 			value:  v,

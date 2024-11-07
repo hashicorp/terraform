@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -6,12 +9,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/mitchellh/cli"
 	"github.com/posener/complete"
 )
 
@@ -156,7 +159,7 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 		c.Ui.Error(err.Error())
 		return 1
 	}
-	err = stateMgr.PersistState()
+	err = stateMgr.PersistState(nil)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1

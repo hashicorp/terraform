@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configs
 
 import (
@@ -45,7 +48,7 @@ func testModuleConfigFromFile(filename string) (*Config, hcl.Diagnostics) {
 	f, diags := parser.LoadConfigFile(filename)
 	mod, modDiags := NewModule([]*File{f}, nil)
 	diags = append(diags, modDiags...)
-	cfg, moreDiags := BuildConfig(mod, nil)
+	cfg, moreDiags := BuildConfig(mod, nil, nil)
 	return cfg, append(diags, moreDiags...)
 }
 
@@ -61,8 +64,25 @@ func testModuleFromDir(path string) (*Module, hcl.Diagnostics) {
 func testModuleConfigFromDir(path string) (*Config, hcl.Diagnostics) {
 	parser := NewParser(nil)
 	mod, diags := parser.LoadConfigDir(path)
-	cfg, moreDiags := BuildConfig(mod, nil)
+	cfg, moreDiags := BuildConfig(mod, nil, nil)
 	return cfg, append(diags, moreDiags...)
+}
+
+// testNestedModuleConfigFromDirWithTests matches testNestedModuleConfigFromDir
+// except it also loads any test files within the directory.
+func testNestedModuleConfigFromDirWithTests(t *testing.T, path string) (*Config, hcl.Diagnostics) {
+	t.Helper()
+
+	parser := NewParser(nil)
+	mod, diags := parser.LoadConfigDirWithTests(path, "tests")
+	if mod == nil {
+		t.Fatal("got nil root module; want non-nil")
+	}
+
+	cfg, nestedDiags := buildNestedModuleConfig(mod, path, parser)
+
+	diags = append(diags, nestedDiags...)
+	return cfg, diags
 }
 
 // testNestedModuleConfigFromDir reads configuration from the given directory path as
@@ -77,8 +97,15 @@ func testNestedModuleConfigFromDir(t *testing.T, path string) (*Config, hcl.Diag
 		t.Fatal("got nil root module; want non-nil")
 	}
 
+	cfg, nestedDiags := buildNestedModuleConfig(mod, path, parser)
+
+	diags = append(diags, nestedDiags...)
+	return cfg, diags
+}
+
+func buildNestedModuleConfig(mod *Module, path string, parser *Parser) (*Config, hcl.Diagnostics) {
 	versionI := 0
-	cfg, nestedDiags := BuildConfig(mod, ModuleWalkerFunc(
+	return BuildConfig(mod, ModuleWalkerFunc(
 		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
 			// For the sake of this test we're going to just treat our
 			// SourceAddr as a path relative to the calling module.
@@ -98,11 +125,11 @@ func testNestedModuleConfigFromDir(t *testing.T, path string) (*Config, hcl.Diag
 			version, _ := version.NewVersion(fmt.Sprintf("1.0.%d", versionI))
 			versionI++
 			return mod, version, diags
-		},
-	))
-
-	diags = append(diags, nestedDiags...)
-	return cfg, diags
+		}),
+		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+			return nil, nil
+		}),
+	)
 }
 
 func assertNoDiagnostics(t *testing.T, diags hcl.Diagnostics) bool {

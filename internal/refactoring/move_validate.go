@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package refactoring
 
 import (
@@ -6,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -49,46 +53,13 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 
 	for _, stmt := range stmts {
 		// Earlier code that constructs MoveStatement values should ensure that
-		// both stmt.From and stmt.To always belong to the same statement and
-		// thus to the same module.
-		stmtMod, fromCallSteps := stmt.From.ModuleCallTraversals()
-		_, toCallSteps := stmt.To.ModuleCallTraversals()
+		// both stmt.From and stmt.To always belong to the same statement.
+		fromMod, _ := stmt.From.ModuleCallTraversals()
 
-		modCfg := rootCfg.Descendent(stmtMod)
-		if !stmt.Implied {
-			// Implied statements can cross module boundaries because we
-			// generate them only for changing instance keys on a single
-			// resource. They happen to be generated _as if_ they were written
-			// in the root module, but the source and destination are always
-			// in the same module anyway.
-			if pkgAddr := callsThroughModulePackage(modCfg, fromCallSteps); pkgAddr != nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Cross-package move statement",
-					Detail: fmt.Sprintf(
-						"This statement declares a move from an object declared in external module package %q. Move statements can be only within a single module package.",
-						pkgAddr,
-					),
-					Subject: stmt.DeclRange.ToHCL().Ptr(),
-				})
-			}
-			if pkgAddr := callsThroughModulePackage(modCfg, toCallSteps); pkgAddr != nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Cross-package move statement",
-					Detail: fmt.Sprintf(
-						"This statement declares a move to an object declared in external module package %q. Move statements can be only within a single module package.",
-						pkgAddr,
-					),
-					Subject: stmt.DeclRange.ToHCL().Ptr(),
-				})
-			}
-		}
+		for _, fromModInst := range declaredInsts.InstancesForModule(fromMod, false) {
+			absFrom := stmt.From.InModuleInstance(fromModInst)
 
-		for _, modInst := range declaredInsts.InstancesForModule(stmtMod) {
-
-			absFrom := stmt.From.InModuleInstance(modInst)
-			absTo := stmt.To.InModuleInstance(modInst)
+			absTo := stmt.To.InModuleInstance(fromModInst)
 
 			if addrs.Equivalent(absFrom, absTo) {
 				diags = diags.Append(&hcl.Diagnostic{
@@ -187,17 +158,6 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 					StmtRange: stmt.DeclRange,
 				})
 			}
-
-			// Resource types must match.
-			if resourceTypesDiffer(absFrom, absTo) {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Resource type mismatch",
-					Detail: fmt.Sprintf(
-						"This statement declares a move from %s to %s, which is a %s of a different type.", absFrom, absTo, noun,
-					),
-				})
-			}
 		}
 	}
 
@@ -282,19 +242,6 @@ func moveableObjectExists(addr addrs.AbsMoveable, in instances.Set) bool {
 	}
 }
 
-func resourceTypesDiffer(absFrom, absTo addrs.AbsMoveable) bool {
-	switch absFrom := absFrom.(type) {
-	case addrs.AbsMoveableResource:
-		// addrs.UnifyMoveEndpoints guarantees that both addresses are of the
-		// same kind, so at this point we can assume that absTo is also an
-		// addrs.AbsResourceInstance or addrs.AbsResource.
-		absTo := absTo.(addrs.AbsMoveableResource)
-		return absFrom.AffectedAbsResource().Resource.Type != absTo.AffectedAbsResource().Resource.Type
-	default:
-		return false
-	}
-}
-
 func movableObjectDeclRange(addr addrs.AbsMoveable, cfg *configs.Config) (tfdiags.SourceRange, bool) {
 	switch addr := addr.(type) {
 	case addrs.ModuleInstance:
@@ -303,7 +250,7 @@ func movableObjectDeclRange(addr addrs.AbsMoveable, cfg *configs.Config) (tfdiag
 		// (NOTE: This assumes "addr" can never be the root module instance,
 		// because the root module is never moveable.)
 		parentAddr, callAddr := addr.Call()
-		modCfg := cfg.DescendentForInstance(parentAddr)
+		modCfg := cfg.DescendantForInstance(parentAddr)
 		if modCfg == nil {
 			return tfdiags.SourceRange{}, false
 		}
@@ -324,7 +271,7 @@ func movableObjectDeclRange(addr addrs.AbsMoveable, cfg *configs.Config) (tfdiag
 			return tfdiags.SourceRangeFromHCL(call.DeclRange), true
 		}
 	case addrs.AbsModuleCall:
-		modCfg := cfg.DescendentForInstance(addr.Module)
+		modCfg := cfg.DescendantForInstance(addr.Module)
 		if modCfg == nil {
 			return tfdiags.SourceRange{}, false
 		}
@@ -334,7 +281,7 @@ func movableObjectDeclRange(addr addrs.AbsMoveable, cfg *configs.Config) (tfdiag
 		}
 		return tfdiags.SourceRangeFromHCL(call.DeclRange), true
 	case addrs.AbsResourceInstance:
-		modCfg := cfg.DescendentForInstance(addr.Module)
+		modCfg := cfg.DescendantForInstance(addr.Module)
 		if modCfg == nil {
 			return tfdiags.SourceRange{}, false
 		}
@@ -355,7 +302,7 @@ func movableObjectDeclRange(addr addrs.AbsMoveable, cfg *configs.Config) (tfdiag
 			return tfdiags.SourceRangeFromHCL(rc.DeclRange), true
 		}
 	case addrs.AbsResource:
-		modCfg := cfg.DescendentForInstance(addr.Module)
+		modCfg := cfg.DescendantForInstance(addr.Module)
 		if modCfg == nil {
 			return tfdiags.SourceRange{}, false
 		}
@@ -368,25 +315,4 @@ func movableObjectDeclRange(addr addrs.AbsMoveable, cfg *configs.Config) (tfdiag
 		// The above cases should cover all of the AbsMoveable types
 		panic("unsupported AbsMoveable address type")
 	}
-}
-
-func callsThroughModulePackage(modCfg *configs.Config, callSteps []addrs.ModuleCall) addrs.ModuleSource {
-	var sourceAddr addrs.ModuleSource
-	current := modCfg
-	for _, step := range callSteps {
-		call := current.Module.ModuleCalls[step.Name]
-		if call == nil {
-			break
-		}
-		if call.EntersNewPackage() {
-			sourceAddr = call.SourceAddr
-		}
-		current = modCfg.Children[step.Name]
-		if current == nil {
-			// Weird to have a call but not a config, but we'll tolerate
-			// it to avoid crashing here.
-			break
-		}
-	}
-	return sourceAddr
 }

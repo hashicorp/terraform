@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package objchange
 
 import (
@@ -99,6 +102,14 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 			if plannedV.IsNull() {
 				errs = append(errs, path.NewErrorf("attribute representing a list of nested blocks must be empty to indicate no blocks, not null"))
 				continue
+			}
+
+			if configV.IsNull() {
+				// Configuration cannot decode a block into a null value, but
+				// we could be dealing with a null returned by a legacy
+				// provider and inserted via ignore_changes. Fix the value in
+				// place so the length can still be compared.
+				configV = cty.ListValEmpty(configV.Type().ElementType())
 			}
 
 			plannedL := plannedV.LengthInt()
@@ -245,24 +256,44 @@ func assertPlannedAttrsValid(schema map[string]*configschema.Attribute, priorSta
 }
 
 func assertPlannedAttrValid(name string, attrS *configschema.Attribute, priorState, config, plannedState cty.Value, path cty.Path) []error {
-	plannedV := plannedState.GetAttr(name)
-	configV := config.GetAttr(name)
-	priorV := cty.NullVal(attrS.Type)
+	// any of the config, prior or planned values may be null at this point if
+	// we are in nested structural attributes.
+	var plannedV, configV, priorV cty.Value
+	if attrS.NestedType != nil {
+		configV = cty.NullVal(attrS.NestedType.ImpliedType())
+		priorV = cty.NullVal(attrS.NestedType.ImpliedType())
+		plannedV = cty.NullVal(attrS.NestedType.ImpliedType())
+	} else {
+		configV = cty.NullVal(attrS.Type)
+		priorV = cty.NullVal(attrS.Type)
+		plannedV = cty.NullVal(attrS.Type)
+	}
+
+	if !config.IsNull() {
+		configV = config.GetAttr(name)
+	}
+
 	if !priorState.IsNull() {
 		priorV = priorState.GetAttr(name)
 	}
+
+	if !plannedState.IsNull() {
+		plannedV = plannedState.GetAttr(name)
+	}
+
 	path = append(path, cty.GetAttrStep{Name: name})
 
 	return assertPlannedValueValid(attrS, priorV, configV, plannedV, path)
 }
 
 func assertPlannedValueValid(attrS *configschema.Attribute, priorV, configV, plannedV cty.Value, path cty.Path) []error {
+
 	var errs []error
-	if plannedV.RawEquals(configV) {
+	if unrefinedValue(plannedV).RawEquals(unrefinedValue(configV)) {
 		// This is the easy path: provider didn't change anything at all.
 		return errs
 	}
-	if plannedV.RawEquals(priorV) && !priorV.IsNull() && !configV.IsNull() {
+	if unrefinedValue(plannedV).RawEquals(unrefinedValue(priorV)) && !priorV.IsNull() && !configV.IsNull() {
 		// Also pretty easy: there is a prior value and the provider has
 		// returned it unchanged. This indicates that configV and plannedV
 		// are functionally equivalent and so the provider wishes to disregard
@@ -270,22 +301,28 @@ func assertPlannedValueValid(attrS *configschema.Attribute, priorV, configV, pla
 		return errs
 	}
 
-	// the provider is allowed to insert values when the config is
-	// null, but only if the attribute is computed.
-	if configV.IsNull() {
-		if attrS.Computed {
-			return errs
-		}
+	switch {
+	// The provider can plan any value for a computed-only attribute. There may
+	// be a config value here in the case where a user used `ignore_changes` on
+	// a computed attribute and ignored the warning, or we failed to validate
+	// computed attributes in the config, but regardless it's not a plan error
+	// caused by the provider.
+	case attrS.Computed && !attrS.Optional:
+		return errs
 
+	// The provider is allowed to insert optional values when the config is
+	// null, but only if the attribute is computed.
+	case configV.IsNull() && attrS.Computed:
+		return errs
+
+	case configV.IsNull() && !plannedV.IsNull():
 		// if the attribute is not computed, then any planned value is incorrect
-		if !plannedV.IsNull() {
-			if attrS.Sensitive {
-				errs = append(errs, path.NewErrorf("sensitive planned value for a non-computed attribute"))
-			} else {
-				errs = append(errs, path.NewErrorf("planned value %#v for a non-computed attribute", plannedV))
-			}
-			return errs
+		if attrS.Sensitive {
+			errs = append(errs, path.NewErrorf("sensitive planned value for a non-computed attribute"))
+		} else {
+			errs = append(errs, path.NewErrorf("planned value %#v for a non-computed attribute", plannedV))
 		}
+		return errs
 	}
 
 	// If this attribute has a NestedType, validate the nested object
@@ -324,6 +361,11 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		errs = append(errs, path.NewErrorf("planned for existence but config wants absence"))
 		return errs
 	}
+	if !config.IsNull() && !planned.IsKnown() {
+		errs = append(errs, path.NewErrorf("planned unknown for configured value"))
+		return errs
+	}
+
 	if planned.IsNull() {
 		// No further checks possible if the planned value is null
 		return errs
@@ -340,10 +382,17 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		// both support a similar-enough API that we can treat them the
 		// same for our purposes here.
 
-		plannedL := planned.LengthInt()
-		configL := config.LengthInt()
-		if plannedL != configL {
-			errs = append(errs, path.NewErrorf("count in plan (%d) disagrees with count in config (%d)", plannedL, configL))
+		plannedL := planned.Length()
+		configL := config.Length()
+
+		// config wasn't known, then planned should be unknown too
+		if !plannedL.IsKnown() && !configL.IsKnown() {
+			return errs
+		}
+
+		lenEqual := plannedL.Equals(configL)
+		if !lenEqual.IsKnown() || lenEqual.False() {
+			errs = append(errs, path.NewErrorf("count in plan (%#v) disagrees with count in config (%#v)", plannedL, configL))
 			return errs
 		}
 		for it := planned.ElementIterator(); it.Next(); {
@@ -369,6 +418,20 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		plannedVals := map[string]cty.Value{}
 		configVals := map[string]cty.Value{}
 		priorVals := map[string]cty.Value{}
+
+		plannedL := planned.Length()
+		configL := config.Length()
+
+		// config wasn't known, then planned should be unknown too
+		if !plannedL.IsKnown() && !configL.IsKnown() {
+			return errs
+		}
+
+		lenEqual := plannedL.Equals(configL)
+		if !lenEqual.IsKnown() || lenEqual.False() {
+			errs = append(errs, path.NewErrorf("count in plan (%#v) disagrees with count in config (%#v)", plannedL, configL))
+			return errs
+		}
 
 		if !planned.IsNull() {
 			plannedVals = planned.AsValueMap()
@@ -403,10 +466,11 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		}
 
 	case configschema.NestingSet:
-		plannedL := planned.LengthInt()
-		configL := config.LengthInt()
-		if plannedL != configL {
-			errs = append(errs, path.NewErrorf("count in plan (%d) disagrees with count in config (%d)", plannedL, configL))
+		plannedL := planned.Length()
+		configL := config.Length()
+
+		if ok := plannedL.Range().Includes(configL); ok.IsKnown() && ok.False() {
+			errs = append(errs, path.NewErrorf("count in plan (%#v) disagrees with count in config (%#v)", plannedL, configL))
 			return errs
 		}
 		// Because set elements have no identifier with which to correlate
@@ -416,4 +480,23 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 	}
 
 	return errs
+}
+
+// unrefinedValue returns the given value with any unknown value refinements
+// stripped away, making it a basic unknown value with only a type constraint.
+//
+// This function also considers unknown values nested inside a known container
+// such as a collection, which unfortunately makes it relatively expensive
+// for large data structures. Over time we should transition away from using
+// this trick and prefer to use cty's Equals and value range APIs instead of
+// of using Value.RawEquals, which is primarily intended for unit test code
+// rather than real application use.
+func unrefinedValue(v cty.Value) cty.Value {
+	ret, _ := cty.Transform(v, func(p cty.Path, v cty.Value) (cty.Value, error) {
+		if !v.IsKnown() {
+			return cty.UnknownVal(v.Type()), nil
+		}
+		return v, nil
+	})
+	return ret
 }

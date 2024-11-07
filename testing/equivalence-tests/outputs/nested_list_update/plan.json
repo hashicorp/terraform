@@ -1,0 +1,192 @@
+{
+  "configuration": {
+    "provider_config": {
+      "tfcoremock": {
+        "full_name": "registry.terraform.io/hashicorp/tfcoremock",
+        "name": "tfcoremock",
+        "version_constraint": "0.1.1"
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_nested_list.nested_list",
+          "expressions": {
+            "id": {
+              "constant_value": "DA051126-BAD6-4EB2-92E5-F0250DAF0B92"
+            },
+            "lists": {
+              "constant_value": [
+                [
+                  "44E1C623-7B70-4D78-B4D3-D9CFE8A6D982"
+                ],
+                [
+                  "8B031CD1-01F7-422C-BBE6-FF8A0E18CDFD"
+                ],
+                [
+                  "13E3B154-7B85-4EAA-B3D0-E295E7D71D7F"
+                ]
+              ]
+            }
+          },
+          "mode": "managed",
+          "name": "nested_list",
+          "provider_config_key": "tfcoremock",
+          "schema_version": 0,
+          "type": "tfcoremock_nested_list"
+        }
+      ]
+    }
+  },
+  "format_version": "1.1",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_nested_list.nested_list",
+          "mode": "managed",
+          "name": "nested_list",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "schema_version": 0,
+          "sensitive_values": {
+            "lists": [
+              [
+                false
+              ],
+              [
+                false
+              ],
+              [
+                false
+              ]
+            ]
+          },
+          "type": "tfcoremock_nested_list",
+          "values": {
+            "id": "DA051126-BAD6-4EB2-92E5-F0250DAF0B92",
+            "lists": [
+              [
+                "44E1C623-7B70-4D78-B4D3-D9CFE8A6D982"
+              ],
+              [
+                "8B031CD1-01F7-422C-BBE6-FF8A0E18CDFD"
+              ],
+              [
+                "13E3B154-7B85-4EAA-B3D0-E295E7D71D7F"
+              ]
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "prior_state": {
+    "format_version": "1.0",
+    "values": {
+      "root_module": {
+        "resources": [
+          {
+            "address": "tfcoremock_nested_list.nested_list",
+            "mode": "managed",
+            "name": "nested_list",
+            "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+            "schema_version": 0,
+            "sensitive_values": {
+              "lists": [
+                [],
+                [
+                  false
+                ],
+                [
+                  false,
+                  false
+                ]
+              ]
+            },
+            "type": "tfcoremock_nested_list",
+            "values": {
+              "id": "DA051126-BAD6-4EB2-92E5-F0250DAF0B92",
+              "lists": [
+                [],
+                [
+                  "44E1C623-7B70-4D78-B4D3-D9CFE8A6D982"
+                ],
+                [
+                  "13E3B154-7B85-4EAA-B3D0-E295E7D71D7F",
+                  "8B031CD1-01F7-422C-BBE6-FF8A0E18CDFD"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "tfcoremock_nested_list.nested_list",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "after": {
+          "id": "DA051126-BAD6-4EB2-92E5-F0250DAF0B92",
+          "lists": [
+            [
+              "44E1C623-7B70-4D78-B4D3-D9CFE8A6D982"
+            ],
+            [
+              "8B031CD1-01F7-422C-BBE6-FF8A0E18CDFD"
+            ],
+            [
+              "13E3B154-7B85-4EAA-B3D0-E295E7D71D7F"
+            ]
+          ]
+        },
+        "after_sensitive": {
+          "lists": [
+            [
+              false
+            ],
+            [
+              false
+            ],
+            [
+              false
+            ]
+          ]
+        },
+        "after_unknown": {},
+        "before": {
+          "id": "DA051126-BAD6-4EB2-92E5-F0250DAF0B92",
+          "lists": [
+            [],
+            [
+              "44E1C623-7B70-4D78-B4D3-D9CFE8A6D982"
+            ],
+            [
+              "13E3B154-7B85-4EAA-B3D0-E295E7D71D7F",
+              "8B031CD1-01F7-422C-BBE6-FF8A0E18CDFD"
+            ]
+          ]
+        },
+        "before_sensitive": {
+          "lists": [
+            [],
+            [
+              false
+            ],
+            [
+              false,
+              false
+            ]
+          ]
+        }
+      },
+      "mode": "managed",
+      "name": "nested_list",
+      "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+      "type": "tfcoremock_nested_list"
+    }
+  ]
+}

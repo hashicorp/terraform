@@ -1,9 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package main
 
 // experimentsAllowed can be set to any non-empty string using Go linker
 // arguments in order to enable the use of experimental features for a
 // particular Terraform build:
-//     go install -ldflags="-X 'main.experimentsAllowed=yes'"
+//
+//	go install -ldflags="-X 'main.experimentsAllowed=yes'"
 //
 // By default this variable is initialized as empty, in which case
 // experimental features are not available.

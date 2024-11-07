@@ -1,86 +1,134 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package addrs
 
 import "fmt"
 
-// Check is the address of a check rule within a checkable object.
+// Check is the address of a check block within a module.
 //
-// This represents the check rule globally within a configuration, and is used
-// during graph evaluation to identify a condition result object to update with
-// the result of check rule evaluation.
-//
-// The check address is not distinct from resource traversals, and check rule
-// values are not intended to be available to the language, so the address is
-// not Referenceable.
-//
-// Note also that the check address is only relevant within the scope of a run,
-// as reordering check blocks between runs will result in their addresses
-// changing.
+// For now, checks do not support meta arguments such as "count" or "for_each"
+// so this address uniquely describes a single check within a module.
 type Check struct {
-	Container Checkable
-	Type      CheckType
-	Index     int
+	referenceable
+	Name string
 }
 
 func (c Check) String() string {
-	container := c.Container.String()
-	switch c.Type {
-	case ResourcePrecondition:
-		return fmt.Sprintf("%s.preconditions[%d]", container, c.Index)
-	case ResourcePostcondition:
-		return fmt.Sprintf("%s.postconditions[%d]", container, c.Index)
-	case OutputPrecondition:
-		return fmt.Sprintf("%s.preconditions[%d]", container, c.Index)
-	default:
-		// This should not happen
-		return fmt.Sprintf("%s.conditions[%d]", container, c.Index)
+	return fmt.Sprintf("check.%s", c.Name)
+}
+
+// InModule returns a ConfigCheck from the receiver and the given module
+// address.
+func (c Check) InModule(modAddr Module) ConfigCheck {
+	return ConfigCheck{
+		Module: modAddr,
+		Check:  c,
 	}
 }
 
-// Checkable is an interface implemented by all address types that can contain
-// condition blocks.
-type Checkable interface {
-	checkableSigil()
-
-	// Check returns the address of an individual check rule of a specified
-	// type and index within this checkable container.
-	Check(CheckType, int) Check
-	String() string
-}
-
-var (
-	_ Checkable = AbsResourceInstance{}
-	_ Checkable = AbsOutputValue{}
-)
-
-type checkable struct {
-}
-
-func (c checkable) checkableSigil() {
-}
-
-// CheckType describes the category of check.
-//go:generate go run golang.org/x/tools/cmd/stringer -type=CheckType check.go
-type CheckType int
-
-const (
-	InvalidCondition      CheckType = 0
-	ResourcePrecondition  CheckType = 1
-	ResourcePostcondition CheckType = 2
-	OutputPrecondition    CheckType = 3
-)
-
-// Description returns a human-readable description of the check type. This is
-// presented in the user interface through a diagnostic summary.
-func (c CheckType) Description() string {
-	switch c {
-	case ResourcePrecondition:
-		return "Resource precondition"
-	case ResourcePostcondition:
-		return "Resource postcondition"
-	case OutputPrecondition:
-		return "Module output value precondition"
-	default:
-		// This should not happen
-		return "Condition"
+// Absolute returns an AbsCheck from the receiver and the given module instance
+// address.
+func (c Check) Absolute(modAddr ModuleInstance) AbsCheck {
+	return AbsCheck{
+		Module: modAddr,
+		Check:  c,
 	}
 }
+
+func (c Check) Equal(o Check) bool {
+	return c.Name == o.Name
+}
+
+func (c Check) UniqueKey() UniqueKey {
+	return c // A Check is its own UniqueKey
+}
+
+func (c Check) uniqueKeySigil() {}
+
+// ConfigCheck is an address for a check block within a configuration.
+//
+// This contains a Check address and a Module address, meaning this describes
+// a check block within the entire configuration.
+type ConfigCheck struct {
+	Module Module
+	Check  Check
+}
+
+var _ ConfigCheckable = ConfigCheck{}
+
+func (c ConfigCheck) UniqueKey() UniqueKey {
+	return configCheckUniqueKey(c.String())
+}
+
+func (c ConfigCheck) configCheckableSigil() {}
+
+func (c ConfigCheck) CheckableKind() CheckableKind {
+	return CheckableCheck
+}
+
+func (c ConfigCheck) String() string {
+	if len(c.Module) == 0 {
+		return c.Check.String()
+	}
+	return fmt.Sprintf("%s.%s", c.Module, c.Check)
+}
+
+// AbsCheck is an absolute address for a check block under a given module path.
+//
+// This contains an actual ModuleInstance address (compared to the Module within
+// a ConfigCheck), meaning this uniquely describes a check block within the
+// entire configuration after any "count" or "foreach" meta arguments have been
+// evaluated on the containing module.
+type AbsCheck struct {
+	Module ModuleInstance
+	Check  Check
+}
+
+var _ Checkable = AbsCheck{}
+
+func (c AbsCheck) UniqueKey() UniqueKey {
+	return absCheckUniqueKey(c.String())
+}
+
+func (c AbsCheck) checkableSigil() {}
+
+// CheckRule returns an address for a given rule type within the check block.
+//
+// There will be at most one CheckDataResource rule within a check block (with
+// an index of 0). There will be at least one, but potentially many,
+// CheckAssertion rules within a check block.
+func (c AbsCheck) CheckRule(typ CheckRuleType, i int) CheckRule {
+	return CheckRule{
+		Container: c,
+		Type:      typ,
+		Index:     i,
+	}
+}
+
+// ConfigCheckable returns the ConfigCheck address for this absolute reference.
+func (c AbsCheck) ConfigCheckable() ConfigCheckable {
+	return ConfigCheck{
+		Module: c.Module.Module(),
+		Check:  c.Check,
+	}
+}
+
+func (c AbsCheck) CheckableKind() CheckableKind {
+	return CheckableCheck
+}
+
+func (c AbsCheck) String() string {
+	if len(c.Module) == 0 {
+		return c.Check.String()
+	}
+	return fmt.Sprintf("%s.%s", c.Module, c.Check)
+}
+
+type configCheckUniqueKey string
+
+func (k configCheckUniqueKey) uniqueKeySigil() {}
+
+type absCheckUniqueKey string
+
+func (k absCheckUniqueKey) uniqueKeySigil() {}

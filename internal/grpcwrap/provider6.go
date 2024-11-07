@@ -1,14 +1,22 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package grpcwrap
 
 import (
 	"context"
 
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/function"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
+	"github.com/zclconf/go-cty/cty/msgpack"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/hashicorp/terraform/internal/plugin6/convert"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfplugin6"
-	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
-	"github.com/zclconf/go-cty/cty/msgpack"
 )
 
 // New wraps a providers.Interface to implement a grpc ProviderServer using
@@ -26,10 +34,16 @@ type provider6 struct {
 	schema   providers.GetProviderSchemaResponse
 }
 
+func (p *provider6) GetMetadata(_ context.Context, req *tfplugin6.GetMetadata_Request) (*tfplugin6.GetMetadata_Response, error) {
+	return nil, status.Error(codes.Unimplemented, "GetMetadata is not implemented by core")
+}
+
 func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProviderSchema_Request) (*tfplugin6.GetProviderSchema_Response, error) {
 	resp := &tfplugin6.GetProviderSchema_Response{
-		ResourceSchemas:   make(map[string]*tfplugin6.Schema),
-		DataSourceSchemas: make(map[string]*tfplugin6.Schema),
+		ResourceSchemas:          make(map[string]*tfplugin6.Schema),
+		DataSourceSchemas:        make(map[string]*tfplugin6.Schema),
+		EphemeralResourceSchemas: make(map[string]*tfplugin6.Schema),
+		Functions:                make(map[string]*tfplugin6.Function),
 	}
 
 	resp.Provider = &tfplugin6.Schema{
@@ -58,9 +72,23 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 			Block:   convert.ConfigSchemaToProto(dat.Block),
 		}
 	}
+	for typ, dat := range p.schema.EphemeralResourceTypes {
+		resp.EphemeralResourceSchemas[typ] = &tfplugin6.Schema{
+			Version: dat.Version,
+			Block:   convert.ConfigSchemaToProto(dat.Block),
+		}
+	}
+	if decls, err := convert.FunctionDeclsToProto(p.schema.Functions); err == nil {
+		resp.Functions = decls
+	} else {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
 
-	resp.ServerCapabilities = &tfplugin6.GetProviderSchema_ServerCapabilities{
-		PlanDestroy: p.schema.ServerCapabilities.PlanDestroy,
+	resp.ServerCapabilities = &tfplugin6.ServerCapabilities{
+		GetProviderSchemaOptional: p.schema.ServerCapabilities.GetProviderSchemaOptional,
+		PlanDestroy:               p.schema.ServerCapabilities.PlanDestroy,
+		MoveResourceState:         p.schema.ServerCapabilities.MoveResourceState,
 	}
 
 	// include any diagnostics from the original GetSchema call
@@ -118,6 +146,25 @@ func (p *provider6) ValidateDataResourceConfig(_ context.Context, req *tfplugin6
 	}
 
 	validateResp := p.provider.ValidateDataResourceConfig(providers.ValidateDataResourceConfigRequest{
+		TypeName: req.TypeName,
+		Config:   configVal,
+	})
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, validateResp.Diagnostics)
+	return resp, nil
+}
+
+func (p *provider6) ValidateEphemeralResourceConfig(_ context.Context, req *tfplugin6.ValidateEphemeralResourceConfig_Request) (*tfplugin6.ValidateEphemeralResourceConfig_Response, error) {
+	resp := &tfplugin6.ValidateEphemeralResourceConfig_Response{}
+	ty := p.schema.DataSources[req.TypeName].Block.ImpliedType()
+
+	configVal, err := decodeDynamicValue6(req.Config, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	validateResp := p.provider.ValidateEphemeralResourceConfig(providers.ValidateEphemeralResourceConfigRequest{
 		TypeName: req.TypeName,
 		Config:   configVal,
 	})
@@ -347,6 +394,33 @@ func (p *provider6) ImportResourceState(_ context.Context, req *tfplugin6.Import
 	return resp, nil
 }
 
+func (p *provider6) MoveResourceState(_ context.Context, request *tfplugin6.MoveResourceState_Request) (*tfplugin6.MoveResourceState_Response, error) {
+	resp := &tfplugin6.MoveResourceState_Response{}
+
+	moveResp := p.provider.MoveResourceState(providers.MoveResourceStateRequest{
+		SourceProviderAddress: request.SourceProviderAddress,
+		SourceTypeName:        request.SourceTypeName,
+		SourceSchemaVersion:   request.SourceSchemaVersion,
+		SourceStateJSON:       request.SourceState.Json,
+		SourcePrivate:         request.SourcePrivate,
+		TargetTypeName:        request.TargetTypeName,
+	})
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, moveResp.Diagnostics)
+	if moveResp.Diagnostics.HasErrors() {
+		return resp, nil
+	}
+
+	targetType := p.schema.ResourceTypes[request.TargetTypeName].Block.ImpliedType()
+	targetState, err := encodeDynamicValue6(moveResp.TargetState, targetType)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+	resp.TargetState = targetState
+	resp.TargetPrivate = moveResp.TargetPrivate
+	return resp, nil
+}
+
 func (p *provider6) ReadDataSource(_ context.Context, req *tfplugin6.ReadDataSource_Request) (*tfplugin6.ReadDataSource_Response, error) {
 	resp := &tfplugin6.ReadDataSource_Response{}
 	ty := p.schema.DataSources[req.TypeName].Block.ImpliedType()
@@ -377,6 +451,139 @@ func (p *provider6) ReadDataSource(_ context.Context, req *tfplugin6.ReadDataSou
 	resp.State, err = encodeDynamicValue6(readResp.State, ty)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	return resp, nil
+}
+
+func (p *provider6) OpenEphemeralResource(_ context.Context, req *tfplugin6.OpenEphemeralResource_Request) (*tfplugin6.OpenEphemeralResource_Response, error) {
+	resp := &tfplugin6.OpenEphemeralResource_Response{}
+	ty := p.schema.EphemeralResourceTypes[req.TypeName].Block.ImpliedType()
+
+	configVal, err := decodeDynamicValue6(req.Config, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	openResp := p.provider.OpenEphemeralResource(providers.OpenEphemeralResourceRequest{
+		TypeName: req.TypeName,
+		Config:   configVal,
+	})
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, openResp.Diagnostics)
+	if openResp.Diagnostics.HasErrors() {
+		return resp, nil
+	}
+
+	resp.Result, err = encodeDynamicValue6(openResp.Result, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+	resp.Private = openResp.Private
+	resp.RenewAt = timestamppb.New(openResp.RenewAt)
+
+	return resp, nil
+}
+
+func (p *provider6) RenewEphemeralResource(_ context.Context, req *tfplugin6.RenewEphemeralResource_Request) (*tfplugin6.RenewEphemeralResource_Response, error) {
+	resp := &tfplugin6.RenewEphemeralResource_Response{}
+	renewResp := p.provider.RenewEphemeralResource(providers.RenewEphemeralResourceRequest{
+		TypeName: req.TypeName,
+		Private:  req.Private,
+	})
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, renewResp.Diagnostics)
+	if renewResp.Diagnostics.HasErrors() {
+		return resp, nil
+	}
+
+	resp.Private = renewResp.Private
+	resp.RenewAt = timestamppb.New(renewResp.RenewAt)
+	return resp, nil
+}
+
+func (p *provider6) CloseEphemeralResource(_ context.Context, req *tfplugin6.CloseEphemeralResource_Request) (*tfplugin6.CloseEphemeralResource_Response, error) {
+	resp := &tfplugin6.CloseEphemeralResource_Response{}
+	closeResp := p.provider.CloseEphemeralResource(providers.CloseEphemeralResourceRequest{
+		TypeName: req.TypeName,
+		Private:  req.Private,
+	})
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, closeResp.Diagnostics)
+	if closeResp.Diagnostics.HasErrors() {
+		return resp, nil
+	}
+
+	return resp, nil
+}
+
+func (p *provider6) GetFunctions(context.Context, *tfplugin6.GetFunctions_Request) (*tfplugin6.GetFunctions_Response, error) {
+	panic("unimplemented")
+	return nil, nil
+}
+
+func (p *provider6) CallFunction(_ context.Context, req *tfplugin6.CallFunction_Request) (*tfplugin6.CallFunction_Response, error) {
+	var err error
+	resp := &tfplugin6.CallFunction_Response{}
+
+	funcSchema := p.schema.Functions[req.Name]
+
+	var args []cty.Value
+	if len(req.Arguments) != 0 {
+		args = make([]cty.Value, len(req.Arguments))
+		for i, rawArg := range req.Arguments {
+			idx := int64(i)
+
+			var argTy cty.Type
+			if i < len(funcSchema.Parameters) {
+				argTy = funcSchema.Parameters[i].Type
+			} else {
+				if funcSchema.VariadicParameter == nil {
+					resp.Error = &tfplugin6.FunctionError{
+						Text:             "too many arguments for non-variadic function",
+						FunctionArgument: &idx,
+					}
+					return resp, nil
+				}
+				argTy = funcSchema.VariadicParameter.Type
+			}
+
+			argVal, err := decodeDynamicValue6(rawArg, argTy)
+			if err != nil {
+				resp.Error = &tfplugin6.FunctionError{
+					Text:             err.Error(),
+					FunctionArgument: &idx,
+				}
+				return resp, nil
+			}
+
+			args[i] = argVal
+		}
+	}
+
+	callResp := p.provider.CallFunction(providers.CallFunctionRequest{
+		FunctionName: req.Name,
+		Arguments:    args,
+	})
+	if callResp.Err != nil {
+		resp.Error = &tfplugin6.FunctionError{
+			Text: callResp.Err.Error(),
+		}
+
+		if argErr, ok := callResp.Err.(function.ArgError); ok {
+			idx := int64(argErr.Index)
+			resp.Error.FunctionArgument = &idx
+		}
+
+		return resp, nil
+	}
+
+	resp.Result, err = encodeDynamicValue6(callResp.Result, funcSchema.ReturnType)
+	if err != nil {
+		resp.Error = &tfplugin6.FunctionError{
+			Text: err.Error(),
+		}
+
 		return resp, nil
 	}
 

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package providercache
 
 import (
@@ -164,20 +167,22 @@ func installerLogEventsForTests(into chan<- *testInstallerEventLogItem) *Install
 				}{version.String(), err.Error()},
 			}
 		},
+		ProvidersLockUpdated: func(provider addrs.Provider, version getproviders.Version, localHashes []getproviders.Hash, signedHashes []getproviders.Hash, priorHashes []getproviders.Hash) {
+			into <- &testInstallerEventLogItem{
+				Event:    "ProvidersLockUpdated",
+				Provider: provider,
+				Args: struct {
+					Version string
+					Local   []getproviders.Hash
+					Signed  []getproviders.Hash
+					Prior   []getproviders.Hash
+				}{version.String(), localHashes, signedHashes, priorHashes},
+			}
+		},
 		ProvidersFetched: func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
 			into <- &testInstallerEventLogItem{
 				Event: "ProvidersFetched",
 				Args:  authResults,
-			}
-		},
-		HashPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
-			into <- &testInstallerEventLogItem{
-				Event:    "HashPackageFailure",
-				Provider: provider,
-				Args: struct {
-					Version string
-					Error   string
-				}{version.String(), err.Error()},
 			}
 		},
 	}

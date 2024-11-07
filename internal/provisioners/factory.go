@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package provisioners
 
 // Factory is a function type that creates a new instance of a resource

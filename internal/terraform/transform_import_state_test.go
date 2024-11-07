@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -27,6 +30,7 @@ func TestGraphNodeImportStateExecute(t *testing.T) {
 	provider.ConfigureProvider(providers.ConfigureProviderRequest{})
 
 	ctx := &MockEvalContext{
+		Scope:            evalContextModuleInstance{Addr: addrs.RootModuleInstance},
 		StateState:       state.SyncWrapper(),
 		ProviderProvider: provider,
 	}
@@ -69,13 +73,15 @@ func TestGraphNodeImportStateSubExecute(t *testing.T) {
 	ctx := &MockEvalContext{
 		StateState:       state.SyncWrapper(),
 		ProviderProvider: provider,
-		ProviderSchemaSchema: &ProviderSchema{
-			ResourceTypes: map[string]*configschema.Block{
+		ProviderSchemaSchema: providers.ProviderSchema{
+			ResourceTypes: map[string]providers.Schema{
 				"aws_instance": {
-					Attributes: map[string]*configschema.Attribute{
-						"id": {
-							Type:     cty.String,
-							Computed: true,
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id": {
+								Type:     cty.String,
+								Computed: true,
+							},
 						},
 					},
 				},
@@ -129,13 +135,15 @@ func TestGraphNodeImportStateSubExecuteNull(t *testing.T) {
 	ctx := &MockEvalContext{
 		StateState:       state.SyncWrapper(),
 		ProviderProvider: provider,
-		ProviderSchemaSchema: &ProviderSchema{
-			ResourceTypes: map[string]*configschema.Block{
+		ProviderSchemaSchema: providers.ProviderSchema{
+			ResourceTypes: map[string]providers.Schema{
 				"aws_instance": {
-					Attributes: map[string]*configschema.Attribute{
-						"id": {
-							Type:     cty.String,
-							Computed: true,
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id": {
+								Type:     cty.String,
+								Computed: true,
+							},
 						},
 					},
 				},

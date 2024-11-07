@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -8,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -809,7 +812,7 @@ func TestImportModuleVarFile(t *testing.T) {
 //
 // The specific example has a variable "foo" which is a nested object:
 //
-//   foo = { bar = { baz = true } }
+//	foo = { bar = { baz = true } }
 //
 // This is used as foo = var.foo in the call to the child module, which then
 // uses the traversal foo.bar.baz in a local. A default value in the child
