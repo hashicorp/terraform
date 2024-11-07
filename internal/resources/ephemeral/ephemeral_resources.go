@@ -212,6 +212,11 @@ type resourceInstanceInternal struct {
 func (r *resourceInstanceInternal) close(ctx context.Context) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
+	// if the resource could not be opened, there will not be anything to close either
+	if r.impl == nil {
+		return diags
+	}
+
 	// Stop renewing, if indeed we are. If we previously saw any errors during
 	// renewing then they finally get returned here, to be reported along with
 	// any errors during close.
