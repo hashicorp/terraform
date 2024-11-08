@@ -26,8 +26,7 @@ func (b *Cloud) CLIInit(opts *backendrun.CLIOpts) error {
 		Streams:  opts.Streams,
 		Colorize: opts.CLIColor,
 	}
-	view := views.NewView(opts.Streams)
-	b.View = views.NewCloud(opts.ViewType, view)
+	b.View = views.NewCloud(opts.ViewType, opts.View)
 
 	return nil
 }

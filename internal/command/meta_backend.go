@@ -151,10 +151,11 @@ func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags
 	}
 	cliOpts.Validation = true
 
-	// FIXME: Temporarily exposing ViewType to the backend.
+	// FIXME: Temporarily exposing ViewType and View to the backend.
 	// This is a workaround until the backend is refactored to support
 	// native View handling.
 	cliOpts.ViewType = opts.ViewType
+	cliOpts.View = m.View
 
 	// If the backend supports CLI initialization, do it.
 	if cli, ok := b.(backendrun.CLI); ok {
