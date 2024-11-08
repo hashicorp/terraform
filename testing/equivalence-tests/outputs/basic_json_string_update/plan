@@ -13,8 +13,7 @@ Terraform will perform the following actions:
           ~ {
               ~ list-attribute   = [
                     "one",
-                  - "two",
-                  + "four",
+                  ~ "two" -> "four",
                     "three",
                 ]
               ~ object-attribute = {
