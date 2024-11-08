@@ -1197,7 +1197,7 @@ func (b *Cloud) workspaceTagsRequireUpdate(ctx context.Context, workspace *tfe.W
 	if err != nil && errors.Is(err, tfe.ErrResourceNotFound) {
 		// By this time, the workspace should have been fetched, proving that the
 		// authenticated user has access to it. If the tag bindings are not found,
-		// it would mean that the backened does not support tag bindings.
+		// it would mean that the backend does not support tag bindings.
 		result.supportsKVTags = false
 	} else if err != nil {
 		return
