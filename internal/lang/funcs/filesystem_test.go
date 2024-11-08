@@ -30,6 +30,11 @@ func TestFile(t *testing.T) {
 			``,
 		},
 		{
+			cty.UnknownVal(cty.String).Mark(marks.Sensitive),
+			cty.UnknownVal(cty.String).RefineNotNull().Mark(marks.Sensitive),
+			``,
+		},
+		{
 			cty.StringVal("testdata/icon.png"),
 			cty.NilVal,
 			`contents of "testdata/icon.png" are not valid UTF-8; use the filebase64 function to obtain the Base64 encoded contents or the other file functions (e.g. filemd5, filesha256) to obtain file hashing results instead`,
@@ -197,6 +202,38 @@ func TestTemplateFile(t *testing.T) {
 			cty.StringVal("testdata/hello.txt").Mark(marks.Sensitive),
 			cty.EmptyObjectVal,
 			cty.StringVal("Hello World").Mark(marks.Sensitive),
+			``,
+		},
+		{
+			cty.StringVal("testdata/list.tmpl").Mark("path"),
+			cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b").Mark("var"),
+					cty.StringVal("c"),
+				}),
+			}),
+			cty.StringVal("- a\n- b\n- c\n").Mark("path").Mark("var"),
+			``,
+		},
+		{
+			cty.StringVal("testdata/list.tmpl").Mark("path"),
+			cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.UnknownVal(cty.String).Mark("var"),
+					cty.StringVal("c"),
+				}),
+			}),
+			cty.UnknownVal(cty.String).RefineNotNull().Mark("path").Mark("var"),
+			``,
+		},
+		{
+			cty.UnknownVal(cty.String).Mark("path"),
+			cty.ObjectVal(map[string]cty.Value{
+				"key": cty.StringVal("value").Mark("var"),
+			}),
+			cty.DynamicVal.Mark("path").Mark("var"),
 			``,
 		},
 	}
