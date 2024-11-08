@@ -475,6 +475,20 @@ You can correct this by removing references to sensitive values, or by carefully
 					EvalContext: hclCtx,
 				})
 				errorMessage = "The error message included a sensitive value, so it will not be displayed."
+			} else if marks.Has(errorValue, marks.Ephemeral) {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+
+					Summary: "Error message refers to ephemeral values",
+					Detail: `The error expression used to explain this condition refers to ephemeral values. Terraform will not display the resulting message.
+
+You can correct this by removing references to ephemeral values, or by carefully using the ephemeralasnull() function if the expression will not reveal the ephemeral data.`,
+
+					Subject:     validation.ErrorMessage.Range().Ptr(),
+					Expression:  validation.ErrorMessage,
+					EvalContext: hclCtx,
+				})
+				errorMessage = "The error message included a sensitive value, so it will not be displayed."
 			} else {
 				errorMessage = strings.TrimSpace(errorValue.AsString())
 			}

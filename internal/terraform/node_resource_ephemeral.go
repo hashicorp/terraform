@@ -51,6 +51,11 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 		return nil, diags
 	}
 
+	rId := HookResourceIdentity{
+		Addr:         inp.addr,
+		ProviderAddr: inp.providerConfig.Provider,
+	}
+
 	ephemerals := ctx.EphemeralResources()
 	allInsts := ctx.InstanceExpander()
 	keyData := allInsts.GetResourceInstanceRepetitionData(inp.addr)
@@ -73,6 +78,34 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 	}
 	unmarkedConfigVal, configMarks := configVal.UnmarkDeepWithPaths()
 
+	if !unmarkedConfigVal.IsWhollyKnown() {
+		log.Printf("[DEBUG] ehpemeralResourceOpen: configuration for %s contains unknown values, cannot open resource", inp.addr)
+
+		// We don't know what the result will be, but we need to keep the
+		// configured attributes for consistent evaluation. We can use the same
+		// technique we used for data sources to create the plan-time value.
+		unknownResult := objchange.PlannedDataResourceObject(schema, unmarkedConfigVal)
+		// add back any configured marks
+		unknownResult = unknownResult.MarkWithPaths(configMarks)
+		// and mark the entire value as ephemeral, since it's coming from an ephemeral context.
+		unknownResult = unknownResult.Mark(marks.Ephemeral)
+
+		// The state of ephemerals all comes from the registered instances, so
+		// we still need to register something so evaluation doesn't fail.
+		ephemerals.RegisterInstance(ctx.StopCtx(), inp.addr, ephemeral.ResourceInstanceRegistration{
+			Value:      unknownResult,
+			ConfigBody: config.Config,
+		})
+
+		ctx.Hook(func(h Hook) (HookAction, error) {
+			// ephemeral resources aren't stored in the plan, so use a hook to
+			// give some feedback to the user that this can't be opened
+			return h.PreEphemeralOp(rId, plans.Read)
+		})
+
+		return nil, diags
+	}
+
 	validateResp := provider.ValidateEphemeralResourceConfig(providers.ValidateEphemeralResourceConfigRequest{
 		TypeName: inp.addr.Resource.Resource.Type,
 		Config:   unmarkedConfigVal,
@@ -81,11 +114,6 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 	diags = diags.Append(validateResp.Diagnostics)
 	if diags.HasErrors() {
 		return nil, diags
-	}
-
-	rId := HookResourceIdentity{
-		Addr:         inp.addr,
-		ProviderAddr: inp.providerConfig.Provider,
 	}
 
 	ctx.Hook(func(h Hook) (HookAction, error) {
