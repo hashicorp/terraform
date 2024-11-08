@@ -57,9 +57,10 @@ func (v *CloudHuman) RetryLog(attemptNum int, resp *http.Response) {
 	// retryLogMessage returns an empty string for the first attempt or for rate-limited responses (HTTP 429)
 	if msg != "" {
 		if elapsed != nil {
-			v.Output(msg, elapsed)
+			v.Output(msg, elapsed) // subsequent retry message
 		} else {
-			v.Output(msg)
+			v.Output(msg)            // initial retry message
+			v.view.streams.Println() // ensures a newline between messages
 		}
 	}
 }
@@ -102,9 +103,9 @@ func (v *CloudJSON) RetryLog(attemptNum int, resp *http.Response) {
 	// retryLogMessage returns an empty string for the first attempt or for rate-limited responses (HTTP 429)
 	if msg != "" {
 		if elapsed != nil {
-			v.Output(msg, elapsed)
+			v.Output(msg, elapsed) // subsequent retry message
 		} else {
-			v.Output(msg)
+			v.Output(msg) // initial retry message
 		}
 	}
 }
