@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -46,7 +47,7 @@ const (
 	genericHostname    = "localterraform.com"
 )
 
-var ErrCloudDoesNotSupportKVTags = errors.New("your version of Terraform Enterprise does not support key-value tags. Please upgrade to a version that supports this feature.")
+var ErrCloudDoesNotSupportKVTags = errors.New("your version of Terraform Enterprise does not support key-value tags. Please upgrade Terraform Enterprise to a version that supports this feature or use set type tags instead.")
 
 // Cloud is an implementation of EnhancedBackend in service of the HCP Terraform or Terraform Enterprise
 // integration for Terraform CLI. This backend is not intended to be surfaced at the user level and
@@ -632,7 +633,18 @@ func (b *Cloud) Workspaces() ([]string, error) {
 	if b.WorkspaceMapping.Strategy() == WorkspaceTagsStrategy {
 		options.Tags = strings.Join(b.WorkspaceMapping.TagsAsSet, ",")
 	} else if b.WorkspaceMapping.Strategy() == WorkspaceKVTagsStrategy {
-		options.TagBindings = b.WorkspaceMapping.tfeTagBindings()
+		options.TagBindings = b.WorkspaceMapping.asTFETagBindings()
+
+		// Populate keys, too, just in case backend does not support key/value tags.
+		// The backend will end up applying both filters but that should always
+		// be the same result set anyway.
+		for _, tag := range options.TagBindings {
+			if options.Tags != "" {
+				options.Tags = options.Tags + ","
+			}
+			options.Tags = options.Tags + tag.Key
+		}
+
 	}
 	log.Printf("[TRACE] cloud: Listing workspaces with tag bindings %q", b.WorkspaceMapping.DescribeTags())
 
@@ -760,7 +772,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		if b.WorkspaceMapping.Strategy() == WorkspaceTagsStrategy {
 			workspaceCreateOptions.Tags = b.WorkspaceMapping.tfeTags()
 		} else if b.WorkspaceMapping.Strategy() == WorkspaceKVTagsStrategy {
-			workspaceCreateOptions.TagBindings = b.WorkspaceMapping.tfeTagBindings()
+			workspaceCreateOptions.TagBindings = b.WorkspaceMapping.asTFETagBindings()
 		}
 
 		// Create project if not exists, otherwise use it
@@ -813,26 +825,24 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		}
 	}
 
-	updateRequired, err := b.workspaceTagsRequireUpdate(context.Background(), workspace, b.WorkspaceMapping)
-	if updateRequired {
-		if err != nil {
-			if errors.Is(err, tfe.ErrResourceNotFound) {
-				return nil, fmt.Errorf("workspace %s does not exist or access to it is unauthorized", name)
-			} else if errors.Is(err, ErrCloudDoesNotSupportKVTags) {
-				return nil, err
+	tagCheck, errFromTagCheck := b.workspaceTagsRequireUpdate(context.Background(), workspace, b.WorkspaceMapping)
+	if tagCheck.requiresUpdate {
+		if errFromTagCheck != nil {
+			if errors.Is(errFromTagCheck, ErrCloudDoesNotSupportKVTags) {
+				return nil, fmt.Errorf("backend does not support key/value tags. Try using key-only tags: %w", errFromTagCheck)
 			}
-			return nil, fmt.Errorf("error checking if workspace %s requires update: %w", name, err)
 		}
 
-		log.Printf("[TRACE] cloud: Updating tags for %s workspace %s/%s to %s", b.appName, b.Organization, name, b.WorkspaceMapping.DescribeTags())
-		if b.WorkspaceMapping.Strategy() == WorkspaceTagsStrategy {
+		log.Printf("[TRACE] cloud: Updating tags for %s workspace %s/%s to %q", b.appName, b.Organization, name, b.WorkspaceMapping.DescribeTags())
+		// Always update using KV tags if possible
+		if !tagCheck.supportsKVTags {
 			options := tfe.WorkspaceAddTagsOptions{
 				Tags: b.WorkspaceMapping.tfeTags(),
 			}
 			err = b.client.Workspaces.AddTags(context.Background(), workspace.ID, options)
-		} else if b.WorkspaceMapping.Strategy() == WorkspaceKVTagsStrategy {
+		} else {
 			options := tfe.WorkspaceAddTagBindingsOptions{
-				TagBindings: b.WorkspaceMapping.tfeTagBindings(),
+				TagBindings: b.WorkspaceMapping.asTFETagBindings(),
 			}
 			_, err = b.client.Workspaces.AddTagBindings(context.Background(), workspace.ID, options)
 		}
@@ -1160,39 +1170,75 @@ func (b *Cloud) cliColorize() *colorstring.Colorize {
 	}
 }
 
-func (b *Cloud) workspaceTagsRequireUpdate(ctx context.Context, workspace *tfe.Workspace, workspaceMapping WorkspaceMapping) (bool, error) {
-	if workspaceMapping.Strategy() == WorkspaceTagsStrategy {
-		existingTags := map[string]struct{}{}
-		for _, t := range workspace.TagNames {
-			existingTags[t] = struct{}{}
-		}
+type tagRequiresUpdateResult struct {
+	requiresUpdate bool
+	supportsKVTags bool
+}
 
-		for _, tag := range workspaceMapping.TagsAsSet {
-			if _, ok := existingTags[tag]; !ok {
-				return true, nil
+func (b *Cloud) workspaceTagsRequireUpdate(ctx context.Context, workspace *tfe.Workspace, workspaceMapping WorkspaceMapping) (result tagRequiresUpdateResult, err error) {
+	result = tagRequiresUpdateResult{
+		supportsKVTags: true,
+	}
+
+	// First, depending on the strategy, build a map of the tags defined in config
+	// so we can compare them to the actual tags on the workspace
+	normalizedTagMap := make(map[string]string)
+	if workspaceMapping.IsTagsStrategy() {
+		for _, b := range workspaceMapping.asTFETagBindings() {
+			normalizedTagMap[b.Key] = b.Value
+		}
+	} else {
+		// Not a tag strategy
+		return
+	}
+
+	// Fetch tag bindings and determine if they should be checked
+	bindings, err := b.client.Workspaces.ListTagBindings(ctx, workspace.ID)
+	if err != nil && errors.Is(err, tfe.ErrResourceNotFound) {
+		// By this time, the workspace should have been fetched, proving that the
+		// authenticated user has access to it. If the tag bindings are not found,
+		// it would mean that the backend does not support tag bindings.
+		result.supportsKVTags = false
+	} else if err != nil {
+		return
+	}
+
+	err = nil
+check:
+	// Check desired workspace tags against existing tags
+	for k, v := range normalizedTagMap {
+		log.Printf("[TRACE] cloud: Checking tag %q=%q", k, v)
+		if v == "" {
+			// Tag can exist in legacy tags or tag bindings
+			if !slices.Contains(workspace.TagNames, k) || (result.supportsKVTags && !slices.ContainsFunc(bindings, func(b *tfe.TagBinding) bool {
+				return b.Key == k
+			})) {
+				result.requiresUpdate = true
+				break check
 			}
-		}
-	} else if workspaceMapping.Strategy() == WorkspaceKVTagsStrategy {
-		existingTags := make(map[string]string)
-		bindings, err := b.client.Workspaces.ListTagBindings(ctx, workspace.ID)
-		if err != nil && err == tfe.ErrResourceNotFound {
-			return true, ErrCloudDoesNotSupportKVTags
-		} else if err != nil {
-			return true, err
-		}
-
-		for _, binding := range bindings {
-			existingTags[binding.Key] = binding.Value
-		}
-
-		for tag, val := range workspaceMapping.TagsAsMap {
-			if existingVal, ok := existingTags[tag]; !ok || existingVal != val {
-				return true, nil
+		} else if !result.supportsKVTags {
+			// There is a value defined, but the backend does not support tag bindings
+			result.requiresUpdate = true
+			err = ErrCloudDoesNotSupportKVTags
+			break check
+		} else {
+			// There is a value, so it must match a tag binding
+			if !slices.ContainsFunc(bindings, func(b *tfe.TagBinding) bool {
+				return b.Key == k && b.Value == v
+			}) {
+				result.requiresUpdate = true
+				break check
 			}
 		}
 	}
 
-	return false, nil
+	doesOrDoesnot := "does "
+	if !result.requiresUpdate {
+		doesOrDoesnot = "does not "
+	}
+	log.Printf("[TRACE] cloud: Workspace %s %srequire tag update", workspace.Name, doesOrDoesnot)
+
+	return
 }
 
 type WorkspaceMapping struct {
@@ -1390,21 +1436,24 @@ func (wm WorkspaceMapping) tfeTags() []*tfe.Tag {
 	return tags
 }
 
-func (wm WorkspaceMapping) tfeTagBindings() []*tfe.TagBinding {
+func (wm WorkspaceMapping) asTFETagBindings() []*tfe.TagBinding {
 	var tagBindings []*tfe.TagBinding
 
-	if wm.Strategy() != WorkspaceKVTagsStrategy {
-		return tagBindings
+	if wm.Strategy() == WorkspaceKVTagsStrategy {
+		tagBindings = make([]*tfe.TagBinding, len(wm.TagsAsMap))
+
+		index := 0
+		for key, val := range wm.TagsAsMap {
+			tagBindings[index] = &tfe.TagBinding{Key: key, Value: val}
+			index += 1
+		}
+	} else if wm.Strategy() == WorkspaceTagsStrategy {
+		tagBindings = make([]*tfe.TagBinding, len(wm.TagsAsSet))
+
+		for i, tag := range wm.TagsAsSet {
+			tagBindings[i] = &tfe.TagBinding{Key: tag}
+		}
 	}
-
-	tagBindings = make([]*tfe.TagBinding, len(wm.TagsAsMap))
-
-	index := 0
-	for key, val := range wm.TagsAsMap {
-		tagBindings[index] = &tfe.TagBinding{Key: key, Value: val}
-		index += 1
-	}
-
 	return tagBindings
 }
 

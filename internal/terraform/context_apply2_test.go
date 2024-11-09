@@ -3624,3 +3624,84 @@ resource "test_object" "c" {
 		}
 	}
 }
+
+func TestContext2Apply_updateForcedCreateBeforeDestroy(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+}
+
+resource "test_object" "b" {
+  ref = test_object.a.id
+  update = "new"
+}
+
+resource "test_object" "c" {
+  ref = test_object.b.id
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+`,
+	})
+
+	p := &testing_provider.MockProvider{}
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Computed: true,
+						},
+						"ref": {
+							Type:     cty.String,
+							Optional: true,
+						},
+						"update": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+			AttrsJSON:           []byte(`{"id":"a"}`),
+			Status:              states.ObjectReady,
+			CreateBeforeDestroy: true,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.b"), &states.ResourceInstanceObjectSrc{
+			AttrsJSON:           []byte(`{"id":"b","ref":"a","update":"old"}`),
+			Status:              states.ObjectReady,
+			CreateBeforeDestroy: true,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.c"), &states.ResourceInstanceObjectSrc{
+			AttrsJSON:           []byte(`{"id":"c","ref":"b"}`),
+			Status:              states.ObjectReady,
+			CreateBeforeDestroy: true,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	state, diags = ctx.Apply(plan, m, nil)
+	assertNoErrors(t, diags)
+
+	for _, res := range state.RootModule().Resources {
+		if !res.Instances[addrs.NoKey].Current.CreateBeforeDestroy {
+			t.Errorf("%s should be create_before_destroy", res.Addr)
+		}
+	}
+}

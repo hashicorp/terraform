@@ -229,7 +229,6 @@ func (c *Config) TargetExists(target addrs.Targetable) bool {
 	default:
 		panic(fmt.Errorf("unrecognized targetable type: %d", target.AddrType()))
 	}
-	return true
 }
 
 // EntersNewPackage returns true if this call is to an external module, either
