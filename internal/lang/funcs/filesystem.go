@@ -158,15 +158,21 @@ func MakeFileExistsFunc(baseDir string) function.Function {
 	return function.New(&function.Spec{
 		Params: []function.Parameter{
 			{
-				Name:        "path",
-				Type:        cty.String,
-				AllowMarked: true,
+				Name:         "path",
+				Type:         cty.String,
+				AllowMarked:  true,
+				AllowUnknown: true,
 			},
 		},
 		Type:         function.StaticReturnType(cty.Bool),
 		RefineResult: refineNotNull,
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			pathArg, pathMarks := args[0].Unmark()
+
+			if !pathArg.IsKnown() {
+				return cty.UnknownVal(cty.Bool).WithMarks(pathMarks), nil
+			}
+
 			path := pathArg.AsString()
 			path, err := homedir.Expand(path)
 			if err != nil {
@@ -226,24 +232,30 @@ func MakeFileSetFunc(baseDir string) function.Function {
 	return function.New(&function.Spec{
 		Params: []function.Parameter{
 			{
-				Name:        "path",
-				Type:        cty.String,
-				AllowMarked: true,
+				Name:         "path",
+				Type:         cty.String,
+				AllowMarked:  true,
+				AllowUnknown: true,
 			},
 			{
-				Name:        "pattern",
-				Type:        cty.String,
-				AllowMarked: true,
+				Name:         "pattern",
+				Type:         cty.String,
+				AllowMarked:  true,
+				AllowUnknown: true,
 			},
 		},
 		Type:         function.StaticReturnType(cty.Set(cty.String)),
 		RefineResult: refineNotNull,
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			pathArg, pathMarks := args[0].Unmark()
-			path := pathArg.AsString()
 			patternArg, patternMarks := args[1].Unmark()
-			pattern := patternArg.AsString()
 
+			if !pathArg.IsKnown() || !patternArg.IsKnown() {
+				return cty.UnknownVal(retType).WithMarks(pathMarks, patternMarks), nil
+			}
+
+			path := pathArg.AsString()
+			pattern := patternArg.AsString()
 			marks := []cty.ValueMarks{pathMarks, patternMarks}
 
 			if !filepath.IsAbs(path) {
