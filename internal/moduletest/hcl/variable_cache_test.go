@@ -68,7 +68,7 @@ func TestFileVariables(t *testing.T) {
 				FileVariables: func() map[string]hcl.Expression {
 					vars := make(map[string]hcl.Expression)
 					for name, value := range tc.Values {
-						expr, diags := hclsyntax.ParseExpression([]byte(value), "test.tf", hcl.Pos{0, 0, 0})
+						expr, diags := hclsyntax.ParseExpression([]byte(value), "test.tf", hcl.Pos{Line: 0, Column: 0, Byte: 0})
 						if len(diags) > 0 {
 							t.Fatalf("unexpected errors: %v", diags)
 						}

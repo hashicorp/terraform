@@ -79,6 +79,36 @@ func TestCloud_backendWithTags(t *testing.T) {
 	}
 }
 
+func TestCloud_backendWithKVTags(t *testing.T) {
+	b, bCleanup := testBackendWithKVTags(t)
+	defer bCleanup()
+
+	_, err := b.client.Workspaces.Create(context.Background(), "hashicorp", tfe.WorkspaceCreateOptions{
+		Name: tfe.String("ws-billing-101"),
+		TagBindings: []*tfe.TagBinding{
+			{Key: "dept", Value: "billing"},
+			{Key: "costcenter", Value: "101"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("error creating workspace: %s", err)
+	}
+
+	workspaces, err := b.Workspaces()
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+
+	actual := len(workspaces)
+	if actual != 1 {
+		t.Fatalf("expected 1 workspaces, got %d", actual)
+	}
+
+	if workspaces[0] != "ws-billing-101" {
+		t.Fatalf("expected workspace name to be 'ws-billing-101', got %s", workspaces[0])
+	}
+}
+
 func TestCloud_DescribeTags(t *testing.T) {
 	cases := map[string]struct {
 		expected   string
@@ -1223,7 +1253,7 @@ func TestCloud_resolveCloudConfig(t *testing.T) {
 					t.Fatalf("%s: expected final config of %#v but instead got %#v", name, tc.expectedResult, result)
 				}
 
-				if !reflect.DeepEqual(tc.expectedResult.workspaceMapping.tfeTagBindings(), result.workspaceMapping.tfeTagBindings()) {
+				if !reflect.DeepEqual(tc.expectedResult.workspaceMapping.asTFETagBindings(), result.workspaceMapping.asTFETagBindings()) {
 					t.Fatalf("%s: expected final config of %#v but instead got %#v", name, tc.expectedResult, result)
 				}
 			}

@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform/internal/backend/remote-state/kubernetes
 
-go 1.23.1
+go 1.23.3
 
 require (
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
@@ -32,7 +32,7 @@ require (
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.14 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
