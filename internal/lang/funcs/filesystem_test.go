@@ -314,6 +314,11 @@ func TestFileExists(t *testing.T) {
 			cty.BoolVal(false),
 			`failed to stat (sensitive value)`,
 		},
+		{
+			cty.UnknownVal(cty.String).Mark(marks.Sensitive),
+			cty.UnknownVal(cty.Bool).RefineNotNull().Mark(marks.Sensitive),
+			``,
+		},
 	}
 
 	// Ensure "unreadable" directory cannot be listed during the test run
@@ -544,6 +549,18 @@ func TestFileSet(t *testing.T) {
 				cty.StringVal("hello.tmpl"),
 				cty.StringVal("hello.txt"),
 			}),
+			``,
+		},
+		{
+			cty.StringVal("testdata"),
+			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.Set(cty.String)).RefineNotNull(),
+			``,
+		},
+		{
+			cty.StringVal("testdata"),
+			cty.UnknownVal(cty.String).Mark(marks.Sensitive),
+			cty.UnknownVal(cty.Set(cty.String)).RefineNotNull().Mark(marks.Sensitive),
 			``,
 		},
 	}
