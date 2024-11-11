@@ -7,7 +7,7 @@ description: >-
 
 # remote
 
--> **Note:** We introduced the remote backend in Terraform v0.11.13 and Terraform Enterprise v201809-1. As of Terraform v1.1.0 and Terraform Enterprise v202201-1, **we recommend using the HCP Terraform's built-in [`cloud` integration](/terraform/cli/cloud/settings)** instead of this backend. The `cloud` option includes an improved user experience and more features.
+-> **Note:** We introduced the remote backend in Terraform v0.11.13 and Terraform Enterprise v201809-1. As of Terraform v1.1.0 and Terraform Enterprise v202201-1, **we recommend using the HCP Terraform's built-in [`cloud` integration](/terraform/cli/cloud/settings)** instead of this backend. The `cloud` option includes an improved user experience and more features. For example, Structured Run Output does not work with this backend. 
 
 The remote backend is unique among all other Terraform backends because it can both store state snapshots and execute operations for HCP Terraform's [CLI-driven run workflow](/terraform/cloud-docs/run/cli). It used to be called an "enhanced" backend.
 
