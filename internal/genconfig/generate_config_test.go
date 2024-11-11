@@ -502,6 +502,49 @@ resource "tfcoremock_simple_resource" "empty" {
   value = jsonencode(["Hello", "World"])
 }`,
 		},
+		"simple_resource_with_json_primitive_strings": {
+			schema: &configschema.Block{
+				// BlockTypes: map[string]*configschema.NestedBlock{},
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"value_string_number": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"value_string_bool": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			addr: addrs.AbsResourceInstance{
+				Module: nil,
+				Resource: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "tfcoremock_simple_resource",
+						Name: "empty",
+					},
+					Key: nil,
+				},
+			},
+			provider: addrs.LocalProviderConfig{
+				LocalName: "tfcoremock",
+			},
+			value: cty.ObjectVal(map[string]cty.Value{
+				"id":                  cty.StringVal("D2320658"),
+				"value_string_number": cty.StringVal("42"),
+				"value_string_bool":   cty.StringVal("true"),
+			}),
+			expected: `
+resource "tfcoremock_simple_resource" "empty" {
+  value_string_bool   = "true"
+  value_string_number = "42"
+}`,
+		},
 		"simple_resource_with_malformed_json": {
 			schema: &configschema.Block{
 				// BlockTypes: map[string]*configschema.NestedBlock{},
