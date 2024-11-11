@@ -37,6 +37,7 @@ func MakeToFunc(wantTy cty.Type) function.Function {
 				AllowNull:        true,
 				AllowMarked:      true,
 				AllowDynamicType: true,
+				AllowUnknown:     true,
 			},
 		},
 		Type: func(args []cty.Value) (cty.Type, error) {
@@ -61,8 +62,10 @@ func MakeToFunc(wantTy cty.Type) function.Function {
 			return wantTy, nil
 		},
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-			// We didn't set "AllowUnknown" on our argument, so it is guaranteed
-			// to be known here but may still be null.
+			if !args[0].IsKnown() {
+				return cty.UnknownVal(retType).WithSameMarks(args[0]), nil
+			}
+
 			ret, err := convert.Convert(args[0], retType)
 			if err != nil {
 				val, _ := args[0].UnmarkDeep()
