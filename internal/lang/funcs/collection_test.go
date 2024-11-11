@@ -169,6 +169,10 @@ func TestLength(t *testing.T) {
 			}).Mark("secret"),
 			cty.NumberIntVal(3).Mark("secret"),
 		},
+		{ // Marked objects return a marked length
+			cty.UnknownVal(cty.String).Mark("secret"),
+			cty.UnknownVal(cty.Number).Refine().NotNull().NumberRangeLowerBound(cty.NumberIntVal(0), true).NewValue().Mark("secret"),
+		},
 		{ // Marks on object attribute values do not propagate
 			cty.ObjectVal(map[string]cty.Value{
 				"a": cty.StringVal("hello").Mark("a"),
@@ -882,6 +886,15 @@ func TestLookup(t *testing.T) {
 				cty.StringVal("nope"),
 			},
 			cty.StringVal("beep").Mark("a"),
+			false,
+		},
+		{ // propagate marks from unknown map
+			[]cty.Value{
+				cty.UnknownVal(cty.Map(cty.String)).Mark("a"),
+				cty.StringVal("boop").Mark("b"),
+				cty.StringVal("nope"),
+			},
+			cty.UnknownVal(cty.String).Mark("a").Mark("b"),
 			false,
 		},
 	}
