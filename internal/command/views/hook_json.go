@@ -167,6 +167,13 @@ func (h *jsonHook) PostRefresh(id terraform.HookResourceIdentity, dk addrs.Depos
 }
 
 func (h *jsonHook) PreEphemeralOp(id terraform.HookResourceIdentity, action plans.Action) (terraform.HookAction, error) {
+	// this uses the same plans.Read action as a data source to indicate that
+	// the ephemeral resource can't be processed until apply, so there is no
+	// progress hook
+	if action == plans.Read {
+		return terraform.HookActionContinue, nil
+	}
+
 	h.view.Hook(json.NewEphemeralOpStart(id.Addr, action))
 	progress := resourceProgress{
 		addr:          id.Addr,

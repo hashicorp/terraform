@@ -29,10 +29,6 @@ type NodeApplyableResourceInstance struct {
 
 	graphNodeDeposer // implementation of GraphNodeDeposerConfig
 
-	// If this node is forced to be CreateBeforeDestroy, we need to record that
-	// in the state to.
-	ForceCreateBeforeDestroy bool
-
 	// forceReplace are resource instance addresses where the user wants to
 	// force generating a replace action. This set isn't pre-filtered, so
 	// it might contain addresses that have nothing to do with the resource
@@ -49,24 +45,6 @@ var (
 	_ GraphNodeExecutable         = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
 )
-
-// CreateBeforeDestroy returns this node's CreateBeforeDestroy status.
-func (n *NodeApplyableResourceInstance) CreateBeforeDestroy() bool {
-	if n.ForceCreateBeforeDestroy {
-		return n.ForceCreateBeforeDestroy
-	}
-
-	if n.Config != nil && n.Config.Managed != nil {
-		return n.Config.Managed.CreateBeforeDestroy
-	}
-
-	return false
-}
-
-func (n *NodeApplyableResourceInstance) ModifyCreateBeforeDestroy(v bool) error {
-	n.ForceCreateBeforeDestroy = v
-	return nil
-}
 
 // GraphNodeCreator
 func (n *NodeApplyableResourceInstance) CreateAddr() *addrs.AbsResourceInstance {
@@ -330,6 +308,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, repeatData, n.CreateBeforeDestroy())
+
 	diags = diags.Append(applyDiags)
 
 	// We clear the change out here so that future nodes don't see a change
