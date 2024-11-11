@@ -179,7 +179,7 @@ resource "test_object" "test" {
 }
 `,
 			},
-			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid count argument",
