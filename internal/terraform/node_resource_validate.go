@@ -300,7 +300,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 
 		// Basic type-checking of the count argument. More complete validation
 		// of this will happen when we DynamicExpand during the plan walk.
-		countDiags := validateCount(ctx, n.Config.Count)
+		_, countDiags := evaluateCountExpressionValue(n.Config.Count, ctx)
 		diags = diags.Append(countDiags)
 
 	case n.Config.ForEach != nil:
@@ -724,21 +724,6 @@ func (n *NodeValidatableResource) validateConfigGen(ctx EvalContext) tfdiags.Dia
 			})
 		}
 	}
-	return diags
-}
-
-func validateCount(ctx EvalContext, expr hcl.Expression) (diags tfdiags.Diagnostics) {
-	val, countDiags := evaluateCountExpressionValue(expr, ctx)
-	// If the value isn't known then that's the best we can do for now, but
-	// we'll check more thoroughly during the plan walk
-	if !val.IsKnown() {
-		return diags
-	}
-
-	if countDiags.HasErrors() {
-		diags = diags.Append(countDiags)
-	}
-
 	return diags
 }
 
