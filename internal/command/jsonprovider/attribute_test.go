@@ -28,11 +28,12 @@ func TestMarshalAttribute(t *testing.T) {
 			},
 		},
 		{ // collection types look a little odd.
-			&configschema.Attribute{Type: cty.Map(cty.String), Optional: true, Computed: true},
+			&configschema.Attribute{Type: cty.Map(cty.String), Optional: true, Computed: true, WriteOnly: true},
 			&Attribute{
 				AttributeType:   json.RawMessage(`["map","string"]`),
 				Optional:        true,
 				Computed:        true,
+				WriteOnly:       true,
 				DescriptionKind: "plain",
 			},
 		},
