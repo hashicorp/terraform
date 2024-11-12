@@ -21,7 +21,6 @@ import (
 
 func TestContext2Plan_ephemeralValues(t *testing.T) {
 	for name, tc := range map[string]struct {
-		toBeImplemented                             bool // Skip the test
 		module                                      map[string]string
 		expectValidateDiagnostics                   func(m *configs.Config) tfdiags.Diagnostics
 		expectPlanDiagnostics                       func(m *configs.Config) tfdiags.Diagnostics
@@ -267,7 +266,6 @@ resource "test_object" "test" {
 		},
 
 		"functions": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"child/main.tf": `
 ephemeral "ephem_resource" "data" {}
@@ -294,7 +292,6 @@ module "child" {
 		},
 
 		"provider-defined functions": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"child/main.tf": `
 				
@@ -554,9 +551,6 @@ You can correct this by removing references to ephemeral values, or by carefully
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			if tc.toBeImplemented {
-				t.Skip("To be implemented")
-			}
 			m := testModuleInline(t, tc.module)
 
 			ephem := &testing_provider.MockProvider{
