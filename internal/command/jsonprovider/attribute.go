@@ -20,6 +20,7 @@ type Attribute struct {
 	Optional            bool            `json:"optional,omitempty"`
 	Computed            bool            `json:"computed,omitempty"`
 	Sensitive           bool            `json:"sensitive,omitempty"`
+	WriteOnly           bool            `json:"write_only,omitempty"`
 }
 
 type NestedType struct {
@@ -45,6 +46,7 @@ func marshalAttribute(attr *configschema.Attribute) *Attribute {
 		Computed:        attr.Computed,
 		Sensitive:       attr.Sensitive,
 		Deprecated:      attr.Deprecated,
+		WriteOnly:       attr.WriteOnly,
 	}
 
 	// we're not concerned about errors because at this point the schema has
