@@ -37,7 +37,7 @@ Each Stack must have at least one `component` block, and the label of the compon
 
 | Field | Description | Type | Required |
 | :---- | :---- | :---- | :---- |
-| `source` | The Terraform module to [source](https://developer.hashicorp.com/terraform/language/modules/sources) for this component. Stacks do not support sourcing modules from the private registry. | string | Required |
+| `source` | The Terraform module to [source](https://developer.hashicorp.com/terraform/language/modules/sources) for this component. | string | Required |
 | `version` | If you declare a module from the public Terraform registry in the source field, you can define which module version to use.  | string | Optional |
 | `inputs` | A mapping of module input variable names to values. The keys of this map must correspond to the variable names defined by the `source` module. The values can be one of three types: A variable reference such as `var.variable_name`, a component output such as `component.component_name.output_name`, or a literal valid HCL value such as "string value".  | map | Required |
 | `providers` | A mapping of provider names to providers declared in your Stack configuration. Modules cannot configure their own providers. You must [declare providers](/terraform/language/stacks/create/declare-providers) in the top level of the Stack and pass them into each module in the Stack. | map | Required |
