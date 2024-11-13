@@ -20,7 +20,7 @@ The following list outlines attribute hierarchy, data types, and requirements in
   - [`cloud`](#terraform-cloud): map
     - [`organization`](#terraform-cloud-organization): string | required when connecting to HCP Terraform
     - [`workspaces`](#terraform-cloud-workspaces): map | required when connecting to HCP Terraform
-      - [`tags`](#terraform-cloud-workspaces): list of strings
+      - [`tags`](#terraform-cloud-workspaces): list of strings or map of strings
       - [`name`](#terraform-cloud-workspaces): string
       - [`project`](#terraform-cloud-workspaces): string
     - [`hostname`](#terraform-cloud-workspaces): string | `app.terraform.io`
@@ -95,9 +95,9 @@ Specifies metadata for matching workspaces in HCP Terraform. Terraform associate
 
 | Attribute | Description | Data type |
 | --- | --- | --- |
-| `tags` | Specifies a list of flat single-value tags. Terraform associates the configuration with workspaces that have all matching flat single-value tags. New workspaces created from the working directory inherit the tags. This attribute does not support key-value tags. You cannot set this attribute and the `name` attribute in the same configuration.  | Array of strings |
+| `tags` | Specifies either a map of strings as key/value tags or a list of single-value, key-only tags. Terraform associates the configuration with workspaces that have all matching tags. New workspaces created from the working directory inherit the tags. You cannot set this attribute and the `name` attribute in the same configuration. Using a map type with both keys and values requires Terraform 1.10+. | Array of strings or Map of strings |
 | `name` | Specifies an HCP Terraform workspace name to associate the Terraform configuration with. You can only use the working directory with the workspace named in the configuration. You cannot manage the workspace from the Terraform CLI. You cannot set this attribute and the `tags` attribute in the same configuration. <p>Instead of hardcoding a single workspace as a string, you can alternatively use the [`TF_WORKSPACE`](#tf_workspace) environment variable. </p> | String |
-| `project` | Specifies the name of an HCP Terraform project. Terraform creates all workspaces that use this configuration in the project. Using the [`terraform workspace list` command](/terraform/cli/commands/workspace/list) in the working directory returns only workspaces in the specified project. <p>Instead of hardcoding the project as a string, you can alternatively use the [`TF_CLOUD_PROJECT`](#tf_cloud_project) environment variable.</p>| String |
+| `project` | Specifies the name of an HCP Terraform project. Terraform creates all workspaces that use this configuration in the project. Using the [`terraform workspace list` command](/terraform/cli/commands/workspace/list) in the working directory returns only workspaces in the specified project. <p>Instead of hardcoding the project as a string, you can alternatively use the [`TF_CLOUD_PROJECT`](#tf_cloud_project) environment variable.</p> | String |
 
 - Data type: Map
 - Required when connecting to HCP Terraform
@@ -169,14 +169,16 @@ terraform {
 
 ### Connect to HCP Terraform
 
-In the following example, the configuration links the working directory to workspaces in the `example_corp` organization that contain the `app` tag:
+In the following example, the configuration links the working directory to workspaces in the `example_corp` organization that contain the `layer=app` tag:
 
 ```hcl
 terraform {
   cloud {
     organization = "example_corp"
     workspaces {
-      tags = ["app"]
+      tags = {
+        layer = "app"
+      }
     }
   }
 }
@@ -184,7 +186,7 @@ terraform {
 
 ### Connect to Terraform Enterprise
 
-In the following example, the configuration links the working directory to workspaces in the `example_corp` organization that contain the `app` tag. The `hostname` field is required in the configuration unless you use the `TF_CLOUD_HOSTNAME` environment variable:
+In the following example, the configuration links the working directory to workspaces in the `example_corp` organization that contain the `app` key-only tag. Key-only tags must be used with versions of Terraform Enterprise prior to v202411-1 or versions of Terraform prior to v1.10. The `hostname` field is required in the configuration unless you use the `TF_CLOUD_HOSTNAME` environment variable:
 
 ```hcl
 terraform {
