@@ -18,8 +18,6 @@ import (
 type Cloud interface {
 	RetryLog(attemptNum int, resp *http.Response)
 	Diagnostics(diags tfdiags.Diagnostics)
-	Output(messageCode CloudMessageCode, params ...any)
-	PrepareMessage(messageCode CloudMessageCode, params ...any) string
 }
 
 // NewCloud returns Cloud implementation for the given ViewType.
@@ -57,19 +55,19 @@ func (v *CloudHuman) RetryLog(attemptNum int, resp *http.Response) {
 	// retryLogMessage returns an empty string for the first attempt or for rate-limited responses (HTTP 429)
 	if msg != "" {
 		if elapsed != nil {
-			v.Output(msg, elapsed) // subsequent retry message
+			v.output(msg, elapsed) // subsequent retry message
 		} else {
-			v.Output(msg)            // initial retry message
+			v.output(msg)            // initial retry message
 			v.view.streams.Println() // ensures a newline between messages
 		}
 	}
 }
 
-func (v *CloudHuman) Output(messageCode CloudMessageCode, params ...any) {
-	v.view.streams.Println(v.PrepareMessage(messageCode, params...))
+func (v *CloudHuman) output(messageCode CloudMessageCode, params ...any) {
+	v.view.streams.Println(v.prepareMessage(messageCode, params...))
 }
 
-func (v *CloudHuman) PrepareMessage(messageCode CloudMessageCode, params ...any) string {
+func (v *CloudHuman) prepareMessage(messageCode CloudMessageCode, params ...any) string {
 	message, ok := CloudMessageRegistry[messageCode]
 	if !ok {
 		// display the message code as fallback if not found in the message registry
@@ -81,7 +79,12 @@ func (v *CloudHuman) PrepareMessage(messageCode CloudMessageCode, params ...any)
 		return message.HumanValue
 	}
 
-	return v.view.colorize.Color(strings.TrimSpace(fmt.Sprintf(message.HumanValue, params...)))
+	output := strings.TrimSpace(fmt.Sprintf(message.HumanValue, params...))
+	if v.view.colorize != nil {
+		return v.view.colorize.Color(output)
+	}
+
+	return output
 }
 
 // The CloudJSON implementation renders streaming JSON logs, suitable for
@@ -103,16 +106,16 @@ func (v *CloudJSON) RetryLog(attemptNum int, resp *http.Response) {
 	// retryLogMessage returns an empty string for the first attempt or for rate-limited responses (HTTP 429)
 	if msg != "" {
 		if elapsed != nil {
-			v.Output(msg, elapsed) // subsequent retry message
+			v.output(msg, elapsed) // subsequent retry message
 		} else {
-			v.Output(msg) // initial retry message
+			v.output(msg) // initial retry message
 		}
 	}
 }
 
-func (v *CloudJSON) Output(messageCode CloudMessageCode, params ...any) {
+func (v *CloudJSON) output(messageCode CloudMessageCode, params ...any) {
 	// don't add empty messages to json output
-	preppedMessage := v.PrepareMessage(messageCode, params...)
+	preppedMessage := v.prepareMessage(messageCode, params...)
 	if preppedMessage == "" {
 		return
 	}
@@ -131,7 +134,7 @@ func (v *CloudJSON) Output(messageCode CloudMessageCode, params ...any) {
 	v.view.view.streams.Println(string(cloud_output))
 }
 
-func (v *CloudJSON) PrepareMessage(messageCode CloudMessageCode, params ...any) string {
+func (v *CloudJSON) prepareMessage(messageCode CloudMessageCode, params ...any) string {
 	message, ok := CloudMessageRegistry[messageCode]
 	if !ok {
 		// display the message code as fallback if not found in the message registry

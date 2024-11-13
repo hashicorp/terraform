@@ -102,12 +102,11 @@ func TestNewCloud_humanViewOutput(t *testing.T) {
 	t.Run("no param", func(t *testing.T) {
 		streams, done := terminal.StreamsForTesting(t)
 
-		newCloud := NewCloud(arguments.ViewHuman, NewView(streams).SetRunningInAutomation(true))
-		if _, ok := newCloud.(*CloudHuman); !ok {
-			t.Fatalf("unexpected return type %t", newCloud)
+		human := CloudHuman{
+			view: NewView(streams).SetRunningInAutomation(true),
 		}
 
-		newCloud.Output(InitialRetryErrorMessage)
+		human.output(InitialRetryErrorMessage)
 
 		actual := done(t).All()
 		expected := "There was an error connecting to HCP Terraform. Please do not exit\nTerraform to prevent data loss! Trying to restore the connection..."
@@ -119,13 +118,12 @@ func TestNewCloud_humanViewOutput(t *testing.T) {
 	t.Run("single param", func(t *testing.T) {
 		streams, done := terminal.StreamsForTesting(t)
 
-		newCloud := NewCloud(arguments.ViewHuman, NewView(streams).SetRunningInAutomation(true))
-		if _, ok := newCloud.(*CloudHuman); !ok {
-			t.Fatalf("unexpected return type %t", newCloud)
+		duration := 5 * time.Second
+		human := CloudHuman{
+			view: NewView(streams).SetRunningInAutomation(true),
 		}
 
-		duration := 5 * time.Second
-		newCloud.Output(RepeatedRetryErrorMessage, duration)
+		human.output(RepeatedRetryErrorMessage, duration)
 
 		actual := done(t).All()
 		expected := fmt.Sprintf("Still trying to restore the connection... (%s elapsed)", duration)
@@ -277,12 +275,10 @@ func TestNewCloud_jsonViewOutput(t *testing.T) {
 	t.Run("no param", func(t *testing.T) {
 		streams, done := terminal.StreamsForTesting(t)
 
-		newCloud := NewCloud(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
-		if _, ok := newCloud.(*CloudJSON); !ok {
-			t.Fatalf("unexpected return type %t", newCloud)
+		json := CloudJSON{
+			view: NewJSONView(NewView(streams).SetRunningInAutomation(true)),
 		}
-
-		newCloud.Output(InitialRetryErrorMessage)
+		json.output(InitialRetryErrorMessage)
 
 		version := tfversion.String()
 		want := []map[string]interface{}{
@@ -310,13 +306,11 @@ func TestNewCloud_jsonViewOutput(t *testing.T) {
 	t.Run("single param", func(t *testing.T) {
 		streams, done := terminal.StreamsForTesting(t)
 
-		newCloud := NewCloud(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
-		if _, ok := newCloud.(*CloudJSON); !ok {
-			t.Fatalf("unexpected return type %t", newCloud)
-		}
-
 		duration := 5 * time.Second
-		newCloud.Output(RepeatedRetryErrorMessage, duration)
+		json := CloudJSON{
+			view: NewJSONView(NewView(streams).SetRunningInAutomation(true)),
+		}
+		json.output(RepeatedRetryErrorMessage, duration)
 
 		version := tfversion.String()
 		want := []map[string]interface{}{
