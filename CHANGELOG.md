@@ -16,7 +16,8 @@ BUG FIXES:
 - Terraform refresh-only plans with output only changes are now applyable. ([#35812](https://github.com/hashicorp/terraform/issues/35812))
 - Postconditions referencing `self` with many instances could encounter an error during evaluation ([#35895](https://github.com/hashicorp/terraform/issues/35895))
 - The `plantimestamp()` function would return an invalid date during validation ([#35902](https://github.com/hashicorp/terraform/issues/35902))
-- Updates to resources which were forced to use create_before_destroy could lose that flag in the state temporarily and cause cycles if immediately removed from the configuration [GH-35966]
+- Updates to resources which were forced to use create_before_destroy could lose that flag in the state temporarily and cause cycles if immediately removed from the configuration ([#35966](https://github.com/hashicorp/terraform/issues/35966))
+- backend/cloud: Prefer KV tags, even when tags are defined as set ([#35937](https://github.com/hashicorp/terraform/pull/35937))
 
 ENHANCEMENTS:
 
