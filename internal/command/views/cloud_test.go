@@ -105,7 +105,6 @@ func TestNewCloud_humanViewOutput(t *testing.T) {
 		human := CloudHuman{
 			view: NewView(streams).SetRunningInAutomation(true),
 		}
-
 		human.output(InitialRetryErrorMessage)
 
 		actual := done(t).All()
@@ -122,7 +121,6 @@ func TestNewCloud_humanViewOutput(t *testing.T) {
 		human := CloudHuman{
 			view: NewView(streams).SetRunningInAutomation(true),
 		}
-
 		human.output(RepeatedRetryErrorMessage, duration)
 
 		actual := done(t).All()

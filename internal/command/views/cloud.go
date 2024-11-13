@@ -130,7 +130,11 @@ func (v *CloudJSON) output(messageCode CloudMessageCode, params ...any) {
 		"message_code": string(messageCode),
 	}
 
-	cloud_output, _ := json.Marshal(json_data)
+	cloud_output, err := json.Marshal(json_data)
+	if err != nil {
+		// Handle marshalling error with empty output
+		cloud_output = []byte{}
+	}
 	v.view.view.streams.Println(string(cloud_output))
 }
 
