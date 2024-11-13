@@ -1,5 +1,9 @@
 ## 1.11.0 (Unreleased)
 
+BUG FIXES::
+
+- cloud: connectivity and retry messages now render correctly as JSON when the `-json` flag is set ([#35929](https://github.com/hashicorp/terraform/issues/35929))
+
 EXPERIMENTS:
 
 Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
