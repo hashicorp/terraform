@@ -18,6 +18,7 @@ BUG FIXES:
 - The `plantimestamp()` function would return an invalid date during validation ([#35902](https://github.com/hashicorp/terraform/issues/35902))
 - Updates to resources which were forced to use create_before_destroy could lose that flag in the state temporarily and cause cycles if immediately removed from the configuration ([#35966](https://github.com/hashicorp/terraform/issues/35966))
 - backend/cloud: Prefer KV tags, even when tags are defined as set ([#35937](https://github.com/hashicorp/terraform/pull/35937))
+- Simplify config generation (`plan -generate-config-out`) for string attributes that contain primitive types (e.g. numbers or booleans) ([#35984](https://github.com/hashicorp/terraform/pull/35984))
 
 ENHANCEMENTS:
 
@@ -25,6 +26,7 @@ ENHANCEMENTS:
 - Import block validation has been improved to provide more useful errors and catch more invalid cases during `terraform validate` ([#35543](https://github.com/hashicorp/terraform/issues/35543))
 - Performance enhancements for resource evaluation, especially when large numbers of resource instances are involved ([#35558](https://github.com/hashicorp/terraform/issues/35558))
 - The `plan`, `apply`, and `refresh` commands now produce a deprecated warning when using the `-state` flag. Instead use the `path` attribute within the `local` backend to modify the state file. ([#35660](https://github.com/hashicorp/terraform/issues/35660))
+- backend/cos: Add new auth for Tencent Cloud backend ([#35888](https://github.com/hashicorp/terraform/pull/35888))
 
 UPGRADE NOTES:
 
