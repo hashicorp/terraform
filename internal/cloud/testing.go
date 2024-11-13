@@ -120,6 +120,24 @@ func testBackendWithTags(t *testing.T) (*Cloud, func()) {
 	return b, c
 }
 
+func testBackendWithKVTags(t *testing.T) (*Cloud, func()) {
+	obj := cty.ObjectVal(map[string]cty.Value{
+		"hostname":     cty.NullVal(cty.String),
+		"organization": cty.StringVal("hashicorp"),
+		"token":        cty.NullVal(cty.String),
+		"workspaces": cty.ObjectVal(map[string]cty.Value{
+			"name": cty.NullVal(cty.String),
+			"tags": cty.MapVal(map[string]cty.Value{
+				"dept":       cty.StringVal("billing"),
+				"costcenter": cty.StringVal("101"),
+			}),
+			"project": cty.NullVal(cty.String),
+		}),
+	})
+	b, _, c := testBackend(t, obj, nil)
+	return b, c
+}
+
 func testBackendNoOperations(t *testing.T) (*Cloud, func()) {
 	obj := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
