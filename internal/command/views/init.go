@@ -107,7 +107,11 @@ func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 		"message_code": string(messageCode),
 	}
 
-	init_output, _ := json.Marshal(json_data)
+	init_output, err := json.Marshal(json_data)
+	if err != nil {
+		// Handle marshalling error with empty output
+		init_output = []byte{}
+	}
 	v.view.view.streams.Println(string(init_output))
 }
 

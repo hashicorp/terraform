@@ -66,9 +66,8 @@ type Cloud struct {
 	// client is the HCP Terraform or Terraform Enterprise API client.
 	client *tfe.Client
 
-	// viewHooks implements functions integrating the tfe.Client with the CLI
-	// output.
-	viewHooks views.CloudHooks
+	// View handles rendering output in human-readable or machine-readable format from cloud-specific operations.
+	View views.Cloud
 
 	// Hostname of HCP Terraform or Terraform Enterprise
 	Hostname string
@@ -607,10 +606,15 @@ func cliConfigToken(hostname svchost.Hostname, services *disco.Disco) (string, e
 // retryLogHook is invoked each time a request is retried allowing the
 // backend to log any connection issues to prevent data loss.
 func (b *Cloud) retryLogHook(attemptNum int, resp *http.Response) {
+	// FIXME: This guard statement prevents a potential nil error
+	// due to the way the backend is initialized and the context from which
+	// this function is called.
+	//
+	// In a future refactor, we should ensure that views are natively supported
+	// in backends and allow for calling a View directly within the
+	// backend.Configure method.
 	if b.CLI != nil {
-		if output := b.viewHooks.RetryLogHook(attemptNum, resp, true); len(output) > 0 {
-			b.CLI.Output(b.Colorize().Color(output))
-		}
+		b.View.RetryLog(attemptNum, resp)
 	}
 }
 
