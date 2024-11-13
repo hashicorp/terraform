@@ -12,6 +12,10 @@ ENHANCEMENTS:
 
 - backend/cos: Add new auth for Tencent Cloud backend ([#35888](https://github.com/hashicorp/terraform/pull/35888))
 
+BUG FIXES:
+
+- Simplify config generation (`plan -generate-config-out`) for string attributes that contain primitive types (e.g. numbers or booleans) ([#35984](https://github.com/hashicorp/terraform/pull/35984))
+
 ## Previous Releases
 
 For information on prior major and minor releases, refer to their changelogs:
