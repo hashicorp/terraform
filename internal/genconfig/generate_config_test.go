@@ -504,7 +504,6 @@ resource "tfcoremock_simple_resource" "empty" {
 		},
 		"simple_resource_with_json_primitive_strings": {
 			schema: &configschema.Block{
-				// BlockTypes: map[string]*configschema.NestedBlock{},
 				Attributes: map[string]*configschema.Attribute{
 					"id": {
 						Type:     cty.String,
