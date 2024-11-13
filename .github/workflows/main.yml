@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   backport:
-    if: github.event.pull_request.merged
+    if: github.event.pull_request
     runs-on: ubuntu-latest
     container: hashicorpdev/backport-assistant:0.4.7@sha256:36f9d4fba82b9454f1f62bf76c8078fafe3ab0be71356cb96af6d56ac4482cd8
     steps:
