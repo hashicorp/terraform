@@ -21,7 +21,6 @@ import (
 
 func TestContext2Plan_ephemeralValues(t *testing.T) {
 	for name, tc := range map[string]struct {
-		toBeImplemented                             bool // Skip the test
 		module                                      map[string]string
 		expectValidateDiagnostics                   func(m *configs.Config) tfdiags.Diagnostics
 		expectPlanDiagnostics                       func(m *configs.Config) tfdiags.Diagnostics
@@ -159,7 +158,7 @@ resource "test_object" "test" {
 }
 `,
 			},
-			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid for_each argument",
@@ -179,7 +178,7 @@ resource "test_object" "test" {
 }
 `,
 			},
-			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid count argument",
@@ -205,7 +204,7 @@ module "child" {
 `,
 			},
 
-			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid for_each argument",
@@ -255,13 +254,8 @@ resource "test_object" "test" {
 }
 `,
 			},
-			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
 				return diags.Append(
-					&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid for_each argument",
-						Detail:   `The given "for_each" value is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify a resource's instance keys.`,
-					},
 					&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Invalid for_each argument",
@@ -272,7 +266,6 @@ resource "test_object" "test" {
 		},
 
 		"functions": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"child/main.tf": `
 ephemeral "ephem_resource" "data" {}
@@ -299,7 +292,6 @@ module "child" {
 		},
 
 		"provider-defined functions": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"child/main.tf": `
 				
@@ -559,9 +551,6 @@ You can correct this by removing references to ephemeral values, or by carefully
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			if tc.toBeImplemented {
-				t.Skip("To be implemented")
-			}
 			m := testModuleInline(t, tc.module)
 
 			ephem := &testing_provider.MockProvider{

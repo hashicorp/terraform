@@ -35,6 +35,7 @@ func ConfigSchemaToProto(b *configschema.Block) *proto.Schema_Block {
 			Required:        a.Required,
 			Sensitive:       a.Sensitive,
 			Deprecated:      a.Deprecated,
+			WriteOnly:       a.WriteOnly,
 		}
 
 		if a.Type != cty.NilType {
