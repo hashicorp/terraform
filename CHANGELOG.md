@@ -1,4 +1,4 @@
-## 1.10.0-rc1 (November 13, 2024)
+## 1.10.0 (Unreleased)
 
 NEW FEATURES:
  - **Ephemeral resources**: Ephemeral resources are read anew during each phase of Terraform evaluation, and cannot be persisted to state storage. Ephemeral resources always produce ephemeral values.
