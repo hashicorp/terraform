@@ -13,15 +13,15 @@
 # make GitHub consider this file invalid if not commented.
 
 # Remote-state backend                  # Maintainer
-/internal/backend/remote-state/azure             @hashicorp/terraform-azure
+/internal/backend/remote-state/azure             @hashicorp/terraform-core @hashicorp/terraform-azure
 #/internal/backend/remote-state/consul           Unmaintained
 #/internal/backend/remote-state/cos              @likexian
-/internal/backend/remote-state/gcs               @hashicorp/tf-eco-hybrid-cloud
+/internal/backend/remote-state/gcs               @hashicorp/terraform-core @hashicorp/tf-eco-hybrid-cloud
 /internal/backend/remote-state/http              @hashicorp/terraform-core
 #/internal/backend/remote-state/oss              @xiaozhu36
 #/internal/backend/remote-state/pg               @remilapeyre
-/internal/backend/remote-state/s3                @hashicorp/terraform-aws
-/internal/backend/remote-state/kubernetes        @hashicorp/tf-eco-hybrid-cloud
+/internal/backend/remote-state/s3                @hashicorp/terraform-core @hashicorp/terraform-aws
+/internal/backend/remote-state/kubernetes        @hashicorp/terraform-core @hashicorp/tf-eco-hybrid-cloud
 
 # Provisioners
 builtin/provisioners/file               @hashicorp/terraform-core
