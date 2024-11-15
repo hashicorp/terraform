@@ -46,6 +46,8 @@ type nodeExpandOutput struct {
 	Overrides *mocking.Overrides
 
 	Dependencies []addrs.ConfigResource
+
+	Dependants []*addrs.Reference
 }
 
 var (
@@ -136,6 +138,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 					Planning:     n.Planning,
 					Override:     n.getOverrideValue(absAddr.Module),
 					Dependencies: n.Dependencies,
+					Dependants:   n.Dependants,
 				}
 			}
 
@@ -283,6 +286,8 @@ type NodeApplyableOutput struct {
 	// Dependencies is the full set of resources that are referenced by this
 	// output.
 	Dependencies []addrs.ConfigResource
+
+	Dependants []*addrs.Reference
 }
 
 var (
