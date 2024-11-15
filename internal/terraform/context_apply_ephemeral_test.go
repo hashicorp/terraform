@@ -359,3 +359,109 @@ resource "test_object" "test" {
 	_, diags = ctx.Apply(plan, m, nil)
 	assertNoDiagnostics(t, diags)
 }
+
+func TestContext2Apply_write_only_attribute_not_in_plan(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "ephem" {
+  type        = string
+  ephemeral   = true
+}
+
+resource "ephem_write_only" "wo" {
+  normal     = "normal"
+  write_only = var.ephem
+}
+`,
+	})
+
+	ephem := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"ephem_write_only": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"normal": {
+								Type:     cty.String,
+								Required: true,
+							},
+							"write_only": {
+								Type:      cty.String,
+								WriteOnly: true,
+								Required:  true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("ephem"): testProviderFuncFixed(ephem),
+		},
+	})
+
+	_, diags := ctx.Plan(m, nil, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"ephem": &InputValue{
+				Value:      cty.StringVal("ephemeral_value"),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	ephemVar := &InputValue{
+		Value:      cty.StringVal("ephemeral_value"),
+		SourceType: ValueFromCLIArg,
+	}
+	plan, diags := ctx.Plan(m, nil, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"ephem": ephemVar,
+		},
+	})
+	assertNoDiagnostics(t, diags)
+
+	state, diags := ctx.Apply(plan, m, &ApplyOpts{
+		SetVariables: InputValues{
+			"ephem": ephemVar,
+		},
+	})
+	assertNoDiagnostics(t, diags)
+
+	resource := state.Resource(addrs.AbsResource{
+		Module: addrs.RootModuleInstance,
+		Resource: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "ephem_write_only",
+			Name: "wo",
+		},
+	})
+
+	if resource == nil {
+		t.Fatalf("Resource not found")
+	}
+
+	resourceInstance := resource.Instances[addrs.NoKey]
+	if resourceInstance == nil {
+		t.Fatalf("Resource instance not found")
+	}
+
+	attrs, err := resourceInstance.Current.Decode(cty.Object(map[string]cty.Type{
+		"normal":     cty.String,
+		"write_only": cty.String,
+	}))
+	if err != nil {
+		t.Fatalf("Failed to decode attributes: %v", err)
+	}
+	if attrs.Value.GetAttr("normal").AsString() != "normal" {
+		t.Fatalf("normal attribute not as expected")
+	}
+
+	// TODO: Or should this be omitted completely and therefore explode on decode?
+	if attrs.Value.GetAttr("write_only").IsKnown() {
+		t.Fatalf("write_only attribute should not be known")
+	}
+}

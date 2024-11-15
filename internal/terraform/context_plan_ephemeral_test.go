@@ -549,6 +549,72 @@ You can correct this by removing references to ephemeral values, or by carefully
 				})
 			},
 		},
+
+		"write_only with hardcoded value": {
+			module: map[string]string{
+				"main.tf": `
+variable "ephem" {
+  type        = string
+  ephemeral   = true
+}
+
+resource "ephem_write_only" "producer" {
+    write_only = "this is not allowed"
+}
+
+output "out" {
+  value = ephemeralasnull(var.ephem)
+}
+`,
+			},
+			inputs: InputValues{
+				"ephem": &InputValue{
+					Value: cty.StringVal("ami"),
+				},
+			},
+			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Cannot use hard-coded value in write-only attribute",
+					Detail:   `The attribute "write_only" of resource "ephem_write_only.producer" is write-only and cannot be used with a static value, please use an ephemeral variable or an ephemeral resource instead.`,
+				})
+			},
+		},
+
+		"write_only attribute references": {
+			module: map[string]string{
+				"main.tf": `
+variable "ephem" {
+  type        = string
+  ephemeral   = true
+}
+
+resource "ephem_write_only" "producer" {
+    write_only = var.ephem # Valid usage
+}
+
+resource "ephem_write_only" "consumer" {
+    write_only = ephem_write_only.producer.write_only # Invalid usage
+}
+  
+output "out" {
+  value = ephemeralasnull(var.ephem)
+}
+`,
+			},
+			inputs: InputValues{
+				"ephem": &InputValue{
+					Value: cty.StringVal("ami"),
+				},
+			},
+			expectValidateDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Cannot reference write-only attribute",
+					Detail:   `The attribute "write_only" of resource "ephem_write_only.producer" is write-only and cannot be referenced in this context.`,
+				})
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			m := testModuleInline(t, tc.module)
@@ -577,6 +643,19 @@ You can correct this by removing references to ephemeral values, or by carefully
 									"bool": {
 										Type:     cty.Bool,
 										Computed: true,
+									},
+								},
+							},
+						},
+					},
+					ResourceTypes: map[string]providers.Schema{
+						"ephem_write_only": {
+							Block: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"write_only": {
+										Type:      cty.String,
+										WriteOnly: true,
+										Optional:  true,
 									},
 								},
 							},
