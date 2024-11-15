@@ -78,6 +78,10 @@ type Attribute struct {
 	Sensitive bool
 
 	Deprecated bool
+
+	// WriteOnly, if set to true, indicates that the attribute is not presisted
+	// in the state.
+	WriteOnly bool
 }
 
 // Object represents the embedding of a structural object inside an Attribute.

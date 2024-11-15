@@ -28,8 +28,7 @@ var SensitiveFunc = function.New(&function.Spec{
 		return args[0].Type(), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		val, _ := args[0].Unmark()
-		return val.Mark(marks.Sensitive), nil
+		return args[0].Mark(marks.Sensitive), nil
 	},
 })
 

@@ -101,14 +101,16 @@ var SignumFunc = function.New(&function.Spec{
 var ParseIntFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
-			Name:        "number",
-			Type:        cty.DynamicPseudoType,
-			AllowMarked: true,
+			Name:         "number",
+			Type:         cty.DynamicPseudoType,
+			AllowMarked:  true,
+			AllowUnknown: true,
 		},
 		{
-			Name:        "base",
-			Type:        cty.Number,
-			AllowMarked: true,
+			Name:         "base",
+			Type:         cty.Number,
+			AllowMarked:  true,
+			AllowUnknown: true,
 		},
 	},
 
@@ -126,11 +128,16 @@ var ParseIntFunc = function.New(&function.Spec{
 		var err error
 
 		numArg, numMarks := args[0].Unmark()
+		baseArg, baseMarks := args[1].Unmark()
+
+		if !numArg.IsKnown() || !baseArg.IsKnown() {
+			return cty.UnknownVal(retType).WithMarks(numMarks, baseMarks), nil
+		}
+
 		if err = gocty.FromCtyValue(numArg, &numstr); err != nil {
 			return cty.UnknownVal(cty.String), function.NewArgError(0, err)
 		}
 
-		baseArg, baseMarks := args[1].Unmark()
 		if err = gocty.FromCtyValue(baseArg, &base); err != nil {
 			return cty.UnknownVal(cty.Number), function.NewArgError(1, err)
 		}
