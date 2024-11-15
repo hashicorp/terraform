@@ -70,75 +70,33 @@
     ]
   },
   {
-    "title": "Resources",
+    "title": "Define resources",
     "routes": [
-      { "title": "Overview", "path": "resources" },
-      { "title": "Resource Blocks", "path": "resources/syntax" },
+      { "title": "Overview", "path": "define-resource" },
       {
-        "title": "Resource Behavior",
-        "path": "resources/behavior"
-      },
-      {
-        "title": "Meta-Arguments",
+        "title": "Apply provisioners",
         "routes": [
           {
-            "title": "<code>depends_on</code>",
-            "href": "/language/meta-arguments/depends_on"
+            "title": "Overview",
+            "path": "define-resource/provisioners"
           },
-          {
-            "title": "<code>count</code>",
-            "href": "/language/meta-arguments/count"
-          },
-          {
-            "title": "<code>for_each</code>",
-            "href": "/language/meta-arguments/for_each"
-          },
-          {
-            "title": "<code>provider</code>",
-            "href": "/language/meta-arguments/resource-provider"
-          },
-          {
-            "title": "<code>lifecycle</code>",
-            "href": "/language/meta-arguments/lifecycle"
-          }
-        ]
-      },
-      {
-        "title": "Provisioners",
-        "routes": [
           {
             "title": "Declaring Provisioners",
-            "path": "resources/provisioners/syntax"
+            "path": "define-resource/provisioners/define"
           },
           {
             "title": "Provisioner Connections",
-            "path": "resources/provisioners/connection"
+            "path": "define-resource/provisioners/connect"
           },
           {
-            "title": "Provisioners Without a Resource",
-            "path": "resources/provisioners/null_resource"
-          },
-          {
-            "title": "file",
-            "path": "resources/provisioners/file"
-          },
-          {
-            "title": "local-exec",
-            "path": "resources/provisioners/local-exec"
-          },
-          {
-            "title": "remote-exec",
-            "path": "resources/provisioners/remote-exec"
+            "title": "Run commands on standard lifecycle resources",
+            "path": "define-resource/provisioners/null_resource"
           }
         ]
       },
       {
-        "title": "The <code>terraform_data</code> Resource Type",
-        "path": "resources/terraform-data"
-      },
-      {
-        "title": "Ephemeral Resources",
-        "path": "resources/ephemeral"
+        "title": "Apply standard lifecycle",
+        "path": "define-resource/terraform-data"
       }
     ]
   },
@@ -258,12 +216,24 @@
     ]
   },
   {
+    "title": "Resource block",
+    "path": "resource"
+  },
+  {
+    "title": "Ephemeral block",
+    "path": "ephemeral"
+  },
+  {
     "title": "Moved block",
     "path": "moved"
   },
   {
     "title": "Terraform block",
     "path": "terraform"
+  },
+  {
+    "title": "Provisioner block",
+    "path": "provisioner"
   },
   {
     "title": "Backend block",

@@ -1,0 +1,72 @@
+---
+page_title: resource block reference
+description: Learn how to configure the Terraform `resource` block.
+---
+
+# `resource` block
+
+This topic provides reference information about the `resource` block in the Terraform configuration language. 
+
+## Introduction
+
+Add `resource` blocks to your Terraform configuration to describe one or more infrastructure objects, such as virtual networks, compute instances, or higher-level components such as DNS records. Specific arguments that you can define in your configuration depend on the providers you import. 
+
+Refer to the following topics for additional information:
+
+[usage topic about configuring the resource block]()
+[usage topic about configuring the provider block]()
+[provider block reference]()
+
+## Configuration model
+
+The following list provides an overview of the attributes you can declare in the `resource` block:
+
+`resource "<TYPE>" "<LABEL>"`
+- `<PROVIDER_ARGUMENTS>`
+- `count`: number 
+- `depends_on`: list
+- `for_each`:  map or set of one element
+- `provider`: short desc of value
+- `lifecycle`: short desc of value
+- `provisioner "<TYPE>" "<LABEL>"` 
+
+## Specification
+
+This section provides details about the arguments you can configure in the `resource` block. Specific providers and backends may support additional fields.
+
+### `resource`
+
+The main `resource` block accepts the following attributes:
+
+`TYPE`: Specifies the type of resource you can declare depends on the provider you import. Refer to the documentation for your provider for details. You can also specify the `terraform_data` resource type to implement a standard resource lifecycle. Refer [Implement the standard resource lifecycle](linky-link) for additional information
+`LABEL`: Specifies an arbitrary name for the resource that you can use to reference the resource from other configuration elements. Refer to [Resource naming](/terraform/language/style#resource-naming) in the style guide for label recommendations.
+
+### `PROVIDER_ARGUMENTS`
+
+Specific arguments that you can define in your configuration depend on the providers you import. Refer to the documentation for your provider for details.  
+### `resource{}.count`
+
+Meta-argument that instructs Terraform to provision the number of identical resources specified. Additional information. Refer to [`count` reference](/terraform/language/meta-arguments/count) for details.   
+### `resource{}.depends_on`
+
+### `resource{}.for_each`
+
+### `resource{}.provider`
+
+### `resource{}.lifecycle`
+
+## Examples
+
+The following examples describe common patterns for specific use cases.
+
+### Define an AWS instance
+
+The following example defines an `aws_instance` resource named `web`. 
+
+resource "aws_instance" "web" {
+  ami           = "ami-a1b2c3d4"
+  instance_type = "t2.micro"
+}
+
+
+

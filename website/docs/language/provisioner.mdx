@@ -1,0 +1,320 @@
+---
+page_title: provisioner block reference
+description: Learn how to configure the Terraform `resource` block.
+---
+
+# `provisioner` block
+
+This topic provides reference information about the `provisioner` block in the Terraform configuration language. Add `provisioner` blocks to `resource` blocks in your Terraform configurations to perform additional actions during Terraform operations.
+
+Refer to the following topics for additional information:
+
+- [`resource` block reference](/terraform/language/resource)
+- [Usage topics for provisioners](linky-link)
+
+## Configuration model
+
+Add `provisioner` blocks to `resource` blocks in your configuration. You can specify the following types of `provisioner` blocks:
+
+- `provisioner "file" "<LABEL>"`
+- `provisioner "local-exec" "<LABEL>"`
+- `provisioner "remote-exec" "<LABEL>"`
+
+### `provisioner "file"`
+
+The `file` provisioner copies files or directories from the machine
+running Terraform to the newly created resource. The `file` provisioner
+supports both `ssh` and `winrm` type [connections](/terraform/language/resources/provisioners/connection).
+
+~> **Important:** Use provisioners as a last resort. There are better alternatives for most situations. Refer to
+[Declaring Provisioners](/terraform/language/resources/provisioners/syntax) for more details.
+
+## Example usage
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+
+  # Copies the myapp.conf file to /etc/myapp.conf
+  provisioner "file" {
+    source      = "conf/myapp.conf"
+    destination = "/etc/myapp.conf"
+  }
+
+  # Copies the string in content into /tmp/file.log
+  provisioner "file" {
+    content     = "ami used: ${self.ami}"
+    destination = "/tmp/file.log"
+  }
+
+  # Copies the configs.d folder to /etc/configs.d
+  provisioner "file" {
+    source      = "conf/configs.d"
+    destination = "/etc"
+  }
+
+  # Copies all files and folders in apps/app1 to D:/IIS/webapp1
+  provisioner "file" {
+    source      = "apps/app1/"
+    destination = "D:/IIS/webapp1"
+  }
+}
+```
+
+-> **Note:** When the `file` provisioner communicates with a Windows system over SSH, you must configure OpenSSH to run the commands with `cmd.exe` and not PowerShell. PowerShell causes file parsing errors because it is incompatible with both Unix shells and the Windows command interpreter.
+
+## Argument Reference
+
+The following arguments are supported:
+
+* `source` - The source file or directory. Specify it either relative to the
+  current working directory or as an absolute path.
+  This argument cannot be combined with `content`.
+
+* `content` - The direct content to copy on the destination.
+  If destination is a file, the content will be written on that file. In case
+  of a directory, a file named `tf-file-content` is created inside that
+  directory. We recommend using a file as the destination when using `content`.
+  This argument cannot be combined with `source`.
+
+* `destination` - (Required) The destination path to write to on the remote
+  system. See [Destination Paths](#destination-paths) below for more
+  information.
+
+## Destination Paths
+
+The path you provide in the `destination` argument will be evaluated by the
+remote system, rather than by Terraform itself. Therefore the valid values
+for that argument can vary depending on the operating system and remote access
+software running on the target.
+
+When connecting over SSH, the `file` provisioner passes the given destination
+path verbatim to the `scp` program on the remote host. By default, OpenSSH's
+`scp` implementation runs in the remote user's home directory and so you can
+specify a relative path to upload into that home directory, or an absolute
+path to upload to some other location. The remote `scp` process will run with
+the access level of the user specified in the `connection` block, and so
+permissions may prevent writing directly to locations outside of the home
+directory.
+
+Because WinRM has no corresponding file transfer protocol, for WinRM
+connections the `file` provisioner uses a more complex process:
+
+1. Generate a temporary filename in the directory given in the remote system's
+   `TEMP` environment variable, using a pseudorandom UUID for uniqueness.
+2. Use sequential generated `echo` commands over WinRM to gradually append
+   base64-encoded chunks of the source file to the chosen temporary file.
+3. Use an uploaded PowerShell script to read the temporary file, base64-decode,
+   and write the raw result into the destination file.
+
+In the WinRM case, the destination path is therefore interpreted by PowerShell
+and so you must take care not to use any meta-characters that PowerShell might
+interpret. In particular, avoid including any untrusted external input in
+your `destination` argument when using WinRM, because it can serve as a vector
+for arbitrary PowerShell code execution on the remote system.
+
+Modern Windows systems support running an OpenSSH server, so we strongly
+recommend choosing SSH over WinRM whereever possible, and using WinRM only as
+a last resort when working with obsolete Windows versions.
+
+## Directory Uploads
+
+The `file` provisioner can upload a complete directory to the remote machine.
+When uploading a directory, there are some additional considerations.
+
+When using the `ssh` connection type the destination directory must already
+exist. If you need to create it, use a remote-exec provisioner just prior to
+the file provisioner in order to create the directory
+
+When using the `winrm` connection type the destination directory will be
+created for you if it doesn't already exist.
+
+The existence of a trailing slash on the source path will determine whether the
+directory name will be embedded within the destination, or whether the
+destination will be created. For example:
+
+* If the source is `/foo` (no trailing slash), and the destination is `/tmp`,
+  then the contents of `/foo` on the local machine will be uploaded to
+  `/tmp/foo` on the remote machine. The `foo` directory on the remote machine
+  will be created by Terraform.
+
+* If the source, however, is `/foo/` (a trailing slash is present), and the
+  destination is `/tmp`, then the contents of `/foo` will be uploaded directly
+  into `/tmp`.
+
+## `provider "local-exec"` 
+
+The `local-exec` provisioner invokes a local executable after a resource is
+created. This invokes a process on the machine running Terraform, not on the
+resource. See the `remote-exec`
+[provisioner](/terraform/language/resources/provisioners/remote-exec) to run commands on the
+resource.
+
+Note that even though the resource will be fully created when the provisioner is
+run, there is no guarantee that it will be in an operable state - for example
+system services such as `sshd` may not be started yet on compute resources.
+
+~> **Important:** Use provisioners as a last resort. There are better alternatives for most situations. Refer to
+[Declaring Provisioners](/terraform/language/resources/provisioners/syntax) for more details.
+
+## Example usage
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+
+  provisioner "local-exec" {
+    command = "echo ${self.private_ip} >> private_ips.txt"
+  }
+}
+```
+
+## Argument Reference
+
+The following arguments are supported:
+
+* `command` - (Required) This is the command to execute. It can be provided
+  as a relative path to the current working directory or as an absolute path.
+  The `command` is evaluated in a shell and can use environment variables for
+  variable substitution. We do not recommend using Terraform variables for variable
+  substitution because doing so can lead to shell injection vulnerabilities. Instead, you should pass Terraform variables to a command
+  through the `environment` parameter and use environment variable substitution
+  instead. Refer to the following OWASP article for additional information about injection flaws: [Code Injection](https://owasp.org/www-community/attacks/Code_Injection).
+
+* `working_dir` - (Optional) If provided, specifies the working directory where
+  `command` will be executed. It can be provided as a relative path to the
+  current working directory or as an absolute path. The directory must exist.
+
+* `interpreter` - (Optional) If provided, this is a list of interpreter
+  arguments used to execute the command. The first argument is the
+  interpreter itself. It can be provided as a relative path to the current
+  working directory or as an absolute path.  The remaining arguments are
+  appended prior to the command.  This allows building command lines of the
+  form "/bin/bash", "-c", "echo foo". If `interpreter` is unspecified,
+  sensible defaults will be chosen based on the system OS.
+
+* `environment` - (Optional) block of key value pairs representing the
+  environment of the executed command. inherits the current process environment.
+
+* `when` - (Optional) If provided, specifies when Terraform will execute the command.
+  For example, `when = destroy` specifies that the provisioner will run when the associated resource
+  is destroyed. Refer to [Destroy-Time Provisioners](/terraform/language/resources/provisioners/syntax#destroy-time-provisioners)
+  for details.
+  
+*  `quiet` - (Optional) If set to `true`, Terraform will not print the command to be executed to stdout, and will instead print "Suppressed by quiet=true". Note that the output of the command will still be printed in any case.
+
+### Interpreter Examples
+
+```hcl
+resource "terraform_data" "example1" {
+  provisioner "local-exec" {
+    command = "open WFH, '>completed.txt' and print WFH scalar localtime"
+    interpreter = ["perl", "-e"]
+  }
+}
+```
+
+```hcl
+resource "terraform_data" "example2" {
+  provisioner "local-exec" {
+    command = "Get-Date > completed.txt"
+    interpreter = ["PowerShell", "-Command"]
+  }
+}
+```
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+
+  provisioner "local-exec" {
+    command = "echo $FOO $BAR $BAZ >> env_vars.txt"
+
+    environment = {
+      FOO = "bar"
+      BAR = 1
+      BAZ = "true"
+    }
+  }
+}
+```
+
+## `provisioner "remote-exec"` Provisioner`"
+
+The `remote-exec` provisioner invokes a script on a remote resource after it
+is created. This can be used to run a configuration management tool, bootstrap
+into a cluster, etc. To invoke a local process, see the `local-exec`
+[provisioner](/terraform/language/resources/provisioners/local-exec) instead. The `remote-exec`
+provisioner requires a [connection](/terraform/language/resources/provisioners/connection)
+and supports both `ssh` and `winrm`.
+
+~> **Important:** Use provisioners as a last resort. There are better alternatives for most situations. Refer to
+[Declaring Provisioners](/terraform/language/resources/provisioners/syntax) for more details.
+
+## Example usage
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+
+  # Establishes connection to be used by all
+  # generic remote provisioners (i.e. file/remote-exec)
+  connection {
+    type     = "ssh"
+    user     = "root"
+    password = var.root_password
+    host     = self.public_ip
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "puppet apply",
+      "consul join ${aws_instance.web.private_ip}",
+    ]
+  }
+}
+```
+
+## Argument Reference
+
+The following arguments are supported:
+
+* `inline` - This is a list of command strings. The provisioner uses a default
+  shell unless you specify a shell as the first command (eg., `#!/bin/bash`). 
+  You cannot provide this with `script` or `scripts`.
+
+* `script` - This is a path (relative or absolute) to a local script that will
+  be copied to the remote resource and then executed. This cannot be provided
+  with `inline` or `scripts`.
+
+* `scripts` - This is a list of paths (relative or absolute) to local scripts
+  that will be copied to the remote resource and then executed. They are executed
+  in the order they are provided. This cannot be provided with `inline` or `script`.
+
+-> **Note:** Since `inline` is implemented by concatenating commands into a script, [`on_failure`](/terraform/language/resources/provisioners/syntax#failure-behavior) applies only to the final command in the list. In particular, with `on_failure = fail` (the default behaviour) earlier commands will be allowed to fail, and later commands will also execute. If this behaviour is not desired, consider using `"set -o errexit"` as the first command.
+
+## Script Arguments
+
+You cannot pass any arguments to scripts using the `script` or
+`scripts` arguments to this provisioner. If you want to specify arguments,
+upload the script with the
+[file provisioner](/terraform/language/resources/provisioners/file)
+and then use `inline` to call it. Example:
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+
+  provisioner "file" {
+    source      = "script.sh"
+    destination = "/tmp/script.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/script.sh",
+      "/tmp/script.sh args",
+    ]
+  }
+}
+```

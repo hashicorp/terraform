@@ -1,13 +1,18 @@
 ---
-page_title: The terraform_data Managed Resource Type
+page_title: Apply the standard Terraform resource lifecycle
 description: >-
   Retrieves the root module output values from a Terraform state snapshot stored
   in a remote backend.
 ---
 
-# The `terraform_data` Managed Resource Type
+# Apply the standard Terraform resource lifecycle
 
-The `terraform_data` implements the standard resource lifecycle, but does not directly take any other actions. 
+This topic describes how to configure resources to follow the standard Terraform resource lifecycle. 
+
+## Configure the `terraform_data` resource type
+
+The `terraform_data` resource type implements the standard resource lifecycle for the resource but does not directly take any other actions. 
+
 You can use the `terraform_data` resource without requiring or configuring a provider. It is always available through a built-in provider with the [source address](/terraform/language/providers/requirements#source-addresses) `terraform.io/builtin/terraform`.
 
 The `terraform_data` resource is useful for storing values which need to follow a manage resource lifecycle, and for triggering provisioners when there is no other logical managed resource in which to place them.
