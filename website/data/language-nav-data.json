@@ -70,33 +70,33 @@
     ]
   },
   {
-    "title": "Define resources",
+    "title": "Create resources",
     "routes": [
-      { "title": "Overview", "path": "define-resource" },
+      { "title": "Overview", "path": "create-resource" },
       {
         "title": "Apply provisioners",
         "routes": [
           {
             "title": "Overview",
-            "path": "define-resource/provisioners"
+            "path": "create-resource/provisioners"
           },
           {
             "title": "Declaring Provisioners",
-            "path": "define-resource/provisioners/define"
+            "path": "create-resource/provisioners/define"
           },
           {
             "title": "Provisioner Connections",
-            "path": "define-resource/provisioners/connect"
+            "path": "create-resource/provisioners/connect"
           },
           {
             "title": "Run commands on standard lifecycle resources",
-            "path": "define-resource/provisioners/null_resource"
+            "path": "create-resource/provisioners/null_resource"
           }
         ]
       },
       {
         "title": "Apply standard lifecycle",
-        "path": "define-resource/terraform-data"
+        "path": "create-resource/terraform-data"
       }
     ]
   },
