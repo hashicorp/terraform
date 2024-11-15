@@ -19,6 +19,7 @@ BUG FIXES:
 - Updates to resources which were forced to use create_before_destroy could lose that flag in the state temporarily and cause cycles if immediately removed from the configuration ([#35966](https://github.com/hashicorp/terraform/issues/35966))
 - backend/cloud: Prefer KV tags, even when tags are defined as set ([#35937](https://github.com/hashicorp/terraform/pull/35937))
 - Simplify config generation (`plan -generate-config-out`) for string attributes that contain primitive types (e.g. numbers or booleans) ([#35984](https://github.com/hashicorp/terraform/pull/35984))
+- config: `issensitive` could incorrectly assert that an unknown value was not sensitive during plan, but later became sensitive during apply, causing failures where changes did not match the planned result [GH-36012]
 
 ENHANCEMENTS:
 
