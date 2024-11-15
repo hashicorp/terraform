@@ -166,47 +166,47 @@ func TestNonsensitive(t *testing.T) {
 func TestIssensitive(t *testing.T) {
 	tests := []struct {
 		Input     cty.Value
-		Sensitive bool
+		Sensitive cty.Value
 		WantErr   string
 	}{
 		{
 			cty.NumberIntVal(1).Mark(marks.Sensitive),
-			true,
+			cty.True,
 			``,
 		},
 		{
 			cty.NumberIntVal(1),
-			false,
+			cty.False,
 			``,
 		},
 		{
 			cty.DynamicVal.Mark(marks.Sensitive),
-			true,
+			cty.True,
 			``,
 		},
 		{
 			cty.UnknownVal(cty.String).Mark(marks.Sensitive),
-			true,
+			cty.True,
 			``,
 		},
 		{
 			cty.NullVal(cty.EmptyObject).Mark(marks.Sensitive),
-			true,
+			cty.True,
 			``,
 		},
 		{
 			cty.NullVal(cty.String),
-			false,
+			cty.False,
 			``,
 		},
 		{
 			cty.DynamicVal,
-			false,
+			cty.UnknownVal(cty.Bool),
 			``,
 		},
 		{
 			cty.UnknownVal(cty.String),
-			false,
+			cty.UnknownVal(cty.Bool),
 			``,
 		},
 	}
@@ -227,7 +227,7 @@ func TestIssensitive(t *testing.T) {
 				t.Fatalf("unexpected error: %s", err)
 			}
 
-			if (got.True() && !test.Sensitive) || (got.False() && test.Sensitive) {
+			if !got.RawEquals(test.Sensitive) {
 				t.Errorf("wrong result \ngot:  %#v\nwant: %#v", got, test.Sensitive)
 			}
 		})
