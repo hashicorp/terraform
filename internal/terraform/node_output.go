@@ -384,6 +384,17 @@ func (n *NodeApplyableOutput) References() []*addrs.Reference {
 
 // GraphNodeExecutable
 func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	if op == walkValidate && n.Config.DeprecatedSet && len(n.Dependants) > 0 {
+		for _, d := range n.Dependants {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Usage of deprecated output",
+				Detail:   n.Config.Deprecated,
+				Subject:  d.SourceRange.ToHCL().Ptr(),
+			})
+		}
+	}
+
 	state := ctx.State()
 	if state == nil {
 		return

@@ -3094,3 +3094,122 @@ module "child" {
 	diags := ctx.Validate(m, &ValidateOpts{})
 	assertNoDiagnostics(t, diags)
 }
+
+func TestContext2Validate_deprecated_output(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this"
+    value = "old"
+}
+
+output "old-and-unused" {
+    deprecated = "This should not show up in the errors, we are not using it"
+    value = "old"
+}
+
+output "new" {
+    value = "foo"
+}
+`,
+		"mod2/main.tf": `
+variable "input" {
+	type = string
+}
+`,
+		"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+resource "test_resource" "test" {
+    attr = module.mod.old
+}
+
+resource "test_resource" "test2" {
+    attr = module.mod.new
+}
+
+resource "test_resource" "test3" {
+    attr = module.mod.old
+}
+
+output "test_output" {
+	value = module.mod.old
+}
+
+module "mod2" {
+	source = "./mod2"
+
+	input = module.mod.old
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	var expectedDiags tfdiags.Diagnostics
+	expectedDiags = expectedDiags.Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Usage of deprecated output",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 7, Column: 12, Byte: 85},
+				End:      hcl.Pos{Line: 7, Column: 26, Byte: 99},
+			},
+		},
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Usage of deprecated output",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 15, Column: 12, Byte: 213},
+				End:      hcl.Pos{Line: 15, Column: 26, Byte: 227},
+			},
+		},
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Usage of deprecated output",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 19, Column: 10, Byte: 263},
+				End:      hcl.Pos{Line: 19, Column: 24, Byte: 277},
+			},
+		},
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Usage of deprecated output",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 25, Column: 10, Byte: 326},
+				End:      hcl.Pos{Line: 25, Column: 24, Byte: 340},
+			},
+		},
+	)
+
+	assertDiagnosticsMatch(t, diags, expectedDiags)
+}
