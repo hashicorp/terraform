@@ -906,59 +906,14 @@ func TestApply_planWithVarFile(t *testing.T) {
 	}
 }
 
-func TestApply_planWithVarFilePreviouslyUnset(t *testing.T) {
-	varFileDir := testTempDir(t)
-	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
-	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// The value of foo is not set
-	planPath := applyFixturePlanFile(t)
-	statePath := testTempFile(t)
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(varFileDir); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
-
-	p := applyFixtureProvider()
-	view, done := testView(t)
-	c := &ApplyCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			View:             view,
-		},
-	}
-
-	args := []string{
-		"-state-out", statePath,
-		planPath,
-	}
-	code := c.Run(args)
-	output := done(t)
-	if code == 0 {
-		t.Fatalf("expected to fail, but succeeded. \n\n%s", output.All())
-	}
-
-	expectedTitle := "Can't set variable when applying a saved plan"
-	if !strings.Contains(output.Stderr(), expectedTitle) {
-		t.Fatalf("Expected stderr to contain %q, got %q", expectedTitle, output.Stderr())
-	}
-}
-
 func TestApply_planWithVarFileChangingVariableValue(t *testing.T) {
 	varFileDir := testTempDir(t)
 	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
-	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	// The value of foo is differnet from the var file
+	// The value of foo is different from the var file
 	planPath := applyFixturePlanFileWithVariableValue(t, "lorem ipsum")
 	statePath := testTempFile(t)
 
@@ -1287,6 +1242,114 @@ foo = "bar"
 			tc(t, c, statePath, planPath, done)
 		})
 	}
+}
+
+// Variables can be passed to apply now for ephemeral usage, but we need to
+// ensure that the legacy handling of undeclared variables remains intact
+func TestApply_changedVars_applyTime(t *testing.T) {
+	t.Run("undeclared-config-var", func(t *testing.T) {
+		// an undeclared config variable is a warning, just like during plan
+		varFileDir := testTempDir(t)
+		varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
+		if err := os.WriteFile(varFilePath, []byte(`undeclared = true`), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		// The value of foo is not set
+		planPath := applyFixturePlanFile(t)
+		statePath := testTempFile(t)
+
+		cwd, err := os.Getwd()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if err := os.Chdir(varFileDir); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		defer os.Chdir(cwd)
+
+		p := applyFixtureProvider()
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-state-out", statePath,
+			planPath,
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("unexpected exit code %d:\n\n%s", code, output.All())
+		}
+
+		if !strings.Contains(output.All(), `Value for undeclared variable`) {
+			t.Fatalf("missing undeclared warning:\n%s", output.All())
+		}
+	})
+
+	t.Run("undeclared-cli-var", func(t *testing.T) {
+		// an undeclared cli variable is an error, just like during plan
+		planPath := applyFixturePlanFile(t)
+		statePath := testTempFile(t)
+
+		p := applyFixtureProvider()
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-var", "undeclared=true",
+			"-state-out", statePath,
+			planPath,
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 1 {
+			t.Fatalf("unexpected exit code %d:\n\n%s", code, output.All())
+		}
+
+		if !strings.Contains(output.Stderr(), `Value for undeclared variable`) {
+			t.Fatalf("missing undeclared warning:\n%s", output.All())
+		}
+	})
+
+	t.Run("changed-cli-var", func(t *testing.T) {
+		planPath := applyFixturePlanFileWithVariableValue(t, "orig")
+		statePath := testTempFile(t)
+
+		p := applyFixtureProvider()
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-var", "foo=new",
+			"-state-out", statePath,
+			planPath,
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 1 {
+			t.Fatalf("unexpected exit code %d:\n\n%s", code, output.All())
+		}
+
+		if !strings.Contains(output.Stderr(), `Can't change variable when applying a saved plan`) {
+			t.Fatalf("missing undeclared warning:\n%s", output.All())
+		}
+	})
 }
 
 // we should be able to apply a plan file with no other file dependencies
@@ -2595,7 +2658,7 @@ func applyFixturePlanFileMatchState(t *testing.T, stateMeta statemgr.SnapshotMet
 // a single change to create the test_instance.foo and a variable value that is included in the
 // "apply" test fixture, returning the location of that plan file.
 func applyFixturePlanFileWithVariableValue(t *testing.T, value string) string {
-	_, snap := testModuleWithSnapshot(t, "apply")
+	_, snap := testModuleWithSnapshot(t, "apply-vars")
 	plannedVal := cty.ObjectVal(map[string]cty.Value{
 		"id":  cty.UnknownVal(cty.String),
 		"ami": cty.StringVal("bar"),
