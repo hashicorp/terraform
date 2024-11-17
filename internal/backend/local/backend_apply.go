@@ -252,7 +252,22 @@ func (b *Local) opApply(
 	}
 
 	if len(op.Variables) != 0 {
+		// Undeclared variables cause warnings during plan, but will show up
+		// again here during apply. Their handling is tricky though, because it
+		// depends on how they were declared, and is subject to compatibility
+		// constraints. Collect any suspect values as we go, and then use the
+		// same parsing logic from the plan to generate the diagnostics.
+		undeclaredVariables := map[string]backendrun.UnparsedVariableValue{}
+
 		for varName, rawV := range op.Variables {
+			decl, ok := lr.Config.Module.Variables[varName]
+			if !ok {
+				// We'll try to parse this and handle diagnostics for missing
+				// variables with ParseUndeclaredVariableValues after.
+				undeclaredVariables[varName] = rawV
+				continue
+			}
+
 			// We're "parsing" only to get the resulting value's SourceType,
 			// so we'll use configs.VariableParseLiteral just because it's
 			// the most liberal interpretation and so least likely to
@@ -267,25 +282,6 @@ func (b *Local) opApply(
 			var rng *hcl.Range
 			if v.HasSourceRange() {
 				rng = v.SourceRange.ToHCL().Ptr()
-			}
-
-			decl, ok := lr.Config.Module.Variables[varName]
-
-			// If the variable isn't declared in config at all, take
-			// this opportunity to give the user a helpful error,
-			// rather than waiting for a less helpful one later.
-			// We are ok with over-supplying variables through environment variables
-			// since it would be a breaking change to disallow it.
-			if v.SourceType == terraform.ValueFromCLIArg || v.SourceType == terraform.ValueFromNamedFile {
-				if !ok {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Value for undeclared variable",
-						Detail:   fmt.Sprintf("The variable %s cannot be set using the -var and -var-file options because it is not declared in configuration.", varName),
-						Subject:  rng,
-					})
-					continue
-				}
 			}
 
 			// If the var is declared as ephemeral in config, go ahead and handle it
@@ -345,12 +341,8 @@ func (b *Local) opApply(
 				// If a non-ephemeral variable is set differently between plan and apply, we should emit a diagnostic.
 				plannedVariableValue, ok := plan.VariableValues[varName]
 				if !ok {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Can't set variable when applying a saved plan",
-						Detail:   fmt.Sprintf("The variable %s cannot be set using the -var and -var-file options when applying a saved plan file, because it is neither ephemeral nor has it been declared during the plan operation. To declare an ephemeral variable which is not saved in the plan file, use ephemeral = true.", varName),
-						Subject:  rng,
-					})
+					// We'll catch this with ParseUndeclaredVariableValues after
+					undeclaredVariables[varName] = rawV
 					continue
 				}
 
@@ -373,7 +365,15 @@ func (b *Local) opApply(
 					}
 				}
 			}
+
 		}
+		_, undeclaredDiags := backendrun.ParseUndeclaredVariableValues(undeclaredVariables, map[string]*configs.Variable{})
+		// always add hard errors here, and add warnings if we're not in a
+		// combined op which just emitted those same warnings already.
+		if undeclaredDiags.HasErrors() || !combinedPlanApply {
+			diags = diags.Append(undeclaredDiags)
+		}
+
 		if diags.HasErrors() {
 			op.ReportResult(runningOp, diags)
 			return
