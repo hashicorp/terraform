@@ -1,4 +1,6 @@
 {
+  "applyable": true,
+  "complete": true,
   "configuration": {
     "provider_config": {
       "local": {
@@ -124,7 +126,8 @@
       ]
     }
   },
-  "format_version": "1.1",
+  "errored": false,
+  "format_version": "1.2",
   "planned_values": {
     "root_module": {
       "child_modules": [
@@ -137,7 +140,9 @@
               "name": "data_file",
               "provider_name": "registry.terraform.io/hashicorp/local",
               "schema_version": 0,
-              "sensitive_values": {},
+              "sensitive_values": {
+                "sensitive_content": true
+              },
               "type": "local_file",
               "values": {
                 "content_base64": null,
