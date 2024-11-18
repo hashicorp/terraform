@@ -13,13 +13,16 @@ on:
         required: true
       equivalence-test-version:
         type: string
-        description: 'Equivalence testing framework version to use (no v prefix, eg. 0.3.0).'
-        default: "0.3.0"
+        description: 'Equivalence testing framework version to use (no v prefix, eg. 0.4.0).'
+        default: "0.4.0"
         required: true
 
 permissions:
   contents: write
   pull-requests: write
+
+env:
+  GH_TOKEN: ${{ github.token }}
 
 jobs:
   run-equivalence-tests:

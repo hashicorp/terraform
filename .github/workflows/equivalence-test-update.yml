@@ -8,6 +8,9 @@ permissions:
   contents: write
   pull-requests: write
 
+env:
+  GH_TOKEN: ${{ github.token }}
+
 jobs:
   check:
     name: "Should run equivalence tests?"
@@ -18,14 +21,14 @@ jobs:
       - name: target_branch
         id: target_branch
         run: |
-          merged = ${{ github.event.pull_request.merged }}
-          target_branch = ${{ github.event.pull_request.base.ref }}
+          merged="${{ github.event.pull_request.merged }}"
+          target_branch="${{ github.event.pull_request.base.ref }}"
           
-          targets_release_branch = false
+          targets_release_branch=false
           if [ "$target_branch" == "main" ]; then
-            targets_release_branch = true
+            targets_release_branch=true
           elif [ "$target_branch" =~ ^v[0-9]+\.[0-9]+$ ]; then
-            targets_release_branch = true
+            targets_release_branch=true
           fi
           
           should_run=false
@@ -57,7 +60,7 @@ jobs:
 
       - uses: ./.github/actions/equivalence-test
         with:
-          target-equivalence-test-version: ${{ inputs.equivalence-test-version }}
+          target-equivalence-test-version: 0.4.0
           target-os: linux
           target-arch: amd64
           current-branch: ${{ github.event.pull_request.base.ref }}

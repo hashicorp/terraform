@@ -6,11 +6,13 @@ on:
       - synchronize
       - ready_for_review
       - reopened
-      - synchronize
 
 permissions:
   contents: read
   pull-requests: write
+
+env:
+  GH_TOKEN: ${{ github.token }}
 
 jobs:
   equivalence-test-diff:
@@ -35,7 +37,7 @@ jobs:
         shell: bash
         run: |
           ./.github/scripts/equivalence-test.sh download_equivalence_test_binary \
-            0.3.0 \
+            0.4.0 \
             ./bin/equivalence-tests \
             linux \
             amd64
@@ -59,7 +61,7 @@ jobs:
         shell: bash
         run: |
           gh pr comment ${{ github.event.pull_request.number }} \
-            --body "The equivalence tests failed. Please investigate [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/job/${{ github.job }})."
+            --body "The equivalence tests failed. Please investigate [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
           exit 1 # fail the job
 
       - name: Equivalence tests changed
@@ -67,4 +69,4 @@ jobs:
         shell: bash
         run: |
           gh pr comment ${{ github.event.pull_request.number }} \
-            --body "The equivalence tests will be updated. Please verify the changes [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/job/${{ github.job }})."
+            --body "The equivalence tests will be updated. Please verify the changes [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
