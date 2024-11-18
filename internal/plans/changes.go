@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/schemarepo"
@@ -605,16 +606,22 @@ type Change struct {
 // to call the corresponding Encode method of that struct rather than working
 // directly with its embedded Change.
 func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
+	// When we encode the change, we need to serialize the Before and After
+	// values, but we want to set values with the ephemeral mark to null.
+	before := ephemeral.RemoveEphemeralValuesForMarshaling(c.Before)
+	after := ephemeral.RemoveEphemeralValuesForMarshaling(c.After)
+
 	// We can't serialize value marks directly so we'll need to extract the
 	// sensitive marks and store them in a separate field.
 	//
 	// We don't accept any other marks here. The caller should have dealt
 	// with those somehow and replaced them with unmarked placeholders before
 	// writing the value into the state.
-	unmarkedBefore, marksesBefore := c.Before.UnmarkDeepWithPaths()
-	unmarkedAfter, marksesAfter := c.After.UnmarkDeepWithPaths()
+	unmarkedBefore, marksesBefore := before.UnmarkDeepWithPaths()
+	unmarkedAfter, marksesAfter := after.UnmarkDeepWithPaths()
 	sensitiveAttrsBefore, unsupportedMarksesBefore := marks.PathsWithMark(marksesBefore, marks.Sensitive)
 	sensitiveAttrsAfter, unsupportedMarksesAfter := marks.PathsWithMark(marksesAfter, marks.Sensitive)
+
 	if len(unsupportedMarksesBefore) != 0 {
 		return nil, fmt.Errorf(
 			"prior value %s: can't serialize value marked with %#v (this is a bug in Terraform)",
@@ -645,6 +652,8 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 		After:                afterDV,
 		BeforeSensitivePaths: sensitiveAttrsBefore,
 		AfterSensitivePaths:  sensitiveAttrsAfter,
+		BeforeWriteOnlyPaths: ephemeral.EphemeralValuePaths(c.Before),
+		AfterWriteOnlyPaths:  ephemeral.EphemeralValuePaths(c.After),
 		Importing:            c.Importing.Encode(),
 		GeneratedConfig:      c.GeneratedConfig,
 	}, nil

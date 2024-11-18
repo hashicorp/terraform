@@ -118,14 +118,17 @@ func TestMarshalAttributeValues(t *testing.T) {
 		Attr               cty.Value
 		Want               AttributeValues
 		WantSensitivePaths []cty.Path
+		WantEphemeralPaths []cty.Path
 	}{
 		{
 			cty.NilVal,
 			nil,
 			nil,
+			nil,
 		},
 		{
 			cty.NullVal(cty.String),
+			nil,
 			nil,
 			nil,
 		},
@@ -135,12 +138,14 @@ func TestMarshalAttributeValues(t *testing.T) {
 			}),
 			AttributeValues{"foo": json.RawMessage(`"bar"`)},
 			nil,
+			nil,
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.NullVal(cty.String),
 			}),
 			AttributeValues{"foo": json.RawMessage(`null`)},
+			nil,
 			nil,
 		},
 		{
@@ -157,6 +162,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 				"bar": json.RawMessage(`{"hello":"world"}`),
 				"baz": json.RawMessage(`["goodnight","moon"]`),
 			},
+			nil,
 			nil,
 		},
 		// Sensitive values
@@ -177,12 +183,33 @@ func TestMarshalAttributeValues(t *testing.T) {
 			[]cty.Path{
 				cty.GetAttrPath("baz").IndexInt(1),
 			},
+			nil,
+		},
+		// Ephemeral values
+		{
+			cty.ObjectVal(map[string]cty.Value{
+				"bar": cty.MapVal(map[string]cty.Value{
+					"hello": cty.StringVal("world"),
+				}),
+				"baz": cty.ListVal([]cty.Value{
+					cty.StringVal("goodnight"),
+					cty.StringVal("moon").Mark(marks.Ephemeral),
+				}),
+			}),
+			AttributeValues{
+				"bar": json.RawMessage(`{"hello":"world"}`),
+				"baz": json.RawMessage(`["goodnight",null]`),
+			},
+			nil,
+			[]cty.Path{
+				cty.GetAttrPath("baz").IndexInt(1),
+			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%#v", test.Attr), func(t *testing.T) {
-			val, got, sensitivePaths, err := marshalAttributeValues(test.Attr)
+			val, got, sensitivePaths, ephemeralPaths, err := marshalAttributeValues(test.Attr)
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
 			}
@@ -192,6 +219,9 @@ func TestMarshalAttributeValues(t *testing.T) {
 			if !reflect.DeepEqual(sensitivePaths, test.WantSensitivePaths) {
 				t.Errorf("wrong marks\ngot:  %#v\nwant: %#v\n", sensitivePaths, test.WantSensitivePaths)
 			}
+			if !reflect.DeepEqual(ephemeralPaths, test.WantEphemeralPaths) {
+				t.Errorf("wrong marks\ngot:  %#v\nwant: %#v\n", ephemeralPaths, test.WantEphemeralPaths)
+			}
 			if _, marks := val.Unmark(); len(marks) != 0 {
 				t.Errorf("returned value still has marks; should have been unmarked\n%#v", marks)
 			}
@@ -199,7 +229,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 	}
 
 	t.Run("reject unsupported marks", func(t *testing.T) {
-		_, _, _, err := marshalAttributeValues(cty.ObjectVal(map[string]cty.Value{
+		_, _, _, _, err := marshalAttributeValues(cty.ObjectVal(map[string]cty.Value{
 			"disallowed": cty.StringVal("a").Mark("unsupported"),
 		}))
 		if err == nil {

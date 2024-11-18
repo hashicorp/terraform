@@ -51,6 +51,12 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 	}
 
 	for name, attrS := range schema.Attributes {
+		// We need to ignore write_only attributes, they are not recorded in the plan
+		// and are ephemeral, therefore allowed to differ between plan and apply.
+		if attrS.WriteOnly {
+			continue
+		}
+
 		plannedV := planned.GetAttr(name)
 		actualV := actual.GetAttr(name)
 

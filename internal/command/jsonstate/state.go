@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/jsonchecks"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -116,15 +117,21 @@ type Resource struct {
 // resource, whose structure depends on the resource type schema.
 type AttributeValues map[string]json.RawMessage
 
-func marshalAttributeValues(value cty.Value) (unmarkedVal cty.Value, marshalledVals AttributeValues, sensitivePaths []cty.Path, err error) {
+func marshalAttributeValues(value cty.Value) (unmarkedVal cty.Value, marshalledVals AttributeValues, sensitivePaths []cty.Path, ephemeralPaths []cty.Path, err error) {
+	// Every ephemeral value at this point must be set through a write_only attribute, otherwise
+	// validation would have failed. For this reason we can safely remove all ephemeral values from the value.
+	_, pvms := value.UnmarkDeepWithPaths()
+	ephemeralPaths, _ = marks.PathsWithMark(pvms, marks.Ephemeral)
+	value = ephemeral.RemoveEphemeralValuesForMarshaling(value)
+
 	// unmark our value to show all values
 	value, sensitivePaths, err = unmarkValueForMarshaling(value)
 	if err != nil {
-		return cty.NilVal, nil, nil, err
+		return cty.NilVal, nil, nil, nil, err
 	}
 
 	if value == cty.NilVal || value.IsNull() {
-		return value, nil, nil, nil
+		return value, nil, nil, nil, nil
 	}
 
 	ret := make(AttributeValues)
@@ -135,7 +142,7 @@ func marshalAttributeValues(value cty.Value) (unmarkedVal cty.Value, marshalledV
 		vJSON, _ := ctyjson.Marshal(v, v.Type())
 		ret[k.AsString()] = json.RawMessage(vJSON)
 	}
-	return value, ret, sensitivePaths, nil
+	return value, ret, sensitivePaths, ephemeralPaths, nil
 }
 
 // newState() returns a minimally-initialized state
@@ -403,7 +410,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 				var value cty.Value
 				var sensitivePaths []cty.Path
-				value, current.AttributeValues, sensitivePaths, err = marshalAttributeValues(riObj.Value)
+				value, current.AttributeValues, sensitivePaths, _, err = marshalAttributeValues(riObj.Value)
 				if err != nil {
 					return nil, fmt.Errorf("preparing attribute values for %s: %w", current.Address, err)
 				}
@@ -455,7 +462,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 				var value cty.Value
 				var sensitivePaths []cty.Path
-				value, deposed.AttributeValues, sensitivePaths, err = marshalAttributeValues(riObj.Value)
+				value, deposed.AttributeValues, sensitivePaths, _, err = marshalAttributeValues(riObj.Value)
 				if err != nil {
 					return nil, fmt.Errorf("preparing attribute values for %s: %w", current.Address, err)
 				}

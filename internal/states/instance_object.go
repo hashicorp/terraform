@@ -11,6 +11,7 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -98,7 +99,7 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	// If it contains marks, remove these marks before traversing the
 	// structure with UnknownAsNull, and save the PathValueMarks
 	// so we can save them in state.
-	val, sensitivePaths, err := unmarkValueForStorage(o.Value)
+	val, sensitivePaths, writeOnlyPaths, err := unmarkValueForStorage(o.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -135,6 +136,7 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 		SchemaVersion:       schemaVersion,
 		AttrsJSON:           src,
 		AttrSensitivePaths:  sensitivePaths,
+		AttrWriteOnlyPaths:  writeOnlyPaths,
 		Private:             o.Private,
 		Status:              o.Status,
 		Dependencies:        dependencies,
@@ -167,14 +169,16 @@ func (o *ResourceInstanceObject) AsTainted() *ResourceInstanceObject {
 // know how to store must be dealt with somehow by a caller -- presumably by
 // replacing each marked value with some sort of storage placeholder -- before
 // writing a value into the state.
-func unmarkValueForStorage(v cty.Value) (unmarkedV cty.Value, sensitivePaths []cty.Path, err error) {
-	val, pvms := v.UnmarkDeepWithPaths()
+func unmarkValueForStorage(v cty.Value) (cty.Value, []cty.Path, []cty.Path, error) {
+	val := ephemeral.RemoveEphemeralValuesForMarshaling(v)
+	ephemeralPaths := ephemeral.EphemeralValuePaths(v)
+	val, pvms := val.UnmarkDeepWithPaths()
 	sensitivePaths, withOtherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
 	if len(withOtherMarks) != 0 {
-		return cty.NilVal, nil, fmt.Errorf(
+		return cty.NilVal, nil, nil, fmt.Errorf(
 			"%s: cannot serialize value marked as %#v for inclusion in a state snapshot (this is a bug in Terraform)",
 			tfdiags.FormatCtyPath(withOtherMarks[0].Path), withOtherMarks[0].Marks,
 		)
 	}
-	return val, sensitivePaths, nil
+	return val, sensitivePaths, ephemeralPaths, nil
 }

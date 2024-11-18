@@ -1157,24 +1157,25 @@ func (c *Context) relevantResourceAttrsForPlan(config *configs.Config, plan *pla
 	}
 
 	var refs []globalref.Reference
-	for _, change := range plan.Changes.Resources {
-		if change.Action == plans.NoOp {
-			continue
+	if plan.Changes != nil {
+		for _, change := range plan.Changes.Resources {
+			if change.Action == plans.NoOp {
+				continue
+			}
+
+			moreRefs := azr.ReferencesFromResourceInstance(change.Addr)
+			refs = append(refs, moreRefs...)
 		}
 
-		moreRefs := azr.ReferencesFromResourceInstance(change.Addr)
-		refs = append(refs, moreRefs...)
-	}
+		for _, change := range plan.Changes.Outputs {
+			if change.Action == plans.NoOp {
+				continue
+			}
 
-	for _, change := range plan.Changes.Outputs {
-		if change.Action == plans.NoOp {
-			continue
+			moreRefs := azr.ReferencesFromOutputValue(change.Addr)
+			refs = append(refs, moreRefs...)
 		}
-
-		moreRefs := azr.ReferencesFromOutputValue(change.Addr)
-		refs = append(refs, moreRefs...)
 	}
-
 	var contributors []globalref.ResourceAttr
 
 	for _, ref := range azr.ContributingResourceReferences(refs...) {

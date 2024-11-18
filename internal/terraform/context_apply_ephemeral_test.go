@@ -360,7 +360,7 @@ resource "test_object" "test" {
 	assertNoDiagnostics(t, diags)
 }
 
-func TestContext2Apply_write_only_attribute_not_in_plan(t *testing.T) {
+func TestContext2Apply_write_only_attribute_not_in_plan_and_state(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 variable "ephem" {
@@ -403,15 +403,6 @@ resource "ephem_write_only" "wo" {
 		},
 	})
 
-	_, diags := ctx.Plan(m, nil, &PlanOpts{
-		Mode: plans.NormalMode,
-		SetVariables: InputValues{
-			"ephem": &InputValue{
-				Value:      cty.StringVal("ephemeral_value"),
-				SourceType: ValueFromCLIArg,
-			},
-		},
-	})
 	ephemVar := &InputValue{
 		Value:      cty.StringVal("ephemeral_value"),
 		SourceType: ValueFromCLIArg,
@@ -423,6 +414,23 @@ resource "ephem_write_only" "wo" {
 		},
 	})
 	assertNoDiagnostics(t, diags)
+
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatalf("Expected 1 resource change, got %d", len(plan.Changes.Resources))
+	}
+
+	if len(plan.Changes.Resources[0].AfterWriteOnlyPaths) != 1 {
+		t.Fatalf("Expected 1 write-only attribute, got %d", len(plan.Changes.Resources[0].AfterWriteOnlyPaths))
+	}
+	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
+	assertNoDiagnostics(t, schemaDiags)
+	planChanges, err := plan.Changes.Decode(schemas)
+	if err != nil {
+		t.Fatalf("Failed to decode plan changes: %v.", err)
+	}
+	if !planChanges.Resources[0].After.GetAttr("write_only").IsNull() {
+		t.Fatalf("Expected write_only to be null, got %v", planChanges.Resources[0].After.GetAttr("write_only"))
+	}
 
 	state, diags := ctx.Apply(plan, m, &ApplyOpts{
 		SetVariables: InputValues{
@@ -460,8 +468,11 @@ resource "ephem_write_only" "wo" {
 		t.Fatalf("normal attribute not as expected")
 	}
 
-	// TODO: Or should this be omitted completely and therefore explode on decode?
-	if attrs.Value.GetAttr("write_only").IsKnown() {
-		t.Fatalf("write_only attribute should not be known")
+	if len(resourceInstance.Current.AttrWriteOnlyPaths) != 1 {
+		t.Fatalf("Expected 1 write only attribute")
+	}
+
+	if !resourceInstance.Current.AttrWriteOnlyPaths[0].Equals(cty.GetAttrPath("write_only")) {
+		t.Fatalf("Expected write_only to be a write only attribute")
 	}
 }

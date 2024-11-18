@@ -182,6 +182,7 @@ func DecodeProtoResourceInstanceObject(protoObj *StateResourceInstanceObjectV1) 
 		paths = append(paths, path)
 	}
 	objSrc.AttrSensitivePaths = paths
+	// TODO: Handle write only paths
 
 	if len(protoObj.Dependencies) != 0 {
 		objSrc.Dependencies = make([]addrs.ConfigResource, len(protoObj.Dependencies))
