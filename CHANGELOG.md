@@ -20,6 +20,7 @@ BUG FIXES:
 - backend/cloud: Prefer KV tags, even when tags are defined as set ([#35937](https://github.com/hashicorp/terraform/pull/35937))
 - Simplify config generation (`plan -generate-config-out`) for string attributes that contain primitive types (e.g. numbers or booleans) ([#35984](https://github.com/hashicorp/terraform/pull/35984))
 - config: `issensitive` could incorrectly assert that an unknown value was not sensitive during plan, but later became sensitive during apply, causing failures where changes did not match the planned result [GH-36012]
+- config: The evaluation of conditional expressions and for expression in HCL could lose marks with certain combinations of unknown values [GH-36017]
 
 ENHANCEMENTS:
 
@@ -34,6 +35,7 @@ UPGRADE NOTES:
 - backend/s3: Removes deprecated attributes for assuming IAM role. Must use the `assume_role` block ([#35721](https://github.com/hashicorp/terraform/issues/35721))
 - backend/s3: The s3 backend now supports S3 native state locking. When used with DynamoDB-based locking, locks will be acquired from both sources. In a future minor release of Terraform the DynamoDB locking mechanism and associated arguments will be deprecated. ([#35661](https://github.com/hashicorp/terraform/issues/35661))
 - `moved`: Moved blocks now respect reserved keywords when parsing resource addresses. Configurations that reference resources with type names that match top level blocks and keywords from `moved` blocks will need to prepend the `resource.` identifier to these references. ([#35850](https://github.com/hashicorp/terraform/issues/35850))
+- config: In order to ensure consistency in results from HCL conditional expressions, marks must be combined from all values within the expression to avoid losing mark information. This typically improves accuracy when validating configuration, but users may see sensitive results where they were lost previously.
 
 ## Previous Releases
 
