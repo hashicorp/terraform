@@ -21,8 +21,8 @@ jobs:
       - name: target_branch
         id: target_branch
         run: |
-          merged="${{ github.event.pull_request.merged }}"
-          target_branch="${{ github.event.pull_request.base.ref }}"
+          merged='${{ github.event.pull_request.merged }}'
+          target_branch='${{ github.event.pull_request.base.ref }}'
           
           targets_release_branch=false
           if [ "$target_branch" == "main" ]; then
