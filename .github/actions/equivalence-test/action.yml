@@ -73,5 +73,5 @@ runs:
           --base ${{ inputs.current-branch }} \
           --head ${{ inputs.new-branch }} \
           --title "Update equivalence test golden files" \
-          --body "{{ inputs.message }}" \
+          --body '${{ inputs.message }}' \
           --reviewer ${{ inputs.reviewers }}
