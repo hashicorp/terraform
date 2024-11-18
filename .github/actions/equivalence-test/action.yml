@@ -58,6 +58,8 @@ runs:
       if: steps.execute.outputs.changed == 'true'
       shell: bash
       run: |
+        git config --global user.email "teamterraform@hashicorp.com"
+        git config --global user.name "Team Terraform"
         git checkout -b ${{ inputs.new-branch }}
         git add testing/equivalence-tests/outputs
         git commit -m "Update equivalence test golden files."
