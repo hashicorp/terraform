@@ -856,7 +856,7 @@ func TestApply_plan_remoteState(t *testing.T) {
 func TestApply_planWithVarFile(t *testing.T) {
 	varFileDir := testTempDir(t)
 	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
-	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -874,6 +874,19 @@ func TestApply_planWithVarFile(t *testing.T) {
 	defer os.Chdir(cwd)
 
 	p := applyFixtureProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":    {Type: cty.String, Computed: true},
+						"value": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
+
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -1859,7 +1872,7 @@ func TestApply_varFileDefault(t *testing.T) {
 	defer testChdir(t, td)()
 
 	varFilePath := filepath.Join(td, "terraform.tfvars")
-	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -2656,8 +2669,8 @@ func applyFixturePlanFileMatchState(t *testing.T, stateMeta statemgr.SnapshotMet
 func applyFixturePlanFileWithVariableValue(t *testing.T, value string) string {
 	_, snap := testModuleWithSnapshot(t, "apply-vars")
 	plannedVal := cty.ObjectVal(map[string]cty.Value{
-		"id":  cty.UnknownVal(cty.String),
-		"ami": cty.StringVal("bar"),
+		"id":    cty.UnknownVal(cty.String),
+		"value": cty.StringVal("bar"),
 	})
 	priorValRaw, err := plans.NewDynamicValue(cty.NullVal(plannedVal.Type()), plannedVal.Type())
 	if err != nil {
