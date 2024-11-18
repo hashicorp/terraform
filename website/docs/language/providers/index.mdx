@@ -93,6 +93,26 @@ installing providers.
 
 > **Hands-on:** Try the [Lock and Upgrade Provider Versions](/terraform/tutorials/configuration-language/provider-versioning?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
+### Private Providers
+
+If you have a provider that isn't available in a Hashicorp-hosted registry, such
+as the Terraform Public Registry or a HCP Terraform Private Registry, you may
+need to attach additional credentials to your requests to the external registry.
+
+By default, Terraform only authenticates the opening request to the registry for
+the provider. The registry then responds with
+[additional URLs](https://developer.hashicorp.com/terraform/internals/provider-registry-protocol#find-a-provider-package)
+that should be followed in order to, for example, download the provider itself
+or the `SHASUMS` file. Hashicorp-hosted registries do not require additional
+authentication for these requests. If your registry does require additional
+credentials for these requests, you can use a `.netrc` file to provide
+credentials for these additional requests.
+
+By default, Terraform searches for the `.netrc` file in your HOME
+directory. However, you can override the default filesystem location by setting
+the `NETRC` environment variable. For information on the `.netrc` format, refer
+to [the documentation for using it in `curl`](https://everything.curl.dev/usingcurl/netrc).
+
 ## How to Find Providers
 
 To find providers for the infrastructure platforms you use, browse
