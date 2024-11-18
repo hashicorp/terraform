@@ -53,7 +53,13 @@ func ToDynamicValue(from cty.Value, ty cty.Type) (*DynamicValue, error) {
 	// Separate out sensitive marks from the decoded value so we can re-serialize it
 	// with MessagePack. Sensitive paths get encoded separately in the final message.
 	unmarkedValue, markses := from.UnmarkDeepWithPaths()
-	sensitivePaths, otherMarkses := marks.PathsWithMark(markses, marks.Sensitive)
+
+	// TODO: I used this pattern a bunch of times but only now noticed that values which are marked
+	// two ways (which is explicitly allowed by the spec) are in both lists. I will need to handle that somehow.
+
+	sensitivePaths, nonSensitiveMarks := marks.PathsWithMark(markses, marks.Sensitive)
+	ephemeralPaths, otherMarkses := marks.PathsWithMark(nonSensitiveMarks, marks.Ephemeral)
+
 	if len(otherMarkses) != 0 {
 		// Any other marks should've been dealt with by our caller before
 		// getting here, since we only know how to preserve the sensitive
@@ -67,7 +73,7 @@ func ToDynamicValue(from cty.Value, ty cty.Type) (*DynamicValue, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewDynamicValue(encValue, sensitivePaths), nil
+	return NewDynamicValue(encValue, sensitivePaths, ephemeralPaths), nil
 }
 
 // NewDynamicValue constructs a [DynamicValue] message object from a
@@ -77,7 +83,7 @@ func ToDynamicValue(from cty.Value, ty cty.Type) (*DynamicValue, error) {
 // The plans package represents the sensitive value mark as a separate field
 // in [plans.ChangeSrc] rather than as part of the value itself, so callers must
 // also provide a separate set of paths that are marked as sensitive.
-func NewDynamicValue(from plans.DynamicValue, sensitivePaths []cty.Path) *DynamicValue {
+func NewDynamicValue(from plans.DynamicValue, sensitivePaths []cty.Path, writeOnlyPaths []cty.Path) *DynamicValue {
 	// plans.DynamicValue is always MessagePack-serialized today, so we'll
 	// just write its bytes into the field for msgpack serialization
 	// unconditionally. If plans.DynamicValue grows to support different
@@ -90,6 +96,13 @@ func NewDynamicValue(from plans.DynamicValue, sensitivePaths []cty.Path) *Dynami
 		ret.Sensitive = make([]*AttributePath, 0, len(sensitivePaths))
 		for _, path := range sensitivePaths {
 			ret.Sensitive = append(ret.Sensitive, NewAttributePath(path))
+		}
+	}
+
+	if len(writeOnlyPaths) != 0 {
+		ret.WriteOnly = make([]*AttributePath, 0, len(writeOnlyPaths))
+		for _, path := range writeOnlyPaths {
+			ret.WriteOnly = append(ret.WriteOnly, NewAttributePath(path))
 		}
 	}
 

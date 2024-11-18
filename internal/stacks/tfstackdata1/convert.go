@@ -29,11 +29,12 @@ func ResourceInstanceObjectStateToTFStackData1(objSrc *states.ResourceInstanceOb
 	// attribute paths here just so we don't need to reimplement the
 	// slice-of-paths conversion in yet another place. We don't
 	// actually do anything with the value part of this.
-	protoValue := stacks.NewDynamicValue(plans.DynamicValue(nil), objSrc.AttrSensitivePaths)
+	protoValue := stacks.NewDynamicValue(plans.DynamicValue(nil), objSrc.AttrSensitivePaths, objSrc.AttrWriteOnlyPaths)
 	rawMsg := &StateResourceInstanceObjectV1{
 		SchemaVersion:        objSrc.SchemaVersion,
 		ValueJson:            objSrc.AttrsJSON,
 		SensitivePaths:       Terraform1ToPlanProtoAttributePaths(protoValue.Sensitive),
+		WriteOnlyPaths:       Terraform1ToPlanProtoAttributePaths(protoValue.WriteOnly),
 		CreateBeforeDestroy:  objSrc.CreateBeforeDestroy,
 		ProviderConfigAddr:   providerConfigAddr.String(),
 		ProviderSpecificData: objSrc.Private,
@@ -61,6 +62,7 @@ func Terraform1ToStackDataDynamicValue(value *stacks.DynamicValue) *DynamicValue
 			Msgpack: value.Msgpack,
 		},
 		SensitivePaths: Terraform1ToPlanProtoAttributePaths(value.Sensitive),
+		WriteOnlyPaths: Terraform1ToPlanProtoAttributePaths(value.WriteOnly),
 	}
 }
 
@@ -80,6 +82,20 @@ func DynamicValueFromTFStackData1(protoVal *DynamicValue, ty cty.Type) (cty.Valu
 			path, err := planfile.PathFromProto(protoPath)
 			if err != nil {
 				return cty.NilVal, fmt.Errorf("invalid sensitive value path: %w", err)
+			}
+			markses = append(markses, cty.PathValueMarks{
+				Path:  path,
+				Marks: marks,
+			})
+		}
+	}
+
+	if len(protoVal.WriteOnlyPaths) != 0 {
+		marks := cty.NewValueMarks(marks.Ephemeral)
+		for _, protoPath := range protoVal.WriteOnlyPaths {
+			path, err := planfile.PathFromProto(protoPath)
+			if err != nil {
+				return cty.NilVal, fmt.Errorf("invalid ephemeral value path: %w", err)
 			}
 			markses = append(markses, cty.PathValueMarks{
 				Path:  path,
@@ -173,16 +189,25 @@ func DecodeProtoResourceInstanceObject(protoObj *StateResourceInstanceObjectV1) 
 		return nil, fmt.Errorf("unsupported status %s", protoObj.Status.String())
 	}
 
-	paths := make([]cty.Path, 0, len(protoObj.SensitivePaths))
+	sensitivePaths := make([]cty.Path, 0, len(protoObj.SensitivePaths))
 	for _, p := range protoObj.SensitivePaths {
 		path, err := planfile.PathFromProto(p)
 		if err != nil {
 			return nil, err
 		}
-		paths = append(paths, path)
+		sensitivePaths = append(sensitivePaths, path)
 	}
-	objSrc.AttrSensitivePaths = paths
-	// TODO: Handle write only paths
+	objSrc.AttrSensitivePaths = sensitivePaths
+
+	writeOnlyPaths := make([]cty.Path, 0, len(protoObj.WriteOnlyPaths))
+	for _, p := range protoObj.WriteOnlyPaths {
+		path, err := planfile.PathFromProto(p)
+		if err != nil {
+			return nil, err
+		}
+		writeOnlyPaths = append(writeOnlyPaths, path)
+	}
+	objSrc.AttrWriteOnlyPaths = writeOnlyPaths
 
 	if len(protoObj.Dependencies) != 0 {
 		objSrc.Dependencies = make([]addrs.ConfigResource, len(protoObj.Dependencies))

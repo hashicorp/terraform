@@ -363,6 +363,7 @@ message StateResourceInstanceObjectV1 {
     // should use tfplan.DynamicValue and MessagePack encoding for consistency.
     bytes value_json = 1;
     repeated tfplan.Path sensitive_paths = 2;
+    repeated tfplan.Path write_only_paths = 9;
     uint64 schema_version = 3;
 
     Status status = 4;
@@ -385,4 +386,5 @@ message StateResourceInstanceObjectV1 {
 message DynamicValue {
     tfplan.DynamicValue value = 1;
     repeated tfplan.Path sensitive_paths = 2;
+    repeated tfplan.Path write_only_paths = 3;
 }

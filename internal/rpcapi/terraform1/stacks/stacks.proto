@@ -274,6 +274,7 @@ message InspectExpressionResult {
 message DynamicValue {
   bytes msgpack = 1; // The default serialization format
   repeated AttributePath sensitive = 2; // Paths to any sensitive-marked values.
+  repeated AttributePath write_only = 3; // Paths to any write-only-marked values.
 }
 
 // Represents a change of some object from one dynamic value to another.

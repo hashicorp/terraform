@@ -481,10 +481,12 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*stacks.Pla
 					Old: stacks.NewDynamicValue(
 						pc.ChangeSrc.Before,
 						pc.ChangeSrc.BeforeSensitivePaths,
+						pc.ChangeSrc.BeforeWriteOnlyPaths,
 					),
 					New: stacks.NewDynamicValue(
 						pc.ChangeSrc.After,
 						pc.ChangeSrc.AfterSensitivePaths,
+						pc.ChangeSrc.AfterWriteOnlyPaths,
 					),
 				},
 				ReplacePaths: replacePaths,

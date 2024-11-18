@@ -148,3 +148,153 @@ func TestDynamicValueFromTFStackData1(t *testing.T) {
 		t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
 	}
 }
+
+func TestDynamicValueWithEphemeralMarks(t *testing.T) {
+	startVal := cty.ObjectVal(map[string]cty.Value{
+		"x": cty.StringVal("x").Mark(marks.Ephemeral),
+		"y": cty.StringVal("y"),
+		"z": cty.ListVal([]cty.Value{
+			cty.StringVal("z[0]"),
+			cty.StringVal("z[1]").Mark(marks.Ephemeral),
+		}),
+	})
+	ty := startVal.Type()
+
+	partial, err := stacks.ToDynamicValue(startVal, ty)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	got := Terraform1ToStackDataDynamicValue(partial)
+	want := &DynamicValue{
+		Value: &planproto.DynamicValue{
+			Msgpack: []byte("\x83\xa1x\xa1x\xa1y\xa1y\xa1z\x92\xa4z[0]\xa4z[1]"),
+		},
+
+		WriteOnlyPaths: []*planproto.Path{
+			{
+				Steps: []*planproto.Path_Step{
+					{
+						Selector: &planproto.Path_Step_AttributeName{
+							AttributeName: "x",
+						},
+					},
+				},
+			},
+			{
+				Steps: []*planproto.Path_Step{
+					{
+						Selector: &planproto.Path_Step_AttributeName{
+							AttributeName: "z",
+						},
+					},
+					{
+						Selector: &planproto.Path_Step_ElementKey{
+							ElementKey: &planproto.DynamicValue{
+								Msgpack: []byte{0b00000001}, // MessagePack-encoded fixint 1
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if len(got.WriteOnlyPaths) == 2 && len(got.WriteOnlyPaths[0].Steps) == 2 {
+		got.WriteOnlyPaths[0], got.WriteOnlyPaths[1] = got.WriteOnlyPaths[1], got.WriteOnlyPaths[0]
+	}
+
+	if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
+		t.Errorf("wrong result\n%s", diff)
+	}
+}
+
+func TestDynamicValueWithEphemeralAndSensitiveMarks(t *testing.T) {
+	startVal := cty.ObjectVal(map[string]cty.Value{
+		"m": cty.StringVal("m").Mark(marks.Ephemeral).Mark(marks.Sensitive),
+		"n": cty.StringVal("n"),
+		"o": cty.ListVal([]cty.Value{
+			cty.StringVal("o[0]"),
+			cty.StringVal("o[1]").Mark(marks.Ephemeral).Mark(marks.Sensitive),
+		}),
+	})
+	ty := startVal.Type()
+
+	partial, err := stacks.ToDynamicValue(startVal, ty)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	got := Terraform1ToStackDataDynamicValue(partial)
+	want := &DynamicValue{
+		Value: &planproto.DynamicValue{
+			Msgpack: []byte("\x83\xa1m\xa1m\xa1n\xa1n\xa1o\x92\xa4o[0]\xa4o[1]"),
+		},
+
+		SensitivePaths: []*planproto.Path{
+			{
+				Steps: []*planproto.Path_Step{
+					{
+						Selector: &planproto.Path_Step_AttributeName{
+							AttributeName: "m",
+						},
+					},
+				},
+			},
+			{
+				Steps: []*planproto.Path_Step{
+					{
+						Selector: &planproto.Path_Step_AttributeName{
+							AttributeName: "o",
+						},
+					},
+					{
+						Selector: &planproto.Path_Step_ElementKey{
+							ElementKey: &planproto.DynamicValue{
+								Msgpack: []byte{0b00000001}, // MessagePack-encoded fixint 1
+							},
+						},
+					},
+				},
+			},
+		},
+
+		WriteOnlyPaths: []*planproto.Path{
+			{
+				Steps: []*planproto.Path_Step{
+					{
+						Selector: &planproto.Path_Step_AttributeName{
+							AttributeName: "m",
+						},
+					},
+				},
+			},
+			{
+				Steps: []*planproto.Path_Step{
+					{
+						Selector: &planproto.Path_Step_AttributeName{
+							AttributeName: "o",
+						},
+					},
+					{
+						Selector: &planproto.Path_Step_ElementKey{
+							ElementKey: &planproto.DynamicValue{
+								Msgpack: []byte{0b00000001}, // MessagePack-encoded fixint 1
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if len(got.SensitivePaths) == 2 && len(got.SensitivePaths[0].Steps) == 2 {
+		got.SensitivePaths[0], got.SensitivePaths[1] = got.SensitivePaths[1], got.SensitivePaths[0]
+	}
+
+	if len(got.WriteOnlyPaths) == 2 && len(got.WriteOnlyPaths[0].Steps) == 2 {
+		got.WriteOnlyPaths[0], got.WriteOnlyPaths[1] = got.WriteOnlyPaths[1], got.WriteOnlyPaths[0]
+	}
+
+	if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
+		t.Errorf("wrong result\n%s", diff)
+	}
+}
