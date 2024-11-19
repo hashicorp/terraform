@@ -20,10 +20,6 @@ components you define in the configuration. Terraform expects a specially-format
 
 ## Version constraint syntax
 
-<<<<<<< HEAD
-Terraform's syntax for version constraints is very similar to the syntax used by
-other dependency management systems like Bundler and NPM.
-=======
 A version constraint is a [string literal](/terraform/language/expressions/strings)
 containing one or more conditions separated by commas. 
 
@@ -38,7 +34,6 @@ version = "<operator> <version>"
 ```
 
 In the following example, Terraform installs a versions `1.2.0` and newer, as well as version older than `2.0.0`:
->>>>>>> d11ae2ceca (Merge pull request #36044 from hashicorp/docs/update-version-constraints-operators-reference)
 
 ```hcl
 version = ">= 1.2.0, < 2.0.0"
