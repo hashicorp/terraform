@@ -59,8 +59,8 @@ runs:
       if: steps.execute.outputs.changed == 'true'
       shell: bash
       run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config user.name "hc-github-team-tf-core"
+        git config user.email "github-team-tf-core@hashicorp.com"
         git checkout -b ${{ inputs.new-branch }}
         git add testing/equivalence-tests/outputs
         git commit -m "Update equivalence test golden files."
