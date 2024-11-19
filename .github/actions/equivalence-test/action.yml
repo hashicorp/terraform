@@ -70,6 +70,7 @@ runs:
       shell: bash
       run: |
         gh pr create \
+          --draft \
           --base ${{ inputs.current-branch }} \
           --head ${{ inputs.new-branch }} \
           --title "Update equivalence test golden files" \
