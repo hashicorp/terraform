@@ -51,6 +51,7 @@ runs:
           --goldens=testing/equivalence-tests/outputs \
           --binary=$(pwd)/bin/terraform
         
+        git add --intent-to-add testing/equivalence-tests/outputs
         changed=$(git diff --quiet -- testing/equivalence-tests/outputs || echo true)
         echo "changed=$changed" >> "${GITHUB_OUTPUT}"
 
