@@ -1,5 +1,5 @@
 [
-  { "heading": "Terraform Language" },
+  { "heading": "Write Terraform configuration" },
   { "title": "Overview", "path": "" },
   {
     "title": "Attributes as Blocks - Configuration Language",
@@ -47,7 +47,7 @@
     ]
   },
   {
-    "title": "Files and Directories",
+    "title": "Structure your configuration",
     "routes": [
       { "title": "Overview", "path": "files" },
       { "title": "Override Files", "path": "files/override" },
@@ -100,7 +100,6 @@
       }
     ]
   },
-  { "title": "Data Sources", "path": "data-sources" },
   {
     "title": "Meta-Arguments",
     "hidden": true,
@@ -215,6 +214,8 @@
       }
     ]
   },
+  { "divider": true },
+  { "heading": "Reference"},
   {
     "title": "Resource block",
     "path": "resource"
@@ -223,6 +224,8 @@
     "title": "Ephemeral block",
     "path": "ephemeral"
   },
+  { "title": "Data block", "path": "data-sources" },
+
   {
     "title": "Moved block",
     "path": "moved"
@@ -288,7 +291,7 @@
       }
     ]
   },
-  { "title": "Checks", "path": "checks" },
+  { "title": "Check block", "path": "checks" },
   {
       "title": "Import",
       "routes": [
@@ -326,7 +329,6 @@
         "title": "Splat Expressions",
         "path": "expressions/splat"
       },
-
       {
         "title": "Dynamic Blocks",
         "path": "expressions/dynamic-blocks"
