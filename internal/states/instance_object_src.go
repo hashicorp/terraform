@@ -57,6 +57,10 @@ type ResourceInstanceObjectSrc struct {
 	// state, or to save as sensitive paths when saving state
 	AttrSensitivePaths []cty.Path
 
+	// AttrWriteOnlyPaths is an array of paths to mark as ephemeral coming out of
+	// state, or to save as write_only paths when saving state
+	AttrWriteOnlyPaths []cty.Path
+
 	// These fields all correspond to the fields of the same name on
 	// ResourceInstanceObject.
 	Private             []byte
