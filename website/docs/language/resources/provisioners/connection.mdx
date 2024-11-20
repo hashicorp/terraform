@@ -59,8 +59,8 @@ provisioner "file" {
   connection {
     type     = "ssh"
     user     = "root"
-    password = "${var.root_password}"
-    host     = "${var.host}"
+    password = var.root_password
+    host     = var.host
   }
 }
 
@@ -72,8 +72,8 @@ provisioner "file" {
   connection {
     type     = "winrm"
     user     = "Administrator"
-    password = "${var.admin_password}"
-    host     = "${var.host}"
+    password = var.admin_password
+    host     = var.host
   }
 }
 ```
