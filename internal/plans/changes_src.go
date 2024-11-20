@@ -388,6 +388,10 @@ type ChangeSrc struct {
 	// the serialized change.
 	BeforeSensitivePaths, AfterSensitivePaths []cty.Path
 
+	// BeforeWriteOnlyPaths and AfterWriteOnlyPaths are paths for any values
+	// in Before or After (respectively) that are considered to be write-only.
+	BeforeWriteOnlyPaths, AfterWriteOnlyPaths []cty.Path
+
 	// Importing is present if the resource is being imported as part of this
 	// change.
 	//
