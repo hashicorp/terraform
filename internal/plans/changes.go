@@ -645,6 +645,8 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 		After:                afterDV,
 		BeforeSensitivePaths: sensitiveAttrsBefore,
 		AfterSensitivePaths:  sensitiveAttrsAfter,
+		BeforeWriteOnlyPaths: nil, // TODO: Add write-only paths
+		AfterWriteOnlyPaths:  nil, // TODO: Add write-only paths
 		Importing:            c.Importing.Encode(),
 		GeneratedConfig:      c.GeneratedConfig,
 	}, nil
