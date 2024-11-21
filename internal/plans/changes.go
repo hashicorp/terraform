@@ -582,6 +582,10 @@ type Change struct {
 	// collections/structures.
 	Before, After cty.Value
 
+	// BeforeWriteOnlyPaths and AfterWriteOnlyPaths are paths for any values
+	// in Before or After (respectively) that are considered to be write-only.
+	BeforeWriteOnlyPaths, AfterWriteOnlyPaths []cty.Path
+
 	// Importing is present if the resource is being imported as part of this
 	// change.
 	//
@@ -645,8 +649,8 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 		After:                afterDV,
 		BeforeSensitivePaths: sensitiveAttrsBefore,
 		AfterSensitivePaths:  sensitiveAttrsAfter,
-		BeforeWriteOnlyPaths: nil, // TODO: Add write-only paths
-		AfterWriteOnlyPaths:  nil, // TODO: Add write-only paths
+		BeforeWriteOnlyPaths: c.BeforeWriteOnlyPaths,
+		AfterWriteOnlyPaths:  c.AfterWriteOnlyPaths,
 		Importing:            c.Importing.Encode(),
 		GeneratedConfig:      c.GeneratedConfig,
 	}, nil

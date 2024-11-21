@@ -130,6 +130,12 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 		rc.Before = marks.MarkPaths(rc.Before, marks.Sensitive, rcs.BeforeSensitivePaths)
 		rc.After = marks.MarkPaths(rc.After, marks.Sensitive, rcs.AfterSensitivePaths)
 
+		rc.Before = marks.MarkPaths(rc.Before, marks.Ephemeral, rcs.BeforeWriteOnlyPaths)
+		rc.After = marks.MarkPaths(rc.After, marks.Ephemeral, rcs.BeforeWriteOnlyPaths)
+
+		rc.BeforeWriteOnlyPaths = rcs.BeforeWriteOnlyPaths
+		rc.AfterWriteOnlyPaths = rcs.AfterWriteOnlyPaths
+
 		changes.Resources = append(changes.Resources, rc)
 	}
 

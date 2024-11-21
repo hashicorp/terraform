@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -420,7 +421,7 @@ resource "ephem_write_only" "wo" {
 	}
 
 	if len(plan.Changes.Resources[0].AfterWriteOnlyPaths) != 1 {
-		t.Fatalf("Expected 1 write-only attribute, got %d", len(plan.Changes.Resources[0].AfterWriteOnlyPaths))
+		t.Fatalf("Expected 1 write-only attribute in plan, got %d", len(plan.Changes.Resources[0].AfterWriteOnlyPaths))
 	}
 
 	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
@@ -429,6 +430,7 @@ resource "ephem_write_only" "wo" {
 	if err != nil {
 		t.Fatalf("Failed to decode plan changes: %v.", err)
 	}
+
 	if !planChanges.Resources[0].After.GetAttr("write_only").IsNull() {
 		t.Fatalf("Expected write_only to be null, got %v", planChanges.Resources[0].After.GetAttr("write_only"))
 	}
@@ -465,12 +467,298 @@ resource "ephem_write_only" "wo" {
 	if err != nil {
 		t.Fatalf("Failed to decode attributes: %v", err)
 	}
+
 	if attrs.Value.GetAttr("normal").AsString() != "normal" {
 		t.Fatalf("normal attribute not as expected")
 	}
 
+	if !attrs.Value.GetAttr("write_only").IsNull() {
+		t.Fatalf("write_only attribute should be null")
+	}
+
 	if len(resourceInstance.Current.AttrWriteOnlyPaths) != 1 {
-		t.Fatalf("Expected 1 write only attribute")
+		t.Fatalf("Expected 1 write only attribute in apply")
+	}
+
+	if !resourceInstance.Current.AttrWriteOnlyPaths[0].Equals(cty.GetAttrPath("write_only")) {
+		t.Fatalf("Expected write_only to be a write only attribute")
+	}
+}
+
+func TestContext2Apply_update_write_only_attribute_not_in_plan_and_state(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "ephem" {
+  type        = string
+  ephemeral   = true
+}
+
+resource "ephem_write_only" "wo" {
+  normal     = "normal"
+  write_only = var.ephem
+}
+`,
+	})
+
+	ephem := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"ephem_write_only": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"normal": {
+								Type:     cty.String,
+								Required: true,
+							},
+							"write_only": {
+								Type:      cty.String,
+								WriteOnly: true,
+								Required:  true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("ephem"): testProviderFuncFixed(ephem),
+		},
+	})
+
+	ephemVar := &InputValue{
+		Value:      cty.StringVal("ephemeral_value"),
+		SourceType: ValueFromCLIArg,
+	}
+
+	priorState := states.BuildState(func(state *states.SyncState) {
+		state.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("ephem_write_only.wo"),
+			&states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: mustParseJson(map[string]interface{}{
+					"normal": "outdated",
+				}),
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("ephem"),
+				Module:   addrs.RootModule,
+			})
+	})
+
+	plan, diags := ctx.Plan(m, priorState, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"ephem": ephemVar,
+		},
+	})
+	assertNoDiagnostics(t, diags)
+
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatalf("Expected 1 resource change, got %d", len(plan.Changes.Resources))
+	}
+
+	if len(plan.Changes.Resources[0].AfterWriteOnlyPaths) != 1 {
+		t.Fatalf("Expected 1 write-only attribute in plan, got %d", len(plan.Changes.Resources[0].AfterWriteOnlyPaths))
+	}
+
+	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
+	assertNoDiagnostics(t, schemaDiags)
+	planChanges, err := plan.Changes.Decode(schemas)
+	if err != nil {
+		t.Fatalf("Failed to decode plan changes: %v.", err)
+	}
+
+	if !planChanges.Resources[0].After.GetAttr("write_only").IsNull() {
+		t.Fatalf("Expected write_only to be null, got %v", planChanges.Resources[0].After.GetAttr("write_only"))
+	}
+
+	state, diags := ctx.Apply(plan, m, &ApplyOpts{
+		SetVariables: InputValues{
+			"ephem": ephemVar,
+		},
+	})
+	assertNoDiagnostics(t, diags)
+
+	resource := state.Resource(addrs.AbsResource{
+		Module: addrs.RootModuleInstance,
+		Resource: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "ephem_write_only",
+			Name: "wo",
+		},
+	})
+
+	if resource == nil {
+		t.Fatalf("Resource not found")
+	}
+
+	resourceInstance := resource.Instances[addrs.NoKey]
+	if resourceInstance == nil {
+		t.Fatalf("Resource instance not found")
+	}
+
+	attrs, err := resourceInstance.Current.Decode(cty.Object(map[string]cty.Type{
+		"normal":     cty.String,
+		"write_only": cty.String,
+	}))
+	if err != nil {
+		t.Fatalf("Failed to decode attributes: %v", err)
+	}
+
+	if attrs.Value.GetAttr("normal").AsString() != "normal" {
+		t.Fatalf("normal attribute not as expected")
+	}
+
+	if !attrs.Value.GetAttr("write_only").IsNull() {
+		t.Fatalf("write_only attribute should be null")
+	}
+
+	if len(resourceInstance.Current.AttrWriteOnlyPaths) != 1 {
+		t.Fatalf("Expected 1 write only attribute in apply")
+	}
+
+	if !resourceInstance.Current.AttrWriteOnlyPaths[0].Equals(cty.GetAttrPath("write_only")) {
+		t.Fatalf("Expected write_only to be a write only attribute")
+	}
+}
+
+func TestContext2Apply_normal_attributes_becomes_write_only_attribute(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "ephem" {
+  type        = string
+  ephemeral   = true
+}
+
+resource "ephem_write_only" "wo" {
+  normal     = "normal"
+  write_only = var.ephem
+}
+`,
+	})
+
+	ephem := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"ephem_write_only": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"normal": {
+								Type:     cty.String,
+								Required: true,
+							},
+							"write_only": {
+								Type:      cty.String,
+								WriteOnly: true,
+								Required:  true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("ephem"): testProviderFuncFixed(ephem),
+		},
+	})
+
+	ephemVar := &InputValue{
+		Value:      cty.StringVal("ephemeral_value"),
+		SourceType: ValueFromCLIArg,
+	}
+
+	priorState := states.BuildState(func(state *states.SyncState) {
+		state.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("ephem_write_only.wo"),
+			&states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: mustParseJson(map[string]interface{}{
+					"normal":     "normal",
+					"write_only": "this was not ephemeral but now is",
+				}),
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("ephem"),
+				Module:   addrs.RootModule,
+			})
+	})
+
+	plan, diags := ctx.Plan(m, priorState, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"ephem": ephemVar,
+		},
+	})
+	assertNoDiagnostics(t, diags)
+
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatalf("Expected 1 resource change, got %d", len(plan.Changes.Resources))
+	}
+
+	if len(plan.Changes.Resources[0].AfterWriteOnlyPaths) != 1 {
+		t.Fatalf("Expected 1 write-only attribute in plan, got %d", len(plan.Changes.Resources[0].AfterWriteOnlyPaths))
+	}
+
+	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
+	assertNoDiagnostics(t, schemaDiags)
+	planChanges, err := plan.Changes.Decode(schemas)
+	if err != nil {
+		t.Fatalf("Failed to decode plan changes: %v.", err)
+	}
+
+	if !planChanges.Resources[0].After.GetAttr("write_only").IsNull() {
+		t.Fatalf("Expected write_only to be null, got %v", planChanges.Resources[0].After.GetAttr("write_only"))
+	}
+
+	state, diags := ctx.Apply(plan, m, &ApplyOpts{
+		SetVariables: InputValues{
+			"ephem": ephemVar,
+		},
+	})
+	assertNoDiagnostics(t, diags)
+
+	resource := state.Resource(addrs.AbsResource{
+		Module: addrs.RootModuleInstance,
+		Resource: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "ephem_write_only",
+			Name: "wo",
+		},
+	})
+
+	if resource == nil {
+		t.Fatalf("Resource not found")
+	}
+
+	resourceInstance := resource.Instances[addrs.NoKey]
+	if resourceInstance == nil {
+		t.Fatalf("Resource instance not found")
+	}
+
+	attrs, err := resourceInstance.Current.Decode(cty.Object(map[string]cty.Type{
+		"normal":     cty.String,
+		"write_only": cty.String,
+	}))
+	if err != nil {
+		t.Fatalf("Failed to decode attributes: %v", err)
+	}
+
+	if attrs.Value.GetAttr("normal").AsString() != "normal" {
+		t.Fatalf("normal attribute not as expected")
+	}
+
+	if !attrs.Value.GetAttr("write_only").IsNull() {
+		t.Fatalf("write_only attribute should be null")
+	}
+
+	if len(resourceInstance.Current.AttrWriteOnlyPaths) != 1 {
+		t.Fatalf("Expected 1 write only attribute in apply")
 	}
 
 	if !resourceInstance.Current.AttrWriteOnlyPaths[0].Equals(cty.GetAttrPath("write_only")) {

@@ -50,6 +50,10 @@ type ResourceInstanceObject struct {
 	// destroy operations, we need to record the status to ensure a resource
 	// removed from the config will still be destroyed in the same manner.
 	CreateBeforeDestroy bool
+
+	// AttrWriteOnlyPaths is an array of paths to mark as ephemeral coming out of
+	// state, or to save as write_only paths when saving state
+	AttrWriteOnlyPaths []cty.Path
 }
 
 // ObjectStatus represents the status of a RemoteObject.
@@ -135,6 +139,7 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 		SchemaVersion:       schemaVersion,
 		AttrsJSON:           src,
 		AttrSensitivePaths:  sensitivePaths,
+		AttrWriteOnlyPaths:  o.AttrWriteOnlyPaths,
 		Private:             o.Private,
 		Status:              o.Status,
 		Dependencies:        dependencies,

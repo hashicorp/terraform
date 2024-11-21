@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -1167,6 +1168,10 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 	}
 
+	// We don't need ephemeral values anymore since the value has been planned
+	ephemeralValuePaths, _ := marks.PathsWithMark(unmarkedPaths, marks.Ephemeral)
+	plannedNewVal = ephemeral.RemoveEphemeralValues(plannedNewVal)
+
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, action, priorVal, plannedNewVal)
@@ -1189,6 +1194,9 @@ func (n *NodeAbstractResourceInstance) plan(
 			// Marks will be removed when encoding.
 			After:           plannedNewVal,
 			GeneratedConfig: n.generatedConfigHCL,
+
+			BeforeWriteOnlyPaths: ephemeral.EphemeralValuePaths(priorVal),
+			AfterWriteOnlyPaths:  ephemeralValuePaths,
 		},
 		ActionReason:    actionReason,
 		RequiredReplace: reqRep,
@@ -1202,9 +1210,10 @@ func (n *NodeAbstractResourceInstance) plan(
 		// must _also_ record the returned change in the active plan,
 		// which the expression evaluator will use in preference to this
 		// incomplete value recorded in the state.
-		Status:  states.ObjectPlanned,
-		Value:   plannedNewVal,
-		Private: plannedPrivate,
+		Status:             states.ObjectPlanned,
+		Value:              plannedNewVal,
+		Private:            plannedPrivate,
+		AttrWriteOnlyPaths: ephemeralValuePaths,
 	}
 
 	return plan, state, deferred, keyData, diags

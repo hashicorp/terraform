@@ -552,7 +552,6 @@ You can correct this by removing references to ephemeral values, or by carefully
 		},
 
 		"write_only attribute": {
-			toBeImplemented: true,
 			module: map[string]string{
 				"main.tf": `
 ephemeral "ephem_resource" "data" {
