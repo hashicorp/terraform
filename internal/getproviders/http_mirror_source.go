@@ -222,6 +222,19 @@ func (s *HTTPMirrorSource) PackageMeta(ctx context.Context, provider addrs.Provi
 		Location: PackageHTTPURL(absURL.String()),
 		Filename: path.Base(absURL.Path),
 	}
+
+	creds, err := s.mirrorHostCredentials()
+	if err != nil {
+		log.Printf("[DEBUG] Mirror credentials for mTLS failed: %v", err)
+	}
+
+	if tlsProvider, ok := creds.(svcauth.HostCredentialsExtended); ok {
+		tlsConfig, err := tlsProvider.GetTLSConfig()
+		if err == nil {
+			ret.Credentials = tlsConfig.Clone()
+		}
+	}
+
 	// A network mirror might not provide any hashes at all, in which case
 	// the package has no source-defined authentication whatsoever.
 	if len(archiveMeta.Hashes) > 0 {
@@ -316,6 +329,16 @@ func (s *HTTPMirrorSource) get(ctx context.Context, relativePath string) (status
 		// whatever hostname ends up ultimately serving the request as an
 		// implementation detail.
 		creds.PrepareRequest(req.Request)
+	}
+
+	// Apply mTLS configuration if available
+	if tlsProvider, ok := creds.(svcauth.HostCredentialsExtended); ok {
+		if tlsConfig, err := tlsProvider.GetTLSConfig(); err == nil {
+			s.httpClient.HTTPClient.Transport = &http.Transport{TLSClientConfig: tlsConfig}
+		} else {
+			// Log an warning but let it try to load a file without mTLS
+			log.Printf("[WARN] mTLS config initialization failed: %v", err)
+		}
 	}
 
 	resp, err := s.httpClient.Do(req)

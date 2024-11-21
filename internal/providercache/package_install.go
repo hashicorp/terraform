@@ -37,6 +37,11 @@ func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targ
 	// files that already exist, etc.)
 
 	httpClient := httpclient.New()
+	// Add mTLS support for fetching a zip file
+	if meta.Credentials != nil {
+		httpClient.Transport = &http.Transport{TLSClientConfig: meta.Credentials}
+	}
+
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("invalid provider download request: %s", err)
