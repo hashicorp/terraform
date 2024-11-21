@@ -492,6 +492,8 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 	// Marshal paths to JSON
 	attributeSensitivePaths, pathsDiags := marshalPaths(obj.AttrSensitivePaths)
 	diags = diags.Append(pathsDiags)
+	attributeWriteOnlyPaths, pathsDiags := marshalPaths(obj.AttrWriteOnlyPaths)
+	diags = diags.Append(pathsDiags)
 
 	return append(isV4s, instanceObjectStateV4{
 		IndexKey:                rawKey,
@@ -501,6 +503,7 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		AttributesFlat:          obj.AttrsFlat,
 		AttributesRaw:           obj.AttrsJSON,
 		AttributeSensitivePaths: attributeSensitivePaths,
+		AttributeWriteOnlyPaths: attributeWriteOnlyPaths,
 		PrivateRaw:              privateRaw,
 		Dependencies:            deps,
 		CreateBeforeDestroy:     obj.CreateBeforeDestroy,
