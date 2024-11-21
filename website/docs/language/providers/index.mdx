@@ -95,11 +95,11 @@ installing providers.
 
 ### Private Providers
 
-If you have a provider that isn't available in a Hashicorp-hosted registry, such
+If you are using a provider that is not in a Hashicorp-hosted registry, you may need to attach additional credentials to your requests to external registries. You do not need these credentials if your provider is the Terraform public registry or the HCP Terraform private registry.
 as the Terraform Public Registry or a HCP Terraform Private Registry, you may
 need to attach additional credentials to your requests to the external registry.
 
-By default, Terraform only authenticates the opening request to the registry for
+By default, Terraform only authenticates the opening request from a provider to the registry. The registry responds with [follow-up URLs](/terraform/internals/provider-registry-protocol#find-a-provider-package) that Terraform makes requests to, such as telling Terraform to download the provider or the `SHASUMS` file. Hashicorp-hosted registries do not require additional authentication for these follow-up requests. If your registry does require additional credentials for follow-up requests, you can use a `.netrc` file to provide those credentials.
 the provider. The registry then responds with
 [additional URLs](https://developer.hashicorp.com/terraform/internals/provider-registry-protocol#find-a-provider-package)
 that should be followed in order to, for example, download the provider itself
@@ -108,7 +108,7 @@ authentication for these requests. If your registry does require additional
 credentials for these requests, you can use a `.netrc` file to provide
 credentials for these additional requests.
 
-By default, Terraform searches for the `.netrc` file in your HOME
+By default, Terraform searches for the `.netrc` file in your `HOME` directory. However, you can override the default filesystem location by setting the `NETRC` environment variable. For information on the format of`.netrc`, refer to the [`curl` documentation](https://everything.curl.dev/usingcurl/netrc).
 directory. However, you can override the default filesystem location by setting
 the `NETRC` environment variable. For information on the `.netrc` format, refer
 to [the documentation for using it in `curl`](https://everything.curl.dev/usingcurl/netrc).
