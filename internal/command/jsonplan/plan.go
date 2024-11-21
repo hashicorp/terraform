@@ -758,6 +758,49 @@ func (p *plan) marshalRelevantAttrs(plan *plans.Plan) error {
 
 		p.RelevantAttributes = append(p.RelevantAttributes, ResourceAttr{addr, path})
 	}
+
+	// we want our outputs to be deterministic, so we'll sort the attributes
+	// here. The order of the attributes is not important, as long as it is
+	// stable.
+
+	sort.SliceStable(plan.RelevantAttributes, func(i, j int) bool {
+		if !plan.RelevantAttributes[i].Resource.Equal(plan.RelevantAttributes[j].Resource) {
+			return plan.RelevantAttributes[i].Resource.Less(plan.RelevantAttributes[j].Resource)
+		}
+
+		str := func(step cty.PathStep) string {
+			// sorting steps and values is hard, so we'll just use the GoString
+			// representation of the step to achieve a stable sort.
+			switch step := step.(type) {
+			case cty.GetAttrStep:
+				return step.GoString()
+			case cty.IndexStep:
+				return step.GoString()
+			default:
+				return "<unknown>"
+			}
+		}
+
+		for k := 0; k < len(plan.RelevantAttributes[i].Attr); k++ {
+			if k >= len(plan.RelevantAttributes[j].Attr) {
+				return false // i is longer, so it's greater
+			}
+
+			cmp := strings.Compare(str(plan.RelevantAttributes[i].Attr[k]), str(plan.RelevantAttributes[j].Attr[k]))
+			if cmp < 0 {
+				return true
+			} else if cmp > 0 {
+				return false
+			}
+
+			// then the step is equal, so we'll move onto the next one.
+		}
+
+		// then j was longer, so it's greater, or they're equal, so it doesn't
+		// matter
+		return true
+	})
+
 	return nil
 }
 
