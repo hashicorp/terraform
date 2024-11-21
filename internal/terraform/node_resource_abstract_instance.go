@@ -1168,9 +1168,17 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 	}
 
-	// We don't need ephemeral values anymore since the value has been planned
 	ephemeralValuePaths, _ := marks.PathsWithMark(unmarkedPaths, marks.Ephemeral)
-	plannedNewVal = ephemeral.RemoveEphemeralValues(plannedNewVal)
+	if len(ephemeralValuePaths) > 0 {
+		for _, path := range ephemeralValuePaths {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Provider set ephemeral value during plan",
+				"The provider set an ephemeral value during plan, this is not allowed. This is most likely a bug in the provider, please file an issue on the providers issue tracker.",
+				path,
+			))
+		}
+	}
 
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
