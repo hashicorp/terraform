@@ -41,10 +41,11 @@ import (
 var goGetterNoDetectors = []getter.Detector{}
 
 var goGetterDecompressors = map[string]getter.Decompressor{
-	"bz2": new(getter.Bzip2Decompressor),
-	"gz":  new(getter.GzipDecompressor),
-	"xz":  new(getter.XzDecompressor),
-	"zip": new(getter.ZipDecompressor),
+	"bz2":  new(getter.Bzip2Decompressor),
+	"tbz2": new(getter.TarBzip2Decompressor),
+	"gz":   new(getter.GzipDecompressor),
+	"xz":   new(getter.XzDecompressor),
+	"zip":  new(getter.ZipDecompressor),
 
 	"tar.bz2":  new(getter.TarBzip2Decompressor),
 	"tar.tbz2": new(getter.TarBzip2Decompressor),
