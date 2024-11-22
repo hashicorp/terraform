@@ -48,6 +48,10 @@ type Variable struct {
 	Nullable    bool
 	NullableSet bool
 
+	Deprecated      string
+	DeprecatedSet   bool
+	DeprecatedRange hcl.Range
+
 	DeclRange hcl.Range
 }
 
@@ -184,6 +188,13 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 		}
 
 		v.Default = val
+	}
+
+	if attr, exists := content.Attributes["deprecated"]; exists {
+		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &v.Deprecated)
+		diags = append(diags, valDiags...)
+		v.DeprecatedSet = true
+		v.DeprecatedRange = attr.Range
 	}
 
 	for _, block := range content.Blocks {
@@ -508,6 +519,9 @@ var variableBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "nullable",
+		},
+		{
+			Name: "deprecated",
 		},
 	},
 	Blocks: []hcl.BlockHeaderSchema{

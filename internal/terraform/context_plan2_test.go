@@ -7577,3 +7577,147 @@ resource "test_resource" "test" {
 		},
 	))
 }
+
+func TestContext2Plan_deprecated_variable(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"mod/main.tf": `
+variable "old-and-used" {
+	type = string
+	deprecated = "module variable deprecation 1"
+	default = "optional"
+}
+
+variable "old-and-unused" {
+	type = string
+	deprecated = "module variable deprecation 2"
+	default = "optional"
+}
+
+variable "new" {
+    type = string
+    default = "optional"
+}
+
+output "use-everything" {
+    value = {
+      used = var.old-and-used
+      unused = var.old-and-unused
+      new = var.new
+    }
+}
+`,
+		"main.tf": `
+variable "root-old-and-used" {
+	type = string
+	deprecated = "root variable deprecation 1"
+	default = "optional"
+}
+
+variable "root-old-and-unused" {
+	type = string
+	deprecated = "root variable deprecation 2"
+	default = "optional"
+}
+
+variable "new" {
+    type = string
+    default = "new"
+}
+
+module "old-mod" {
+    source = "./mod"
+    old-and-used = "old"
+}
+
+module "new-mod" {
+    source = "./mod"
+    new = "new"
+}
+
+output "use-everything" {
+    value = {
+      used = var.root-old-and-used
+      unused = var.root-old-and-unused
+      new = var.new
+    }
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	vars := InputValues{
+		"root-old-and-used": {
+			Value: cty.StringVal("root-old-and-used"),
+		},
+		"root-old-and-unused": {
+			Value: cty.NullVal(cty.String),
+		},
+		"new": {
+			Value: cty.StringVal("new"),
+		},
+	}
+
+	// We can find module variable deprecation during validation
+	diags := ctx.Validate(m, &ValidateOpts{})
+	var expectedValidateDiags tfdiags.Diagnostics
+	expectedValidateDiags = expectedValidateDiags.Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated variable got a value",
+			Detail:   "module variable deprecation 1",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 21, Column: 20, Byte: 350},
+				End:      hcl.Pos{Line: 21, Column: 25, Byte: 355},
+			},
+		},
+	)
+	tfdiags.AssertDiagnosticsMatch(t, diags, expectedValidateDiags)
+
+	_, diags = ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, vars))
+	var expectedPlanDiags tfdiags.Diagnostics
+	expectedPlanDiags = expectedPlanDiags.Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated variable got a value",
+			Detail:   "root variable deprecation 1",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 4, Column: 2, Byte: 48},
+				End:      hcl.Pos{Line: 4, Column: 42, Byte: 90},
+			},
+		},
+	).Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated variable got a value",
+			Detail:   "module variable deprecation 1",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 21, Column: 20, Byte: 350},
+				End:      hcl.Pos{Line: 21, Column: 25, Byte: 355},
+			},
+		},
+	)
+
+	tfdiags.AssertDiagnosticsMatch(t, diags, expectedPlanDiags)
+}
