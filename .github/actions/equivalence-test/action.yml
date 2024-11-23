@@ -51,6 +51,7 @@ runs:
           --goldens=testing/equivalence-tests/outputs \
           --binary=$(pwd)/bin/terraform
         
+        git add --intent-to-add testing/equivalence-tests/outputs
         changed=$(git diff --quiet -- testing/equivalence-tests/outputs || echo true)
         echo "changed=$changed" >> "${GITHUB_OUTPUT}"
 
@@ -58,8 +59,8 @@ runs:
       if: steps.execute.outputs.changed == 'true'
       shell: bash
       run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config user.name "hc-github-team-tf-core"
+        git config user.email "github-team-tf-core@hashicorp.com"
         git checkout -b ${{ inputs.new-branch }}
         git add testing/equivalence-tests/outputs
         git commit -m "Update equivalence test golden files."
@@ -70,6 +71,7 @@ runs:
       shell: bash
       run: |
         gh pr create \
+          --draft \
           --base ${{ inputs.current-branch }} \
           --head ${{ inputs.new-branch }} \
           --title "Update equivalence test golden files" \

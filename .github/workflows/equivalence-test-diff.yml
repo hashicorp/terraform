@@ -3,6 +3,7 @@ name: equivalence-test-diff
 on:
   pull_request:
     types:
+      - opened
       - synchronize
       - ready_for_review
       - reopened

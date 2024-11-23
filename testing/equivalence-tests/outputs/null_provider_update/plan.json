@@ -1,5 +1,5 @@
 {
-  "applyable": true,
+  "applyable": false,
   "complete": true,
   "configuration": {
     "provider_config": {
@@ -36,10 +36,33 @@
           "sensitive_values": {},
           "type": "null_resource",
           "values": {
+            "id": "3637779521417605172",
             "triggers": null
           }
         }
       ]
+    }
+  },
+  "prior_state": {
+    "format_version": "1.0",
+    "values": {
+      "root_module": {
+        "resources": [
+          {
+            "address": "null_resource.null_resource",
+            "mode": "managed",
+            "name": "null_resource",
+            "provider_name": "registry.terraform.io/hashicorp/null",
+            "schema_version": 0,
+            "sensitive_values": {},
+            "type": "null_resource",
+            "values": {
+              "id": "3637779521417605172",
+              "triggers": null
+            }
+          }
+        ]
+      }
     }
   },
   "resource_changes": [
@@ -47,17 +70,19 @@
       "address": "null_resource.null_resource",
       "change": {
         "actions": [
-          "create"
+          "no-op"
         ],
         "after": {
+          "id": "3637779521417605172",
           "triggers": null
         },
         "after_sensitive": {},
-        "after_unknown": {
-          "id": true
+        "after_unknown": {},
+        "before": {
+          "id": "3637779521417605172",
+          "triggers": null
         },
-        "before": null,
-        "before_sensitive": false
+        "before_sensitive": {}
       },
       "mode": "managed",
       "name": "null_resource",
