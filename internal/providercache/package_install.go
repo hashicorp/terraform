@@ -160,7 +160,7 @@ func installFromLocalArchive(ctx context.Context, meta getproviders.PackageMeta,
 			}
 		} else {
 			// On supported platforms, this should perform atomic replacement of the file.
-			err := os.Rename(path, filepath.Join(targetDir, relPath))
+			err := renameWithRetry(path, filepath.Join(targetDir, relPath))
 			if err != nil {
 				return fmt.Errorf("failed to move '%s': %w", path, err)
 			}
