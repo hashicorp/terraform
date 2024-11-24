@@ -340,7 +340,10 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 }
 
 // dependsOn returns the set of vertices that the given vertex refers to from
-// the configured depends_on.
+// the configured depends_on. This is only used to calculate depends_on for
+// data sources. No other resource type changes it's behavior based on how
+// dependencies are declared, hence everything else is resolved via the normal
+// reference mechanism.
 func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) []dag.Vertex {
 	var res []dag.Vertex
 
@@ -366,18 +369,20 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) []dag.Ver
 			}
 			res = append(res, rv)
 
-			// Check any ancestors for transitive dependencies when we're
-			// not pointed directly at a resource. We can't be much more
-			// precise here, since in order to maintain our guarantee that data
-			// sources will wait for explicit dependencies, if those dependencies
-			// happen to be a module, output, or variable, we have to find some
-			// upstream managed resource in order to check for a planned
-			// change.
+			// Check any ancestors for transitive dependencies when we're not
+			// pointed directly at a resource. We can't be much more precise
+			// here, since in order to maintain our guarantee that data sources
+			// will wait for explicit dependencies, if those dependencies happen
+			// to be a module, output, or variable, we have to find some
+			// upstream managed resource in order to check for a planned change.
+			// We need to descend through all ancestors here, because data
+			// sources aren't just tracking this for graph edges, but rather
+			// they need to look for changes during the plan.
 			if _, ok := rv.(GraphNodeConfigResource); !ok {
-				for _, v := range g.FirstAncestorsWith(rv, func(v dag.Vertex) bool {
-					return isDependableResource(v)
-				}) {
-					res = append(res, v)
+				for _, v := range g.Ancestors(rv) {
+					if isDependableResource(v) {
+						res = append(res, v)
+					}
 				}
 			}
 		}
@@ -445,10 +450,11 @@ func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsO
 			}
 		}
 
-		for _, dep := range deps {
-			for _, v := range g.FirstAncestorsWith(dep, func(v dag.Vertex) bool {
-				return isDependableResource(v)
-			}) {
+		// We need to descend through all ancestors here, because data sources
+		// aren't just tracking this for graph edges, but rather they need to
+		// look for changes during the plan.
+		for _, v := range g.Ancestors(deps...) {
+			if isDependableResource(v) {
 				res = append(res, v)
 			}
 		}
