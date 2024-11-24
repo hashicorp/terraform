@@ -6,13 +6,16 @@ package providercache
 import (
 	"context"
 	"fmt"
+	getter "github.com/hashicorp/go-getter"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"io/fs"
+	"log"
+	"math/rand"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
-
-	getter "github.com/hashicorp/go-getter"
+	"time"
 
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -130,6 +133,17 @@ func installFromLocalArchive(ctx context.Context, meta getproviders.PackageMeta,
 		return authResult, fmt.Errorf("failed to create new directory: %w", err)
 	}
 
+	// Acquire a file lock to avoid that two terraform processes try to install the same provider at the same time
+	lockfilePath := filepath.Join(targetDir, ".lock")
+	filesystem := statemgr.NewFilesystem(lockfilePath)
+	lockId, err := tryFileLock(filesystem, 10, 10000)
+	if err != nil {
+		return authResult, fmt.Errorf("failed to acquire lock: %w", err)
+	}
+	log.Printf("[DEBUG] Filelock %s acquired", lockfilePath)
+	defer filesystem.Unlock(lockId)
+	defer log.Printf("[DEBUG] Filelock %s released", lockfilePath)
+
 	// Create a unique temporary directory for unpacking
 	stagingDir, err := os.MkdirTemp(path.Dir(targetDir), ".terraform-temp-*")
 	if err != nil {
@@ -160,7 +174,11 @@ func installFromLocalArchive(ctx context.Context, meta getproviders.PackageMeta,
 			}
 		} else {
 			// On supported platforms, this should perform atomic replacement of the file.
-			err := renameWithRetry(path, filepath.Join(targetDir, relPath))
+			if err != nil {
+				return fmt.Errorf("failed to lock target directory: %w", err)
+			}
+
+			err = os.Rename(path, filepath.Join(targetDir, relPath))
 			if err != nil {
 				return fmt.Errorf("failed to move '%s': %w", path, err)
 			}
@@ -292,4 +310,20 @@ func installFromLocalDir(ctx context.Context, meta getproviders.PackageMeta, tar
 
 	// If we got here then apparently our copy succeeded, so we're done.
 	return nil, nil
+}
+
+func tryFileLock(filesystem *statemgr.Filesystem, maxRetries int, sleepIntervalMs int) (string, error) {
+	for i := 0; i < maxRetries; i++ {
+		lockId, err := filesystem.Lock(statemgr.NewLockInfo())
+		if err == nil {
+			return lockId, nil
+		}
+		log.Printf("[DEBUG] Failed to acquire file lock, retrying: %s", err)
+		if i == maxRetries-1 {
+			return "", fmt.Errorf("failed to acquire lock after %d attempts: %w", maxRetries, err)
+		}
+		sleepDuration := time.Duration(rand.Intn(sleepIntervalMs)) * time.Millisecond
+		time.Sleep(sleepDuration)
+	}
+	return "", fmt.Errorf("failed to acquire lock")
 }
