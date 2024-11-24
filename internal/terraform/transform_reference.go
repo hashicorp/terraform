@@ -78,12 +78,7 @@ type graphNodeAttachDataResourceDependsOn interface {
 
 	// AttachDataResourceDependsOn stores the discovered dependencies in the
 	// resource node for evaluation later.
-	//
-	// The force parameter indicates that even if there are no dependencies,
-	// force the data source to act as though there are for refresh purposes.
-	// This is needed because yet-to-be-created resources won't be in the
-	// initial refresh graph, but may still be referenced through depends_on.
-	AttachDataResourceDependsOn(deps []addrs.ConfigResource, force bool)
+	AttachDataResourceDependsOn(deps []addrs.ConfigResource)
 }
 
 // GraphNodeReferenceOutside is an interface that can optionally be implemented.
@@ -204,7 +199,7 @@ func (t attachDataResourceDependsOnTransformer) Transform(g *Graph) error {
 
 		// depMap will only add resource references then dedupe
 		deps := make(depMap)
-		dependsOnDeps, fromModule := refMap.dependsOn(g, depender)
+		dependsOnDeps := refMap.dependsOn(g, depender)
 		for _, dep := range dependsOnDeps {
 			// any the dependency
 			deps.add(dep)
@@ -216,7 +211,7 @@ func (t attachDataResourceDependsOnTransformer) Transform(g *Graph) error {
 		}
 
 		log.Printf("[TRACE] attachDataDependenciesTransformer: %s depends on %s", depender.ResourceAddr(), res)
-		depender.AttachDataResourceDependsOn(res, fromModule)
+		depender.AttachDataResourceDependsOn(res)
 	}
 
 	return nil
@@ -345,21 +340,14 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 }
 
 // dependsOn returns the set of vertices that the given vertex refers to from
-// the configured depends_on. The bool return value indicates if depends_on was
-// found in a parent module configuration.
-func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Vertex, bool) {
+// the configured depends_on.
+func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) []dag.Vertex {
 	var res []dag.Vertex
-	fromModule := false
 
 	refs := depender.DependsOn()
 
 	// get any implied dependencies for data sources
 	refs = append(refs, m.dataDependsOn(depender)...)
-
-	// This is where we record that a module has depends_on configured.
-	if _, ok := depender.(*nodeExpandModule); ok && len(refs) > 0 {
-		fromModule = true
-	}
 
 	for _, ref := range refs {
 		subject := ref.Subject
@@ -395,10 +383,10 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Ve
 		}
 	}
 
-	parentDeps, fromParentModule := m.parentModuleDependsOn(g, depender)
+	parentDeps := m.parentModuleDependsOn(g, depender)
 	res = append(res, parentDeps...)
 
-	return res, fromModule || fromParentModule
+	return res
 }
 
 // Return extra depends_on references if this is a data source.
@@ -436,11 +424,9 @@ func (m ReferenceMap) dataDependsOn(depender graphNodeDependsOn) []*addrs.Refere
 }
 
 // parentModuleDependsOn returns the set of vertices that a data sources parent
-// module references through the module call's depends_on. The bool return
-// value indicates if depends_on was found in a parent module configuration.
-func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Vertex, bool) {
+// module references through the module call's depends_on.
+func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsOn) []dag.Vertex {
 	var res []dag.Vertex
-	fromModule := false
 
 	// Look for containing modules with DependsOn.
 	// This should be connected directly to the module node, so we only need to
@@ -452,7 +438,7 @@ func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsO
 			continue
 		}
 
-		deps, fromParentModule := m.dependsOn(g, mod)
+		deps := m.dependsOn(g, mod)
 		for _, dep := range deps {
 			if isDependableResource(dep) {
 				res = append(res, dep)
@@ -466,11 +452,9 @@ func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsO
 				res = append(res, v)
 			}
 		}
-
-		fromModule = fromModule || fromParentModule
 	}
 
-	return res, fromModule
+	return res
 }
 
 func (m *ReferenceMap) mapKey(path addrs.Module, addr addrs.Referenceable) string {
