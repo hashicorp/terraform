@@ -256,26 +256,25 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 		// since we need to type-switch over the nodes anyway, we're going to
 		// insert the address directly into depMap and forget about the returned
 		// set.
-		g.FirstAncestorsWith(v, func(d dag.Vertex) bool {
+		for _, d := range g.Ancestors(v) {
 			var addr addrs.ConfigResource
+
 			switch d := d.(type) {
-			case GraphNodeCreator:
-				// most of the time we'll hit a GraphNodeConfigResource first since that represents the config structure, but
-				instAddr := d.CreateAddr()
+			case GraphNodeResourceInstance:
+				instAddr := d.ResourceInstanceAddr()
 				addr = instAddr.ContainingResource().Config()
 			case GraphNodeConfigResource:
 				addr = d.ResourceAddr()
 			default:
-				return false
+				continue
 			}
 
 			if matchesSelf(addr) {
-				return false
+				continue
 			}
 
 			depMap[addr.String()] = addr
-			return true
-		})
+		}
 
 		deps := make([]addrs.ConfigResource, 0, len(depMap))
 		for _, d := range depMap {
