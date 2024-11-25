@@ -344,7 +344,7 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 // dependencies are declared, hence everything else is resolved via the normal
 // reference mechanism.
 func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) []dag.Vertex {
-	var res []dag.Vertex
+	res := make(dag.Set)
 
 	refs := depender.DependsOn()
 
@@ -366,7 +366,7 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) []dag.Ver
 			if rv == depender {
 				continue
 			}
-			res = append(res, rv)
+			res.Add(rv)
 
 			// Check any ancestors for transitive dependencies when we're not
 			// pointed directly at a resource. We can't be much more precise
@@ -380,7 +380,7 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) []dag.Ver
 			if _, ok := rv.(GraphNodeConfigResource); !ok {
 				for _, v := range g.Ancestors(rv) {
 					if isDependableResource(v) {
-						res = append(res, v)
+						res.Add(v)
 					}
 				}
 			}
@@ -388,9 +388,18 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) []dag.Ver
 	}
 
 	parentDeps := m.parentModuleDependsOn(g, depender)
-	res = append(res, parentDeps...)
+	// dag.Set doesn't have an insert/union method, but they are simple maps
+	for k, v := range parentDeps {
+		res[k] = v
+	}
 
-	return res
+	// Now we need to convert the set back to our slice type, because Set.List()
+	// returns []any.
+	vertices := make([]dag.Vertex, 0, res.Len())
+	for _, v := range res {
+		vertices = append(vertices, v)
+	}
+	return vertices
 }
 
 // Return extra depends_on references if this is a data source.
@@ -429,8 +438,8 @@ func (m ReferenceMap) dataDependsOn(depender graphNodeDependsOn) []*addrs.Refere
 
 // parentModuleDependsOn returns the set of vertices that a data sources parent
 // module references through the module call's depends_on.
-func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsOn) []dag.Vertex {
-	var res []dag.Vertex
+func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsOn) dag.Set {
+	res := make(dag.Set)
 
 	// Look for containing modules with DependsOn.
 	// This should be connected directly to the module node, so we only need to
@@ -445,7 +454,7 @@ func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsO
 		deps := m.dependsOn(g, mod)
 		for _, dep := range deps {
 			if isDependableResource(dep) {
-				res = append(res, dep)
+				res.Add(dep)
 			}
 		}
 
@@ -454,7 +463,7 @@ func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsO
 		// look for changes during the plan.
 		for _, v := range g.Ancestors(deps...) {
 			if isDependableResource(v) {
-				res = append(res, v)
+				res.Add(v)
 			}
 		}
 	}
