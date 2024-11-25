@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -3654,4 +3655,114 @@ resource "test_object" "c" {
 			t.Errorf("%s should be create_before_destroy", res.Addr)
 		}
 	}
+}
+
+func TestContext2Apply_transitiveDestroyOrder(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  replace = "first"
+}
+
+resource "test_object" "b" {
+  ref = test_object.a.id
+}
+
+resource "test_object" "c" {
+  replace = test_object.b.ref
+}
+`})
+
+	p := &testing_provider.MockProvider{}
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Computed: true,
+						},
+						"ref": {
+							Type:     cty.String,
+							Optional: true,
+						},
+						"replace": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		obj := req.ProposedNewState.AsValueMap()
+		if req.PriorState.IsNull() {
+			obj["id"] = cty.UnknownVal(cty.String)
+		} else {
+			replace := req.PriorState.GetAttr("replace")
+			if !replace.RawEquals(obj["replace"]) {
+				resp.RequiresReplace = append(resp.RequiresReplace, cty.GetAttrPath("replace"))
+			}
+		}
+		resp.PlannedState = cty.ObjectVal(obj)
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	// we're going to plan and apply the config rather than build a test state,
+	// because because the test also depends on how the dependencies are stored
+	// during the plan.
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	assertNoErrors(t, diags)
+
+	// update the config to force replacement on a, c, and an update with b
+	m = testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  replace = "second"
+}
+
+resource "test_object" "b" {
+  ref = test_object.a.id
+}
+
+resource "test_object" "c" {
+  replace = test_object.b.ref
+}
+`})
+
+	plan, diags = ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	// grab the graph we build during apply to check the actual dependencies,
+	// rather than the observed order which may not be stable if the
+	// dependencies are not correct.
+	g, _, diags := ctx.applyGraph(plan, m, nil, false)
+	assertNoErrors(t, diags)
+
+	// the destroy node for "a" must depend on the destroy node for "c"
+	for _, v := range g.Vertices() {
+		if dag.VertexName(v) != "test_object.a (destroy)" {
+			continue
+		}
+
+		// make sure the "c" destroy node is a dependency
+		for _, dep := range g.Ancestors(v) {
+			if dag.VertexName(dep) == "test_object.c (destroy)" {
+				// OK!
+				return
+			}
+		}
+	}
+	t.Fatal("failed to find destroy destroy dependency between test_object.a(destroy) and test_object.c(destroy)")
 }
