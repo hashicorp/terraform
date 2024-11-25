@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -324,10 +323,6 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	if state != nil {
 		// dependencies are always updated to match the configuration during apply
 		state.Dependencies = n.Dependencies
-
-		// The value is updated to remove ephemeral values
-		state.Value = ephemeral.RemoveEphemeralValues(state.Value)
-		state.AttrWriteOnlyPaths = diffApply.AfterWriteOnlyPaths
 	}
 	err = n.writeResourceInstanceState(ctx, state, workingState)
 	if err != nil {

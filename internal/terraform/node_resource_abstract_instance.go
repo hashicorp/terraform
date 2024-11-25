@@ -1202,9 +1202,6 @@ func (n *NodeAbstractResourceInstance) plan(
 			// Marks will be removed when encoding.
 			After:           plannedNewVal,
 			GeneratedConfig: n.generatedConfigHCL,
-
-			BeforeWriteOnlyPaths: ephemeral.EphemeralValuePaths(priorVal),
-			AfterWriteOnlyPaths:  ephemeralValuePaths,
 		},
 		ActionReason:    actionReason,
 		RequiredReplace: reqRep,
@@ -1218,10 +1215,9 @@ func (n *NodeAbstractResourceInstance) plan(
 		// must _also_ record the returned change in the active plan,
 		// which the expression evaluator will use in preference to this
 		// incomplete value recorded in the state.
-		Status:             states.ObjectPlanned,
-		Value:              plannedNewVal,
-		Private:            plannedPrivate,
-		AttrWriteOnlyPaths: ephemeralValuePaths,
+		Status:  states.ObjectPlanned,
+		Value:   plannedNewVal,
+		Private: plannedPrivate,
 	}
 
 	return plan, state, deferred, keyData, diags

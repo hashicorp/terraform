@@ -130,12 +130,6 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 		rc.Before = marks.MarkPaths(rc.Before, marks.Sensitive, rcs.BeforeSensitivePaths)
 		rc.After = marks.MarkPaths(rc.After, marks.Sensitive, rcs.AfterSensitivePaths)
 
-		rc.Before = marks.MarkPaths(rc.Before, marks.Ephemeral, rcs.BeforeWriteOnlyPaths)
-		rc.After = marks.MarkPaths(rc.After, marks.Ephemeral, rcs.BeforeWriteOnlyPaths)
-
-		rc.BeforeWriteOnlyPaths = rcs.BeforeWriteOnlyPaths
-		rc.AfterWriteOnlyPaths = rcs.AfterWriteOnlyPaths
-
 		changes.Resources = append(changes.Resources, rc)
 	}
 
@@ -393,10 +387,6 @@ type ChangeSrc struct {
 	// store the sensitive paths to allow re-marking later when we decode
 	// the serialized change.
 	BeforeSensitivePaths, AfterSensitivePaths []cty.Path
-
-	// BeforeWriteOnlyPaths and AfterWriteOnlyPaths are paths for any values
-	// in Before or After (respectively) that are considered to be write-only.
-	BeforeWriteOnlyPaths, AfterWriteOnlyPaths []cty.Path
 
 	// Importing is present if the resource is being imported as part of this
 	// change.

@@ -420,10 +420,6 @@ resource "ephem_write_only" "wo" {
 		t.Fatalf("Expected 1 resource change, got %d", len(plan.Changes.Resources))
 	}
 
-	if len(plan.Changes.Resources[0].AfterWriteOnlyPaths) != 1 {
-		t.Fatalf("Expected 1 write-only attribute in plan, got %d", len(plan.Changes.Resources[0].AfterWriteOnlyPaths))
-	}
-
 	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
 	assertNoDiagnostics(t, schemaDiags)
 	planChanges, err := plan.Changes.Decode(schemas)
@@ -474,14 +470,6 @@ resource "ephem_write_only" "wo" {
 
 	if !attrs.Value.GetAttr("write_only").IsNull() {
 		t.Fatalf("write_only attribute should be null")
-	}
-
-	if len(resourceInstance.Current.AttrWriteOnlyPaths) != 1 {
-		t.Fatalf("Expected 1 write only attribute in apply")
-	}
-
-	if !resourceInstance.Current.AttrWriteOnlyPaths[0].Equals(cty.GetAttrPath("write_only")) {
-		t.Fatalf("Expected write_only to be a write only attribute")
 	}
 }
 
@@ -560,10 +548,6 @@ resource "ephem_write_only" "wo" {
 		t.Fatalf("Expected 1 resource change, got %d", len(plan.Changes.Resources))
 	}
 
-	if len(plan.Changes.Resources[0].AfterWriteOnlyPaths) != 1 {
-		t.Fatalf("Expected 1 write-only attribute in plan, got %d", len(plan.Changes.Resources[0].AfterWriteOnlyPaths))
-	}
-
 	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
 	assertNoDiagnostics(t, schemaDiags)
 	planChanges, err := plan.Changes.Decode(schemas)
@@ -614,14 +598,6 @@ resource "ephem_write_only" "wo" {
 
 	if !attrs.Value.GetAttr("write_only").IsNull() {
 		t.Fatalf("write_only attribute should be null")
-	}
-
-	if len(resourceInstance.Current.AttrWriteOnlyPaths) != 1 {
-		t.Fatalf("Expected 1 write only attribute in apply")
-	}
-
-	if !resourceInstance.Current.AttrWriteOnlyPaths[0].Equals(cty.GetAttrPath("write_only")) {
-		t.Fatalf("Expected write_only to be a write only attribute")
 	}
 }
 
@@ -701,10 +677,6 @@ resource "ephem_write_only" "wo" {
 		t.Fatalf("Expected 1 resource change, got %d", len(plan.Changes.Resources))
 	}
 
-	if len(plan.Changes.Resources[0].AfterWriteOnlyPaths) != 1 {
-		t.Fatalf("Expected 1 write-only attribute in plan, got %d", len(plan.Changes.Resources[0].AfterWriteOnlyPaths))
-	}
-
 	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
 	assertNoDiagnostics(t, schemaDiags)
 	planChanges, err := plan.Changes.Decode(schemas)
@@ -755,13 +727,5 @@ resource "ephem_write_only" "wo" {
 
 	if !attrs.Value.GetAttr("write_only").IsNull() {
 		t.Fatalf("write_only attribute should be null")
-	}
-
-	if len(resourceInstance.Current.AttrWriteOnlyPaths) != 1 {
-		t.Fatalf("Expected 1 write only attribute in apply")
-	}
-
-	if !resourceInstance.Current.AttrWriteOnlyPaths[0].Equals(cty.GetAttrPath("write_only")) {
-		t.Fatalf("Expected write_only to be a write only attribute")
 	}
 }
