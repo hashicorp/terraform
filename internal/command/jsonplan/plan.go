@@ -763,7 +763,7 @@ func (p *plan) marshalRelevantAttrs(plan *plans.Plan) error {
 	// here. The order of the attributes is not important, as long as it is
 	// stable.
 
-	sort.SliceStable(plan.RelevantAttributes, func(i, j int) bool {
+	sort.SliceStable(p.RelevantAttributes, func(i, j int) bool {
 		return strings.Compare(fmt.Sprintf("%#v", plan.RelevantAttributes[i]), fmt.Sprintf("%#v", plan.RelevantAttributes[j])) < 0
 	})
 
