@@ -129,9 +129,8 @@ func TestStatePersist(t *testing.T) {
 										"attributes_flat": map[string]interface{}{
 											"filename": "file.txt",
 										},
-										"schema_version":        0.0,
-										"sensitive_attributes":  []interface{}{},
-										"write_only_attributes": []interface{}{},
+										"schema_version":       0.0,
+										"sensitive_attributes": []interface{}{},
 									},
 								},
 								"mode":     "managed",
@@ -168,9 +167,8 @@ func TestStatePersist(t *testing.T) {
 										"attributes_flat": map[string]interface{}{
 											"filename": "file.txt",
 										},
-										"schema_version":        0.0,
-										"sensitive_attributes":  []interface{}{},
-										"write_only_attributes": []interface{}{},
+										"schema_version":       0.0,
+										"sensitive_attributes": []interface{}{},
 									},
 								},
 								"mode":     "managed",

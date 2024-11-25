@@ -166,16 +166,6 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 				obj.AttrSensitivePaths = paths
 			}
 
-			// write-only paths
-			if isV4.AttributeWriteOnlyPaths != nil {
-				paths, pathsDiags := unmarshalPaths([]byte(isV4.AttributeWriteOnlyPaths))
-				diags = diags.Append(pathsDiags)
-				if pathsDiags.HasErrors() {
-					continue
-				}
-				obj.AttrWriteOnlyPaths = paths
-			}
-
 			{
 				// Status
 				raw := isV4.Status
@@ -492,8 +482,6 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 	// Marshal paths to JSON
 	attributeSensitivePaths, pathsDiags := marshalPaths(obj.AttrSensitivePaths)
 	diags = diags.Append(pathsDiags)
-	attributeWriteOnlyPaths, pathsDiags := marshalPaths(obj.AttrWriteOnlyPaths)
-	diags = diags.Append(pathsDiags)
 
 	return append(isV4s, instanceObjectStateV4{
 		IndexKey:                rawKey,
@@ -503,7 +491,6 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		AttributesFlat:          obj.AttrsFlat,
 		AttributesRaw:           obj.AttrsJSON,
 		AttributeSensitivePaths: attributeSensitivePaths,
-		AttributeWriteOnlyPaths: attributeWriteOnlyPaths,
 		PrivateRaw:              privateRaw,
 		Dependencies:            deps,
 		CreateBeforeDestroy:     obj.CreateBeforeDestroy,
@@ -714,7 +701,6 @@ type instanceObjectStateV4 struct {
 	AttributesRaw           json.RawMessage   `json:"attributes,omitempty"`
 	AttributesFlat          map[string]string `json:"attributes_flat,omitempty"`
 	AttributeSensitivePaths json.RawMessage   `json:"sensitive_attributes,omitempty"`
-	AttributeWriteOnlyPaths json.RawMessage   `json:"write_only_attributes,omitempty"`
 
 	PrivateRaw []byte `json:"private,omitempty"`
 
