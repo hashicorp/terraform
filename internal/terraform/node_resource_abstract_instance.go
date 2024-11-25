@@ -1033,6 +1033,10 @@ func (n *NodeAbstractResourceInstance) plan(
 		plannedNewVal = marks.MarkPaths(plannedNewVal, marks.Sensitive, sensitivePaths)
 	}
 
+	// From the point of view of the provider ephemeral value marks have been removed before plan
+	// and are reapplied now so we now need to set the values at these marks to null again.
+	plannedNewVal = ephemeral.RemoveEphemeralValues(plannedNewVal)
+
 	reqRep, reqRepDiags := getRequiredReplaces(unmarkedPriorVal, unmarkedPlannedNewVal, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
 	diags = diags.Append(reqRepDiags)
 	if diags.HasErrors() {
@@ -1165,18 +1169,6 @@ func (n *NodeAbstractResourceInstance) plan(
 			log.Printf("[TRACE] plan: %s treating Create change as %s change to match with earlier plan", n.Addr, prevChange.Action)
 			action = prevChange.Action
 			priorVal = prevChange.Before
-		}
-	}
-
-	ephemeralValuePaths, _ := marks.PathsWithMark(unmarkedPaths, marks.Ephemeral)
-	if len(ephemeralValuePaths) > 0 {
-		for _, path := range ephemeralValuePaths {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Provider set ephemeral value during plan",
-				"The provider set an ephemeral value during plan, this is not allowed. This is most likely a bug in the provider, please file an issue on the providers issue tracker.",
-				path,
-			))
 		}
 	}
 
