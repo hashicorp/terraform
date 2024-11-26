@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -728,4 +729,158 @@ resource "ephem_write_only" "wo" {
 	if !attrs.Value.GetAttr("write_only").IsNull() {
 		t.Fatalf("write_only attribute should be null")
 	}
+}
+
+func TestContext2Apply_write_only_attribute_provider_plans_with_non_null_value(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "ephem" {
+  type        = string
+  ephemeral   = true
+}
+
+resource "ephem_write_only" "wo" {
+  normal     = "normal"
+  write_only = var.ephem
+}
+`,
+	})
+
+	ephem := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"ephem_write_only": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"normal": {
+								Type:     cty.String,
+								Required: true,
+							},
+							"write_only": {
+								Type:      cty.String,
+								WriteOnly: true,
+								Required:  true,
+							},
+						},
+					},
+				},
+			},
+		},
+		PlanResourceChangeResponse: &providers.PlanResourceChangeResponse{
+			PlannedState: cty.ObjectVal(map[string]cty.Value{
+				"normal":     cty.StringVal("normal"),
+				"write_only": cty.StringVal("the provider should have set this to null"),
+			}),
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("ephem"): testProviderFuncFixed(ephem),
+		},
+	})
+
+	ephemVar := &InputValue{
+		Value:      cty.StringVal("ephemeral_value"),
+		SourceType: ValueFromCLIArg,
+	}
+
+	_, diags := ctx.Plan(m, nil, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"ephem": ephemVar,
+		},
+	})
+
+	var expectedDiags tfdiags.Diagnostics
+
+	expectedDiags = append(expectedDiags, tfdiags.Sourceless(
+		tfdiags.Error,
+		"Provider produced invalid plan",
+		`Provider "registry.terraform.io/hashicorp/ephem" planned an invalid value for ephem_write_only.wo.write_only: planned value for write-only attribute is not null.
+
+This is a bug in the provider, which should be reported in the provider's own issue tracker.`,
+	))
+
+	assertDiagnosticsMatch(t, diags, expectedDiags)
+}
+
+func TestContext2Apply_write_only_attribute_provider_applies_with_non_null_value(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "ephem" {
+  type        = string
+  ephemeral   = true
+}
+
+resource "ephem_write_only" "wo" {
+  normal     = "normal"
+  write_only = var.ephem
+}
+`,
+	})
+
+	ephem := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"ephem_write_only": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"normal": {
+								Type:     cty.String,
+								Required: true,
+							},
+							"write_only": {
+								Type:      cty.String,
+								WriteOnly: true,
+								Required:  true,
+							},
+						},
+					},
+				},
+			},
+		},
+		ApplyResourceChangeResponse: &providers.ApplyResourceChangeResponse{
+			NewState: cty.ObjectVal(map[string]cty.Value{
+				"normal":     cty.StringVal("normal"),
+				"write_only": cty.StringVal("the provider should have set this to null"),
+			}),
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("ephem"): testProviderFuncFixed(ephem),
+		},
+	})
+
+	ephemVar := &InputValue{
+		Value:      cty.StringVal("ephemeral_value"),
+		SourceType: ValueFromCLIArg,
+	}
+
+	plan, planDiags := ctx.Plan(m, nil, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"ephem": ephemVar,
+		},
+	})
+
+	assertNoDiagnostics(t, planDiags)
+
+	_, diags := ctx.Apply(plan, m, &ApplyOpts{
+		SetVariables: InputValues{
+			"ephem": ephemVar,
+		},
+	})
+
+	var expectedDiags tfdiags.Diagnostics
+
+	expectedDiags = append(expectedDiags, tfdiags.Sourceless(
+		tfdiags.Error,
+		"Write-only attribute set during apply",
+		`Provider "provider[\"registry.terraform.io/hashicorp/ephem\"]" set the write-only attribute "ephem_write_only.wo.write_only" during apply. Write-only attributes must not be set by the provider during apply, so this is a bug in the provider, which should be reported in the provider's own issue tracker.`,
+	))
+
+	assertDiagnosticsMatch(t, diags, expectedDiags)
 }
