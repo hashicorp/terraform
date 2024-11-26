@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -1026,16 +1025,15 @@ func (n *NodeAbstractResourceInstance) plan(
 	// Add the marks back to the planned new value -- this must happen after
 	// ignore changes have been processed. We add in the schema marks as well,
 	// to ensure that provider defined private attributes are marked correctly
-	// here.
+	// here. We remove the ephemeral marks, the provider is expected to return null
+	// for write-only attributes (the only place where ephemeral values are allowed).
+	// This is verified in objchange.AssertPlanValid already.
 	unmarkedPlannedNewVal := plannedNewVal
-	plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
+	_, nonEphemeralMarks := marks.PathsWithMark(unmarkedPaths, marks.Ephemeral)
+	plannedNewVal = plannedNewVal.MarkWithPaths(nonEphemeralMarks)
 	if sensitivePaths := schema.SensitivePaths(plannedNewVal, nil); len(sensitivePaths) != 0 {
 		plannedNewVal = marks.MarkPaths(plannedNewVal, marks.Sensitive, sensitivePaths)
 	}
-
-	// From the point of view of the provider ephemeral value marks have been removed before plan
-	// and are reapplied now so we now need to set the values at these marks to null again.
-	plannedNewVal = ephemeral.RemoveEphemeralValues(plannedNewVal)
 
 	reqRep, reqRepDiags := getRequiredReplaces(unmarkedPriorVal, unmarkedPlannedNewVal, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
 	diags = diags.Append(reqRepDiags)
@@ -1113,8 +1111,8 @@ func (n *NodeAbstractResourceInstance) plan(
 		plannedNewVal = resp.PlannedState
 		plannedPrivate = resp.PlannedPrivate
 
-		if len(unmarkedPaths) > 0 {
-			plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
+		if len(nonEphemeralMarks) > 0 {
+			plannedNewVal = plannedNewVal.MarkWithPaths(nonEphemeralMarks)
 		}
 
 		for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
@@ -2549,6 +2547,25 @@ func (n *NodeAbstractResourceInstance) apply(
 		return nil, diags
 	}
 
+	// Providers are supposed to return null values for all write-only attributes
+	var writeOnlyDiags tfdiags.Diagnostics
+	if writeOnlyPaths := NonNullWriteOnlyPaths(newVal, schema, nil); len(writeOnlyPaths) != 0 {
+		for _, p := range writeOnlyPaths {
+			writeOnlyDiags = writeOnlyDiags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Write-only attribute set during apply",
+				fmt.Sprintf(
+					"Provider %q set the write-only attribute \"%s%s\" during apply. Write-only attributes must not be set by the provider during apply, so this is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider.String(), n.Addr.String(), tfdiags.FormatCtyPath(p),
+				),
+			))
+		}
+		diags = diags.Append(writeOnlyDiags)
+	}
+	if writeOnlyDiags.HasErrors() {
+		return nil, diags
+	}
+
 	// After this point we have a type-conforming result object and so we
 	// must always run to completion to ensure it can be saved. If n.Error
 	// is set then we must not return a non-nil error, in order to allow
@@ -2718,6 +2735,26 @@ func (n *NodeAbstractResourceInstance) apply(
 
 func (n *NodeAbstractResourceInstance) prevRunAddr(ctx EvalContext) addrs.AbsResourceInstance {
 	return resourceInstancePrevRunAddr(ctx, n.Addr)
+}
+
+// NonNullWriteOnlyPaths returns a list of paths to attributes that are write-only
+// and non-null in the given value.
+func NonNullWriteOnlyPaths(val cty.Value, schema *configschema.Block, p cty.Path) (paths []cty.Path) {
+	for name, attr := range schema.Attributes {
+		attrPath := append(p, cty.GetAttrStep{Name: name})
+		attrVal, _ := attrPath.Apply(val)
+		if attr.WriteOnly && !attrVal.IsNull() {
+			paths = append(paths, attrPath)
+		}
+	}
+
+	for name, blockS := range schema.BlockTypes {
+		blockPath := append(p, cty.GetAttrStep{Name: name})
+		x := NonNullWriteOnlyPaths(val, &blockS.Block, blockPath)
+		paths = append(paths, x...)
+	}
+
+	return paths
 }
 
 func resourceInstancePrevRunAddr(ctx EvalContext, currentAddr addrs.AbsResourceInstance) addrs.AbsResourceInstance {
