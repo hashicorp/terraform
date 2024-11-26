@@ -106,7 +106,7 @@ identity_token "aws_east" {
 
 deployment "us_dev_east" {
     inputs = {
-        aws_region     = "us_east_1"
+        aws_region     = "us-east-1"
         instance_count = 2
         role_arn       = "<YOUR_ROLE_ARN>"
         identity_token = identity_token.aws_east.jwt
@@ -115,7 +115,7 @@ deployment "us_dev_east" {
 
 deployment "us_dev_west" {
     inputs = {
-        aws_region     = "us_west_1"
+        aws_region     = "us-west-1"
         instance_count = 2
         role_arn       = "<YOUR_ROLE_ARN>"
         identity_token = identity_token.aws_west.jwt
@@ -222,7 +222,7 @@ identity_token "aws_dev" {
 
 deployment "development" {
     inputs = {
-        aws_region     = "us_east_1"
+        aws_region     = "us-east-1"
         role_arn       = "<development AWS account IAM role ARN>"
         identity_token = identity_token.aws_dev.jwt
     }
