@@ -422,6 +422,11 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 			return v, nil
 		}
 
+		// Write-only attributes always return null
+		if attrSchema.WriteOnly {
+			return cty.NullVal(v.Type()), nil
+		}
+
 		// get the current configuration value, to detect when a
 		// computed+optional attributes has become unset
 		configVal, err := path.Apply(r.Config)
