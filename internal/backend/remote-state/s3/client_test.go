@@ -382,6 +382,46 @@ func TestRemoteClientPutLargeUploadWithObjectLock(t *testing.T) {
 	}
 }
 
+func TestRemoteClientObjectLockAndLockFile(t *testing.T) {
+	testACC(t)
+	objectLockPreCheck(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "testState"
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"use_lockfile": true,
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region,
+		s3BucketWithVersioning,
+		s3BucketWithObjectLock(s3types.ObjectLockRetentionModeCompliance),
+	)
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
+
+	s1, err := b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := s1.(*remote.State).Client
+
+	var state bytes.Buffer
+	dataW := io.LimitReader(neverEnding('x'), manager.DefaultUploadPartSize)
+	_, err = state.ReadFrom(dataW)
+	if err != nil {
+		t.Fatalf("writing dummy data: %s", err)
+	}
+
+	err = client.Put(state.Bytes())
+	if err != nil {
+		t.Fatalf("putting data: %s", err)
+	}
+}
+
 type neverEnding byte
 
 func (b neverEnding) Read(p []byte) (n int, err error) {
