@@ -1,3 +1,9 @@
+## 1.10.1 (Unreleased)
+
+BUG FIXES:
+- config: `templatefile` would panic if given and entirely unknown map of variables [GH-36118]
+
+
 ## 1.10.0 (November 27, 2024)
 
 NEW FEATURES:
