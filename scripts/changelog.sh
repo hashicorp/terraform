@@ -37,7 +37,7 @@ function prepare {
     exit 1
   fi
 
-  sed -i '' -e "1s/.*/## $VERSION ($DATE)/" CHANGELOG.md
+  $SED "1s/.*/## $VERSION ($DATE)/" CHANGELOG.md
 }
 
 function cleanup {
@@ -52,9 +52,9 @@ function cleanup {
 
   if [[ "$RELEASED_VERSION" == *-* ]]; then
     # then we have a pre-release version, so we should replace the top line
-    sed -i '' -e "1s/.*/## $NEXT_VERSION (Unreleased)/" CHANGELOG.md
+    $SED "1s/.*/## $NEXT_VERSION (Unreleased)/" CHANGELOG.md
   else
-    sed -i '' -e "1s/^/## $NEXT_VERSION (Unreleased)\n\n/" CHANGELOG.md
+    $SED "1s/^/## $NEXT_VERSION (Unreleased)\n\n/" CHANGELOG.md
   fi
 }
 
@@ -75,6 +75,20 @@ function main {
       ;;
   esac
 }
+
+if [[ ! -f CHANGELOG.md ]]; then
+  echo "ERROR: CHANGELOG.md not found in pwd."
+  echo "Please run this from the root of the terraform source repository"
+  exit 1
+fi
+
+if [[ `uname` == "Darwin" ]]; then
+  echo "Using BSD sed"
+  export SED="sed -i '' -E -e"
+else
+  echo "Using GNU sed"
+  export SED="sed -i -r -e"
+fi
 
 main "$@"
 exit $?
