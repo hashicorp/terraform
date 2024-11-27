@@ -2038,7 +2038,7 @@ func TestBackendLockedWithFile(t *testing.T) {
 	backend.TestBackendStateForceUnlock(t, b1, b2)
 }
 
-func TestBackendLockedWithFile_ObjectLock(t *testing.T) {
+func TestBackendLockedWithFile_ObjectLock_Compliance(t *testing.T) {
 	testACC(t)
 	objectLockPreCheck(t)
 
@@ -2066,6 +2066,41 @@ func TestBackendLockedWithFile_ObjectLock(t *testing.T) {
 	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region,
 		s3BucketWithVersioning,
 		s3BucketWithObjectLock(s3types.ObjectLockRetentionModeCompliance),
+	)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
+}
+
+func TestBackendLockedWithFile_ObjectLock_Governance(t *testing.T) {
+	testACC(t)
+	objectLockPreCheck(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region,
+		s3BucketWithVersioning,
+		s3BucketWithObjectLock(s3types.ObjectLockRetentionModeGovernance),
 	)
 	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
 
@@ -2193,7 +2228,7 @@ func TestBackend_LockFileCleanupOnDynamoDBLock(t *testing.T) {
 	}
 }
 
-func TestBackend_LockFileCleanupOnDynamoDBLock_ObjectLock(t *testing.T) {
+func TestBackend_LockFileCleanupOnDynamoDBLock_ObjectLock_Compliance(t *testing.T) {
 	testACC(t)
 	objectLockPreCheck(t)
 
@@ -2223,6 +2258,61 @@ func TestBackend_LockFileCleanupOnDynamoDBLock_ObjectLock(t *testing.T) {
 	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region,
 		s3BucketWithVersioning,
 		s3BucketWithObjectLock(s3types.ObjectLockRetentionModeCompliance),
+	)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+
+	// Attempt to retrieve the lock file from S3.
+	_, err := b1.s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(b1.bucketName),
+		Key:    aws.String(b1.keyName + ".tflock"),
+	})
+	// We expect an error here, indicating that the lock file does not exist.
+	// The absence of the lock file is expected, as it should have been
+	// cleaned up following a failed lock acquisition due to `b1` already
+	// acquiring a DynamoDB lock.
+	if err != nil {
+		if !IsA[*s3types.NoSuchKey](err) {
+			t.Fatalf("unexpected error: %s", err)
+		}
+	} else {
+		t.Fatalf("expected error, got none")
+	}
+}
+
+func TestBackend_LockFileCleanupOnDynamoDBLock_ObjectLock_Governance(t *testing.T) {
+	testACC(t)
+	objectLockPreCheck(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   false, // Only use DynamoDB
+		"dynamodb_table": bucketName,
+		"region":         "us-west-2",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   true, // Use both DynamoDB and lockfile
+		"dynamodb_table": bucketName,
+		"region":         "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region,
+		s3BucketWithVersioning,
+		s3BucketWithObjectLock(s3types.ObjectLockRetentionModeGovernance),
 	)
 	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
 	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
