@@ -1,4 +1,4 @@
-## 1.11.0-alpha20241127 (November 27, 2024)
+## 1.11.0 (Unreleased)
 
 ENHANCEMENTS:
 
