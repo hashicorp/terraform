@@ -137,7 +137,7 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() (funcs map[string]funct
 
 			vars, varsMarks := args[1].UnmarkDeep()
 
-			if !pathArg.IsKnown() {
+			if !pathArg.IsKnown() || !vars.IsKnown() {
 				return cty.UnknownVal(retType).WithMarks(pathMarks, varsMarks), nil
 			}
 
