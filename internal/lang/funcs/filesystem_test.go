@@ -218,6 +218,12 @@ func TestTemplateFile(t *testing.T) {
 		},
 		{
 			cty.StringVal("testdata/list.tmpl").Mark("path"),
+			cty.UnknownVal(cty.Map(cty.String)),
+			cty.DynamicVal.Mark("path"),
+			``,
+		},
+		{
+			cty.StringVal("testdata/list.tmpl").Mark("path"),
 			cty.ObjectVal(map[string]cty.Value{
 				"list": cty.ListVal([]cty.Value{
 					cty.StringVal("a"),
