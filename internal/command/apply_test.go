@@ -960,16 +960,10 @@ func TestApply_planWithVarFileChangingVariableValue(t *testing.T) {
 	}
 }
 
-func TestApply_planVars(t *testing.T) {
-	// This test ensures that it isn't allowed to set non-ephemeral input
-	// variables when applying from a saved plan file, since in that case the
-	// variable values come from the saved plan file.
-	//
-	// This situation was originally checked by the apply command itself,
-	// and that's what this test was originally exercising. This rule
-	// is now enforced by the "local" backend instead, but this test
-	// is still valid since the command instance delegates to the
-	// local backend.
+func TestApply_planUndeclaredVars(t *testing.T) {
+	// This test ensures that it isn't allowed to set undeclared input variables
+	// when applying from a saved plan file, since in that case the variable
+	// values come from the saved plan file.
 
 	planPath := applyFixturePlanFile(t)
 	statePath := testTempFile(t)
@@ -1072,7 +1066,6 @@ foo = "bar"
 
 		"with planfile passing ephemeral variable through environment variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
 			t.Setenv("TF_VAR_foo", "bar")
-			defer t.Setenv("TF_VAR_foo", "")
 
 			args := []string{
 				"-state", statePath,
@@ -1164,7 +1157,7 @@ foo = "bar"
 
 		"without planfile passing ephemeral variable through environment variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
 			t.Setenv("TF_VAR_foo", "bar")
-			defer t.Setenv("TF_VAR_foo", "")
+			t.Setenv("TF_VAR_unused", `{key:"val"}`)
 
 			args := []string{
 				"-state", statePath,
