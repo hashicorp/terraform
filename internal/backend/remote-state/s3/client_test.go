@@ -382,7 +382,7 @@ func TestRemoteClientPutLargeUploadWithObjectLock(t *testing.T) {
 	}
 }
 
-func TestRemoteClientObjectLockAndLockFile(t *testing.T) {
+func TestRemoteClientLockFileWithObjectLock(t *testing.T) {
 	testACC(t)
 	objectLockPreCheck(t)
 
