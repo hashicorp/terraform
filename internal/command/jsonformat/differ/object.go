@@ -23,7 +23,7 @@ func computeAttributeDiffAsObject(change structured.Change, attributes map[strin
 
 func computeAttributeDiffAsNestedObject(change structured.Change, attributes map[string]*jsonprovider.Attribute) computed.Diff {
 	attributeDiffs, action := processObject(change, attributes, func(value structured.Change, attribute *jsonprovider.Attribute) computed.Diff {
-		return ComputeDiffForAttribute(value, attribute)
+		return ComputeDiffForAttribute(value, attribute, change.CalculateAction())
 	})
 	return computed.NewDiff(renderers.NestedObject(attributeDiffs), action, change.ReplacePaths.Matches())
 }
