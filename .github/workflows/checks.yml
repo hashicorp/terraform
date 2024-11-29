@@ -67,7 +67,7 @@ jobs:
         run: |
           # We run tests for all packages from all modules in this repository.
           for dir in $(go list -m -f '{{.Dir}}' github.com/hashicorp/terraform/...); do
-              (cd $dir && go test "./...")
+              (cd $dir && go test -cover "./...")
           done
 
   race-tests:

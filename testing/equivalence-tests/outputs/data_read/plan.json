@@ -209,15 +209,15 @@
   "relevant_attributes": [
     {
       "attribute": [
-        "id"
-      ],
-      "resource": "module.create.random_integer.random"
-    },
-    {
-      "attribute": [
         "string"
       ],
       "resource": "data.tfcoremock_simple_resource.read"
+    },
+    {
+      "attribute": [
+        "id"
+      ],
+      "resource": "module.create.random_integer.random"
     }
   ],
   "resource_changes": [

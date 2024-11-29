@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"fmt"
 	"reflect"
 	"sort"
 	"strings"
@@ -11,6 +12,9 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 func TestReferenceTransformer_simple(t *testing.T) {
@@ -320,3 +324,77 @@ child.A
 child.B
   child.A
 `
+
+// attachDataResourceDependsOnTransformer makes sure data resources with
+// `depends_on` wait for all dependencies of `depends_on` arguments, and
+// everything referenced by any parent module's depends_on arguments.
+func TestAttachDataResourceDependsOnTransformer(t *testing.T) {
+	cfg := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "moda" {
+  source = "./moda"
+  depends_on = [module.modb]
+}
+
+module "modb" {
+  source = "./modb"
+  in = test_resource.root.id
+}
+
+resource "test_resource" "root" {
+}
+`,
+		"./moda/main.tf": `
+data "test_data_source" "in_moda" {
+}`,
+
+		"./modb/main.tf": `
+variable "in" {
+}
+
+resource "test_resource" "in_modb" {
+}
+
+module "modc" {
+  source = "../modc"
+  in = var.in
+}
+`,
+		"./modc/main.tf": `
+variable "in" {
+}
+
+resource "test_resource" "in_modc" {
+  value = var.in
+}`,
+	})
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	g, _, diags := ctx.planGraph(cfg, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
+	assertNoErrors(t, diags)
+
+	// find the data resource node
+	for _, v := range g.Vertices() {
+		data, ok := v.(*nodeExpandPlannableResource)
+		if !ok || data.Addr.Resource.Mode != addrs.DataResourceMode {
+			continue
+		}
+
+		sort.Slice(data.dependsOn, func(i, j int) bool {
+			return data.dependsOn[i].String() < data.dependsOn[j].String()
+		})
+
+		expected := `["module.modb.module.modc.test_resource.in_modc" "module.modb.test_resource.in_modb" "test_resource.root"]`
+		got := fmt.Sprintf("%q", data.dependsOn)
+		if got != expected {
+			t.Fatalf("expected dependsOn: %s\ngot: %s", expected, got)
+		}
+	}
+
+}

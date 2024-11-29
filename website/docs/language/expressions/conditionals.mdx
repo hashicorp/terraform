@@ -27,7 +27,7 @@ A common use of conditional expressions is to define defaults to replace
 invalid values:
 
 ```hcl
-var.a != "" ? var.a : "default-a"
+var.a == "" ? "default-a" : var.a
 ```
 
 If `var.a` is an empty string then the result is `"default-a"`, but otherwise
