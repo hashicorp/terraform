@@ -57,6 +57,17 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 
 	diags = diags.Append(n.validateCheckRules(ctx, n.Config))
 
+	for _, ref := range n.References() {
+		if msg, ok := ctx.ReferencableDeprecationMessage(n.ModulePath(), ref.Subject); ok {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Usage of deprecated output",
+				Detail:   msg,
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+		}
+	}
+
 	if managed := n.Config.Managed; managed != nil {
 		// Validate all the provisioners
 		for _, p := range managed.Provisioners {

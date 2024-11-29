@@ -501,7 +501,7 @@ func DynamicValueToTerraform1(val cty.Value, ty cty.Type) (*stacks.DynamicValue,
 	sensitivePaths, withOtherMarks := marks.PathsWithMark(markPaths, marks.Sensitive)
 	if len(withOtherMarks) != 0 {
 		return nil, withOtherMarks[0].Path.NewErrorf(
-			"can't serialize value marked with %#v (this is a bug in Terraform)",
+			"cannot serialize value marked with %#v (this is a bug in Terraform)",
 			withOtherMarks[0].Marks,
 		)
 	}
