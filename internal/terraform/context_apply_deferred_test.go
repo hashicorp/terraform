@@ -2915,7 +2915,7 @@ import {
 				wantDeferred: make(map[string]ExpectedDeferred),
 				wantDiagnostic: func(diags tfdiags.Diagnostics) bool {
 					for _, diag := range diags {
-						if diag.Description().Summary == "Use of import for_each in an invalid context" {
+						if diag.Description().Summary == "Resource has no configuration" {
 							return true
 						}
 					}
