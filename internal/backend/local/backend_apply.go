@@ -259,33 +259,26 @@ func (b *Local) opApply(
 		// same parsing logic from the plan to generate the diagnostics.
 		undeclaredVariables := map[string]backendrun.UnparsedVariableValue{}
 
-		for varName, rawV := range op.Variables {
+		parsedVars, _ := backendrun.ParseVariableValues(op.Variables, lr.Config.Module.Variables)
+
+		for varName := range op.Variables {
+			parsedVar, parsed := parsedVars[varName]
+
 			decl, ok := lr.Config.Module.Variables[varName]
-			if !ok {
+			if !ok || !parsed {
 				// We'll try to parse this and handle diagnostics for missing
 				// variables with ParseUndeclaredVariableValues after.
-				undeclaredVariables[varName] = rawV
-				continue
-			}
-
-			// We're "parsing" only to get the resulting value's SourceType,
-			// so we'll use configs.VariableParseLiteral just because it's
-			// the most liberal interpretation and so least likely to
-			// fail with an unrelated error.
-			v, _ := rawV.ParseVariableValue(configs.VariableParseLiteral)
-			if v == nil {
-				// We'll ignore any that don't parse at all, because
-				// they'll fail elsewhere in this process anyway.
+				undeclaredVariables[varName] = op.Variables[varName]
 				continue
 			}
 
 			var rng *hcl.Range
-			if v.HasSourceRange() {
-				rng = v.SourceRange.ToHCL().Ptr()
+			if parsedVar.HasSourceRange() {
+				rng = parsedVar.SourceRange.ToHCL().Ptr()
 			}
 
 			// If the var is declared as ephemeral in config, go ahead and handle it
-			if ok && decl.Ephemeral {
+			if decl.Ephemeral {
 				// Determine whether this is an apply-time variable, i.e. an
 				// ephemeral variable that was set (non-null) during the
 				// planning phase.
@@ -311,17 +304,9 @@ func (b *Local) opApply(
 					continue
 				}
 
-				// Get the value of the variable, because we'll need it for
-				// the next two steps.
-				val, valDiags := rawV.ParseVariableValue(decl.ParsingMode)
-				diags = diags.Append(valDiags)
-				if valDiags.HasErrors() {
-					continue
-				}
-
 				// If this is an apply-time variable, the user must supply a
 				// value during apply: it can't be null.
-				if applyTimeVar && val.Value.IsNull() {
+				if applyTimeVar && parsedVar.Value.IsNull() {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Ephemeral variable must be set for apply",
@@ -336,17 +321,17 @@ func (b *Local) opApply(
 				// If we get here, we are in possession of a non-null
 				// ephemeral apply-time input variable, and need only pass
 				// its value on to the ApplyOpts.
-				applyTimeValues[varName] = val
+				applyTimeValues[varName] = parsedVar
 			} else {
 				// If a non-ephemeral variable is set differently between plan and apply, we should emit a diagnostic.
 				plannedVariableValue, ok := plan.VariableValues[varName]
 				if !ok {
 					// We'll catch this with ParseUndeclaredVariableValues after
-					undeclaredVariables[varName] = rawV
+					undeclaredVariables[varName] = op.Variables[varName]
 					continue
 				}
 
-				val, err := plannedVariableValue.Decode(cty.DynamicPseudoType)
+				plannedVar, err := plannedVariableValue.Decode(cty.DynamicPseudoType)
 				if err != nil {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -355,11 +340,11 @@ func (b *Local) opApply(
 						Subject:  rng,
 					})
 				} else {
-					if v.Value.Equals(val).False() {
+					if parsedVar.Value.Equals(plannedVar).False() {
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
 							Summary:  "Can't change variable when applying a saved plan",
-							Detail:   fmt.Sprintf("The variable %s cannot be set using the -var and -var-file options when applying a saved plan file, because a saved plan includes the variable values that were set when it was created. The saved plan specifies %s as the value whereas during apply the value %s was %s. To declare an ephemeral variable which is not saved in the plan file, use ephemeral = true.", varName, viewsjson.CompactValueStr(v.Value), viewsjson.CompactValueStr(val), v.SourceType.DiagnosticLabel()),
+							Detail:   fmt.Sprintf("The variable %s cannot be set using the -var and -var-file options when applying a saved plan file, because a saved plan includes the variable values that were set when it was created. The saved plan specifies %s as the value whereas during apply the value %s was %s. To declare an ephemeral variable which is not saved in the plan file, use ephemeral = true.", varName, viewsjson.CompactValueStr(parsedVar.Value), viewsjson.CompactValueStr(plannedVar), parsedVar.SourceType.DiagnosticLabel()),
 							Subject:  rng,
 						})
 					}
