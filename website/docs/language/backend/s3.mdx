@@ -47,8 +47,8 @@ Using the example above, the state for the workspace `development` would be stor
 When not using [workspaces](/terraform/language/state/workspaces)(or when only using the `default` workspace), Terraform will need the following AWS IAM permissions on the target backend bucket:
 
 * `s3:ListBucket` on `arn:aws:s3:::mybucket`. At a minimum, this must be able to list the path where the state is stored.
-* `s3:GetObject` on `arn:aws:s3:::mybucket/path/to/my/key`
-* `s3:PutObject` on `arn:aws:s3:::mybucket/path/to/my/key`
+* `s3:GetObject` on `arn:aws:s3:::mybucket/path/to/my/key` and `arn:aws:s3:::mybucket/path/to/my/key.tflock`
+* `s3:PutObject` on `arn:aws:s3:::mybucket/path/to/my/key` and `arn:aws:s3:::mybucket/path/to/my/key.tflock`
 
 Note: `s3:DeleteObject` is not needed, as Terraform will not delete the state storage.
 
@@ -66,7 +66,10 @@ This is seen in the following AWS IAM Statement:
     {
       "Effect": "Allow",
       "Action": ["s3:GetObject", "s3:PutObject"],
-      "Resource": "arn:aws:s3:::mybucket/path/to/my/key"
+      "Resource": [
+        "arn:aws:s3:::mybucket/path/to/my/key",
+        "arn:aws:s3:::mybucket/path/to/my/key.tflock"
+      ]
     }
   ]
 }
@@ -75,9 +78,9 @@ This is seen in the following AWS IAM Statement:
 When using [workspaces](/terraform/language/state/workspaces), Terraform will also need permissions to create, list, read, update, and delete the workspace state storage:
 
 * `s3:ListBucket` on `arn:aws:s3:::mybucket`. At a minumum, this must be able to list the path where the `default` workspace is stored as well as the other workspaces.
-* `s3:GetObject` on `arn:aws:s3:::mybucket/path/to/my/key` and `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key`
-* `s3:PutObject` on `arn:aws:s3:::mybucket/path/to/my/key` and `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key`
-* `s3:DeleteObject` on `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key`
+* `s3:GetObject` on `arn:aws:s3:::mybucket/path/to/my/key`, `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key` and `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key.tflock`
+* `s3:PutObject` on `arn:aws:s3:::mybucket/path/to/my/key`, `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key` and `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key.tflock`
+* `s3:DeleteObject` on `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key` and `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key.tflock`
 
 -> **Note:** AWS can control access to S3 buckets with either IAM policies
 attached to users/groups/roles (like the example above) or resource policies
