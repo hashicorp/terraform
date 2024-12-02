@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/hashicorp/cli"
 )
 
 var cmdLogger = log.New(os.Stdout, "CommandDocsLog: ", 0)
@@ -31,7 +33,13 @@ type ProviderDetails struct {
 func (c *CommandDocs) Run(args []string) int {
 	// Process the command-line arguments
 	args = c.Meta.process(args)
-
+	if c.Ui == nil {
+		c.Ui = &cli.BasicUi{
+			Reader:      os.Stdin,
+			Writer:      os.Stdout,
+			ErrorWriter: os.Stderr,
+		}
+	}
 	// Set up our custom command flags
 	cmdFlags := c.Meta.extendedFlagSet("docs")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -128,19 +136,19 @@ func (c *CommandDocs) handleListCommand(docsDir string) int {
 
 	// Print resources
 	if len(resources) > 0 {
-		fmt.Println("\nResources:")
+		c.Ui.Output("\nResources:")
 		sort.Strings(resources)
 		for _, resource := range resources {
-			fmt.Printf("* %s\n", resource)
+			c.Ui.Output(fmt.Sprintf("* %s", resource))
 		}
 	}
 
 	// Print data sources
 	if len(dataSources) > 0 {
-		fmt.Println("\nData Sources:")
+		c.Ui.Output("\nData Sources:")
 		sort.Strings(dataSources)
 		for _, dataSource := range dataSources {
-			fmt.Printf("* %s\n", dataSource)
+			c.Ui.Output(fmt.Sprintf("* %s", dataSource))
 		}
 	}
 
@@ -308,7 +316,8 @@ func (c *CommandDocs) showResourceDoc(docsDir, resourceName, resourceType, searc
 				return c.handleDocumentSearch(content, searchKeyword, resourceName, resourceType)
 			}
 
-			fmt.Println(string(content))
+			c.Ui.Output(fmt.Sprintf("\n%s", string(content)))
+
 			return 0
 		}
 	}
@@ -323,7 +332,7 @@ func (c *CommandDocs) handleDocumentSearch(content []byte, searchKeyword, resour
 	section := c.extractSection(lines, searchKeyword)
 
 	if section != "" {
-		fmt.Println(section)
+		c.Ui.Output(fmt.Sprintf("\n%s", section))
 		return 0
 	}
 
@@ -602,9 +611,9 @@ func (c *CommandDocs) showError(err error) int {
 }
 
 func (c *CommandDocs) outputSection(content, keyword string) {
-	fmt.Printf("=== Section matching '%s' ===\n", keyword)
-	fmt.Println(content)
-	fmt.Println("=== End of section ===")
+	c.Ui.Output(fmt.Sprintf("=== Section matching '%s' ===\n", keyword))
+	c.Ui.Output(fmt.Sprint(content))
+	c.Ui.Output(fmt.Sprint("\n=== End of section ==="))
 }
 
 // cleanupOldDocs removes outdated documentation
