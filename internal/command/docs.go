@@ -14,7 +14,11 @@ import (
 
 var cmdLogger = log.New(os.Stdout, "CommandDocsLog: ", 0)
 
-type CommandDocs struct{}
+// CommandDocs is a Command implementation that provides access to provider
+// documentation by fetching and organizing provider docs from their repositories.
+type CommandDocs struct {
+	Meta
+}
 
 type ProviderDetails struct {
 	Source      string
@@ -22,6 +26,127 @@ type ProviderDetails struct {
 	RepoOwner   string
 	RepoName    string
 	DocsVersion string
+}
+
+func (c *CommandDocs) Run(args []string) int {
+	// Process the command-line arguments
+	args = c.Meta.process(args)
+
+	// Set up our custom command flags
+	cmdFlags := c.Meta.extendedFlagSet("docs")
+	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+
+	if err := cmdFlags.Parse(args); err != nil {
+		return c.showError(fmt.Errorf("Error parsing command line flags: %s", err))
+	}
+
+	args = cmdFlags.Args()
+	if len(args) < 1 {
+		return c.showError(fmt.Errorf("The docs command expects a provider name as an argument"))
+	}
+
+	providerName := args[0]
+	cmdLogger.Printf("Fetching documentation for provider: %s", providerName)
+
+	// Get provider details from lock file
+	providerDetails, err := c.getProviderFromLockFile(providerName)
+	if err != nil {
+		return c.showError(err)
+	}
+	cmdLogger.Printf("Provider details found: owner=%s, repo=%s",
+		providerDetails.RepoOwner, providerDetails.RepoName)
+
+	docsDir := filepath.Join(".terraform", "docs", providerName)
+	cmdLogger.Printf("Using documentation directory: %s", docsDir)
+
+	if err := c.ensureDirectory(docsDir); err != nil {
+		return c.showError(err)
+	}
+
+	// Check if docs need updating
+	needsUpdate := true
+	if c.isDocumentationCached(docsDir) {
+		if c.checkDocsVersion(docsDir, providerDetails) {
+			needsUpdate = false
+		} else {
+			cmdLogger.Printf("Documentation version mismatch, updating...")
+			if err := c.cleanupOldDocs(docsDir); err != nil {
+				return c.showError(err)
+			}
+		}
+	}
+
+	if needsUpdate {
+		cmdLogger.Printf("Documentation not cached, cloning repository...")
+		if err := c.cloneAndOrganizeDocs(providerDetails, docsDir); err != nil {
+			return c.showError(err)
+		}
+		if err := c.saveDocsVersion(docsDir, providerDetails); err != nil {
+			cmdLogger.Printf("Warning: Failed to save docs version: %s", err)
+		}
+	}
+
+	// Validate documentation structure
+	if err := c.validateDocumentation(docsDir); err != nil {
+		return c.showError(err)
+	}
+
+	// Handle command options
+	if len(args) > 1 {
+		if args[1] == "-l" {
+			return c.handleListCommand(docsDir)
+		}
+		return c.handleResourceCommand(docsDir, args)
+	}
+
+	c.Ui.Error("Please specify either -l to list resources or provide a resource name with -d/-r flag")
+	return 1
+}
+
+func (c *CommandDocs) Synopsis() string {
+	return "Shows provider documentation for resources and data sources"
+}
+
+func (c *CommandDocs) handleListCommand(docsDir string) int {
+	cmdLogger.Printf("Listing resources from: %s", docsDir)
+	isModern, isLegacy := c.analyzeDocStructure(docsDir)
+
+	resources := make([]string, 0)
+	dataSources := make([]string, 0)
+
+	if isModern {
+		modernResources, modernDataSources := c.listModernDocs(docsDir)
+		resources = append(resources, modernResources...)
+		dataSources = append(dataSources, modernDataSources...)
+	}
+
+	if isLegacy {
+		legacyResources, legacyDataSources := c.listLegacyDocs(docsDir)
+		resources = append(resources, legacyResources...)
+		dataSources = append(dataSources, legacyDataSources...)
+	}
+
+	// Print resources
+	if len(resources) > 0 {
+		fmt.Println("\nResources:")
+		sort.Strings(resources)
+		for _, resource := range resources {
+			fmt.Printf("* %s\n", resource)
+		}
+	}
+
+	// Print data sources
+	if len(dataSources) > 0 {
+		fmt.Println("\nData Sources:")
+		sort.Strings(dataSources)
+		for _, dataSource := range dataSources {
+			fmt.Printf("* %s\n", dataSource)
+		}
+	}
+
+	cmdLogger.Printf("Found %d resources and %d data sources",
+		len(resources), len(dataSources))
+	return 0
 }
 
 func (c *CommandDocs) Help() string {
@@ -43,88 +168,209 @@ Examples:
 `
 }
 
-func (c *CommandDocs) Synopsis() string {
-	return "Shows provider documentation for resources and data sources"
-}
+func (c *CommandDocs) handleResourceCommand(docsDir string, args []string) int {
+	resourceName := args[1]
+	var resourceType string
+	var searchKeyword string
 
-func (c *CommandDocs) Run(args []string) int {
-	if len(args) < 1 {
-		fmt.Println("Error: Provider name is required.")
-		return 1
+	// Check for resource type flag
+	if len(args) > 2 {
+		switch args[2] {
+		case "-d":
+			resourceType = "data"
+			cmdLogger.Printf("Looking for data source: %s", resourceName)
+		case "-r":
+			resourceType = "resource"
+			cmdLogger.Printf("Looking for resource: %s", resourceName)
+		default:
+			return c.showError(fmt.Errorf("Invalid flag. Please use -d for data source or -r for resource"))
+		}
+
+		// Check for search keyword
+		if len(args) > 3 {
+			searchKeyword = args[3]
+			if len(searchKeyword) > 0 && (searchKeyword[0] == '\'' || searchKeyword[0] == '"') {
+				searchKeyword = searchKeyword[1 : len(searchKeyword)-1]
+			}
+			cmdLogger.Printf("Search keyword provided: %s", searchKeyword)
+		}
 	}
 
-	providerName := args[0]
-	cmdLogger.Printf("Fetching documentation for provider: %s", providerName)
+	return c.showResourceDoc(docsDir, resourceName, resourceType, searchKeyword)
+}
 
-	// Get provider details from lock file
-	providerDetails, err := getProviderFromLockFile(providerName)
+func (c *CommandDocs) listModernDocs(docsDir string) ([]string, []string) {
+	var resources, dataSources []string
+
+	modernPaths := map[string]*[]string{
+		filepath.Join(docsDir, "docs", "resources"):    &resources,
+		filepath.Join(docsDir, "docs", "data-sources"): &dataSources,
+	}
+
+	for path, slice := range modernPaths {
+		cmdLogger.Printf("Checking modern path: %s", path)
+		err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				cmdLogger.Printf("Error accessing %s: %s", path, err)
+				return nil
+			}
+			if !info.IsDir() && c.isDocumentationFile(info.Name()) {
+				name := strings.TrimSuffix(info.Name(), filepath.Ext(info.Name()))
+				*slice = append(*slice, name)
+				cmdLogger.Printf("Found: %s", name)
+			}
+			return nil
+		})
+		if err != nil {
+			cmdLogger.Printf("Error walking path %s: %s", path, err)
+		}
+	}
+
+	return resources, dataSources
+}
+
+func (c *CommandDocs) listLegacyDocs(docsDir string) ([]string, []string) {
+	var resources, dataSources []string
+
+	legacyPaths := map[string]*[]string{
+		filepath.Join(docsDir, "website", "docs", "r"): &resources,
+		filepath.Join(docsDir, "website", "docs", "d"): &dataSources,
+	}
+
+	for path, slice := range legacyPaths {
+		cmdLogger.Printf("Checking legacy path: %s", path)
+		err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				cmdLogger.Printf("Error accessing %s: %s", path, err)
+				return nil
+			}
+			if !info.IsDir() && c.isDocumentationFile(info.Name()) {
+				name := strings.TrimSuffix(info.Name(), filepath.Ext(info.Name()))
+				name = strings.TrimSuffix(name, ".html")
+				*slice = append(*slice, name)
+				cmdLogger.Printf("Found: %s", name)
+			}
+			return nil
+		})
+		if err != nil {
+			cmdLogger.Printf("Error walking path %s: %s", path, err)
+		}
+	}
+
+	return resources, dataSources
+}
+
+func (c *CommandDocs) showResourceDoc(docsDir, resourceName, resourceType, searchKeyword string) int {
+	var paths []string
+
+	isModern, isLegacy := c.analyzeDocStructure(docsDir)
+
+	switch resourceType {
+	case "data":
+		if isModern {
+			paths = append(paths, filepath.Join(docsDir, "docs", "data-sources", resourceName+".md"))
+		}
+		if isLegacy {
+			paths = append(paths,
+				filepath.Join(docsDir, "website", "docs", "d", resourceName+".html.md"),
+				filepath.Join(docsDir, "website", "docs", "d", resourceName+".html.markdown"))
+		}
+	case "resource":
+		if isModern {
+			paths = append(paths, filepath.Join(docsDir, "docs", "resources", resourceName+".md"))
+		}
+		if isLegacy {
+			paths = append(paths,
+				filepath.Join(docsDir, "website", "docs", "r", resourceName+".html.md"),
+				filepath.Join(docsDir, "website", "docs", "r", resourceName+".html.markdown"))
+		}
+	default:
+		if isModern {
+			paths = append(paths,
+				filepath.Join(docsDir, "docs", "resources", resourceName+".md"),
+				filepath.Join(docsDir, "docs", "data-sources", resourceName+".md"))
+		}
+		if isLegacy {
+			paths = append(paths,
+				filepath.Join(docsDir, "website", "docs", "r", resourceName+".html.md"),
+				filepath.Join(docsDir, "website", "docs", "d", resourceName+".html.md"),
+				filepath.Join(docsDir, "website", "docs", "r", resourceName+".html.markdown"),
+				filepath.Join(docsDir, "website", "docs", "d", resourceName+".html.markdown"))
+		}
+	}
+
+	for _, path := range paths {
+		content, err := os.ReadFile(path)
+		if err == nil {
+			cmdLogger.Printf("Found documentation at: %s", path)
+
+			if searchKeyword != "" {
+				return c.handleDocumentSearch(content, searchKeyword, resourceName, resourceType)
+			}
+
+			fmt.Println(string(content))
+			return 0
+		}
+	}
+
+	return c.showError(fmt.Errorf("Documentation not found for %s: %s",
+		resourceType, resourceName))
+}
+
+func (c *CommandDocs) handleDocumentSearch(content []byte, searchKeyword, resourceName, resourceType string) int {
+	cmdLogger.Printf("Searching for section with keyword: %s", searchKeyword)
+	lines := strings.Split(string(content), "\n")
+	section := c.extractSection(lines, searchKeyword)
+
+	if section != "" {
+		fmt.Println(section)
+		return 0
+	}
+
+	return c.showError(fmt.Errorf("No section found matching keyword: %s", searchKeyword))
+}
+
+func (c *CommandDocs) extractSection(lines []string, keyword string) string {
+	sectionPattern := fmt.Sprintf(`^#+\s*.*%s.*`, regexp.QuoteMeta(keyword))
+	sectionRegex, err := regexp.Compile(sectionPattern)
 	if err != nil {
-		cmdLogger.Printf("Error reading lock file: %s", err)
-		return 1
-	}
-	cmdLogger.Printf("Provider details found: owner=%s, repo=%s",
-		providerDetails.RepoOwner, providerDetails.RepoName)
-
-	docsDir := filepath.Join(".terraform", "docs", providerName)
-	cmdLogger.Printf("Using documentation directory: %s", docsDir)
-
-	if err := ensureDirectory(docsDir); err != nil {
-		cmdLogger.Printf("Error creating docs directory: %s", err)
-		return 1
+		cmdLogger.Printf("Error compiling regex: %s", err)
+		return ""
 	}
 
-	if !isDocumentationCached(docsDir) {
-		cmdLogger.Printf("Documentation not cached, cloning repository...")
-		if err := cloneAndOrganizeDocs(providerDetails, docsDir); err != nil {
-			cmdLogger.Printf("Error preparing documentation: %s", err)
-			return 1
-		}
-	}
+	var extractedLines []string
+	capturing := false
+	currentHeadingLevel := 0
 
-	// Handle command options
-	if len(args) > 1 {
-		if args[1] == "-l" {
-			cmdLogger.Printf("Listing resources from: %s", docsDir)
-			return listResources(docsDir)
-		}
-
-		resourceName := args[1]
-		var resourceType string
-		var searchKeyword string
-
-		// Check for resource type flag
-		if len(args) > 2 {
-			switch args[2] {
-			case "-d":
-				resourceType = "data"
-				cmdLogger.Printf("Looking for data source: %s", resourceName)
-			case "-r":
-				resourceType = "resource"
-				cmdLogger.Printf("Looking for resource: %s", resourceName)
-			default:
-				fmt.Println("Invalid flag. Please use -d for data source or -r for resource")
-				return 1
-			}
-
-			// Check for search keyword (it will be the 4th argument)
-			if len(args) > 3 {
-				searchKeyword = args[3]
-				if len(searchKeyword) > 0 && (searchKeyword[0] == '\'' || searchKeyword[0] == '"') {
-					// Remove surrounding quotes if present
-					searchKeyword = searchKeyword[1 : len(searchKeyword)-1]
-				}
-				cmdLogger.Printf("Search keyword provided: %s", searchKeyword)
+	for _, line := range lines {
+		headingLevel := 0
+		for i := 0; i < len(line); i++ {
+			if line[i] == '#' {
+				headingLevel++
+			} else {
+				break
 			}
 		}
 
-		return showResourceDoc(docsDir, resourceName, resourceType, searchKeyword)
+		if sectionRegex.MatchString(line) {
+			if capturing {
+				break
+			}
+			capturing = true
+			currentHeadingLevel = headingLevel
+			extractedLines = append(extractedLines, line)
+		} else if capturing {
+			if headingLevel > 0 && headingLevel <= currentHeadingLevel {
+				break
+			}
+			extractedLines = append(extractedLines, line)
+		}
 	}
 
-	fmt.Println("Please specify either -l to list resources or provide a resource name with -d/-r flag")
-	return 0
+	return c.cleanSection(strings.Join(extractedLines, "\n"))
 }
 
-func getProviderFromLockFile(providerName string) (*ProviderDetails, error) {
+func (c *CommandDocs) getProviderFromLockFile(providerName string) (*ProviderDetails, error) {
 	content, err := os.ReadFile(".terraform.lock.hcl")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read lock file: %w", err)
@@ -164,7 +410,8 @@ func getProviderFromLockFile(providerName string) (*ProviderDetails, error) {
 
 	return details, nil
 }
-func cloneAndOrganizeDocs(details *ProviderDetails, docsDir string) error {
+
+func (c *CommandDocs) cloneAndOrganizeDocs(details *ProviderDetails, docsDir string) error {
 	// Create temporary directory for cloning
 	tmpDir, err := os.MkdirTemp("", "terraform-provider-*")
 	if err != nil {
@@ -185,13 +432,21 @@ func cloneAndOrganizeDocs(details *ProviderDetails, docsDir string) error {
 	}
 	cmdLogger.Printf("Successfully cloned repository")
 
-	// Look for documentation in known locations
+	// Copy documentation
+	if err := c.copyDocumentation(tmpDir, docsDir); err != nil {
+		return fmt.Errorf("failed to copy documentation: %w", err)
+	}
+
+	return nil
+}
+
+func (c *CommandDocs) copyDocumentation(srcDir, destDir string) error {
 	docsPaths := []struct {
 		src  string
 		dest string
 	}{
-		{filepath.Join(tmpDir, "docs"), filepath.Join(docsDir, "docs")},
-		{filepath.Join(tmpDir, "website", "docs"), filepath.Join(docsDir, "website", "docs")},
+		{filepath.Join(srcDir, "docs"), filepath.Join(destDir, "docs")},
+		{filepath.Join(srcDir, "website", "docs"), filepath.Join(destDir, "website", "docs")},
 	}
 
 	foundDocs := false
@@ -199,14 +454,12 @@ func cloneAndOrganizeDocs(details *ProviderDetails, docsDir string) error {
 		cmdLogger.Printf("Checking for docs in: %s", path.src)
 		if _, err := os.Stat(path.src); err == nil {
 			cmdLogger.Printf("Found documentation in %s", path.src)
-			if err := copyDir(path.src, path.dest); err != nil {
+			if err := c.copyDir(path.src, path.dest); err != nil {
 				cmdLogger.Printf("Error copying docs from %s: %s", path.src, err)
 				continue
 			}
 			foundDocs = true
 			cmdLogger.Printf("Copied documentation to: %s", path.dest)
-		} else {
-			cmdLogger.Printf("No documentation found in: %s", path.src)
 		}
 	}
 
@@ -217,8 +470,8 @@ func cloneAndOrganizeDocs(details *ProviderDetails, docsDir string) error {
 	return nil
 }
 
-func copyDir(src, dst string) error {
-	if err := ensureDirectory(dst); err != nil {
+func (c *CommandDocs) copyDir(src, dst string) error {
+	if err := c.ensureDirectory(dst); err != nil {
 		return err
 	}
 
@@ -231,12 +484,17 @@ func copyDir(src, dst string) error {
 		sourcePath := filepath.Join(src, entry.Name())
 		destPath := filepath.Join(dst, entry.Name())
 
-		if entry.IsDir() {
-			if err := copyDir(sourcePath, destPath); err != nil {
+		fileInfo, err := entry.Info()
+		if err != nil {
+			return err
+		}
+
+		if fileInfo.IsDir() {
+			if err := c.copyDir(sourcePath, destPath); err != nil {
 				return err
 			}
 		} else {
-			if err := copyFile(sourcePath, destPath); err != nil {
+			if err := c.copyFile(sourcePath, destPath); err != nil {
 				return err
 			}
 		}
@@ -245,7 +503,7 @@ func copyDir(src, dst string) error {
 	return nil
 }
 
-func copyFile(src, dst string) error {
+func (c *CommandDocs) copyFile(src, dst string) error {
 	sourceFile, err := os.Open(src)
 	if err != nil {
 		return err
@@ -262,192 +520,7 @@ func copyFile(src, dst string) error {
 	return err
 }
 
-func ensureDirectory(path string) error {
-	return os.MkdirAll(path, os.ModePerm)
-}
-
-func isDocumentationCached(docsDir string) bool {
-	// Check for actual content in either docs or website/docs
-	for _, subDir := range []string{"docs", "website/docs"} {
-		path := filepath.Join(docsDir, subDir)
-		if _, err := os.Stat(path); err == nil {
-			// Verify there are actual files
-			entries, err := os.ReadDir(path)
-			if err == nil && len(entries) > 0 {
-				cmdLogger.Printf("Found existing documentation in: %s", path)
-				return true
-			}
-		}
-	}
-	cmdLogger.Printf("No valid documentation cache found in: %s", docsDir)
-	return false
-}
-
-func listResources(docsDir string) int {
-	cmdLogger.Printf("Searching for resources in: %s", docsDir)
-
-	// Keep resources and data sources separate
-	resources := make([]string, 0)
-	dataSources := make([]string, 0)
-
-	// Modern structure
-	modernPaths := map[string]*[]string{
-		filepath.Join(docsDir, "docs", "resources"):    &resources,
-		filepath.Join(docsDir, "docs", "data-sources"): &dataSources,
-	}
-
-	// Check modern paths
-	for path, slice := range modernPaths {
-		cmdLogger.Printf("Checking path: %s", path)
-		err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				cmdLogger.Printf("Error accessing %s: %s", path, err)
-				return nil
-			}
-			if !info.IsDir() && isDocumentationFile(info.Name()) {
-				name := strings.TrimSuffix(info.Name(), filepath.Ext(info.Name()))
-				*slice = append(*slice, name)
-				cmdLogger.Printf("Found: %s", name)
-			}
-			return nil
-		})
-		if err != nil {
-			cmdLogger.Printf("Error walking path %s: %s", path, err)
-		}
-	}
-
-	// Print resources by type
-	if len(resources) > 0 {
-		fmt.Println("\nResources:")
-		sort.Strings(resources)
-		for _, resource := range resources {
-			fmt.Printf("* %s\n", resource)
-		}
-	}
-
-	if len(dataSources) > 0 {
-		fmt.Println("\nData Sources:")
-		sort.Strings(dataSources)
-		for _, dataSource := range dataSources {
-			fmt.Printf("* %s\n", dataSource)
-		}
-	}
-
-	cmdLogger.Printf("Found %d resources and %d data sources",
-		len(resources), len(dataSources))
-	return 0
-}
-
-func showResourceDoc(docsDir, resourceName, resourceType, searchKeyword string) int {
-	var paths []string
-
-	switch resourceType {
-	case "data":
-		paths = []string{
-			filepath.Join(docsDir, "docs", "data-sources", resourceName+".md"),
-			filepath.Join(docsDir, "website", "docs", "d", resourceName+".html.md"),
-			filepath.Join(docsDir, "website", "docs", "d", resourceName+".html.markdown"),
-		}
-	case "resource":
-		paths = []string{
-			filepath.Join(docsDir, "docs", "resources", resourceName+".md"),
-			filepath.Join(docsDir, "website", "docs", "r", resourceName+".html.md"),
-			filepath.Join(docsDir, "website", "docs", "r", resourceName+".html.markdown"),
-		}
-	default:
-		paths = []string{
-			filepath.Join(docsDir, "docs", "resources", resourceName+".md"),
-			filepath.Join(docsDir, "docs", "data-sources", resourceName+".md"),
-			filepath.Join(docsDir, "website", "docs", "r", resourceName+".html.md"),
-			filepath.Join(docsDir, "website", "docs", "d", resourceName+".html.md"),
-			filepath.Join(docsDir, "website", "docs", "r", resourceName+".html.markdown"),
-			filepath.Join(docsDir, "website", "docs", "d", resourceName+".html.markdown"),
-		}
-	}
-
-	for _, path := range paths {
-		content, err := os.ReadFile(path)
-		if err == nil {
-			cmdLogger.Printf("Found documentation at: %s", path)
-
-			if searchKeyword != "" {
-				cmdLogger.Printf("Searching for section with keyword: %s", searchKeyword)
-				lines := strings.Split(string(content), "\n")
-				section := extractSection(lines, searchKeyword)
-
-				if section != "" {
-					fmt.Printf("=== Section matching '%s' ===\n", searchKeyword)
-					fmt.Println(section)
-					fmt.Println("=== End of section ===")
-					return 0
-				}
-				fmt.Printf("No section found for keyword: %s\n", searchKeyword)
-				return 1
-			}
-
-			fmt.Println(string(content))
-			return 0
-		}
-	}
-
-	switch resourceType {
-	case "data":
-		fmt.Printf("Documentation not found for data source: %s\n", resourceName)
-	case "resource":
-		fmt.Printf("Documentation not found for resource: %s\n", resourceName)
-	default:
-		fmt.Printf("Documentation not found for: %s\n", resourceName)
-	}
-	return 1
-}
-
-// extractSection extracts a section from markdown content based on a keyword
-func extractSection(lines []string, keyword string) string {
-	// Create regex pattern to match the section heading
-	sectionPattern := fmt.Sprintf(`^#+\s*.*%s.*`, regexp.QuoteMeta(keyword))
-	sectionRegex, err := regexp.Compile(sectionPattern)
-	if err != nil {
-		cmdLogger.Printf("Error compiling regex: %s", err)
-		return ""
-	}
-
-	var extractedLines []string
-	capturing := false
-	currentHeadingLevel := 0
-
-	for _, line := range lines {
-		// Count the heading level if this is a heading
-		headingLevel := 0
-		for i := 0; i < len(line); i++ {
-			if line[i] == '#' {
-				headingLevel++
-			} else {
-				break
-			}
-		}
-
-		if sectionRegex.MatchString(line) {
-			if capturing {
-				break
-			}
-			capturing = true
-			currentHeadingLevel = headingLevel
-			extractedLines = append(extractedLines, line)
-		} else if capturing {
-			// Stop if we hit another heading at the same or higher level
-			if headingLevel > 0 && headingLevel <= currentHeadingLevel {
-				break
-			}
-			extractedLines = append(extractedLines, line)
-		}
-	}
-
-	// Clean up the extracted content
-	return cleanSection(strings.Join(extractedLines, "\n"))
-}
-
-// cleanSection removes empty lines from the beginning and end of the section
-func cleanSection(section string) string {
+func (c *CommandDocs) cleanSection(section string) string {
 	lines := strings.Split(section, "\n")
 
 	// Trim empty lines from start
@@ -468,50 +541,85 @@ func cleanSection(section string) string {
 	return ""
 }
 
-// func showResourceDoc(docsDir, resourceName string, isDataSource bool) int {
-// 	var docPath string
-// 	if isDataSource {
-// 		docPath = filepath.Join(docsDir, "docs", "data-sources", resourceName+".md")
-// 	} else {
-// 		docPath = filepath.Join(docsDir, "docs", "resources", resourceName+".md")
-// 	}
+// Helper functions
 
-// 	content, err := os.ReadFile(docPath)
-// 	if err != nil {
-// 		fmt.Printf("Documentation not found for %s: %s\n",
-// 			resourceName, err)
-// 		return 1
-// 	}
+func (c *CommandDocs) checkDocsVersion(docsDir string, details *ProviderDetails) bool {
+	versionFile := filepath.Join(docsDir, ".version")
+	content, err := os.ReadFile(versionFile)
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(string(content)) == details.Version
+}
 
-// 	fmt.Println(string(content))
-// 	return 0
-// }
+func (c *CommandDocs) saveDocsVersion(docsDir string, details *ProviderDetails) error {
+	versionFile := filepath.Join(docsDir, ".version")
+	return os.WriteFile(versionFile, []byte(details.Version), 0644)
+}
 
-// func showResourceDoc(docsDir, resourceName string) int {
-// 	paths := []string{
-// 		filepath.Join(docsDir, "docs", "resources", resourceName+".md"),
-// 		filepath.Join(docsDir, "docs", "data-sources", resourceName+".md"),
-// 		filepath.Join(docsDir, "website", "docs", "r", resourceName+".html.md"),
-// 		filepath.Join(docsDir, "website", "docs", "d", resourceName+".html.md"),
-// 		filepath.Join(docsDir, "website", "docs", "r", resourceName+".html.markdown"),
-// 		filepath.Join(docsDir, "website", "docs", "d", resourceName+".html.markdown"),
-// 	}
+func (c *CommandDocs) analyzeDocStructure(docsDir string) (isModern, isLegacy bool) {
+	modernPath := filepath.Join(docsDir, "docs")
+	legacyPath := filepath.Join(docsDir, "website", "docs")
 
-// 	for _, path := range paths {
-// 		content, err := os.ReadFile(path)
-// 		if err == nil {
-// 			fmt.Println(string(content))
-// 			return 0
-// 		}
-// 	}
+	if _, err := os.Stat(modernPath); err == nil {
+		isModern = true
+	}
+	if _, err := os.Stat(legacyPath); err == nil {
+		isLegacy = true
+	}
+	return
+}
 
-// 	fmt.Printf("Documentation not found for resource: %s\n", resourceName)
-// 	return 1
-// }
+func (c *CommandDocs) ensureDirectory(path string) error {
+	return os.MkdirAll(path, os.ModePerm)
+}
 
-func isDocumentationFile(filename string) bool {
+func (c *CommandDocs) isDocumentationCached(docsDir string) bool {
+	for _, subDir := range []string{"docs", "website/docs"} {
+		path := filepath.Join(docsDir, subDir)
+		if _, err := os.Stat(path); err == nil {
+			entries, err := os.ReadDir(path)
+			if err == nil && len(entries) > 0 {
+				cmdLogger.Printf("Found existing documentation in: %s", path)
+				return true
+			}
+		}
+	}
+	cmdLogger.Printf("No valid documentation cache found in: %s", docsDir)
+	return false
+}
+
+func (c *CommandDocs) isDocumentationFile(filename string) bool {
 	ext := strings.ToLower(filepath.Ext(filename))
 	return ext == ".md" || ext == ".markdown" ||
 		strings.HasSuffix(filename, ".html.md") ||
 		strings.HasSuffix(filename, ".html.markdown")
+}
+
+func (c *CommandDocs) showError(err error) int {
+	fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+	return 1
+}
+
+func (c *CommandDocs) outputSection(content, keyword string) {
+	fmt.Printf("=== Section matching '%s' ===\n", keyword)
+	fmt.Println(content)
+	fmt.Println("=== End of section ===")
+}
+
+// cleanupOldDocs removes outdated documentation
+func (c *CommandDocs) cleanupOldDocs(docsDir string) error {
+	if err := os.RemoveAll(docsDir); err != nil {
+		return fmt.Errorf("failed to clean up old documentation: %w", err)
+	}
+	return nil
+}
+
+// validateDocumentation checks if the documentation is valid and complete
+func (c *CommandDocs) validateDocumentation(docsDir string) error {
+	isModern, isLegacy := c.analyzeDocStructure(docsDir)
+	if !isModern && !isLegacy {
+		return fmt.Errorf("no valid documentation structure found in %s", docsDir)
+	}
+	return nil
 }
