@@ -358,6 +358,9 @@ func (c *RemoteClient) lockWithFile(ctx context.Context, info *statemgr.LockInfo
 		Key:         aws.String(c.lockFilePath),
 		IfNoneMatch: aws.String("*"),
 	}
+	if !c.skipS3Checksum {
+		input.ChecksumAlgorithm = s3types.ChecksumAlgorithmSha256
+	}
 
 	if c.serverSideEncryption {
 		if c.kmsKeyID != "" {
@@ -378,7 +381,8 @@ func (c *RemoteClient) lockWithFile(ctx context.Context, info *statemgr.LockInfo
 
 	log.Debug("Uploading lock file")
 
-	_, err = c.s3Client.PutObject(ctx, input)
+	uploader := manager.NewUploader(c.s3Client)
+	_, err = uploader.Upload(ctx, input)
 	if err != nil {
 		// Attempt to retrieve lock info from the file, and merge errors if it fails.
 		lockInfo, infoErr := c.getLockInfoWithFile(ctx)
