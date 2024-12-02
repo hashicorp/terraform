@@ -346,14 +346,14 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 // exist, the operation will succeed, acquiring the lock. If the lock file already exists, the operation
 // will fail due to a conditional write, indicating that the lock is already held by another Terraform client.
 func (c *RemoteClient) lockWithFile(ctx context.Context, info *statemgr.LockInfo, log hclog.Logger) error {
-	data, err := json.Marshal(info)
+	lockFileJson, err := json.Marshal(info)
 	if err != nil {
 		return err
 	}
 
 	input := &s3.PutObjectInput{
 		ContentType: aws.String("application/json"),
-		Body:        bytes.NewReader(data),
+		Body:        bytes.NewReader(lockFileJson),
 		Bucket:      aws.String(c.bucketName),
 		Key:         aws.String(c.lockFilePath),
 		IfNoneMatch: aws.String("*"),
@@ -381,7 +381,7 @@ func (c *RemoteClient) lockWithFile(ctx context.Context, info *statemgr.LockInfo
 
 	log.Debug("Uploading lock file")
 
-	uploader := manager.NewUploader(c.s3Client, func(u *manager.Uploader) {})
+	uploader := manager.NewUploader(c.s3Client)
 	_, err = uploader.Upload(ctx, input)
 	if err != nil {
 		// Attempt to retrieve lock info from the file, and merge errors if it fails.
