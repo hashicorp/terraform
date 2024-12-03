@@ -356,12 +356,16 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 				file.Status = moduletest.Error
 				continue // Abort!
 			}
+		}
 
-			if _, exists := runner.RelevantStates[key]; !exists {
-				runner.RelevantStates[key] = &TestFileState{
-					Run:   nil,
-					State: states.NewState(),
-				}
+		if run.Config.Options.StateAlias != "" {
+			key = run.Config.Options.StateAlias
+		}
+
+		if _, exists := runner.RelevantStates[key]; !exists {
+			runner.RelevantStates[key] = &TestFileState{
+				Run:   nil,
+				State: states.NewState(),
 			}
 		}
 
