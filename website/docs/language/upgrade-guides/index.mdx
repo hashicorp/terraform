@@ -29,6 +29,8 @@ keywords from moved blocks will need to prepend the reference identifier with `r
 
 ## S3 Backend 
 
+Executing `terraform init -reconfigure` is required after updating to Terraform v1.10. This removes the [deprecated fields](#root-assume-role-attribute-removal) from the internal state file.
+
 ### S3 Native State Locking
 
 The S3 backend now supports S3 native state locking as an opt-in, experimental feature.
@@ -56,6 +58,7 @@ In a future minor version of Terraform the experimental label will be removed fr
 
 Several root level attributes related to IAM role assumption which were previously deprecated have been removed.
 Each removed field has an analogous field inside the [`assume_role` block](https://developer.hashicorp.com/terraform/language/backend/s3#assume-role-configuration) which should be used instead.
+
 
 | Removed | Replacement |
 | --- | --- |
