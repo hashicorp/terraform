@@ -40,6 +40,7 @@ func validateDataStoreResourceConfig(req providers.ValidateResourceConfigRequest
 			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf(`%q attribute is read-only`, attr))
 		}
 	}
+
 	return resp
 }
 

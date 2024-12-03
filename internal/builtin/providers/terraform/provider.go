@@ -32,7 +32,8 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 			"terraform_remote_state": dataSourceRemoteStateGetSchema(),
 		},
 		ResourceTypes: map[string]providers.Schema{
-			"terraform_data": dataStoreResourceSchema(),
+			"terraform_data":    dataStoreResourceSchema(),
+			"terraform_example": exampleResourceSchema(),
 		},
 		EphemeralResourceTypes: map[string]providers.Schema{},
 		Functions: map[string]providers.FunctionDecl{
@@ -147,25 +148,50 @@ func (p *Provider) Stop() error {
 // currently-used version of the corresponding provider, and the upgraded
 // result is used for any further processing.
 func (p *Provider) UpgradeResourceState(req providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
-	return upgradeDataStoreResourceState(req)
+	switch req.TypeName {
+	case "terraform_data":
+		return upgradeDataStoreResourceState(req)
+	case "terraform_example":
+		return upgradeExample(req)
+	}
+	panic("unimplemented: cannot upgrade resource type " + req.TypeName)
 }
 
 // ReadResource refreshes a resource and returns its current state.
 func (p *Provider) ReadResource(req providers.ReadResourceRequest) providers.ReadResourceResponse {
-	return readDataStoreResourceState(req)
+	switch req.TypeName {
+	case "terraform_data":
+		return readDataStoreResourceState(req)
+	case "terraform_example":
+		return readExample(req)
+	}
+	panic("unimplemented: cannot read resource type " + req.TypeName)
 }
 
 // PlanResourceChange takes the current state and proposed state of a
 // resource, and returns the planned final state.
 func (p *Provider) PlanResourceChange(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
-	return planDataStoreResourceChange(req)
+	switch req.TypeName {
+	case "terraform_data":
+		return planDataStoreResourceChange(req)
+	case "terraform_example":
+		return planExample(req)
+	}
+	panic("unimplemented: cannot plan resource type " + req.TypeName)
 }
 
 // ApplyResourceChange takes the planned state for a resource, which may
 // yet contain unknown computed values, and applies the changes returning
 // the final state.
 func (p *Provider) ApplyResourceChange(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
-	return applyDataStoreResourceChange(req)
+	switch req.TypeName {
+	case "terraform_data":
+		return applyDataStoreResourceChange(req)
+	case "terraform_example":
+		return applyExample(req)
+	}
+
+	panic("unimplemented: cannot apply resource type " + req.TypeName)
 }
 
 // ImportResourceState requests that the given resource be imported.
@@ -193,6 +219,13 @@ func (p *Provider) MoveResourceState(req providers.MoveResourceStateRequest) pro
 
 // ValidateResourceConfig is used to to validate the resource configuration values.
 func (p *Provider) ValidateResourceConfig(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
+	var res providers.ValidateResourceConfigResponse
+	// This should not happen
+	if req.TypeName != "terraform_data" {
+		res.Diagnostics.Append(fmt.Errorf("Error: unsupported resource %s", req.TypeName))
+		return res
+	}
+
 	return validateDataStoreResourceConfig(req)
 }
 
