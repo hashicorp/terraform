@@ -43,8 +43,8 @@ func ComputeDiffForBlock(change structured.Change, block *jsonprovider.Block) co
 		childValue.AfterExplicit = false
 
 		childChange := ComputeDiffForAttribute(childValue, attr)
-		if childChange.Action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
-			// Don't record nil values at all in blocks.
+		if childChange.Action == plans.NoOp && childValue.Before == nil && childValue.After == nil && !attr.WriteOnly {
+			// Don't record nil values at all in blocks except if they are write-only.
 			continue
 		}
 

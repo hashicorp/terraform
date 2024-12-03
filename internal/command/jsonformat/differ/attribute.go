@@ -4,6 +4,7 @@
 package differ
 
 import (
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -17,6 +18,10 @@ func ComputeDiffForAttribute(change structured.Change, attribute *jsonprovider.A
 	if attribute.AttributeNestedType != nil {
 		return computeDiffForNestedAttribute(change, attribute.AttributeNestedType)
 	}
+	if attribute.WriteOnly {
+		return computeDiffForWriteOnlyAttribute(change)
+	}
+
 	return ComputeDiffForType(change, unmarshalAttribute(attribute))
 }
 
@@ -41,6 +46,10 @@ func computeDiffForNestedAttribute(change structured.Change, nested *jsonprovide
 	default:
 		panic("unrecognized nesting mode: " + nested.NestingMode)
 	}
+}
+
+func computeDiffForWriteOnlyAttribute(change structured.Change) computed.Diff {
+	return asDiff(change, renderers.WriteOnly())
 }
 
 func ComputeDiffForType(change structured.Change, ctype cty.Type) computed.Diff {

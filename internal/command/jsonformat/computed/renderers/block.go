@@ -76,6 +76,7 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 	buf.WriteString(fmt.Sprintf("{%s\n", forcesReplacement(diff.Replace, opts)))
 	for _, key := range attributeKeys {
 		attribute := renderer.attributes[key]
+		// TODO: make sure to show write-only attributes somewhere
 		if importantAttribute(key) {
 
 			// Always display the important attributes.
