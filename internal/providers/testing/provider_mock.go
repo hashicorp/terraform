@@ -368,8 +368,38 @@ func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 		return resp
 	}
 
-	// otherwise just return the same state we received
-	resp.NewState = r.PriorState
+	// otherwise just return the same state we received without the write-only attributes
+	// since there are old tests without a schema we default to the prior state
+	if schema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]; ok {
+
+		newVal, err := cty.Transform(r.PriorState, func(path cty.Path, v cty.Value) (cty.Value, error) {
+			// We're only concerned with known null values, which can be computed
+			// by the provider.
+			if !v.IsKnown() {
+				return v, nil
+			}
+
+			attrSchema := schema.Block.AttributeByPath(path)
+			if attrSchema == nil {
+				// this is an intermediate path which does not represent an attribute
+				return v, nil
+			}
+
+			// Write-only attributes always return null
+			if attrSchema.WriteOnly {
+				return cty.NullVal(v.Type()), nil
+			}
+
+			return v, nil
+		})
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+		}
+		resp.NewState = newVal
+	} else {
+		resp.NewState = r.PriorState
+	}
+
 	resp.Private = r.Private
 	return resp
 }
