@@ -126,10 +126,11 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() (funcs map[string]funct
 			if err != nil {
 				return cty.DynamicPseudoType, err
 			}
+			vars, _ := args[1].UnmarkDeep()
 
 			// This is safe even if args[1] contains unknowns because the HCL
 			// template renderer itself knows how to short-circuit those.
-			val, err := renderTmpl(expr, args[1])
+			val, err := renderTmpl(expr, vars)
 			return val.Type(), err
 		},
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
@@ -137,7 +138,7 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() (funcs map[string]funct
 
 			vars, varsMarks := args[1].UnmarkDeep()
 
-			if !pathArg.IsKnown() {
+			if !pathArg.IsKnown() || !vars.IsKnown() {
 				return cty.UnknownVal(retType).WithMarks(pathMarks, varsMarks), nil
 			}
 
