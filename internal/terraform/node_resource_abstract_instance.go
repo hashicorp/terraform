@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -695,6 +696,14 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		return state, deferred, diags
 	}
 
+	// Providers are supposed to return null values for all write-only attributes
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(resp.NewState, schema, n.ResolvedProvider, n.Addr)
+	diags = diags.Append(writeOnlyDiags)
+
+	if writeOnlyDiags.HasErrors() {
+		return state, deferred, diags
+	}
+
 	newState := objchange.NormalizeObjectFromLegacySDK(resp.NewState, schema)
 	if !newState.RawEquals(resp.NewState) {
 		// We had to fix up this object in some way, and we still need to
@@ -951,6 +960,14 @@ func (n *NodeAbstractResourceInstance) plan(
 			panic(fmt.Sprintf("PlanResourceChange of %s produced nil value", n.Addr))
 		}
 
+		// Providers are supposed to return null values for all write-only attributes
+		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(plannedNewVal, schema, n.ResolvedProvider, n.Addr)
+		diags = diags.Append(writeOnlyDiags)
+
+		if writeOnlyDiags.HasErrors() {
+			return nil, nil, deferred, keyData, diags
+		}
+
 		// We allow the planned new value to disagree with configuration _values_
 		// here, since that allows the provider to do special logic like a
 		// DiffSuppressFunc, but we still require that the provider produces
@@ -1126,6 +1143,14 @@ func (n *NodeAbstractResourceInstance) plan(
 			))
 		}
 		if diags.HasErrors() {
+			return nil, nil, deferred, keyData, diags
+		}
+
+		// Providers are supposed to return null values for all write-only attributes
+		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(plannedNewVal, schema, n.ResolvedProvider, n.Addr)
+		diags = diags.Append(writeOnlyDiags)
+
+		if writeOnlyDiags.HasErrors() {
 			return nil, nil, deferred, keyData, diags
 		}
 	}
@@ -2548,20 +2573,9 @@ func (n *NodeAbstractResourceInstance) apply(
 	}
 
 	// Providers are supposed to return null values for all write-only attributes
-	var writeOnlyDiags tfdiags.Diagnostics
-	if writeOnlyPaths := NonNullWriteOnlyPaths(newVal, schema, nil); len(writeOnlyPaths) != 0 {
-		for _, p := range writeOnlyPaths {
-			writeOnlyDiags = writeOnlyDiags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Write-only attribute set during apply",
-				fmt.Sprintf(
-					"Provider %q set the write-only attribute \"%s%s\" during apply. Write-only attributes must not be set by the provider during apply, so this is a bug in the provider, which should be reported in the provider's own issue tracker.",
-					n.ResolvedProvider.String(), n.Addr.String(), tfdiags.FormatCtyPath(p),
-				),
-			))
-		}
-		diags = diags.Append(writeOnlyDiags)
-	}
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(newVal, schema, n.ResolvedProvider, n.Addr)
+	diags = diags.Append(writeOnlyDiags)
+
 	if writeOnlyDiags.HasErrors() {
 		return nil, diags
 	}
@@ -2735,26 +2749,6 @@ func (n *NodeAbstractResourceInstance) apply(
 
 func (n *NodeAbstractResourceInstance) prevRunAddr(ctx EvalContext) addrs.AbsResourceInstance {
 	return resourceInstancePrevRunAddr(ctx, n.Addr)
-}
-
-// NonNullWriteOnlyPaths returns a list of paths to attributes that are write-only
-// and non-null in the given value.
-func NonNullWriteOnlyPaths(val cty.Value, schema *configschema.Block, p cty.Path) (paths []cty.Path) {
-	for name, attr := range schema.Attributes {
-		attrPath := append(p, cty.GetAttrStep{Name: name})
-		attrVal, _ := attrPath.Apply(val)
-		if attr.WriteOnly && !attrVal.IsNull() {
-			paths = append(paths, attrPath)
-		}
-	}
-
-	for name, blockS := range schema.BlockTypes {
-		blockPath := append(p, cty.GetAttrStep{Name: name})
-		x := NonNullWriteOnlyPaths(val, &blockS.Block, blockPath)
-		paths = append(paths, x...)
-	}
-
-	return paths
 }
 
 func resourceInstancePrevRunAddr(ctx EvalContext, currentAddr addrs.AbsResourceInstance) addrs.AbsResourceInstance {
