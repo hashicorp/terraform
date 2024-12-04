@@ -14,7 +14,7 @@ This page describes popular Terraform use cases and provides related resources t
 
 ## Codify your infrastructure
 
-By capturing and building your infrastructure as code, you make your deployments faster, repeatable, and easier to collaborate on. Terraform codifies cloud APIs into declarative configuration files, using HashiCorp Configuration Language (HCL). You define the desired state of your infrastructure in HCL and Terraform will deploy and configure the resources to match your configuration.
+By capturing and building your infrastructure as code, you make your deployments faster, repeatable, and easier to collaborate on. Terraform codifies cloud APIs into declarative configuration files using HashiCorp Configuration Language (HCL). You define the desired state of your infrastructure in HCL, and Terraform deploys and configures resources to match your configuration.
 
 In addition to configuring your networks, servers, and databases, you can also use Terraform to manage other resources like containers, machine images, web services, and observability services.
 
@@ -35,7 +35,9 @@ Provisioning infrastructure across multiple clouds increases fault-tolerance, al
 
 ## Multi-environment deployments
 
-You may have staging or QA environments that you use to test new applications before releasing them in production. As the production environment grows larger and more complex, it can be increasingly difficult to maintain an up-to-date environment for each stage of the development process. Terraform Stacks let you split your Terraform configuration into components and then deploy and manage those components across multiple environments. You can manage the lifecycle of each deployment separately, making it easy to validate changes throughout your deployments.
+Application development workflows can depend on multiple environments to test features, such as QA and staging, before releasing them to production. As production grows more complex, it becomes increasingly difficult to synchronize deployments and keep them up-to-date for each stage of the development process. 
+
+[Terraform Stacks](/terraform/language/stacks) let you split your Terraform configuration into components and then deploy and manage those components across multiple environments. You can manage the lifecycle of each deployment separately, making it easy to validate changes throughout your deployments.
 
 ### Resources
 
