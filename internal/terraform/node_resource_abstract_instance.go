@@ -707,19 +707,6 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 	ret.Value = newState
 	ret.Private = resp.Private
 
-	// We have no way to exempt provider using the legacy SDK from this check,
-	// so we can only log inconsistencies with the updated state values.
-	// In most cases these are not errors anyway, and represent "drift" from
-	// external changes which will be handled by the subsequent plan.
-	if errs := objchange.AssertObjectCompatible(schema, priorVal, ret.Value); len(errs) > 0 {
-		var buf strings.Builder
-		fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s during refresh.", n.ResolvedProvider.Provider.String(), absAddr)
-		for _, err := range errs {
-			fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
-		}
-		log.Print(buf.String())
-	}
-
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostRefresh(n.HookResourceIdentity(), deposedKey, priorVal, ret.Value)
