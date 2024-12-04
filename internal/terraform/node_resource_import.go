@@ -106,7 +106,8 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 		TypeName: n.Addr.Resource.Resource.Type,
 		ID:       n.ID,
 		ClientCapabilities: providers.ClientCapabilities{
-			DeferralAllowed: false,
+			DeferralAllowed:            false,
+			WriteOnlyAttributesAllowed: true,
 		},
 	})
 	diags = diags.Append(resp.Diagnostics)

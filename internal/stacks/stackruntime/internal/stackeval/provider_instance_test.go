@@ -384,7 +384,8 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 					"test": cty.StringVal("yep"),
 				}),
 				ClientCapabilities: providers.ClientCapabilities{
-					DeferralAllowed: true,
+					DeferralAllowed:            true,
+					WriteOnlyAttributesAllowed: true,
 				},
 			}
 			if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
@@ -426,7 +427,8 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 					"test": cty.StringVal("yep"),
 				}),
 				ClientCapabilities: providers.ClientCapabilities{
-					DeferralAllowed: true,
+					DeferralAllowed:            true,
+					WriteOnlyAttributesAllowed: true,
 				},
 			}
 			if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
