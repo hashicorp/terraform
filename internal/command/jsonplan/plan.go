@@ -758,6 +758,15 @@ func (p *plan) marshalRelevantAttrs(plan *plans.Plan) error {
 
 		p.RelevantAttributes = append(p.RelevantAttributes, ResourceAttr{addr, path})
 	}
+
+	// we want our outputs to be deterministic, so we'll sort the attributes
+	// here. The order of the attributes is not important, as long as it is
+	// stable.
+
+	sort.SliceStable(p.RelevantAttributes, func(i, j int) bool {
+		return strings.Compare(fmt.Sprintf("%#v", plan.RelevantAttributes[i]), fmt.Sprintf("%#v", plan.RelevantAttributes[j])) < 0
+	})
+
 	return nil
 }
 

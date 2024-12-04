@@ -1,4 +1,6 @@
 {
+  "applyable": true,
+  "complete": true,
   "configuration": {
     "root_module": {
       "outputs": {
@@ -65,7 +67,8 @@
       }
     }
   },
-  "format_version": "1.1",
+  "errored": false,
+  "format_version": "1.2",
   "output_changes": {
     "list_empty_default": {
       "actions": [

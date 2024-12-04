@@ -54,7 +54,7 @@ Run the following commands to install the `terraform-stacks-cli` using Fedora.
 
 ```shell-session
 $ sudo dnf install -y dnf-plugins-core
-$ sudo dnf config-manager --add-repo https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
+$ sudo dnf config-manager addrepo --from-repofile=https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
 $ sudo dnf -y install terraform-stacks-cli
 ```
 

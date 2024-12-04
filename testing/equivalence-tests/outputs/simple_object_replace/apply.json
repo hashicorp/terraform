@@ -103,6 +103,7 @@
     "changes": {
       "add": 1,
       "change": 0,
+      "import": 0,
       "operation": "apply",
       "remove": 1
     },

@@ -1,45 +1,72 @@
 ---
-page_title: Upgrading to Terraform v1.9
-description: Upgrading to Terraform v1.9
+page_title: Upgrading to Terraform v1.10
+description: Upgrading to Terraform v1.10
 ---
 
-# Upgrading to Terraform v1.9
+# Upgrading to Terraform v1.10
 
 -> **Tip:** Use the version selector to view the upgrade guides for older Terraform versions.
 
-Terraform v1.9 is a minor release in the stable Terraform v1.0 series.
+Terraform v1.10 is a minor release in the stable Terraform v1.0 series.
 
-Terraform v1.9 honors the
-[Terraform v1.0 Compatibility Promises](https://developer.hashicorp.com/terraform/language/v1-compatibility-promises),
-but there are two changes that may require additional upgrade steps:
+Terraform v1.10 honors the
+[Terraform v1.0 Compatibility Promises](https://developer.hashicorp.com/terraform/language/v1-compatibility-promises).
+There are minor changes that may require additional upgrade steps:
 
-- `.tftest.hcl` files no longer support the `version` attribute in the `provider` block.
-- `import` blocks will now report an error if the `to` attribute points to a module that does not exist.
+- `moved` blocks will now report an error if `from` or `to` points to a resource type conflicting with reserved keywords
 
-See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.9/CHANGELOG.md)
+See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.10/CHANGELOG.md)
 for more details. If you encounter any problems during upgrading which are not
 covered this guide, please start a new topic in
 [the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core)
 to discuss it.
 
-## Provider constraints in `.tftest.hcl` files
+## Conflicting `moved` block references
 
-In Terraform v1.9, the `version` attribute has been removed from the `provider`
-block in the `.tftest.hcl` files. Terraform test files are not meant to be used
-to specify provider versions, so this attribute has been removed to reflect the
-intent of the test files.
+Moved blocks now respect reserved keywords such as `local`, `each`, `self` etc. when parsing resource addresses.
+Configurations that reference resources with type names that match top level blocks and
+keywords from moved blocks will need to prepend the reference identifier with `resource.`.
 
-If you are using the `version` attribute in the `provider` block in your test
-files, you will need to remove it before running `terraform test` with Terraform
-v1.9. Instead, you should update the `required_providers` block in your main
-configuration to specify the provider version constraints.
+## S3 Backend 
+
+Executing `terraform init -reconfigure` is required after updating to Terraform v1.10. This removes the [deprecated fields](#root-assume-role-attribute-removal) from the internal state file.
+
+### S3 Native State Locking
+
+The S3 backend now supports S3 native state locking as an opt-in, experimental feature.
+An S3 lock can be used alongside a DynamoDB lock, or independently.
+When both locking mechanisms are configured, a lock must be successfully acquired from both locations before subsequent operations will proceed.
+
+To opt-in to S3 native state locking, set `use_lockfile` to `true`.
+
+```terraform
+terraform {
+  backend "s3" {
+    # additional configuration omitted for brevity
+    use_lockfile = true
+  }
+}
+```
+
+With S3 locking enabled, a lock file will be placed in the same location as the state file.
+The lock file will be named identically to the state file, but with a `.tflock` extension.
+**S3 bucket policies and IAM policies attached to the calling principal may need to be adjusted to include permissions for the new lock file.**
+
+In a future minor version of Terraform the experimental label will be removed from the `use_lockfile` attribute and attributes related to DynamoDB based locking will be deprecated.
+
+### Root Assume Role Attribute Removal
+
+Several root level attributes related to IAM role assumption which were previously deprecated have been removed.
+Each removed field has an analogous field inside the [`assume_role` block](https://developer.hashicorp.com/terraform/language/backend/s3#assume-role-configuration) which should be used instead.
 
 
-## Invalid `import` blocks
-
-In Terraform v1.9, the `import` block will now report an error if the `to`
-attribute points to a module that does not exist. Previously, Terraform would
-silently ignore these `import` blocks.
-
-If you have `import` blocks that reference a module that does not exist, you
-will need to update your configuration to remove or correct them.
+| Removed | Replacement |
+| --- | --- |
+| `role_arn` | `assume_role.role_arn` |
+| `session_name` | `assume_role.session_name` |
+| `external_id` | `assume_role.external_id` |
+| `assume_role_duration_seconds` | `assume_role.duration` |
+| `assume_role_policy` | `assume_role.policy` |
+| `assume_role_policy_arns` | `assume_role.policy_arn` |
+| `assume_role_tags` | `assume_role.tags` |
+| `assume_role_transitive_tag_keys` | `assume_role.transitive_tag_keys` |
