@@ -439,7 +439,8 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			PriorPrivate:     currentState.Private,
 			ProviderMeta:     metaConfigVal,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
+				DeferralAllowed:            deferralAllowed,
+				WriteOnlyAttributesAllowed: true,
 			},
 		})
 		deferred = resp.Deferred
@@ -639,7 +640,8 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 			Private:      state.Private,
 			ProviderMeta: metaConfigVal,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
+				DeferralAllowed:            deferralAllowed,
+				WriteOnlyAttributesAllowed: true,
 			},
 		})
 
@@ -941,7 +943,8 @@ func (n *NodeAbstractResourceInstance) plan(
 			PriorPrivate:     priorPrivate,
 			ProviderMeta:     metaConfigVal,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
+				DeferralAllowed:            deferralAllowed,
+				WriteOnlyAttributesAllowed: true,
 			},
 		})
 		// If we don't support deferrals, but the provider reports a deferral and does not
@@ -1114,7 +1117,8 @@ func (n *NodeAbstractResourceInstance) plan(
 				PriorPrivate:     plannedPrivate,
 				ProviderMeta:     metaConfigVal,
 				ClientCapabilities: providers.ClientCapabilities{
-					DeferralAllowed: deferralAllowed,
+					DeferralAllowed:            deferralAllowed,
+					WriteOnlyAttributesAllowed: true,
 				},
 			})
 
@@ -1561,7 +1565,8 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 			Config:       configVal,
 			ProviderMeta: metaConfigVal,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
+				DeferralAllowed:            deferralAllowed,
+				WriteOnlyAttributesAllowed: true,
 			},
 		})
 
