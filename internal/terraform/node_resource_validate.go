@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -355,6 +356,60 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		)
 
 		if n.Config.Managed != nil { // can be nil only in tests with poorly-configured mocks
+
+			if n.Config.Managed.NewIgnoreChanges != nil {
+				keyData, selfAddr := n.stubRepetitionData(n.Config.Count != nil, n.Config.ForEach != nil)
+				val, ignoreChangesDiags := n.evaluateExpr(ctx, n.Config.Managed.NewIgnoreChanges, cty.List(cty.String), selfAddr, keyData)
+				diags = diags.Append(ignoreChangesDiags)
+
+				if !ignoreChangesDiags.HasErrors() {
+					// Check for the deprecated "*" form of ignore_changes
+					for it := val.ElementIterator(); it.Next(); {
+						_, v := it.Element()
+
+						if v.AsString() == "*" {
+							diags = diags.Append(&hcl.Diagnostic{
+								Severity: hcl.DiagError,
+								Summary:  "Invalid ignore_changes wildcard",
+								Detail:   "The [\"*\"] form of ignore_changes wildcard was deprecated and is now invalid. Use \"ignore_changes = all\" to ignore changes to all attributes.",
+								Subject:  n.Config.Managed.NewIgnoreChanges.Range().Ptr(),
+							})
+						}
+
+						// The range is slightly off, not sure if we can be better than this
+						traversal, traversalDiags := stringToTraversal(v.AsString(), n.Config.Managed.NewIgnoreChanges.Range())
+						diags = diags.Append(traversalDiags)
+						// validate the ignore_changes traversals apply.
+						moreDiags := schema.StaticValidateTraversal(traversal)
+						diags = diags.Append(moreDiags)
+
+						// ignore_changes cannot be used for Computed attributes,
+						// unless they are also Optional.
+						// If the traversal was valid, convert it to a cty.Path and
+						// use that to check whether the Attribute is Computed and
+						// non-Optional.
+						if !diags.HasErrors() {
+							path := traversalToPath(traversal)
+
+							attrSchema := schema.AttributeByPath(path)
+
+							if attrSchema != nil && !attrSchema.Optional && attrSchema.Computed {
+								// ignore_changes uses absolute traversal syntax in config despite
+								// using relative traversals, so we strip the leading "." added by
+								// FormatCtyPath for a better error message.
+								attrDisplayPath := strings.TrimPrefix(tfdiags.FormatCtyPath(path), ".")
+
+								diags = diags.Append(&hcl.Diagnostic{
+									Severity: hcl.DiagWarning,
+									Summary:  "Redundant ignore_changes element",
+									Detail:   fmt.Sprintf("Adding an attribute name to ignore_changes tells Terraform to ignore future changes to the argument in configuration after the object has been created, retaining the value originally configured.\n\nThe attribute %s is decided by the provider alone and therefore there can be no configured value to compare with. Including this attribute in ignore_changes has no effect. Remove the attribute from ignore_changes to quiet this warning.", attrDisplayPath),
+									Subject:  &n.Config.TypeRange,
+								})
+							}
+						}
+					}
+				}
+			}
 			for _, traversal := range n.Config.Managed.IgnoreChanges {
 				// validate the ignore_changes traversals apply.
 				moreDiags := schema.StaticValidateTraversal(traversal)
@@ -766,4 +821,23 @@ func validateResourceForbiddenEphemeralValues(ctx EvalContext, value cty.Value, 
 		))
 	}
 	return diags
+}
+
+// stringToTraversal converts a string representing an HCL traversal to a hcl.Traversal
+func stringToTraversal(str string, rng hcl.Range) (hcl.Traversal, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+	traversal, tDiags := hclsyntax.ParseTraversalAbs(
+		[]byte(str),
+		rng.Filename,
+		rng.Start,
+	)
+	diags = append(diags, tDiags...)
+	scopedTraversal := hclsyntax.ScopeTraversalExpr{
+		Traversal: traversal,
+		SrcRange:  rng,
+	}
+
+	traversal, travDiags := hcl.RelTraversalForExpr(&scopedTraversal)
+	diags = append(diags, travDiags...)
+	return traversal, diags
 }

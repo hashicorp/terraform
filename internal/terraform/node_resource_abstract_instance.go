@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -881,7 +882,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	// starting values.
 	// Here we operate on the marked values, so as to revert any changes to the
 	// marks as well as the value.
-	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(priorVal, origConfigVal, schema)
+	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(ctx, priorVal, origConfigVal, schema, keyData)
 	diags = diags.Append(ignoreChangeDiags)
 	if ignoreChangeDiags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
@@ -1028,7 +1029,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		// A nil schema is passed to processIgnoreChanges to indicate that we
 		// don't want to fixup a config value according to the schema when
 		// ignoring "all", rather we are reverting provider imposed changes.
-		plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(unmarkedPriorVal, plannedNewVal, nil)
+		plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(ctx, unmarkedPriorVal, plannedNewVal, nil, keyData)
 		diags = diags.Append(ignoreChangeDiags)
 		if ignoreChangeDiags.HasErrors() {
 			return nil, nil, deferred, keyData, diags
@@ -1223,14 +1224,43 @@ func (n *NodeAbstractResourceInstance) plan(
 	return plan, state, deferred, keyData, diags
 }
 
-func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
+func (n *NodeAbstractResource) processIgnoreChanges(ctx EvalContext, prior, config cty.Value, schema *configschema.Block, keyData instances.RepetitionData) (cty.Value, tfdiags.Diagnostics) {
 	// ignore_changes only applies when an object already exists, since we
 	// can't ignore changes to a thing we've not created yet.
 	if prior.IsNull() {
 		return config, nil
 	}
 
-	ignoreChanges := traversalsToPaths(n.Config.Managed.IgnoreChanges)
+	if n.Config.Managed.NewIgnoreChanges == nil {
+		return config, nil
+	}
+
+	var diags tfdiags.Diagnostics
+	expr := n.Config.Managed.NewIgnoreChanges
+	refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRef, expr)
+	diags = diags.Append(refDiags)
+
+	scope := ctx.EvaluationScope(nil, nil, keyData)
+
+	hclCtx, moreDiags := scope.EvalContext(refs)
+	diags = diags.Append(moreDiags)
+
+	ignoreChangesVal, hclDiags := expr.Value(hclCtx)
+	diags = diags.Append(hclDiags)
+	if diags.HasErrors() {
+		return config, diags
+	}
+
+	var traversals []hcl.Traversal
+	for it := ignoreChangesVal.ElementIterator(); it.Next(); {
+		_, v := it.Element()
+		traversal, traversalDiags := stringToTraversal(v.AsString(), n.Config.Managed.NewIgnoreChanges.Range())
+		diags = diags.Append(traversalDiags)
+
+		traversals = append(traversals, traversal)
+	}
+
+	ignoreChanges := traversalsToPaths(traversals)
 	ignoreAll := n.Config.Managed.IgnoreAllChanges
 
 	if len(ignoreChanges) == 0 && !ignoreAll {
