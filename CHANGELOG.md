@@ -1,11 +1,11 @@
-## 1.10.1 (Unreleased)
+## 1.10.1 (December 4, 2024)
 
 BUG FIXES:
-- cli: Complex variables values set via environment variables were parsed incorrectly during apply [GH-36121]
-- config: `templatefile` would panic if given and entirely unknown map of variables [GH-36118]
-- config: `templatefile` would panic if the variables map contains marked values [GH-36127]
-- config: Remove constraint that an expanded resource block must only be used in conjunction with imports using `for_each` [GH-36119]
-- backend/s3: Lock files could not be written to buckets with object locking enabled [GH-36120]
+- cli: Complex variables values set via environment variables were parsed incorrectly during apply ([#36121](https://github.com/hashicorp/terraform/issues/36121))
+- config: `templatefile` would panic if given and entirely unknown map of variables ([#36118](https://github.com/hashicorp/terraform/issues/36118))
+- config: `templatefile` would panic if the variables map contains marked values ([#36127](https://github.com/hashicorp/terraform/issues/36127))
+- config: Remove constraint that an expanded resource block must only be used in conjunction with imports using `for_each` ([#36119](https://github.com/hashicorp/terraform/issues/36119))
+- backend/s3: Lock files could not be written to buckets with object locking enabled ([#36120](https://github.com/hashicorp/terraform/issues/36120))
 
 ## 1.10.0 (November 27, 2024)
 
