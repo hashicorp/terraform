@@ -45,7 +45,7 @@ func NewResolver(internalManifest modsdir.Manifest) *Resolver {
 // and return a new manifest encapsulating this information.
 func (r *Resolver) Resolve(cfg *configs.Config) *Manifest {
 	// First find all the referenced modules.
-	r.findAndTrimReferencedEntries(cfg, nil)
+	r.findAndTrimReferencedEntries(cfg, nil, nil)
 
 	return r.manifest
 }
@@ -54,12 +54,12 @@ func (r *Resolver) Resolve(cfg *configs.Config) *Manifest {
 // and attempt find a caller for every entry in the internal module manifest.
 // If an entry is found, it will be removed from the internal manifest and
 // appended to the manifest that records this new information in a nested heirarchy.
-func (r *Resolver) findAndTrimReferencedEntries(cfg *configs.Config, parentRecord *Record) {
+func (r *Resolver) findAndTrimReferencedEntries(cfg *configs.Config, parentRecord *Record, parentKey *string) {
 	var name string
 	var versionConstraints version.Constraints
-	if cfg.Parent != nil {
-		for key, config := range cfg.Parent.Children {
-			if config.SourceAddr.String() == cfg.SourceAddr.String() {
+	if parentKey != nil {
+		for key := range cfg.Parent.Children {
+			if key == *parentKey {
 				name = key
 				if cfg.Parent.Module.ModuleCalls[key] != nil {
 					versionConstraints = cfg.Parent.Module.ModuleCalls[key].Version.Required
@@ -93,7 +93,7 @@ func (r *Resolver) findAndTrimReferencedEntries(cfg *configs.Config, parentRecor
 	}
 
 	// Traverse the child configurations
-	for _, childCfg := range cfg.Children {
-		r.findAndTrimReferencedEntries(childCfg, childRecord)
+	for childKey, childCfg := range cfg.Children {
+		r.findAndTrimReferencedEntries(childCfg, childRecord, &childKey)
 	}
 }
