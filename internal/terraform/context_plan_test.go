@@ -1762,6 +1762,10 @@ func TestContext2Plan_blockNestingGroup(t *testing.T) {
 				"baz": cty.NullVal(cty.String),
 			}),
 		}),
+		ClientCapabilities: providers.ClientCapabilities{
+			DeferralAllowed:            false,
+			WriteOnlyAttributesAllowed: true,
+		},
 	}
 	if !cmp.Equal(got, want, valueTrans) {
 		t.Errorf("wrong PlanResourceChange request\n%s", cmp.Diff(got, want, valueTrans))

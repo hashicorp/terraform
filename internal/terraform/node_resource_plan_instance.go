@@ -652,7 +652,8 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			TypeName: addr.Resource.Resource.Type,
 			ID:       importId,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
+				DeferralAllowed:            deferralAllowed,
+				WriteOnlyAttributesAllowed: true,
 			},
 		})
 	}
