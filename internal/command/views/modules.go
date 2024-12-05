@@ -48,7 +48,7 @@ func (v *ModulesHuman) Display(manifest moduleref.Manifest) int {
 		Children: manifest.Records,
 	})
 
-	v.view.streams.Println(fmt.Sprintf("Modules declared by configuration:\n\n%s", printRoot.String()))
+	v.view.streams.Println(fmt.Sprintf("\nModules declared by configuration:\n%s", printRoot.String()))
 	return 0
 }
 
