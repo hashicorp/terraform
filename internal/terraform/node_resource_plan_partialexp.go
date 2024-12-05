@@ -278,6 +278,9 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 	if sensitivePaths := schema.SensitivePaths(plannedNewVal, nil); len(sensitivePaths) != 0 {
 		plannedNewVal = marks.MarkPaths(plannedNewVal, marks.Sensitive, sensitivePaths)
 	}
+	if writeOnlyPaths := schema.WriteOnlyPaths(plannedNewVal, nil); len(writeOnlyPaths) != 0 {
+		plannedNewVal = marks.MarkPaths(plannedNewVal, marks.Ephemeral, writeOnlyPaths)
+	}
 
 	change.After = plannedNewVal
 	change.Private = resp.PlannedPrivate

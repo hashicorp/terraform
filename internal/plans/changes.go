@@ -611,22 +611,27 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 	// We don't accept any other marks here. The caller should have dealt
 	// with those somehow and replaced them with unmarked placeholders before
 	// writing the value into the state.
-	unmarkedBefore, marksesBefore := c.Before.UnmarkDeepWithPaths()
-	unmarkedAfter, marksesAfter := c.After.UnmarkDeepWithPaths()
-	sensitiveAttrsBefore, unsupportedMarksesBefore := marks.PathsWithMark(marksesBefore, marks.Sensitive)
-	sensitiveAttrsAfter, unsupportedMarksesAfter := marks.PathsWithMark(marksesAfter, marks.Sensitive)
-	if len(unsupportedMarksesBefore) != 0 {
+	unmarkedBefore, marksBefore := c.Before.UnmarkDeepWithPaths()
+	unmarkedAfter, marksAfter := c.After.UnmarkDeepWithPaths()
+
+	sensitiveAttrsBefore, remainingMarksBefore := marks.PathsWithMark(marksBefore, marks.Sensitive)
+	sensitiveAttrsAfter, remainingMarksAfter := marks.PathsWithMark(marksAfter, marks.Sensitive)
+
+	writeOnlyAttrsBefore, remainingMarksBefore := marks.PathsWithMark(remainingMarksBefore, marks.Ephemeral)
+	writeOnlyAttrsAfter, remainingMarksAfter := marks.PathsWithMark(remainingMarksAfter, marks.Ephemeral)
+
+	if len(remainingMarksBefore) != 0 {
 		return nil, fmt.Errorf(
 			"prior value %s: can't serialize value marked with %#v (this is a bug in Terraform)",
-			tfdiags.FormatCtyPath(unsupportedMarksesBefore[0].Path),
-			unsupportedMarksesBefore[0].Marks,
+			tfdiags.FormatCtyPath(remainingMarksBefore[0].Path),
+			remainingMarksBefore[0].Marks,
 		)
 	}
-	if len(unsupportedMarksesAfter) != 0 {
+	if len(remainingMarksAfter) != 0 {
 		return nil, fmt.Errorf(
 			"new value %s: can't serialize value marked with %#v (this is a bug in Terraform)",
-			tfdiags.FormatCtyPath(unsupportedMarksesAfter[0].Path),
-			unsupportedMarksesAfter[0].Marks,
+			tfdiags.FormatCtyPath(remainingMarksAfter[0].Path),
+			remainingMarksAfter[0].Marks,
 		)
 	}
 
@@ -645,6 +650,8 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 		After:                afterDV,
 		BeforeSensitivePaths: sensitiveAttrsBefore,
 		AfterSensitivePaths:  sensitiveAttrsAfter,
+		BeforeWriteOnlyPaths: writeOnlyAttrsBefore,
+		AfterWriteOnlyPaths:  writeOnlyAttrsAfter,
 		Importing:            c.Importing.Encode(),
 		GeneratedConfig:      c.GeneratedConfig,
 	}, nil

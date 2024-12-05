@@ -633,6 +633,37 @@ output "out" {
 				})
 			},
 		},
+		"write_only reference in output": {
+			module: map[string]string{
+				"main.tf": `
+variable "ephem" {
+  type      = string
+  ephemeral = true
+}
+
+resource "ephem_write_only" "producer" {
+    write_only = var.ephem
+	static     = "foo"
+}
+
+output "disallowed" {
+  value = ephem_write_only.producer.write_only
+}
+`,
+			},
+			inputs: InputValues{
+				"ephem": &InputValue{
+					Value: cty.StringVal("ami"),
+				},
+			},
+			expectPlanDiagnostics: func(m *configs.Config) (diags tfdiags.Diagnostics) {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Ephemeral value not allowed",
+					Detail:   `This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.`,
+				})
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if tc.toBeImplemented {
@@ -678,6 +709,10 @@ output "out" {
 										Type:      cty.String,
 										WriteOnly: true,
 										Optional:  true,
+									},
+									"static": {
+										Type:     cty.String,
+										Optional: true,
 									},
 								},
 							},

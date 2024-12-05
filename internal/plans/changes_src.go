@@ -388,6 +388,14 @@ type ChangeSrc struct {
 	// the serialized change.
 	BeforeSensitivePaths, AfterSensitivePaths []cty.Path
 
+	// BeforeWriteOnlyPaths and AfterWriteOnlyPaths are the paths for any
+	// values in Before or After (respectively) that are considered to be
+	// WriteOnly. The WriteOnly marks are removed from the in-memory values
+	// to enable encoding (marked values cannot be marshalled), and so we
+	// store the WriteOnly paths to allow re-marking later when we decode
+	// the serialized change.
+	BeforeWriteOnlyPaths, AfterWriteOnlyPaths []cty.Path
+
 	// Importing is present if the resource is being imported as part of this
 	// change.
 	//
