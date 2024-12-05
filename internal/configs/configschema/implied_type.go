@@ -59,6 +59,30 @@ func (b *Block) ContainsSensitive() bool {
 	return false
 }
 
+// ContainsWriteOnly returns true if any of the attributes of the receiving
+// block or any of its descendant blocks are marked as WriteOnly.
+//
+// Blocks themselves cannot be WriteOnly as a whole -- sensitivity is a
+// per-attribute idea -- but sometimes we want to include a whole object
+// decoded from a block in some UI output, and that is safe to do only if
+// none of the contained attributes are WriteOnly.
+func (b *Block) ContainsWriteOnly() bool {
+	for _, attrS := range b.Attributes {
+		if attrS.WriteOnly {
+			return true
+		}
+		if attrS.NestedType != nil && attrS.NestedType.ContainsWriteOnly() {
+			return true
+		}
+	}
+	for _, blockS := range b.BlockTypes {
+		if blockS.ContainsWriteOnly() {
+			return true
+		}
+	}
+	return false
+}
+
 // ImpliedType returns the cty.Type that would result from decoding a Block's
 // ImpliedType and getting the resulting AttributeType.
 //
@@ -129,6 +153,20 @@ func (o *Object) ContainsSensitive() bool {
 			return true
 		}
 		if attrS.NestedType != nil && attrS.NestedType.ContainsSensitive() {
+			return true
+		}
+	}
+	return false
+}
+
+// ContainsWriteOnly returns true if any of the attributes of the receiving
+// Object are marked as WriteOnly.
+func (o *Object) ContainsWriteOnly() bool {
+	for _, attrS := range o.Attributes {
+		if attrS.WriteOnly {
+			return true
+		}
+		if attrS.NestedType != nil && attrS.NestedType.ContainsWriteOnly() {
 			return true
 		}
 	}
