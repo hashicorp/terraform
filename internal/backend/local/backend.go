@@ -14,6 +14,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -183,6 +184,55 @@ func (b *Local) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	return diags
+}
+
+// TODO: We need access to variables, as a POC it might be sufficient to put locals
+// and functions in in the beginning, but maybe just all if it's easier.
+// Maybe take a look where the hcl.EvalContext is normally constructed.
+func (b *Local) DynamicConfigure(body hcl.Body) (cty.Value, hcl.Diagnostics) {
+	fmt.Println("DynamicConfigure")
+	content, diags := body.Content(&hcl.BodySchema{
+		Attributes: []hcl.AttributeSchema{
+			{
+				Name: "path",
+			},
+			{
+				Name: "workspace_dir",
+			},
+		},
+	})
+
+	if diags.HasErrors() {
+		return cty.NilVal, diags
+	}
+
+	path := cty.StringVal(DefaultStateFilename)
+	workspaceDir := cty.StringVal(DefaultWorkspaceDir)
+
+	if attr, ok := content.Attributes["path"]; ok {
+		val, moreDiags := attr.Expr.Value(&hcl.EvalContext{})
+		if moreDiags.HasErrors() {
+			return cty.NilVal, moreDiags
+		}
+
+		if !val.Type().Equals(cty.String) {
+			panic(fmt.Sprintf("expected a string, got %#v", val.Type()))
+		}
+
+		path = val
+	}
+	fmt.Printf("\n\t path --> %#v \n", path)
+	ret := cty.ObjectVal(map[string]cty.Value{
+		"path":          path,
+		"workspace_dir": workspaceDir,
+	})
+
+	unhandledDiags := b.Configure(ret)
+	if unhandledDiags.HasErrors() {
+		panic(fmt.Sprintf("unhandled diagnostics: %s", unhandledDiags))
+	}
+
+	return ret, diags
 }
 
 func (b *Local) ServiceDiscoveryAliases() ([]backendrun.HostAlias, error) {

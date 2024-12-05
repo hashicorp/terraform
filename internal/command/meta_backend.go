@@ -1380,46 +1380,54 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	}
 	b := f()
 
-	schema := b.ConfigSchema()
-	decSpec := schema.NoneRequired().DecoderSpec()
-	configVal, hclDiags := hcldec.Decode(c.Config, decSpec, nil)
-	diags = diags.Append(hclDiags)
-	if hclDiags.HasErrors() {
-		return nil, cty.NilVal, diags
-	}
-
-	if !configVal.IsWhollyKnown() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Unknown values within backend definition",
-			"The `terraform` configuration block should contain only concrete and static values. Another diagnostic should contain more information about which part of the configuration is problematic."))
-		return nil, cty.NilVal, diags
-	}
-
-	// TODO: test
-	if m.Input() {
-		var err error
-		configVal, err = m.inputForSchema(configVal, schema)
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("Error asking for input to configure backend %q: %s", c.Type, err))
+	var configVal cty.Value
+	var hclDiags hcl.Diagnostics
+	if db, ok := b.(backend.DynamicBackend); ok {
+		configVal, hclDiags = db.DynamicConfigure(c.Config)
+		fmt.Printf("\n\t hclDiags --> %#v \n", hclDiags.Error())
+		fmt.Printf("\n\t configVal --> %#v \n", configVal)
+	} else {
+		schema := b.ConfigSchema()
+		decSpec := schema.NoneRequired().DecoderSpec()
+		configVal, hclDiags = hcldec.Decode(c.Config, decSpec, nil)
+		diags = diags.Append(hclDiags)
+		if hclDiags.HasErrors() {
+			return nil, cty.NilVal, diags
 		}
 
-		// We get an unknown here if the if the user aborted input, but we can't
-		// turn that into a config value, so set it to null and let the provider
-		// handle it in PrepareConfig.
-		if !configVal.IsKnown() {
-			configVal = cty.NullVal(configVal.Type())
+		if !configVal.IsWhollyKnown() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Unknown values within backend definition",
+				"The `terraform` configuration block should contain only concrete and static values. Another diagnostic should contain more information about which part of the configuration is problematic."))
+			return nil, cty.NilVal, diags
 		}
-	}
 
-	newVal, validateDiags := b.PrepareConfig(configVal)
-	diags = diags.Append(validateDiags.InConfigBody(c.Config, ""))
-	if validateDiags.HasErrors() {
-		return nil, cty.NilVal, diags
-	}
+		// TODO: test
+		if m.Input() {
+			var err error
+			configVal, err = m.inputForSchema(configVal, schema)
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("Error asking for input to configure backend %q: %s", c.Type, err))
+			}
 
-	configureDiags := b.Configure(newVal)
-	diags = diags.Append(configureDiags.InConfigBody(c.Config, ""))
+			// We get an unknown here if the if the user aborted input, but we can't
+			// turn that into a config value, so set it to null and let the provider
+			// handle it in PrepareConfig.
+			if !configVal.IsKnown() {
+				configVal = cty.NullVal(configVal.Type())
+			}
+		}
+
+		newVal, validateDiags := b.PrepareConfig(configVal)
+		diags = diags.Append(validateDiags.InConfigBody(c.Config, ""))
+		if validateDiags.HasErrors() {
+			return nil, cty.NilVal, diags
+		}
+
+		configureDiags := b.Configure(newVal)
+		diags = diags.Append(configureDiags.InConfigBody(c.Config, ""))
+	}
 
 	// If the result of loading the backend is an enhanced backend,
 	// then set up enhanced backend service aliases.

@@ -12,6 +12,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -103,4 +104,9 @@ type Backend interface {
 	// States returns a list of the names of all of the workspaces that exist
 	// in this backend.
 	Workspaces() ([]string, error)
+}
+
+// TODO: instead of replacing configure it seems in hindsight smarter to replace the prepare config interface instead
+type DynamicBackend interface {
+	DynamicConfigure(hcl.Body) (cty.Value, hcl.Diagnostics)
 }
