@@ -107,7 +107,7 @@ is represented by
 
 The `configs` package contains some low-level functionality for constructing
 configuration objects, but the main entry point is in the sub-package
-[`configload`](http://localhost:8080/github.com/hashicorp/terraform/internal/configs/configload]),
+[`configload`](http://localhost:8080/github.com/hashicorp/terraform/internal/configs/configload),
 via
 [`configload.Loader`](http://localhost:8080/github.com/hashicorp/terraform/internal/configs/configload#Loader).
 A loader deals with all of the details of installing child modules
