@@ -176,6 +176,15 @@ func (m ModuleCallOutput) UniqueKey() UniqueKey {
 
 func (m ModuleCallOutput) uniqueKeySigil() {}
 
+func (m ModuleCallOutput) ConfigOutputValue() ConfigOutputValue {
+	return ConfigOutputValue{
+		Module: Module{m.Call.Name},
+		OutputValue: OutputValue{
+			Name: m.Name,
+		},
+	}
+}
+
 // ModuleCallInstanceOutput is the address of a particular named output produced by
 // an instance of a module call.
 type ModuleCallInstanceOutput struct {
