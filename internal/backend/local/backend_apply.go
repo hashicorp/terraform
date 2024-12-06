@@ -106,7 +106,7 @@ func (b *Local) opApply(
 			// actions but that any it does include will be properly-formed.
 			// plan.Errored will be true in this case, which our plan
 			// renderer can rely on to tailor its messaging.
-			if plan != nil && (len(plan.Changes.Resources) != 0 || len(plan.Changes.Outputs) != 0) {
+			if plan != nil && plan.Changes != nil && (len(plan.Changes.Resources) != 0 || len(plan.Changes.Outputs) != 0) {
 				op.View.Plan(plan, schemas)
 			}
 			op.ReportResult(runningOp, diags)
