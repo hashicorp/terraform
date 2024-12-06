@@ -10,6 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -1960,6 +1961,67 @@ func TestAssertPlanValid(t *testing.T) {
 					cty.ObjectVal(map[string]cty.Value{
 						"input":    cty.StringVal("b"),
 						"computed": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+			[]string{},
+		},
+
+		"write-only attributes": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:      cty.String,
+						WriteOnly: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.String),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("write-only").Mark(marks.Ephemeral),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.String),
+			}),
+			[]string{},
+		},
+
+		"nested write-only attributes": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"foo": {
+									Type:      cty.String,
+									WriteOnly: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.StringVal("write-only").Mark(marks.Ephemeral),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.NullVal(cty.String),
 					}),
 				}),
 			}),

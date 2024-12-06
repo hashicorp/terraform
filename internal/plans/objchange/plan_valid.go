@@ -301,6 +301,16 @@ func assertPlannedValueValid(attrS *configschema.Attribute, priorV, configV, pla
 		return errs
 	}
 
+	if attrS.WriteOnly {
+		// The provider is not allowed to return non-null values for write-only attributes
+		if !plannedV.IsNull() {
+			errs = append(errs, path.NewErrorf("planned value for write-only attribute is not null"))
+		}
+
+		// We don't want to evaluate further if the attribute is write-only and null
+		return errs
+	}
+
 	switch {
 	// The provider can plan any value for a computed-only attribute. There may
 	// be a config value here in the case where a user used `ignore_changes` on
