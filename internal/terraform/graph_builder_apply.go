@@ -188,6 +188,8 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ReferenceTransformer{},
 		&AttachDependenciesTransformer{},
 
+		&OutputReferencesTransformer{},
+
 		// Nested data blocks should be loaded after every other resource has
 		// done its thing.
 		&checkStartTransformer{Config: b.Config, Operation: b.Operation},

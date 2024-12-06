@@ -615,16 +615,17 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 	unmarkedAfter, marksesAfter := c.After.UnmarkDeepWithPaths()
 	sensitiveAttrsBefore, unsupportedMarksesBefore := marks.PathsWithMark(marksesBefore, marks.Sensitive)
 	sensitiveAttrsAfter, unsupportedMarksesAfter := marks.PathsWithMark(marksesAfter, marks.Sensitive)
+
 	if len(unsupportedMarksesBefore) != 0 {
 		return nil, fmt.Errorf(
-			"prior value %s: can't serialize value marked with %#v (this is a bug in Terraform)",
+			"prior value %s: cannot serialize value marked with %#v (this is a bug in Terraform)",
 			tfdiags.FormatCtyPath(unsupportedMarksesBefore[0].Path),
 			unsupportedMarksesBefore[0].Marks,
 		)
 	}
 	if len(unsupportedMarksesAfter) != 0 {
 		return nil, fmt.Errorf(
-			"new value %s: can't serialize value marked with %#v (this is a bug in Terraform)",
+			"new value %s: cannot serialize value marked with %#v (this is a bug in Terraform)",
 			tfdiags.FormatCtyPath(unsupportedMarksesAfter[0].Path),
 			unsupportedMarksesAfter[0].Marks,
 		)

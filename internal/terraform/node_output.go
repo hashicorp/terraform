@@ -46,6 +46,8 @@ type nodeExpandOutput struct {
 	Overrides *mocking.Overrides
 
 	Dependencies []addrs.ConfigResource
+
+	Dependants []*addrs.Reference
 }
 
 var (
@@ -136,6 +138,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 					Planning:     n.Planning,
 					Override:     n.getOverrideValue(absAddr.Module),
 					Dependencies: n.Dependencies,
+					Dependants:   n.Dependants,
 				}
 			}
 
@@ -283,6 +286,8 @@ type NodeApplyableOutput struct {
 	// Dependencies is the full set of resources that are referenced by this
 	// output.
 	Dependencies []addrs.ConfigResource
+
+	Dependants []*addrs.Reference
 }
 
 var (
@@ -379,6 +384,21 @@ func (n *NodeApplyableOutput) References() []*addrs.Reference {
 
 // GraphNodeExecutable
 func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	if n.Config.DeprecatedSet {
+		ctx.MarkReferencableAsDeprecated(n.Config.Addr().InModule(n.Addr.Module.Module()), n.Config.Deprecated)
+	}
+
+	for _, ref := range n.References() {
+		if msg, ok := ctx.ReferencableDeprecationMessage(n.Addr.Module.Module(), ref.Subject); ok {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Usage of deprecated output",
+				Detail:   msg,
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+		}
+	}
+
 	state := ctx.State()
 	if state == nil {
 		return
