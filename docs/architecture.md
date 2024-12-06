@@ -37,7 +37,7 @@ but it applies to the main Terraform workflow commands `terraform plan` and
 For these commands, the role of the command implementation is to read and parse
 any command line arguments, command line options, and environment variables
 that are needed for the given command and use them to produce a
-[`backend.Operation`](http://localhost:8080/github.com/hashicorp/terraform/internal/backend#Operation)
+[`backendrun.Operation`](http://localhost:8080/github.com/hashicorp/terraform/internal/backend/backendrun#Operation)
 object that describes an action to be taken.
 
 An _operation_ consists of:
@@ -59,7 +59,7 @@ mapping table in
 [the `backend/init` package](http://localhost:8080/github.com/hashicorp/terraform/internal/backend/init).
 
 Backends that are able to execute operations additionally implement
-[`backend.Enhanced`](http://localhost:8080/github.com/hashicorp/terraform/internal/backend#Enhanced);
+[`backendrun.OperationsBackend`](http://localhost:8080/github.com/hashicorp/terraform/internal/backend/backendrun#OperationsBackend);
 the command-handling code calls `Operation` with the operation it has
 constructed, and then the backend is responsible for executing that action.
 
