@@ -48,15 +48,6 @@ func (c *ModulesCommand) Run(rawArgs []string) int {
 	// Set up the command's view
 	view := views.NewModules(c.viewType, c.View)
 
-	// TODO: Remove this check once a human readable view is supported
-	// for this command
-	if c.viewType != arguments.ViewJSON {
-		c.Ui.Error(
-			"The `terraform modules` command requires the `-json` flag.\n")
-		c.Ui.Error(modulesCommandHelp)
-		return 1
-	}
-
 	rootModPath, err := ModulePath([]string{})
 	if err != nil {
 		diags = diags.Append(err)
@@ -129,8 +120,13 @@ func (c *ModulesCommand) internalManifest() (modsdir.Manifest, tfdiags.Diagnosti
 }
 
 const modulesCommandHelp = `
-Usage: terraform [global options] modules -json
+Usage: terraform [global options] modules [options]
 
   Prints out a list of all declared Terraform modules and their resolved versions
   in a Terraform working directory.
+
+Options:
+
+  -json            If specified, output declared Terraform modules and
+                   their resolved versions in a machine-readable format.
 `
