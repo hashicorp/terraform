@@ -1,12 +1,10 @@
 ---
-page_title: Initializing Working Directories - Terraform CLI
+page_title: Initialize the Terraform working directory
 description: >-
-  Working directories contain configurations, settings, cached plugins and
-  modules, and state data. Learn how to initialize and manage working
-  directories.
+  Learn how to initialize the working directory with the terraform init command, which installs plugins and modules defined in the configuration and retrieves state data.  
 ---
 
-# Initializing Working Directories
+# Initialize the Working Directory
 
 Terraform expects to be invoked from a working directory that contains
 configuration files written in
@@ -29,10 +27,9 @@ A Terraform working directory typically contains:
   record the last known backend configuration in case it needs to migrate state
   on the next run. This directory is automatically managed by Terraform, and is
   created during initialization.
-- State data, if the configuration uses the default `local` backend. This is
-  managed by Terraform in a `terraform.tfstate` file (if the directory only uses
-  the default workspace) or a `terraform.tfstate.d` directory (if the directory
-  uses multiple workspaces).
+- State data when the configuration uses the default `local` backend. Terraform manages state in a `terraform.tfstate` file when the directory only uses
+  the default workspace or a `terraform.tfstate.d` directory when the directory
+  uses multiple workspaces.
 
 ## Initialization
 

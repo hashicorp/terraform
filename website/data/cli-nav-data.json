@@ -77,7 +77,7 @@
     ]
   },
   {
-    "title": "Manipulating State",
+    "title": "Manually Update State",
     "routes": [
       { "title": "Overview", "path": "state" },
       {
@@ -266,7 +266,6 @@
       { "title": "<code>apply</code>", "href": "/cli/commands/apply" },
       { "title": "<code>console</code>", "href": "/cli/commands/console" },
       { "title": "<code>destroy</code>", "href": "/cli/commands/destroy" },
-      { "title": "<code>env</code>", "href": "/cli/commands/env" },
       { "title": "<code>fmt</code>", "href": "/cli/commands/fmt" },
       {
         "title": "<code>force-unlock</code>",
@@ -367,7 +366,6 @@
       { "title": "apply", "path": "commands/apply" },
       { "title": "console", "path": "commands/console" },
       { "title": "destroy", "path": "commands/destroy" },
-      { "title": "env", "path": "commands/env" },
       { "title": "fmt", "path": "commands/fmt" },
       { "title": "force-unlock", "path": "commands/force-unlock" },
       { "title": "get", "path": "commands/get" },

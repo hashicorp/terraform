@@ -1,34 +1,32 @@
 ---
-page_title: Manipulating State - Terraform CLI
+page_title: Update Terraform state manually
 description: >-
-  State data tracks which real-world object corresponds to each resource.
-  Inspect state, move or import resources, and more.
+  State data is the record of how real-world objects map to resources in the Terraform configuration. Learn how to manually update with state data.
 ---
 
-# Manipulating Terraform State
+# Update Terraform state manually overview
+
+This topic provides overview information about how to manually update state in Terraform. 
 
 > **Hands-on:** Try the [Manage Resources in Terraform State](/terraform/tutorials/state/state-cli?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
-Terraform uses [state data](/terraform/language/state) to remember which
-real-world object corresponds to each resource in the configuration;
-this allows it to modify an existing object when its resource declaration
-changes.
+## Introduction
 
-Terraform updates state automatically during plans and applies. However, it's
-sometimes necessary to make deliberate adjustments to Terraform's state data,
-usually to compensate for changes to the configuration or the real managed
-infrastructure.
+Terraform stores information about real-world object that correspond to resources in the configuration as [state data](/terraform/language/state).
+Doing so allows Terraform to modify an existing object when its resource declaration changes.
 
-Terraform CLI supports several workflows for interacting with state:
+Terraform automatically updates state when you run the `terraform plan` and `terraform apply` commands, but you may need to manually adjustment state data as a result of changes to the configuration or the real managed infrastructure.
 
-- [Inspecting State](/terraform/cli/state/inspect)
-- [Forcing Re-creation](/terraform/cli/state/taint)
-- [Moving Resources](/terraform/cli/state/move)
-- Importing Pre-existing Resources (documented in the
-  [Importing Infrastructure](/terraform/cli/import) section)
-- [Disaster Recovery](/terraform/cli/state/recover)
+## Workflow
 
-~> **Important:** Modifying state data outside a normal plan or apply can cause
-Terraform to lose track of managed resources, which might waste money, annoy
-your colleagues, or even compromise the security of your operations. Make sure
-to keep backups of your state data when modifying state out-of-band.
+Modifying state data outside of normal `terraform plan` or `terraform apply` operations can cause Terraform to lose track of managed resources, leading to increased costs, reduced productivity, or compromised security. Make sure to keep backups of your state data if you choose to manually modify state.
+
+You can use the Terraform CLI to perform the following state interations:
+
+- [Inspect state](/terraform/cli/state/inspect)
+- [Re-create resources](/terraform/cli/state/taint)
+- [Move resources](/terraform/cli/state/move)
+- [Import existing resources](/terraform/cli/import) 
+- [Recover state from backup](/terraform/cli/state/recover)
+
+

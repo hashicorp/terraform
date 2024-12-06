@@ -1,27 +1,29 @@
 ---
-page_title: Plugin Signing
+page_title: Plugin signatures 
 description: >-
-  Learn about the types of signatures providers can have on the Terraform
-  Registry.
+  Signatures help you determine the authenticity of the plugins you want to install. Learn about the types of signatures providers can have on the Terraform registry.
 ---
 
 <!-- THIS PAGED IS LINKED TO IN THE CLI -->
 
-# Plugin Signing
+# Plugin signatures
 
-~> **Note** Terraform only authenticates provider plugins fetched from a registry.
+This topic provides information about the types of signatures that can be built into plugins you install. Terraform only authenticates provider plugins fetched from a registry.
 
-Terraform providers installed from the Registry are cryptographically signed, and the signature is verified at time of installation. There are three types of provider signatures, each with different trust implications:
+## Types of plugin signatures
 
-* **Signed by HashiCorp** - are built, signed, and supported by HashiCorp.
-* **Signed by Trusted Partners** - are built, signed, and supported by a third party. HashiCorp has
-  verified the ownership of the private key and we provide a chain of trust to the CLI to verify this
-  programatically.
-* **Self-signed** - are built, signed, and supported by a third party. HashiCorp does not provide a
+Terraform providers installed from the registry are cryptographically signed. Terraform verifies the signature during installation. There are three types of signatures:
+
+* Providers signed by HashiCorp: HashiCorp builds, signs, and supports these providers.
+* Providers signed by trusted partners: A third party builds, signs, and supports these providers. HashiCorp verifies the ownership of the private key and provides a chain of trust to the CLI to verify ownership programatically.
+* Self-signed providers: A third party builds, signs, and supports these providers. HashiCorp does not provide a
   verification or chain of trust for the signature. You may obtain and validate fingerprints manually
   if you want to ensure you are using a binary you can trust.
 
-Terraform does **NOT** support fetching and using unsigned binaries, but you can manually install
-unsigned binaries. You should take extreme care when doing so as no programatic authentication is performed.
+## Unsigned binaries
 
-Usage of plugins from the registry is subject to the Registry's [Terms of Use](https://registry.terraform.io/terms).
+You cannot fetch and use unsigned binaries from the registry, but you can manually install unsigned binaries. We strongly recommend that you thoroughly vetting providers that you manually install so that these providers do not programatically authenticate.
+
+## Registry terms of use
+
+Use of plugins from the registry is subject to the registry's [terms of use](https://registry.terraform.io/terms).
