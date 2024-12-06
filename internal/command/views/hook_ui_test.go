@@ -129,7 +129,7 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
 
-	time.Sleep(3100 * time.Millisecond)
+	time.Sleep(3005 * time.Millisecond)
 
 	// stop the background writer
 	uiState := h.resources[addr.String()]
@@ -143,7 +143,8 @@ test_instance.foo: Still modifying... [id=test, 3s elapsed]
 `
 	result := done(t)
 	output := result.Stdout()
-	if output != expectedOutput {
+	// we do not test for equality because time.Sleep can take longer than declared time
+	if !strings.HasPrefix(output, expectedOutput) {
 		t.Fatalf("Output didn't match.\nExpected: %q\nGiven: %q", expectedOutput, output)
 	}
 
@@ -619,7 +620,9 @@ func TestUiHookEphemeralOp_progress(t *testing.T) {
 		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
 
+	start := time.Now()
 	time.Sleep(2005 * time.Millisecond)
+	elapsed := time.Since(start).Round(time.Second)
 
 	action, err = h.PostEphemeralOp(testUiHookResourceID(addr), plans.Open, nil)
 	if err != nil {
@@ -630,14 +633,19 @@ func TestUiHookEphemeralOp_progress(t *testing.T) {
 	}
 
 	result := done(t)
+	stdout := result.Stdout()
 
-	want := `ephemeral.test_instance.foo: Opening...
+	// we do not test for equality because time.Sleep can take longer than declared time
+	wantPrefix := `ephemeral.test_instance.foo: Opening...
 ephemeral.test_instance.foo: Still opening... [1s elapsed]
-ephemeral.test_instance.foo: Still opening... [2s elapsed]
-ephemeral.test_instance.foo: Opening complete after 2s
-`
-	if got := result.Stdout(); got != want {
-		t.Fatalf("unexpected output\n got: %q\nwant: %q", got, want)
+ephemeral.test_instance.foo: Still opening... [2s elapsed]`
+	if !strings.HasPrefix(stdout, wantPrefix) {
+		t.Fatalf("unexpected prefix\n got: %q\nwant: %q", stdout, wantPrefix)
+	}
+	wantSuffix := fmt.Sprintf(`ephemeral.test_instance.foo: Opening complete after %s
+`, elapsed)
+	if !strings.HasSuffix(stdout, wantSuffix) {
+		t.Fatalf("unexpected prefix\n got: %q\nwant: %q", stdout, wantSuffix)
 	}
 }
 
