@@ -921,7 +921,7 @@ func TestApply_planWithVarFile(t *testing.T) {
 
 func TestApply_planWithVarFileChangingVariableValue(t *testing.T) {
 	varFileDir := testTempDir(t)
-	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
+	varFilePath := filepath.Join(varFileDir, "terraform-test.tfvars")
 	if err := os.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -950,6 +950,7 @@ func TestApply_planWithVarFileChangingVariableValue(t *testing.T) {
 
 	args := []string{
 		"-state-out", statePath,
+		"-var-file", varFilePath,
 		planPath,
 	}
 	code := c.Run(args)
@@ -1354,6 +1355,52 @@ func TestApply_changedVars_applyTime(t *testing.T) {
 
 		if !strings.Contains(output.Stderr(), `Can't change variable when applying a saved plan`) {
 			t.Fatalf("missing undeclared warning:\n%s", output.All())
+		}
+	})
+
+	t.Run("var-file-override-auto", func(t *testing.T) {
+		// for this one we're going to do a full plan to make sure the variables
+		// can be applied consistently. The plan specifies a var file, and
+		// during apply we don't want to override that with the default or auto
+		// var files.
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("apply-vars-auto"), td)
+		defer testChdir(t, td)()
+
+		p := planVarsFixtureProvider()
+		view, done := testView(t)
+		c := &PlanCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-var-file", "terraform-test.tfvars",
+			"-out", "planfile",
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("non-zero exit %d\n\n%s", code, output.Stderr())
+		}
+
+		view, done = testView(t)
+		apply := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               new(cli.MockUi),
+				View:             view,
+			},
+		}
+		args = []string{
+			"planfile",
+		}
+		code = apply.Run(args)
+		output = done(t)
+		if code != 0 {
+			t.Fatalf("non-zero exit %d\n\n%s", code, output.Stderr())
 		}
 	})
 }

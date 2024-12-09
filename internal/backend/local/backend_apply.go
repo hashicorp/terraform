@@ -340,7 +340,11 @@ func (b *Local) opApply(
 						Subject:  rng,
 					})
 				} else {
-					if parsedVar.Value.Equals(plannedVar).False() {
+					// The user can't override the planned variables, so we
+					// error when possible to avoid confusion. If the parsed
+					// variables comes from an auto-file however, it's not input
+					// directly by the user so we have to ignore it.
+					if parsedVar.Value.Equals(plannedVar).False() && parsedVar.SourceType != terraform.ValueFromAutoFile {
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
 							Summary:  "Can't change variable when applying a saved plan",
