@@ -424,3 +424,11 @@ func (c *MockEvalContext) Forget() bool {
 	c.ForgetCalled = true
 	return c.ForgetValues
 }
+
+func (ctx *MockEvalContext) ReferencableDeprecationMessage(addrs.Module, addrs.Referenceable) (string, bool) {
+	// TODO: implement
+	return "", false
+}
+func (ctx *MockEvalContext) MarkReferencableAsDeprecated(addrs.ConfigOutputValue, string) {
+	// TODO: implement
+}

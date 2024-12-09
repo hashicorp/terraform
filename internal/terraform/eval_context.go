@@ -212,6 +212,10 @@ type EvalContext interface {
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowed in the context of a destroy plan.
 	Forget() bool
+
+	// ReferencableDeprecationMessage returns the deprecation message for the referencable
+	ReferencableDeprecationMessage(addrs.Module, addrs.Referenceable) (string, bool)
+	MarkReferencableAsDeprecated(addrs.ConfigOutputValue, string)
 }
 
 func evalContextForModuleInstance(baseCtx EvalContext, addr addrs.ModuleInstance) EvalContext {

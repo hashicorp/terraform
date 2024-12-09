@@ -91,6 +91,7 @@ type BuiltinEvalContext struct {
 	InstanceExpanderValue   *instances.Expander
 	MoveResultsValue        refactoring.MoveResults
 	OverrideValues          *mocking.Overrides
+	DeprecatedReferencables map[string]string
 }
 
 // BuiltinEvalContext implements EvalContext
@@ -611,4 +612,29 @@ func (ctx *BuiltinEvalContext) Forget() bool {
 
 func (ctx *BuiltinEvalContext) EphemeralResources() *ephemeral.Resources {
 	return ctx.EphemeralResourcesValue
+}
+
+func (ctx *BuiltinEvalContext) ReferencableDeprecationMessage(m addrs.Module, x addrs.Referenceable) (string, bool) {
+	// TODO: We want to make this available in node_resource_validation, therefore we want to talk about config objects, the referencable should somehow contain the config object, how do we get it out?
+	if foo, ok := x.(addrs.ModuleCallInstanceOutput); ok {
+		cov := addrs.ConfigOutputValue{
+			Module: m,
+			OutputValue: addrs.OutputValue{
+				Name: foo.Name,
+			},
+		}
+
+		fmt.Printf("\n\t ctx.DeprecatedReferencables --> %#v \n", ctx.DeprecatedReferencables)
+		fmt.Printf("\n\t cov.String() --> %#v \n", cov.String())
+		msg, ok := ctx.DeprecatedReferencables[cov.String()]
+		return msg, ok
+	}
+
+	return "", false
+}
+
+func (ctx *BuiltinEvalContext) MarkReferencableAsDeprecated(x addrs.ConfigOutputValue, msg string) {
+	fmt.Printf("\n\t marking x --> %#v \n", x)
+	fmt.Printf("\n\t msg --> %#v \n", msg)
+	ctx.DeprecatedReferencables[x.String()] = msg
 }
