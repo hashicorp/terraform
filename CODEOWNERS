@@ -29,4 +29,4 @@ builtin/provisioners/local-exec         @hashicorp/terraform-core
 builtin/provisioners/remote-exec        @hashicorp/terraform-core
 
 # Docs on developer.hashicorp.com/terraform/docs
-website/        @hashicorp/terraform-core @hashicorp/terraform-education
+website/        @hashicorp/terraform-core @hashicorp/terraform-education @hashicorp/web-presence
