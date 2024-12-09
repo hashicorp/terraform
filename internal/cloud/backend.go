@@ -689,7 +689,7 @@ func (b *Cloud) Workspaces() ([]string, error) {
 	return names, nil
 }
 
-// DeleteWorkspace implements backend.Enhanced.
+// DeleteWorkspace implements backend.Backend.
 func (b *Cloud) DeleteWorkspace(name string, force bool) error {
 	if name == backend.DefaultStateName {
 		return backend.ErrDefaultWorkspaceNotSupported

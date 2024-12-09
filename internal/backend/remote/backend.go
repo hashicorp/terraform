@@ -107,7 +107,7 @@ func New(services *disco.Disco) *Remote {
 	}
 }
 
-// ConfigSchema implements backend.Enhanced.
+// ConfigSchema implements backend.Backend.
 func (b *Remote) ConfigSchema() *configschema.Block {
 	return &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
@@ -221,7 +221,7 @@ func (b *Remote) ServiceDiscoveryAliases() ([]backendrun.HostAlias, error) {
 	}, nil
 }
 
-// Configure implements backend.Enhanced.
+// Configure implements backend.Backend.
 func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	if obj.IsNull() {
@@ -545,7 +545,7 @@ func (b *Remote) retryLogHook(attemptNum int, resp *http.Response) {
 	}
 }
 
-// Workspaces implements backend.Enhanced.
+// Workspaces implements backend.Backend.
 func (b *Remote) Workspaces() ([]string, error) {
 	if b.prefix == "" {
 		return nil, backend.ErrWorkspacesNotSupported
@@ -608,7 +608,7 @@ func (b *Remote) WorkspaceNamePattern() string {
 	return ""
 }
 
-// DeleteWorkspace implements backend.Enhanced.
+// DeleteWorkspace implements backend.Backend.
 func (b *Remote) DeleteWorkspace(name string, _ bool) error {
 	if b.workspace == "" && name == backend.DefaultStateName {
 		return backend.ErrDefaultWorkspaceNotSupported
@@ -636,7 +636,7 @@ func (b *Remote) DeleteWorkspace(name string, _ bool) error {
 	return client.Delete()
 }
 
-// StateMgr implements backend.Enhanced.
+// StateMgr implements backend.Backend.
 func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
 	if b.workspace == "" && name == backend.DefaultStateName {
 		return nil, backend.ErrDefaultWorkspaceNotSupported
@@ -744,7 +744,7 @@ func (b *Remote) fetchWorkspace(ctx context.Context, organization string, name s
 	return w, nil
 }
 
-// Operation implements backend.Enhanced.
+// Operation implements backendrun.OperationsBackend.
 func (b *Remote) Operation(ctx context.Context, op *backendrun.Operation) (*backendrun.RunningOperation, error) {
 	w, err := b.fetchWorkspace(ctx, b.organization, op.Workspace)
 

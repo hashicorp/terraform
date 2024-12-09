@@ -6,6 +6,7 @@ package views
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -497,7 +498,14 @@ func TestJSONHook_EphemeralOp_progress(t *testing.T) {
 		},
 	}
 
-	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+	stdout := done(t).Stdout()
+
+	// time.Sleep can take longer than declared time
+	// so we only test the first lines we expect to see after sleeping
+	lines := strings.SplitN(stdout, "\n", 4)
+	firstLines := strings.Join(lines[:4], "\n")
+
+	testJSONViewOutputEquals(t, firstLines, want)
 }
 
 func TestJSONHook_EphemeralOp_error(t *testing.T) {
