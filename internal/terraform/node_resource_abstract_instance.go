@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -438,7 +439,8 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			PriorPrivate:     currentState.Private,
 			ProviderMeta:     metaConfigVal,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
+				DeferralAllowed:            deferralAllowed,
+				WriteOnlyAttributesAllowed: true,
 			},
 		})
 		deferred = resp.Deferred
@@ -638,7 +640,8 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 			Private:      state.Private,
 			ProviderMeta: metaConfigVal,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
+				DeferralAllowed:            deferralAllowed,
+				WriteOnlyAttributesAllowed: true,
 			},
 		})
 
@@ -692,6 +695,14 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		))
 	}
 	if diags.HasErrors() {
+		return state, deferred, diags
+	}
+
+	// Providers are supposed to return null values for all write-only attributes
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(resp.NewState, schema, n.ResolvedProvider, n.Addr)
+	diags = diags.Append(writeOnlyDiags)
+
+	if writeOnlyDiags.HasErrors() {
 		return state, deferred, diags
 	}
 
@@ -919,7 +930,8 @@ func (n *NodeAbstractResourceInstance) plan(
 			PriorPrivate:     priorPrivate,
 			ProviderMeta:     metaConfigVal,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
+				DeferralAllowed:            deferralAllowed,
+				WriteOnlyAttributesAllowed: true,
 			},
 		})
 		// If we don't support deferrals, but the provider reports a deferral and does not
@@ -949,6 +961,14 @@ func (n *NodeAbstractResourceInstance) plan(
 			// is always a bug in the client-side stub. This is more likely caused
 			// by an incompletely-configured mock provider in tests, though.
 			panic(fmt.Sprintf("PlanResourceChange of %s produced nil value", n.Addr))
+		}
+
+		// Providers are supposed to return null values for all write-only attributes
+		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(plannedNewVal, schema, n.ResolvedProvider, n.Addr)
+		diags = diags.Append(writeOnlyDiags)
+
+		if writeOnlyDiags.HasErrors() {
+			return nil, nil, deferred, keyData, diags
 		}
 
 		// We allow the planned new value to disagree with configuration _values_
@@ -1025,9 +1045,12 @@ func (n *NodeAbstractResourceInstance) plan(
 	// Add the marks back to the planned new value -- this must happen after
 	// ignore changes have been processed. We add in the schema marks as well,
 	// to ensure that provider defined private attributes are marked correctly
-	// here.
+	// here. We remove the ephemeral marks, the provider is expected to return null
+	// for write-only attributes (the only place where ephemeral values are allowed).
+	// This is verified in objchange.AssertPlanValid already.
 	unmarkedPlannedNewVal := plannedNewVal
-	plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
+	_, nonEphemeralMarks := marks.PathsWithMark(unmarkedPaths, marks.Ephemeral)
+	plannedNewVal = plannedNewVal.MarkWithPaths(nonEphemeralMarks)
 	if sensitivePaths := schema.SensitivePaths(plannedNewVal, nil); len(sensitivePaths) != 0 {
 		plannedNewVal = marks.MarkPaths(plannedNewVal, marks.Sensitive, sensitivePaths)
 	}
@@ -1081,7 +1104,8 @@ func (n *NodeAbstractResourceInstance) plan(
 				PriorPrivate:     plannedPrivate,
 				ProviderMeta:     metaConfigVal,
 				ClientCapabilities: providers.ClientCapabilities{
-					DeferralAllowed: deferralAllowed,
+					DeferralAllowed:            deferralAllowed,
+					WriteOnlyAttributesAllowed: true,
 				},
 			})
 
@@ -1108,8 +1132,8 @@ func (n *NodeAbstractResourceInstance) plan(
 		plannedNewVal = resp.PlannedState
 		plannedPrivate = resp.PlannedPrivate
 
-		if len(unmarkedPaths) > 0 {
-			plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
+		if len(nonEphemeralMarks) > 0 {
+			plannedNewVal = plannedNewVal.MarkWithPaths(nonEphemeralMarks)
 		}
 
 		for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
@@ -1123,6 +1147,14 @@ func (n *NodeAbstractResourceInstance) plan(
 			))
 		}
 		if diags.HasErrors() {
+			return nil, nil, deferred, keyData, diags
+		}
+
+		// Providers are supposed to return null values for all write-only attributes
+		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(plannedNewVal, schema, n.ResolvedProvider, n.Addr)
+		diags = diags.Append(writeOnlyDiags)
+
+		if writeOnlyDiags.HasErrors() {
 			return nil, nil, deferred, keyData, diags
 		}
 	}
@@ -1520,7 +1552,8 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 			Config:       configVal,
 			ProviderMeta: metaConfigVal,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
+				DeferralAllowed:            deferralAllowed,
+				WriteOnlyAttributesAllowed: true,
 			},
 		})
 
@@ -2541,6 +2574,14 @@ func (n *NodeAbstractResourceInstance) apply(
 		// Bail early in this particular case, because an object that doesn't
 		// conform to the schema can't be saved in the state anyway -- the
 		// serializer will reject it.
+		return nil, diags
+	}
+
+	// Providers are supposed to return null values for all write-only attributes
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(newVal, schema, n.ResolvedProvider, n.Addr)
+	diags = diags.Append(writeOnlyDiags)
+
+	if writeOnlyDiags.HasErrors() {
 		return nil, diags
 	}
 

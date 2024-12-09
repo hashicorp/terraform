@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
@@ -651,7 +652,8 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			TypeName: addr.Resource.Resource.Type,
 			ID:       importId,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
+				DeferralAllowed:            deferralAllowed,
+				WriteOnlyAttributesAllowed: true,
 			},
 		})
 	}
@@ -711,8 +713,6 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		log.Printf("[TRACE] graphNodeImportState: import %s %q produced instance object of type %s", absAddr.String(), importId, obj.TypeName)
 	}
 
-	importedState := imported[0].AsInstanceObject()
-
 	// We can only call the hooks and validate the imported state if we have
 	// actually done the import.
 	if resp.Deferred == nil {
@@ -727,6 +727,15 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		return nil, deferred, diags
 	}
 
+	// Providers are supposed to return null values for all write-only attributes
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(imported[0].State, schema, n.ResolvedProvider, n.Addr)
+	diags = diags.Append(writeOnlyDiags)
+
+	if writeOnlyDiags.HasErrors() {
+		return nil, deferred, diags
+	}
+
+	importedState := imported[0].AsInstanceObject()
 	if deferred == nil && importedState.Value.IsNull() {
 		// It's actually okay for a deferred import to have returned a null.
 		diags = diags.Append(tfdiags.Sourceless(
