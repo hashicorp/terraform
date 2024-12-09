@@ -282,7 +282,7 @@ a plan operation would include the following high-level steps:
   this operation.
 
 Each execution step for a vertex is an implementation of
-[`terraform.Execute`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#Execute).
+[`terraform.GraphNodeExecutable.Execute`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#GraphNodeExecutable.Execute).
 As with graph transforms, the behavior of these implementations varies widely:
 whereas graph transforms can take any action against the graph, an `Execute`
 implementation can take any action against the `EvalContext`.
