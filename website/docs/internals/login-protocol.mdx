@@ -1,16 +1,14 @@
 ---
-page_title: Login Protocol
+page_title: Login protocol reference
 description: >-
-  The login protocol is used for authenticating Terraform against servers
-  providing Terraform-native services.
+  The login protocol authenticates Terraform against servers that provide Terraform-native services. Learn about the login protocol.
 ---
 
-# Server-side Login Protocol
+# Login Protocol Reference
 
-~> **Note:** You don't need to read these docs to _use_
-[`terraform login`](/terraform/cli/commands/login).  The information below is for
-anyone intending to implement the server side of `terraform login` in order to
-offer Terraform-native services in a third-party system.
+This topic provides reference information about the login protocol Terraform uses for authentication against servers that profide Terraform-native services. You can use this reference information to offer Terraform-native services in a third-party system.
+
+## Introduction
 
 The `terraform login` command supports performing an OAuth 2.0 authorization
 request using configuration provided by the target host. You may wish to
@@ -18,11 +16,12 @@ implement this protocol if you are producing a third-party implementation of
 any [Terraform-native services](/terraform/internals/remote-service-discovery),
 such as a Terraform module registry.
 
-First, Terraform uses
-[remote service discovery](/terraform/internals/remote-service-discovery) to
+## OAuth Configuration
+
+Terraform uses [remote service discovery](/terraform/internals/remote-service-discovery) to
 find the OAuth configuration for the host. The host must support the service
 name `login.v1` and define for it an object containing OAuth client
-configuration values, like this:
+configuration values. The following example describes a client that authenticates at ports `10000` and `10010`:
 
 ```json
 {
