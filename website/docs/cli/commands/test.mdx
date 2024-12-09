@@ -1,20 +1,22 @@
 ---
-page_title: 'Command: test'
+page_title: terraform test command reference
 description: >-
   The `terraform test` command loads and executes Terraform testing files.
 ---
 
-# Command: test
+# `terraform test` command
 
-The `terraform test` command reads in Terraform testing files and executes the tests within.
+The `terraform test` command loads and exectures Terraform testing files.
 
-The `test` command, and the test file syntax, are particularly helpful for module authors who want to validate and test their shared modules. You can also use the `test` command to validate root modules.
+## Introduction
+
+The `terraform test` command and the test file syntax help module authors validate and test their shared modules. You can also use the `terraform test` command to validate root modules.
 
 ## Usage
 
 Usage: `terraform test [options]`
 
-This command searches the current directory and the specified testing directory (`tests`, by default) for any Terraform testing files, and executes the specified tests. Refer to [Tests](/terraform/language/tests) for more details on test files.
+This command searches the current directory and the specified testing directory for Terraform testing files and executes the specified tests. By default, the directory containing test files is named `tests`. Refer to [Tests](/terraform/language/tests) for more details on test files.
 
 Terraform then executes a series of Terraform plan or apply commands according to the test files' specifications, and also validates the relevant plan and state files according to the test files' specifications.
 
@@ -22,7 +24,7 @@ Terraform then executes a series of Terraform plan or apply commands according t
 
 ## General Options
 
-The following options apply to the Terraform `test` command:
+The following options apply to the Terraform `terraform test` command:
 
 * `-cloud-run=<module source>` - This test run executes remotely on HCP Terraform within the specified Terraform [private registry](/terraform/language/modules/sources#terraform-registry) module.
 
@@ -40,7 +42,7 @@ Each Terraform test file will maintain all Terraform state it requires within me
 
 ### Terraform Test Cleanup
 
-The Terraform `test` command creates _real_ infrastructure. Once Terraform fully executes each test file, Terraform attempts to destroy any remaining infrastructure. If it cannot do this, Terraform reports a list of resources it created but could not destroy.
+The Terraform `terraform test` command creates _real_ infrastructure. Once Terraform fully executes each test file, Terraform attempts to destroy any remaining infrastructure. If it cannot do this, Terraform reports a list of resources it created but could not destroy.
 
 You should monitor the output of the test command closely to ensure Terraform removes the infrastructure it created or perform manual cleanup if not. We recommend creating dedicated testing accounts within the target providers that you can routinely and safely purge to ensure any accidental and costly resources aren't left behind.
 

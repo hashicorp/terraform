@@ -1,15 +1,19 @@
 ---
-page_title: CLI Configuration
+page_title: Create a Terraform CLI configuration file
 description: >-
-  Learn to use the CLI configuration file to customize your CLI settings,
-  including credentials, plugin caching, provider installation methods, etc.
+  Learn how to create a `.terraformrc` or `terraform.rc` file to define Terraform CLI settings, including credentials, plugin caching, and provider installation.
 ---
 
-# CLI Configuration File (`.terraformrc` or `terraform.rc`)
+# Create a Terraform CLI configuration file
+
+This topic describes how create a configuration file to customize the behavior of the Terraform CLI.
+
+## Introduction
 
 The CLI configuration file configures per-user settings for CLI behaviors,
 which apply across all Terraform working directories. This is separate from
-[your infrastructure configuration](/terraform/language).
+[your infrastructure configuration](/terraform/language). 
+You can define custom configurations in file with the `.terraformrc` extention a file named `terraform.rc`.
 
 ## Locations
 

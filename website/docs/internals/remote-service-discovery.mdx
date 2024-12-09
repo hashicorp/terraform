@@ -1,22 +1,23 @@
 ---
-page_title: 'Internals: Remote Service Discovery'
+page_title: Remote service discovery protocol reference
 description: |-
-  Remote service discovery is a protocol used to locate Terraform-native
-  services provided at a user-friendly hostname.
+  The remote service discovery protocol presents Terraform-native services at a human-readable hostname. Learn about the remote service discovery protocol.
 ---
 
-# Remote Service Discovery
+# Remote Service Discovery Protocol Reference
 
-Terraform implements much of its functionality in terms of remote services.
-While in many cases these are generic third-party services that are useful
-to many applications, some of these services are tailored specifically to
-Terraform's needs. We call these _Terraform-native services_, and Terraform
-interacts with them via the remote service discovery protocol described below.
+This topic provides reference information about the remote service discovery protocol in Terraform.
+
+## Introduction
+
+Terraform implements much of its functionality as remote services.
+Some of these are native services that Terraform
+interacts with through the remote service discovery protocol.
 
 ## User-facing Hostname
 
-Terraform-native services are provided, from a user's perspective, at a
-user-facing "friendly hostname" which serves as the key for configuration and
+Terraform provides native services at a
+human-readable hostname. The hostname is the key for configuration and
 for any authentication credentials required.
 
 The discovery protocol's purpose is to map from a user-provided hostname to
