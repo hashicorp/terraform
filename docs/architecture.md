@@ -298,7 +298,7 @@ In order to be executed, a vertex must implement
 which has a single `Execute` method that handles. There are numerous `Execute`
 implementations with different behaviors, but some prominent examples are:
 
-* [NodePlannableResource.Execute](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#NodePlannableResourceInstance.Execute), which handles the `plan` operation.
+* [`NodePlannableResource.Execute`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#NodePlannableResourceInstance.Execute), which handles the `plan` operation.
 
 * [`NodeApplyableResourceInstance.Execute`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#NodeApplyableResourceInstance.Execute), which handles the main `apply` operation.
 
