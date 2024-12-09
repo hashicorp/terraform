@@ -748,6 +748,9 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 	if moreSensitivePaths := schema.SensitivePaths(ret.Value, nil); len(moreSensitivePaths) != 0 {
 		ret.Value = marks.MarkPaths(ret.Value, marks.Sensitive, moreSensitivePaths)
 	}
+	if writeOnlyPaths := schema.WriteOnlyPaths(ret.Value, nil); len(writeOnlyPaths) != 0 {
+		ret.Value = marks.MarkPaths(ret.Value, marks.Ephemeral, writeOnlyPaths)
+	}
 
 	return ret, deferred, diags
 }
@@ -1066,6 +1069,9 @@ func (n *NodeAbstractResourceInstance) plan(
 	plannedNewVal = plannedNewVal.MarkWithPaths(nonEphemeralMarks)
 	if sensitivePaths := schema.SensitivePaths(plannedNewVal, nil); len(sensitivePaths) != 0 {
 		plannedNewVal = marks.MarkPaths(plannedNewVal, marks.Sensitive, sensitivePaths)
+	}
+	if writeOnlyPaths := schema.WriteOnlyPaths(plannedNewVal, nil); len(writeOnlyPaths) != 0 {
+		plannedNewVal = marks.MarkPaths(plannedNewVal, marks.Ephemeral, writeOnlyPaths)
 	}
 
 	reqRep, reqRepDiags := getRequiredReplaces(unmarkedPriorVal, unmarkedPlannedNewVal, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
@@ -2645,6 +2651,9 @@ func (n *NodeAbstractResourceInstance) apply(
 	newVal = newVal.MarkWithPaths(afterPaths)
 	if sensitivePaths := schema.SensitivePaths(newVal, nil); len(sensitivePaths) != 0 {
 		newVal = marks.MarkPaths(newVal, marks.Sensitive, sensitivePaths)
+	}
+	if writeOnlyPaths := schema.WriteOnlyPaths(newVal, nil); len(writeOnlyPaths) != 0 {
+		newVal = marks.MarkPaths(newVal, marks.Ephemeral, writeOnlyPaths)
 	}
 
 	if change.Action != plans.Delete && !diags.HasErrors() {

@@ -98,9 +98,32 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	// If it contains marks, remove these marks before traversing the
 	// structure with UnknownAsNull, and save the PathValueMarks
 	// so we can save them in state.
-	val, sensitivePaths, err := unmarkValueForStorage(o.Value)
+	val, remainingMarks := o.Value.UnmarkDeepWithPaths()
+
+	sensitivePaths, remainingMarks := marks.PathsWithMark(remainingMarks, marks.Sensitive)
+
+	writeOnlyPaths, remainingMarks := marks.PathsWithMark(remainingMarks, marks.Ephemeral)
+	// ensure we aren't attempting to persist real values after unmarking
+	err := cty.Walk(val, func(p cty.Path, v cty.Value) (bool, error) {
+		for _, woPath := range writeOnlyPaths {
+			if p.Equals(woPath) && !v.IsNull() {
+				return false, fmt.Errorf(
+					"%s: cannot serialize ephemeral value %#v for inclusion in a state snapshot (this is a bug in Terraform)",
+					tfdiags.FormatCtyPath(woPath), val.GoString(),
+				)
+			}
+		}
+		return true, nil
+	})
 	if err != nil {
 		return nil, err
+	}
+
+	if len(remainingMarks) != 0 {
+		return nil, fmt.Errorf(
+			"%s: cannot serialize value marked as %#v for inclusion in a state snapshot (this is a bug in Terraform)",
+			tfdiags.FormatCtyPath(remainingMarks[0].Path), remainingMarks[0].Marks,
+		)
 	}
 
 	// Our state serialization can't represent unknown values, so we convert
@@ -156,25 +179,4 @@ func (o *ResourceInstanceObject) AsTainted() *ResourceInstanceObject {
 	ret := o.DeepCopy()
 	ret.Status = ObjectTainted
 	return ret
-}
-
-// unmarkValueForStorage takes a value that possibly contains marked values
-// and returns an equal value without markings along with the separated mark
-// metadata that should be stored alongside the value in another field.
-//
-// This function only accepts the marks that are valid to store, and so will
-// return an error if other marks are present. Marks that this package doesn't
-// know how to store must be dealt with somehow by a caller -- presumably by
-// replacing each marked value with some sort of storage placeholder -- before
-// writing a value into the state.
-func unmarkValueForStorage(v cty.Value) (unmarkedV cty.Value, sensitivePaths []cty.Path, err error) {
-	val, pvms := v.UnmarkDeepWithPaths()
-	sensitivePaths, withOtherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
-	if len(withOtherMarks) != 0 {
-		return cty.NilVal, nil, fmt.Errorf(
-			"%s: cannot serialize value marked as %#v for inclusion in a state snapshot (this is a bug in Terraform)",
-			tfdiags.FormatCtyPath(withOtherMarks[0].Path), withOtherMarks[0].Marks,
-		)
-	}
-	return val, sensitivePaths, nil
 }
