@@ -33,15 +33,7 @@
       { "title": "Overview", "path": "code" },
       { "title": "<code>console</code>", "href": "/cli/commands/console" },
       { "title": "<code>fmt</code>", "href": "/cli/commands/fmt" },
-      { "title": "<code>validate</code>", "href": "/cli/commands/validate" },
-      {
-        "title": "<code>0.13upgrade</code>",
-        "href": "/cli/commands/0.13upgrade"
-      },
-      {
-        "title": "<code>0.12upgrade</code>",
-        "href": "/cli/commands/0.12upgrade"
-      }
+      { "title": "<code>validate</code>", "href": "/cli/commands/validate" }
     ]
   },
   {
@@ -62,17 +54,13 @@
     ]
   },
   {
-    "title": "Importing Infrastructure",
+    "title": "Import Infrastructure",
     "routes": [
       { "title": "Overview", "path": "import" },
+      { "title": "Import existing resources", "path": "import/usage" },
       {
-        "title": "<code>import</code>",
+        "title": "Reference",
         "href": "/cli/commands/import"
-      },
-      { "title": "Usage Tips", "path": "import/usage" },
-      {
-        "title": "Resource Importability",
-        "path": "import/importability"
       }
     ]
   },
@@ -293,10 +281,6 @@
         "title": "<code>providers schema</code>",
         "href": "/cli/commands/providers/schema"
       },
-      {
-        "title": "<code>push (deprecated)</code>",
-        "href": "/cli/commands/push"
-      },
       { "title": "<code>refresh</code>", "href": "/cli/commands/refresh" },
       { "title": "<code>show</code>", "href": "/cli/commands/show" },
       { "title": "<code>state</code>", "href": "/cli/commands/state" },
@@ -347,14 +331,6 @@
       {
         "title": "<code>workspace show</code>",
         "href": "/cli/commands/workspace/show"
-      },
-      {
-        "title": "<code>0.12upgrade</code>",
-        "href": "/cli/commands/0.12upgrade"
-      },
-      {
-        "title": "<code>0.13upgrade</code>",
-        "href": "/cli/commands/0.13upgrade"
       }
     ]
   },
@@ -386,7 +362,6 @@
           { "title": "providers schema", "path": "commands/providers/schema" }
         ]
       },
-      { "title": "push (deprecated)", "path": "commands/push" },
       { "title": "refresh", "path": "commands/refresh" },
       { "title": "show", "path": "commands/show" },
       {
@@ -423,9 +398,7 @@
           { "title": "workspace delete", "path": "commands/workspace/delete" },
           { "title": "workspace show", "path": "commands/workspace/show" }
         ]
-      },
-      { "title": "0.12upgrade", "path": "commands/0.12upgrade" },
-      { "title": "0.13upgrade", "path": "commands/0.13upgrade" }
+      }
     ]
   },
   {
