@@ -1,0 +1,29 @@
+{
+    "Modules": [
+        {
+            "Key": "",
+            "Source": "",
+            "Dir": "."
+        },
+        {
+            "Key": "other",
+            "Source": "./mods/other",
+            "Dir": "mods/other"
+        },
+        {
+            "Key": "test",
+            "Source": "./mods/test",
+            "Dir": "mods/test"
+        },
+        {
+            "Key": "test.test2",
+            "Source": "./test2",
+            "Dir": "mods/test/test2"
+        },
+        {
+            "Key": "test.test2.test3",
+            "Source": "./test3",
+            "Dir": "mods/test/test2/test3"
+        }
+    ]
+}
