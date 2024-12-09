@@ -27,3 +27,4 @@ vendor/
 
 # Coverage
 coverage.txt
+/.terraform/docs
