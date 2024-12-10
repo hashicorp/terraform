@@ -61,8 +61,11 @@ body:
     attributes:
       label: Debug Output
       description: Full debug output can be obtained by running Terraform with the environment variable `TF_LOG=trace`. Please create a GitHub Gist containing the debug output. Please do _not_ paste the debug output in the issue, since debug output is long. Debug output may contain sensitive information. Please review it before posting publicly.
-      placeholder: ...link to gist...
-      value:
+      placeholder:
+      value:  |
+        ```
+        ...debug output, or link to a gist...
+        ```
     validations:
       required: true
   - type: textarea
@@ -118,6 +121,17 @@ body:
           - #6017
         ```
       placeholder:
+      value:
+    validations:
+      required: false
+  - type: textarea
+    id: tf-genai
+    attributes:
+      label: Generative AI / LLM assisted development?
+      description: |
+        If you used a generative AI / LLM tool to assist in the development of your config, please let us know which tool you used here.
+        ex. ChatGPT 3.5 / CoPilot / AWS Q / etc. 
+      placeholder: LLM assistance tool?
       value:
     validations:
       required: false
