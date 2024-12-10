@@ -135,6 +135,9 @@ type PlanOpts struct {
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
 	Forget bool
+
+	// SkipGraphValidation if set to true will skip the graph validation step
+	SkipGraphValidation bool
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -915,6 +918,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			forgetResources:         forgetResources,
 			forgetModules:           forgetModules,
 			GenerateConfigPath:      opts.GenerateConfigPath,
+			SkipValidation:          opts.SkipGraphValidation,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
@@ -1109,7 +1113,7 @@ func (c *Context) PlanGraphForUI(config *configs.Config, prevRunState *states.St
 
 	var diags tfdiags.Diagnostics
 
-	opts := &PlanOpts{Mode: mode}
+	opts := &PlanOpts{Mode: mode, SkipGraphValidation: true}
 
 	graph, _, moreDiags := c.planGraph(config, prevRunState, opts)
 	diags = diags.Append(moreDiags)

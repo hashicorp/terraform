@@ -49,6 +49,133 @@ func TestGraph_planPhase(t *testing.T) {
 		t.Fatalf("doesn't look like digraph:\n%s\n\nstderr:\n%s", output.Stdout(), output.Stderr())
 	}
 }
+func TestGraph_cyclic(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("graph-cyclic"), td)
+	defer testChdir(t, td)()
+
+	tests := []struct {
+		name     string
+		args     []string
+		expected string
+	}{
+		{
+			name: "plan",
+			args: []string{"-type=plan"},
+			expected: `digraph {
+	compound = "true"
+	newrank = "true"
+	subgraph "root" {
+		"[root] provider[\"registry.terraform.io/hashicorp/test\"]" [label = "provider[\"registry.terraform.io/hashicorp/test\"]", shape = "diamond"]
+		"[root] test_instance.bar (expand)" [label = "test_instance.bar", shape = "box"]
+		"[root] test_instance.foo (expand)" [label = "test_instance.foo", shape = "box"]
+		"[root] local.test1 (expand)" -> "[root] local.test2 (expand)"
+		"[root] local.test2 (expand)" -> "[root] local.test1 (expand)"
+		"[root] provider[\"registry.terraform.io/hashicorp/test\"] (close)" -> "[root] provider[\"registry.terraform.io/hashicorp/test\"]"
+		"[root] provider[\"registry.terraform.io/hashicorp/test\"] (close)" -> "[root] test_instance.bar (expand)"
+		"[root] provider[\"registry.terraform.io/hashicorp/test\"] (close)" -> "[root] test_instance.foo (expand)"
+		"[root] root" -> "[root] provider[\"registry.terraform.io/hashicorp/test\"] (close)"
+		"[root] test_instance.bar (expand)" -> "[root] provider[\"registry.terraform.io/hashicorp/test\"]"
+		"[root] test_instance.bar (expand)" -> "[root] test_instance.foo (expand)"
+		"[root] test_instance.foo (expand)" -> "[root] provider[\"registry.terraform.io/hashicorp/test\"]"
+		"[root] test_instance.foo (expand)" -> "[root] test_instance.bar (expand)"
+	}
+}`,
+		},
+		{
+			name: "plan with -draw-cycles option",
+			args: []string{"-draw-cycles", "-type=plan"},
+			expected: `digraph {
+	compound = "true"
+	newrank = "true"
+	subgraph "root" {
+		"[root] provider[\"registry.terraform.io/hashicorp/test\"]" [label = "provider[\"registry.terraform.io/hashicorp/test\"]", shape = "diamond"]
+		"[root] test_instance.bar (expand)" [label = "test_instance.bar", shape = "box"]
+		"[root] test_instance.foo (expand)" [label = "test_instance.foo", shape = "box"]
+		"[root] local.test1 (expand)" -> "[root] local.test2 (expand)"
+		"[root] local.test2 (expand)" -> "[root] local.test1 (expand)"
+		"[root] provider[\"registry.terraform.io/hashicorp/test\"] (close)" -> "[root] provider[\"registry.terraform.io/hashicorp/test\"]"
+		"[root] provider[\"registry.terraform.io/hashicorp/test\"] (close)" -> "[root] test_instance.bar (expand)"
+		"[root] provider[\"registry.terraform.io/hashicorp/test\"] (close)" -> "[root] test_instance.foo (expand)"
+		"[root] root" -> "[root] provider[\"registry.terraform.io/hashicorp/test\"] (close)"
+		"[root] test_instance.bar (expand)" -> "[root] provider[\"registry.terraform.io/hashicorp/test\"]"
+		"[root] test_instance.bar (expand)" -> "[root] test_instance.foo (expand)" [color = "red", penwidth = "2.0"]
+		"[root] test_instance.foo (expand)" -> "[root] provider[\"registry.terraform.io/hashicorp/test\"]"
+		"[root] test_instance.foo (expand)" -> "[root] test_instance.bar (expand)" [color = "red", penwidth = "2.0"]
+	}
+}`,
+		},
+		{
+			name: "apply",
+			args: []string{"-type=apply"},
+			expected: `digraph {
+	compound = "true"
+	newrank = "true"
+	subgraph "root" {
+		"[root] provider[\"registry.terraform.io/hashicorp/test\"]" [label = "provider[\"registry.terraform.io/hashicorp/test\"]", shape = "diamond"]
+		"[root] test_instance.bar (expand)" [label = "test_instance.bar", shape = "box"]
+		"[root] test_instance.foo (expand)" [label = "test_instance.foo", shape = "box"]
+		"[root] local.test1 (expand)" -> "[root] local.test2 (expand)"
+		"[root] local.test2 (expand)" -> "[root] local.test1 (expand)"
+		"[root] provider[\"registry.terraform.io/hashicorp/test\"] (close)" -> "[root] provider[\"registry.terraform.io/hashicorp/test\"]"
+		"[root] provider[\"registry.terraform.io/hashicorp/test\"] (close)" -> "[root] test_instance.bar (expand)"
+		"[root] provider[\"registry.terraform.io/hashicorp/test\"] (close)" -> "[root] test_instance.foo (expand)"
+		"[root] root" -> "[root] provider[\"registry.terraform.io/hashicorp/test\"] (close)"
+		"[root] test_instance.bar (expand)" -> "[root] provider[\"registry.terraform.io/hashicorp/test\"]"
+		"[root] test_instance.bar (expand)" -> "[root] test_instance.foo (expand)"
+		"[root] test_instance.foo (expand)" -> "[root] provider[\"registry.terraform.io/hashicorp/test\"]"
+		"[root] test_instance.foo (expand)" -> "[root] test_instance.bar (expand)"
+	}
+}`,
+		},
+		{
+			name: "apply with -draw-cycles",
+			args: []string{"-draw-cycles", "-type=apply"},
+			expected: `digraph {
+	compound = "true"
+	newrank = "true"
+	subgraph "root" {
+		"[root] provider[\"registry.terraform.io/hashicorp/test\"]" [label = "provider[\"registry.terraform.io/hashicorp/test\"]", shape = "diamond"]
+		"[root] test_instance.bar (expand)" [label = "test_instance.bar", shape = "box"]
+		"[root] test_instance.foo (expand)" [label = "test_instance.foo", shape = "box"]
+		"[root] local.test1 (expand)" -> "[root] local.test2 (expand)"
+		"[root] local.test2 (expand)" -> "[root] local.test1 (expand)"
+		"[root] provider[\"registry.terraform.io/hashicorp/test\"] (close)" -> "[root] provider[\"registry.terraform.io/hashicorp/test\"]"
+		"[root] provider[\"registry.terraform.io/hashicorp/test\"] (close)" -> "[root] test_instance.bar (expand)"
+		"[root] provider[\"registry.terraform.io/hashicorp/test\"] (close)" -> "[root] test_instance.foo (expand)"
+		"[root] root" -> "[root] provider[\"registry.terraform.io/hashicorp/test\"] (close)"
+		"[root] test_instance.bar (expand)" -> "[root] provider[\"registry.terraform.io/hashicorp/test\"]"
+		"[root] test_instance.bar (expand)" -> "[root] test_instance.foo (expand)" [color = "red", penwidth = "2.0"]
+		"[root] test_instance.foo (expand)" -> "[root] provider[\"registry.terraform.io/hashicorp/test\"]"
+		"[root] test_instance.foo (expand)" -> "[root] test_instance.bar (expand)" [color = "red", penwidth = "2.0"]
+	}
+}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ui := new(cli.MockUi)
+			streams, closeStreams := terminal.StreamsForTesting(t)
+			c := &GraphCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
+					Ui:               ui,
+					Streams:          streams,
+				},
+			}
+
+			if code := c.Run(tt.args); code != 0 {
+				t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+			}
+
+			output := closeStreams(t)
+			if strings.TrimSpace(output.Stdout()) != strings.TrimSpace(tt.expected) {
+				t.Fatalf("expected dot graph to match:\n%s", cmp.Diff(output.Stdout(), tt.expected))
+			}
+		})
+	}
+}
 
 func TestGraph_multipleArgs(t *testing.T) {
 	ui := new(cli.MockUi)
