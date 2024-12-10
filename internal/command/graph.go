@@ -115,6 +115,7 @@ func (c *GraphCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
+	lr.Core.SetGraphOpts(&terraform.ContextGraphOpts{SkipGraphValidation: true})
 
 	if graphTypeStr == "" {
 		if planFile == nil {

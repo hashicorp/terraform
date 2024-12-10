@@ -61,6 +61,8 @@ type ContextOpts struct {
 	PreloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema
 
 	UIInput UIInput
+
+	SkipGraphValidation bool
 }
 
 // ContextMeta is metadata about the running context. This is information
@@ -95,9 +97,10 @@ type Context struct {
 
 	plugins *contextPlugins
 
-	hooks   []Hook
-	sh      *stopHook
-	uiInput UIInput
+	hooks     []Hook
+	sh        *stopHook
+	uiInput   UIInput
+	graphOpts *ContextGraphOpts
 
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
@@ -154,6 +157,9 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		hooks:   hooks,
 		meta:    opts.Meta,
 		uiInput: opts.UIInput,
+		graphOpts: &ContextGraphOpts{
+			SkipGraphValidation: opts.SkipGraphValidation,
+		},
 
 		plugins: plugins,
 
@@ -161,6 +167,11 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		providerInputConfig: make(map[string]map[string]cty.Value),
 		sh:                  sh,
 	}, diags
+}
+
+func (c *Context) SetGraphOpts(opts *ContextGraphOpts) tfdiags.Diagnostics {
+	c.graphOpts = opts
+	return nil
 }
 
 func (c *Context) Schemas(config *configs.Config, state *states.State) (*Schemas, tfdiags.Diagnostics) {
@@ -179,8 +190,8 @@ func (c *Context) Schemas(config *configs.Config, state *states.State) (*Schemas
 }
 
 type ContextGraphOpts struct {
-	// If true, validates the graph structure (checks for cycles).
-	Validate bool
+	// If false, skip the graph structure validation.
+	SkipGraphValidation bool
 
 	// Legacy graphs only: won't prune the graph
 	Verbose bool
