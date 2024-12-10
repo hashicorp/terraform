@@ -61,8 +61,6 @@ type ContextOpts struct {
 	PreloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema
 
 	UIInput UIInput
-
-	SkipGraphValidation bool
 }
 
 // ContextMeta is metadata about the running context. This is information
@@ -154,12 +152,10 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] terraform.NewContext: complete")
 
 	return &Context{
-		hooks:   hooks,
-		meta:    opts.Meta,
-		uiInput: opts.UIInput,
-		graphOpts: &ContextGraphOpts{
-			SkipGraphValidation: opts.SkipGraphValidation,
-		},
+		hooks:     hooks,
+		meta:      opts.Meta,
+		uiInput:   opts.UIInput,
+		graphOpts: &ContextGraphOpts{},
 
 		plugins: plugins,
 
