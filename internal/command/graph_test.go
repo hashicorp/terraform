@@ -59,14 +59,15 @@ func TestGraph_cyclic(t *testing.T) {
 		name     string
 		args     []string
 		expected string
-		errors   []string
+
+		// The cyclic errors do not maintain a consistent order, so we can't
+		// predict the exact output. We'll just check that the error messages
+		// are present for the things we know are cyclic.
+		errors []string
 	}{
 		{
 			name: "plan",
 			args: []string{"-type=plan"},
-			// The cyclic errors do not maintain a consistent order, so we can't
-			// predict the exact output. We'll just check that the error messages
-			// are present for the things we know are cyclic.
 			errors: []string{`Error: Cycle: test_instance.`,
 				`Error: Cycle: local.`},
 		},

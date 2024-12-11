@@ -211,6 +211,7 @@ func (g *marshalGraph) writeBody(opts *DotOpts, w *indentWriter) {
 
 	for _, e := range g.Edges {
 		// only add the edge if it's not been added as part of a cycle
+		// or if there are duplicates.
 		if _, ok := dotEdges[e.Name]; !ok {
 			dotEdges[e.Name] = e.dot(g)
 		}
