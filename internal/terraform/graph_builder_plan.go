@@ -107,9 +107,9 @@ type PlanGraphBuilder struct {
 	// If empty, then config will not be generated.
 	GenerateConfigPath string
 
-	// SkipValidation indicates whether the graph builder should skip
+	// SkipGraphValidation indicates whether the graph builder should skip
 	// validation of the graph.
-	SkipValidation bool
+	SkipGraphValidation bool
 }
 
 // See GraphBuilder
@@ -118,7 +118,7 @@ func (b *PlanGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Dia
 	return (&BasicGraphBuilder{
 		Steps:               b.Steps(),
 		Name:                "PlanGraphBuilder",
-		SkipGraphValidation: b.SkipValidation,
+		SkipGraphValidation: b.SkipGraphValidation,
 	}).Build(path)
 }
 

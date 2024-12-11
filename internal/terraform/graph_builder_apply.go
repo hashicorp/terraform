@@ -74,9 +74,9 @@ type ApplyGraphBuilder struct {
 	// framework.
 	Overrides *mocking.Overrides
 
-	// SkipValidation indicates whether the graph builder should skip
+	// SkipGraphValidation indicates whether the graph builder should skip
 	// validation of the graph.
-	SkipValidation bool
+	SkipGraphValidation bool
 }
 
 // See GraphBuilder
@@ -84,7 +84,7 @@ func (b *ApplyGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Di
 	return (&BasicGraphBuilder{
 		Steps:               b.Steps(),
 		Name:                "ApplyGraphBuilder",
-		SkipGraphValidation: b.SkipValidation,
+		SkipGraphValidation: b.SkipGraphValidation,
 	}).Build(path)
 }
 

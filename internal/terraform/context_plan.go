@@ -915,7 +915,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			forgetResources:         forgetResources,
 			forgetModules:           forgetModules,
 			GenerateConfigPath:      opts.GenerateConfigPath,
-			SkipValidation:          c.graphOpts.SkipGraphValidation,
+			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
@@ -931,6 +931,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Operation:               walkPlan,
 			ExternalReferences:      opts.ExternalReferences,
 			Overrides:               opts.Overrides,
+			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
@@ -944,6 +945,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			skipRefresh:             opts.SkipRefresh,
 			Operation:               walkPlanDestroy,
 			Overrides:               opts.Overrides,
+			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags
 	default:

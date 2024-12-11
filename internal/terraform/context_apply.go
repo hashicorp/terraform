@@ -370,7 +370,7 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 		Operation:               operation,
 		ExternalReferences:      plan.ExternalReferences,
 		Overrides:               plan.Overrides,
-		SkipValidation:          c.graphOpts.SkipGraphValidation,
+		SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
