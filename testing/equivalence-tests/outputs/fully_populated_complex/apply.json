@@ -37,11 +37,11 @@
   },
   {
     "@level": "info",
-    "@message": "tfcoremock_complex_resource.complex: Creation complete after 0s [id=64564E36-BFCB-458B-9405-EBBF6A3CAC7A]",
+    "@message": "tfcoremock_complex_resource.complex: Creation complete after 1s [id=64564E36-BFCB-458B-9405-EBBF6A3CAC7A]",
     "@module": "terraform.ui",
     "hook": {
       "action": "create",
-      "elapsed_seconds": 0,
+      "elapsed_seconds": 1,
       "id_key": "id",
       "id_value": "64564E36-BFCB-458B-9405-EBBF6A3CAC7A",
       "resource": {
