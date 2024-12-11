@@ -72,10 +72,11 @@ $ sudo yum -y install terraform-stacks-cli
 
 The `terraform-stacks-cli` supports the following four commands:
 
-* `tfstacks init`  
-* `tfstacks validate`  
-* `tfstacks providers lock [-platform=os_arch]`  
-* `tfstacks plan -organization=org_name -stack=stack_id -deployment=deployment_name [-hostname=hostname]`
+* [`tfstacks init`](#tfstacks-init-command)  
+* [`tfstacks validate`](#tfstacks-validate-command)  
+* [`tfstacks providers lock [-platform=os_arch]`](#tfstacks-providers-lock-command)
+* [`tfstacks plan -organization=org_name -stack=stack_id -deployment=deployment_name [-hostname=hostname]`](#tfstacks-plan-command)
+* [`tfstacks fmt`](#tfstacks-fmt-command)
 
 Each Stack command supports [global options](#global-options).
 
@@ -127,6 +128,19 @@ The `tfstacks plan` accepts the following arguments.
 | `-stack=` | Set the `stack` flag to the ID of the Stack you want to perform this plan in. You can find a stack’s ID underneath its name when you view that Stack in HCP Terraform.<br/><br/>Alternatively, you can set an environment variable named `TFSTACKS_STACK_ID` with the same value. | Required |
 | `-deployment=` | Set the `deployment` flag to the deployment name you want to perform this plan in. The deployment name must match one of the deployment names you specified in the `tfdeploy.hcl` file.<br/><br/>Alternatively, you can set an environment variable named `TFSTACKS_DEPLOYMENT` with the same value. | Required |
 | `-hostname=` | You can set the `hostname` flag to the hostname of the HCP Terraform instance you want to perform this plan in. The default value is `app.terraform.io`.<br/><br/>Alternatively, you can set an environment variable named `TFSTACKS_HOSTNAME` with the same value. | Optional |
+
+### `tfstacks fmt` command
+
+
+-> The `tfstacks fmt` command requires v0.6.0 of the `terraform-stacks-cli` or higher. Refer to [installation](#installation) for instructions.
+
+The `tfstacks fmt` command scans your current directory for Stack configuration files, `.tfstack.hcl` and `.tfdeploy.hcl`, and formats those files to match Terraform's canonical format and style.
+
+```shell-session
+$ tfstacks fmt
+```
+
+The `tfstacks fmt` command uses the same formatting rules as the Terraform CLI's `terraform fmt` command. Refer to [`terraform fmt`](/terraform/cli/commands/fmt) for more information on formatting rules.
 
 ## Global options
 
