@@ -1,15 +1,11 @@
 run "old_version" {
-  plan_options {
-    state_alias = "test1"
-  }
+  state_key = "test1"
 }
 
 run "new_code" {
+  state_key = "test1"
   module {
     source = "./breaking_change"
-  }
-  plan_options {
-    state_alias = "test1"
   }
   assert {
     condition = test_resource.renamed_without_move.id == run.old_version.test_id

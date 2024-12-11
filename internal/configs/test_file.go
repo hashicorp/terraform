@@ -133,6 +133,8 @@ type TestRun struct {
 	// run.
 	ExpectFailures []hcl.Traversal
 
+	StateKey string
+
 	NameDeclRange      hcl.Range
 	VariablesDeclRange hcl.Range
 	DeclRange          hcl.Range
@@ -274,8 +276,6 @@ type TestRunOptions struct {
 
 	// Refresh is analogous to the -refresh=false Terraform plan option.
 	Refresh bool
-
-	StateAlias string
 
 	// Replace is analogous to the -replace=ADDRESS Terraform plan option.
 	Replace []hcl.Traversal
@@ -608,6 +608,11 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 		r.ExpectFailures = failures
 	}
 
+	if attr, exists := content.Attributes["state_key"]; exists {
+		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.StateKey)
+		diags = append(diags, rawDiags...)
+	}
+
 	return &r, diags
 }
 
@@ -762,11 +767,6 @@ func decodeTestRunOptionsBlock(block *hcl.Block) (*TestRunOptions, hcl.Diagnosti
 		opts.Target = tars
 	}
 
-	if attr, exists := content.Attributes["state_alias"]; exists {
-		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &opts.StateAlias)
-		diags = append(diags, rawDiags...)
-	}
-
 	if !opts.Refresh && opts.Mode == RefreshOnlyTestMode {
 		// These options are incompatible.
 		diags = append(diags, &hcl.Diagnostic{
@@ -814,6 +814,7 @@ var testRunBlockSchema = &hcl.BodySchema{
 		{Name: "command"},
 		{Name: "providers"},
 		{Name: "expect_failures"},
+		{Name: "state_key"},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{
@@ -846,7 +847,6 @@ var testRunOptionsBlockSchema = &hcl.BodySchema{
 		{Name: "refresh"},
 		{Name: "replace"},
 		{Name: "target"},
-		{Name: "state_alias"},
 	},
 }
 
