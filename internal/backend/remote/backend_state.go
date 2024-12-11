@@ -31,6 +31,22 @@ type remoteClient struct {
 	forcePush      bool
 }
 
+// errorUnlockFailed is used within a retry loop to identify a non-retryable
+// workspace unlock error
+type errorUnlockFailed struct {
+	innerError error
+}
+
+func (e errorUnlockFailed) FatalError() error {
+	return e.innerError
+}
+
+func (e errorUnlockFailed) Error() string {
+	return e.innerError.Error()
+}
+
+var _ Fatal = errorUnlockFailed{}
+
 // Get the remote state.
 func (r *remoteClient) Get() (*remote.Payload, error) {
 	ctx := context.Background()
@@ -202,7 +218,20 @@ func (r *remoteClient) Unlock(id string) error {
 		}
 
 		// Unlock the workspace.
-		_, err := r.client.Workspaces.Unlock(ctx, r.workspace.ID)
+		// Unlock the workspace.
+		err := RetryBackoff(ctx, func() error {
+			_, err := r.client.Workspaces.Unlock(ctx, r.workspace.ID)
+			if err != nil {
+				if errors.Is(err, tfe.ErrWorkspaceLockedStateVersionStillPending) {
+					// This is a retryable error.
+					return err
+				}
+				// This will not be retried
+				return &errorUnlockFailed{innerError: err}
+			}
+			return nil
+		})
+
 		if err != nil {
 			lockErr.Err = err
 			return lockErr
