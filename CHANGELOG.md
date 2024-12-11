@@ -1,4 +1,4 @@
-## 1.10.2 (Unreleased)
+## 1.10.2 (December 11, 2024)
 
 BUG FIXES:
 - cli: variables in an auto-loaded tfvars file which were overridden during plan incorrectly show as changed during apply [GH-36180]
