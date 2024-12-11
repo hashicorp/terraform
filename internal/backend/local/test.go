@@ -358,8 +358,8 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 			}
 		}
 
-		if run.Config.Options.StateAlias != "" {
-			key = run.Config.Options.StateAlias
+		if run.Config.StateKey != "" {
+			key = run.Config.StateKey
 		}
 
 		if _, exists := runner.RelevantStates[key]; !exists {
