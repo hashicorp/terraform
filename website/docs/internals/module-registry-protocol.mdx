@@ -1,16 +1,18 @@
 ---
-page_title: Module Registry Protocol
+page_title: Module registry protocol reference 
 description: |-
-  The module registry protocol is implemented by a host intending to be the
-  host of one or more Terraform modules, specifying which modules are available
-  and where to find their distribution packages.
+  Terraform discovers modules available for installation using the module registry protocol. Learn about the module registry protocol so consumers can find your modules.
 ---
 
-# Module Registry Protocol
+# Module Registry Protocol Reference
+
+This topic provides reference information about the module registry protocol. 
 
 -> Third-party module registries are supported only in Terraform CLI 0.11 and later. Prior versions do not support this protocol.
 
-The module registry protocol is what Terraform CLI uses to discover metadata
+## Introduction
+
+The Terraform CLI uses the module registry protocol to discover metadata
 about modules available for installation and to locate the distribution
 package for a selected module.
 

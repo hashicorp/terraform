@@ -1,29 +1,28 @@
 ---
-page_title: 'Command: version'
+page_title: terraform version command reference
 description: >-
-  The terraform version command displays the Terraform version and the version
+  The terraform version command prints the Terraform version and the version
   of all installed plugins.
 ---
 
-# Command: version
+# `terraform version` command
 
-The `terraform version` displays the current version of Terraform and all
+The `terraform version` command prints the current version of the Terraform binary and all
 installed plugins.
 
 ## Usage
 
 Usage: `terraform version [options]`
 
-With no additional arguments, `version` will display the version of Terraform,
-the platform it's installed on, installed providers, and the results of upgrade
-and security checks [unless disabled](/terraform/cli/commands#upgrade-and-security-bulletin-checks).
+With no additional arguments, `version` displays the version of Terraform,
+the platform it is installed on, installed providers, and the results of upgrade
+and security checks unless disabled. Refer to [Upgrade and Security Bulletin Checks](/terraform/cli/commands#upgrade-and-security-bulletin-checks) for additional information.
+
+## Flags
 
 This command has one optional flag:
 
-* `-json` - If specified, the version information is formatted as a JSON object,
-  and no upgrade or security information is included.
-
--> **Note:** Platform information was added to the `version` command in Terraform 0.15.
+* `-json` - Formats version information as a JSON object. No upgrade or security information is included.
 
 ## Example
 

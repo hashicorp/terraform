@@ -25,7 +25,7 @@
     "path": "provider-registry-protocol"
   },
   {
-    "title": "Resource Graph",
+    "title": "Dependency Graph",
     "path": "graph"
   },
   {

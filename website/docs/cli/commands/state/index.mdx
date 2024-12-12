@@ -1,24 +1,28 @@
 ---
-page_title: 'Command: state'
-description: The `terraform state` command is used for advanced state management.
+page_title: terraform state commands reference
+description: The `terraform state` group of commands enable advanced Terraform state management.
 ---
 
-# State Command
+# `terraform state` commands
 
-The `terraform state` command is used for advanced state management.
-As your Terraform usage becomes more advanced, there are some cases where
-you may need to modify the [Terraform state](/terraform/language/state).
-Rather than modify the state directly, the `terraform state` commands can
-be used in many cases instead.
+The `terraform state` commands enable advanced state management.  
 
-This command is a nested subcommand, meaning that it has further subcommands.
-These subcommands are listed to the left.
+## Introduction
+
+You can use the `terraform state` commands to modify the [Terraform state](/terraform/language/state) instead modifying the state directly.
 
 ## Usage
 
 Usage: `terraform state <subcommand> [options] [args]`
 
-Please click a subcommand to the left for more information.
+Refer to the following subcommands for additional information:
+
+- [`terraform state list`](/terraform/cli/commands/state/list)
+- [`terraform state mv`](/terraform/cli/commands/state/mv)
+- [`terraform state pull`](/terraform/cli/commands/state/pull)
+- [`terraform state replace-provider`](/terraform/cli/commands/state/replace-provider)
+- [`terraform state rm`](/terraform/cli/commands/state/rm)
+- [`terraform state show`](/terraform/cli/commands/state/show)
 
 ## Remote State
 

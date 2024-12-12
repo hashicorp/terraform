@@ -1,33 +1,32 @@
 ---
-page_title: 'Command: fmt'
+page_title: terraform fmt command reference
 description: >-
-  The terraform fmt command rewrites configuration files to a canonical format
+  The terraform fmt command formats Terraform configuration contents so that it matches the canonical format
   and style.
 ---
 
-# Command: fmt
+# `terraform fmt` command
 
-The `terraform fmt` command is used to rewrite Terraform configuration files
-to a canonical format and style. This command applies a subset of
+The `terraform fmt` command formats Terraform configuration file contents so that it matches the canonical format and style. This command applies a subset of
 the [Terraform language style conventions](/terraform/language/style#code-formatting),
 along with other minor adjustments for readability.
 
-Other Terraform commands that generate Terraform configuration will produce
-configuration files that conform to the style imposed by `terraform fmt`, so
-using this style in your own files will ensure consistency.
+## Introduction
+Terraform commands that generate Terraform configuration produce
+configuration files that conform to the style imposed by `terraform fmt`. Follow this style in your files to ensure consistency.
 
 The canonical format may change in minor ways between Terraform versions, so
 after upgrading Terraform we recommend to proactively run `terraform fmt`
 on your modules along with any other changes you are making to adopt the new
 version.
 
-We don't consider new formatting rules in `terraform fmt` to be a breaking
-change in new versions of Terraform, but we do aim to minimize changes for
-configurations that are already following the style examples shown in the
-Terraform documentation. When adding new formatting rules, they will usually
-aim to apply more of the rules already shown in the configuration examples
-in the documentation, and so we recommend following the documented style even
-for decisions that `terraform fmt` doesn't yet apply automatically.
+We do not consider new formatting rules in `terraform fmt` to be a breaking
+change in new versions of Terraform, but we minimize changes for
+configurations that already follow the style examples shown in the
+Terraform documentation. New formatting rules programmed into the `terraform fmt` 
+command are usually expansions to include existing rules from the documentation. 
+We recommend following the documented style even for decisions that `terraform fmt` 
+does not yet apply automatically.
 
 Formatting decisions are always subjective and so you might disagree with the
 decisions that `terraform fmt` makes. This command is intentionally opinionated
