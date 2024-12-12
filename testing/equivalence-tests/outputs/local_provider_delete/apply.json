@@ -40,11 +40,9 @@
   },
   {
     "@level": "info",
-    "@message": "local_file.local_file: Destruction complete after 0s",
     "@module": "terraform.ui",
     "hook": {
       "action": "delete",
-      "elapsed_seconds": 0,
       "resource": {
         "addr": "local_file.local_file",
         "implied_provider": "local",
