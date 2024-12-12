@@ -67,6 +67,7 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 			RefreshOnly: t.RefreshOnly,
 			Planning:    t.Planning,
 			Overrides:   t.Overrides,
+			Dependants:  []*addrs.Reference{},
 		}
 
 		log.Printf("[TRACE] OutputTransformer: adding %s as %T", o.Name, node)
