@@ -345,7 +345,8 @@ func (p *GRPCProvider) ConfigureProvider(r providers.ConfigureProviderRequest) (
 			Msgpack: mp,
 		},
 		ClientCapabilities: &proto6.ClientCapabilities{
-			DeferralAllowed: r.ClientCapabilities.DeferralAllowed,
+			DeferralAllowed:            r.ClientCapabilities.DeferralAllowed,
+			WriteOnlyAttributesAllowed: r.ClientCapabilities.WriteOnlyAttributesAllowed,
 		},
 	}
 

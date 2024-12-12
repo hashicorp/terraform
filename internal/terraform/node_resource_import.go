@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -73,9 +74,16 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 	// Reset our states
 	n.states = nil
 
-	provider, _, err := getProvider(ctx, n.ResolvedProvider)
+	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
+		return diags
+	}
+
+	schema, _ := providerSchema.SchemaForResourceType(n.Addr.Resource.Resource.Mode, n.Addr.Resource.Resource.Type)
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Resource.Type))
 		return diags
 	}
 
@@ -98,11 +106,23 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 		TypeName: n.Addr.Resource.Resource.Type,
 		ID:       n.ID,
 		ClientCapabilities: providers.ClientCapabilities{
-			DeferralAllowed: false,
+			DeferralAllowed:            false,
+			WriteOnlyAttributesAllowed: true,
 		},
 	})
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
+		return diags
+	}
+
+	// Providers are supposed to return null values for all write-only attributes
+	var writeOnlyDiags tfdiags.Diagnostics
+	for _, imported := range resp.ImportedResources {
+		writeOnlyDiags = ephemeral.ValidateWriteOnlyAttributes(imported.State, schema, n.ResolvedProvider, n.Addr)
+		diags = diags.Append(writeOnlyDiags)
+	}
+
+	if writeOnlyDiags.HasErrors() {
 		return diags
 	}
 
