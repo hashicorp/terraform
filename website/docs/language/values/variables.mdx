@@ -200,6 +200,8 @@ You can only reference ephemeral variables in specific contexts or Terraform thr
 * In [local values](/terraform/language/values/locals#ephemeral-values)
 * In [ephemeral resources](/terraform/language/resources/ephemeral)
 * In [ephemeral outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files)
+* Configuring providers in the `provider` block
+* In [provisioner](/terraform/language/resources/provisioners/syntax) and [connection](/terraform/language/resources/provisioners/connection) blocks
 
 If another expression references an `ephemeral` variable, that expression implicitly becomes ephemeral.
 
