@@ -275,6 +275,11 @@ func TestTest_Runs(t *testing.T) {
 			expectedErr: []string{"Ephemeral resource instance has expired", "Ephemeral resources cannot be asserted"},
 			code:        1,
 		},
+		"with_state_key": {
+			expectedOut: []string{"3 passed, 1 failed."},
+			expectedErr: []string{"Test assertion failed", "resource renamed without moved block"},
+			code:        1,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
