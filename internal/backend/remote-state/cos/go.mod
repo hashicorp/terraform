@@ -32,7 +32,7 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/mozillazg/go-httpheader v0.3.0 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
-	github.com/zclconf/go-cty v1.15.1-0.20241111215639-63279be090d7 // indirect
+	github.com/zclconf/go-cty v1.15.1 // indirect
 	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect

@@ -39,7 +39,7 @@ require (
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
-	github.com/zclconf/go-cty v1.15.1-0.20241111215639-63279be090d7 // indirect
+	github.com/zclconf/go-cty v1.15.1 // indirect
 	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
