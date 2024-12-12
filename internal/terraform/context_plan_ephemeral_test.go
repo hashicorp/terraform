@@ -21,6 +21,7 @@ import (
 
 func TestContext2Plan_ephemeralValues(t *testing.T) {
 	for name, tc := range map[string]struct {
+		toBeImplemented                             bool
 		module                                      map[string]string
 		expectValidateDiagnostics                   func(m *configs.Config) tfdiags.Diagnostics
 		expectPlanDiagnostics                       func(m *configs.Config) tfdiags.Diagnostics
@@ -549,6 +550,21 @@ You can correct this by removing references to ephemeral values, or by carefully
 				})
 			},
 		},
+
+		"write_only attribute": {
+			module: map[string]string{
+				"main.tf": `
+ephemeral "ephem_resource" "data" {
+}
+resource "ephem_write_only" "test" {
+    write_only = ephemeral.ephem_resource.data.value
+}
+`,
+			},
+			expectOpenEphemeralResourceCalled:           true,
+			expectValidateEphemeralResourceConfigCalled: true,
+			expectCloseEphemeralResourceCalled:          true,
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			m := testModuleInline(t, tc.module)
@@ -577,6 +593,19 @@ You can correct this by removing references to ephemeral values, or by carefully
 									"bool": {
 										Type:     cty.Bool,
 										Computed: true,
+									},
+								},
+							},
+						},
+					},
+					ResourceTypes: map[string]providers.Schema{
+						"ephem_write_only": {
+							Block: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"write_only": {
+										Type:      cty.String,
+										WriteOnly: true,
+										Optional:  true,
 									},
 								},
 							},

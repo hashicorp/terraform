@@ -40,11 +40,9 @@
   },
   {
     "@level": "info",
-    "@message": "null_resource.null_resource: Destruction complete after 0s",
     "@module": "terraform.ui",
     "hook": {
       "action": "delete",
-      "elapsed_seconds": 0,
       "resource": {
         "addr": "null_resource.null_resource",
         "implied_provider": "null",

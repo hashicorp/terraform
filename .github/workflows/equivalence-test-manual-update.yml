@@ -13,8 +13,8 @@ on:
         required: true
       equivalence-test-version:
         type: string
-        description: 'Equivalence testing framework version to use (no v prefix, eg. 0.4.0).'
-        default: "0.4.0"
+        description: 'Equivalence testing framework version to use (no v prefix, eg. 0.5.0).'
+        default: "0.5.0"
         required: true
 
 permissions:

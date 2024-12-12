@@ -259,7 +259,8 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 				TerraformVersion: version.SemVer.String(),
 				Config:           unmarkedArgs,
 				ClientCapabilities: providers.ClientCapabilities{
-					DeferralAllowed: true,
+					DeferralAllowed:            true,
+					WriteOnlyAttributesAllowed: true,
 				},
 			})
 			diags = diags.Append(resp.Diagnostics)
