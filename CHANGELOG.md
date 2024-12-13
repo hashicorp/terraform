@@ -1,5 +1,8 @@
 ## 1.10.3 (Unreleased)
 
+BUG FIXES:
+- Terraform could panic when encountering an error during plan encoding [GH-36212]
+
 ## 1.10.2 (December 11, 2024)
 
 BUG FIXES:
