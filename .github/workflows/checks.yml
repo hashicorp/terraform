@@ -31,6 +31,10 @@ on:
       - '*'
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
+    paths-ignore:
+    # Stop quick checks if the PR contains changes limited to just these files
+      - 'CHANGELOG.md'
+      - 'version/VERSION'
 
 # This workflow runs for not-yet-reviewed external contributions and so it
 # intentionally has no write access and only limited read access to the
