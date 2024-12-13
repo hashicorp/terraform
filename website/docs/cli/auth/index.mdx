@@ -1,5 +1,5 @@
 ---
-page_title: Get an API token for HCP Terraform and Terraform Enterprise  
+page_title: Get an API token for HCP Terraform or Terraform Enterprise  
 description: >-
   Use the terraform login and terraform logout commands get
   an API token for your HCP Terraform or Terraform Enterprise account.
@@ -18,7 +18,7 @@ This topic describes how to use the `terraform login` and `terraform logout` to 
 Terraform runs to provision infrastructure, offering a collaboration-focused
 environment that makes it easier for teams to use Terraform together. 
 
-You can integrate the Terraform CLI with Terraform web platform in the following ways: 
+You can integrate the Terraform CLI with HCP Terraform and Terraform Enterprise in the following ways: 
 
 - Use the Terraform CLI as a front-end for [CLI-driven runs](/terraform/cloud-docs/run/cli) in HCP Terraform
 - Use HCP Terraform or Terraform Enterprise as a state backend and a private module registry. 
@@ -28,6 +28,6 @@ with your HCP Terraform account.
 
 ## Authentication
 
-Run the `terraform login` command to automate the process of getting an API token for your HCP Terraform user account. Refer to the [`terraform login` command](/terraform/cli/commands/login) reference documentation for details.
+Run the `terraform login` command to generate an API token for your HCP Terraform user account. Refer to the [`terraform login` command](/terraform/cli/commands/login) reference documentation for details.
 
-Run the `terrafom logout` coommand to end your HCP Terraform or Terraform Enterprise session. Refer to the [`terraform logout` command](/terraform/cli/commands/logout) reference documentation for details.
+Run the `terraform logout` command to end your HCP Terraform or Terraform Enterprise session. Refer to the [`terraform logout` command](/terraform/cli/commands/logout) reference documentation for details.
