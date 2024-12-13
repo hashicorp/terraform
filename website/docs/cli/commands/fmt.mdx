@@ -47,20 +47,17 @@ and the generated files.
 
 Usage: `terraform fmt [options] [target...]`
 
-By default, `fmt` scans the current directory for configuration files. If you
-provide a directory for the `target` argument, then `fmt` will scan that
-directory instead. If you provide a file, then `fmt` will process just that
-file. If you provide a single dash (`-`), then `fmt` will read from standard
-input (STDIN).
+By default, the `terraform fmt` command scans your current directory for configuration files. You can also provide a `target` argument to tell `terraform fmt` to scan:
+* A directory 
+* A specific file
+* Standard input by supplying a single dash (`-`).
 
+The `terraform fmt` command accepts the following arguments.
 
-The command-line flags are all optional. If no flag is given, `fmt` rewrites
-the Terraform configuration files to a canonical format and style.
-
-The following flags are available:
-
-* `-list=false` - Don't list the files containing formatting inconsistencies.
-* `-write=false` - Don't overwrite the input files. (This is implied by `-check` or when the input is STDIN.)
-* `-diff` - Display diffs of formatting changes.
-* `-check` - Check if the input is formatted. Exit status will be 0 if all input is properly formatted. If not, exit status will be non-zero and the command will output a list of filenames whose files are not properly formatted.
-* `-recursive` - Also process files in subdirectories. By default, only the given directory (or current directory) is processed.
+| Flag | Description | Required |
+| :---- | :---- | :---- |
+| `-list=false` | Prevents the command from listing the files containing formatting inconsistencies. | Optional |
+| `-diff` | Displays the diffs of formatting changes. | Optional |
+| `-write=false` | Prevents the command from overwriting files. This behavior is implied by the `-check` flag or if the input is from `STDIN`. | Optional |
+| `-check` | Checks if the input is formatted. The exit status is `0` if the command's input is properly formatted. Otherwise, the exit status is non-zero, and the command outputs a list of improperly formatted file names. | Optional |
+| `-recursive` | Processes files in subdirectories in addition to the current directory. By default, the command only processes the specified, or current, directory. | Optional |
