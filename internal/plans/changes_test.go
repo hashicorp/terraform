@@ -43,3 +43,27 @@ func TestChangeEncodeSensitive(t *testing.T) {
 		})
 	}
 }
+
+// make sure we get a valid value back even when faced with an error
+func TestChangeEncodeError(t *testing.T) {
+	changes := &Changes{
+		Outputs: []*OutputChange{
+			{
+				// Missing Addr
+				Change: Change{
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					// can't encode a marked value
+					After: cty.StringVal("test").Mark("shoult not be here"),
+				},
+			},
+		},
+	}
+	// no resources so we can get by with no schemas
+	changesSrc, err := changes.Encode(nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if changesSrc == nil {
+		t.Fatal("changesSrc should not be nil")
+	}
+}
