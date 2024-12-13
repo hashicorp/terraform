@@ -40,12 +40,14 @@ func NewChanges() *Changes {
 
 // Encode encodes all the stored resource and output changes into a new *ChangeSrc value
 func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
+	// a plan is always built even when there are errors, so make sure to return
+	// a valid changesSrc.
 	changesSrc := NewChangesSrc()
 
 	for _, rc := range c.Resources {
 		p, ok := schemas.Providers[rc.ProviderAddr.Provider]
 		if !ok {
-			return nil, fmt.Errorf("Changes.Encode: missing provider %s for %s", rc.ProviderAddr, rc.Addr)
+			return changesSrc, fmt.Errorf("Changes.Encode: missing provider %s for %s", rc.ProviderAddr, rc.Addr)
 		}
 
 		var schema providers.Schema
@@ -59,12 +61,12 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 		}
 
 		if schema.Block == nil {
-			return nil, fmt.Errorf("Changes.Encode: missing schema for %s", rc.Addr)
+			return changesSrc, fmt.Errorf("Changes.Encode: missing schema for %s", rc.Addr)
 		}
 
 		rcs, err := rc.Encode(schema.Block.ImpliedType())
 		if err != nil {
-			return nil, fmt.Errorf("Changes.Encode: %w", err)
+			return changesSrc, fmt.Errorf("Changes.Encode: %w", err)
 		}
 
 		changesSrc.Resources = append(changesSrc.Resources, rcs)
@@ -73,7 +75,7 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 	for _, ocs := range c.Outputs {
 		oc, err := ocs.Encode()
 		if err != nil {
-			return nil, err
+			return changesSrc, err
 		}
 		changesSrc.Outputs = append(changesSrc.Outputs, oc)
 	}
