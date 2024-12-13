@@ -19,8 +19,8 @@ on the S3 bucket to allow for state recovery in the case of accidental deletions
 ```hcl
 terraform {
   backend "s3" {
-    bucket = "example-bucket"
-    key    = "path/to/state"
+    bucket = "mybucket"
+    key    = "path/to/my/key"
     region = "us-east-1"
   }
 }
