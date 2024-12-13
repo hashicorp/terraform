@@ -13,13 +13,18 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// PlanComputedValuesForResource accepts a target value, and populates it with
-// cty.UnknownValues wherever a value should be computed during the apply stage.
+// PlanComputedValuesForResource accepts a target value, and populates computed
+// values with values from the provider 'with' argument, and if not provided,
+// sets them to cty.UnknownVal.
 //
-// This method basically simulates the behaviour of a plan request in a real
+// The latter behaviour simulates the behaviour of a plan request in a real
 // provider.
-func PlanComputedValuesForResource(original cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
-	return populateComputedValues(original, MockedData{}, schema, isNull, makeUnknown)
+func PlanComputedValuesForResource(original cty.Value, with *MockedData, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
+	mocked := MockedData{}
+	if with != nil {
+		mocked = *with
+	}
+	return populateComputedValues(original, mocked, schema, isNull)
 }
 
 // ApplyComputedValuesForResource accepts a target value, and populates it
@@ -30,7 +35,7 @@ func PlanComputedValuesForResource(original cty.Value, schema *configschema.Bloc
 // This method basically simulates the behaviour of an apply request in a real
 // provider.
 func ApplyComputedValuesForResource(original cty.Value, with MockedData, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
-	return populateComputedValues(original, with, schema, isUnknown, with.makeKnown)
+	return populateComputedValues(original, with, schema, isUnknown)
 }
 
 // ComputedValuesForDataSource accepts a target value, and populates it either
@@ -44,15 +49,24 @@ func ApplyComputedValuesForResource(original cty.Value, with MockedData, schema 
 // This method basically simulates the behaviour of a get data source request
 // in a real provider.
 func ComputedValuesForDataSource(original cty.Value, with MockedData, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
-	return populateComputedValues(original, with, schema, isNull, with.makeKnown)
+	return populateComputedValues(original, with, schema, isNull)
 }
 
 type processValue func(value cty.Value) bool
 
 type generateValue func(attribute *configschema.Attribute, with cty.Value, path cty.Path) (cty.Value, tfdiags.Diagnostics)
 
-func populateComputedValues(target cty.Value, with MockedData, schema *configschema.Block, processValue processValue, generateValue generateValue) (cty.Value, tfdiags.Diagnostics) {
+func populateComputedValues(target cty.Value, with MockedData, schema *configschema.Block, processValue processValue) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	var generateValue generateValue
+	// If we're ignoring the values, then we should generate
+	// unknown values for the computed attributes.
+	if with.Ignore {
+		generateValue = makeUnknown
+	} else {
+		generateValue = with.makeKnown
+	}
 
 	if !with.validate() {
 		// This is actually a user error, it means the user wrote something like
@@ -159,8 +173,9 @@ func makeUnknown(target *configschema.Attribute, _ cty.Value, _ cty.Path) (cty.V
 // MockedData wraps the value and the source location of the value into a single
 // struct for easy access.
 type MockedData struct {
-	Value cty.Value
-	Range hcl.Range
+	Value  cty.Value
+	Ignore bool
+	Range  hcl.Range
 }
 
 // makeKnown produces a valid value for the given attribute. The input value

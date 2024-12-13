@@ -904,7 +904,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		if priorVal.IsNull() {
 			// Then we are actually creating something, so let's populate the
 			// computed values from our override value.
-			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, schema)
+			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, getPlanMockedData(n.override), schema)
 			resp = providers.PlanResourceChangeResponse{
 				PlannedState: override,
 				Diagnostics:  overrideDiags,
@@ -1082,7 +1082,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		if n.override != nil {
 			// In this case, we are always creating the resource so we don't
 			// do any validation, and just call out to the mocking library.
-			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, schema)
+			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, getPlanMockedData(n.override), schema)
 			resp = providers.PlanResourceChangeResponse{
 				PlannedState: override,
 				Diagnostics:  overrideDiags,
@@ -1229,6 +1229,17 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 
 	return plan, state, deferred, keyData, diags
+}
+
+func getPlanMockedData(override *configs.Override) *mocking.MockedData {
+	if override == nil {
+		return nil
+	}
+	return &mocking.MockedData{
+		Value:  override.Values,
+		Range:  override.Range,
+		Ignore: override.Ignore,
+	}
 }
 
 func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {

@@ -182,7 +182,9 @@ func (m *Mock) PlanResourceChange(request PlanResourceChangeRequest) PlanResourc
 			panic(fmt.Errorf("failed to retrieve schema for resource %s", request.TypeName))
 		}
 
-		value, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, resource.Block)
+		// If the provider was overriden in the test (via override_*), the mock provider is not called at all,
+		// so we can be certain that this provider is not mocked.
+		value, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, nil, resource.Block)
 		response.Diagnostics = response.Diagnostics.Append(diags)
 		response.PlannedState = value
 		response.PlannedPrivate = []byte("create")

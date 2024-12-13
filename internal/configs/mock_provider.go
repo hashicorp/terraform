@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -171,6 +172,7 @@ const (
 type Override struct {
 	Target *addrs.Target
 	Values cty.Value
+	Ignore bool
 
 	// Source tells us where this Override was defined.
 	Source OverrideSource
@@ -393,12 +395,18 @@ func decodeOverrideDataBlock(block *hcl.Block, source OverrideSource) (*Override
 	return override, diags
 }
 
+var (
+	// triggerWhenPlan is the attribute name for specifying whether to trigger overrides when planning.
+	triggerWhenPlan = "trigger_when_plan"
+)
+
 func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName string, source OverrideSource) (*Override, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	content, contentDiags := block.Body.Content(&hcl.BodySchema{
 		Attributes: []hcl.AttributeSchema{
 			{Name: "target"},
+			{Name: triggerWhenPlan},
 			{Name: attributeName},
 		},
 	})
@@ -438,6 +446,33 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 		// values for everything ourselves. We set this to an empty object so
 		// it's equivalent to `values = {}` which makes later processing easier.
 		override.Values = cty.EmptyObjectVal
+	}
+
+	if attribute, exists := content.Attributes[triggerWhenPlan]; exists {
+		var valueDiags hcl.Diagnostics
+		val, valueDiags := attribute.Expr.Value(nil)
+		diags = append(diags, valueDiags...)
+		if val.Type().Equals(cty.Bool) {
+			var triggerOverride bool
+			err := gocty.FromCtyValue(val, &triggerOverride)
+			if err != nil {
+				// should not happen as we already checked the type
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid trigger_when_plan attribute",
+					Detail:   fmt.Sprintf("The %s attribute must be a boolean.", triggerWhenPlan),
+					Subject:  attribute.Range.Ptr(),
+				})
+			}
+			override.Ignore = !triggerOverride
+		} else {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid trigger_when_plan attribute",
+				Detail:   fmt.Sprintf("The %s attribute must be a boolean.", triggerWhenPlan),
+				Subject:  attribute.Range.Ptr(),
+			})
+		}
 	}
 
 	if !override.Values.Type().IsObjectType() {
