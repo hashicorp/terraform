@@ -331,6 +331,14 @@
       {
         "title": "<code>workspace show</code>",
         "href": "/cli/commands/workspace/show"
+      },
+      {
+        "title": "0.12upgrade",
+        "href": "/cli/commands/0.12upgrade"
+      },
+      {
+        "title": "0.13upgrade",
+        "href": "/cli/commands/0.13upgrade"
       }
     ]
   },
@@ -398,6 +406,14 @@
           { "title": "workspace delete", "path": "commands/workspace/delete" },
           { "title": "workspace show", "path": "commands/workspace/show" }
         ]
+      },
+      {
+        "title": "0.12upgrade",
+        "path": "commands/0.12upgrade"
+      },
+      {
+        "title": "0.13upgrade",
+        "path": "commands/0.13upgrade"
       }
     ]
   },
