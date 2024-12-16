@@ -49,4 +49,10 @@ run "test" {
     error_message = "did not apply mocks"
   }
 
+  assert {
+    // Override should not affect the other instances
+    condition = !contains(["aaaa", "cccc"], test_resource.secondary[0].id)
+    error_message = "override from another instance affected this instance"
+  }
+
 }

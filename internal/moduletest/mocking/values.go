@@ -20,7 +20,14 @@ import (
 // The latter behaviour simulates the behaviour of a plan request in a real
 // provider.
 func PlanComputedValuesForResource(original cty.Value, with *MockedData, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
-	return populateComputedValues(original, with, schema, isNull)
+	mocked := with
+	if with == nil {
+		mocked = &MockedData{
+			Value:             cty.NilVal,
+			ComputedAsUnknown: true,
+		}
+	}
+	return populateComputedValues(original, mocked, schema, isNull)
 }
 
 // ApplyComputedValuesForResource accepts a target value, and populates it
@@ -31,7 +38,13 @@ func PlanComputedValuesForResource(original cty.Value, with *MockedData, schema 
 // This method basically simulates the behaviour of an apply request in a real
 // provider.
 func ApplyComputedValuesForResource(original cty.Value, with *MockedData, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
-	return populateComputedValues(original, with, schema, isUnknown)
+	mocked := with
+	if with == nil {
+		mocked = &MockedData{
+			Value: cty.NilVal,
+		}
+	}
+	return populateComputedValues(original, mocked, schema, isUnknown)
 }
 
 // ComputedValuesForDataSource accepts a target value, and populates it either
@@ -45,7 +58,13 @@ func ApplyComputedValuesForResource(original cty.Value, with *MockedData, schema
 // This method basically simulates the behaviour of a get data source request
 // in a real provider.
 func ComputedValuesForDataSource(original cty.Value, with *MockedData, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
-	return populateComputedValues(original, with, schema, isNull)
+	mocked := with
+	if with == nil {
+		mocked = &MockedData{
+			Value: cty.NilVal,
+		}
+	}
+	return populateComputedValues(original, mocked, schema, isNull)
 }
 
 type processValue func(value cty.Value) bool
@@ -61,10 +80,10 @@ func populateComputedValues(target cty.Value, mocked *MockedData, schema *config
 	}
 
 	var generateValue generateValue
-	// If the mocked data should be ignored, then we will generate
-	// unknown values for the computed attributes, otherwise we will
-	// generate values based on the mocked data.
-	if with.IgnoreComputed {
+	// If the computed attributes should be ignored, then we will generate
+	// unknown values for them, otherwise we will
+	// generate their values based on the mocked data.
+	if with.ComputedAsUnknown {
 		generateValue = makeUnknown
 	} else {
 		generateValue = with.makeKnown
@@ -175,17 +194,17 @@ func makeUnknown(target *configschema.Attribute, _ cty.Value, _ cty.Path) (cty.V
 // MockedData wraps the value and the source location of the value into a single
 // struct for easy access.
 type MockedData struct {
-	Value          cty.Value
-	Range          hcl.Range
-	IgnoreComputed bool // If true, computed values will be ignored and replaced with unknown values.
+	Value             cty.Value
+	Range             hcl.Range
+	ComputedAsUnknown bool // If true, computed values are replaced with unknown.
 }
 
 // NewMockedData creates a new MockedData struct with the given value and range.
-func NewMockedData(value cty.Value, ignoreComputed bool, range_ hcl.Range) MockedData {
+func NewMockedData(value cty.Value, computedAsUnknown bool, range_ hcl.Range) MockedData {
 	return MockedData{
-		Value:          value,
-		IgnoreComputed: ignoreComputed,
-		Range:          range_,
+		Value:             value,
+		ComputedAsUnknown: computedAsUnknown,
+		Range:             range_,
 	}
 }
 
