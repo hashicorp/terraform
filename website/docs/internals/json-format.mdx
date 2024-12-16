@@ -1,17 +1,18 @@
 ---
-page_title: 'Internals: JSON Output Format'
+page_title: JSON output format
 description: >-
-  Terraform provides a machine-readable JSON representation of state,
-  configuration and plan.
+  Learn how to configure Terraform to print JSON-formatted details about state, configuration, and proposed infrastructure plans. 
 ---
 
-# JSON Output Format
+# JSON Output Format Overview
 
--> **Note:** This format is available in Terraform 0.12 and later.
+This topic provides overview information about the JSON output Terraform prints to the terminal. 
+
+## Introduction
 
 When Terraform plans to make changes, it prints a human-readable summary to the terminal. It can also, when run with `-out=<PATH>`, write a much more detailed binary plan file, which can later be used to apply those changes.
 
-Since the format of plan files isn't suited for use with external tools (and likely never will be), Terraform can output a machine-readable JSON representation of a plan file's changes. It can also convert state files to the same format, to simplify data loading and provide better long-term compatibility.
+Terraform can output a machine-readable JSON representation of a plan file's changes. It can also convert state files to the same format, to simplify data loading and provide better long-term compatibility.
 
 Use `terraform show -json <FILE>` to generate a JSON representation of a plan or state file. See [the `terraform show` documentation](/terraform/cli/commands/show) for more details.
 
@@ -24,9 +25,6 @@ value `"1.0"`. The semantics of this version are:
 - We will increment the major version, e.g. `"2.0"`, for changes that are not
   backward-compatible. Reject any input which reports an unsupported major
   version.
-
-We will introduce new major versions only within the bounds of
-[the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
 
 ## Format Summary
 

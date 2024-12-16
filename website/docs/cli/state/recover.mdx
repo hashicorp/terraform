@@ -1,25 +1,19 @@
 ---
-page_title: Recovering from State Disasters - Terraform CLI
+page_title: Recover state from backup 
 description: >-
   Learn how to restore state backups and override Terraform state protections to fix state errors with the Terraform CLI.
-
 ---
 
-# Recovering from State Disasters
+# Recover state from backup overview
 
-If something has gone horribly wrong (possibly due to accidents when performing
-other state manipulation actions), you might need to take drastic actions with
-your state data.
+This topic provides overview information about recovering Terraform state from a backup after a disaster, such as an accident when performing
+other state manipulation actions.
 
-- [The `terraform force-unlock` command](/terraform/cli/commands/force-unlock) can
-  override the protections Terraform uses to prevent two processes from
-  modifying state at the same time. You might need this if a Terraform process
-  (like a normal apply) is unexpectedly terminated (like by the complete
-  destruction of the VM it's running in) before it can release its lock on the
-  state backend. Do not run this until you are completely certain what happened
-  to the process that caused the lock to get stuck.
+## Workflow
 
-- [The `terraform state pull` command](/terraform/cli/commands/state/pull) and
-  [the `terraform state push` command](/terraform/cli/commands/state/push) can
-  directly read and write entire state files from and to the configured backend.
-  You might need this for obtaining or restoring a state backup.
+1. **Unlock Terraform**: You may need to unlock Terraform when a `terraform apply` or other process unexpectedly terminates before Terraform can release its lock on the state backend. Unlocking Terraform overrides protectionsthat prevent two processes from modifying state at the same time. We do not recommend unlocking until you determine what caused the lock to get stuck. 
+
+  Refer to the [`terraform force-unlock` command](/terraform/cli/commands/force-unlock) documentation for additional information.  
+  
+1. **Read state data**: Run the [`terraform state pull` command](/terraform/cli/commands/state/pull) to read the state files from the configured backend. 
+1. **Write state data**: Run the [`terraform state push` command](/terraform/cli/commands/state/push) to write state files to the configured backend.
