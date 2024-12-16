@@ -13,18 +13,14 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// PlanComputedValuesForResource accepts a target value, and populates computed
-// values with values from the provider 'with' argument, and if not provided,
-// sets them to cty.UnknownVal.
+// PlanComputedValuesForResource accepts a target value, and populates its computed
+// values with values from the provider 'with' argument, and if 'with' is not provided,
+// it sets the computed values to cty.UnknownVal.
 //
 // The latter behaviour simulates the behaviour of a plan request in a real
 // provider.
 func PlanComputedValuesForResource(original cty.Value, with *MockedData, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
-	mocked := MockedData{}
-	if with != nil {
-		mocked = *with
-	}
-	return populateComputedValues(original, mocked, schema, isNull)
+	return populateComputedValues(original, with, schema, isNull)
 }
 
 // ApplyComputedValuesForResource accepts a target value, and populates it
@@ -34,7 +30,7 @@ func PlanComputedValuesForResource(original cty.Value, with *MockedData, schema 
 //
 // This method basically simulates the behaviour of an apply request in a real
 // provider.
-func ApplyComputedValuesForResource(original cty.Value, with MockedData, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
+func ApplyComputedValuesForResource(original cty.Value, with *MockedData, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
 	return populateComputedValues(original, with, schema, isUnknown)
 }
 
@@ -48,7 +44,7 @@ func ApplyComputedValuesForResource(original cty.Value, with MockedData, schema 
 //
 // This method basically simulates the behaviour of a get data source request
 // in a real provider.
-func ComputedValuesForDataSource(original cty.Value, with MockedData, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
+func ComputedValuesForDataSource(original cty.Value, with *MockedData, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
 	return populateComputedValues(original, with, schema, isNull)
 }
 
@@ -56,13 +52,19 @@ type processValue func(value cty.Value) bool
 
 type generateValue func(attribute *configschema.Attribute, with cty.Value, path cty.Path) (cty.Value, tfdiags.Diagnostics)
 
-func populateComputedValues(target cty.Value, with MockedData, schema *configschema.Block, processValue processValue) (cty.Value, tfdiags.Diagnostics) {
+func populateComputedValues(target cty.Value, mocked *MockedData, schema *configschema.Block, processValue processValue) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	with := MockedData{}
+	if mocked != nil {
+		with = *mocked
+	}
+
 	var generateValue generateValue
-	// If we're ignoring the values, then we should generate
-	// unknown values for the computed attributes.
-	if with.Ignore {
+	// If the mocked data should be ignored, then we will generate
+	// unknown values for the computed attributes, otherwise we will
+	// generate values based on the mocked data.
+	if with.IgnoreComputed {
 		generateValue = makeUnknown
 	} else {
 		generateValue = with.makeKnown
@@ -173,9 +175,18 @@ func makeUnknown(target *configschema.Attribute, _ cty.Value, _ cty.Path) (cty.V
 // MockedData wraps the value and the source location of the value into a single
 // struct for easy access.
 type MockedData struct {
-	Value  cty.Value
-	Ignore bool
-	Range  hcl.Range
+	Value          cty.Value
+	Range          hcl.Range
+	IgnoreComputed bool // If true, computed values will be ignored and replaced with unknown values.
+}
+
+// NewMockedData creates a new MockedData struct with the given value and range.
+func NewMockedData(value cty.Value, ignoreComputed bool, range_ hcl.Range) MockedData {
+	return MockedData{
+		Value:          value,
+		IgnoreComputed: ignoreComputed,
+		Range:          range_,
+	}
 }
 
 // makeKnown produces a valid value for the given attribute. The input value

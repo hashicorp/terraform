@@ -459,7 +459,7 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 				// should not happen as we already checked the type
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Invalid trigger_when_plan attribute",
+					Summary:  fmt.Sprintf("Invalid %s value", triggerWhenPlan),
 					Detail:   fmt.Sprintf("The %s attribute must be a boolean.", triggerWhenPlan),
 					Subject:  attribute.Range.Ptr(),
 				})
@@ -468,7 +468,7 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 		} else {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Invalid trigger_when_plan attribute",
+				Summary:  fmt.Sprintf("Invalid %s value", triggerWhenPlan),
 				Detail:   fmt.Sprintf("The %s attribute must be a boolean.", triggerWhenPlan),
 				Subject:  attribute.Range.Ptr(),
 			})
