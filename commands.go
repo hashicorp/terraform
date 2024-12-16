@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/webbrowser"
@@ -201,6 +202,7 @@ func initCommands(
 		"init": func() (cli.Command, error) {
 			return &command.InitCommand{
 				Meta: meta,
+				Vars: arguments.Vars{},
 			}, nil
 		},
 

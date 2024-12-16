@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/cli"
 
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 )
 
@@ -81,6 +82,7 @@ func TestUnlock_inmemBackend(t *testing.T) {
 			Ui:   ui,
 			View: view,
 		},
+		Vars: arguments.Vars{},
 	}
 	if code := ci.Run(nil); code != 0 {
 		t.Fatalf("bad: %d\n%s", code, ui.ErrorWriter)

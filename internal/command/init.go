@@ -40,6 +40,7 @@ import (
 // module and clones it to the working directory.
 type InitCommand struct {
 	Meta Meta
+	Vars arguments.Vars
 }
 
 func (c *InitCommand) Run(args []string) int {
@@ -55,6 +56,14 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
+	cmdFlags := arguments.ExtendedFlagSet("init", nil, nil, &c.Vars)
+	if err := cmdFlags.Parse(args); err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to parse command-line flags",
+			err.Error(),
+		))
+	}
 	c.Meta.forceInitCopy = initArgs.ForceInitCopy
 	c.Meta.stateLock = initArgs.StateLock
 	c.Meta.stateLockTimeout = initArgs.StateLockTimeout

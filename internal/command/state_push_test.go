@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -247,6 +248,7 @@ func TestStatePush_forceRemoteState(t *testing.T) {
 	view, _ := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{Ui: ui, View: view},
+		Vars: arguments.Vars{},
 	}
 	if code := initCmd.Run([]string{}); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
