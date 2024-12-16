@@ -85,7 +85,7 @@ func ParseInit(args []string) (*Init, tfdiags.Diagnostics) {
 	}
 	init.BackendConfig = NewFlagNameValueSlice("-backend-config")
 
-	cmdFlags := extendedFlagSet("init", nil, nil, init.Vars)
+	cmdFlags := ExtendedFlagSet("init", nil, nil, init.Vars)
 
 	cmdFlags.Var((*FlagStringSlice)(&init.TargetFlags), "target", "resource to target")
 	cmdFlags.BoolVar(&init.InputEnabled, "input", true, "input")

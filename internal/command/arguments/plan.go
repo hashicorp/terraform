@@ -45,7 +45,7 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 		Vars:      &Vars{},
 	}
 
-	cmdFlags := extendedFlagSet("plan", plan.State, plan.Operation, plan.Vars)
+	cmdFlags := ExtendedFlagSet("plan", plan.State, plan.Operation, plan.Vars)
 	cmdFlags.BoolVar(&plan.DetailedExitCode, "detailed-exitcode", false, "detailed-exitcode")
 	cmdFlags.BoolVar(&plan.InputEnabled, "input", true, "input")
 	cmdFlags.StringVar(&plan.OutPath, "out", "", "out")

@@ -215,10 +215,10 @@ func (v *Vars) Empty() bool {
 	return v.vars.Empty()
 }
 
-// extendedFlagSet creates a FlagSet with common backend, operation, and vars
+// ExtendedFlagSet creates a FlagSet with common backend, operation, and vars
 // flags used in many commands. Target structs for each subset of flags must be
 // provided in order to support those flags.
-func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars) *flag.FlagSet {
+func ExtendedFlagSet(name string, state *State, operation *Operation, vars *Vars) *flag.FlagSet {
 	f := defaultFlagSet(name)
 
 	if state == nil && operation == nil && vars == nil {

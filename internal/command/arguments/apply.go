@@ -42,7 +42,7 @@ func ParseApply(args []string) (*Apply, tfdiags.Diagnostics) {
 		Vars:      &Vars{},
 	}
 
-	cmdFlags := extendedFlagSet("apply", apply.State, apply.Operation, apply.Vars)
+	cmdFlags := ExtendedFlagSet("apply", apply.State, apply.Operation, apply.Vars)
 	cmdFlags.BoolVar(&apply.AutoApprove, "auto-approve", false, "auto-approve")
 	cmdFlags.BoolVar(&apply.InputEnabled, "input", true, "input")
 

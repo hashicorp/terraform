@@ -33,7 +33,7 @@ func ParseRefresh(args []string) (*Refresh, tfdiags.Diagnostics) {
 		Vars:      &Vars{},
 	}
 
-	cmdFlags := extendedFlagSet("refresh", refresh.State, refresh.Operation, refresh.Vars)
+	cmdFlags := ExtendedFlagSet("refresh", refresh.State, refresh.Operation, refresh.Vars)
 	cmdFlags.BoolVar(&refresh.InputEnabled, "input", true, "input")
 
 	var json bool
