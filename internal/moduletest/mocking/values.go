@@ -20,14 +20,13 @@ import (
 // The latter behaviour simulates the behaviour of a plan request in a real
 // provider.
 func PlanComputedValuesForResource(original cty.Value, with *MockedData, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
-	mocked := with
 	if with == nil {
-		mocked = &MockedData{
+		with = &MockedData{
 			Value:             cty.NilVal,
 			ComputedAsUnknown: true,
 		}
 	}
-	return populateComputedValues(original, mocked, schema, isNull)
+	return populateComputedValues(original, *with, schema, isNull)
 }
 
 // ApplyComputedValuesForResource accepts a target value, and populates it
@@ -38,13 +37,12 @@ func PlanComputedValuesForResource(original cty.Value, with *MockedData, schema 
 // This method basically simulates the behaviour of an apply request in a real
 // provider.
 func ApplyComputedValuesForResource(original cty.Value, with *MockedData, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
-	mocked := with
 	if with == nil {
-		mocked = &MockedData{
+		with = &MockedData{
 			Value: cty.NilVal,
 		}
 	}
-	return populateComputedValues(original, mocked, schema, isUnknown)
+	return populateComputedValues(original, *with, schema, isUnknown)
 }
 
 // ComputedValuesForDataSource accepts a target value, and populates it either
@@ -58,26 +56,20 @@ func ApplyComputedValuesForResource(original cty.Value, with *MockedData, schema
 // This method basically simulates the behaviour of a get data source request
 // in a real provider.
 func ComputedValuesForDataSource(original cty.Value, with *MockedData, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
-	mocked := with
 	if with == nil {
-		mocked = &MockedData{
+		with = &MockedData{
 			Value: cty.NilVal,
 		}
 	}
-	return populateComputedValues(original, mocked, schema, isNull)
+	return populateComputedValues(original, *with, schema, isNull)
 }
 
 type processValue func(value cty.Value) bool
 
 type generateValue func(attribute *configschema.Attribute, with cty.Value, path cty.Path) (cty.Value, tfdiags.Diagnostics)
 
-func populateComputedValues(target cty.Value, mocked *MockedData, schema *configschema.Block, processValue processValue) (cty.Value, tfdiags.Diagnostics) {
+func populateComputedValues(target cty.Value, with MockedData, schema *configschema.Block, processValue processValue) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-
-	with := MockedData{}
-	if mocked != nil {
-		with = *mocked
-	}
 
 	var generateValue generateValue
 	// If the computed attributes should be ignored, then we will generate
