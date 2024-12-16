@@ -39,7 +39,7 @@ import (
 // InitCommand is a Command implementation that takes a Terraform
 // module and clones it to the working directory.
 type InitCommand struct {
-	Meta
+	Meta Meta
 }
 
 func (c *InitCommand) Run(args []string) int {
@@ -47,7 +47,7 @@ func (c *InitCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	initArgs, initDiags := arguments.ParseInit(args)
 
-	view := views.NewInit(initArgs.ViewType, c.View)
+	view := views.NewInit(initArgs.ViewType, c.Meta.View)
 
 	if initDiags.HasErrors() {
 		diags = diags.Append(initDiags)
@@ -55,11 +55,11 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.forceInitCopy = initArgs.ForceInitCopy
+	c.Meta.forceInitCopy = initArgs.ForceInitCopy
 	c.Meta.stateLock = initArgs.StateLock
 	c.Meta.stateLockTimeout = initArgs.StateLockTimeout
-	c.reconfigure = initArgs.Reconfigure
-	c.migrateState = initArgs.MigrateState
+	c.Meta.reconfigure = initArgs.Reconfigure
+	c.Meta.migrateState = initArgs.MigrateState
 	c.Meta.ignoreRemoteVersion = initArgs.IgnoreRemoteVersion
 	c.Meta.input = initArgs.InputEnabled
 	c.Meta.targetFlags = initArgs.TargetFlags
@@ -75,12 +75,12 @@ func (c *InitCommand) Run(args []string) int {
 
 	// Copying the state only happens during backend migration, so setting
 	// -force-copy implies -migrate-state
-	if c.forceInitCopy {
-		c.migrateState = true
+	if c.Meta.forceInitCopy {
+		c.Meta.migrateState = true
 	}
 
 	if len(initArgs.PluginPath) > 0 {
-		c.pluginPath = initArgs.PluginPath
+		c.Meta.pluginPath = initArgs.PluginPath
 	}
 
 	// Validate the arg count and get the working directory
@@ -91,14 +91,14 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
-	if err := c.storePluginPath(c.pluginPath); err != nil {
+	if err := c.Meta.storePluginPath(c.Meta.pluginPath); err != nil {
 		diags = diags.Append(fmt.Errorf("Error saving -plugin-dir to workspace directory: %s", err))
 		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Initialization can be aborted by interruption signals
-	ctx, done := c.InterruptibleContext(c.CommandContext())
+	ctx, done := c.Meta.InterruptibleContext(c.Meta.CommandContext())
 	defer done()
 
 	// This will track whether we outputted anything so that we know whether
@@ -124,7 +124,7 @@ func (c *InitCommand) Run(args []string) int {
 		header = true
 
 		hooks := uiModuleInstallHooks{
-			Ui:             c.Ui,
+			Ui:             c.Meta.Ui,
 			ShowLocalPaths: false, // since they are in a weird location for init
 			View:           view,
 		}
@@ -133,7 +133,7 @@ func (c *InitCommand) Run(args []string) int {
 			attribute.String("module_source", src),
 		))
 
-		initDirFromModuleAbort, initDirFromModuleDiags := c.initDirFromModule(ctx, path, src, hooks)
+		initDirFromModuleAbort, initDirFromModuleDiags := c.Meta.initDirFromModule(ctx, path, src, hooks)
 		diags = diags.Append(initDirFromModuleDiags)
 		if initDirFromModuleAbort || initDirFromModuleDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -160,7 +160,7 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Load just the root module to begin backend and module initialization
-	rootModEarly, earlyConfDiags := c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
+	rootModEarly, earlyConfDiags := c.Meta.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
 
 	// There may be parsing errors in config loading but these will be shown later _after_
 	// checking for core version requirement errors. Not meeting the version requirement should
@@ -199,8 +199,8 @@ func (c *InitCommand) Run(args []string) int {
 	// on a previous run) we'll use the current state as a potential source
 	// of provider dependencies.
 	if back != nil {
-		c.ignoreRemoteVersionConflict(back)
-		workspace, err := c.Workspace()
+		c.Meta.ignoreRemoteVersionConflict(back)
+		workspace, err := c.Meta.Workspace()
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("Error selecting workspace: %s", err))
 			view.Diagnostics(diags)
@@ -236,7 +236,7 @@ func (c *InitCommand) Run(args []string) int {
 
 	// With all of the modules (hopefully) installed, we can now try to load the
 	// whole configuration tree.
-	config, confDiags := c.loadConfigWithTests(path, initArgs.TestsDirectory)
+	config, confDiags := c.Meta.loadConfigWithTests(path, initArgs.TestsDirectory)
 	// configDiags will be handled after the version constraint check, since an
 	// incorrect version of terraform may be producing errors for configuration
 	// constructs added in later versions.
@@ -282,7 +282,7 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	if cb, ok := back.(*cloud.Cloud); ok {
-		if c.RunningInAutomation {
+		if c.Meta.RunningInAutomation {
 			if err := cb.AssertImportCompatible(config); err != nil {
 				diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Compatibility error", err.Error()))
 				view.Diagnostics(diags)
@@ -320,7 +320,7 @@ func (c *InitCommand) Run(args []string) int {
 
 	view.Output(output)
 
-	if !c.RunningInAutomation {
+	if !c.Meta.RunningInAutomation {
 		// If we're not running in an automation wrapper, give the user
 		// some more detailed next steps that are appropriate for interactive
 		// shell usage.
@@ -360,12 +360,12 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 	}
 
 	hooks := uiModuleInstallHooks{
-		Ui:             c.Ui,
+		Ui:             c.Meta.Ui,
 		ShowLocalPaths: true,
 		View:           view,
 	}
 
-	installAbort, installDiags := c.installModules(ctx, path, testsDir, upgrade, false, hooks)
+	installAbort, installDiags := c.Meta.installModules(ctx, path, testsDir, upgrade, false, hooks)
 	diags = diags.Append(installDiags)
 
 	// At this point, installModules may have generated error diags or been
@@ -374,8 +374,8 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 
 	// Since module installer has modified the module manifest on disk, we need
 	// to refresh the cache of it in the loader.
-	if c.configLoader != nil {
-		if err := c.configLoader.RefreshModules(); err != nil {
+	if c.Meta.configLoader != nil {
+		if err := c.Meta.configLoader.RefreshModules(); err != nil {
 			// Should never happen
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -412,7 +412,7 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 		ViewType: viewType,
 	}
 
-	back, backDiags := c.Backend(opts)
+	back, backDiags := c.Meta.Backend(opts)
 	diags = diags.Append(backDiags)
 	return back, true, diags
 }
@@ -496,7 +496,7 @@ the backend configuration is present and valid.
 		ViewType:       viewType,
 	}
 
-	back, backDiags := c.Backend(opts)
+	back, backDiags := c.Meta.Backend(opts)
 	diags = diags.Append(backDiags)
 	return back, true, diags
 }
@@ -511,7 +511,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	// any overridden providers, so we'll warn about it to avoid later
 	// confusion when Terraform ends up using a different provider than the
 	// lock file called for.
-	diags = diags.Append(c.providerDevOverrideInitWarnings())
+	diags = diags.Append(c.Meta.providerDevOverrideInitWarnings())
 
 	// First we'll collect all the provider dependencies we can see in the
 	// configuration and the state.
@@ -538,7 +538,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 		}
 	}
 
-	previousLocks, moreDiags := c.lockedDependencies()
+	previousLocks, moreDiags := c.Meta.lockedDependencies()
 	diags = diags.Append(moreDiags)
 
 	if diags.HasErrors() {
@@ -549,14 +549,14 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	if len(pluginDirs) == 0 {
 		// By default we use a source that looks for providers in all of the
 		// standard locations, possibly customized by the user in CLI config.
-		inst = c.providerInstaller()
+		inst = c.Meta.providerInstaller()
 	} else {
 		// If the user passes at least one -plugin-dir then that circumvents
 		// the usual sources and forces Terraform to consult only the given
 		// directories. Anything not available in one of those directories
 		// is not available for installation.
-		source := c.providerCustomLocalDirectorySource(pluginDirs)
-		inst = c.providerInstallerCustomSource(source)
+		source := c.Meta.providerCustomLocalDirectorySource(pluginDirs)
+		inst = c.Meta.providerInstallerCustomSource(source)
 
 		// The default (or configured) search paths are logged earlier, in provider_source.go
 		// Log that those are being overridden by the `-plugin-dir` command line options
@@ -944,7 +944,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 			view.Output(views.DependenciesLockChangesInfo)
 		}
 
-		moreDiags = c.replaceLockedDependencies(newLocks)
+		moreDiags = c.Meta.replaceLockedDependencies(newLocks)
 		diags = diags.Append(moreDiags)
 	}
 
@@ -996,7 +996,7 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 
 		if eq == -1 {
 			// The value is interpreted as a filename.
-			newBody, fileDiags := c.loadHCLFile(item.Value)
+			newBody, fileDiags := c.Meta.loadHCLFile(item.Value)
 			diags = diags.Append(fileDiags)
 			if fileDiags.HasErrors() {
 				continue
