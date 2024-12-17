@@ -1239,19 +1239,6 @@ func (n *NodeAbstractResourceInstance) plan(
 	return plan, state, deferred, keyData, diags
 }
 
-// func getMockedData(override *configs.Override, isPlan bool) *mocking.MockedData {
-// 	if override == nil {
-// 		return nil
-// 	}
-// 	return &mocking.MockedData{
-// 		Value: override.Values,
-// 		Range: override.Range,
-// 		// Apply never ignores computed values. This attribute only matters
-// 		// when we are planning.
-// 		ComputedAsUnknown: override.IgnoreValues && isPlan,
-// 	}
-// }
-
 func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
 	// ignore_changes only applies when an object already exists, since we
 	// can't ignore changes to a thing we've not created yet.

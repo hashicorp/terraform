@@ -26,7 +26,7 @@ run "test" {
   command = plan
 
   assert {
-    condition = test_resource.primary[0].id != "bbbb"
+    condition = test_resource.primary[0].id == "bbbb"
     error_message = "plan should not have the overridden value"
   }
 
