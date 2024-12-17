@@ -170,9 +170,9 @@ const (
 // replacement values that should be used in place of whatever the underlying
 // provider would normally do.
 type Override struct {
-	Target *addrs.Target
-	Values cty.Value
-	Ignore bool
+	Target       *addrs.Target
+	Values       cty.Value
+	IgnoreValues bool
 
 	// Source tells us where this Override was defined.
 	Source OverrideSource
@@ -448,13 +448,16 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 		override.Values = cty.EmptyObjectVal
 	}
 
+	// By default, the override values are ignored when planning.
+	// This can be overridden by setting the triggerWhenPlan attribute to true.
+	override.IgnoreValues = true
 	if attribute, exists := content.Attributes[triggerWhenPlan]; exists {
 		var valueDiags hcl.Diagnostics
 		val, valueDiags := attribute.Expr.Value(nil)
 		diags = append(diags, valueDiags...)
 		if val.Type().Equals(cty.Bool) {
-			var triggerOverride bool
-			err := gocty.FromCtyValue(val, &triggerOverride)
+			var useOverrideValues bool
+			err := gocty.FromCtyValue(val, &useOverrideValues)
 			if err != nil {
 				// should not happen as we already checked the type
 				diags = diags.Append(&hcl.Diagnostic{
@@ -464,7 +467,7 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 					Subject:  attribute.Range.Ptr(),
 				})
 			}
-			override.Ignore = !triggerOverride
+			override.IgnoreValues = !useOverrideValues
 		} else {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,

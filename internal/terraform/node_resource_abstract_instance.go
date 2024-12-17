@@ -1240,7 +1240,7 @@ func getMockedData(override *configs.Override, isPlan bool) *mocking.MockedData 
 		Range: override.Range,
 		// Apply never ignores computed values. This attribute only matters
 		// when we are planning.
-		ComputedAsUnknown: override.Ignore && isPlan,
+		ComputedAsUnknown: override.IgnoreValues && isPlan,
 	}
 }
 
