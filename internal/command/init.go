@@ -182,6 +182,47 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
+	// TODO: Use a local backend to run a new init operation
+	// In this operation we will build a graph that includes the backends, provider, and module
+	// requirements. We will add new node types for init that will run execute to perform their work,
+	// so for backends we run initBackend / initCloud like below, for providers we run
+	// getProviders, and for modules we run getModules like below.
+	// There is the potential for using e.g. a data-source as input to any of the currently static
+	// attributes, which would require the provider for this to be loaded before and executed.
+	// We might run into a deferred-action like situation here or run a provider as part of init
+	// which I'm not sure we are okay with, just pointing it out as food for thought.
+
+	// localBackend := local.New()
+
+	// // Build the operation request
+	// opReq, opDiags := c.OperationRequest(localBackend, view, args.ViewType, args.Operation, args.OutPath, args.GenerateConfigPath)
+	// diags = diags.Append(opDiags)
+	// if diags.HasErrors() {
+	// 	view.Diagnostics(diags)
+	// 	return 1
+	// }
+
+	// // Collect variable value and add them to the operation request
+	// diags = diags.Append(c.GatherVariables(opReq, args.Vars))
+	// if diags.HasErrors() {
+	// 	view.Diagnostics(diags)
+	// 	return 1
+	// }
+
+	// // Before we delegate to the backend, we'll print any warning diagnostics
+	// // we've accumulated here, since the backend will start fresh with its own
+	// // diagnostics.
+	// view.Diagnostics(diags)
+	// diags = nil
+
+	// // Perform the operation
+	// op, err := c.RunOperation(be, opReq)
+	// if err != nil {
+	// 	diags = diags.Append(err)
+	// 	view.Diagnostics(diags)
+	// 	return 1
+	// }
+
 	var back backend.Backend
 
 	// There may be config errors or backend init errors but these will be shown later _after_
