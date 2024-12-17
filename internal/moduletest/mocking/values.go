@@ -188,7 +188,7 @@ func makeUnknown(target *configschema.Attribute, _ cty.Value, _ cty.Path) (cty.V
 type MockedData struct {
 	Value             cty.Value
 	Range             hcl.Range
-	ComputedAsUnknown bool // If true, computed values are replaced with unknown.
+	ComputedAsUnknown bool // If true, computed values are replaced with unknown, otherwise they are replaced with generated values.
 }
 
 // NewMockedData creates a new MockedData struct with the given value and range.
