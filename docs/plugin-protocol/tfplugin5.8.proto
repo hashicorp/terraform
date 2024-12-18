@@ -391,6 +391,7 @@ message ValidateResourceTypeConfig {
     message Request {
         string type_name = 1;
         DynamicValue config = 2;
+        ClientCapabilities client_capabilities = 3;
     }
     message Response {
         repeated Diagnostic diagnostics = 1;

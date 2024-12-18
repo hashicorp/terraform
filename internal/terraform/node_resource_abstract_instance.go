@@ -865,6 +865,9 @@ func (n *NodeAbstractResourceInstance) plan(
 		providers.ValidateResourceConfigRequest{
 			TypeName: n.Addr.Resource.Resource.Type,
 			Config:   unmarkedConfigVal,
+			ClientCapabilities: providers.ClientCapabilities{
+				WriteOnlyAttributesAllowed: true,
+			},
 		},
 	)
 	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
