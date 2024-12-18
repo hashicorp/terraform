@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
+	"github.com/tombuildsstuff/giovanni/storage/2020-08-04/blob/blobs"
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states/remote"
