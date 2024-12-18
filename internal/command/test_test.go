@@ -223,11 +223,15 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"mocking-invalid": {
-			expectedErr: []string{"Invalid outputs attribute"},
-			initCode:    1,
+			expectedErr: []string{
+				"Invalid outputs attribute",
+				"The override_computed attribute must be a boolean.",
+			},
+			initCode: 1,
 		},
 		"mocking-error": {
-			expectedErr: []string{"Unknown condition value",
+			expectedErr: []string{
+				"Unknown condition value",
 				"test_resource.primary[0].id",
 			},
 			code: 1,

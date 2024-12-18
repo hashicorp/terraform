@@ -83,26 +83,17 @@ func extractOverrideComputed(content *hcl.BodyContent) (*bool, hcl.Diagnostics) 
 	if attr, exists := content.Attributes[overrideComputed]; exists {
 		val, valueDiags := attr.Expr.Value(nil)
 		diags = append(diags, valueDiags...)
-		if val.Type().Equals(cty.Bool) {
-			var overrideComputedBool bool
-			err := gocty.FromCtyValue(val, &overrideComputedBool)
-			if err != nil {
-				// should not happen as we already checked the type
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  fmt.Sprintf("Invalid %s value", overrideComputed),
-					Detail:   fmt.Sprintf("The %s attribute must be a boolean.", overrideComputed),
-					Subject:  attr.Range.Ptr(),
-				})
-			}
-			return &overrideComputedBool, diags
+		var overrideComputedBool bool
+		err := gocty.FromCtyValue(val, &overrideComputedBool)
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Invalid %s value", overrideComputed),
+				Detail:   fmt.Sprintf("The %s attribute must be a boolean.", overrideComputed),
+				Subject:  attr.Range.Ptr(),
+			})
 		}
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  fmt.Sprintf("Invalid %s value", overrideComputed),
-			Detail:   fmt.Sprintf("The %s attribute must be a boolean.", overrideComputed),
-			Subject:  attr.Range.Ptr(),
-		})
+		return &overrideComputedBool, diags
 	}
 
 	return nil, diags
@@ -545,10 +536,6 @@ var mockProviderSchema = &hcl.BodySchema{
 }
 
 var mockDataSchema = &hcl.BodySchema{
-	Attributes: []hcl.AttributeSchema{
-		{Name: overrideComputed},
-		{Name: "alias"},
-	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "mock_resource", LabelNames: []string{"type"}},
 		{Type: "mock_data", LabelNames: []string{"type"}},
