@@ -21,7 +21,8 @@ variables {
 }
 
 // This test will fail because the plan command does not use the
-// overridden values, making the left-hand side of the condition unknown.
+// overridden values for computed properties, 
+// making the left-hand side of the condition unknown.
 run "test" {
   command = plan
 

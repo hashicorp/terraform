@@ -411,7 +411,7 @@ var (
 	// When this attribute is set to true, the values specified in the override
 	// block will be used for computed attributes even when planning. Otherwise,
 	// the computed values will be set to unknown, just like in a real plan.
-	forceComputedOverride = "force_computed_override"
+	overrideComputed = "override_computed"
 )
 
 func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName string, source OverrideSource) (*Override, hcl.Diagnostics) {
@@ -420,7 +420,7 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 	content, contentDiags := block.Body.Content(&hcl.BodySchema{
 		Attributes: []hcl.AttributeSchema{
 			{Name: "target"},
-			{Name: forceComputedOverride},
+			{Name: overrideComputed},
 			{Name: attributeName},
 		},
 	})
@@ -462,8 +462,8 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 		override.Values = cty.EmptyObjectVal
 	}
 
-	// Override computed values during planning if force_computed_override is true.
-	if attribute, exists := content.Attributes[forceComputedOverride]; exists {
+	// Override computed values during planning if override_computed is true.
+	if attribute, exists := content.Attributes[overrideComputed]; exists {
 		var valueDiags hcl.Diagnostics
 		val, valueDiags := attribute.Expr.Value(nil)
 		diags = append(diags, valueDiags...)
@@ -474,8 +474,8 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 				// should not happen as we already checked the type
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  fmt.Sprintf("Invalid %s value", forceComputedOverride),
-					Detail:   fmt.Sprintf("The %s attribute must be a boolean.", forceComputedOverride),
+					Summary:  fmt.Sprintf("Invalid %s value", overrideComputed),
+					Detail:   fmt.Sprintf("The %s attribute must be a boolean.", overrideComputed),
 					Subject:  attribute.Range.Ptr(),
 				})
 			}
@@ -483,8 +483,8 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 		} else {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Invalid %s value", forceComputedOverride),
-				Detail:   fmt.Sprintf("The %s attribute must be a boolean.", forceComputedOverride),
+				Summary:  fmt.Sprintf("Invalid %s value", overrideComputed),
+				Detail:   fmt.Sprintf("The %s attribute must be a boolean.", overrideComputed),
 				Subject:  attribute.Range.Ptr(),
 			})
 		}
