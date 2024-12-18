@@ -1,12 +1,12 @@
-## 1.10.3 (Unreleased)
+## 1.10.3 (December 18, 2024)
 
 BUG FIXES:
-- Terraform could panic when encountering an error during plan encoding [GH-36212]
+- Terraform could panic when encountering an error during plan encoding ([#36212](https://github.com/hashicorp/terraform/issues/36212))
 
 ## 1.10.2 (December 11, 2024)
 
 BUG FIXES:
-- cli: variables in an auto-loaded tfvars file which were overridden during plan incorrectly show as changed during apply [GH-36180]
+- cli: variables in an auto-loaded tfvars file which were overridden during plan incorrectly show as changed during apply ([#36180](https://github.com/hashicorp/terraform/issues/36180))
 
 ## 1.10.1 (December 4, 2024)
 
