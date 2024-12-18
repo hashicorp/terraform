@@ -63,7 +63,49 @@ func decodeMockProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 		diags = append(diags, sourceDiags...)
 	}
 
+	overrideComputedBool, valueDiags := extractOverrideComputed(content)
+	diags = append(diags, valueDiags...)
+	// Set the overrideComputed value for all the elements in the MockData
+	// if it is not already set.
+	for _, elem := range provider.MockData.Overrides.Elements() {
+		if elem.Value.planComputedOverride == nil {
+			elem.Value.planComputedOverride = overrideComputedBool
+		}
+		provider.MockData.Overrides.Put(elem.Key, elem.Value)
+	}
+
 	return provider, diags
+}
+
+func extractOverrideComputed(content *hcl.BodyContent) (*bool, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	if attr, exists := content.Attributes[overrideComputed]; exists {
+		val, valueDiags := attr.Expr.Value(nil)
+		diags = append(diags, valueDiags...)
+		if val.Type().Equals(cty.Bool) {
+			var overrideComputedBool bool
+			err := gocty.FromCtyValue(val, &overrideComputedBool)
+			if err != nil {
+				// should not happen as we already checked the type
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Invalid %s value", overrideComputed),
+					Detail:   fmt.Sprintf("The %s attribute must be a boolean.", overrideComputed),
+					Subject:  attr.Range.Ptr(),
+				})
+			}
+			return &overrideComputedBool, diags
+		}
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  fmt.Sprintf("Invalid %s value", overrideComputed),
+			Detail:   fmt.Sprintf("The %s attribute must be a boolean.", overrideComputed),
+			Subject:  attr.Range.Ptr(),
+		})
+	}
+
+	return nil, diags
 }
 
 // MockData packages up all the available mock and override data available to
@@ -463,32 +505,9 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 	}
 
 	// Override computed values during planning if override_computed is true.
-	if attribute, exists := content.Attributes[overrideComputed]; exists {
-		var valueDiags hcl.Diagnostics
-		val, valueDiags := attribute.Expr.Value(nil)
-		diags = append(diags, valueDiags...)
-		if val.Type().Equals(cty.Bool) {
-			var useOverrideValues bool
-			err := gocty.FromCtyValue(val, &useOverrideValues)
-			if err != nil {
-				// should not happen as we already checked the type
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  fmt.Sprintf("Invalid %s value", overrideComputed),
-					Detail:   fmt.Sprintf("The %s attribute must be a boolean.", overrideComputed),
-					Subject:  attribute.Range.Ptr(),
-				})
-			}
-			override.planComputedOverride = &useOverrideValues
-		} else {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Invalid %s value", overrideComputed),
-				Detail:   fmt.Sprintf("The %s attribute must be a boolean.", overrideComputed),
-				Subject:  attribute.Range.Ptr(),
-			})
-		}
-	}
+	overrideComputedBool, valueDiags := extractOverrideComputed(content)
+	diags = append(diags, valueDiags...)
+	override.planComputedOverride = overrideComputedBool
 
 	if !override.Values.Type().IsObjectType() {
 
@@ -517,12 +536,19 @@ var mockProviderSchema = &hcl.BodySchema{
 			Name: "alias",
 		},
 		{
+			Name: overrideComputed,
+		},
+		{
 			Name: "source",
 		},
 	},
 }
 
 var mockDataSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: overrideComputed},
+		{Name: "alias"},
+	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "mock_resource", LabelNames: []string{"type"}},
 		{Type: "mock_data", LabelNames: []string{"type"}},
