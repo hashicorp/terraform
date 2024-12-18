@@ -1095,5 +1095,14 @@
     "path": "v1-compatibility-promises"
   },
   { "divider": true },
-  { "title": "Terraform Internals", "href": "/internals" }
+  {"heading": "REFERENCE"},
+  {
+    "title": "Configuration Blocks", "routes": [
+      {
+        "title": "placeholder block", "path":"reference"
+      }
+    ]
+  },
+  { "title": "Terraform Internals", "href": "/internals" },
+  { "divider": true }
 ]
