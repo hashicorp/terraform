@@ -170,9 +170,15 @@ const (
 // replacement values that should be used in place of whatever the underlying
 // provider would normally do.
 type Override struct {
-	Target       *addrs.Target
-	Values       cty.Value
-	IgnoreValues bool
+	Target *addrs.Target
+	Values cty.Value
+
+	// By default, overridden computed values are ignored during planning,
+	// and the computed values are set to unknown to simulate the behavior
+	// of a real plan. This attribute indicates that the computed values
+	// should be overridden with the values specified in the override block,
+	// even when planning.
+	planComputedOverride *bool
 
 	// Source tells us where this Override was defined.
 	Source OverrideSource
@@ -181,6 +187,12 @@ type Override struct {
 	TypeRange   hcl.Range
 	TargetRange hcl.Range
 	ValuesRange hcl.Range
+}
+
+// UseOverridesForPlan returns true if the computed values in the target
+// resource should be overridden with the values specified in the override block.
+func (o *Override) UseOverridesForPlan() bool {
+	return o.planComputedOverride != nil && *o.planComputedOverride
 }
 
 func decodeMockDataBody(body hcl.Body, source OverrideSource) (*MockData, hcl.Diagnostics) {
@@ -396,8 +408,10 @@ func decodeOverrideDataBlock(block *hcl.Block, source OverrideSource) (*Override
 }
 
 var (
-	// triggerWhenPlan is the attribute name for specifying whether to trigger overrides when planning.
-	triggerWhenPlan = "trigger_when_plan"
+	// When this attribute is set to true, the values specified in the override
+	// block will be used for computed attributes even when planning. Otherwise,
+	// the computed values will be set to unknown, just like in a real plan.
+	forceComputedOverride = "force_computed_override"
 )
 
 func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName string, source OverrideSource) (*Override, hcl.Diagnostics) {
@@ -406,7 +420,7 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 	content, contentDiags := block.Body.Content(&hcl.BodySchema{
 		Attributes: []hcl.AttributeSchema{
 			{Name: "target"},
-			{Name: triggerWhenPlan},
+			{Name: forceComputedOverride},
 			{Name: attributeName},
 		},
 	})
@@ -448,10 +462,8 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 		override.Values = cty.EmptyObjectVal
 	}
 
-	// By default, the override values are ignored when planning.
-	// This can be overridden by setting the triggerWhenPlan attribute to true.
-	override.IgnoreValues = true
-	if attribute, exists := content.Attributes[triggerWhenPlan]; exists {
+	// Override computed values during planning if force_computed_override is true.
+	if attribute, exists := content.Attributes[forceComputedOverride]; exists {
 		var valueDiags hcl.Diagnostics
 		val, valueDiags := attribute.Expr.Value(nil)
 		diags = append(diags, valueDiags...)
@@ -462,17 +474,17 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 				// should not happen as we already checked the type
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  fmt.Sprintf("Invalid %s value", triggerWhenPlan),
-					Detail:   fmt.Sprintf("The %s attribute must be a boolean.", triggerWhenPlan),
+					Summary:  fmt.Sprintf("Invalid %s value", forceComputedOverride),
+					Detail:   fmt.Sprintf("The %s attribute must be a boolean.", forceComputedOverride),
 					Subject:  attribute.Range.Ptr(),
 				})
 			}
-			override.IgnoreValues = !useOverrideValues
+			override.planComputedOverride = &useOverrideValues
 		} else {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Invalid %s value", triggerWhenPlan),
-				Detail:   fmt.Sprintf("The %s attribute must be a boolean.", triggerWhenPlan),
+				Summary:  fmt.Sprintf("Invalid %s value", forceComputedOverride),
+				Detail:   fmt.Sprintf("The %s attribute must be a boolean.", forceComputedOverride),
 				Subject:  attribute.Range.Ptr(),
 			})
 		}
