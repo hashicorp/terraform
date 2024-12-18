@@ -191,6 +191,9 @@ type ValidateResourceConfigRequest struct {
 	// Config is the configuration value to validate, which may contain unknown
 	// values.
 	Config cty.Value
+
+	// ClientCapabilities contains information about the client's capabilities.
+	ClientCapabilities ClientCapabilities
 }
 
 type ValidateResourceConfigResponse struct {
