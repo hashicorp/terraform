@@ -208,7 +208,7 @@ type Override struct {
 	// of a real plan. This attribute indicates that the computed values
 	// should be overridden with the values specified in the override block,
 	// even when planning.
-	planComputedOverride *bool
+	useForPlan *bool
 
 	// Source tells us where this Override was defined.
 	Source OverrideSource
@@ -219,10 +219,10 @@ type Override struct {
 	ValuesRange hcl.Range
 }
 
-// UseOverridesForPlan returns true if the computed values in the target
+// UseForPlan returns true if the computed values in the target
 // resource can be overridden with the values specified in the override block.
-func (o *Override) UseOverridesForPlan() bool {
-	return o.planComputedOverride != nil && *o.planComputedOverride
+func (o *Override) UseForPlan() bool {
+	return o.useForPlan != nil && *o.useForPlan
 }
 
 func decodeMockDataBody(body hcl.Body, source OverrideSource) (*MockData, hcl.Diagnostics) {
@@ -313,8 +313,8 @@ func decodeMockDataBody(body hcl.Body, source OverrideSource) (*MockData, hcl.Di
 
 	for _, elem := range data.Overrides.Elements() {
 		// use the provider-level setting if there is none set for this override
-		if elem.Value.planComputedOverride == nil {
-			elem.Value.planComputedOverride = providerOverrideComputed
+		if elem.Value.useForPlan == nil {
+			elem.Value.useForPlan = providerOverrideComputed
 		}
 		data.Overrides.Put(elem.Key, elem.Value)
 	}
@@ -508,7 +508,7 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 	// Override computed values during planning if override_computed is true.
 	overrideComputedBool, valueDiags := extractOverrideComputed(content)
 	diags = append(diags, valueDiags...)
-	override.planComputedOverride = overrideComputedBool
+	override.useForPlan = overrideComputedBool
 
 	if !override.Values.Type().IsObjectType() {
 
