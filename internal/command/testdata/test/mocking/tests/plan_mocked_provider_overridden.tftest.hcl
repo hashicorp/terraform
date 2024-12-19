@@ -24,6 +24,16 @@ mock_provider "test" {
   }
 }
 
+
+override_resource {
+  target = test_resource.secondary[0]
+  override_computed = true
+  values = {
+    id = "ssss"
+  }
+}
+
+
 variables {
   instances = 2
   child_instances = 1
@@ -34,6 +44,11 @@ run "test" {
 
   assert {
     condition = test_resource.primary[0].id == "bbbb"
+    error_message = "plan should override the value when override_computed is true"
+  }
+
+  assert {
+    condition = test_resource.secondary[0].id == "ssss"
     error_message = "plan should override the value when override_computed is true"
   }
 
