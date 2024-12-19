@@ -1761,8 +1761,9 @@ Condition expression could not be evaluated at this time. This means you have
 executed a %s block with %s and one of the values your
 condition depended on is not known until after the plan has been applied.
 Either remove this value from your condition, or execute an %s command
-from this %s block.
-`, "`run`", "`command = plan`", "`apply`", "`run`"),
+from this %s block. Alternatively, if there is an override for this value,
+you can make it available during the plan phase by setting %s in the %s block.
+`, "`run`", "`command = plan`", "`apply`", "`run`", "`override_computed\n= true`", "`override_`"),
 		},
 		"unknown_value_in_vars": {
 			code: 1,
