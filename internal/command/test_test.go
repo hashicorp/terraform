@@ -219,7 +219,7 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"mocking": {
-			expectedOut: []string{"8 passed, 0 failed."},
+			expectedOut: []string{"9 passed, 0 failed."},
 			code:        0,
 		},
 		"mocking-invalid": {
@@ -232,7 +232,10 @@ func TestTest_Runs(t *testing.T) {
 		"mocking-error": {
 			expectedErr: []string{
 				"Unknown condition value",
+				"plan_mocked_overridden.tftest.hcl",
 				"test_resource.primary[0].id",
+				"plan_mocked_provider.tftest.hcl",
+				"test_resource.secondary[0].id",
 			},
 			code: 1,
 		},

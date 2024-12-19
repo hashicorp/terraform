@@ -182,11 +182,18 @@ func (m *Mock) PlanResourceChange(request PlanResourceChangeRequest) PlanResourc
 			panic(fmt.Errorf("failed to retrieve schema for resource %s", request.TypeName))
 		}
 
-		// If the provider was overriden via override_* blocks, the mock provider is not called at all,
-		// so we can continue to make computed values as unknown here (until mock defaults support plan command).
-		value, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, &mocking.MockedData{
+		replacement := &mocking.MockedData{
+			Value:             cty.NilVal, // If we have no data then we use cty.NilVal.
 			ComputedAsUnknown: true,
-		}, resource.Block)
+		}
+		// if we are allowed to use the mock defaults for plan, we can populate the computed fields with the mock defaults.
+		if mockedResource, exists := m.Data.MockResources[request.TypeName]; exists && m.Data.UseForPlan() {
+			replacement.Value = mockedResource.Defaults
+			replacement.Range = mockedResource.DefaultsRange
+			replacement.ComputedAsUnknown = false
+		}
+
+		value, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, replacement, resource.Block)
 		response.Diagnostics = response.Diagnostics.Append(diags)
 		response.PlannedState = value
 		response.PlannedPrivate = []byte("create")

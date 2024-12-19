@@ -94,6 +94,14 @@ type MockData struct {
 	MockResources   map[string]*MockResource
 	MockDataSources map[string]*MockResource
 	Overrides       addrs.Map[addrs.Targetable, *Override]
+
+	useForPlan *bool // If true, the mock data can be used for planning.
+}
+
+// UseForPlan returns true if the provider-level setting for overrideComputed
+// is true, meaning that computed values can be overridden with the mocked values.
+func (data *MockData) UseForPlan() bool {
+	return data.useForPlan != nil && *data.useForPlan
 }
 
 // Merge will merge the target MockData object into the current MockData.
@@ -212,7 +220,7 @@ type Override struct {
 }
 
 // UseOverridesForPlan returns true if the computed values in the target
-// resource should be overridden with the values specified in the override block.
+// resource can be overridden with the values specified in the override block.
 func (o *Override) UseOverridesForPlan() bool {
 	return o.planComputedOverride != nil && *o.planComputedOverride
 }
@@ -231,6 +239,7 @@ func decodeMockDataBody(body hcl.Body, source OverrideSource) (*MockData, hcl.Di
 		MockResources:   make(map[string]*MockResource),
 		MockDataSources: make(map[string]*MockResource),
 		Overrides:       addrs.MakeMap[addrs.Targetable, *Override](),
+		useForPlan:      providerOverrideComputed,
 	}
 
 	for _, block := range content.Blocks {
