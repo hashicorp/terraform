@@ -63,17 +63,6 @@ func decodeMockProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 		diags = append(diags, sourceDiags...)
 	}
 
-	overrideComputedBool, valueDiags := extractOverrideComputed(content)
-	diags = append(diags, valueDiags...)
-	// Set the overrideComputed value for all the elements in the MockData
-	// if it is not already set.
-	for _, elem := range provider.MockData.Overrides.Elements() {
-		if elem.Value.planComputedOverride == nil {
-			elem.Value.planComputedOverride = overrideComputedBool
-		}
-		provider.MockData.Overrides.Put(elem.Key, elem.Value)
-	}
-
 	return provider, diags
 }
 
@@ -234,6 +223,10 @@ func decodeMockDataBody(body hcl.Body, source OverrideSource) (*MockData, hcl.Di
 	content, contentDiags := body.Content(mockDataSchema)
 	diags = append(diags, contentDiags...)
 
+	// provider-level setting for overrideComputed
+	providerOverrideComputed, valueDiags := extractOverrideComputed(content)
+	diags = append(diags, valueDiags...)
+
 	data := &MockData{
 		MockResources:   make(map[string]*MockResource),
 		MockDataSources: make(map[string]*MockResource),
@@ -307,6 +300,14 @@ func decodeMockDataBody(body hcl.Body, source OverrideSource) (*MockData, hcl.Di
 				data.Overrides.Put(subject, override)
 			}
 		}
+	}
+
+	for _, elem := range data.Overrides.Elements() {
+		// use the provider-level setting if there is none set for this override
+		if elem.Value.planComputedOverride == nil {
+			elem.Value.planComputedOverride = providerOverrideComputed
+		}
+		data.Overrides.Put(elem.Key, elem.Value)
 	}
 
 	return data, diags
@@ -527,15 +528,15 @@ var mockProviderSchema = &hcl.BodySchema{
 			Name: "alias",
 		},
 		{
-			Name: overrideComputed,
-		},
-		{
 			Name: "source",
 		},
 	},
 }
 
 var mockDataSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: overrideComputed},
+	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "mock_resource", LabelNames: []string{"type"}},
 		{Type: "mock_data", LabelNames: []string{"type"}},
