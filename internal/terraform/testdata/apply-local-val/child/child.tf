@@ -1,4 +1,0 @@
-
-output "result" {
-  value = "hello"
-}

@@ -1,3 +1,0 @@
-module "subchild" {
-  source = "./subchild"
-}

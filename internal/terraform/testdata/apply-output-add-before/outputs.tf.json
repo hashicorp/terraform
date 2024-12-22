@@ -1,7 +1,0 @@
-{
-		"output": {
-				"firstOutput": {
-						"value": "${aws_instance.test.0.foo}"
-				}
-		}
-}
