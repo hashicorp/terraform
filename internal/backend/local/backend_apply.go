@@ -224,10 +224,10 @@ func (b *Local) opApply(
 			op.ReportResult(runningOp, diags)
 			return
 		}
-		for _, change := range plan.Changes.Resources {
-			if change.Action != plans.NoOp {
-				op.View.PlannedChange(change)
-			}
+		if _, ok := op.View.(*views.OperationJSON); ok {
+			// We don't display the plan for OperationHuman because the output of
+			// Plan already includes the change details for all resource instances.
+			op.View.Plan(plan, schemas)
 		}
 	}
 
