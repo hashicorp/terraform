@@ -392,6 +392,9 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		req := providers.ValidateResourceConfigRequest{
 			TypeName: n.Config.Type,
 			Config:   unmarkedConfigVal,
+			ClientCapabilities: providers.ClientCapabilities{
+				WriteOnlyAttributesAllowed: true,
+			},
 		}
 
 		resp := provider.ValidateResourceConfig(req)
