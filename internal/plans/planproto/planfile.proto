@@ -61,6 +61,9 @@ message Plan {
     // a msgpack serialization of an HCL value.
     map<string, DynamicValue> variables = 2;
 
+    // Variables whose values must be provided during the apply phase.
+    repeated string apply_time_variables = 28;
+
     // An unordered set of proposed changes to resources throughout the
     // configuration, including any nested modules. Use the address of
     // each resource to determine which module it belongs to.
@@ -371,6 +374,9 @@ message Path {
 message Importing {
     // The original ID of the resource.
     string id = 1;
+
+    // unknown is true if the original ID of the resource is unknown.
+    bool unknown = 2;
 }
 
 // DeferredReason describes the reason why a resource instance change was

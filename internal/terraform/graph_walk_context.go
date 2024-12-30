@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -32,14 +33,15 @@ type ContextGraphWalker struct {
 
 	// Configurable values
 	Context                 *Context
-	State                   *states.SyncState   // Used for safe concurrent access to state
-	RefreshState            *states.SyncState   // Used for safe concurrent access to state
-	PrevRunState            *states.SyncState   // Used for safe concurrent access to state
-	Changes                 *plans.ChangesSync  // Used for safe concurrent writes to changes
-	Checks                  *checks.State       // Used for safe concurrent writes of checkable objects and their check results
-	NamedValues             *namedvals.State    // Tracks evaluation of input variables, local values, and output values
-	InstanceExpander        *instances.Expander // Tracks our gradual expansion of module and resource instances
-	Deferrals               *deferring.Deferred // Tracks any deferred actions
+	State                   *states.SyncState    // Used for safe concurrent access to state
+	RefreshState            *states.SyncState    // Used for safe concurrent access to state
+	PrevRunState            *states.SyncState    // Used for safe concurrent access to state
+	Changes                 *plans.ChangesSync   // Used for safe concurrent writes to changes
+	Checks                  *checks.State        // Used for safe concurrent writes of checkable objects and their check results
+	NamedValues             *namedvals.State     // Tracks evaluation of input variables, local values, and output values
+	InstanceExpander        *instances.Expander  // Tracks our gradual expansion of module and resource instances
+	Deferrals               *deferring.Deferred  // Tracks any deferred actions
+	EphemeralResources      *ephemeral.Resources // Tracks active instances of ephemeral resources
 	Imports                 []configs.Import
 	MoveResults             refactoring.MoveResults // Read-only record of earlier processing of move statements
 	Operation               walkOperation
@@ -48,6 +50,9 @@ type ContextGraphWalker struct {
 	Config                  *configs.Config
 	PlanTimestamp           time.Time
 	Overrides               *mocking.Overrides
+	// Forget if set to true will cause the plan to forget all resources. This is
+	// only allowd in the context of a destroy plan.
+	Forget bool
 
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
@@ -95,22 +100,24 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 	// so that we can safely run multiple evaluations at once across
 	// different modules.
 	evaluator := &Evaluator{
-		Meta:          w.Context.meta,
-		Config:        w.Config,
-		Operation:     w.Operation,
-		State:         w.State,
-		Changes:       w.Changes,
-		Plugins:       w.Context.plugins,
-		Instances:     w.InstanceExpander,
-		NamedValues:   w.NamedValues,
-		Deferrals:     w.Deferrals,
-		PlanTimestamp: w.PlanTimestamp,
+		Meta:               w.Context.meta,
+		Config:             w.Config,
+		Operation:          w.Operation,
+		State:              w.State,
+		Changes:            w.Changes,
+		EphemeralResources: w.EphemeralResources,
+		Plugins:            w.Context.plugins,
+		Instances:          w.InstanceExpander,
+		NamedValues:        w.NamedValues,
+		Deferrals:          w.Deferrals,
+		PlanTimestamp:      w.PlanTimestamp,
 	}
 
 	ctx := &BuiltinEvalContext{
 		StopContext:             w.StopContext,
 		Hooks:                   w.Context.hooks,
 		InputValue:              w.Context.uiInput,
+		EphemeralResourcesValue: w.EphemeralResources,
 		InstanceExpanderValue:   w.InstanceExpander,
 		Plugins:                 w.Context.plugins,
 		ExternalProviderConfigs: w.ExternalProviderConfigs,
@@ -131,6 +138,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		PrevRunStateValue:       w.PrevRunState,
 		Evaluator:               evaluator,
 		OverrideValues:          w.Overrides,
+		forget:                  w.Forget,
 	}
 
 	return ctx

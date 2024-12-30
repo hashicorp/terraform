@@ -19,7 +19,7 @@ import (
 // A Config is a node in the tree of modules within a configuration.
 //
 // The module tree is constructed by following ModuleCall instances recursively
-// through the root module transitively into descendent modules.
+// through the root module transitively into descendant modules.
 //
 // A module tree described in *this* package represents the static tree
 // represented by configuration. During evaluation a static ModuleNode may
@@ -145,7 +145,7 @@ func (c *Config) DeepEach(cb func(c *Config)) {
 	}
 }
 
-// AllModules returns a slice of all the receiver and all of its descendent
+// AllModules returns a slice of all the receiver and all of its descendant
 // nodes in the module tree, in the same order they would be visited by
 // DeepEach.
 func (c *Config) AllModules() []*Config {
@@ -156,14 +156,14 @@ func (c *Config) AllModules() []*Config {
 	return ret
 }
 
-// Descendent returns the descendent config that has the given path beneath
+// Descendant returns the descendant config that has the given path beneath
 // the receiver, or nil if there is no such module.
 //
 // The path traverses the static module tree, prior to any expansion to handle
 // count and for_each arguments.
 //
 // An empty path will just return the receiver, and is therefore pointless.
-func (c *Config) Descendent(path addrs.Module) *Config {
+func (c *Config) Descendant(path addrs.Module) *Config {
 	current := c
 	for _, name := range path {
 		current = current.Children[name]
@@ -174,13 +174,13 @@ func (c *Config) Descendent(path addrs.Module) *Config {
 	return current
 }
 
-// DescendentForInstance is like Descendent except that it accepts a path
+// DescendantForInstance is like Descendant except that it accepts a path
 // to a particular module instance in the dynamic module graph, returning
 // the node from the static module graph that corresponds to it.
 //
 // All instances created by a particular module call share the same
 // configuration, so the keys within the given path are disregarded.
-func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
+func (c *Config) DescendantForInstance(path addrs.ModuleInstance) *Config {
 	current := c
 	for _, step := range path {
 		current = current.Children[step.Name]
@@ -200,7 +200,7 @@ func (c *Config) TargetExists(target addrs.Targetable) bool {
 	switch target.AddrType() {
 	case addrs.ConfigResourceAddrType:
 		addr := target.(addrs.ConfigResource)
-		module := c.Descendent(addr.Module)
+		module := c.Descendant(addr.Module)
 		if module != nil {
 			return module.Module.ResourceByAddr(addr.Resource) != nil
 		} else {
@@ -208,7 +208,7 @@ func (c *Config) TargetExists(target addrs.Targetable) bool {
 		}
 	case addrs.AbsResourceInstanceAddrType:
 		addr := target.(addrs.AbsResourceInstance)
-		module := c.DescendentForInstance(addr.Module)
+		module := c.DescendantForInstance(addr.Module)
 		if module != nil {
 			return module.Module.ResourceByAddr(addr.Resource.Resource) != nil
 		} else {
@@ -216,20 +216,19 @@ func (c *Config) TargetExists(target addrs.Targetable) bool {
 		}
 	case addrs.AbsResourceAddrType:
 		addr := target.(addrs.AbsResource)
-		module := c.DescendentForInstance(addr.Module)
+		module := c.DescendantForInstance(addr.Module)
 		if module != nil {
 			return module.Module.ResourceByAddr(addr.Resource) != nil
 		} else {
 			return false
 		}
 	case addrs.ModuleAddrType:
-		return c.Descendent(target.(addrs.Module)) != nil
+		return c.Descendant(target.(addrs.Module)) != nil
 	case addrs.ModuleInstanceAddrType:
-		return c.DescendentForInstance(target.(addrs.ModuleInstance)) != nil
+		return c.DescendantForInstance(target.(addrs.ModuleInstance)) != nil
 	default:
 		panic(fmt.Errorf("unrecognized targetable type: %d", target.AddrType()))
 	}
-	return true
 }
 
 // EntersNewPackage returns true if this call is to an external module, either
@@ -347,6 +346,15 @@ func (c *Config) ProviderRequirements() (providerreqs.Requirements, hcl.Diagnost
 	return reqs, diags
 }
 
+// ProviderRequirementsConfigOnly searches the full tree of configuration
+// files for all providers. This function does not consider any test files.
+func (c *Config) ProviderRequirementsConfigOnly() (providerreqs.Requirements, hcl.Diagnostics) {
+	reqs := make(providerreqs.Requirements)
+	diags := c.addProviderRequirements(reqs, true, false)
+
+	return reqs, diags
+}
+
 // ProviderRequirementsShallow searches only the direct receiver for explicit
 // and implicit dependencies on providers. Descendant modules are ignored.
 //
@@ -382,10 +390,6 @@ func (c *Config) ProviderRequirementsByModule() (*ModuleRequirements, hcl.Diagno
 		testReqs := &TestFileModuleRequirements{
 			Requirements: make(providerreqs.Requirements),
 			Runs:         make(map[string]*ModuleRequirements),
-		}
-
-		for _, provider := range test.Providers {
-			diags = append(diags, c.addProviderRequirementsFromProviderBlock(testReqs.Requirements, provider)...)
 		}
 
 		for _, run := range test.Runs {
@@ -462,7 +466,17 @@ func (c *Config) addProviderRequirements(reqs providerreqs.Requirements, recurse
 		}
 		reqs[fqn] = nil
 	}
+
 	for _, rc := range c.Module.DataResources {
+		fqn := rc.Provider
+		if _, exists := reqs[fqn]; exists {
+			// Explicit dependency already present
+			continue
+		}
+		reqs[fqn] = nil
+	}
+
+	for _, rc := range c.Module.EphemeralResources {
 		fqn := rc.Provider
 		if _, exists := reqs[fqn]; exists {
 			// Explicit dependency already present
@@ -556,20 +570,13 @@ func (c *Config) addProviderRequirements(reqs providerreqs.Requirements, recurse
 
 	// We may have provider blocks and required_providers set in some testing
 	// files.
-	if tests {
+	if tests && recurse {
 		for _, file := range c.Module.Tests {
-			for _, provider := range file.Providers {
-				moreDiags := c.addProviderRequirementsFromProviderBlock(reqs, provider)
-				diags = append(diags, moreDiags...)
-			}
-
-			if recurse {
-				// Then we'll also look for requirements in testing modules.
-				for _, run := range file.Runs {
-					if run.ConfigUnderTest != nil {
-						moreDiags := run.ConfigUnderTest.addProviderRequirements(reqs, true, false)
-						diags = append(diags, moreDiags...)
-					}
+			// Then we'll also look for requirements in testing modules.
+			for _, run := range file.Runs {
+				if run.ConfigUnderTest != nil {
+					moreDiags := run.ConfigUnderTest.addProviderRequirements(reqs, true, false)
+					diags = append(diags, moreDiags...)
 				}
 			}
 		}
@@ -847,9 +854,9 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 		return addr
 
 	case addrs.LocalProviderConfig:
-		// Find the descendent Config that contains the module that this
+		// Find the descendant Config that contains the module that this
 		// local config belongs to.
-		mc := c.Descendent(inModule)
+		mc := c.Descendant(inModule)
 		if mc == nil {
 			panic(fmt.Sprintf("ResolveAbsProviderAddr with non-existent module %s", inModule.String()))
 		}
@@ -883,6 +890,20 @@ func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Pro
 	return c.ResolveAbsProviderAddr(addr, addrs.RootModule).Provider
 }
 
+// RequiredProviderConfig represents a provider configuration that is required
+// by a module, either explicitly or implicitly.
+//
+// An explicit provider means the LocalName within the addrs.LocalProviderConfig
+// was defined directly within the configuration via a required_providers block
+// instead of implied due to the name of a resource or data block.
+//
+// This helps callers of the EffectiveRequiredProviderConfigs function tailor
+// error messages around implied or explicit provider types.
+type RequiredProviderConfig struct {
+	Local    addrs.LocalProviderConfig
+	Explicit bool
+}
+
 // EffectiveRequiredProviderConfigs returns a set of all of the provider
 // configurations this config's direct module expects to have passed in
 // (explicitly or implicitly) by its caller. This method only makes sense
@@ -907,7 +928,7 @@ func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Pro
 //
 // This function assumes that the configuration is valid. It may produce under-
 // or over-constrained results if called on an invalid configuration.
-func (c *Config) EffectiveRequiredProviderConfigs() addrs.Map[addrs.RootProviderConfig, addrs.LocalProviderConfig] {
+func (c *Config) EffectiveRequiredProviderConfigs() addrs.Map[addrs.RootProviderConfig, RequiredProviderConfig] {
 	// The Terraform language has accumulated so many different ways to imply
 	// the need for a provider configuration that answering this is quite a
 	// complicated process that ends up potentially needing to visit the
@@ -916,23 +937,23 @@ func (c *Config) EffectiveRequiredProviderConfigs() addrs.Map[addrs.RootProvider
 	// can avoid any recursion, but that case is rare in practice.
 
 	if c == nil {
-		return addrs.MakeMap[addrs.RootProviderConfig, addrs.LocalProviderConfig]()
+		return addrs.MakeMap[addrs.RootProviderConfig, RequiredProviderConfig]()
 	}
 
 	// We'll start by visiting all of the "provider" blocks in the module and
 	// figuring out which provider configuration address they each declare. Any
 	// configuration addresses we find here cannot be "required" provider
 	// configs because the module instantiates them itself.
-	selfConfigured := addrs.MakeMap[addrs.RootProviderConfig, addrs.LocalProviderConfig]()
+	selfConfigured := addrs.MakeSet[addrs.RootProviderConfig]()
 	for _, pc := range c.Module.ProviderConfigs {
 		localAddr := pc.Addr()
 		sourceAddr := c.Module.ProviderForLocalConfig(localAddr)
-		selfConfigured.Put(addrs.RootProviderConfig{
+		selfConfigured.Add(addrs.RootProviderConfig{
 			Provider: sourceAddr,
 			Alias:    localAddr.Alias,
-		}, localAddr)
+		})
 	}
-	ret := addrs.MakeMap[addrs.RootProviderConfig, addrs.LocalProviderConfig]()
+	ret := addrs.MakeMap[addrs.RootProviderConfig, RequiredProviderConfig]()
 
 	// maybePut looks up the default local provider for the given root provider.
 	maybePut := func(addr addrs.RootProviderConfig) {
@@ -941,14 +962,22 @@ func (c *Config) EffectiveRequiredProviderConfigs() addrs.Map[addrs.RootProvider
 			LocalName: localName,
 			Alias:     addr.Alias,
 		}
-		if !selfConfigured.Has(addr) {
-			ret.Put(addr, localAddr)
+		if !selfConfigured.Has(addr) && !ret.Has(addr) {
+			ret.Put(addr, RequiredProviderConfig{
+				Local: localAddr,
+
+				// Since we look at the required providers first below, and only
+				// the required providers can set explicit local names, this
+				// will always be false as the map entry will already have been
+				// set if this would be true.
+				Explicit: false,
+			})
 		}
 	}
 
 	// maybePutLocal looks up the default provider for the given local provider
 	// address.
-	maybePutLocal := func(localAddr addrs.LocalProviderConfig) {
+	maybePutLocal := func(localAddr addrs.LocalProviderConfig, explicit bool) {
 		// Caution: this function is only correct to use for LocalProviderConfig
 		// in the _current_ module c.Module. It will produce incorrect results
 		// if used for addresses from any child module.
@@ -956,30 +985,35 @@ func (c *Config) EffectiveRequiredProviderConfigs() addrs.Map[addrs.RootProvider
 			Provider: c.Module.ProviderForLocalConfig(localAddr),
 			Alias:    localAddr.Alias,
 		}
-		if !selfConfigured.Has(addr) {
-			ret.Put(addr, localAddr)
+		if !selfConfigured.Has(addr) && !ret.Has(addr) {
+			ret.Put(addr, RequiredProviderConfig{
+				Local:    localAddr,
+				Explicit: explicit,
+			})
 		}
 	}
 
 	if c.Module.ProviderRequirements != nil {
 		for _, req := range c.Module.ProviderRequirements.RequiredProviders {
 			for _, addr := range req.Aliases {
-				maybePutLocal(addr)
+				// The RequiredProviders block always produces explicit provider
+				// names.
+				maybePutLocal(addr, true)
 			}
 		}
 	}
 	for _, rc := range c.Module.ManagedResources {
-		maybePutLocal(rc.ProviderConfigAddr())
+		maybePutLocal(rc.ProviderConfigAddr(), false)
 	}
 	for _, rc := range c.Module.DataResources {
-		maybePutLocal(rc.ProviderConfigAddr())
+		maybePutLocal(rc.ProviderConfigAddr(), false)
 	}
 	for _, ic := range c.Module.Import {
 		if ic.ProviderConfigRef != nil {
 			maybePutLocal(addrs.LocalProviderConfig{
 				LocalName: ic.ProviderConfigRef.Name,
 				Alias:     ic.ProviderConfigRef.Alias,
-			})
+			}, false)
 		} else {
 			maybePut(addrs.RootProviderConfig{
 				Provider: ic.Provider,
@@ -988,7 +1022,7 @@ func (c *Config) EffectiveRequiredProviderConfigs() addrs.Map[addrs.RootProvider
 	}
 	for _, mc := range c.Module.ModuleCalls {
 		for _, pp := range mc.Providers {
-			maybePutLocal(pp.InParent.Addr())
+			maybePutLocal(pp.InParent.Addr(), false)
 		}
 		// If there aren't any explicitly-passed providers then
 		// the module implicitly requires a default configuration

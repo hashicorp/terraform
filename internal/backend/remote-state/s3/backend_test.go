@@ -38,6 +38,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -101,6 +102,162 @@ func TestBackendConfig_original(t *testing.T) {
 	}
 	if b.keyName != "state" {
 		t.Fatalf("Incorrect keyName was populated")
+	}
+
+	credentials, err := b.awsConfig.Credentials.Retrieve(ctx)
+	if err != nil {
+		t.Fatalf("Error when requesting credentials")
+	}
+	if credentials.AccessKeyID == "" {
+		t.Fatalf("No Access Key Id was populated")
+	}
+	if credentials.SecretAccessKey == "" {
+		t.Fatalf("No Secret Access Key was populated")
+	}
+
+	// Check S3 Endpoint
+	expectedS3Endpoint := defaultEndpointS3(region)
+	var s3Endpoint string
+	_, err = b.s3Client.ListBuckets(ctx, &s3.ListBucketsInput{},
+		func(opts *s3.Options) {
+			opts.APIOptions = append(opts.APIOptions,
+				addRetrieveEndpointURLMiddleware(t, &s3Endpoint),
+				addCancelRequestMiddleware(),
+			)
+		},
+	)
+	if err == nil {
+		t.Fatal("Checking S3 Endpoint: Expected an error, got none")
+	} else if !errors.Is(err, errCancelOperation) {
+		t.Fatalf("Checking S3 Endpoint: Unexpected error: %s", err)
+	}
+
+	if s3Endpoint != expectedS3Endpoint {
+		t.Errorf("Checking S3 Endpoint: expected endpoint %q, got %q", expectedS3Endpoint, s3Endpoint)
+	}
+
+	// Check DynamoDB Endpoint
+	expectedDynamoDBEndpoint := defaultEndpointDynamo(region)
+	var dynamoDBEndpoint string
+	_, err = b.dynClient.ListTables(ctx, &dynamodb.ListTablesInput{},
+		func(opts *dynamodb.Options) {
+			opts.APIOptions = append(opts.APIOptions,
+				addRetrieveEndpointURLMiddleware(t, &dynamoDBEndpoint),
+				addCancelRequestMiddleware(),
+			)
+		},
+	)
+	if err == nil {
+		t.Fatal("Checking DynamoDB Endpoint: Expected an error, got none")
+	} else if !errors.Is(err, errCancelOperation) {
+		t.Fatalf("Checking DynamoDB Endpoint: Unexpected error: %s", err)
+	}
+
+	if dynamoDBEndpoint != expectedDynamoDBEndpoint {
+		t.Errorf("Checking DynamoDB Endpoint: expected endpoint %q, got %q", expectedDynamoDBEndpoint, dynamoDBEndpoint)
+	}
+}
+
+func TestBackendConfig_withLockfile(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	region := "us-west-1"
+
+	config := map[string]interface{}{
+		"region":       region,
+		"bucket":       "tf-test",
+		"key":          "state",
+		"encrypt":      true,
+		"use_lockfile": true,
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+	if b.awsConfig.Region != region {
+		t.Fatalf("Incorrect region was populated")
+	}
+	if b.awsConfig.RetryMaxAttempts != 5 {
+		t.Fatalf("Default max_retries was not set")
+	}
+	if b.bucketName != "tf-test" {
+		t.Fatalf("Incorrect bucketName was populated")
+	}
+	if b.keyName != "state" {
+		t.Fatalf("Incorrect keyName was populated")
+	}
+
+	if b.useLockFile != true {
+		t.Fatalf("Expected useLockFile to be true")
+	}
+
+	credentials, err := b.awsConfig.Credentials.Retrieve(ctx)
+	if err != nil {
+		t.Fatalf("Error when requesting credentials")
+	}
+	if credentials.AccessKeyID == "" {
+		t.Fatalf("No Access Key Id was populated")
+	}
+	if credentials.SecretAccessKey == "" {
+		t.Fatalf("No Secret Access Key was populated")
+	}
+
+	// Check S3 Endpoint
+	expectedS3Endpoint := defaultEndpointS3(region)
+	var s3Endpoint string
+	_, err = b.s3Client.ListBuckets(ctx, &s3.ListBucketsInput{},
+		func(opts *s3.Options) {
+			opts.APIOptions = append(opts.APIOptions,
+				addRetrieveEndpointURLMiddleware(t, &s3Endpoint),
+				addCancelRequestMiddleware(),
+			)
+		},
+	)
+	if err == nil {
+		t.Fatal("Checking S3 Endpoint: Expected an error, got none")
+	} else if !errors.Is(err, errCancelOperation) {
+		t.Fatalf("Checking S3 Endpoint: Unexpected error: %s", err)
+	}
+
+	if s3Endpoint != expectedS3Endpoint {
+		t.Errorf("Checking S3 Endpoint: expected endpoint %q, got %q", expectedS3Endpoint, s3Endpoint)
+	}
+}
+
+func TestBackendConfig_multiLock(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	region := "us-west-1"
+
+	config := map[string]interface{}{
+		"region":         region,
+		"bucket":         "tf-test",
+		"key":            "state",
+		"encrypt":        true,
+		"use_lockfile":   true,
+		"dynamodb_table": "dynamoTable",
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+	if b.awsConfig.Region != region {
+		t.Fatalf("Incorrect region was populated")
+	}
+	if b.awsConfig.RetryMaxAttempts != 5 {
+		t.Fatalf("Default max_retries was not set")
+	}
+	if b.bucketName != "tf-test" {
+		t.Fatalf("Incorrect bucketName was populated")
+	}
+	if b.keyName != "state" {
+		t.Fatalf("Incorrect keyName was populated")
+	}
+
+	if b.useLockFile != true {
+		t.Fatalf("Expected useLockFile to be true")
 	}
 
 	credentials, err := b.awsConfig.Credentials.Retrieve(ctx)
@@ -818,12 +975,11 @@ func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 func TestBackendConfig_AssumeRole(t *testing.T) {
 	testACC(t)
 
-	testCases := []struct {
+	testCases := map[string]struct {
 		Config           map[string]interface{}
-		Description      string
 		MockStsEndpoints []*servicemocks.MockEndpoint
 	}{
-		{
+		"role_arn": {
 			Config: map[string]interface{}{
 				"bucket":       "tf-test",
 				"key":          "state",
@@ -831,7 +987,6 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				"role_arn":     servicemocks.MockStsAssumeRoleArn,
 				"session_name": servicemocks.MockStsAssumeRoleSessionName,
 			},
-			Description: "role_arn",
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
 					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
@@ -849,7 +1004,7 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				},
 			},
 		},
-		{
+		"assume_role_duration_seconds": {
 			Config: map[string]interface{}{
 				"assume_role_duration_seconds": 3600,
 				"bucket":                       "tf-test",
@@ -858,7 +1013,6 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				"role_arn":                     servicemocks.MockStsAssumeRoleArn,
 				"session_name":                 servicemocks.MockStsAssumeRoleSessionName,
 			},
-			Description: "assume_role_duration_seconds",
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
 					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
@@ -876,7 +1030,7 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				},
 			},
 		},
-		{
+		"external_id": {
 			Config: map[string]interface{}{
 				"bucket":       "tf-test",
 				"external_id":  servicemocks.MockStsAssumeRoleExternalId,
@@ -885,7 +1039,6 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				"role_arn":     servicemocks.MockStsAssumeRoleArn,
 				"session_name": servicemocks.MockStsAssumeRoleSessionName,
 			},
-			Description: "external_id",
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
 					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
@@ -904,7 +1057,7 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				},
 			},
 		},
-		{
+		"assume_role_policy": {
 			Config: map[string]interface{}{
 				"assume_role_policy": servicemocks.MockStsAssumeRolePolicy,
 				"bucket":             "tf-test",
@@ -913,7 +1066,6 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				"role_arn":           servicemocks.MockStsAssumeRoleArn,
 				"session_name":       servicemocks.MockStsAssumeRoleSessionName,
 			},
-			Description: "assume_role_policy",
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
 					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
@@ -932,7 +1084,7 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				},
 			},
 		},
-		{
+		"assume_role_policy_arns": {
 			Config: map[string]interface{}{
 				"assume_role_policy_arns": []interface{}{servicemocks.MockStsAssumeRolePolicyArn},
 				"bucket":                  "tf-test",
@@ -941,7 +1093,6 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				"role_arn":                servicemocks.MockStsAssumeRoleArn,
 				"session_name":            servicemocks.MockStsAssumeRoleSessionName,
 			},
-			Description: "assume_role_policy_arns",
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
 					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
@@ -960,7 +1111,7 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				},
 			},
 		},
-		{
+		"assume_role_tags": {
 			Config: map[string]interface{}{
 				"assume_role_tags": map[string]interface{}{
 					servicemocks.MockStsAssumeRoleTagKey: servicemocks.MockStsAssumeRoleTagValue,
@@ -971,7 +1122,6 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				"role_arn":     servicemocks.MockStsAssumeRoleArn,
 				"session_name": servicemocks.MockStsAssumeRoleSessionName,
 			},
-			Description: "assume_role_tags",
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
 					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
@@ -991,7 +1141,7 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				},
 			},
 		},
-		{
+		"assume_role_transitive_tag_keys": {
 			Config: map[string]interface{}{
 				"assume_role_tags": map[string]interface{}{
 					servicemocks.MockStsAssumeRoleTagKey: servicemocks.MockStsAssumeRoleTagValue,
@@ -1003,7 +1153,6 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				"role_arn":                        servicemocks.MockStsAssumeRoleArn,
 				"session_name":                    servicemocks.MockStsAssumeRoleSessionName,
 			},
-			Description: "assume_role_transitive_tag_keys",
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
 					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
@@ -1026,10 +1175,10 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
+	for testName, testCase := range testCases {
 		testCase := testCase
 
-		t.Run(testCase.Description, func(t *testing.T) {
+		t.Run(testName, func(t *testing.T) {
 			closeSts, _, stsEndpoint := mockdata.GetMockedAwsApiSession("STS", testCase.MockStsEndpoints)
 			defer closeSts()
 
@@ -1858,7 +2007,433 @@ func TestBackendLocked(t *testing.T) {
 	backend.TestBackendStateForceUnlock(t, b1, b2)
 }
 
-func TestBackendKmsKeyId(t *testing.T) {
+func TestBackendLockedWithFile(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
+}
+
+func TestBackendLockedWithFile_ObjectLock_Compliance(t *testing.T) {
+	testACC(t)
+	objectLockPreCheck(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region,
+		s3BucketWithVersioning,
+		s3BucketWithObjectLock(s3types.ObjectLockRetentionModeCompliance),
+	)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
+}
+
+func TestBackendLockedWithFile_ObjectLock_Governance(t *testing.T) {
+	testACC(t)
+	objectLockPreCheck(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region,
+		s3BucketWithVersioning,
+		s3BucketWithObjectLock(s3types.ObjectLockRetentionModeGovernance),
+	)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
+}
+
+func TestBackendLockedWithFileAndDynamoDB(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   true,
+		"dynamodb_table": bucketName,
+		"region":         "us-west-2",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   true,
+		"dynamodb_table": bucketName,
+		"region":         "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
+}
+
+func TestBackendLockedMixedFileAndDynamoDB(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   true,
+		"dynamodb_table": bucketName,
+		"region":         "us-west-2",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
+}
+
+func TestBackend_LockFileCleanupOnDynamoDBLock(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   false, // Only use DynamoDB
+		"dynamodb_table": bucketName,
+		"region":         "us-west-2",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   true, // Use both DynamoDB and lockfile
+		"dynamodb_table": bucketName,
+		"region":         "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+
+	// Attempt to retrieve the lock file from S3.
+	_, err := b1.s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(b1.bucketName),
+		Key:    aws.String(b1.keyName + ".tflock"),
+	})
+	// We expect an error here, indicating that the lock file does not exist.
+	// The absence of the lock file is expected, as it should have been
+	// cleaned up following a failed lock acquisition due to `b1` already
+	// acquiring a DynamoDB lock.
+	if err != nil {
+		if !IsA[*s3types.NoSuchKey](err) {
+			t.Fatalf("unexpected error: %s", err)
+		}
+	} else {
+		t.Fatalf("expected error, got none")
+	}
+}
+
+func TestBackend_LockFileCleanupOnDynamoDBLock_ObjectLock_Compliance(t *testing.T) {
+	testACC(t)
+	objectLockPreCheck(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   false, // Only use DynamoDB
+		"dynamodb_table": bucketName,
+		"region":         "us-west-2",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   true, // Use both DynamoDB and lockfile
+		"dynamodb_table": bucketName,
+		"region":         "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region,
+		s3BucketWithVersioning,
+		s3BucketWithObjectLock(s3types.ObjectLockRetentionModeCompliance),
+	)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+
+	// Attempt to retrieve the lock file from S3.
+	_, err := b1.s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(b1.bucketName),
+		Key:    aws.String(b1.keyName + ".tflock"),
+	})
+	// We expect an error here, indicating that the lock file does not exist.
+	// The absence of the lock file is expected, as it should have been
+	// cleaned up following a failed lock acquisition due to `b1` already
+	// acquiring a DynamoDB lock.
+	if err != nil {
+		if !IsA[*s3types.NoSuchKey](err) {
+			t.Fatalf("unexpected error: %s", err)
+		}
+	} else {
+		t.Fatalf("expected error, got none")
+	}
+}
+
+func TestBackend_LockFileCleanupOnDynamoDBLock_ObjectLock_Governance(t *testing.T) {
+	testACC(t)
+	objectLockPreCheck(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   false, // Only use DynamoDB
+		"dynamodb_table": bucketName,
+		"region":         "us-west-2",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   true, // Use both DynamoDB and lockfile
+		"dynamodb_table": bucketName,
+		"region":         "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region,
+		s3BucketWithVersioning,
+		s3BucketWithObjectLock(s3types.ObjectLockRetentionModeGovernance),
+	)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+
+	// Attempt to retrieve the lock file from S3.
+	_, err := b1.s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(b1.bucketName),
+		Key:    aws.String(b1.keyName + ".tflock"),
+	})
+	// We expect an error here, indicating that the lock file does not exist.
+	// The absence of the lock file is expected, as it should have been
+	// cleaned up following a failed lock acquisition due to `b1` already
+	// acquiring a DynamoDB lock.
+	if err != nil {
+		if !IsA[*s3types.NoSuchKey](err) {
+			t.Fatalf("unexpected error: %s", err)
+		}
+	} else {
+		t.Fatalf("expected error, got none")
+	}
+}
+
+func TestBackend_LockDeletedOutOfBand(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   true,
+		"dynamodb_table": bucketName,
+		"region":         "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+
+	testBackendStateLockDeletedOutOfBand(ctx, t, b1)
+}
+
+func TestBackend_KmsKeyId(t *testing.T) {
+	testACC(t)
+	kmsKeyID := os.Getenv("TF_S3_TEST_KMS_KEY_ID")
+	if kmsKeyID == "" {
+		t.Skip("TF_S3_KMS_KEY_ID is empty. Set this variable to an existing KMS key ID to run this test.")
+	}
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"kms_key_id":   kmsKeyID,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"kms_key_id":   kmsKeyID,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
+}
+
+func TestBackend_ACL(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+		"acl":          "bucket-owner-full-control",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-2",
+		"acl":          "bucket-owner-full-control",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
+}
+
+func TestBackendConfigKmsKeyId(t *testing.T) {
 	testACC(t)
 
 	testCases := map[string]struct {
@@ -2231,6 +2806,61 @@ func TestBackendPrefixInWorkspace(t *testing.T) {
 	}
 }
 
+// ensure that we create the lock file in the correct location when using a
+// workspace prefix.
+func TestBackendLockFileWithPrefix(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+
+	workspacePrefix := "prefix"
+	key := "test/test-env.tfstate"
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":               bucketName,
+		"use_lockfile":         true,
+		"key":                  key,
+		"workspace_key_prefix": workspacePrefix,
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region, s3BucketWithVersioning)
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
+
+	// get a state that contains the prefix as a substring
+	sMgr, err := b.StateMgr("env-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := sMgr.RefreshState(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkStateList(b, []string{"default", "env-1"}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Check if the lock file is created in the correct location
+	//
+	// If created and cleaned up correctly, a delete marker should
+	// be present at the lock file key location.
+	lockFileKey := fmt.Sprintf("%s/env-1/%s.tflock", workspacePrefix, key)
+	out, err := b.s3Client.ListObjectVersions(ctx, &s3.ListObjectVersionsInput{
+		Bucket: aws.String(bucketName),
+	})
+
+	found := false
+	for _, item := range out.DeleteMarkers {
+		if aws.ToString(item.Key) == lockFileKey {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("lock file %q not found in expected location", lockFileKey)
+	}
+}
+
 func TestBackendRestrictedRoot_Default(t *testing.T) {
 	testACC(t)
 
@@ -2360,6 +2990,7 @@ func TestBackendWrongRegion(t *testing.T) {
 
 func TestBackendS3ObjectLock(t *testing.T) {
 	testACC(t)
+	objectLockPreCheck(t)
 
 	ctx := context.TODO()
 
@@ -2476,6 +3107,26 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 			config: map[string]cty.Value{},
 			expectedDiags: tfdiags.Diagnostics{
 				requiredAttributeErrDiag(path.GetAttr("role_arn")),
+			},
+		},
+
+		"nil role_arn": {
+			config: map[string]cty.Value{},
+			expectedDiags: tfdiags.Diagnostics{
+				requiredAttributeErrDiag(path.GetAttr("role_arn")),
+			},
+		},
+
+		"empty role_arn": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal(""),
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					"The value cannot be empty or all whitespace",
+					path.GetAttr("role_arn"),
+				),
 			},
 		},
 
@@ -2710,6 +3361,84 @@ func TestBackend_CoerceValue(t *testing.T) {
 	}
 }
 
+func testBackendStateLockDeletedOutOfBand(ctx context.Context, t *testing.T, b1 *Backend) {
+	t.Helper()
+
+	tableName := b1.ddbTable
+	bucketName := b1.bucketName
+	s3StateKey := b1.keyName
+	s3LockKey := s3StateKey + lockFileSuffix
+	// The dynamoDB LockID value is the full statfile path (not the generated UUID)
+	ddbLockID := fmt.Sprintf("%s/%s", bucketName, s3StateKey)
+
+	// Get the default state
+	b1StateMgr, err := b1.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+	if err := b1StateMgr.RefreshState(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Fast exit if this doesn't support locking at all
+	if _, ok := b1StateMgr.(statemgr.Locker); !ok {
+		t.Logf("TestBackend: backend %T doesn't support state locking, not testing", b1)
+		return
+	}
+
+	t.Logf("testing deletion of a dynamoDB state lock out of band")
+
+	// Reassign so its obvious whats happening
+	locker := b1StateMgr.(statemgr.Locker)
+
+	info := statemgr.NewLockInfo()
+	info.Operation = "test"
+	info.Who = "clientA"
+
+	lockID, err := locker.Lock(info)
+	if err != nil {
+		t.Fatal("unable to get initial lock:", err)
+	}
+
+	getInput := &s3.GetObjectInput{
+		Bucket: &bucketName,
+		Key:    &s3LockKey,
+	}
+
+	// Verify the s3 lock file exists
+	if _, err = b1.s3Client.GetObject(ctx, getInput); err != nil {
+		t.Fatal("failed to get s3 lock file:", err)
+	}
+
+	deleteInput := &dynamodb.DeleteItemInput{
+		Key: map[string]dynamodbtypes.AttributeValue{
+			"LockID": &dynamodbtypes.AttributeValueMemberS{
+				Value: ddbLockID,
+			},
+		},
+		TableName: aws.String(tableName),
+	}
+
+	// Delete the DynamoDB lock out of band
+	if _, err = b1.dynClient.DeleteItem(ctx, deleteInput); err != nil {
+		t.Fatal("failed to delete dynamodb item:", err)
+	}
+
+	if err = locker.Unlock(lockID); err == nil {
+		t.Fatal("expected unlock failure, no error returned")
+	}
+
+	// Verify the s3 lock file was still cleaned up by Unlock
+	_, err = b1.s3Client.GetObject(ctx, getInput)
+	if err != nil {
+		if !IsA[*s3types.NoSuchKey](err) {
+			t.Fatalf("unexpected error getting s3 lock file: %s", err)
+		}
+	} else {
+		t.Fatalf("expected error getting s3 lock file, got none")
+	}
+}
+
 func testGetWorkspaceForKey(b *Backend, key string, expected string) error {
 	if actual := b.keyEnv(key); actual != expected {
 		return fmt.Errorf("incorrect workspace for key[%q]. Expected[%q]: Actual[%q]", key, expected, actual)
@@ -2828,13 +3557,31 @@ func deleteS3Bucket(ctx context.Context, t *testing.T, s3Client *s3.Client, buck
 	warning := "WARNING: Failed to delete the test S3 bucket. It may have been left in your AWS account and may incur storage charges. (error was %s)"
 
 	// first we have to get rid of the env objects, or we can't delete the bucket
-	resp, err := s3Client.ListObjects(ctx, &s3.ListObjectsInput{Bucket: &bucketName}, s3WithRegion(region))
+	resp, err := s3Client.ListObjectVersions(ctx, &s3.ListObjectVersionsInput{Bucket: &bucketName}, s3WithRegion(region))
 	if err != nil {
 		t.Logf(warning, err)
 		return
 	}
-	for _, obj := range resp.Contents {
-		if _, err := s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{Bucket: &bucketName, Key: obj.Key}, s3WithRegion(region)); err != nil {
+
+	for _, obj := range resp.Versions {
+		input := &s3.DeleteObjectInput{
+			Bucket:    &bucketName,
+			Key:       obj.Key,
+			VersionId: obj.VersionId,
+		}
+		if _, err := s3Client.DeleteObject(ctx, input, s3WithRegion(region)); err != nil {
+			// this will need cleanup no matter what, so just warn and exit
+			t.Logf(warning, err)
+			return
+		}
+	}
+	for _, obj := range resp.DeleteMarkers {
+		input := &s3.DeleteObjectInput{
+			Bucket:    &bucketName,
+			Key:       obj.Key,
+			VersionId: obj.VersionId,
+		}
+		if _, err := s3Client.DeleteObject(ctx, input, s3WithRegion(region)); err != nil {
 			// this will need cleanup no matter what, so just warn and exit
 			t.Logf(warning, err)
 			return
@@ -2874,6 +3621,7 @@ func createDynamoDBTable(ctx context.Context, t *testing.T, dynClient *dynamodb.
 		TableName: aws.String(tableName),
 	}
 
+	t.Logf("creating DynamoDB table %s", tableName)
 	_, err := dynClient.CreateTable(ctx, createInput)
 	if err != nil {
 		t.Fatal(err)
@@ -2964,6 +3712,26 @@ func unmarshalSet(dec cty.Value, ety cty.Type, path cty.Path) (cty.Value, error)
 
 	return cty.SetVal(vals), nil
 }
+
+// func unmarshalList(dec cty.Value, ety cty.Type, path cty.Path) (cty.Value, error) {
+// 	if dec.IsNull() {
+// 		return dec, nil
+// 	}
+
+// 	length := dec.LengthInt()
+
+// 	if length == 0 {
+// 		return cty.ListValEmpty(ety), nil
+// 	}
+
+// 	vals := make([]cty.Value, 0, length)
+// 	dec.ForEachElement(func(key, val cty.Value) (stop bool) {
+// 		vals = append(vals, must(unmarshal(val, ety, path.Index(key))))
+// 		return
+// 	})
+
+// 	return cty.ListVal(vals), nil
+// }
 
 func unmarshalMap(dec cty.Value, ety cty.Type, path cty.Path) (cty.Value, error) {
 	if dec.IsNull() {
@@ -3151,4 +3919,22 @@ func defaultEndpointS3(region string) string {
 	}
 
 	return ep.URI.String()
+}
+
+// objectLockPreCheck gates tests using object lock enabled buckets
+// by checking for a configured environment variable.
+//
+// With object lock enabled, the statefile object written to the bucket
+// cannot be deleted by the deleteS3Bucket test helper, resulting in an
+// orphaned bucket after acceptance tests complete. Deletion of this
+// leftover resource must be completed out of band by waiting until the
+// default "Compliance" retention period of the objects has expired
+// (1 day), emptying the bucket, and deleting it.
+//
+// Because clean up requires additional action outside the scope of the
+// acceptance test, tests including this check are skipped by default.
+func objectLockPreCheck(t *testing.T) {
+	if os.Getenv("TF_S3_OBJECT_LOCK_TEST") == "" {
+		t.Skip("s3 backend tests using object lock enabled buckets require setting TF_S3_OBJECT_LOCK_TEST")
+	}
 }

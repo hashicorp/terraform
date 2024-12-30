@@ -177,7 +177,7 @@ func (g *marshalGraph) writeBody(opts *DotOpts, w *indentWriter) {
 		w.Write(v.dot(g, opts))
 	}
 
-	var dotEdges []string
+	dotEdges := make(map[string]string)
 
 	if opts.DrawCycles {
 		for _, c := range g.Cycles {
@@ -203,20 +203,28 @@ func (g *marshalGraph) writeBody(opts *DotOpts, w *indentWriter) {
 					Attrs:  make(map[string]string),
 				}
 
-				dotEdges = append(dotEdges, cycleDot(e, g))
+				dotEdges[e.Name] = cycleDot(e, g)
 				src = tgt
 			}
 		}
 	}
 
 	for _, e := range g.Edges {
-		dotEdges = append(dotEdges, e.dot(g))
+		// only add the edge if it's not been added as part of a cycle
+		// or if there are duplicates.
+		if _, ok := dotEdges[e.Name]; !ok {
+			dotEdges[e.Name] = e.dot(g)
+		}
 	}
 
-	// srot these again to match the old output
-	sort.Strings(dotEdges)
+	// sort these again to match the old output
+	dotEdgesList := make([]string, 0, len(dotEdges))
+	for _, v := range dotEdges {
+		dotEdgesList = append(dotEdgesList, v)
+	}
+	sort.Strings(dotEdgesList)
 
-	for _, e := range dotEdges {
+	for _, e := range dotEdgesList {
 		w.WriteString(e + "\n")
 	}
 

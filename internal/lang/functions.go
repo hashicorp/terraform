@@ -89,6 +89,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"distinct":         stdlib.DistinctFunc,
 			"element":          stdlib.ElementFunc,
 			"endswith":         funcs.EndsWithFunc,
+			"ephemeralasnull":  funcs.EphemeralAsNullFunc,
 			"chunklist":        stdlib.ChunklistFunc,
 			"file":             funcs.MakeFileFunc(s.BaseDir, false),
 			"fileexists":       funcs.MakeFileExistsFunc(s.BaseDir),
@@ -190,9 +191,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			return s.funcs, filesystemFunctions, templateFunctions
 		}
 		coreFuncs["templatefile"] = funcs.MakeTemplateFileFunc(s.BaseDir, funcsFunc)
-		if s.activeExperiments.Has(experiments.TemplateStringFunc) {
-			coreFuncs["templatestring"] = funcs.MakeTemplateStringFunc(funcsFunc)
-		}
+		coreFuncs["templatestring"] = funcs.MakeTemplateStringFunc(funcsFunc)
 
 		if s.ConsoleMode {
 			// The type function is only available in terraform console.

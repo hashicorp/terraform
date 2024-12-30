@@ -7,13 +7,16 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -79,6 +82,25 @@ func (p *ProviderConfig) ProviderArgs(ctx context.Context, phase EvalPhase) cty.
 	return v
 }
 
+func CheckProviderInLockfile(locks depsfile.Locks, providerType *ProviderType, declRange *hcl.Range) (diags tfdiags.Diagnostics) {
+	if !depsfile.ProviderIsLockable(providerType.Addr()) {
+		return diags
+	}
+
+	if p := locks.Provider(providerType.Addr()); p == nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Provider missing from lockfile",
+			Detail: fmt.Sprintf(
+				"Provider %q is not in the lockfile. This provider must be in the lockfile to be used in the configuration. Please run `tfstacks providers lock` to update the lockfile and run this operation again with an updated configuration.",
+				providerType.Addr(),
+			),
+			Subject: declRange,
+		})
+	}
+	return diags
+}
+
 func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
 		ctx, &p.providerArgs, p.main,
@@ -87,6 +109,18 @@ func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase)
 
 			providerType := p.ProviderType(ctx)
 			decl := p.Declaration(ctx)
+
+			depLocks := p.main.DependencyLocks(phase)
+			if depLocks != nil {
+				// Check if the provider is in the lockfile,
+				// if it is not we can not read the provider schema
+				lockfileDiags := CheckProviderInLockfile(*depLocks, providerType, decl.DeclRange.ToHCL().Ptr())
+				if lockfileDiags.HasErrors() {
+					return cty.DynamicVal, lockfileDiags
+				}
+				diags = diags.Append(lockfileDiags)
+			}
+
 			spec, err := p.ProviderArgsDecoderSpec(ctx)
 			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{
@@ -101,7 +135,7 @@ func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase)
 				return cty.DynamicVal, diags
 			}
 
-			client, err := providerType.UnconfiguredClient(ctx)
+			client, err := providerType.UnconfiguredClient()
 			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -114,7 +148,6 @@ func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase)
 				})
 				return cty.UnknownVal(hcldec.ImpliedType(spec)), diags
 			}
-			defer client.Close()
 
 			body := decl.Config
 			if body == nil {
@@ -175,6 +208,17 @@ func (p *ProviderConfig) ResolveExpressionReference(ctx context.Context, ref sta
 	return ret, diags
 }
 
+// ExternalFunctions implements ExpressionScope.
+func (p *ProviderConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
+	return p.main.ProviderFunctions(ctx, p.main.StackConfig(ctx, p.Addr().Stack))
+}
+
+// PlanTimestamp implements ExpressionScope, providing the timestamp at which
+// the current plan is being run.
+func (p *ProviderConfig) PlanTimestamp() time.Time {
+	return p.main.PlanTimestamp()
+}
+
 // ExprReferenceValue implements Referenceable.
 func (p *ProviderConfig) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
 	// We don't say anything about the contents of a provider during the
@@ -223,4 +267,9 @@ func (p *ProviderConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedCh
 // tracingName implements Validatable.
 func (p *ProviderConfig) tracingName() string {
 	return p.Addr().String()
+}
+
+// reportNamedPromises implements namedPromiseReporter.
+func (p *ProviderConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	cb(p.providerArgs.PromiseID(), p.Addr().String())
 }

@@ -7,6 +7,7 @@ package simple
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/zclconf/go-cty/cty"
@@ -45,6 +46,9 @@ func Provider() providers.Interface {
 				"simple_resource": simpleResource,
 			},
 			DataSources: map[string]providers.Schema{
+				"simple_resource": simpleResource,
+			},
+			EphemeralResourceTypes: map[string]providers.Schema{
 				"simple_resource": simpleResource,
 			},
 			ServerCapabilities: providers.ServerCapabilities{
@@ -168,6 +172,38 @@ func (s simple) ReadDataSource(req providers.ReadDataSourceRequest) (resp provid
 	m := req.Config.AsValueMap()
 	m["id"] = cty.StringVal("static_id")
 	resp.State = cty.ObjectVal(m)
+	return resp
+}
+
+func (p simple) ValidateEphemeralResourceConfig(req providers.ValidateEphemeralResourceConfigRequest) (resp providers.ValidateEphemeralResourceConfigResponse) {
+	return resp
+}
+
+func (s simple) OpenEphemeralResource(req providers.OpenEphemeralResourceRequest) (resp providers.OpenEphemeralResourceResponse) {
+	// we only have one type, so no need to check
+	m := req.Config.AsValueMap()
+	m["id"] = cty.StringVal("ephemeral secret")
+	resp.Result = cty.ObjectVal(m)
+	resp.Private = []byte("private data")
+	resp.RenewAt = time.Now().Add(time.Second)
+	return resp
+}
+
+func (s simple) RenewEphemeralResource(req providers.RenewEphemeralResourceRequest) (resp providers.RenewEphemeralResourceResponse) {
+	log.Printf("[DEBUG] renewing ephemeral resource")
+	if string(req.Private) != "private data" {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("invalid private data %q, cannot renew ephemeral resource", req.Private))
+	}
+	resp.Private = req.Private
+	resp.RenewAt = time.Now().Add(time.Second)
+	return resp
+}
+
+func (s simple) CloseEphemeralResource(req providers.CloseEphemeralResourceRequest) (resp providers.CloseEphemeralResourceResponse) {
+	log.Printf("[DEBUG] closing ephemeral resource")
+	if string(req.Private) != "private data" {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("invalid private data %q, cannot close ephemeral resource", req.Private))
+	}
 	return resp
 }
 

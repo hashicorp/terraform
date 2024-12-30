@@ -121,3 +121,10 @@ func (p *Parser) ForceFileSource(filename string, src []byte) {
 func (p *Parser) AllowLanguageExperiments(allowed bool) {
 	p.allowExperiments = allowed
 }
+
+// AllowsLanguageExperiments returns the value most recently passed to
+// [Parser.AllowLanguageExperiments], or false if that method has not been
+// called on this object.
+func (p *Parser) AllowsLanguageExperiments() bool {
+	return p.allowExperiments
+}

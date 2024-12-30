@@ -3,33 +3,35 @@
 
 package configschema
 
-type FilterT[T any] func(string, T) bool
+import "github.com/zclconf/go-cty/cty"
+
+type FilterT[T any] func(cty.Path, T) bool
 
 var (
-	FilterReadOnlyAttribute = func(name string, attribute *Attribute) bool {
+	FilterReadOnlyAttribute = func(path cty.Path, attribute *Attribute) bool {
 		return attribute.Computed && !attribute.Optional
 	}
 
-	FilterHelperSchemaIdAttribute = func(name string, attribute *Attribute) bool {
-		if name == "id" && attribute.Computed && attribute.Optional {
+	FilterHelperSchemaIdAttribute = func(path cty.Path, attribute *Attribute) bool {
+		if path.Equals(cty.GetAttrPath("id")) && attribute.Computed && attribute.Optional {
 			return true
 		}
 		return false
 	}
 
-	FilterDeprecatedAttribute = func(name string, attribute *Attribute) bool {
+	FilterDeprecatedAttribute = func(path cty.Path, attribute *Attribute) bool {
 		return attribute.Deprecated
 	}
 
-	FilterDeprecatedBlock = func(name string, block *NestedBlock) bool {
+	FilterDeprecatedBlock = func(path cty.Path, block *NestedBlock) bool {
 		return block.Deprecated
 	}
 )
 
 func FilterOr[T any](filters ...FilterT[T]) FilterT[T] {
-	return func(name string, value T) bool {
+	return func(path cty.Path, value T) bool {
 		for _, f := range filters {
-			if f(name, value) {
+			if f(path, value) {
 				return true
 			}
 		}
@@ -38,6 +40,10 @@ func FilterOr[T any](filters ...FilterT[T]) FilterT[T] {
 }
 
 func (b *Block) Filter(filterAttribute FilterT[*Attribute], filterBlock FilterT[*NestedBlock]) *Block {
+	return b.filter(nil, filterAttribute, filterBlock)
+}
+
+func (b *Block) filter(path cty.Path, filterAttribute FilterT[*Attribute], filterBlock FilterT[*NestedBlock]) *Block {
 	ret := &Block{
 		Description:     b.Description,
 		DescriptionKind: b.DescriptionKind,
@@ -48,11 +54,13 @@ func (b *Block) Filter(filterAttribute FilterT[*Attribute], filterBlock FilterT[
 		ret.Attributes = make(map[string]*Attribute, len(b.Attributes))
 	}
 	for name, attrS := range b.Attributes {
-		if filterAttribute == nil || !filterAttribute(name, attrS) {
-			ret.Attributes[name] = attrS
+		path := path.GetAttr(name)
+		if filterAttribute == nil || !filterAttribute(path, attrS) {
+			attr := *attrS
 			if attrS.NestedType != nil {
-				ret.Attributes[name].NestedType = filterNestedType(attrS.NestedType, filterAttribute)
+				attr.NestedType = filterNestedType(attrS.NestedType, path, filterAttribute)
 			}
+			ret.Attributes[name] = &attr
 		}
 	}
 
@@ -60,8 +68,9 @@ func (b *Block) Filter(filterAttribute FilterT[*Attribute], filterBlock FilterT[
 		ret.BlockTypes = make(map[string]*NestedBlock, len(b.BlockTypes))
 	}
 	for name, blockS := range b.BlockTypes {
-		if filterBlock == nil || !filterBlock(name, blockS) {
-			block := blockS.Filter(filterAttribute, filterBlock)
+		path := path.GetAttr(name)
+		if filterBlock == nil || !filterBlock(path, blockS) {
+			block := blockS.filter(path, filterAttribute, filterBlock)
 			ret.BlockTypes[name] = &NestedBlock{
 				Block:    *block,
 				Nesting:  blockS.Nesting,
@@ -74,7 +83,7 @@ func (b *Block) Filter(filterAttribute FilterT[*Attribute], filterBlock FilterT[
 	return ret
 }
 
-func filterNestedType(obj *Object, filterAttribute FilterT[*Attribute]) *Object {
+func filterNestedType(obj *Object, path cty.Path, filterAttribute FilterT[*Attribute]) *Object {
 	if obj == nil {
 		return nil
 	}
@@ -85,11 +94,13 @@ func filterNestedType(obj *Object, filterAttribute FilterT[*Attribute]) *Object 
 	}
 
 	for name, attrS := range obj.Attributes {
-		if filterAttribute == nil || !filterAttribute(name, attrS) {
-			ret.Attributes[name] = attrS
+		path := path.GetAttr(name)
+		if filterAttribute == nil || !filterAttribute(path, attrS) {
+			attr := *attrS
 			if attrS.NestedType != nil {
-				ret.Attributes[name].NestedType = filterNestedType(attrS.NestedType, filterAttribute)
+				attr.NestedType = filterNestedType(attrS.NestedType, path, filterAttribute)
 			}
+			ret.Attributes[name] = &attr
 		}
 	}
 

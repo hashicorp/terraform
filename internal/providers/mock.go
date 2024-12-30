@@ -289,6 +289,61 @@ func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceRespo
 	return response
 }
 
+func (m *Mock) ValidateEphemeralResourceConfig(ValidateEphemeralResourceConfigRequest) ValidateEphemeralResourceConfigResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"No ephemeral resource types in mock providers",
+		"The provider mocking mechanism does not yet support ephemeral resource types.",
+		nil, // the topmost configuration object
+	))
+	return ValidateEphemeralResourceConfigResponse{
+		Diagnostics: diags,
+	}
+}
+
+func (m *Mock) OpenEphemeralResource(OpenEphemeralResourceRequest) OpenEphemeralResourceResponse {
+	// FIXME: Design some means to mock an ephemeral resource type.
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"No ephemeral resource types in mock providers",
+		"The provider mocking mechanism does not yet support ephemeral resource types.",
+		nil, // the topmost configuration object
+	))
+	return OpenEphemeralResourceResponse{
+		Diagnostics: diags,
+	}
+}
+
+func (m *Mock) RenewEphemeralResource(RenewEphemeralResourceRequest) RenewEphemeralResourceResponse {
+	// FIXME: Design some means to mock an ephemeral resource type.
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"No ephemeral resource types in mock providers",
+		"The provider mocking mechanism does not yet support ephemeral resource types.",
+		nil, // the topmost configuration object
+	))
+	return RenewEphemeralResourceResponse{
+		Diagnostics: diags,
+	}
+}
+
+func (m *Mock) CloseEphemeralResource(CloseEphemeralResourceRequest) CloseEphemeralResourceResponse {
+	// FIXME: Design some means to mock an ephemeral resource type.
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"No ephemeral resource types in mock providers",
+		"The provider mocking mechanism does not yet support ephemeral resource types.",
+		nil, // the topmost configuration object
+	))
+	return CloseEphemeralResourceResponse{
+		Diagnostics: diags,
+	}
+}
+
 func (m *Mock) CallFunction(request CallFunctionRequest) CallFunctionResponse {
 	return m.Provider.CallFunction(request)
 }

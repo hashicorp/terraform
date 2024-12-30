@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -14,8 +15,10 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/typeexpr"
@@ -42,13 +45,18 @@ type Stack struct {
 	// use ChildStackChecked if you need to be sure it's actually configured.
 	childStacks    map[stackaddrs.StackInstanceStep]*Stack
 	inputVariables map[stackaddrs.InputVariable]*InputVariable
+	localValues    map[stackaddrs.LocalValue]*LocalValue
 	stackCalls     map[stackaddrs.StackCall]*StackCall
 	outputValues   map[stackaddrs.OutputValue]*OutputValue
 	components     map[stackaddrs.Component]*Component
+	removed        map[stackaddrs.Component]*Removed
+	providers      map[stackaddrs.ProviderConfigRef]*Provider
 }
 
-var _ ExpressionScope = (*Stack)(nil)
-var _ Plannable = (*Stack)(nil)
+var (
+	_ ExpressionScope = (*Stack)(nil)
+	_ Plannable       = (*Stack)(nil)
+)
 
 func newStack(main *Main, addr stackaddrs.StackInstance) *Stack {
 	return &Stack{
@@ -77,7 +85,7 @@ func (s *Stack) ParentStack(ctx context.Context) *Stack {
 	return s.main.StackUnchecked(ctx, parentAddr)
 }
 
-// ChildStackUnckecked returns an object representing a child of this stack, or
+// ChildStackUnchecked returns an object representing a child of this stack, or
 // nil if the "name" part of the step doesn't correspond to a declared
 // embedded stack call.
 //
@@ -137,14 +145,13 @@ func (s *Stack) ChildStackChecked(ctx context.Context, addr stackaddrs.StackInst
 	callAddr := stackaddrs.StackCall{Name: addr.Name}
 	call := calls[callAddr]
 
-	instances := call.Instances(ctx, phase)
-	if instances == nil {
-		// Totally-nil instances (as opposed to a non-nil zero-length map)
-		// means that we don't actually know what the instances for this
-		// stack call are, and so we optimistically assume that the given
-		// key was intended to exist and assume that later work with the
-		// resulting object will also return unknown/indeterminate values.
+	instances, unknown := call.Instances(ctx, phase)
+	if unknown {
 		return candidate
+	}
+
+	if instances == nil {
+		return nil
 	}
 	if _, exists := instances[addr.Key]; !exists {
 		return nil
@@ -201,6 +208,36 @@ func (s *Stack) InputVariables(ctx context.Context) map[stackaddrs.InputVariable
 
 func (s *Stack) InputVariable(ctx context.Context, addr stackaddrs.InputVariable) *InputVariable {
 	return s.InputVariables(ctx)[addr]
+}
+
+// LocalValues returns a map of all of the input variables declared within
+// this stack's configuration.
+func (s *Stack) LocalValues(ctx context.Context) map[stackaddrs.LocalValue]*LocalValue {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// We intentionally save a non-nil map below even if it's empty so that
+	// we can unambiguously recognize whether we've loaded this or not.
+	if s.localValues != nil {
+		return s.localValues
+	}
+
+	decls := s.ConfigDeclarations(ctx)
+	ret := make(map[stackaddrs.LocalValue]*LocalValue, len(decls.LocalValues))
+	for _, c := range decls.LocalValues {
+		absAddr := stackaddrs.AbsLocalValue{
+			Stack: s.Addr(),
+			Item:  stackaddrs.LocalValue{Name: c.Name},
+		}
+		ret[absAddr.Item] = newLocalValue(s.main, absAddr)
+	}
+	s.localValues = ret
+	return ret
+}
+
+// LocalValue returns the [LocalValue] specified by address
+func (s *Stack) LocalValue(ctx context.Context, addr stackaddrs.LocalValue) *LocalValue {
+	return s.LocalValues(ctx)[addr]
 }
 
 // InputsType returns an object type that the object representing the caller's
@@ -285,7 +322,69 @@ func (s *Stack) Component(ctx context.Context, addr stackaddrs.Component) *Compo
 	return s.Components(ctx)[addr]
 }
 
+func (s *Stack) Removeds(ctx context.Context) map[stackaddrs.Component]*Removed {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.removed != nil {
+		return s.removed
+	}
+
+	decls := s.ConfigDeclarations(ctx)
+	ret := make(map[stackaddrs.Component]*Removed, len(decls.Removed))
+	for _, r := range decls.Removed {
+		absAddr := stackaddrs.AbsComponent{
+			Stack: s.Addr(),
+			Item:  r.FromComponent,
+		}
+		ret[absAddr.Item] = newRemoved(s.main, absAddr)
+	}
+	s.removed = ret
+	return ret
+}
+
+func (s *Stack) Removed(ctx context.Context, addr stackaddrs.Component) *Removed {
+	return s.Removeds(ctx)[addr]
+}
+
+// ApplyableComponents returns the combination of removed blocks and declared
+// components for a given component address.
+func (s *Stack) ApplyableComponents(ctx context.Context, addr stackaddrs.Component) (*Component, *Removed) {
+	return s.Component(ctx, addr), s.Removed(ctx, addr)
+}
+
+// KnownComponentInstances returns a set of the component instances that belong
+// to the given component from the current state or plan.
+func (s *Stack) KnownComponentInstances(component stackaddrs.Component, phase EvalPhase) collections.Set[stackaddrs.ComponentInstance] {
+	switch phase {
+	case PlanPhase:
+		return s.main.PlanPrevState().ComponentInstances(stackaddrs.AbsComponent{
+			Stack: s.Addr(),
+			Item:  component,
+		})
+	case ApplyPhase:
+		return s.main.PlanBeingApplied().ComponentInstances(stackaddrs.AbsComponent{
+			Stack: s.Addr(),
+			Item:  component,
+		})
+	default:
+		// We're not executing with an existing state in the other phases, so
+		// we have no known instances.
+		return collections.NewSet[stackaddrs.ComponentInstance]()
+	}
+}
+
 func (s *Stack) ProviderByLocalAddr(ctx context.Context, localAddr stackaddrs.ProviderConfigRef) *Provider {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if existing, ok := s.providers[localAddr]; ok {
+		return existing
+	}
+	if s.providers == nil {
+		s.providers = make(map[stackaddrs.ProviderConfigRef]*Provider)
+	}
+
 	decls := s.ConfigDeclarations(ctx)
 
 	sourceAddr, ok := decls.RequiredProviders.ProviderForLocalName(localAddr.ProviderLocalName)
@@ -313,7 +412,9 @@ func (s *Stack) ProviderByLocalAddr(ctx context.Context, localAddr stackaddrs.Pr
 		return nil
 	}
 
-	return newProvider(s.main, configAddr, decl)
+	provider := newProvider(s.main, configAddr, decl)
+	s.providers[localAddr] = provider
+	return provider
 }
 
 func (s *Stack) Provider(ctx context.Context, addr stackaddrs.ProviderConfig) *Provider {
@@ -378,6 +479,10 @@ func (s *Stack) OutputValues(ctx context.Context) map[stackaddrs.OutputValue]*Ou
 	return ret
 }
 
+func (s *Stack) OutputValue(ctx context.Context, addr stackaddrs.OutputValue) *OutputValue {
+	return s.OutputValues(ctx)[addr]
+}
+
 func (s *Stack) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
 	ovs := s.OutputValues(ctx)
 	elems := make(map[string]cty.Value, len(ovs))
@@ -394,11 +499,27 @@ func (s *Stack) ResolveExpressionReference(ctx context.Context, ref stackaddrs.R
 	return s.resolveExpressionReference(ctx, ref, nil, instances.RepetitionData{})
 }
 
+// ExternalFunctions implements ExpressionScope.
+func (s *Stack) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
+	return s.main.ProviderFunctions(ctx, s.StackConfig(ctx))
+}
+
+// PlanTimestamp implements ExpressionScope, providing the timestamp at which
+// the current plan is being run.
+func (s *Stack) PlanTimestamp() time.Time {
+	return s.main.PlanTimestamp()
+}
+
 // resolveExpressionReference is a shared implementation of [ExpressionScope]
 // used for this stack's scope and all of the nested scopes of declarations
 // in the same stack, since they tend to differ only in what "self" means
 // and what each.key, each.value, or count.index are set to (if anything).
-func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.Reference, selfAddr stackaddrs.Referenceable, repetition instances.RepetitionData) (Referenceable, tfdiags.Diagnostics) {
+func (s *Stack) resolveExpressionReference(
+	ctx context.Context,
+	ref stackaddrs.Reference,
+	selfAddr stackaddrs.Referenceable,
+	repetition instances.RepetitionData,
+) (Referenceable, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// "Test-only globals" is a special affordance we have only when running
@@ -431,6 +552,18 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 			return nil, diags
 		}
 		return ret, diags
+	case stackaddrs.LocalValue:
+		ret := s.LocalValue(ctx, addr)
+		if ret == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reference to undeclared local value",
+				Detail:   fmt.Sprintf("There is no local %q declared in this stack.", addr.Name),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+			return nil, diags
+		}
+		return ret, diags
 	case stackaddrs.Component:
 		ret := s.Component(ctx, addr)
 		if ret == nil {
@@ -449,7 +582,7 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Reference to undeclared embedded stack",
-				Detail:   fmt.Sprintf("There is no stack %q block declared this stack.", addr.Name),
+				Detail:   fmt.Sprintf("There is no stack %q block declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return nil, diags
@@ -461,7 +594,7 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Reference to undeclared provider configuration",
-				Detail:   fmt.Sprintf("There is no provider %q %q block declared this stack.", addr.ProviderLocalName, addr.Name),
+				Detail:   fmt.Sprintf("There is no provider %q %q block declared in this stack.", addr.ProviderLocalName, addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return nil, diags
@@ -517,6 +650,8 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 				})
 				return nil, diags
 			}
+		case stackaddrs.TerraformApplying:
+			return JustValue{cty.BoolVal(s.main.Applying()).Mark(marks.Ephemeral)}, diags
 		default:
 			// The above should be exhaustive for all defined values of this type.
 			panic(fmt.Sprintf("unsupported ContextualRef %#v", addr))
@@ -545,79 +680,179 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 		return nil, nil
 	}
 
-	// For a root stack we'll return a PlannedChange for each of the output
-	// values, so the caller can see how these would change if this plan is
-	// applied.
-	resultVal := s.ResultValue(ctx, PlanPhase)
-	if !resultVal.Type().IsObjectType() || resultVal.IsNull() || !resultVal.IsKnown() {
-		// None of these situations should be possible if Stack.ResultValue is
-		// correctly implemented.
-		panic(fmt.Sprintf("invalid result from Stack.ResultValue: %#v", resultVal))
-	}
+	var diags tfdiags.Diagnostics
+
+	// We want to check that all of the components we have in state are
+	// targeted by something (either a component or a removed block) in
+	// the configuration.
+	//
+	// The root stack analysis is the best place to do this. We must do this
+	// during the plan (and not during the analysis) because we may have
+	// for-each attributes that need to be expanded before we can determine
+	// if a component is targeted.
 
 	var changes []stackplan.PlannedChange
-	for it := resultVal.ElementIterator(); it.Next(); {
-		k, v := it.Element()
-		outputAddr := stackaddrs.OutputValue{Name: k.AsString()}
+	for inst := range s.main.PlanPrevState().AllComponentInstances().All() {
 
-		// TODO: For now we just assume that all values are being created.
-		// Once we have a prior state we should compare with that to
-		// produce accurate change actions.
+		// We track here whether this component instance has any associated
+		// resources. If this component is empty, and not referenced in the
+		// configuration, then we won't return an error. Instead, we'll just
+		// mark this as to-be deleted. There could have been some error
+		// marking the state previously, but whatever it is we can just fix
+		// this so why bother the user with it.
+		empty := s.main.PlanPrevState().ComponentInstanceResourceInstanceObjects(inst).Len() == 0
 
-		v, markses := v.UnmarkDeepWithPaths()
-		sensitivePaths, otherMarkses := marks.PathsWithMark(markses, marks.Sensitive)
-		if len(otherMarkses) != 0 {
-			// Any other marks should've been dealt with by our caller before
-			// getting here, since we only know how to preserve the sensitive
-			// marking.
-			var diags tfdiags.Diagnostics
-			diags = diags.Append(fmt.Errorf(
-				"%s%s: unhandled value marks %#v (this is a bug in Terraform)",
-				outputAddr,
-				tfdiags.FormatCtyPath(otherMarkses[0].Path),
-				otherMarkses[0].Marks,
+		stack := s.main.Stack(ctx, inst.Stack, PlanPhase)
+		if stack == nil {
+			if empty {
+				changes = append(changes, &stackplan.PlannedChangeComponentInstanceRemoved{
+					Addr: inst,
+				})
+				continue
+			}
+
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Unclaimed component instance",
+				fmt.Sprintf("The component instance %s is not claimed by any component or removed block in the configuration. Make sure it is instantiated by a component block, or targeted for removal by a removed block.", inst.String()),
 			))
-			return nil, diags
-		}
-		dv, err := plans.NewDynamicValue(v, v.Type())
-		if err != nil {
-			// Should not be possible since we generated the value internally;
-			// suggests that there's a bug elsewhere in this package.
-			panic(fmt.Sprintf("%s has unencodable value: %s", outputAddr, err))
-		}
-		oldDV, err := plans.NewDynamicValue(cty.NullVal(cty.DynamicPseudoType), cty.DynamicPseudoType)
-		if err != nil {
-			// Should _definitely_ not be possible since the value is written
-			// directly above and should always be encodable.
-			panic(fmt.Sprintf("unencodable value: %s", err))
+			continue
 		}
 
+		component, removed := stack.ApplyableComponents(ctx, inst.Item.Component)
+		if component != nil {
+			insts, unknown := component.Instances(ctx, PlanPhase)
+			if unknown {
+				// We can't determine if the component is targeted or not. This
+				// is okay, as any changes to this component will be deferred
+				// anyway and a follow up plan will then detect the missing
+				// component if it exists.
+				continue
+			}
+
+			if _, exists := insts[inst.Item.Key]; exists {
+				// This component is targeted by a component block, so we won't
+				// add an error.
+				continue
+			}
+		}
+
+		if removed != nil {
+			insts, unknown, _ := removed.Instances(ctx, PlanPhase)
+			if unknown {
+				// We can't determine if the component is targeted or not. This
+				// is okay, as any changes to this component will be deferred
+				// anyway and a follow up plan will then detect the missing
+				// component if it exists.
+				continue
+			}
+
+			if _, exists := insts[inst.Item.Key]; exists {
+				// This component is targeted by a removed block, so we won't
+				// add an error.
+				continue
+			}
+		}
+
+		// Otherwise, we have a component that is not targeted by anything in
+		// the configuration.
+
+		if empty {
+			// It's empty, so we can just remove it.
+			changes = append(changes, &stackplan.PlannedChangeComponentInstanceRemoved{
+				Addr: inst,
+			})
+			continue
+		}
+
+		// Otherwise, it's an error.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unclaimed component instance",
+			fmt.Sprintf("The component instance %s is not claimed by any component or removed block in the configuration. Make sure it is instantiated by a component block, or targeted for removal by a removed block.", inst.String()),
+		))
+	}
+
+	// Finally, we'll look at the input and output values we have in state
+	// and any that do not appear in the configuration we'll mark as deleted.
+
+	for addr, value := range s.main.PlanPrevState().RootOutputValues() {
+		if s.OutputValue(ctx, addr) != nil {
+			// Then this output value is in the configuration, and will be
+			// processed independently.
+			continue
+		}
+
+		// Otherwise, it's been removed from the configuration.
 		changes = append(changes, &stackplan.PlannedChangeOutputValue{
-			Addr:   outputAddr,
-			Action: plans.Create,
-
-			OldValue:               oldDV,
-			OldValueSensitivePaths: nil,
-
-			NewValue:               dv,
-			NewValueSensitivePaths: sensitivePaths,
+			Addr:   addr,
+			Action: plans.Delete,
+			Before: value,
+			After:  cty.NullVal(cty.DynamicPseudoType),
 		})
 	}
-	return changes, nil
-}
 
-func (s *Stack) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
-	// The stack itself doesn't refer to anything and so cannot require
-	// components. Its _call_ might, but that's handled over in
-	// [StackCall.RequiredComponents].
-	return collections.NewSet[stackaddrs.AbsComponent]()
+	// Finally, we'll look at the input variables we have in state and delete
+	// any that don't appear in the configuration any more.
+
+	for addr, variable := range s.main.PlanPrevState().RootInputVariables() {
+		if s.InputVariable(ctx, addr) != nil {
+			// Then this input variable is in the configuration, and will
+			// be processed independently.
+			continue
+		}
+
+		// Otherwise, we'll add a delete notification for this root input
+		// variable.
+		changes = append(changes, &stackplan.PlannedChangeRootInputValue{
+			Addr:   addr,
+			Action: plans.Delete,
+			Before: variable,
+			After:  cty.NullVal(cty.DynamicPseudoType),
+		})
+	}
+
+	return changes, diags
 }
 
 // CheckApply implements Applyable.
 func (s *Stack) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
-	// TODO: We should emit an AppliedChange for each output value,
-	// reporting its final value.
-	return nil, nil
+	if !s.IsRoot() {
+		return nil, nil
+	}
+
+	var diags tfdiags.Diagnostics
+	var changes []stackstate.AppliedChange
+
+	// We're also just going to quickly emit any cleanup . These remaining
+	// values are basically just everything that have been in the configuration
+	// in the past but is no longer and so needs to be removed from the state.
+
+	for value := range s.main.PlanBeingApplied().DeletedOutputValues.All() {
+		changes = append(changes, &stackstate.AppliedChangeOutputValue{
+			Addr:  value,
+			Value: cty.NilVal,
+		})
+	}
+
+	for value := range s.main.PlanBeingApplied().DeletedInputVariables.All() {
+		changes = append(changes, &stackstate.AppliedChangeInputVariable{
+			Addr:  value,
+			Value: cty.NilVal,
+		})
+	}
+
+	for value := range s.main.PlanBeingApplied().DeletedComponents.All() {
+		changes = append(changes, &stackstate.AppliedChangeComponentInstanceRemoved{
+			ComponentAddr: stackaddrs.AbsComponent{
+				Stack: value.Stack,
+				Item:  value.Item.Component,
+			},
+			ComponentInstanceAddr: value,
+		})
+	}
+
+	return changes, diags
 }
 
 func (s *Stack) tracingName() string {
@@ -626,4 +861,29 @@ func (s *Stack) tracingName() string {
 		return "root stack"
 	}
 	return addr.String()
+}
+
+// reportNamedPromises implements namedPromiseReporter.
+func (s *Stack) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, child := range s.childStacks {
+		child.reportNamedPromises(cb)
+	}
+	for _, child := range s.inputVariables {
+		child.reportNamedPromises(cb)
+	}
+	for _, child := range s.outputValues {
+		child.reportNamedPromises(cb)
+	}
+	for _, child := range s.stackCalls {
+		child.reportNamedPromises(cb)
+	}
+	for _, child := range s.components {
+		child.reportNamedPromises(cb)
+	}
+	for _, child := range s.providers {
+		child.reportNamedPromises(cb)
+	}
 }

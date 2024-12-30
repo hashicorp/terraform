@@ -736,6 +736,28 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 	}
 }
 
+const (
+	// StatePersistIntervalEnvVar is the environment variable that can be set
+	// to control the interval at which Terraform persists state. The interval
+	// itself defaults to 20 seconds.
+	StatePersistIntervalEnvVar = "TF_STATE_PERSIST_INTERVAL"
+)
+
+// StatePersistInterval returns the configured interval that Terraform should
+// persist statefiles to the desired backend. Backends may choose to override
+// the default value.
+func (m *Meta) StatePersistInterval() int {
+	if val, ok := os.LookupEnv(StatePersistIntervalEnvVar); ok {
+		if interval, err := strconv.Atoi(val); err == nil && interval > DefaultStatePersistInterval {
+			// The user-specified interval must be greater than the default minimum
+			return interval
+		} else if err != nil {
+			log.Printf("[ERROR] Can't parse state persist interval %q of environment variable %q", val, StatePersistIntervalEnvVar)
+		}
+	}
+	return DefaultStatePersistInterval
+}
+
 // WorkspaceNameEnvVar is the name of the environment variable that can be used
 // to set the name of the Terraform workspace, overriding the workspace chosen
 // by `terraform workspace select`.

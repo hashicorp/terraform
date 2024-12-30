@@ -436,6 +436,18 @@ func (s *State) getStatePayload() (*remote.Payload, error) {
 	}, nil
 }
 
+type errorUnlockFailed struct {
+	innerError error
+}
+
+func (e errorUnlockFailed) FatalError() error {
+	return e.innerError
+}
+
+func (e errorUnlockFailed) Error() string {
+	return e.innerError.Error()
+}
+
 // Unlock calls the Client's Unlock method if it's implemented.
 func (s *State) Unlock(id string) error {
 	s.mu.Lock()
@@ -465,7 +477,19 @@ func (s *State) Unlock(id string) error {
 		}
 
 		// Unlock the workspace.
-		_, err := s.tfeClient.Workspaces.Unlock(ctx, s.workspace.ID)
+		err := RetryBackoff(ctx, func() error {
+			_, err := s.tfeClient.Workspaces.Unlock(ctx, s.workspace.ID)
+			if err != nil {
+				if errors.Is(err, tfe.ErrWorkspaceLockedStateVersionStillPending) {
+					// This is a retryable error.
+					return err
+				}
+				// This will not be retried
+				return &errorUnlockFailed{innerError: err}
+			}
+			return nil
+		})
+
 		if err != nil {
 			lockErr.Err = err
 			return lockErr
@@ -497,7 +521,6 @@ func (s *State) Unlock(id string) error {
 
 // Delete the remote state.
 func (s *State) Delete(force bool) error {
-
 	var err error
 
 	isSafeDeleteSupported := s.workspace.Permissions.CanForceDelete != nil
@@ -515,12 +538,37 @@ func (s *State) Delete(force bool) error {
 }
 
 // GetRootOutputValues fetches output values from HCP Terraform
-func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
-	ctx := context.Background()
+func (s *State) GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
+	// The cloud backend initializes this value to true, but we want to implement
+	// some custom retry logic. This code presumes that the tfeClient doesn't need
+	// to be shared with other goroutines by the caller.
+	s.tfeClient.RetryServerErrors(false)
+	defer s.tfeClient.RetryServerErrors(true)
 
-	so, err := s.tfeClient.StateVersionOutputs.ReadCurrent(ctx, s.workspace.ID)
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
+	var so *tfe.StateVersionOutputsList
+	err := RetryBackoff(ctx, func() error {
+		var err error
+		so, err = s.tfeClient.StateVersionOutputs.ReadCurrent(ctx, s.workspace.ID)
+
+		if err != nil {
+			if strings.Contains(err.Error(), "service unavailable") {
+				return err
+			}
+			return NonRetryableError{err}
+		}
+		return nil
+	})
 
 	if err != nil {
+		switch err {
+		case context.DeadlineExceeded:
+			return nil, fmt.Errorf("current outputs were not ready to be read within the deadline. Please try again")
+		case context.Canceled:
+			return nil, fmt.Errorf("canceled reading current outputs")
+		}
 		return nil, fmt.Errorf("could not read state version outputs: %w", err)
 	}
 

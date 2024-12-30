@@ -63,7 +63,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				`,
 			},
 			plan: &plans.Plan{
-				Changes: plans.NewChanges(),
+				Changes: plans.NewChangesSrc(),
 			},
 			state: states.BuildState(func(state *states.SyncState) {
 				state.SetResourceInstanceCurrent(
@@ -127,7 +127,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				`,
 			},
 			plan: &plans.Plan{
-				Changes: plans.NewChanges(),
+				Changes: plans.NewChangesSrc(),
 			},
 			state: states.BuildState(func(state *states.SyncState) {
 				state.SetResourceInstanceCurrent(
@@ -188,7 +188,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				`,
 			},
 			plan: &plans.Plan{
-				Changes: plans.NewChanges(),
+				Changes: plans.NewChangesSrc(),
 			},
 			state: states.BuildState(func(state *states.SyncState) {
 				state.SetResourceInstanceCurrent(
@@ -255,7 +255,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				`,
 			},
 			plan: &plans.Plan{
-				Changes: plans.NewChanges(),
+				Changes: plans.NewChangesSrc(),
 			},
 			state: states.BuildState(func(state *states.SyncState) {
 				state.SetResourceInstanceCurrent(
@@ -326,7 +326,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				`,
 			},
 			plan: &plans.Plan{
-				Changes: plans.NewChanges(),
+				Changes: plans.NewChangesSrc(),
 			},
 			state: states.NewState(),
 			variables: terraform.InputValues{
@@ -367,7 +367,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				`,
 			},
 			plan: &plans.Plan{
-				Changes: plans.NewChanges(),
+				Changes: plans.NewChangesSrc(),
 			},
 			state: states.NewState(),
 			variables: terraform.InputValues{
@@ -431,7 +431,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					})
 			}),
 			plan: &plans.Plan{
-				Changes: &plans.Changes{
+				Changes: &plans.ChangesSrc{
 					Resources: []*plans.ResourceInstanceChangeSrc{
 						{
 							Addr: addrs.Resource{
@@ -510,7 +510,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					})
 			}),
 			plan: &plans.Plan{
-				Changes: &plans.Changes{
+				Changes: &plans.ChangesSrc{
 					Resources: []*plans.ResourceInstanceChangeSrc{
 						{
 							Addr: addrs.Resource{
@@ -577,7 +577,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				`,
 			},
 			plan: &plans.Plan{
-				Changes: plans.NewChanges(),
+				Changes: plans.NewChangesSrc(),
 			},
 			state: states.BuildState(func(state *states.SyncState) {
 				state.SetResourceInstanceCurrent(
@@ -636,7 +636,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				`,
 			},
 			plan: &plans.Plan{
-				Changes: plans.NewChanges(),
+				Changes: plans.NewChangesSrc(),
 			},
 			state:          states.NewState(),
 			provider:       &testing_provider.MockProvider{},
@@ -670,7 +670,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					`,
 			},
 			plan: &plans.Plan{
-				Changes: plans.NewChanges(),
+				Changes: plans.NewChangesSrc(),
 			},
 			state: states.NewState(),
 			provider: &testing_provider.MockProvider{

@@ -192,11 +192,15 @@ func TestParserLoadConfigFileWarning(t *testing.T) {
 			sc := bufio.NewScanner(bytes.NewReader(src))
 			wantWarnings := make(map[int]string)
 			lineNum := 1
+			allowExperiments := false
 			for sc.Scan() {
 				lineText := sc.Text()
 				if idx := strings.Index(lineText, marker); idx != -1 {
 					summaryText := lineText[idx+len(marker):]
 					wantWarnings[lineNum] = summaryText
+				}
+				if lineText == "# ALLOW-LANGUAGE-EXPERIMENTS" {
+					allowExperiments = true
 				}
 				lineNum++
 			}
@@ -204,6 +208,11 @@ func TestParserLoadConfigFileWarning(t *testing.T) {
 			parser := testParser(map[string]string{
 				name: string(src),
 			})
+			// Some inputs use a special comment to request that they be
+			// permitted to use language experiments. We typically use that
+			// to test that the experiment opt-in is working and is causing
+			// the expected "you are using experimental features" warning.
+			parser.AllowLanguageExperiments(allowExperiments)
 
 			_, diags := parser.LoadConfigFile(name)
 			if diags.HasErrors() {

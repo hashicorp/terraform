@@ -43,7 +43,7 @@ Usage: terraform [global options] test [options]
 Options:
 
   -cloud-run=source     If specified, Terraform will execute this test run 
-                        remotely using HCP Terraform or Terraform Enterpise. 
+                        remotely using HCP Terraform or Terraform Enterprise. 
 						You must specify the source of a module registered in 
 						a private module registry as the argument to this flag. 
 						This allows Terraform to associate the cloud run with 
@@ -128,7 +128,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	}
 
 	// The specified testing directory must be a relative path, and it must
-	// point to a directory that is a descendent of the configuration directory.
+	// point to a directory that is a descendant of the configuration directory.
 	if !filepath.IsLocal(args.TestDirectory) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,

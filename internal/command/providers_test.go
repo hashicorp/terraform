@@ -192,7 +192,6 @@ func TestProviders_tests(t *testing.T) {
 	}
 
 	wantOutput := []string{
-		"provider[registry.terraform.io/hashicorp/foo]",
 		"test.main",
 		"provider[registry.terraform.io/hashicorp/bar]",
 	}

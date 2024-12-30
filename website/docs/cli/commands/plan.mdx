@@ -1,15 +1,17 @@
 ---
-page_title: 'Command: plan'
+page_title: terraform plan command reference
 description: >-
-  The terraform plan command creates an execution plan with a preview of the
+  The `terraform plan` command creates an execution plan with a preview of the
   changes that Terraform will make to your infrastructure.
 ---
 
-# Command: plan
+# `terraform plan` command 
 
 The `terraform plan` command creates an execution plan, which lets you preview
-the changes that Terraform plans to make to your infrastructure. By default,
-when Terraform creates a plan it:
+the changes that Terraform plans to make to your infrastructure. 
+
+## Introduction
+By default, Terraform performs the following operations when it creates a plan:
 
 * Reads the current state of any already-existing remote objects to make sure
   that the Terraform state is up-to-date.
@@ -340,9 +342,9 @@ The available options are:
   to 10.
 
 For configurations using
-[the `local` backend](/terraform/language/settings/backends/local) only,
+[the `local` backend](/terraform/language/backend/local) only,
 `terraform plan` accepts the legacy command line option
-[`-state`](/terraform/language/settings/backends/local#command-line-arguments).
+[`-state`](/terraform/language/backend/local#command-line-arguments).
 
 ### Passing a Different Configuration Directory
 

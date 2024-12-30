@@ -9,6 +9,7 @@ import (
 	"github.com/go-test/deep"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -87,6 +88,24 @@ func TestParseTarget(t *testing.T) {
 			``,
 		},
 		{
+			`resource.aws_instance.foo`,
+			&Target{
+				Subject: AbsResource{
+					Resource: Resource{
+						Mode: ManagedResourceMode,
+						Type: "aws_instance",
+						Name: "foo",
+					},
+					Module: RootModuleInstance,
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 26, Byte: 25},
+				},
+			},
+			``,
+		},
+		{
 			`aws_instance.foo[1]`,
 			&Target{
 				Subject: AbsResourceInstance{
@@ -142,6 +161,45 @@ func TestParseTarget(t *testing.T) {
 				SourceRange: tfdiags.SourceRange{
 					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
 					End:   tfdiags.SourcePos{Line: 1, Column: 25, Byte: 24},
+				},
+			},
+			``,
+		},
+		{
+			`ephemeral.aws_instance.foo`,
+			&Target{
+				Subject: AbsResource{
+					Resource: Resource{
+						Mode: EphemeralResourceMode,
+						Type: "aws_instance",
+						Name: "foo",
+					},
+					Module: RootModuleInstance,
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 27, Byte: 26},
+				},
+			},
+			``,
+		},
+		{
+			`ephemeral.aws_instance.foo[1]`,
+			&Target{
+				Subject: AbsResourceInstance{
+					Resource: ResourceInstance{
+						Resource: Resource{
+							Mode: EphemeralResourceMode,
+							Type: "aws_instance",
+							Name: "foo",
+						},
+						Key: IntKey(1),
+					},
+					Module: RootModuleInstance,
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 30, Byte: 29},
 				},
 			},
 			``,
@@ -253,6 +311,27 @@ func TestParseTarget(t *testing.T) {
 			``,
 		},
 		{
+			`module.foo.module.bar.ephemeral.aws_instance.baz`,
+			&Target{
+				Subject: AbsResource{
+					Resource: Resource{
+						Mode: EphemeralResourceMode,
+						Type: "aws_instance",
+						Name: "baz",
+					},
+					Module: ModuleInstance{
+						{Name: "foo"},
+						{Name: "bar"},
+					},
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 49, Byte: 48},
+				},
+			},
+			``,
+		},
+		{
 			`module.foo.module.bar[0].data.aws_instance.baz`,
 			&Target{
 				Subject: AbsResource{
@@ -352,6 +431,61 @@ func TestParseTarget(t *testing.T) {
 			nil,
 			`Unexpected extra operators after address.`,
 		},
+		{
+			`each.key`,
+			nil,
+			`The keyword "each" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`module.foo[1].each`,
+			nil,
+			`The keyword "each" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`count.index`,
+			nil,
+			`The keyword "count" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`local.value`,
+			nil,
+			`The keyword "local" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`path.root`,
+			nil,
+			`The keyword "path" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`self.id`,
+			nil,
+			`The keyword "self" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`terraform.planning`,
+			nil,
+			`The keyword "terraform" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`var.foo`,
+			nil,
+			`The keyword "var" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`template`,
+			nil,
+			`The keyword "template" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`lazy`,
+			nil,
+			`The keyword "lazy" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+		{
+			`arg`,
+			nil,
+			`The keyword "arg" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
 	}
 
 	for _, test := range tests {
@@ -384,7 +518,7 @@ func TestParseTarget(t *testing.T) {
 			}
 
 			for _, problem := range deep.Equal(got, test.Want) {
-				t.Errorf(problem)
+				t.Error(problem)
 			}
 		})
 	}

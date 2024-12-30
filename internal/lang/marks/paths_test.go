@@ -4,6 +4,7 @@
 package marks
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -106,5 +107,101 @@ func TestMarkPaths(t *testing.T) {
 	})
 	if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
 		t.Errorf("wrong result\n%s", diff)
+	}
+}
+
+func TestMarksEqual(t *testing.T) {
+	for i, tc := range []struct {
+		a, b  []cty.PathValueMarks
+		equal bool
+	}{
+		{
+			[]cty.PathValueMarks{
+				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(Sensitive)},
+			},
+			[]cty.PathValueMarks{
+				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(Sensitive)},
+			},
+			true,
+		},
+		{
+			[]cty.PathValueMarks{
+				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(Sensitive)},
+			},
+			[]cty.PathValueMarks{
+				{Path: cty.Path{cty.GetAttrStep{Name: "A"}}, Marks: cty.NewValueMarks(Sensitive)},
+			},
+			false,
+		},
+		{
+			[]cty.PathValueMarks{
+				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(Sensitive)},
+				{Path: cty.Path{cty.GetAttrStep{Name: "b"}}, Marks: cty.NewValueMarks(Sensitive)},
+				{Path: cty.Path{cty.GetAttrStep{Name: "c"}}, Marks: cty.NewValueMarks(Sensitive)},
+			},
+			[]cty.PathValueMarks{
+				{Path: cty.Path{cty.GetAttrStep{Name: "b"}}, Marks: cty.NewValueMarks(Sensitive)},
+				{Path: cty.Path{cty.GetAttrStep{Name: "c"}}, Marks: cty.NewValueMarks(Sensitive)},
+				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(Sensitive)},
+			},
+			true,
+		},
+		{
+			[]cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "a"}, cty.GetAttrStep{Name: "b"}},
+					Marks: cty.NewValueMarks(Sensitive),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "a"}, cty.GetAttrStep{Name: "c"}},
+					Marks: cty.NewValueMarks(Sensitive),
+				},
+			},
+			[]cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "a"}, cty.GetAttrStep{Name: "c"}},
+					Marks: cty.NewValueMarks(Sensitive),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "a"}, cty.GetAttrStep{Name: "b"}},
+					Marks: cty.NewValueMarks(Sensitive),
+				},
+			},
+			true,
+		},
+		{
+			[]cty.PathValueMarks{
+				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(Sensitive)},
+			},
+			[]cty.PathValueMarks{
+				{Path: cty.Path{cty.GetAttrStep{Name: "b"}}, Marks: cty.NewValueMarks(Sensitive)},
+			},
+			false,
+		},
+		{
+			nil,
+			nil,
+			true,
+		},
+		{
+			[]cty.PathValueMarks{
+				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(Sensitive)},
+			},
+			nil,
+			false,
+		},
+		{
+			nil,
+			[]cty.PathValueMarks{
+				{Path: cty.Path{cty.GetAttrStep{Name: "a"}}, Marks: cty.NewValueMarks(Sensitive)},
+			},
+			false,
+		},
+	} {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			if MarksEqual(tc.a, tc.b) != tc.equal {
+				t.Fatalf("MarksEqual(\n%#v,\n%#v,\n) != %t\n", tc.a, tc.b, tc.equal)
+			}
+		})
 	}
 }

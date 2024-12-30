@@ -5,7 +5,7 @@ package hooks
 
 import (
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
 
@@ -25,25 +25,28 @@ const (
 	ComponentInstanceApplying      ComponentInstanceStatus = 'a'
 	ComponentInstanceApplied       ComponentInstanceStatus = 'A'
 	ComponentInstanceErrored       ComponentInstanceStatus = 'E'
+	ComponentInstanceDeferred      ComponentInstanceStatus = 'D'
 )
 
 // TODO: move this into the rpcapi package somewhere
-func (s ComponentInstanceStatus) ForProtobuf() terraform1.StackChangeProgress_ComponentInstanceStatus_Status {
+func (s ComponentInstanceStatus) ForProtobuf() stacks.StackChangeProgress_ComponentInstanceStatus_Status {
 	switch s {
 	case ComponentInstancePending:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_PENDING
+		return stacks.StackChangeProgress_ComponentInstanceStatus_PENDING
 	case ComponentInstancePlanning:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_PLANNING
+		return stacks.StackChangeProgress_ComponentInstanceStatus_PLANNING
 	case ComponentInstancePlanned:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_PLANNED
+		return stacks.StackChangeProgress_ComponentInstanceStatus_PLANNED
 	case ComponentInstanceApplying:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_APPLYING
+		return stacks.StackChangeProgress_ComponentInstanceStatus_APPLYING
 	case ComponentInstanceApplied:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_APPLIED
+		return stacks.StackChangeProgress_ComponentInstanceStatus_APPLIED
 	case ComponentInstanceErrored:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_ERRORED
+		return stacks.StackChangeProgress_ComponentInstanceStatus_ERRORED
+	case ComponentInstanceDeferred:
+		return stacks.StackChangeProgress_ComponentInstanceStatus_DEFERRED
 	default:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_INVALID
+		return stacks.StackChangeProgress_ComponentInstanceStatus_INVALID
 	}
 }
 
@@ -55,6 +58,9 @@ type ComponentInstanceChange struct {
 	Change int
 	Import int
 	Remove int
+	Defer  int
+	Move   int
+	Forget int
 }
 
 // Total sums all of the change counts as a forwards-compatibility measure. If
@@ -62,7 +68,7 @@ type ComponentInstanceChange struct {
 // that the component instance has some unknown changes, rather than falsely
 // stating that there are no changes at all.
 func (cic ComponentInstanceChange) Total() int {
-	return cic.Add + cic.Change + cic.Import + cic.Remove
+	return cic.Add + cic.Change + cic.Import + cic.Remove + cic.Defer + cic.Move + cic.Forget
 }
 
 // CountNewAction increments zero or more of the count fields based on the
@@ -78,5 +84,10 @@ func (cic *ComponentInstanceChange) CountNewAction(action plans.Action) {
 	case plans.CreateThenDelete, plans.DeleteThenCreate:
 		cic.Add++
 		cic.Remove++
+	case plans.Forget:
+		cic.Forget++
+	case plans.CreateThenForget:
+		cic.Add++
+		cic.Forget++
 	}
 }

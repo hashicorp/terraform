@@ -11,7 +11,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
-	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -84,10 +86,13 @@ func (v *InputVariable) DefinedByStackCallInstance(ctx context.Context, phase Ev
 		// actually exist, which is odd but we'll tolerate it.
 		return nil
 	}
-	callInsts := call.Instances(ctx, phase)
+	callInsts, unknown := call.Instances(ctx, phase)
+	if unknown {
+		// Return our static unknown instance for this variable.
+		return call.UnknownInstance(ctx, phase)
+	}
 	if callInsts == nil {
-		// Could get here if the call's for_each is unknown or invalid,
-		// in which case we'll assume unknown.
+		// Could get here if the call's for_each is invalid.
 		return nil
 	}
 
@@ -107,22 +112,22 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
+			cfg := v.Config(ctx)
+			decl := v.Declaration(ctx)
+
 			switch {
 			case v.Addr().Stack.IsRoot():
-				wantTy := v.Declaration(ctx).Type.Constraint
+				var err error
 
+				wantTy := decl.Type.Constraint
 				extVal := v.main.RootVariableValue(ctx, v.Addr().Item, phase)
 
-				// We treat a null value as equivalent to an unspecified value,
-				// and replace it with the variable's default value. This is
-				// consistent with how embedded stacks handle defaults.
-				if extVal.Value.IsNull() {
-					cfg := v.Config(ctx)
-
-					// A separate code path will validate the default value, so
-					// we don't need to do that here.
-					defVal := cfg.DefaultValue(ctx)
-					if defVal == cty.NilVal {
+				val := extVal.Value
+				if val.IsNull() {
+					// A null value is equivalent to an unspecified value, so
+					// we'll replace it with the variable's default value.
+					val = cfg.DefaultValue(ctx)
+					if val == cty.NilVal {
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
 							Summary:  "No value for required variable",
@@ -131,31 +136,60 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 						})
 						return cty.UnknownVal(wantTy), diags
 					}
-
-					extVal = ExternalInputValue{
-						Value:    defVal,
-						DefRange: cfg.Declaration().DeclRange,
+				} else {
+					// The DefaultValue function already validated the default
+					// value, and applied the defaults, so we only apply the
+					// defaults to a user supplied value.
+					if defaults := decl.Type.Defaults; defaults != nil {
+						val = defaults.Apply(val)
 					}
 				}
 
-				val, err := convert.Convert(extVal.Value, wantTy)
-				const errSummary = "Invalid value for root input variable"
+				// First, apply any defaults that are declared in the
+				// configuration.
+
+				// Next, convert the value to the expected type.
+				val, err = convert.Convert(val, wantTy)
 				if err != nil {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  errSummary,
+						Summary:  "Invalid value for root input variable",
 						Detail: fmt.Sprintf(
 							"Cannot use the given value for input variable %q: %s.",
 							v.Addr().Item.Name, err,
 						),
 					})
-					val = cty.UnknownVal(wantTy)
+					val = cfg.markValue(cty.UnknownVal(wantTy))
 					return val, diags
+				}
+
+				if phase == ApplyPhase && !cfg.config.Ephemeral {
+					// Now, we're just going to check the apply time value
+					// against the plan time value. It is expected that
+					// ephemeral variables will have different values between
+					// plan and apply time, so these are not checked here.
+					plan := v.main.PlanBeingApplied()
+					planValue := plan.RootInputValues[v.addr.Item]
+					if errs := objchange.AssertValueCompatible(planValue, val); errs != nil {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Inconsistent value for input variable during apply",
+							Detail:   fmt.Sprintf("The value for non-ephemeral input variable %q was set to a different value during apply than was set during plan. Only ephemeral input variables can change between the plan and apply phases.", v.addr.Item.Name),
+							Subject:  cfg.config.DeclRange.ToHCL().Ptr(),
+						})
+						// Return a solidly invalid value to prevent further
+						// processing of this variable. This is a rare case and
+						// a bug in Terraform so it's okay that might cause
+						// additional errors to be raised later. We just want
+						// to make sure we don't continue when something has
+						// gone wrong elsewhere.
+						return cty.NilVal, diags
+					}
 				}
 
 				// TODO: check the value against any custom validation rules
 				// declared in the configuration.
-				return val, diags
+				return cfg.markValue(val), diags
 
 			default:
 				definedByCallInst := v.DefinedByStackCallInstance(ctx, phase)
@@ -165,7 +199,7 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 					// something's gone wrong or we are descended from a stack
 					// call whose instances aren't known yet; we'll assume
 					// the latter and return a placeholder.
-					return cty.UnknownVal(v.Declaration(ctx).Type.Constraint), diags
+					return cfg.markValue(cty.UnknownVal(v.Declaration(ctx).Type.Constraint)), diags
 				}
 
 				allVals := definedByCallInst.InputVariableValues(ctx, phase)
@@ -174,7 +208,7 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 				// TODO: check the value against any custom validation rules
 				// declared in the configuration.
 
-				return val, diags
+				return cfg.markValue(val), diags
 			}
 		},
 	))
@@ -210,11 +244,53 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 		return nil, diags
 	}
 
-	val := v.Value(ctx, PlanPhase)
+	destroy := v.main.PlanningOpts().PlanningMode == plans.DestroyMode
+
+	before := v.main.PlanPrevState().RootInputVariable(v.Addr().Item)
+
+	decl := v.Declaration(ctx)
+	after := v.Value(ctx, PlanPhase)
+	requiredOnApply := false
+	if decl.Ephemeral {
+		// we don't persist the value for an ephemeral variable, but we
+		// do need to remember whether it was set.
+		requiredOnApply = !after.IsNull()
+
+		// we'll set the after value to null now that we've captured the
+		// requiredOnApply flag.
+		after = cty.NullVal(after.Type())
+	}
+
+	var action plans.Action
+	if before != cty.NilVal {
+		if decl.Ephemeral {
+			// if the value is ephemeral, we always mark is as an update
+			action = plans.Update
+		} else {
+			unmarkedBefore, beforePaths := before.UnmarkDeepWithPaths()
+			unmarkedAfter, afterPaths := after.UnmarkDeepWithPaths()
+			result := unmarkedBefore.Equals(unmarkedAfter)
+			if result.IsKnown() && result.True() && marks.MarksEqual(beforePaths, afterPaths) {
+				action = plans.NoOp
+			} else {
+				// If we don't know for sure that the values are equal, then we'll
+				// call this an update.
+				action = plans.Update
+			}
+		}
+	} else {
+		action = plans.Create
+		before = cty.NullVal(cty.DynamicPseudoType)
+	}
+
 	return []stackplan.PlannedChange{
 		&stackplan.PlannedChangeRootInputValue{
-			Addr:  v.Addr().Item,
-			Value: val,
+			Addr:            v.Addr().Item,
+			Action:          action,
+			Before:          before,
+			After:           after,
+			RequiredOnApply: requiredOnApply,
+			DeleteOnApply:   destroy,
 		},
 	}, diags
 }
@@ -245,18 +321,50 @@ func (v *InputVariable) References(ctx context.Context) []stackaddrs.AbsReferenc
 	return call.References(ctx)
 }
 
-// RequiredComponents implements Applyable
-func (v *InputVariable) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
-	return v.main.requiredComponentsForReferrer(ctx, v, PlanPhase)
-}
-
 // CheckApply implements Applyable.
 func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
-	return nil, v.checkValid(ctx, ApplyPhase)
+	if !v.Addr().Stack.IsRoot() {
+		return nil, v.checkValid(ctx, ApplyPhase)
+	}
+
+	diags := v.checkValid(ctx, ApplyPhase)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	if v.main.PlanBeingApplied().DeletedInputVariables.Has(v.Addr().Item) {
+		// If the plan being applied has this variable as being deleted, then
+		// we won't handle it here. This is usually the case during a destroy
+		// only plan in which we wanted to both capture the value for an input
+		// as we still need it, while also noting that everything is being
+		// destroyed.
+		return nil, diags
+	}
+
+	decl := v.Declaration(ctx)
+	value := v.Value(ctx, ApplyPhase)
+	if decl.Ephemeral {
+		value = cty.NullVal(value.Type())
+	}
+
+	return []stackstate.AppliedChange{
+		&stackstate.AppliedChangeInputVariable{
+			Addr:  v.Addr().Item,
+			Value: value,
+		},
+	}, diags
 }
 
 func (v *InputVariable) tracingName() string {
 	return v.Addr().String()
+}
+
+// reportNamedPromises implements namedPromiseReporter.
+func (v *InputVariable) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	name := v.Addr().String()
+	v.value.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
+		cb(o.PromiseID(), name)
+	})
 }
 
 // ExternalInputValue represents the value of an input variable provided

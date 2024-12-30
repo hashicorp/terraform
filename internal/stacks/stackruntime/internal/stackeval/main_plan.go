@@ -44,7 +44,16 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 	}
 	outp.AnnouncePlannedChange(ctx, &stackplan.PlannedChangeHeader{
 		TerraformVersion: version.SemVer,
-		PrevRunStateRaw:  prevRunStateRaw,
+	})
+	for k, raw := range prevRunStateRaw {
+		outp.AnnouncePlannedChange(ctx, &stackplan.PlannedChangePriorStateElement{
+			Key: k,
+			Raw: raw,
+		})
+	}
+
+	outp.AnnouncePlannedChange(ctx, &stackplan.PlannedChangePlannedTimestamp{
+		PlannedTimestamp: m.PlanTimestamp(),
 	})
 
 	// TODO: Announce an extra planned change here if we have any unrecognized
@@ -135,6 +144,17 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 	diags = diags.Append(diagnosticsForPromisingTaskError(err, m))
 	if len(diags) > 0 {
 		outp.AnnounceDiagnostics(ctx, diags)
+	}
+
+	// Now, that we've finished walking the graph. We'll announce the
+	// provider function results so that they can be used during the apply
+	// phase.
+	hashes := m.providerFunctionResults.GetHashes()
+	if len(hashes) > 0 {
+		// Only add this planned change if we actually have any results.
+		outp.AnnouncePlannedChange(ctx, &stackplan.PlannedChangeProviderFunctionResults{
+			Results: m.providerFunctionResults.GetHashes(),
+		})
 	}
 
 	// The caller (in stackruntime) is responsible for generating the final

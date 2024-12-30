@@ -102,6 +102,8 @@ func (c *RemoteClient) getSecrets() ([]unstructured.Unstructured, error) {
 	for _, item := range res.Items {
 		name := item.GetName()
 		nameParts := strings.Split(name, "-")
+		// Because large Terraform state files are split into multiple secrets,
+		// we parse the index from the secret name.
 		index, err := strconv.Atoi(nameParts[len(nameParts)-1])
 		if err != nil {
 			index = 0

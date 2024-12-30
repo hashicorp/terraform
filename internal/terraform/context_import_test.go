@@ -1031,6 +1031,47 @@ func TestContextImport_33572(t *testing.T) {
 	}
 }
 
+// Missing import target should produce an error
+func TestContextImport_missingModuleImport(t *testing.T) {
+	p := testProvider("test")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  xs = toset(["foo"])
+}
+
+module "a" {
+  for_each = local.xs
+  source   = "./a"
+}
+
+import {
+	to = module.WRONG.test_resource.x
+	id = "id"
+}
+`,
+		"a/main.tf": `
+resource "test_resource" "x" {
+  value = "z"
+}
+`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if !diags.HasErrors() {
+		t.Fatal("expected missing import target error")
+	}
+	if !strings.Contains(diags.Err().Error(), "Configuration for import target does not exist") {
+		t.Fatalf("incorrect error for missing import target: %s\n", diags.Err())
+	}
+}
+
 const testImportStr = `
 aws_instance.foo:
   ID = foo

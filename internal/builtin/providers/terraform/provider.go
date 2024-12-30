@@ -9,6 +9,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/providers"
 )
 
@@ -22,13 +23,18 @@ func NewProvider() providers.Interface {
 
 // GetSchema returns the complete schema for the provider.
 func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
-	return providers.GetProviderSchemaResponse{
+	resp := providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{},
+		ServerCapabilities: providers.ServerCapabilities{
+			MoveResourceState: true,
+		},
 		DataSources: map[string]providers.Schema{
 			"terraform_remote_state": dataSourceRemoteStateGetSchema(),
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"terraform_data": dataStoreResourceSchema(),
 		},
+		EphemeralResourceTypes: map[string]providers.Schema{},
 		Functions: map[string]providers.FunctionDecl{
 			"encode_tfvars": {
 				Summary:     "Produce a string representation of an object using the same syntax as for `.tfvars` files",
@@ -67,6 +73,8 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 			},
 		},
 	}
+	providers.SchemaCache.Set(tfaddr.NewProvider(tfaddr.BuiltInProviderHost, tfaddr.BuiltInProviderNamespace, "terraform"), resp)
+	return resp
 }
 
 // ValidateProviderConfig is used to validate the configuration values.
@@ -166,18 +174,53 @@ func (p *Provider) ImportResourceState(req providers.ImportResourceStateRequest)
 		return importDataStore(req)
 	}
 
-	panic("unimplemented - terraform_remote_state has no resources")
+	panic("unimplemented: cannot import resource type " + req.TypeName)
 }
 
-func (p *Provider) MoveResourceState(providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
-	// We don't expose the move_resource_state capability, so this should never
-	// be called.
-	panic("unimplemented - terraform.io/builtin/terraform does not support cross-resource moves")
+// MoveResourceState requests that the given resource be moved.
+func (p *Provider) MoveResourceState(req providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
+	switch req.TargetTypeName {
+	case "terraform_data":
+		return moveDataStoreResourceState(req)
+	default:
+		var resp providers.MoveResourceStateResponse
+
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Error: unsupported resource %s", req.TargetTypeName))
+
+		return resp
+	}
 }
 
 // ValidateResourceConfig is used to to validate the resource configuration values.
 func (p *Provider) ValidateResourceConfig(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 	return validateDataStoreResourceConfig(req)
+}
+
+func (p *Provider) ValidateEphemeralResourceConfig(req providers.ValidateEphemeralResourceConfigRequest) providers.ValidateEphemeralResourceConfigResponse {
+	var resp providers.ValidateEphemeralResourceConfigResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
+	return resp
+}
+
+// OpenEphemeralResource implements providers.Interface.
+func (p *Provider) OpenEphemeralResource(req providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
+	var resp providers.OpenEphemeralResourceResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
+	return resp
+}
+
+// RenewEphemeralResource implements providers.Interface.
+func (p *Provider) RenewEphemeralResource(req providers.RenewEphemeralResourceRequest) providers.RenewEphemeralResourceResponse {
+	var resp providers.RenewEphemeralResourceResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
+	return resp
+}
+
+// CloseEphemeralResource implements providers.Interface.
+func (p *Provider) CloseEphemeralResource(req providers.CloseEphemeralResourceRequest) providers.CloseEphemeralResourceResponse {
+	var resp providers.CloseEphemeralResourceResponse
+	resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
+	return resp
 }
 
 // CallFunction would call a function contributed by this provider, but this

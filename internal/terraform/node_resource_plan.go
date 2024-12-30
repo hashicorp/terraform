@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -102,8 +103,8 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	// resource. The config maybe nil if we are generating configuration, or
 	// deleting a resource.
 	if n.Config != nil {
-		diags = diags.Append(validateSelfRefInExpr(n.Addr.Resource, n.Config.Count))
-		diags = diags.Append(validateSelfRefInExpr(n.Addr.Resource, n.Config.ForEach))
+		diags = diags.Append(validateMetaSelfRef(n.Addr.Resource, n.Config.Count))
+		diags = diags.Append(validateMetaSelfRef(n.Addr.Resource, n.Config.ForEach))
 		if diags.HasErrors() {
 			return nil, diags
 		}
@@ -113,22 +114,30 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	expander := ctx.InstanceExpander()
 	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
 
-	// Expand the imports for this resource.
-	// TODO: Add support for unknown instances in import blocks.
-	imports, importDiags := n.expandResourceImports(ctx)
-	diags = diags.Append(importDiags)
-
 	// The possibility of partial-expanded modules and resources is guarded by a
 	// top-level option for the whole plan, so that we can preserve mainline
 	// behavior for the modules runtime. So, we currently branch off into an
 	// entirely-separate codepath in those situations, at the expense of
 	// duplicating some of the logic for behavior this method would normally
 	// handle.
-	if ctx.Deferrals().DeferralAllowed() {
+	if ctx.Deferrals().DeferralAllowed() { // Expand the imports for this resource.
+		knownImports, unknownImports, importDiags := n.expandResourceImports(ctx, true)
+		diags = diags.Append(importDiags)
+
 		pem := expander.UnknownModuleInstances(n.Addr.Module, false)
-		g, expandDiags := n.dynamicExpandPartial(ctx, moduleInstances, pem, imports)
+		g, expandDiags := n.dynamicExpandPartial(ctx, moduleInstances, pem, knownImports, unknownImports)
 		diags = diags.Append(expandDiags)
 		return g, diags
+	}
+
+	// Expand the imports for this resource.
+	imports, unknownImports, importDiags := n.expandResourceImports(ctx, false)
+	diags = diags.Append(importDiags)
+
+	// Since allowUnknown was set to false in expandResourceImports, we should
+	// not have any unknown imports.
+	if unknownImports.Len() > 0 {
+		panic("unexpected unknown imports")
 	}
 
 	g, expandDiags := n.dynamicExpand(ctx, moduleInstances, imports)
@@ -137,26 +146,29 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 }
 
 // Import blocks are expanded in conjunction with their associated resource block.
-func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext) (addrs.Map[addrs.AbsResourceInstance, string], tfdiags.Diagnostics) {
+func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, allowUnknown bool) (addrs.Map[addrs.AbsResourceInstance, cty.Value], addrs.Map[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]], tfdiags.Diagnostics) {
 	// Imports maps the target address to an import ID.
-	imports := addrs.MakeMap[addrs.AbsResourceInstance, string]()
+	knownImports := addrs.MakeMap[addrs.AbsResourceInstance, cty.Value]()
+	unknownImports := addrs.MakeMap[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]]()
 	var diags tfdiags.Diagnostics
 
 	if len(n.importTargets) == 0 {
-		return imports, diags
+		return knownImports, unknownImports, diags
 	}
 
 	// Import blocks are only valid within the root module, and must be
 	// evaluated within that context
 	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
 
+	state := ctx.State()
+
 	for _, imp := range n.importTargets {
 		if imp.Config == nil {
 			// if we have a legacy addr, it was supplied on the commandline so
 			// there is nothing to expand
 			if !imp.LegacyAddr.Equal(addrs.AbsResourceInstance{}) {
-				imports.Put(imp.LegacyAddr, imp.IDString)
-				return imports, diags
+				knownImports.Put(imp.LegacyAddr, cty.StringVal(imp.IDString))
+				return knownImports, unknownImports, diags
 			}
 
 			// legacy import tests may have no configuration
@@ -165,60 +177,95 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext) (ad
 		}
 
 		if imp.Config.ForEach == nil {
-			importID, evalDiags := evaluateImportIdExpression(imp.Config.ID, ctx, EvalDataForNoInstanceKey)
-			diags = diags.Append(evalDiags)
-			if diags.HasErrors() {
-				return imports, diags
-			}
-
 			traversal, hds := hcl.AbsTraversalForExpr(imp.Config.To)
 			diags = diags.Append(hds)
 			to, tds := addrs.ParseAbsResourceInstance(traversal)
 			diags = diags.Append(tds)
 			if diags.HasErrors() {
-				return imports, diags
+				return knownImports, unknownImports, diags
 			}
 
-			imports.Put(to, importID)
+			diags = diags.Append(validateImportTargetExpansion(n.Config, to, imp.Config.To))
+
+			importID, evalDiags := evaluateImportIdExpression(imp.Config.ID, ctx, EvalDataForNoInstanceKey, allowUnknown)
+			diags = diags.Append(evalDiags)
+			if diags.HasErrors() {
+				return knownImports, unknownImports, diags
+			}
+
+			knownImports.Put(to, importID)
 
 			log.Printf("[TRACE] expandResourceImports: found single import target %s", to)
 			continue
 		}
 
-		forEachData, forEachDiags := newForEachEvaluator(imp.Config.ForEach, ctx, false).ImportValues()
+		forEachData, known, forEachDiags := newForEachEvaluator(imp.Config.ForEach, ctx, allowUnknown).ImportValues()
 		diags = diags.Append(forEachDiags)
 		if forEachDiags.HasErrors() {
-			return imports, diags
+			return knownImports, unknownImports, diags
+		}
+
+		if !known {
+			// Then we need to parse the target address as a PartialResource
+			// instead of a known resource.
+			addr, evalDiags := evalImportUnknownToExpression(imp.Config.To)
+			diags = diags.Append(evalDiags)
+			if diags.HasErrors() {
+				return knownImports, unknownImports, diags
+			}
+
+			// We're going to work out which instances this import block might
+			// target actually already exist.
+			knownInstances := addrs.MakeSet[addrs.AbsResourceInstance]()
+
+			cfg := addr.ConfigResource()
+			modInsts := state.ModuleInstances(cfg.Module)
+			for _, modInst := range modInsts {
+				abs := cfg.Absolute(modInst)
+				resource := state.Resource(cfg.Absolute(modInst))
+				if resource == nil {
+					// Then we are creating every instance of this resource.
+					continue
+				}
+
+				for inst := range resource.Instances {
+					knownInstances.Add(abs.Instance(inst))
+				}
+			}
+
+			unknownImports.Put(addr, knownInstances)
+			continue
 		}
 
 		for _, keyData := range forEachData {
 			res, evalDiags := evalImportToExpression(imp.Config.To, keyData)
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
-				return imports, diags
+				return knownImports, unknownImports, diags
 			}
 
-			importID, evalDiags := evaluateImportIdExpression(imp.Config.ID, ctx, keyData)
+			diags = diags.Append(validateImportTargetExpansion(n.Config, res, imp.Config.To))
+
+			importID, evalDiags := evaluateImportIdExpression(imp.Config.ID, ctx, keyData, allowUnknown)
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
-				return imports, diags
+				return knownImports, unknownImports, diags
 			}
 
-			imports.Put(res, importID)
+			knownImports.Put(res, importID)
 			log.Printf("[TRACE] expandResourceImports: expanded import target %s", res)
 		}
 	}
 
-	// filter out any import which already exist in state
-	state := ctx.State()
-	for _, el := range imports.Elements() {
+	// filter out any known import which already exist in state
+	for _, el := range knownImports.Elements() {
 		if state.ResourceInstance(el.Key) != nil {
 			log.Printf("[DEBUG] expandResourceImports: skipping import address %s already in state", el.Key)
-			imports.Remove(el.Key)
+			knownImports.Remove(el.Key)
 		}
 	}
 
-	return imports, diags
+	return knownImports, unknownImports, diags
 }
 
 // validateExpandedImportTargets checks that all expanded imports correspond to
@@ -227,7 +274,7 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext) (ad
 // This function is only called from within the dynamicExpand method, the
 // import validation is inlined within the dynamicExpandPartial method for the
 // alternate code path.
-func (n *nodeExpandPlannableResource) validateExpandedImportTargets(expandedImports addrs.Map[addrs.AbsResourceInstance, string], expandedInstances addrs.Set[addrs.Checkable]) tfdiags.Diagnostics {
+func (n *nodeExpandPlannableResource) validateExpandedImportTargets(expandedImports addrs.Map[addrs.AbsResourceInstance, cty.Value], expandedInstances addrs.Set[addrs.Checkable]) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	for _, addr := range expandedImports.Keys() {
@@ -239,19 +286,37 @@ func (n *nodeExpandPlannableResource) validateExpandedImportTargets(expandedImpo
 			))
 			return diags
 		}
+
+		if n.Config == nil && n.generateConfigPath == "" && len(n.importTargets) == 1 {
+			// we have no config and aren't generating any. This isn't caught during
+			// validation because generateConfigPath is only a plan option. If we
+			// got this far however, it means this node is eligible for config
+			// generation, so suggest it to the user.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Configuration for import target does not exist",
+				Detail:   fmt.Sprintf("The configuration for the given import target %s does not exist. If you wish to automatically generate config for this resource, use the -generate-config-out option within terraform plan. Otherwise, make sure the target resource exists within your configuration. For example:\n\n  terraform plan -generate-config-out=generated.tf", n.Addr),
+				Subject:  n.importTargets[0].Config.To.Range().Ptr(),
+			})
+			return diags
+		}
 	}
 
 	return diags
 }
 
-func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, moduleInstances []addrs.ModuleInstance, imports addrs.Map[addrs.AbsResourceInstance, string]) (*Graph, tfdiags.Diagnostics) {
-	var g Graph
-	var diags tfdiags.Diagnostics
-
-	// Lock the state while we inspect it
-	state := ctx.State().Lock()
+func (n *nodeExpandPlannableResource) findOrphans(ctx EvalContext, moduleInstances []addrs.ModuleInstance) []*states.Resource {
+	if n.Addr.Resource.Mode == addrs.EphemeralResourceMode {
+		// ephemeral resources don't exist in state
+		return nil
+	}
 
 	var orphans []*states.Resource
+
+	// Lock the state while we inspect it
+	sMgr := ctx.State()
+	state := sMgr.Lock()
+
 	for _, res := range state.Resources(n.Addr) {
 		found := false
 		for _, m := range moduleInstances {
@@ -266,11 +331,16 @@ func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, moduleInsta
 			orphans = append(orphans, res)
 		}
 	}
+	sMgr.Unlock()
 
-	// We'll no longer use the state directly here, and the other functions
-	// we'll call below may use it so we'll release the lock.
-	state = nil
-	ctx.State().Unlock()
+	return orphans
+}
+
+func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, moduleInstances []addrs.ModuleInstance, imports addrs.Map[addrs.AbsResourceInstance, cty.Value]) (*Graph, tfdiags.Diagnostics) {
+	var g Graph
+	var diags tfdiags.Diagnostics
+
+	orphans := n.findOrphans(ctx, moduleInstances)
 
 	for _, res := range orphans {
 		for key := range res.Instances {
@@ -331,7 +401,7 @@ func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, moduleInsta
 // within, the caller must register the final superset instAddrs with the
 // checks subsystem so that it knows the fully expanded set of checkable
 // object instances for this resource instance.
-func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalContext, resAddr addrs.AbsResource, imports addrs.Map[addrs.AbsResourceInstance, string], g *Graph) ([]addrs.AbsResourceInstance, tfdiags.Diagnostics) {
+func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalContext, resAddr addrs.AbsResource, imports addrs.Map[addrs.AbsResourceInstance, cty.Value], g *Graph) ([]addrs.AbsResourceInstance, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// The rest of our work here needs to know which module instance it's
@@ -341,7 +411,7 @@ func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalCont
 	// writeResourceState is responsible for informing the expander of what
 	// repetition mode this resource has, which allows expander.ExpandResource
 	// to work below.
-	moreDiags := n.writeResourceState(moduleCtx, resAddr)
+	moreDiags := n.recordResourceData(moduleCtx, resAddr)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return nil, diags
@@ -385,7 +455,7 @@ func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalCont
 	return instanceAddrs, diags
 }
 
-func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, addr addrs.AbsResource, instanceAddrs []addrs.AbsResourceInstance, imports addrs.Map[addrs.AbsResourceInstance, string]) (*Graph, tfdiags.Diagnostics) {
+func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, addr addrs.AbsResource, instanceAddrs []addrs.AbsResourceInstance, imports addrs.Map[addrs.AbsResourceInstance, cty.Value]) (*Graph, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if n.Config == nil && n.generateConfigPath != "" && imports.Len() == 0 {
@@ -406,7 +476,7 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 	steps := []GraphTransformer{
 		// Expand the count or for_each (if present)
 		&ResourceCountTransformer{
-			Concrete:      n.concreteResource(imports, n.skipPlanChanges),
+			Concrete:      n.concreteResource(ctx, imports, addrs.MakeMap[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]](), n.skipPlanChanges),
 			Schema:        n.Schema,
 			Addr:          n.ResourceAddr(),
 			InstanceAddrs: instanceAddrs,
@@ -444,7 +514,7 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 	return graph, diags
 }
 
-func (n *nodeExpandPlannableResource) concreteResource(imports addrs.Map[addrs.AbsResourceInstance, string], skipPlanChanges bool) func(*NodeAbstractResourceInstance) dag.Vertex {
+func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImports addrs.Map[addrs.AbsResourceInstance, cty.Value], unknownImports addrs.Map[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]], skipPlanChanges bool) func(*NodeAbstractResourceInstance) dag.Vertex {
 	return func(a *NodeAbstractResourceInstance) dag.Vertex {
 		var m *NodePlannableResourceInstance
 
@@ -452,9 +522,15 @@ func (n *nodeExpandPlannableResource) concreteResource(imports addrs.Map[addrs.A
 		// to return the import node, not a plannable resource node.
 		for _, importTarget := range n.importTargets {
 			if importTarget.LegacyAddr.Equal(a.Addr) {
+
+				// If we're in the legacy import mode, then we should never
+				// see unknown imports. So, it's fine to just look at the known
+				// imports here.
+				idValue := knownImports.Get(importTarget.LegacyAddr)
+
 				return &graphNodeImportState{
 					Addr:             importTarget.LegacyAddr,
-					ID:               imports.Get(importTarget.LegacyAddr),
+					ID:               idValue.AsString(),
 					ResolvedProvider: n.ResolvedProvider,
 				}
 			}
@@ -483,10 +559,28 @@ func (n *nodeExpandPlannableResource) concreteResource(imports addrs.Map[addrs.A
 			forceReplace:             n.forceReplace,
 		}
 
-		importID, ok := imports.GetOk(a.Addr)
-		if ok {
-			m.importTarget = ImportTarget{
-				IDString: importID,
+		if importID, ok := knownImports.GetOk(a.Addr); ok {
+			m.importTarget = importID
+		} else {
+			// We're going to check now if this resource instance *might* be
+			// targeted by one of the unknown imports. If it is, we'll set the
+			// import target to an unknown value so that the import operation
+			// will be deferred.
+			for _, unknownImport := range unknownImports.Elems {
+				if unknownImport.Key.MatchesInstance(a.Addr) {
+					if unknownImport.Value.Has(a.Addr) {
+						// This means that this particular instance already
+						// exists within the state. `import` blocks that target
+						// instances that already exist are ignored by
+						// Terraform. This means that even if this unknown
+						// import does eventually resolve to this instance then
+						// it would be ignored anyway. So for this instance we
+						// won't set the import target.
+						continue
+					}
+
+					m.importTarget = cty.UnknownVal(cty.String)
+				}
 			}
 		}
 

@@ -195,13 +195,6 @@ func TestContextPlanAndEval(t *testing.T) {
 	} else {
 		t.Fatalf("plan has no Changes")
 	}
-	if plan.PlannedState != nil {
-		if rs := plan.PlannedState.ResourceInstance(riAddr); rs == nil {
-			t.Errorf("planned satte does not include test_thing.a")
-		}
-	} else {
-		t.Fatalf("plan has no PlannedState")
-	}
 	if plan.PriorState == nil {
 		t.Fatalf("plan has no PriorState")
 	}
@@ -297,13 +290,6 @@ func TestContextApplyAndEval(t *testing.T) {
 	} else {
 		t.Fatalf("plan has no Changes")
 	}
-	if plan.PlannedState != nil {
-		if rs := plan.PlannedState.ResourceInstance(riAddr); rs == nil {
-			t.Errorf("planned satte does not include test_thing.a")
-		}
-	} else {
-		t.Fatalf("plan has no PlannedState")
-	}
 	if plan.PriorState == nil {
 		t.Fatalf("plan has no PriorState")
 	}
@@ -345,4 +331,46 @@ func TestContextApplyAndEval(t *testing.T) {
 			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
 		}
 	})
+}
+
+func TestContextEval_ephemeralResource(t *testing.T) {
+	// make sure referenced to ephemeral resources are st least valid in the
+	// console, even if they are not known
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+ephemeral "ephem_resource" "data" {}
+
+locals {
+  composedString = "prefix-${ephemeral.ephem_resource.data.value}-suffix"
+}
+  `,
+	})
+
+	p := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			EphemeralResourceTypes: map[string]providers.Schema{
+				"ephem_resource": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Type:     cty.String,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("ephem"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Eval(m, states.NewState(), addrs.RootModuleInstance, &EvalOpts{
+		SetVariables: testInputValuesUnset(m.Module.Variables),
+	})
+	assertNoErrors(t, diags)
 }

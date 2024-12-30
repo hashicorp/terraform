@@ -101,6 +101,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 
 	resp.ResourceTypes = make(map[string]providers.Schema)
 	resp.DataSources = make(map[string]providers.Schema)
+	resp.EphemeralResourceTypes = make(map[string]providers.Schema)
 
 	// Some providers may generate quite large schemas, and the internal default
 	// grpc response size limit is 4MB. 64MB should cover most any use case, and
@@ -141,6 +142,10 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 
 	for name, data := range protoResp.DataSourceSchemas {
 		resp.DataSources[name] = convert.ProtoToProviderSchema(data)
+	}
+
+	for name, ephem := range protoResp.EphemeralResourceSchemas {
+		resp.EphemeralResourceTypes[name] = convert.ProtoToProviderSchema(ephem)
 	}
 
 	if decls, err := convert.FunctionDeclsFromProto(protoResp.Functions); err == nil {
@@ -224,8 +229,9 @@ func (p *GRPCProvider) ValidateResourceConfig(r providers.ValidateResourceConfig
 	}
 
 	protoReq := &proto6.ValidateResourceConfig_Request{
-		TypeName: r.TypeName,
-		Config:   &proto6.DynamicValue{Msgpack: mp},
+		TypeName:           r.TypeName,
+		Config:             &proto6.DynamicValue{Msgpack: mp},
+		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
 	protoResp, err := p.client.ValidateResourceConfig(p.ctx, protoReq)
@@ -339,9 +345,7 @@ func (p *GRPCProvider) ConfigureProvider(r providers.ConfigureProviderRequest) (
 		Config: &proto6.DynamicValue{
 			Msgpack: mp,
 		},
-		ClientCapabilities: &proto6.ClientCapabilities{
-			DeferralAllowed: r.ClientCapabilities.DeferralAllowed,
-		},
+		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
 	protoResp, err := p.client.ConfigureProvider(p.ctx, protoReq)
@@ -391,12 +395,10 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 	}
 
 	protoReq := &proto6.ReadResource_Request{
-		TypeName:     r.TypeName,
-		CurrentState: &proto6.DynamicValue{Msgpack: mp},
-		Private:      r.Private,
-		ClientCapabilities: &proto6.ClientCapabilities{
-			DeferralAllowed: r.ClientCapabilities.DeferralAllowed,
-		},
+		TypeName:           r.TypeName,
+		CurrentState:       &proto6.DynamicValue{Msgpack: mp},
+		Private:            r.Private,
+		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
 	if metaSchema.Block != nil {
@@ -472,14 +474,12 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	}
 
 	protoReq := &proto6.PlanResourceChange_Request{
-		TypeName:         r.TypeName,
-		PriorState:       &proto6.DynamicValue{Msgpack: priorMP},
-		Config:           &proto6.DynamicValue{Msgpack: configMP},
-		ProposedNewState: &proto6.DynamicValue{Msgpack: propMP},
-		PriorPrivate:     r.PriorPrivate,
-		ClientCapabilities: &proto6.ClientCapabilities{
-			DeferralAllowed: r.ClientCapabilities.DeferralAllowed,
-		},
+		TypeName:           r.TypeName,
+		PriorState:         &proto6.DynamicValue{Msgpack: priorMP},
+		Config:             &proto6.DynamicValue{Msgpack: configMP},
+		ProposedNewState:   &proto6.DynamicValue{Msgpack: propMP},
+		PriorPrivate:       r.PriorPrivate,
+		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
 	if metaSchema.Block != nil {
@@ -609,11 +609,9 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 	}
 
 	protoReq := &proto6.ImportResourceState_Request{
-		TypeName: r.TypeName,
-		Id:       r.ID,
-		ClientCapabilities: &proto6.ClientCapabilities{
-			DeferralAllowed: r.ClientCapabilities.DeferralAllowed,
-		},
+		TypeName:           r.TypeName,
+		Id:                 r.ID,
+		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
 	protoResp, err := p.client.ImportResourceState(p.ctx, protoReq)
@@ -724,9 +722,7 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 		Config: &proto6.DynamicValue{
 			Msgpack: config,
 		},
-		ClientCapabilities: &proto6.ClientCapabilities{
-			DeferralAllowed: r.ClientCapabilities.DeferralAllowed,
-		},
+		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
 	if metaSchema.Block != nil {
@@ -752,6 +748,136 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 	}
 	resp.State = state
 	resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
+
+	return resp
+}
+
+func (p *GRPCProvider) ValidateEphemeralResourceConfig(r providers.ValidateEphemeralResourceConfigRequest) (resp providers.ValidateEphemeralResourceConfigResponse) {
+	logger.Trace("GRPCProvider.v6: ValidateEphemeralResourceConfig")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	ephemSchema, ok := schema.EphemeralResourceTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown ephemeral resource %q", r.TypeName))
+		return resp
+	}
+
+	mp, err := msgpack.Marshal(r.Config, ephemSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto6.ValidateEphemeralResourceConfig_Request{
+		TypeName: r.TypeName,
+		Config:   &proto6.DynamicValue{Msgpack: mp},
+	}
+
+	protoResp, err := p.client.ValidateEphemeralResourceConfig(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	return resp
+}
+
+func (p *GRPCProvider) OpenEphemeralResource(r providers.OpenEphemeralResourceRequest) (resp providers.OpenEphemeralResourceResponse) {
+	logger.Trace("GRPCProvide.v6: OpenEphemeralResource")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	ephemSchema, ok := schema.EphemeralResourceTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown ephemeral resource %q", r.TypeName))
+		return resp
+	}
+
+	config, err := msgpack.Marshal(r.Config, ephemSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto6.OpenEphemeralResource_Request{
+		TypeName: r.TypeName,
+		Config: &proto6.DynamicValue{
+			Msgpack: config,
+		},
+		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
+	}
+
+	protoResp, err := p.client.OpenEphemeralResource(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	state, err := decodeDynamicValue(protoResp.Result, ephemSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	if protoResp.RenewAt != nil {
+		resp.RenewAt = protoResp.RenewAt.AsTime()
+	}
+
+	resp.Result = state
+	resp.Private = protoResp.Private
+	resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
+
+	return resp
+}
+
+func (p *GRPCProvider) RenewEphemeralResource(r providers.RenewEphemeralResourceRequest) (resp providers.RenewEphemeralResourceResponse) {
+	logger.Trace("GRPCProvider.v6: RenewEphemeralResource")
+
+	protoReq := &proto6.RenewEphemeralResource_Request{
+		TypeName: r.TypeName,
+		Private:  r.Private,
+	}
+
+	protoResp, err := p.client.RenewEphemeralResource(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	if protoResp.RenewAt != nil {
+		resp.RenewAt = protoResp.RenewAt.AsTime()
+	}
+
+	resp.Private = protoResp.Private
+
+	return resp
+}
+
+func (p *GRPCProvider) CloseEphemeralResource(r providers.CloseEphemeralResourceRequest) (resp providers.CloseEphemeralResourceResponse) {
+	logger.Trace("GRPCProvider.v6: CloseEphemeralResource")
+
+	protoReq := &proto6.CloseEphemeralResource_Request{
+		TypeName: r.TypeName,
+		Private:  r.Private,
+	}
+
+	protoResp, err := p.client.CloseEphemeralResource(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
 	return resp
 }
@@ -877,4 +1003,11 @@ func decodeDynamicValue(v *proto6.DynamicValue, ty cty.Type) (cty.Value, error) 
 		res, err = ctyjson.Unmarshal(v.Json, ty)
 	}
 	return res, err
+}
+
+func clientCapabilitiesToProto(c providers.ClientCapabilities) *proto6.ClientCapabilities {
+	return &proto6.ClientCapabilities{
+		DeferralAllowed:            c.DeferralAllowed,
+		WriteOnlyAttributesAllowed: c.WriteOnlyAttributesAllowed,
+	}
 }

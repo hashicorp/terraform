@@ -159,7 +159,7 @@ func TestParseRefInTestingScope(t *testing.T) {
 			}
 
 			for _, problem := range deep.Equal(got, test.Want) {
-				t.Errorf(problem)
+				t.Error(problem)
 			}
 		})
 	}
@@ -361,6 +361,104 @@ func TestParseRef(t *testing.T) {
 			`data.external`,
 			nil,
 			`The "data" object must be followed by two attribute names: the data source type and the resource name.`,
+		},
+
+		// ephemeral
+		{
+			`ephemeral.external.foo`,
+			&Reference{
+				Subject: Resource{
+					Mode: EphemeralResourceMode,
+					Type: "external",
+					Name: "foo",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 23, Byte: 22},
+				},
+			},
+			``,
+		},
+		{
+			`ephemeral.external.foo.bar`,
+			&Reference{
+				Subject: ResourceInstance{
+					Resource: Resource{
+						Mode: EphemeralResourceMode,
+						Type: "external",
+						Name: "foo",
+					},
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 23, Byte: 22},
+				},
+				Remaining: hcl.Traversal{
+					hcl.TraverseAttr{
+						Name: "bar",
+						SrcRange: hcl.Range{
+							Start: hcl.Pos{Line: 1, Column: 23, Byte: 22},
+							End:   hcl.Pos{Line: 1, Column: 27, Byte: 26},
+						},
+					},
+				},
+			},
+			``,
+		},
+		{
+			`ephemeral.external.foo["baz"].bar`,
+			&Reference{
+				Subject: ResourceInstance{
+					Resource: Resource{
+						Mode: EphemeralResourceMode,
+						Type: "external",
+						Name: "foo",
+					},
+					Key: StringKey("baz"),
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 30, Byte: 29},
+				},
+				Remaining: hcl.Traversal{
+					hcl.TraverseAttr{
+						Name: "bar",
+						SrcRange: hcl.Range{
+							Start: hcl.Pos{Line: 1, Column: 30, Byte: 29},
+							End:   hcl.Pos{Line: 1, Column: 34, Byte: 33},
+						},
+					},
+				},
+			},
+			``,
+		},
+		{
+			`ephemeral.external.foo["baz"]`,
+			&Reference{
+				Subject: ResourceInstance{
+					Resource: Resource{
+						Mode: EphemeralResourceMode,
+						Type: "external",
+						Name: "foo",
+					},
+					Key: StringKey("baz"),
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 30, Byte: 29},
+				},
+			},
+			``,
+		},
+		{
+			`ephemeral`,
+			nil,
+			`The "ephemeral" object must be followed by two attribute names: the ephemeral resource type and the resource name.`,
+		},
+		{
+			`ephemeral.external`,
+			nil,
+			`The "ephemeral" object must be followed by two attribute names: the ephemeral resource type and the resource name.`,
 		},
 
 		// local
@@ -950,7 +1048,7 @@ func TestParseRef(t *testing.T) {
 			}
 
 			for _, problem := range deep.Equal(got, test.Want) {
-				t.Errorf(problem)
+				t.Error(problem)
 			}
 		})
 	}

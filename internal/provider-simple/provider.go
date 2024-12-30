@@ -144,6 +144,30 @@ func (s simple) ReadDataSource(req providers.ReadDataSourceRequest) (resp provid
 	return resp
 }
 
+func (p simple) ValidateEphemeralResourceConfig(req providers.ValidateEphemeralResourceConfigRequest) providers.ValidateEphemeralResourceConfigResponse {
+	// Our schema doesn't include any ephemeral resource types, so it should be
+	// impossible to get in here.
+	panic("ValidateEphemeralResourceConfig on provider that didn't declare any ephemeral resource types")
+}
+
+func (s simple) OpenEphemeralResource(providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
+	// Our schema doesn't include any ephemeral resource types, so it should be
+	// impossible to get in here.
+	panic("OpenEphemeralResource on provider that didn't declare any ephemeral resource types")
+}
+
+func (s simple) RenewEphemeralResource(providers.RenewEphemeralResourceRequest) providers.RenewEphemeralResourceResponse {
+	// Our schema doesn't include any ephemeral resource types, so it should be
+	// impossible to get in here.
+	panic("RenewEphemeralResource on provider that didn't declare any ephemeral resource types")
+}
+
+func (s simple) CloseEphemeralResource(providers.CloseEphemeralResourceRequest) providers.CloseEphemeralResourceResponse {
+	// Our schema doesn't include any ephemeral resource types, so it should be
+	// impossible to get in here.
+	panic("CloseEphemeralResource on provider that didn't declare any ephemeral resource types")
+}
+
 func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
 	// Our schema doesn't include any functions, so it should be impossible
 	// to get in here.

@@ -224,13 +224,26 @@ that resource's attributes. For example, use `self.public_ip` to reference an
 references create dependencies. Referring to a resource by name within its own
 block would create a dependency cycle.
 
-## Suppressing Provisioner Logs in CLI Output
+### Ephemeral values
+
+-> **Note**: Ephemeral values are available in Terraform v1.10 and later.
+
+The configuration for a `provisioner` block may use ephemeral values, such as
+[`ephemeral` resources](/terraform/language/resources/ephemeral), [`ephemeral`
+local values](/terraform/language/values/locals#ephemeral-values), [`ephemeral`
+variables](/terraform/language/values/variables#ephemeral), or [`ephemeral`
+output
+values](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files).
+
+Terraform does not store these values in your plan or state, or output them in
+logs.
+
+### Sensitive values
 
 The configuration for a `provisioner` block may use sensitive values, such as
-[`sensitive` variables](/terraform/language/values/variables#suppressing-values-in-cli-output) or
-[`sensitive` output values](/terraform/language/values/outputs#sensitive-suppressing-values-in-cli-output).
-In this case, all log output from the provisioner is automatically suppressed to
-prevent the sensitive values from being displayed.
+[`sensitive` variables](/terraform/language/values/variables#suppressing-values-in-cli-output)
+or [`sensitive` output values](/terraform/language/values/outputs#sensitive-suppressing-values-in-cli-output).
+Terraform suppresses sensitive values in all log output.
 
 ## Creation-Time Provisioners
 
@@ -246,8 +259,7 @@ can leave a resource in a semi-configured state. Because Terraform cannot
 reason about what the provisioner does, the only way to ensure proper creation
 of a resource is to recreate it. This is tainting.
 
-You can change this behavior by setting the `on_failure` attribute,
-which is covered in detail below.
+You can change this behavior by setting the `on_failure` attribute to `continue`. Refer to [Failure Behavior](#failure-behavior) for additional information.
 
 ## Destroy-Time Provisioners
 

@@ -92,10 +92,24 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 		ruleDiags = ruleDiags.Append(moreDiags)
 		refs = append(refs, moreRefs...)
 
+		// We want to emit diagnostics if users are using ephemeral resources in their checks
+		// as they are not supported since they are closed before this is evaluated.
+		// We do not remove the diagnostic about the ephemeral resource being closed already as it
+		// might be useful to the user.
+		ruleDiags = ruleDiags.Append(diagsForEphemeralResources(refs))
+
 		hclCtx, moreDiags := scope.EvalContext(refs)
 		ruleDiags = ruleDiags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			// if we can't evaluate the context properly, we can't evaulate the rule
+			// we add the diagnostics to the main diags and continue to the next rule
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, could not evalaute the context, so cannot evaluate it", i, ec.run.Addr())
+			status = status.Merge(Error)
+			diags = diags.Append(ruleDiags)
+			continue
+		}
 
-		errorMessage, moreDiags := lang.EvalCheckErrorMessage(rule.ErrorMessage, hclCtx)
+		errorMessage, moreDiags := lang.EvalCheckErrorMessage(rule.ErrorMessage, hclCtx, nil)
 		ruleDiags = ruleDiags.Append(moreDiags)
 
 		runVal, hclDiags := rule.Condition.Value(hclCtx)
@@ -165,6 +179,8 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 				Subject:     rule.Condition.Range().Ptr(),
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
+				// Make the ephemerality visible
+				Extra: terraform.DiagnosticCausedByEphemeral(true),
 			})
 			continue
 		} else {
@@ -188,6 +204,23 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 	}
 
 	return status, cty.ObjectVal(outputVals), diags
+}
+
+func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnostics) {
+	for _, ref := range refs {
+		switch v := ref.Subject.(type) {
+		case addrs.ResourceInstance:
+			if v.Resource.Mode == addrs.EphemeralResourceMode {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Ephemeral resources cannot be asserted",
+					Detail:   "Ephemeral resources are closed when the test is finished, and are not available within the test context for assertions.",
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+			}
+		}
+	}
+	return diags
 }
 
 // evaluationData augments an underlying lang.Data -- presumably resulting

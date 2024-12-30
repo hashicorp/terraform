@@ -26,9 +26,10 @@ func TestMarshalProvider(t *testing.T) {
 		{
 			providers.ProviderSchema{},
 			&Provider{
-				Provider:          &Schema{},
-				ResourceSchemas:   map[string]*Schema{},
-				DataSourceSchemas: map[string]*Schema{},
+				Provider:                 &Schema{},
+				ResourceSchemas:          map[string]*Schema{},
+				DataSourceSchemas:        map[string]*Schema{},
+				EphemeralResourceSchemas: map[string]*Schema{},
 			},
 		},
 		{
@@ -147,6 +148,65 @@ func TestMarshalProvider(t *testing.T) {
 						},
 					},
 				},
+				EphemeralResourceSchemas: map[string]*Schema{
+					"test_eph_instance": {
+						Block: &Block{
+							Attributes: map[string]*Attribute{
+								"id": {
+									AttributeType:   json.RawMessage(`"string"`),
+									Optional:        true,
+									Computed:        true,
+									DescriptionKind: "plain",
+								},
+								"ami": {
+									AttributeType:   json.RawMessage(`"string"`),
+									Optional:        true,
+									DescriptionKind: "plain",
+								},
+								"volumes": {
+									AttributeNestedType: &NestedType{
+										NestingMode: "list",
+										Attributes: map[string]*Attribute{
+											"size": {
+												AttributeType:   json.RawMessage(`"string"`),
+												Required:        true,
+												DescriptionKind: "plain",
+											},
+											"mount_point": {
+												AttributeType:   json.RawMessage(`"string"`),
+												Required:        true,
+												DescriptionKind: "plain",
+											},
+										},
+									},
+									Optional:        true,
+									DescriptionKind: "plain",
+								},
+							},
+							BlockTypes: map[string]*BlockType{
+								"network_interface": {
+									Block: &Block{
+										Attributes: map[string]*Attribute{
+											"device_index": {
+												AttributeType:   json.RawMessage(`"string"`),
+												Optional:        true,
+												DescriptionKind: "plain",
+											},
+											"description": {
+												AttributeType:   json.RawMessage(`"string"`),
+												Optional:        true,
+												DescriptionKind: "plain",
+											},
+										},
+										DescriptionKind: "plain",
+									},
+									NestingMode: "list",
+								},
+							},
+							DescriptionKind: "plain",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -154,8 +214,8 @@ func TestMarshalProvider(t *testing.T) {
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			got := marshalProvider(test.Input)
-			if !cmp.Equal(got, test.Want, cmpOpts) {
-				t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, test.Want, cmpOpts))
+			if diff := cmp.Diff(test.Want, got, cmpOpts); diff != "" {
+				t.Fatalf("wrong result:\n %s\n", diff)
 			}
 		})
 	}
@@ -209,6 +269,37 @@ func testProvider() providers.ProviderSchema {
 					Attributes: map[string]*configschema.Attribute{
 						"id":  {Type: cty.String, Optional: true, Computed: true},
 						"ami": {Type: cty.String, Optional: true},
+					},
+					BlockTypes: map[string]*configschema.NestedBlock{
+						"network_interface": {
+							Nesting: configschema.NestingList,
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"device_index": {Type: cty.String, Optional: true},
+									"description":  {Type: cty.String, Optional: true},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		EphemeralResourceTypes: map[string]providers.Schema{
+			"test_eph_instance": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Optional: true, Computed: true},
+						"ami": {Type: cty.String, Optional: true},
+						"volumes": {
+							Optional: true,
+							NestedType: &configschema.Object{
+								Nesting: configschema.NestingList,
+								Attributes: map[string]*configschema.Attribute{
+									"size":        {Type: cty.String, Required: true},
+									"mount_point": {Type: cty.String, Required: true},
+								},
+							},
+						},
 					},
 					BlockTypes: map[string]*configschema.NestedBlock{
 						"network_interface": {

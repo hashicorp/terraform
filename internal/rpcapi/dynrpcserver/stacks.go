@@ -8,21 +8,21 @@ import (
 	"context"
 	"sync"
 
-	tf1 "github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	stacks "github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 )
 
 type Stacks struct {
-	impl tf1.StacksServer
+	impl stacks.StacksServer
 	mu   sync.RWMutex
 }
 
-var _ tf1.StacksServer = (*Stacks)(nil)
+var _ stacks.StacksServer = (*Stacks)(nil)
 
 func NewStacksStub() *Stacks {
 	return &Stacks{}
 }
 
-func (s *Stacks) ApplyStackChanges(a0 *tf1.ApplyStackChanges_Request, a1 tf1.Stacks_ApplyStackChangesServer) error {
+func (s *Stacks) ApplyStackChanges(a0 *stacks.ApplyStackChanges_Request, a1 stacks.Stacks_ApplyStackChangesServer) error {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return err
@@ -30,7 +30,15 @@ func (s *Stacks) ApplyStackChanges(a0 *tf1.ApplyStackChanges_Request, a1 tf1.Sta
 	return impl.ApplyStackChanges(a0, a1)
 }
 
-func (s *Stacks) CloseStackConfiguration(a0 context.Context, a1 *tf1.CloseStackConfiguration_Request) (*tf1.CloseStackConfiguration_Response, error) {
+func (s *Stacks) ClosePlan(a0 context.Context, a1 *stacks.CloseStackPlan_Request) (*stacks.CloseStackPlan_Response, error) {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return nil, err
+	}
+	return impl.ClosePlan(a0, a1)
+}
+
+func (s *Stacks) CloseStackConfiguration(a0 context.Context, a1 *stacks.CloseStackConfiguration_Request) (*stacks.CloseStackConfiguration_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -38,7 +46,15 @@ func (s *Stacks) CloseStackConfiguration(a0 context.Context, a1 *tf1.CloseStackC
 	return impl.CloseStackConfiguration(a0, a1)
 }
 
-func (s *Stacks) FindStackConfigurationComponents(a0 context.Context, a1 *tf1.FindStackConfigurationComponents_Request) (*tf1.FindStackConfigurationComponents_Response, error) {
+func (s *Stacks) CloseState(a0 context.Context, a1 *stacks.CloseStackState_Request) (*stacks.CloseStackState_Response, error) {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return nil, err
+	}
+	return impl.CloseState(a0, a1)
+}
+
+func (s *Stacks) FindStackConfigurationComponents(a0 context.Context, a1 *stacks.FindStackConfigurationComponents_Request) (*stacks.FindStackConfigurationComponents_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -46,7 +62,7 @@ func (s *Stacks) FindStackConfigurationComponents(a0 context.Context, a1 *tf1.Fi
 	return impl.FindStackConfigurationComponents(a0, a1)
 }
 
-func (s *Stacks) InspectExpressionResult(a0 context.Context, a1 *tf1.InspectExpressionResult_Request) (*tf1.InspectExpressionResult_Response, error) {
+func (s *Stacks) InspectExpressionResult(a0 context.Context, a1 *stacks.InspectExpressionResult_Request) (*stacks.InspectExpressionResult_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -54,7 +70,15 @@ func (s *Stacks) InspectExpressionResult(a0 context.Context, a1 *tf1.InspectExpr
 	return impl.InspectExpressionResult(a0, a1)
 }
 
-func (s *Stacks) OpenStackConfiguration(a0 context.Context, a1 *tf1.OpenStackConfiguration_Request) (*tf1.OpenStackConfiguration_Response, error) {
+func (s *Stacks) OpenPlan(a0 stacks.Stacks_OpenPlanServer) error {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return err
+	}
+	return impl.OpenPlan(a0)
+}
+
+func (s *Stacks) OpenStackConfiguration(a0 context.Context, a1 *stacks.OpenStackConfiguration_Request) (*stacks.OpenStackConfiguration_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -62,7 +86,7 @@ func (s *Stacks) OpenStackConfiguration(a0 context.Context, a1 *tf1.OpenStackCon
 	return impl.OpenStackConfiguration(a0, a1)
 }
 
-func (s *Stacks) OpenStackInspector(a0 context.Context, a1 *tf1.OpenStackInspector_Request) (*tf1.OpenStackInspector_Response, error) {
+func (s *Stacks) OpenStackInspector(a0 context.Context, a1 *stacks.OpenStackInspector_Request) (*stacks.OpenStackInspector_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -70,7 +94,15 @@ func (s *Stacks) OpenStackInspector(a0 context.Context, a1 *tf1.OpenStackInspect
 	return impl.OpenStackInspector(a0, a1)
 }
 
-func (s *Stacks) PlanStackChanges(a0 *tf1.PlanStackChanges_Request, a1 tf1.Stacks_PlanStackChangesServer) error {
+func (s *Stacks) OpenState(a0 stacks.Stacks_OpenStateServer) error {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return err
+	}
+	return impl.OpenState(a0)
+}
+
+func (s *Stacks) PlanStackChanges(a0 *stacks.PlanStackChanges_Request, a1 stacks.Stacks_PlanStackChangesServer) error {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return err
@@ -78,7 +110,7 @@ func (s *Stacks) PlanStackChanges(a0 *tf1.PlanStackChanges_Request, a1 tf1.Stack
 	return impl.PlanStackChanges(a0, a1)
 }
 
-func (s *Stacks) ValidateStackConfiguration(a0 context.Context, a1 *tf1.ValidateStackConfiguration_Request) (*tf1.ValidateStackConfiguration_Response, error) {
+func (s *Stacks) ValidateStackConfiguration(a0 context.Context, a1 *stacks.ValidateStackConfiguration_Request) (*stacks.ValidateStackConfiguration_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -86,13 +118,13 @@ func (s *Stacks) ValidateStackConfiguration(a0 context.Context, a1 *tf1.Validate
 	return impl.ValidateStackConfiguration(a0, a1)
 }
 
-func (s *Stacks) ActivateRPCServer(impl tf1.StacksServer) {
+func (s *Stacks) ActivateRPCServer(impl stacks.StacksServer) {
 	s.mu.Lock()
 	s.impl = impl
 	s.mu.Unlock()
 }
 
-func (s *Stacks) realRPCServer() (tf1.StacksServer, error) {
+func (s *Stacks) realRPCServer() (stacks.StacksServer, error) {
 	s.mu.RLock()
 	impl := s.impl
 	s.mu.RUnlock()

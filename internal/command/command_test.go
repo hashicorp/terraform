@@ -195,7 +195,7 @@ func testPlan(t *testing.T) *plans.Plan {
 			Type:   "local",
 			Config: backendConfigRaw,
 		},
-		Changes: plans.NewChanges(),
+		Changes: plans.NewChangesSrc(),
 
 		// We'll default to the fake plan being both applyable and complete,
 		// since that's what most tests expect. Tests can override these
@@ -551,6 +551,12 @@ func testTempFile(t *testing.T) string {
 	t.Helper()
 
 	return filepath.Join(testTempDir(t), "state.tfstate")
+}
+
+func testVarsFile(t *testing.T) string {
+	t.Helper()
+
+	return filepath.Join(testTempDir(t), "variables.tfvars")
 }
 
 func testTempDir(t *testing.T) string {

@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -492,7 +491,7 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 	destination := destinationState.State()
 
 	// Save both to a temporary
-	td, err := ioutil.TempDir("", "terraform")
+	td, err := os.MkdirTemp("", "terraform")
 	if err != nil {
 		return false, fmt.Errorf("Error creating temporary directory: %s", err)
 	}
@@ -577,7 +576,7 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 	if sourceTFC && !destinationTFC {
 		// From HCP Terraform to another backend. This is not yet implemented, and
 		// we recommend people to use the HCP Terraform API.
-		return fmt.Errorf(strings.TrimSpace(errTFCMigrateNotYetImplemented))
+		return errors.New(strings.TrimSpace(errTFCMigrateNotYetImplemented))
 	}
 
 	// Everything below, by the above two conditionals, now assumes that the
@@ -631,7 +630,7 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 		return m.backendMigrateState_s_s(opts)
 	}
 
-	destinationTagsStrategy := cloudBackendDestination.WorkspaceMapping.Strategy() == cloud.WorkspaceTagsStrategy
+	destinationTagsStrategy := cloudBackendDestination.WorkspaceMapping.IsTagsStrategy()
 	destinationNameStrategy := cloudBackendDestination.WorkspaceMapping.Strategy() == cloud.WorkspaceNameStrategy
 
 	multiSource := !sourceSingleState && len(sourceWorkspaces) > 1

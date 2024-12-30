@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/refactoring"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -73,6 +74,10 @@ type graphWalkOpts struct {
 	MoveResults refactoring.MoveResults
 
 	ProviderFuncResults *providers.FunctionResults
+
+	// Forget if set to true will cause the plan to forget all resources. This is
+	// only allowd in the context of a destroy plan.
+	Forget bool
 }
 
 func (c *Context) walk(graph *Graph, operation walkOperation, opts *graphWalkOpts) (*ContextGraphWalker, tfdiags.Diagnostics) {
@@ -168,18 +173,9 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		}
 	}
 
-	var deferred *deferring.Deferred
-
-	if opts.DeferralAllowed {
-		// We'll produce a derived graph that only includes the static resource
-		// blocks, since we need that for deferral tracking.
-		resourceGraph := graph.ResourceGraph()
-		deferred = deferring.NewDeferred(resourceGraph, opts.DeferralAllowed)
-		if opts.ExternalDependencyDeferred {
-			deferred.SetExternalDependencyDeferred()
-		}
-	} else {
-		deferred = deferring.NewDeferred(addrs.NewDirectedGraph[addrs.ConfigResource](), false)
+	deferred := deferring.NewDeferred(opts.DeferralAllowed)
+	if opts.ExternalDependencyDeferred {
+		deferred.SetExternalDependencyDeferred()
 	}
 
 	return &ContextGraphWalker{
@@ -191,6 +187,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		PrevRunState:            prevRunState,
 		Changes:                 changes.SyncWrapper(),
 		NamedValues:             namedvals.NewState(),
+		EphemeralResources:      ephemeral.NewResources(),
 		Deferrals:               deferred,
 		Checks:                  checkState,
 		InstanceExpander:        instances.NewExpander(opts.Overrides),
@@ -200,5 +197,6 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		StopContext:             c.runContext,
 		PlanTimestamp:           opts.PlanTimeTimestamp,
 		providerFuncResults:     opts.ProviderFuncResults,
+		Forget:                  opts.Forget,
 	}
 }

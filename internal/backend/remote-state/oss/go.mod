@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform/internal/backend/remote-state/oss
 
-go 1.22.0
+go 1.23.3
 
 require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1501
@@ -17,14 +17,14 @@ require (
 require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
-	github.com/apparentlymart/go-versions v1.0.1 // indirect
+	github.com/apparentlymart/go-versions v1.0.2 // indirect
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/hashicorp/go-slug v0.15.0 // indirect
-	github.com/hashicorp/go-version v1.6.0 // indirect
-	github.com/hashicorp/hcl/v2 v2.20.0 // indirect
+	github.com/hashicorp/go-slug v0.16.0 // indirect
+	github.com/hashicorp/go-version v1.7.0 // indirect
+	github.com/hashicorp/hcl/v2 v2.23.0 // indirect
 	github.com/hashicorp/terraform-registry-address v0.2.3 // indirect
 	github.com/hashicorp/terraform-svchost v0.1.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -37,16 +37,16 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
-	github.com/sergi/go-diff v1.2.0 // indirect
-	github.com/spf13/afero v1.9.3 // indirect
+	github.com/spf13/afero v1.9.5 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
-	github.com/zclconf/go-cty v1.14.4 // indirect
-	golang.org/x/mod v0.16.0 // indirect
-	golang.org/x/net v0.22.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/tools v0.19.0 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
+	github.com/zclconf/go-cty v1.15.1 // indirect
+	golang.org/x/mod v0.21.0 // indirect
+	golang.org/x/net v0.29.0 // indirect
+	golang.org/x/sync v0.10.0 // indirect
+	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/tools v0.25.0 // indirect
+	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/ini.v1 v1.66.2 // indirect
 )

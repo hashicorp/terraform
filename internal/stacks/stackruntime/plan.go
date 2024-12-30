@@ -5,10 +5,10 @@ package stackruntime
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -32,9 +32,6 @@ import (
 // through resp after passing it to this function, aside from the implicit
 // modifications to the internal state of channels caused by reading them.
 func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
-	var respMu sync.Mutex // must hold this when accessing fields of resp, aside from channel sends
-	resp.Applyable = true // we'll reset this to false later if appropriate
-
 	// Whatever return path we take, we must close our channels to allow
 	// a caller to see that the operation is complete.
 	defer func() {
@@ -42,12 +39,20 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 		close(resp.PlannedChanges) // MUST be the last channel to close
 	}()
 
+	var errored bool
+
+	planTimestamp := time.Now().UTC()
+	if req.ForcePlanTimestamp != nil {
+		planTimestamp = *req.ForcePlanTimestamp
+	}
+
 	main := stackeval.NewForPlanning(req.Config, req.PrevState, stackeval.PlanOpts{
 		PlanningMode:        req.PlanMode,
 		InputVariableValues: req.InputValues,
 		ProviderFactories:   req.ProviderFactories,
+		DependencyLocks:     req.DependencyLocks,
 
-		ForcePlanTimestamp: req.ForcePlanTimestamp,
+		PlanTimestamp: planTimestamp,
 	})
 	main.AllowLanguageExperiments(req.ExperimentsAllowed)
 	main.PlanAll(ctx, stackeval.PlanOutput{
@@ -57,10 +62,7 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 		AnnounceDiagnostics: func(ctx context.Context, diags tfdiags.Diagnostics) {
 			for _, diag := range diags {
 				if diag.Severity() == tfdiags.Error {
-					respMu.Lock()
-					// NOTE: Applyable can never become true again after this point.
-					resp.Applyable = false
-					respMu.Unlock()
+					errored = true
 				}
 				resp.Diagnostics <- diag
 			}
@@ -74,6 +76,9 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 		// such as failing to terminate a provider plugin.
 		resp.Diagnostics <- diag
 	}
+
+	// An overall stack plan is applyable if it has no error diagnostics.
+	resp.Applyable = !errored
 
 	// Before we return we'll emit one more special planned change just to
 	// remember in the raw plan sequence whether we considered this plan to be
@@ -93,6 +98,7 @@ type PlanRequest struct {
 
 	InputValues       map[stackaddrs.InputVariable]ExternalInputValue
 	ProviderFactories map[addrs.Provider]providers.Factory
+	DependencyLocks   depsfile.Locks
 
 	// ForcePlanTimestamp, if not nil, will force the plantimestamp function
 	// to return the given value instead of whatever real time the plan

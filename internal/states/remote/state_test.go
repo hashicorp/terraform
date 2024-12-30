@@ -4,6 +4,7 @@
 package remote
 
 import (
+	"context"
 	"log"
 	"sync"
 	"testing"
@@ -408,7 +409,7 @@ func TestState_GetRootOutputValues(t *testing.T) {
 		},
 	}
 
-	outputs, err := mgr.GetRootOutputValues()
+	outputs, err := mgr.GetRootOutputValues(context.Background())
 	if err != nil {
 		t.Errorf("Expected GetRootOutputValues to not return an error, but it returned %v", err)
 	}

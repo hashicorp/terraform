@@ -1393,7 +1393,7 @@ func TestContext2Plan_preventDestroy_bad(t *testing.T) {
 	expectedErr := "aws_instance.foo has lifecycle.prevent_destroy"
 	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
 		if plan != nil {
-			t.Logf(legacyDiffComparisonString(plan.Changes))
+			t.Log(legacyDiffComparisonString(plan.Changes))
 		}
 		t.Fatalf("expected err would contain %q\nerr: %s", expectedErr, err)
 	}
@@ -1494,7 +1494,7 @@ func TestContext2Plan_preventDestroy_countBad(t *testing.T) {
 	expectedErr := "aws_instance.foo[1] has lifecycle.prevent_destroy"
 	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
 		if plan != nil {
-			t.Logf(legacyDiffComparisonString(plan.Changes))
+			t.Log(legacyDiffComparisonString(plan.Changes))
 		}
 		t.Fatalf("expected err would contain %q\nerr: %s", expectedErr, err)
 	}
@@ -1620,7 +1620,7 @@ func TestContext2Plan_preventDestroy_destroyPlan(t *testing.T) {
 	expectedErr := "aws_instance.foo has lifecycle.prevent_destroy"
 	if !strings.Contains(fmt.Sprintf("%s", diags.Err()), expectedErr) {
 		if plan != nil {
-			t.Logf(legacyDiffComparisonString(plan.Changes))
+			t.Log(legacyDiffComparisonString(plan.Changes))
 		}
 		t.Fatalf("expected diagnostics would contain %q\nactual diags: %s", expectedErr, diags.Err())
 	}
@@ -1762,6 +1762,10 @@ func TestContext2Plan_blockNestingGroup(t *testing.T) {
 				"baz": cty.NullVal(cty.String),
 			}),
 		}),
+		ClientCapabilities: providers.ClientCapabilities{
+			DeferralAllowed:            false,
+			WriteOnlyAttributesAllowed: true,
+		},
 	}
 	if !cmp.Equal(got, want, valueTrans) {
 		t.Errorf("wrong PlanResourceChange request\n%s", cmp.Diff(got, want, valueTrans))
@@ -6921,8 +6925,6 @@ resource "test_resource" "foo" {
 }
 
 func TestContext2Plan_variableCustomValidationsSimple(t *testing.T) {
-	// This test is dealing with validation rules that refer to other objects
-	// in the same module.
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 			variable "a" {
@@ -6978,11 +6980,6 @@ func TestContext2Plan_variableCustomValidationsCrossRef(t *testing.T) {
 	// in the same module.
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-			# Validation cross-references are currently experimental
-			terraform {
-				experiments = [variable_validation_crossref]
-			}
-
 			variable "a" {
 				type = string
 			}

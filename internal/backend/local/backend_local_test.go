@@ -4,6 +4,7 @@
 package local
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -158,7 +159,7 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	}
 	plan := &plans.Plan{
 		UIMode:  plans.NormalMode,
-		Changes: plans.NewChanges(),
+		Changes: plans.NewChangesSrc(),
 		Backend: plans.Backend{
 			Type:   "local",
 			Config: backendConfigRaw,
@@ -261,7 +262,7 @@ func (s *stateStorageThatFailsRefresh) State() *states.State {
 	return nil
 }
 
-func (s *stateStorageThatFailsRefresh) GetRootOutputValues() (map[string]*states.OutputValue, error) {
+func (s *stateStorageThatFailsRefresh) GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
 	return nil, fmt.Errorf("unimplemented")
 }
 

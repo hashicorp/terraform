@@ -37,6 +37,12 @@ func TestBase64Decode(t *testing.T) {
 			cty.UnknownVal(cty.String),
 			true,
 		},
+		// unknown marked
+		{
+			cty.UnknownVal(cty.String).Mark("a").Mark("b"),
+			cty.UnknownVal(cty.String).RefineNotNull().Mark("a").Mark("b"),
+			false,
+		},
 	}
 
 	for _, test := range tests {

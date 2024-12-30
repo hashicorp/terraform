@@ -92,6 +92,7 @@ type Local struct {
 }
 
 var _ backend.Backend = (*Local)(nil)
+var _ backendrun.OperationsBackend = (*Local)(nil)
 
 // New returns a new initialized local backend.
 func New() *Local {

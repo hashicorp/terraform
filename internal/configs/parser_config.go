@@ -120,7 +120,9 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 				case "required_providers":
 					reqs, reqsDiags := decodeRequiredProvidersBlock(innerBlock)
 					diags = append(diags, reqsDiags...)
-					file.RequiredProviders = append(file.RequiredProviders, reqs)
+					if reqs != nil {
+						file.RequiredProviders = append(file.RequiredProviders, reqs)
+					}
 
 				case "provider_meta":
 					providerCfg, cfgDiags := decodeProviderMetaBlock(innerBlock)
@@ -147,7 +149,7 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 			})
 
 		case "provider":
-			cfg, cfgDiags := decodeProviderBlock(block)
+			cfg, cfgDiags := decodeProviderBlock(block, false)
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.ProviderConfigs = append(file.ProviderConfigs, cfg)
@@ -191,6 +193,13 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.DataResources = append(file.DataResources, cfg)
+			}
+
+		case "ephemeral":
+			cfg, cfgDiags := decodeEphemeralBlock(block, override)
+			diags = append(diags, cfgDiags...)
+			if cfg != nil {
+				file.EphemeralResources = append(file.EphemeralResources, cfg)
 			}
 
 		case "moved":
@@ -306,6 +315,10 @@ var configFileSchema = &hcl.BodySchema{
 		},
 		{
 			Type:       "data",
+			LabelNames: []string{"type", "name"},
+		},
+		{
+			Type:       "ephemeral",
 			LabelNames: []string{"type", "name"},
 		},
 		{

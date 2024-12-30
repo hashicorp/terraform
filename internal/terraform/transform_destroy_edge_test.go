@@ -367,8 +367,8 @@ func TestPruneUnusedNodesTransformer_rootModuleOutputValues(t *testing.T) {
 			providerCfgAddr,
 		)
 	})
-	changes := plans.NewChanges()
-	changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+	changes := plans.NewChangesSrc()
+	changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
 		Addr:         resourceInstAddr,
 		PrevRunAddr:  resourceInstAddr,
 		ProviderAddr: providerCfgAddr,
@@ -487,7 +487,7 @@ func TestDestroyEdgeTransformer_noOp(t *testing.T) {
 	tf := &DestroyEdgeTransformer{
 		// We only need a minimal object to indicate GraphNodeCreator change is
 		// a NoOp here.
-		Changes: &plans.Changes{
+		Changes: &plans.ChangesSrc{
 			Resources: []*plans.ResourceInstanceChangeSrc{
 				{
 					Addr:      mustResourceInstanceAddr("test_object.B"),

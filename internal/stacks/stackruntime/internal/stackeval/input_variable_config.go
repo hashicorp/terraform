@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/typeexpr"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -130,7 +131,7 @@ func (v *InputVariableConfig) ExprReferenceValue(ctx context.Context, phase Eval
 		// During validation the root input variable values are always unknown,
 		// because validation tests whether the configuration is valid for
 		// _any_ inputs, rather than for _specific_ inputs.
-		return cty.UnknownVal(v.TypeConstraint())
+		return v.markValue(cty.UnknownVal(v.TypeConstraint()))
 	} else {
 		// Our apparent value is the value assigned in the definition object
 		// in the parent call.
@@ -139,8 +140,23 @@ func (v *InputVariableConfig) ExprReferenceValue(ctx context.Context, phase Eval
 		if val == cty.NilVal {
 			val = cty.UnknownVal(v.TypeConstraint())
 		}
+		return v.markValue(val)
+	}
+}
+
+// markValue returns the given value with any additional cty marks that
+// ought to be applied to the value of the variable based on its configuration.
+func (v *InputVariableConfig) markValue(val cty.Value) cty.Value {
+	if val == cty.NilVal {
 		return val
 	}
+	if v.config.Sensitive {
+		val = val.Mark(marks.Sensitive)
+	}
+	if v.config.Ephemeral {
+		val = val.Mark(marks.Ephemeral)
+	}
+	return val
 }
 
 func (v *InputVariableConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {

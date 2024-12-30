@@ -6,3 +6,5 @@ terraform {
     }
   }
 }
+
+resource "configured_resource" "resource" {}

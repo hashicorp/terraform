@@ -5,6 +5,7 @@ package statemgr
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -236,7 +237,7 @@ func (s *Filesystem) RefreshState() error {
 	return s.refreshState()
 }
 
-func (s *Filesystem) GetRootOutputValues() (map[string]*states.OutputValue, error) {
+func (s *Filesystem) GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
 	err := s.RefreshState()
 	if err != nil {
 		return nil, err

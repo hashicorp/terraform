@@ -4,6 +4,8 @@
 package statemgr
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -21,8 +23,8 @@ func (s *LockDisabled) State() *states.State {
 	return s.Inner.State()
 }
 
-func (s *LockDisabled) GetRootOutputValues() (map[string]*states.OutputValue, error) {
-	return s.Inner.GetRootOutputValues()
+func (s *LockDisabled) GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
+	return s.Inner.GetRootOutputValues(ctx)
 }
 
 func (s *LockDisabled) WriteState(v *states.State) error {

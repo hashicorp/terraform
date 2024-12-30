@@ -27,6 +27,8 @@ func (r Resource) String() string {
 		return fmt.Sprintf("%s.%s", r.Type, r.Name)
 	case DataResourceMode:
 		return fmt.Sprintf("data.%s.%s", r.Type, r.Name)
+	case EphemeralResourceMode:
+		return fmt.Sprintf("ephemeral.%s.%s", r.Type, r.Name)
 	default:
 		// Should never happen, but we'll return a string here rather than
 		// crashing just in case it does.
@@ -505,6 +507,10 @@ const (
 	// DataResourceMode indicates a data resource, as defined by
 	// "data" blocks in configuration.
 	DataResourceMode ResourceMode = 'D'
+
+	// EphemeralResourceMode indicates an ephemeral resource, as defined by
+	// "ephemeral" blocks in configuration.
+	EphemeralResourceMode ResourceMode = 'E'
 )
 
 // AbsResourceInstanceObject represents one of the specific remote objects

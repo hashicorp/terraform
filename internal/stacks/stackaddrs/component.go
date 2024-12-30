@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -81,22 +82,15 @@ func ConfigComponentForAbsInstance(instAddr AbsComponentInstance) ConfigComponen
 }
 
 func ParseAbsComponentInstance(traversal hcl.Traversal) (AbsComponentInstance, tfdiags.Diagnostics) {
-	if traversal.IsRelative() {
-		// This is always a caller bug: caller must only pass absolute
-		// traversals in here.
-		panic("ParseAbsComponentInstance with relative traversal")
-	}
-
-	stackInst, remain, diags := parseInStackInstancePrefix(traversal)
+	inst, remain, diags := parseAbsComponentInstance(traversal)
 	if diags.HasErrors() {
 		return AbsComponentInstance{}, diags
 	}
 
-	// "remain" should now be the keyword "component" followed by a valid
-	// component name, optionally followed by an instance key, and nothing
-	// else.
-	const diagSummary = "Invalid component instance address"
-	if len(remain) < 2 || len(remain) > 3 {
+	if len(remain) > 0 {
+		// Then we have some remaining traversal steps that weren't consumed
+		// by the component instance address itself, which is an error when the
+		// caller is using this function.
 		rng := remain.SourceRange()
 		// if "remain" is empty then the source range would be zero length,
 		// and so we'll use the original traversal instead.
@@ -105,64 +99,14 @@ func ParseAbsComponentInstance(traversal hcl.Traversal) (AbsComponentInstance, t
 		}
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  diagSummary,
+			Summary:  "Invalid component instance address",
 			Detail:   "The component instance address must include the keyword \"component\" followed by a component name.",
 			Subject:  &rng,
 		})
 		return AbsComponentInstance{}, diags
 	}
 
-	if kwStep, ok := remain[0].(hcl.TraverseAttr); !ok || kwStep.Name != "component" {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  diagSummary,
-			Detail:   "The component instance address must include the keyword \"component\" followed by a component name.",
-			Subject:  remain[0].SourceRange().Ptr(),
-		})
-		return AbsComponentInstance{}, diags
-	}
-
-	nameStep, ok := remain[1].(hcl.TraverseAttr)
-	if !ok {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  diagSummary,
-			Detail:   "The component instance address must include the keyword \"component\" followed by a component name.",
-			Subject:  remain[1].SourceRange().Ptr(),
-		})
-		return AbsComponentInstance{}, diags
-	}
-	componentAddr := ComponentInstance{
-		Component: Component{Name: nameStep.Name},
-	}
-
-	if len(remain) == 3 {
-		instStep, ok := remain[2].(hcl.TraverseIndex)
-		if !ok {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  diagSummary,
-				Detail:   "The final part of a component instance address must be the instance key.",
-				Subject:  remain[2].SourceRange().Ptr(),
-			})
-		}
-		var err error
-		componentAddr.Key, err = addrs.ParseInstanceKey(instStep.Key)
-		if err != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  diagSummary,
-				Detail:   fmt.Sprintf("Invalid instance key: %s.", err),
-				Subject:  instStep.SourceRange().Ptr(),
-			})
-			return AbsComponentInstance{}, diags
-		}
-	}
-
-	return AbsComponentInstance{
-		Stack: stackInst,
-		Item:  componentAddr,
-	}, diags
+	return inst, diags
 }
 
 func ParseAbsComponentInstanceStr(s string) (AbsComponentInstance, tfdiags.Diagnostics) {
@@ -176,4 +120,87 @@ func ParseAbsComponentInstanceStr(s string) (AbsComponentInstance, tfdiags.Diagn
 	ret, moreDiags := ParseAbsComponentInstance(traversal)
 	diags = diags.Append(moreDiags)
 	return ret, diags
+}
+
+func ParsePartialComponentInstanceStr(s string) (AbsComponentInstance, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	traversal, hclDiags := hclsyntax.ParseTraversalPartial([]byte(s), "", hcl.InitialPos)
+	diags = diags.Append(hclDiags)
+	if diags.HasErrors() {
+		return AbsComponentInstance{}, diags
+	}
+
+	ret, moreDiags := ParseAbsComponentInstance(traversal)
+	diags = diags.Append(moreDiags)
+	return ret, diags
+}
+
+func parseAbsComponentInstance(traversal hcl.Traversal) (AbsComponentInstance, hcl.Traversal, tfdiags.Diagnostics) {
+	if traversal.IsRelative() {
+		// This is always a caller bug: caller must only pass absolute
+		// traversals in here.
+		panic("parseAbsComponentInstance with relative traversal")
+	}
+
+	stackInst, remain, diags := parseInStackInstancePrefix(traversal)
+	if diags.HasErrors() {
+		return AbsComponentInstance{}, remain, diags
+	}
+
+	// "remain" should now be the keyword "component" followed by a valid
+	// component name, optionally followed by an instance key.
+	const diagSummary = "Invalid component instance address"
+
+	if kwStep, ok := remain[0].(hcl.TraverseAttr); !ok || kwStep.Name != "component" {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  diagSummary,
+			Detail:   "The component instance address must include the keyword \"component\" followed by a component name.",
+			Subject:  remain[0].SourceRange().Ptr(),
+		})
+		return AbsComponentInstance{}, remain, diags
+	}
+	remain = remain[1:]
+
+	nameStep, ok := remain[0].(hcl.TraverseAttr)
+	if !ok {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  diagSummary,
+			Detail:   "The component instance address must include the keyword \"component\" followed by a component name.",
+			Subject:  remain[1].SourceRange().Ptr(),
+		})
+		return AbsComponentInstance{}, remain, diags
+	}
+	remain = remain[1:]
+	componentAddr := ComponentInstance{
+		Component: Component{Name: nameStep.Name},
+	}
+
+	if len(remain) > 0 {
+		switch instStep := remain[0].(type) {
+		case hcl.TraverseIndex:
+			var err error
+			componentAddr.Key, err = addrs.ParseInstanceKey(instStep.Key)
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  diagSummary,
+					Detail:   fmt.Sprintf("Invalid instance key: %s.", err),
+					Subject:  instStep.SourceRange().Ptr(),
+				})
+				return AbsComponentInstance{}, remain, diags
+			}
+
+			remain = remain[1:]
+		case hcl.TraverseSplat:
+			componentAddr.Key = addrs.WildcardKey
+			remain = remain[1:]
+		}
+	}
+
+	return AbsComponentInstance{
+		Stack: stackInst,
+		Item:  componentAddr,
+	}, remain, diags
 }

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
@@ -113,7 +114,6 @@ func TestApply_componentOrdering(t *testing.T) {
 
 	// First we need to create a plan for this configuration, which will
 	// include the calculated component dependencies.
-	t.Log("initial plan")
 	planOutput, err := promising.MainTask(ctx, func(ctx context.Context) (*planOutputTester, error) {
 		main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
 			PlanningMode: plans.NormalMode,
@@ -129,6 +129,7 @@ func TestApply_componentOrdering(t *testing.T) {
 					}, nil
 				},
 			},
+			PlanTimestamp: time.Now().UTC(),
 		})
 
 		outp, outpTester := testPlanOutput(t)
@@ -190,14 +191,13 @@ func TestApply_componentOrdering(t *testing.T) {
 
 	// Now we're finally ready for the first apply, during which we expect
 	// the component ordering decided during the plan phase to be respected.
-	t.Log("initial apply")
 	applyResult, err := promising.MainTask(ctx, func(ctx context.Context) (applyResultData, error) {
 		var visitedMarkers []string
 		var visitedMarkersMu sync.Mutex
 
 		outp, outpTester := testApplyOutput(t, nil)
 
-		main, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
+		main, err := ApplyPlan(ctx, cfg, plan, ApplyOpts{
 			ProviderFactories: ProviderFactories{
 				testProviderAddr: func() (providers.Interface, error) {
 					return &testing_provider.MockProvider{
@@ -289,6 +289,7 @@ func TestApply_componentOrdering(t *testing.T) {
 					}, nil
 				},
 			},
+			PlanTimestamp: time.Now().UTC(),
 		})
 
 		outp, outpTester := testPlanOutput(t)
@@ -324,7 +325,7 @@ func TestApply_componentOrdering(t *testing.T) {
 
 		outp, outpTester := testApplyOutput(t, nil)
 
-		main, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
+		main, err := ApplyPlan(ctx, cfg, plan, ApplyOpts{
 			ProviderFactories: ProviderFactories{
 				testProviderAddr: func() (providers.Interface, error) {
 					return &testing_provider.MockProvider{

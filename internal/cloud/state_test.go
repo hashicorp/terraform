@@ -40,7 +40,7 @@ func TestState_GetRootOutputValues(t *testing.T) {
 	state := &State{tfeClient: b.client, organization: b.Organization, workspace: &tfe.Workspace{
 		ID: "ws-abcd",
 	}}
-	outputs, err := state.GetRootOutputValues()
+	outputs, err := state.GetRootOutputValues(context.Background())
 
 	if err != nil {
 		t.Fatalf("error returned from GetRootOutputValues: %s", err)

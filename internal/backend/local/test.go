@@ -431,7 +431,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return state, false
 	}
 
-	variables, variableDiags := runner.GetVariables(config, run, references)
+	variables, variableDiags := runner.GetVariables(config, run, references, true)
 	run.Diagnostics = run.Diagnostics.Append(variableDiags)
 	if variableDiags.HasErrors() {
 		run.Status = moduletest.Error
@@ -463,7 +463,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		defer resetVariables()
 
 		if runner.Suite.Verbose {
-			schemas, diags := tfCtx.Schemas(config, plan.PlannedState)
+			schemas, diags := tfCtx.Schemas(config, plan.PriorState)
 
 			// If we're going to fail to render the plan, let's not fail the overall
 			// test. It can still have succeeded. So we'll add the diagnostics, but
@@ -477,7 +477,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 			} else {
 				run.Verbose = &moduletest.Verbose{
 					Plan:         plan,
-					State:        plan.PlannedState,
+					State:        nil, // We don't have a state to show in plan mode.
 					Config:       config,
 					Providers:    schemas.Providers,
 					Provisioners: schemas.Provisioners,
@@ -528,7 +528,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	}
 	run.Diagnostics = filteredDiags
 
-	applyScope, updated, applyDiags := runner.apply(tfCtx, plan, state, config, run, file, moduletest.Running, start)
+	applyScope, updated, applyDiags := runner.apply(tfCtx, plan, state, config, run, file, moduletest.Running, start, variables)
 
 	// Remove expected diagnostics, and add diagnostics in case anything that should have failed didn't.
 	applyDiags = run.ValidateExpectedFailures(applyDiags)
@@ -544,14 +544,8 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	resetVariables := runner.AddVariablesToConfig(config, variables)
 	defer resetVariables()
 
-	run.Diagnostics = run.Diagnostics.Append(variableDiags)
-	if variableDiags.HasErrors() {
-		run.Status = moduletest.Error
-		return updated, true
-	}
-
 	if runner.Suite.Verbose {
-		schemas, diags := tfCtx.Schemas(config, plan.PlannedState)
+		schemas, diags := tfCtx.Schemas(config, updated)
 
 		// If we're going to fail to render the plan, let's not fail the overall
 		// test. It can still have succeeded. So we'll add the diagnostics, but
@@ -564,7 +558,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 				fmt.Sprintf("Terraform failed to print the verbose output for %s, other diagnostics will contain more details as to why.", filepath.Join(file.Name, run.Name))))
 		} else {
 			run.Verbose = &moduletest.Verbose{
-				Plan:         plan,
+				Plan:         nil, // We don't have a plan to show in apply mode.
 				State:        updated,
 				Config:       config,
 				Providers:    schemas.Providers,
@@ -637,7 +631,7 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 
 	var diags tfdiags.Diagnostics
 
-	variables, variableDiags := runner.GetVariables(config, run, nil)
+	variables, variableDiags := runner.GetVariables(config, run, nil, false)
 	diags = diags.Append(variableDiags)
 
 	if diags.HasErrors() {
@@ -690,7 +684,7 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 		return state, diags
 	}
 
-	_, updated, applyDiags := runner.apply(tfCtx, plan, state, config, run, file, moduletest.TearDown, start)
+	_, updated, applyDiags := runner.apply(tfCtx, plan, state, config, run, file, moduletest.TearDown, start, variables)
 	diags = diags.Append(applyDiags)
 	return updated, diags
 }
@@ -752,7 +746,7 @@ func (runner *TestFileRunner) plan(tfCtx *terraform.Context, config *configs.Con
 	return planScope, plan, diags
 }
 
-func (runner *TestFileRunner) apply(tfCtx *terraform.Context, plan *plans.Plan, state *states.State, config *configs.Config, run *moduletest.Run, file *moduletest.File, progress moduletest.Progress, start int64) (*lang.Scope, *states.State, tfdiags.Diagnostics) {
+func (runner *TestFileRunner) apply(tfCtx *terraform.Context, plan *plans.Plan, state *states.State, config *configs.Config, run *moduletest.Run, file *moduletest.File, progress moduletest.Progress, start int64, variables terraform.InputValues) (*lang.Scope, *states.State, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] TestFileRunner: called apply for %s/%s", file.Name, run.Name)
 
 	var diags tfdiags.Diagnostics
@@ -782,11 +776,26 @@ func (runner *TestFileRunner) apply(tfCtx *terraform.Context, plan *plans.Plan, 
 	var applyDiags tfdiags.Diagnostics
 	var newScope *lang.Scope
 
+	// We only need to pass ephemeral variables to the apply operation, as the
+	// plan has already been evaluated with the full set of variables.
+	ephemeralVariables := make(terraform.InputValues)
+	for k, v := range config.Root.Module.Variables {
+		if v.EphemeralSet {
+			if value, ok := variables[k]; ok {
+				ephemeralVariables[k] = value
+			}
+		}
+	}
+
+	applyOpts := &terraform.ApplyOpts{
+		SetVariables: ephemeralVariables,
+	}
+
 	go func() {
 		defer logging.PanicHandler()
 		defer done()
 		log.Printf("[DEBUG] TestFileRunner: starting apply for %s/%s", file.Name, run.Name)
-		updated, newScope, applyDiags = tfCtx.ApplyAndEval(plan, config, nil)
+		updated, newScope, applyDiags = tfCtx.ApplyAndEval(plan, config, applyOpts)
 		log.Printf("[DEBUG] TestFileRunner: completed apply for %s/%s", file.Name, run.Name)
 	}()
 	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, created, progress, start)
@@ -1004,7 +1013,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 // more variables than are required by the config. FilterVariablesToConfig
 // should be called before trying to use these variables within a Terraform
 // plan, apply, or destroy operation.
-func (runner *TestFileRunner) GetVariables(config *configs.Config, run *moduletest.Run, references []*addrs.Reference) (terraform.InputValues, tfdiags.Diagnostics) {
+func (runner *TestFileRunner) GetVariables(config *configs.Config, run *moduletest.Run, references []*addrs.Reference, includeWarnings bool) (terraform.InputValues, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// relevantVariables contains the variables that are of interest to this
@@ -1071,13 +1080,15 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 		// wrote in the variable expression. But, we don't want to actually use
 		// it if it's not actually relevant.
 		if _, exists := relevantVariables[name]; !exists {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagWarning,
-				Summary:  "Value for undeclared variable",
-				Detail:   fmt.Sprintf("The module under test does not declare a variable named %q, but it is declared in run block %q.", name, run.Name),
-				Subject:  expr.Range().Ptr(),
-			})
-
+			// Do not display warnings during cleanup phase
+			if includeWarnings {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Value for undeclared variable",
+					Detail:   fmt.Sprintf("The module under test does not declare a variable named %q, but it is declared in run block %q.", name, run.Name),
+					Subject:  expr.Range().Ptr(),
+				})
+			}
 			continue // Don't add it to our final set of variables.
 		}
 

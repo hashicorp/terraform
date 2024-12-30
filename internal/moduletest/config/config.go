@@ -87,7 +87,6 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 				NameRange:  ref.InChild.NameRange,
 				Alias:      ref.InChild.Alias,
 				AliasRange: ref.InChild.AliasRange,
-				Version:    testProvider.Version,
 				Config: &hcltest.ProviderConfig{
 					Original:            testProvider.Config,
 					VariableCache:       variableCaches.GetCache(run.Name, config),
@@ -114,7 +113,6 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 				NameRange:  provider.NameRange,
 				Alias:      provider.Alias,
 				AliasRange: provider.AliasRange,
-				Version:    provider.Version,
 				Config: &hcltest.ProviderConfig{
 					Original:            provider.Config,
 					VariableCache:       variableCaches.GetCache(run.Name, config),

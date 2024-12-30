@@ -814,7 +814,7 @@ func TestContext2Apply_providerAliasConfigure(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	} else {
-		t.Logf(legacyDiffComparisonString(plan.Changes))
+		t.Log(legacyDiffComparisonString(plan.Changes))
 	}
 
 	// Configure to record calls AFTER Plan above
@@ -950,7 +950,7 @@ func TestContext2Apply_createBeforeDestroy(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	} else {
-		t.Logf(legacyDiffComparisonString(plan.Changes))
+		t.Log(legacyDiffComparisonString(plan.Changes))
 	}
 
 	state, diags = ctx.Apply(plan, m, nil)
@@ -1030,7 +1030,7 @@ func TestContext2Apply_createBeforeDestroyUpdate(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	} else {
-		t.Logf(legacyDiffComparisonString(plan.Changes))
+		t.Log(legacyDiffComparisonString(plan.Changes))
 	}
 
 	state, diags = ctx.Apply(plan, m, nil)
@@ -1087,7 +1087,7 @@ func TestContext2Apply_createBeforeDestroy_dependsNonCBD(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	} else {
-		t.Logf(legacyDiffComparisonString(plan.Changes))
+		t.Log(legacyDiffComparisonString(plan.Changes))
 	}
 
 	state, diags = ctx.Apply(plan, m, nil)
@@ -1151,7 +1151,7 @@ func TestContext2Apply_createBeforeDestroy_hook(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	} else {
-		t.Logf(legacyDiffComparisonString(plan.Changes))
+		t.Log(legacyDiffComparisonString(plan.Changes))
 	}
 
 	if _, diags := ctx.Apply(plan, m, nil); diags.HasErrors() {
@@ -1227,7 +1227,7 @@ func TestContext2Apply_createBeforeDestroy_deposedCount(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	} else {
-		t.Logf(legacyDiffComparisonString(plan.Changes))
+		t.Log(legacyDiffComparisonString(plan.Changes))
 	}
 
 	state, diags = ctx.Apply(plan, m, nil)
@@ -1287,7 +1287,7 @@ func TestContext2Apply_createBeforeDestroy_deposedOnly(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	} else {
-		t.Logf(legacyDiffComparisonString(plan.Changes))
+		t.Log(legacyDiffComparisonString(plan.Changes))
 	}
 
 	state, diags = ctx.Apply(plan, m, nil)
@@ -1619,7 +1619,7 @@ func TestContext2Apply_dataBasic(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	} else {
-		t.Logf(legacyDiffComparisonString(plan.Changes))
+		t.Log(legacyDiffComparisonString(plan.Changes))
 	}
 
 	state, diags := ctx.Apply(plan, m, nil)
@@ -1674,7 +1674,7 @@ func TestContext2Apply_destroyData(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	} else {
-		t.Logf(legacyDiffComparisonString(plan.Changes))
+		t.Log(legacyDiffComparisonString(plan.Changes))
 	}
 
 	newState, diags := ctx.Apply(plan, m, nil)
@@ -1739,7 +1739,7 @@ func TestContext2Apply_destroySkipsCBD(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	} else {
-		t.Logf(legacyDiffComparisonString(plan.Changes))
+		t.Log(legacyDiffComparisonString(plan.Changes))
 	}
 
 	if _, diags := ctx.Apply(plan, m, nil); diags.HasErrors() {
@@ -3742,7 +3742,7 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 
 		t.Run("config for "+key, func(t *testing.T) {
 			for _, problem := range deep.Equal(got, want) {
-				t.Errorf(problem)
+				t.Error(problem)
 			}
 		})
 	}
@@ -4069,7 +4069,7 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 	)
 	state.SetOutputValue(
 		addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
-		cty.StringVal("baz"), false,
+		cty.StringVal("bar-val"), false,
 	)
 
 	ctx := testContext2(t, &ContextOpts{
@@ -4086,10 +4086,15 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(testTerraformApplyOutputOrphanStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	expectedState := states.NewState()
+	expectedState.SetOutputValue(
+		addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("bar"), false,
+	)
+	expectedState.CheckResults = &states.CheckResults{}
+
+	if diff := cmp.Diff(expectedState, state); diff != "" {
+		t.Fatalf("unexpected state: %s", diff)
 	}
 }
 
@@ -4893,6 +4898,57 @@ func TestContext2Apply_provisionerDestroy(t *testing.T) {
 	})
 
 	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.DestroyMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	state, diags = ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	checkStateString(t, state, `<no state>`)
+
+	// Verify apply was invoked
+	if !pr.ProvisionResourceCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+}
+
+func TestContext2Apply_provisionerDestroyRemoved(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy-removed")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.PlanResourceChangeFn = testDiffFn
+	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
+		val := req.Config.GetAttr("command").AsString()
+		// The following is "destroy ${each.key} ${self.foo}"
+		if val != "destroy a bar" {
+			t.Fatalf("wrong value for command: %q", val)
+		}
+
+		return
+	}
+
+	state := states.NewState()
+	foo := state.EnsureModule(mustModuleInstance("module.foo"))
+	foo.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr(`aws_instance.foo["a"]`).Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","foo":"bar"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]provisioners.Factory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags = ctx.Apply(plan, m, nil)
@@ -8282,7 +8338,7 @@ func TestContext2Apply_ignoreChangesCreate(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	} else {
-		t.Logf(legacyDiffComparisonString(plan.Changes))
+		t.Log(legacyDiffComparisonString(plan.Changes))
 	}
 
 	state, diags := ctx.Apply(plan, m, nil)
@@ -8424,7 +8480,7 @@ func TestContext2Apply_ignoreChangesAll(t *testing.T) {
 		logDiagnostics(t, diags)
 		t.Fatal("plan failed")
 	} else {
-		t.Logf(legacyDiffComparisonString(plan.Changes))
+		t.Log(legacyDiffComparisonString(plan.Changes))
 	}
 
 	state, diags := ctx.Apply(plan, m, nil)
@@ -9482,7 +9538,7 @@ func TestContext2Apply_moduleReplaceCycle(t *testing.T) {
 			},
 		})
 
-		changes := &plans.Changes{
+		changes := &plans.ChangesSrc{
 			Resources: []*plans.ResourceInstanceChangeSrc{
 				{
 					Addr: addrs.Resource{
@@ -12222,7 +12278,6 @@ output "out" {
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
-
 	got := state.RootOutputValues["out"].Value
 	want := cty.ObjectVal(map[string]cty.Value{
 		"required": cty.StringVal("boop"),
@@ -12596,7 +12651,7 @@ func TestContext2Apply_dataSensitive(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	} else {
-		t.Logf(legacyDiffComparisonString(plan.Changes))
+		t.Log(legacyDiffComparisonString(plan.Changes))
 	}
 
 	state, diags := ctx.Apply(plan, m, nil)

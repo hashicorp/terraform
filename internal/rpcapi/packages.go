@@ -18,9 +18,10 @@ import (
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/registry/regsrc"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/packages"
 )
 
-var _ terraform1.PackagesServer = (*packagesServer)(nil)
+var _ packages.PackagesServer = (*packagesServer)(nil)
 
 func newPackagesServer(services *disco.Disco) *packagesServer {
 	return &packagesServer{
@@ -38,14 +39,14 @@ func newPackagesServer(services *disco.Disco) *packagesServer {
 type providerSourceFn func(services *disco.Disco) getproviders.Source
 
 type packagesServer struct {
-	terraform1.UnimplementedPackagesServer
+	packages.UnimplementedPackagesServer
 
 	services         *disco.Disco
 	providerSourceFn providerSourceFn
 }
 
-func (p *packagesServer) ProviderPackageVersions(ctx context.Context, request *terraform1.ProviderPackageVersions_Request) (*terraform1.ProviderPackageVersions_Response, error) {
-	response := new(terraform1.ProviderPackageVersions_Response)
+func (p *packagesServer) ProviderPackageVersions(ctx context.Context, request *packages.ProviderPackageVersions_Request) (*packages.ProviderPackageVersions_Response, error) {
+	response := new(packages.ProviderPackageVersions_Response)
 
 	source := p.providerSourceFn(p.services)
 	provider, diags := addrs.ParseProviderSourceString(request.SourceAddr)
@@ -85,9 +86,9 @@ func (p *packagesServer) ProviderPackageVersions(ctx context.Context, request *t
 	return response, nil
 }
 
-func (p *packagesServer) FetchProviderPackage(ctx context.Context, request *terraform1.FetchProviderPackage_Request) (*terraform1.FetchProviderPackage_Response, error) {
+func (p *packagesServer) FetchProviderPackage(ctx context.Context, request *packages.FetchProviderPackage_Request) (*packages.FetchProviderPackage_Response, error) {
 
-	response := new(terraform1.FetchProviderPackage_Response)
+	response := new(packages.FetchProviderPackage_Response)
 
 	version, err := versions.ParseVersion(request.Version)
 	if err != nil {
@@ -112,7 +113,7 @@ func (p *packagesServer) FetchProviderPackage(ctx context.Context, request *terr
 	}
 
 	for _, requestPlatform := range request.Platforms {
-		result := new(terraform1.FetchProviderPackage_PlatformResult)
+		result := new(packages.FetchProviderPackage_PlatformResult)
 		response.Results = append(response.Results, result)
 
 		platform, err := getproviders.ParsePlatform(requestPlatform)
@@ -178,8 +179,8 @@ func (p *packagesServer) FetchProviderPackage(ctx context.Context, request *terr
 	return response, nil
 }
 
-func (p *packagesServer) ModulePackageVersions(ctx context.Context, request *terraform1.ModulePackageVersions_Request) (*terraform1.ModulePackageVersions_Response, error) {
-	response := new(terraform1.ModulePackageVersions_Response)
+func (p *packagesServer) ModulePackageVersions(ctx context.Context, request *packages.ModulePackageVersions_Request) (*packages.ModulePackageVersions_Response, error) {
+	response := new(packages.ModulePackageVersions_Response)
 
 	module, err := regsrc.ParseModuleSource(request.SourceAddr)
 	if err != nil {
@@ -211,8 +212,8 @@ func (p *packagesServer) ModulePackageVersions(ctx context.Context, request *ter
 	return response, nil
 }
 
-func (p *packagesServer) ModulePackageSourceAddr(ctx context.Context, request *terraform1.ModulePackageSourceAddr_Request) (*terraform1.ModulePackageSourceAddr_Response, error) {
-	response := new(terraform1.ModulePackageSourceAddr_Response)
+func (p *packagesServer) ModulePackageSourceAddr(ctx context.Context, request *packages.ModulePackageSourceAddr_Request) (*packages.ModulePackageSourceAddr_Response, error) {
+	response := new(packages.ModulePackageSourceAddr_Response)
 
 	module, err := regsrc.ParseModuleSource(request.SourceAddr)
 	if err != nil {
@@ -239,8 +240,8 @@ func (p *packagesServer) ModulePackageSourceAddr(ctx context.Context, request *t
 	return response, nil
 }
 
-func (p *packagesServer) FetchModulePackage(ctx context.Context, request *terraform1.FetchModulePackage_Request) (*terraform1.FetchModulePackage_Response, error) {
-	response := new(terraform1.FetchModulePackage_Response)
+func (p *packagesServer) FetchModulePackage(ctx context.Context, request *packages.FetchModulePackage_Request) (*packages.FetchModulePackage_Response, error) {
+	response := new(packages.FetchModulePackage_Response)
 
 	fetcher := getmodules.NewPackageFetcher()
 	if err := fetcher.FetchPackage(ctx, request.CacheDir, request.Url); err != nil {

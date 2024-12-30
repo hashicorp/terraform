@@ -377,7 +377,7 @@ func TestShow_planWithForceReplaceChange(t *testing.T) {
 		t.Fatal(err)
 	}
 	plan := testPlan(t)
-	plan.Changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+	plan.Changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
 		Addr: addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: "test_instance",
@@ -1179,7 +1179,7 @@ func showFixturePlanFile(t *testing.T, action plans.Action) string {
 		t.Fatal(err)
 	}
 	plan := testPlan(t)
-	plan.Changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+	plan.Changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
 		Addr: addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: "test_instance",

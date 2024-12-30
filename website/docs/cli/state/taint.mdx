@@ -1,25 +1,35 @@
 ---
-page_title: Forcing Re-creation of Resources - Terraform CLI
-description: Commands that allow you to destroy and re-create resources manually.
+page_title: Recreate resources
+description: The -replace flag and taint command help you replace infrastructure objects. Learn how the -replace flag and taint command can help you recreate resources.
 ---
 
-# Forcing Re-creation of Resources
+# Recreate resources overview
 
-During planning, by default Terraform retrieves the latest state of each
-existing object and compares it with the current configuration, planning
-actions only against objects whose current state does not match the
-configuration.
+This topic provides an overview of how to recreate resources in Terraform. 
 
-However, in some cases a remote object may become damaged or degraded in a
-way that Terraform cannot automatically detect. For example, if software
-running inside a virtual machine crashes but the virtual machine itself is
-still running then Terraform will typically have no way to detect and respond
-to the problem, because Terraform only directly manages the machine as a whole.
+## Introduction
 
-If you know that an object is damaged, or if you want to force Terraform to
-replace it for any other reason, you can override Terraform's default behavior
-using [the `-replace=...` planning option](/terraform/cli/commands/plan#replace-address)
-when you run either `terraform plan` or `terraform apply`:
+By default, Terraform retrieves the latest state of each existing object and compares it with the current configuration when you run the `terraform apply` command. Terraform only takes action on objects that do not match the configuration. 
+
+When remote objects become damaged or degraded, such as when software
+running inside a virtual machine crashes but the virtual machine is
+still running, Terraform does not have no way to detect and respond
+to the problem. This is because Terraform only directly manages the machine as a whole.
+
+In some cases, Terraform can automatically infer that an object is in an
+incomplete or degraded state. For example, when a complex object is partially created in the remote system or
+when a provisioner step failed. When this occurs, Terraform automatically flags resources to recreate.
+
+You can manually replace objects when Terraform is unable to infer that an object should be replaced.
+
+## Workflows
+
+When you meed to replace an object, you can use the following methods.
+
+### Manually replace resources
+
+Add the [`-replace` flag](/terraform/cli/commands/plan#replace-address)
+to your `terraform plan` or `terraform apply` command:
 
 ```shellsession
 $ terraform apply -replace="aws_instance.example"
@@ -31,18 +41,9 @@ $ terraform apply -replace="aws_instance.example"
     }
 ```
 
-## The "tainted" status
+### Replace resource in `tainted` state
 
-Sometimes Terraform is able to infer automatically that an object is in an
-incomplete or degraded state. For example, if creation of a complex object
-fails in such a way that parts of it already exist in the remote system, or
-if object creation succeeded but a provisioner step subsequently failed,
-Terraform must remember that the object exists but may not be fully-functional.
-
-Terraform represents this situation by marking an object in the state as
-"tainted". When an object is marked with this status, the next plan will force
-replacing that object in a similar way to if you had specified that object's
-address using `-replace=...` as described above.
+Terraform applies the `tainted` status to objects in the state data when Terraform is able to infer that the object is in a degraded or damaged state. This status indicates that the object exists but may not be fully-functional. Terraform replaces objects in a `tainted` states during the next `plan` or `apply` operation.
 
 ```
   # aws_instance.example is tainted, so must be replaced
@@ -57,7 +58,7 @@ determination using [the `terraform untaint` command](/terraform/cli/commands/un
 after which Terraform will consider the object to be ready for use by any
 downstream resource declarations.
 
-You can also _force_ Terraform to mark a particular object as tainted using
+You can force Terraform to mark a particular object as tainted using
 [the `terraform taint` command](/terraform/cli/commands/taint), but that approach is
 deprecated in favor of the `-replace=...` option, which avoids the need to
 create an interim state snapshot with a tainted object.

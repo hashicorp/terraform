@@ -6,8 +6,12 @@ package stackaddrs
 import (
 	"fmt"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // InConfigComponent represents addresses of objects that belong to the modules
@@ -121,4 +125,36 @@ func (inAbsComponentInstanceKey[T]) IsUniqueKey(InAbsComponentInstance[T]) {}
 type InComponentable interface {
 	addrs.UniqueKeyer
 	fmt.Stringer
+}
+
+func ParseAbsResourceInstanceObject(traversal hcl.Traversal) (AbsResourceInstanceObject, tfdiags.Diagnostics) {
+	stack, remain, diags := parseAbsComponentInstance(traversal)
+	if diags.HasErrors() {
+		return AbsResourceInstanceObject{}, diags
+	}
+
+	resource, diags := addrs.ParseAbsResourceInstance(remain)
+	if diags.HasErrors() {
+		return AbsResourceInstanceObject{}, diags
+	}
+
+	return AbsResourceInstanceObject{
+		Component: stack,
+		Item: addrs.AbsResourceInstanceObject{
+			ResourceInstance: resource,
+		},
+	}, diags
+}
+
+func ParseAbsResourceInstanceObjectStr(s string) (AbsResourceInstanceObject, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	traversal, hclDiags := hclsyntax.ParseTraversalAbs([]byte(s), "", hcl.InitialPos)
+	diags = diags.Append(hclDiags)
+	if diags.HasErrors() {
+		return AbsResourceInstanceObject{}, diags
+	}
+
+	ret, moreDiags := ParseAbsResourceInstanceObject(traversal)
+	diags = diags.Append(moreDiags)
+	return ret, diags
 }

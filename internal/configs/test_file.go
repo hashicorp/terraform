@@ -337,7 +337,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 				tf.Variables[v.Name] = v.Expr
 			}
 		case "provider":
-			provider, providerDiags := decodeProviderBlock(block)
+			provider, providerDiags := decodeProviderBlock(block, true)
 			diags = append(diags, providerDiags...)
 			if provider != nil {
 				key := provider.moduleUniqueKey()
@@ -601,7 +601,7 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 	}
 
 	if attr, exists := content.Attributes["expect_failures"]; exists {
-		failures, failDiags := decodeDependsOn(attr)
+		failures, failDiags := DecodeDependsOn(attr)
 		diags = append(diags, failDiags...)
 		r.ExpectFailures = failures
 	}
@@ -749,13 +749,13 @@ func decodeTestRunOptionsBlock(block *hcl.Block) (*TestRunOptions, hcl.Diagnosti
 	}
 
 	if attr, exists := content.Attributes["replace"]; exists {
-		reps, repsDiags := decodeDependsOn(attr)
+		reps, repsDiags := DecodeDependsOn(attr)
 		diags = append(diags, repsDiags...)
 		opts.Replace = reps
 	}
 
 	if attr, exists := content.Attributes["target"]; exists {
-		tars, tarsDiags := decodeDependsOn(attr)
+		tars, tarsDiags := DecodeDependsOn(attr)
 		diags = append(diags, tarsDiags...)
 		opts.Target = tars
 	}

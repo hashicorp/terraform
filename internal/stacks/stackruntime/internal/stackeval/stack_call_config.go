@@ -6,12 +6,14 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -339,6 +341,17 @@ func (s *StackCallConfig) ResolveExpressionReference(ctx context.Context, ref st
 	return ret, diags
 }
 
+// ExternalFunctions implements ExpressionScope.
+func (s *StackCallConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
+	return s.main.ProviderFunctions(ctx, s.main.StackConfig(ctx, s.Addr().Stack))
+}
+
+// PlanTimestamp implements ExpressionScope, providing the timestamp at which
+// the current plan is being run.
+func (s *StackCallConfig) PlanTimestamp() time.Time {
+	return s.main.PlanTimestamp()
+}
+
 func (s *StackCallConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	_, moreDiags := s.ValidateForEachValue(ctx, phase)
@@ -346,6 +359,8 @@ func (s *StackCallConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 	_, moreDiags = s.ValidateInputVariableValues(ctx, phase)
 	diags = diags.Append(moreDiags)
 	_, moreDiags = s.ValidateResultValue(ctx, phase)
+	diags = diags.Append(moreDiags)
+	moreDiags = ValidateDependsOn(ctx, s.CallerConfig(ctx), s.config.DependsOn)
 	diags = diags.Append(moreDiags)
 	return diags
 }

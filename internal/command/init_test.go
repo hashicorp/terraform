@@ -25,6 +25,8 @@ import (
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
+	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -2831,6 +2833,44 @@ func TestInit_invalidSyntaxBackendAttribute(t *testing.T) {
 	}
 }
 
+func TestInit_testsWithExternalProviders(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-with-tests-external-providers"), td)
+	defer testChdir(t, td)()
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/testing": {"1.0.0"},
+		"testing/configure": {"1.0.0"},
+	})
+	defer close()
+
+	hashicorpTestingProviderAddress := addrs.NewDefaultProvider("testing")
+	hashicorpTestingProvider := new(testing_provider.MockProvider)
+	testingConfigureProviderAddress := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "testing", "configure")
+	testingConfigureProvider := new(testing_provider.MockProvider)
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					hashicorpTestingProviderAddress: providers.FactoryFixed(hashicorpTestingProvider),
+					testingConfigureProviderAddress: providers.FactoryFixed(testingConfigureProvider),
+				},
+			},
+			Ui:             ui,
+			View:           view,
+			ProviderSource: providerSource,
+		},
+	}
+
+	var args []string
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", done(t).All())
+	}
+}
+
 func TestInit_tests(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -2899,9 +2939,73 @@ Error: Failed to query available provider packages
 Could not retrieve the list of available versions for provider
 hashicorp/test: no available releases match the given constraints 1.0.1,
 1.0.2
+
+To see which modules are currently depending on hashicorp/test and what
+versions are specified, run the following command:
+    terraform providers
 `
 	if diff := cmp.Diff(got, want); len(diff) > 0 {
 		t.Fatalf("wrong error message: \ngot:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+	}
+}
+
+func TestInit_testsWithOverriddenInvalidRequiredProviders(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-with-overrides-and-duplicates"), td)
+	defer testChdir(t, td)()
+
+	provider := applyFixtureProvider() // We just want the types from this provider.
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider),
+			Ui:               ui,
+			View:             view,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	args := []string{}
+	code := c.Run(args) // just make sure it doesn't crash.
+	if code != 1 {
+		t.Fatalf("expected failure but got: \n%s", done(t).All())
+	}
+}
+
+func TestInit_testsWithInvalidRequiredProviders(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-with-duplicates"), td)
+	defer testChdir(t, td)()
+
+	provider := applyFixtureProvider() // We just want the types from this provider.
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider),
+			Ui:               ui,
+			View:             view,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	args := []string{}
+	code := c.Run(args) // just make sure it doesn't crash.
+	if code != 1 {
+		t.Fatalf("expected failure but got: \n%s", done(t).All())
 	}
 }
 

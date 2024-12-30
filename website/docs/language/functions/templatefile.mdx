@@ -60,7 +60,6 @@ The `templatefile` function renders the template:
 > templatefile("${path.module}/backends.tftpl", { port = 8080, ip_addrs = ["10.0.0.1", "10.0.0.2"] })
 backend 10.0.0.1:8080
 backend 10.0.0.2:8080
-
 ```
 
 ### Maps
@@ -148,3 +147,4 @@ For more information, see the main documentation for
 
 * [`file`](/terraform/language/functions/file) reads a file from disk and returns its literal contents
   without any template interpretation.
+* [`templatestring`](/terraform/language/functions/templatestring) takes a simple reference to a string value containing the template and renders its content.

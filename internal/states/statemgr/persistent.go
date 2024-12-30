@@ -4,6 +4,7 @@
 package statemgr
 
 import (
+	"context"
 	"time"
 
 	version "github.com/hashicorp/go-version"
@@ -33,7 +34,7 @@ type Persistent interface {
 // to differentiate reading the state and reading the outputs within the state.
 type OutputReader interface {
 	// GetRootOutputValues fetches the root module output values from state or another source
-	GetRootOutputValues() (map[string]*states.OutputValue, error)
+	GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error)
 }
 
 // Refresher is the interface for managers that can read snapshots from

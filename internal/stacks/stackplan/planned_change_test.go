@@ -10,14 +10,17 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/go-version"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 )
@@ -51,13 +54,14 @@ func TestPlannedChangeAsProto(t *testing.T) {
 
 	tests := map[string]struct {
 		Receiver PlannedChange
-		Want     *terraform1.PlannedChange
+		Want     *stacks.PlannedChange
+		WantErr  string
 	}{
 		"header": {
 			Receiver: &PlannedChangeHeader{
 				TerraformVersion: version.Must(version.NewSemver("1.2.3-beta4")),
 			},
-			Want: &terraform1.PlannedChange{
+			Want: &stacks.PlannedChange{
 				Raw: []*anypb.Any{
 					mustMarshalAnyPb(&tfstackdata1.PlanHeader{
 						TerraformVersion: "1.2.3-beta4",
@@ -69,15 +73,15 @@ func TestPlannedChangeAsProto(t *testing.T) {
 			Receiver: &PlannedChangeApplyable{
 				Applyable: true,
 			},
-			Want: &terraform1.PlannedChange{
+			Want: &stacks.PlannedChange{
 				Raw: []*anypb.Any{
 					mustMarshalAnyPb(&tfstackdata1.PlanApplyable{
 						Applyable: true,
 					}),
 				},
-				Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
 					{
-						Description: &terraform1.PlannedChange_ChangeDescription_PlanApplyable{
+						Description: &stacks.PlannedChange_ChangeDescription_PlanApplyable{
 							PlanApplyable: true,
 						},
 					},
@@ -88,15 +92,15 @@ func TestPlannedChangeAsProto(t *testing.T) {
 			Receiver: &PlannedChangeApplyable{
 				Applyable: false,
 			},
-			Want: &terraform1.PlannedChange{
+			Want: &stacks.PlannedChange{
 				Raw: []*anypb.Any{
 					mustMarshalAnyPb(&tfstackdata1.PlanApplyable{
 						// false is the default
 					}),
 				},
-				Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
 					{
-						Description: &terraform1.PlannedChange_ChangeDescription_PlanApplyable{
+						Description: &stacks.PlannedChange_ChangeDescription_PlanApplyable{
 							PlanApplyable: false,
 						},
 					},
@@ -114,7 +118,7 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				Action:        plans.Create,
 				PlanTimestamp: fakePlanTimestamp,
 			},
-			Want: &terraform1.PlannedChange{
+			Want: &stacks.PlannedChange{
 				Raw: []*anypb.Any{
 					mustMarshalAnyPb(&tfstackdata1.PlanComponentInstance{
 						ComponentInstanceAddr: "component.foo",
@@ -122,15 +126,15 @@ func TestPlannedChangeAsProto(t *testing.T) {
 						PlannedAction:         planproto.Action_CREATE,
 					}),
 				},
-				Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
 					{
-						Description: &terraform1.PlannedChange_ChangeDescription_ComponentInstancePlanned{
-							ComponentInstancePlanned: &terraform1.PlannedChange_ComponentInstance{
-								Addr: &terraform1.ComponentInstanceInStackAddr{
+						Description: &stacks.PlannedChange_ChangeDescription_ComponentInstancePlanned{
+							ComponentInstancePlanned: &stacks.PlannedChange_ComponentInstance{
+								Addr: &stacks.ComponentInstanceInStackAddr{
 									ComponentAddr:         "component.foo",
 									ComponentInstanceAddr: "component.foo",
 								},
-								Actions: []terraform1.ChangeType{terraform1.ChangeType_CREATE},
+								Actions: []stacks.ChangeType{stacks.ChangeType_CREATE},
 							},
 						},
 					},
@@ -149,19 +153,19 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				Action:        plans.NoOp,
 				PlanTimestamp: fakePlanTimestamp,
 			},
-			Want: &terraform1.PlannedChange{
+			Want: &stacks.PlannedChange{
 				Raw: []*anypb.Any{
 					mustMarshalAnyPb(&tfstackdata1.PlanComponentInstance{
 						ComponentInstanceAddr: `component.foo["bar"]`,
 						PlanTimestamp:         "2017-03-27T10:00:00-08:00",
 					}),
 				},
-				Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
 					{
-						Description: &terraform1.PlannedChange_ChangeDescription_ComponentInstancePlanned{
-							ComponentInstancePlanned: &terraform1.PlannedChange_ComponentInstance{
-								Actions: []terraform1.ChangeType{terraform1.ChangeType_NOOP},
-								Addr: &terraform1.ComponentInstanceInStackAddr{
+						Description: &stacks.PlannedChange_ChangeDescription_ComponentInstancePlanned{
+							ComponentInstancePlanned: &stacks.PlannedChange_ComponentInstance{
+								Actions: []stacks.ChangeType{stacks.ChangeType_NOOP},
+								Addr: &stacks.ComponentInstanceInStackAddr{
 									ComponentAddr:         "component.foo",
 									ComponentInstanceAddr: `component.foo["bar"]`,
 								},
@@ -181,22 +185,135 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				},
 				Action: plans.Delete,
 			},
-			Want: &terraform1.PlannedChange{
+			Want: &stacks.PlannedChange{
 				Raw: []*anypb.Any{
 					mustMarshalAnyPb(&tfstackdata1.PlanComponentInstance{
 						ComponentInstanceAddr: `stack.a["boop"].component.foo`,
 						PlannedAction:         planproto.Action_DELETE,
 					}),
 				},
-				Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
 					{
-						Description: &terraform1.PlannedChange_ChangeDescription_ComponentInstancePlanned{
-							ComponentInstancePlanned: &terraform1.PlannedChange_ComponentInstance{
-								Addr: &terraform1.ComponentInstanceInStackAddr{
+						Description: &stacks.PlannedChange_ChangeDescription_ComponentInstancePlanned{
+							ComponentInstancePlanned: &stacks.PlannedChange_ComponentInstance{
+								Addr: &stacks.ComponentInstanceInStackAddr{
 									ComponentAddr:         "stack.a.component.foo",
 									ComponentInstanceAddr: `stack.a["boop"].component.foo`,
 								},
-								Actions: []terraform1.ChangeType{terraform1.ChangeType_DELETE},
+								Actions: []stacks.ChangeType{stacks.ChangeType_DELETE},
+							},
+						},
+					},
+				},
+			},
+		},
+		"resource instance deferred": {
+			Receiver: &PlannedChangeDeferredResourceInstancePlanned{
+				ResourceInstancePlanned: PlannedChangeResourceInstancePlanned{
+					ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+						Component: stackaddrs.AbsComponentInstance{
+							Stack: stackaddrs.RootStackInstance.Child("a", addrs.StringKey("boop")),
+							Item: stackaddrs.ComponentInstance{
+								Component: stackaddrs.Component{Name: "foo"},
+								Key:       addrs.StringKey("beep"),
+							},
+						},
+						Item: addrs.AbsResourceInstanceObject{
+							ResourceInstance: addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "thingy",
+								Name: "wotsit",
+							}.Instance(addrs.IntKey(1)).Absolute(
+								addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
+							),
+							DeposedKey: addrs.DeposedKey("aaaaaaaa"),
+						},
+					},
+					ProviderConfigAddr: addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
+					},
+					ChangeSrc: &plans.ResourceInstanceChangeSrc{
+						Addr: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "thingy",
+							Name: "wotsit",
+						}.Instance(addrs.IntKey(1)).Absolute(
+							addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
+						),
+						DeposedKey: addrs.DeposedKey("aaaaaaaa"),
+						ProviderAddr: addrs.AbsProviderConfig{
+							Module:   addrs.RootModule,
+							Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
+						},
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.Create,
+							Before: nullObjectForPlan,
+							After:  emptyObjectForPlan,
+						},
+					},
+				},
+				DeferredReason: providers.DeferredReasonResourceConfigUnknown,
+			},
+			Want: &stacks.PlannedChange{
+				Raw: []*anypb.Any{
+					mustMarshalAnyPb(&tfstackdata1.PlanDeferredResourceInstanceChange{
+						Change: &tfstackdata1.PlanResourceInstanceChangePlanned{
+							ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
+							ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
+							DeposedKey:            "aaaaaaaa",
+							ProviderConfigAddr:    `provider["example.com/thingers/thingy"]`,
+							Change: &planproto.ResourceInstanceChange{
+								Addr:       `module.pizza["chicken"].thingy.wotsit[1]`,
+								DeposedKey: "aaaaaaaa",
+								Change: &planproto.Change{
+									Action: planproto.Action_CREATE,
+									Values: []*planproto.DynamicValue{
+										{Msgpack: []byte{'\x80'}}, // zero-length mapping
+									},
+								},
+								Provider: `provider["example.com/thingers/thingy"]`,
+							},
+						},
+						Deferred: &planproto.Deferred{
+							Reason: planproto.DeferredReason_RESOURCE_CONFIG_UNKNOWN,
+						},
+					}),
+				},
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
+					{
+						Description: &stacks.PlannedChange_ChangeDescription_ResourceInstanceDeferred{
+							ResourceInstanceDeferred: &stacks.PlannedChange_ResourceInstanceDeferred{
+								ResourceInstance: &stacks.PlannedChange_ResourceInstance{
+									Addr: &stacks.ResourceInstanceObjectInStackAddr{
+										ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
+										ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
+										DeposedKey:            "aaaaaaaa",
+									},
+									ResourceMode: stacks.ResourceMode_MANAGED,
+									ResourceType: "thingy",
+									ProviderAddr: "example.com/thingers/thingy",
+									Actions:      []stacks.ChangeType{stacks.ChangeType_CREATE},
+									ActionReason: "ResourceInstanceChangeNoReason",
+									Index: &stacks.PlannedChange_ResourceInstance_Index{
+										Value: &stacks.DynamicValue{
+											Msgpack: []byte{0x92, 0xc4, 0x08, 0x22, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x22, 0x01}, // 1
+										},
+									},
+									ModuleAddr:   `module.pizza["chicken"]`,
+									ResourceName: "wotsit",
+									Values: &stacks.DynamicValueChange{
+										Old: &stacks.DynamicValue{
+											Msgpack: []byte{'\xc0'}, // null
+										},
+										New: &stacks.DynamicValue{
+											Msgpack: []byte{'\x80'}, // zero-length mapping
+										},
+									},
+								},
+								Deferred: &stacks.Deferred{
+									Reason: stacks.Deferred_RESOURCE_CONFIG_UNKNOWN,
+								},
 							},
 						},
 					},
@@ -248,7 +365,7 @@ func TestPlannedChangeAsProto(t *testing.T) {
 					},
 				},
 			},
-			Want: &terraform1.PlannedChange{
+			Want: &stacks.PlannedChange{
 				Raw: []*anypb.Any{
 					mustMarshalAnyPb(&tfstackdata1.PlanResourceInstanceChangePlanned{
 						ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
@@ -268,24 +385,32 @@ func TestPlannedChangeAsProto(t *testing.T) {
 						},
 					}),
 				},
-				Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
 					{
-						Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
-							ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
-								Addr: &terraform1.ResourceInstanceObjectInStackAddr{
+						Description: &stacks.PlannedChange_ChangeDescription_ResourceInstancePlanned{
+							ResourceInstancePlanned: &stacks.PlannedChange_ResourceInstance{
+								Addr: &stacks.ResourceInstanceObjectInStackAddr{
 									ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
 									ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
 									DeposedKey:            "aaaaaaaa",
 								},
-								ResourceMode: terraform1.ResourceMode_MANAGED,
+								ResourceMode: stacks.ResourceMode_MANAGED,
 								ResourceType: "thingy",
 								ProviderAddr: "example.com/thingers/thingy",
-								Actions:      []terraform1.ChangeType{terraform1.ChangeType_CREATE},
-								Values: &terraform1.DynamicValueChange{
-									Old: &terraform1.DynamicValue{
+								Actions:      []stacks.ChangeType{stacks.ChangeType_CREATE},
+								ActionReason: "ResourceInstanceChangeNoReason",
+								Index: &stacks.PlannedChange_ResourceInstance_Index{
+									Value: &stacks.DynamicValue{
+										Msgpack: []byte{0x92, 0xc4, 0x08, 0x22, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x22, 0x01}, // 1
+									},
+								},
+								ModuleAddr:   `module.pizza["chicken"]`,
+								ResourceName: "wotsit",
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
 										Msgpack: []byte{'\xc0'}, // null
 									},
-									New: &terraform1.DynamicValue{
+									New: &stacks.DynamicValue{
 										Msgpack: []byte{'\x80'}, // zero-length mapping
 									},
 								},
@@ -341,7 +466,7 @@ func TestPlannedChangeAsProto(t *testing.T) {
 					RequiredReplace: cty.NewPathSet(cty.GetAttrPath("foo")),
 				},
 			},
-			Want: &terraform1.PlannedChange{
+			Want: &stacks.PlannedChange{
 				Raw: []*anypb.Any{
 					mustMarshalAnyPb(&tfstackdata1.PlanResourceInstanceChangePlanned{
 						ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
@@ -371,36 +496,258 @@ func TestPlannedChangeAsProto(t *testing.T) {
 						},
 					}),
 				},
-				Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
 					{
-						Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
-							ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
-								Addr: &terraform1.ResourceInstanceObjectInStackAddr{
+						Description: &stacks.PlannedChange_ChangeDescription_ResourceInstancePlanned{
+							ResourceInstancePlanned: &stacks.PlannedChange_ResourceInstance{
+								Addr: &stacks.ResourceInstanceObjectInStackAddr{
 									ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
 									ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
 									DeposedKey:            "aaaaaaaa",
 								},
-								ResourceMode: terraform1.ResourceMode_MANAGED,
+								ResourceMode: stacks.ResourceMode_MANAGED,
 								ResourceType: "thingy",
 								ProviderAddr: "example.com/thingers/thingy",
-								Actions:      []terraform1.ChangeType{terraform1.ChangeType_DELETE, terraform1.ChangeType_CREATE},
-								Values: &terraform1.DynamicValueChange{
-									Old: &terraform1.DynamicValue{
+								Actions:      []stacks.ChangeType{stacks.ChangeType_DELETE, stacks.ChangeType_CREATE},
+								ActionReason: "ResourceInstanceChangeNoReason",
+								Index: &stacks.PlannedChange_ResourceInstance_Index{
+									Value: &stacks.DynamicValue{
+										Msgpack: []byte{0x92, 0xc4, 0x08, 0x22, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x22, 0x01}, // 1
+									},
+								},
+								ModuleAddr:   `module.pizza["chicken"]`,
+								ResourceName: "wotsit",
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
 										Msgpack: []byte("\x81\xa3foo\xa3bar"),
 									},
-									New: &terraform1.DynamicValue{
+									New: &stacks.DynamicValue{
 										Msgpack: []byte("\x81\xa3foo\xa3baz"),
 									},
 								},
-								ReplacePaths: []*terraform1.AttributePath{
+								ReplacePaths: []*stacks.AttributePath{
 									{
-										Steps: []*terraform1.AttributePath_Step{
+										Steps: []*stacks.AttributePath_Step{
 											{
-												Selector: &terraform1.AttributePath_Step_AttributeName{
+												Selector: &stacks.AttributePath_Step_AttributeName{
 													AttributeName: "foo",
 												},
 											},
 										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"resource instance planned import": {
+			Receiver: &PlannedChangeResourceInstancePlanned{
+				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+					Component: stackaddrs.AbsComponentInstance{
+						Stack: stackaddrs.RootStackInstance.Child("a", addrs.StringKey("boop")),
+						Item: stackaddrs.ComponentInstance{
+							Component: stackaddrs.Component{Name: "foo"},
+							Key:       addrs.StringKey("beep"),
+						},
+					},
+					Item: addrs.AbsResourceInstanceObject{
+						ResourceInstance: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "thingy",
+							Name: "wotsit",
+						}.Instance(addrs.IntKey(1)).Absolute(
+							addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
+						),
+					},
+				},
+				ProviderConfigAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
+				},
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "thingy",
+						Name: "wotsit",
+					}.Instance(addrs.IntKey(1)).Absolute(
+						addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
+					),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.NoOp,
+						Before: emptyObjectForPlan,
+						After:  emptyObjectForPlan,
+						Importing: &plans.ImportingSrc{
+							ID: "bbbbbbb",
+						},
+					},
+				},
+			},
+			Want: &stacks.PlannedChange{
+				Raw: []*anypb.Any{
+					mustMarshalAnyPb(&tfstackdata1.PlanResourceInstanceChangePlanned{
+						ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
+						ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
+						ProviderConfigAddr:    `provider["example.com/thingers/thingy"]`,
+						Change: &planproto.ResourceInstanceChange{
+							Addr: `module.pizza["chicken"].thingy.wotsit[1]`,
+							Change: &planproto.Change{
+								Action: planproto.Action_NOOP,
+								Values: []*planproto.DynamicValue{
+									{Msgpack: []byte{'\x80'}}, // zero-length mapping
+								},
+								Importing: &planproto.Importing{
+									Id: "bbbbbbb",
+								},
+							},
+							Provider: `provider["example.com/thingers/thingy"]`,
+						},
+					}),
+				},
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
+					{
+						Description: &stacks.PlannedChange_ChangeDescription_ResourceInstancePlanned{
+							ResourceInstancePlanned: &stacks.PlannedChange_ResourceInstance{
+								Addr: &stacks.ResourceInstanceObjectInStackAddr{
+									ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
+									ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
+								},
+								ResourceMode: stacks.ResourceMode_MANAGED,
+								ResourceType: "thingy",
+								ProviderAddr: "example.com/thingers/thingy",
+								Actions:      []stacks.ChangeType{stacks.ChangeType_NOOP},
+								ActionReason: "ResourceInstanceChangeNoReason",
+								Index: &stacks.PlannedChange_ResourceInstance_Index{
+									Value: &stacks.DynamicValue{
+										Msgpack: []byte{0x92, 0xc4, 0x08, 0x22, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x22, 0x01}, // 1
+									},
+								},
+								ModuleAddr:   `module.pizza["chicken"]`,
+								ResourceName: "wotsit",
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
+										Msgpack: []byte{'\x80'}, // zero-length mapping
+									},
+									New: &stacks.DynamicValue{
+										Msgpack: []byte{'\x80'}, // zero-length mapping
+									},
+								},
+								Imported: &stacks.PlannedChange_ResourceInstance_Imported{
+									ImportId: "bbbbbbb",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"resource instance planned moved": {
+			Receiver: &PlannedChangeResourceInstancePlanned{
+				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+					Component: stackaddrs.AbsComponentInstance{
+						Stack: stackaddrs.RootStackInstance.Child("a", addrs.StringKey("boop")),
+						Item: stackaddrs.ComponentInstance{
+							Component: stackaddrs.Component{Name: "foo"},
+							Key:       addrs.StringKey("beep"),
+						},
+					},
+					Item: addrs.AbsResourceInstanceObject{
+						ResourceInstance: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "thingy",
+							Name: "wotsit",
+						}.Instance(addrs.IntKey(1)).Absolute(
+							addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
+						),
+					},
+				},
+				ProviderConfigAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
+				},
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "thingy",
+						Name: "wotsit",
+					}.Instance(addrs.IntKey(1)).Absolute(
+						addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
+					),
+					PrevRunAddr: addrs.AbsResourceInstance{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "thingy",
+							Name: "wotsit",
+						}.Instance(addrs.NoKey),
+						Module: addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
+					},
+					ProviderAddr: addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.NoOp,
+						Before: emptyObjectForPlan,
+						After:  emptyObjectForPlan,
+					},
+				},
+			},
+			Want: &stacks.PlannedChange{
+				Raw: []*anypb.Any{
+					mustMarshalAnyPb(&tfstackdata1.PlanResourceInstanceChangePlanned{
+						ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
+						ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
+						ProviderConfigAddr:    `provider["example.com/thingers/thingy"]`,
+						Change: &planproto.ResourceInstanceChange{
+							Addr:        `module.pizza["chicken"].thingy.wotsit[1]`,
+							PrevRunAddr: `module.pizza["chicken"].thingy.wotsit`,
+							Change: &planproto.Change{
+								Action: planproto.Action_NOOP,
+								Values: []*planproto.DynamicValue{
+									{Msgpack: []byte{'\x80'}}, // zero-length mapping
+								},
+							},
+							Provider: `provider["example.com/thingers/thingy"]`,
+						},
+					}),
+				},
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
+					{
+						Description: &stacks.PlannedChange_ChangeDescription_ResourceInstancePlanned{
+							ResourceInstancePlanned: &stacks.PlannedChange_ResourceInstance{
+								Addr: &stacks.ResourceInstanceObjectInStackAddr{
+									ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
+									ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
+								},
+								ResourceMode: stacks.ResourceMode_MANAGED,
+								ResourceType: "thingy",
+								ProviderAddr: "example.com/thingers/thingy",
+								Actions:      []stacks.ChangeType{stacks.ChangeType_NOOP},
+								ActionReason: "ResourceInstanceChangeNoReason",
+								Index: &stacks.PlannedChange_ResourceInstance_Index{
+									Value: &stacks.DynamicValue{
+										Msgpack: []byte{0x92, 0xc4, 0x08, 0x22, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x22, 0x01}, // 1
+									},
+								},
+								ModuleAddr:   `module.pizza["chicken"]`,
+								ResourceName: "wotsit",
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
+										Msgpack: []byte{'\x80'}, // zero-length mapping
+									},
+									New: &stacks.DynamicValue{
+										Msgpack: []byte{'\x80'}, // zero-length mapping
+									},
+								},
+								Moved: &stacks.PlannedChange_ResourceInstance_Moved{
+									PrevAddr: &stacks.ResourceInstanceInStackAddr{
+										ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
+										ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit`,
 									},
 								},
 							},
@@ -417,27 +764,163 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				// NOTE: This is a bit unrealistic since we're reporting an
 				// update but there's no difference between these two values.
 				// In a real planned change this situation would be a "no-op".
-				OldValue: emptyObjectForPlan,
-				NewValue: emptyObjectForPlan,
+				Before: cty.EmptyObjectVal,
+				After:  cty.EmptyObjectVal,
 			},
-			Want: &terraform1.PlannedChange{
+			Want: &stacks.PlannedChange{
 				// Output value changes don't generate any raw representation;
 				// the diff is only for the benefit of the operator and
 				// other subsystems operating on their behalf.
-				Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
 					{
-						Description: &terraform1.PlannedChange_ChangeDescription_OutputValuePlanned{
-							OutputValuePlanned: &terraform1.PlannedChange_OutputValue{
+						Description: &stacks.PlannedChange_ChangeDescription_OutputValuePlanned{
+							OutputValuePlanned: &stacks.PlannedChange_OutputValue{
 								Name:    "thingy_id",
-								Actions: []terraform1.ChangeType{terraform1.ChangeType_UPDATE},
-								Values: &terraform1.DynamicValueChange{
-									Old: &terraform1.DynamicValue{
-										Msgpack: []byte{'\x80'}, // zero-length mapping
+								Actions: []stacks.ChangeType{stacks.ChangeType_UPDATE},
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.EmptyObjectVal),
 									},
-									New: &terraform1.DynamicValue{
-										Msgpack: []byte{'\x80'}, // zero-length mapping
+									New: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.EmptyObjectVal),
 									},
 								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"create sensitive root input variable": {
+			Receiver: &PlannedChangeRootInputValue{
+				Addr:   stackaddrs.InputVariable{Name: "thingy_id"},
+				Action: plans.Create,
+				Before: cty.NullVal(cty.String),
+				After:  cty.StringVal("boop").Mark(marks.Sensitive),
+			},
+			Want: &stacks.PlannedChange{
+				Raw: []*anypb.Any{
+					mustMarshalAnyPb(&tfstackdata1.PlanRootInputValue{
+						Name: "thingy_id",
+						Value: &tfstackdata1.DynamicValue{
+							Value: &planproto.DynamicValue{
+								Msgpack: []byte("\x92\xc4\b\"string\"\xa4boop"),
+							},
+							SensitivePaths: []*planproto.Path{
+								{
+									Steps: make([]*planproto.Path_Step, 0), // no steps as it is the root value
+								},
+							},
+						},
+					}),
+				},
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
+					{
+						Description: &stacks.PlannedChange_ChangeDescription_InputVariablePlanned{
+							InputVariablePlanned: &stacks.PlannedChange_InputVariable{
+								Name:    "thingy_id",
+								Actions: []stacks.ChangeType{stacks.ChangeType_CREATE},
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.NullVal(cty.String)),
+									},
+									New: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.StringVal("boop")),
+										Sensitive: []*stacks.AttributePath{
+											{
+												Steps: make([]*stacks.AttributePath_Step, 0), // no steps as it is the root value
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"ephemeral root input variable": {
+			Receiver: &PlannedChangeRootInputValue{
+				Addr:   stackaddrs.InputVariable{Name: "thingy_id"},
+				Action: plans.Create,
+				Before: cty.NullVal(cty.String),
+				After:  cty.StringVal("boop").Mark(marks.Ephemeral),
+			},
+			WantErr: "failed to encode after planned input variable var.thingy_id: : unhandled value marks cty.NewValueMarks(marks.Ephemeral) (this is a bug in Terraform)", // Ephemeral values should never make it this far.
+		},
+		"update root input variable": {
+			Receiver: &PlannedChangeRootInputValue{
+				Addr:   stackaddrs.InputVariable{Name: "thingy_id"},
+				Action: plans.Update,
+				Before: cty.StringVal("beep"),
+				After:  cty.StringVal("boop"),
+			},
+			Want: &stacks.PlannedChange{
+				Raw: []*anypb.Any{
+					mustMarshalAnyPb(&tfstackdata1.PlanRootInputValue{
+						Name: "thingy_id",
+						Value: &tfstackdata1.DynamicValue{
+							Value: &planproto.DynamicValue{
+								Msgpack: []byte("\x92\xc4\b\"string\"\xa4boop"),
+							},
+						},
+					}),
+				},
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
+					{
+						Description: &stacks.PlannedChange_ChangeDescription_InputVariablePlanned{
+							InputVariablePlanned: &stacks.PlannedChange_InputVariable{
+								Name:    "thingy_id",
+								Actions: []stacks.ChangeType{stacks.ChangeType_UPDATE},
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.StringVal("beep")),
+									},
+									New: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.StringVal("boop")),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"root input variable that must be re-supplied during apply": {
+			Receiver: &PlannedChangeRootInputValue{
+				Addr:            stackaddrs.InputVariable{Name: "thingy_id"},
+				Action:          plans.Create,
+				Before:          cty.NullVal(cty.String),
+				After:           cty.NullVal(cty.String),
+				RequiredOnApply: true,
+			},
+			Want: &stacks.PlannedChange{
+				Raw: []*anypb.Any{
+					mustMarshalAnyPb(&tfstackdata1.PlanRootInputValue{
+						Name: "thingy_id",
+						Value: &tfstackdata1.DynamicValue{
+							Value: &planproto.DynamicValue{
+								Msgpack: mustMsgPack(t, cty.NullVal(cty.String)),
+							},
+						},
+						RequiredOnApply: true,
+					}),
+				},
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
+					{
+						Description: &stacks.PlannedChange_ChangeDescription_InputVariablePlanned{
+							InputVariablePlanned: &stacks.PlannedChange_InputVariable{
+								Name:    "thingy_id",
+								Actions: []stacks.ChangeType{stacks.ChangeType_CREATE},
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.NullVal(cty.String)),
+									},
+									New: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.NullVal(cty.String)),
+									},
+								},
+								RequiredDuringApply: true,
 							},
 						},
 					},
@@ -449,6 +932,16 @@ func TestPlannedChangeAsProto(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			got, err := test.Receiver.PlannedChangeProto()
+			if len(test.WantErr) > 0 {
+				if diff := cmp.Diff(test.WantErr, err.Error()); diff != "" {
+					t.Errorf("wrong error\n%s", diff)
+				}
+				if got != nil {
+					t.Errorf("unexpected result: %v", got)
+				}
+				return
+			}
+
 			if err != nil {
 				// All errors this can generate are caused by bugs in Terraform
 				// because we're serializing content that we created, and so
@@ -469,4 +962,12 @@ func mustMarshalAnyPb(msg proto.Message) *anypb.Any {
 		panic(err)
 	}
 	return &ret
+}
+
+func mustMsgPack(t *testing.T, value cty.Value) []byte {
+	data, err := msgpack.Marshal(value, cty.DynamicPseudoType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
 }

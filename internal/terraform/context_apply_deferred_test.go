@@ -86,6 +86,219 @@ var (
 	// We build some fairly complex configurations here, so we'll use separate
 	// variables for each one outside of the test function itself for clarity.
 
+	// dataForEachTest is a test for deferral of data sources due to unknown
+	// for_each values. Since data sources don't result in planned changes,
+	// deferral has to be observed indirectly by checking for deferral of
+	// downstream objects that would otherwise have no reason to be deferred.
+	dataForEachTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "each" {
+	type = set(string)
+}
+
+# Partial-expanded and deferred due to unknown for_each
+data "test" "a" {
+	for_each = var.each
+
+	name = "a:${each.key}"
+}
+
+# Instance deferred due to dependency on deferred data source
+resource "test" "b" {
+	name = "b"
+	upstream_names = [for v in data.test.a : v.name]
+}
+
+# Instance deferred due to dependency on deferred resource
+data "test" "c" {
+	name = test.b.output
+}
+
+output "from_data" {
+	value = [for v in data.test.a : v.output]
+}
+
+output "from_resource" {
+	value = test.b.output
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			// Stage 0. Unknown for_each in data source. The resource and
+			// outputs get transitively deferred.
+			{
+				inputs: map[string]cty.Value{
+					"each": cty.DynamicVal,
+				},
+				wantPlanned: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.UnknownVal(cty.String),
+						"upstream_names": cty.UnknownVal(cty.Set(cty.String)),
+					}),
+				},
+				wantActions: map[string]plans.Action{},
+				wantDeferred: map[string]ExpectedDeferred{
+					// Much like a data source with unknown config results in a
+					// planned Read action to be performed in the apply, a
+					// deferred data source results in a *deferred* Read action
+					// to be performed in a future plan/apply round.
+					"data.test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Read},
+					"test.b":         {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+					"data.test.c":    {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Read},
+				},
+				wantApplied: map[string]cty.Value{},
+				wantOutputs: map[string]cty.Value{
+					// To start with: outputs that refer to deferred values are
+					// null values of some type.
+
+					// The from_data output's value is the result of a [for]
+					// expression that maps over an object of objects (the value
+					// of the data.test.a block). Since the for_each keys of the
+					// whole data source object are unknown (and the keys are an
+					// inherent part of the object type), we can't say anything
+					// about the type... and thus, can't say anything about the
+					// type of the tuple value that the [for] would derive from it.
+					"from_data": cty.NullVal(cty.DynamicPseudoType),
+					// The from_resource output's value is just a string
+					// attribute from a singleton resource instance, but it's
+					// still null because the resource got deferred.
+					"from_resource": cty.NullVal(cty.String),
+				},
+				complete:      false,
+				allowWarnings: false,
+			},
+			// Stage 1. Everything's known now, so it converges.
+			{
+				inputs: map[string]cty.Value{
+					"each": cty.SetVal([]cty.Value{cty.StringVal("hey"), cty.StringVal("ho"), cty.StringVal("let's go")}),
+				},
+				wantPlanned: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.UnknownVal(cty.String),
+						"upstream_names": cty.SetVal([]cty.Value{cty.StringVal("a:hey"), cty.StringVal("a:ho"), cty.StringVal("a:let's go")}),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.b": plans.Create,
+					// Not deferred anymore, but Read still gets delayed til
+					// apply due to unknown config.
+					"data.test.c": plans.Read,
+				},
+				wantDeferred: map[string]ExpectedDeferred{},
+				wantApplied: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.StringVal("b"),
+						"upstream_names": cty.SetVal([]cty.Value{cty.StringVal("a:hey"), cty.StringVal("a:ho"), cty.StringVal("a:let's go")}),
+					}),
+				},
+				wantOutputs: map[string]cty.Value{
+					"from_data":     cty.TupleVal([]cty.Value{cty.StringVal("a:hey"), cty.StringVal("a:ho"), cty.StringVal("a:let's go")}),
+					"from_resource": cty.StringVal("b"),
+				},
+				complete:      true,
+				allowWarnings: false,
+			},
+		},
+	}
+
+	// dataCountTest is a test for deferral of data sources due to unknown
+	// count values. Since data sources don't result in planned changes,
+	// deferral has to be observed indirectly by checking for deferral of
+	// downstream objects that would otherwise have no reason to be deferred.
+	dataCountTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "data_count" {
+	type = number
+}
+
+data "test" "a" {
+	count = var.data_count
+
+	name = "a:${count.index}"
+}
+
+resource "test" "b" {
+	name = "b"
+	upstream_names = [for v in data.test.a : v.name]
+}
+
+output "from_data" {
+	value = [for v in data.test.a : v.output]
+}
+
+output "from_resource" {
+	value = test.b.output
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			// Stage 0. Unknown count in data source. The resource and
+			// outputs get transitively deferred.
+			{
+				inputs: map[string]cty.Value{
+					"data_count": cty.DynamicVal,
+				},
+				wantPlanned: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.UnknownVal(cty.String),
+						"upstream_names": cty.UnknownVal(cty.Set(cty.String)),
+					}),
+				},
+				wantActions: map[string]plans.Action{},
+				wantDeferred: map[string]ExpectedDeferred{
+					"data.test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Read},
+					"test.b":         {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+				},
+				wantApplied: map[string]cty.Value{},
+				wantOutputs: map[string]cty.Value{
+					// Although this will be a TupleVal later, the count of
+					// items in the tuple is part of the type itself, and that's
+					// unknown at this point, so, DynamicPseudoType.
+					"from_data":     cty.NullVal(cty.DynamicPseudoType),
+					"from_resource": cty.NullVal(cty.String),
+				},
+				complete:      false,
+				allowWarnings: false,
+			},
+			// Stage 1. Everything's known now, so it converges.
+			{
+				inputs: map[string]cty.Value{
+					"data_count": cty.NumberIntVal(3),
+				},
+				wantPlanned: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.UnknownVal(cty.String),
+						"upstream_names": cty.SetVal([]cty.Value{cty.StringVal("a:0"), cty.StringVal("a:1"), cty.StringVal("a:2")}),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.b": plans.Create,
+				},
+				wantDeferred: map[string]ExpectedDeferred{},
+				wantApplied: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.StringVal("b"),
+						"upstream_names": cty.SetVal([]cty.Value{cty.StringVal("a:0"), cty.StringVal("a:1"), cty.StringVal("a:2")}),
+					}),
+				},
+				wantOutputs: map[string]cty.Value{
+					"from_data":     cty.TupleVal([]cty.Value{cty.StringVal("a:0"), cty.StringVal("a:1"), cty.StringVal("a:2")}),
+					"from_resource": cty.StringVal("b"),
+				},
+				complete:      true,
+				allowWarnings: false,
+			},
+		},
+	}
+
 	// resourceForEachTest is a test that exercises the deferred actions
 	// mechanism with a configuration that has a resource with an unknown
 	// for_each attribute.
@@ -163,8 +376,8 @@ output "c" {
 					// have any action at this stage.
 				},
 				wantDeferred: map[string]ExpectedDeferred{
-					"test.b[\"*\"]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
-					"test.c":        {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+					"test.b[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+					"test.c":    {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
 				},
 				wantApplied: map[string]cty.Value{
 					"a": cty.ObjectVal(map[string]cty.Value{
@@ -180,44 +393,27 @@ output "c" {
 						"output":         cty.StringVal("a"),
 					}),
 
-					// FIXME: The system is currently producing incorrect
-					//   results for output values that are derived from
-					//   resources that had deferred actions, because we're
-					//   not quite reconstructing all of the deferral state
-					//   correctly during the apply phase. The commented-out
-					//   lines below show how this _ought_ to look, but
-					//   we're accepting the incorrect answer for now so we
-					//   can start to gather feedback on the experiment
-					//   sooner, since the output value state at the interim
-					//   steps isn't really that important for demonstrating
-					//   the overall effect. We should fix this before
-					//   stabilizing the experiment, though.
+					// To start with: outputs that refer to deferred values are
+					// null values of some type.
 
-					// Currently we produce an incorrect result for output
-					// value "b" because the expression evaluator doesn't
-					// realize it's supposed to be treating this as deferred
-					// during the apply phase, and so it incorrectly decides
-					// that there are no instances due to the lack of
-					// instances in the state.
-					"b": cty.EmptyObjectVal,
-					// We can't say anything about test.b until we know what
-					// its instance keys are.
-					// "b": cty.DynamicVal,
+					// Output b is the value of the test.b resource block. The
+					// "b" resource has a for_each, so the type of the entire
+					// resource block will be an object of objects. (for_each
+					// key => resource instance.) But since the keys of an
+					// object are an inherent part of the object type, and our
+					// for_each keys are unknown, the object type is totally
+					// unknowable.
+					"b": cty.NullVal(cty.DynamicPseudoType),
 
-					// Currently we produce an incorrect result for output
-					// value "c" because the expression evaluator doesn't
-					// realize it's supposed to be treating this as deferred
-					// during the apply phase, and so it incorrectly decides
-					// that there is instance due to the lack of instances
-					// in the state.
-					"c": cty.NullVal(cty.DynamicPseudoType),
-					// test.c evaluates to the placeholder value that shows
-					// what we're expecting this object to look like in the
-					// next round.
-					// "c": cty.ObjectVal(map[string]cty.Value{
-					// 	"name":           cty.StringVal("c"),
-					// 	"upstream_names": cty.UnknownVal(cty.Set(cty.String)).RefineNotNull(),
-					// }),
+					// Output c is the value of the test.c resource block. The
+					// "c" resource is a singleton instance, so its type is
+					// wholly known from the schema! But it's still a null
+					// value, because the resource got transitively deferred.
+					"c": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"output":         cty.String,
+						"upstream_names": cty.Set(cty.String),
+					})),
 				},
 			},
 			{
@@ -444,8 +640,8 @@ resource "test" "c" {
 					"test.a": plans.Create,
 				},
 				wantDeferred: map[string]ExpectedDeferred{
-					"test.b[\"*\"]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
-					"test.c":        {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+					"test.b[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+					"test.c":    {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
 				},
 				wantApplied: map[string]cty.Value{
 					"a": cty.ObjectVal(map[string]cty.Value{
@@ -561,8 +757,8 @@ output "names" {
 				},
 				wantActions: map[string]plans.Action{},
 				wantDeferred: map[string]ExpectedDeferred{
-					"module.mod.test.names[\"*\"]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
-					"test.a":                       {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+					"module.mod.test.names[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+					"test.a":                   {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
 				},
 				wantApplied: make(map[string]cty.Value),
 				wantOutputs: make(map[string]cty.Value),
@@ -703,7 +899,7 @@ resource "test" "c" {
 					"test.b": plans.DeleteThenCreate,
 				},
 				wantDeferred: map[string]ExpectedDeferred{
-					"test.c[\"*\"]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+					"test.c[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
 				},
 			},
 		},
@@ -802,7 +998,7 @@ import {
 				},
 				wantActions: make(map[string]plans.Action),
 				wantDeferred: map[string]ExpectedDeferred{
-					"test.a[\"*\"]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+					"test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
 				},
 				wantApplied: make(map[string]cty.Value),
 				wantOutputs: make(map[string]cty.Value),
@@ -851,7 +1047,7 @@ resource "test" "c" {
 		stages: []deferredActionsTestStage{
 			// In this stage, we're testing that targeting test.a[0] will still
 			// prompt the plan to include the deferral of the unknown
-			// test.a["*"] instances.
+			// test.a[*] instances.
 			{
 				inputs: map[string]cty.Value{
 					"resource_count": cty.UnknownVal(cty.Number),
@@ -878,13 +1074,13 @@ resource "test" "c" {
 					"test.b": plans.Create,
 				},
 				wantDeferred: map[string]ExpectedDeferred{
-					"test.a[\"*\"]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+					"test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
 				},
 				allowWarnings: true,
 			},
 			// This stage is the same as above, except we're targeting the
 			// non-instanced test.a. This should still make the unknown
-			// test.a["*"] instances appear in the plan as deferrals.
+			// test.a[*] instances appear in the plan as deferrals.
 			{
 				inputs: map[string]cty.Value{
 					"resource_count": cty.UnknownVal(cty.Number),
@@ -911,7 +1107,7 @@ resource "test" "c" {
 					"test.b": plans.Create,
 				},
 				wantDeferred: map[string]ExpectedDeferred{
-					"test.a[\"*\"]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+					"test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
 				},
 				allowWarnings: true,
 			},
@@ -997,8 +1193,8 @@ resource "test" "b" {
 					"test.c": plans.Create,
 				},
 				wantDeferred: map[string]ExpectedDeferred{
-					"test.a[\"*\"]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
-					"test.b":        {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+					"test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+					"test.b":    {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
 				},
 				wantApplied: map[string]cty.Value{
 					"c": cty.ObjectVal(map[string]cty.Value{
@@ -1131,7 +1327,7 @@ resource "test" "b" {
 					"test.a[1]": plans.Create,
 				},
 				wantDeferred: map[string]ExpectedDeferred{
-					"test.b[\"*\"]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+					"test.b[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
 				},
 				wantApplied: map[string]cty.Value{
 					"a:0": cty.ObjectVal(map[string]cty.Value{
@@ -1282,7 +1478,7 @@ resource "test" "c" {
 					"test.c": plans.NoOp,
 				},
 				wantDeferred: map[string]ExpectedDeferred{
-					"test.a[\"*\"]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+					"test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
 				},
 			},
 		},
@@ -1343,7 +1539,7 @@ resource "test" "b" {
 					"test.b": plans.Create,
 				},
 				wantDeferred: map[string]ExpectedDeferred{
-					"test.a[\"*\"]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+					"test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
 				},
 				wantApplied: map[string]cty.Value{
 					"b": cty.ObjectVal(map[string]cty.Value{
@@ -1467,7 +1663,7 @@ resource "test" "c" {
 					"test.b": plans.Create,
 				},
 				wantDeferred: map[string]ExpectedDeferred{
-					"test.c[\"*\"]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+					"test.c[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
 				},
 				wantApplied: map[string]cty.Value{
 					"b": cty.ObjectVal(map[string]cty.Value{
@@ -1539,20 +1735,24 @@ output "a" {
 				},
 				inputs:      map[string]cty.Value{},
 				wantPlanned: map[string]cty.Value{
-					// The all resources will be deferred, so shouldn't
-					// have any action at this stage.
+					// Empty because it's a refresh-only plan in this stage.
 				},
 
 				wantActions: map[string]plans.Action{},
 				wantApplied: map[string]cty.Value{
-					// The all resources will be deferred, so shouldn't
+					// The resource will be deferred, so shouldn't
 					// have any action at this stage.
 				},
+				// The output refers to a resource that is unready, so in the
+				// state it becomes a null value of the appropriate type,
+				// despite the fact that we can predict *some* information (i.e.
+				// the future `name`) about the eventual value.
 				wantOutputs: map[string]cty.Value{
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("a"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-					}),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"upstream_names": cty.Set(cty.String),
+						"output":         cty.String,
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Read},
@@ -1578,11 +1778,11 @@ output "a" {
 					// have any action at this stage.
 				},
 				wantOutputs: map[string]cty.Value{
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("deferred_read"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.NullVal(cty.String),
-					}),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"upstream_names": cty.Set(cty.String),
+						"output":         cty.String,
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Update},
@@ -1674,8 +1874,8 @@ output "b" {
 				wantPlanned: map[string]cty.Value{
 					// test.b is deferred but still being planned. It being listed
 					// here does not mean it's in the plan.
-					"<unknown>": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.UnknownVal(cty.String),
+					"deferred_read": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("deferred_read"),
 						"output":         cty.UnknownVal(cty.String),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
 					}),
@@ -1687,14 +1887,18 @@ output "b" {
 				},
 				wantOutputs: map[string]cty.Value{
 					"a": cty.NullVal(cty.Object(map[string]cty.Type{
-						"name": cty.String,
+						"name":   cty.String,
+						"output": cty.String,
 					})),
-					"b": cty.NullVal(cty.DynamicPseudoType),
+					"b": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"output":         cty.String,
+						"upstream_names": cty.Set(cty.String),
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
-					// data.test.a is not part of the plan so we can only
-					// observe the indirect consequence on the resource.
-					"test.b": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+					"data.test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Read},
+					"test.b":      {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
 				},
 				complete: false,
 			},
@@ -1779,7 +1983,11 @@ output "a" {
 					// have any action at this stage.
 				},
 				wantOutputs: map[string]cty.Value{
-					"a": cty.NullVal(cty.DynamicPseudoType),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"output":         cty.String,
+						"upstream_names": cty.Set(cty.String),
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Create},
@@ -1833,11 +2041,11 @@ output "a" {
 					// have any action at this stage.
 				},
 				wantOutputs: map[string]cty.Value{
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("old_value"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.NullVal(cty.String),
-					}),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"upstream_names": cty.Set(cty.String),
+						"output":         cty.String,
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Update},
@@ -1891,12 +2099,18 @@ output "a" {
 					// The all resources will be deferred, so shouldn't
 					// have any action at this stage.
 				},
+				// This example is strange (possibly unrealistic?) because the
+				// provider deferred the PlanResourceChange call but responded
+				// immediately on the ReadResource call; usually you would
+				// expect to defer both or defer neither. So the output is still
+				// the current concrete value (not a cty.NullVal), even though
+				// the resource "is deferred."
 				wantOutputs: map[string]cty.Value{
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("deferred_resource_change"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.StringVal("computed_output"),
-					}),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"upstream_names": cty.Set(cty.String),
+						"output":         cty.String,
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.NoOp},
@@ -1951,11 +2165,11 @@ output "a" {
 					// have any action at this stage.
 				},
 				wantOutputs: map[string]cty.Value{
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("old_value"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.StringVal("mark_for_replacement"),
-					}),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"upstream_names": cty.Set(cty.String),
+						"output":         cty.String,
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.DeleteThenCreate},
@@ -2024,11 +2238,11 @@ output "a" {
 					// have any action at this stage.
 				},
 				wantOutputs: map[string]cty.Value{
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("old_value"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.StringVal("computed_output"),
-					}),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"upstream_names": cty.Set(cty.String),
+						"output":         cty.String,
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.DeleteThenCreate},
@@ -2287,36 +2501,958 @@ import {
 			},
 		},
 	}
+
+	moduleDeferredForEachValue = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "input" {
+    type = set(string)
+}
+
+module "my_module" {
+  for_each = var.input
+  source  = "../module"
+
+
+  name = each.value
+}
+`,
+			"../module/main.tf": `
+variable "name" {
+    type = string
+}
+
+resource "test" "a" {
+    name = var.name
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"input": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				wantPlanned: map[string]cty.Value{
+					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.UnknownVal(cty.String),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					"module.my_module[*].test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+				},
+				wantOutputs: make(map[string]cty.Value),
+				complete:    false,
+			},
+		},
+	}
+
+	moduleInnerResourceInstanceDeferred = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+module "my_module" {
+  source  = "../module"
+}
+`,
+			"../module/main.tf": `
+resource "test" "a" {
+    name = "deferred_resource_change"
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{
+					"deferred_resource_change": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("deferred_resource_change"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					`module.my_module.test.a`: {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Create},
+				},
+				wantOutputs: make(map[string]cty.Value),
+				complete:    false,
+			},
+		},
+	}
+
+	unknownImportId = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "id" {
+	type = string
+}
+
+resource "test" "a" {
+	name = "a"
+}
+
+import {
+	id = var.id
+	to = test.a
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"id": cty.UnknownVal(cty.String),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonResourceConfigUnknown, Action: plans.Create},
+				},
+				wantApplied: make(map[string]cty.Value),
+				wantOutputs: make(map[string]cty.Value),
+			},
+		},
+	}
+
+	unknownImportDefersConfigGeneration = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "id" {
+	type = string
+}
+
+import {
+	id = var.id
+	to = test.a
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.GenerateConfigPath = "generated.tf"
+				},
+				inputs: map[string]cty.Value{
+					"id": cty.UnknownVal(cty.String),
+				},
+				wantPlanned: make(map[string]cty.Value),
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonResourceConfigUnknown, Action: plans.NoOp},
+				},
+			},
+		},
+	}
+
+	unknownImportTo = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "strings" {
+	type = set(string)
+}
+
+resource "test" "a" {
+	for_each = toset(["a", "b"])
+	name = each.value
+}
+
+import {
+	for_each = var.strings
+	id = each.value
+	to = test.a[each.key]
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"strings": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					// Both should be deferred, as we don't know which one is
+					// being imported.
+					"test.a[\"a\"]": {Reason: providers.DeferredReasonResourceConfigUnknown, Action: plans.Create},
+					"test.a[\"b\"]": {Reason: providers.DeferredReasonResourceConfigUnknown, Action: plans.Create},
+				},
+				wantApplied: make(map[string]cty.Value),
+				wantOutputs: make(map[string]cty.Value),
+			},
+			{
+				inputs: map[string]cty.Value{
+					"strings": cty.SetVal([]cty.Value{cty.StringVal("a")}),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a"),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantDeferred: make(map[string]ExpectedDeferred),
+				wantActions: map[string]plans.Action{
+					"test.a[\"a\"]": plans.NoOp,
+					"test.a[\"b\"]": plans.Create,
+				},
+				wantApplied: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("b"),
+					}),
+				},
+				wantOutputs: make(map[string]cty.Value),
+				complete:    true,
+			},
+		},
+	}
+
+	unknownImportToExistingState = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "strings" {
+	type = set(string)
+}
+
+resource "test" "a" {
+	for_each = toset(["a", "b"])
+	name = each.value
+}
+
+import {
+	for_each = var.strings
+	id = each.value
+	to = test.a[each.key]
+}
+`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test.a[\"a\"]"), &states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: mustParseJson(map[string]interface{}{
+					"name":   "a",
+					"output": "a",
+				}),
+			}, addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			})
+			state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test.a[\"b\"]"), &states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: mustParseJson(map[string]interface{}{
+					"name":   "b",
+					"output": "b",
+				}),
+			}, addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"strings": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a"),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("b"),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					// In this case, both the resources exist in state so
+					// even though they might be targeted by the unknown import
+					// it is still safe to apply the changes.
+					"test.a[\"a\"]": plans.NoOp,
+					"test.a[\"b\"]": plans.NoOp,
+				},
+				wantDeferred: make(map[string]ExpectedDeferred),
+				wantApplied:  make(map[string]cty.Value),
+				wantOutputs:  make(map[string]cty.Value),
+				complete:     true,
+			},
+			{
+				// The second stage demonstrates the known or unknown status of
+				// the import block doesn't impact the actual behaviour.
+				inputs: map[string]cty.Value{
+					"strings": cty.SetVal([]cty.Value{cty.StringVal("a")}),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a"),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("b"),
+					}),
+				},
+				wantDeferred: make(map[string]ExpectedDeferred),
+				wantActions: map[string]plans.Action{
+					"test.a[\"a\"]": plans.NoOp,
+					"test.a[\"b\"]": plans.NoOp,
+				},
+				wantApplied: make(map[string]cty.Value),
+				wantOutputs: make(map[string]cty.Value),
+				complete:    true,
+			},
+		},
+	}
+
+	unknownImportToPartialExistingState = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "strings" {
+	type = set(string)
+}
+
+resource "test" "a" {
+	for_each = toset(["a", "b"])
+	name = each.value
+}
+
+import {
+	for_each = var.strings
+	id = each.value
+	to = test.a[each.key]
+}
+`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test.a[\"a\"]"), &states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: mustParseJson(map[string]interface{}{
+					"name":   "a",
+					"output": "a",
+				}),
+			}, addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"strings": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a"),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.a[\"a\"]": plans.NoOp,
+				},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a[\"b\"]": {Reason: providers.DeferredReasonResourceConfigUnknown, Action: plans.Create},
+				},
+				wantApplied: make(map[string]cty.Value),
+				wantOutputs: make(map[string]cty.Value),
+			},
+		},
+	}
+
+	unknownImportReportsMissingConfiguration = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "strings" {
+	type = set(string)
+}
+
+import {
+	for_each = var.strings
+	id = each.value
+	to = test.a[each.key]
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"strings": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				wantPlanned:  make(map[string]cty.Value),
+				wantActions:  make(map[string]plans.Action),
+				wantDeferred: make(map[string]ExpectedDeferred),
+				wantDiagnostic: func(diags tfdiags.Diagnostics) bool {
+					for _, diag := range diags {
+						if diag.Description().Summary == "Resource has no configuration" {
+							return true
+						}
+					}
+					return false
+				},
+			},
+		},
+	}
+
+	dataSourceDependsOnDeferredResource = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "deferred_resource_change"
+}
+
+data "test" "b" {
+	name = "load_me"
+	depends_on = [test.a]
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{
+					"deferred_resource_change": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("deferred_resource_change"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					"data.test.b": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Read},
+					"test.a":      {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Create},
+				},
+				complete: false,
+			},
+		},
+	}
+
+	// This is a super rare edge case here. It's very unlikely that a provider
+	// or a resource would get deferred during a refresh operation. Since it
+	// successfully applied whatever is being refreshed previously, it should
+	// not suddenly need to start deferring things. However, it is totally
+	// possible for providers to do this if they wanted so we'll add a test
+	// for it in case.
+	dataSourceDependsOnDeferredResourceDuringRefresh = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "name" {
+	type = string
+}
+
+resource "test" "a" {
+	name = "deferred_resource_change"
+}
+
+data "test" "b" {
+	name = var.name
+	depends_on = [test.a]
+}
+`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test.a"), &states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: mustParseJson(map[string]interface{}{
+					"name":   "deferred_read",
+					"output": "a",
+				}),
+			}, addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.RefreshOnlyMode
+				},
+				inputs: map[string]cty.Value{
+					"name": cty.UnknownVal(cty.String),
+				},
+				wantPlanned: make(map[string]cty.Value), // No planned changes, as we are only refreshing
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Read},
+				},
+				complete: false,
+			},
+		},
+	}
+
+	// The following tests execute from the perspective of Stacks, where an
+	// external factor means everything in the plan should be deferred.
+
+	resourceReferencesDeferredDataSource = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+
+variable "create" {
+	type = bool
+}
+
+data "test" "a" {
+	count = var.create ? 1 : 0
+	name = "foo"
+}
+
+resource "test" "a" {
+	count = var.create ? 1 : 0
+	name = data.test.a[0].output
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					// mark everything as deferred
+					opts.ExternalDependencyDeferred = true
+				},
+				inputs: map[string]cty.Value{
+					"create": cty.BoolVal(true),
+				},
+				wantPlanned: map[string]cty.Value{
+					"foo": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("foo"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					"data.test.a[0]": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Read},
+					"test.a[0]":      {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+				},
+				complete: false,
+			},
+		},
+	}
+
+	resourceReferencesUnknownAndDeferredDataSource = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "name" {
+	type = string
+}
+
+data "test" "a" {
+	name       = "deferred_read"
+}
+
+resource "test" "b" {
+	name = data.test.a.name
+}
+	`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					// mark everything as deferred
+					opts.ExternalDependencyDeferred = true
+				},
+				inputs: map[string]cty.Value{
+					"name": cty.UnknownVal(cty.String),
+				},
+				wantPlanned: map[string]cty.Value{
+					"deferred_read": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("deferred_read"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: map[string]plans.Action{},
+				wantDeferred: map[string]ExpectedDeferred{
+					"data.test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Read},
+					"test.b":      {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+				},
+				complete: false,
+			},
+		},
+	}
+
+	createAndReferenceResourceInDeferredComponent = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	count = 1
+	name = "a"
+}
+
+resource "test" "b" {
+	name = test.a[0].name
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.ExternalDependencyDeferred = true
+				},
+				inputs: map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: map[string]plans.Action{},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a[0]": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+					"test.b":    {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+				},
+				complete: false,
+			},
+		},
+	}
+
+	planCreateExternalDeferral = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "foo"
+}
+		`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					// This means everything should be deferred.
+					opts.ExternalDependencyDeferred = true
+				},
+				complete:    false,
+				wantActions: map[string]plans.Action{},
+				wantPlanned: map[string]cty.Value{
+					"foo": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("foo"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+				},
+			},
+		},
+	}
+
+	planUpdateExternalDeferral = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "foo"
+}
+		`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name":   "bar",
+						"output": "computed_output",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					// This means everything should be deferred.
+					opts.ExternalDependencyDeferred = true
+				},
+				complete:    false,
+				wantActions: map[string]plans.Action{},
+				wantPlanned: map[string]cty.Value{
+					"foo": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("foo"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("computed_output"),
+					}),
+				},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Update},
+				},
+			},
+		},
+	}
+
+	planDeleteExternalDeferral = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+# empty, should delete the resource
+		`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name":   "bar",
+						"output": "computed_output",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					// This means everything should be deferred.
+					opts.ExternalDependencyDeferred = true
+				},
+				complete:    false,
+				wantActions: map[string]plans.Action{},
+				wantPlanned: map[string]cty.Value{},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Delete},
+				},
+			},
+		},
+	}
+
+	// planDeleteExternalDeferral tests to ensure that we still defer to-be
+	// deleted resources when the plan asks for everything to be deferred.
+	planDeleteModeExternalDeferral = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "foo"
+}
+		`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name":   "foo",
+						"output": "computed_output",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.DestroyMode
+
+					// This means everything should be deferred.
+					opts.ExternalDependencyDeferred = true
+				},
+				complete:    false,
+				wantActions: map[string]plans.Action{},
+				wantPlanned: map[string]cty.Value{
+					"foo": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("foo"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("computed_output"),
+					}),
+				},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Delete},
+				},
+			},
+		},
+	}
+
+	ephemeralResourceOpenDeferral = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+ephemeral "test" "data" {
+  name = "deferred_open"
+}
+		`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				complete:     false,
+				wantActions:  map[string]plans.Action{},
+				wantPlanned:  map[string]cty.Value{},
+				wantDeferred: map[string]ExpectedDeferred{
+					// We don't record the ephemeral deferrals
+				},
+			},
+		},
+	}
+
+	ephemeralResourceOpenDeferralWithDependency = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+ephemeral "test" "data" {
+  name = "deferred_open"
+}
+
+ephemeral "test" "dep" {
+  name = ephemeral.test.data.value
+}
+		`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				complete:     false,
+				wantActions:  map[string]plans.Action{},
+				wantPlanned:  map[string]cty.Value{},
+				wantDeferred: map[string]ExpectedDeferred{
+					// We don't record the ephemeral deferrals
+				},
+			},
+		},
+	}
+
+	ephemeralResourceOpenDeferralExpanded = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+			
+variable "each" {
+  type = set(string)
+}
+
+ephemeral "test" "data" {
+  for_each = var.each
+
+  name = each.value
+}
+		`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"each": cty.DynamicVal,
+				},
+				complete:     false,
+				wantActions:  map[string]plans.Action{},
+				wantPlanned:  map[string]cty.Value{},
+				wantDeferred: map[string]ExpectedDeferred{
+					// We don't record the ephemeral deferrals
+				},
+			},
+		},
+	}
+
+	ephemeralResourceOpenDeferralProviderUsage = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+ephemeral "test" "data" {
+  name = "deferred_open"
+}
+
+
+provider "other" {
+  test_string = ephemeral.test.data.value
+}
+
+resource "test_object" "test" {
+  provider = other
+}
+		`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				complete:    false,
+				wantActions: map[string]plans.Action{},
+				wantPlanned: map[string]cty.Value{},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test_object.test": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+				},
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
 	tests := map[string]deferredActionsTest{
-		"resource_for_each":                                 resourceForEachTest,
-		"resource_in_module_for_each":                       resourceInModuleForEachTest,
-		"resource_count":                                    resourceCountTest,
-		"create_before_destroy":                             createBeforeDestroyLifecycleTest,
-		"forget_resources":                                  forgetResourcesTest,
-		"import_into_unknown":                               importIntoUnknownInstancesTest,
-		"target_deferred_resource":                          targetDeferredResourceTest,
-		"target_resource_that_depends_on_deferred_resource": targetResourceThatDependsOnDeferredResourceTest,
-		"target_deferred_resource_triggers_dependencies":    targetDeferredResourceTriggersDependenciesTest,
-		"replace_deferred_resource":                         replaceDeferredResourceTest,
-		"custom_conditions":                                 customConditionsTest,
-		"custom_conditions_with_orphans":                    customConditionsWithOrphansTest,
-		"resource_read":                                     resourceReadTest,
-		"data_read":                                         readDataSourceTest,
-		"plan_create_resource_change":                       planCreateResourceChange,
-		"plan_update_resource_change":                       planUpdateResourceChange,
-		"plan_noop_resource_change":                         planNoOpResourceChange,
-		"plan_replace_resource_change":                      planReplaceResourceChange,
-		"plan_force_replace_resource_change":                planForceReplaceResourceChange,
-		"plan_delete_resource_change":                       planDeleteResourceChange,
-		"plan_destroy_resource_change":                      planDestroyResourceChange,
-		"import_deferred":                                   importDeferredTest,
-		"import_deferred_but_forbidden":                     importDeferredButForbiddenTest,
-		"resource_read_but_forbidden":                       resourceReadButForbiddenTest,
-		"data_read_but_forbidden":                           readDataSourceButForbiddenTest,
-		"plan_destroy_resource_change_but_forbidden":        planDestroyResourceChangeButForbidden,
+		"resource_for_each":                                       resourceForEachTest,
+		"resource_in_module_for_each":                             resourceInModuleForEachTest,
+		"resource_count":                                          resourceCountTest,
+		"create_before_destroy":                                   createBeforeDestroyLifecycleTest,
+		"forget_resources":                                        forgetResourcesTest,
+		"import_into_unknown":                                     importIntoUnknownInstancesTest,
+		"target_deferred_resource":                                targetDeferredResourceTest,
+		"target_resource_that_depends_on_deferred_resource":       targetResourceThatDependsOnDeferredResourceTest,
+		"target_deferred_resource_triggers_dependencies":          targetDeferredResourceTriggersDependenciesTest,
+		"replace_deferred_resource":                               replaceDeferredResourceTest,
+		"custom_conditions":                                       customConditionsTest,
+		"custom_conditions_with_orphans":                          customConditionsWithOrphansTest,
+		"resource_read":                                           resourceReadTest,
+		"data_read":                                               readDataSourceTest,
+		"data_for_each":                                           dataForEachTest,
+		"data_count":                                              dataCountTest,
+		"plan_create_resource_change":                             planCreateResourceChange,
+		"plan_update_resource_change":                             planUpdateResourceChange,
+		"plan_noop_resource_change":                               planNoOpResourceChange,
+		"plan_replace_resource_change":                            planReplaceResourceChange,
+		"plan_force_replace_resource_change":                      planForceReplaceResourceChange,
+		"plan_delete_resource_change":                             planDeleteResourceChange,
+		"plan_destroy_resource_change":                            planDestroyResourceChange,
+		"import_deferred":                                         importDeferredTest,
+		"import_deferred_but_forbidden":                           importDeferredButForbiddenTest,
+		"resource_read_but_forbidden":                             resourceReadButForbiddenTest,
+		"data_read_but_forbidden":                                 readDataSourceButForbiddenTest,
+		"plan_destroy_resource_change_but_forbidden":              planDestroyResourceChangeButForbidden,
+		"module_deferred_for_each_value":                          moduleDeferredForEachValue,
+		"module_inner_resource_instance_deferred":                 moduleInnerResourceInstanceDeferred,
+		"unknown_import_id":                                       unknownImportId,
+		"unknown_import_defers_config_generation":                 unknownImportDefersConfigGeneration,
+		"unknown_import_to":                                       unknownImportTo,
+		"unknown_import_to_existing_state":                        unknownImportToExistingState,
+		"unknown_import_to_partial_existing_state":                unknownImportToPartialExistingState,
+		"unknown_import_reports_missing_configuration":            unknownImportReportsMissingConfiguration,
+		"data_source_depends_on_deferred_resource":                dataSourceDependsOnDeferredResource,
+		"data_source_depends_on_deferred_resource_during_refresh": dataSourceDependsOnDeferredResourceDuringRefresh,
+		"resource_references_deferred_data_source":                resourceReferencesDeferredDataSource,
+		"resource_references_unknown_and_deferred_data_source":    resourceReferencesUnknownAndDeferredDataSource,
+		"create_and_reference_resource_in_deferred_component":     createAndReferenceResourceInDeferredComponent,
+		"plan_create_external_deferral":                           planCreateExternalDeferral,
+		"plan_update_external_deferral":                           planUpdateExternalDeferral,
+		"plan_delete_external_deferral":                           planDeleteExternalDeferral,
+		"plan_delete_mode_external_deferral":                      planDeleteModeExternalDeferral,
+		"ephemeral_open_deferral":                                 ephemeralResourceOpenDeferral,
+		"ephemeral_open_deferral_dependencies":                    ephemeralResourceOpenDeferralWithDependency,
+		"ephemeral_open_deferral_expanded":                        ephemeralResourceOpenDeferralExpanded,
+		"ephemeral_open_deferral_provider_usage":                  ephemeralResourceOpenDeferralProviderUsage,
 	}
 
 	for name, test := range tests {
@@ -2347,10 +3483,12 @@ func TestContextApply_deferredActions(t *testing.T) {
 							changes: make(map[string]cty.Value),
 						},
 					}
+					other := simpleMockProvider()
 
 					ctx := testContext2(t, &ContextOpts{
 						Providers: map[addrs.Provider]providers.Factory{
-							addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider.Provider()),
+							addrs.NewDefaultProvider("test"):  testProviderFuncFixed(provider.Provider()),
+							addrs.NewDefaultProvider("other"): testProviderFuncFixed(other),
 						},
 					})
 
@@ -2375,9 +3513,16 @@ func TestContextApply_deferredActions(t *testing.T) {
 
 					var plan *plans.Plan
 					t.Run("plan", func(t *testing.T) {
-
 						var diags tfdiags.Diagnostics
-						plan, diags = ctx.Plan(cfg, state, opts)
+
+						// Validate is run by default for any plan from the CLI
+						diags = diags.Append(ctx.Validate(cfg, &ValidateOpts{}))
+						// Plan won't proceed if validate failed
+						if !diags.HasErrors() {
+							p, pDiags := ctx.Plan(cfg, state, opts)
+							diags = diags.Append(pDiags)
+							plan = p
+						}
 
 						if stage.wantDiagnostic == nil {
 							// We expect the correct planned changes and no diagnostics.
@@ -2388,7 +3533,7 @@ func TestContextApply_deferredActions(t *testing.T) {
 							}
 						} else {
 							if !stage.wantDiagnostic(diags) {
-								t.Fatalf("missing expected diagnostics: %s", diags)
+								t.Fatalf("missing expected diagnostics: %s", diags.ErrWithWarnings())
 							} else {
 								// We don't want to make any further assertions in this case.
 								// If diagnostics are expected it's valid that no plan may be returned.
@@ -2423,6 +3568,15 @@ func TestContextApply_deferredActions(t *testing.T) {
 							t.Errorf("wrong deferred reasons or actions in plan\n%s", diff)
 						}
 
+						// all the deferred changes should include a valid
+						// provider.
+						for _, change := range plan.DeferredResources {
+							if diff := cmp.Diff("provider[\"registry.terraform.io/hashicorp/test\"]", change.ChangeSrc.ProviderAddr.String()); diff != "" {
+								if otherDiff := cmp.Diff("provider[\"registry.terraform.io/hashicorp/other\"]", change.ChangeSrc.ProviderAddr.String()); otherDiff != "" {
+									t.Errorf("wrong provider address in plan\n, should be hashicorp/test or hashicorp/other %s", diff)
+								}
+							}
+						}
 					})
 
 					if stage.wantApplied == nil {
@@ -2436,6 +3590,10 @@ func TestContextApply_deferredActions(t *testing.T) {
 					}
 
 					t.Run("apply", func(t *testing.T) {
+						if plan == nil {
+							// if the previous step failed we won't know because it was another subtest
+							t.Fatal("cannot apply a nil plan")
+						}
 
 						updatedState, diags := ctx.Apply(plan, cfg, nil)
 
@@ -2534,6 +3692,26 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 								Type:     cty.String,
 								Required: true,
 							},
+							"output": {
+								Computed: true,
+								Type:     cty.String,
+							},
+						},
+					},
+				},
+			},
+			EphemeralResourceTypes: map[string]providers.Schema{
+				"test": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"name": {
+								Type:     cty.String,
+								Required: true,
+							},
+							"value": {
+								Type:     cty.String,
+								Computed: true,
+							},
 						},
 					},
 				},
@@ -2563,7 +3741,10 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 				}
 			}
 			return providers.ReadDataSourceResponse{
-				State: req.Config,
+				State: cty.ObjectVal(map[string]cty.Value{
+					"name":   req.Config.GetAttr("name"),
+					"output": req.Config.GetAttr("name"),
+				}),
 			}
 		},
 		PlanResourceChangeFn: func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
@@ -2647,6 +3828,24 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 					},
 				},
 			}
+		},
+		OpenEphemeralResourceFn: func(op providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
+			name := op.Config.GetAttr("name").AsString()
+
+			res := providers.OpenEphemeralResourceResponse{
+				Result: cty.ObjectVal(map[string]cty.Value{
+					"name":  cty.StringVal(name),
+					"value": cty.StringVal("ephemeral_value"),
+				}),
+			}
+
+			if name == "deferred_open" {
+				res.Deferred = &providers.Deferred{
+					Reason: providers.DeferredReasonProviderConfigUnknown,
+				}
+			}
+
+			return res
 		},
 	}
 }

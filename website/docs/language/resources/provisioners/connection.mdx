@@ -34,6 +34,19 @@ for some connection settings, so that `connection` blocks could sometimes be
 omitted. This feature was removed in 0.12 in order to make Terraform's behavior
 more predictable.
 
+### Ephemeral values
+
+-> **Note**: Ephemeral values are available in Terraform v1.10 and later.
+
+The configuration for a `connection` block may use ephemeral values, such as
+[`ephemeral` resources](/terraform/language/resources/ephemeral), [`ephemeral`
+local values](/terraform/language/values/locals#ephemeral-values), [`ephemeral`
+variables](/terraform/language/values/variables#ephemeral), or [`ephemeral`
+output
+values](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files).
+
+Terraform will not store these values in your plan or state, or output them in
+logs.
 
 ### Example usage
 
@@ -46,8 +59,8 @@ provisioner "file" {
   connection {
     type     = "ssh"
     user     = "root"
-    password = "${var.root_password}"
-    host     = "${var.host}"
+    password = var.root_password
+    host     = var.host
   }
 }
 
@@ -59,8 +72,8 @@ provisioner "file" {
   connection {
     type     = "winrm"
     user     = "Administrator"
-    password = "${var.admin_password}"
-    host     = "${var.host}"
+    password = var.admin_password
+    host     = var.host
   }
 }
 ```

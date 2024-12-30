@@ -81,7 +81,23 @@ func (provider *mockProvider) MoveResourceState(providers.MoveResourceStateReque
 	}
 }
 
+func (provider *mockProvider) ValidateEphemeralResourceConfig(providers.ValidateEphemeralResourceConfigRequest) providers.ValidateEphemeralResourceConfigResponse {
+	panic("not implemented in mock")
+}
+
 func (provider *mockProvider) ReadDataSource(providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) OpenEphemeralResource(providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) RenewEphemeralResource(providers.RenewEphemeralResourceRequest) providers.RenewEphemeralResourceResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) CloseEphemeralResource(providers.CloseEphemeralResourceRequest) providers.CloseEphemeralResourceResponse {
 	panic("not implemented in mock")
 }
 

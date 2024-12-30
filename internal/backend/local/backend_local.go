@@ -239,6 +239,7 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 		return nil, snap, diags
 	}
 	loader := configload.NewLoaderFromSnapshot(snap)
+	loader.AllowLanguageExperiments(op.ConfigLoader.AllowsLanguageExperiments())
 	config, configDiags := loader.LoadConfig(snap.Modules[""].Dir)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
@@ -404,9 +405,13 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 	}
 	for _, name := range needed {
 		vc := vcs[name]
+		query := fmt.Sprintf("var.%s", name)
+		if vc.Ephemeral {
+			query += " (ephemeral)"
+		}
 		rawValue, err := uiInput.Input(ctx, &terraform.InputOpts{
 			Id:          fmt.Sprintf("var.%s", name),
-			Query:       fmt.Sprintf("var.%s", name),
+			Query:       query,
 			Description: vc.Description,
 			Secret:      vc.Sensitive,
 		})

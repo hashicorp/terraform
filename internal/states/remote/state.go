@@ -5,6 +5,7 @@ package remote
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"sync"
@@ -59,7 +60,7 @@ func (s *State) State() *states.State {
 	return s.state.DeepCopy()
 }
 
-func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
+func (s *State) GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
 	if err := s.RefreshState(); err != nil {
 		return nil, fmt.Errorf("Failed to load state: %s", err)
 	}

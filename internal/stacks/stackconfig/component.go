@@ -11,7 +11,9 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -71,6 +73,11 @@ type Component struct {
 	// provider names.
 	ProviderConfigs map[addrs.LocalProviderConfig]hcl.Expression
 
+	// DependsOn forces a dependency between this resource and the list
+	// resources, allowing users to specify ordering of components without
+	// direct references.
+	DependsOn []hcl.Traversal
+
 	DeclRange tfdiags.SourceRange
 }
 
@@ -121,81 +128,13 @@ func decodeComponentBlock(block *hcl.Block) (*Component, tfdiags.Diagnostics) {
 		ret.Inputs = attr.Expr
 	}
 	if attr, ok := content.Attributes["providers"]; ok {
-		// This particular argument has some enforced static structure because
-		// it's populating an inflexible part of Terraform Core's input.
-		// This argument, if present, must always be an object constructor
-		// whose attributes are Terraform Core-style provider configuration
-		// addresses, but whose values are just arbitrary expressions for now
-		// and will be resolved into specific provider configuration addresses
-		// dynamically at runtime.
-		pairs, hclDiags := hcl.ExprMap(attr.Expr)
+		var providerDiags tfdiags.Diagnostics
+		ret.ProviderConfigs, providerDiags = decodeProvidersAttribute(attr)
+		diags = diags.Append(providerDiags)
+	}
+	if attr, exists := content.Attributes["depends_on"]; exists {
+		ret.DependsOn, hclDiags = configs.DecodeDependsOn(attr)
 		diags = diags.Append(hclDiags)
-		if !hclDiags.HasErrors() {
-			ret.ProviderConfigs = make(map[addrs.LocalProviderConfig]hcl.Expression, len(pairs))
-			for _, pair := range pairs {
-				insideAddrExpr := pair.Key
-				outsideAddrExpr := pair.Value
-
-				traversal, hclDiags := hcl.AbsTraversalForExpr(insideAddrExpr)
-				diags = diags.Append(hclDiags)
-				if hclDiags.HasErrors() {
-					continue
-				}
-
-				if len(traversal) < 1 || len(traversal) > 2 {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid provider configuration reference",
-						Detail:   "Each item in the providers argument requires a provider local name, optionally followed by a period and then a configuration alias, matching one of the provider configuration import slots declared by the component's root module.",
-						Subject:  insideAddrExpr.Range().Ptr(),
-					})
-					continue
-				}
-
-				localName := traversal.RootName()
-				if !hclsyntax.ValidIdentifier(localName) {
-					diags = diags.Append(invalidNameDiagnostic(
-						"Invalid provider local name",
-						traversal[0].SourceRange(),
-					))
-					continue
-				}
-
-				var alias string
-				if len(traversal) > 1 {
-					aliasStep, ok := traversal[1].(hcl.TraverseAttr)
-					if !ok {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Invalid provider configuration reference",
-							Detail:   "Provider local name must either stand alone or be followed by a period and then a configuration alias.",
-							Subject:  traversal[1].SourceRange().Ptr(),
-						})
-						continue
-					}
-					alias = aliasStep.Name
-				}
-
-				addr := addrs.LocalProviderConfig{
-					LocalName: localName,
-					Alias:     alias,
-				}
-				if existing, exists := ret.ProviderConfigs[addr]; exists {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Duplicate provider configuration assignment",
-						Detail: fmt.Sprintf(
-							"A provider configuration for %s was already assigned at %s.",
-							addr.StringCompact(), existing.Range().Ptr(),
-						),
-						Subject: outsideAddrExpr.Range().Ptr(),
-					})
-					continue
-				} else {
-					ret.ProviderConfigs[addr] = outsideAddrExpr
-				}
-			}
-		}
 	}
 
 	return ret, diags
@@ -270,6 +209,90 @@ func decodeSourceAddrArguments(sourceAttr, versionAttr *hcl.Attribute) (sourcead
 	return sourceAddr, versionConstraints, diags
 }
 
+func decodeProvidersAttribute(attr *hcl.Attribute) (map[addrs.LocalProviderConfig]hcl.Expression, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// This particular argument has some enforced static structure because
+	// it's populating an inflexible part of Terraform Core's input.
+	// This argument, if present, must always be an object constructor
+	// whose attributes are Terraform Core-style provider configuration
+	// addresses, but whose values are just arbitrary expressions for now
+	// and will be resolved into specific provider configuration addresses
+	// dynamically at runtime.
+	pairs, hclDiags := hcl.ExprMap(attr.Expr)
+	diags = diags.Append(hclDiags)
+	if hclDiags.HasErrors() {
+		return nil, diags
+	}
+
+	ret := map[addrs.LocalProviderConfig]hcl.Expression{}
+	for _, pair := range pairs {
+		insideAddrExpr := pair.Key
+		outsideAddrExpr := pair.Value
+
+		traversal, hclDiags := hcl.AbsTraversalForExpr(insideAddrExpr)
+		diags = diags.Append(hclDiags)
+		if hclDiags.HasErrors() {
+			continue
+		}
+
+		if len(traversal) < 1 || len(traversal) > 2 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid provider configuration reference",
+				Detail:   "Each item in the providers argument requires a provider local name, optionally followed by a period and then a configuration alias, matching one of the provider configuration import slots declared by the component's root module.",
+				Subject:  insideAddrExpr.Range().Ptr(),
+			})
+			continue
+		}
+
+		localName := traversal.RootName()
+		if !hclsyntax.ValidIdentifier(localName) {
+			diags = diags.Append(invalidNameDiagnostic(
+				"Invalid provider local name",
+				traversal[0].SourceRange(),
+			))
+			continue
+		}
+
+		var alias string
+		if len(traversal) > 1 {
+			aliasStep, ok := traversal[1].(hcl.TraverseAttr)
+			if !ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid provider configuration reference",
+					Detail:   "Provider local name must either stand alone or be followed by a period and then a configuration alias.",
+					Subject:  traversal[1].SourceRange().Ptr(),
+				})
+				continue
+			}
+			alias = aliasStep.Name
+		}
+
+		addr := addrs.LocalProviderConfig{
+			LocalName: localName,
+			Alias:     alias,
+		}
+		if existing, exists := ret[addr]; exists {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate provider configuration assignment",
+				Detail: fmt.Sprintf(
+					"A provider configuration for %s was already assigned at %s.",
+					addr.StringCompact(), existing.Range().Ptr(),
+				),
+				Subject: outsideAddrExpr.Range().Ptr(),
+			})
+			continue
+		} else {
+			ret[addr] = outsideAddrExpr
+		}
+	}
+
+	return ret, diags
+}
+
 var componentBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
 		{Name: "source", Required: true},
@@ -277,5 +300,6 @@ var componentBlockSchema = &hcl.BodySchema{
 		{Name: "for_each", Required: false},
 		{Name: "inputs", Required: false},
 		{Name: "providers", Required: false},
+		{Name: "depends_on", Required: false},
 	},
 }

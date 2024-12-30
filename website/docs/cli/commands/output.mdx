@@ -1,14 +1,12 @@
 ---
-page_title: 'Command: output'
+page_title: terraform output command referenece
 description: >-
-  The `terraform output` command is used to extract the value of an output
-  variable from the state file.
+  The `terraform output` command extracts the value of an output variable from the state file.
 ---
 
-# Command: output
+# `terraform output` command
 
-The `terraform output` command is used to extract the value of
-an output variable from the state file.
+The `terraform output` command extracts the value of an output variable from the state file.
 
 ## Usage
 
@@ -32,9 +30,8 @@ The command-line flags are all optional. The following flags are available:
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
   Ignored when [remote state](/terraform/language/state/remote) is used.
 
--> **Note:** When using the `-json` or `-raw` command-line flag, any sensitive
-values in Terraform state will be displayed in plain text. For more information,
-see [Sensitive Data in State](/terraform/language/state/sensitive-data).
+-> **Note:** When using the `-json` or `-raw` command-line flags, Terraform displays `sensitive` values in plain text. For more information,
+refer to [Sensitive data in state](/terraform/language/state/sensitive-data).
 
 ## Examples
 
@@ -51,7 +48,7 @@ output "lb_address" {
 
 output "password" {
   sensitive = true
-  value = var.secret_password
+  value     = var.secret_password
 }
 ```
 
@@ -68,12 +65,14 @@ lb_address = "my-app-alb-1657023003.us-east-1.elb.amazonaws.com"
 password = <sensitive>
 ```
 
-Note that outputs with the `sensitive` attribute will be redacted:
+Note that Terraform does not redact `sensitive` values when you specify the output by name:
 
 ```shellsession
 $ terraform output password
-password = <sensitive>
+password = notasecurepassword
 ```
+
+However, Terraform completely omits any `ephemeral` values, even if you specify an output by name. Ephemeral values are never stored in state or included in Terraform plans. For more information, refer to [Sensitive data in state](/terraform/language/state/sensitive-data).
 
 To query for the DNS address of the load balancer:
 

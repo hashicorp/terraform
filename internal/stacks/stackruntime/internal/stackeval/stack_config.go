@@ -7,12 +7,14 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -37,14 +39,18 @@ type StackConfig struct {
 	mu             sync.Mutex
 	children       map[stackaddrs.StackStep]*StackConfig
 	inputVariables map[stackaddrs.InputVariable]*InputVariableConfig
+	localValues    map[stackaddrs.LocalValue]*LocalValueConfig
 	outputValues   map[stackaddrs.OutputValue]*OutputValueConfig
 	stackCalls     map[stackaddrs.StackCall]*StackCallConfig
 	components     map[stackaddrs.Component]*ComponentConfig
+	removed        map[stackaddrs.Component]*RemovedConfig
 	providers      map[stackaddrs.ProviderConfig]*ProviderConfig
 }
 
-var _ ExpressionScope = (*StackConfig)(nil)
-var _ namedPromiseReporter = (*StackConfig)(nil)
+var (
+	_ ExpressionScope      = (*StackConfig)(nil)
+	_ namedPromiseReporter = (*StackConfig)(nil)
+)
 
 func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.ConfigNode) *StackConfig {
 	return &StackConfig{
@@ -54,9 +60,11 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.Confi
 
 		children:       make(map[stackaddrs.StackStep]*StackConfig, len(config.Children)),
 		inputVariables: make(map[stackaddrs.InputVariable]*InputVariableConfig, len(config.Stack.Declarations.InputVariables)),
+		localValues:    make(map[stackaddrs.LocalValue]*LocalValueConfig, len(config.Stack.Declarations.LocalValues)),
 		outputValues:   make(map[stackaddrs.OutputValue]*OutputValueConfig, len(config.Stack.Declarations.OutputValues)),
 		stackCalls:     make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
 		components:     make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
+		removed:        make(map[stackaddrs.Component]*RemovedConfig, len(config.Stack.Declarations.Removed)),
 		providers:      make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(config.Stack.Declarations.ProviderConfigs)),
 	}
 }
@@ -126,6 +134,20 @@ func (s *StackConfig) ChildConfigs(ctx context.Context) map[stackaddrs.StackStep
 	return ret
 }
 
+// InputVariables returns a map of the objects representing all of the
+// input variables declared inside this stack configuration.
+func (s *StackConfig) InputVariables(ctx context.Context) map[stackaddrs.InputVariable]*InputVariableConfig {
+	if len(s.config.Stack.InputVariables) == 0 {
+		return nil
+	}
+	ret := make(map[stackaddrs.InputVariable]*InputVariableConfig, len(s.config.Stack.InputVariables))
+	for name := range s.config.Stack.InputVariables {
+		addr := stackaddrs.InputVariable{Name: name}
+		ret[addr] = s.InputVariable(ctx, addr)
+	}
+	return ret
+}
+
 // InputVariable returns an [InputVariableConfig] representing the input
 // variable declared within this stack config that matches the given
 // address, or nil if there is no such declaration.
@@ -147,15 +169,35 @@ func (s *StackConfig) InputVariable(ctx context.Context, addr stackaddrs.InputVa
 }
 
 // InputVariables returns a map of the objects representing all of the
-// input variables declared inside this stack configuration.
-func (s *StackConfig) InputVariables(ctx context.Context) map[stackaddrs.InputVariable]*InputVariableConfig {
-	if len(s.config.Stack.InputVariables) == 0 {
+// local values declared inside this stack configuration.
+func (s *StackConfig) LocalValues(ctx context.Context) map[stackaddrs.LocalValue]*LocalValueConfig {
+	if len(s.config.Stack.LocalValues) == 0 {
 		return nil
 	}
-	ret := make(map[stackaddrs.InputVariable]*InputVariableConfig, len(s.config.Stack.InputVariables))
-	for name := range s.config.Stack.InputVariables {
-		addr := stackaddrs.InputVariable{Name: name}
-		ret[addr] = s.InputVariable(ctx, addr)
+	ret := make(map[stackaddrs.LocalValue]*LocalValueConfig, len(s.config.Stack.LocalValues))
+	for name := range s.config.Stack.LocalValues {
+		addr := stackaddrs.LocalValue{Name: name}
+		ret[addr] = s.LocalValue(ctx, addr)
+	}
+	return ret
+}
+
+// LocalValue returns an [LocalValueConfig] representing the input
+// variable declared within this stack config that matches the given
+// address, or nil if there is no such declaration.
+func (s *StackConfig) LocalValue(_ context.Context, addr stackaddrs.LocalValue) *LocalValueConfig {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	ret, ok := s.localValues[addr]
+	if !ok {
+		cfg, ok := s.config.Stack.LocalValues[addr.Name]
+		if !ok {
+			return nil
+		}
+		cfgAddr := stackaddrs.Config(s.Addr(), addr)
+		ret = newLocalValueConfig(s.main, cfgAddr, cfg)
+		s.localValues[addr] = ret
 	}
 	return ret
 }
@@ -306,6 +348,16 @@ func (s *StackConfig) ProviderLocalName(ctx context.Context, addr addrs.Provider
 	return s.config.Stack.RequiredProviders.LocalNameForProvider(addr)
 }
 
+// ProviderForLocalName returns the provider for the given local name in this
+// particular stack configuration, based on the declarations in the
+// required_providers configuration block.
+//
+// If the second return value is false then there is no provider declared
+// for the given local name, and so the first return value is invalid.
+func (s *StackConfig) ProviderForLocalName(ctx context.Context, localName string) (addrs.Provider, bool) {
+	return s.config.Stack.RequiredProviders.ProviderForLocalName(localName)
+}
+
 // StackCall returns a [StackCallConfig] representing the "stack" block
 // matching the given address declared within this stack config, or nil if
 // there is no such declaration.
@@ -374,6 +426,40 @@ func (s *StackConfig) Components(ctx context.Context) map[stackaddrs.Component]*
 	return ret
 }
 
+// Removed returns a [RemovedConfig] representing the component call
+// declared within this stack config that matches the given address, or nil if
+// there is no such declaration.
+func (s *StackConfig) Removed(ctx context.Context, addr stackaddrs.Component) *RemovedConfig {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	ret, ok := s.removed[addr]
+	if !ok {
+		cfg, ok := s.config.Stack.Removed[addr.Name]
+		if !ok {
+			return nil
+		}
+		cfgAddr := stackaddrs.Config(s.Addr(), addr)
+		ret = newRemovedConfig(s.main, cfgAddr, cfg)
+		s.removed[addr] = ret
+	}
+	return ret
+}
+
+// Removeds returns a map of the objects representing all of the
+// removed calls declared inside this stack configuration.
+func (s *StackConfig) Removeds(ctx context.Context) map[stackaddrs.Component]*RemovedConfig {
+	if len(s.config.Stack.Removed) == 0 {
+		return nil
+	}
+	ret := make(map[stackaddrs.Component]*RemovedConfig, len(s.config.Stack.Removed))
+	for name := range s.config.Stack.Removed {
+		addr := stackaddrs.Component{Name: name}
+		ret[addr] = s.Removed(ctx, addr)
+	}
+	return ret
+}
+
 // ResolveExpressionReference implements ExpressionScope, providing the
 // global scope for evaluation within an unexpanded stack during the validate
 // phase.
@@ -384,7 +470,12 @@ func (s *StackConfig) ResolveExpressionReference(ctx context.Context, ref stacka
 // resolveExpressionReference is the shared implementation of various
 // validation-time ResolveExpressionReference methods, factoring out all
 // of the common parts into one place.
-func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stackaddrs.Reference, selfAddr stackaddrs.Referenceable, repetition instances.RepetitionData) (Referenceable, tfdiags.Diagnostics) {
+func (s *StackConfig) resolveExpressionReference(
+	ctx context.Context,
+	ref stackaddrs.Reference,
+	selfAddr stackaddrs.Referenceable,
+	repetition instances.RepetitionData,
+) (Referenceable, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// "Test-only globals" is a special affordance we have only when running
@@ -410,6 +501,18 @@ func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stacka
 			return nil, diags
 		}
 		return ret, diags
+	case stackaddrs.LocalValue:
+		ret := s.LocalValue(ctx, addr)
+		if ret == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reference to undeclared local value",
+				Detail:   fmt.Sprintf("There is no local %q declared in this stack.", addr.Name),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+			return nil, diags
+		}
+		return ret, diags
 	case stackaddrs.Component:
 		ret := s.Component(ctx, addr)
 		if ret == nil {
@@ -428,7 +531,7 @@ func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stacka
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Reference to undeclared embedded stack",
-				Detail:   fmt.Sprintf("There is no stack %q block declared this stack.", addr.Name),
+				Detail:   fmt.Sprintf("There is no stack %q block declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return nil, diags
@@ -440,7 +543,7 @@ func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stacka
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Reference to undeclared provider configuration",
-				Detail:   fmt.Sprintf("There is no provider %q %q block declared this stack.", addr.ProviderLocalName, addr.Name),
+				Detail:   fmt.Sprintf("There is no provider %q %q block declared in this stack.", addr.ProviderLocalName, addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return nil, diags
@@ -511,6 +614,17 @@ func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stacka
 	}
 }
 
+// ExternalFunctions implements ExpressionScope.
+func (s *StackConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
+	return s.main.ProviderFunctions(ctx, s)
+}
+
+// PlanTimestamp implements ExpressionScope, providing the timestamp at which
+// the current plan is being run.
+func (s *StackConfig) PlanTimestamp() time.Time {
+	return s.main.PlanTimestamp()
+}
+
 // reportNamedPromises implements namedPromiseReporter.
 func (s *StackConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
 	s.mu.Lock()
@@ -526,6 +640,12 @@ func (s *StackConfig) reportNamedPromises(cb func(id promising.PromiseID, name s
 		child.reportNamedPromises(cb)
 	}
 	for _, child := range s.stackCalls {
+		child.reportNamedPromises(cb)
+	}
+	for _, child := range s.components {
+		child.reportNamedPromises(cb)
+	}
+	for _, child := range s.providers {
 		child.reportNamedPromises(cb)
 	}
 }

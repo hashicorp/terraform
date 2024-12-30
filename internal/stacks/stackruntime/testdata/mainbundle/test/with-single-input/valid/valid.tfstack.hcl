@@ -11,6 +11,11 @@ variable "input" {
   type = string
 }
 
+variable "id" {
+  type = string
+  default = null
+}
+
 component "self" {
   source = "../"
 
@@ -19,6 +24,7 @@ component "self" {
   }
 
   inputs = {
+    id = var.id
     input = var.input
   }
 }

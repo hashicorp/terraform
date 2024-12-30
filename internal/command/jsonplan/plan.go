@@ -153,7 +153,7 @@ type Change struct {
 	// during planning as a string.
 	//
 	// If this is populated, then Importing should also be populated but this
-	// might change in the future. However, nNot all Importing changes will
+	// might change in the future. However, not all Importing changes will
 	// contain generated config.
 	GeneratedConfig string `json:"generated_config,omitempty"`
 }
@@ -163,6 +163,11 @@ type Importing struct {
 	// The original ID of this resource used to target it as part of planned
 	// import operation.
 	ID string `json:"id,omitempty"`
+
+	// Unknown indicates the ID was unknown at the time of planning. This
+	// would have led to the overall change being deferred, as such this should
+	// only be true when processing changes from the deferred changes list.
+	Unknown bool `json:"unknown,omitempty"`
 }
 
 type output struct {
@@ -287,7 +292,7 @@ func Marshal(
 	}
 
 	if p.DeferredResources != nil {
-		output.DeferredChanges, err = marshalDeferredResourceChanges(p.DeferredResources, schemas)
+		output.DeferredChanges, err = MarshalDeferredResourceChanges(p.DeferredResources, schemas)
 		if err != nil {
 			return nil, fmt.Errorf("error in marshaling deferred resource changes: %s", err)
 		}
@@ -493,7 +498,11 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 
 	var importing *Importing
 	if rc.Importing != nil {
-		importing = &Importing{ID: rc.Importing.ID}
+		if rc.Importing.Unknown {
+			importing = &Importing{Unknown: true}
+		} else {
+			importing = &Importing{ID: rc.Importing.ID}
+		}
 	}
 
 	r.Change = Change{
@@ -514,9 +523,14 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 
 	key := addr.Resource.Key
 	if key != nil {
-		value := key.Value()
-		if r.Index, err = ctyjson.Marshal(value, value.Type()); err != nil {
-			return r, err
+		if key == addrs.WildcardKey {
+			// The wildcard key should only be set for a deferred instance.
+			r.IndexUnknown = true
+		} else {
+			value := key.Value()
+			if r.Index, err = ctyjson.Marshal(value, value.Type()); err != nil {
+				return r, err
+			}
 		}
 	}
 
@@ -569,10 +583,11 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 	return r, nil
 }
 
-// marshalDeferredResourceChanges converts the provided internal representation
+// MarshalDeferredResourceChanges converts the provided internal representation
 // of DeferredResourceInstanceChangeSrc objects into the public structured JSON
 // changes.
-func marshalDeferredResourceChanges(resources []*plans.DeferredResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]DeferredResourceChange, error) {
+// This is public to make testing easier.
+func MarshalDeferredResourceChanges(resources []*plans.DeferredResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]DeferredResourceChange, error) {
 	var ret []DeferredResourceChange
 
 	var sortedResources []*plans.DeferredResourceInstanceChangeSrc
@@ -625,7 +640,7 @@ func marshalDeferredResourceChanges(resources []*plans.DeferredResourceInstanceC
 // This function is referenced directly from the structured renderer tests, to
 // ensure parity between the renderers. It probably shouldn't be used anywhere
 // else.
-func MarshalOutputChanges(changes *plans.Changes) (map[string]Change, error) {
+func MarshalOutputChanges(changes *plans.ChangesSrc) (map[string]Change, error) {
 	if changes == nil {
 		// Nothing to do!
 		return nil, nil
@@ -715,7 +730,7 @@ func MarshalOutputChanges(changes *plans.Changes) (map[string]Change, error) {
 	return outputChanges, nil
 }
 
-func (p *plan) marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) error {
+func (p *plan) marshalPlannedValues(changes *plans.ChangesSrc, schemas *terraform.Schemas) error {
 	// marshal the planned changes into a module
 	plan, err := marshalPlannedValues(changes, schemas)
 	if err != nil {
@@ -743,6 +758,15 @@ func (p *plan) marshalRelevantAttrs(plan *plans.Plan) error {
 
 		p.RelevantAttributes = append(p.RelevantAttributes, ResourceAttr{addr, path})
 	}
+
+	// we want our outputs to be deterministic, so we'll sort the attributes
+	// here. The order of the attributes is not important, as long as it is
+	// stable.
+
+	sort.SliceStable(p.RelevantAttributes, func(i, j int) bool {
+		return strings.Compare(fmt.Sprintf("%#v", plan.RelevantAttributes[i]), fmt.Sprintf("%#v", plan.RelevantAttributes[j])) < 0
+	})
+
 	return nil
 }
 

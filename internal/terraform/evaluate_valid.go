@@ -41,7 +41,7 @@ func (e *Evaluator) StaticValidateReferences(refs []*addrs.Reference, modAddr ad
 }
 
 func (e *Evaluator) StaticValidateReference(ref *addrs.Reference, modAddr addrs.Module, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
-	modCfg := e.Config.Descendent(modAddr)
+	modCfg := e.Config.Descendant(modAddr)
 	if modCfg == nil {
 		// This is a bug in the caller rather than a problem with the
 		// reference, but rather than crashing out here in an unhelpful way
@@ -197,11 +197,15 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 	var diags tfdiags.Diagnostics
 
 	var modeAdjective string
+	modeArticleUpper := "A"
 	switch addr.Mode {
 	case addrs.ManagedResourceMode:
 		modeAdjective = "managed"
 	case addrs.DataResourceMode:
 		modeAdjective = "data"
+	case addrs.EphemeralResourceMode:
+		modeAdjective = "ephemeral"
+		modeArticleUpper = "An"
 	default:
 		// should never happen
 		modeAdjective = "<invalid-mode>"
@@ -223,8 +227,14 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Reference to undeclared resource`,
-			Detail:   fmt.Sprintf(`A %s resource %q %q has not been declared in %s.%s`, modeAdjective, addr.Type, addr.Name, moduleConfigDisplayAddr(modCfg.Path), suggestion),
-			Subject:  rng.ToHCL().Ptr(),
+			Detail: fmt.Sprintf(
+				`%s %s resource %q %q has not been declared in %s.%s`,
+				modeArticleUpper, modeAdjective,
+				addr.Type, addr.Name,
+				moduleConfigDisplayAddr(modCfg.Path),
+				suggestion,
+			),
+			Subject: rng.ToHCL().Ptr(),
 		})
 		return diags
 	}
@@ -259,8 +269,13 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Invalid resource type`,
-			Detail:   fmt.Sprintf(`A %s resource type %q is not supported by provider %q.`, modeAdjective, addr.Type, providerFqn.String()),
-			Subject:  rng.ToHCL().Ptr(),
+			Detail: fmt.Sprintf(
+				`%s %s resource type %q is not supported by provider %q.`,
+				modeArticleUpper, modeAdjective,
+				addr.Type,
+				providerFqn.String(),
+			),
+			Subject: rng.ToHCL().Ptr(),
 		})
 		return diags
 	}

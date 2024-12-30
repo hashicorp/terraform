@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -43,15 +44,18 @@ type nodeExpandOutput struct {
 	// may need to override the value for this output and if we do the value
 	// comes from here.
 	Overrides *mocking.Overrides
+
+	Dependencies []addrs.ConfigResource
 }
 
 var (
-	_ GraphNodeReferenceable     = (*nodeExpandOutput)(nil)
-	_ GraphNodeReferencer        = (*nodeExpandOutput)(nil)
-	_ GraphNodeReferenceOutside  = (*nodeExpandOutput)(nil)
-	_ GraphNodeDynamicExpandable = (*nodeExpandOutput)(nil)
-	_ graphNodeTemporaryValue    = (*nodeExpandOutput)(nil)
-	_ graphNodeExpandsInstances  = (*nodeExpandOutput)(nil)
+	_ GraphNodeReferenceable      = (*nodeExpandOutput)(nil)
+	_ GraphNodeReferencer         = (*nodeExpandOutput)(nil)
+	_ GraphNodeReferenceOutside   = (*nodeExpandOutput)(nil)
+	_ GraphNodeDynamicExpandable  = (*nodeExpandOutput)(nil)
+	_ graphNodeTemporaryValue     = (*nodeExpandOutput)(nil)
+	_ GraphNodeAttachDependencies = (*nodeExpandOutput)(nil)
+	_ graphNodeExpandsInstances   = (*nodeExpandOutput)(nil)
 )
 
 func (n *nodeExpandOutput) expandsInstances() {}
@@ -59,6 +63,11 @@ func (n *nodeExpandOutput) expandsInstances() {}
 func (n *nodeExpandOutput) temporaryValue() bool {
 	// non root outputs are temporary
 	return !n.Module.IsRoot()
+}
+
+// GraphNodeAttachDependencies
+func (n *nodeExpandOutput) AttachDependencies(resources []addrs.ConfigResource) {
+	n.Dependencies = resources
 }
 
 func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
@@ -94,8 +103,8 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 			}
 
 			// Find any recorded change for this output
-			var change *plans.OutputChangeSrc
-			var outputChanges []*plans.OutputChangeSrc
+			var change *plans.OutputChange
+			var outputChanges []*plans.OutputChange
 			if module.IsRoot() {
 				outputChanges = changes.GetRootOutputChanges()
 			} else {
@@ -126,6 +135,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 					DestroyApply: n.Destroying,
 					Planning:     n.Planning,
 					Override:     n.getOverrideValue(absAddr.Module),
+					Dependencies: n.Dependencies,
 				}
 			}
 
@@ -254,7 +264,7 @@ type NodeApplyableOutput struct {
 	Addr   addrs.AbsOutputValue
 	Config *configs.Output // Config is the output in the config
 	// If this is being evaluated during apply, we may have a change recorded already
-	Change *plans.OutputChangeSrc
+	Change *plans.OutputChange
 
 	// Refresh-only mode means that any failing output preconditions are
 	// reported as warnings rather than errors
@@ -269,6 +279,10 @@ type NodeApplyableOutput struct {
 	// Override provides the value to use for this output, if any. This can be
 	// set by testing framework when a module is overridden.
 	Override cty.Value
+
+	// Dependencies is the full set of resources that are referenced by this
+	// output.
+	Dependencies []addrs.ConfigResource
 }
 
 var (
@@ -377,11 +391,17 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 	// we we have a change recorded, we don't need to re-evaluate if the value
 	// was known
 	if changeRecorded {
-		change, err := n.Change.Decode()
-		diags = diags.Append(err)
-		if err == nil {
-			val = change.After
-		}
+		val = n.Change.After
+	}
+
+	if n.Addr.Module.IsRoot() && n.Config.Ephemeral {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Ephemeral output not allowed",
+			Detail:   "Ephemeral outputs are not allowed in context of a root module",
+			Subject:  n.Config.DeclRange.Ptr(),
+		})
+		return
 	}
 
 	// Checks are not evaluated during a destroy. The checks may fail, may not
@@ -451,7 +471,7 @@ If you do intend to export this data, annotate the output value as sensitive by 
 			// if we're continuing, make sure the output is included, and
 			// marked as unknown. If the evaluator was able to find a type
 			// for the value in spite of the error then we'll use it.
-			n.setValue(ctx.NamedValues(), state, changes, cty.UnknownVal(val.Type()))
+			n.setValue(ctx.NamedValues(), state, changes, ctx.Deferrals(), cty.UnknownVal(val.Type()))
 
 			// Keep existing warnings, while converting errors to warnings.
 			// This is not meant to be the normal path, so there no need to
@@ -471,13 +491,39 @@ If you do intend to export this data, annotate the output value as sensitive by 
 		}
 		return diags
 	}
-	n.setValue(ctx.NamedValues(), state, changes, val)
+
+	// The checks below this point are intentionally not opted out by
+	// "flagWarnOutputErrors", because they relate to features that were added
+	// more recently than the historical change to treat invalid output values
+	// as errors rather than warnings.
+	if n.Config.Ephemeral && !marks.Has(val, marks.Ephemeral) {
+		// An ephemeral output value must always be ephemeral
+		// This is to prevent accidental persistence upstream
+		// from here.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Value not allowed in ephemeral output",
+			Detail:   "This output value is declared as returning an ephemeral value, so it can only be set to an ephemeral value.",
+			Subject:  n.Config.Expr.Range().Ptr(),
+		})
+		return diags
+	} else if !n.Config.Ephemeral && marks.Contains(val, marks.Ephemeral) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Ephemeral value not allowed",
+			Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
+			Subject:  n.Config.Expr.Range().Ptr(),
+		})
+		return diags
+	}
+
+	n.setValue(ctx.NamedValues(), state, changes, ctx.Deferrals(), val)
 
 	// If we were able to evaluate a new value, we can update that in the
 	// refreshed state as well.
 	if state = ctx.RefreshState(); state != nil && val.IsWhollyKnown() {
 		// we only need to update the state, do not pass in the changes again
-		n.setValue(nil, state, nil, val)
+		n.setValue(nil, state, nil, ctx.Deferrals(), val)
 	}
 
 	return diags
@@ -614,18 +660,11 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 			},
 		}
 
-		cs, err := change.Encode()
-		if err != nil {
-			// Should never happen, since we just constructed this right above
-			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
-		}
-		log.Printf("[TRACE] NodeDestroyableOutput: Saving %s change for %s in changeset", change.Action, n.Addr)
-
 		changes.RemoveOutputChange(n.Addr) // remove any existing planned change, if present
-		changes.AppendOutputChange(cs)     // add the new planned change
+		changes.AppendOutputChange(change) // add the new planned change
 	}
-
 	state.RemoveOutputValue(n.Addr)
+
 	return nil
 }
 
@@ -640,7 +679,7 @@ func (n *NodeDestroyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.Dot
 	}
 }
 
-func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states.SyncState, changes *plans.ChangesSync, val cty.Value) {
+func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states.SyncState, changes *plans.ChangesSync, deferred *deferring.Deferred, val cty.Value) {
 	if changes != nil && n.Planning {
 		// if this is a root module, try to get a before value from the state for
 		// the diff
@@ -694,23 +733,21 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 			action = plans.NoOp
 		}
 
-		change := &plans.OutputChange{
-			Addr:      n.Addr,
-			Sensitive: sensitiveChange,
-			Change: plans.Change{
-				Action: action,
-				Before: before,
-				After:  val,
-			},
-		}
+		// Non-ephemeral output values get their changes recorded in the plan
+		if !n.Config.Ephemeral {
+			change := &plans.OutputChange{
+				Addr:      n.Addr,
+				Sensitive: sensitiveChange,
+				Change: plans.Change{
+					Action: action,
+					Before: before,
+					After:  val,
+				},
+			}
 
-		cs, err := change.Encode()
-		if err != nil {
-			// Should never happen, since we just constructed this right above
-			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
+			log.Printf("[TRACE] setValue: Saving %s change for %s in changeset", change.Action, n.Addr)
+			changes.AppendOutputChange(change) // add the new planned change
 		}
-		log.Printf("[TRACE] setValue: Saving %s change for %s in changeset", change.Action, n.Addr)
-		changes.AppendOutputChange(cs) // add the new planned change
 	}
 
 	if changes != nil && !n.Planning {
@@ -732,19 +769,34 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 	// with a different state, since we only have one namedVals regardless
 	// of how many states are involved in an operation.
 	if namedVals != nil {
-		namedVals.SetOutputValue(n.Addr, val)
+		saveVal := val
+		if n.Config.Ephemeral {
+			// Downstream uses of this output value must propagate the
+			// ephemerality.
+			saveVal = saveVal.Mark(marks.Ephemeral)
+		}
+		namedVals.SetOutputValue(n.Addr, saveVal)
 	}
 
-	// The state itself doesn't represent unknown values, so we null them
-	// out here and then we'll save the real unknown value in the planned
-	// changeset, if we have one on this graph walk.
-	log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
-	// non-root outputs need to keep sensitive marks for evaluation, but are
-	// not serialized.
-	if n.Addr.Module.IsRoot() {
-		val, _ = val.UnmarkDeep()
-		val = cty.UnknownAsNull(val)
+	// Non-ephemeral output values get saved in the state too
+	if !n.Config.Ephemeral {
+		// The state itself doesn't represent unknown values, so we null them
+		// out here and then we'll save the real unknown value in the planned
+		// changeset, if we have one on this graph walk.
+		log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
+		// non-root outputs need to keep sensitive marks for evaluation, but are
+		// not serialized.
+		if n.Addr.Module.IsRoot() {
+			val, _ = val.UnmarkDeep()
+			if deferred.DependenciesDeferred(n.Dependencies) {
+				// If the output is from deferred resources then we return a
+				// simple null value representing that the value is really
+				// unknown as the dependencies were not properly computed.
+				val = cty.NullVal(val.Type())
+			} else {
+				val = cty.UnknownAsNull(val)
+			}
+		}
 	}
-
 	state.SetOutputValue(n.Addr, val, n.Config.Sensitive)
 }

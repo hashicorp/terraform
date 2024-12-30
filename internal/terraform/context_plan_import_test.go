@@ -59,6 +59,11 @@ import {
 		},
 	}
 
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -150,6 +155,11 @@ import {
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -216,6 +226,11 @@ import {
 		},
 	}
 
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -280,6 +295,11 @@ import {
 				}),
 			},
 		},
+	}
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
@@ -358,7 +378,12 @@ import {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
 		ForceReplace: []addrs.AbsResourceInstance{
 			addr,
@@ -410,7 +435,13 @@ import {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	// while the counts are static, the indexes are not fully evaluated during validation
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if !diags.HasErrors() {
 		t.Fatalf("expected error but got none")
 	}
@@ -436,7 +467,12 @@ func TestContext2Plan_importIdVariable(t *testing.T) {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), &PlanOpts{
 		SetVariables: InputValues{
 			"the_id": &InputValue{
 				// let var take its default value
@@ -469,7 +505,12 @@ func TestContext2Plan_importIdFunc(t *testing.T) {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -532,7 +573,12 @@ func TestContext2Plan_importIdDataSource(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -570,7 +616,12 @@ func TestContext2Plan_importIdModule(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -585,7 +636,13 @@ func TestContext2Plan_importIdInvalidNull(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	// input variables are not evaluated during validation
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), &PlanOpts{
 		SetVariables: InputValues{
 			"the_id": &InputValue{
 				Value: cty.NullVal(cty.String),
@@ -662,12 +719,96 @@ func TestContext2Plan_importIdInvalidUnknown(t *testing.T) {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
 	if got, want := diags.Err().Error(), `The import block "id" argument depends on resource attributes that cannot be determined until apply`; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Plan_generateConfigWithNestedId(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  to = test_object.a
+  id = "foo"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+
+	p.GetProviderSchemaResponse.ResourceTypes = map[string]providers.Schema{
+		"test_object": {
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"test_id": {
+						Type:     cty.String,
+						Required: true,
+					},
+					"list_val": {
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"id": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_id": cty.StringVal("foo"),
+			"list_val": cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("list_id"),
+				}),
+			}),
+		}),
+	}
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_id": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	// Actual plan doesn't matter, just want to make sure there are no errors.
+	_, diags = ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
 }
 
@@ -717,15 +858,9 @@ resource "test_object" "a" {
 		},
 	}
 
-	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
-		ImportedResources: []providers.ImportedResource{
-			{
-				TypeName: "test_object",
-				State: cty.ObjectVal(map[string]cty.Value{
-					"test_string": cty.StringVal("foo"),
-				}),
-			},
-		},
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
@@ -786,6 +921,11 @@ import {
 				}),
 			},
 		},
+	}
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
@@ -870,6 +1010,11 @@ import {
 		},
 	}
 
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode:               plans.NormalMode,
 		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
@@ -947,10 +1092,7 @@ import {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
-		Mode:               plans.NormalMode,
-		GenerateConfigPath: "generated.tf",
-	})
+	diags := ctx.Validate(m, &ValidateOpts{})
 	if !diags.HasErrors() {
 		t.Fatalf("expected plan to error, but it did not")
 	}
@@ -1063,6 +1205,11 @@ import {
 				}),
 			},
 		},
+	}
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
 
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
@@ -1178,6 +1325,11 @@ resource "test_object" "a" {
 		},
 	}
 
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -1276,6 +1428,11 @@ import {
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
 
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	if diags.HasErrors() {
@@ -1377,6 +1534,11 @@ import {
 		},
 	}
 
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -1426,16 +1588,9 @@ import {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
-		Mode:               plans.NormalMode,
-		GenerateConfigPath: "generated.tf",
-	})
-	if diags.HasErrors() {
-		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
-	}
-
-	if len(plan.Changes.Resources) != 0 {
-		t.Fatal("expected no resource changes")
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if !diags.HasErrors() {
+		t.Fatal("expected errors, got none")
 	}
 }
 
@@ -1492,12 +1647,246 @@ import {
 		},
 	})
 
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
 	// Just don't crash!
-	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	_, diags = ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode:               plans.NormalMode,
 		GenerateConfigPath: "generated.tf",
 	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+}
+
+func TestContext2Plan_importDuringDestroy(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+	resource "test_object" "a" {
+	  test_string = "foo"
+	}
+
+	import {
+	  to   = test_object.a
+	  id   = "missing"
+	}
+
+	resource "test_object" "b" {
+		test_string = "foo"
+	  }
+	`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+		// this resource has already been deleted, so return nothing during refresh
+		if req.PriorState.GetAttr("test_string").AsString() == "missing" {
+			resp.NewState = cty.NullVal(req.PriorState.Type())
+			return resp
+		}
+
+		resp.NewState = req.PriorState
+		return resp
+	}
+
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("missing"),
+				}),
+			},
+		},
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.b").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+}
+
+func TestContext2Plan_importSelfReference(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  to = test_object.a
+  id = test_object.a.test_string
+}
+
+resource "test_object" "a" {
+  test_string = "foo"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			// The providers never actually going to get called here, we should
+			// catch the error long before anything happens.
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+
+	// We're expecting exactly one diag, which is the self-reference error.
+	if len(diags) != 1 {
+		t.Fatalf("expected one diag, got %d: %s", len(diags), diags.ErrWithWarnings())
+	}
+
+	got, want := diags.Err().Error(), "Invalid import id argument: The import ID cannot reference the resource being imported."
+	if cmp.Diff(want, got) != "" {
+		t.Fatalf("unexpected error\n%s", cmp.Diff(want, got))
+	}
+}
+
+func TestContext2Plan_importSelfReferenceInstanceRef(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  to = test_object.a
+  id = test_object.a[0].test_string
+}
+
+resource "test_object" "a" {
+  count = 1
+  test_string = "foo"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			// The providers never actually going to get called here, we should
+			// catch the error long before anything happens.
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+
+	// We're expecting exactly one diag, which is the self-reference error.
+	if len(diags) != 1 {
+		t.Fatalf("expected one diag, got %d: %s", len(diags), diags.ErrWithWarnings())
+	}
+
+	got, want := diags.Err().Error(), "Invalid import id argument: The import ID cannot reference the resource being imported."
+	if cmp.Diff(want, got) != "" {
+		t.Fatalf("unexpected error\n%s", cmp.Diff(want, got))
+	}
+}
+
+func TestContext2Plan_importSelfReferenceInst(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  to = test_object.a[0]
+  id = test_object.a.test_string
+}
+
+resource "test_object" "a" {
+  count = 1
+  test_string = "foo"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			// The providers never actually going to get called here, we should
+			// catch the error long before anything happens.
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+
+	// We're expecting exactly one diag, which is the self-reference error.
+	if len(diags) != 1 {
+		t.Fatalf("expected one diag, got %d: %s", len(diags), diags.ErrWithWarnings())
+	}
+
+	got, want := diags.Err().Error(), "Invalid import id argument: The import ID cannot reference the resource being imported."
+	if cmp.Diff(want, got) != "" {
+		t.Fatalf("unexpected error\n%s", cmp.Diff(want, got))
+	}
+}
+
+func TestContext2Plan_importSelfReferenceInModule(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  to = module.mod.test_object.a
+  id = module.mod.foo
+}
+
+module "mod" {
+  source = "./mod"
+}
+`,
+		"mod/main.tf": `
+resource "test_object" "a" {
+  test_string = "foo"
+}
+
+output "foo" {
+  value = test_object.a.test_string
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			// The providers never actually going to get called here, we should
+			// catch the error long before anything happens.
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+
+	// We're expecting exactly one diag, which is the self-reference error.
+	if len(diags) != 1 {
+		t.Fatalf("expected one diag, got %d: %s", len(diags), diags.ErrWithWarnings())
+	}
+
+	// Terraform detects this case as a cycle, and the order of rendering the
+	// cycle if non-deterministic, so we can't do a straight string match.
+
+	got := diags.Err().Error()
+	if !strings.Contains(got, "Cycle:") {
+		t.Errorf("should have reported a cycle error, but got %s", got)
+	}
+	if !strings.Contains(got, "module.mod.output.foo") {
+		t.Errorf("should have reported the cycle to contain the module output, but got %s", got)
+	}
+	if !strings.Contains(got, "module.mod.test_object.a") {
+		t.Errorf("should have reported the cycle to contain the target resource, but got %s", got)
 	}
 }

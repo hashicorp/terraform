@@ -87,13 +87,13 @@ func TestModuleString(t *testing.T) {
 func BenchmarkModuleStringShort(b *testing.B) {
 	module := Module{"a", "b"}
 	for n := 0; n < b.N; n++ {
-		module.String()
+		_ = module.String()
 	}
 }
 
 func BenchmarkModuleStringLong(b *testing.B) {
 	module := Module{"southamerica-brazil-region", "user-regional-desktop", "user-name"}
 	for n := 0; n < b.N; n++ {
-		module.String()
+		_ = module.String()
 	}
 }

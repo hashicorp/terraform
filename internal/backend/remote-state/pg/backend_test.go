@@ -95,7 +95,7 @@ func TestBackendConfig(t *testing.T) {
 				"conn_str":    connStr,
 				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
 			},
-			ExpectConnectionError: `role "baduser" does not exist`,
+			ExpectConnectionError: `password authentication failed for user "baduser"`,
 		},
 		{
 			Name: "host-in-env-vars",
@@ -130,7 +130,7 @@ func TestBackendConfig(t *testing.T) {
 			Config: map[string]interface{}{
 				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
 			},
-			ExpectConfigurationError: `error getting default for "skip_schema_creation"`,
+			ExpectConfigurationError: `invalid value for "skip_schema_creation"`,
 		},
 	}
 

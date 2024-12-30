@@ -59,6 +59,47 @@ var protocSteps = []protocStep{
 		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "--go_opt=Mterraform1.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1", "./terraform1.proto"},
 	},
 	{
+		"terraform1 (Terraform Core RPC API) setup",
+		"internal/rpcapi/terraform1/setup",
+		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "--go_opt=Msetup.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1/setup", "./setup.proto"},
+	},
+	{
+		"terraform1 (Terraform Core RPC API) dependencies",
+		"internal/rpcapi/terraform1/dependencies",
+		[]string{
+			"--go_out=paths=source_relative,plugins=grpc:.",
+			"--go_opt=Mterraform1.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1",
+			"--go_opt=Mdependencies.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1/dependencies",
+			"-I.",
+			"-I..",
+			"./dependencies.proto",
+		},
+	},
+	{
+		"terraform1 (Terraform Core RPC API) stacks",
+		"internal/rpcapi/terraform1/stacks",
+		[]string{
+			"--go_out=paths=source_relative,plugins=grpc:.",
+			"--go_opt=Mterraform1.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1",
+			"--go_opt=Mstacks.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks",
+			"-I.",
+			"-I..",
+			"./stacks.proto",
+		},
+	},
+	{
+		"terraform1 (Terraform Core RPC API) packages",
+		"internal/rpcapi/terraform1/packages",
+		[]string{
+			"--go_out=paths=source_relative,plugins=grpc:.",
+			"--go_opt=Mterraform1.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1",
+			"--go_opt=Mpackages.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1/packages",
+			"-I.",
+			"-I..",
+			"./packages.proto",
+		},
+	},
+	{
 		"tfplan (plan file serialization)",
 		"internal/plans/planproto",
 		[]string{"--go_out=paths=source_relative:.", "planfile.proto"},

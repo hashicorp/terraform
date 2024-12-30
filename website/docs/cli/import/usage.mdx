@@ -1,16 +1,23 @@
 ---
-page_title: 'Import: Usage'
-description: The `terraform import` command is used to import existing infrastructure.
+page_title: Import existing resources
+description: Learn now to use the `terraform import` command to import existing infrastructure resources.
 ---
 
-# Import Usage
+# Import existing resources
+
+This topic describes how to use the `terraform import` command to import existing infrastructure resources so that you can manage them as code.
 
 > **Hands-on:** Try the [Import Terraform Configuration](/terraform/tutorials/state/state-import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
+## Overview
 
-Use the `terraform import` command to import existing infrastructure to Terraform state.
+Use the `terraform import` command to import existing infrastructure to Terraform state. The `terraform import` command can only import one resource at a time. It cannot simultaneously import an entire collection of resources, such as an AWS VPC.
 
-The `terraform import` command can only import one resource at a time. It cannot simultaneously import an entire collection of resources, like an AWS VPC.
+Complete the following steps to import resources:
+
+1. Add the resource you want to manage with Terraform to your Terraform configuration.
+1. Run the `terraform import` command.
+
 
 ~> Warning: Terraform expects that each remote object it is managing will be
 bound to only one resource address, which is normally guaranteed by Terraform
@@ -20,24 +27,24 @@ If you import the same object multiple times, Terraform may exhibit unwanted
 behavior. For more information on this assumption, see
 [the State section](/terraform/language/state).
 
-To import a resource, first write a resource block for it in your
-configuration, establishing the name by which it will be known to Terraform:
+## Add the resource to your configuration
 
-```
+Write a resource block for the resource you want to import in your configuration. 
+Provide a name for the resource, which is a unique ID that you can use to reference the resource elsewhere in the configuration.
+
+In the following example, the imported resource is an AWS instance named `example`:
+
+```hcl
 resource "aws_instance" "example" {
   # ...instance configuration...
 }
 ```
 
-The name "example" here is local to the module where it is declared and is
-chosen by the configuration author. This is distinct from any ID issued by
-the remote system, which may change over time while the resource name
-remains constant.
+You do not have to complete the body of the resource block. Instead, you can finish defining arguments after the instance is imported.
 
-If desired, you can leave the body of the resource block blank for now and
-return to fill it in once the instance is imported.
+## Run the `terraform import` command
 
-Now `terraform import` can be run to attach an existing instance to this
+Run `terraform import` to attach an existing instance to the
 resource configuration:
 
 ```shell
@@ -46,7 +53,7 @@ $ terraform import aws_instance.example i-abcd1234
 
 This command locates the AWS EC2 instance with ID `i-abcd1234`. Then it attaches
 the existing settings of the instance, as described by the EC2 API, to the
-name `aws_instance.example` of a module. In this example the module path
+name `aws_instance.example` of a module. In this example, the module path
 implies that the root module is used. Finally, the mapping is saved in the
 Terraform state.
 
@@ -73,8 +80,8 @@ multiple resources are imported. For example, an AWS network ACL imports
 an `aws_network_acl` but also one `aws_network_acl_rule` for each rule.
 
 In this scenario, the secondary resources will not already exist in
-configuration, so it is necessary to consult the import output and create
-a `resource` block in configuration for each secondary resource. If this is
+the configuration, so it is necessary to consult the import output and create
+a `resource` block in the configuration for each secondary resource. If this is
 not done, Terraform will plan to destroy the imported objects on the next run.
 
 If you want to rename or otherwise move the imported resources, the

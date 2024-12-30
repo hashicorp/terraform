@@ -10,9 +10,14 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/views"
+	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
@@ -82,11 +87,13 @@ func (b *Local) opApply(
 	// stateHook uses schemas for when it periodically persists state to the
 	// persistent storage backend.
 	stateHook.Schemas = schemas
-	stateHook.PersistInterval = 20 * time.Second // arbitrary interval that's hopefully a sweet spot
+	stateHook.PersistInterval = time.Duration(op.StatePersistInterval) * time.Second
 
 	var plan *plans.Plan
+	combinedPlanApply := false
 	// If we weren't given a plan, then we refresh/plan
 	if op.PlanFile == nil {
+		combinedPlanApply = true
 		// Perform the plan
 		log.Printf("[INFO] backend/local: apply calling Plan")
 		plan, moreDiags = lr.Core.Plan(lr.Config, lr.InputState, lr.PlanOpts)
@@ -227,6 +234,141 @@ func (b *Local) opApply(
 	// Set up our hook for continuous state updates
 	stateHook.StateMgr = opState
 
+	applyTimeValues := make(terraform.InputValues, plan.ApplyTimeVariables.Len())
+
+	// In a combined plan/apply run, getting the context already gathers the interactive
+	// input, therefore we need to make sure to pass the ephemeral variables to the applyOpts.
+	if combinedPlanApply {
+		for varName, v := range lr.PlanOpts.SetVariables {
+			decl, ok := lr.Config.Module.Variables[varName]
+			if !ok {
+				continue // This should never happen, but we'll ignore it if it does.
+			}
+
+			if v.SourceType == terraform.ValueFromInput && decl.Ephemeral {
+				applyTimeValues[varName] = v
+			}
+		}
+	}
+
+	if len(op.Variables) != 0 {
+		// Undeclared variables cause warnings during plan, but will show up
+		// again here during apply. Their handling is tricky though, because it
+		// depends on how they were declared, and is subject to compatibility
+		// constraints. Collect any suspect values as we go, and then use the
+		// same parsing logic from the plan to generate the diagnostics.
+		undeclaredVariables := map[string]backendrun.UnparsedVariableValue{}
+
+		parsedVars, _ := backendrun.ParseVariableValues(op.Variables, lr.Config.Module.Variables)
+
+		for varName := range op.Variables {
+			parsedVar, parsed := parsedVars[varName]
+
+			decl, ok := lr.Config.Module.Variables[varName]
+			if !ok || !parsed {
+				// We'll try to parse this and handle diagnostics for missing
+				// variables with ParseUndeclaredVariableValues after.
+				undeclaredVariables[varName] = op.Variables[varName]
+				continue
+			}
+
+			var rng *hcl.Range
+			if parsedVar.HasSourceRange() {
+				rng = parsedVar.SourceRange.ToHCL().Ptr()
+			}
+
+			// If the var is declared as ephemeral in config, go ahead and handle it
+			if decl.Ephemeral {
+				// Determine whether this is an apply-time variable, i.e. an
+				// ephemeral variable that was set (non-null) during the
+				// planning phase.
+				applyTimeVar := false
+				for avName := range plan.ApplyTimeVariables.All() {
+					if varName == avName {
+						applyTimeVar = true
+					}
+				}
+
+				// If this isn't an apply-time variable, it's not valid to
+				// set it during apply.
+				if !applyTimeVar {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Ephemeral variable was not set during planning",
+						Detail: fmt.Sprintf(
+							"The ephemeral input variable %q was not set during the planning phase, and so must remain unset during the apply phase.",
+							varName,
+						),
+						Subject: rng,
+					})
+					continue
+				}
+
+				// If this is an apply-time variable, the user must supply a
+				// value during apply: it can't be null.
+				if applyTimeVar && parsedVar.Value.IsNull() {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Ephemeral variable must be set for apply",
+						Detail: fmt.Sprintf(
+							"The ephemeral input variable %q was set during the planning phase, and so must be set again during the apply phase.",
+							varName,
+						),
+					})
+					continue
+				}
+
+				// If we get here, we are in possession of a non-null
+				// ephemeral apply-time input variable, and need only pass
+				// its value on to the ApplyOpts.
+				applyTimeValues[varName] = parsedVar
+			} else {
+				// If a non-ephemeral variable is set differently between plan and apply, we should emit a diagnostic.
+				plannedVariableValue, ok := plan.VariableValues[varName]
+				if !ok {
+					// We'll catch this with ParseUndeclaredVariableValues after
+					undeclaredVariables[varName] = op.Variables[varName]
+					continue
+				}
+
+				plannedVar, err := plannedVariableValue.Decode(cty.DynamicPseudoType)
+				if err != nil {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Could not decode variable value from plan",
+						Detail:   fmt.Sprintf("The variable %s could not be decoded from the plan. %s. This is a bug in Terraform, please report it.", varName, err),
+						Subject:  rng,
+					})
+				} else {
+					// The user can't override the planned variables, so we
+					// error when possible to avoid confusion. If the parsed
+					// variables comes from an auto-file however, it's not input
+					// directly by the user so we have to ignore it.
+					if parsedVar.Value.Equals(plannedVar).False() && parsedVar.SourceType != terraform.ValueFromAutoFile {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Can't change variable when applying a saved plan",
+							Detail:   fmt.Sprintf("The variable %s cannot be set using the -var and -var-file options when applying a saved plan file, because a saved plan includes the variable values that were set when it was created. The saved plan specifies %s as the value whereas during apply the value %s was %s. To declare an ephemeral variable which is not saved in the plan file, use ephemeral = true.", varName, viewsjson.CompactValueStr(parsedVar.Value), viewsjson.CompactValueStr(plannedVar), parsedVar.SourceType.DiagnosticLabel()),
+							Subject:  rng,
+						})
+					}
+				}
+			}
+
+		}
+		_, undeclaredDiags := backendrun.ParseUndeclaredVariableValues(undeclaredVariables, map[string]*configs.Variable{})
+		// always add hard errors here, and add warnings if we're not in a
+		// combined op which just emitted those same warnings already.
+		if undeclaredDiags.HasErrors() || !combinedPlanApply {
+			diags = diags.Append(undeclaredDiags)
+		}
+
+		if diags.HasErrors() {
+			op.ReportResult(runningOp, diags)
+			return
+		}
+	}
+
 	// Start the apply in a goroutine so that we can be interrupted.
 	var applyState *states.State
 	var applyDiags tfdiags.Diagnostics
@@ -234,8 +376,11 @@ func (b *Local) opApply(
 	go func() {
 		defer logging.PanicHandler()
 		defer close(doneCh)
+
 		log.Printf("[INFO] backend/local: apply calling Apply")
-		applyState, applyDiags = lr.Core.Apply(plan, lr.Config, nil)
+		applyState, applyDiags = lr.Core.Apply(plan, lr.Config, &terraform.ApplyOpts{
+			SetVariables: applyTimeValues,
+		})
 	}()
 
 	if b.opWait(doneCh, stopCtx, cancelCtx, lr.Core, opState, op.View) {

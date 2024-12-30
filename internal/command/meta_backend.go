@@ -230,7 +230,7 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 			name, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
 				Id:          "create-workspace",
 				Query:       "\n[reset][bold][yellow]No workspaces found.[reset]",
-				Description: fmt.Sprintf(inputCloudInitCreateWorkspace, strings.Join(c.WorkspaceMapping.Tags, ", ")),
+				Description: fmt.Sprintf(inputCloudInitCreateWorkspace, c.WorkspaceMapping.DescribeTags()),
 			})
 			if err != nil {
 				return fmt.Errorf("Couldn't create initial workspace: %w", err)
@@ -242,7 +242,7 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 			log.Printf("[TRACE] Meta.selectWorkspace: selecting the new HCP Terraform workspace requested by the user (%s)", name)
 			return m.SetWorkspace(name)
 		} else {
-			return fmt.Errorf(strings.TrimSpace(errBackendNoExistingWorkspaces))
+			return errors.New(strings.TrimSpace(errBackendNoExistingWorkspaces))
 		}
 	}
 
@@ -763,7 +763,7 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 // from the backend state. This should be used only when a user runs
 // `terraform init -backend=false`. This function returns a local backend if
 // there is no backend state or no backend configured.
-func (m *Meta) backendFromState(ctx context.Context) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backendFromState(_ context.Context) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	// Get the path to where we store a local cache of backend configuration
 	// if we're using a remote backend. This may not yet exist which means

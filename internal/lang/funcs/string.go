@@ -213,8 +213,6 @@ func MakeTemplateStringFunc(funcsCb func() (funcs map[string]function.Function, 
 			// the function documentation to learn about the other options that
 			// are probably more suitable for what they need.
 			switch expr := templateClosure.Expression.(type) {
-			case *hclsyntax.ScopeTraversalExpr:
-				// A standalone traversal is always acceptable.
 			case *hclsyntax.TemplateWrapExpr:
 				// This situation occurs when someone writes an interpolation-only
 				// expression as was required in Terraform v0.11 and earlier.
@@ -249,16 +247,17 @@ func MakeTemplateStringFunc(funcsCb func() (funcs map[string]function.Function, 
 					)
 				}
 			default:
-				// Nothing else is allowed.
-				// Someone who really does want to construct a template dynamically
-				// can factor out that construction into a local value and refer
-				// to it in the templatestring call, but it's not really feasible
-				// to explain that clearly in a short error message so we'll deal
-				// with that option on the function's documentation page instead,
-				// where we can show a full example.
-				return cty.UnknownVal(retType), function.NewArgErrorf(
-					0, "invalid template expression: must be a direct reference to a single string from elsewhere, containing valid Terraform template syntax",
-				)
+				if !isValidTemplateStringExpr(expr) {
+					// Someone who really does want to construct a template dynamically
+					// can factor out that construction into a local value and refer
+					// to it in the templatestring call, but it's not really feasible
+					// to explain that clearly in a short error message so we'll deal
+					// with that option on the function's documentation page instead,
+					// where we can show a full example.
+					return cty.UnknownVal(retType), function.NewArgErrorf(
+						0, "invalid template expression: must be a direct reference to a single string from elsewhere, containing valid Terraform template syntax",
+					)
+				}
 			}
 
 			templateVal, diags := templateClosure.Value()
@@ -382,6 +381,55 @@ func makeRenderTemplateFunc(funcsCb func() (funcs map[string]function.Function, 
 			return cty.DynamicVal, diags
 		}
 		return val, nil
+	}
+}
+
+func isValidTemplateStringExpr(expr hcl.Expression) bool {
+	// Our goal with this heuristic is to be as permissive as possible with
+	// allowing things that authors might try to use as references to a
+	// template string defined elsewhere, while rejecting complex expressions
+	// that seem like they might be trying to construct templates dynamically
+	// or might have resulted from a misunderstanding that "templatestring" is
+	// the only way to render a template, because someone hasn't learned
+	// about template expressions yet.
+	//
+	// This is here only to give better feedback to folks who seem to be using
+	// templatestring for something other than what it's intended for, and not
+	// to block dynamic template generation altogether. Authors who have a
+	// genuine need for dynamic template generation can always assert that to
+	// Terraform by factoring out their dynamic generation into a local value
+	// and referring to it; this rule is just a little speedbump to prompt
+	// the author to consider whether there's a better way to solve their
+	// problem, as opposed to just using the first solution they found.
+	switch expr := expr.(type) {
+	case *hclsyntax.ScopeTraversalExpr:
+		// A simple static reference from the current scope is always valid.
+		return true
+
+	case *hclsyntax.RelativeTraversalExpr:
+		// Relative traversals are allowed as long as they begin from
+		// something that would otherwise be allowed.
+		return isValidTemplateStringExpr(expr.Source)
+
+	case *hclsyntax.IndexExpr:
+		// Index expressions are allowed as long as the collection is
+		// also specified using an expression that conforms to these rules.
+		// The key operand is intentionally unconstrained because that
+		// is a rule for how to select an element, and so doesn't represent
+		// a source from which the template string is being retrieved.
+		return isValidTemplateStringExpr(expr.Collection)
+
+	case *hclsyntax.SplatExpr:
+		// Splat expressions would be weird to use because they'd typically
+		// return a tuple and that wouldn't be valid as a template string,
+		// but we allow it here (as long as the operand would otherwise have
+		// been allowed) because then we'll let the type mismatch error
+		// show through, and that's likely a more helpful error message.
+		return isValidTemplateStringExpr(expr.Source)
+
+	default:
+		// Nothing else is allowed.
+		return false
 	}
 }
 

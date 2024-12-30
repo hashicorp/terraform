@@ -10,6 +10,7 @@ import (
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/go-plugin"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -18,7 +19,7 @@ import (
 	tfplugin6 "github.com/hashicorp/terraform/internal/plugin6"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/dependencies"
 )
 
 // This file contains helper functions and supporting logic for
@@ -120,7 +121,7 @@ func unconfiguredBuiltinProviderInstance(addr addrs.Provider) (providers.Interfa
 	return factory(), nil
 }
 
-func providerSchemaToProto(schemaResp providers.GetProviderSchemaResponse) *terraform1.ProviderSchema {
+func providerSchemaToProto(schemaResp providers.GetProviderSchemaResponse) *dependencies.ProviderSchema {
 	// Due to some historical poor design planning, the provider protocol uses
 	// different terminology than the user-facing terminology for Terraform
 	// Core and the Terraform language, and so part of our job here is to
@@ -138,8 +139,8 @@ func providerSchemaToProto(schemaResp providers.GetProviderSchemaResponse) *terr
 	// probably not want to make a new rpcapi protocol major version each time
 	// a new provider protocol version is added or removed.
 
-	mrtSchemas := make(map[string]*terraform1.Schema, len(schemaResp.ResourceTypes))
-	drtSchemas := make(map[string]*terraform1.Schema, len(schemaResp.DataSources))
+	mrtSchemas := make(map[string]*dependencies.Schema, len(schemaResp.ResourceTypes))
+	drtSchemas := make(map[string]*dependencies.Schema, len(schemaResp.DataSources))
 
 	for name, elem := range schemaResp.ResourceTypes {
 		mrtSchemas[name] = schemaElementToProto(elem)
@@ -148,38 +149,38 @@ func providerSchemaToProto(schemaResp providers.GetProviderSchemaResponse) *terr
 		drtSchemas[name] = schemaElementToProto(elem)
 	}
 
-	return &terraform1.ProviderSchema{
+	return &dependencies.ProviderSchema{
 		ProviderConfig:       schemaElementToProto(schemaResp.Provider),
 		ManagedResourceTypes: mrtSchemas,
 		DataResourceTypes:    drtSchemas,
 	}
 }
 
-func schemaElementToProto(elem providers.Schema) *terraform1.Schema {
-	return &terraform1.Schema{
+func schemaElementToProto(elem providers.Schema) *dependencies.Schema {
+	return &dependencies.Schema{
 		Block: schemaBlockToProto(elem.Block),
 	}
 }
 
-func schemaBlockToProto(block *configschema.Block) *terraform1.Schema_Block {
+func schemaBlockToProto(block *configschema.Block) *dependencies.Schema_Block {
 	if block == nil {
-		return &terraform1.Schema_Block{}
+		return &dependencies.Schema_Block{}
 	}
-	attributes := make([]*terraform1.Schema_Attribute, 0, len(block.Attributes))
+	attributes := make([]*dependencies.Schema_Attribute, 0, len(block.Attributes))
 	for name, attr := range block.Attributes {
 		attributes = append(attributes, schemaAttributeToProto(name, attr))
 	}
 	sort.Slice(attributes, func(i, j int) bool {
 		return attributes[i].Name < attributes[j].Name
 	})
-	blockTypes := make([]*terraform1.Schema_NestedBlock, 0, len(block.BlockTypes))
+	blockTypes := make([]*dependencies.Schema_NestedBlock, 0, len(block.BlockTypes))
 	for typeName, blockType := range block.BlockTypes {
 		blockTypes = append(blockTypes, schemaNestedBlockToProto(typeName, blockType))
 	}
 	sort.Slice(blockTypes, func(i, j int) bool {
 		return blockTypes[i].TypeName < blockTypes[j].TypeName
 	})
-	return &terraform1.Schema_Block{
+	return &dependencies.Schema_Block{
 		Deprecated:  block.Deprecated,
 		Description: schemaDocstringToProto(block.Description, block.DescriptionKind),
 		Attributes:  attributes,
@@ -187,10 +188,10 @@ func schemaBlockToProto(block *configschema.Block) *terraform1.Schema_Block {
 	}
 }
 
-func schemaAttributeToProto(name string, attr *configschema.Attribute) *terraform1.Schema_Attribute {
+func schemaAttributeToProto(name string, attr *configschema.Attribute) *dependencies.Schema_Attribute {
 	var err error
 	var typeBytes []byte
-	var objectType *terraform1.Schema_Object
+	var objectType *dependencies.Schema_Object
 	if attr.NestedType != nil {
 		objectType = schemaNestedObjectTypeToProto(attr.NestedType)
 	} else {
@@ -203,7 +204,7 @@ func schemaAttributeToProto(name string, attr *configschema.Attribute) *terrafor
 		}
 	}
 
-	return &terraform1.Schema_Attribute{
+	return &dependencies.Schema_Attribute{
 		Name:        name,
 		Type:        typeBytes,
 		NestedType:  objectType,
@@ -216,48 +217,48 @@ func schemaAttributeToProto(name string, attr *configschema.Attribute) *terrafor
 	}
 }
 
-func schemaNestedBlockToProto(typeName string, blockType *configschema.NestedBlock) *terraform1.Schema_NestedBlock {
-	var protoNesting terraform1.Schema_NestedBlock_NestingMode
+func schemaNestedBlockToProto(typeName string, blockType *configschema.NestedBlock) *dependencies.Schema_NestedBlock {
+	var protoNesting dependencies.Schema_NestedBlock_NestingMode
 	switch blockType.Nesting {
 	case configschema.NestingSingle:
-		protoNesting = terraform1.Schema_NestedBlock_SINGLE
+		protoNesting = dependencies.Schema_NestedBlock_SINGLE
 	case configschema.NestingGroup:
-		protoNesting = terraform1.Schema_NestedBlock_GROUP
+		protoNesting = dependencies.Schema_NestedBlock_GROUP
 	case configschema.NestingList:
-		protoNesting = terraform1.Schema_NestedBlock_LIST
+		protoNesting = dependencies.Schema_NestedBlock_LIST
 	case configschema.NestingSet:
-		protoNesting = terraform1.Schema_NestedBlock_SET
+		protoNesting = dependencies.Schema_NestedBlock_SET
 	case configschema.NestingMap:
-		protoNesting = terraform1.Schema_NestedBlock_MAP
+		protoNesting = dependencies.Schema_NestedBlock_MAP
 	default:
 		// The above should be exhaustive for all configschema.NestingMode variants
 		panic(fmt.Sprintf("invalid structural attribute nesting mode %s", blockType.Nesting))
 	}
 
-	return &terraform1.Schema_NestedBlock{
+	return &dependencies.Schema_NestedBlock{
 		TypeName: typeName,
 		Block:    schemaBlockToProto(&blockType.Block),
 		Nesting:  protoNesting,
 	}
 }
 
-func schemaNestedObjectTypeToProto(objType *configschema.Object) *terraform1.Schema_Object {
-	var protoNesting terraform1.Schema_Object_NestingMode
+func schemaNestedObjectTypeToProto(objType *configschema.Object) *dependencies.Schema_Object {
+	var protoNesting dependencies.Schema_Object_NestingMode
 	switch objType.Nesting {
 	case configschema.NestingSingle:
-		protoNesting = terraform1.Schema_Object_SINGLE
+		protoNesting = dependencies.Schema_Object_SINGLE
 	case configschema.NestingList:
-		protoNesting = terraform1.Schema_Object_LIST
+		protoNesting = dependencies.Schema_Object_LIST
 	case configschema.NestingSet:
-		protoNesting = terraform1.Schema_Object_SET
+		protoNesting = dependencies.Schema_Object_SET
 	case configschema.NestingMap:
-		protoNesting = terraform1.Schema_Object_MAP
+		protoNesting = dependencies.Schema_Object_MAP
 	default:
 		// The above should be exhaustive for all configschema.NestingMode variants
 		panic(fmt.Sprintf("invalid structural attribute nesting mode %s", objType.Nesting))
 	}
 
-	attributes := make([]*terraform1.Schema_Attribute, 0, len(objType.Attributes))
+	attributes := make([]*dependencies.Schema_Attribute, 0, len(objType.Attributes))
 	for name, attr := range objType.Attributes {
 		attributes = append(attributes, schemaAttributeToProto(name, attr))
 	}
@@ -265,28 +266,28 @@ func schemaNestedObjectTypeToProto(objType *configschema.Object) *terraform1.Sch
 		return attributes[i].Name < attributes[j].Name
 	})
 
-	return &terraform1.Schema_Object{
+	return &dependencies.Schema_Object{
 		Nesting:    protoNesting,
 		Attributes: attributes,
 	}
 }
 
-func schemaDocstringToProto(doc string, format configschema.StringKind) *terraform1.Schema_DocString {
+func schemaDocstringToProto(doc string, format configschema.StringKind) *dependencies.Schema_DocString {
 	if doc == "" {
 		return nil
 	}
-	var protoFormat terraform1.Schema_DocString_Format
+	var protoFormat dependencies.Schema_DocString_Format
 	switch format {
 	case configschema.StringPlain:
-		protoFormat = terraform1.Schema_DocString_PLAIN
+		protoFormat = dependencies.Schema_DocString_PLAIN
 	case configschema.StringMarkdown:
-		protoFormat = terraform1.Schema_DocString_MARKDOWN
+		protoFormat = dependencies.Schema_DocString_MARKDOWN
 	default:
 		// We'll ignore strings in unsupported formats, although we should
 		// try to keep the above exhaustive if we add new formats in future.
 		return nil
 	}
-	return &terraform1.Schema_DocString{
+	return &dependencies.Schema_DocString{
 		Description: doc,
 		Format:      protoFormat,
 	}

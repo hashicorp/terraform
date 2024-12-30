@@ -1942,35 +1942,51 @@ func newMockWorkspaces(client *MockClient) *MockWorkspaces {
 func (m *MockWorkspaces) List(ctx context.Context, organization string, options *tfe.WorkspaceListOptions) (*tfe.WorkspaceList, error) {
 	wl := &tfe.WorkspaceList{}
 	// Get all the workspaces that match the Search value
-	searchValue := ""
 	var ws []*tfe.Workspace
-	var tags []string
+	searchValue := ""
+	searchTags := make(map[string]string)
 
 	if options != nil {
 		if len(options.Search) > 0 {
 			searchValue = options.Search
 		}
 		if len(options.Tags) > 0 {
-			tags = strings.Split(options.Tags, ",")
+			for _, tag := range strings.Split(options.Tags, ",") {
+				searchTags[tag] = ""
+			}
+		}
+		if len(options.TagBindings) > 0 {
+			for _, kvTag := range options.TagBindings {
+				searchTags[kvTag.Key] = kvTag.Value
+			}
 		}
 	}
 
 	for _, w := range m.workspaceIDs {
-		wTags := make(map[string]struct{})
+		wTags := make(map[string]string)
 		for _, wTag := range w.Tags {
-			wTags[wTag.Name] = struct{}{}
+			wTags[wTag.Name] = ""
 		}
 
-		if strings.Contains(w.Name, searchValue) {
-			tagsSatisfied := true
-			for _, tag := range tags {
-				if _, ok := wTags[tag]; !ok {
+		for _, kvTag := range w.TagBindings {
+			wTags[kvTag.Key] = kvTag.Value
+		}
+
+		tagsSatisfied := true
+		for k, v := range searchTags {
+			if value, ok := wTags[k]; ok {
+				if value != v {
 					tagsSatisfied = false
+					break
 				}
+			} else {
+				tagsSatisfied = false
+				break
 			}
-			if tagsSatisfied {
-				ws = append(ws, w)
-			}
+		}
+
+		if strings.Contains(w.Name, searchValue) && tagsSatisfied {
+			ws = append(ws, w)
 		}
 	}
 
@@ -2010,6 +2026,27 @@ func (m *MockWorkspaces) List(ctx context.Context, organization string, options 
 	return wl, nil
 }
 
+func (m *MockWorkspaces) ListTagBindings(ctx context.Context, workspaceID string) ([]*tfe.TagBinding, error) {
+	for _, w := range m.workspaceIDs {
+		if w.ID == workspaceID {
+			return w.TagBindings, nil
+		}
+	}
+
+	return nil, tfe.ErrResourceNotFound
+}
+
+func (m *MockWorkspaces) AddTagBindings(ctx context.Context, workspaceID string, options tfe.WorkspaceAddTagBindingsOptions) ([]*tfe.TagBinding, error) {
+	for id, w := range m.workspaceIDs {
+		if id == workspaceID {
+			w.TagBindings = options.TagBindings
+			return options.TagBindings, nil
+		}
+	}
+
+	return nil, tfe.ErrResourceNotFound
+}
+
 func (m *MockWorkspaces) Create(ctx context.Context, organization string, options tfe.WorkspaceCreateOptions) (*tfe.Workspace, error) {
 	// for TestCloud_setUnavailableTerraformVersion
 	if *options.Name == "unavailable-terraform-version" && options.TerraformVersion != nil {
@@ -2036,6 +2073,7 @@ func (m *MockWorkspaces) Create(ctx context.Context, organization string, option
 		Organization: &tfe.Organization{
 			Name: organization,
 		},
+		TagBindings: options.TagBindings,
 	}
 	if options.Project != nil {
 		w.Project = options.Project

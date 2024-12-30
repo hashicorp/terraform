@@ -189,7 +189,7 @@ func (c *CloudCommand) discoverAndConfigure() tfdiags.Diagnostics {
 		Organization:       cb.Organization,
 		CurrentWorkspace:   currentWorkspace,
 		WorkspaceName:      cb.WorkspaceMapping.Name,
-		WorkspaceTags:      cb.WorkspaceMapping.Tags,
+		WorkspaceTags:      cb.WorkspaceMapping.TagsAsSet,
 		DefaultProjectName: cb.WorkspaceMapping.Project,
 	}
 

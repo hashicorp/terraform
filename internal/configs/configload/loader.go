@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/modsdir"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/spf13/afero"
 )
@@ -23,7 +24,7 @@ type Loader struct {
 	// parser is used to read configuration
 	parser *configs.Parser
 
-	// modules is used to install and locate descendent modules that are
+	// modules is used to install and locate descendant modules that are
 	// referenced (directly or indirectly) from the root module.
 	modules moduleMgr
 }
@@ -31,7 +32,7 @@ type Loader struct {
 // Config is used with NewLoader to specify configuration arguments for the
 // loader.
 type Config struct {
-	// ModulesDir is a path to a directory where descendent modules are
+	// ModulesDir is a path to a directory where descendant modules are
 	// (or should be) installed. (This is usually the
 	// .terraform/modules directory, in the common case where this package
 	// is being loaded from the main Terraform CLI package.)
@@ -107,6 +108,10 @@ func (l *Loader) Parser() *configs.Parser {
 	return l.parser
 }
 
+func (l *Loader) ModuleManifest() modsdir.Manifest {
+	return l.modules.manifest
+}
+
 // Sources returns the source code cache for the underlying parser of this
 // loader. This is a shorthand for l.Parser().Sources().
 func (l *Loader) Sources() map[string][]byte {
@@ -163,4 +168,11 @@ func (l *Loader) ImportSourcesFromSnapshot(snap *Snapshot) {
 // method.
 func (l *Loader) AllowLanguageExperiments(allowed bool) {
 	l.parser.AllowLanguageExperiments(allowed)
+}
+
+// AllowsLanguageExperiments returns the value most recently passed to
+// [Loader.AllowLanguageExperiments], or false if that method has not been
+// called on this object.
+func (l *Loader) AllowsLanguageExperiments() bool {
+	return l.parser.AllowsLanguageExperiments()
 }

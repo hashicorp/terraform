@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -37,6 +39,8 @@ type EmbeddedStack struct {
 	// declarations, and whose attribute values will then be used to populate
 	// those input variables.
 	Inputs hcl.Expression
+
+	DependsOn []hcl.Traversal
 
 	DeclRange tfdiags.SourceRange
 }
@@ -87,6 +91,10 @@ func decodeEmbeddedStackBlock(block *hcl.Block) (*EmbeddedStack, tfdiags.Diagnos
 	if attr, ok := content.Attributes["inputs"]; ok {
 		ret.Inputs = attr.Expr
 	}
+	if attr, ok := content.Attributes["depends_on"]; ok {
+		ret.DependsOn, hclDiags = configs.DecodeDependsOn(attr)
+		diags = diags.Append(hclDiags)
+	}
 
 	return ret, diags
 }
@@ -97,5 +105,6 @@ var embeddedStackBlockSchema = &hcl.BodySchema{
 		{Name: "version", Required: false},
 		{Name: "for_each", Required: false},
 		{Name: "inputs", Required: false},
+		{Name: "depends_on", Required: false},
 	},
 }

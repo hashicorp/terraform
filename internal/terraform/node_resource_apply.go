@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -25,6 +26,7 @@ var (
 	_ GraphNodeAttachResourceConfig = (*nodeExpandApplyableResource)(nil)
 	_ graphNodeExpandsInstances     = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeTargetable           = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeDynamicExpandable    = (*nodeExpandApplyableResource)(nil)
 )
 
 func (n *nodeExpandApplyableResource) expandsInstances() {
@@ -48,39 +50,115 @@ func (n *nodeExpandApplyableResource) Name() string {
 	return n.NodeAbstractResource.Name() + " (expand)"
 }
 
-func (n *nodeExpandApplyableResource) Execute(globalCtx EvalContext, op walkOperation) tfdiags.Diagnostics {
-
-	// TODO: When validating support for modules (TF-13952), we should check
-	// here if the whole module is partially expanded and skip the .ExpandModule
-	// call below.
-	//
-	//  for _, per := range n.PartialExpansions {
-	//    if _, ok := per.PartialExpandedModule(); ok {
-	//      return nil // don't even try to expand the modules
-	//    }
-	//  }
-	//
-	//  The above checks if the module is partially expanded and if it is, it
-	//  skips the expansion of the module. This isn't implemented yet, because
-	//  partial module expansion is not implemented properly yet.
-
-	var diags tfdiags.Diagnostics
-	expander := globalCtx.InstanceExpander()
-	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
-Insts:
-	for _, module := range moduleInstances {
-
-		// First check if this resource in this module instance in part of a
-		// partial expansion. If it is, we can't and don't need to expand it.
-		for _, per := range n.PartialExpansions {
-			if per.MatchesResource(n.Addr.Absolute(module)) {
-				continue Insts
-			}
-		}
-
-		moduleCtx := evalContextForModuleInstance(globalCtx, module)
-		diags = diags.Append(n.writeResourceState(moduleCtx, n.Addr.Resource.Absolute(module)))
+func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
+	if n.Addr.Resource.Mode == addrs.EphemeralResourceMode {
+		return n.dynamicExpandEphemeral(ctx)
 	}
 
+	var diags tfdiags.Diagnostics
+	expander := ctx.InstanceExpander()
+	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
+	for _, module := range moduleInstances {
+		moduleCtx := evalContextForModuleInstance(ctx, module)
+		diags = diags.Append(n.recordResourceData(moduleCtx, n.Addr.Resource.Absolute(module)))
+	}
+
+	return nil, diags
+}
+
+// We need to expand the ephemeral resources mostly the same as we do during
+// planning. There a lot of options than happen during planning which aren't
+// applicable to apply however, and we have to make sure we don't re-register
+// checks which already recorded in the plan, so we create a pared down version
+// of the plan expansion here.
+func (n *nodeExpandApplyableResource) dynamicExpandEphemeral(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var g Graph
+
+	expander := ctx.InstanceExpander()
+	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
+
+	for _, module := range moduleInstances {
+		resAddr := n.Addr.Resource.Absolute(module)
+		expDiags := n.expandEphemeralResourceInstances(ctx, resAddr, &g)
+		diags = diags.Append(expDiags)
+	}
+
+	return &g, diags
+}
+
+func (n *nodeExpandApplyableResource) expandEphemeralResourceInstances(globalCtx EvalContext, resAddr addrs.AbsResource, g *Graph) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// The rest of our work here needs to know which module instance it's
+	// working in, so that it can evaluate expressions in the appropriate scope.
+	moduleCtx := evalContextForModuleInstance(globalCtx, resAddr.Module)
+
+	// writeResourceState is responsible for informing the expander of what
+	// repetition mode this resource has, which allows expander.ExpandResource
+	// to work below.
+	moreDiags := n.recordResourceData(moduleCtx, resAddr)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return diags
+	}
+
+	expander := moduleCtx.InstanceExpander()
+	instanceAddrs := expander.ExpandResource(resAddr)
+
+	instG, instDiags := n.ephemeralResourceInstanceSubgraph(resAddr, instanceAddrs)
+	if instDiags.HasErrors() {
+		diags = diags.Append(instDiags)
+		return diags
+	}
+	g.Subsume(&instG.AcyclicGraph.Graph)
 	return diags
+}
+
+func (n *nodeExpandApplyableResource) ephemeralResourceInstanceSubgraph(addr addrs.AbsResource, instanceAddrs []addrs.AbsResourceInstance) (*Graph, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	concreteEphemeral := func(a *NodeAbstractResourceInstance) dag.Vertex {
+		a.Config = n.Config
+		a.ResolvedProvider = n.ResolvedProvider
+		a.Schema = n.Schema
+		a.ProvisionerSchemas = n.ProvisionerSchemas
+		a.ProviderMetas = n.ProviderMetas
+		a.dependsOn = n.dependsOn
+
+		// we still need the Plannable resource instance
+		return &NodeApplyableResourceInstance{
+			NodeAbstractResourceInstance: a,
+		}
+	}
+
+	// Start creating the steps
+	steps := []GraphTransformer{
+		// Expand the count or for_each (if present)
+		&ResourceCountTransformer{
+			Concrete:      concreteEphemeral,
+			Schema:        n.Schema,
+			Addr:          n.ResourceAddr(),
+			InstanceAddrs: instanceAddrs,
+		},
+
+		// Targeting
+		&TargetsTransformer{Targets: n.Targets},
+
+		// Connect references so ordering is correct
+		&ReferenceTransformer{},
+
+		// Make sure there is a single root
+		&RootTransformer{},
+	}
+
+	// Build the graph
+	b := &BasicGraphBuilder{
+		Steps: steps,
+		Name:  "nodeExpandApplyEphemeralResource",
+	}
+	graph, graphDiags := b.Build(addr.Module)
+	diags = diags.Append(graphDiags)
+
+	return graph, diags
 }

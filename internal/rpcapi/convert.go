@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -92,7 +93,7 @@ func sourcePosFromProto(protoPos *terraform1.SourcePos) tfdiags.SourcePos {
 	}
 }
 
-func dynamicTypedValueFromProto(protoVal *terraform1.DynamicValue) (cty.Value, error) {
+func dynamicTypedValueFromProto(protoVal *stacks.DynamicValue) (cty.Value, error) {
 	if len(protoVal.Msgpack) == 0 {
 		return cty.DynamicVal, fmt.Errorf("uses unsupported serialization format (only MessagePack is supported)")
 	}
@@ -110,7 +111,7 @@ func dynamicTypedValueFromProto(protoVal *terraform1.DynamicValue) (cty.Value, e
 	return v, nil
 }
 
-func externalInputValuesFromProto(protoVals map[string]*terraform1.DynamicValueWithSource) (map[stackaddrs.InputVariable]stackruntime.ExternalInputValue, error) {
+func externalInputValuesFromProto(protoVals map[string]*stacks.DynamicValueWithSource) (map[stackaddrs.InputVariable]stackruntime.ExternalInputValue, error) {
 	if len(protoVals) == 0 {
 		return nil, nil
 	}
@@ -126,7 +127,7 @@ func externalInputValuesFromProto(protoVals map[string]*terraform1.DynamicValueW
 	return ret, err
 }
 
-func externalInputValueFromProto(protoVal *terraform1.DynamicValueWithSource) (stackruntime.ExternalInputValue, error) {
+func externalInputValueFromProto(protoVal *stacks.DynamicValueWithSource) (stackruntime.ExternalInputValue, error) {
 	v, err := dynamicTypedValueFromProto(protoVal.Value)
 	if err != nil {
 		return stackruntime.ExternalInputValue{}, nil

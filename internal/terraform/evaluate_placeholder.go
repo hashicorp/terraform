@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -20,7 +21,7 @@ import (
 // only what we know to be true for all possible final module instances
 // that could exist for the prefix.
 type evaluationPlaceholderData struct {
-	Evaluator *Evaluator
+	*evaluationData
 
 	// ModulePath is the partially-expanded path through the dynamic module
 	// tree to a set of possible module instances that share a common known
@@ -54,21 +55,6 @@ type evaluationPlaceholderData struct {
 // that all of the error checks are implemented in only one place each.
 
 var _ lang.Data = (*evaluationPlaceholderData)(nil)
-
-// GetCheckBlock implements lang.Data.
-func (d *evaluationPlaceholderData) GetCheckBlock(addr addrs.Check, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
-	// check blocks don't produce any useful data and can only be referred
-	// to within an expect_failures attribute in the test language.
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(&hcl.Diagnostic{
-		Severity: hcl.DiagError,
-		Summary:  "Reference to \"check\" in invalid context",
-		Detail:   "The \"check\" object can only be used from an \"expect_failures\" attribute within a Terraform testing \"run\" block.",
-		Subject:  rng.ToHCL().Ptr(),
-	})
-	return cty.NilVal, diags
-
-}
 
 // GetCountAttr implements lang.Data.
 func (d *evaluationPlaceholderData) GetCountAttr(addr addrs.CountAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
@@ -169,7 +155,7 @@ func (d *evaluationPlaceholderData) GetModule(addr addrs.ModuleCall, rng tfdiags
 		return cty.DynamicVal, diags
 	}
 
-	callerCfg := d.Evaluator.Config.Descendent(d.ModulePath.Module())
+	callerCfg := d.Evaluator.Config.Descendant(d.ModulePath.Module())
 	if callerCfg == nil {
 		// Strange! The above StaticValidateReference should've failed if
 		// the module we're in isn't even declared. But we'll just tolerate
@@ -198,7 +184,7 @@ func (d *evaluationPlaceholderData) GetModule(addr addrs.ModuleCall, rng tfdiags
 	// the child module's declared output values represented, which could
 	// then potentially allow detecting a downstream error referring to
 	// an output value that doesn't actually exist.
-	calledCfg := d.Evaluator.Config.Descendent(d.ModulePath.Module().Child(addr.Name))
+	calledCfg := d.Evaluator.Config.Descendant(d.ModulePath.Module().Child(addr.Name))
 	if calledCfg == nil {
 		// This suggests that the config wasn't constructed correctly, since
 		// there should always be a child config node for any module call,
@@ -224,21 +210,6 @@ func (d *evaluationPlaceholderData) GetOutput(addr addrs.OutputValue, rng tfdiag
 
 }
 
-// GetPathAttr implements lang.Data.
-func (d *evaluationPlaceholderData) GetPathAttr(addrs.PathAttr, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
-	// TODO: It would be helpful to perform the same logic here as we do
-	// in the full-evaluation case, since the paths we'd return here cannot
-	// vary based on dynamic data, but we'll need to factor out the logic
-	// into a common location we can call from both places first. For now,
-	// we'll just leave these all as unknown value placeholders.
-	//
-	// What we _do_ know is that all valid attributes of "path" are strings
-	// that are definitely not null, so we can at least catch situations
-	// where someone tries to use them in a place where a string is
-	// unacceptable.
-	return cty.UnknownVal(cty.String).RefineNotNull(), nil
-}
-
 // GetResource implements lang.Data.
 func (d *evaluationPlaceholderData) GetResource(addrs.Resource, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	// TODO: Once we've implemented the evaluation of placeholders for
@@ -250,26 +221,4 @@ func (d *evaluationPlaceholderData) GetResource(addrs.Resource, tfdiags.SourceRa
 	// we don't know the instance keys, and so that improvement would only
 	// really help references to single-instance resources.
 	return cty.DynamicVal, nil
-}
-
-// GetRunBlock implements lang.Data.
-func (d *evaluationPlaceholderData) GetRunBlock(addrs.Run, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
-	// We should not get here because any scope that has an [evaluationPlaceholderData]
-	// as its Data should have a reference parser that doesn't accept addrs.Run
-	// addresses.
-	panic("GetRunBlock called on non-test evaluation dataset")
-}
-
-// GetTerraformAttr implements lang.Data.
-func (d *evaluationPlaceholderData) GetTerraformAttr(addrs.TerraformAttr, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
-	// TODO: It would be helpful to perform the same validation checks that
-	// occur in evaluationStateData.GetTerraformAttr, so authors can catch
-	// invalid usage of the "terraform" object even when under an unexpanded
-	// module prefix.
-	return cty.DynamicVal, nil
-}
-
-// StaticValidateReferences implements lang.Data.
-func (d *evaluationPlaceholderData) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
-	return d.Evaluator.StaticValidateReferences(refs, d.ModulePath.Module(), self, source)
 }

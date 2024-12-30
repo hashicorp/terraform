@@ -16,15 +16,15 @@ The `moved` block programmatically changes the address of a resource. Refer to [
 The following list outlines field hierarchy, language-specific data types, and requirements in the `moved` block. 
 
 - [`moved`](#moved): map
-  - [`from`](#moved): string
-  - [`to`](#moved): string
+  - [`from`](#moved): reference
+  - [`to`](#moved): reference
 
 ## Complete configuration
 
 When every field is defined, a `moved` block has the following form:
 
 ```hcl
-moved = {
+moved {
     from = <old address for the resource>
     to = <new address for the resource>
 }

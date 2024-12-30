@@ -35,18 +35,18 @@ type nodeVariableValidation struct {
 	// it's acceptable to use the declaration location instead.
 	defnRange hcl.Range
 
-	// allowGeneralReference is set for nodes that are associated with input
-	// variables that belong to modules participating in the
-	// "variable_validation_crossref" language experiment, which allows
-	// validation rules to refer to other objects declared in the same
-	// module as the variable.
-	allowGeneralReferences bool
+	// validateWalk is set to true during a validation walk, where any input
+	// variables are set to unknown values. Since we may have unknown values
+	// which will be known during plan, we need to be more lenient about what
+	// can be unknown in variable validation expressions.
+	validateWalk bool
 }
 
 var _ GraphNodeModulePath = (*nodeVariableValidation)(nil)
 var _ GraphNodeReferenceable = (*nodeVariableValidation)(nil)
 var _ GraphNodeReferencer = (*nodeVariableValidation)(nil)
 var _ GraphNodeExecutable = (*nodeVariableValidation)(nil)
+var _ graphNodeTemporaryValue = (*nodeVariableValidation)(nil)
 
 func (n *nodeVariableValidation) Name() string {
 	return fmt.Sprintf("%s (validation)", n.configAddr.String())
@@ -62,6 +62,15 @@ func (n *nodeVariableValidation) ModulePath() addrs.Module {
 // validating, and must therefore run before any nodes that refer to it.
 func (n *nodeVariableValidation) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.configAddr.Variable}
+}
+
+// nodeVariableValidation must act as if it's part of the associated variable
+// node, and that means mirroring all that node's graph behavior. Root module
+// variable are not temporary however, but because during a destroy we can't
+// ensure that all references can be evaluated, we must skip validation unless
+// absolutely necessary to avoid blocking the destroy from proceeding.
+func (n *nodeVariableValidation) temporaryValue() bool {
+	return true
 }
 
 // References implements [GraphNodeReferencer], announcing anything that
@@ -114,25 +123,13 @@ func (n *nodeVariableValidation) Execute(globalCtx EvalContext, op walkOperation
 	for _, modInst := range expander.ExpandModule(n.configAddr.Module, false) {
 		addr := n.configAddr.Variable.Absolute(modInst)
 		moduleCtx := globalCtx.withScope(evalContextModuleInstance{Addr: addr.Module})
-		if n.allowGeneralReferences {
-			// This is a more general form that's currently available only
-			// as an opt-in language experiment. Hopefully eventually this
-			// evalVariableValidationsCrossRef function replaces the
-			// old evalVariableValidations and we remove the experiment.
-			diags = diags.Append(evalVariableValidationsCrossRef(
-				addr,
-				moduleCtx,
-				n.rules,
-				n.defnRange,
-			))
-		} else {
-			diags = diags.Append(evalVariableValidations(
-				addr,
-				moduleCtx,
-				n.rules,
-				n.defnRange,
-			))
-		}
+		diags = diags.Append(evalVariableValidations(
+			addr,
+			moduleCtx,
+			n.rules,
+			n.defnRange,
+			n.validateWalk,
+		))
 	}
 
 	return diags

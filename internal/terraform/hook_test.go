@@ -155,6 +155,20 @@ func (h *testHook) PostApplyImport(id HookResourceIdentity, importing plans.Impo
 	return HookActionContinue, nil
 }
 
+func (h *testHook) PreEphemeralOp(id HookResourceIdentity, action plans.Action) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PreEphemeralOp", id.Addr.String()})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action, err error) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PostEphemeralOp", id.Addr.String()})
+	return HookActionContinue, nil
+}
+
 func (h *testHook) Stopping() {
 	h.mu.Lock()
 	defer h.mu.Unlock()

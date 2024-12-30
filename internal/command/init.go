@@ -92,7 +92,7 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	if err := c.storePluginPath(c.pluginPath); err != nil {
-		diags = diags.Append(fmt.Errorf("Error saving -plugin-path values: %s", err))
+		diags = diags.Append(fmt.Errorf("Error saving -plugin-dir to workspace directory: %s", err))
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -167,7 +167,7 @@ func (c *InitCommand) Run(args []string) int {
 	// be the first error displayed if that is an issue, but other operations are required
 	// before being able to check core version requirements.
 	if rootModEarly == nil {
-		diags = diags.Append(fmt.Errorf(view.PrepareMessage(views.InitConfigError)), earlyConfDiags)
+		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)), earlyConfDiags)
 		view.Diagnostics(diags)
 
 		return 1
@@ -259,7 +259,7 @@ func (c *InitCommand) Run(args []string) int {
 	diags = diags.Append(earlyConfDiags)
 	diags = diags.Append(backDiags)
 	if earlyConfDiags.HasErrors() {
-		diags = diags.Append(fmt.Errorf(view.PrepareMessage(views.InitConfigError)))
+		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)))
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -276,7 +276,7 @@ func (c *InitCommand) Run(args []string) int {
 	// show other errors from loading the full configuration tree.
 	diags = diags.Append(confDiags)
 	if confDiags.HasErrors() {
-		diags = diags.Append(fmt.Errorf(view.PrepareMessage(views.InitConfigError)))
+		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)))
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -686,11 +686,12 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 				// the end, by checking ctx.Err().
 
 			default:
+				suggestion := fmt.Sprintf("\n\nTo see which modules are currently depending on %s and what versions are specified, run the following command:\n    terraform providers", provider.ForDisplay())
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Failed to query available provider packages",
-					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s",
-						provider.ForDisplay(), err,
+					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s%s",
+						provider.ForDisplay(), err, suggestion,
 					),
 				))
 			}
