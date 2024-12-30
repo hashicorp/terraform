@@ -93,8 +93,8 @@ require (
 	github.com/AlecAivazis/survey/v2 v2.3.7 // indirect
 	github.com/Azure/azure-sdk-for-go v59.2.0+incompatible // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
-	github.com/Azure/go-autorest/autorest v0.11.27 // indirect
-	github.com/Azure/go-autorest/autorest/adal v0.9.20 // indirect
+	github.com/Azure/go-autorest/autorest v0.11.29 // indirect
+	github.com/Azure/go-autorest/autorest/adal v0.9.23 // indirect
 	github.com/Azure/go-autorest/autorest/azure/cli v0.4.4 // indirect
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
@@ -183,7 +183,9 @@ require (
 	github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.58 // indirect
 	github.com/hashicorp/consul/api v1.13.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
-	github.com/hashicorp/go-azure-helpers v0.43.0 // indirect
+	github.com/hashicorp/go-azure-helpers v0.67.0 // indirect
+	github.com/hashicorp/go-azure-sdk/resource-manager v0.20240425.1225320 // indirect
+	github.com/hashicorp/go-azure-sdk/sdk v0.20240425.1225320 // indirect
 	github.com/hashicorp/go-immutable-radix v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
@@ -240,7 +242,7 @@ require (
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.42 // indirect
 	github.com/thanhpk/randstr v1.0.6 // indirect
 	github.com/thlib/go-timezone-local v0.0.3 // indirect
-	github.com/tombuildsstuff/giovanni v0.15.1 // indirect
+	github.com/tombuildsstuff/giovanni v0.27.0 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
