@@ -8,25 +8,24 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
+	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
-	armStorage "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2021-01-01/storage"
 	"github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/hashicorp/go-azure-helpers/authentication"
-	"github.com/hashicorp/go-azure-helpers/sender"
+	"github.com/hashicorp/go-azure-sdk/resource-manager/resources/2024-03-01/resourcegroups"
+	"github.com/hashicorp/go-azure-sdk/resource-manager/storage/2023-01-01/storageaccounts"
+	"github.com/hashicorp/go-azure-sdk/sdk/auth"
+	"github.com/hashicorp/go-azure-sdk/sdk/client"
+	"github.com/hashicorp/go-azure-sdk/sdk/environments"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/version"
-	"github.com/manicminer/hamilton/environments"
-	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
-	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
+	"github.com/tombuildsstuff/giovanni/storage/2023-11-03/blob/blobs"
+	"github.com/tombuildsstuff/giovanni/storage/2023-11-03/blob/containers"
 )
 
-type ArmClient struct {
+type Client struct {
 	// These Clients are only initialized if an Access Key isn't provided
-	groupsClient          *resources.GroupsClient
-	storageAccountsClient *armStorage.AccountsClient
+	resourceGroupsClient  *resourcegroups.ResourceGroupsClient
+	storageAccountsClient *storageaccounts.StorageAccountsClient
 	containersClient      *containers.Client
 	blobsClient           *blobs.Client
 
@@ -34,20 +33,20 @@ type ArmClient struct {
 	azureAdStorageAuth *autorest.Authorizer
 
 	accessKey          string
-	environment        azure.Environment
+	environment        environments.Environment
 	resourceGroupName  string
 	storageAccountName string
 	sasToken           string
 }
 
-func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, error) {
-	env, err := authentication.AzureEnvironmentByNameFromEndpoint(ctx, config.MetadataHost, config.Environment)
+func buildClient(ctx context.Context, config BackendConfig) (*Client, error) {
+	resourceManagerAuth, err := auth.NewAuthorizerFromCredentials(ctx, *config.AuthConfig, config.AuthConfig.Environment.ResourceManager)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to build authorizer for Resource Manager API: %+v", err)
 	}
 
-	client := ArmClient{
-		environment:        *env,
+	client := Client{
+		environment:        config.AuthConfig.Environment,
 		resourceGroupName:  config.ResourceGroupName,
 		storageAccountName: config.StorageAccountName,
 	}
@@ -64,82 +63,22 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 		return &client, nil
 	}
 
-	builder := authentication.Builder{
-		ClientID:                      config.ClientID,
-		SubscriptionID:                config.SubscriptionID,
-		TenantID:                      config.TenantID,
-		CustomResourceManagerEndpoint: config.CustomResourceManagerEndpoint,
-		MetadataHost:                  config.MetadataHost,
-		Environment:                   config.Environment,
-		ClientSecretDocsLink:          "https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret",
-
-		// Service Principal (Client Certificate)
-		ClientCertPassword: config.ClientCertificatePassword,
-		ClientCertPath:     config.ClientCertificatePath,
-
-		// Service Principal (Client Secret)
-		ClientSecret: config.ClientSecret,
-
-		// Managed Service Identity
-		MsiEndpoint: config.MsiEndpoint,
-
-		// OIDC
-		IDToken:             config.OIDCToken,
-		IDTokenFilePath:     config.OIDCTokenFilePath,
-		IDTokenRequestURL:   config.OIDCRequestURL,
-		IDTokenRequestToken: config.OIDCRequestToken,
-
-		// Feature Toggles
-		SupportsAzureCliToken:          true,
-		SupportsClientCertAuth:         true,
-		SupportsClientSecretAuth:       true,
-		SupportsManagedServiceIdentity: config.UseMsi,
-		SupportsOIDCAuth:               config.UseOIDC,
-		UseMicrosoftGraph:              true,
-	}
-	armConfig, err := builder.Build()
+	client.resourceGroupsClient, err = resourcegroups.NewResourceGroupsClientWithBaseURI(config.AuthConfig.Environment.ResourceManager)
 	if err != nil {
-		return nil, fmt.Errorf("Error building ARM Config: %+v", err)
+		return nil, fmt.Errorf("building Resource Groups client: %+v", err)
 	}
+	client.configureClient(client.resourceGroupsClient.Client, resourceManagerAuth)
 
-	oauthConfig, err := armConfig.BuildOAuthConfig(env.ActiveDirectoryEndpoint)
+	client.storageAccountsClient, err = storageaccounts.NewStorageAccountsClientWithBaseURI(config.AuthConfig.Environment.ResourceManager)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("building Storage Accounts client: %+v", err)
 	}
-
-	hamiltonEnv, err := environments.EnvironmentFromString(config.Environment)
-	if err != nil {
-		return nil, err
-	}
-
-	sender := sender.BuildSender("backend/remote-state/azure")
-	log.Printf("[DEBUG] Obtaining an MSAL / Microsoft Graph token for Resource Manager..")
-	auth, err := armConfig.GetMSALToken(ctx, hamiltonEnv.ResourceManager, sender, oauthConfig, env.TokenAudience)
-	if err != nil {
-		return nil, err
-	}
-
-	if config.UseAzureADAuthentication {
-		log.Printf("[DEBUG] Obtaining an MSAL / Microsoft Graph token for Storage..")
-		storageAuth, err := armConfig.GetMSALToken(ctx, hamiltonEnv.Storage, sender, oauthConfig, env.ResourceIdentifiers.Storage)
-		if err != nil {
-			return nil, err
-		}
-		client.azureAdStorageAuth = &storageAuth
-	}
-
-	accountsClient := armStorage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, armConfig.SubscriptionID)
-	client.configureClient(&accountsClient.Client, auth)
-	client.storageAccountsClient = &accountsClient
-
-	groupsClient := resources.NewGroupsClientWithBaseURI(env.ResourceManagerEndpoint, armConfig.SubscriptionID)
-	client.configureClient(&groupsClient.Client, auth)
-	client.groupsClient = &groupsClient
+	client.configureClient(client.storageAccountsClient.Client, resourceManagerAuth)
 
 	return &client, nil
 }
 
-func (c ArmClient) getBlobClient(ctx context.Context) (*blobs.Client, error) {
+func (c *Client) getBlobClient(ctx context.Context) (*blobs.Client, error) {
 	if c.sasToken != "" {
 		log.Printf("[DEBUG] Building the Blob Client from a SAS Token")
 		storageAuth, err := autorest.NewSASTokenAuthorizer(c.sasToken)
@@ -184,7 +123,7 @@ func (c ArmClient) getBlobClient(ctx context.Context) (*blobs.Client, error) {
 	return &blobsClient, nil
 }
 
-func (c ArmClient) getContainersClient(ctx context.Context) (*containers.Client, error) {
+func (c *Client) getContainersClient(ctx context.Context) (*containers.Client, error) {
 	if c.sasToken != "" {
 		log.Printf("[DEBUG] Building the Container Client from a SAS Token")
 		storageAuth, err := autorest.NewSASTokenAuthorizer(c.sasToken)
@@ -229,16 +168,13 @@ func (c ArmClient) getContainersClient(ctx context.Context) (*containers.Client,
 	return &containersClient, nil
 }
 
-func (c *ArmClient) configureClient(client *autorest.Client, auth autorest.Authorizer) {
-	client.UserAgent = buildUserAgent()
-	client.Authorizer = auth
-	client.Sender = buildSender()
-	client.SkipResourceProviderRegistration = false
-	client.PollingDuration = 60 * time.Minute
+func (c *Client) configureClient(client client.BaseClient, authorizer auth.Authorizer) {
+	client.SetAuthorizer(authorizer)
+	client.SetUserAgent(buildUserAgent(client.GetUserAgent()))
 }
 
-func buildUserAgent() string {
-	userAgent := httpclient.TerraformUserAgent(version.Version)
+func buildUserAgent(userAgent string) string {
+	userAgent = strings.TrimSpace(fmt.Sprintf("%s %s", userAgent, httpclient.TerraformUserAgent(version.Version)))
 
 	// append the CloudShell version to the user agent if it exists
 	if azureAgent := os.Getenv("AZURE_HTTP_USER_AGENT"); azureAgent != "" {

@@ -30,11 +30,11 @@ func (b *Backend) Workspaces() ([]string, error) {
 	}
 
 	ctx := context.TODO()
-	client, err := b.armClient.getContainersClient(ctx)
+	client, err := b.apiClient.getContainersClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	resp, err := client.ListBlobs(ctx, b.armClient.storageAccountName, b.containerName, params)
+	resp, err := client.ListBlobs(ctx, b.apiClient.storageAccountName, b.containerName, params)
 	if err != nil {
 		return nil, err
 	}
@@ -67,12 +67,12 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 	}
 
 	ctx := context.TODO()
-	client, err := b.armClient.getBlobClient(ctx)
+	client, err := b.apiClient.getBlobClient(ctx)
 	if err != nil {
 		return err
 	}
 
-	if resp, err := client.Delete(ctx, b.armClient.storageAccountName, b.containerName, b.path(name), blobs.DeleteInput{}); err != nil {
+	if resp, err := client.Delete(ctx, b.apiClient.storageAccountName, b.containerName, b.path(name), blobs.DeleteInput{}); err != nil {
 		if resp.Response.StatusCode != 404 {
 			return err
 		}
@@ -83,7 +83,7 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 
 func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	ctx := context.TODO()
-	blobClient, err := b.armClient.getBlobClient(ctx)
+	blobClient, err := b.apiClient.getBlobClient(ctx)
 	if err != nil {
 		return nil, err
 	}
