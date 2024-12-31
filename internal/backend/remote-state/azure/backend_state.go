@@ -4,7 +4,6 @@
 package azure
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -29,14 +28,14 @@ func (b *Backend) Workspaces() ([]string, error) {
 		Prefix: &prefix,
 	}
 
-	ctx := context.TODO()
+	ctx := newCtx()
 	client, err := b.apiClient.getContainersClient(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("gettign container client: %v", err)
 	}
-	resp, err := client.ListBlobs(ctx, b.apiClient.storageAccountName, b.containerName, params)
+	resp, err := client.ListBlobs(ctx, b.containerName, params)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("listing blobs: %v", err)
 	}
 
 	envs := map[string]struct{}{}
@@ -66,14 +65,14 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 		return fmt.Errorf("can't delete default state")
 	}
 
-	ctx := context.TODO()
+	ctx := newCtx()
 	client, err := b.apiClient.getBlobClient(ctx)
 	if err != nil {
 		return err
 	}
 
-	if resp, err := client.Delete(ctx, b.apiClient.storageAccountName, b.containerName, b.path(name), blobs.DeleteInput{}); err != nil {
-		if resp.Response.StatusCode != 404 {
+	if resp, err := client.Delete(ctx, b.containerName, b.path(name), blobs.DeleteInput{}); err != nil {
+		if !responseWasNotFound(resp.HttpResponse) {
 			return err
 		}
 	}
@@ -82,7 +81,7 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 }
 
 func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
-	ctx := context.TODO()
+	ctx := newCtx()
 	blobClient, err := b.apiClient.getBlobClient(ctx)
 	if err != nil {
 		return nil, err
