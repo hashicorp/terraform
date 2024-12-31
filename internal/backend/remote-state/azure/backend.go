@@ -97,6 +97,13 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_ID", ""),
 			},
 
+			"client_id_file_path": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The path to a file containing the Client ID which should be used.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_ID_FILE_PATH", nil),
+			},
+
 			"endpoint": {
 				Type:       schema.TypeString,
 				Optional:   true,
@@ -131,6 +138,13 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "The Client Secret which should be used. For use When authenticating as a Service Principal using a Client Secret.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_SECRET", ""),
+			},
+
+			"client_secret_file_path": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The path to a file containing the Client Secret which should be used. For use When authenticating as a Service Principal using a Client Secret.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_SECRET_FILE_PATH", nil),
 			},
 
 			// OIDC specific fields
@@ -228,19 +242,19 @@ type Backend struct {
 }
 
 type BackendConfig struct {
-	AccessKey                string
 	AuthConfig               *auth.Credentials
+	SubscriptionID           string
 	ResourceGroupName        string
-	SasToken                 string
 	StorageAccountName       string
-	SubscriptionID           string // TODO needed?
+	AccessKey                string
+	SasToken                 string
 	UseAzureADAuthentication bool
 }
 
 func (b *Backend) configure(ctx context.Context) error {
-	// TODO what is this?
-	if b.containerName != "" {
-		return nil
+	// This is to make the go-azure-sdk/sdk/client Client happy.
+	if _, ok := ctx.Deadline(); !ok {
+		ctx, _ = context.WithTimeout(ctx, veryLongTimeout)
 	}
 
 	// Grab the resource data
@@ -329,23 +343,23 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	backendConfig := BackendConfig{
-		AccessKey:                data.Get("access_key").(string),
 		AuthConfig:               authConfig,
-		ResourceGroupName:        data.Get("resource_group_name").(string),
-		SasToken:                 data.Get("sas_token").(string),
-		StorageAccountName:       data.Get("storage_account_name").(string),
 		SubscriptionID:           data.Get("subscription_id").(string),
+		ResourceGroupName:        data.Get("resource_group_name").(string),
+		StorageAccountName:       data.Get("storage_account_name").(string),
+		AccessKey:                data.Get("access_key").(string),
+		SasToken:                 data.Get("sas_token").(string),
 		UseAzureADAuthentication: data.Get("use_azuread_auth").(bool),
-	}
-
-	client, err := buildClient(ctx, backendConfig)
-	if err != nil {
-		return err
 	}
 
 	propertiesNeededToLookupAccessKeySpecified := backendConfig.AccessKey == "" && backendConfig.SasToken == "" && backendConfig.ResourceGroupName == ""
 	if propertiesNeededToLookupAccessKeySpecified && !backendConfig.UseAzureADAuthentication {
 		return fmt.Errorf("either an Access Key / SAS Token or the Resource Group for the Storage Account must be specified - or Azure AD Authentication must be enabled")
+	}
+
+	client, err := buildClient(ctx, backendConfig)
+	if err != nil {
+		return err
 	}
 
 	b.apiClient = client
