@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'type conversion: Empty map conversions now return correct type information'
+time: 2025-01-07T14:42:50.703663+01:00
+custom:
+    Issue: "36262"
