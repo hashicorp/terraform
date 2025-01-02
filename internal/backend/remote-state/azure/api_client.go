@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-azure-helpers/resourcemanager/commonids"
-	"github.com/hashicorp/go-azure-sdk/resource-manager/resources/2024-03-01/resourcegroups"
 	"github.com/hashicorp/go-azure-sdk/resource-manager/storage/2023-01-01/storageaccounts"
 	"github.com/hashicorp/go-azure-sdk/sdk/auth"
 	"github.com/hashicorp/go-azure-sdk/sdk/client"
@@ -25,7 +24,6 @@ import (
 
 type Client struct {
 	// These Clients are only initialized if an Access Key isn't provided
-	resourceGroupsClient  *resourcegroups.ResourceGroupsClient
 	storageAccountsClient *storageaccounts.StorageAccountsClient
 
 	// Caching
@@ -70,11 +68,6 @@ func buildClient(ctx context.Context, config BackendConfig) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to build authorizer for Resource Manager API: %+v", err)
 	}
-	client.resourceGroupsClient, err = resourcegroups.NewResourceGroupsClientWithBaseURI(config.AuthConfig.Environment.ResourceManager)
-	if err != nil {
-		return nil, fmt.Errorf("building Resource Groups client: %+v", err)
-	}
-	client.configureClient(client.resourceGroupsClient.Client, resourceManagerAuth)
 
 	client.storageAccountsClient, err = storageaccounts.NewStorageAccountsClientWithBaseURI(config.AuthConfig.Environment.ResourceManager)
 	if err != nil {
