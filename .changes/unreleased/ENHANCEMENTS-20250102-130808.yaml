@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: "`init`: Provider installation will utilise credentials configured in a `.netrc` file for the download and shasum URLs returned by provider registries."
+time: 2025-01-02T13:00:22.419624+01:00
+custom:
+    Issue: "35843"
