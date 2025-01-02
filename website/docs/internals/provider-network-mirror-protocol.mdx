@@ -1,19 +1,16 @@
 ---
-page_title: Provider Network Mirror Protocol
+page_title: Provider network mirror protocol reference
 description: |-
-  The provider network mirror protocol is implemented by a server intending
-  to provide a mirror or read-through caching proxy for Terraform providers,
-  as an alternative distribution source from the provider's origin provider
-  registry.
+  The provider network mirror protocol lets you provide an alternate installation source for your providers. Learn about the provider network mirror protocol.
 ---
 
-# Provider Network Mirror Protocol
+# Provider Network Mirror Protocol Reference
+
+This topic provides reference information about the provider network mirror protocol. You can implement an alternative installation source for Terraform providers and make the source available over the provider network mirror protocol, regardless of their origin registries.
 
 -> Provider network mirrors are supported only in Terraform CLI v0.13.2 and later. Prior versions do not support this protocol.
 
-The provider network mirror protocol is an optional protocol which you can
-implement to provide an alternative installation source for Terraform providers,
-regardless of their origin registries.
+## Introduction
 
 Terraform uses network mirrors only if you activate them explicitly in
 [the CLI configuration's `provider_installation` block](/terraform/cli/config/config-file#provider-installation).

@@ -166,6 +166,10 @@ type ClientCapabilities struct {
 	// The deferral_allowed capability signals that the client is able to
 	// handle deferred responses from the provider.
 	DeferralAllowed bool
+
+	// The write_only_attributes_allowed capability signals that the client
+	// is able to handle write_only attributes for managed resources.
+	WriteOnlyAttributesAllowed bool
 }
 
 type ValidateProviderConfigRequest struct {
@@ -187,6 +191,9 @@ type ValidateResourceConfigRequest struct {
 	// Config is the configuration value to validate, which may contain unknown
 	// values.
 	Config cty.Value
+
+	// ClientCapabilities contains information about the client's capabilities.
+	ClientCapabilities ClientCapabilities
 }
 
 type ValidateResourceConfigResponse struct {

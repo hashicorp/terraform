@@ -53,14 +53,14 @@ jobs:
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
         with:
           go-version: ${{ steps.go.outputs.version }}
           cache-dependency-path: go.sum
 
       - uses: ./.github/actions/equivalence-test
         with:
-          target-equivalence-test-version: 0.4.0
+          target-equivalence-test-version: 0.5.0
           target-os: linux
           target-arch: amd64
           current-branch: ${{ github.event.pull_request.base.ref }}

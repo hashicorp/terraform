@@ -229,8 +229,9 @@ func (p *GRPCProvider) ValidateResourceConfig(r providers.ValidateResourceConfig
 	}
 
 	protoReq := &proto6.ValidateResourceConfig_Request{
-		TypeName: r.TypeName,
-		Config:   &proto6.DynamicValue{Msgpack: mp},
+		TypeName:           r.TypeName,
+		Config:             &proto6.DynamicValue{Msgpack: mp},
+		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
 	protoResp, err := p.client.ValidateResourceConfig(p.ctx, protoReq)
@@ -344,9 +345,7 @@ func (p *GRPCProvider) ConfigureProvider(r providers.ConfigureProviderRequest) (
 		Config: &proto6.DynamicValue{
 			Msgpack: mp,
 		},
-		ClientCapabilities: &proto6.ClientCapabilities{
-			DeferralAllowed: r.ClientCapabilities.DeferralAllowed,
-		},
+		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
 	protoResp, err := p.client.ConfigureProvider(p.ctx, protoReq)
@@ -396,12 +395,10 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 	}
 
 	protoReq := &proto6.ReadResource_Request{
-		TypeName:     r.TypeName,
-		CurrentState: &proto6.DynamicValue{Msgpack: mp},
-		Private:      r.Private,
-		ClientCapabilities: &proto6.ClientCapabilities{
-			DeferralAllowed: r.ClientCapabilities.DeferralAllowed,
-		},
+		TypeName:           r.TypeName,
+		CurrentState:       &proto6.DynamicValue{Msgpack: mp},
+		Private:            r.Private,
+		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
 	if metaSchema.Block != nil {
@@ -477,14 +474,12 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	}
 
 	protoReq := &proto6.PlanResourceChange_Request{
-		TypeName:         r.TypeName,
-		PriorState:       &proto6.DynamicValue{Msgpack: priorMP},
-		Config:           &proto6.DynamicValue{Msgpack: configMP},
-		ProposedNewState: &proto6.DynamicValue{Msgpack: propMP},
-		PriorPrivate:     r.PriorPrivate,
-		ClientCapabilities: &proto6.ClientCapabilities{
-			DeferralAllowed: r.ClientCapabilities.DeferralAllowed,
-		},
+		TypeName:           r.TypeName,
+		PriorState:         &proto6.DynamicValue{Msgpack: priorMP},
+		Config:             &proto6.DynamicValue{Msgpack: configMP},
+		ProposedNewState:   &proto6.DynamicValue{Msgpack: propMP},
+		PriorPrivate:       r.PriorPrivate,
+		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
 	if metaSchema.Block != nil {
@@ -614,11 +609,9 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 	}
 
 	protoReq := &proto6.ImportResourceState_Request{
-		TypeName: r.TypeName,
-		Id:       r.ID,
-		ClientCapabilities: &proto6.ClientCapabilities{
-			DeferralAllowed: r.ClientCapabilities.DeferralAllowed,
-		},
+		TypeName:           r.TypeName,
+		Id:                 r.ID,
+		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
 	protoResp, err := p.client.ImportResourceState(p.ctx, protoReq)
@@ -729,9 +722,7 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 		Config: &proto6.DynamicValue{
 			Msgpack: config,
 		},
-		ClientCapabilities: &proto6.ClientCapabilities{
-			DeferralAllowed: r.ClientCapabilities.DeferralAllowed,
-		},
+		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
 	if metaSchema.Block != nil {
@@ -822,9 +813,7 @@ func (p *GRPCProvider) OpenEphemeralResource(r providers.OpenEphemeralResourceRe
 		Config: &proto6.DynamicValue{
 			Msgpack: config,
 		},
-		ClientCapabilities: &proto6.ClientCapabilities{
-			DeferralAllowed: r.ClientCapabilities.DeferralAllowed,
-		},
+		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
 	protoResp, err := p.client.OpenEphemeralResource(p.ctx, protoReq)
@@ -1014,4 +1003,11 @@ func decodeDynamicValue(v *proto6.DynamicValue, ty cty.Type) (cty.Value, error) 
 		res, err = ctyjson.Unmarshal(v.Json, ty)
 	}
 	return res, err
+}
+
+func clientCapabilitiesToProto(c providers.ClientCapabilities) *proto6.ClientCapabilities {
+	return &proto6.ClientCapabilities{
+		DeferralAllowed:            c.DeferralAllowed,
+		WriteOnlyAttributesAllowed: c.WriteOnlyAttributesAllowed,
+	}
 }

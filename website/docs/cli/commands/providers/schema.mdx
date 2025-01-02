@@ -1,40 +1,30 @@
 ---
-page_title: 'Command: providers schema'
+page_title: terraform providers schema command 
 description: >-
-  The `terraform providers schema` command prints detailed schemas for the
-  providers used
-
-  in the current configuration.
+  The `terraform providers schema` command prints detailed schemas for the providers declared in the configuration.
 ---
 
-# Command: terraform providers schema
+# `terraform providers schema` command
 
-The `terraform providers schema` command is used to print detailed schemas for the providers used in the current configuration.
-
--> `terraform providers schema` requires **Terraform v0.12 or later**.
+The `terraform providers schema` command print detailed schemas for the providers used in the current configuration.
 
 ## Usage
 
-Usage: `terraform providers schema [options]`
+```
+$ terraform providers schema [options]
+```
 
 The following flags are available:
 
-- `-json` - Displays the schemas in a machine-readable, JSON format.
+- `-json` - Displays the schemas in a machine-readable JSON format. The `-json` flag is required. 
 
-Please note that, at this time, the `-json` flag is a _required_ option. In future releases, this command will be extended to allow for additional options.
+  The output includes a `format_version` key, which has a default value of `"1.0"`. The semantics of this version are:
 
-The output includes a `format_version` key, which as of Terraform 1.1.0 has
-value `"1.0"`. The semantics of this version are:
-
-- We will increment the minor version, e.g. `"1.1"`, for backward-compatible
-  changes or additions. Ignore any object properties with unrecognized names to
+  - Versions between `1.0` and `2.0` are backward-compatible. You should ignore any object properties with unrecognized names to
   remain forward-compatible with future minor versions.
-- We will increment the major version, e.g. `"2.0"`, for changes that are not
-  backward-compatible. Reject any input which reports an unsupported major
+  - Major versions are not backward-compatible to older versions. You should reject any input that reports an unsupported major
   version.
-
-We will introduce new major versions only within the bounds of
-[the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
+  - Refer to [Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises) for additional information about version support.
 
 ## Format Summary
 
