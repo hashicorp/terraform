@@ -155,12 +155,24 @@ func BuildTestMeta(t *testing.T, ctx context.Context) *TestMeta {
 	}
 
 	clientID := os.Getenv("ARM_CLIENT_ID")
-	clientSecret := os.Getenv("ARM_CLIENT_SECRET")
-	msiEnabled := strings.EqualFold(os.Getenv("ARM_USE_MSI"), "true")
-	hasCredentials := (clientID != "" && clientSecret != "") || msiEnabled
-	if !hasCredentials {
-		t.Fatal("Azure credentials missing or incomplete")
+	if clientID == "" {
+		t.Fatalf("Missing ARM_CLIENT_ID")
 	}
+
+	// For deploying test resources, we support the followings:
+	// - Client secret: For most of the tests
+	// - Client certificate: For client certificate related tests
+	// - MSI: For MSI related tests
+	// - OIDC: For OIDC related tests
+	clientSecret := os.Getenv("ARM_CLIENT_SECRET")
+	clientSecretEnabled := clientSecret != ""
+
+	clientCertificatePath := os.Getenv("ARM_CLIENT_CERTIFICATE_PATH")
+	clientCertificatePassword := os.Getenv("ARM_CLIENT_CERTIFICATE_PASSWORD")
+	clientCertificateEnabled := clientCertificatePath != ""
+
+	msiEnabled := strings.EqualFold(os.Getenv("ARM_USE_MSI"), "true")
+	oidcEnabled := strings.EqualFold(os.Getenv("ARM_USE_OIDC"), "true")
 
 	environment := "public"
 	if v := os.Getenv("ARM_ENVIRONMENT"); v != "" {
@@ -172,12 +184,17 @@ func BuildTestMeta(t *testing.T, ctx context.Context) *TestMeta {
 	}
 
 	authConfig := &auth.Credentials{
-		Environment:                              *env,
-		ClientID:                                 clientID,
-		TenantID:                                 tenantID,
-		ClientSecret:                             clientSecret,
-		EnableAuthenticatingUsingClientSecret:    true,
-		EnableAuthenticatingUsingManagedIdentity: msiEnabled,
+		Environment:               *env,
+		ClientID:                  clientID,
+		TenantID:                  tenantID,
+		ClientSecret:              clientSecret,
+		ClientCertificatePath:     clientCertificatePath,
+		ClientCertificatePassword: clientCertificatePassword,
+
+		EnableAuthenticatingUsingClientSecret:      clientSecretEnabled,
+		EnableAuthenticatingUsingClientCertificate: clientCertificateEnabled,
+		EnableAuthenticatingUsingManagedIdentity:   msiEnabled,
+		EnableAuthenticationUsingOIDC:              oidcEnabled,
 	}
 
 	resourceManagerAuth, err := auth.NewAuthorizerFromCredentials(ctx, *authConfig, env.ResourceManager)
