@@ -38,24 +38,20 @@ func testAccAzureBackend(t *testing.T) {
 	}
 }
 
-const ENV_RUNNING_IN_AZURE = "TF_RUNNING_IN_AZURE"
-
 // these kind of tests can only run when within Azure (e.g. MSI)
 func testAccAzureBackendRunningInAzure(t *testing.T) {
 	testAccAzureBackend(t)
 
-	if os.Getenv(ENV_RUNNING_IN_AZURE) == "" {
+	if os.Getenv("TF_RUNNING_IN_AZURE") == "" {
 		t.Skip("Skipping test since not running in Azure")
 	}
 }
-
-const ENV_RUNNING_IN_GITHUB_ACTIONS = "TF_RUNNING_IN_GITHUB_ACTIONS"
 
 // these kind of tests can only run when within GitHub Actions (e.g. OIDC)
 func testAccAzureBackendRunningInGitHubActions(t *testing.T) {
 	testAccAzureBackend(t)
 
-	if os.Getenv(ENV_RUNNING_IN_GITHUB_ACTIONS) == "" {
+	if os.Getenv("TF_RUNNING_IN_GITHUB_ACTIONS") == "" {
 		t.Skip("Skipping test since not running in GitHub Actions")
 	}
 }
