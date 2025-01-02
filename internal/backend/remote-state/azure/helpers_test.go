@@ -155,9 +155,6 @@ func BuildTestMeta(t *testing.T, ctx context.Context) *TestMeta {
 	}
 
 	clientID := os.Getenv("ARM_CLIENT_ID")
-	if clientID == "" {
-		t.Fatalf("Missing ARM_CLIENT_ID")
-	}
 
 	// For deploying test resources, we support the followings:
 	// - Client secret: For most of the tests
