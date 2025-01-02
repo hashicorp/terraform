@@ -59,6 +59,12 @@ func testAccAzureBackendRunningInGitHubActions(t *testing.T) {
 // clearEnv cleans up the azure related environment variables.
 // This is to ensure the configuration only comes from HCL, which avoids
 // env vars for test setup interfere the behavior.
+//
+// NOTE: Since `go test` runs all test cases in a single process, clearing
+// environment has a whole process impact to other test cases. While this
+// impact can be eliminated given all the tests are implemented in a similar
+// pattern that those env vars will be consumed at the very begining. The test
+// runner has to ensure to set a **big enough parallelism**.
 func clearEnv() {
 	for _, evexp := range os.Environ() {
 		k, _, ok := strings.Cut(evexp, "=")
