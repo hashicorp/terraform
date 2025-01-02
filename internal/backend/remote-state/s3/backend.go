@@ -156,7 +156,7 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 			"use_lockfile": {
 				Type:        cty.Bool,
 				Optional:    true,
-				Description: "(Experimental) Whether to use a lockfile for locking the state file.",
+				Description: "Whether to use a lockfile for locking the state file.",
 			},
 			"profile": {
 				Type:        cty.String,
