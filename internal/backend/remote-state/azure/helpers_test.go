@@ -38,20 +38,24 @@ func testAccAzureBackend(t *testing.T) {
 	}
 }
 
+const ENV_RUNNING_IN_AZURE = "TF_RUNNING_IN_AZURE"
+
 // these kind of tests can only run when within Azure (e.g. MSI)
 func testAccAzureBackendRunningInAzure(t *testing.T) {
 	testAccAzureBackend(t)
 
-	if os.Getenv("TF_RUNNING_IN_AZURE") == "" {
+	if os.Getenv(ENV_RUNNING_IN_AZURE) == "" {
 		t.Skip("Skipping test since not running in Azure")
 	}
 }
+
+const ENV_RUNNING_IN_GITHUB_ACTIONS = "TF_RUNNING_IN_GITHUB_ACTIONS"
 
 // these kind of tests can only run when within GitHub Actions (e.g. OIDC)
 func testAccAzureBackendRunningInGitHubActions(t *testing.T) {
 	testAccAzureBackend(t)
 
-	if os.Getenv("TF_RUNNING_IN_GITHUB_ACTIONS") == "" {
+	if os.Getenv(ENV_RUNNING_IN_GITHUB_ACTIONS) == "" {
 		t.Skip("Skipping test since not running in GitHub Actions")
 	}
 }
@@ -171,9 +175,6 @@ func BuildTestMeta(t *testing.T, ctx context.Context) *TestMeta {
 	clientCertificatePassword := os.Getenv("ARM_CLIENT_CERTIFICATE_PASSWORD")
 	clientCertificateEnabled := clientCertificatePath != ""
 
-	msiEnabled := strings.EqualFold(os.Getenv("ARM_USE_MSI"), "true")
-	oidcEnabled := strings.EqualFold(os.Getenv("ARM_USE_OIDC"), "true")
-
 	environment := "public"
 	if v := os.Getenv("ARM_ENVIRONMENT"); v != "" {
 		environment = v
@@ -193,8 +194,8 @@ func BuildTestMeta(t *testing.T, ctx context.Context) *TestMeta {
 
 		EnableAuthenticatingUsingClientSecret:      clientSecretEnabled,
 		EnableAuthenticatingUsingClientCertificate: clientCertificateEnabled,
-		EnableAuthenticatingUsingManagedIdentity:   msiEnabled,
-		EnableAuthenticationUsingOIDC:              oidcEnabled,
+		EnableAuthenticatingUsingManagedIdentity:   true,
+		EnableAuthenticationUsingOIDC:              true,
 	}
 
 	resourceManagerAuth, err := auth.NewAuthorizerFromCredentials(ctx, *authConfig, env.ResourceManager)
