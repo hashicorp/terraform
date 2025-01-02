@@ -152,6 +152,7 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "DynamoDB table for state locking and consistency",
+				Deprecated:  true,
 			},
 			"use_lockfile": {
 				Type:        cty.Bool,
@@ -534,6 +535,7 @@ var endpointsSchema = singleNestedAttribute{
 				Type:        cty.String,
 				Optional:    true,
 				Description: "A custom endpoint for the DynamoDB API",
+				Deprecated:  true,
 			},
 			validateString{
 				Validators: []stringValidator{
@@ -687,6 +689,11 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	attrPath = cty.GetAttrPath("shared_credentials_file")
 	if val := obj.GetAttr("shared_credentials_file"); !val.IsNull() {
 		diags = diags.Append(deprecatedAttrDiag(attrPath, cty.GetAttrPath("shared_credentials_files")))
+	}
+
+	attrPath = cty.GetAttrPath("dynamodb_table")
+	if val := obj.GetAttr("dynamodb_table"); !val.IsNull() {
+		diags = diags.Append(deprecatedAttrDiag(attrPath, cty.GetAttrPath("use_lockfile")))
 	}
 
 	endpointFields := map[string]string{
