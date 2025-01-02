@@ -95,6 +95,9 @@ The following configuration options or environment variables are supported:
 
 * `tablestore_endpoint` / `ALICLOUD_TABLESTORE_ENDPOINT` - (Optional) A custom endpoint for the TableStore API.
 
+* `tablestore_instance_name` - (Optional, Available since v1.11.0) A instance name of TableStore belongs. Default to parsing from `tablestore_endpoint`.
+  It should be set Access URL explicitly when tablestore endpoint is a VPC access url
+
 * `tablestore_table` - (Optional) A TableStore table for state locking and consistency. The table must have a primary key named `LockID` of type `String`.
 
 * `sts_endpoint` - (Optional, Available in 1.0.11+) Custom endpoint for the AliCloud Security Token Service (STS) API. It supports environment variable `ALICLOUD_STS_ENDPOINT`.
