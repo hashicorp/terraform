@@ -155,18 +155,7 @@ func BuildTestMeta(t *testing.T, ctx context.Context) *TestMeta {
 	}
 
 	clientID := os.Getenv("ARM_CLIENT_ID")
-
-	// For deploying test resources, we support the followings:
-	// - Client secret: For most of the tests
-	// - Client certificate: For client certificate related tests
-	// - MSI: For MSI related tests
-	// - OIDC: For OIDC related tests
 	clientSecret := os.Getenv("ARM_CLIENT_SECRET")
-	clientSecretEnabled := clientSecret != ""
-
-	clientCertificatePath := os.Getenv("ARM_CLIENT_CERTIFICATE_PATH")
-	clientCertificatePassword := os.Getenv("ARM_CLIENT_CERTIFICATE_PASSWORD")
-	clientCertificateEnabled := clientCertificatePath != ""
 
 	environment := "public"
 	if v := os.Getenv("ARM_ENVIRONMENT"); v != "" {
@@ -177,16 +166,21 @@ func BuildTestMeta(t *testing.T, ctx context.Context) *TestMeta {
 		t.Fatalf("Failed to build environment for %s: %v", environment, err)
 	}
 
+	// For deploying test resources, we support the followings:
+	// - Client secret: For most of the tests
+	// - Client certificate: For client certificate related tests
+	// - MSI: For MSI related tests
+	// - OIDC: For OIDC related tests
 	authConfig := &auth.Credentials{
 		Environment:               *env,
-		ClientID:                  clientID,
 		TenantID:                  tenantID,
+		ClientID:                  clientID,
 		ClientSecret:              clientSecret,
-		ClientCertificatePath:     clientCertificatePath,
-		ClientCertificatePassword: clientCertificatePassword,
+		ClientCertificatePath:     os.Getenv("ARM_CLIENT_CERTIFICATE_PATH"),
+		ClientCertificatePassword: os.Getenv("ARM_CLIENT_CERTIFICATE_PASSWORD"),
 
-		EnableAuthenticatingUsingClientSecret:      clientSecretEnabled,
-		EnableAuthenticatingUsingClientCertificate: clientCertificateEnabled,
+		EnableAuthenticatingUsingClientSecret:      true,
+		EnableAuthenticatingUsingClientCertificate: true,
 		EnableAuthenticatingUsingManagedIdentity:   true,
 		EnableAuthenticationUsingOIDC:              true,
 	}

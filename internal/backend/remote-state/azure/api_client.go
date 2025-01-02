@@ -64,6 +64,14 @@ func buildClient(ctx context.Context, config BackendConfig) (*Client, error) {
 		return &client, nil
 	}
 
+	if config.UseAzureADAuthentication {
+		var err error
+		client.azureAdStorageAuth, err = auth.NewAuthorizerFromCredentials(ctx, *config.AuthConfig, config.AuthConfig.Environment.Storage)
+		if err != nil {
+			return nil, fmt.Errorf("unable to build authorizer for Storage API: %+v", err)
+		}
+	}
+
 	resourceManagerAuth, err := auth.NewAuthorizerFromCredentials(ctx, *config.AuthConfig, config.AuthConfig.Environment.ResourceManager)
 	if err != nil {
 		return nil, fmt.Errorf("unable to build authorizer for Resource Manager API: %+v", err)
@@ -74,11 +82,6 @@ func buildClient(ctx context.Context, config BackendConfig) (*Client, error) {
 		return nil, fmt.Errorf("building Storage Accounts client: %+v", err)
 	}
 	client.configureClient(client.storageAccountsClient.Client, resourceManagerAuth)
-
-	client.azureAdStorageAuth, err = auth.NewAuthorizerFromCredentials(ctx, *config.AuthConfig, config.AuthConfig.Environment.Storage)
-	if err != nil {
-		return nil, fmt.Errorf("unable to build authorizer for Storage API: %+v", err)
-	}
 
 	// Populating the storage account detail
 	said := commonids.NewStorageAccountID(config.SubscriptionID, config.ResourceGroupName, client.storageAccountName)
