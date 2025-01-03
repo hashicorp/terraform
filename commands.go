@@ -419,6 +419,12 @@ func initCommands(
 				},
 			}, nil
 		},
+		// docs
+		"docs": func() (cli.Command, error) {
+			return &command.CommandDocs{
+				Meta: meta,
+			}, nil
+		},
 	}
 
 	if meta.AllowExperimentalFeatures {
