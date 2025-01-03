@@ -178,12 +178,14 @@ func BuildTestMeta(t *testing.T, ctx context.Context) *TestMeta {
 	// - MSI: For MSI related tests
 	// - OIDC: For OIDC related tests
 	authConfig := &auth.Credentials{
-		Environment:               *env,
-		TenantID:                  tenantID,
-		ClientID:                  clientID,
-		ClientSecret:              clientSecret,
-		ClientCertificatePath:     os.Getenv("ARM_CLIENT_CERTIFICATE_PATH"),
-		ClientCertificatePassword: os.Getenv("ARM_CLIENT_CERTIFICATE_PASSWORD"),
+		Environment:                 *env,
+		TenantID:                    tenantID,
+		ClientID:                    clientID,
+		ClientSecret:                clientSecret,
+		ClientCertificatePath:       os.Getenv("ARM_CLIENT_CERTIFICATE_PATH"),
+		ClientCertificatePassword:   os.Getenv("ARM_CLIENT_CERTIFICATE_PASSWORD"),
+		GitHubOIDCTokenRequestURL:   os.Getenv("ACTIONS_ID_TOKEN_REQUEST_URL"),
+		GitHubOIDCTokenRequestToken: os.Getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN"),
 
 		EnableAuthenticatingUsingClientSecret:      true,
 		EnableAuthenticatingUsingClientCertificate: true,
