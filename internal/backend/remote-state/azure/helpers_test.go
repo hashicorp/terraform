@@ -190,7 +190,7 @@ func BuildTestMeta(t *testing.T, ctx context.Context) *TestMeta {
 		EnableAuthenticatingUsingClientSecret:      true,
 		EnableAuthenticatingUsingClientCertificate: true,
 		EnableAuthenticatingUsingManagedIdentity:   true,
-		EnableAuthenticationUsingOIDC:              true,
+		EnableAuthenticationUsingGitHubOIDC:        true,
 	}
 
 	resourceManagerAuth, err := auth.NewAuthorizerFromCredentials(ctx, *authConfig, env.ResourceManager)
