@@ -115,7 +115,7 @@ func (u *unknownProvider) PlanResourceChange(request providers.PlanResourceChang
 		// library, but it is doing exactly what we need it to do.
 
 		schema := u.GetProviderSchema().ResourceTypes[request.TypeName]
-		val, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, schema.Block)
+		val, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, nil, schema.Block)
 		if diags.HasErrors() {
 			// All the potential errors we get back from this function are
 			// related to the user badly defining mocks. We should never hit
@@ -213,7 +213,7 @@ func (u *unknownProvider) ReadDataSource(request providers.ReadDataSourceRequest
 		// library, but it is doing exactly what we need it to do.
 
 		schema := u.GetProviderSchema().DataSources[request.TypeName]
-		val, diags := mocking.PlanComputedValuesForResource(request.Config, schema.Block)
+		val, diags := mocking.PlanComputedValuesForResource(request.Config, nil, schema.Block)
 		if diags.HasErrors() {
 			// All the potential errors we get back from this function are
 			// related to the user badly defining mocks. We should never hit
