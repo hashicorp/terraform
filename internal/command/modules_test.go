@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"os"
 	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -41,10 +42,29 @@ func TestModules_noJsonFlag(t *testing.T) {
 
 	actual := done(t).All()
 
-	for _, part := range expectedOutputHuman {
-		if !strings.Contains(actual, part) {
-			t.Fatalf("unexpected output: %s\n", part)
-		}
+	expectedOutputHuman := `
+Modules declared by configuration:
+.
+├── "other"[./mods/other]
+└── "test"[./mods/test]
+    └── "test2"[./test2]
+        └── "test3"[./test3]
+
+`
+	if runtime.GOOS == "windows" {
+		expectedOutputHuman = `
+Modules declared by configuration:
+.
+├── "other"[.\mods\other]
+└── "test"[.\mods\test]
+	└── "test2"[.\test2]
+		└── "test3"[.\test3]
+
+`
+	}
+
+	if diff := cmp.Diff(expectedOutputHuman, actual); diff != "" {
+		t.Fatalf("unexpected output:\n%s\n", diff)
 	}
 }
 
@@ -185,5 +205,3 @@ func compareJSONOutput(t *testing.T, got string, want string) {
 }
 
 var expectedOutputJSON = `{"format_version":"1.0","modules":[{"key":"test","source":"./mods/test","version":""},{"key":"test2","source":"./test2","version":""},{"key":"test3","source":"./test3","version":""},{"key":"other","source":"./mods/other","version":""}]}`
-
-var expectedOutputHuman = []string{"── \"other\"[./mods/other]", "── \"test\"[./mods/test]\n    └── \"test2\"[./test2]\n        └── \"test3\"[./test3]"}
