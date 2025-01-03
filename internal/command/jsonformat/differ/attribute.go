@@ -4,7 +4,9 @@
 package differ
 
 import (
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
@@ -13,10 +15,14 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 )
 
-func ComputeDiffForAttribute(change structured.Change, attribute *jsonprovider.Attribute) computed.Diff {
+func ComputeDiffForAttribute(change structured.Change, attribute *jsonprovider.Attribute, blockAction plans.Action) computed.Diff {
 	if attribute.AttributeNestedType != nil {
 		return computeDiffForNestedAttribute(change, attribute.AttributeNestedType)
 	}
+	if attribute.WriteOnly {
+		return computeDiffForWriteOnlyAttribute(change, blockAction)
+	}
+
 	return ComputeDiffForType(change, unmarshalAttribute(attribute))
 }
 
@@ -41,6 +47,18 @@ func computeDiffForNestedAttribute(change structured.Change, nested *jsonprovide
 	default:
 		panic("unrecognized nesting mode: " + nested.NestingMode)
 	}
+}
+
+func computeDiffForWriteOnlyAttribute(change structured.Change, blockAction plans.Action) computed.Diff {
+	renderer := renderers.WriteOnly(change.IsBeforeSensitive() || change.IsAfterSensitive())
+	replacePathMatches := change.ReplacePaths.Matches()
+	// Write-only diffs should always copy the behavior of the block they are in, except for updates
+	// since we don't want them to be always highlighted.
+	if blockAction == plans.Update {
+		return computed.NewDiff(renderer, plans.NoOp, replacePathMatches)
+	}
+	return computed.NewDiff(renderer, blockAction, replacePathMatches)
+
 }
 
 func ComputeDiffForType(change structured.Change, ctype cty.Type) computed.Diff {

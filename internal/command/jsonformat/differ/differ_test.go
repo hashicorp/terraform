@@ -779,17 +779,17 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				}
 
 				if tc.validateObject != nil {
-					tc.validateObject(t, ComputeDiffForAttribute(tc.input, attribute))
+					tc.validateObject(t, ComputeDiffForAttribute(tc.input, attribute, plans.Update))
 					return
 				}
 
 				if tc.validateSingleDiff != nil {
-					tc.validateSingleDiff(t, ComputeDiffForAttribute(tc.input, attribute))
+					tc.validateSingleDiff(t, ComputeDiffForAttribute(tc.input, attribute, plans.Update))
 					return
 				}
 
 				validate := renderers.ValidateObject(tc.validateDiffs, tc.validateAction, tc.validateReplace)
-				validate(t, ComputeDiffForAttribute(tc.input, attribute))
+				validate(t, ComputeDiffForAttribute(tc.input, attribute, plans.Update))
 			})
 
 			t.Run("map", func(t *testing.T) {
@@ -803,7 +803,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 						"element": tc.validateObject,
 					}, collectionDefaultAction, false)
-					validate(t, ComputeDiffForAttribute(input, attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 					return
 				}
 
@@ -811,14 +811,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 						"element": tc.validateSingleDiff,
 					}, collectionDefaultAction, false)
-					validate(t, ComputeDiffForAttribute(input, attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 					return
 				}
 
 				validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 					"element": renderers.ValidateObject(tc.validateDiffs, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, ComputeDiffForAttribute(input, attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 			})
 
 			t.Run("list", func(t *testing.T) {
@@ -829,7 +829,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				input := wrapChangeInSlice(tc.input)
 
 				if tc.validateList != nil {
-					tc.validateList(t, ComputeDiffForAttribute(input, attribute))
+					tc.validateList(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 					return
 				}
 
@@ -837,7 +837,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateList([]renderers.ValidateDiffFunction{
 						tc.validateObject,
 					}, collectionDefaultAction, false)
-					validate(t, ComputeDiffForAttribute(input, attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 					return
 				}
 
@@ -845,14 +845,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateList([]renderers.ValidateDiffFunction{
 						tc.validateSingleDiff,
 					}, collectionDefaultAction, false)
-					validate(t, ComputeDiffForAttribute(input, attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 					return
 				}
 
 				validate := renderers.ValidateList([]renderers.ValidateDiffFunction{
 					renderers.ValidateObject(tc.validateDiffs, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, ComputeDiffForAttribute(input, attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 			})
 
 			t.Run("set", func(t *testing.T) {
@@ -869,7 +869,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 						ret = append(ret, tc.validateSetDiffs.After.Validate(renderers.ValidateObject))
 						return ret
 					}(), collectionDefaultAction, false)
-					validate(t, ComputeDiffForAttribute(input, attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 					return
 				}
 
@@ -877,7 +877,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 						tc.validateObject,
 					}, collectionDefaultAction, false)
-					validate(t, ComputeDiffForAttribute(input, attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 					return
 				}
 
@@ -885,14 +885,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 						tc.validateSingleDiff,
 					}, collectionDefaultAction, false)
-					validate(t, ComputeDiffForAttribute(input, attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 					return
 				}
 
 				validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 					renderers.ValidateObject(tc.validateDiffs, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, ComputeDiffForAttribute(input, attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 			})
 		})
 
@@ -914,17 +914,17 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				}
 
 				if tc.validateNestedObject != nil {
-					tc.validateNestedObject(t, ComputeDiffForAttribute(tc.input, attribute))
+					tc.validateNestedObject(t, ComputeDiffForAttribute(tc.input, attribute, plans.Update))
 					return
 				}
 
 				if tc.validateSingleDiff != nil {
-					tc.validateSingleDiff(t, ComputeDiffForAttribute(tc.input, attribute))
+					tc.validateSingleDiff(t, ComputeDiffForAttribute(tc.input, attribute, plans.Update))
 					return
 				}
 
 				validate := renderers.ValidateNestedObject(tc.validateDiffs, tc.validateAction, tc.validateReplace)
-				validate(t, ComputeDiffForAttribute(tc.input, attribute))
+				validate(t, ComputeDiffForAttribute(tc.input, attribute, plans.Update))
 			})
 
 			t.Run("map", func(t *testing.T) {
@@ -949,7 +949,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 						"element": tc.validateNestedObject,
 					}, collectionDefaultAction, false)
-					validate(t, ComputeDiffForAttribute(input, attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 					return
 				}
 
@@ -957,14 +957,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 						"element": tc.validateSingleDiff,
 					}, collectionDefaultAction, false)
-					validate(t, ComputeDiffForAttribute(input, attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 					return
 				}
 
 				validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 					"element": renderers.ValidateNestedObject(tc.validateDiffs, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, ComputeDiffForAttribute(input, attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 			})
 
 			t.Run("list", func(t *testing.T) {
@@ -989,7 +989,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateNestedList([]renderers.ValidateDiffFunction{
 						tc.validateNestedObject,
 					}, collectionDefaultAction, false)
-					validate(t, ComputeDiffForAttribute(input, attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 					return
 				}
 
@@ -997,14 +997,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateNestedList([]renderers.ValidateDiffFunction{
 						tc.validateSingleDiff,
 					}, collectionDefaultAction, false)
-					validate(t, ComputeDiffForAttribute(input, attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 					return
 				}
 
 				validate := renderers.ValidateNestedList([]renderers.ValidateDiffFunction{
 					renderers.ValidateNestedObject(tc.validateDiffs, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, ComputeDiffForAttribute(input, attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 			})
 
 			t.Run("set", func(t *testing.T) {
@@ -1032,7 +1032,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 						ret = append(ret, tc.validateSetDiffs.After.Validate(renderers.ValidateNestedObject))
 						return ret
 					}(), collectionDefaultAction, false)
-					validate(t, ComputeDiffForAttribute(input, attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 					return
 				}
 
@@ -1040,7 +1040,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 						tc.validateNestedObject,
 					}, collectionDefaultAction, false)
-					validate(t, ComputeDiffForAttribute(input, attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 					return
 				}
 
@@ -1048,14 +1048,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 						tc.validateSingleDiff,
 					}, collectionDefaultAction, false)
-					validate(t, ComputeDiffForAttribute(input, attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 					return
 				}
 
 				validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 					renderers.ValidateNestedObject(tc.validateDiffs, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, ComputeDiffForAttribute(input, attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 			})
 		})
 	}
@@ -1840,7 +1840,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			t.Run("direct", func(t *testing.T) {
 				tc.validateDiff(t, ComputeDiffForAttribute(tc.input, &jsonprovider.Attribute{
 					AttributeType: unmarshalType(t, tc.attribute),
-				}))
+				}, plans.Update))
 			})
 
 			t.Run("map", func(t *testing.T) {
@@ -1852,7 +1852,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 				validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 					"element": tc.validateDiff,
 				}, defaultCollectionsAction, false)
-				validate(t, ComputeDiffForAttribute(input, attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 			})
 
 			t.Run("list", func(t *testing.T) {
@@ -1863,14 +1863,14 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 
 				if tc.validateSliceDiffs != nil {
 					validate := renderers.ValidateList(tc.validateSliceDiffs, defaultCollectionsAction, false)
-					validate(t, ComputeDiffForAttribute(input, attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 					return
 				}
 
 				validate := renderers.ValidateList([]renderers.ValidateDiffFunction{
 					tc.validateDiff,
 				}, defaultCollectionsAction, false)
-				validate(t, ComputeDiffForAttribute(input, attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 			})
 
 			t.Run("set", func(t *testing.T) {
@@ -1881,14 +1881,14 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 
 				if tc.validateSliceDiffs != nil {
 					validate := renderers.ValidateSet(tc.validateSetDiffs, defaultCollectionsAction, false)
-					validate(t, ComputeDiffForAttribute(input, attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 					return
 				}
 
 				validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 					tc.validateDiff,
 				}, defaultCollectionsAction, false)
-				validate(t, ComputeDiffForAttribute(input, attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute, plans.Update))
 			})
 		})
 	}
@@ -2260,7 +2260,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 		}
 
 		t.Run(name, func(t *testing.T) {
-			tc.validateDiff(t, ComputeDiffForAttribute(tc.input, tc.attribute))
+			tc.validateDiff(t, ComputeDiffForAttribute(tc.input, tc.attribute, plans.Update))
 		})
 	}
 }
