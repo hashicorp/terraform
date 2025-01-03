@@ -101,7 +101,7 @@ func TestAccBackendSASTokenBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestAccBackendOIDCBasic(t *testing.T) {
+func TestAccBackendGithubOIDCBasic(t *testing.T) {
 	t.Parallel()
 
 	testAccAzureBackendRunningInGitHubActions(t)
@@ -125,6 +125,7 @@ func TestAccBackendOIDCBasic(t *testing.T) {
 		"key":                  m.names.storageKeyName,
 		"use_oidc":             true,
 		"tenant_id":            m.tenantId,
+		"client_id":            m.clientId,
 		"environment":          m.env.Name,
 	})).(*Backend)
 
