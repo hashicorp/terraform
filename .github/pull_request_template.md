@@ -1,12 +1,24 @@
 <!--
 
-Describe in detail the changes you are proposing, and the rationale.
+Describe in detail the changes you are proposing, and the rationale. If practical, describe how to manually test the change; this isn't always possible, but it makes PRs easier and faster to review.
 
 See the contributing guide:
 
 https://github.com/hashicorp/terraform/blob/main/.github/CONTRIBUTING.md
 
 -->
+
+## Reason for change
+
+## Old behavior
+
+## New behavior
+
+## How to verify
+
+### Example config
+
+### Commands
 
 <!--
 
@@ -51,6 +63,6 @@ Write a short description of the user-facing change. Examples:
 - When rendering a diff, Terraform now quotes the name of any object attribute whose string representation is not a valid identifier.
 - The local token configuration in the cloud and remote backend now has higher priority than a token specified in a credentials block in the CLI configuration.
 
---> 
+-->
 
--  
+-
