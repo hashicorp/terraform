@@ -1,9 +1,12 @@
 ## 1.11.0 (Unreleased)
 
+
 ENHANCEMENTS:
 
-- `init`: Provider installation will utilise credentials configured in a `.netrc` file for the download and shasum URLs returned by provider registries. ([https://github.com/hashicorp/terraform/pull/35843](35843))
-- New command `modules -json`: Displays a full list of all installed modules in a working directory, including whether each module is currently referenced by the working directory's configuration. ([#35884](https://github.com/hashicorp/terraform/pull/35884), [#36062](https://github.com/hashicorp/terraform/pull/36062))
+* `init`: Provider installation will utilise credentials configured in a `.netrc` file for the download and shasum URLs returned by provider registries. ([#35843](https://github.com/hashicorp/terraform/issues/35843))
+
+* New command `modules -json`: Displays a full list of all installed modules in a working directory, including whether each module is currently referenced by the working directory's configuration. ([#35884](https://github.com/hashicorp/terraform/issues/35884))
+
 
 EXPERIMENTS:
 
