@@ -4,7 +4,7 @@ go 1.23.3
 
 require (
 	github.com/hashicorp/go-uuid v1.0.3
-	github.com/hashicorp/hcl/v2 v2.23.0
+	github.com/hashicorp/hcl/v2 v2.23.1-0.20241216213913-03baea4b8683
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
 	github.com/lib/pq v1.10.3
 	github.com/zclconf/go-cty v1.15.1
