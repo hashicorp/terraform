@@ -4,6 +4,8 @@
 package views
 
 import (
+	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -3277,6 +3279,191 @@ func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 
 			view.FatalInterruptSummary(run, file, tc.states, tc.changes)
 			testJSONViewOutputEquals(t, done(t).All(), tc.want)
+		})
+	}
+}
+
+func TestTestJUnitXMLFile_Conclusion(t *testing.T) {
+	tcs := map[string]struct {
+		suite *moduletest.Suite
+		want  string
+	}{
+		"no tests": {
+			want:  "<?xml version=\"1.0\" encoding=\"UTF-8\"?><testsuites></testsuites>",
+			suite: &moduletest.Suite{},
+		},
+		"one passing test": {
+			want: `<?xml version="1.0" encoding="UTF-8"?><testsuites>
+  <testsuite name="test_name.tftest.hcl" tests="1" skipped="0" failures="0" errors="0">
+    <testcase name="test_one" classname="test_name.tftest.hcl"></testcase>
+  </testsuite>
+</testsuites>`,
+			suite: &moduletest.Suite{
+				Status: moduletest.Skip,
+				Files: map[string]*moduletest.File{
+					"test_name.tftest.hcl": {
+						Name:   "test_name.tftest.hcl",
+						Status: moduletest.Skip,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Pass,
+							},
+						},
+					},
+				},
+			},
+		},
+		"one skipped test": {
+			want: `<?xml version="1.0" encoding="UTF-8"?><testsuites>
+  <testsuite name="test_name.tftest.hcl" tests="1" skipped="1" failures="0" errors="0">
+    <testcase name="test_one" classname="test_name.tftest.hcl">
+      <skipped></skipped>
+    </testcase>
+  </testsuite>
+</testsuites>`,
+			suite: &moduletest.Suite{
+				Status: moduletest.Skip,
+				Files: map[string]*moduletest.File{
+					"test_name.tftest.hcl": {
+						Name:   "test_name.tftest.hcl",
+						Status: moduletest.Skip,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Skip,
+							},
+						},
+					},
+				},
+			},
+		},
+		"one failed test": {
+			want: `<?xml version="1.0" encoding="UTF-8"?><testsuites>
+  <testsuite name="test_name.tftest.hcl" tests="1" skipped="0" failures="1" errors="0">
+    <testcase name="test_one" classname="test_name.tftest.hcl">
+      <failure message="Test run failed"></failure>
+    </testcase>
+  </testsuite>
+</testsuites>`,
+			suite: &moduletest.Suite{
+				Status: moduletest.Skip,
+				Files: map[string]*moduletest.File{
+					"test_name.tftest.hcl": {
+						Name:   "test_name.tftest.hcl",
+						Status: moduletest.Skip,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Fail,
+							},
+						},
+					},
+				},
+			},
+		},
+		"three tests, each different status": {
+			want: `<?xml version="1.0" encoding="UTF-8"?><testsuites>
+  <testsuite name="test_name.tftest.hcl" tests="3" skipped="1" failures="1" errors="0">
+    <testcase name="test_one" classname="test_name.tftest.hcl"></testcase>
+    <testcase name="test_two" classname="test_name.tftest.hcl">
+      <skipped></skipped>
+    </testcase>
+    <testcase name="test_three" classname="test_name.tftest.hcl">
+      <failure message="Test run failed"></failure>
+    </testcase>
+  </testsuite>
+</testsuites>`,
+			suite: &moduletest.Suite{
+				Status: moduletest.Skip,
+				Files: map[string]*moduletest.File{
+					"test_name.tftest.hcl": {
+						Name:   "test_name.tftest.hcl",
+						Status: moduletest.Skip,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Pass,
+							},
+							{
+								Name:   "test_two",
+								Status: moduletest.Skip,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Fail,
+							},
+						},
+					},
+				},
+			},
+		},
+		"multiple test files with various tests": {
+			want: `<?xml version="1.0" encoding="UTF-8"?><testsuites>
+  <testsuite name="test_file_one.tftest.hcl" tests="1" skipped="0" failures="0" errors="0">
+    <testcase name="test_one" classname="test_file_one.tftest.hcl"></testcase>
+  </testsuite>
+  <testsuite name="test_file_two.tftest.hcl" tests="2" skipped="1" failures="1" errors="0">
+    <testcase name="test_two" classname="test_file_two.tftest.hcl">
+      <skipped></skipped>
+    </testcase>
+    <testcase name="test_three" classname="test_file_two.tftest.hcl">
+      <failure message="Test run failed"></failure>
+    </testcase>
+  </testsuite>
+</testsuites>`,
+			suite: &moduletest.Suite{
+				Status: moduletest.Skip,
+				Files: map[string]*moduletest.File{
+					"test_file_one.tftest.hcl": {
+						Name:   "test_file_one.tftest.hcl",
+						Status: moduletest.Skip,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Pass,
+							},
+						},
+					},
+					"test_file_two.tftest.hcl": {
+						Name:   "test_file_two.tftest.hcl",
+						Status: moduletest.Skip,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_two",
+								Status: moduletest.Skip,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Fail,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for tn, tc := range tcs {
+		t.Run(tn, func(t *testing.T) {
+
+			tmpDir := t.TempDir()
+			filename := fmt.Sprintf("%s/%s", tmpDir, "junit.xml")
+			view := &TestJUnitXMLFile{
+				filename: filename,
+			}
+
+			view.Conclusion(tc.suite)
+
+			// This implicitly tests that the XML file is written to the filename provided
+			b, err := os.ReadFile(filename)
+			if err != nil {
+				t.Fatalf("error opening XML file: %s", err)
+			}
+
+			if string(b) != tc.want {
+				t.Fatalf("wanted XML:\n%s\n got XML:\n%s\n", tc.want, string(b))
+			}
 		})
 	}
 }

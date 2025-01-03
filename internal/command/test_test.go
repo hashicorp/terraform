@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -2313,6 +2314,71 @@ required.
 	actualErr := output.Stderr()
 	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
 		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_JUnitOutput(t *testing.T) {
+
+	// Setup test
+	td := t.TempDir()
+	testPath := path.Join("test", "junit-output-test-failure")
+	testCopyDir(t, testFixturePath(testPath), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+		},
+	}
+
+	// Run command with -junit-xml=./output.xml flag
+	outputFile := "output.xml"
+	code := c.Run([]string{fmt.Sprintf("-junit-xml=./%s", outputFile), "-no-color"})
+	done(t)
+
+	if code != 1 {
+		t.Errorf("expected status code 1 but got %d", code)
+	}
+
+	// Assert about contents of the JUnit XML file output
+	outputPath := fmt.Sprintf("%s/%s", td, outputFile)
+	actualOut, err := os.ReadFile(outputPath)
+	if err != nil {
+		t.Fatalf("error opening XML file: %s", err)
+	}
+
+	durationRegexp := regexp.MustCompile(`time=\"[0-9\.]{10,}\"`)
+	actualOut = durationRegexp.ReplaceAll(actualOut, []byte("time=\"TIME_REDACTED\"")) // Time duration can vary; redact from data
+
+	// Given the main.tf and main.tftest.hcl files in junit-output-test-failure/ test data referenced above
+	expectedOut := `<?xml version="1.0" encoding="UTF-8"?><testsuites>
+  <testsuite name="main.tftest.hcl" tests="2" skipped="0" failures="1" errors="0">
+    <testcase name="failing_assertion" classname="main.tftest.hcl" time="TIME_REDACTED">
+      <failure message="Test run failed"></failure>
+      <system-err><![CDATA[
+Error: Test assertion failed
+
+  on main.tftest.hcl line 3:
+  (source code not available)
+
+local variable 'number' has a value greater than zero, so this assertion will
+fail
+]]></system-err>
+    </testcase>
+    <testcase name="passing_assertion" classname="main.tftest.hcl" time="TIME_REDACTED"></testcase>
+  </testsuite>
+</testsuites>`
+
+	if string(actualOut) != expectedOut {
+		t.Fatalf("wanted XML:\n%s\n got XML:\n%s\n", expectedOut, string(actualOut))
 	}
 
 	if provider.ResourceCount() > 0 {
