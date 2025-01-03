@@ -29,7 +29,6 @@ type Operation interface {
 
 	EmergencyDumpState(stateFile *statefile.File) error
 
-	PlannedChange(change *plans.ResourceInstanceChangeSrc)
 	Plan(plan *plans.Plan, schemas *terraform.Schemas)
 	PlanNextStep(planPath string, genConfigPath string)
 
@@ -128,13 +127,6 @@ func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 	}
 
 	renderer.RenderHumanPlan(jplan, plan.UIMode, opts...)
-}
-
-func (v *OperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
-	// PlannedChange is primarily for machine-readable output in order to
-	// get a per-resource-instance change description. We don't use it
-	// with OperationHuman because the output of Plan already includes the
-	// change details for all resource instances.
 }
 
 // PlanNextStep gives the user some next-steps, unless we're running in an
@@ -266,14 +258,6 @@ func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 	if len(rootModuleOutputs) > 0 {
 		v.view.Outputs(json.OutputsFromChanges(rootModuleOutputs))
 	}
-}
-
-func (v *OperationJSON) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
-	if change.Action == plans.Delete && change.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
-		// Avoid rendering data sources on deletion
-		return
-	}
-	v.view.PlannedChange(json.NewResourceInstanceChange(change))
 }
 
 // PlanNextStep does nothing for the JSON view as it is a hook for user-facing
