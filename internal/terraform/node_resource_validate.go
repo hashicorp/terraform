@@ -366,7 +366,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 				// use that to check whether the Attribute is Computed and
 				// non-Optional.
 				if !diags.HasErrors() {
-					path := traversalToPath(traversal)
+					path, _ := traversalToPath(traversal)
 
 					attrSchema := schema.AttributeByPath(path)
 

@@ -407,7 +407,7 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 		return nil, false, diags
 	}
 
-	path := traversalToPath(ref.Remaining)
+	path, _ := traversalToPath(ref.Remaining)
 	attrBefore, _ := path.Apply(change.Before)
 	attrAfter, _ := path.Apply(change.After)
 
