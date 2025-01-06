@@ -1,3 +1,8 @@
+## 1.10.4 (Unreleased)
+
+BUG FIXES:
+- type conversion: Empty map conversions now return correct type information ([#36262](https://github.com/hashicorp/terraform/pull/36262)) 
+
 ## 1.10.3 (December 18, 2024)
 
 BUG FIXES:
