@@ -613,3 +613,10 @@ func (ctx *BuiltinEvalContext) Forget() bool {
 func (ctx *BuiltinEvalContext) EphemeralResources() *ephemeral.Resources {
 	return ctx.EphemeralResourcesValue
 }
+
+func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities {
+	return providers.ClientCapabilities{
+		DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
+		WriteOnlyAttributesAllowed: true,
+	}
+}
