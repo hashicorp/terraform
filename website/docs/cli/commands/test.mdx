@@ -178,9 +178,9 @@ run "false_is_false" {
 ### General features of test output
 
 The `test` command will print output to the terminal:
-* to show progress running tests across all files
-* to display any error messages resulting from failing test assertions
-* finally, to summarize the results across all files
+* To show progress running tests across all files.
+* To display any error messages resulting from failing test assertions.
+* Finally, to summarize the results across all files.
 
 Below is the output of `terraform test` when testing the example files above. When no additional flags are supplied, the command's output defaults to a human-readable format:
 
@@ -233,10 +233,10 @@ Below is the output of the `terraform test -json` command using the same example
 Below is the output of the `terraform test -junit-xml=./output.xml` command using the same example files.
 The test output is:
 
-* printed to the terminal in the default, human-readable format, as already described above
-* also saved in JUnit XML format in the specified file
+* Printed to the terminal in the default, human-readable format, as described above.
+* Also saved in JUnit XML format in the specified file.
 
-Below is the contents of the file `output.xml`:
+Below is the contents of the resulting `output.xml` file:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?><testsuites>
@@ -261,10 +261,25 @@ local.false did not match expected value
 
 The file maps Terraform test command concepts to JUnit XML format according to the table below:
 
-| Terraform test concept | Element in JUnit XML output | Notes        |
-| -----------------------| ----------------------------|--------------|
-| Test directory         | `<testsuites>`              | A single `<testsuites>` element wraps all other elements in the XML output, as `terraform test` only processes a single test directory. |
-| Test file              | `<testsuite>`               | There will be as many `<testsuite>` elements as there are test files. The tests in a `<testsuite>` are summarized in its attributes: `name` is the file name; `tests` is total count of tests; `skipped` is a count of skipped tests; `failures` is a count of failed tests, `errors` is a count of errored tests. |
-| Run block              | `<testcase>`                | Any `<testcase>` elements will be nested inside a parental `<testsuite>` element corresponding to the file that contains the run block. |
-| Test failure error     | `<failure>`                 | If a `<testcase>` fails then it will contain a `<failure>` element that contains a message about a test failure. |
-| ???                    | `<system-err>`              | ??? |
+| Terraform test concept | Element in JUnit XML output |
+| -----------------------| ----------------------------|
+| Test directory         | `<testsuites>`              |
+| Run block              | `<testcase>`                |
+| Test failure error     | `<failure>`                 |
+| ???                    | `<system-err>`              |
+
+A JUnit format XML file will contain a single `<testsuites>` element that wraps all other elements in the XML output, as `terraform test` only processes a single test directory. Inside `<testsuites>` there will be as many `<testsuite>` elements as there are test files. Test files can contain many run blocks, so `<testsuite>` elements will contain a `<testcase>` element per run block within that test file. If a run block's assertions fail then that `<testcase>` element will contain a `<failure>` element describing the test failure. Any other issues that arise while executing that run block will be reported in a similar `<system-err>` element.
+
+Some elements have attributes that provide addition information about the testing output data. These are summarized below:
+
+| JUnit XML Element      | Attribute                   | Meaning                                               |
+| -----------------------| ----------------------------|-------------------------------------------------------|
+| `<testsuite>`          | `name`                      | The test file name                                    |
+| `<testsuite>`          | `tests`                     | Count of total tests (run blocks) in the file         |
+| `<testsuite>`          | `skipped`                   | Count of skipped tests (run blocs) count in the file  |
+| `<testsuite>`          | `failures`                  | Count of failed tests (run blocks) count in the file  |
+| `<testsuite>`          | `errored`                   | Count of errored tests (run blocks) count in the file |
+| `<testcase>`           | `name`                      | The run block's name                                  |
+| `<testcase>`           | `classname`                 | The name of the file containing the run block         |
+| `<testcase>`           | `time`                      | The duration of executing the run block               |
+| `<failure>`            | `message`                   | A message describing the test failure                 |
