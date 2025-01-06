@@ -36,7 +36,7 @@ func NewResolver(internalManifest modsdir.Manifest) *Resolver {
 		internalManifest: internalManifestCopy,
 		manifest: &Manifest{
 			FormatVersion: FormatVersion,
-			Records:       []*Record{},
+			Records:       Records{},
 		},
 	}
 }
