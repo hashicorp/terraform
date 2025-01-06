@@ -134,3 +134,137 @@ The testing directory must be beneath the main configuration directory, but it c
 > Note: Test files within the root configuration directory are always loaded, regardless of the `-test-directory` value.
 
 We do not recommend changing the default test directory. The option for customization is included for configuration authors who may have included a `tests` submodule in their configuration before the `terraform test` command was released. In general, the default test directory of `tests` should always be used.
+
+## Example: Test Output Format Options
+
+Below is a contrived example of Terraform testing that makes assertions about the values of local variables `true` and `false`.
+There are two test files: one contains a passing test, and one contains a failing test.
+
+```hcl
+# main.tf
+
+locals {
+  true  = "true"
+  false = "true" # incorrect, should be "false"!
+}
+```
+
+The assertion that local.true == "true" in example_1.tftest.hcl will pass:
+
+```hcl
+# example_1.tftest.hcl
+
+run "true_is_true" {
+  assert {
+    condition     = local.true == "true"
+    error_message = "local.true did not match expected value"
+  }
+}
+```
+
+The assertion that local.false == "false" in example_2.tftest.hcl will fail:
+
+```hcl
+# example_2.tftest.hcl
+
+run "false_is_false" {
+  assert {
+    condition     = local.false == "false"
+    error_message = "local.false did not match expected value"
+  }
+}
+```
+
+### General features of test output
+
+The `test` command will print output to the terminal:
+* to show progress running tests across all files
+* to display any error messages resulting from failing test assertions
+* finally, to summarize the results across all files
+
+Below is the output of `terraform test` when testing the example files above. When no additional flags are supplied, the command's output defaults to a human-readable format:
+
+```shell
+example_1.tftest.hcl... in progress
+  run "true_is_true"... pass
+example_1.tftest.hcl... tearing down
+example_1.tftest.hcl... pass
+example_2.tftest.hcl... in progress
+  run "false_is_false"... fail
+╷
+│ Error: Test assertion failed
+│ 
+│   on example_2.tftest.hcl line 21, in run "false_is_false":
+│   21:     condition     = local.false == "false"
+│     ├────────────────
+│     │ local.false is "true"
+│ 
+│ local.false did not match expected value
+╵
+example_2.tftest.hcl... tearing down
+example_2.tftest.hcl... fail
+
+Failure! 1 passed, 1 failed.
+```
+
+### Test output in JSON format
+
+Below is the output of the `terraform test -json` command using the same example files. The -json flag changes terminal output to be in a machine-readable format. The content of the output is otherwise unchanged:
+
+```shell
+{"@level":"info","@message":"Terraform 1.11.0-dev","@module":"terraform.ui","@timestamp":"2025-01-06T12:19:01.903603Z","terraform":"1.11.0-dev","type":"version","ui":"1.2"}
+{"@level":"info","@message":"Found 2 files and 2 run blocks","@module":"terraform.ui","@timestamp":"2025-01-06T12:19:02.229367Z","test_abstract":{"example_1.tftest.hcl":["true_is_true"],"example_2.tftest.hcl":["false_is_false"]},"type":"test_abstract"}
+{"@level":"info","@message":"example_1.tftest.hcl... in progress","@module":"terraform.ui","@testfile":"example_1.tftest.hcl","@timestamp":"2025-01-06T12:19:02.229432Z","test_file":{"path":"example_1.tftest.hcl","progress":"starting"},"type":"test_file"}
+{"@level":"info","@message":"  \"true_is_true\"... in progress","@module":"terraform.ui","@testfile":"example_1.tftest.hcl","@testrun":"true_is_true","@timestamp":"2025-01-06T12:19:02.229458Z","test_run":{"path":"example_1.tftest.hcl","run":"true_is_true","progress":"starting","elapsed":0},"type":"test_run"}
+{"@level":"info","@message":"  \"true_is_true\"... pass","@module":"terraform.ui","@testfile":"example_1.tftest.hcl","@testrun":"true_is_true","@timestamp":"2025-01-06T12:19:02.230577Z","test_run":{"path":"example_1.tftest.hcl","run":"true_is_true","progress":"complete","status":"pass"},"type":"test_run"}
+{"@level":"info","@message":"example_1.tftest.hcl... tearing down","@module":"terraform.ui","@testfile":"example_1.tftest.hcl","@timestamp":"2025-01-06T12:19:02.230590Z","test_file":{"path":"example_1.tftest.hcl","progress":"teardown"},"type":"test_file"}
+{"@level":"info","@message":"example_1.tftest.hcl... pass","@module":"terraform.ui","@testfile":"example_1.tftest.hcl","@timestamp":"2025-01-06T12:19:02.230598Z","test_file":{"path":"example_1.tftest.hcl","progress":"complete","status":"pass"},"type":"test_file"}
+{"@level":"info","@message":"example_2.tftest.hcl... in progress","@module":"terraform.ui","@testfile":"example_2.tftest.hcl","@timestamp":"2025-01-06T12:19:02.230605Z","test_file":{"path":"example_2.tftest.hcl","progress":"starting"},"type":"test_file"}
+{"@level":"info","@message":"  \"false_is_false\"... in progress","@module":"terraform.ui","@testfile":"example_2.tftest.hcl","@testrun":"false_is_false","@timestamp":"2025-01-06T12:19:02.230642Z","test_run":{"path":"example_2.tftest.hcl","run":"false_is_false","progress":"starting","elapsed":0},"type":"test_run"}
+{"@level":"info","@message":"  \"false_is_false\"... fail","@module":"terraform.ui","@testfile":"example_2.tftest.hcl","@testrun":"false_is_false","@timestamp":"2025-01-06T12:19:02.231331Z","test_run":{"path":"example_2.tftest.hcl","run":"false_is_false","progress":"complete","status":"fail"},"type":"test_run"}
+{"@level":"error","@message":"Error: Test assertion failed","@module":"terraform.ui","@testfile":"example_2.tftest.hcl","@testrun":"false_is_false","@timestamp":"2025-01-06T12:19:02.231485Z","diagnostic":{"severity":"error","summary":"Test assertion failed","detail":"local.false did not match expected value","range":{"filename":"example_2.tftest.hcl","start":{"line":21,"column":21,"byte":334},"end":{"line":21,"column":43,"byte":356}},"snippet":{"context":"run \"false_is_false\"","code":"    condition     = local.false == \"false\"","start_line":21,"highlight_start_offset":20,"highlight_end_offset":42,"values":[{"traversal":"local.false","statement":"is \"true\""}]}},"type":"diagnostic"}
+{"@level":"info","@message":"example_2.tftest.hcl... tearing down","@module":"terraform.ui","@testfile":"example_2.tftest.hcl","@timestamp":"2025-01-06T12:19:02.231552Z","test_file":{"path":"example_2.tftest.hcl","progress":"teardown"},"type":"test_file"}
+{"@level":"info","@message":"example_2.tftest.hcl... fail","@module":"terraform.ui","@testfile":"example_2.tftest.hcl","@timestamp":"2025-01-06T12:19:02.231557Z","test_file":{"path":"example_2.tftest.hcl","progress":"complete","status":"fail"},"type":"test_file"}
+{"@level":"info","@message":"Failure! 1 passed, 1 failed.","@module":"terraform.ui","@timestamp":"2025-01-06T12:19:02.231581Z","test_summary":{"status":"fail","passed":1,"failed":1,"errored":0,"skipped":0},"type":"test_summary"}
+```
+
+### Test output in JUnit XML format, saved to file
+
+Below is the output of the `terraform test -junit-xml=./output.xml` command using the same example files.
+The test output is:
+
+* printed to the terminal in the default, human-readable format, as already described above
+* also saved in JUnit XML format in the specified file
+
+Below is the contents of the file `output.xml`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?><testsuites>
+  <testsuite name="example_1.tftest.hcl" tests="1" skipped="0" failures="0" errors="0">
+    <testcase name="true_is_true" classname="example_1.tftest.hcl" time="0.001064666"></testcase>
+  </testsuite>
+  <testsuite name="example_2.tftest.hcl" tests="1" skipped="0" failures="1" errors="0">
+    <testcase name="false_is_false" classname="example_2.tftest.hcl" time="0.000870083">
+      <failure message="Test run failed"></failure>
+      <system-err><![CDATA[
+Error: Test assertion failed
+
+  on example_2.tftest.hcl line 21:
+  (source code not available)
+
+local.false did not match expected value
+]]></system-err>
+    </testcase>
+  </testsuite>
+</testsuites>
+```
+
+The file maps Terraform test command concepts to JUnit XML format according to the table below:
+
+| Terraform test concept | Element in JUnit XML output | Notes        |
+| -----------------------| ----------------------------|--------------|
+| Test directory         | `<testsuites>`              | A single `<testsuites>` element wraps all other elements in the XML output, as `terraform test` only processes a single test directory. |
+| Test file              | `<testsuite>`               | There will be as many `<testsuite>` elements as there are test files. The tests in a `<testsuite>` are summarized in its attributes: `name` is the file name; `tests` is total count of tests; `skipped` is a count of skipped tests; `failures` is a count of failed tests, `errors` is a count of errored tests. |
+| Run block              | `<testcase>`                | Any `<testcase>` elements will be nested inside a parental `<testsuite>` element corresponding to the file that contains the run block. |
+| Test failure error     | `<failure>`                 | If a `<testcase>` fails then it will contain a `<failure>` element that contains a message about a test failure. |
+| ???                    | `<system-err>`              | ??? |
