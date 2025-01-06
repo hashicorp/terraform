@@ -45,7 +45,6 @@ function generate {
         LATEST_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
         COMPLETE_VERSION="$LATEST_VERSION-dev"
 
-    
         npx -y changie@$CHANGIE_VERSION merge -u "## $LATEST_VERSION (Unreleased)"
         
         # If we have no changes yet, the changelog is empty now, so we need to add a header
@@ -63,6 +62,17 @@ function generate {
 
         npx -y changie@$CHANGIE_VERSION merge -u "## $COMPLETE_VERSION ($HUMAN_DATE)"
         ;;
+
+        beta)
+        LATEST_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
+        # We need to check if this is the first RC of the version
+        BETA_NUMBER=$(git tag -l "v$LATEST_VERSION-beta*" | wc -l)
+        BETA_NUMBER=$((BETA_NUMBER + 1))
+        HUMAN_DATE=$(date +"%B %d, %Y") # Date in Janurary 1st, 2022 format
+        COMPLETE_VERSION="$LATEST_VERSION-beta$BETA_NUMBER"
+
+        npx -y changie@$CHANGIE_VERSION merge -u "## $COMPLETE_VERSION ($HUMAN_DATE)"
+        ;;
         
         rc)
         LATEST_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
@@ -74,14 +84,14 @@ function generate {
 
         npx -y changie@$CHANGIE_VERSION merge -u "## $COMPLETE_VERSION ($HUMAN_DATE)"
         ;;
-        
+
         patch)
         COMPLETE_VERSION=$(npx -y changie@$CHANGIE_VERSION next patch)
         COMPLETE_VERSION=${COMPLETE_VERSION:1} # remove the v prefix
         npx -y changie@$CHANGIE_VERSION batch patch
         npx -y changie@$CHANGIE_VERSION merge
         ;;
-        
+
         release)
         # This is the first release of the branch, releasing the new minor version
         COMPLETE_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
