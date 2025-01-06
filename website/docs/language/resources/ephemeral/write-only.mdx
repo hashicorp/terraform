@@ -1,0 +1,8 @@
+---
+page_title: Write-only fields
+description: Learn how to use write-only fields to create temporary resources that are not stored in Terraform's state and can only be overwritten.
+---
+
+# Write-only fields
+
+A Terraform resource can include a special field type that only allows you to overwrite its value. These fields are called "write-only fields" because these fields are not stored in Terraform's state and you can only assign values to them, but not read or update them.

@@ -1,0 +1,80 @@
+---
+page_title: Ephemeral resources
+description: Ephemeral resource blocks represent temporary resources that Terraform does not store in state.
+---
+
+# Ephemerality in resources
+
+Configuring infrastructure often requires creating and handling sensitive values, such as temporary passwords or API keys, secrets you do not want Terraform to store in its state. Terraform provides two tools to manage temporary resources: the `ephemeral` resource block and write-only fields on particular resources.
+
+## Ephemeral resources
+
+Ephemeral resources are Terraform resources that are essentially temporary. Ephemeral resources have a unique lifecycle, and Terraform does not store them in its state. Each `ephemeral` block describes one or more ephemeral resources, such as a temporary password or connection to another system.
+
+An `ephemeral` block declares an ephemeral resource of a specific type with a
+specific local name, much like a `resource` block. Terraform uses an ephemeral resource's name to refer to that resource in the same module, but an ephemeral resource's name has no meaning outside that module's scope.
+
+### Lifecycle
+
+The lifecycle of an ephemeral resource is different from resources and data sources. When Terraform provisions ephemeral resources, it performs the following steps:
+
+1. If Terraform needs to access the result of an ephemeral resource, it opens
+that ephemeral resource. For example, if Terraform opens an ephemeral resource for a Vault secret, the Vault provider obtains a lease and returns a secret. 
+
+1. If Terraform needs access to the ephemeral resource for longer than the
+remote system's enforced expiration time, Terraform asks the provider
+to renew it periodically. For example, if Terraform renews a Vault secret ephemeral resource, the Vault provider then calls Vault's lease renewal API endpoint to extend the expiration time.
+
+1. Once Terraform no longer needs an ephemeral resource, Terraform closes
+it. This happens after the providers that depend on a certain ephemeral resource
+complete all of their work for the current Terraform run phase. For example, closing a Vault secret ephemeral resource means the Vault provider explicitly ends the lease, allowing Vault to immediately revoke the associated credentials.
+
+Terraform follows these lifecycle steps for each instance of an ephemeral
+resource in a given configuration.
+
+### Dependency graph
+
+Ephemeral resources form nodes in Terraform's dependency graph, which interact similarly as resources and data sources. For example, when a resource or data source depends on an attribute of an ephemeral resource, Terraform automatically provisions the ephemeral resource first.
+
+### Configuration model
+
+To learn more about the `ephemeral` block, refer to the [Ephemeral resource configuration reference](/docs/language/resources/ephemeral/reference).
+
+## Write-only fields
+
+A Terraform resources can include a special field type that only allows you to overwrite its value. These fields are called "write-only fields" because these fields are not stored in Terraform's state and you can only assign values to them, but not read or update them.
+
+Because write-only fields are not stored in Terraform's state, they are sent to a resource's provider with every API request. For example, the AWS provider's `aws_db_instance` resource type includes a `password` field that is write-only. 
+
+```
+resource "aws_db_instance" "default" {
+  allocated_storage    = 10
+  db_name              = "mydb"
+  engine               = "mysql"
+  engine_version       = "8.0"
+  instance_class       = "db.t3.micro"
+  username             = "foo"
+  password             = var.password // ephemeral
+  parameter_group_name = "default.mysql8.0"
+  skip_final_snapshot  = true
+}
+```
+
+When you create a new database instance, you can set the `password` field to a value, but you cannot read the value back from the resource.
+
+Write-only attributes are ephemeral in nature, but you can assign  useful for storing generate sensitive data, such as temporary passwords or API keys.
+
+, which are attributes that Terraform can write to but not read from. Write-only attributes are useful for ephemeral resources that generate sensitive data, such as temporary passwords or API keys.
+
+
+## Reference an ephemeral resource or write-only field
+
+You can only reference Terraform's ephemeral resources and fields in specific ephemeral contexts or Terraform throws an error. The following are valid contexts for referencing ephemeral resources adn write-only fields:
+
+* In another write-only field
+* In another ephemeral resource
+* In [local values](/terraform/language/values/locals#ephemeral-values)
+* In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)
+* In [ephemeral outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files)
+* Configuring providers in the `provider` block
+* In [provisioner](/terraform/language/resources/provisioners/syntax) and [connection](/terraform/language/resources/provisioners/connection) blocks
