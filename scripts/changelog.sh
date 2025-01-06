@@ -17,9 +17,10 @@ Description:
 Commands:
   generate <release-type>
     generate will create a new section in the CHANGELOG.md file for the given release
-    type. The release type should be one of "dev", "alpha", "release", or "patch".
+    type. The release type should be one of "dev", "alpha", "rc", "release", or "patch".
     `dev`: will update the changelog with the latest unreleased changes.
     `alpha`: will generate a new section with an alpha version for today.
+    `rc`: will generate a new rc release.
     `release`: will make the initial minor release for this branch.
     `patch`: will generate a new patch release
     
@@ -62,6 +63,18 @@ function generate {
 
         npx -y changie@$CHANGIE_VERSION merge -u "## $COMPLETE_VERSION ($HUMAN_DATE)"
         ;;
+        
+        rc)
+        LATEST_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
+        # We need to check if this is the first RC of the version
+        RC_NUMBER=$(git tag -l "v$LATEST_VERSION-rc*" | wc -l)
+        RC_NUMBER=$((RC_NUMBER + 1))
+        HUMAN_DATE=$(date +"%B %d, %Y") # Date in Janurary 1st, 2022 format
+        COMPLETE_VERSION="$LATEST_VERSION-rc$RC_NUMBER"
+
+        npx -y changie@$CHANGIE_VERSION merge -u "## $COMPLETE_VERSION ($HUMAN_DATE)"
+        ;;
+        
         patch)
         COMPLETE_VERSION=$(npx -y changie@$CHANGIE_VERSION next patch)
         COMPLETE_VERSION=${COMPLETE_VERSION:1} # remove the v prefix
