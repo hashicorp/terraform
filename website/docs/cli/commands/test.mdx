@@ -30,6 +30,8 @@ The following options apply to the Terraform `test` command:
 
 * `-json` - Displays machine-readable JSON output for your testing results.
 
+* `-junit-xml=<output file path>` - Saves testing results output in JUnit XML format to the specified file. The file path must be relative or absolute.
+
 * `-test-directory=<relative directory>` - Overrides the directory that Terraform looks into for test files. Note that Terraform always loads testing files within the main configuration directory. The default testing directory is `tests`.
 
 * `-verbose` - Prints out the plan or state for each `run` block within a test file, based on the `command` attribute of each `run` block.
