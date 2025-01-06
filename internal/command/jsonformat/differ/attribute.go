@@ -4,23 +4,21 @@
 package differ
 
 import (
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
+
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 )
 
-func ComputeDiffForAttribute(change structured.Change, attribute *jsonprovider.Attribute, blockAction plans.Action) computed.Diff {
+func ComputeDiffForAttribute(change structured.Change, attribute *jsonprovider.Attribute) computed.Diff {
 	if attribute.AttributeNestedType != nil {
 		return computeDiffForNestedAttribute(change, attribute.AttributeNestedType)
-	}
-	if attribute.WriteOnly {
-		return computeDiffForWriteOnlyAttribute(change, blockAction)
 	}
 
 	return ComputeDiffForType(change, unmarshalAttribute(attribute))
