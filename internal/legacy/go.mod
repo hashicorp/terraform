@@ -11,7 +11,7 @@ require (
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/mitchellh/reflectwalk v1.0.2
-	github.com/zclconf/go-cty v1.15.1-0.20241111215639-63279be090d7
+	github.com/zclconf/go-cty v1.16.0
 )
 
 require (
