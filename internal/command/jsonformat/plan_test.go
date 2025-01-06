@@ -7464,6 +7464,10 @@ func TestResourceChange_writeOnlyAttributes(t *testing.T) {
 					"user":                    cty.String,
 					"write_only_set_password": cty.String,
 				}),
+				"block": cty.List(cty.Object(map[string]cty.Type{
+					"user":               cty.String,
+					"block_set_password": cty.String,
+				})),
 			})),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":         cty.StringVal("i-02ae66f368e8518a9"),
@@ -7472,6 +7476,10 @@ func TestResourceChange_writeOnlyAttributes(t *testing.T) {
 					"user":                    cty.StringVal("not-secret"),
 					"write_only_set_password": cty.NullVal(cty.String),
 				}),
+				"block": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"user":               cty.StringVal("this-is-not-secret"),
+					"block_set_password": cty.NullVal(cty.String),
+				})}),
 			}),
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -7483,6 +7491,17 @@ func TestResourceChange_writeOnlyAttributes(t *testing.T) {
 							Attributes: map[string]*configschema.Attribute{
 								"user":                    {Type: cty.String, Optional: true},
 								"write_only_set_password": {Type: cty.String, Optional: true, Sensitive: true, WriteOnly: true},
+							},
+						},
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"user":               {Type: cty.String, Optional: true},
+								"block_set_password": {Type: cty.String, Optional: true, Sensitive: true, WriteOnly: true},
 							},
 						},
 					},
@@ -7496,6 +7515,11 @@ func TestResourceChange_writeOnlyAttributes(t *testing.T) {
         }
       + id         = "i-02ae66f368e8518a9"
       + write_only = (write-only attribute)
+
+      + block {
+          + block_set_password = (write-only attribute)
+          + user               = "this-is-not-secret"
+        }
     }`,
 		},
 		"update attribute": {
@@ -7508,6 +7532,10 @@ func TestResourceChange_writeOnlyAttributes(t *testing.T) {
 					"user":                    cty.StringVal("not-secret"),
 					"write_only_set_password": cty.NullVal(cty.String),
 				}),
+				"block": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"user":               cty.StringVal("not-so-secret"),
+					"block_set_password": cty.NullVal(cty.String),
+				})}),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":         cty.StringVal("i-02ae66f368e8518a10"),
@@ -7516,6 +7544,10 @@ func TestResourceChange_writeOnlyAttributes(t *testing.T) {
 					"user":                    cty.StringVal("not-secret"),
 					"write_only_set_password": cty.NullVal(cty.String),
 				}),
+				"block": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"user":               cty.StringVal("not-so-secret"),
+					"block_set_password": cty.NullVal(cty.String),
+				})}),
 			}),
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -7531,11 +7563,24 @@ func TestResourceChange_writeOnlyAttributes(t *testing.T) {
 						},
 					},
 				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"user":               {Type: cty.String, Optional: true},
+								"block_set_password": {Type: cty.String, Optional: true, Sensitive: true, WriteOnly: true},
+							},
+						},
+					},
+				},
 			},
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> "i-02ae66f368e8518a10"
         # (2 unchanged attributes hidden)
+
+        # (1 unchanged block hidden)
     }`,
 		},
 		"update - delete block": {
@@ -7548,6 +7593,10 @@ func TestResourceChange_writeOnlyAttributes(t *testing.T) {
 					"user":                    cty.StringVal("not-secret"),
 					"write_only_set_password": cty.NullVal(cty.String),
 				}),
+				"block": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"user":               cty.StringVal("not-secret"),
+					"block_set_password": cty.NullVal(cty.String),
+				})}),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":         cty.StringVal("i-02ae66f368e8518a9"),
@@ -7556,6 +7605,10 @@ func TestResourceChange_writeOnlyAttributes(t *testing.T) {
 					"user":                    cty.String,
 					"write_only_set_password": cty.String,
 				})),
+				"block": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"user":               cty.String,
+					"block_set_password": cty.String,
+				}))),
 			}),
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -7567,6 +7620,17 @@ func TestResourceChange_writeOnlyAttributes(t *testing.T) {
 							Attributes: map[string]*configschema.Attribute{
 								"user":                    {Type: cty.String, Optional: true},
 								"write_only_set_password": {Type: cty.String, Optional: true, Sensitive: true, WriteOnly: true},
+							},
+						},
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"user":               {Type: cty.String, Optional: true},
+								"block_set_password": {Type: cty.String, Optional: true, Sensitive: true, WriteOnly: true},
 							},
 						},
 					},
@@ -7580,6 +7644,11 @@ func TestResourceChange_writeOnlyAttributes(t *testing.T) {
         } -> null
         id         = "i-02ae66f368e8518a9"
         # (1 unchanged attribute hidden)
+
+      - block {
+          - block_set_password = (write-only attribute) -> null
+          - user               = "not-secret" -> null
+        }
     }`,
 		},
 		"delete": {
@@ -7592,6 +7661,10 @@ func TestResourceChange_writeOnlyAttributes(t *testing.T) {
 					"user":                    cty.StringVal("not-secret"),
 					"write_only_set_password": cty.NullVal(cty.String),
 				}),
+				"block": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"user":               cty.StringVal("not-secret"),
+					"block_set_password": cty.NullVal(cty.String),
+				})}),
 			}),
 			After: cty.NullVal(cty.Object(map[string]cty.Type{
 				"id":         cty.String,
@@ -7600,6 +7673,10 @@ func TestResourceChange_writeOnlyAttributes(t *testing.T) {
 					"user":                    cty.String,
 					"write_only_set_password": cty.String,
 				}),
+				"block": cty.List(cty.Object(map[string]cty.Type{
+					"user":               cty.String,
+					"block_set_password": cty.String,
+				})),
 			})),
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -7615,6 +7692,17 @@ func TestResourceChange_writeOnlyAttributes(t *testing.T) {
 						},
 					},
 				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"user":               {Type: cty.String, Optional: true},
+								"block_set_password": {Type: cty.String, Optional: true, Sensitive: true, WriteOnly: true},
+							},
+						},
+					},
+				},
 			},
 			ExpectedOutput: `  # test_instance.example will be destroyed
   - resource "test_instance" "example" {
@@ -7624,6 +7712,11 @@ func TestResourceChange_writeOnlyAttributes(t *testing.T) {
         } -> null
       - id         = "i-02ae66f368e8518a9" -> null
       - write_only = (write-only attribute) -> null
+
+      - block {
+          - block_set_password = (write-only attribute) -> null
+          - user               = "not-secret" -> null
+        }
     }`,
 		},
 	}
