@@ -1,5 +1,5 @@
 kind: NEW FEATURES
-body: Add write-only attributes to resources. Providers can specify that certain attributes are write-only, they can not be referenced and are not presisted in state. You can use ephemeral values in write-only attributes.
+body: Add write-only attributes to resources. Providers can specify that certain attributes are write-only. They are not persisted in state. You can use ephemeral values in write-only attributes.
 time: 2025-01-07T12:53:54.752027+01:00
 custom:
     Issue: "36031"
