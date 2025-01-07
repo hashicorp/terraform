@@ -432,16 +432,13 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		// Allow the provider to check the destroy plan, and insert any
 		// necessary private data.
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
-			TypeName:         n.Addr.Resource.Resource.Type,
-			Config:           nullVal,
-			PriorState:       unmarkedPriorVal,
-			ProposedNewState: nullVal,
-			PriorPrivate:     currentState.Private,
-			ProviderMeta:     metaConfigVal,
-			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed:            deferralAllowed,
-				WriteOnlyAttributesAllowed: true,
-			},
+			TypeName:           n.Addr.Resource.Resource.Type,
+			Config:             nullVal,
+			PriorState:         unmarkedPriorVal,
+			ProposedNewState:   nullVal,
+			PriorPrivate:       currentState.Private,
+			ProviderMeta:       metaConfigVal,
+			ClientCapabilities: ctx.ClientCapabilities(),
 		})
 		deferred = resp.Deferred
 
@@ -635,14 +632,11 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		}
 	} else {
 		resp = provider.ReadResource(providers.ReadResourceRequest{
-			TypeName:     n.Addr.Resource.Resource.Type,
-			PriorState:   priorVal,
-			Private:      state.Private,
-			ProviderMeta: metaConfigVal,
-			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed:            deferralAllowed,
-				WriteOnlyAttributesAllowed: true,
-			},
+			TypeName:           n.Addr.Resource.Resource.Type,
+			PriorState:         priorVal,
+			Private:            state.Private,
+			ProviderMeta:       metaConfigVal,
+			ClientCapabilities: ctx.ClientCapabilities(),
 		})
 
 		// If we don't support deferrals, but the provider reports a deferral and does not
@@ -863,11 +857,9 @@ func (n *NodeAbstractResourceInstance) plan(
 	unmarkedConfigVal, _ := origConfigVal.UnmarkDeep()
 	validateResp := provider.ValidateResourceConfig(
 		providers.ValidateResourceConfigRequest{
-			TypeName: n.Addr.Resource.Resource.Type,
-			Config:   unmarkedConfigVal,
-			ClientCapabilities: providers.ClientCapabilities{
-				WriteOnlyAttributesAllowed: true,
-			},
+			TypeName:           n.Addr.Resource.Resource.Type,
+			Config:             unmarkedConfigVal,
+			ClientCapabilities: ctx.ClientCapabilities(),
 		},
 	)
 	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
@@ -926,16 +918,13 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 	} else {
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
-			TypeName:         n.Addr.Resource.Resource.Type,
-			Config:           unmarkedConfigVal,
-			PriorState:       unmarkedPriorVal,
-			ProposedNewState: proposedNewVal,
-			PriorPrivate:     priorPrivate,
-			ProviderMeta:     metaConfigVal,
-			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed:            deferralAllowed,
-				WriteOnlyAttributesAllowed: true,
-			},
+			TypeName:           n.Addr.Resource.Resource.Type,
+			Config:             unmarkedConfigVal,
+			PriorState:         unmarkedPriorVal,
+			ProposedNewState:   proposedNewVal,
+			PriorPrivate:       priorPrivate,
+			ProviderMeta:       metaConfigVal,
+			ClientCapabilities: ctx.ClientCapabilities(),
 		})
 		// If we don't support deferrals, but the provider reports a deferral and does not
 		// emit any error level diagnostics, we should emit an error.
@@ -1100,16 +1089,13 @@ func (n *NodeAbstractResourceInstance) plan(
 			}
 		} else {
 			resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
-				TypeName:         n.Addr.Resource.Resource.Type,
-				Config:           unmarkedConfigVal,
-				PriorState:       nullPriorVal,
-				ProposedNewState: proposedNewVal,
-				PriorPrivate:     plannedPrivate,
-				ProviderMeta:     metaConfigVal,
-				ClientCapabilities: providers.ClientCapabilities{
-					DeferralAllowed:            deferralAllowed,
-					WriteOnlyAttributesAllowed: true,
-				},
+				TypeName:           n.Addr.Resource.Resource.Type,
+				Config:             unmarkedConfigVal,
+				PriorState:         nullPriorVal,
+				ProposedNewState:   proposedNewVal,
+				PriorPrivate:       plannedPrivate,
+				ProviderMeta:       metaConfigVal,
+				ClientCapabilities: ctx.ClientCapabilities(),
 			})
 
 			// If we don't support deferrals, but the provider reports a deferral and does not
@@ -1252,7 +1238,7 @@ func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, sch
 		return config, nil
 	}
 
-	ignoreChanges := traversalsToPaths(n.Config.Managed.IgnoreChanges)
+	ignoreChanges, keys := traversalsToPaths(n.Config.Managed.IgnoreChanges)
 	ignoreAll := n.Config.Managed.IgnoreAllChanges
 
 	if len(ignoreChanges) == 0 && !ignoreAll {
@@ -1260,6 +1246,8 @@ func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, sch
 	}
 
 	if ignoreAll {
+		log.Printf("[TRACE] processIgnoreChanges: Ignoring all changes for %s", n.Addr)
+
 		// Legacy providers need up to clean up their invalid plans and ensure
 		// no changes are passed though, but that also means making an invalid
 		// config with computed values. In that case we just don't supply a
@@ -1282,6 +1270,7 @@ func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, sch
 
 		return ret, nil
 	}
+	log.Printf("[TRACE] processIgnoreChanges: Ignoring changes for %s at [%s]", n.Addr, strings.Join(keys, ", "))
 
 	if prior.IsNull() || config.IsNull() {
 		// Ignore changes doesn't apply when we're creating for the first time.
@@ -1296,36 +1285,49 @@ func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, sch
 
 // Convert the hcl.Traversal values we get form the configuration to the
 // cty.Path values we need to operate on the cty.Values
-func traversalsToPaths(traversals []hcl.Traversal) []cty.Path {
+func traversalsToPaths(traversals []hcl.Traversal) ([]cty.Path, []string) {
 	paths := make([]cty.Path, len(traversals))
+	keys := make([]string, len(traversals))
 	for i, traversal := range traversals {
-		path := traversalToPath(traversal)
+		path, key := traversalToPath(traversal)
 		paths[i] = path
+		keys[i] = key
 	}
-	return paths
+	return paths, keys
 }
 
-func traversalToPath(traversal hcl.Traversal) cty.Path {
+func traversalToPath(traversal hcl.Traversal) (cty.Path, string) {
 	path := make(cty.Path, len(traversal))
+	var key strings.Builder
 	for si, step := range traversal {
 		switch ts := step.(type) {
 		case hcl.TraverseRoot:
 			path[si] = cty.GetAttrStep{
 				Name: ts.Name,
 			}
+			key.WriteString(ts.Name)
 		case hcl.TraverseAttr:
 			path[si] = cty.GetAttrStep{
 				Name: ts.Name,
 			}
+			key.WriteString(".")
+			key.WriteString(ts.Name)
 		case hcl.TraverseIndex:
 			path[si] = cty.IndexStep{
 				Key: ts.Key,
+			}
+			if ts.Key.Type().IsPrimitiveType() {
+				key.WriteString("[")
+				key.WriteString(tfdiags.CompactValueStr(ts.Key))
+				key.WriteString("]")
+			} else {
+				key.WriteString("[...]")
 			}
 		default:
 			panic(fmt.Sprintf("unsupported traversal step %#v", step))
 		}
 	}
-	return path
+	return path, key.String()
 }
 
 func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChangesPath []cty.Path) (cty.Value, tfdiags.Diagnostics) {
@@ -1551,13 +1553,10 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		}
 	} else {
 		resp = provider.ReadDataSource(providers.ReadDataSourceRequest{
-			TypeName:     n.Addr.ContainingResource().Resource.Type,
-			Config:       configVal,
-			ProviderMeta: metaConfigVal,
-			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed:            deferralAllowed,
-				WriteOnlyAttributesAllowed: true,
-			},
+			TypeName:           n.Addr.ContainingResource().Resource.Type,
+			Config:             configVal,
+			ProviderMeta:       metaConfigVal,
+			ClientCapabilities: ctx.ClientCapabilities(),
 		})
 
 		// If we don't support deferrals, but the provider reports a deferral and does not
