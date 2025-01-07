@@ -6,6 +6,7 @@
 set -uo pipefail
 
 CHANGIE_VERSION="${CHANGIE_VERSION:-1.21.0}"
+SEMVER_VERSION="${SEMVER_VERSION:-7.6.3}"
 
 function usage {
   cat <<-'EOF'
@@ -44,6 +45,11 @@ function generate {
         dev)
         LATEST_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
         COMPLETE_VERSION="$LATEST_VERSION-dev"
+
+        # Check if we already released this version already
+        if git tag -l "v$LATEST_VERSION" | grep -q "v$LATEST_VERSION"; then
+            LATEST_VERSION=$(npx -y semver@$SEMVER_VERSION -i patch $LATEST_VERSION)
+        fi
 
         npx -y changie@$CHANGIE_VERSION merge -u "## $LATEST_VERSION (Unreleased)"
         
