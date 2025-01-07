@@ -33,7 +33,7 @@ Executing `terraform init -reconfigure` is required after updating to Terraform 
 
 ### S3 Native State Locking
 
-The S3 backend supports S3 native state locking as an opt-in feature.
+The S3 backend now supports S3 native state locking as an opt-in, experimental feature.
 An S3 lock can be used alongside a DynamoDB lock, or independently.
 When both locking mechanisms are configured, a lock must be successfully acquired from both locations before subsequent operations will proceed.
 
@@ -51,6 +51,8 @@ terraform {
 With S3 locking enabled, a lock file will be placed in the same location as the state file.
 The lock file will be named identically to the state file, but with a `.tflock` extension.
 **S3 bucket policies and IAM policies attached to the calling principal may need to be adjusted to include permissions for the new lock file.**
+
+In a future minor version of Terraform the experimental label will be removed from the `use_lockfile` attribute and attributes related to DynamoDB based locking will be deprecated.
 
 ### Root Assume Role Attribute Removal
 
