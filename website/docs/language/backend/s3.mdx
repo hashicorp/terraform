@@ -65,10 +65,14 @@ To enable DynamoDB state locking, use the following optional arguments:
 When not using [workspaces](/terraform/language/state/workspaces)(or when only using the `default` workspace), Terraform will need the following AWS IAM permissions on the target backend bucket:
 
 * `s3:ListBucket` on `arn:aws:s3:::mybucket`. At a minimum, this must be able to list the path where the state is stored.
-* `s3:GetObject` on `arn:aws:s3:::mybucket/path/to/my/key` and `arn:aws:s3:::mybucket/path/to/my/key.tflock`
-* `s3:PutObject` on `arn:aws:s3:::mybucket/path/to/my/key` and `arn:aws:s3:::mybucket/path/to/my/key.tflock`
+* `s3:GetObject` on `arn:aws:s3:::mybucket/path/to/my/key`
+* `s3:PutObject` on `arn:aws:s3:::mybucket/path/to/my/key`
 
-Note: `s3:DeleteObject` is not needed, as Terraform will not delete the state storage.
+-> **Note:** If `use_lockfile` is set, `s3:GetObject`, `s3:PutObject`,
+and `s3:DeleteObject` are required on the lock file, e.g.,
+`arn:aws:s3:::mybucket/path/to/my/key.tflock`.
+
+-> **Note:** `s3:DeleteObject` is not required on the state file, as Terraform does not delete it.
 
 This is seen in the following AWS IAM Statement:
 
@@ -80,12 +84,23 @@ This is seen in the following AWS IAM Statement:
       "Effect": "Allow",
       "Action": "s3:ListBucket",
       "Resource": "arn:aws:s3:::mybucket"
+      "Condition": {
+        "StringEquals": {
+          "s3:prefix": "mybucket/path/to/my/key"
+        }
+      }
     },
     {
       "Effect": "Allow",
       "Action": ["s3:GetObject", "s3:PutObject"],
       "Resource": [
-        "arn:aws:s3:::mybucket/path/to/my/key",
+        "arn:aws:s3:::mybucket/path/to/my/key"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": [
         "arn:aws:s3:::mybucket/path/to/my/key.tflock"
       ]
     }
@@ -93,12 +108,16 @@ This is seen in the following AWS IAM Statement:
 }
 ```
 
-When using [workspaces](/terraform/language/state/workspaces), Terraform will also need permissions to create, list, read, update, and delete the workspace state storage:
+When using [workspaces](/terraform/language/state/workspaces), Terraform will also need permissions to create, list, read, update, and delete the workspace state file:
 
 * `s3:ListBucket` on `arn:aws:s3:::mybucket`. At a minumum, this must be able to list the path where the `default` workspace is stored as well as the other workspaces.
-* `s3:GetObject` on `arn:aws:s3:::mybucket/path/to/my/key`, `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key` and `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key.tflock`
-* `s3:PutObject` on `arn:aws:s3:::mybucket/path/to/my/key`, `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key` and `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key.tflock`
-* `s3:DeleteObject` on `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key` and `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key.tflock`
+* `s3:GetObject` on `arn:aws:s3:::mybucket/path/to/my/key`, `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key`
+* `s3:PutObject` on `arn:aws:s3:::mybucket/path/to/my/key`, `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key`
+* `s3:DeleteObject` on `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key`
+
+-> **Note:** If `use_lockfile` is set, `s3:GetObject`, `s3:PutObject`,
+and `s3:DeleteObject` are required on the lock file, e.g.,
+`arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key.tflock`.
 
 -> **Note:** AWS can control access to S3 buckets with either IAM policies
 attached to users/groups/roles (like the example above) or resource policies
@@ -555,6 +574,12 @@ to only a single state object within an S3 bucket is shown below:
       "Action": ["s3:GetObject", "s3:PutObject"],
       "Resource": [
         "arn:aws:s3:::example-bucket/myapp/production/tfstate",
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": [
         "arn:aws:s3:::example-bucket/myapp/production/tfstate.tflock"
       ]
     }
