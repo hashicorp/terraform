@@ -702,7 +702,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		}
 
 		// We skip the read and further validation since we make up the state
-		// of the imported resource anyways.
+		// of the imported resource anyways.
 		return state.AsInstanceObject(), deferred, diags
 	}
 
@@ -725,7 +725,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	}
 
 	// Providers are supposed to return null values for all write-only attributes
-	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(imported[0].State, schema, n.ResolvedProvider, n.Addr)
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes("Import returned a non-null value for a write-only attribute", imported[0].State, schema, n.ResolvedProvider, n.Addr)
 	diags = diags.Append(writeOnlyDiags)
 
 	if writeOnlyDiags.HasErrors() {

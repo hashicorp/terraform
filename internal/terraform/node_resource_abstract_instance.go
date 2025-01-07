@@ -693,7 +693,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 	}
 
 	// Providers are supposed to return null values for all write-only attributes
-	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(resp.NewState, schema, n.ResolvedProvider, n.Addr)
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes("Provider produced invalid object", resp.NewState, schema, n.ResolvedProvider, n.Addr)
 	diags = diags.Append(writeOnlyDiags)
 
 	if writeOnlyDiags.HasErrors() {
@@ -956,7 +956,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 
 		// Providers are supposed to return null values for all write-only attributes
-		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(plannedNewVal, schema, n.ResolvedProvider, n.Addr)
+		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes("Provider produced invalid plan", plannedNewVal, schema, n.ResolvedProvider, n.Addr)
 		diags = diags.Append(writeOnlyDiags)
 
 		if writeOnlyDiags.HasErrors() {
@@ -1140,7 +1140,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 
 		// Providers are supposed to return null values for all write-only attributes
-		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(plannedNewVal, schema, n.ResolvedProvider, n.Addr)
+		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes("Provider produced invalid plan", plannedNewVal, schema, n.ResolvedProvider, n.Addr)
 		diags = diags.Append(writeOnlyDiags)
 
 		if writeOnlyDiags.HasErrors() {
@@ -2580,7 +2580,7 @@ func (n *NodeAbstractResourceInstance) apply(
 	}
 
 	// Providers are supposed to return null values for all write-only attributes
-	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(newVal, schema, n.ResolvedProvider, n.Addr)
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes("Provider produced invalid object", newVal, schema, n.ResolvedProvider, n.Addr)
 	diags = diags.Append(writeOnlyDiags)
 
 	if writeOnlyDiags.HasErrors() {

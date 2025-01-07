@@ -12,12 +12,12 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func ValidateWriteOnlyAttributes(newVal cty.Value, schema *configschema.Block, provider addrs.AbsProviderConfig, addr addrs.AbsResourceInstance) (diags tfdiags.Diagnostics) {
+func ValidateWriteOnlyAttributes(summary string, newVal cty.Value, schema *configschema.Block, provider addrs.AbsProviderConfig, addr addrs.AbsResourceInstance) (diags tfdiags.Diagnostics) {
 	if writeOnlyPaths := NonNullWriteOnlyPaths(newVal, schema, nil); len(writeOnlyPaths) != 0 {
 		for _, p := range writeOnlyPaths {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Write-only attribute set",
+				summary,
 				fmt.Sprintf(
 					"Provider %q returned a value for the write-only attribute \"%s%s\". Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
 					provider.String(), addr.String(), tfdiags.FormatCtyPath(p),

@@ -115,7 +115,7 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 	// Providers are supposed to return null values for all write-only attributes
 	var writeOnlyDiags tfdiags.Diagnostics
 	for _, imported := range resp.ImportedResources {
-		writeOnlyDiags = ephemeral.ValidateWriteOnlyAttributes(imported.State, schema, n.ResolvedProvider, n.Addr)
+		writeOnlyDiags = ephemeral.ValidateWriteOnlyAttributes("Import returned a non-null value for a write-only attribute", imported.State, schema, n.ResolvedProvider, n.Addr)
 		diags = diags.Append(writeOnlyDiags)
 	}
 

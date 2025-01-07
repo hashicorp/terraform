@@ -155,7 +155,7 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 	}
 
 	// Providers are supposed to return null values for all write-only attributes
-	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(resp.TargetState, move.targetResourceSchema, move.targetProviderAddr, target)
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes("Provider returned invalid value", resp.TargetState, move.targetResourceSchema, move.targetProviderAddr, target)
 	diags = diags.Append(writeOnlyDiags)
 
 	if writeOnlyDiags.HasErrors() {
