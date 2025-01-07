@@ -1409,6 +1409,22 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				),
 			},
 		},
+
+		"dynamodb_table deprecation": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket":         cty.StringVal("test"),
+				"key":            cty.StringVal("test"),
+				"region":         cty.StringVal("us-west-2"),
+				"dynamodb_table": cty.StringVal("test"),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				attributeWarningDiag(
+					"Deprecated Parameter",
+					`The parameter "dynamodb_table" is deprecated. Use parameter "use_lockfile" instead.`,
+					cty.GetAttrPath("dynamodb_table"),
+				),
+			},
+		},
 	}
 
 	for name, tc := range cases {
