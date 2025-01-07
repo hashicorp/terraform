@@ -1,8 +1,17 @@
 ---
-page_title: Write-only fields
-description: Learn how to use write-only fields to create temporary resources that are not stored in Terraform's state and can only be overwritten.
+page_title: Use write-only fields
+description: Learn how to use write-only fields to set temporary values that  can only be overwritten and are not stored in Terraform's state.
 ---
 
-# Write-only fields
+# Use write-only fields
 
-A Terraform resource can include a special field type that only allows you to overwrite its value. These fields are called "write-only fields" because these fields are not stored in Terraform's state and you can only assign values to them, but not read or update them.
+A Terraform resource can include a special ephemeral field type that only allows you to overwrite its value. These fields are called "write-only fields" because you can only assign values to them, but not read or update them. Write-only field are useful for storing generated sensitive data for a current Terraform operation, such as temporary password or API key.
+
+-> **Note**: Write-only fields are in public beta and available in Terraform v1.11 and later.  Public beta features and APIs are subject to change and we do not recommend them for production use.
+
+Write-only fields are ephemeral, meaning they are not written to Terraform's state and are only available during the current Terraform run. However, you can assign both ephemeral and non-ephemeral values to write-only fields.
+
+
+
+
+
