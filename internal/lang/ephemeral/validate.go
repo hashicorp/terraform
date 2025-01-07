@@ -4,24 +4,20 @@
 package ephemeral
 
 import (
-	"fmt"
-
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
-func ValidateWriteOnlyAttributes(summary string, newVal cty.Value, schema *configschema.Block, provider addrs.AbsProviderConfig, addr addrs.AbsResourceInstance) (diags tfdiags.Diagnostics) {
+// ValidateWriteOnlyAttributes identifies all instances of write-only paths that contain non-null values
+// and returns a diagnostic for each instance
+func ValidateWriteOnlyAttributes(summary string, detail func(cty.Path) string, newVal cty.Value, schema *configschema.Block) (diags tfdiags.Diagnostics) {
 	if writeOnlyPaths := NonNullWriteOnlyPaths(newVal, schema, nil); len(writeOnlyPaths) != 0 {
 		for _, p := range writeOnlyPaths {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				summary,
-				fmt.Sprintf(
-					"Provider %q returned a value for the write-only attribute \"%s%s\". Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
-					provider.String(), addr.String(), tfdiags.FormatCtyPath(p),
-				),
+				detail(p),
 			))
 		}
 	}
