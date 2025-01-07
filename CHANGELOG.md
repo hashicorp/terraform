@@ -1,6 +1,5 @@
 ## 1.11.0 (Unreleased)
 
-
 ENHANCEMENTS:
 
 * `init`: Provider installation will utilise credentials configured in a `.netrc` file for the download and shasum URLs returned by provider registries. ([#35843](https://github.com/hashicorp/terraform/issues/35843))
