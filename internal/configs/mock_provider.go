@@ -7,10 +7,16 @@ import (
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/gocty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+)
+
+var (
+	// When this attribute is set to plan, the values specified in the override
+	// block will be used for computed attributes even when planning. It defaults
+	// to apply, meaning that the values will only be used during apply.
+	overrideTargetCommand = "override_target"
 )
 
 func decodeMockProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
@@ -66,23 +72,20 @@ func decodeMockProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 	return provider, diags
 }
 
-func extractOverrideComputed(content *hcl.BodyContent) (*bool, hcl.Diagnostics) {
+func extractOverrideComputed(content *hcl.BodyContent) (*string, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
-	if attr, exists := content.Attributes[overrideComputed]; exists {
-		val, valueDiags := attr.Expr.Value(nil)
-		diags = append(diags, valueDiags...)
-		var overrideComputedBool bool
-		err := gocty.FromCtyValue(val, &overrideComputedBool)
-		if err != nil {
+	if attr, exists := content.Attributes[overrideTargetCommand]; exists {
+		overrideComputedStr := hcl.ExprAsKeyword(attr.Expr)
+		if overrideComputedStr != "plan" && overrideComputedStr != "apply" {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Invalid %s value", overrideComputed),
-				Detail:   fmt.Sprintf("The %s attribute must be a boolean.", overrideComputed),
+				Summary:  fmt.Sprintf("Invalid %s value", overrideTargetCommand),
+				Detail:   fmt.Sprintf("The %s attribute must be a value of plan or apply.", overrideTargetCommand),
 				Subject:  attr.Range.Ptr(),
 			})
 		}
-		return &overrideComputedBool, diags
+		return &overrideComputedStr, diags
 	}
 
 	return nil, diags
@@ -234,12 +237,12 @@ func decodeMockDataBody(body hcl.Body, source OverrideSource) (*MockData, hcl.Di
 	// provider-level setting for overrideComputed
 	providerOverrideComputed, valueDiags := extractOverrideComputed(content)
 	diags = append(diags, valueDiags...)
-
+	useForPlan := providerOverrideComputed != nil && *providerOverrideComputed == "plan"
 	data := &MockData{
 		MockResources:   make(map[string]*MockResource),
 		MockDataSources: make(map[string]*MockResource),
 		Overrides:       addrs.MakeMap[addrs.Targetable, *Override](),
-		useForPlan:      providerOverrideComputed,
+		useForPlan:      &useForPlan,
 	}
 
 	for _, block := range content.Blocks {
@@ -313,8 +316,9 @@ func decodeMockDataBody(body hcl.Body, source OverrideSource) (*MockData, hcl.Di
 
 	for _, elem := range data.Overrides.Elements() {
 		// use the provider-level setting if there is none set for this override
+		useForPlan := providerOverrideComputed != nil && *providerOverrideComputed == "plan"
 		if elem.Value.useForPlan == nil {
-			elem.Value.useForPlan = providerOverrideComputed
+			elem.Value.useForPlan = &useForPlan
 		}
 		data.Overrides.Put(elem.Key, elem.Value)
 	}
@@ -450,20 +454,13 @@ func decodeOverrideDataBlock(block *hcl.Block, source OverrideSource) (*Override
 	return override, diags
 }
 
-var (
-	// When this attribute is set to true, the values specified in the override
-	// block will be used for computed attributes even when planning. Otherwise,
-	// the computed values will be set to unknown, just like in a real plan.
-	overrideComputed = "override_computed"
-)
-
 func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName string, source OverrideSource) (*Override, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	content, contentDiags := block.Body.Content(&hcl.BodySchema{
 		Attributes: []hcl.AttributeSchema{
 			{Name: "target"},
-			{Name: overrideComputed},
+			{Name: overrideTargetCommand},
 			{Name: attributeName},
 		},
 	})
@@ -505,10 +502,13 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 		override.Values = cty.EmptyObjectVal
 	}
 
-	// Override computed values during planning if override_computed is true.
-	overrideComputedBool, valueDiags := extractOverrideComputed(content)
+	// Override computed values during planning if override_target is plan.
+	overrideComputedStr, valueDiags := extractOverrideComputed(content)
 	diags = append(diags, valueDiags...)
-	override.useForPlan = overrideComputedBool
+	if overrideComputedStr != nil {
+		useForPlan := *overrideComputedStr == "plan"
+		override.useForPlan = &useForPlan
+	}
 
 	if !override.Values.Type().IsObjectType() {
 
@@ -544,7 +544,7 @@ var mockProviderSchema = &hcl.BodySchema{
 
 var mockDataSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
-		{Name: overrideComputed},
+		{Name: overrideTargetCommand},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "mock_resource", LabelNames: []string{"type"}},

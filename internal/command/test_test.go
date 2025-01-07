@@ -225,7 +225,7 @@ func TestTest_Runs(t *testing.T) {
 		"mocking-invalid": {
 			expectedErr: []string{
 				"Invalid outputs attribute",
-				"The override_computed attribute must be a boolean.",
+				"The override_target attribute must be a value of plan or apply.",
 			},
 			initCode: 1,
 		},
@@ -1763,7 +1763,7 @@ condition depended on is not known until after the plan has been applied.
 Either remove this value from your condition, or execute an %s command
 from this %s block. Alternatively, if there is an override for this value,
 you can make it available during the plan phase by setting %s in the %s block.
-`, "`run`", "`command = plan`", "`apply`", "`run`", "`override_computed\n= true`", "`override_`"),
+`, "`run`", "`command = plan`", "`apply`", "`run`", "`override_target\n= plan`", "`override_`"),
 		},
 		"unknown_value_in_vars": {
 			code: 1,

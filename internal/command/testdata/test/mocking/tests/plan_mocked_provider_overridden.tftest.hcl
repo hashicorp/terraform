@@ -1,6 +1,6 @@
 mock_provider "test" {
   alias = "primary"
-  override_computed = true
+  override_target = plan
 
   mock_resource "test_resource" {
     defaults = {
@@ -17,7 +17,7 @@ mock_provider "test" {
 
   override_resource {
     target = test_resource.primary[1]
-    override_computed = false // this should take precedence over the provider-level override_computed
+    override_target = apply // this should take precedence over the provider-level override_target
     values = {
       id = "bbbb"
     }
@@ -27,7 +27,7 @@ mock_provider "test" {
 
 override_resource {
   target = test_resource.secondary[0]
-  override_computed = true
+  override_target = plan
   values = {
     id = "ssss"
   }
@@ -44,12 +44,12 @@ run "test" {
 
   assert {
     condition = test_resource.primary[0].id == "bbbb"
-    error_message = "plan should override the value when override_computed is true"
+    error_message = "plan should override the value when override_target is plan"
   }
 
   assert {
     condition = test_resource.secondary[0].id == "ssss"
-    error_message = "plan should override the value when override_computed is true"
+    error_message = "plan should override the value when override_target is plan"
   }
 
 }

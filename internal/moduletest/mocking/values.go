@@ -192,11 +192,11 @@ type MockedData struct {
 }
 
 // NewMockedData creates a new MockedData struct with the given value and range.
-func NewMockedData(value cty.Value, computedAsUnknown bool, range_ hcl.Range) MockedData {
+func NewMockedData(value cty.Value, computedAsUnknown bool, rng hcl.Range) MockedData {
 	return MockedData{
 		Value:             value,
 		ComputedAsUnknown: computedAsUnknown,
-		Range:             range_,
+		Range:             rng,
 	}
 }
 

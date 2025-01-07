@@ -1,6 +1,6 @@
 mock_provider "test" {
   alias = "secondary"
-  override_computed = true
+  override_target = plan
 
   mock_resource "test_resource" {
     defaults = {
@@ -20,7 +20,7 @@ run "test" {
 
   assert {
     condition = test_resource.secondary[0].id == "ffff"
-    error_message = "plan should use the mocked provider value when override_computed is true"
+    error_message = "plan should use the mocked provider value when override_target is plan"
   }
 
 }

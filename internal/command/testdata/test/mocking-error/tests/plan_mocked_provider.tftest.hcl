@@ -19,7 +19,7 @@ run "test" {
 
   assert {
     condition = test_resource.secondary[0].id == "ffff"
-    error_message = "plan should use the mocked provider value when override_computed is true"
+    error_message = "plan should use the mocked provider value when override_target is plan"
   }
 
 }
