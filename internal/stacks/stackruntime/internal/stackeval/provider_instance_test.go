@@ -383,10 +383,7 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 				Config: cty.ObjectVal(map[string]cty.Value{
 					"test": cty.StringVal("yep"),
 				}),
-				ClientCapabilities: providers.ClientCapabilities{
-					DeferralAllowed:            true,
-					WriteOnlyAttributesAllowed: true,
-				},
+				ClientCapabilities: ClientCapabilities(),
 			}
 			if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
 				t.Errorf("wrong request\n%s", diff)
@@ -426,10 +423,7 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 				Config: cty.ObjectVal(map[string]cty.Value{
 					"test": cty.StringVal("yep"),
 				}),
-				ClientCapabilities: providers.ClientCapabilities{
-					DeferralAllowed:            true,
-					WriteOnlyAttributesAllowed: true,
-				},
+				ClientCapabilities: ClientCapabilities(),
 			}
 			if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
 				t.Errorf("wrong request\n%s", diff)

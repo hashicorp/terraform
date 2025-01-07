@@ -390,11 +390,9 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		// Use unmarked value for validate request
 		unmarkedConfigVal, _ := configVal.UnmarkDeep()
 		req := providers.ValidateResourceConfigRequest{
-			TypeName: n.Config.Type,
-			Config:   unmarkedConfigVal,
-			ClientCapabilities: providers.ClientCapabilities{
-				WriteOnlyAttributesAllowed: true,
-			},
+			TypeName:           n.Config.Type,
+			Config:             unmarkedConfigVal,
+			ClientCapabilities: ctx.ClientCapabilities(),
 		}
 
 		resp := provider.ValidateResourceConfig(req)
