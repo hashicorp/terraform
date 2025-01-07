@@ -1,6 +1,6 @@
 mock_provider "test" {
   alias = "primary"
-  override_target = baz // This should either be plan or apply, therefore this test should fail
+  override_during = baz // This should either be plan or apply, therefore this test should fail
 
   mock_resource "test_resource" {
     defaults = {

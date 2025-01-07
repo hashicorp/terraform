@@ -9,7 +9,7 @@ mock_provider "test" {
 
   override_resource {
     target = test_resource.primary
-    override_target = plan
+    override_during = plan
     values = {
       id = "bbbb"
     }
@@ -26,7 +26,7 @@ run "test" {
 
   assert {
     condition = test_resource.primary[0].id == "bbbb"
-    error_message = "plan should override the value when override_target is plan"
+    error_message = "plan should override the value when override_during is plan"
   }
 
 }
