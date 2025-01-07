@@ -649,12 +649,9 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		}
 	} else {
 		resp = provider.ImportResourceState(providers.ImportResourceStateRequest{
-			TypeName: addr.Resource.Resource.Type,
-			ID:       importId,
-			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed:            deferralAllowed,
-				WriteOnlyAttributesAllowed: true,
-			},
+			TypeName:           addr.Resource.Resource.Type,
+			ID:                 importId,
+			ClientCapabilities: ctx.ClientCapabilities(),
 		})
 	}
 	// If we don't support deferrals, but the provider reports a deferral and does not

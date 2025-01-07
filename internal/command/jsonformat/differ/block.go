@@ -31,6 +31,10 @@ func ComputeDiffForBlock(change structured.Change, block *jsonprovider.Block) co
 
 	attributes := make(map[string]computed.Diff)
 	for key, attr := range block.Attributes {
+		if attr.WriteOnly {
+			continue
+		}
+
 		childValue := blockValue.GetChild(key)
 
 		if !childValue.RelevantAttributes.MatchesPartial() {
@@ -44,7 +48,7 @@ func ComputeDiffForBlock(change structured.Change, block *jsonprovider.Block) co
 
 		childChange := ComputeDiffForAttribute(childValue, attr)
 		if childChange.Action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
-			// Don't record nil values at all in blocks.
+			// Don't record nil values at all in blocks except if they are write-only.
 			continue
 		}
 
@@ -111,6 +115,12 @@ func ComputeDiffForBlock(change structured.Change, block *jsonprovider.Block) co
 			current = collections.CompareActions(current, diff.Action)
 		default:
 			panic("unrecognized nesting mode: " + blockType.NestingMode)
+		}
+	}
+
+	for name, attr := range block.Attributes {
+		if attr.WriteOnly {
+			attributes[name] = computeDiffForWriteOnlyAttribute(change, current)
 		}
 	}
 
