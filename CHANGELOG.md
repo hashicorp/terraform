@@ -1,4 +1,4 @@
-## 1.11.0-beta1 (January 07, 2025)
+## 1.11.0 (Unreleased)
 
 
 ENHANCEMENTS:
