@@ -1,26 +1,40 @@
 ---
-page_title: Use write-only fields
-description: Learn how to use write-only fields to set temporary values that  can only be overwritten and are not stored in Terraform's state.
+page_title: Use write-only arguments
+description: Learn how to use write-only arguments to set temporary values that can only be overwritten and are not stored in Terraform's state.
 ---
 
-# Use write-only fields
+<!-- THIS IS HIDDEN FOR NOW - TODO unhide when we have a code snippet to share and I can add more details -->
 
-A Terraform resource can include a special ephemeral field type called a write-only field, which only allows you to overwrite that field's value. You can use write-only fields to store generated sensitive data for a current Terraform operation, such as a temporary password, without worrying about that value being saved in your state.
+# Use write-only arguments
 
--> **Public Beta**: Write-only fields are in public beta and available in Terraform v1.11 and later.  Public beta features and APIs are subject to change.
+Terraform resources can include ephemeral arguments, also known as attributes, for data that only needs to exist temporarily. An ephemeral argument on a resource is called a "write-only argument". Write-only arguments can help store generated sensitive data for the current Terraform operation, such as a short-lived password, token, or session identifier.
+
+-> **Public Beta**: Write-only arguments are in public beta and available in Terraform v1.11 and later.  Public beta features and APIs are subject to change.
 
 
 ## Introduction
 
-Write-only fields are ephemeral, meaning they are not written to Terraform's state and are only available during the current Terraform run. On a new Terraform operation, the write-only field always start as `null` before Terraform overwrites it with a new value from your configuration.
+Write-only arguments are only available during runtime, and Terraform omits them from state and plan files. On a new Terraform operation, a write-only argument always start as `null` before Terraform overwrites it with a new value from your configuration.
 
-Write-only fields are unique among other ephemeral constructs in Terraform because you can assign both ephemeral and non-ephemeral data as the value of a write-only field.
+Write-only arguments are unique among other ephemeral constructs in Terraform because you can assign both ephemeral and non-ephemeral data as the value of a write-only argument.
 
-<!-- Update with a code sample when we have one
+<!-- TODO: Update with a code sample when we have one
 
 ## Define a write-only value
 
 ## Set a write-only value
+
+Example of setting an ephemeral value:
+
+Example of setting a non-ephemeral value:
+
+Add guidance on avoiding acciedentally leaking a non-ephemeral value in a write-only argument.
+
+-->
+
+<!-- TODO: Update with provider code samples when we have them
+
+## Provider examples
 
 ### Vault example
 
