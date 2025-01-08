@@ -5,13 +5,26 @@ description: Learn how to use write-only fields to set temporary values that  ca
 
 # Use write-only fields
 
-A Terraform resource can include a special ephemeral field type that only allows you to overwrite its value. These fields are called "write-only fields" because you can only assign values to them, but not read or update them. Write-only field are useful for storing generated sensitive data for a current Terraform operation, such as temporary password or API key.
+A Terraform resource can include a special ephemeral field type called a write-only field, which only allows you to overwrite that field's value. You can use write-only fields to store generated sensitive data for a current Terraform operation, such as a temporary password, without worrying about that value being saved in your state.
 
--> **Note**: Write-only fields are in public beta and available in Terraform v1.11 and later.  Public beta features and APIs are subject to change and we do not recommend them for production use.
-
-Write-only fields are ephemeral, meaning they are not written to Terraform's state and are only available during the current Terraform run. However, you can assign both ephemeral and non-ephemeral values to write-only fields.
+-> **Public Beta**: Write-only fields are in public beta and available in Terraform v1.11 and later.  Public beta features and APIs are subject to change.
 
 
+## Introduction
 
+Write-only fields are ephemeral, meaning they are not written to Terraform's state and are only available during the current Terraform run. On a new Terraform operation, the write-only field always start as `null` before Terraform overwrites it with a new value from your configuration.
 
+Write-only fields are unique among other ephemeral constructs in Terraform because you can assign both ephemeral and non-ephemeral data as the value of a write-only field.
+
+<!-- Update with a code sample when we have one
+
+## Define a write-only value
+
+## Set a write-only value
+
+### Vault example
+
+### AWS example
+
+-->
 
