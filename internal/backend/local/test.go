@@ -305,6 +305,16 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 
 	// walk and execute the graph
 	diags = runner.walkGraph(graph)
+
+	// If the graph walk was terminated, we don't want to add the diagnostics.
+	// The error the user receives will just be:
+	// 			Failure! 0 passed, 1 failed.
+	// 			exit status 1
+	if diags.HasErrors() && diags.Err().Error() == dag.GraphTerminatedError.Error() {
+		log.Printf("[TRACE] TestFileRunner: graph walk terminated for %s due to error: %s", file.Name, dag.GraphTerminatedError)
+		return
+	}
+
 	file.Diagnostics = file.Diagnostics.Append(diags)
 }
 
@@ -363,6 +373,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			// just mark the overall file status has having errored to indicate
 			// it was interrupted.
 			file.Status = file.Status.Merge(moduletest.Error)
+			g.AcyclicGraph.Terminate()
 			return
 		}
 
@@ -371,7 +382,6 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			// following test as skipped, print the status, and move on.
 			run.Status = moduletest.Skip
 			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
-			// continue
 			return
 		}
 
@@ -381,7 +391,6 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			// skipped, print the status, and move on.
 			run.Status = moduletest.Skip
 			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
-			// continue
 			return
 		}
 
@@ -405,7 +414,6 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 
 				run.Status = moduletest.Error
 				file.Status = moduletest.Error
-				// continue // Abort!
 				return
 			}
 
