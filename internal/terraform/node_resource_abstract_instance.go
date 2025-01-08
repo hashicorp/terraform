@@ -904,7 +904,11 @@ func (n *NodeAbstractResourceInstance) plan(
 		if priorVal.IsNull() {
 			// Then we are actually creating something, so let's populate the
 			// computed values from our override value.
-			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, schema)
+			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, &mocking.MockedData{
+				Value:             n.override.Values,
+				Range:             n.override.Range,
+				ComputedAsUnknown: !n.override.UseForPlan(),
+			}, schema)
 			resp = providers.PlanResourceChangeResponse{
 				PlannedState: override,
 				Diagnostics:  overrideDiags,
@@ -1082,7 +1086,11 @@ func (n *NodeAbstractResourceInstance) plan(
 		if n.override != nil {
 			// In this case, we are always creating the resource so we don't
 			// do any validation, and just call out to the mocking library.
-			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, schema)
+			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, &mocking.MockedData{
+				Value:             n.override.Values,
+				Range:             n.override.Range,
+				ComputedAsUnknown: !n.override.UseForPlan(),
+			}, schema)
 			resp = providers.PlanResourceChangeResponse{
 				PlannedState: override,
 				Diagnostics:  overrideDiags,
@@ -1543,9 +1551,10 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 
 	var resp providers.ReadDataSourceResponse
 	if n.override != nil {
-		override, overrideDiags := mocking.ComputedValuesForDataSource(configVal, mocking.MockedData{
-			Value: n.override.Values,
-			Range: n.override.ValuesRange,
+		override, overrideDiags := mocking.ComputedValuesForDataSource(configVal, &mocking.MockedData{
+			Value:             n.override.Values,
+			Range:             n.override.Range,
+			ComputedAsUnknown: false,
 		}, schema)
 		resp = providers.ReadDataSourceResponse{
 			State:       override,
@@ -2498,9 +2507,10 @@ func (n *NodeAbstractResourceInstance) apply(
 		// values the first time the object is created. Otherwise, we're happy
 		// to just apply whatever the user asked for.
 		if change.Action == plans.Create {
-			override, overrideDiags := mocking.ApplyComputedValuesForResource(unmarkedAfter, mocking.MockedData{
-				Value: n.override.Values,
-				Range: n.override.ValuesRange,
+			override, overrideDiags := mocking.ApplyComputedValuesForResource(unmarkedAfter, &mocking.MockedData{
+				Value:             n.override.Values,
+				Range:             n.override.Range,
+				ComputedAsUnknown: false,
 			}, schema)
 			resp = providers.ApplyResourceChangeResponse{
 				NewState:    override,
