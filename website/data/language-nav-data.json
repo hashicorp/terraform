@@ -148,7 +148,7 @@
             "path": "resources/ephemeral/reference"
           },
           {
-            "title": "Use Write-only Fields",
+            "title": "Use Write-only Arguments",
             "path": "resources/ephemeral/write-only",
             "hidden": "true"
           }
