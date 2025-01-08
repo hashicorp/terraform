@@ -1,12 +1,12 @@
 ## 1.10.5 (Unreleased)
 
+## 1.10.4 (January 8, 2025)
 
 BUG FIXES:
 
 * type conversion: Empty map conversions now return correct type information ([#36262](https://github.com/hashicorp/terraform/issues/36262))
 
 * `terraform console`: Fix crash when printing ephemeral values ([#36267](https://github.com/hashicorp/terraform/issues/36267))
-
 
 ## 1.10.3 (December 18, 2024)
 
