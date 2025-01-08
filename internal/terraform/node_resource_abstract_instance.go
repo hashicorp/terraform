@@ -693,7 +693,17 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 	}
 
 	// Providers are supposed to return null values for all write-only attributes
-	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(resp.NewState, schema, n.ResolvedProvider, n.Addr)
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
+		"Provider produced invalid object",
+		func(path cty.Path) string {
+			return fmt.Sprintf(
+				"Provider %q returned a value for the write-only attribute \"%s%s\" during refresh. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider, n.Addr, tfdiags.FormatCtyPath(path),
+			)
+		},
+		resp.NewState,
+		schema,
+	)
 	diags = diags.Append(writeOnlyDiags)
 
 	if writeOnlyDiags.HasErrors() {
@@ -960,7 +970,17 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 
 		// Providers are supposed to return null values for all write-only attributes
-		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(plannedNewVal, schema, n.ResolvedProvider, n.Addr)
+		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
+			"Provider produced invalid plan",
+			func(path cty.Path) string {
+				return fmt.Sprintf(
+					"Provider %q returned a value for the write-only attribute \"%s%s\" during planning. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider, n.Addr, tfdiags.FormatCtyPath(path),
+				)
+			},
+			plannedNewVal,
+			schema,
+		)
 		diags = diags.Append(writeOnlyDiags)
 
 		if writeOnlyDiags.HasErrors() {
@@ -1148,7 +1168,17 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 
 		// Providers are supposed to return null values for all write-only attributes
-		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(plannedNewVal, schema, n.ResolvedProvider, n.Addr)
+		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
+			"Provider produced invalid plan",
+			func(path cty.Path) string {
+				return fmt.Sprintf(
+					"Provider %q returned a value for the write-only attribute \"%s%s\" during planning. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider, n.Addr, tfdiags.FormatCtyPath(path),
+				)
+			},
+			plannedNewVal,
+			schema,
+		)
 		diags = diags.Append(writeOnlyDiags)
 
 		if writeOnlyDiags.HasErrors() {
@@ -2590,7 +2620,17 @@ func (n *NodeAbstractResourceInstance) apply(
 	}
 
 	// Providers are supposed to return null values for all write-only attributes
-	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(newVal, schema, n.ResolvedProvider, n.Addr)
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
+		"Provider produced invalid object",
+		func(path cty.Path) string {
+			return fmt.Sprintf(
+				"Provider %q returned a value for the write-only attribute \"%s%s\" after apply. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider, n.Addr, tfdiags.FormatCtyPath(path),
+			)
+		},
+		newVal,
+		schema,
+	)
 	diags = diags.Append(writeOnlyDiags)
 
 	if writeOnlyDiags.HasErrors() {
