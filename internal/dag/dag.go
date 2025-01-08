@@ -278,8 +278,9 @@ func (g *AcyclicGraph) Cycles() [][]Vertex {
 // This will walk nodes in parallel if it can. The resulting diagnostics
 // contains problems from all graphs visited, in no particular order.
 func (g *AcyclicGraph) Walk(cb WalkFunc) tfdiags.Diagnostics {
-	ctx, cancel := context.WithCancelCause(context.Background())
-	w := &Walker{Callback: cb, Reverse: true, walkContext: ctx, walkContextCancel: cancel}
+	w := NewWalker(cb, func(w *Walker) {
+		w.Reverse = true
+	})
 	g.walker = w
 
 	w.Update(g)
