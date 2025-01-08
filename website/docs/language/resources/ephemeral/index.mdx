@@ -1,11 +1,11 @@
 ---
 page_title: Ephemeral resources
-description: Learn how to use ephemeral resource blocks and write-only fields to manage temporary resources that Terraform does not store in state. 
+description: Learn how to use ephemeral resource blocks and write-only arguments to manage temporary resources that Terraform does not store in state. 
 ---
 
 # Ephemerality in resources
 
-Configuring infrastructure often requires creating and handling sensitive values, such as temporary passwords or API keys, that you may not want Terraform to store in its state. Terraform provides two tools for resources to manage data you do not want to store in state: the `ephemeral` resource block and ephemeral write-only fields on specific resources.
+Managing infrastructure often requires creating and handling temporary sensitive values, such as passwords, that you may not want Terraform to persist outside of the current operation. Terraform provides two tools for resources to manage data you do not want to store in state or plan files: the `ephemeral` resource block and ephemeral write-only arguments on specific resources.
 
 ## Ephemeral resources
 
@@ -35,28 +35,28 @@ resource in a given configuration.
 
 To learn more about the `ephemeral` block, refer to the [Ephemeral resource reference](/terraform/language/resources/ephemeral/reference).
 
-## Write-only fields
+## Write-only arguments
 
--> **Public Beta**: Write-only fields are in public beta and available in Terraform v1.11 and later.  Public beta features and APIs are subject to change.
+-> **Public Beta**: Write-only arguments are in public beta and available in Terraform v1.11 and later.  Public beta features and APIs are subject to change.
 
-A Terraform resource can include a special ephemeral field type that only allows you to overwrite its value. Write-only fields can help store generated sensitive data for a current Terraform operation, such as a temporary password or API key.
+Terraform resources can include ephemeral arguments, also known as attributes, for data that only needs to exist temporarily. An ephemeral argument on a resource is called a "write-only argument". Write-only arguments can help store generated sensitive data for the current Terraform operation, such as a short-lived password, token, or session identifier.
 
-Write-only fields are ephemeral, meaning they are not written to Terraform's state and are only available during the current Terraform run. On a new Terraform operation, the write-only field always start as `null` before Terraform overwrites it with a new value from your configuration.
+Write-only arguments are only available during runtime, and Terraform omits them from state and plan files. On a new Terraform operation, a write-only argument always start as `null` before Terraform overwrites it with a new value from your configuration.
 
-Write-only fields are unique among other ephemeral constructs in Terraform because you can assign both ephemeral and non-ephemeral data as the value of a write-only field.
+Write-only arguments are unique among other ephemeral constructs in Terraform because you can assign both ephemeral and non-ephemeral data as the value of a write-only argument.
 
 
 <!-- Update with a code sample when we have one -->
 
 <!-- Update once we have a working provider example
 
-Terraform sends write-only fields to the provider every time it needs to create or update that field's resource in your configuration. For example, the `aws_db_instance` resource type has a write-only `password` field:
+Terraform sends write-only arguments to the provider every time it needs to create or update that argument's resource in your configuration. For example, the `aws_db_instance` resource type has a write-only `password` argument:
 
 ```hcl
 resource "aws_db_instance" "main" {
     instance_class       = "db.t3.micro"
     username             = "admin"
-    # This write-only field is ephemeral, meaning it is not saved in state.
+    # This write-only argument is ephemeral, meaning it is not saved in state.
     password             = ephemeral.aws_secretsmanager_secret_version.example.secret_string["exampleKey"]
 }
 
@@ -65,9 +65,9 @@ ephemeral "aws_secretsmanager_secret_version" "example" {
 }
 ```
 
-Every time Terraform creates or updates the `aws_db_instance` resource, Terraform sends the `password` field to the `aws` provider. The provider then uses the value of the `password` field, then discards that value and never stores it in state.
+Every time Terraform creates or updates the `aws_db_instance` resource, Terraform sends the `password` argument to the `aws` provider. The provider then uses the value of the `password` argument, then discards that value and never stores it in state.
 
 
-To learn more about write-only fields, refer to the [Use write-only fields](/terraform/language/resources/ephemeral/write-only).
+To learn more about write-only arguments, refer to the [Use write-only arguments](/terraform/language/resources/ephemeral/write-only).
 
 -->
