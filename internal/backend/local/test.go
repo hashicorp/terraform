@@ -274,6 +274,7 @@ type TestFileRunner struct {
 	// This is used to clean up the infrastructure created during the test after
 	// the test has finished.
 	RelevantStates map[string]*TestFileState
+	stateLock      sync.Mutex
 
 	// PriorOutputs is a mapping from run addresses to cty object values
 	// representing the collected output values from the module under test.
@@ -283,6 +284,7 @@ type TestFileRunner struct {
 	// validate the test assertions, and used when calculating values for
 	// variables within run blocks.
 	PriorOutputs map[addrs.Run]cty.Value
+	outputsLock  sync.Mutex
 
 	VariableCaches *hcltest.VariableCaches
 }
@@ -295,6 +297,8 @@ type TestFileState struct {
 }
 
 func (runner *TestFileRunner) Test(file *moduletest.File) {
+	runner.outputsLock = sync.Mutex{}
+	runner.stateLock = sync.Mutex{}
 	log.Printf("[TRACE] TestFileRunner: executing test file %s", file.Name)
 
 	// The file validation only returns warnings so we'll just add them without
@@ -367,6 +371,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 
 		file := runNode.File()
 		run := runNode.Run()
+		fmt.Println("running-test", file.Name, run.Name, time.Now().Unix())
 
 		if runner.Suite.Cancelled {
 			// This means a hard stop has been requested, in this case we don't
@@ -421,6 +426,8 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 				return
 			}
 
+			runner.stateLock.Lock()
+			defer runner.stateLock.Unlock()
 			if _, exists := runner.RelevantStates[key]; !exists {
 				runner.RelevantStates[key] = &TestFileState{
 					Run:   nil,
@@ -567,7 +574,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 		// First, make the test context we can use to validate the assertions
 		// of the
-		testCtx := moduletest.NewEvalContext(run, config.Module, planScope, testOnlyVariables.JustValues(), runner.PriorOutputs)
+		testCtx := terraform.NewEvalTestContext(run, config.Module, planScope, testOnlyVariables, runner.PriorOutputs)
 
 		// Second, evaluate the run block directly. We also pass in all the
 		// previous contexts so this run block can refer to outputs from
@@ -578,6 +585,8 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 		// Now we've successfully validated this run block, lets add it into
 		// our prior run outputs so future run blocks can access it.
+		runner.outputsLock.Lock()
+		defer runner.outputsLock.Unlock()
 		runner.PriorOutputs[run.Addr()] = outputVals
 
 		return state, false
@@ -649,7 +658,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 	// First, make the test context we can use to validate the assertions
 	// of the
-	testCtx := moduletest.NewEvalContext(run, config.Module, applyScope, testOnlyVariables.JustValues(), runner.PriorOutputs)
+	testCtx := terraform.NewEvalTestContext(run, config.Module, applyScope, testOnlyVariables, runner.PriorOutputs)
 
 	// Second, evaluate the run block directly. We also pass in all the
 	// previous contexts so this run block can refer to outputs from
@@ -660,6 +669,8 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 	// Now we've successfully validated this run block, lets add it into
 	// our prior run outputs so future run blocks can access it.
+	runner.outputsLock.Lock()
+	defer runner.outputsLock.Unlock()
 	runner.PriorOutputs[run.Addr()] = outputVals
 
 	return updated, true
@@ -1309,6 +1320,8 @@ func (runner *TestFileRunner) AddVariablesToConfig(config *configs.Config, varia
 }
 
 func (runner *TestFileRunner) gatherProviders(key string, config *configs.Config) {
+	runner.Suite.configLock.Lock()
+	defer runner.Suite.configLock.Unlock()
 	if _, exists := runner.Suite.configProviders[key]; exists {
 		// Then we've processed this key before, so skip it.
 		return
@@ -1353,7 +1366,5 @@ func (runner *TestFileRunner) gatherProviders(key string, config *configs.Config
 		}
 	}
 
-	runner.Suite.configLock.Lock()
 	runner.Suite.configProviders[key] = providers
-	runner.Suite.configLock.Unlock()
 }

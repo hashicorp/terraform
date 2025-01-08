@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package moduletest
+package terraform
 
 import (
 	"fmt"
@@ -17,36 +17,36 @@ import (
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// EvalContext is a container for context relating to the evaluation of a
+// EvalTestContext is a container for context relating to the evaluation of a
 // particular test case, which means a specific "run" block in a .tftest.hcl
 // file.
-type EvalContext struct {
-	run       *Run
+type EvalTestContext struct {
+	run       *moduletest.Run
 	module    *configs.Module
 	exprScope *lang.Scope
 }
 
-// NewEvalContext constructs a new test run evaluation context based on the
+// NewEvalTestContext constructs a new test run evaluation context based on the
 // definition of the run itself and on the results of the action the run
 // block described.
 //
 // priorOutputs describes the output values from earlier run blocks, which
 // should typically be populated from the second return value from calling
-// [EvalContext.Evaluate] on each earlier blocks' [EvalContext].
+// [EvalTestContext.Evaluate] on each earlier blocks' [EvalTestContext].
 //
 // extraVariableVals, if provided, overlays the input variables that are
 // already available in resultScope in case there are additional input
 // variables that were defined only for use in the test suite. Any variable
 // not defined in extraVariableVals will be evaluated through resultScope
 // instead.
-func NewEvalContext(run *Run, module *configs.Module, resultScope *lang.Scope, extraVariableVals terraform.InputValues, priorOutputs map[addrs.Run]cty.Value) *EvalContext {
+func NewEvalTestContext(run *moduletest.Run, module *configs.Module, resultScope *lang.Scope, extraVariableVals InputValues, priorOutputs map[addrs.Run]cty.Value) *EvalTestContext {
 	// We need a derived evaluation scope that also supports referring to
 	// the prior run output values using the "run.NAME" syntax.
-	evalData := &evaluationData{
+	evalData := &testEvaluationData{
 		module:    module,
 		current:   resultScope.Data,
 		extraVars: extraVariableVals,
@@ -61,7 +61,7 @@ func NewEvalContext(run *Run, module *configs.Module, resultScope *lang.Scope, e
 		PlanTimestamp: resultScope.PlanTimestamp,
 		ExternalFuncs: resultScope.ExternalFuncs,
 	}
-	return &EvalContext{
+	return &EvalTestContext{
 		run:       run,
 		module:    module,
 		exprScope: runScope,
@@ -71,16 +71,16 @@ func NewEvalContext(run *Run, module *configs.Module, resultScope *lang.Scope, e
 // Evaluate processes the assertions inside the provided configs.TestRun against
 // the run results, returning a status, an object value representing the output
 // values from the module under test, and diagnostics describing any problems.
-func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
+func (ec *EvalTestContext) Evaluate() (moduletest.Status, cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	run := ec.run
 	scope := ec.exprScope
 
-	log.Printf("[TRACE] EvalContext.Evaluate for %s", ec.run.Addr())
+	log.Printf("[TRACE] EvalTestContext.Evaluate for %s", ec.run.Addr())
 
 	// We're going to assume the run has passed, and then if anything fails this
 	// value will be updated.
-	status := run.Status.Merge(Pass)
+	status := run.Status.Merge(moduletest.Pass)
 
 	// Now validate all the assertions within this run block.
 	for i, rule := range run.Config.CheckRules {
@@ -103,8 +103,8 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 		if moreDiags.HasErrors() {
 			// if we can't evaluate the context properly, we can't evaulate the rule
 			// we add the diagnostics to the main diags and continue to the next rule
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, could not evalaute the context, so cannot evaluate it", i, ec.run.Addr())
-			status = status.Merge(Error)
+			log.Printf("[TRACE] EvalTestContext.Evaluate: check rule %d for %s is invalid, could not evalaute the context, so cannot evaluate it", i, ec.run.Addr())
+			status = status.Merge(moduletest.Error)
 			diags = diags.Append(ruleDiags)
 			continue
 		}
@@ -117,13 +117,13 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 
 		diags = diags.Append(ruleDiags)
 		if ruleDiags.HasErrors() {
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, so cannot evaluate it", i, ec.run.Addr())
-			status = status.Merge(Error)
+			log.Printf("[TRACE] EvalTestContext.Evaluate: check rule %d for %s is invalid, so cannot evaluate it", i, ec.run.Addr())
+			status = status.Merge(moduletest.Error)
 			continue
 		}
 
 		if runVal.IsNull() {
-			status = status.Merge(Error)
+			status = status.Merge(moduletest.Error)
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
 				Summary:     "Invalid condition run",
@@ -132,12 +132,12 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
 			})
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has null condition result", i, ec.run.Addr())
+			log.Printf("[TRACE] EvalTestContext.Evaluate: check rule %d for %s has null condition result", i, ec.run.Addr())
 			continue
 		}
 
 		if !runVal.IsKnown() {
-			status = status.Merge(Error)
+			status = status.Merge(moduletest.Error)
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
 				Summary:     "Unknown condition value",
@@ -146,13 +146,13 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
 			})
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has unknown condition result", i, ec.run.Addr())
+			log.Printf("[TRACE] EvalTestContext.Evaluate: check rule %d for %s has unknown condition result", i, ec.run.Addr())
 			continue
 		}
 
 		var err error
 		if runVal, err = convert.Convert(runVal, cty.Bool); err != nil {
-			status = status.Merge(Error)
+			status = status.Merge(moduletest.Error)
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
 				Summary:     "Invalid condition run",
@@ -161,7 +161,7 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
 			})
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has non-boolean condition result", i, ec.run.Addr())
+			log.Printf("[TRACE] EvalTestContext.Evaluate: check rule %d for %s has non-boolean condition result", i, ec.run.Addr())
 			continue
 		}
 
@@ -170,8 +170,8 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 		runVal, _ = runVal.Unmark()
 
 		if runVal.False() {
-			log.Printf("[TRACE] EvalContext.Evaluate: test assertion failed for %s assertion %d", ec.run.Addr(), i)
-			status = status.Merge(Fail)
+			log.Printf("[TRACE] EvalTestContext.Evaluate: test assertion failed for %s assertion %d", ec.run.Addr(), i)
+			status = status.Merge(moduletest.Fail)
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
 				Summary:     "Test assertion failed",
@@ -180,11 +180,11 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
 				// Make the ephemerality visible
-				Extra: terraform.DiagnosticCausedByEphemeral(true),
+				Extra: DiagnosticCausedByEphemeral(true),
 			})
 			continue
 		} else {
-			log.Printf("[TRACE] EvalContext.Evaluate: test assertion succeeded for %s assertion %d", ec.run.Addr(), i)
+			log.Printf("[TRACE] EvalTestContext.Evaluate: test assertion succeeded for %s assertion %d", ec.run.Addr(), i)
 		}
 	}
 
@@ -223,36 +223,36 @@ func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnost
 	return diags
 }
 
-// evaluationData augments an underlying lang.Data -- presumably resulting
-// from a terraform.Context.PlanAndEval or terraform.Context.ApplyAndEval call --
+// testEvaluationData augments an underlying lang.Data -- presumably resulting
+// from a Context.PlanAndEval or Context.ApplyAndEval call --
 // with results from prior runs that should therefore be available when
 // evaluating expressions written inside a "run" block.
-type evaluationData struct {
+type testEvaluationData struct {
 	module    *configs.Module
 	current   lang.Data
-	extraVars terraform.InputValues
+	extraVars InputValues
 	priorVals map[addrs.Run]cty.Value
 }
 
-var _ lang.Data = (*evaluationData)(nil)
+var _ lang.Data = (*testEvaluationData)(nil)
 
 // GetCheckBlock implements lang.Data.
-func (d *evaluationData) GetCheckBlock(addr addrs.Check, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *testEvaluationData) GetCheckBlock(addr addrs.Check, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.current.GetCheckBlock(addr, rng)
 }
 
 // GetCountAttr implements lang.Data.
-func (d *evaluationData) GetCountAttr(addr addrs.CountAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *testEvaluationData) GetCountAttr(addr addrs.CountAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.current.GetCountAttr(addr, rng)
 }
 
 // GetForEachAttr implements lang.Data.
-func (d *evaluationData) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *testEvaluationData) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.current.GetForEachAttr(addr, rng)
 }
 
 // GetInputVariable implements lang.Data.
-func (d *evaluationData) GetInputVariable(addr addrs.InputVariable, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *testEvaluationData) GetInputVariable(addr addrs.InputVariable, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	if extra, exists := d.extraVars[addr.Name]; exists {
 		return extra.Value, nil
 	}
@@ -260,32 +260,32 @@ func (d *evaluationData) GetInputVariable(addr addrs.InputVariable, rng tfdiags.
 }
 
 // GetLocalValue implements lang.Data.
-func (d *evaluationData) GetLocalValue(addr addrs.LocalValue, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *testEvaluationData) GetLocalValue(addr addrs.LocalValue, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.current.GetLocalValue(addr, rng)
 }
 
 // GetModule implements lang.Data.
-func (d *evaluationData) GetModule(addr addrs.ModuleCall, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *testEvaluationData) GetModule(addr addrs.ModuleCall, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.current.GetModule(addr, rng)
 }
 
 // GetOutput implements lang.Data.
-func (d *evaluationData) GetOutput(addr addrs.OutputValue, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *testEvaluationData) GetOutput(addr addrs.OutputValue, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.current.GetOutput(addr, rng)
 }
 
 // GetPathAttr implements lang.Data.
-func (d *evaluationData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *testEvaluationData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.current.GetPathAttr(addr, rng)
 }
 
 // GetResource implements lang.Data.
-func (d *evaluationData) GetResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *testEvaluationData) GetResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.current.GetResource(addr, rng)
 }
 
 // GetRunBlock implements lang.Data.
-func (d *evaluationData) GetRunBlock(addr addrs.Run, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *testEvaluationData) GetRunBlock(addr addrs.Run, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret, exists := d.priorVals[addr]
 	if !exists {
@@ -312,12 +312,12 @@ func (d *evaluationData) GetRunBlock(addr addrs.Run, rng tfdiags.SourceRange) (c
 }
 
 // GetTerraformAttr implements lang.Data.
-func (d *evaluationData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *testEvaluationData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.current.GetTerraformAttr(addr, rng)
 }
 
 // StaticValidateReferences implements lang.Data.
-func (d *evaluationData) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
+func (d *testEvaluationData) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
 	// We only handle addrs.Run directly here, with everything else delegated
 	// to the underlying Data object to deal with.
 	var diags tfdiags.Diagnostics
@@ -332,7 +332,7 @@ func (d *evaluationData) StaticValidateReferences(refs []*addrs.Reference, self 
 	return diags
 }
 
-func (d *evaluationData) staticValidateRunRef(ref *addrs.Reference) tfdiags.Diagnostics {
+func (d *testEvaluationData) staticValidateRunRef(ref *addrs.Reference) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	addr := ref.Subject.(addrs.Run)
