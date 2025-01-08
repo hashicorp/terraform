@@ -370,6 +370,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		// If we got far enough to actually execute the run then we'll give
 		// the view some additional metadata about the execution.
 		run.ExecutionMeta = &moduletest.RunExecutionMeta{
+			Start:    startTime,
 			Duration: runDuration,
 		}
 		runner.Suite.View.Run(run, file, moduletest.Complete, 0)

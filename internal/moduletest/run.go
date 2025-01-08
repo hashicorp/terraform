@@ -43,6 +43,7 @@ type Run struct {
 }
 
 type RunExecutionMeta struct {
+	Start    time.Time
 	Duration time.Duration
 }
 
