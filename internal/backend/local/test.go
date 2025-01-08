@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
@@ -20,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -80,6 +82,8 @@ type TestSuiteRunner struct {
 	// The config keys are globally unique across an entire test suite, so we
 	// store this at the suite runner level to get maximum efficiency.
 	configProviders map[string]map[string]bool
+
+	configLock sync.Mutex
 }
 
 func (runner *TestSuiteRunner) Stop() {
@@ -95,6 +99,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 
 	// First thing, initialise the config providers map.
 	runner.configProviders = make(map[string]map[string]bool)
+	runner.configLock = sync.Mutex{}
 
 	suite, suiteDiags := runner.collectTests()
 	diags = diags.Append(suiteDiags)
@@ -305,8 +310,64 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		file.Status = file.Status.Merge(moduletest.Pass)
 	}
 
-	// Now execute the runs.
-	for _, run := range file.Runs {
+	b := terraform.TestGraphBuilder{File: file}
+	graph, diags := b.Build(addrs.RootModuleInstance)
+	file.Diagnostics = file.Diagnostics.Append(diags)
+
+	diags = runner.walkGraph(graph)
+	file.Diagnostics = file.Diagnostics.Append(diags)
+}
+
+func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics {
+	par := runner.Suite.Opts.Parallelism
+	if par < 1 {
+		par = 10
+	}
+	sem := terraform.NewSemaphore(par)
+
+	// Walk the graph.
+	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
+		// the walkFn is called asynchronously, and needs to be recovered
+		// separately in the case of a panic.
+		defer logging.PanicHandler()
+
+		log.Printf("[TRACE] vertex %q: starting visit (%T)", dag.VertexName(v), v)
+
+		defer func() {
+			if r := recover(); r != nil {
+				// If the walkFn panics, we get confusing logs about how the
+				// visit was complete. To stop this, we'll catch the panic log
+				// that the vertex panicked without finishing and re-panic.
+				log.Printf("[ERROR] vertex %q panicked", dag.VertexName(v))
+				panic(r) // re-panic
+			}
+
+			if diags.HasErrors() {
+				for _, diag := range diags {
+					if diag.Severity() == tfdiags.Error {
+						desc := diag.Description()
+						log.Printf("[ERROR] vertex %q error: %s", dag.VertexName(v), desc.Summary)
+					}
+				}
+				log.Printf("[TRACE] vertex %q: visit complete, with errors", dag.VertexName(v))
+			} else {
+				log.Printf("[TRACE] vertex %q: visit complete", dag.VertexName(v))
+			}
+		}()
+
+		runNode, ok := v.(*terraform.NodeTestRun)
+		if !ok {
+			// If the vertex isn't a test run, we'll just skip it.
+			return
+		}
+
+		// Acquire a lock on the semaphore
+		sem.Acquire()
+		defer sem.Release()
+
+		file := runNode.File()
+		run := runNode.Run()
+
 		if runner.Suite.Cancelled {
 			// This means a hard stop has been requested, in this case we don't
 			// even stop to mark future tests as having been skipped. They'll
@@ -322,7 +383,8 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 			// following test as skipped, print the status, and move on.
 			run.Status = moduletest.Skip
 			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
-			continue
+			// continue
+			return
 		}
 
 		if file.Status == moduletest.Error {
@@ -331,7 +393,8 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 			// skipped, print the status, and move on.
 			run.Status = moduletest.Skip
 			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
-			continue
+			// continue
+			return
 		}
 
 		key := MainStateIdentifier
@@ -354,7 +417,8 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 
 				run.Status = moduletest.Error
 				file.Status = moduletest.Error
-				continue // Abort!
+				// continue // Abort!
+				return
 			}
 
 			if _, exists := runner.RelevantStates[key]; !exists {
@@ -385,7 +449,10 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		}
 		runner.Suite.View.Run(run, file, moduletest.Complete, 0)
 		file.Status = file.Status.Merge(run.Status)
+		return
 	}
+
+	return g.AcyclicGraph.Walk(walkFn)
 }
 
 func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, state *states.State, config *configs.Config) (*states.State, bool) {
@@ -428,7 +495,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return state, false
 	}
 
-	validateDiags := runner.validate(config, run, file, start)
+	validateDiags := runner.validate(config, run, file, start) // validates the tf config itself
 	run.Diagnostics = run.Diagnostics.Append(validateDiags)
 	if validateDiags.HasErrors() {
 		run.Status = moduletest.Error
@@ -500,7 +567,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 		// First, make the test context we can use to validate the assertions
 		// of the
-		testCtx := moduletest.NewEvalContext(run, config.Module, planScope, testOnlyVariables, runner.PriorOutputs)
+		testCtx := moduletest.NewEvalContext(run, config.Module, planScope, testOnlyVariables.JustValues(), runner.PriorOutputs)
 
 		// Second, evaluate the run block directly. We also pass in all the
 		// previous contexts so this run block can refer to outputs from
@@ -582,7 +649,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 	// First, make the test context we can use to validate the assertions
 	// of the
-	testCtx := moduletest.NewEvalContext(run, config.Module, applyScope, testOnlyVariables, runner.PriorOutputs)
+	testCtx := moduletest.NewEvalContext(run, config.Module, applyScope, testOnlyVariables.JustValues(), runner.PriorOutputs)
 
 	// Second, evaluate the run block directly. We also pass in all the
 	// previous contexts so this run block can refer to outputs from
@@ -1286,5 +1353,7 @@ func (runner *TestFileRunner) gatherProviders(key string, config *configs.Config
 		}
 	}
 
+	runner.Suite.configLock.Lock()
 	runner.Suite.configProviders[key] = providers
+	runner.Suite.configLock.Unlock()
 }
