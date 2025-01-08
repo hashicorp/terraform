@@ -27,15 +27,6 @@ type Graph struct {
 	Path addrs.ModuleInstance
 }
 
-func (g *Graph) Connect(edge dag.Edge) {
-	src, ok1 := edge.Source().(*NodeTestRun)
-	tgt, ok2 := edge.Target().(*NodeTestRun)
-	if ok1 && ok2 {
-		fmt.Printf("Graph.Connect %s => %s\n", src.run.Name, tgt.run.Name)
-	}
-	g.AcyclicGraph.Connect(edge)
-}
-
 func (g *Graph) DirectedGraph() dag.Grapher {
 	return &g.AcyclicGraph
 }
