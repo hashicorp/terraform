@@ -93,7 +93,6 @@ function generate {
 
         patch)
         COMPLETE_VERSION=$(npx -y changie@$CHANGIE_VERSION next patch)
-        COMPLETE_VERSION=${COMPLETE_VERSION:1} # remove the v prefix
         npx -y changie@$CHANGIE_VERSION batch patch
         npx -y changie@$CHANGIE_VERSION merge
         ;;
