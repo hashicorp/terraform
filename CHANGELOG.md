@@ -71,10 +71,6 @@ UPGRADE NOTES:
 - `moved`: Moved blocks now respect reserved keywords when parsing resource addresses. Configurations that reference resources with type names that match top level blocks and keywords from `moved` blocks will need to prepend the `resource.` identifier to these references. ([#35850](https://github.com/hashicorp/terraform/issues/35850))
 - config: In order to ensure consistency in results from HCL conditional expressions, marks must be combined from all values within the expression to avoid losing mark information. This typically improves accuracy when validating configuration, but users may see sensitive results where they were lost previously.
 
-BUG FIXES
-
-- Update dependency `github.com/hashicorp/go-slug` `v0.16.0` => `v0.16.3` to integrate latest changes.
-
 ## Previous Releases
 
 For information on prior major and minor releases, refer to their changelogs:
