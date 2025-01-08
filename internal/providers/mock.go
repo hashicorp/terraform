@@ -187,7 +187,7 @@ func (m *Mock) PlanResourceChange(request PlanResourceChangeRequest) PlanResourc
 			ComputedAsUnknown: true,
 		}
 		// if we are allowed to use the mock defaults for plan, we can populate the computed fields with the mock defaults.
-		if mockedResource, exists := m.Data.MockResources[request.TypeName]; exists && m.Data.UseForPlan() {
+		if mockedResource, exists := m.Data.MockResources[request.TypeName]; exists && m.Data.UseForPlan {
 			replacement.Value = mockedResource.Defaults
 			replacement.Range = mockedResource.DefaultsRange
 			replacement.ComputedAsUnknown = false
