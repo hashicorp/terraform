@@ -1,4 +1,4 @@
-## 1.10.4 (Unreleased)
+## 1.10.4 (January 8, 2025)
 
 
 BUG FIXES:
