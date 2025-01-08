@@ -6,8 +6,6 @@ ENHANCEMENTS:
 
 * New command `modules -json`: Displays a full list of all installed modules in a working directory, including whether each module is currently referenced by the working directory's configuration. ([#35884](https://github.com/hashicorp/terraform/issues/35884))
 
-* `terraform test`: Test runs now support using mocked or overridden values during unit test runs (e.g., with command = "plan"). When override_during = "plan" is specified, the mocked values will take effect during the plan phase. If not set, override_during defaults to apply. (#36227)
-
 EXPERIMENTS:
 
 Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
