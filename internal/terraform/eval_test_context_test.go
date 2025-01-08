@@ -1,15 +1,10 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package moduletest
+package terraform
 
 import (
-	"context"
 	"errors"
-	"io"
-	"os"
-	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -19,16 +14,12 @@ import (
 	ctymsgpack "github.com/zclconf/go-cty/cty/msgpack"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
-	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -37,13 +28,13 @@ func TestEvalContext_Evaluate(t *testing.T) {
 		configs      map[string]string
 		state        *states.State
 		plan         *plans.Plan
-		variables    terraform.InputValues
-		testOnlyVars terraform.InputValues
+		variables    InputValues
+		testOnlyVars InputValues
 		provider     *testing_provider.MockProvider
 		priorOutputs map[string]cty.Value
 
 		expectedDiags   []tfdiags.Description
-		expectedStatus  Status
+		expectedStatus  moduletest.Status
 		expectedOutputs cty.Value
 	}{
 		"basic_passing": {
@@ -99,7 +90,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			expectedStatus:  Pass,
+			expectedStatus:  moduletest.Pass,
 			expectedOutputs: cty.EmptyObjectVal,
 		},
 		"with_variables": {
@@ -147,7 +138,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 						Provider: addrs.NewDefaultProvider("test"),
 					})
 			}),
-			variables: terraform.InputValues{
+			variables: InputValues{
 				"value": {
 					Value: cty.StringVal("Hello, world!"),
 				},
@@ -168,7 +159,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			expectedStatus:  Pass,
+			expectedStatus:  moduletest.Pass,
 			expectedOutputs: cty.EmptyObjectVal,
 		},
 		"basic_failing": {
@@ -224,7 +215,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			expectedStatus:  Fail,
+			expectedStatus:  moduletest.Fail,
 			expectedOutputs: cty.EmptyObjectVal,
 			expectedDiags: []tfdiags.Description{
 				{
@@ -291,7 +282,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			expectedStatus:  Fail,
+			expectedStatus:  moduletest.Fail,
 			expectedOutputs: cty.EmptyObjectVal,
 			expectedDiags: []tfdiags.Description{
 				{
@@ -329,10 +320,10 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				Changes: plans.NewChangesSrc(),
 			},
 			state: states.NewState(),
-			variables: terraform.InputValues{
-				"input": &terraform.InputValue{
+			variables: InputValues{
+				"input": &InputValue{
 					Value:      cty.StringVal("Hello, world!"),
-					SourceType: terraform.ValueFromConfig,
+					SourceType: ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "main.tftest.hcl",
 						Start:    tfdiags.SourcePos{Line: 3, Column: 13, Byte: 12},
@@ -341,7 +332,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				},
 			},
 			provider:        &testing_provider.MockProvider{},
-			expectedStatus:  Pass,
+			expectedStatus:  moduletest.Pass,
 			expectedOutputs: cty.EmptyObjectVal,
 			expectedDiags:   []tfdiags.Description{},
 		},
@@ -370,10 +361,10 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				Changes: plans.NewChangesSrc(),
 			},
 			state: states.NewState(),
-			variables: terraform.InputValues{
-				"input": &terraform.InputValue{
+			variables: InputValues{
+				"input": &InputValue{
 					Value:      cty.StringVal("Hello, world!"),
-					SourceType: terraform.ValueFromConfig,
+					SourceType: ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "main.tftest.hcl",
 						Start:    tfdiags.SourcePos{Line: 3, Column: 13, Byte: 12},
@@ -382,7 +373,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				},
 			},
 			provider:        &testing_provider.MockProvider{},
-			expectedStatus:  Fail,
+			expectedStatus:  moduletest.Fail,
 			expectedOutputs: cty.EmptyObjectVal,
 			expectedDiags: []tfdiags.Description{
 				{
@@ -470,7 +461,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			expectedStatus:  Pass,
+			expectedStatus:  moduletest.Pass,
 			expectedOutputs: cty.EmptyObjectVal,
 		},
 		"basic_failing_with_plan": {
@@ -549,7 +540,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			expectedStatus:  Fail,
+			expectedStatus:  moduletest.Fail,
 			expectedOutputs: cty.EmptyObjectVal,
 			expectedDiags: []tfdiags.Description{
 				{
@@ -618,7 +609,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			expectedStatus:  Pass,
+			expectedStatus:  moduletest.Pass,
 			expectedOutputs: cty.EmptyObjectVal,
 		},
 		"output_values": {
@@ -640,7 +631,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 			},
 			state:          states.NewState(),
 			provider:       &testing_provider.MockProvider{},
-			expectedStatus: Pass,
+			expectedStatus: moduletest.Pass,
 			expectedOutputs: cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.StringVal("foo value"),
 				"bar": cty.StringVal("bar value"),
@@ -692,7 +683,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					}
 				},
 			},
-			expectedStatus: Pass,
+			expectedStatus: moduletest.Pass,
 			expectedOutputs: cty.ObjectVal(map[string]cty.Value{
 				"true": cty.True,
 			}),
@@ -702,19 +693,19 @@ func TestEvalContext_Evaluate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			config := testModuleInline(t, test.configs)
 
-			tfCtx, diags := terraform.NewContext(&terraform.ContextOpts{
+			tfCtx, diags := NewContext(&ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("test"): providers.FactoryFixed(test.provider),
 				},
 			})
 			if diags.HasErrors() {
-				t.Fatalf("unexpected errors from terraform.NewContext\n%s", diags.Err().Error())
+				t.Fatalf("unexpected errors from NewContext\n%s", diags.Err().Error())
 			}
 
 			// We just need a vaguely-realistic scope here, so we'll make
 			// a plan against the given config and state and use its
 			// resulting scope.
-			_, planScope, diags := tfCtx.PlanAndEval(config, test.state, &terraform.PlanOpts{
+			_, planScope, diags := tfCtx.PlanAndEval(config, test.state, &PlanOpts{
 				Mode:         plans.NormalMode,
 				SetVariables: test.variables,
 			})
@@ -723,7 +714,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 			}
 
 			file := config.Module.Tests["main.tftest.hcl"]
-			run := &Run{
+			run := &moduletest.Run{
 				Config: file.Runs[len(file.Runs)-1], // We always simulate the last run block.
 				Name:   "test_case",                 // and it should be named test_case
 			}
@@ -733,7 +724,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				priorOutputs[addrs.Run{Name: name}] = val
 			}
 
-			testCtx := NewEvalContext(run, config.Module, planScope, test.testOnlyVars, priorOutputs)
+			testCtx := NewEvalTestContext(run, config.Module, planScope, test.testOnlyVars, priorOutputs)
 			gotStatus, gotOutputs, diags := testCtx.Evaluate()
 
 			if got, want := gotStatus, test.expectedStatus; got != want {
@@ -791,54 +782,54 @@ func encodeCtyValue(t *testing.T, value cty.Value) []byte {
 
 // testModuleInline takes a map of path -> config strings and yields a config
 // structure with those files loaded from disk
-func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
-	t.Helper()
+// func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
+// 	t.Helper()
 
-	cfgPath := t.TempDir()
+// 	cfgPath := t.TempDir()
 
-	for path, configStr := range sources {
-		dir := filepath.Dir(path)
-		if dir != "." {
-			err := os.MkdirAll(filepath.Join(cfgPath, dir), os.FileMode(0777))
-			if err != nil {
-				t.Fatalf("Error creating subdir: %s", err)
-			}
-		}
-		// Write the configuration
-		cfgF, err := os.Create(filepath.Join(cfgPath, path))
-		if err != nil {
-			t.Fatalf("Error creating temporary file for config: %s", err)
-		}
+// 	for path, configStr := range sources {
+// 		dir := filepath.Dir(path)
+// 		if dir != "." {
+// 			err := os.MkdirAll(filepath.Join(cfgPath, dir), os.FileMode(0777))
+// 			if err != nil {
+// 				t.Fatalf("Error creating subdir: %s", err)
+// 			}
+// 		}
+// 		// Write the configuration
+// 		cfgF, err := os.Create(filepath.Join(cfgPath, path))
+// 		if err != nil {
+// 			t.Fatalf("Error creating temporary file for config: %s", err)
+// 		}
 
-		_, err = io.Copy(cfgF, strings.NewReader(configStr))
-		cfgF.Close()
-		if err != nil {
-			t.Fatalf("Error creating temporary file for config: %s", err)
-		}
-	}
+// 		_, err = io.Copy(cfgF, strings.NewReader(configStr))
+// 		cfgF.Close()
+// 		if err != nil {
+// 			t.Fatalf("Error creating temporary file for config: %s", err)
+// 		}
+// 	}
 
-	loader, cleanup := configload.NewLoaderForTests(t)
-	defer cleanup()
+// 	loader, cleanup := configload.NewLoaderForTests(t)
+// 	defer cleanup()
 
-	// Test modules usually do not refer to remote sources, and for local
-	// sources only this ultimately just records all of the module paths
-	// in a JSON file so that we can load them below.
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
-	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false, initwd.ModuleInstallHooksImpl{})
-	if instDiags.HasErrors() {
-		t.Fatal(instDiags.Err())
-	}
+// 	// Test modules usually do not refer to remote sources, and for local
+// 	// sources only this ultimately just records all of the module paths
+// 	// in a JSON file so that we can load them below.
+// 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+// 	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false, initwd.ModuleInstallHooksImpl{})
+// 	if instDiags.HasErrors() {
+// 		t.Fatal(instDiags.Err())
+// 	}
 
-	// Since module installer has modified the module manifest on disk, we need
-	// to refresh the cache of it in the loader.
-	if err := loader.RefreshModules(); err != nil {
-		t.Fatalf("failed to refresh modules after installation: %s", err)
-	}
+// 	// Since module installer has modified the module manifest on disk, we need
+// 	// to refresh the cache of it in the loader.
+// 	if err := loader.RefreshModules(); err != nil {
+// 		t.Fatalf("failed to refresh modules after installation: %s", err)
+// 	}
 
-	config, diags := loader.LoadConfigWithTests(cfgPath, "tests")
-	if diags.HasErrors() {
-		t.Fatal(diags.Error())
-	}
+// 	config, diags := loader.LoadConfigWithTests(cfgPath, "tests")
+// 	if diags.HasErrors() {
+// 		t.Fatal(diags.Error())
+// 	}
 
-	return config
-}
+// 	return config
+// }
