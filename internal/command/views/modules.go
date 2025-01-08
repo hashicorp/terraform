@@ -6,6 +6,7 @@ package views
 import (
 	encJson "encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/moduleref"
@@ -44,6 +45,10 @@ func (v *ModulesHuman) Display(manifest moduleref.Manifest) int {
 		return 0
 	}
 	printRoot := treeprint.New()
+
+	// ensure output is deterministic
+	sort.Sort(manifest.Records)
+
 	populateTreeNode(printRoot, &moduleref.Record{
 		Children: manifest.Records,
 	})

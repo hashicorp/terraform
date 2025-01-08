@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: '`terraform test`: Test runs now support using mocked or overridden values during unit test runs (e.g., with command = "plan"). When override_during = "plan"'
+time: 2025-01-08T11:34:33.709443+01:00
+custom:
+    Issue: "36227"

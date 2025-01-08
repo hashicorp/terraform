@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/views"
-	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -348,7 +347,7 @@ func (b *Local) opApply(
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
 							Summary:  "Can't change variable when applying a saved plan",
-							Detail:   fmt.Sprintf("The variable %s cannot be set using the -var and -var-file options when applying a saved plan file, because a saved plan includes the variable values that were set when it was created. The saved plan specifies %s as the value whereas during apply the value %s was %s. To declare an ephemeral variable which is not saved in the plan file, use ephemeral = true.", varName, viewsjson.CompactValueStr(parsedVar.Value), viewsjson.CompactValueStr(plannedVar), parsedVar.SourceType.DiagnosticLabel()),
+							Detail:   fmt.Sprintf("The variable %s cannot be set using the -var and -var-file options when applying a saved plan file, because a saved plan includes the variable values that were set when it was created. The saved plan specifies %s as the value whereas during apply the value %s was %s. To declare an ephemeral variable which is not saved in the plan file, use ephemeral = true.", varName, tfdiags.CompactValueStr(parsedVar.Value), tfdiags.CompactValueStr(plannedVar), parsedVar.SourceType.DiagnosticLabel()),
 							Subject:  rng,
 						})
 					}

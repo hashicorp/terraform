@@ -17,14 +17,14 @@ type Record struct {
 	Source             addrs.ModuleSource
 	Version            *version.Version
 	VersionConstraints version.Constraints
-	Children           []*Record
+	Children           Records
 }
 
 // ModuleRecordManifest is the view implementation of module entries declared
 // in configuration
 type Manifest struct {
 	FormatVersion string
-	Records       []*Record
+	Records       Records
 }
 
 func (m *Manifest) addModuleEntry(entry *Record) {
@@ -33,4 +33,16 @@ func (m *Manifest) addModuleEntry(entry *Record) {
 
 func (r *Record) addChild(child *Record) {
 	r.Children = append(r.Children, child)
+}
+
+type Records []*Record
+
+func (r Records) Len() int {
+	return len(r)
+}
+func (r Records) Less(i, j int) bool {
+	return r[i].Key < r[j].Key
+}
+func (r Records) Swap(i, j int) {
+	r[i], r[j] = r[j], r[i]
 }

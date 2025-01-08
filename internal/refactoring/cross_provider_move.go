@@ -155,7 +155,17 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 	}
 
 	// Providers are supposed to return null values for all write-only attributes
-	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(resp.TargetState, move.targetResourceSchema, move.targetProviderAddr, target)
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
+		"Provider returned invalid value",
+		func(path cty.Path) string {
+			return fmt.Sprintf(
+				"The provider %q returned a value for the write-only attribute \"%s%s\" during an across type move operation to %s. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				move.targetProviderAddr, target, tfdiags.FormatCtyPath(path), target,
+			)
+		},
+		resp.TargetState,
+		move.targetResourceSchema,
+	)
 	diags = diags.Append(writeOnlyDiags)
 
 	if writeOnlyDiags.HasErrors() {

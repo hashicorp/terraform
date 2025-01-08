@@ -191,6 +191,10 @@ type EvalContext interface {
 	// perform a planned action due to an upstream dependency being deferred.
 	Deferrals() *deferring.Deferred
 
+	// ClientCapabilities returns the client capabilities sent to the providers
+	// for each request. They define what this terraform instance is capable of.
+	ClientCapabilities() providers.ClientCapabilities
+
 	// MoveResults returns a map describing the results of handling any
 	// resource instance move statements prior to the graph walk, so that
 	// the graph walk can then record that information appropriately in other

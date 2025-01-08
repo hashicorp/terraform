@@ -122,6 +122,7 @@ func (p *provider) ValidateResourceTypeConfig(_ context.Context, req *tfplugin5.
 		TypeName: req.TypeName,
 		Config:   configVal,
 		ClientCapabilities: providers.ClientCapabilities{
+			DeferralAllowed:            true,
 			WriteOnlyAttributesAllowed: true,
 		},
 	})

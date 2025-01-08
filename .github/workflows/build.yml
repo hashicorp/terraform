@@ -7,13 +7,17 @@ name: build
 
 on:
   workflow_dispatch:
-  push:
+  workflow_run:
+    workflows: ["Quick Checks"]
+    types:
+      - completed
     branches:
       - main
       - 'v[0-9]+.[0-9]+'
       - releng/**
       - tsccr-auto-pinning/**
       - dependabot/**
+  push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
 
@@ -27,6 +31,7 @@ permissions:
 jobs:
   get-product-version:
     name: "Determine intended Terraform version"
+    if: ${{ github.event.action != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}

@@ -12,6 +12,13 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+var (
+	// When this attribute is set to plan, the values specified in the override
+	// block will be used for computed attributes even when planning. It defaults
+	// to apply, meaning that the values will only be used during apply.
+	overrideDuringCommand = "override_during"
+)
+
 func decodeMockProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
@@ -65,12 +72,35 @@ func decodeMockProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 	return provider, diags
 }
 
+func extractOverrideDuring(content *hcl.BodyContent) (*string, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	if attr, exists := content.Attributes[overrideDuringCommand]; exists {
+		overrideComputedStr := hcl.ExprAsKeyword(attr.Expr)
+		if overrideComputedStr != "plan" && overrideComputedStr != "apply" {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Invalid %s value", overrideDuringCommand),
+				Detail:   fmt.Sprintf("The %s attribute must be a value of plan or apply.", overrideDuringCommand),
+				Subject:  attr.Range.Ptr(),
+			})
+		}
+		return &overrideComputedStr, diags
+	}
+
+	return nil, diags
+}
+
 // MockData packages up all the available mock and override data available to
 // a mocked provider.
 type MockData struct {
 	MockResources   map[string]*MockResource
 	MockDataSources map[string]*MockResource
 	Overrides       addrs.Map[addrs.Targetable, *Override]
+
+	// UseForPlan returns true if the provider-level setting for overrideComputed
+	// is true, meaning that computed values can be overridden with the mocked values during planning.
+	UseForPlan bool
 }
 
 // Merge will merge the target MockData object into the current MockData.
@@ -172,6 +202,13 @@ type Override struct {
 	Target *addrs.Target
 	Values cty.Value
 
+	// By default, overridden computed values are ignored during planning,
+	// and the computed values are set to unknown to simulate the behavior
+	// of a real plan. This attribute indicates that the computed values
+	// should be overridden with the values specified in the override block,
+	// even when planning.
+	useForPlan *bool
+
 	// Source tells us where this Override was defined.
 	Source OverrideSource
 
@@ -181,16 +218,27 @@ type Override struct {
 	ValuesRange hcl.Range
 }
 
+// UseForPlan returns true if the computed values in the target
+// resource can be overridden with the values specified in the override block.
+func (o *Override) UseForPlan() bool {
+	return o.useForPlan != nil && *o.useForPlan
+}
+
 func decodeMockDataBody(body hcl.Body, source OverrideSource) (*MockData, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	content, contentDiags := body.Content(mockDataSchema)
 	diags = append(diags, contentDiags...)
 
+	// provider-level setting for overrideComputed
+	providerOverrideComputed, valueDiags := extractOverrideDuring(content)
+	diags = append(diags, valueDiags...)
+	useForPlan := providerOverrideComputed != nil && *providerOverrideComputed == "plan"
 	data := &MockData{
 		MockResources:   make(map[string]*MockResource),
 		MockDataSources: make(map[string]*MockResource),
 		Overrides:       addrs.MakeMap[addrs.Targetable, *Override](),
+		UseForPlan:      useForPlan,
 	}
 
 	for _, block := range content.Blocks {
@@ -260,6 +308,15 @@ func decodeMockDataBody(body hcl.Body, source OverrideSource) (*MockData, hcl.Di
 				data.Overrides.Put(subject, override)
 			}
 		}
+	}
+
+	for _, elem := range data.Overrides.Elements() {
+		// use the provider-level setting if there is none set for this override
+		useForPlan := providerOverrideComputed != nil && *providerOverrideComputed == "plan"
+		if elem.Value.useForPlan == nil {
+			elem.Value.useForPlan = &useForPlan
+		}
+		data.Overrides.Put(elem.Key, elem.Value)
 	}
 
 	return data, diags
@@ -399,6 +456,7 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 	content, contentDiags := block.Body.Content(&hcl.BodySchema{
 		Attributes: []hcl.AttributeSchema{
 			{Name: "target"},
+			{Name: overrideDuringCommand},
 			{Name: attributeName},
 		},
 	})
@@ -440,6 +498,14 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 		override.Values = cty.EmptyObjectVal
 	}
 
+	// Override computed values during planning if override_during is plan.
+	overrideComputedStr, valueDiags := extractOverrideDuring(content)
+	diags = append(diags, valueDiags...)
+	if overrideComputedStr != nil {
+		useForPlan := *overrideComputedStr == "plan"
+		override.useForPlan = &useForPlan
+	}
+
 	if !override.Values.Type().IsObjectType() {
 
 		var attributePreposition string
@@ -473,6 +539,9 @@ var mockProviderSchema = &hcl.BodySchema{
 }
 
 var mockDataSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: overrideDuringCommand},
+	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "mock_resource", LabelNames: []string{"type"}},
 		{Type: "mock_data", LabelNames: []string{"type"}},
