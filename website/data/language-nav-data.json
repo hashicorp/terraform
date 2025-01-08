@@ -527,20 +527,275 @@
             "href":"reference/functions"
          },
          {
-            "title":"abs",
-            "href":"reference/functions/abs"
+            "title": "Collection functions",
+            "routes": [
+               {
+                  "title":"alltrue",
+                  "href":"reference/functions/alltrue"
+               },
+               {
+                  "title":"anytrue",
+                  "href":"reference/functions/anytrue"
+               },
+               {
+                  "title":"chunklist",
+                  "href":"reference/functions/chunklist"
+               },
+               {
+                  "title":"coalesce",
+                  "href":"reference/functions/coalesce"
+               },
+               {
+                  "title":"coalescelist",
+                  "href":"reference/functions/coalescelist"
+               },
+               {
+                  "title":"compact",
+                  "href":"reference/functions/compact"
+               },
+               {
+                  "title":"concat",
+                  "href":"reference/functions/concat"
+               },
+               {
+                  "title":"contains",
+                  "href":"reference/functions/contains"
+               },         
+               {
+                  "title":"distinct",
+                  "href":"reference/functions/distinct"
+               },
+               {
+                  "title":"element",
+                  "href":"reference/functions/element"
+               },         
+               {
+                  "title":"flatten",
+                  "href":"reference/functions/flatten"
+               },
+               {
+                  "title":"index",
+                  "href":"reference/functions/index_function"
+               },
+               {
+                  "title":"keys",
+                  "href":"reference/functions/keys"
+               },
+               {
+                  "title":"length",
+                  "href":"reference/functions/length"
+               },
+               {
+                  "title":"list",
+                  "href":"reference/functions/list"
+               },
+               {
+                  "title":"lookup",
+                  "href":"reference/functions/lookup"
+               },
+               {
+                  "title":"map",
+                  "href":"reference/functions/map"
+               },
+               {
+                  "title":"matchkeys",
+                  "href":"reference/functions/matchkeys"
+               },
+               {
+                  "title":"merge",
+                  "href":"reference/functions/merge"
+               },
+               {
+                  "title":"one",
+                  "href":"reference/functions/one"
+               },
+               {
+                  "title":"range",
+                  "href":"reference/functions/range"
+               },
+               {
+                  "title":"reverse",
+                  "href":"reference/functions/reverse"
+               },
+               {
+                  "title":"setintersection",
+                  "href":"reference/functions/setintersection"
+               },
+               {
+                  "title":"setproduct",
+                  "href":"reference/functions/setproduct"
+               },
+               {
+                  "title":"setsubtract",
+                  "href":"reference/functions/setsubtract"
+               },
+               {
+                  "title":"setunion",
+                  "href":"reference/functions/setunion"
+               },
+               {
+                  "title":"slice",
+                  "href":"reference/functions/slice"
+               },
+               {
+                  "title":"sort",
+                  "href":"reference/functions/sort"
+               },
+               {
+                  "title":"sum",
+                  "href":"reference/functions/sum"
+               },
+               {
+                  "title":"transpose",
+                  "href":"reference/functions/transpose"
+               },
+               {
+                  "title":"values",
+                  "href":"reference/functions/values"
+               },
+               {
+                  "title":"zipmap",
+                  "href":"reference/functions/zipmap"
+               }
+            ]
+         },
+         {
+            "title": "Numeric functions",
+            "routes": [
+               {
+                  "title":"abs",
+                  "href":"reference/functions/abs"
+               },
+               {
+                  "title":"ceil",
+                  "href":"reference/functions/ceil"
+               },
+               {
+                  "title":"floor",
+                  "href":"reference/functions/floor"
+               },
+               {
+                  "title":"log",
+                  "href":"reference/functions/log"
+               },
+               {
+                  "title":"max",
+                  "href":"reference/functions/max"
+               },
+               {
+                  "title":"min",
+                  "href":"reference/functions/min"
+               },
+               {
+                  "title":"parseint",
+                  "href":"reference/functions/parseint"
+               },
+               {
+                  "title":"pow",
+                  "href":"reference/functions/pow"
+               },
+               {
+                  "title":"signum",
+                  "href":"reference/functions/signum"
+               }
+            ]
+         },
+         {
+            "title": "String functions",
+            "routes": [
+               {
+                  "title":"chomp",
+                  "href":"reference/functions/chomp"
+               },
+               {
+                  "title":"endswith",
+                  "href":"reference/functions/endswith"
+               },
+               {
+                  "title":"format",
+                  "href":"reference/functions/format"
+               }, 
+               {
+                  "title":"formatlist",
+                  "href":"reference/functions/formatlist"
+               },
+               {
+                  "title":"indent",
+                  "href":"reference/functions/indent"
+               },
+               {
+                  "title":"join",
+                  "href":"reference/functions/join"
+               },
+               {
+                  "title":"lower",
+                  "href":"reference/functions/lower"
+               },
+               {
+                  "title":"regex",
+                  "href":"reference/functions/regex"
+               },
+               {
+                  "title":"regexall",
+                  "href":"reference/functions/regexall"
+               },
+               {
+                  "title":"replace",
+                  "href":"reference/functions/replace"
+               },
+               {
+                  "title":"split",
+                  "href":"reference/functions/split"
+               },
+               {
+                  "title":"startswith",
+                  "href":"reference/functions/startswith"
+               },
+               {
+                  "title":"strcontains",
+                  "href":"reference/functions/strcontains"
+               },
+               {
+                  "title":"strrev",
+                  "href":"reference/functions/strrev"
+               },
+               {
+                  "title":"substr",
+                  "href":"reference/functions/substr"
+               },
+               {
+                  "title":"templatestring",
+                  "href":"reference/functions/templatestring"
+               },
+               {
+                  "title":"title",
+                  "href":"reference/functions/title"
+               },
+               {
+                  "title":"trim",
+                  "href":"reference/functions/trim"
+               },
+               {
+                  "title":"trimprefix",
+                  "href":"reference/functions/trimprefix"
+               },
+               {
+                  "title":"trimspace",
+                  "href":"reference/functions/trimspace"
+               },
+               {
+                  "title":"trimsuffix",
+                  "href":"reference/functions/trimsuffix"
+               },
+               {
+                  "title":"upper",
+                  "href":"reference/functions/upper"
+               }            
+            ]
          },
          {
             "title":"abspath",
             "href":"reference/functions/abspath"
-         },
-         {
-            "title":"alltrue",
-            "href":"reference/functions/alltrue"
-         },
-         {
-            "title":"anytrue",
-            "href":"reference/functions/anytrue"
          },
          {
             "title":"base64decode",
@@ -574,18 +829,7 @@
             "title":"can",
             "href":"reference/functions/can"
          },
-         {
-            "title":"ceil",
-            "href":"reference/functions/ceil"
-         },
-         {
-            "title":"chomp",
-            "href":"reference/functions/chomp"
-         },
-         {
-            "title":"chunklist",
-            "href":"reference/functions/chunklist"
-         },
+
          {
             "title":"cidrhost",
             "href":"reference/functions/cidrhost"
@@ -603,44 +847,12 @@
             "href":"reference/functions/cidrsubnets"
          },
          {
-            "title":"coalesce",
-            "href":"reference/functions/coalesce"
-         },
-         {
-            "title":"coalescelist",
-            "href":"reference/functions/coalescelist"
-         },
-         {
-            "title":"compact",
-            "href":"reference/functions/compact"
-         },
-         {
-            "title":"concat",
-            "href":"reference/functions/concat"
-         },
-         {
-            "title":"contains",
-            "href":"reference/functions/contains"
-         },
-         {
             "title":"csvdecode",
             "href":"reference/functions/csvdecode"
          },
          {
             "title":"dirname",
             "href":"reference/functions/dirname"
-         },
-         {
-            "title":"distinct",
-            "href":"reference/functions/distinct"
-         },
-         {
-            "title":"element",
-            "href":"reference/functions/element"
-         },
-         {
-            "title":"endswith",
-            "href":"reference/functions/endswith"
          },
          {
             "title":"ephemeralasnull",
@@ -687,40 +899,12 @@
             "href":"reference/functions/filesha512"
          },
          {
-            "title":"flatten",
-            "href":"reference/functions/flatten"
-         },
-         {
-            "title":"floor",
-            "href":"reference/functions/floor"
-         },
-         {
-            "title":"format",
-            "href":"reference/functions/format"
-         },
-         {
             "title":"formatdate",
             "href":"reference/functions/formatdate"
          },
          {
-            "title":"formatlist",
-            "href":"reference/functions/formatlist"
-         },
-         {
-            "title":"indent",
-            "href":"reference/functions/indent"
-         },
-         {
-            "title":"index",
-            "href":"reference/functions/index_function"
-         },
-         {
             "title":"issensitive",
             "href":"reference/functions/issensitive"
-         },
-         {
-            "title":"join",
-            "href":"reference/functions/join"
          },
          {
             "title":"jsondecode",
@@ -731,64 +915,12 @@
             "href":"reference/functions/jsonencode"
          },
          {
-            "title":"keys",
-            "href":"reference/functions/keys"
-         },
-         {
-            "title":"length",
-            "href":"reference/functions/length"
-         },
-         {
-            "title":"list",
-            "href":"reference/functions/list"
-         },
-         {
-            "title":"log",
-            "href":"reference/functions/log"
-         },
-         {
-            "title":"lookup",
-            "href":"reference/functions/lookup"
-         },
-         {
-            "title":"lower",
-            "href":"reference/functions/lower"
-         },
-         {
-            "title":"map",
-            "href":"reference/functions/map"
-         },
-         {
-            "title":"matchkeys",
-            "href":"reference/functions/matchkeys"
-         },
-         {
-            "title":"max",
-            "href":"reference/functions/max"
-         },
-         {
             "title":"md5",
             "href":"reference/functions/md5"
          },
          {
-            "title":"merge",
-            "href":"reference/functions/merge"
-         },
-         {
-            "title":"min",
-            "href":"reference/functions/min"
-         },
-         {
             "title":"nonsensitive",
             "href":"reference/functions/nonsensitive"
-         },
-         {
-            "title":"one",
-            "href":"reference/functions/one"
-         },
-         {
-            "title":"parseint",
-            "href":"reference/functions/parseint"
          },
          {
             "title":"hrefexpand",
@@ -799,52 +931,12 @@
             "href":"reference/functions/plantimestamp"
          },
          {
-            "title":"pow",
-            "href":"reference/functions/pow"
-         },
-         {
-            "title":"range",
-            "href":"reference/functions/range"
-         },
-         {
-            "title":"regex",
-            "href":"reference/functions/regex"
-         },
-         {
-            "title":"regexall",
-            "href":"reference/functions/regexall"
-         },
-         {
-            "title":"replace",
-            "href":"reference/functions/replace"
-         },
-         {
-            "title":"reverse",
-            "href":"reference/functions/reverse"
-         },
-         {
             "title":"rsadecrypt",
             "href":"reference/functions/rsadecrypt"
          },
          {
             "title":"sensitive",
             "href":"reference/functions/sensitive"
-         },
-         {
-            "title":"setintersection",
-            "href":"reference/functions/setintersection"
-         },
-         {
-            "title":"setproduct",
-            "href":"reference/functions/setproduct"
-         },
-         {
-            "title":"setsubtract",
-            "href":"reference/functions/setsubtract"
-         },
-         {
-            "title":"setunion",
-            "href":"reference/functions/setunion"
          },
          {
             "title":"sha1",
@@ -859,48 +951,8 @@
             "href":"reference/functions/sha512"
          },
          {
-            "title":"signum",
-            "href":"reference/functions/signum"
-         },
-         {
-            "title":"slice",
-            "href":"reference/functions/slice"
-         },
-         {
-            "title":"sort",
-            "href":"reference/functions/sort"
-         },
-         {
-            "title":"split",
-            "href":"reference/functions/split"
-         },
-         {
-            "title":"startswith",
-            "href":"reference/functions/startswith"
-         },
-         {
-            "title":"strcontains",
-            "href":"reference/functions/strcontains"
-         },
-         {
-            "title":"strrev",
-            "href":"reference/functions/strrev"
-         },
-         {
-            "title":"substr",
-            "href":"reference/functions/substr"
-         },
-         {
-            "title":"sum",
-            "href":"reference/functions/sum"
-         },
-         {
             "title":"templatefile",
             "href":"reference/functions/templatefile"
-         },
-         {
-            "title":"templatestring",
-            "href":"reference/functions/templatestring"
          },
          {
             "title":"terraform.applying",
@@ -939,10 +991,6 @@
             "href":"reference/functions/timestamp"
          },
          {
-            "title":"title",
-            "href":"reference/functions/title"
-         },
-         {
             "title":"tobool",
             "href":"reference/functions/tobool"
          },
@@ -966,26 +1014,7 @@
             "title":"tostring",
             "href":"reference/functions/tostring"
          },
-         {
-            "title":"transpose",
-            "href":"reference/functions/transpose"
-         },
-         {
-            "title":"trim",
-            "href":"reference/functions/trim"
-         },
-         {
-            "title":"trimprefix",
-            "href":"reference/functions/trimprefix"
-         },
-         {
-            "title":"trimspace",
-            "href":"reference/functions/trimspace"
-         },
-         {
-            "title":"trimsuffix",
-            "href":"reference/functions/trimsuffix"
-         },
+
          {
             "title":"try",
             "href":"reference/functions/try"
@@ -993,10 +1022,6 @@
          {
             "title":"type",
             "href":"reference/functions/type"
-         },
-         {
-            "title":"upper",
-            "href":"reference/functions/upper"
          },
          {
             "title":"urlencode",
@@ -1011,20 +1036,12 @@
             "href":"reference/functions/uuidv5"
          },
          {
-            "title":"values",
-            "href":"reference/functions/values"
-         },
-         {
             "title":"yamldecode",
             "href":"reference/functions/yamldecode"
          },
          {
             "title":"yamlencode",
             "href":"reference/functions/yamlencode"
-         },
-         {
-            "title":"zipmap",
-            "href":"reference/functions/zipmap"
          }
       ]
    },
