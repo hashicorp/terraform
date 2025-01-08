@@ -31,8 +31,7 @@ func (b *TestGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Dia
 func (b *TestGraphBuilder) Steps() []GraphTransformer {
 	steps := []GraphTransformer{
 		&TestRunTransformer{File: b.File},
-		&ApplyNoParallelTransformer{},
-		&CloseTestRootModuleTransformer{},
+		&CloseTestGraphTransformer{},
 		&TransitiveReductionTransformer{},
 	}
 
