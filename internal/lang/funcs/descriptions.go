@@ -206,6 +206,14 @@ var DescriptionList = map[string]descriptionEntry{
 		Description:      "`filesha512` is a variant of `sha512` that hashes the contents of a given file rather than a literal string.",
 		ParamDescription: []string{""},
 	},
+	"directoryexists": {
+		Description:      "`directoryexists` determines whether a directory exists at a given path.",
+		ParamDescription: []string{""},
+	},
+	"directoryset": {
+		Description:      "`directoryset` enumerates a set of directory names given a path and pattern. The path is automatically removed from the resulting set of file names and any result still containing path separators always returns forward slash (`/`) as the path separator for cross-system compatibility.",
+		ParamDescription: []string{"", ""},
+	},
 	"flatten": {
 		Description:      "`flatten` takes a list and replaces any elements that are lists with a flattened sequence of the list contents.",
 		ParamDescription: []string{""},
