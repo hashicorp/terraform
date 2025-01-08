@@ -80,6 +80,20 @@ func (w *Walker) init() {
 	}
 }
 
+// NewWalker creates a new walker with the given callback function.
+func NewWalker(cb WalkFunc, opts ...func(*Walker)) *Walker {
+	ctx, cancel := context.WithCancelCause(context.Background())
+	w := &Walker{
+		Callback:          cb,
+		walkContext:       ctx,
+		walkContextCancel: cancel,
+	}
+	for _, opt := range opts {
+		opt(w)
+	}
+	return w
+}
+
 type walkerVertex struct {
 	// These should only be set once on initialization and never written again.
 	// They are not protected by a lock since they don't need to be since
