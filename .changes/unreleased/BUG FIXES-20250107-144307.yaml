@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: '`terraform console`: Fix crash when printing ephemeral values'
-time: 2025-01-07T14:43:07.328754+01:00
-custom:
-    Issue: "36267"
