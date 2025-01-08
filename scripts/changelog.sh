@@ -24,7 +24,6 @@ Commands:
     `rc`: will generate a new rc release.
     `release`: will make the initial minor release for this branch.
     `patch`: will generate a new patch release
-    
 
   nextminor
     Run this to get a new release branch for the next minor version.
@@ -44,12 +43,13 @@ function generate {
   
         dev)
         LATEST_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
-        COMPLETE_VERSION="$LATEST_VERSION-dev"
 
         # Check if we already released this version already
         if git tag -l "v$LATEST_VERSION" | grep -q "v$LATEST_VERSION"; then
             LATEST_VERSION=$(npx -y semver@$SEMVER_VERSION -i patch $LATEST_VERSION)
         fi
+
+        COMPLETE_VERSION="$LATEST_VERSION-dev"
 
         npx -y changie@$CHANGIE_VERSION merge -u "## $LATEST_VERSION (Unreleased)"
         
@@ -93,7 +93,6 @@ function generate {
 
         patch)
         COMPLETE_VERSION=$(npx -y changie@$CHANGIE_VERSION next patch)
-        COMPLETE_VERSION=${COMPLETE_VERSION:1} # remove the v prefix
         npx -y changie@$CHANGIE_VERSION batch patch
         npx -y changie@$CHANGIE_VERSION merge
         ;;

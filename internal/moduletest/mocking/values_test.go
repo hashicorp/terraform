@@ -983,7 +983,7 @@ func TestComputedValuesForDataSource(t *testing.T) {
 				testRand = nil
 			}()
 
-			actual, diags := ComputedValuesForDataSource(tc.target, MockedData{
+			actual, diags := ComputedValuesForDataSource(tc.target, &MockedData{
 				Value: tc.with,
 			}, tc.schema)
 
