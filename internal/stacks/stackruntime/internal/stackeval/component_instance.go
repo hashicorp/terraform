@@ -102,6 +102,12 @@ func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase 
 			// This means an error has occured somewhere else, while gathering
 			// the input variables. We return a nil value here, whatever caused
 			// the error should have raised an error diagnostic separately.
+
+			// TODO(liamcervante): I think this branch is triggering, but we're
+			// failing to add the expected diagnostics elsewhere. If this diagnostic
+			// is triggered, we should be able to find the root cause of the issue.
+			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "check input vars: unknown values in input variables", fmt.Sprintf("Cannot apply a configuration with unknown values in input variables: %s", val.GoString())))
+
 			return cty.NilVal, diags
 		}
 
