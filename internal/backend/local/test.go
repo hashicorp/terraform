@@ -355,7 +355,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 			}
 		}
 
-		startTime := time.Now()
+		startTime := time.Now().UTC()
 		state, updatedState := runner.run(run, file, runner.RelevantStates[key].State, config)
 		runDuration := time.Since(startTime)
 		if updatedState {

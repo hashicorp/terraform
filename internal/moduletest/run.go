@@ -47,13 +47,14 @@ type RunExecutionMeta struct {
 	Duration time.Duration
 }
 
-// StartTimestamp returns the start time metadata as a timestamp formatted as YYYY-MM-DDTHH:MM:SS.
+// StartTimestamp returns the start time metadata as a timestamp formatted as YYYY-MM-DDTHH:MM:SSZ.
+// Times are converted to UTC, if they aren't already.
 // If the start time is unset an empty string is returned.
 func (m *RunExecutionMeta) StartTimestamp() string {
 	if m.Start.IsZero() {
 		return ""
 	}
-	return m.Start.Format(time.RFC3339)
+	return m.Start.UTC().Format(time.RFC3339)
 }
 
 // Verbose is a utility struct that holds all the information required for a run
