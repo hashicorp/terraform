@@ -6068,3 +6068,45 @@ data "test_data_source" "foo" {
 	_, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 }
+
+func TestContext2Plan_foo(t *testing.T) {
+	m := testModule(t, "plan-good")
+	p := testProvider("aws")
+
+	// Simplify the test provider to contain a minimal resource with a write-only attribute
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"wo_attr": {
+						Type:      cty.String,
+						Optional:  true,
+						WriteOnly: true,
+					},
+				},
+			},
+		},
+	})
+
+	p.UpgradeResourceStateFn = func(r providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
+		return providers.UpgradeResourceStateResponse{
+			// TODO: Need mocked state here that includes an instance of `aws_instance` resource
+			// with a non-null value for the wo_attr field.
+			UpgradedState: cty.Value{},
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	// Plan should invoke state upgrade logic and trigger validation, given the mocks above
+	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+
+	// TODO: Add more assertions here about how we expect errors about non-null values
+	if !diags.HasErrors() {
+		t.Fatalf("expected errors but got none")
+	}
+}
