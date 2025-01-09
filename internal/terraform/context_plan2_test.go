@@ -6069,11 +6069,16 @@ data "test_data_source" "foo" {
 	assertNoErrors(t, diags)
 }
 
-func TestContext2Plan_foo(t *testing.T) {
-	m := testModule(t, "plan-good")
-	p := testProvider("aws")
+func TestContext2Plan_upgradeState_WriteOnlyAttribute(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "aws_instance" "foo" {
+	wo_attr = "value"
+}
+`,
+	})
 
-	// Simplify the test provider to contain a minimal resource with a write-only attribute
+	p := testProvider("aws")
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -6087,12 +6092,11 @@ func TestContext2Plan_foo(t *testing.T) {
 			},
 		},
 	})
-
 	p.UpgradeResourceStateFn = func(r providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
 		return providers.UpgradeResourceStateResponse{
-			// TODO: Need mocked state here that includes an instance of `aws_instance` resource
-			// with a non-null value for the wo_attr field.
-			UpgradedState: cty.Value{},
+			UpgradedState: cty.ObjectVal(map[string]cty.Value{
+				"wo_attr": cty.StringVal("not-empty"),
+			}),
 		}
 	}
 
@@ -6102,11 +6106,25 @@ func TestContext2Plan_foo(t *testing.T) {
 		},
 	})
 
-	// Plan should invoke state upgrade logic and trigger validation, given the mocks above
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	priorState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("aws_instance.foo"),
+			&states.ResourceInstanceObjectSrc{
+				// The UpgradeResourceStateFn above does not care about specific prior
+				// state but it must not be empty for the function to be actually called
+				AttrsJSON: []byte(`{"wo_attr":null}`),
+				Status:    states.ObjectReady,
+			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		)
+	})
 
-	// TODO: Add more assertions here about how we expect errors about non-null values
+	// Plan should invoke state upgrade logic and trigger validation, given the mocks above
+	_, diags := ctx.Plan(m, priorState, DefaultPlanOpts)
 	if !diags.HasErrors() {
 		t.Fatalf("expected errors but got none")
+	}
+
+	if got, want := diags.Err().Error(), "Invalid resource state upgrade"; !strings.Contains(got, want) {
+		t.Errorf("unexpected error message\ngot: %s\nwant substring: %s", got, want)
 	}
 }
