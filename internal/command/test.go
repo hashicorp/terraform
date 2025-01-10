@@ -135,6 +135,18 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			view.Diagnostics(nil, nil, diags)
 			return 1
 		}
+
+		// Handle scenario where an alpha release is used with remote-execution of tests
+		if len(args.CloudRunSource) > 0 {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"JUnit XML output is not available",
+				"The -junit-xml option is not compatible with remote test execution via the -cloud-run flag",
+			))
+			view.Diagnostics(nil, nil, diags)
+			return 1
+		}
+
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
 			"JUnit XML output is experimental",
