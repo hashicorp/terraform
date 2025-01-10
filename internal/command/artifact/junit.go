@@ -59,6 +59,8 @@ func NewTestJUnitXMLFile(filename string, configLoader *configload.Loader) *Test
 	}
 }
 
+// Save takes in a test suite, generates JUnit XML summarising the test results,
+// and saves the content to the filename specified by user
 func (v *TestJUnitXMLFile) Save(suite *moduletest.Suite) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
@@ -75,17 +77,26 @@ func (v *TestJUnitXMLFile) Save(suite *moduletest.Suite) tfdiags.Diagnostics {
 	}
 
 	// Save XML to the specified path
-	err = os.WriteFile(v.filename, xmlSrc, 0660)
+	saveDiags := v.save(xmlSrc)
+	diags = append(diags, saveDiags...)
+
+	return diags
+
+}
+
+func (v *TestJUnitXMLFile) save(xmlSrc []byte) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	err := os.WriteFile(v.filename, xmlSrc, 0660)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "error generating JUnit XML test output",
+			Summary:  fmt.Sprintf("error saving JUnit XML to file %q", v.filename),
 			Detail:   err.Error(),
 		})
 		return diags
 	}
 
-	return diags
+	return nil
 }
 
 func junitXMLTestReport(suite *moduletest.Suite, sources map[string][]byte) ([]byte, error) {
