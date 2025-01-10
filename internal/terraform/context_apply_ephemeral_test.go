@@ -638,6 +638,8 @@ resource "ephem_write_only" "wo" {
 			},
 		},
 	}
+	// Below we force the write_only attribute's returned state to be Null, mimicking what the plugin-framework would
+	// return during an UpgradeResourceState RPC
 	ephem.UpgradeResourceStateFn = func(ursr providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
 		return providers.UpgradeResourceStateResponse{
 			UpgradedState: cty.ObjectVal(map[string]cty.Value{
@@ -658,6 +660,8 @@ resource "ephem_write_only" "wo" {
 		SourceType: ValueFromCLIArg,
 	}
 
+	// Non-empty prior state is required to trigger UpgradeResourceState logic
+	// during planning
 	priorState := states.BuildState(func(state *states.SyncState) {
 		state.SetResourceInstanceCurrent(
 			mustResourceInstanceAddr("ephem_write_only.wo"),
