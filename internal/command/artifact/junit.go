@@ -3,6 +3,7 @@ package artifact
 import (
 	"bytes"
 	"encoding/xml"
+	"fmt"
 	"os"
 	"slices"
 	"strconv"
@@ -99,6 +100,34 @@ func (v *TestJUnitXMLFile) save(xmlSrc []byte) tfdiags.Diagnostics {
 	return nil
 }
 
+type withMessage struct {
+	Message string `xml:"message,attr,omitempty"`
+	Body    string `xml:",cdata"`
+}
+
+type testCase struct {
+	Name      string       `xml:"name,attr"`
+	Classname string       `xml:"classname,attr"`
+	Skipped   *withMessage `xml:"skipped,omitempty"`
+	Failure   *withMessage `xml:"failure,omitempty"`
+	Error     *withMessage `xml:"error,omitempty"`
+	Stderr    *withMessage `xml:"system-err,omitempty"`
+
+	// RunTime is the time spent executing the run associated
+	// with this test case, in seconds with the fractional component
+	// representing partial seconds.
+	//
+	// We assume here that it's not practically possible for an
+	// execution to take literally zero fractional seconds at
+	// the accuracy we're using here (nanoseconds converted into
+	// floating point seconds) and so use zero to represent
+	// "not known", and thus omit that case. (In practice many
+	// JUnit XML consumers treat the absense of this attribute
+	// as zero anyway.)
+	RunTime   float64 `xml:"time,attr,omitempty"`
+	Timestamp string  `xml:"timestamp,attr,omitempty"`
+}
+
 func junitXMLTestReport(suite *moduletest.Suite, sources map[string][]byte) ([]byte, error) {
 	var buf bytes.Buffer
 	enc := xml.NewEncoder(&buf)
@@ -154,34 +183,7 @@ func junitXMLTestReport(suite *moduletest.Suite, sources map[string][]byte) ([]b
 		for _, run := range file.Runs {
 			// Each run is a "test case".
 
-			type WithMessage struct {
-				Message string `xml:"message,attr,omitempty"`
-				Body    string `xml:",cdata"`
-			}
-			type TestCase struct {
-				Name      string       `xml:"name,attr"`
-				Classname string       `xml:"classname,attr"`
-				Skipped   *WithMessage `xml:"skipped,omitempty"`
-				Failure   *WithMessage `xml:"failure,omitempty"`
-				Error     *WithMessage `xml:"error,omitempty"`
-				Stderr    *WithMessage `xml:"system-err,omitempty"`
-
-				// RunTime is the time spent executing the run associated
-				// with this test case, in seconds with the fractional component
-				// representing partial seconds.
-				//
-				// We assume here that it's not practically possible for an
-				// execution to take literally zero fractional seconds at
-				// the accuracy we're using here (nanoseconds converted into
-				// floating point seconds) and so use zero to represent
-				// "not known", and thus omit that case. (In practice many
-				// JUnit XML consumers treat the absense of this attribute
-				// as zero anyway.)
-				RunTime   float64 `xml:"time,attr,omitempty"`
-				Timestamp string  `xml:"timestamp,attr,omitempty"`
-			}
-
-			testCase := TestCase{
+			testCase := testCase{
 				Name: run.Name,
 
 				// We treat the test scenario filename as the "class name",
@@ -197,12 +199,12 @@ func junitXMLTestReport(suite *moduletest.Suite, sources map[string][]byte) ([]b
 			}
 			switch run.Status {
 			case moduletest.Skip:
-				testCase.Skipped = &WithMessage{
+				testCase.Skipped = &withMessage{
 					// FIXME: Is there something useful we could say here about
 					// why the test was skipped?
 				}
 			case moduletest.Fail:
-				testCase.Failure = &WithMessage{
+				testCase.Failure = &withMessage{
 					Message: "Test run failed",
 					// FIXME: What's a useful thing to report in the body
 					// here? A summary of the statuses from all of the
@@ -213,7 +215,7 @@ func junitXMLTestReport(suite *moduletest.Suite, sources map[string][]byte) ([]b
 				for _, diag := range run.Diagnostics {
 					diagsStr.WriteString(format.DiagnosticPlain(diag, sources, 80))
 				}
-				testCase.Error = &WithMessage{
+				testCase.Error = &withMessage{
 					Message: "Encountered an error",
 					Body:    diagsStr.String(),
 				}
@@ -228,7 +230,7 @@ func junitXMLTestReport(suite *moduletest.Suite, sources map[string][]byte) ([]b
 				for _, diag := range run.Diagnostics {
 					diagsStr.WriteString(format.DiagnosticPlain(diag, sources, 80))
 				}
-				testCase.Stderr = &WithMessage{
+				testCase.Stderr = &withMessage{
 					Body: diagsStr.String(),
 				}
 			}
