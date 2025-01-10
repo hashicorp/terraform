@@ -60,7 +60,7 @@ func TestJUnitXMLFile_save(t *testing.T) {
 				t.Fatalf("unexpected error opening file")
 			}
 
-			if bytes.Compare(fileContent, xml) != 0 {
+			if !bytes.Equal(fileContent, xml) {
 				t.Fatalf("wanted XML:\n%s\n got XML:\n%s\n", string(xml), string(fileContent))
 			}
 		})

@@ -2405,7 +2405,7 @@ func TestTest_JUnitOutput(t *testing.T) {
 			timestampRegexp := regexp.MustCompile(`timestamp="[^"]+"`)
 			actualOut = timestampRegexp.ReplaceAll(actualOut, []byte("timestamp=\"TIMESTAMP_REDACTED\""))
 
-			if bytes.Compare(actualOut, expectedOutput) != 0 {
+			if !bytes.Equal(actualOut, expectedOutput) {
 				t.Fatalf("wanted XML:\n%s\n got XML:\n%s\n", string(expectedOutput), string(actualOut))
 			}
 
