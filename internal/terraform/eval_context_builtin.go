@@ -624,15 +624,27 @@ func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities
 
 func (ctx *BuiltinEvalContext) ReferencableDeprecationMessage(m addrs.Module, x addrs.Referenceable) (string, bool) {
 	// TODO: We want to make this available in node_resource_validation, therefore we want to talk about config objects, the referencable should somehow contain the config object, how do we get it out?
-	if foo, ok := x.(addrs.ModuleCallInstanceOutput); ok {
+	fmt.Printf("\n\t XXX T --> %#v \n", x)
+	if mcio, ok := x.(addrs.ModuleCallInstanceOutput); ok {
 		cov := addrs.ConfigOutputValue{
-			Module: m,
+			Module: m.Child(mcio.Call.Call.Name),
 			OutputValue: addrs.OutputValue{
-				Name: foo.Name,
+				Name: mcio.Name,
 			},
 		}
 
 		fmt.Printf("\n\t ctx.DeprecatedReferencables --> %#v \n", ctx.DeprecatedReferencables)
+		fmt.Printf("\n\t cov.String() --> %#v \n", cov.String())
+		msg, ok := ctx.DeprecatedReferencables[cov.String()]
+		return msg, ok
+	} else if mc, ok := x.(addrs.ModuleCall); ok {
+		cov := addrs.ConfigOutputValue{
+			Module: m.Child(mc.Name),
+			OutputValue: addrs.OutputValue{
+				Name: mc.Name, // <-- this is wrong, we need to get the output name from somewhere
+			},
+		}
+
 		fmt.Printf("\n\t cov.String() --> %#v \n", cov.String())
 		msg, ok := ctx.DeprecatedReferencables[cov.String()]
 		return msg, ok
@@ -642,7 +654,7 @@ func (ctx *BuiltinEvalContext) ReferencableDeprecationMessage(m addrs.Module, x 
 }
 
 func (ctx *BuiltinEvalContext) MarkReferencableAsDeprecated(x addrs.ConfigOutputValue, msg string) {
-	fmt.Printf("\n\t marking x --> %#v \n", x)
+	fmt.Printf("\n\t marking x --> %q \n", x.String())
 	fmt.Printf("\n\t msg --> %#v \n", msg)
 	ctx.DeprecatedReferencables[x.String()] = msg
 }
