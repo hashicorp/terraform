@@ -176,6 +176,12 @@ func New() backend.Backend {
 				},
 				Default: "terraform.tfstate",
 			},
+			"tablestore_instance_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The instance name of tableStore table belongs",
+				Default:     "",
+			},
 
 			"tablestore_table": {
 				Type:        schema.TypeString,
@@ -414,13 +420,16 @@ func (b *Backend) configure(ctx context.Context) error {
 	client, err := oss.New(endpoint, accessKey, secretKey, options...)
 	b.ossClient = client
 	otsEndpoint := d.Get("tablestore_endpoint").(string)
+	otsInstanceName := d.Get("tablestore_instance_name").(string)
 	if otsEndpoint != "" {
 		if !strings.HasPrefix(otsEndpoint, "http") {
 			otsEndpoint = fmt.Sprintf("%s://%s", schma, otsEndpoint)
 		}
 		b.otsEndpoint = otsEndpoint
-		parts := strings.Split(strings.TrimPrefix(strings.TrimPrefix(otsEndpoint, "https://"), "http://"), ".")
-		b.otsClient = tablestore.NewClientWithConfig(otsEndpoint, parts[0], accessKey, secretKey, securityToken, tablestore.NewDefaultTableStoreConfig())
+		if otsInstanceName == "" {
+			otsInstanceName = strings.Split(strings.TrimPrefix(strings.TrimPrefix(otsEndpoint, "https://"), "http://"), ".")[0]
+		}
+		b.otsClient = tablestore.NewClientWithConfig(otsEndpoint, otsInstanceName, accessKey, secretKey, securityToken, tablestore.NewDefaultTableStoreConfig())
 	}
 	b.otsTable = d.Get("tablestore_table").(string)
 
