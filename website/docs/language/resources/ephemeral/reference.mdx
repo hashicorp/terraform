@@ -1,6 +1,6 @@
 ---
 page_title: Ephemeral resource configuration reference
-description: Learn about ephemeral resource blocks that you can specify in Terraform configurations. Ephemeral resource blocks represent temporary resources that Terraform does not store in state.
+description: Learn to define ephemeral resource blocks in Terraform configurations. Ephemeral resource blocks represent temporary resources that Terraform does not store in state.
 ---
 
 # Ephemeral resource configuration reference
@@ -13,38 +13,14 @@ This topic provides reference information for the `ephemeral` block.
 
 Ephemeral resources are Terraform resources that are essentially temporary. Ephemeral resources have a unique lifecycle, and Terraform does not store them in its state. Each `ephemeral` block describes one or more ephemeral resources, such as a temporary password or connection to another system.
 
-<!-- After page exists, add: For information about how Terraform manages ephemeral resources, refer to
-[Epehemeral Values](/terraform/language/epehemeral-values). -->
-
-An `ephemeral` block declares an ephemeral resource of a specific type with a
-specific local name, much like a `resource` block. Terraform uses an ephemeral resource's name to
-refer to that resource in the same module, but an ephemeral resource's name has no meaning
-outside that module's scope.
-
-
-## Lifecycle
-
-The lifecycle of an ephemeral resource is different from resources and data sources. When Terraform provisions ephemeral resources, it performs the following steps:
-
-1. If Terraform needs to access the result of an ephemeral resource, it opens
-that ephemeral resource. For example, if Terraform opens an ephemeral resource for a Vault secret, the Vault provider obtains a lease and returns a secret. 
-
-1. If Terraform needs access to the ephemeral resource for longer than the
-remote system's enforced expiration time, Terraform asks the provider
-to renew it periodically. For example, if Terraform renews a Vault secret ephemeral resource, the Vault provider then calls Vault's lease renewal API endpoint to extend the expiration time.
-
-1. Once Terraform no longer needs an ephemeral resource, Terraform closes
-it. This happens after the providers that depend on a certain ephemeral resource
-complete all of their work for the current Terraform run phase. For example, closing a Vault secret ephemeral resource means the Vault provider explicitly ends the lease, allowing Vault to immediately revoke the associated credentials.
-
-Terraform follows these lifecycle steps for each instance of an ephemeral
-resource in a given configuration.
-
 ## Dependency graph
 
 Ephemeral resources form nodes in Terraform's dependency graph, which interact similarly as resources and data sources. For example, when a resource or data source depends on an attribute of an ephemeral resource, Terraform automatically provisions the ephemeral resource first.
 
 ## Configuration model
+
+An `ephemeral` block declares an ephemeral resource of a specific type with a
+specific local name, much like a `resource` block. Terraform uses an ephemeral resource's name to refer to that resource in the same module, but an ephemeral resource's name has no meaning outside that module's scope.
 
 Most of the arguments within the body of an `ephemeral` block are specific to the ephemeral resource you are defining. As with resources and data sources, each provider in the [Terraform Registry](https://registry.terraform.io/browse/providers) includes documentation for the ephemeral resources it supports, if any. An ephemeral resource type's documentation lists which arguments are available and how you should format your resource's values. 
 
@@ -65,12 +41,13 @@ ephemeral "<resource_type>" "<resource_name>" {
 }
 ```
 
-## Referencing ephemeral resources
+## Reference ephemeral resources
 
 You can only reference ephemeral resources in specific ephemeral contexts or
 Terraform throws an error. The following are valid contexts for referencing
 ephemeral resources:
 
+* In a [write-only argument](/terraform/language/resources/ephemeral#write-only-arguments)
 * In another ephemeral resource
 * In [local values](/terraform/language/values/locals#ephemeral-values)
 * In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)

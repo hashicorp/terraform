@@ -137,8 +137,22 @@
         "path": "resources/terraform-data"
       },
       {
-        "title": "Ephemeral Resources",
-        "path": "resources/ephemeral"
+        "title": "Ephemerality in Resources",
+         "routes": [
+          {
+            "title": "Overview",
+            "path": "resources/ephemeral"
+          },
+          {
+            "title": "Ephemeral block",
+            "path": "resources/ephemeral/reference"
+          },
+          {
+            "title": "Use Write-only Arguments",
+            "path": "resources/ephemeral/write-only",
+            "hidden": "true"
+          }
+        ]
       }
     ]
   },
