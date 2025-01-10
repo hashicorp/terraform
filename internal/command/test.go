@@ -135,7 +135,6 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			view.Diagnostics(nil, nil, diags)
 			return 1
 		}
-
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
 			"JUnit XML output is experimental",
