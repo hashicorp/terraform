@@ -13,22 +13,31 @@ Add `resource` blocks to your Terraform configuration to describe one or more in
 
 Refer to the following topics for additional information:
 
-[usage topic about configuring the resource block]()
-[usage topic about configuring the provider block]()
-[provider block reference]()
+- [usage topic about configuring the resource block]()
+- [usage topic about configuring the provider block]()
+- [provider block reference]()
 
 ## Configuration model
 
 The following list provides an overview of the attributes you can declare in the `resource` block:
 
-`resource "<TYPE>" "<LABEL>"`
-- `<PROVIDER_ARGUMENTS>`
-- `count`: number 
-- `depends_on`: list
-- `for_each`:  map or set of one element
-- `provider`: short desc of value
-- `lifecycle`: short desc of value
-- `provisioner "<TYPE>" "<LABEL>"` 
+- [`resource "<TYPE>" "<LABEL>"`](#resource): map 
+  - [`<PROVIDER_ARGUMENTS>`](#provider_arguments): arguments specific to the installed provider
+  - [`count`](#resource-count): number 
+  - [`depends_on`](#resource-depends_on): list or references
+  - [`for_each`](#resource-for_each):  function
+    - [`tomap()`](#resource-for_each): map of key-value pairs
+    - [`toset()`](#resource-for_each): list of string values 
+  - [`provider`](#resource-provider): reference
+  - [`lifecycle`](#resource-lifecycle): map
+    - [`create_before_destroy`](#resource-lifecycle): boolean
+    - [`prevent_destroy`](#resource-lifecycle): boolean
+    - [`ignore_changes`](#resource-lifecycle): list of attribute names
+    - [`replace_triggered_by`](#resource-lifecycle): list of references
+    - [`precondition`](#resource-lifecycle): map
+    - [`postcondition`](#resource-lifecycle): map
+- [`provisioner "<TYPE>" "<LABEL>"`](#resource-provisioner): map 
+
 
 ## Specification
 
@@ -38,22 +47,82 @@ This section provides details about the arguments you can configure in the `reso
 
 The main `resource` block accepts the following attributes:
 
-`TYPE`: Specifies the type of resource you can declare depends on the provider you import. Refer to the documentation for your provider for details. You can also specify the `terraform_data` resource type to implement a standard resource lifecycle. Refer [Implement the standard resource lifecycle](linky-link) for additional information
-`LABEL`: Specifies an arbitrary name for the resource that you can use to reference the resource from other configuration elements. Refer to [Resource naming](/terraform/language/style#resource-naming) in the style guide for label recommendations.
+- `TYPE`: Specifies the type of resource you can declare depends on the provider you import. Refer to the documentation for your provider for details. You can also specify the `terraform_data` resource type to implement a standard resource lifecycle. Refer to [Implement the standard resource lifecycle](linky-link) for additional information
+- `LABEL`: Specifies an arbitrary name for the resource that you can use to reference the resource from other configuration elements. Refer to [Resource naming](/terraform/language/style#resource-naming) in the style guide for label recommendations.
+
+- Data type: Map
+- Default: None
 
 ### `PROVIDER_ARGUMENTS`
 
 Specific arguments that you can define in your configuration depend on the providers you import. Refer to the documentation for your provider for details.  
+
+- Data type: Determined by provider
+- Default: None
+
 ### `resource{}.count`
 
-Meta-argument that instructs Terraform to provision the number of identical resources specified. Additional information. Refer to [`count` reference](/terraform/language/meta-arguments/count) for details.   
+Meta-argument that instructs Terraform to provision the number of identical resources specified. Additional information. Refer to the [`count` meta-argument reference](/terraform/language/meta-arguments/count) for details. 
+
+- Data type: Number. 
+- Default: Terraform provisions a single instance of the resource.
+
 ### `resource{}.depends_on`
+
+Meta-argument that explicitly describes dependencies for objects in the configuration. Use this argument when a resource or module relies on another resource's behavior but does not access any of the resource's data in its arguments. Refer to the [`depends_on` meta-argument reference](/terraform/language/meta-arguments/depends_on) for details.  
+
+- Data type: List of references to other resources in the configuration. 
+- Default: Terraform follows the standard resrouce dependency graph by default. Refer to [Resource graph](/terraform/internals/graph) for additional information.
 
 ### `resource{}.for_each`
 
+Meta-argument that instructs Terraform to provision a set of similar resources that are the same type. The `for_each` argument accepts one of the following functions:
+
+- `tomap()`: You can pass a map of key-value pairs to into the function. Terraform provisions a unique instance of the resource for each pair.  
+- `tolist()`: You can pass a list of strings to into the function. Terraform provisions a unique instance of the resource for string. 
+
+Refer to the [`for_each` meta-argument reference](/terraform/language/meta-arguments/for_each) for details.  
+
+- Data type: Function containing a set of parameters. 
+- Default: Terraform provisions a single instance of the resource.
+
 ### `resource{}.provider`
 
+Meta-argument that instructs Terraform to use an alternate provider configuration to provision the resource. Instead of creating separate configuration files for each resource, you can define multiple `provider` block configurations and use this argument to implement a different configuration for each `resource` block. Refer to the [`provider` meta-argument reference](/terraform/language/meta-arguments/provider) for details.  
+
+- Data type: Reference to a provider configuration alias.
+- Default: When the configuration contains multiple versions of the same provider configuration, Terraform applies the first configuration by default. 
+
 ### `resource{}.lifecycle`
+
+Meta-argument that specifies the infrastructure resource lifecycle. You can specify the following types of lifecycles:
+
+- `creat_before_destroy`: Terraform creates a replacement object before destroying the previous object.
+- `prevent_destroy`: Terraform rejects operations that destroy infrastructure objects associated with the resource and returns an error.
+- `ignore_changes`: Terraform ingores changes to the resource configuration. As a result, the remote resource under management remains unchanged.
+- `replace_triggered_by`: Terraform replaces the resource when any of the specified items change.
+- `precondition`: Specifies an existing condition that triggers a check on the resource. Refer to [Create checks](linky-ti-link) for additional information.
+- `postcondition`: Specifies a condition that emerges after a Terraform operation that triggers a check on the resource. Refer to [Create checks](linky-ti-link) for additional information.
+
+Refer to the [`lifecycle` meta-argument reference](/terraform/language/meta-arguments/lifecycle) for details.  
+
+- Data type: Map containing an argument.
+- Default: Terraform applies the standard lifecycle. Refer to [Apply the standard lifecylce](#) for additional information.
+
+### `resource{}.provisioner`
+
+A set of arguments that let you modle specific actions on the local or remote machine, such as preparing servers or other infrastructure objects for service. The `provisioner` argument has the following attributes:
+
+- `TYPE`: Specifies one of the following provisioner types:
+  - `file`: Copies files or directories form the machine where Terraform is running to the new resource.
+  - `local-exec`: Invokes an executable on the local machine after Terraform creates the resource.
+  - `remote-exec`: Invokes an executable on the remote resource after Terraform creates the resource.  
+- `LABEL`: Optional attribute for adding a unique name. Refer to [Resource naming](/terraform/language/style#resource-naming) in the style guide for label recommendations.
+
+Refer to the [`provisioner` block reference]() for additional information.
+
+- Data type: Map
+- Default: None
 
 ## Examples
 
