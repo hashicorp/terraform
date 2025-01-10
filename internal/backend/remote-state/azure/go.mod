@@ -10,7 +10,7 @@ require (
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/terraform/internal/legacy v0.0.0-00010101000000-000000000000
 	github.com/manicminer/hamilton v0.44.0
-	github.com/tombuildsstuff/giovanni v0.15.1
+	github.com/tombuildsstuff/giovanni v0.19.0
 )
 
 require (

@@ -240,7 +240,7 @@ require (
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.42 // indirect
 	github.com/thanhpk/randstr v1.0.6 // indirect
 	github.com/thlib/go-timezone-local v0.0.3 // indirect
-	github.com/tombuildsstuff/giovanni v0.15.1 // indirect
+	github.com/tombuildsstuff/giovanni v0.19.0 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
