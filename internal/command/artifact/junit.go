@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -33,6 +34,9 @@ import (
 
 type TestJUnitXMLFile struct {
 	filename string
+
+	// A config loader is required to access sources, which are used with diagnostics to create XML content
+	configLoader *configload.Loader
 }
 
 type Artifact interface {
@@ -48,16 +52,19 @@ var _ Artifact = (*TestJUnitXMLFile)(nil)
 // point of being asked to write a conclusion. Otherwise it will create the
 // file at that time. If creating or overwriting the file fails, a subsequent
 // call to method Err will return information about the problem.
-func NewTestJUnitXMLFile(filename string) *TestJUnitXMLFile {
+func NewTestJUnitXMLFile(filename string, configLoader *configload.Loader) *TestJUnitXMLFile {
 	return &TestJUnitXMLFile{
-		filename: filename,
+		filename:     filename,
+		configLoader: configLoader,
 	}
 }
 
 func (v *TestJUnitXMLFile) Save(suite *moduletest.Suite) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	xmlSrc, err := junitXMLTestReport(suite)
+	// Prepare XML content
+	sources := v.configLoader.Parser().Sources()
+	xmlSrc, err := junitXMLTestReport(suite, sources)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -66,6 +73,8 @@ func (v *TestJUnitXMLFile) Save(suite *moduletest.Suite) tfdiags.Diagnostics {
 		})
 		return diags
 	}
+
+	// Save XML to the specified path
 	err = os.WriteFile(v.filename, xmlSrc, 0660)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -79,7 +88,7 @@ func (v *TestJUnitXMLFile) Save(suite *moduletest.Suite) tfdiags.Diagnostics {
 	return diags
 }
 
-func junitXMLTestReport(suite *moduletest.Suite) ([]byte, error) {
+func junitXMLTestReport(suite *moduletest.Suite, sources map[string][]byte) ([]byte, error) {
 	var buf bytes.Buffer
 	enc := xml.NewEncoder(&buf)
 	enc.EncodeToken(xml.ProcInst{
@@ -191,9 +200,7 @@ func junitXMLTestReport(suite *moduletest.Suite) ([]byte, error) {
 			case moduletest.Error:
 				var diagsStr strings.Builder
 				for _, diag := range run.Diagnostics {
-					// FIXME: Pass in the sources so that these diagnostics
-					// can include source snippets when appropriate.
-					diagsStr.WriteString(format.DiagnosticPlain(diag, nil, 80))
+					diagsStr.WriteString(format.DiagnosticPlain(diag, sources, 80))
 				}
 				testCase.Error = &WithMessage{
 					Message: "Encountered an error",
@@ -208,9 +215,7 @@ func junitXMLTestReport(suite *moduletest.Suite) ([]byte, error) {
 				// they'll be reported _somewhere_ at least.
 				var diagsStr strings.Builder
 				for _, diag := range run.Diagnostics {
-					// FIXME: Pass in the sources so that these diagnostics
-					// can include source snippets when appropriate.
-					diagsStr.WriteString(format.DiagnosticPlain(diag, nil, 80))
+					diagsStr.WriteString(format.DiagnosticPlain(diag, sources, 80))
 				}
 				testCase.Stderr = &WithMessage{
 					Body: diagsStr.String(),

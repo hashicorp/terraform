@@ -101,27 +101,6 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	}
 
 	view := views.NewTest(args.ViewType, c.View)
-	var junit *artifact.TestJUnitXMLFile
-	if args.JUnitXMLFile != "" {
-		// JUnit XML output is currently experimental, so that we can gather
-		// feedback on exactly how we should map the test results to this
-		// JUnit-oriented format before anyone starts depending on it for real.
-		if !c.AllowExperimentalFeatures {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"JUnit XML output is not available",
-				"The -junit-xml option is currently experimental and therefore available only in alpha releases of Terraform CLI.",
-			))
-			view.Diagnostics(nil, nil, diags)
-			return 1
-		}
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
-			"JUnit XML output is experimental",
-			"The -junit-xml option is currently experimental and therefore subject to breaking changes or removal, even in patch releases.",
-		))
-		junit = artifact.NewTestJUnitXMLFile(args.JUnitXMLFile)
-	}
 
 	// The specified testing directory must be a relative path, and it must
 	// point to a directory that is a descendant of the configuration directory.
@@ -140,6 +119,31 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	if configDiags.HasErrors() {
 		view.Diagnostics(nil, nil, diags)
 		return 1
+	}
+
+	var junit *artifact.TestJUnitXMLFile
+	if args.JUnitXMLFile != "" {
+		// JUnit XML output is currently experimental, so that we can gather
+		// feedback on exactly how we should map the test results to this
+		// JUnit-oriented format before anyone starts depending on it for real.
+		if !c.AllowExperimentalFeatures {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"JUnit XML output is not available",
+				"The -junit-xml option is currently experimental and therefore available only in alpha releases of Terraform CLI.",
+			))
+			view.Diagnostics(nil, nil, diags)
+			return 1
+		}
+
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"JUnit XML output is experimental",
+			"The -junit-xml option is currently experimental and therefore subject to breaking changes or removal, even in patch releases.",
+		))
+
+		// This line must happen after the TestCommand's calls loadConfigWithTests and has the configLoader field set
+		junit = artifact.NewTestJUnitXMLFile(args.JUnitXMLFile, c.configLoader)
 	}
 
 	// Users can also specify variables via the command line, so we'll parse
