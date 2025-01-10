@@ -1,0 +1,3 @@
+locals {
+  number = 10
+}
