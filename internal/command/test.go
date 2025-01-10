@@ -121,7 +121,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	var junit *artifact.TestJUnitXMLFile
+	var junit artifact.Artifact
 	if args.JUnitXMLFile != "" {
 		// JUnit XML output is currently experimental, so that we can gather
 		// feedback on exactly how we should map the test results to this
