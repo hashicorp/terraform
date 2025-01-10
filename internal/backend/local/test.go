@@ -166,12 +166,17 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 				GlobalVariables: currentGlobalVariables,
 				FileVariables:   file.Config.Variables,
 			},
+			Context: hcltest.NewTestContext(
+				runner.Config,
+				currentGlobalVariables,
+				file.Config.Variables,
+			),
 		}
 
 		runner.View.File(file, moduletest.Starting)
-		fileRunner.Test(file)
+		fileRunner.Test2(file)
 		runner.View.File(file, moduletest.TearDown)
-		fileRunner.cleanup(file)
+		fileRunner.cleanup2(file)
 		runner.View.File(file, moduletest.Complete)
 		suite.Status = suite.Status.Merge(file.Status)
 	}
@@ -287,6 +292,7 @@ type TestFileRunner struct {
 	outputsLock  sync.Mutex
 
 	VariableCaches *hcltest.VariableCaches
+	Context        *hcltest.TestContext
 }
 
 // TestFileState is a helper struct that just maps a run block to the state that
@@ -327,7 +333,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 	if par < 1 {
 		par = 10
 	}
-	sem := terraform.NewSemaphore(par)
+	sem := terraform.NewSemaphore(1)
 
 	// Walk the graph.
 	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
@@ -1205,6 +1211,7 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 			continue
 		}
 
+		// we didnt find it in the file variables, so lets check the global variables
 		value, valueDiags = cache.GetGlobalVariable(variable)
 		diags = diags.Append(valueDiags)
 		if value != nil {

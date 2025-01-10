@@ -1,5 +1,6 @@
 variable "input" {
   type = string
+  default = "bar"
 }
 
 resource "test_resource" "resource" {

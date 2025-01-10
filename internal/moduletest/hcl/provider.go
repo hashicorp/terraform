@@ -9,6 +9,8 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 var _ hcl.Body = (*ProviderConfig)(nil)
@@ -28,6 +30,7 @@ type ProviderConfig struct {
 	Original hcl.Body
 
 	VariableCache       *VariableCache
+	TestContext         *TestContext
 	AvailableRunOutputs map[addrs.Run]cty.Value
 }
 
@@ -52,7 +55,7 @@ func (p *ProviderConfig) PartialContent(schema *hcl.BodySchema) (*hcl.BodyConten
 		Attributes:       attrs,
 		Blocks:           p.transformBlocks(content.Blocks),
 		MissingItemRange: content.MissingItemRange,
-	}, &ProviderConfig{rest, p.VariableCache, p.AvailableRunOutputs}, diags
+	}, &ProviderConfig{rest, p.VariableCache, p.TestContext, p.AvailableRunOutputs}, diags
 }
 
 func (p *ProviderConfig) JustAttributes() (hcl.Attributes, hcl.Diagnostics) {
@@ -81,7 +84,7 @@ func (p *ProviderConfig) transformAttributes(originals hcl.Attributes) (hcl.Attr
 		refs, _ := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, original.Expr)
 		for _, ref := range refs {
 			if addr, ok := ref.Subject.(addrs.InputVariable); ok {
-				value, valueDiags := p.VariableCache.GetFileVariable(addr.Name)
+				value, valueDiags := p.getFileVariable(addr.Name)
 				diags = append(diags, valueDiags.ToHCL()...)
 				if value != nil {
 					availableVariables[addr.Name] = value.Value
@@ -89,7 +92,7 @@ func (p *ProviderConfig) transformAttributes(originals hcl.Attributes) (hcl.Attr
 				}
 
 				// If the variable wasn't a file variable, it might be a global.
-				value, valueDiags = p.VariableCache.GetGlobalVariable(addr.Name)
+				value, valueDiags = p.getGlobalVariable(addr.Name)
 				diags = append(diags, valueDiags.ToHCL()...)
 				if value != nil {
 					availableVariables[addr.Name] = value.Value
@@ -129,11 +132,39 @@ func (p *ProviderConfig) transformBlocks(originals hcl.Blocks) hcl.Blocks {
 		blocks[name] = &hcl.Block{
 			Type:        block.Type,
 			Labels:      block.Labels,
-			Body:        &ProviderConfig{block.Body, p.VariableCache, p.AvailableRunOutputs},
+			Body:        &ProviderConfig{block.Body, p.VariableCache, p.TestContext, p.AvailableRunOutputs},
 			DefRange:    block.DefRange,
 			TypeRange:   block.TypeRange,
 			LabelRanges: block.LabelRanges,
 		}
 	}
 	return blocks
+}
+
+func (p *ProviderConfig) getFileVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
+	var value *terraform.InputValue
+	var diags tfdiags.Diagnostics
+	if p.TestContext != nil {
+		value, diags = p.TestContext.GetFileVariable(name)
+	} else {
+		value, diags = p.VariableCache.GetFileVariable(name)
+	}
+	if value == nil {
+		return nil, diags
+	}
+	return value, diags
+}
+
+func (p *ProviderConfig) getGlobalVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
+	var value *terraform.InputValue
+	var diags tfdiags.Diagnostics
+	if p.TestContext != nil {
+		value, diags = p.TestContext.GetGlobalVariable(name)
+	} else {
+		value, diags = p.VariableCache.GetGlobalVariable(name)
+	}
+	if value == nil {
+		return nil, diags
+	}
+	return value, diags
 }

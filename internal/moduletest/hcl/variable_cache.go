@@ -141,6 +141,8 @@ func (cache *VariableCache) GetFileVariable(name string) (*terraform.InputValue,
 	var diags tfdiags.Diagnostics
 
 	availableVariables := make(map[string]cty.Value)
+	// If we had referenced a global variable in the file variable, we need to
+	// get it from the global variables store. e.g. `var.foo` in the file var
 	refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, expr)
 	for _, ref := range refs {
 		if input, ok := ref.Subject.(addrs.InputVariable); ok {

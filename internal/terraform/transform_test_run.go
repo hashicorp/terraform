@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/moduletest"
 )
 
+// TestRunTransformer is a GraphTransformer that adds all the test runs to the graph.
 type TestRunTransformer struct {
 	File *moduletest.File
 }
@@ -79,7 +80,7 @@ type nodeCloseTest struct {
 
 // -------------------------------------------------------- ApplyNoParallelTransformer --------------------------------------------------------
 
-// ApplyNoParallelTransformer ensures that all apply operations are run in serial.
+// ApplyNoParallelTransformer ensures that all apply operations are run in sequential order.
 type ApplyNoParallelTransformer struct{}
 
 func (t *ApplyNoParallelTransformer) Transform(g *Graph) error {
@@ -105,6 +106,21 @@ func (t *ApplyNoParallelTransformer) Transform(g *Graph) error {
 	for i := 0; i < len(runs)-1; i++ {
 		g.Connect(dag.BasicEdge(runs[i], runs[i+1]))
 	}
+
+	return nil
+}
+
+// -------------------------------------------------------- TestFileVariableTransformer --------------------------------------------------------
+
+// TestFileVariableTransformer is a GraphTransformer that adds variables from a test file to the graph.
+type TestFileVariableTransformer struct {
+	File *moduletest.File
+}
+
+func (t *TestFileVariableTransformer) Transform(g *Graph) error {
+	// for _, expr := range t.File.Config.Variables {
+
+	// }
 
 	return nil
 }

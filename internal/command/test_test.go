@@ -36,6 +36,10 @@ func TestTest_Runs(t *testing.T) {
 		initCode              int
 		skip                  bool
 	}{
+		"mockingtest": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
 		"simple_pass": {
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
@@ -392,11 +396,13 @@ func TestTest_Runs(t *testing.T) {
 			output := done(t)
 
 			if code != tc.code {
+				// fmt.Println(output.All())
 				t.Errorf("expected status code %d but got %d:\n\n%s", tc.code, code, output.All())
 			}
 
 			if len(tc.expectedOut) > 0 {
 				for _, expectedOut := range tc.expectedOut {
+					// fmt.Println("output.Stdout()", output.Stdout())
 					if !strings.Contains(output.Stdout(), expectedOut) {
 						t.Errorf("output didn't contain expected string:\n\n%s", output.Stdout())
 					}
