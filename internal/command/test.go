@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/artifact"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -100,7 +101,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	}
 
 	view := views.NewTest(args.ViewType, c.View)
-	var junit *views.TestJUnitXMLFile
+	var junit *artifact.TestJUnitXMLFile
 	if args.JUnitXMLFile != "" {
 		// JUnit XML output is currently experimental, so that we can gather
 		// feedback on exactly how we should map the test results to this
@@ -119,7 +120,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			"JUnit XML output is experimental",
 			"The -junit-xml option is currently experimental and therefore subject to breaking changes or removal, even in patch releases.",
 		))
-		junit = views.NewTestJUnitXMLFile(args.JUnitXMLFile)
+		junit = artifact.NewTestJUnitXMLFile(args.JUnitXMLFile)
 	}
 
 	// The specified testing directory must be a relative path, and it must

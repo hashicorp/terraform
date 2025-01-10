@@ -17,6 +17,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/command/artifact"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -49,7 +50,7 @@ type TestSuiteRunner struct {
 	Opts *terraform.ContextOpts
 
 	View     views.Test
-	Artifact views.Artifact
+	Artifact artifact.Artifact
 
 	// Stopped and Cancelled track whether the user requested the testing
 	// process to be interrupted. Stopped is a nice graceful exit, we'll still
