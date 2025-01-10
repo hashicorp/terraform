@@ -7,8 +7,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // TestJUnitXMLFile produces a JUnit XML file at the conclusion of a test
@@ -17,32 +19,23 @@ import (
 //
 // The de-facto convention for JUnit XML is for it to be emitted as a separate
 // file as a complement to human-oriented output, rather than _instead of_
-// human-oriented output, and so this view meets that expectation by creating
-// a new file only once the test run has completed, at the "Conclusion" event.
-// If that event isn't reached for any reason then no file will be created at
+// human-oriented output. To meet that expectation the method [TestJUnitXMLFile.Save]
+// should be called at the same time as the test's view reaches its "Conclusion" event.
+// If that event isn't reached for any reason then no file should be created at
 // all, which JUnit XML-consuming tools tend to expect as an outcome of a
 // catastrophically-errored test suite.
 //
-// Views cannot return errors directly from their events, so if this view fails
-// to create or write to the designated file when asked to report the conclusion
-// it will save the error as part of its state, accessible from method
-// [TestJUnitXMLFile.Err].
-//
-// This view is intended only for use in conjunction with another view that
-// provides the streaming output of ongoing testing events, so it should
-// typically be wrapped in a [TestMulti] along with either [TestHuman] or
-// [TestJSON].
-
-// TODO: Update comment above to reflect change from View to Artifact
+// TestJUnitXMLFile implements the Artifact interface, which allows creation of local
+// files that contains a description of a completed test suite. It is intended only
+// for use in conjunction with a View that provides the streaming output of ongoing
+// testing events.
 
 type TestJUnitXMLFile struct {
 	filename string
-	err      error
 }
 
 type Artifact interface {
-	Save(*moduletest.Suite)
-	Err() error
+	Save(*moduletest.Suite) tfdiags.Diagnostics
 }
 
 var _ Artifact = (*TestJUnitXMLFile)(nil)
@@ -60,26 +53,29 @@ func NewTestJUnitXMLFile(filename string) *TestJUnitXMLFile {
 	}
 }
 
-// Err returns an error that the receiver previously encountered when trying
-// to handle the Conclusion event by creating and writing into a file.
-//
-// Returns nil if either there was no error or if this object hasn't yet been
-// asked to report a conclusion.
-func (v *TestJUnitXMLFile) Err() error {
-	return v.err
-}
+func (v *TestJUnitXMLFile) Save(suite *moduletest.Suite) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 
-func (v *TestJUnitXMLFile) Save(suite *moduletest.Suite) {
 	xmlSrc, err := junitXMLTestReport(suite)
 	if err != nil {
-		v.err = err
-		return
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "error generating JUnit XML test output",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
 	err = os.WriteFile(v.filename, xmlSrc, 0660)
 	if err != nil {
-		v.err = err
-		return
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "error generating JUnit XML test output",
+			Detail:   err.Error(),
+		})
+		return diags
 	}
+
+	return diags
 }
 
 func junitXMLTestReport(suite *moduletest.Suite) ([]byte, error) {

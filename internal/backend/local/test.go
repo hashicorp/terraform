@@ -174,16 +174,10 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	runner.View.Conclusion(suite)
 
 	if runner.Artifact != nil {
-		runner.Artifact.Save(suite)
-
-		// Handle any errors
-		if artifactErr := runner.Artifact.Err(); artifactErr != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("error saving JUnit XML to file"),
-				Detail:   artifactErr.Error(),
-			})
-			return suite.Status, diags
+		artifactDiags := runner.Artifact.Save(suite)
+		diags = diags.Append(artifactDiags)
+		if artifactDiags.HasErrors() {
+			return moduletest.Error, diags
 		}
 	}
 
