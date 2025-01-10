@@ -48,7 +48,8 @@ type TestSuiteRunner struct {
 
 	Opts *terraform.ContextOpts
 
-	View views.Test
+	View     views.Test
+	Artifact views.Artifact
 
 	// Stopped and Cancelled track whether the user requested the testing
 	// process to be interrupted. Stopped is a nice graceful exit, we'll still
@@ -170,6 +171,20 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	}
 
 	runner.View.Conclusion(suite)
+
+	if runner.Artifact != nil {
+		runner.Artifact.Save(suite)
+
+		// Handle any errors
+		if artifactErr := runner.Artifact.Err(); artifactErr != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("error saving JUnit XML to file"),
+				Detail:   artifactErr.Error(),
+			})
+			return suite.Status, diags
+		}
+	}
 
 	return suite.Status, diags
 }

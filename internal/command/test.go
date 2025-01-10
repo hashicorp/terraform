@@ -5,7 +5,6 @@ package command
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"strings"
 	"time"
@@ -101,7 +100,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	}
 
 	view := views.NewTest(args.ViewType, c.View)
-	var junitXMLView *views.TestJUnitXMLFile
+	var junit *views.TestJUnitXMLFile
 	if args.JUnitXMLFile != "" {
 		// JUnit XML output is currently experimental, so that we can gather
 		// feedback on exactly how we should map the test results to this
@@ -120,11 +119,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			"JUnit XML output is experimental",
 			"The -junit-xml option is currently experimental and therefore subject to breaking changes or removal, even in patch releases.",
 		))
-		junitXMLView = views.NewTestJUnitXMLFile(args.JUnitXMLFile)
-		view = views.TestMulti{
-			view,
-			junitXMLView,
-		}
+		junit = views.NewTestJUnitXMLFile(args.JUnitXMLFile)
 	}
 
 	// The specified testing directory must be a relative path, and it must
@@ -236,6 +231,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			TestingDirectory:    args.TestDirectory,
 			Opts:                opts,
 			View:                view,
+			Artifact:            junit,
 			Stopped:             false,
 			Cancelled:           false,
 			StoppedCtx:          stopCtx,
@@ -303,16 +299,6 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		}
 	case <-runningCtx.Done():
 		// tests finished normally with no interrupts.
-	}
-
-	if junitXMLView != nil {
-		if err := junitXMLView.Err(); err != nil {
-			testDiags = testDiags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Failed to write JUnit XML report",
-				fmt.Sprintf("Could not write the requested JUnit XML report: %s.", err),
-			))
-		}
 	}
 
 	view.Diagnostics(nil, nil, testDiags)

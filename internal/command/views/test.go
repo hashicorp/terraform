@@ -756,12 +756,20 @@ func (t *TestJSON) TFCRetryHook(attemptNum int, resp *http.Response) {
 // provides the streaming output of ongoing testing events, so it should
 // typically be wrapped in a [TestMulti] along with either [TestHuman] or
 // [TestJSON].
+
+// TODO: Update comment above to reflect change from View to Artifact
+
 type TestJUnitXMLFile struct {
 	filename string
 	err      error
 }
 
-var _ Test = (*TestJUnitXMLFile)(nil)
+type Artifact interface {
+	Save(*moduletest.Suite)
+	Err() error
+}
+
+var _ Artifact = (*TestJUnitXMLFile)(nil)
 
 // NewTestJUnitXML returns a [Test] implementation that will, when asked to
 // report "conclusion", write a JUnit XML report to the given filename.
@@ -785,9 +793,7 @@ func (v *TestJUnitXMLFile) Err() error {
 	return v.err
 }
 
-func (v *TestJUnitXMLFile) Abstract(suite *moduletest.Suite) {}
-
-func (v *TestJUnitXMLFile) Conclusion(suite *moduletest.Suite) {
+func (v *TestJUnitXMLFile) Save(suite *moduletest.Suite) {
 	xmlSrc, err := junitXMLTestReport(suite)
 	if err != nil {
 		v.err = err
@@ -799,28 +805,6 @@ func (v *TestJUnitXMLFile) Conclusion(suite *moduletest.Suite) {
 		return
 	}
 }
-
-func (v *TestJUnitXMLFile) File(file *moduletest.File, progress moduletest.Progress) {}
-
-func (v *TestJUnitXMLFile) Run(run *moduletest.Run, file *moduletest.File, progress moduletest.Progress, elapsed int64) {
-}
-
-func (v *TestJUnitXMLFile) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State) {
-}
-
-func (v *TestJUnitXMLFile) Diagnostics(run *moduletest.Run, file *moduletest.File, diags tfdiags.Diagnostics) {
-}
-
-func (v *TestJUnitXMLFile) Interrupted() {}
-
-func (v *TestJUnitXMLFile) FatalInterrupt() {}
-
-func (v *TestJUnitXMLFile) FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, states map[*moduletest.Run]*states.State, created []*plans.ResourceInstanceChangeSrc) {
-}
-
-func (v *TestJUnitXMLFile) TFCStatusUpdate(status tfe.TestRunStatus, elapsed time.Duration) {}
-
-func (v *TestJUnitXMLFile) TFCRetryHook(attemptNum int, resp *http.Response) {}
 
 func junitXMLTestReport(suite *moduletest.Suite) ([]byte, error) {
 	var buf bytes.Buffer
@@ -967,79 +951,6 @@ func junitXMLTestReport(suite *moduletest.Suite) ([]byte, error) {
 	enc.EncodeToken(xml.EndElement{Name: suitesName})
 	enc.Close()
 	return buf.Bytes(), nil
-}
-
-// TestMulti is an fan-out adapter which delegates all calls to all of the
-// wrapped test views, for situations where multiple outputs are needed at
-// the same time.
-type TestMulti []Test
-
-var _ Test = TestMulti(nil)
-
-func (m TestMulti) Abstract(suite *moduletest.Suite) {
-	for _, wrapped := range m {
-		wrapped.Abstract(suite)
-	}
-}
-
-func (m TestMulti) Conclusion(suite *moduletest.Suite) {
-	for _, wrapped := range m {
-		wrapped.Conclusion(suite)
-	}
-}
-
-func (m TestMulti) File(file *moduletest.File, progress moduletest.Progress) {
-	for _, wrapped := range m {
-		wrapped.File(file, progress)
-	}
-}
-
-func (m TestMulti) Run(run *moduletest.Run, file *moduletest.File, progress moduletest.Progress, elapsed int64) {
-	for _, wrapped := range m {
-		wrapped.Run(run, file, progress, elapsed)
-	}
-}
-
-func (m TestMulti) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State) {
-	for _, wrapped := range m {
-		wrapped.DestroySummary(diags, run, file, state)
-	}
-}
-
-func (m TestMulti) Diagnostics(run *moduletest.Run, file *moduletest.File, diags tfdiags.Diagnostics) {
-	for _, wrapped := range m {
-		wrapped.Diagnostics(run, file, diags)
-	}
-}
-
-func (m TestMulti) Interrupted() {
-	for _, wrapped := range m {
-		wrapped.Interrupted()
-	}
-}
-
-func (m TestMulti) FatalInterrupt() {
-	for _, wrapped := range m {
-		wrapped.FatalInterrupt()
-	}
-}
-
-func (m TestMulti) FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, states map[*moduletest.Run]*states.State, created []*plans.ResourceInstanceChangeSrc) {
-	for _, wrapped := range m {
-		wrapped.FatalInterruptSummary(run, file, states, created)
-	}
-}
-
-func (m TestMulti) TFCStatusUpdate(status tfe.TestRunStatus, elapsed time.Duration) {
-	for _, wrapped := range m {
-		wrapped.TFCStatusUpdate(status, elapsed)
-	}
-}
-
-func (m TestMulti) TFCRetryHook(attemptNum int, resp *http.Response) {
-	for _, wrapped := range m {
-		wrapped.TFCRetryHook(attemptNum, resp)
-	}
 }
 
 func colorizeTestStatus(status moduletest.Status, color *colorstring.Colorize) string {
