@@ -1186,6 +1186,49 @@ func TestApplyDestroy(t *testing.T) {
 				},
 			},
 		},
+		"destroy-corrupted-state": {
+			path: "destroy-corrupted-state",
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.parent")).
+					AddDependent(mustAbsComponent("component.child"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.parent.testing_resource.primary")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id": "primary",
+						}),
+						Status: states.ObjectReady,
+					})).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.parent.testing_resource.secondary")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "secondary",
+							"value": "primary",
+						}),
+						Status: states.ObjectReady,
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("primary", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("primary"),
+					"value": cty.NullVal(cty.String),
+				})).
+				AddResource("secondary", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("secondary"),
+					"value": cty.StringVal("primary"),
+				})).
+				Build(),
+			cycles: []TestCycle{
+				{
+					planMode:           plans.DestroyMode,
+					wantPlannedChanges: make([]stackplan.PlannedChange, 0),
+					wantAppliedChanges: make([]stackstate.AppliedChange, 0),
+				},
+			},
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
