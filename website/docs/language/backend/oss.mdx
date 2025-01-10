@@ -96,7 +96,7 @@ The following configuration options or environment variables are supported:
 * `tablestore_endpoint` / `ALICLOUD_TABLESTORE_ENDPOINT` - (Optional) A custom endpoint for the TableStore API.
 
 * `tablestore_instance_name` - (Optional) Specifies the name of an instance that `TableStore` belongs to. By default, Terraform parses the name from `tablestore_endpoint`.
-  It should be set Access URL explicitly when tablestore endpoint is a VPC access url
+  You should set the access URL explicitly when the `tablestore` endpoint is a VPC access URL.
 
 * `tablestore_table` - (Optional) A TableStore table for state locking and consistency. The table must have a primary key named `LockID` of type `String`.
 
