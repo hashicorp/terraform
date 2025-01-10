@@ -898,7 +898,8 @@ func junitXMLTestReport(suite *moduletest.Suite) ([]byte, error) {
 				// "not known", and thus omit that case. (In practice many
 				// JUnit XML consumers treat the absense of this attribute
 				// as zero anyway.)
-				RunTime float64 `xml:"time,attr,omitempty"`
+				RunTime   float64 `xml:"time,attr,omitempty"`
+				Timestamp string  `xml:"timestamp,attr,omitempty"`
 			}
 
 			testCase := TestCase{
@@ -913,6 +914,7 @@ func junitXMLTestReport(suite *moduletest.Suite) ([]byte, error) {
 			}
 			if execMeta := run.ExecutionMeta; execMeta != nil {
 				testCase.RunTime = execMeta.Duration.Seconds()
+				testCase.Timestamp = execMeta.StartTimestamp()
 			}
 			switch run.Status {
 			case moduletest.Skip:
