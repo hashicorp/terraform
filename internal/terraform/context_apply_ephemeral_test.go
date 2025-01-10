@@ -638,6 +638,14 @@ resource "ephem_write_only" "wo" {
 			},
 		},
 	}
+	ephem.UpgradeResourceStateFn = func(ursr providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
+		return providers.UpgradeResourceStateResponse{
+			UpgradedState: cty.ObjectVal(map[string]cty.Value{
+				"normal":     cty.StringVal("normal"),
+				"write_only": cty.NullVal(cty.String),
+			}),
+		}
+	}
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
