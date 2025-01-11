@@ -4,6 +4,8 @@
 package hcl
 
 import (
+	"sync"
+
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
@@ -14,29 +16,39 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// VariableContext contains a mapping between test run blocks and evaluated
-// variables. This is used to cache the results of evaluating variables so that
-// they are only evaluated once per run.
-//
-// Each run block has its own configuration and therefore its own set of
-// evaluated variables.
+// VariableContext holds the context for variables used in tests.
 type VariableContext struct {
-	GlobalVariables map[string]backendrun.UnparsedVariableValue
-	FileVariables   map[string]hcl.Expression
-
+	// Config is the configuration for the test.
 	Config *configs.Config
 
+	// GlobalVariables contains the unparsed values for global variables.
+	GlobalVariables map[string]backendrun.UnparsedVariableValue
+
+	// FileVariables contains the HCL expressions for file-level variables.
+	FileVariables map[string]hcl.Expression
+
+	// ParsedGlobalVariables contains the evaluated values for global variables.
 	ParsedGlobalVariables terraform.InputValues
-	ParsedFileVariables   terraform.InputValues
-	ConfigVariables       map[string]terraform.InputValues
-	RunVariables          map[string]terraform.InputValues
+	globalLock            sync.Mutex
+
+	// ParsedFileVariables contains the evaluated values for file-level variables.
+	ParsedFileVariables terraform.InputValues
+	fileLock            sync.Mutex
+
+	// ConfigVariables contains the evaluated values for variables declared in the
+	// configuration.
+	ConfigVariables map[string]terraform.InputValues
+
+	// RunVariables contains the evaluated values for variables declared in the
+	// run blocks.
+	RunVariables map[string]terraform.InputValues
 
 	// RunOutputs is a mapping from run addresses to cty object values
 	// representing the collected output values from the module under test.
 	//
 	// This is used to allow run blocks to refer back to the output values of
 	// previous run blocks. It is passed into the Evaluate functions that
-	// validate the test assertions, and used when calculating values for
+	// validate the test assertions and is used when calculating values for
 	// variables within run blocks.
 	RunOutputs map[addrs.Run]cty.Value
 }
@@ -47,7 +59,9 @@ func NewTestContext(config *configs.Config, globalVariables map[string]backendru
 		GlobalVariables:       globalVariables,
 		FileVariables:         fileVariables,
 		ParsedGlobalVariables: make(terraform.InputValues),
+		globalLock:            sync.Mutex{},
 		ParsedFileVariables:   make(terraform.InputValues),
+		fileLock:              sync.Mutex{},
 		ConfigVariables:       make(map[string]terraform.InputValues),
 		RunVariables:          make(map[string]terraform.InputValues),
 		RunOutputs:            runOutputs,
@@ -56,20 +70,12 @@ func NewTestContext(config *configs.Config, globalVariables map[string]backendru
 
 func (cache *VariableContext) SetGlobalVariable(name string, value *terraform.InputValue) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	_, exists := cache.GlobalVariables[name]
-	if !exists {
-		return nil // TODO: return an error
-	}
 	cache.ParsedGlobalVariables[name] = value
 	return diags
 }
 
 func (cache *VariableContext) SetFileVariable(name string, value *terraform.InputValue) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	_, exists := cache.FileVariables[name]
-	if !exists {
-		return nil // TODO: return an error
-	}
 	cache.ParsedFileVariables[name] = value
 	return diags
 }
@@ -85,20 +91,14 @@ func (cache *VariableContext) SetRunVariable(runName, varName string, value *ter
 }
 
 func (cache *VariableContext) GetGlobalVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
-	_, exists := cache.GlobalVariables[name]
-	if !exists {
-		return nil, nil
-	}
-
+	cache.globalLock.Lock()
+	defer cache.globalLock.Unlock()
 	return cache.ParsedGlobalVariables[name], nil
 }
 
 func (cache *VariableContext) GetFileVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
-	_, exists := cache.FileVariables[name]
-	if !exists {
-		return nil, nil
-	}
-
+	cache.fileLock.Lock()
+	defer cache.fileLock.Unlock()
 	return cache.ParsedFileVariables[name], nil
 }
 

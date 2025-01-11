@@ -308,7 +308,6 @@ func (runner *TestFileRunner2) Test(file *moduletest.File) {
 	}
 
 	b := terraformtest.TestGraphBuilder{File: file, GlobalVars: runner.Context.GlobalVariables, Config: runner.Suite.Config}
-
 	graph, diags := b.Build(addrs.RootModuleInstance)
 
 	// If the graph walk was terminated, we don't want to add the diagnostics.
@@ -321,6 +320,7 @@ func (runner *TestFileRunner2) Test(file *moduletest.File) {
 	}
 
 	if diags.HasErrors() {
+		file.Status = file.Status.Merge(moduletest.Error)
 		file.Diagnostics = file.Diagnostics.Append(diags)
 		return
 	}
@@ -333,11 +333,11 @@ func (runner *TestFileRunner2) Test(file *moduletest.File) {
 }
 
 func (runner *TestFileRunner2) walkGraph(g *terraform.Graph) tfdiags.Diagnostics {
-	par := runner.Suite.Opts.Parallelism
+	par := 1 //runner.Suite.Opts.Parallelism
 	if par < 1 {
 		par = 10
 	}
-	sem := terraform.NewSemaphore(1)
+	sem := terraform.NewSemaphore(par)
 
 	var nodeDiags tfdiags.Diagnostics
 
@@ -380,7 +380,9 @@ func (runner *TestFileRunner2) walkGraph(g *terraform.Graph) tfdiags.Diagnostics
 			// walking the graph even if this node fails. We'll collect the
 			// diagnostics at the end.
 			exDiags := execable.Execute(runner.Context, g)
-			nodeDiags = nodeDiags.Append(exDiags)
+			if exDiags != nil {
+				nodeDiags = nodeDiags.Append(exDiags)
+			}
 		}
 
 		runNode, ok := v.(*terraformtest.NodeTestRun)
@@ -411,13 +413,15 @@ func (runner *TestFileRunner2) walkGraph(g *terraform.Graph) tfdiags.Diagnostics
 			return
 		}
 
+		// Since runs may now run in parallel, we don't skip the run if the
+		// file has errored.
+		// TODO: Decide if we want to skip all runs if the file has errored.
 		// if file.Status == moduletest.Error {
 		// 	// If the overall test file has errored, we don't keep trying to
 		// 	// execute tests. Instead, we mark all remaining run blocks as
 		// 	// skipped, print the status, and move on.
 		// 	run.Status = moduletest.Skip
 		// 	runner.Suite.View.Run(run, file, moduletest.Complete, 0)
-		// 	// continue
 		// 	return
 		// }
 

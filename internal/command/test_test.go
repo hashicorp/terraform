@@ -295,15 +295,12 @@ func TestTest_Runs(t *testing.T) {
 			code:        1,
 		},
 		"simple_testdata": {
-			expectedOut: []string{" passed, 0 failed."},
+			expectedOut: []string{"100 passed, 0 failed."},
 			code:        0,
 		},
 	}
 	for name, tc := range tcs {
-		// if name != "env-vars-in-module" {
-		// 	continue
-		// }
-		// if name == "env-vars-in-module" {
+		// if name != "simple_testdata" {
 		// 	continue
 		// }
 		t.Run(name, func(t *testing.T) {
