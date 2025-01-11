@@ -6,7 +6,6 @@ package terraformtest
 import (
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -34,41 +33,24 @@ func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
 
 		node := &NodeTestRun{run: run, file: t.File, config: config, Module: config.Path}
 		g.Add(node)
+
+		// Connect the run to all the other runs that it depends on
 		refs, _ := run.GetReferences()
 		for _, ref := range refs {
-			// if variable, ok := ref.Subject.(addrs.InputVariable); ok {
-			// 	// if cfg, exists := config.Module.Variables[variable.Name]; !exists {
-			// 	if _, isGlobal := t.globalVars[variable.Name]; isGlobal {
-			// 		// It is a global variable and has been referenced in the run
-			// 		// Its value
-			// 		g.Vertices()
-			// 		node := &nodeRunGlobalVariable{
-			// 			Addr:   addrs.InputVariable{Name: cfg.Name},
-			// 			run:    run,
-			// 			Module: config.Path,
-			// 			config: config,
-			// 		}
-			// 		g.Add(node)
-			// 	}
-			// 	// }
-			// }
-			subjectStr := ref.Subject.String()
-			if !strings.HasPrefix(subjectStr, "run.") {
+			refRun, ok := ref.Subject.(addrs.Run)
+			if !ok {
 				continue
 			}
-			runName := strings.TrimPrefix(subjectStr, "run.")
-			if runName == "" {
-				continue
-			}
-			dependency, ok := prevs[runName]
+			dependency, ok := prevs[refRun.Name]
 			if !ok {
 				// TODO: should we catch this error, or leave it, as it will still be caught in the test?
-				return fmt.Errorf("dependency %q not found for run %q", runName, run.Name)
+				return fmt.Errorf("dependency %q not found for run %q", refRun.Name, run.Name)
 			}
 			g.Connect(dag.BasicEdge(node, dependency))
 		}
 		prevs[run.Name] = node
 
+		// Add all the variables that are defined in the run block
 		for name, expr := range run.Config.Variables {
 			variableNode := &nodeRunVariable{
 				run:    run,

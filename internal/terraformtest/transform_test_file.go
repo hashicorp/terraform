@@ -4,8 +4,6 @@
 package terraformtest
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -21,12 +19,10 @@ type TestFileTransformer struct {
 }
 
 func (t *TestFileTransformer) Transform(g *terraform.Graph) error {
-	//----------------------------------------------
-	// add file variables
+	// add the file top-level variables
 	for name, expr := range t.File.Config.Variables {
-
 		node := &nodeFileVariable{
-			Addr:   addrs.InputVariable{Name: fmt.Sprintf("%s", name)},
+			Addr:   addrs.InputVariable{Name: name},
 			Expr:   expr,
 			config: t.config,
 			Module: t.config.Path,

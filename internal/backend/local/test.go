@@ -315,14 +315,14 @@ func (runner *TestFileRunner2) Test2(file *moduletest.File) {
 		return
 	}
 
-	diags = runner.walkGraph2(graph)
+	diags = runner.walkGraph(graph)
 	if diags.HasErrors() {
 		file.Status = file.Status.Merge(moduletest.Error)
 	}
 	file.Diagnostics = file.Diagnostics.Append(diags)
 }
 
-func (runner *TestFileRunner2) walkGraph2(g *terraform.Graph) tfdiags.Diagnostics {
+func (runner *TestFileRunner2) walkGraph(g *terraform.Graph) tfdiags.Diagnostics {
 	par := runner.Suite.Opts.Parallelism
 	if par < 1 {
 		par = 10

@@ -21,10 +21,11 @@ type ConfigTransformer struct {
 func (t *ConfigTransformer) Transform(g *terraform.Graph) error {
 	modeMap := make(map[string]configs.VariableParsingMode)
 	// For each run, we have to create a node for each variable
-	// in the configuration that the run uses. This may either be
-	// the global configuration or a specific module configuration.
+	// in the module configuration that the run uses.
 	for _, run := range t.File.Runs {
 		config := t.config
+
+		// if the run has reference to a specific module configuration, we use that
 		if run.Config.ConfigUnderTest != nil {
 			config = run.Config.ConfigUnderTest
 		}
@@ -39,8 +40,11 @@ func (t *ConfigTransformer) Transform(g *terraform.Graph) error {
 			g.Add(node)
 		}
 
-		// If at least one config is using the global variable, we try to parse it
-		// with the parsing mode of the variable in the config.
+		// For all configurations used in the test (the main module configuration
+		// and any other module configurations referenced in runs), check if the
+		// global variables are used in any of them. If they are, store the parsing
+		// mode of the variable in the modeMap.
+		// TODO: What happens if 2 configurations use the same global variable but with different parsing modes?
 		for name := range t.globalVars {
 			if variable, ok := config.Module.Variables[name]; ok {
 				modeMap[name] = variable.ParsingMode
@@ -49,6 +53,7 @@ func (t *ConfigTransformer) Transform(g *terraform.Graph) error {
 
 	}
 
+	// Add the global variables to the graph
 	for name, unparsed := range t.globalVars {
 		parsingMode := configs.VariableParseHCL
 		if _, exists := modeMap[name]; exists {
