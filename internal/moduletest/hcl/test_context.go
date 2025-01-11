@@ -38,10 +38,12 @@ type VariableContext struct {
 	// ConfigVariables contains the evaluated values for variables declared in the
 	// configuration.
 	ConfigVariables map[string]terraform.InputValues
+	configLock      sync.Mutex
 
 	// RunVariables contains the evaluated values for variables declared in the
 	// run blocks.
 	RunVariables map[string]terraform.InputValues
+	runLock      sync.Mutex
 
 	// RunOutputs is a mapping from run addresses to cty object values
 	// representing the collected output values from the module under test.
@@ -63,42 +65,50 @@ func NewTestContext(config *configs.Config, globalVariables map[string]backendru
 		ParsedFileVariables:   make(terraform.InputValues),
 		fileLock:              sync.Mutex{},
 		ConfigVariables:       make(map[string]terraform.InputValues),
+		configLock:            sync.Mutex{},
 		RunVariables:          make(map[string]terraform.InputValues),
+		runLock:               sync.Mutex{},
 		RunOutputs:            runOutputs,
 	}
 }
 
 func (cache *VariableContext) SetGlobalVariable(name string, value *terraform.InputValue) tfdiags.Diagnostics {
+	cache.globalLock.Lock()
+	defer cache.globalLock.Unlock()
 	var diags tfdiags.Diagnostics
 	cache.ParsedGlobalVariables[name] = value
 	return diags
 }
 
 func (cache *VariableContext) SetFileVariable(name string, value *terraform.InputValue) tfdiags.Diagnostics {
+	cache.fileLock.Lock()
+	defer cache.fileLock.Unlock()
 	var diags tfdiags.Diagnostics
 	cache.ParsedFileVariables[name] = value
 	return diags
 }
 
 func (cache *VariableContext) SetRunVariable(runName, varName string, value *terraform.InputValue) tfdiags.Diagnostics {
+	cache.runLock.Lock()
 	store, exists := cache.RunVariables[runName]
 	if !exists {
 		store = make(terraform.InputValues)
 		cache.RunVariables[runName] = store
 	}
 	cache.RunVariables[runName][varName] = value
+	cache.runLock.Unlock()
 	return nil
 }
 
 func (cache *VariableContext) GetGlobalVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
-	cache.globalLock.Lock()
-	defer cache.globalLock.Unlock()
+	// cache.globalLock.Lock()
+	// defer cache.globalLock.Unlock()
 	return cache.ParsedGlobalVariables[name], nil
 }
 
 func (cache *VariableContext) GetFileVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
-	cache.fileLock.Lock()
-	defer cache.fileLock.Unlock()
+	// cache.fileLock.Lock()
+	// defer cache.fileLock.Unlock()
 	return cache.ParsedFileVariables[name], nil
 }
 
@@ -152,6 +162,8 @@ func (cache *VariableContext) GetConfigVariable(mod *configs.Module, name string
 }
 
 func (cache *VariableContext) SetConfigVariable(mod *configs.Module, name string, value *terraform.InputValue) tfdiags.Diagnostics {
+	// cache.configLock.Lock()
+	// defer cache.configLock.Unlock()
 	mp, exists := cache.ConfigVariables[mod.SourceDir]
 	if !exists {
 		mp = make(terraform.InputValues)

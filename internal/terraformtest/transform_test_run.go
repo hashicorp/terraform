@@ -102,6 +102,8 @@ type nodeCloseTest struct {
 // -------------------------------------------------------- ApplyNoParallelTransformer --------------------------------------------------------
 
 // ApplyNoParallelTransformer ensures that all apply operations are run in sequential order.
+// If we do not apply this transformer, the apply operations will be run in parallel, which
+// may result in multiple runs acting on a particular resource at the same time.
 type ApplyNoParallelTransformer struct{}
 
 func (t *ApplyNoParallelTransformer) Transform(g *terraform.Graph) error {

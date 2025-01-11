@@ -41,7 +41,7 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 		&TestRunTransformer{File: b.File, config: b.Config, globalVars: b.GlobalVars},
 		&ConfigTransformer{File: b.File, config: b.Config, globalVars: b.GlobalVars},
 		&AttachVariablesTransformer{},
-		// &ApplyNoParallelTransformer{},
+		&ApplyNoParallelTransformer{},
 		&CloseTestRootModuleTransformer{},
 		&terraform.ReferenceTransformer{},
 		&terraform.TransitiveReductionTransformer{},
