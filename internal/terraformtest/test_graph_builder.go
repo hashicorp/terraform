@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// TestGraphBuilder is a GraphBuilder implementation that builds a graph for
+// TestGraphBuilder is a terraform.GraphBuilder implementation that builds a graph for
 // a terraform test file. The file may contain multiple runs, and each run may have
 // dependencies on other runs.
 type TestGraphBuilder struct {
@@ -25,7 +25,7 @@ type TestGraphBuilder struct {
 	GlobalVars map[string]backendrun.UnparsedVariableValue
 }
 
-// See GraphBuilder
+// See terraform.GraphBuilder
 func (b *TestGraphBuilder) Build(path addrs.ModuleInstance) (*terraform.Graph, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] building graph for terraform test")
 	return (&terraform.BasicGraphBuilder{
@@ -34,7 +34,7 @@ func (b *TestGraphBuilder) Build(path addrs.ModuleInstance) (*terraform.Graph, t
 	}).Build(path)
 }
 
-// See GraphBuilder
+// See terraform.GraphBuilder
 func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 	steps := []terraform.GraphTransformer{
 		&TestFileTransformer{File: b.File, globalVars: b.GlobalVars, config: b.Config},
@@ -54,6 +54,8 @@ func WalkGraph(g *terraform.Graph, cb dag.WalkFunc) tfdiags.Diagnostics {
 	return g.AcyclicGraph.Walk(cb)
 }
 
-type TestGraphNodeExecutable interface {
+// GraphNodeExecutable is an interface that can be implemented by nodes in the
+// graph that can be executed.
+type GraphNodeExecutable interface {
 	Execute(*hcltest.TestContext, *terraform.Graph) tfdiags.Diagnostics
 }

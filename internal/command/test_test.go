@@ -300,6 +300,12 @@ func TestTest_Runs(t *testing.T) {
 		},
 	}
 	for name, tc := range tcs {
+		// if name != "env-vars-in-module" {
+		// 	continue
+		// }
+		// if name == "env-vars-in-module" {
+		// 	continue
+		// }
 		t.Run(name, func(t *testing.T) {
 			if tc.skip {
 				t.Skip()

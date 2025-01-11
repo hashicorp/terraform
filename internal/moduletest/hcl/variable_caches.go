@@ -36,10 +36,18 @@ type TestContext struct {
 	ConfigVariables        terraform.InputValues
 	ConfigVariables2       map[string]terraform.InputValues
 	RunVariables           map[string]terraform.InputValues
-	RunOutputs             map[addrs.Run]cty.Value
+
+	// RunOutputs is a mapping from run addresses to cty object values
+	// representing the collected output values from the module under test.
+	//
+	// This is used to allow run blocks to refer back to the output values of
+	// previous run blocks. It is passed into the Evaluate functions that
+	// validate the test assertions, and used when calculating values for
+	// variables within run blocks.
+	RunOutputs map[addrs.Run]cty.Value
 }
 
-func NewTestContext(config *configs.Config, globalVariables map[string]backendrun.UnparsedVariableValue, fileVariables map[string]hcl.Expression) *TestContext {
+func NewTestContext(config *configs.Config, globalVariables map[string]backendrun.UnparsedVariableValue, fileVariables map[string]hcl.Expression, runOutputs map[addrs.Run]cty.Value) *TestContext {
 	return &TestContext{
 		Config:                 config,
 		GlobalVariables:        globalVariables,
@@ -50,7 +58,7 @@ func NewTestContext(config *configs.Config, globalVariables map[string]backendru
 		ConfigVariables:        make(terraform.InputValues),
 		ConfigVariables2:       make(map[string]terraform.InputValues),
 		RunVariables:           make(map[string]terraform.InputValues),
-		RunOutputs:             make(map[addrs.Run]cty.Value),
+		RunOutputs:             runOutputs,
 	}
 }
 

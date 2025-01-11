@@ -224,7 +224,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			Streams:          c.Streams,
 		}
 	} else {
-		runner = &local.TestSuiteRunner{
+		runner = &local.TestSuiteRunner2{
 			Config: config,
 			// The GlobalVariables are loaded from the
 			// main configuration directory
