@@ -108,7 +108,7 @@ func (n *NodeTestRun) Execute(testCtx *hcltest.TestContext, g *terraform.Graph) 
 		}
 
 		// If the variable wasn't a run variable, it might be a config variable.
-		value, diags = testCtx.GetConfigVariable2(n.config.Module.SourceDir, name)
+		value, diags = testCtx.GetConfigVariable(n.config.Module.SourceDir, name)
 		if diags.HasErrors() {
 			return diags
 		}

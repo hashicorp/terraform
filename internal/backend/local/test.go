@@ -170,7 +170,7 @@ func (runner *TestSuiteRunner2) Test() (moduletest.Status, tfdiags.Diagnostics) 
 		}
 
 		runner.View.File(file, moduletest.Starting)
-		fileRunner.Test2(file)
+		fileRunner.Test(file)
 		runner.View.File(file, moduletest.TearDown)
 		fileRunner.cleanup2(file)
 		runner.View.File(file, moduletest.Complete)
@@ -288,7 +288,7 @@ type TestFileState struct {
 	State *states.State
 }
 
-func (runner *TestFileRunner2) Test2(file *moduletest.File) {
+func (runner *TestFileRunner2) Test(file *moduletest.File) {
 	runner.outputsLock = sync.Mutex{}
 	runner.stateLock = sync.Mutex{}
 	log.Printf("[TRACE] TestFileRunner: executing test file %s", file.Name)

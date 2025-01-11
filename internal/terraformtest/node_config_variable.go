@@ -71,7 +71,7 @@ func (n *nodeConfigVariable) Execute(testCtx *hcltest.TestContext, g *terraform.
 	// If it is optional, we're going to give these variables a value. They'll be
 	// processed by the Terraform graph and provided a default value later
 	// if they have one.
-	var diags hcl.Diagnostics
+	var diags tfdiags.Diagnostics
 	var value *terraform.InputValue
 	if n.variable.Required() {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -95,12 +95,6 @@ func (n *nodeConfigVariable) Execute(testCtx *hcltest.TestContext, g *terraform.
 		}
 	}
 	key := n.config.Module.SourceDir
-	tfDiags := testCtx.SetConfigVariable(n.Addr.Name, value)
-	mp, ok := testCtx.ConfigVariables2[key]
-	if !ok {
-		mp = make(terraform.InputValues)
-	}
-	mp[n.Addr.Name] = value
-	testCtx.ConfigVariables2[key] = mp
-	return tfDiags.Append(diags)
+	testCtx.SetConfigVariable(key, n.Addr.Name, value)
+	return diags
 }
