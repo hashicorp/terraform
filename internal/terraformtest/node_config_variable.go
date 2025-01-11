@@ -94,7 +94,6 @@ func (n *nodeConfigVariable) Execute(testCtx *hcltest.TestContext, g *terraform.
 			SourceRange: tfdiags.SourceRangeFromHCL(n.variable.DeclRange),
 		}
 	}
-	key := n.config.Module.SourceDir
-	testCtx.SetConfigVariable(key, n.Addr.Name, value)
+	testCtx.SetConfigVariable(n.config.Module, n.Addr.Name, value)
 	return diags
 }

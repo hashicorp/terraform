@@ -4,8 +4,6 @@
 package hcl
 
 import (
-	"sync"
-
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
@@ -24,9 +22,7 @@ import (
 // evaluated variables.
 type TestContext struct {
 	GlobalVariables map[string]backendrun.UnparsedVariableValue
-	globalLock      sync.Mutex
 	FileVariables   map[string]hcl.Expression
-	fileLock        sync.Mutex
 
 	Config *configs.Config
 
@@ -142,8 +138,8 @@ func (cache *TestContext) GetParsedVariables(key, runName string) terraform.Inpu
 	return variables
 }
 
-func (cache *TestContext) GetConfigVariable(key, name string) (*terraform.InputValue, tfdiags.Diagnostics) {
-	mp, exists := cache.ConfigVariables[key]
+func (cache *TestContext) GetConfigVariable(mod *configs.Module, name string) (*terraform.InputValue, tfdiags.Diagnostics) {
+	mp, exists := cache.ConfigVariables[mod.SourceDir]
 	if !exists {
 		return nil, nil
 	}
@@ -155,11 +151,11 @@ func (cache *TestContext) GetConfigVariable(key, name string) (*terraform.InputV
 	return value, nil
 }
 
-func (cache *TestContext) SetConfigVariable(key, name string, value *terraform.InputValue) tfdiags.Diagnostics {
-	mp, exists := cache.ConfigVariables[key]
+func (cache *TestContext) SetConfigVariable(mod *configs.Module, name string, value *terraform.InputValue) tfdiags.Diagnostics {
+	mp, exists := cache.ConfigVariables[mod.SourceDir]
 	if !exists {
 		mp = make(terraform.InputValues)
-		cache.ConfigVariables[key] = mp
+		cache.ConfigVariables[mod.SourceDir] = mp
 	}
 	mp[name] = value
 	return nil
