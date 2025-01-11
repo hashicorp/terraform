@@ -54,7 +54,7 @@ func (n *nodeGlobalVariable) ReferenceableAddrs() []addrs.Referenceable {
 }
 
 // TestGraphNodeExecutable
-func (n *nodeGlobalVariable) Execute(testCtx *hcltest.TestContext, g *terraform.Graph) tfdiags.Diagnostics {
+func (n *nodeGlobalVariable) Execute(testCtx *hcltest.VariableContext, g *terraform.Graph) tfdiags.Diagnostics {
 	value, diags := n.unparsed.ParseVariableValue(n.parsingMode)
 	if diags.HasErrors() {
 		// In this case, the variable exists but we couldn't parse it. We'll
@@ -107,7 +107,7 @@ func (n *nodeRunGlobalVariable) ReferenceableAddrs() []addrs.Referenceable {
 }
 
 // TestGraphNodeExecutable
-func (n *nodeRunGlobalVariable) Execute(testCtx *hcltest.TestContext, g *terraform.Graph) tfdiags.Diagnostics {
+func (n *nodeRunGlobalVariable) Execute(testCtx *hcltest.VariableContext, g *terraform.Graph) tfdiags.Diagnostics {
 	value, diags := n.unparsed.ParseVariableValue(n.parsingMode)
 	if diags.HasErrors() {
 		// In this case, the variable exists but we couldn't parse it. We'll

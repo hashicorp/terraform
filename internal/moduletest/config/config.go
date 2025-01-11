@@ -132,7 +132,7 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 	}, diags
 }
 
-func TransformConfigForTest2(config *configs.Config, run *moduletest.Run, file *moduletest.File, testCtx *hcltest.TestContext, requiredProviders map[string]bool) (func(), hcl.Diagnostics) {
+func TransformConfigForTest2(config *configs.Config, run *moduletest.Run, file *moduletest.File, testCtx *hcltest.VariableContext, requiredProviders map[string]bool) (func(), hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	// Currently, we only need to override the provider settings.

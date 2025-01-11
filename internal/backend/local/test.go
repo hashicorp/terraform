@@ -278,7 +278,7 @@ type TestFileRunner2 struct {
 	stateLock      sync.Mutex
 	outputsLock    sync.Mutex
 
-	Context *hcltest.TestContext
+	Context *hcltest.VariableContext
 }
 
 // TestFileState is a helper struct that just maps a run block to the state that

@@ -61,7 +61,7 @@ func (n *nodeFileVariable) References() []*addrs.Reference {
 }
 
 // TestGraphNodeExecutable
-func (n *nodeFileVariable) Execute(testCtx *hcltest.TestContext, g *terraform.Graph) tfdiags.Diagnostics {
+func (n *nodeFileVariable) Execute(testCtx *hcltest.VariableContext, g *terraform.Graph) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	availableVariables := make(map[string]cty.Value)
 	value := &terraform.InputValue{

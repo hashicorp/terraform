@@ -59,7 +59,7 @@ func (n *nodeRunVariable) References() []*addrs.Reference {
 }
 
 // TestGraphNodeExecutable
-func (n *nodeRunVariable) Execute(testCtx *hcltest.TestContext, g *terraform.Graph) tfdiags.Diagnostics {
+func (n *nodeRunVariable) Execute(testCtx *hcltest.VariableContext, g *terraform.Graph) tfdiags.Diagnostics {
 
 	//TODO: Do this only once
 	// relevantVariables contains the variables that are of interest to this

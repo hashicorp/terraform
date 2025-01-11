@@ -55,7 +55,7 @@ func (n *nodeConfigVariable) ReferenceableAddrs() []addrs.Referenceable {
 }
 
 // TestGraphNodeExecutable
-func (n *nodeConfigVariable) Execute(testCtx *hcltest.TestContext, g *terraform.Graph) tfdiags.Diagnostics {
+func (n *nodeConfigVariable) Execute(testCtx *hcltest.VariableContext, g *terraform.Graph) tfdiags.Diagnostics {
 	// check if it is in the global or file variables first
 	if variable, _ := testCtx.GetRunVariable(n.run.Name, n.variable.Name); variable != nil {
 		return nil

@@ -14,13 +14,13 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// TestContext contains a mapping between test run blocks and evaluated
+// VariableContext contains a mapping between test run blocks and evaluated
 // variables. This is used to cache the results of evaluating variables so that
 // they are only evaluated once per run.
 //
 // Each run block has its own configuration and therefore its own set of
 // evaluated variables.
-type TestContext struct {
+type VariableContext struct {
 	GlobalVariables map[string]backendrun.UnparsedVariableValue
 	FileVariables   map[string]hcl.Expression
 
@@ -41,8 +41,8 @@ type TestContext struct {
 	RunOutputs map[addrs.Run]cty.Value
 }
 
-func NewTestContext(config *configs.Config, globalVariables map[string]backendrun.UnparsedVariableValue, fileVariables map[string]hcl.Expression, runOutputs map[addrs.Run]cty.Value) *TestContext {
-	return &TestContext{
+func NewTestContext(config *configs.Config, globalVariables map[string]backendrun.UnparsedVariableValue, fileVariables map[string]hcl.Expression, runOutputs map[addrs.Run]cty.Value) *VariableContext {
+	return &VariableContext{
 		Config:                config,
 		GlobalVariables:       globalVariables,
 		FileVariables:         fileVariables,
@@ -54,7 +54,7 @@ func NewTestContext(config *configs.Config, globalVariables map[string]backendru
 	}
 }
 
-func (cache *TestContext) SetGlobalVariable(name string, value *terraform.InputValue) tfdiags.Diagnostics {
+func (cache *VariableContext) SetGlobalVariable(name string, value *terraform.InputValue) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	_, exists := cache.GlobalVariables[name]
 	if !exists {
@@ -64,7 +64,7 @@ func (cache *TestContext) SetGlobalVariable(name string, value *terraform.InputV
 	return diags
 }
 
-func (cache *TestContext) SetFileVariable(name string, value *terraform.InputValue) tfdiags.Diagnostics {
+func (cache *VariableContext) SetFileVariable(name string, value *terraform.InputValue) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	_, exists := cache.FileVariables[name]
 	if !exists {
@@ -74,7 +74,7 @@ func (cache *TestContext) SetFileVariable(name string, value *terraform.InputVal
 	return diags
 }
 
-func (cache *TestContext) SetRunVariable(runName, varName string, value *terraform.InputValue) tfdiags.Diagnostics {
+func (cache *VariableContext) SetRunVariable(runName, varName string, value *terraform.InputValue) tfdiags.Diagnostics {
 	store, exists := cache.RunVariables[runName]
 	if !exists {
 		store = make(terraform.InputValues)
@@ -84,7 +84,7 @@ func (cache *TestContext) SetRunVariable(runName, varName string, value *terrafo
 	return nil
 }
 
-func (cache *TestContext) GetGlobalVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (cache *VariableContext) GetGlobalVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
 	_, exists := cache.GlobalVariables[name]
 	if !exists {
 		return nil, nil
@@ -93,7 +93,7 @@ func (cache *TestContext) GetGlobalVariable(name string) (*terraform.InputValue,
 	return cache.ParsedGlobalVariables[name], nil
 }
 
-func (cache *TestContext) GetFileVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (cache *VariableContext) GetFileVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
 	_, exists := cache.FileVariables[name]
 	if !exists {
 		return nil, nil
@@ -102,7 +102,7 @@ func (cache *TestContext) GetFileVariable(name string) (*terraform.InputValue, t
 	return cache.ParsedFileVariables[name], nil
 }
 
-func (cache *TestContext) GetRunVariable(runName, varName string) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (cache *VariableContext) GetRunVariable(runName, varName string) (*terraform.InputValue, tfdiags.Diagnostics) {
 	store, exists := cache.RunVariables[runName]
 	if !exists {
 		return nil, nil
@@ -110,7 +110,7 @@ func (cache *TestContext) GetRunVariable(runName, varName string) (*terraform.In
 	return store[varName], nil
 }
 
-func (cache *TestContext) GetParsedVariables(key, runName string) terraform.InputValues {
+func (cache *VariableContext) GetParsedVariables(key, runName string) terraform.InputValues {
 	variables := make(terraform.InputValues)
 	// The order of these assignments is important. The variables from the
 	// config are the lowest priority and should be overridden by the variables
@@ -138,7 +138,7 @@ func (cache *TestContext) GetParsedVariables(key, runName string) terraform.Inpu
 	return variables
 }
 
-func (cache *TestContext) GetConfigVariable(mod *configs.Module, name string) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (cache *VariableContext) GetConfigVariable(mod *configs.Module, name string) (*terraform.InputValue, tfdiags.Diagnostics) {
 	mp, exists := cache.ConfigVariables[mod.SourceDir]
 	if !exists {
 		return nil, nil
@@ -151,7 +151,7 @@ func (cache *TestContext) GetConfigVariable(mod *configs.Module, name string) (*
 	return value, nil
 }
 
-func (cache *TestContext) SetConfigVariable(mod *configs.Module, name string, value *terraform.InputValue) tfdiags.Diagnostics {
+func (cache *VariableContext) SetConfigVariable(mod *configs.Module, name string, value *terraform.InputValue) tfdiags.Diagnostics {
 	mp, exists := cache.ConfigVariables[mod.SourceDir]
 	if !exists {
 		mp = make(terraform.InputValues)

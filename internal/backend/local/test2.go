@@ -279,7 +279,7 @@ type TestFileRunner struct {
 	outputsLock  sync.Mutex
 
 	VariableCaches *hcltest.VariableCaches
-	Context        *hcltest.TestContext
+	Context        *hcltest.VariableContext
 }
 
 func (runner *TestFileRunner) Test(file *moduletest.File) {

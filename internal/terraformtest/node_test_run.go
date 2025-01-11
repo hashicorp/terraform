@@ -50,7 +50,7 @@ func (n *NodeTestRun) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.run.Addr()}
 }
 
-func (n *NodeTestRun) Execute(testCtx *hcltest.TestContext, g *terraform.Graph) tfdiags.Diagnostics {
+func (n *NodeTestRun) Execute(testCtx *hcltest.VariableContext, g *terraform.Graph) tfdiags.Diagnostics {
 	// relevantVariables contains the variables that are of interest to this
 	// run block. This is a combination of the variables declared within the
 	// configuration for this run block, and the variables referenced by the

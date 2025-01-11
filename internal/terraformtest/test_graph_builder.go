@@ -44,7 +44,7 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 		// &ApplyNoParallelTransformer{},
 		&CloseTestRootModuleTransformer{},
 		&terraform.ReferenceTransformer{},
-		// &terraform.TransitiveReductionTransformer{},
+		&terraform.TransitiveReductionTransformer{},
 	}
 
 	return steps
@@ -57,5 +57,5 @@ func WalkGraph(g *terraform.Graph, cb dag.WalkFunc) tfdiags.Diagnostics {
 // GraphNodeExecutable is an interface that can be implemented by nodes in the
 // graph that can be executed.
 type GraphNodeExecutable interface {
-	Execute(*hcltest.TestContext, *terraform.Graph) tfdiags.Diagnostics
+	Execute(*hcltest.VariableContext, *terraform.Graph) tfdiags.Diagnostics
 }

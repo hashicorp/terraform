@@ -30,7 +30,7 @@ type ProviderConfig struct {
 	Original hcl.Body
 
 	VariableCache       *VariableCache
-	TestContext         *TestContext
+	TestContext         *VariableContext
 	AvailableRunOutputs map[addrs.Run]cty.Value
 }
 
