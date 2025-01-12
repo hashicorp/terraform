@@ -53,6 +53,7 @@ type VariableContext struct {
 	// validate the test assertions and is used when calculating values for
 	// variables within run blocks.
 	RunOutputs map[addrs.Run]cty.Value
+	outputLock sync.Mutex
 }
 
 func NewTestContext(config *configs.Config, globalVariables map[string]backendrun.UnparsedVariableValue, fileVariables map[string]hcl.Expression, runOutputs map[addrs.Run]cty.Value) *VariableContext {
@@ -101,14 +102,14 @@ func (cache *VariableContext) SetRunVariable(runName, varName string, value *ter
 }
 
 func (cache *VariableContext) GetGlobalVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
-	// cache.globalLock.Lock()
-	// defer cache.globalLock.Unlock()
+	cache.globalLock.Lock()
+	defer cache.globalLock.Unlock()
 	return cache.ParsedGlobalVariables[name], nil
 }
 
 func (cache *VariableContext) GetFileVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
-	// cache.fileLock.Lock()
-	// defer cache.fileLock.Unlock()
+	cache.fileLock.Lock()
+	defer cache.fileLock.Unlock()
 	return cache.ParsedFileVariables[name], nil
 }
 
@@ -162,8 +163,8 @@ func (cache *VariableContext) GetConfigVariable(mod *configs.Module, name string
 }
 
 func (cache *VariableContext) SetConfigVariable(mod *configs.Module, name string, value *terraform.InputValue) tfdiags.Diagnostics {
-	// cache.configLock.Lock()
-	// defer cache.configLock.Unlock()
+	cache.configLock.Lock()
+	defer cache.configLock.Unlock()
 	mp, exists := cache.ConfigVariables[mod.SourceDir]
 	if !exists {
 		mp = make(terraform.InputValues)
@@ -171,4 +172,18 @@ func (cache *VariableContext) SetConfigVariable(mod *configs.Module, name string
 	}
 	mp[name] = value
 	return nil
+}
+
+// TODO: Not used yet
+func (cache *VariableContext) GetRunOutput(run addrs.Run) (cty.Value, bool) {
+	cache.outputLock.Lock()
+	defer cache.outputLock.Unlock()
+	value, exists := cache.RunOutputs[run]
+	return value, exists
+}
+
+func (cache *VariableContext) SetRunOutput(run addrs.Run, value cty.Value) {
+	cache.outputLock.Lock()
+	defer cache.outputLock.Unlock()
+	cache.RunOutputs[run] = value
 }

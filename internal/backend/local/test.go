@@ -161,7 +161,7 @@ func (runner *TestSuiteRunner2) Test() (moduletest.Status, tfdiags.Diagnostics) 
 					State: states.NewState(),
 				},
 			},
-			Context: hcltest.NewTestContext(
+			VariableContext: hcltest.NewTestContext(
 				runner.Config,
 				currentGlobalVariables,
 				file.Config.Variables,
@@ -276,9 +276,8 @@ type TestFileRunner2 struct {
 	// the test has finished.
 	RelevantStates map[string]*TestFileState
 	stateLock      sync.Mutex
-	outputsLock    sync.RWMutex
 
-	Context *hcltest.VariableContext
+	VariableContext *hcltest.VariableContext
 }
 
 // TestFileState is a helper struct that just maps a run block to the state that
@@ -289,7 +288,6 @@ type TestFileState struct {
 }
 
 func (runner *TestFileRunner2) Test(file *moduletest.File) {
-	runner.outputsLock = sync.RWMutex{}
 	runner.stateLock = sync.Mutex{}
 	log.Printf("[TRACE] TestFileRunner: executing test file %s", file.Name)
 
@@ -307,7 +305,7 @@ func (runner *TestFileRunner2) Test(file *moduletest.File) {
 		return
 	}
 
-	b := terraformtest.TestGraphBuilder{File: file, GlobalVars: runner.Context.GlobalVariables, Config: runner.Suite.Config}
+	b := terraformtest.TestGraphBuilder{File: file, GlobalVars: runner.VariableContext.GlobalVariables, Config: runner.Suite.Config}
 	graph, diags := b.Build(addrs.RootModuleInstance)
 
 	// If the graph walk was terminated, we don't want to add the diagnostics.
@@ -379,7 +377,7 @@ func (runner *TestFileRunner2) walkGraph(g *terraform.Graph) tfdiags.Diagnostics
 			// We don't return the diagnostics here because we want to continue
 			// walking the graph even if this node fails. We'll collect the
 			// diagnostics at the end.
-			exDiags := execable.Execute(runner.Context, g)
+			exDiags := execable.Execute(runner.VariableContext, g)
 			if exDiags != nil {
 				nodeDiags = nodeDiags.Append(exDiags)
 			}
@@ -530,9 +528,9 @@ func (runner *TestFileRunner2) run(run *moduletest.Run, file *moduletest.File, s
 		run.Status = moduletest.Error
 		return state, false
 	}
-	variables := runner.Context.GetParsedVariables(config.Module.SourceDir, run.Name)
+	variables := runner.VariableContext.GetParsedVariables(config.Module.SourceDir, run.Name)
 
-	resetConfig, configDiags := configtest.TransformConfigForTest2(config, run, file, runner.Context, runner.Suite.configProviders[key])
+	resetConfig, configDiags := configtest.TransformConfigForTest2(config, run, file, runner.VariableContext, runner.Suite.configProviders[key])
 	defer resetConfig()
 
 	run.Diagnostics = run.Diagnostics.Append(configDiags)
@@ -599,12 +597,7 @@ func (runner *TestFileRunner2) run(run *moduletest.Run, file *moduletest.File, s
 
 		// First, make the test context we can use to validate the assertions
 		// of the
-		testCtx := terraform.NewEvalTestContext(run, config.Module, planScope, testOnlyVariables, runner.Context.RunOutputs)
-
-		// lock the outputs here already, because testCtx.Evaluate() will
-		// access them.
-		runner.outputsLock.Lock()
-		defer runner.outputsLock.Unlock()
+		testCtx := terraformtest.NewEvalContext(run, config.Module, planScope, testOnlyVariables, runner.VariableContext)
 
 		// Second, evaluate the run block directly. We also pass in all the
 		// previous contexts so this run block can refer to outputs from
@@ -615,7 +608,7 @@ func (runner *TestFileRunner2) run(run *moduletest.Run, file *moduletest.File, s
 
 		// Now we've successfully validated this run block, lets add it into
 		// our prior run outputs so future run blocks can access it.
-		runner.Context.RunOutputs[run.Addr()] = outputVals
+		runner.VariableContext.SetRunOutput(run.Addr(), outputVals)
 
 		return state, false
 	}
@@ -686,7 +679,7 @@ func (runner *TestFileRunner2) run(run *moduletest.Run, file *moduletest.File, s
 
 	// First, make the test context we can use to validate the assertions
 	// of the
-	testCtx := terraform.NewEvalTestContext(run, config.Module, applyScope, testOnlyVariables, runner.Context.RunOutputs)
+	testCtx := terraformtest.NewEvalContext(run, config.Module, applyScope, testOnlyVariables, runner.VariableContext)
 
 	// Second, evaluate the run block directly. We also pass in all the
 	// previous contexts so this run block can refer to outputs from
@@ -697,9 +690,7 @@ func (runner *TestFileRunner2) run(run *moduletest.Run, file *moduletest.File, s
 
 	// Now we've successfully validated this run block, lets add it into
 	// our prior run outputs so future run blocks can access it.
-	runner.outputsLock.Lock()
-	defer runner.outputsLock.Unlock()
-	runner.Context.RunOutputs[run.Addr()] = outputVals
+	runner.VariableContext.SetRunOutput(run.Addr(), outputVals)
 
 	return updated, true
 }
@@ -749,7 +740,7 @@ func (runner *TestFileRunner2) destroy(config *configs.Config, state *states.Sta
 	var diags tfdiags.Diagnostics
 
 	key := config.Module.SourceDir
-	variables := runner.Context.GetParsedVariables(key, run.Name)
+	variables := runner.VariableContext.GetParsedVariables(key, run.Name)
 
 	// During the destroy operation, we don't add warnings from this operation.
 	// Anything that would have been reported here was already reported during
@@ -1095,7 +1086,7 @@ func (runner *TestFileRunner2) cleanup(file *moduletest.File) {
 			key = state.Run.Config.Module.Source.String()
 		}
 
-		reset, configDiags := configtest.TransformConfigForTest2(config, state.Run, file, runner.Context, runner.Suite.configProviders[key])
+		reset, configDiags := configtest.TransformConfigForTest2(config, state.Run, file, runner.VariableContext, runner.Suite.configProviders[key])
 		// TransformConfigForTest(config, state.Run, file, runner.VariableCaches, runner.PriorOutputs, runner.Suite.configProviders[key])
 		diags = diags.Append(configDiags)
 

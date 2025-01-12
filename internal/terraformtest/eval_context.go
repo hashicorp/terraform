@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package terraformtest
 
 import (
 	"fmt"
@@ -18,40 +18,41 @@ import (
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// TODO: Remove entire file
-// EvalTestContext is a container for context relating to the evaluation of a
+// EvalContext is a container for context relating to the evaluation of a
 // particular test case, which means a specific "run" block in a .tftest.hcl
 // file.
-type EvalTestContext struct {
+type EvalContext struct {
 	run       *moduletest.Run
 	module    *configs.Module
 	exprScope *lang.Scope
 }
 
-// NewEvalTestContext constructs a new test run evaluation context based on the
+// NewEvalContext constructs a new test run evaluation context based on the
 // definition of the run itself and on the results of the action the run
 // block described.
 //
 // priorOutputs describes the output values from earlier run blocks, which
 // should typically be populated from the second return value from calling
-// [EvalTestContext.Evaluate] on each earlier blocks' [EvalTestContext].
+// [EvalContext.Evaluate] on each earlier blocks' [EvalContext].
 //
 // extraVariableVals, if provided, overlays the input variables that are
 // already available in resultScope in case there are additional input
 // variables that were defined only for use in the test suite. Any variable
 // not defined in extraVariableVals will be evaluated through resultScope
 // instead.
-func NewEvalTestContext(run *moduletest.Run, module *configs.Module, resultScope *lang.Scope, extraVariableVals InputValues, priorOutputs map[addrs.Run]cty.Value) *EvalTestContext {
+func NewEvalContext(run *moduletest.Run, module *configs.Module, resultScope *lang.Scope, extraVariableVals terraform.InputValues, variableCtx *hcltest.VariableContext) *EvalContext {
 	// We need a derived evaluation scope that also supports referring to
 	// the prior run output values using the "run.NAME" syntax.
 	evalData := &testEvaluationData{
 		module:    module,
 		current:   resultScope.Data,
 		extraVars: extraVariableVals,
-		priorVals: priorOutputs,
+		varCtx:    variableCtx,
 	}
 	runScope := &lang.Scope{
 		Data:          evalData,
@@ -62,7 +63,7 @@ func NewEvalTestContext(run *moduletest.Run, module *configs.Module, resultScope
 		PlanTimestamp: resultScope.PlanTimestamp,
 		ExternalFuncs: resultScope.ExternalFuncs,
 	}
-	return &EvalTestContext{
+	return &EvalContext{
 		run:       run,
 		module:    module,
 		exprScope: runScope,
@@ -72,7 +73,7 @@ func NewEvalTestContext(run *moduletest.Run, module *configs.Module, resultScope
 // Evaluate processes the assertions inside the provided configs.TestRun against
 // the run results, returning a status, an object value representing the output
 // values from the module under test, and diagnostics describing any problems.
-func (ec *EvalTestContext) Evaluate() (moduletest.Status, cty.Value, tfdiags.Diagnostics) {
+func (ec *EvalContext) Evaluate() (moduletest.Status, cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	run := ec.run
 	scope := ec.exprScope
@@ -181,7 +182,7 @@ func (ec *EvalTestContext) Evaluate() (moduletest.Status, cty.Value, tfdiags.Dia
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
 				// Make the ephemerality visible
-				Extra: DiagnosticCausedByEphemeral(true),
+				Extra: terraform.DiagnosticCausedByEphemeral(true),
 			})
 			continue
 		} else {
@@ -231,8 +232,8 @@ func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnost
 type testEvaluationData struct {
 	module    *configs.Module
 	current   lang.Data
-	extraVars InputValues
-	priorVals map[addrs.Run]cty.Value
+	extraVars terraform.InputValues
+	varCtx    *hcltest.VariableContext
 }
 
 var _ lang.Data = (*testEvaluationData)(nil)
@@ -288,7 +289,7 @@ func (d *testEvaluationData) GetResource(addr addrs.Resource, rng tfdiags.Source
 // GetRunBlock implements lang.Data.
 func (d *testEvaluationData) GetRunBlock(addr addrs.Run, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ret, exists := d.priorVals[addr]
+	ret, exists := d.varCtx.GetRunOutput(addr)
 	if !exists {
 		ret = cty.DynamicVal
 		diags = diags.Append(&hcl.Diagnostic{
@@ -337,10 +338,10 @@ func (d *testEvaluationData) staticValidateRunRef(ref *addrs.Reference) tfdiags.
 	var diags tfdiags.Diagnostics
 
 	addr := ref.Subject.(addrs.Run)
-	_, exists := d.priorVals[addr]
+	_, exists := d.varCtx.GetRunOutput(addr)
 	if !exists {
 		var suggestions []string
-		for altAddr := range d.priorVals {
+		for altAddr := range d.varCtx.RunOutputs {
 			suggestions = append(suggestions, altAddr.Name)
 		}
 		sort.Strings(suggestions)
