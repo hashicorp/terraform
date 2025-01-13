@@ -30,10 +30,12 @@ import (
 //
 // This is the partial-expanded equivalent of NodePlannableResourceInstance.
 type nodePlannablePartialExpandedResource struct {
-	addr             addrs.PartialExpandedResource
-	config           *configs.Resource
-	resolvedProvider addrs.AbsProviderConfig
-	skipPlanChanges  bool
+	addr              addrs.PartialExpandedResource
+	config            *configs.Resource
+	resolvedProvider  addrs.AbsProviderConfig
+	skipPlanChanges   bool
+	preDestroyRefresh bool
+	importing         bool
 }
 
 var (
@@ -86,6 +88,35 @@ func (n *nodePlannablePartialExpandedResource) Execute(ctx EvalContext, op walkO
 	//     module.foo[*].type.name[*]
 	//
 	log.Printf("[TRACE] nodePlannablePartialExpandedResource: checking all of %s", n.addr.String())
+
+	switch op {
+	case walkPlanDestroy:
+		// During destroy plans, we never include partial-expanded resources.
+		// We're only interested in fully-expanded resources that we know we
+		// need to destroy.
+		return nil
+	case walkPlan:
+		if n.preDestroyRefresh {
+			// During a pre-destroy refresh, we're only interested in the
+			// resources that we know we need to destroy. Partial-expanded
+			// resources are not included in the plan.
+			return nil
+		}
+
+		if n.skipPlanChanges && !n.importing {
+			// Refresh-only plans are like destroy plans in that we only really
+			// care about what is in the state, so we don't need to plan partial
+			// resources. There is one exception: during import, we need to plan
+			// the partial resource as the import process happens even in
+			// refresh-only mode. If the user is expecting to import something
+			// and we can't because of a partial resource, we should let them
+			// know.
+			return nil
+		}
+
+	default:
+		// Continue with the normal planning process
+	}
 
 	var diags tfdiags.Diagnostics
 	switch n.addr.Resource().Mode {
