@@ -270,7 +270,7 @@ func getSkipDetails(runIndex int, file *moduletest.File, suiteStopped bool) (str
 		// Test suite experienced an interrupt
 		// This block only handles graceful Stop interrupts, as Cancel interrupts will prevent a JUnit file being produced at all
 		message := "Test skipped due to an interrupt"
-		body := fmt.Sprintf("Terraform received an interrupt and stopped gracefully. This caused all remaining testcases to be skipped")
+		body := "Terraform received an interrupt and stopped gracefully. This caused all remaining testcases to be skipped"
 
 		return message, body
 	}
