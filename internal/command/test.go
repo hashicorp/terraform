@@ -121,12 +121,6 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	var junitFile junit.JUnit
-	if args.JUnitXMLFile != "" {
-		// This line must happen after the TestCommand's calls loadConfigWithTests and has the configLoader field set
-		junitFile = junit.NewTestJUnitXMLFile(args.JUnitXMLFile, c.configLoader)
-	}
-
 	// Users can also specify variables via the command line, so we'll parse
 	// all that here.
 	var items []arguments.FlagNameValue
@@ -206,6 +200,14 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			Streams:          c.Streams,
 		}
 	} else {
+
+		// JUnit output is only compatible with local test execution
+		var junitFile junit.JUnit
+		if args.JUnitXMLFile != "" {
+			// Make sure TestCommand's calls loadConfigWithTests before this code, so configLoader is not nil
+			junitFile = junit.NewTestJUnitXMLFile(args.JUnitXMLFile, c.configLoader)
+		}
+
 		runner = &local.TestSuiteRunner{
 			Config: config,
 			// The GlobalVariables are loaded from the
