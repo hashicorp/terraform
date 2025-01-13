@@ -1463,7 +1463,11 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 							ComponentInstanceAddr: mustAbsComponentInstance("component.main"),
 							Dependencies:          collections.NewSet(mustAbsComponent("component.self")),
 							OutputValues:          make(map[addrs.OutputValue]cty.Value),
-							InputVariables:        make(map[addrs.InputVariable]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("input"): cty.UnknownVal(cty.Map(cty.Object(map[string]cty.Type{
+									"output": cty.String,
+								}))),
+							},
 						},
 						&stackstate.AppliedChangeInputVariable{
 							Addr:  mustStackInputVariable("inputs"),
@@ -2358,7 +2362,10 @@ func TestApplyWithFailedComponent(t *testing.T) {
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
 			Dependencies:          collections.NewSet(mustAbsComponent("component.parent")),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
-			InputVariables:        make(map[addrs.InputVariable]cty.Value),
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				mustInputVariable("id"):    cty.NullVal(cty.String),
+				mustInputVariable("input"): cty.UnknownVal(cty.String),
+			},
 		},
 	}
 
@@ -3110,9 +3117,6 @@ func TestApplyWithChangedInputValues(t *testing.T) {
 
 	go Apply(ctx, &applyReq, &applyResp)
 	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, diagsCh)
-	if len(applyDiags) != 1 {
-		t.Fatalf("expected exactly two diagnostics, got %s", applyDiags.ErrWithWarnings())
-	}
 
 	sort.SliceStable(applyDiags, diagnosticSortFunc(applyDiags))
 	expectDiagnosticsForTest(t, applyDiags,
@@ -3120,6 +3124,7 @@ func TestApplyWithChangedInputValues(t *testing.T) {
 			tfdiags.Error,
 			"Inconsistent value for input variable during apply",
 			"The value for non-ephemeral input variable \"input\" was set to a different value during apply than was set during plan. Only ephemeral input variables can change between the plan and apply phases."),
+		expectDiagnostic(tfdiags.Error, "Invalid inputs for component", "Invalid input variable definition object: attribute \"input\": string required."),
 	)
 
 	wantChanges := []stackstate.AppliedChange{
