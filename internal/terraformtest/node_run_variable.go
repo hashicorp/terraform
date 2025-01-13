@@ -30,16 +30,11 @@ type nodeRunVariable struct {
 
 var (
 	_ terraform.GraphNodeReferenceable = (*nodeRunVariable)(nil)
+	_ terraform.GraphNodeReferencer    = (*nodeRunVariable)(nil)
 )
 
-func (n *nodeRunVariable) expandsInstances() {}
-
-func (n *nodeRunVariable) temporaryValue() bool {
-	return true
-}
-
 func (n *nodeRunVariable) Name() string {
-	return fmt.Sprintf("%s.%s (expand)", n.Module, n.Addr.String())
+	return fmt.Sprintf("%s.%s(run.%s)", n.Module, n.Addr.Name, n.run.Name)
 }
 
 // GraphNodeModulePath
@@ -145,6 +140,6 @@ func (n *nodeRunVariable) Execute(testCtx *hcltest.VariableContext, g *terraform
 		SourceRange: tfdiags.SourceRangeFromHCL(n.Expr.Range()),
 	}
 
-	diags = testCtx.SetRunVariable(n.run.Name, n.Addr.Name, inputValue)
+	testCtx.SetRunVariable(n.run.Name, n.Addr.Name, inputValue)
 	return diags
 }

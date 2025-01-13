@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // VariableContext holds the context for variables used in tests.
@@ -29,21 +28,23 @@ type VariableContext struct {
 
 	// ParsedGlobalVariables contains the evaluated values for global variables.
 	ParsedGlobalVariables terraform.InputValues
-	globalLock            sync.Mutex
+	globalLock            sync.RWMutex
 
 	// ParsedFileVariables contains the evaluated values for file-level variables.
 	ParsedFileVariables terraform.InputValues
-	fileLock            sync.Mutex
+	fileLock            sync.RWMutex
 
 	// ConfigVariables contains the evaluated values for variables declared in the
 	// configuration.
+	// Each key is the source directory of the module that the variables are
+	// declared in.
 	ConfigVariables map[string]terraform.InputValues
-	configLock      sync.Mutex
+	configLock      sync.RWMutex
 
 	// RunVariables contains the evaluated values for variables declared in the
 	// run blocks.
 	RunVariables map[string]terraform.InputValues
-	runLock      sync.Mutex
+	runLock      sync.RWMutex
 
 	// RunOutputs is a mapping from run addresses to cty object values
 	// representing the collected output values from the module under test.
@@ -53,103 +54,124 @@ type VariableContext struct {
 	// validate the test assertions and is used when calculating values for
 	// variables within run blocks.
 	RunOutputs map[addrs.Run]cty.Value
-	outputLock sync.Mutex
+	outputLock sync.RWMutex
 }
 
+// NewTestContext creates a new VariableContext with the provided configuration and variables.
 func NewTestContext(config *configs.Config, globalVariables map[string]backendrun.UnparsedVariableValue, fileVariables map[string]hcl.Expression, runOutputs map[addrs.Run]cty.Value) *VariableContext {
 	return &VariableContext{
 		Config:                config,
 		GlobalVariables:       globalVariables,
 		FileVariables:         fileVariables,
 		ParsedGlobalVariables: make(terraform.InputValues),
-		globalLock:            sync.Mutex{},
 		ParsedFileVariables:   make(terraform.InputValues),
-		fileLock:              sync.Mutex{},
 		ConfigVariables:       make(map[string]terraform.InputValues),
-		configLock:            sync.Mutex{},
 		RunVariables:          make(map[string]terraform.InputValues),
-		runLock:               sync.Mutex{},
 		RunOutputs:            runOutputs,
 	}
 }
 
-func (cache *VariableContext) SetGlobalVariable(name string, value *terraform.InputValue) tfdiags.Diagnostics {
+// SetGlobalVariable sets a global variable in the context.
+func (cache *VariableContext) SetGlobalVariable(name string, value *terraform.InputValue) {
 	cache.globalLock.Lock()
 	defer cache.globalLock.Unlock()
-	var diags tfdiags.Diagnostics
 	cache.ParsedGlobalVariables[name] = value
-	return diags
 }
 
-func (cache *VariableContext) SetFileVariable(name string, value *terraform.InputValue) tfdiags.Diagnostics {
+// SetFileVariable sets a file-level variable in the context.
+func (cache *VariableContext) SetFileVariable(name string, value *terraform.InputValue) {
 	cache.fileLock.Lock()
 	defer cache.fileLock.Unlock()
-	var diags tfdiags.Diagnostics
 	cache.ParsedFileVariables[name] = value
-	return diags
 }
 
-func (cache *VariableContext) SetRunVariable(runName, varName string, value *terraform.InputValue) tfdiags.Diagnostics {
+// SetRunVariable sets a run-level variable in the context.
+func (cache *VariableContext) SetRunVariable(runName, varName string, value *terraform.InputValue) {
 	cache.runLock.Lock()
+	defer cache.runLock.Unlock()
 	store, exists := cache.RunVariables[runName]
 	if !exists {
 		store = make(terraform.InputValues)
 		cache.RunVariables[runName] = store
 	}
-	cache.RunVariables[runName][varName] = value
-	cache.runLock.Unlock()
-	return nil
+	store[varName] = value
 }
 
-func (cache *VariableContext) GetGlobalVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
-	cache.globalLock.Lock()
-	defer cache.globalLock.Unlock()
-	return cache.ParsedGlobalVariables[name], nil
+// GetGlobalVariable retrieves a global variable from the context.
+func (cache *VariableContext) GetGlobalVariable(name string) (*terraform.InputValue, error) {
+	cache.globalLock.RLock()
+	defer cache.globalLock.RUnlock()
+	value, exists := cache.ParsedGlobalVariables[name]
+	if !exists {
+		return nil, nil
+	}
+	return value, nil
 }
 
-func (cache *VariableContext) GetFileVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
-	cache.fileLock.Lock()
-	defer cache.fileLock.Unlock()
-	return cache.ParsedFileVariables[name], nil
+// GetFileVariable retrieves a file-level variable from the context.
+func (cache *VariableContext) GetFileVariable(name string) (*terraform.InputValue, error) {
+	cache.fileLock.RLock()
+	defer cache.fileLock.RUnlock()
+	value, exists := cache.ParsedFileVariables[name]
+	if !exists {
+		return nil, nil
+	}
+	return value, nil
 }
 
-func (cache *VariableContext) GetRunVariable(runName, varName string) (*terraform.InputValue, tfdiags.Diagnostics) {
+// GetRunVariable retrieves a run-level variable from the context.
+func (cache *VariableContext) GetRunVariable(runName, varName string) (*terraform.InputValue, error) {
+	cache.runLock.RLock()
+	defer cache.runLock.RUnlock()
 	store, exists := cache.RunVariables[runName]
 	if !exists {
 		return nil, nil
 	}
-	return store[varName], nil
+	value, exists := store[varName]
+	if !exists {
+		return nil, nil
+	}
+	return value, nil
 }
 
-func (cache *VariableContext) GetParsedVariables(key, runName string) terraform.InputValues {
+// GetParsedVariables retrieves all parsed variables for a given key and run name.
+func (cache *VariableContext) GetParsedVariables(mod *configs.Module, runName string) terraform.InputValues {
 	variables := make(terraform.InputValues)
-	// The order of these assignments is important. The variables from the
-	// config are the lowest priority and should be overridden by the variables
-	// from the parsed files and global variables.
-	if configVariables, exists := cache.ConfigVariables[key]; exists {
+	cache.configLock.RLock()
+	if configVariables, exists := cache.ConfigVariables[mod.SourceDir]; exists {
 		for name, value := range configVariables {
 			variables[name] = value
 		}
 	}
+	cache.configLock.RUnlock()
 
+	cache.globalLock.RLock()
 	for name, value := range cache.ParsedGlobalVariables {
 		variables[name] = value
 	}
+	cache.globalLock.RUnlock()
 
+	cache.fileLock.RLock()
 	for name, value := range cache.ParsedFileVariables {
 		variables[name] = value
 	}
+	cache.fileLock.RUnlock()
 
+	cache.runLock.RLock()
 	if runVariables, exists := cache.RunVariables[runName]; exists {
 		for name, value := range runVariables {
 			variables[name] = value
 		}
 	}
+	cache.runLock.RUnlock()
 
 	return variables
 }
 
-func (cache *VariableContext) GetConfigVariable(mod *configs.Module, name string) (*terraform.InputValue, tfdiags.Diagnostics) {
+// GetConfigVariable retrieves a configuration variable from the context.
+func (cache *VariableContext) GetConfigVariable(mod *configs.Module, name string) (*terraform.InputValue, error) {
+	cache.configLock.RLock()
+	defer cache.configLock.RUnlock()
 	mp, exists := cache.ConfigVariables[mod.SourceDir]
 	if !exists {
 		return nil, nil
@@ -158,11 +180,11 @@ func (cache *VariableContext) GetConfigVariable(mod *configs.Module, name string
 	if !exists {
 		return nil, nil
 	}
-
 	return value, nil
 }
 
-func (cache *VariableContext) SetConfigVariable(mod *configs.Module, name string, value *terraform.InputValue) tfdiags.Diagnostics {
+// SetConfigVariable sets a configuration variable in the context.
+func (cache *VariableContext) SetConfigVariable(mod *configs.Module, name string, value *terraform.InputValue) {
 	cache.configLock.Lock()
 	defer cache.configLock.Unlock()
 	mp, exists := cache.ConfigVariables[mod.SourceDir]
@@ -171,17 +193,17 @@ func (cache *VariableContext) SetConfigVariable(mod *configs.Module, name string
 		cache.ConfigVariables[mod.SourceDir] = mp
 	}
 	mp[name] = value
-	return nil
 }
 
-// TODO: Not used yet
+// GetRunOutput retrieves the output of a run from the context.
 func (cache *VariableContext) GetRunOutput(run addrs.Run) (cty.Value, bool) {
-	cache.outputLock.Lock()
-	defer cache.outputLock.Unlock()
+	cache.outputLock.RLock()
+	defer cache.outputLock.RUnlock()
 	value, exists := cache.RunOutputs[run]
 	return value, exists
 }
 
+// SetRunOutput sets the output of a run in the context.
 func (cache *VariableContext) SetRunOutput(run addrs.Run, value cty.Value) {
 	cache.outputLock.Lock()
 	defer cache.outputLock.Unlock()

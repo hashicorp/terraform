@@ -528,7 +528,7 @@ func (runner *TestFileRunner2) run(run *moduletest.Run, file *moduletest.File, s
 		run.Status = moduletest.Error
 		return state, false
 	}
-	variables := runner.VariableContext.GetParsedVariables(config.Module.SourceDir, run.Name)
+	variables := runner.VariableContext.GetParsedVariables(config.Module, run.Name)
 
 	resetConfig, configDiags := configtest.TransformConfigForTest2(config, run, file, runner.VariableContext, runner.Suite.configProviders[key])
 	defer resetConfig()
@@ -546,7 +546,7 @@ func (runner *TestFileRunner2) run(run *moduletest.Run, file *moduletest.File, s
 		return state, false
 	}
 
-	// FilterVariablesToModule2 only returns warnings, so we don't check the
+	// FilterVariablesToModule only returns warnings, so we don't check the
 	// returned diags for errors.
 	setVariables, testOnlyVariables, setVariableDiags := runner.FilterVariablesToModule(config, variables)
 	run.Diagnostics = run.Diagnostics.Append(setVariableDiags)
@@ -738,9 +738,7 @@ func (runner *TestFileRunner2) destroy(config *configs.Config, state *states.Sta
 	}
 
 	var diags tfdiags.Diagnostics
-
-	key := config.Module.SourceDir
-	variables := runner.VariableContext.GetParsedVariables(key, run.Name)
+	variables := runner.VariableContext.GetParsedVariables(config.Module, run.Name)
 
 	// During the destroy operation, we don't add warnings from this operation.
 	// Anything that would have been reported here was already reported during

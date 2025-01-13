@@ -4,6 +4,8 @@
 package terraformtest
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
@@ -21,6 +23,11 @@ type NodeTestRun struct {
 	Module addrs.Module
 }
 
+var (
+	_ terraform.GraphNodeReferenceable = (*NodeTestRun)(nil)
+	_ terraform.GraphNodeReferencer    = (*NodeTestRun)(nil)
+)
+
 func (n *NodeTestRun) Run() *moduletest.Run {
 	return n.run
 }
@@ -29,13 +36,21 @@ func (n *NodeTestRun) File() *moduletest.File {
 	return n.file
 }
 
+func (n *NodeTestRun) Name() string {
+	return fmt.Sprintf("run.%s", n.run.Name)
+}
+
 // GraphNodeReferencer
 func (n *NodeTestRun) References() []*addrs.Reference {
 	var result []*addrs.Reference
-	// If we have a config then we prefer to use that.
-	if c := n.run.Config; c != nil {
-		refs, _ := n.run.GetReferences()
-		result = append(result, refs...)
+	refs, _ := n.run.GetReferences()
+	result = append(result, refs...)
+	return result
+}
+func (n *NodeTestRun) refsMap() map[string]*addrs.Reference {
+	result := make(map[string]*addrs.Reference)
+	for _, ref := range n.References() {
+		result[ref.Subject.String()] = ref
 	}
 	return result
 }
@@ -77,9 +92,9 @@ func (n *NodeTestRun) Execute(testCtx *hcltest.VariableContext, g *terraform.Gra
 	// Now we'll get the values for all of these variables.
 	variables := make(map[string]*terraform.InputValue)
 	for name := range relevantVariables {
-		value, diags := testCtx.GetGlobalVariable(name)
-		if diags.HasErrors() {
-			return diags
+		value, err := testCtx.GetGlobalVariable(name)
+		if err != nil {
+			return diags.Append(err)
 		}
 		if value != nil {
 			variables[name] = value
@@ -87,9 +102,9 @@ func (n *NodeTestRun) Execute(testCtx *hcltest.VariableContext, g *terraform.Gra
 		}
 
 		// If the variable wasn't a global variable, it might be a file variable.
-		value, diags = testCtx.GetFileVariable(name)
-		if diags.HasErrors() {
-			return diags
+		value, err = testCtx.GetFileVariable(name)
+		if err != nil {
+			return diags.Append(err)
 		}
 
 		if value != nil && value.Value.Type() != cty.DynamicPseudoType {
@@ -98,9 +113,9 @@ func (n *NodeTestRun) Execute(testCtx *hcltest.VariableContext, g *terraform.Gra
 		}
 
 		// If the variable wasn't a file variable, it might be a run variable.
-		value, diags = testCtx.GetRunVariable(n.run.Name, name)
-		if diags.HasErrors() {
-			return diags
+		value, err = testCtx.GetRunVariable(n.run.Name, name)
+		if err != nil {
+			return diags.Append(err)
 		}
 		if value != nil {
 			variables[name] = value
@@ -108,9 +123,9 @@ func (n *NodeTestRun) Execute(testCtx *hcltest.VariableContext, g *terraform.Gra
 		}
 
 		// If the variable wasn't a run variable, it might be a config variable.
-		value, diags = testCtx.GetConfigVariable(n.config.Module, name)
-		if diags.HasErrors() {
-			return diags
+		value, err = testCtx.GetConfigVariable(n.config.Module, name)
+		if err != nil {
+			return diags.Append(err)
 		}
 		if value != nil {
 			variables[name] = value

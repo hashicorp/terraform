@@ -40,10 +40,13 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 		&TestFileTransformer{File: b.File, globalVars: b.GlobalVars, config: b.Config},
 		&TestRunTransformer{File: b.File, config: b.Config, globalVars: b.GlobalVars},
 		&ConfigTransformer{File: b.File, config: b.Config, globalVars: b.GlobalVars},
-		&AttachVariablesTransformer{},
+		&AttachVariablesToTestRunTransformer{},
 		&ApplyNoParallelTransformer{},
+		&TransformGlobal{File: b.File, config: b.Config, globalVars: b.GlobalVars},
+		&ConfigVariablesToOthersTransformer{}, // must run after TransformGlobal has removed dangling global variables
 		&CloseTestRootModuleTransformer{},
 		&terraform.ReferenceTransformer{},
+		&RemoveInvalidRuns{},
 		&terraform.TransitiveReductionTransformer{},
 	}
 

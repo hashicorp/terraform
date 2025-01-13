@@ -4,6 +4,8 @@
 package hcl
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
@@ -145,7 +147,14 @@ func (p *ProviderConfig) getFileVariable(name string) (*terraform.InputValue, tf
 	var value *terraform.InputValue
 	var diags tfdiags.Diagnostics
 	if p.TestContext != nil {
-		value, diags = p.TestContext.GetFileVariable(name)
+		var err error
+		value, err = p.TestContext.GetFileVariable(name)
+		if err != nil {
+			diags.Append(tfdiags.Sourceless(tfdiags.Error,
+				"file variable not found",
+				fmt.Sprintf("file variable %q not found in test context: %s", name, err),
+			))
+		}
 	} else {
 		value, diags = p.VariableCache.GetFileVariable(name)
 	}
@@ -159,7 +168,14 @@ func (p *ProviderConfig) getGlobalVariable(name string) (*terraform.InputValue, 
 	var value *terraform.InputValue
 	var diags tfdiags.Diagnostics
 	if p.TestContext != nil {
-		value, diags = p.TestContext.GetGlobalVariable(name)
+		var err error
+		value, err = p.TestContext.GetGlobalVariable(name)
+		if err != nil {
+			diags.Append(tfdiags.Sourceless(tfdiags.Error,
+				"global variable not found",
+				fmt.Sprintf("global variable %q not found in test context: %s", name, err),
+			))
+		}
 	} else {
 		value, diags = p.VariableCache.GetGlobalVariable(name)
 	}

@@ -34,14 +34,8 @@ var (
 	_ terraform.GraphNodeReferencer    = (*nodeFileVariable)(nil)
 )
 
-func (n *nodeFileVariable) expandsInstances() {}
-
-func (n *nodeFileVariable) temporaryValue() bool {
-	return true
-}
-
 func (n *nodeFileVariable) Name() string {
-	return fmt.Sprintf("%s.%s (expand)", n.Module, n.Addr.String())
+	return fmt.Sprintf("%s.%s (file)", n.Module, n.Addr.String())
 }
 
 // GraphNodeModulePath
