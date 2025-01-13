@@ -1071,13 +1071,16 @@ func (n *NodeAbstractResourceInstance) plan(
 		plannedNewVal = marks.MarkPaths(plannedNewVal, marks.Sensitive, sensitivePaths)
 	}
 
-	reqRep, reqRepDiags := getRequiredReplaces(unmarkedPriorVal, unmarkedPlannedNewVal, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
+	writeOnlyPaths := schema.WriteOnlyPaths(plannedNewVal, nil)
+
+	reqRep, reqRepDiags := getRequiredReplaces(unmarkedPriorVal, unmarkedPlannedNewVal, writeOnlyPaths, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
 	diags = diags.Append(reqRepDiags)
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
 	}
 
-	action, actionReason := getAction(n.Addr, unmarkedPriorVal, unmarkedPlannedNewVal, createBeforeDestroy, forceReplace, reqRep)
+	woPathSet := cty.NewPathSet(writeOnlyPaths...)
+	action, actionReason := getAction(n.Addr, unmarkedPriorVal, unmarkedPlannedNewVal, createBeforeDestroy, woPathSet, forceReplace, reqRep)
 
 	if action.IsReplace() {
 		// In this strange situation we want to produce a change object that
@@ -2813,7 +2816,7 @@ func resourceInstancePrevRunAddr(ctx EvalContext, currentAddr addrs.AbsResourceI
 	return table.OldAddr(currentAddr)
 }
 
-func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value, createBeforeDestroy bool, forceReplace []addrs.AbsResourceInstance, reqRep cty.PathSet) (action plans.Action, actionReason plans.ResourceInstanceChangeActionReason) {
+func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value, createBeforeDestroy bool, writeOnly cty.PathSet, forceReplace []addrs.AbsResourceInstance, reqRep cty.PathSet) (action plans.Action, actionReason plans.ResourceInstanceChangeActionReason) {
 	// The user might also ask us to force replacing a particular resource
 	// instance, regardless of whether the provider thinks it needs replacing.
 	// For example, users typically do this if they learn a particular object
@@ -2840,6 +2843,9 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 	switch {
 	case priorVal.IsNull():
 		action = plans.Create
+	case !writeOnly.Intersection(reqRep).Empty():
+		action = plans.DeleteThenCreate
+		actionReason = plans.ResourceInstanceReplaceBecauseCannotUpdate
 	case eq && !matchedForceReplace:
 		action = plans.NoOp
 	case matchedForceReplace || !reqRep.Empty():
@@ -2880,7 +2886,7 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 // function. This function exposes nothing about the priorVal or plannedVal
 // except for the paths that require replacement which can be deduced from the
 // type with or without marks.
-func getRequiredReplaces(priorVal, plannedNewVal cty.Value, requiredReplaces []cty.Path, providerAddr tfaddr.Provider, addr addrs.AbsResourceInstance) (cty.PathSet, tfdiags.Diagnostics) {
+func getRequiredReplaces(priorVal, plannedNewVal cty.Value, writeOnly []cty.Path, requiredReplaces []cty.Path, providerAddr tfaddr.Provider, addr addrs.AbsResourceInstance) (cty.PathSet, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	reqRep := cty.NewPathSet()
@@ -2925,7 +2931,16 @@ func getRequiredReplaces(priorVal, plannedNewVal cty.Value, requiredReplaces []c
 			}
 
 			eqV := plannedChangedVal.Equals(priorChangedVal)
-			if !eqV.IsKnown() || eqV.False() {
+
+			// if attribute/path is writeOnly we have no values to compare
+			// but still respect the required replacement
+			isWriteOnly := false
+			for _, woPath := range writeOnly {
+				if path.Equals(woPath) {
+					isWriteOnly = true
+				}
+			}
+			if !eqV.IsKnown() || eqV.False() || isWriteOnly {
 				reqRep.Add(path)
 			}
 		}
