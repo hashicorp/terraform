@@ -281,7 +281,7 @@ func getSkipDetails(runIndex int, file *moduletest.File, suiteStopped bool) (str
 		for i := runIndex; i >= 0; i-- {
 			if file.Runs[i].Status == moduletest.Error {
 				// Skipped due to error in previous run within the file
-				message := "Test run skipped due to a previous testcase error"
+				message := "Testcase skipped due to a previous testcase error"
 				body := fmt.Sprintf("Previous testcase %q ended in error, which caused the test remaining tests in the file to be skipped", file.Runs[i].Name)
 				return message, body
 			}
