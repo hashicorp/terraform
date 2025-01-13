@@ -17,6 +17,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -48,7 +49,8 @@ type TestSuiteRunner struct {
 
 	Opts *terraform.ContextOpts
 
-	View views.Test
+	View  views.Test
+	JUnit junit.JUnit
 
 	// Stopped and Cancelled track whether the user requested the testing
 	// process to be interrupted. Stopped is a nice graceful exit, we'll still
@@ -170,6 +172,14 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	}
 
 	runner.View.Conclusion(suite)
+
+	if runner.JUnit != nil {
+		artifactDiags := runner.JUnit.Save(suite)
+		diags = diags.Append(artifactDiags)
+		if artifactDiags.HasErrors() {
+			return moduletest.Error, diags
+		}
+	}
 
 	return suite.Status, diags
 }
