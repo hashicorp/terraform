@@ -32,6 +32,8 @@ The following options apply to the Terraform `terraform test` command:
 
 * `-json` - Displays machine-readable JSON output for your testing results.
 
+* `-junit-xml=<output file path>` - Saves a test report in JUnit XML format to the specified file. The file path must be relative or absolute.
+
 * `-test-directory=<relative directory>` - Overrides the directory that Terraform looks into for test files. Note that Terraform always loads testing files within the main configuration directory. The default testing directory is `tests`.
 
 * `-verbose` - Prints out the plan or state for each `run` block within a test file, based on the `command` attribute of each `run` block.
@@ -134,3 +136,74 @@ The testing directory must be beneath the main configuration directory, but it c
 > Note: Test files within the root configuration directory are always loaded, regardless of the `-test-directory` value.
 
 We do not recommend changing the default test directory. The option for customization is included for configuration authors who may have included a `tests` submodule in their configuration before the `terraform test` command was released. In general, the default test directory of `tests` should always be used.
+
+
+## Example: Test Output Format Options
+
+Below is a contrived example of Terraform testing that makes assertions about the values of local variables `true` and `false`.
+There are two test files: one contains a passing test, and one contains a failing test.
+
+```hcl
+# main.tf
+locals {
+  true  = "true"
+  false = "true" # incorrect, should be "false"!
+}
+```
+
+The assertion that local.true == "true" in example_1.tftest.hcl will pass:
+
+```hcl
+# example_1.tftest.hcl
+run "true_is_true" {
+  assert {
+    condition     = local.true == "true"
+    error_message = "local.true did not match expected value"
+  }
+}
+```
+
+The assertion that local.false == "false" in example_2.tftest.hcl will fail:
+
+```hcl
+# example_2.tftest.hcl
+run "false_is_false" {
+  assert {
+    condition     = local.false == "false"
+    error_message = "local.false did not match expected value"
+  }
+}
+```
+
+### Test output in JUnit XML format, saved to file
+
+Below is the output of the `terraform test -junit-xml=./output.xml` command using the example files above.
+The test output is:
+
+* Printed to the terminal in the default, human-readable format.
+* Also saved in JUnit XML format in the file specified by the flag.
+
+Below is the contents of the resulting `output.xml` file:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?><testsuites>
+  <testsuite name="example_1.tftest.hcl" tests="1" skipped="0" failures="0" errors="0">
+    <testcase name="true_is_true" classname="example_1.tftest.hcl" time="0.002295" timestamp="2025-01-13T19:23:16Z"></testcase>
+  </testsuite>
+  <testsuite name="example_2.tftest.hcl" tests="1" skipped="0" failures="1" errors="0">
+    <testcase name="false_is_false" classname="example_2.tftest.hcl" time="0.001468" timestamp="2025-01-13T19:23:16Z">
+      <failure message="Test run failed"></failure>
+      <system-err><![CDATA[
+Error: Test assertion failed
+
+  on example_2.tftest.hcl line 3, in run "false_is_false":
+   3:     condition     = local.false == "false"
+    ├────────────────
+    │ local.false is "true"
+
+local.false did not match expected value
+]]></system-err>
+    </testcase>
+  </testsuite>
+</testsuites>
+```
