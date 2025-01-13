@@ -8,10 +8,81 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/moduletest"
 )
 
-func TestJUnitXMLFile_save(t *testing.T) {
+// This test cannot access sources when contructing output for XML files. Due to this, the majority of testing
+// for TestJUnitXMLFile is in internal/command/test_test.go
+// In the junit package we can write some limited tests about XML output as long as there are no errors and/or
+// failing tests in the test.
+func Test_TestJUnitXMLFile_Save(t *testing.T) {
+
+	cases := map[string]struct {
+		filename      string
+		suite         moduletest.Suite
+		expectedOuput []byte
+		expectError   bool
+	}{
+		"renders output indicating when tests are skipped": {
+			filename: "output.xml",
+			suite: moduletest.Suite{
+				Status: moduletest.Skip,
+				Files: map[string]*moduletest.File{
+					"file1.tftest.hcl": {
+						Name:   "file1.tftest.hcl",
+						Status: moduletest.Fail,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "my_test",
+								Status: moduletest.Skip,
+							},
+						},
+					},
+				},
+			},
+			expectedOuput: []byte(`<?xml version="1.0" encoding="UTF-8"?><testsuites>
+  <testsuite name="file1.tftest.hcl" tests="1" skipped="1" failures="0" errors="0">
+    <testcase name="my_test" classname="file1.tftest.hcl">
+      <skipped></skipped>
+    </testcase>
+  </testsuite>
+</testsuites>`),
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			// Setup test
+			td := t.TempDir()
+			path := fmt.Sprintf("%s/%s", td, tc.filename)
+
+			loader, cleanup := configload.NewLoaderForTests(t)
+			defer cleanup()
+
+			j := TestJUnitXMLFile{
+				filename:     path,
+				configLoader: loader,
+			}
+
+			// Process data & save file
+			j.Save(&tc.suite)
+
+			// Assertions
+			actualOut, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("error opening XML file: %s", err)
+			}
+
+			if !bytes.Equal(actualOut, tc.expectedOuput) {
+				t.Fatalf("expected output:\n%s\ngot:\n%s", tc.expectedOuput, actualOut)
+			}
+		})
+	}
+
+}
+
+func Test_TestJUnitXMLFile_save(t *testing.T) {
 
 	cases := map[string]struct {
 		filename    string
