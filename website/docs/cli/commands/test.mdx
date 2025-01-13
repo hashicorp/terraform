@@ -207,3 +207,33 @@ local.false did not match expected value
   </testsuite>
 </testsuites>
 ```
+
+The file maps Terraform test command concepts to JUnit XML format according to the table below:
+
+| Terraform test concept     | Element in JUnit XML output                 |
+| ---------------------------| --------------------------------------------|
+| Test directory             | `<testsuites>`                              |
+| Test file                  | `<testsuite>`                               |
+| Run block                  | `<testcase>`                                |
+| Run block assertion        | None; details are included only on failure  |
+| Test failure               | `<failure>`                                 |
+| Test was skipped           | `<skipped>`                                 |
+| Test stopped due to error  | `<error>`                                   |
+| Stderr output from command | `<system-err>`                              |
+
+Different elements can include attributes that describe the test suite further. These attributes are described below:
+
+| JUnit XML Element      | Attribute                   | Meaning                                               |
+| -----------------------| ----------------------------|-------------------------------------------------------|
+| `<testsuite>`          | `name`                      | The test file name                                    |
+| `<testsuite>`          | `tests`                     | Count of total tests (run blocks) in the file         |
+| `<testsuite>`          | `skipped`                   | Count of skipped tests (run blocs) count in the file  |
+| `<testsuite>`          | `failures`                  | Count of failed tests (run blocks) count in the file  |
+| `<testsuite>`          | `errors`                    | Count of errored tests (run blocks) count in the file |
+| `<testcase>`           | `name`                      | The run block's name                                  |
+| `<testcase>`           | `classname`                 | The name of the file containing the run block         |
+| `<testcase>`           | `time`                      | The duration of executing the run block               |
+| `<testcase>`           | `timestamp`                 | The start time when executing the run block           |
+| `<failure>`            | `message`                   | A message describing the test failure                 |
+| `<error>`              | `message`                   | A message describing the test error                   |
+| `<skipped>`            | `message`                   | A message describing why the test was skipped         |
