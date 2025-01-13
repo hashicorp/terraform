@@ -171,9 +171,11 @@ Overrides can be used with both real and mocked providers and will provide the c
 
 ### Overrides Syntax
 
-All override blocks contain a `target` attribute, which should specify the resource, data source, or module to override. The `override_module` blocks contain an `outputs` attribute, while the `override_resource` and `override_data` blocks contain a `values` attribute.
+All override blocks contain a `target` attribute, which should specify the resource, data source, or module to override. The `override_module` blocks contain an `outputs` attribute, while the `override_resource` and `override_data` blocks contain a `values` attribute. In addition, the override blocks support an optional `override_during` block that specifies when the computed values should be generated.
 
 The `outputs` and `values` attributes are optional and if not specified, Terraform will generate values for them automatically.
+
+The `override_during` attribute requires either a `plan` or `apply` keyword value. If set to `plan`, Terraform will generate values during the `plan` phase and reuse these values during the `apply` phase. If set to `apply` or not specified, Terraform will generate values for override block during the `apply` phase, returning `(known after apply)` for the values during the `plan` phase.
 
 The following example demonstrates the override blocks at various different scopes and levels. The main configuration calls the `./modules/s3_data` module to read a file from an S3 bucket, and then creates a `local_file` from the data returned from the module.
 
