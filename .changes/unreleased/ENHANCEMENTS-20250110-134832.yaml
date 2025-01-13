@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: Added validation that prevented providers returning non-null values for write-only attributes when upgrading resource state
-time: 2025-01-10T13:48:32.210045Z
-custom:
-    Issue: "36305"
