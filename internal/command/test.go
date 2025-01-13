@@ -223,7 +223,9 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		// JUnit output is only compatible with local test execution
 		if args.JUnitXMLFile != "" {
 			// Make sure TestCommand's calls loadConfigWithTests before this code, so configLoader is not nil
-			localRunner.JUnit = junit.NewTestJUnitXMLFile(args.JUnitXMLFile, c.configLoader)
+			j = junit.NewTestJUnitXMLFile(args.JUnitXMLFile, c.configLoader)
+			j.SetTestSuiteRunner(localRunner)
+			localRunner.JUnit = junitFile
 		}
 
 		runner = localRunner
