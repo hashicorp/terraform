@@ -12,8 +12,8 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/artifact"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
+	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
@@ -121,7 +121,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	var junit artifact.Artifact
+	var junitFile junit.JUnit
 	if args.JUnitXMLFile != "" {
 		// JUnit XML output is currently experimental, so that we can gather
 		// feedback on exactly how we should map the test results to this
@@ -142,7 +142,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		))
 
 		// This line must happen after the TestCommand's calls loadConfigWithTests and has the configLoader field set
-		junit = artifact.NewTestJUnitXMLFile(args.JUnitXMLFile, c.configLoader)
+		junitFile = junit.NewTestJUnitXMLFile(args.JUnitXMLFile, c.configLoader)
 	}
 
 	// Users can also specify variables via the command line, so we'll parse
@@ -235,7 +235,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			TestingDirectory:    args.TestDirectory,
 			Opts:                opts,
 			View:                view,
-			Artifact:            junit,
+			JUnit:               junitFile,
 			Stopped:             false,
 			Cancelled:           false,
 			StoppedCtx:          stopCtx,

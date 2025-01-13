@@ -1,6 +1,6 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
-package artifact
+package junit
 
 import (
 	"bytes"
@@ -30,8 +30,8 @@ import (
 // all, which JUnit XML-consuming tools tend to expect as an outcome of a
 // catastrophically-errored test suite.
 //
-// TestJUnitXMLFile implements the Artifact interface, which allows creation of local
-// files that contains a description of a completed test suite. It is intended only
+// TestJUnitXMLFile implements the JUnit interface, which allows creation of a local
+// file that contains a description of a completed test suite. It is intended only
 // for use in conjunction with a View that provides the streaming output of ongoing
 // testing events.
 
@@ -42,11 +42,11 @@ type TestJUnitXMLFile struct {
 	configLoader *configload.Loader
 }
 
-type Artifact interface {
+type JUnit interface {
 	Save(*moduletest.Suite) tfdiags.Diagnostics
 }
 
-var _ Artifact = (*TestJUnitXMLFile)(nil)
+var _ JUnit = (*TestJUnitXMLFile)(nil)
 
 // NewTestJUnitXML returns a [Test] implementation that will, when asked to
 // report "conclusion", write a JUnit XML report to the given filename.
