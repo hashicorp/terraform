@@ -37,16 +37,17 @@ func (b *TestGraphBuilder) Build(path addrs.ModuleInstance) (*terraform.Graph, t
 // See terraform.GraphBuilder
 func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 	steps := []terraform.GraphTransformer{
-		&TestFileTransformer{File: b.File, globalVars: b.GlobalVars, config: b.Config},
 		&TestRunTransformer{File: b.File, config: b.Config, globalVars: b.GlobalVars},
-		&ConfigTransformer{File: b.File, config: b.Config, globalVars: b.GlobalVars},
+		&FileVariablesTransformer{File: b.File, config: b.Config},
+		&VariablesTransformer{File: b.File, config: b.Config, globalVars: b.GlobalVars},
 		&AttachVariablesToTestRunTransformer{},
 		&ApplyNoParallelTransformer{},
-		&TransformGlobal{File: b.File, config: b.Config, globalVars: b.GlobalVars},
-		&ConfigVariablesToOthersTransformer{}, // must run after TransformGlobal has removed dangling global variables
+		&RemoveDanglingGlobalTransformer{},
+		// must run after RemoveDanglingGlobalTransformer has removed dangling global variables
+		&ConfigVariablesToOthersTransformer{},
 		&CloseTestRootModuleTransformer{},
 		&terraform.ReferenceTransformer{},
-		&RemoveInvalidRuns{},
+		&RemoveInvalidRunVarsTransformer{},
 		&terraform.TransitiveReductionTransformer{},
 	}
 

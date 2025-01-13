@@ -12,14 +12,14 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
-// ConfigTransformer is a GraphTransformer that adds all the test runs to the graph.
-type ConfigTransformer struct {
+// VariablesTransformer is a GraphTransformer that adds the config variables and global variables to the graph.
+type VariablesTransformer struct {
 	File       *moduletest.File
 	config     *configs.Config
 	globalVars map[string]backendrun.UnparsedVariableValue
 }
 
-func (t *ConfigTransformer) Transform(g *terraform.Graph) error {
+func (t *VariablesTransformer) Transform(g *terraform.Graph) error {
 	modeMap := make(map[string]configs.VariableParsingMode)
 	// For each run, we have to create a node for each variable
 	// in the module configuration that the run uses.
@@ -73,51 +73,11 @@ func (t *ConfigTransformer) Transform(g *terraform.Graph) error {
 	return nil
 }
 
-type TransformGlobal struct {
-	File       *moduletest.File
-	config     *configs.Config
-	globalVars map[string]backendrun.UnparsedVariableValue
+// RemoveDanglingGlobalTransformer is a GraphTransformer that removes dangling global variables from the graph.
+type RemoveDanglingGlobalTransformer struct {
 }
 
-func (t *TransformGlobal) Transform(g *terraform.Graph) error {
-	// modeMap := make(map[string]configs.VariableParsingMode)
-	// for _, run := range t.File.Runs {
-	// 	config := t.config
-
-	// 	// if the run has reference to a specific module configuration, we use that
-	// 	if run.Config.ConfigUnderTest != nil {
-	// 		config = run.Config.ConfigUnderTest
-	// 	}
-	// 	// For all configurations used in the test (the main module configuration
-	// 	// and any other module configurations referenced in runs), check if the
-	// 	// global variables are used in any of them. If they are, store the parsing
-	// 	// mode of the variable in the modeMap.
-	// 	// TODO: What happens if 2 configurations use the same global variable but with different parsing modes?
-	// 	for name := range t.globalVars {
-	// 		if variable, ok := config.Module.Variables[name]; ok {
-	// 			modeMap[name] = variable.ParsingMode
-	// 		}
-	// 	}
-
-	// }
-
-	// // Add the global variables to the graph
-	// for name, unparsed := range t.globalVars {
-	// 	parsingMode := configs.VariableParseHCL
-	// 	if _, exists := modeMap[name]; exists {
-	// 		parsingMode = modeMap[name]
-	// 	}
-
-	// 	node := &nodeGlobalVariable{
-	// 		Addr:        addrs.InputVariable{Name: name},
-	// 		unparsed:    unparsed,
-	// 		parsingMode: parsingMode,
-	// 		config:      t.config,
-	// 		Module:      t.config.Path,
-	// 	}
-	// 	g.Add(node)
-	// }
-
+func (t *RemoveDanglingGlobalTransformer) Transform(g *terraform.Graph) error {
 	for _, v := range g.Vertices() {
 		node, ok := v.(*nodeGlobalVariable)
 		if !ok {
@@ -132,12 +92,12 @@ func (t *TransformGlobal) Transform(g *terraform.Graph) error {
 	return nil
 }
 
-// RemoveInvalidRuns is a GraphTransformer that removes invalid runs from the graph.
-// For each run, it removes all the run variables that are not related to the run.
-type RemoveInvalidRuns struct {
+// RemoveInvalidRunVarsTransformer is a GraphTransformer that removes invalid run variables connections from the graph.
+// runs should only have connections to variables that are in the same run.
+type RemoveInvalidRunVarsTransformer struct {
 }
 
-func (t *RemoveInvalidRuns) Transform(g *terraform.Graph) error {
+func (t *RemoveInvalidRunVarsTransformer) Transform(g *terraform.Graph) error {
 	for _, v := range g.Vertices() {
 		node, ok := v.(*NodeTestRun)
 		if !ok {

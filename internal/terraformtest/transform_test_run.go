@@ -14,7 +14,8 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
-// TestRunTransformer is a GraphTransformer that adds all the test runs to the graph.
+// TestRunTransformer is a GraphTransformer that adds all the test runs,
+// and the variables defined in each run block, to the graph.
 type TestRunTransformer struct {
 	File       *moduletest.File
 	config     *configs.Config
@@ -107,14 +108,6 @@ type nodeCloseTest struct {
 type AttachVariablesToTestRunTransformer struct {
 }
 
-func refsMap(n terraform.GraphNodeReferencer) map[string]*addrs.Reference {
-	result := make(map[string]*addrs.Reference)
-	for _, ref := range n.References() {
-		result[ref.Subject.String()] = ref
-	}
-	return result
-}
-
 func (t *AttachVariablesToTestRunTransformer) Transform(g *terraform.Graph) error {
 	for _, v := range g.Vertices() {
 		runNode, ok := v.(*NodeTestRun)
@@ -180,9 +173,6 @@ func (t *AttachVariablesToTestRunTransformer) Transform(g *terraform.Graph) erro
 
 	// referencing global variables from the config variables that use it
 	for _, v := range g.Vertices() {
-		if _, ok := v.(*NodeTestRun); ok {
-			continue
-		}
 		cfgNode, ok := v.(*nodeConfigVariable)
 		if !ok {
 			continue
@@ -202,4 +192,12 @@ func (t *AttachVariablesToTestRunTransformer) Transform(g *terraform.Graph) erro
 		}
 	}
 	return nil
+}
+
+func refsMap(n terraform.GraphNodeReferencer) map[string]*addrs.Reference {
+	result := make(map[string]*addrs.Reference)
+	for _, ref := range n.References() {
+		result[ref.Subject.String()] = ref
+	}
+	return result
 }
