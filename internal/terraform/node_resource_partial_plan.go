@@ -57,7 +57,6 @@ func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, know
 			resolvedProvider:  n.ResolvedProvider,
 			skipPlanChanges:   n.skipPlanChanges,
 			preDestroyRefresh: n.preDestroyRefresh,
-			importing:         unknownImports.Has(resourceAddr),
 		})
 	}
 
@@ -301,7 +300,6 @@ func (n *nodeExpandPlannableResource) knownModuleSubgraph(ctx EvalContext, addr 
 					resolvedProvider:  n.ResolvedProvider,
 					skipPlanChanges:   n.skipPlanChanges,
 					preDestroyRefresh: n.preDestroyRefresh,
-					importing:         unknownImports.Has(addr),
 				})
 			}
 			return nil

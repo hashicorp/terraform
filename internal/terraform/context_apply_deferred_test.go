@@ -3407,25 +3407,8 @@ resource "test_object" "test" {
 	// the resources for these operations. We do know the resources that are all
 	// in state, and the operation should ignore the configuration anyway.
 	//
-	// there is one exception to this, and it is when a resource is also being
-	// imported during a refresh operaiton. In this case, unless the import
-	// points to a known resource in state then we should mark the resource as
-	// being deferred as we can't properly refresh it until the import can
-	// happen and the refresh behaviour is to handle the import first.
-	//
-	// There are 6 tests cases here:
-	//   - refresh: not deferred
-	//   - destroy: not deferred
-	//   - pre-destroy refresh: not deferred
-	//   - import then refresh: deferred
-	//   - import then destroy: not deferred
-	//   - import then pre-destroy refresh: not deferred
-	//
-	// The pre-destroy refresh happens automatically during the destroy
-	// operation, so we don't need to test that separately.
-	// We do also want to test both count and foreach attributes, but for the
-	//
-	// That leaves 6 tests in total.
+	// the following tests iterate through various scenarios where count and
+	// foreach might be unknown during a refresh or destroy operation.
 
 	unknownCountDuringRefresh = deferredActionsTest{
 		configs: map[string]string{
