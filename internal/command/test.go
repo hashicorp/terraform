@@ -224,7 +224,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			Streams:          c.Streams,
 		}
 	} else {
-		runner = &local.TestSuiteRunner{
+		localRunner := &local.TestSuiteRunner{
 			Config: config,
 			// The GlobalVariables are loaded from the
 			// main configuration directory
@@ -235,7 +235,6 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			TestingDirectory:    args.TestDirectory,
 			Opts:                opts,
 			View:                view,
-			JUnit:               junitFile,
 			Stopped:             false,
 			Cancelled:           false,
 			StoppedCtx:          stopCtx,
@@ -243,6 +242,13 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			Filter:              args.Filter,
 			Verbose:             args.Verbose,
 		}
+
+		if junitFile != nil {
+			junitFile.SetTestSuiteRunner(localRunner)
+			localRunner.JUnit = junitFile
+		}
+
+		runner = localRunner
 	}
 
 	var testDiags tfdiags.Diagnostics

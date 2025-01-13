@@ -40,10 +40,14 @@ type TestJUnitXMLFile struct {
 
 	// A config loader is required to access sources, which are used with diagnostics to create XML content
 	configLoader *configload.Loader
+
+	// A pointer to the containing test suite runner is needed to monitor details like the command being stopped
+	testSuiteRunner moduletest.TestSuiteRunner
 }
 
 type JUnit interface {
 	Save(*moduletest.Suite) tfdiags.Diagnostics
+	SetTestSuiteRunner(moduletest.TestSuiteRunner)
 }
 
 var _ JUnit = (*TestJUnitXMLFile)(nil)
@@ -59,7 +63,15 @@ func NewTestJUnitXMLFile(filename string, configLoader *configload.Loader) *Test
 	return &TestJUnitXMLFile{
 		filename:     filename,
 		configLoader: configLoader,
+		// testSuiteRunner unset at this point
 	}
+}
+
+// SetTestSuiteRunner is used to update a TestJUnitXMLFile struct to contain
+// a pointer to the test runner it's being used in. This allows the generated file to report
+// whether skipped files are due to the runner being interrupted or not.
+func (v *TestJUnitXMLFile) SetTestSuiteRunner(testSuiteRunner moduletest.TestSuiteRunner) {
+	v.testSuiteRunner = testSuiteRunner
 }
 
 // Save takes in a test suite, generates JUnit XML summarising the test results,
