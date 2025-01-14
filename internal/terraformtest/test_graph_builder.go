@@ -1,13 +1,14 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package terraformtest
 
 import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -19,20 +20,20 @@ type TestGraphBuilder struct {
 }
 
 // See GraphBuilder
-func (b *TestGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
+func (b *TestGraphBuilder) Build(path addrs.ModuleInstance) (*terraform.Graph, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] building graph for terraform test")
-	return (&BasicGraphBuilder{
+	return (&terraform.BasicGraphBuilder{
 		Steps: b.Steps(),
 		Name:  "TestGraphBuilder",
 	}).Build(path)
 }
 
 // See GraphBuilder
-func (b *TestGraphBuilder) Steps() []GraphTransformer {
-	steps := []GraphTransformer{
+func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
+	steps := []terraform.GraphTransformer{
 		&TestRunTransformer{File: b.File},
 		&CloseTestGraphTransformer{},
-		&TransitiveReductionTransformer{},
+		&terraform.TransitiveReductionTransformer{},
 	}
 
 	return steps

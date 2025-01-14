@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package terraformtest
 
 import (
 	"fmt"
@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -43,7 +44,7 @@ type EvalTestContext struct {
 // variables that were defined only for use in the test suite. Any variable
 // not defined in extraVariableVals will be evaluated through resultScope
 // instead.
-func NewEvalTestContext(run *moduletest.Run, module *configs.Module, resultScope *lang.Scope, extraVariableVals InputValues, priorOutputs map[addrs.Run]cty.Value) *EvalTestContext {
+func NewEvalTestContext(run *moduletest.Run, module *configs.Module, resultScope *lang.Scope, extraVariableVals terraform.InputValues, priorOutputs map[addrs.Run]cty.Value) *EvalTestContext {
 	// We need a derived evaluation scope that also supports referring to
 	// the prior run output values using the "run.NAME" syntax.
 	evalData := &testEvaluationData{
@@ -180,7 +181,7 @@ func (ec *EvalTestContext) Evaluate() (moduletest.Status, cty.Value, tfdiags.Dia
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
 				// Make the ephemerality visible
-				Extra: DiagnosticCausedByEphemeral(true),
+				Extra: terraform.DiagnosticCausedByEphemeral(true),
 			})
 			continue
 		} else {
@@ -230,7 +231,7 @@ func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnost
 type testEvaluationData struct {
 	module    *configs.Module
 	current   lang.Data
-	extraVars InputValues
+	extraVars terraform.InputValues
 	priorVals map[addrs.Run]cty.Value
 }
 
