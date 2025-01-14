@@ -917,7 +917,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, &mocking.MockedData{
 				Value:             n.override.Values,
 				Range:             n.override.Range,
-				ComputedAsUnknown: !n.override.UseForPlan(),
+				ComputedAsUnknown: !n.override.UseForPlan,
 			}, schema)
 			resp = providers.PlanResourceChangeResponse{
 				PlannedState: override,
@@ -1109,7 +1109,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, &mocking.MockedData{
 				Value:             n.override.Values,
 				Range:             n.override.Range,
-				ComputedAsUnknown: !n.override.UseForPlan(),
+				ComputedAsUnknown: !n.override.UseForPlan,
 			}, schema)
 			resp = providers.PlanResourceChangeResponse{
 				PlannedState: override,
