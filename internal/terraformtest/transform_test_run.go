@@ -31,6 +31,13 @@ func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
 			config = run.Config.ConfigUnderTest
 		}
 
+		// Validate the run block as early as possible
+		run.Diagnostics = run.Diagnostics.Append(run.Config.Validate(config))
+		if run.Diagnostics.HasErrors() {
+			run.Status = moduletest.Error
+			return nil
+		}
+
 		node := &NodeTestRun{run: run, file: t.File, config: config, Module: config.Path}
 		g.Add(node)
 

@@ -131,7 +131,15 @@ func (n *nodeRunVariable) Execute(testCtx *hcltest.VariableContext, g *terraform
 			Subject:  n.Expr.Range().Ptr(),
 		})
 		// }
-		return diags
+		testCtx.SetRunVariable(n.run.Name, n.Addr.Name, hcltest.VariableWithDiag{
+			Value: &terraform.InputValue{
+				Value:       value,
+				SourceType:  terraform.ValueFromConfig,
+				SourceRange: tfdiags.SourceRangeFromHCL(n.Expr.Range()),
+			},
+			Diags: diags,
+		})
+		return nil
 	}
 
 	inputValue := &terraform.InputValue{
@@ -140,6 +148,9 @@ func (n *nodeRunVariable) Execute(testCtx *hcltest.VariableContext, g *terraform
 		SourceRange: tfdiags.SourceRangeFromHCL(n.Expr.Range()),
 	}
 
-	testCtx.SetRunVariable(n.run.Name, n.Addr.Name, inputValue)
-	return diags
+	testCtx.SetRunVariable(n.run.Name, n.Addr.Name, hcltest.VariableWithDiag{
+		Value: inputValue,
+		Diags: diags,
+	})
+	return nil
 }

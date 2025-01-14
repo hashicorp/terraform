@@ -6,14 +6,12 @@ package terraformtest
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // nodeConfigVariable is a node that represents a variable in a terraform configuration.
@@ -35,7 +33,7 @@ var (
 )
 
 func (n *nodeConfigVariable) Name() string {
-	return fmt.Sprintf("%s.%s (config)", n.Module, n.Addr.Name)
+	return fmt.Sprintf("%s.%s (config,r=%s)", n.Module, n.Addr.Name, n.run.Name)
 }
 
 // GraphNodeModulePath
@@ -65,29 +63,6 @@ func (n *nodeConfigVariable) Execute(testCtx *hcltest.VariableContext, g *terraf
 	// If it is optional, we're going to give these variables a value. They'll be
 	// processed by the Terraform graph and provided a default value later
 	// if they have one.
-	var diags tfdiags.Diagnostics
-	var value *terraform.InputValue
-	if n.variable.Required() {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "No value for required variable",
-			Detail: fmt.Sprintf("The module under test has a required variable %q with no set value. Use a -var or -var-file command line argument or add this variable into a \"variables\" block within the test file or run block.",
-				n.variable.Name),
-			Subject: n.variable.DeclRange.Ptr(),
-		})
-
-		value = &terraform.InputValue{
-			Value:       cty.DynamicVal,
-			SourceType:  terraform.ValueFromConfig,
-			SourceRange: tfdiags.SourceRangeFromHCL(n.variable.DeclRange),
-		}
-	} else {
-		value = &terraform.InputValue{
-			Value:       cty.NilVal,
-			SourceType:  terraform.ValueFromConfig,
-			SourceRange: tfdiags.SourceRangeFromHCL(n.variable.DeclRange),
-		}
-	}
-	testCtx.SetConfigVariable(n.config.Module, n.Addr.Name, value)
-	return diags
+	testCtx.SetConfigVariable(n.config.Module, n.Addr.Name, n.variable)
+	return nil
 }

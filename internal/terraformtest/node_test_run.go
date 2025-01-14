@@ -91,47 +91,58 @@ func (n *NodeTestRun) Execute(testCtx *hcltest.VariableContext, g *terraform.Gra
 
 	// Now we'll get the values for all of these variables.
 	variables := make(map[string]*terraform.InputValue)
+	varDiags := make(map[string]tfdiags.Diagnostics)
 	for name := range relevantVariables {
-		value, err := testCtx.GetGlobalVariable(name)
-		if err != nil {
-			return diags.Append(err)
-		}
+		value, diags := testCtx.GetGlobalVariable(name)
+		varDiags[name] = diags
 		if value != nil {
 			variables[name] = value
 			continue
 		}
 
 		// If the variable wasn't a global variable, it might be a file variable.
-		value, err = testCtx.GetFileVariable(name)
-		if err != nil {
-			return diags.Append(err)
+		value, diags = testCtx.GetFileVariable(name)
+		if diags.HasErrors() {
+			varDiags[name] = diags
 		}
 
 		if value != nil && value.Value.Type() != cty.DynamicPseudoType {
 			variables[name] = value
+			varDiags[name] = diags
 			continue
 		}
 
 		// If the variable wasn't a file variable, it might be a run variable.
-		value, err = testCtx.GetRunVariable(n.run.Name, name)
-		if err != nil {
-			return diags.Append(err)
+		value, diags = testCtx.GetRunVariable(n.run.Name, name)
+		if diags.HasErrors() {
+			varDiags[name] = diags
 		}
+
 		if value != nil {
 			variables[name] = value
+			varDiags[name] = diags
 			continue
 		}
 
 		// If the variable wasn't a run variable, it might be a config variable.
-		value, err = testCtx.GetConfigVariable(n.config.Module, name)
-		if err != nil {
-			return diags.Append(err)
-		}
-		if value != nil {
-			variables[name] = value
-			continue
+		value, cDiags := testCtx.GetConfigVariable(n.config.Module, name)
+		if cDiags.HasErrors() {
+			varDiags[name] = cDiags
 		}
 
+		if value != nil {
+			variables[name] = value
+			varDiags[name] = cDiags
+			continue
+		}
+	}
+
+	// If any of the variables are missing, we'll mark the run as an error.
+	for _, diags := range varDiags {
+		if diags.HasErrors() {
+			n.run.Status = moduletest.Error
+			return diags
+		}
 	}
 
 	for name := range relevantVariables {

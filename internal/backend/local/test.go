@@ -323,15 +323,15 @@ func (runner *TestFileRunner2) Test(file *moduletest.File) {
 		return
 	}
 
-	diags = runner.walkGraph(graph)
+	diags = runner.graphWalk(graph)
 	if diags.HasErrors() {
 		file.Status = file.Status.Merge(moduletest.Error)
 	}
 	file.Diagnostics = file.Diagnostics.Append(diags)
 }
 
-func (runner *TestFileRunner2) walkGraph(g *terraform.Graph) tfdiags.Diagnostics {
-	par := 10 //runner.Suite.Opts.Parallelism
+func (runner *TestFileRunner2) graphWalk(g *terraform.Graph) tfdiags.Diagnostics {
+	par := 1 //runner.Suite.Opts.Parallelism
 	if par < 1 {
 		par = 10
 	}
@@ -379,7 +379,21 @@ func (runner *TestFileRunner2) walkGraph(g *terraform.Graph) tfdiags.Diagnostics
 			// diagnostics at the end.
 			exDiags := execable.Execute(runner.VariableContext, g)
 			if exDiags != nil {
-				nodeDiags = nodeDiags.Append(exDiags)
+				runNode, ok := v.(*terraformtest.NodeTestRun)
+				if ok {
+					run := runNode.Run()
+					file := runNode.File()
+					run.Status = moduletest.Error
+					file.Status = file.Status.Merge(moduletest.Error)
+					run.Diagnostics = run.Diagnostics.Append(exDiags)
+					runner.Suite.View.Run(run, file, moduletest.Complete, 0)
+					return
+				} else {
+					// switch v.(type) {
+					// case *terraformtest.NodeConfigVariable:
+					// nodeDiags = nodeDiags.Append(exDiags)
+					return
+				}
 			}
 		}
 
@@ -510,12 +524,6 @@ func (runner *TestFileRunner2) run(run *moduletest.Run, file *moduletest.File, s
 	start := time.Now().UTC().UnixMilli()
 	runner.Suite.View.Run(run, file, moduletest.Starting, 0)
 
-	run.Diagnostics = run.Diagnostics.Append(run.Config.Validate(config))
-	if run.Diagnostics.HasErrors() {
-		run.Status = moduletest.Error
-		return state, false
-	}
-
 	key := MainStateIdentifier
 	if run.Config.ConfigUnderTest != nil {
 		key = run.Config.Module.Source.String()
@@ -528,7 +536,13 @@ func (runner *TestFileRunner2) run(run *moduletest.Run, file *moduletest.File, s
 		run.Status = moduletest.Error
 		return state, false
 	}
-	variables := runner.VariableContext.GetParsedVariables(config.Module, run.Name)
+
+	variables, varDiags := runner.VariableContext.GetParsedVariables(config.Module, run)
+	run.Diagnostics = run.Diagnostics.Append(varDiags)
+	if varDiags.HasErrors() {
+		run.Status = moduletest.Error
+		return state, false
+	}
 
 	resetConfig, configDiags := configtest.TransformConfigForTest2(config, run, file, runner.VariableContext, runner.Suite.configProviders[key])
 	defer resetConfig()
@@ -738,7 +752,8 @@ func (runner *TestFileRunner2) destroy(config *configs.Config, state *states.Sta
 	}
 
 	var diags tfdiags.Diagnostics
-	variables := runner.VariableContext.GetParsedVariables(config.Module, run.Name)
+	variables, varDiags := runner.VariableContext.GetParsedVariables(config.Module, run)
+	diags = diags.Append(varDiags)
 
 	// During the destroy operation, we don't add warnings from this operation.
 	// Anything that would have been reported here was already reported during

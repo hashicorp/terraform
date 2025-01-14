@@ -271,6 +271,18 @@ func (g *AcyclicGraph) Cycles() [][]Vertex {
 			cycles = append(cycles, cycle)
 		}
 	}
+	// cycleMap := make(map[string][]string)
+	// for _, cycle := range cycles {
+	// 	for _, vertex := range cycle {
+	// 		down := g.downEdgesNoCopy(vertex)
+	// 		sl := make([]string, len(down))
+	// 		for _, v := range down {
+	// 			sl = append(sl, VertexName(v))
+	// 		}
+	// 		cycleMap[VertexName(vertex)] = sl
+	// 	}
+	// }
+	// fmt.Println(cycleMap)
 	return cycles
 }
 

@@ -36,7 +36,7 @@ func (t *ConfigVariablesToOthersTransformer) Transform(g *terraform.Graph) error
 				}
 			case *nodeRunVariable:
 				// Only connect the config variable if it belongs to the same module as the run
-				if node.config.Module.SourceDir == other.config.Module.SourceDir {
+				if node.config.Module.SourceDir == other.config.Module.SourceDir && node.run == other.run {
 					g.Connect(dag.BasicEdge(node, other))
 				}
 			}

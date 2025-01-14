@@ -81,8 +81,11 @@ func (n *nodeFileVariable) Execute(testCtx *hcltest.VariableContext, g *terrafor
 		// errors later by claiming a variable doesn't exist when it does. We
 		// also return the diagnostics explaining the error which will be shown
 		// to the user.
-		testCtx.SetFileVariable(n.Addr.Name, value)
-		return diags
+		testCtx.SetFileVariable(n.Addr.Name, hcltest.VariableWithDiag{
+			Value: value,
+			Diags: diags,
+		})
+		return nil
 	}
 
 	ctx, ctxDiags := hcltest.EvalContext(hcltest.TargetFileVariable, map[string]hcl.Expression{n.Addr.Name: n.Expr}, availableVariables, nil)
@@ -92,8 +95,11 @@ func (n *nodeFileVariable) Execute(testCtx *hcltest.VariableContext, g *terrafor
 		// If we couldn't build the context, we won't actually process these
 		// variables. Instead, we'll fill them with an empty value but still
 		// make a note that the user did provide them.
-		testCtx.SetFileVariable(n.Addr.Name, value)
-		return diags
+		testCtx.SetFileVariable(n.Addr.Name, hcltest.VariableWithDiag{
+			Value: value,
+			Diags: ctxDiags,
+		})
+		return nil
 	}
 
 	ctyValue, valueDiags := n.Expr.Value(ctx)
@@ -111,6 +117,9 @@ func (n *nodeFileVariable) Execute(testCtx *hcltest.VariableContext, g *terrafor
 		SourceType:  terraform.ValueFromConfig,
 		SourceRange: tfdiags.SourceRangeFromHCL(n.Expr.Range()),
 	}
-	testCtx.SetFileVariable(n.Addr.Name, value)
-	return diags
+	testCtx.SetFileVariable(n.Addr.Name, hcltest.VariableWithDiag{
+		Value: value,
+		Diags: diags,
+	})
+	return nil
 }
