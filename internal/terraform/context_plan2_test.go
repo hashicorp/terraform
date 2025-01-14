@@ -6068,3 +6068,63 @@ data "test_data_source" "foo" {
 	_, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 }
+
+func TestContext2Plan_upgradeState_WriteOnlyAttribute(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "aws_instance" "foo" {
+	wo_attr = "value"
+}
+`,
+	})
+
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"wo_attr": {
+						Type:      cty.String,
+						Optional:  true,
+						WriteOnly: true,
+					},
+				},
+			},
+		},
+	})
+	p.UpgradeResourceStateFn = func(r providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
+		return providers.UpgradeResourceStateResponse{
+			UpgradedState: cty.ObjectVal(map[string]cty.Value{
+				"wo_attr": cty.StringVal("not-empty"),
+			}),
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	priorState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("aws_instance.foo"),
+			&states.ResourceInstanceObjectSrc{
+				// The UpgradeResourceStateFn above does not care about specific prior
+				// state but it must not be empty for the function to be actually called
+				AttrsJSON: []byte(`{"wo_attr":null}`),
+				Status:    states.ObjectReady,
+			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		)
+	})
+
+	// Plan should invoke state upgrade logic and trigger validation, given the mocks above
+	_, diags := ctx.Plan(m, priorState, DefaultPlanOpts)
+	if !diags.HasErrors() {
+		t.Fatalf("expected errors but got none")
+	}
+
+	if got, want := diags.Err().Error(), "Invalid resource state upgrade"; !strings.Contains(got, want) {
+		t.Errorf("unexpected error message\ngot: %s\nwant substring: %s", got, want)
+	}
+}
