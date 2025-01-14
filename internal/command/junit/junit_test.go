@@ -127,8 +127,7 @@ func Test_TestJUnitXMLFile_Save(t *testing.T) {
 			loader, cleanup := configload.NewLoaderForTests(t)
 			defer cleanup()
 
-			j := junit.NewTestJUnitXMLFile(path, loader)
-			j.SetTestSuiteRunner(tc.runner)
+			j := junit.NewTestJUnitXMLFile(path, loader, tc.runner)
 
 			// Process data & save file
 			j.Save(&tc.suite)

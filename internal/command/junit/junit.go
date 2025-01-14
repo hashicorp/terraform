@@ -47,7 +47,6 @@ type TestJUnitXMLFile struct {
 
 type JUnit interface {
 	Save(*moduletest.Suite) tfdiags.Diagnostics
-	SetTestSuiteRunner(moduletest.TestSuiteRunner)
 }
 
 var _ JUnit = (*TestJUnitXMLFile)(nil)
@@ -59,19 +58,12 @@ var _ JUnit = (*TestJUnitXMLFile)(nil)
 // point of being asked to write a conclusion. Otherwise it will create the
 // file at that time. If creating or overwriting the file fails, a subsequent
 // call to method Err will return information about the problem.
-func NewTestJUnitXMLFile(filename string, configLoader *configload.Loader) *TestJUnitXMLFile {
+func NewTestJUnitXMLFile(filename string, configLoader *configload.Loader, testSuiteRunner moduletest.TestSuiteRunner) *TestJUnitXMLFile {
 	return &TestJUnitXMLFile{
-		filename:     filename,
-		configLoader: configLoader,
-		// testSuiteRunner unset at this point
+		filename:        filename,
+		configLoader:    configLoader,
+		testSuiteRunner: testSuiteRunner,
 	}
-}
-
-// SetTestSuiteRunner is used to update a TestJUnitXMLFile struct to contain
-// a pointer to the test runner it's being used in. This allows the generated file to report
-// whether skipped files are due to the runner being interrupted or not.
-func (v *TestJUnitXMLFile) SetTestSuiteRunner(testSuiteRunner moduletest.TestSuiteRunner) {
-	v.testSuiteRunner = testSuiteRunner
 }
 
 // Save takes in a test suite, generates JUnit XML summarising the test results,
