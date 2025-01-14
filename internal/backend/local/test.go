@@ -31,6 +31,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/terraformtest"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -313,7 +314,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	// Build the graph for the file. Currently, we build this serially to maintain
 	// the existing sequential functionality of test runs. In the future, we could
 	// optimize this by parallelizing runs that do not depend on each other.
-	b := terraform.TestGraphBuilder{File: file}
+	b := terraformtest.TestGraphBuilder{File: file}
 	graph, diags := b.Build(addrs.RootModuleInstance)
 	file.Diagnostics = file.Diagnostics.Append(diags)
 
@@ -367,7 +368,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			}
 		}()
 
-		runNode, ok := v.(*terraform.NodeTestRun)
+		runNode, ok := v.(*terraformtest.NodeTestRun)
 		if !ok {
 			// If the vertex isn't a test run, we'll just skip it.
 			return
@@ -581,7 +582,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 		// First, make the test context we can use to validate the assertions
 		// of the
-		testCtx := terraform.NewEvalTestContext(run, config.Module, planScope, testOnlyVariables, runner.PriorOutputs)
+		testCtx := terraformtest.NewEvalTestContext(run, config.Module, planScope, testOnlyVariables, runner.PriorOutputs)
 
 		// Second, evaluate the run block directly. We also pass in all the
 		// previous contexts so this run block can refer to outputs from
@@ -663,7 +664,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 	// First, make the test context we can use to validate the assertions
 	// of the
-	testCtx := terraform.NewEvalTestContext(run, config.Module, applyScope, testOnlyVariables, runner.PriorOutputs)
+	testCtx := terraformtest.NewEvalTestContext(run, config.Module, applyScope, testOnlyVariables, runner.PriorOutputs)
 
 	// Second, evaluate the run block directly. We also pass in all the
 	// previous contexts so this run block can refer to outputs from

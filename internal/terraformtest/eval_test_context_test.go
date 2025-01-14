@@ -1,10 +1,15 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package terraformtest
 
 import (
+	"context"
 	"errors"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -14,12 +19,17 @@ import (
 	ctymsgpack "github.com/zclconf/go-cty/cty/msgpack"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -28,8 +38,8 @@ func TestEvalContext_Evaluate(t *testing.T) {
 		configs      map[string]string
 		state        *states.State
 		plan         *plans.Plan
-		variables    InputValues
-		testOnlyVars InputValues
+		variables    terraform.InputValues
+		testOnlyVars terraform.InputValues
 		provider     *testing_provider.MockProvider
 		priorOutputs map[string]cty.Value
 
@@ -138,7 +148,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 						Provider: addrs.NewDefaultProvider("test"),
 					})
 			}),
-			variables: InputValues{
+			variables: terraform.InputValues{
 				"value": {
 					Value: cty.StringVal("Hello, world!"),
 				},
@@ -320,10 +330,10 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				Changes: plans.NewChangesSrc(),
 			},
 			state: states.NewState(),
-			variables: InputValues{
-				"input": &InputValue{
+			variables: terraform.InputValues{
+				"input": &terraform.InputValue{
 					Value:      cty.StringVal("Hello, world!"),
-					SourceType: ValueFromConfig,
+					SourceType: terraform.ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "main.tftest.hcl",
 						Start:    tfdiags.SourcePos{Line: 3, Column: 13, Byte: 12},
@@ -361,10 +371,10 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				Changes: plans.NewChangesSrc(),
 			},
 			state: states.NewState(),
-			variables: InputValues{
-				"input": &InputValue{
+			variables: terraform.InputValues{
+				"input": &terraform.InputValue{
 					Value:      cty.StringVal("Hello, world!"),
-					SourceType: ValueFromConfig,
+					SourceType: terraform.ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "main.tftest.hcl",
 						Start:    tfdiags.SourcePos{Line: 3, Column: 13, Byte: 12},
@@ -693,7 +703,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			config := testModuleInline(t, test.configs)
 
-			tfCtx, diags := NewContext(&ContextOpts{
+			tfCtx, diags := terraform.NewContext(&terraform.ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("test"): providers.FactoryFixed(test.provider),
 				},
@@ -705,7 +715,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 			// We just need a vaguely-realistic scope here, so we'll make
 			// a plan against the given config and state and use its
 			// resulting scope.
-			_, planScope, diags := tfCtx.PlanAndEval(config, test.state, &PlanOpts{
+			_, planScope, diags := tfCtx.PlanAndEval(config, test.state, &terraform.PlanOpts{
 				Mode:         plans.NormalMode,
 				SetVariables: test.variables,
 			})
@@ -778,4 +788,61 @@ func encodeCtyValue(t *testing.T, value cty.Value) []byte {
 		t.Fatalf("failed to marshal JSON: %s", err)
 	}
 	return data
+}
+
+// testModuleInline takes a map of path -> config strings and yields a config
+// structure with those files loaded from disk
+func testModuleInline(t testing.TB, sources map[string]string) *configs.Config {
+	t.Helper()
+
+	cfgPath := t.TempDir()
+
+	for path, configStr := range sources {
+		dir := filepath.Dir(path)
+		if dir != "." {
+			err := os.MkdirAll(filepath.Join(cfgPath, dir), os.FileMode(0777))
+			if err != nil {
+				t.Fatalf("Error creating subdir: %s", err)
+			}
+		}
+		// Write the configuration
+		cfgF, err := os.Create(filepath.Join(cfgPath, path))
+		if err != nil {
+			t.Fatalf("Error creating temporary file for config: %s", err)
+		}
+
+		_, err = io.Copy(cfgF, strings.NewReader(configStr))
+		cfgF.Close()
+		if err != nil {
+			t.Fatalf("Error creating temporary file for config: %s", err)
+		}
+	}
+
+	loader, cleanup := configload.NewLoaderForTests(t)
+	defer cleanup()
+
+	// We need to be able to exercise experimental features in our integration tests.
+	loader.AllowLanguageExperiments(true)
+
+	// Test modules usually do not refer to remote sources, and for local
+	// sources only this ultimately just records all of the module paths
+	// in a JSON file so that we can load them below.
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false, initwd.ModuleInstallHooksImpl{})
+	if instDiags.HasErrors() {
+		t.Fatal(instDiags.Err())
+	}
+
+	// Since module installer has modified the module manifest on disk, we need
+	// to refresh the cache of it in the loader.
+	if err := loader.RefreshModules(); err != nil {
+		t.Fatalf("failed to refresh modules after installation: %s", err)
+	}
+
+	config, diags := loader.LoadConfigWithTests(cfgPath, "tests")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	return config
 }
