@@ -660,8 +660,6 @@ resource "ephem_write_only" "wo" {
 		SourceType: ValueFromCLIArg,
 	}
 
-	// Non-empty prior state is required to trigger UpgradeResourceState logic
-	// during planning
 	priorState := states.BuildState(func(state *states.SyncState) {
 		state.SetResourceInstanceCurrent(
 			mustResourceInstanceAddr("ephem_write_only.wo"),
