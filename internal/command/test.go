@@ -201,14 +201,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		}
 	} else {
 
-		// JUnit output is only compatible with local test execution
-		var junitFile junit.JUnit
-		if args.JUnitXMLFile != "" {
-			// Make sure TestCommand's calls loadConfigWithTests before this code, so configLoader is not nil
-			junitFile = junit.NewTestJUnitXMLFile(args.JUnitXMLFile, c.configLoader)
-		}
-
-		runner = &local.TestSuiteRunner{
+		localRunner := &local.TestSuiteRunner{
 			Config: config,
 			// The GlobalVariables are loaded from the
 			// main configuration directory
@@ -219,7 +212,6 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			TestingDirectory:    args.TestDirectory,
 			Opts:                opts,
 			View:                view,
-			JUnit:               junitFile,
 			Stopped:             false,
 			Cancelled:           false,
 			StoppedCtx:          stopCtx,
@@ -227,6 +219,14 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			Filter:              args.Filter,
 			Verbose:             args.Verbose,
 		}
+
+		// JUnit output is only compatible with local test execution
+		if args.JUnitXMLFile != "" {
+			// Make sure TestCommand's calls loadConfigWithTests before this code, so configLoader is not nil
+			localRunner.JUnit = junit.NewTestJUnitXMLFile(args.JUnitXMLFile, c.configLoader)
+		}
+
+		runner = localRunner
 	}
 
 	var testDiags tfdiags.Diagnostics
