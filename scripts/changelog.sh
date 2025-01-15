@@ -31,7 +31,8 @@ Commands:
     minor version.
     
   maintenancerelease
-
+    This function is expected to be run on the branch of the last minor release. It will make sure
+    that backports work properly
   
 EOF
 }
