@@ -50,7 +50,7 @@ func Test_TestJUnitXMLFile_Save(t *testing.T) {
 			expectedOuput: []byte(`<?xml version="1.0" encoding="UTF-8"?><testsuites>
   <testsuite name="file1.tftest.hcl" tests="1" skipped="1" failures="0" errors="0">
     <testcase name="my_test" classname="file1.tftest.hcl">
-      <skipped message="Test skipped due to an interrupt"><![CDATA[Terraform received an interrupt and stopped gracefully. This caused all remaining testcases to be skipped]]></skipped>
+      <skipped message="Testcase skipped due to an interrupt"><![CDATA[Terraform received an interrupt and stopped gracefully. This caused all remaining testcases to be skipped]]></skipped>
     </testcase>
   </testsuite>
 </testsuites>`),
