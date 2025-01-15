@@ -39,9 +39,12 @@ function generate {
         exit 1
     fi
     
+    FOOTER_FILE='footer.md'
+    
     case "$RELEASE_TYPE" in
   
         dev)
+        FOOTER_FILE='footer-with-experiments.md'
         LATEST_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
 
         # Check if we already released this version already
@@ -61,6 +64,7 @@ function generate {
         ;;
 
         alpha)
+        FOOTER_FILE='footer-with-experiments.md'
         PRERELEASE_VERSION=$(date +"alpha%Y%m%d")
         LATEST_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
         HUMAN_DATE=$(date +"%B %d, %Y") # Date in Janurary 1st, 2022 format
@@ -119,7 +123,7 @@ function generate {
     echo "$COMPLETE_VERSION" > version/VERSION
     
     # Add footer to the changelog
-    cat ./.changes/experiments.md >> CHANGELOG.md
+    cat ./.changes/$FOOTER_FILE >> CHANGELOG.md
     echo "" >> CHANGELOG.md
     cat ./.changes/previous-releases.md >> CHANGELOG.md
 }
