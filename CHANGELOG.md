@@ -3,7 +3,6 @@
 ENHANCEMENTS:
 
 - `init`: Provider installation will utilise credentials configured in a `.netrc` file for the download and shasum URLs returned by provider registries. ([https://github.com/hashicorp/terraform/pull/35843](35843))
-- The `terraform test` command now supports a `state_key` attribute in `run` blocks. This feature allows multiple Terraform test runs to target the same infrastructure.
 
 EXPERIMENTS:
 
