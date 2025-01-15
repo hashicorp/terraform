@@ -2843,12 +2843,7 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 	switch {
 	case priorVal.IsNull():
 		action = plans.Create
-	case !writeOnly.Intersection(reqRep).Empty():
-		action = plans.DeleteThenCreate
-		actionReason = plans.ResourceInstanceReplaceBecauseCannotUpdate
-	case eq && !matchedForceReplace:
-		action = plans.NoOp
-	case matchedForceReplace || !reqRep.Empty():
+	case matchedForceReplace || !reqRep.Empty() || !writeOnly.Intersection(reqRep).Empty():
 		// If the user "forced replace" of this instance of if there are any
 		// "requires replace" paths left _after our filtering above_ then this
 		// is a replace action.
@@ -2863,6 +2858,8 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 		case !reqRep.Empty():
 			actionReason = plans.ResourceInstanceReplaceBecauseCannotUpdate
 		}
+	case eq && !matchedForceReplace:
+		action = plans.NoOp
 	default:
 		action = plans.Update
 		// "Delete" is never chosen here, because deletion plans are always
