@@ -2,11 +2,13 @@
 
 ## 1.10.4 (January 8, 2025)
 
+
 BUG FIXES:
 
 * type conversion: Empty map conversions now return correct type information ([#36262](https://github.com/hashicorp/terraform/issues/36262))
 
 * `terraform console`: Fix crash when printing ephemeral values ([#36267](https://github.com/hashicorp/terraform/issues/36267))
+
 
 ## 1.10.3 (December 18, 2024)
 
@@ -33,6 +35,7 @@ NEW FEATURES:
  - **Ephemeral resources**: Ephemeral resources are read anew during each phase of Terraform evaluation, and cannot be persisted to state storage. Ephemeral resources always produce ephemeral values.
  - **Ephemeral values**: Input variables and outputs can now be defined as ephemeral. Ephemeral values may only be used in certain contexts in Terraform configuration, and are not persisted to the plan or state files.
     - **`ephemeralasnull` function**: a function takes a value of any type and returns a similar value of the same type with any ephemeral values replaced with non-ephemeral null values and all non-ephemeral values preserved.
+ - New Terraform command `terraform modules -json`: Displays a full list of all installed modules in a working directory, including whether each module is currently referenced by the working directory's Terraform configuration.
 
 BUG FIXES:
 
