@@ -4,6 +4,8 @@
 package hcl
 
 import (
+	"sync"
+
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
@@ -23,9 +25,12 @@ import (
 // evaluated variables.
 type VariableCaches struct {
 	GlobalVariables map[string]backendrun.UnparsedVariableValue
+	globalLock      sync.Mutex
 	FileVariables   map[string]hcl.Expression
+	fileLock        sync.Mutex
 
-	caches map[string]*VariableCache
+	caches     map[string]*VariableCache
+	cachesLock sync.Mutex
 }
 
 // VariableCache contains the cache for a single run block. This cache contains
@@ -33,8 +38,10 @@ type VariableCaches struct {
 type VariableCache struct {
 	config *configs.Config
 
-	globals terraform.InputValues
-	files   terraform.InputValues
+	globals     terraform.InputValues
+	globalsLock sync.Mutex
+	files       terraform.InputValues
+	filesLock   sync.Mutex
 
 	values *VariableCaches // back reference so we can access the stored values
 }
@@ -46,6 +53,8 @@ func (caches *VariableCaches) GetCache(name string, config *configs.Config) *Var
 		caches.caches = make(map[string]*VariableCache)
 	}
 
+	caches.cachesLock.Lock()
+	defer caches.cachesLock.Unlock()
 	cache, exists := caches.caches[name]
 	if !exists {
 		cache = &VariableCache{
@@ -70,6 +79,8 @@ func (caches *VariableCaches) GetCache(name string, config *configs.Config) *Var
 // returned will contain the error message that occurred during parsing and as
 // such should be shown to the user.
 func (cache *VariableCache) GetGlobalVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
+	cache.globalsLock.Lock()
+	defer cache.globalsLock.Unlock()
 	val, exists := cache.globals[name]
 	if exists {
 		return val, nil
@@ -114,6 +125,9 @@ func (cache *VariableCache) GetGlobalVariable(name string) (*terraform.InputValu
 // returned will contain the error message that occurred during parsing and as
 // such should be shown to the user.
 func (cache *VariableCache) GetFileVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
+	cache.filesLock.Lock()
+	defer cache.filesLock.Unlock()
+
 	val, exists := cache.files[name]
 	if exists {
 		return val, nil
@@ -127,6 +141,8 @@ func (cache *VariableCache) GetFileVariable(name string) (*terraform.InputValue,
 	var diags tfdiags.Diagnostics
 
 	availableVariables := make(map[string]cty.Value)
+	// If we had referenced a global variable in the file variable, we need to
+	// get it from the global variables store. e.g. `var.foo` in the file var
 	refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, expr)
 	for _, ref := range refs {
 		if input, ok := ref.Subject.(addrs.InputVariable); ok {

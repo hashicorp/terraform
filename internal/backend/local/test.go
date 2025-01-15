@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
@@ -20,8 +21,8 @@ import (
 	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang"
-	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	configtest "github.com/hashicorp/terraform/internal/moduletest/config"
@@ -30,6 +31,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/terraformtest"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -37,7 +39,7 @@ const (
 	MainStateIdentifier = ""
 )
 
-type TestSuiteRunner struct {
+type TestSuiteRunner2 struct {
 	Config *configs.Config
 
 	TestingDirectory string
@@ -80,21 +82,24 @@ type TestSuiteRunner struct {
 	// The config keys are globally unique across an entire test suite, so we
 	// store this at the suite runner level to get maximum efficiency.
 	configProviders map[string]map[string]bool
+
+	configLock sync.Mutex
 }
 
-func (runner *TestSuiteRunner) Stop() {
+func (runner *TestSuiteRunner2) Stop() {
 	runner.Stopped = true
 }
 
-func (runner *TestSuiteRunner) Cancel() {
+func (runner *TestSuiteRunner2) Cancel() {
 	runner.Cancelled = true
 }
 
-func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
+func (runner *TestSuiteRunner2) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// First thing, initialise the config providers map.
 	runner.configProviders = make(map[string]map[string]bool)
+	runner.configLock = sync.Mutex{}
 
 	suite, suiteDiags := runner.collectTests()
 	diags = diags.Append(suiteDiags)
@@ -148,7 +153,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			currentGlobalVariables = testDirectoryGlobalVariables
 		}
 
-		fileRunner := &TestFileRunner{
+		fileRunner := &TestFileRunner2{
 			Suite: runner,
 			RelevantStates: map[string]*TestFileState{
 				MainStateIdentifier: {
@@ -156,11 +161,12 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 					State: states.NewState(),
 				},
 			},
-			PriorOutputs: priorOutputs,
-			VariableCaches: &hcltest.VariableCaches{
-				GlobalVariables: currentGlobalVariables,
-				FileVariables:   file.Config.Variables,
-			},
+			VariableContext: hcltest.NewTestContext(
+				runner.Config,
+				currentGlobalVariables,
+				file.Config.Variables,
+				priorOutputs,
+			),
 		}
 
 		runner.View.File(file, moduletest.Starting)
@@ -184,7 +190,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	return suite.Status, diags
 }
 
-func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagnostics) {
+func (runner *TestSuiteRunner2) collectTests() (*moduletest.Suite, tfdiags.Diagnostics) {
 	runCount := 0
 	fileCount := 0
 
@@ -258,10 +264,10 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 	return suite, diags
 }
 
-type TestFileRunner struct {
+type TestFileRunner2 struct {
 	// Suite contains all the helpful metadata about the test that we need
 	// during the execution of a file.
-	Suite *TestSuiteRunner
+	Suite *TestSuiteRunner2
 
 	// RelevantStates is a mapping of module keys to it's last applied state
 	// file.
@@ -269,17 +275,9 @@ type TestFileRunner struct {
 	// This is used to clean up the infrastructure created during the test after
 	// the test has finished.
 	RelevantStates map[string]*TestFileState
+	stateLock      sync.Mutex
 
-	// PriorOutputs is a mapping from run addresses to cty object values
-	// representing the collected output values from the module under test.
-	//
-	// This is used to allow run blocks to refer back to the output values of
-	// previous run blocks. It is passed into the Evaluate functions that
-	// validate the test assertions, and used when calculating values for
-	// variables within run blocks.
-	PriorOutputs map[addrs.Run]cty.Value
-
-	VariableCaches *hcltest.VariableCaches
+	VariableContext *hcltest.VariableContext
 }
 
 // TestFileState is a helper struct that just maps a run block to the state that
@@ -289,7 +287,8 @@ type TestFileState struct {
 	State *states.State
 }
 
-func (runner *TestFileRunner) Test(file *moduletest.File) {
+func (runner *TestFileRunner2) Test(file *moduletest.File) {
+	runner.stateLock = sync.Mutex{}
 	log.Printf("[TRACE] TestFileRunner: executing test file %s", file.Name)
 
 	// The file validation only returns warnings so we'll just add them without
@@ -303,10 +302,110 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	if len(file.Runs) == 0 {
 		// If we have zero run blocks then we'll just mark the file as passed.
 		file.Status = file.Status.Merge(moduletest.Pass)
+		return
 	}
 
-	// Now execute the runs.
-	for _, run := range file.Runs {
+	b := terraformtest.TestGraphBuilder{File: file, GlobalVars: runner.VariableContext.GlobalVariables, Config: runner.Suite.Config}
+	graph, diags := b.Build(addrs.RootModuleInstance)
+
+	// If the graph walk was terminated, we don't want to add the diagnostics.
+	// The error the user receives will just be:
+	// 			Failure! 0 passed, 1 failed.
+	// 			exit status 1
+	if diags.HasErrors() && diags.Err().Error() == dag.GraphTerminatedError.Error() {
+		log.Printf("[TRACE] TestFileRunner: graph walk terminated for %s due to error: %s", file.Name, dag.GraphTerminatedError)
+		return
+	}
+
+	if diags.HasErrors() {
+		file.Status = file.Status.Merge(moduletest.Error)
+		file.Diagnostics = file.Diagnostics.Append(diags)
+		return
+	}
+
+	diags = runner.graphWalk(graph)
+	if diags.HasErrors() {
+		file.Status = file.Status.Merge(moduletest.Error)
+	}
+	file.Diagnostics = file.Diagnostics.Append(diags)
+}
+
+func (runner *TestFileRunner2) graphWalk(g *terraform.Graph) tfdiags.Diagnostics {
+	par := 1 //runner.Suite.Opts.Parallelism
+	if par < 1 {
+		par = 10
+	}
+	sem := terraform.NewSemaphore(par)
+
+	var nodeDiags tfdiags.Diagnostics
+
+	// Walk the graph.
+	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
+		// the walkFn is called asynchronously, and needs to be recovered
+		// separately in the case of a panic.
+		defer logging.PanicHandler()
+
+		log.Printf("[TRACE] vertex %q: starting visit (%T)", dag.VertexName(v), v)
+
+		defer func() {
+			if r := recover(); r != nil {
+				// If the walkFn panics, we get confusing logs about how the
+				// visit was complete. To stop this, we'll catch the panic log
+				// that the vertex panicked without finishing and re-panic.
+				log.Printf("[ERROR] vertex %q panicked", dag.VertexName(v))
+				panic(r) // re-panic
+			}
+
+			if diags.HasErrors() {
+				for _, diag := range diags {
+					if diag.Severity() == tfdiags.Error {
+						desc := diag.Description()
+						log.Printf("[ERROR] vertex %q error: %s", dag.VertexName(v), desc.Summary)
+					}
+				}
+				log.Printf("[TRACE] vertex %q: visit complete, with errors", dag.VertexName(v))
+			} else {
+				log.Printf("[TRACE] vertex %q: visit complete", dag.VertexName(v))
+			}
+		}()
+
+		// Acquire a lock on the semaphore
+		sem.Acquire()
+		defer sem.Release()
+
+		if execable, ok := v.(terraformtest.GraphNodeExecutable); ok {
+			// We don't return the diagnostics here because we want to continue
+			// walking the graph even if this node fails. We'll collect the
+			// diagnostics at the end.
+			exDiags := execable.Execute(runner.VariableContext, g)
+			if exDiags != nil {
+				runNode, ok := v.(*terraformtest.NodeTestRun)
+				if ok {
+					run := runNode.Run()
+					file := runNode.File()
+					run.Status = moduletest.Error
+					file.Status = file.Status.Merge(moduletest.Error)
+					run.Diagnostics = run.Diagnostics.Append(exDiags)
+					runner.Suite.View.Run(run, file, moduletest.Complete, 0)
+					return
+				} else {
+					// switch v.(type) {
+					// case *terraformtest.NodeConfigVariable:
+					// nodeDiags = nodeDiags.Append(exDiags)
+					return
+				}
+			}
+		}
+
+		runNode, ok := v.(*terraformtest.NodeTestRun)
+		if !ok {
+			// If the vertex isn't a test run, we'll just skip it.
+			return
+		}
+
+		file := runNode.File()
+		run := runNode.Run()
+
 		if runner.Suite.Cancelled {
 			// This means a hard stop has been requested, in this case we don't
 			// even stop to mark future tests as having been skipped. They'll
@@ -314,6 +413,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 			// just mark the overall file status has having errored to indicate
 			// it was interrupted.
 			file.Status = file.Status.Merge(moduletest.Error)
+			g.AcyclicGraph.Terminate()
 			return
 		}
 
@@ -322,16 +422,27 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 			// following test as skipped, print the status, and move on.
 			run.Status = moduletest.Skip
 			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
-			continue
+			return
 		}
 
-		if file.Status == moduletest.Error {
-			// If the overall test file has errored, we don't keep trying to
-			// execute tests. Instead, we mark all remaining run blocks as
-			// skipped, print the status, and move on.
-			run.Status = moduletest.Skip
+		// Since runs may now run in parallel, we don't skip the run if the
+		// file has errored.
+		// TODO: Decide if we want to skip all runs if the file has errored.
+		// if file.Status == moduletest.Error {
+		// 	// If the overall test file has errored, we don't keep trying to
+		// 	// execute tests. Instead, we mark all remaining run blocks as
+		// 	// skipped, print the status, and move on.
+		// 	run.Status = moduletest.Skip
+		// 	runner.Suite.View.Run(run, file, moduletest.Complete, 0)
+		// 	return
+		// }
+
+		if run.Status == moduletest.Error {
+			// If the run block has errored, this is probably due to an issue with its
+			// dependencies. We'll mark it as failed and move on.
+			file.Status = file.Status.Merge(moduletest.Error)
 			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
-			continue
+			return
 		}
 
 		key := MainStateIdentifier
@@ -354,9 +465,11 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 
 				run.Status = moduletest.Error
 				file.Status = moduletest.Error
-				continue // Abort!
+				return
 			}
 
+			runner.stateLock.Lock()
+			defer runner.stateLock.Unlock()
 			if _, exists := runner.RelevantStates[key]; !exists {
 				runner.RelevantStates[key] = &TestFileState{
 					Run:   nil,
@@ -365,7 +478,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 			}
 		}
 
-		startTime := time.Now().UTC()
+		startTime := time.Now()
 		state, updatedState := runner.run(run, file, runner.RelevantStates[key].State, config)
 		runDuration := time.Since(startTime)
 		if updatedState {
@@ -385,10 +498,14 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		}
 		runner.Suite.View.Run(run, file, moduletest.Complete, 0)
 		file.Status = file.Status.Merge(run.Status)
+		return
 	}
+
+	walkDiags := g.AcyclicGraph.Walk(walkFn)
+	return nodeDiags.Append(walkDiags)
 }
 
-func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, state *states.State, config *configs.Config) (*states.State, bool) {
+func (runner *TestFileRunner2) run(run *moduletest.Run, file *moduletest.File, state *states.State, config *configs.Config) (*states.State, bool) {
 	log.Printf("[TRACE] TestFileRunner: executing run block %s/%s", file.Name, run.Name)
 
 	if runner.Suite.Cancelled {
@@ -407,33 +524,11 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	start := time.Now().UTC().UnixMilli()
 	runner.Suite.View.Run(run, file, moduletest.Starting, 0)
 
-	run.Diagnostics = run.Diagnostics.Append(run.Config.Validate(config))
-	if run.Diagnostics.HasErrors() {
-		run.Status = moduletest.Error
-		return state, false
-	}
-
 	key := MainStateIdentifier
 	if run.Config.ConfigUnderTest != nil {
 		key = run.Config.Module.Source.String()
 	}
 	runner.gatherProviders(key, config)
-
-	resetConfig, configDiags := configtest.TransformConfigForTest(config, run, file, runner.VariableCaches, runner.PriorOutputs, runner.Suite.configProviders[key])
-	defer resetConfig()
-
-	run.Diagnostics = run.Diagnostics.Append(configDiags)
-	if configDiags.HasErrors() {
-		run.Status = moduletest.Error
-		return state, false
-	}
-
-	validateDiags := runner.validate(config, run, file, start)
-	run.Diagnostics = run.Diagnostics.Append(validateDiags)
-	if validateDiags.HasErrors() {
-		run.Status = moduletest.Error
-		return state, false
-	}
 
 	references, referenceDiags := run.GetReferences()
 	run.Diagnostics = run.Diagnostics.Append(referenceDiags)
@@ -442,9 +537,25 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return state, false
 	}
 
-	variables, variableDiags := runner.GetVariables(config, run, references, true)
-	run.Diagnostics = run.Diagnostics.Append(variableDiags)
-	if variableDiags.HasErrors() {
+	variables, varDiags := runner.VariableContext.GetParsedVariables(config.Module, run)
+	run.Diagnostics = run.Diagnostics.Append(varDiags)
+	if varDiags.HasErrors() {
+		run.Status = moduletest.Error
+		return state, false
+	}
+
+	resetConfig, configDiags := configtest.TransformConfigForTest2(config, run, file, runner.VariableContext, runner.Suite.configProviders[key])
+	defer resetConfig()
+
+	run.Diagnostics = run.Diagnostics.Append(configDiags)
+	if configDiags.HasErrors() {
+		run.Status = moduletest.Error
+		return state, false
+	}
+
+	validateDiags := runner.validate(config, run, file, start) // validates the tf config itself
+	run.Diagnostics = run.Diagnostics.Append(validateDiags)
+	if validateDiags.HasErrors() {
 		run.Status = moduletest.Error
 		return state, false
 	}
@@ -500,7 +611,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 		// First, make the test context we can use to validate the assertions
 		// of the
-		testCtx := moduletest.NewEvalContext(run, config.Module, planScope, testOnlyVariables, runner.PriorOutputs)
+		testCtx := terraformtest.NewEvalContext(run, config.Module, planScope, testOnlyVariables, runner.VariableContext)
 
 		// Second, evaluate the run block directly. We also pass in all the
 		// previous contexts so this run block can refer to outputs from
@@ -511,7 +622,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 		// Now we've successfully validated this run block, lets add it into
 		// our prior run outputs so future run blocks can access it.
-		runner.PriorOutputs[run.Addr()] = outputVals
+		runner.VariableContext.SetRunOutput(run.Addr(), outputVals)
 
 		return state, false
 	}
@@ -582,7 +693,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 	// First, make the test context we can use to validate the assertions
 	// of the
-	testCtx := moduletest.NewEvalContext(run, config.Module, applyScope, testOnlyVariables, runner.PriorOutputs)
+	testCtx := terraformtest.NewEvalContext(run, config.Module, applyScope, testOnlyVariables, runner.VariableContext)
 
 	// Second, evaluate the run block directly. We also pass in all the
 	// previous contexts so this run block can refer to outputs from
@@ -593,12 +704,12 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 	// Now we've successfully validated this run block, lets add it into
 	// our prior run outputs so future run blocks can access it.
-	runner.PriorOutputs[run.Addr()] = outputVals
+	runner.VariableContext.SetRunOutput(run.Addr(), outputVals)
 
 	return updated, true
 }
 
-func (runner *TestFileRunner) validate(config *configs.Config, run *moduletest.Run, file *moduletest.File, start int64) tfdiags.Diagnostics {
+func (runner *TestFileRunner2) validate(config *configs.Config, run *moduletest.Run, file *moduletest.File, start int64) tfdiags.Diagnostics {
 	log.Printf("[TRACE] TestFileRunner: called validate for %s/%s", file.Name, run.Name)
 
 	var diags tfdiags.Diagnostics
@@ -632,7 +743,7 @@ func (runner *TestFileRunner) validate(config *configs.Config, run *moduletest.R
 	return diags
 }
 
-func (runner *TestFileRunner) destroy(config *configs.Config, state *states.State, run *moduletest.Run, file *moduletest.File) (*states.State, tfdiags.Diagnostics) {
+func (runner *TestFileRunner2) destroy(config *configs.Config, state *states.State, run *moduletest.Run, file *moduletest.File) (*states.State, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] TestFileRunner: called destroy for %s/%s", file.Name, run.Name)
 
 	if state.Empty() {
@@ -641,13 +752,8 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 	}
 
 	var diags tfdiags.Diagnostics
-
-	variables, variableDiags := runner.GetVariables(config, run, nil, false)
-	diags = diags.Append(variableDiags)
-
-	if diags.HasErrors() {
-		return state, diags
-	}
+	variables, varDiags := runner.VariableContext.GetParsedVariables(config.Module, run)
+	diags = diags.Append(varDiags)
 
 	// During the destroy operation, we don't add warnings from this operation.
 	// Anything that would have been reported here was already reported during
@@ -700,7 +806,7 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 	return updated, diags
 }
 
-func (runner *TestFileRunner) plan(tfCtx *terraform.Context, config *configs.Config, state *states.State, run *moduletest.Run, file *moduletest.File, variables terraform.InputValues, references []*addrs.Reference, start int64) (*lang.Scope, *plans.Plan, tfdiags.Diagnostics) {
+func (runner *TestFileRunner2) plan(tfCtx *terraform.Context, config *configs.Config, state *states.State, run *moduletest.Run, file *moduletest.File, variables terraform.InputValues, references []*addrs.Reference, start int64) (*lang.Scope, *plans.Plan, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] TestFileRunner: called plan for %s/%s", file.Name, run.Name)
 
 	var diags tfdiags.Diagnostics
@@ -757,7 +863,7 @@ func (runner *TestFileRunner) plan(tfCtx *terraform.Context, config *configs.Con
 	return planScope, plan, diags
 }
 
-func (runner *TestFileRunner) apply(tfCtx *terraform.Context, plan *plans.Plan, state *states.State, config *configs.Config, run *moduletest.Run, file *moduletest.File, progress moduletest.Progress, start int64, variables terraform.InputValues) (*lang.Scope, *states.State, tfdiags.Diagnostics) {
+func (runner *TestFileRunner2) apply(tfCtx *terraform.Context, plan *plans.Plan, state *states.State, config *configs.Config, run *moduletest.Run, file *moduletest.File, progress moduletest.Progress, start int64, variables terraform.InputValues) (*lang.Scope, *states.State, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] TestFileRunner: called apply for %s/%s", file.Name, run.Name)
 
 	var diags tfdiags.Diagnostics
@@ -821,7 +927,7 @@ func (runner *TestFileRunner) apply(tfCtx *terraform.Context, plan *plans.Plan, 
 	return newScope, updated, diags
 }
 
-func (runner *TestFileRunner) wait(ctx *terraform.Context, runningCtx context.Context, run *moduletest.Run, file *moduletest.File, created []*plans.ResourceInstanceChangeSrc, progress moduletest.Progress, start int64) (diags tfdiags.Diagnostics, cancelled bool) {
+func (runner *TestFileRunner2) wait(ctx *terraform.Context, runningCtx context.Context, run *moduletest.Run, file *moduletest.File, created []*plans.ResourceInstanceChangeSrc, progress moduletest.Progress, start int64) (diags tfdiags.Diagnostics, cancelled bool) {
 	var identifier string
 	if file == nil {
 		identifier = "validate"
@@ -916,7 +1022,7 @@ func (runner *TestFileRunner) wait(ctx *terraform.Context, runningCtx context.Co
 	return diags, cancelled
 }
 
-func (runner *TestFileRunner) cleanup(file *moduletest.File) {
+func (runner *TestFileRunner2) cleanup(file *moduletest.File) {
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
 
 	if runner.Suite.Cancelled {
@@ -993,7 +1099,8 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 			key = state.Run.Config.Module.Source.String()
 		}
 
-		reset, configDiags := configtest.TransformConfigForTest(config, state.Run, file, runner.VariableCaches, runner.PriorOutputs, runner.Suite.configProviders[key])
+		reset, configDiags := configtest.TransformConfigForTest2(config, state.Run, file, runner.VariableContext, runner.Suite.configProviders[key])
+		// TransformConfigForTest(config, state.Run, file, runner.VariableCaches, runner.PriorOutputs, runner.Suite.configProviders[key])
 		diags = diags.Append(configDiags)
 
 		updated := state.State
@@ -1014,179 +1121,18 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 	}
 }
 
-// GetVariables builds the terraform.InputValues required for the provided run
-// block. It pulls the relevant variables (ie. the variables needed for the
-// run block) from the total pool of all available variables, and converts them
-// into input values.
-//
-// As a run block can reference variables defined within the file and are not
-// actually defined within the configuration, this function actually returns
-// more variables than are required by the config. FilterVariablesToConfig
-// should be called before trying to use these variables within a Terraform
-// plan, apply, or destroy operation.
-func (runner *TestFileRunner) GetVariables(config *configs.Config, run *moduletest.Run, references []*addrs.Reference, includeWarnings bool) (terraform.InputValues, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	// relevantVariables contains the variables that are of interest to this
-	// run block. This is a combination of the variables declared within the
-	// configuration for this run block, and the variables referenced by the
-	// run block assertions.
-	relevantVariables := make(map[string]bool)
-
-	// First, we'll check to see which variables the run block assertions
-	// reference.
-	for _, reference := range references {
-		if addr, ok := reference.Subject.(addrs.InputVariable); ok {
-			relevantVariables[addr.Name] = true
-		}
-	}
-
-	// And check to see which variables the run block configuration references.
-	for name := range config.Module.Variables {
-		relevantVariables[name] = true
-	}
-
-	// We'll put the parsed values into this map.
-	values := make(terraform.InputValues)
-
-	// First, let's step through the expressions within the run block and work
-	// them out.
-	for name, expr := range run.Config.Variables {
-		requiredValues := make(map[string]cty.Value)
-
-		refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, expr)
-		for _, ref := range refs {
-			if addr, ok := ref.Subject.(addrs.InputVariable); ok {
-				cache := runner.VariableCaches.GetCache(run.Name, config)
-
-				value, valueDiags := cache.GetFileVariable(addr.Name)
-				diags = diags.Append(valueDiags)
-				if value != nil {
-					requiredValues[addr.Name] = value.Value
-					continue
-				}
-
-				// Otherwise, it might be a global variable.
-				value, valueDiags = cache.GetGlobalVariable(addr.Name)
-				diags = diags.Append(valueDiags)
-				if value != nil {
-					requiredValues[addr.Name] = value.Value
-					continue
-				}
-			}
-		}
-		diags = diags.Append(refDiags)
-
-		ctx, ctxDiags := hcltest.EvalContext(hcltest.TargetRunBlock, map[string]hcl.Expression{name: expr}, requiredValues, runner.PriorOutputs)
-		diags = diags.Append(ctxDiags)
-
-		value := cty.DynamicVal
-		if !ctxDiags.HasErrors() {
-			var valueDiags hcl.Diagnostics
-			value, valueDiags = expr.Value(ctx)
-			diags = diags.Append(valueDiags)
-		}
-
-		// We do this late on so we still validate whatever it was that the user
-		// wrote in the variable expression. But, we don't want to actually use
-		// it if it's not actually relevant.
-		if _, exists := relevantVariables[name]; !exists {
-			// Do not display warnings during cleanup phase
-			if includeWarnings {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagWarning,
-					Summary:  "Value for undeclared variable",
-					Detail:   fmt.Sprintf("The module under test does not declare a variable named %q, but it is declared in run block %q.", name, run.Name),
-					Subject:  expr.Range().Ptr(),
-				})
-			}
-			continue // Don't add it to our final set of variables.
-		}
-
-		values[name] = &terraform.InputValue{
-			Value:       value,
-			SourceType:  terraform.ValueFromConfig,
-			SourceRange: tfdiags.SourceRangeFromHCL(expr.Range()),
-		}
-	}
-
-	for variable := range relevantVariables {
-		if _, exists := values[variable]; exists {
-			// Then we've already got a value for this variable.
-			continue
-		}
-
-		// Otherwise, we'll get it from the cache as a file-level or global
-		// variable.
-		cache := runner.VariableCaches.GetCache(run.Name, config)
-
-		value, valueDiags := cache.GetFileVariable(variable)
-		diags = diags.Append(valueDiags)
-		if value != nil {
-			values[variable] = value
-			continue
-		}
-
-		value, valueDiags = cache.GetGlobalVariable(variable)
-		diags = diags.Append(valueDiags)
-		if value != nil {
-			values[variable] = value
-			continue
-		}
-	}
-
-	// Finally, we check the configuration again. This is where we'll discover
-	// if there's any missing variables and fill in any optional variables that
-	// don't have a value already.
-
-	for name, variable := range config.Module.Variables {
-		if _, exists := values[name]; exists {
-			// Then we've provided a variable for this. It's all good.
-			continue
-		}
-
-		// Otherwise, we're going to give these variables a value. They'll be
-		// processed by the Terraform graph and provided a default value later
-		// if they have one.
-
-		if variable.Required() {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "No value for required variable",
-				Detail: fmt.Sprintf("The module under test for run block %q has a required variable %q with no set value. Use a -var or -var-file command line argument or add this variable into a \"variables\" block within the test file or run block.",
-					run.Name, variable.Name),
-				Subject: variable.DeclRange.Ptr(),
-			})
-
-			values[name] = &terraform.InputValue{
-				Value:       cty.DynamicVal,
-				SourceType:  terraform.ValueFromConfig,
-				SourceRange: tfdiags.SourceRangeFromHCL(variable.DeclRange),
-			}
-		} else {
-			values[name] = &terraform.InputValue{
-				Value:       cty.NilVal,
-				SourceType:  terraform.ValueFromConfig,
-				SourceRange: tfdiags.SourceRangeFromHCL(variable.DeclRange),
-			}
-		}
-	}
-
-	return values, diags
-}
-
 // FilterVariablesToModule splits the provided values into two disjoint maps:
 // moduleVars contains the ones that correspond with declarations in the root
 // module of the given configuration, while testOnlyVars contains any others
 // that are presumably intended only for use in the test configuration file.
 //
-// This function is essentially the opposite of AddVariablesToConfig which
+// This function is essentially the opposite of AddVariablesToConfig2 which
 // makes the config match the variables rather than the variables match the
 // config.
 //
 // This function can only return warnings, and the callers can rely on this so
 // please check the callers of this function if you add any error diagnostics.
-func (runner *TestFileRunner) FilterVariablesToModule(config *configs.Config, values terraform.InputValues) (moduleVars, testOnlyVars terraform.InputValues, diags tfdiags.Diagnostics) {
+func (runner *TestFileRunner2) FilterVariablesToModule(config *configs.Config, values terraform.InputValues) (moduleVars, testOnlyVars terraform.InputValues, diags tfdiags.Diagnostics) {
 	moduleVars = make(terraform.InputValues)
 	testOnlyVars = make(terraform.InputValues)
 	for name, value := range values {
@@ -1208,7 +1154,7 @@ func (runner *TestFileRunner) FilterVariablesToModule(config *configs.Config, va
 // This function is essentially the opposite of FilterVariablesToConfig which
 // makes the variables match the config rather than the config match the
 // variables.
-func (runner *TestFileRunner) AddVariablesToConfig(config *configs.Config, variables terraform.InputValues) func() {
+func (runner *TestFileRunner2) AddVariablesToConfig(config *configs.Config, variables terraform.InputValues) func() {
 
 	// If we have got variable values from the test file we need to make sure
 	// they have an equivalent entry in the configuration. We're going to do
@@ -1241,7 +1187,9 @@ func (runner *TestFileRunner) AddVariablesToConfig(config *configs.Config, varia
 	}
 }
 
-func (runner *TestFileRunner) gatherProviders(key string, config *configs.Config) {
+func (runner *TestFileRunner2) gatherProviders(key string, config *configs.Config) {
+	runner.Suite.configLock.Lock()
+	defer runner.Suite.configLock.Unlock()
 	if _, exists := runner.Suite.configProviders[key]; exists {
 		// Then we've processed this key before, so skip it.
 		return

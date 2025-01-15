@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package moduletest
+package terraformtest
 
 import (
 	"context"
@@ -23,6 +23,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/moduletest/hcl"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -43,7 +45,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 		priorOutputs map[string]cty.Value
 
 		expectedDiags   []tfdiags.Description
-		expectedStatus  Status
+		expectedStatus  moduletest.Status
 		expectedOutputs cty.Value
 	}{
 		"basic_passing": {
@@ -99,7 +101,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			expectedStatus:  Pass,
+			expectedStatus:  moduletest.Pass,
 			expectedOutputs: cty.EmptyObjectVal,
 		},
 		"with_variables": {
@@ -168,7 +170,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			expectedStatus:  Pass,
+			expectedStatus:  moduletest.Pass,
 			expectedOutputs: cty.EmptyObjectVal,
 		},
 		"basic_failing": {
@@ -224,7 +226,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			expectedStatus:  Fail,
+			expectedStatus:  moduletest.Fail,
 			expectedOutputs: cty.EmptyObjectVal,
 			expectedDiags: []tfdiags.Description{
 				{
@@ -291,7 +293,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			expectedStatus:  Fail,
+			expectedStatus:  moduletest.Fail,
 			expectedOutputs: cty.EmptyObjectVal,
 			expectedDiags: []tfdiags.Description{
 				{
@@ -341,7 +343,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				},
 			},
 			provider:        &testing_provider.MockProvider{},
-			expectedStatus:  Pass,
+			expectedStatus:  moduletest.Pass,
 			expectedOutputs: cty.EmptyObjectVal,
 			expectedDiags:   []tfdiags.Description{},
 		},
@@ -382,7 +384,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				},
 			},
 			provider:        &testing_provider.MockProvider{},
-			expectedStatus:  Fail,
+			expectedStatus:  moduletest.Fail,
 			expectedOutputs: cty.EmptyObjectVal,
 			expectedDiags: []tfdiags.Description{
 				{
@@ -470,7 +472,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			expectedStatus:  Pass,
+			expectedStatus:  moduletest.Pass,
 			expectedOutputs: cty.EmptyObjectVal,
 		},
 		"basic_failing_with_plan": {
@@ -549,7 +551,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			expectedStatus:  Fail,
+			expectedStatus:  moduletest.Fail,
 			expectedOutputs: cty.EmptyObjectVal,
 			expectedDiags: []tfdiags.Description{
 				{
@@ -618,7 +620,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			expectedStatus:  Pass,
+			expectedStatus:  moduletest.Pass,
 			expectedOutputs: cty.EmptyObjectVal,
 		},
 		"output_values": {
@@ -640,7 +642,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 			},
 			state:          states.NewState(),
 			provider:       &testing_provider.MockProvider{},
-			expectedStatus: Pass,
+			expectedStatus: moduletest.Pass,
 			expectedOutputs: cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.StringVal("foo value"),
 				"bar": cty.StringVal("bar value"),
@@ -692,7 +694,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					}
 				},
 			},
-			expectedStatus: Pass,
+			expectedStatus: moduletest.Pass,
 			expectedOutputs: cty.ObjectVal(map[string]cty.Value{
 				"true": cty.True,
 			}),
@@ -708,7 +710,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				},
 			})
 			if diags.HasErrors() {
-				t.Fatalf("unexpected errors from terraform.NewContext\n%s", diags.Err().Error())
+				t.Fatalf("unexpected errors from NewContext\n%s", diags.Err().Error())
 			}
 
 			// We just need a vaguely-realistic scope here, so we'll make
@@ -723,7 +725,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 			}
 
 			file := config.Module.Tests["main.tftest.hcl"]
-			run := &Run{
+			run := &moduletest.Run{
 				Config: file.Runs[len(file.Runs)-1], // We always simulate the last run block.
 				Name:   "test_case",                 // and it should be named test_case
 			}
@@ -733,7 +735,9 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				priorOutputs[addrs.Run{Name: name}] = val
 			}
 
-			testCtx := NewEvalContext(run, config.Module, planScope, test.testOnlyVars, priorOutputs)
+			testCtx := NewEvalContext(run, config.Module, planScope, test.testOnlyVars, &hcl.VariableContext{
+				RunOutputs: priorOutputs,
+			})
 			gotStatus, gotOutputs, diags := testCtx.Evaluate()
 
 			if got, want := gotStatus, test.expectedStatus; got != want {

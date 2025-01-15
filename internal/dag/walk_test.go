@@ -22,7 +22,7 @@ func TestWalker_basic(t *testing.T) {
 	// Run it a bunch of times since it is timing dependent
 	for i := 0; i < 50; i++ {
 		var order []interface{}
-		w := &Walker{Callback: walkCbRecord(&order)}
+		w := NewWalker(walkCbRecord(&order))
 		w.Update(&g)
 
 		// Wait
@@ -47,7 +47,7 @@ func TestWalker_updateNilGraph(t *testing.T) {
 	// Run it a bunch of times since it is timing dependent
 	for i := 0; i < 50; i++ {
 		var order []interface{}
-		w := &Walker{Callback: walkCbRecord(&order)}
+		w := NewWalker(walkCbRecord(&order))
 		w.Update(&g)
 		w.Update(nil)
 
@@ -83,7 +83,7 @@ func TestWalker_error(t *testing.T) {
 		return recordF(v)
 	}
 
-	w := &Walker{Callback: cb}
+	w := NewWalker(cb)
 	w.Update(&g)
 
 	// Wait
@@ -110,7 +110,6 @@ func TestWalker_newVertex(t *testing.T) {
 	done2 := make(chan int)
 
 	// Build a callback that notifies us when 2 has been walked
-	var w *Walker
 	cb := func(v Vertex) tfdiags.Diagnostics {
 		if v == 2 {
 			defer close(done2)
@@ -119,7 +118,7 @@ func TestWalker_newVertex(t *testing.T) {
 	}
 
 	// Add the initial vertices
-	w = &Walker{Callback: cb}
+	w := NewWalker(cb)
 	w.Update(&g)
 
 	// if 2 has been visited, the walk is complete so far
@@ -155,7 +154,7 @@ func TestWalker_removeVertex(t *testing.T) {
 	var order []interface{}
 	recordF := walkCbRecord(&order)
 
-	var w *Walker
+	w := NewWalker(nil)
 	cb := func(v Vertex) tfdiags.Diagnostics {
 		if v == 1 {
 			g.Remove(2)
@@ -166,7 +165,7 @@ func TestWalker_removeVertex(t *testing.T) {
 	}
 
 	// Add the initial vertices
-	w = &Walker{Callback: cb}
+	w.Callback = cb
 	w.Update(&g)
 
 	// Wait
@@ -191,7 +190,7 @@ func TestWalker_newEdge(t *testing.T) {
 	var order []interface{}
 	recordF := walkCbRecord(&order)
 
-	var w *Walker
+	w := NewWalker(nil)
 	cb := func(v Vertex) tfdiags.Diagnostics {
 		// record where we are first, otherwise the Updated vertex may get
 		// walked before the first visit.
@@ -206,7 +205,7 @@ func TestWalker_newEdge(t *testing.T) {
 	}
 
 	// Add the initial vertices
-	w = &Walker{Callback: cb}
+	w.Callback = cb
 	w.Update(&g)
 
 	// Wait
@@ -241,7 +240,7 @@ func TestWalker_removeEdge(t *testing.T) {
 	// forcing 2 before 3 via the callback (and not the graph). If
 	// 2 cannot execute before 3 (edge removal is non-functional), then
 	// this test will timeout.
-	var w *Walker
+	w := NewWalker(nil)
 	gateCh := make(chan struct{})
 	cb := func(v Vertex) tfdiags.Diagnostics {
 		t.Logf("visit vertex %#v", v)
@@ -274,7 +273,7 @@ func TestWalker_removeEdge(t *testing.T) {
 	}
 
 	// Add the initial vertices
-	w = &Walker{Callback: cb}
+	w.Callback = cb
 	w.Update(&g)
 
 	// Wait
