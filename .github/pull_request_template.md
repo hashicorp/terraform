@@ -38,7 +38,7 @@ label to enable the backport bot.
 <!--
 
 If your change is user-facing, add a short description in a changelog entry.
-You can use `npx changie new` to create a new changelog entry or manually create a new file in the .changes/unreleasd directory.
+You can use `npx changie new` to create a new changelog entry or manually create a new file in the .changes/unreleasd directory (or .changes/backported if it's a bug fix that should be backported).
 
 -->
 
