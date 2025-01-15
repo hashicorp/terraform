@@ -163,6 +163,10 @@ function maintenancerelease {
     # For the maintenance branch we don't want to base our changelog on the unreleased but the backported folder instead
     awk '{sub(/unreleasedDir: unreleased/, "unreleasedDir: backported")}1' ./.changie.yaml > temp && mv temp ./.changie.yaml
     
+    # If we have backported changes, we need to remove them now since they were backported into the
+    # last version
+    rm -f ./.changes/backported/*.yaml
+    
     # If we have unreleased changes, they will be released in the next patch, therefore they need
     # to go into the backported folder
     if [ "$(ls -A ./.changes/unreleased/)" ]; then
