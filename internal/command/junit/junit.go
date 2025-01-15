@@ -16,6 +16,11 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
+)
+
+var (
+	failedTestSummary = "Test assertion failed"
 )
 
 // TestJUnitXMLFile produces a JUnit XML file at the conclusion of a test
@@ -211,11 +216,20 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 					Body:    body,
 				}
 			case moduletest.Fail:
+				var diagsStr strings.Builder
+				var failedAssertion tfdiags.Diagnostic
+				for _, diag := range run.Diagnostics {
+					// Find the diag resulting from a failed assertion
+					if diag.Description().Summary == failedTestSummary {
+						diagsStr.WriteString(format.DiagnosticPlain(diag, sources, 80))
+						failedAssertion = diag
+						break
+					}
+				}
+				body := getFailBody(run, failedAssertion)
 				testCase.Failure = &withMessage{
 					Message: "Test run failed",
-					// FIXME: What's a useful thing to report in the body
-					// here? A summary of the statuses from all of the
-					// checkable objects in the configuration?
+					Body:    body,
 				}
 			case moduletest.Error:
 				var diagsStr strings.Builder
@@ -282,6 +296,33 @@ func getSkipDetails(runIndex int, file *moduletest.File, suiteStopped bool) (str
 
 	// Unhandled case: This results in <skipped></skipped> with no attributes or body
 	return "", ""
+}
+
+func getFailBody(run *moduletest.Run, diag tfdiags.Diagnostic) string {
+	testCtx := diag.FromExpr()
+
+	// Identify which assertion failed out of multiple assertions in a run block
+	var failedIndex int
+	var found bool
+	for i, assertion := range run.Config.CheckRules {
+		condition, diag := assertion.Condition.Value(testCtx.EvalContext)
+		if diag.HasErrors() {
+			return ""
+		}
+
+		if condition.RawEquals(cty.BoolVal(false)) {
+			failedIndex = i + 1 // index 1
+			found = true
+			break
+		}
+	}
+
+	if found {
+		return fmt.Sprintf("Test failed on assertion %d of %d", failedIndex, len(run.Config.CheckRules))
+	}
+
+	// Unhandled case
+	return ""
 }
 
 func suiteFilesAsSortedList(files map[string]*moduletest.File) []*moduletest.File {
