@@ -53,13 +53,13 @@ func (p *Parser) LoadTestFile(path string) (*TestFile, hcl.Diagnostics) {
 //
 // It references the same LoadHCLFile as LoadConfigFile, so inherits the same
 // syntax selection behaviours.
-func (p *Parser) LoadMockDataFile(path string) (*MockData, hcl.Diagnostics) {
+func (p *Parser) LoadMockDataFile(path string, useForPlanDefault bool) (*MockData, hcl.Diagnostics) {
 	body, diags := p.LoadHCLFile(path)
 	if body == nil {
 		return nil, diags
 	}
 
-	data, dataDiags := decodeMockDataBody(body, MockDataFileOverrideSource)
+	data, dataDiags := decodeMockDataBody(body, useForPlanDefault, MockDataFileOverrideSource)
 	diags = append(diags, dataDiags...)
 	return data, diags
 }

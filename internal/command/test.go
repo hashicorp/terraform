@@ -114,26 +114,6 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	if args.JUnitXMLFile != "" {
-		// JUnit XML output is currently experimental, so that we can gather
-		// feedback on exactly how we should map the test results to this
-		// JUnit-oriented format before anyone starts depending on it for real.
-		if !c.AllowExperimentalFeatures {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"JUnit XML output is not available",
-				"The -junit-xml option is currently experimental and therefore available only in alpha releases of Terraform CLI.",
-			))
-			view.Diagnostics(nil, nil, diags)
-			return 1
-		}
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
-			"JUnit XML output is experimental",
-			"The -junit-xml option is currently experimental and therefore subject to breaking changes or removal, even in patch releases.",
-		))
-	}
-
 	config, configDiags := c.loadConfigWithTests(".", args.TestDirectory)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
@@ -239,6 +219,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			Verbose:             args.Verbose,
 		}
 
+		// JUnit output is only compatible with local test execution
 		if args.JUnitXMLFile != "" {
 			// Make sure TestCommand's calls loadConfigWithTests before this code, so configLoader is not nil
 			localRunner.JUnit = junit.NewTestJUnitXMLFile(args.JUnitXMLFile, c.configLoader, localRunner)

@@ -78,7 +78,7 @@ func (p *Parser) LoadConfigDirWithTests(path string, testDirectory string) (*Mod
 	return mod, diags
 }
 
-func (p *Parser) LoadMockDataDir(dir string, source hcl.Range) (*MockData, hcl.Diagnostics) {
+func (p *Parser) LoadMockDataDir(dir string, useForPlanDefault bool, source hcl.Range) (*MockData, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	infos, err := p.fs.ReadDir(dir)
@@ -113,7 +113,7 @@ func (p *Parser) LoadMockDataDir(dir string, source hcl.Range) (*MockData, hcl.D
 
 	var data *MockData
 	for _, file := range files {
-		current, currentDiags := p.LoadMockDataFile(file)
+		current, currentDiags := p.LoadMockDataFile(file, useForPlanDefault)
 		diags = append(diags, currentDiags...)
 		if data != nil {
 			diags = append(diags, data.Merge(current, false)...)

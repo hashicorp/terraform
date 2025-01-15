@@ -221,7 +221,7 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"mocking": {
-			expectedOut: []string{"9 passed, 0 failed."},
+			expectedOut: []string{"10 passed, 0 failed."},
 			code:        0,
 		},
 		"mocking-invalid": {
