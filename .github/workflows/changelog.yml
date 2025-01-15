@@ -1,0 +1,155 @@
+# This workflow makes sure contributors don't forget to add a changelog entry or explicitly opt-out of it.
+
+name: Changelog
+
+on:
+  pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
+      - labeled
+      - unlabeled
+
+# This workflow runs for not-yet-reviewed external contributions and so it
+# intentionally has no write access and only limited read access to the
+# repository.
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check-changelog-entry:
+    name: "Check Changelog Entry"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Changed files"
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: changelog
+        with:
+          filters: |
+            unreleased:
+              - '.changes/unreleased/*.yaml'
+            backported:
+              - '.changes/backported/*.yaml'
+            changelog:
+              - 'CHANGELOG.md'
+            version:
+              - 'version/VERSION'
+
+      - name: "Check for changelog entry"
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            async function createOrUpdateChangelogComment(commentDetails, deleteComment) {
+                const commentStart = "## Changelog Warning"
+                
+                const body = commentStart + "\n\n" + commentDetails;
+                const { number: issue_number } = context.issue;
+                const { owner, repo } = context.repo;
+                
+                // List all comments
+                const allComments = (await github.rest.issues.listComments({
+                    issue_number,
+                    owner,
+                    repo,
+                })).data;
+
+                const existingComment = allComments.find(c => c.body.startsWith(commentStart));
+                const comment_id = existingComment?.id;
+                
+                if (deleteComment) {
+                    if (existingComment) {
+                        await github.rest.issues.deleteComment({
+                            owner,
+                            repo,
+                            comment_id,
+                        });
+                    }
+                    return;
+                }
+
+                core.setFailed(commentDetails);
+
+                if (existingComment) {
+                    await github.rest.issues.updateComment({
+                        owner,
+                        repo,
+                        comment_id,
+                        body,
+                    });
+                } else {
+                    await github.rest.issues.createComment({
+                        owner,
+                        repo,
+                        issue_number,
+                        body,
+                    });
+                }
+            }
+            
+            const unreleasedChangesPresent = ${{steps.changelog.outputs.unreleased}};
+            const backportedChangesPresent = ${{steps.changelog.outputs.backported}};
+            const changelogChangesPresent = ${{steps.changelog.outputs.changelog}};
+            const versionChangesPresent = ${{steps.changelog.outputs.version}};
+
+            const prLabels = await github.rest.issues.listLabelsOnIssue({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo
+            });
+            const backportLabel = prLabels.data.find(label => label.name.includes('-backport'));
+            const noChangelogNeededLabel = prLabels.data.find(label => label.name === 'no-changelog-needed');
+            const dependenciesLabel = prLabels.data.find(label => label.name === 'dependencies');
+
+            // We want to prohibit contributors from directly changing the CHANGELOG.md, it's 
+            // generated so all changes will be lost during the release process.
+            // Therefore we only allow the changelog to change together with the version.
+            // In very rare cases where we generate changes in the changelog without changing the 
+            // version we will just ignore this failing check.
+            if (changelogChangesPresent && !versionChangesPresent) {
+                await createOrUpdateChangelogComment("Please don't edit the CHANGELOG.md manually. We use changie to control the Changelog generation, please use `npx changie new` to create a new changelog entry.");
+                return;
+            }
+
+            if (dependenciesLabel) {
+                return;
+            }
+
+            if (noChangelogNeededLabel) {
+                if (unreleasedChangesPresent || backportedChangesPresent) {
+                    await createOrUpdateChangelogComment("Please remove either the 'no-changelog-needed' label or the changelog entry from this PR.");
+                    return;
+                }
+                
+                // Nothing to complain about, so delete any existing comment
+                await createOrUpdateChangelogComment("", true);
+                return;
+            }
+            
+            if (backportLabel) {
+                if (unreleasedChangesPresent) {
+                    await createOrUpdateChangelogComment("Please move the changelog entry from `./.changes/unreleased` to `./.changes/backported` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
+                    return;
+                }
+                
+                if (!backportedChangesPresent) {
+                    await createOrUpdateChangelogComment("Please add a changelog entry to `./.changes/backported` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
+                    return;
+                }
+            } else {
+                if (backportedChangesPresent) {
+                    await createOrUpdateChangelogComment("Please move the changelog entry from `./.changes/backported` to `./.changes/unreleased` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
+                    return;
+                }
+
+                if (!unreleasedChangesPresent) {
+                    await createOrUpdateChangelogComment("Please add a changelog entry to `./.changes/unreleased` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
+                    return;
+                }
+            }
+
+            // Nothing to complain about, so delete any existing comment
+            await createOrUpdateChangelogComment("", true);
