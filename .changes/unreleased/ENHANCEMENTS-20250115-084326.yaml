@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: '`terraform test`: Add new `state_key` attribute for `run` blocks, allowing test authors control over which internal state file should be used for the current test run.'
+time: 2025-01-15T08:43:26.581346+01:00
+custom:
+    Issue: "36185"
