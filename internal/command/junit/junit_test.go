@@ -83,7 +83,7 @@ func Test_TestJUnitXMLFile_Save(t *testing.T) {
       <error message="Encountered an error"></error>
     </testcase>
     <testcase name="my_test_2" classname="file1.tftest.hcl">
-      <skipped message="Testcase skipped due to a previous testcase error"><![CDATA[Previous testcase "my_test_1" ended in error, which caused the test remaining tests in the file to be skipped]]></skipped>
+      <skipped message="Testcase skipped due to a previous testcase error"><![CDATA[Previous testcase "my_test_1" ended in error, which caused the remaining tests in the file to be skipped]]></skipped>
     </testcase>
   </testsuite>
 </testsuites>`),
