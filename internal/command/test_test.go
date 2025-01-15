@@ -294,6 +294,7 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"3 passed, 1 failed."},
 			expectedErr: []string{"Test assertion failed", "resource renamed without moved block"},
 			code:        1,
+		},
 		"simple_testdata": {
 			expectedOut: []string{" passed, 0 failed."},
 			code:        0,

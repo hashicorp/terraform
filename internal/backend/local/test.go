@@ -311,12 +311,13 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		file.Status = file.Status.Merge(moduletest.Pass)
 	}
 
-	// Build the graph for the file. Currently, we build this serially to maintain
-	// the existing sequential functionality of test runs. In the future, we could
-	// optimize this by parallelizing runs that do not depend on each other.
+	// Build the graph for the file.
 	b := terraformtest.TestGraphBuilder{File: file}
 	graph, diags := b.Build(addrs.RootModuleInstance)
 	file.Diagnostics = file.Diagnostics.Append(diags)
+	if diags.HasErrors() {
+		return
+	}
 
 	// walk and execute the graph
 	diags = runner.walkGraph(graph)

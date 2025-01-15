@@ -6,12 +6,14 @@ package terraformtest
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 )
 
 type NodeTestRun struct {
-	file *moduletest.File
-	run  *moduletest.Run
+	file   *moduletest.File
+	run    *moduletest.Run
+	config *configs.Config
 }
 
 func (n *NodeTestRun) Run() *moduletest.Run {

@@ -4,9 +4,15 @@
 package terraformtest
 
 import (
+	"errors"
+	"fmt"
+	"strings"
+
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
@@ -21,16 +27,62 @@ type TestRunTransformer struct {
 
 func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
 	var prev *NodeTestRun
+	var errs []error
+	runsSoFar := make(map[string]*NodeTestRun)
 	for _, run := range t.File.Runs {
-		node := &NodeTestRun{run: run, file: t.File}
+		// If we're testing a specific configuration, we need to use that
+		config := t.config
+		if run.Config.ConfigUnderTest != nil {
+			config = run.Config.ConfigUnderTest
+		}
+
+		node := &NodeTestRun{run: run, file: t.File, config: config}
 		g.Add(node)
 		if prev != nil {
 			g.Connect(dag.BasicEdge(node, prev))
 		}
 		prev = node
+
+		// Connect the run to all the other runs that it depends on
+		refs, err := getRefs(run)
+		if err != nil {
+			return err
+		}
+		for _, ref := range refs {
+			subjectStr := ref.Subject.String()
+			if !strings.HasPrefix(subjectStr, "run.") {
+				continue
+			}
+			runName := strings.TrimPrefix(subjectStr, "run.")
+			if runName == "" {
+				continue
+			}
+			dependency, ok := runsSoFar[runName]
+			if !ok {
+				errs = append(errs, fmt.Errorf("dependency `run.%s` not found for run %q", runName, run.Name))
+				continue
+			}
+			g.Connect(dag.BasicEdge(node, dependency))
+		}
+		runsSoFar[run.Name] = node
 	}
 
-	return nil
+	return errors.Join(errs...)
+}
+
+func getRefs(run *moduletest.Run) ([]*addrs.Reference, error) {
+	refs, refDiags := run.GetReferences()
+	if refDiags.HasErrors() {
+		return nil, refDiags.Err()
+	}
+	for _, expr := range run.Config.Variables {
+		moreRefs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, expr)
+		if moreDiags.HasErrors() {
+			return nil, moreDiags.Err()
+		}
+		refs = append(refs, moreRefs...)
+	}
+	return refs, nil
 }
 
 // -------------------------------------------------------- CloseTestGraphTransformer --------------------------------------------------------
