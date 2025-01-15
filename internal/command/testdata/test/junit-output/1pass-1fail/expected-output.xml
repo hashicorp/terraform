@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?><testsuites>
   <testsuite name="main.tftest.hcl" tests="2" skipped="0" failures="1" errors="0">
     <testcase name="failing_assertion" classname="main.tftest.hcl" time="TIME_REDACTED" timestamp="TIMESTAMP_REDACTED">
-      <failure message="Test run failed"><![CDATA[Test failed on assertion 2 of 3]]></failure>
+      <failure message="local variable &#39;number&#39; has a value greater than zero, so assertion 2 will fail"><![CDATA[Test failed on assertion 2 of 3]]></failure>
       <system-err><![CDATA[
 Error: Test assertion failed
 
