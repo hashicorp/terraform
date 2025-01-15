@@ -5831,6 +5831,193 @@ resource "test_object" "obj" {
 	}
 }
 
+func TestContext2Plan_writeOnlyRequiredReplace(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "obj" {
+	value = "changed"
+}
+`,
+	})
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"value": {
+							Type:      cty.String,
+							Required:  true,
+							WriteOnly: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeResponse = &providers.PlanResourceChangeResponse{
+		PlannedState: cty.ObjectVal(map[string]cty.Value{
+			"value": cty.NullVal(cty.String),
+		}),
+		RequiresReplace: []cty.Path{
+			cty.GetAttrPath("value"),
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	rAddr := mustResourceInstanceAddr("test_object.obj")
+	pAddr := mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`)
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			rAddr,
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustParseJson(map[string]any{
+					"value": nil,
+				}),
+				Status: states.ObjectReady,
+			},
+			pAddr)
+	})
+
+	plan, diags := ctx.Plan(m, state, nil)
+	assertNoErrors(t, diags)
+
+	if plan.Changes.Empty() {
+		t.Fatal("unexpected empty plan")
+	}
+	expectedChanges := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChange{
+			{
+				Addr:         rAddr,
+				PrevRunAddr:  rAddr,
+				ProviderAddr: pAddr,
+				Change: plans.Change{
+					Action: plans.DeleteThenCreate,
+					Before: cty.ObjectVal(map[string]cty.Value{
+						"value": cty.NullVal(cty.String),
+					}),
+					After: cty.ObjectVal(map[string]cty.Value{
+						"value": cty.NullVal(cty.String),
+					}),
+				},
+				ActionReason:    plans.ResourceInstanceReplaceBecauseCannotUpdate,
+				RequiredReplace: cty.NewPathSet(cty.GetAttrPath("value")),
+			},
+		},
+	}
+
+	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
+	assertNoDiagnostics(t, schemaDiags)
+
+	changes, err := plan.Changes.Decode(schemas)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(expectedChanges, changes, ctydebug.CmpOptions); diff != "" {
+		t.Fatalf("unexpected changes: %s", diff)
+	}
+}
+
+func TestContext2Plan_writeOnlyRequiredReplace_createBeforeDestroy(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "obj" {
+	value = "changed"
+	lifecycle {
+		create_before_destroy = true
+	}
+}
+`,
+	})
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"value": {
+							Type:      cty.String,
+							Required:  true,
+							WriteOnly: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeResponse = &providers.PlanResourceChangeResponse{
+		PlannedState: cty.ObjectVal(map[string]cty.Value{
+			"value": cty.NullVal(cty.String),
+		}),
+		RequiresReplace: []cty.Path{
+			cty.GetAttrPath("value"),
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	rAddr := mustResourceInstanceAddr("test_object.obj")
+	pAddr := mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`)
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			rAddr,
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustParseJson(map[string]any{
+					"value": nil,
+				}),
+				Status: states.ObjectReady,
+			},
+			pAddr)
+	})
+
+	plan, diags := ctx.Plan(m, state, nil)
+	assertNoErrors(t, diags)
+
+	if plan.Changes.Empty() {
+		t.Fatal("unexpected empty plan")
+	}
+	expectedChanges := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChange{
+			{
+				Addr:         rAddr,
+				PrevRunAddr:  rAddr,
+				ProviderAddr: pAddr,
+				Change: plans.Change{
+					Action: plans.CreateThenDelete,
+					Before: cty.ObjectVal(map[string]cty.Value{
+						"value": cty.NullVal(cty.String),
+					}),
+					After: cty.ObjectVal(map[string]cty.Value{
+						"value": cty.NullVal(cty.String),
+					}),
+				},
+				ActionReason:    plans.ResourceInstanceReplaceBecauseCannotUpdate,
+				RequiredReplace: cty.NewPathSet(cty.GetAttrPath("value")),
+			},
+		},
+	}
+
+	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
+	assertNoDiagnostics(t, schemaDiags)
+
+	changes, err := plan.Changes.Decode(schemas)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(expectedChanges, changes, ctydebug.CmpOptions); diff != "" {
+		t.Fatalf("unexpected changes: %s", diff)
+	}
+}
+
 func TestContext2Plan_selfReferences(t *testing.T) {
 	tcs := []struct {
 		attribute string
