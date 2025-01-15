@@ -224,9 +224,9 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 						break
 					}
 				}
-				body := getFailBody(run, failedAssertion)
+				message, body := getFailDetails(run, failedAssertion)
 				testCase.Failure = &withMessage{
-					Message: "Test run failed",
+					Message: message,
 					Body:    body,
 				}
 			case moduletest.Error:
@@ -296,7 +296,9 @@ func getSkipDetails(runIndex int, file *moduletest.File, suiteStopped bool) (str
 	return "", ""
 }
 
-func getFailBody(run *moduletest.Run, diag tfdiags.Diagnostic) string {
+// getFailDetails uses data from the diagnostic raised by the failing test to create
+// a message and body text for the <failure> element in the XML
+func getFailDetails(run *moduletest.Run, diag tfdiags.Diagnostic) (string, string) {
 	testCtx := diag.FromExpr()
 
 	// Identify which assertion failed out of multiple assertions in a run block
@@ -305,22 +307,28 @@ func getFailBody(run *moduletest.Run, diag tfdiags.Diagnostic) string {
 	for i, assertion := range run.Config.CheckRules {
 		condition, diag := assertion.Condition.Value(testCtx.EvalContext)
 		if diag.HasErrors() {
-			return ""
+			return "", ""
 		}
 
 		if condition.RawEquals(cty.BoolVal(false)) {
-			failedIndex = i + 1 // index 1
+			failedIndex = i
 			found = true
 			break
 		}
 	}
 
 	if found {
-		return fmt.Sprintf("Test failed on assertion %d of %d", failedIndex, len(run.Config.CheckRules))
+		message, diag := run.Config.CheckRules[failedIndex].ErrorMessage.Value(testCtx.EvalContext)
+		if diag.HasErrors() {
+			return "", ""
+		}
+
+		body := fmt.Sprintf("Test failed on assertion %d of %d", failedIndex+1, len(run.Config.CheckRules))
+		return message.AsString(), body
 	}
 
 	// Unhandled case
-	return ""
+	return "", ""
 }
 
 func suiteFilesAsSortedList(files map[string]*moduletest.File) []*moduletest.File {
