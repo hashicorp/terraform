@@ -216,12 +216,10 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 					Body:    body,
 				}
 			case moduletest.Fail:
-				var diagsStr strings.Builder
 				var failedAssertion tfdiags.Diagnostic
 				for _, diag := range run.Diagnostics {
 					// Find the diag resulting from a failed assertion
 					if diag.Description().Summary == failedTestSummary {
-						diagsStr.WriteString(format.DiagnosticPlain(diag, sources, 80))
 						failedAssertion = diag
 						break
 					}
