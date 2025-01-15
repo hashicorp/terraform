@@ -18,6 +18,10 @@ type Test struct {
 	// will be executed.
 	Filter []string
 
+	// OperationParallelism is the limit Terraform places on total parallel operations
+	// during the plan or apply command within a single test run.
+	OperationParallelism int
+
 	// TestDirectory allows the user to override the directory that the test
 	// command will use to discover test files, defaults to "tests". Regardless
 	// of the value here, test files within the configuration directory will
@@ -55,6 +59,7 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 	cmdFlags.StringVar(&test.JUnitXMLFile, "junit-xml", "", "junit-xml")
 	cmdFlags.BoolVar(&test.Verbose, "verbose", false, "verbose")
+	cmdFlags.IntVar(&test.OperationParallelism, "parallelism", DefaultParallelism, "parallelism")
 
 	// TODO: Finalise the name of this flag.
 	cmdFlags.StringVar(&test.CloudRunSource, "cloud-run", "", "cloud-run")
