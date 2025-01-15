@@ -1,10 +1,28 @@
-## 1.11.0 (Unreleased)
+## 1.11.0-beta1 (January 15, 2025)
+
+
+NEW FEATURES:
+
+* Add write-only attributes to resources. Providers can specify that certain attributes are write-only. They are not persisted in state. You can use ephemeral values in write-only attributes. ([#36031](https://github.com/hashicorp/terraform/issues/36031))
+
+* `terraform test`: The `-junit-xml` option for the terraform test command is now generally available. This option allows the command to create a test report in JUnit XML format. Feedback during the experimental phase helped map terraform test concepts to the JUnit XML format, and new additons may happen in future releases. ([#36324](https://github.com/hashicorp/terraform/issues/36324))
+
 
 ENHANCEMENTS:
 
 * `init`: Provider installation will utilise credentials configured in a `.netrc` file for the download and shasum URLs returned by provider registries. ([#35843](https://github.com/hashicorp/terraform/issues/35843))
 
 * New command `modules -json`: Displays a full list of all installed modules in a working directory, including whether each module is currently referenced by the working directory's configuration. ([#35884](https://github.com/hashicorp/terraform/issues/35884))
+
+* `terraform test`: Test runs now support using mocked or overridden values during unit test runs (e.g., with command = "plan"). When override_during = "plan" ([#36227](https://github.com/hashicorp/terraform/issues/36227))
+
+* Changed the text in errors returned from Terraform when a non-null value is found for a write-only attribute. ([#36274](https://github.com/hashicorp/terraform/issues/36274))
+
+
+BUG FIXES:
+
+* Updated dependency `github.com/hashicorp/go-slug` `v0.16.0` => `v0.16.3` to integrate latest changes (fix for CVE-2025-0377) ([#36273](https://github.com/hashicorp/terraform/issues/36273))
+
 
 EXPERIMENTS:
 
