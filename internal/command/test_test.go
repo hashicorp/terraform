@@ -2378,9 +2378,8 @@ func TestTest_JUnitOutput(t *testing.T) {
 
 			c := &TestCommand{
 				Meta: Meta{
-					testingOverrides:          metaOverridesForProvider(provider.Provider),
-					View:                      view,
-					AllowExperimentalFeatures: true,
+					testingOverrides: metaOverridesForProvider(provider.Provider),
+					View:             view,
 				},
 			}
 
