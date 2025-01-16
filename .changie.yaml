@@ -3,7 +3,7 @@
 
 
 changesDir: .changes
-unreleasedDir: unreleased
+unreleasedDir: backported
 versionFooterPath: version_footer.tpl.md
 changelogPath: CHANGELOG.md
 versionExt: md
