@@ -217,10 +217,15 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 
 					var runs []*moduletest.Run
 					for ix, run := range file.Runs {
+						config := runner.Config
+						if run.ConfigUnderTest != nil {
+							config = run.ConfigUnderTest
+						}
 						runs = append(runs, &moduletest.Run{
-							Config: run,
-							Index:  ix,
-							Name:   run.Name,
+							Config:       run,
+							ModuleConfig: config,
+							Index:        ix,
+							Name:         run.Name,
 						})
 					}
 
@@ -241,10 +246,15 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 
 				var runs []*moduletest.Run
 				for ix, run := range file.Runs {
+					config := runner.Config
+					if run.ConfigUnderTest != nil {
+						config = run.ConfigUnderTest
+					}
 					runs = append(runs, &moduletest.Run{
-						Config: run,
-						Index:  ix,
-						Name:   run.Name,
+						Config:       run,
+						ModuleConfig: config,
+						Index:        ix,
+						Name:         run.Name,
 					})
 				}
 

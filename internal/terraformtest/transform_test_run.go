@@ -38,7 +38,9 @@ func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
 
 		node := &NodeTestRun{run: run, file: t.File, config: config}
 		g.Add(node)
-		if prev != nil {
+
+		// parallelized sequential runs are only connected if they have the same state key or if they depend on each other
+		if prev != nil && prev.run.GetStateKey() == run.GetStateKey() && prev.run.Config.Parallel && run.Config.Parallel {
 			g.Connect(dag.BasicEdge(node, prev))
 		}
 		prev = node
@@ -115,4 +117,8 @@ func (t *CloseTestGraphTransformer) Transform(g *terraform.Graph) error {
 // This node doesn't do anything, it's just to ensure that we have a single
 // root node that depends on everything in the root module.
 type nodeCloseTest struct {
+}
+
+func (n *nodeCloseTest) Name() string {
+	return "testroot"
 }

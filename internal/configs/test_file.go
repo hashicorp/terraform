@@ -133,7 +133,15 @@ type TestRun struct {
 	// run.
 	ExpectFailures []hcl.Traversal
 
+	// StateKey when given, will be used to identify the state file to use for
+	// this test run. If not provided, the state key is derived from the
+	// configuration under test.
 	StateKey string
+
+	// Parallel: Indicates if the test run should be executed in parallel.
+	// This, in combination with the state key, will allow multiple test runs
+	// to run in parallel, provided 2 test runs do not use the same state key.
+	Parallel bool
 
 	NameDeclRange      hcl.Range
 	VariablesDeclRange hcl.Range
@@ -613,6 +621,11 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 		diags = append(diags, rawDiags...)
 	}
 
+	if attr, exists := content.Attributes["parallel"]; exists {
+		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Parallel)
+		diags = append(diags, rawDiags...)
+	}
+
 	return &r, diags
 }
 
@@ -815,6 +828,7 @@ var testRunBlockSchema = &hcl.BodySchema{
 		{Name: "providers"},
 		{Name: "expect_failures"},
 		{Name: "state_key"},
+		{Name: "parallel"},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{

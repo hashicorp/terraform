@@ -166,6 +166,10 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
+		"shared_state_parallel": {
+			expectedOut: []string{"5 passed, 0 failed."},
+			code:        0,
+		},
 		"shared_state_object": {
 			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
@@ -301,6 +305,9 @@ func TestTest_Runs(t *testing.T) {
 		},
 	}
 	for name, tc := range tcs {
+		if name != "shared_state_parallel" {
+			continue
+		}
 		t.Run(name, func(t *testing.T) {
 			if tc.skip {
 				t.Skip()
@@ -454,6 +461,68 @@ func TestTest_Interrupt(t *testing.T) {
 	if provider.ResourceCount() > 0 {
 		// we asked for a nice stop in this one, so it should still have tidied everything up.
 		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_Parallel(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "shared_state_parallel")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 9, code, output.All())
+	}
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	c.Run(nil)
+	output := done(t).All()
+
+	// Split the log into lines
+	lines := strings.Split(output, "\n")
+
+	// Find the positions of "test_d" and "test_c"
+	var testDIndex, testCIndex int
+	for i, line := range lines {
+		if strings.Contains(line, "run \"test_d\"") {
+			testDIndex = i
+		} else if strings.Contains(line, "run \"test_c\"") {
+			testCIndex = i
+		}
+	}
+
+	// Ensure "test_d" appears before "test_c", because test_d has no dependencies,
+	// and would therefore run in parallel to much earlier tests which test_c depends on.
+	if testDIndex == 0 || testCIndex == 0 {
+		t.Fatalf("Could not find both test_d and test_c in the output")
+	}
+	if testDIndex > testCIndex {
+		t.Errorf("test_d appears after test_c in the log output")
 	}
 }
 
