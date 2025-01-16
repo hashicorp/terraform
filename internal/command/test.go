@@ -200,7 +200,6 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			Streams:          c.Streams,
 		}
 	} else {
-
 		localRunner := &local.TestSuiteRunner{
 			Config: config,
 			// The GlobalVariables are loaded from the
@@ -223,7 +222,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		// JUnit output is only compatible with local test execution
 		if args.JUnitXMLFile != "" {
 			// Make sure TestCommand's calls loadConfigWithTests before this code, so configLoader is not nil
-			localRunner.JUnit = junit.NewTestJUnitXMLFile(args.JUnitXMLFile, c.configLoader)
+			localRunner.JUnit = junit.NewTestJUnitXMLFile(args.JUnitXMLFile, c.configLoader, localRunner)
 		}
 
 		runner = localRunner

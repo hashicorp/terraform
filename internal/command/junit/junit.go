@@ -40,6 +40,9 @@ type TestJUnitXMLFile struct {
 
 	// A config loader is required to access sources, which are used with diagnostics to create XML content
 	configLoader *configload.Loader
+
+	// A pointer to the containing test suite runner is needed to monitor details like the command being stopped
+	testSuiteRunner moduletest.TestSuiteRunner
 }
 
 type JUnit interface {
@@ -55,10 +58,11 @@ var _ JUnit = (*TestJUnitXMLFile)(nil)
 // point of being asked to write a conclusion. Otherwise it will create the
 // file at that time. If creating or overwriting the file fails, a subsequent
 // call to method Err will return information about the problem.
-func NewTestJUnitXMLFile(filename string, configLoader *configload.Loader) *TestJUnitXMLFile {
+func NewTestJUnitXMLFile(filename string, configLoader *configload.Loader, testSuiteRunner moduletest.TestSuiteRunner) *TestJUnitXMLFile {
 	return &TestJUnitXMLFile{
-		filename:     filename,
-		configLoader: configLoader,
+		filename:        filename,
+		configLoader:    configLoader,
+		testSuiteRunner: testSuiteRunner,
 	}
 }
 
@@ -69,7 +73,7 @@ func (v *TestJUnitXMLFile) Save(suite *moduletest.Suite) tfdiags.Diagnostics {
 
 	// Prepare XML content
 	sources := v.configLoader.Parser().Sources()
-	xmlSrc, err := junitXMLTestReport(suite, sources)
+	xmlSrc, err := junitXMLTestReport(suite, v.testSuiteRunner.IsStopped(), sources)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -130,7 +134,7 @@ type testCase struct {
 	Timestamp string  `xml:"timestamp,attr,omitempty"`
 }
 
-func junitXMLTestReport(suite *moduletest.Suite, sources map[string][]byte) ([]byte, error) {
+func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, sources map[string][]byte) ([]byte, error) {
 	var buf bytes.Buffer
 	enc := xml.NewEncoder(&buf)
 	enc.EncodeToken(xml.ProcInst{
@@ -182,7 +186,7 @@ func junitXMLTestReport(suite *moduletest.Suite, sources map[string][]byte) ([]b
 			},
 		})
 
-		for _, run := range file.Runs {
+		for i, run := range file.Runs {
 			// Each run is a "test case".
 
 			testCase := testCase{
@@ -201,9 +205,10 @@ func junitXMLTestReport(suite *moduletest.Suite, sources map[string][]byte) ([]b
 			}
 			switch run.Status {
 			case moduletest.Skip:
+				message, body := getSkipDetails(i, file, suiteRunnerStopped)
 				testCase.Skipped = &withMessage{
-					// FIXME: Is there something useful we could say here about
-					// why the test was skipped?
+					Message: message,
+					Body:    body,
 				}
 			case moduletest.Fail:
 				testCase.Failure = &withMessage{
@@ -246,6 +251,37 @@ func junitXMLTestReport(suite *moduletest.Suite, sources map[string][]byte) ([]b
 	enc.EncodeToken(xml.EndElement{Name: suitesName})
 	enc.Close()
 	return buf.Bytes(), nil
+}
+
+// getSkipDetails checks data about the test suite, file and runs to determine why a given run was skipped
+// Test can be skipped due to:
+// 1. terraform test recieving an interrupt from users; all unstarted tests will be skipped
+// 2. A previous run in a file has failed, causing subsequent run blocks to be skipped
+func getSkipDetails(runIndex int, file *moduletest.File, suiteStopped bool) (string, string) {
+	if suiteStopped {
+		// Test suite experienced an interrupt
+		// This block only handles graceful Stop interrupts, as Cancel interrupts will prevent a JUnit file being produced at all
+		message := "Testcase skipped due to an interrupt"
+		body := "Terraform received an interrupt and stopped gracefully. This caused all remaining testcases to be skipped"
+
+		return message, body
+	}
+
+	if file.Status == moduletest.Error {
+		// Overall test file marked as errored in the context of a skipped test means tests have been skipped after
+		// a previous test/run blocks has errored out
+		for i := runIndex; i >= 0; i-- {
+			if file.Runs[i].Status == moduletest.Error {
+				// Skipped due to error in previous run within the file
+				message := "Testcase skipped due to a previous testcase error"
+				body := fmt.Sprintf("Previous testcase %q ended in error, which caused the remaining tests in the file to be skipped", file.Runs[i].Name)
+				return message, body
+			}
+		}
+	}
+
+	// Unhandled case: This results in <skipped></skipped> with no attributes or body
+	return "", ""
 }
 
 func suiteFilesAsSortedList(files map[string]*moduletest.File) []*moduletest.File {
