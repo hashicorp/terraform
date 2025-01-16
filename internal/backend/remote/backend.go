@@ -964,16 +964,6 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 		return diags
 	}
 
-	// remoteVersion, err := version.NewSemver(workspace.TerraformVersion)
-	// if err != nil {
-	// 	diags = diags.Append(tfdiags.Sourceless(
-	// 		tfdiags.Error,
-	// 		"BYEE",
-	// 		fmt.Sprintf("Invalid Terraform version: %s", err),
-	// 	))
-	// 	return diags
-	// }
-
 	remoteVersion, _ := version.NewSemver(workspace.TerraformVersion)
 
 	if remoteVersion != nil && remoteVersion.Prerelease() == "" {
@@ -1010,35 +1000,6 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 	if remoteConstraint.Check(fullTfversion) {
 		return diags
 	}
-
-	// v014 := version.Must(version.NewSemver("0.14.0"))
-	// if tfversion.SemVer.LessThan(v014) || remoteVersion.LessThan(v014) {
-	// 	// Versions of Terraform prior to 0.14.0 will refuse to load state files
-	// 	// written by a newer version of Terraform, even if it is only a patch
-	// 	// level difference. As a result we require an exact match.
-	// 	if tfversion.SemVer.Equal(remoteVersion) {
-	// 		return diags
-	// 	}
-	// }
-	// if tfversion.SemVer.GreaterThanOrEqual(v014) && remoteVersion.GreaterThanOrEqual(v014) {
-	// 	// Versions of Terraform after 0.14.0 should be compatible with each
-	// 	// other.  At the time this code was written, the only constraints we
-	// 	// are aware of are:
-	// 	//
-	// 	// - 0.14.0 is guaranteed to be compatible with versions up to but not
-	// 	//   including 1.3.0
-	// 	v130 := version.Must(version.NewSemver("1.3.0"))
-	// 	if tfversion.SemVer.LessThan(v130) && remoteVersion.LessThan(v130) {
-	// 		return diags
-	// 	}
-	// 	// - Any new Terraform state version will require at least minor patch
-	// 	//   increment, so x.y.* will always be compatible with each other
-	// 	tfvs := tfversion.SemVer.Segments64()
-	// 	rwvs := remoteVersion.Segments64()
-	// 	if len(tfvs) == 3 && len(rwvs) == 3 && tfvs[0] == rwvs[0] && tfvs[1] == rwvs[1] {
-	// 		return diags
-	// 	}
-	// }
 
 	// Even if ignoring version conflicts, it may still be useful to call this
 	// method and warn the user about a mismatch between the local and remote
