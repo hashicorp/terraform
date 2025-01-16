@@ -124,7 +124,7 @@ This section provides details about the fields you can configure in the `output`
 | `description` | A human-friendly description for the output. | string | Optional |
 | `type` | The type of the output. | type constraint | Required |
 | `value` | The value to output. | any | Required |
-| `sensitive` | Whether to hide the output in UI. | bool | Optional |
+| `sensitive` | Marks the variable as sensitive, which prevents its value from being displayed in logs or in the HCP Terraform UI.  | bool | Optional |
 | `ephemeral` | Whether to exclude the value from plans and state data. | bool | Optional |
 
 ## `required_providers` and `provider` block configuration
