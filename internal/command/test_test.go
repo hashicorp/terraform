@@ -305,9 +305,6 @@ func TestTest_Runs(t *testing.T) {
 		},
 	}
 	for name, tc := range tcs {
-		if name != "shared_state_parallel" {
-			continue
-		}
 		t.Run(name, func(t *testing.T) {
 			if tc.skip {
 				t.Skip()
@@ -506,23 +503,30 @@ func TestTest_Parallel(t *testing.T) {
 	// Split the log into lines
 	lines := strings.Split(output, "\n")
 
-	// Find the positions of "test_d" and "test_c"
-	var testDIndex, testCIndex int
+	// Find the positions of "test_d", "test_c", "test_setup" in the log output
+	var testDIndex, testCIndex, testSetupIndex int
 	for i, line := range lines {
-		if strings.Contains(line, "run \"test_d\"") {
+		if strings.Contains(line, "run \"setup\"") {
+			testSetupIndex = i
+		} else if strings.Contains(line, "run \"test_d\"") {
 			testDIndex = i
 		} else if strings.Contains(line, "run \"test_c\"") {
 			testCIndex = i
 		}
 	}
+	if testDIndex == 0 || testCIndex == 0 || testSetupIndex == 0 {
+		t.Fatalf("test_d, test_c, or test_setup not found in the log output")
+	}
 
 	// Ensure "test_d" appears before "test_c", because test_d has no dependencies,
 	// and would therefore run in parallel to much earlier tests which test_c depends on.
-	if testDIndex == 0 || testCIndex == 0 {
-		t.Fatalf("Could not find both test_d and test_c in the output")
-	}
 	if testDIndex > testCIndex {
 		t.Errorf("test_d appears after test_c in the log output")
+	}
+
+	// Ensure "test_d" appears after "test_setup", because they have the same state key
+	if testDIndex < testSetupIndex {
+		t.Errorf("test_d appears before test_setup in the log output")
 	}
 }
 

@@ -26,27 +26,45 @@ type TestRunTransformer struct {
 }
 
 func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
-	var prev *NodeTestRun
 	var errs []error
-	runsSoFar := make(map[string]*NodeTestRun)
+
+	// Create and add nodes for each run
+	nodes, err := t.createNodes(g)
+	if err != nil {
+		return err
+	}
+
+	// Connect nodes based on dependencies
+	if err := t.connectDependencies(g, nodes); err != nil {
+		errs = append(errs, err)
+	}
+
+	// Connect nodes with the same state key sequentially
+	if err := t.connectStateKeyRuns(g, nodes); err != nil {
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
+}
+
+func (t *TestRunTransformer) createNodes(g *terraform.Graph) ([]*NodeTestRun, error) {
+	var nodes []*NodeTestRun
 	for _, run := range t.File.Runs {
-		// If we're testing a specific configuration, we need to use that
-		config := t.config
-		if run.Config.ConfigUnderTest != nil {
-			config = run.Config.ConfigUnderTest
-		}
-
-		node := &NodeTestRun{run: run, file: t.File, config: config}
+		node := &NodeTestRun{run: run, file: t.File}
 		g.Add(node)
+		nodes = append(nodes, node)
+	}
+	return nodes, nil
+}
 
-		// parallelized sequential runs are only connected if they have the same state key or if they depend on each other
-		if prev != nil && prev.run.GetStateKey() == run.GetStateKey() && prev.run.Config.Parallel && run.Config.Parallel {
-			g.Connect(dag.BasicEdge(node, prev))
-		}
-		prev = node
-
-		// Connect the run to all the other runs that it depends on
-		refs, err := getRefs(run)
+func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*NodeTestRun) error {
+	var errs []error
+	nodeMap := make(map[string]*NodeTestRun)
+	for _, node := range nodes {
+		nodeMap[node.run.Name] = node
+	}
+	for _, node := range nodes {
+		refs, err := getRefs(node.run)
 		if err != nil {
 			return err
 		}
@@ -59,17 +77,29 @@ func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
 			if runName == "" {
 				continue
 			}
-			dependency, ok := runsSoFar[runName]
+			dependency, ok := nodeMap[runName]
 			if !ok {
-				errs = append(errs, fmt.Errorf("dependency `run.%s` not found for run %q", runName, run.Name))
+				errs = append(errs, fmt.Errorf("dependency `run.%s` not found for run %q", runName, node.run.Name))
 				continue
 			}
 			g.Connect(dag.BasicEdge(node, dependency))
 		}
-		runsSoFar[run.Name] = node
 	}
-
 	return errors.Join(errs...)
+}
+
+func (t *TestRunTransformer) connectStateKeyRuns(g *terraform.Graph, nodes []*NodeTestRun) error {
+	stateRuns := make(map[string][]*NodeTestRun)
+	for _, node := range nodes {
+		key := node.run.GetStateKey()
+		stateRuns[key] = append(stateRuns[key], node)
+	}
+	for _, runs := range stateRuns {
+		for i := 1; i < len(runs); i++ {
+			g.Connect(dag.BasicEdge(runs[i], runs[i-1]))
+		}
+	}
+	return nil
 }
 
 func getRefs(run *moduletest.Run) ([]*addrs.Reference, error) {
