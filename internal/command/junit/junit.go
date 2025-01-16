@@ -193,6 +193,14 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 		for i, run := range file.Runs {
 			// Each run is a "test case".
 
+			// By creating a map of diags we can delete them as they're used below
+			// This helps to identify diags that are only appropriate to include in
+			// the "system-err" element
+			diagsMap := make(map[int]tfdiags.Diagnostic, len(run.Diagnostics))
+			for i, diag := range run.Diagnostics {
+				diagsMap[i] = diag
+			}
+
 			testCase := testCase{
 				Name: run.Name,
 
@@ -216,10 +224,11 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 				}
 			case moduletest.Fail:
 				var failedAssertion tfdiags.Diagnostic
-				for _, d := range run.Diagnostics {
+				for key, d := range diagsMap {
 					// Find the diag resulting from a failed assertion
 					if d.Description().Summary == failedTestSummary {
 						failedAssertion = d
+						delete(diagsMap, key)
 						break
 					}
 				}
@@ -230,23 +239,25 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 				}
 			case moduletest.Error:
 				var diagsStr strings.Builder
-				for _, diag := range run.Diagnostics {
-					diagsStr.WriteString(format.DiagnosticPlain(diag, sources, 80))
+				for key, d := range diagsMap {
+					diagsStr.WriteString(format.DiagnosticPlain(d, sources, 80))
+					delete(diagsMap, key)
 				}
 				testCase.Error = &withMessage{
 					Message: "Encountered an error",
 					Body:    diagsStr.String(),
 				}
 			}
-			if len(run.Diagnostics) != 0 && testCase.Error == nil {
+			if len(diagsMap) != 0 && testCase.Error == nil {
 				// If we have diagnostics but the outcome wasn't an error
 				// then we're presumably holding diagnostics that didn't
 				// cause the test to error, such as warnings. We'll place
 				// those into the "system-err" element instead, so that
 				// they'll be reported _somewhere_ at least.
 				var diagsStr strings.Builder
-				for _, diag := range run.Diagnostics {
+				for key, diag := range diagsMap {
 					diagsStr.WriteString(format.DiagnosticPlain(diag, sources, 80))
+					delete(diagsMap, key)
 				}
 				testCase.Stderr = &withMessage{
 					Body: diagsStr.String(),
