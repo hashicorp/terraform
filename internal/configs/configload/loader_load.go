@@ -58,7 +58,7 @@ func (l *Loader) LoadExternalMockData(provider *configs.Provider) (*configs.Mock
 	}
 
 	// Otherwise, just hand this off to the parser to handle.
-	return l.parser.LoadMockDataDir(provider.MockDataExternalSource, provider.DeclRange)
+	return l.parser.LoadMockDataDir(provider.MockDataExternalSource, provider.MockDataDuringPlan, provider.DeclRange)
 }
 
 // moduleWalkerLoad is a configs.ModuleWalkerFunc for loading modules that

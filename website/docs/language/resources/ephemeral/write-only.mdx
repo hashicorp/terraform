@@ -1,0 +1,44 @@
+---
+page_title: Use write-only arguments
+description: Learn how to use write-only arguments to set temporary values that can only be overwritten and are not stored in Terraform's state.
+---
+
+<!-- THIS IS HIDDEN FOR NOW - TODO FOR GA: unhide when we have a code snippet to share and I can add more details -->
+
+# Use write-only arguments
+
+Terraform resources can include ephemeral arguments, also known as attributes, for data that only needs to exist temporarily. An ephemeral argument on a resource is called a "write-only argument". Write-only arguments can help store generated sensitive data for the current Terraform operation, such as a short-lived password, token, or session identifier.
+
+-> **Public Beta**: Write-only arguments are in public beta and available in Terraform v1.11 and later.  Public beta features and APIs are subject to change.
+
+
+## Introduction
+
+Write-only arguments are only available during runtime, and Terraform omits them from state and plan files. On a new Terraform operation, a write-only argument always start as `null` before Terraform overwrites it with a new value from your configuration.
+
+Write-only arguments are unique among other ephemeral constructs in Terraform because you can assign both ephemeral and non-ephemeral data as the value of a write-only argument.
+
+<!-- TODO: Update with a code sample when we have one
+
+## Define a write-only value
+
+## Set a write-only value
+
+Example of setting an ephemeral value:
+
+Example of setting a non-ephemeral value:
+
+Add guidance on avoiding acciedentally leaking a non-ephemeral value in a write-only argument.
+
+-->
+
+<!-- TODO: Update with provider code samples when we have them
+
+## Provider examples
+
+### Vault example
+
+### AWS example
+
+-->
+

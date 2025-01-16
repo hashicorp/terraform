@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: Changed the text in errors returned from Terraform when a non-null value is found for a write-only attribute.
-time: 2025-01-08T10:43:35.241109Z
-custom:
-    Issue: "36274"

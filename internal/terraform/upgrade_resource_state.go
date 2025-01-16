@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -118,6 +119,24 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 				fmt.Sprintf("The %s provider upgraded the state for %s from a previous version, but produced an invalid result: %s.", providerType, addr, tfdiags.FormatError(err)),
 			))
 		}
+		return nil, diags
+	}
+
+	// Check for any write-only attributes that have non-null values
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
+		"Invalid resource state upgrade",
+		func(path cty.Path) string {
+			return fmt.Sprintf(
+				"While attempting to upgrade state of resource %s, the provider %q returned a value for the write-only attribute \"%s%s\". Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				addr, providerType, addr, tfdiags.FormatCtyPath(path),
+			)
+		},
+		newValue,
+		currentSchema,
+	)
+	diags = diags.Append(writeOnlyDiags)
+
+	if writeOnlyDiags.HasErrors() {
 		return nil, diags
 	}
 
