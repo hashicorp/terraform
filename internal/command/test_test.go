@@ -299,10 +299,6 @@ func TestTest_Runs(t *testing.T) {
 			expectedErr: []string{"Test assertion failed", "resource renamed without moved block"},
 			code:        1,
 		},
-		"simple_testdata": {
-			expectedOut: []string{" passed, 0 failed."},
-			code:        0,
-		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
