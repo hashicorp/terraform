@@ -30,7 +30,7 @@ Commands:
     This function expects the current branch to be main. Run it if you want to set main to the next
     minor version.
     
-    firstbeta
+  firstbeta
     This function is expected to be run on the branch of the last minor release. It will make sure
     that backports work properly
   
