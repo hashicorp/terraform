@@ -322,7 +322,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	}
 
 	// Build the graph for the file.
-	b := terraformtest.TestGraphBuilder{File: file}
+	b := terraformtest.TestGraphBuilder{File: file, GlobalVars: runner.VariableCaches.GlobalVariables}
 	graph, diags := b.Build(addrs.RootModuleInstance)
 	file.Diagnostics = file.Diagnostics.Append(diags)
 	if diags.HasErrors() {
