@@ -49,10 +49,23 @@ func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
 
 func (t *TestRunTransformer) createNodes(g *terraform.Graph) ([]*NodeTestRun, error) {
 	var nodes []*NodeTestRun
+	var prev *NodeTestRun
 	for _, run := range t.File.Runs {
 		node := &NodeTestRun{run: run, file: t.File}
 		g.Add(node)
 		nodes = append(nodes, node)
+
+		if prev != nil {
+			parallelized := prev.run.Config.Parallel && run.Config.Parallel
+			// we connect 2 sequential runs IF
+			// 1. at least one of them is NOT eligible for parallelization OR
+			// 2. they are both eligible for parallelization AND have the same state key
+			if !parallelized || (parallelized && prev.run.GetStateKey() == run.GetStateKey()) {
+				g.Connect(dag.BasicEdge(node, prev))
+			}
+		}
+		prev = node
+
 	}
 	return nodes, nil
 }

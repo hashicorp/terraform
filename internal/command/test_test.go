@@ -163,7 +163,7 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"shared_state": {
-			expectedOut: []string{"2 passed, 0 failed."},
+			expectedOut: []string{"7 passed, 0 failed."},
 			code:        0,
 		},
 		"shared_state_parallel": {
@@ -458,6 +458,76 @@ func TestTest_Interrupt(t *testing.T) {
 	if provider.ResourceCount() > 0 {
 		// we asked for a nice stop in this one, so it should still have tidied everything up.
 		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_SharedState_Order(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "shared_state")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 9, code, output.All())
+	}
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	c.Run(nil)
+	output := done(t).All()
+
+	// Split the log into lines
+	lines := strings.Split(output, "\n")
+
+	var arr []string
+	for _, line := range lines {
+		if strings.Contains(line, "run \"") && strings.Contains(line, "\x1b[32mpass") {
+			arr = append(arr, line)
+		}
+	}
+
+	// Ensure the order of the tests is correct
+	expectedOrder := []string{
+		// main.tftest.hcl
+		"run \"setup\"",
+		"run \"test\"",
+
+		// order.tftest.hcl
+		"run \"setup\"",
+		"run \"test_a\"",
+		"run \"test_b\"",
+		"run \"test_c\"",
+		"run \"test_d\"",
+	}
+
+	for i, line := range expectedOrder {
+		if !strings.Contains(arr[i], line) {
+			t.Errorf("unexpected test order: expected %q, got %q", line, arr[i])
+		}
 	}
 }
 
