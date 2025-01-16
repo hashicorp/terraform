@@ -9,6 +9,7 @@ variables {
 
 run "setup" {
   parallel = true
+  state_key = "test_d"
   module {
     source = "./setup"
   }
@@ -81,6 +82,7 @@ run "test_c" {
 // Does not depend on previous run, and has different state key, so would run in parallel
 // NotDepends: true
 // DiffStateKey: true
+// However, it has a state key that is the same as a previous run, so it should wait for that run.
 run "test_d" {
   parallel = true
   state_key = "test_d"
@@ -93,3 +95,19 @@ run "test_d" {
     error_message = "double bad"
   }
 }
+
+// Does not depend on previous run, and has different state key, so would run in parallel
+// NotDepends: true
+// DiffStateKey: true
+# run "test_d" {
+#   parallel = true
+#   state_key = "test_d"
+#   variables {
+#     input = "foo"
+#   }
+
+#   assert {
+#     condition = output.value == var.foo
+#     error_message = "double bad"
+#   }
+# }
