@@ -1571,6 +1571,14 @@ Failure! 0 passed, 1 failed.
 	}
 
 	expectedErr := `
+Error: Reference to unavailable variable
+
+  on main.tftest.hcl line 15, in run "test":
+  15:     input_one = var.notreal
+
+The input variable "notreal" is not available to the current run block. You
+can only reference variables defined at the file or global levels.
+
 Error: Reference to unavailable run block
 
   on main.tftest.hcl line 16, in run "test":

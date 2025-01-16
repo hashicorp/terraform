@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -16,7 +17,8 @@ import (
 // a terraform test file. The file may contain multiple runs, and each run may have
 // dependencies on other runs.
 type TestGraphBuilder struct {
-	File *moduletest.File
+	File       *moduletest.File
+	GlobalVars map[string]backendrun.UnparsedVariableValue
 }
 
 // See GraphBuilder
@@ -31,7 +33,7 @@ func (b *TestGraphBuilder) Build(path addrs.ModuleInstance) (*terraform.Graph, t
 // See GraphBuilder
 func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 	steps := []terraform.GraphTransformer{
-		&TestRunTransformer{File: b.File},
+		&TestRunTransformer{File: b.File, globalVars: b.GlobalVars},
 		&CloseTestGraphTransformer{},
 		&terraform.TransitiveReductionTransformer{},
 	}

@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest"
@@ -23,7 +22,6 @@ import (
 // and the variables defined in each run block, to the graph.
 type TestRunTransformer struct {
 	File       *moduletest.File
-	config     *configs.Config
 	globalVars map[string]backendrun.UnparsedVariableValue
 }
 
@@ -82,46 +80,71 @@ func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*No
 	}
 	for _, node := range nodes {
 		nodeMap[node.run.Name] = node // node encountered, so update the map
+
+		// check for variable references
+		varRefs, err := t.getVariableNames(node.run)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
 		refs, err := getRefs(node.run)
 		if err != nil {
 			return err
 		}
 		for _, ref := range refs {
 			subjectStr := ref.Subject.String()
-			if !strings.HasPrefix(subjectStr, "run.") {
-				continue
-			}
-			runName := strings.TrimPrefix(subjectStr, "run.")
-			if runName == "" {
-				continue
-			}
-			dependency, ok := nodeMap[runName]
-			diagPrefix := "You can only reference run blocks that are in the same test file and will execute before the current run block."
-			// Then this is a made up run block, and it doesn't exist at all.
-			if !ok {
-				diags := tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Reference to unknown run block",
-					Detail:   fmt.Sprintf("The run block %q does not exist within this test file. %s", runName, diagPrefix),
-					Subject:  ref.SourceRange.ToHCL().Ptr(),
-				})
-				errs = append(errs, tfdiags.NonFatalError{Diagnostics: diags})
+			switch true {
+			case strings.HasPrefix(subjectStr, "run."):
+				runName := strings.TrimPrefix(subjectStr, "run.")
+				if runName == "" {
+					continue
+				}
+				dependency, ok := nodeMap[runName]
+				diagPrefix := "You can only reference run blocks that are in the same test file and will execute before the current run block."
+				// Then this is a made up run block, and it doesn't exist at all.
+				if !ok {
+					diags := tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Reference to unknown run block",
+						Detail:   fmt.Sprintf("The run block %q does not exist within this test file. %s", runName, diagPrefix),
+						Subject:  ref.SourceRange.ToHCL().Ptr(),
+					})
+					errs = append(errs, tfdiags.NonFatalError{Diagnostics: diags})
+					continue
+				}
+
+				// This run block exists, but it is after the current run block.
+				if dependency == nil {
+					diags := tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Reference to unavailable run block",
+						Detail:   fmt.Sprintf("The run block %q has not executed yet. %s", runName, diagPrefix),
+						Subject:  ref.SourceRange.ToHCL().Ptr(),
+					})
+					errs = append(errs, tfdiags.NonFatalError{Diagnostics: diags})
+					continue
+				}
+
+				g.Connect(dag.BasicEdge(node, dependency))
+			case strings.HasPrefix(subjectStr, "var."):
+				varName := strings.TrimPrefix(subjectStr, "var.")
+				if varName == "" {
+					continue
+				}
+				if _, ok := varRefs[varName]; !ok {
+					diags := tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Reference to unavailable variable",
+						Detail:   fmt.Sprintf("The input variable %q is not available to the current run block. You can only reference variables defined at the file or global levels.", varName),
+						Subject:  ref.SourceRange.ToHCL().Ptr(),
+					})
+					errs = append(errs, tfdiags.NonFatalError{Diagnostics: diags})
+				}
+			default:
 				continue
 			}
 
-			// This run block exists, but it is after the current run block.
-			if dependency == nil {
-				diags := tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Reference to unavailable run block",
-					Detail:   fmt.Sprintf("The run block %q has not executed yet. %s", runName, diagPrefix),
-					Subject:  ref.SourceRange.ToHCL().Ptr(),
-				})
-				errs = append(errs, tfdiags.NonFatalError{Diagnostics: diags})
-				continue
-			}
-
-			g.Connect(dag.BasicEdge(node, dependency))
 		}
 	}
 	return errors.Join(errs...)
@@ -154,6 +177,24 @@ func getRefs(run *moduletest.Run) ([]*addrs.Reference, error) {
 		refs = append(refs, moreRefs...)
 	}
 	return refs, nil
+}
+
+func (t *TestRunTransformer) getVariableNames(run *moduletest.Run) (map[string]struct{}, error) {
+	set := make(map[string]struct{})
+	for name := range t.globalVars {
+		set[name] = struct{}{}
+	}
+	for name := range run.Config.Variables {
+		set[name] = struct{}{}
+	}
+
+	for name := range t.File.Config.Variables {
+		set[name] = struct{}{}
+	}
+	for name := range run.ModuleConfig.Module.Variables {
+		set[name] = struct{}{}
+	}
+	return set, nil
 }
 
 // -------------------------------------------------------- CloseTestGraphTransformer --------------------------------------------------------
