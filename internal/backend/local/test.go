@@ -420,13 +420,12 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			return
 		}
 
-		key := MainStateIdentifier
+		key := run.GetStateKey()
 		config := runner.Suite.Config
 		if run.Config.ConfigUnderTest != nil {
 			config = run.Config.ConfigUnderTest
 			// Then we need to load an alternate state and not the main one.
 
-			key = run.Config.Module.Source.String()
 			if key == MainStateIdentifier {
 				// This is bad. It means somehow the module we're loading has
 				// the same key as main state and we're about to corrupt things.
@@ -442,10 +441,6 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 				file.Status = moduletest.Error
 				return
 			}
-		}
-
-		if run.Config.StateKey != "" {
-			key = run.Config.StateKey
 		}
 
 		if _, exists := runner.RelevantStates[key]; !exists {
@@ -506,10 +501,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return state, false
 	}
 
-	key := MainStateIdentifier
-	if run.Config.ConfigUnderTest != nil {
-		key = run.Config.Module.Source.String()
-	}
+	key := run.GetStateKey()
 	runner.gatherProviders(key, config)
 
 	resetConfig, configDiags := configtest.TransformConfigForTest(config, run, file, runner.VariableCaches, runner.PriorOutputs, runner.Suite.configProviders[key])
@@ -1078,13 +1070,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 		var diags tfdiags.Diagnostics
 
 		config := runner.Suite.Config
-		key := MainStateIdentifier
-
-		if state.Run.Config.Module != nil {
-			// Then this state was produced by an alternate module.
-			config = state.Run.Config.ConfigUnderTest
-			key = state.Run.Config.Module.Source.String()
-		}
+		key := state.Run.GetStateKey()
 
 		reset, configDiags := configtest.TransformConfigForTest(config, state.Run, file, runner.VariableCaches, runner.PriorOutputs, runner.Suite.configProviders[key])
 		diags = diags.Append(configDiags)
