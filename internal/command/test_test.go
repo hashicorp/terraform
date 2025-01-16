@@ -1560,18 +1560,6 @@ func TestTest_BadReferences(t *testing.T) {
 	}
 
 	expectedOut := `main.tftest.hcl... in progress
-  run "setup"... pass
-  run "test"... fail
-
-Warning: Value for undeclared variable
-
-  on main.tftest.hcl line 17, in run "test":
-  17:     input_three = run.madeup.response
-
-The module under test does not declare a variable named "input_three", but it
-is declared in run block "test".
-
-  run "finalise"... skip
 main.tftest.hcl... tearing down
 main.tftest.hcl... fail
 providers.tftest.hcl... in progress
@@ -1579,7 +1567,7 @@ providers.tftest.hcl... in progress
 providers.tftest.hcl... tearing down
 providers.tftest.hcl... fail
 
-Failure! 1 passed, 2 failed, 1 skipped.
+Failure! 0 passed, 1 failed.
 `
 	actualOut := output.Stdout()
 	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
@@ -1587,14 +1575,6 @@ Failure! 1 passed, 2 failed, 1 skipped.
 	}
 
 	expectedErr := `
-Error: Reference to unavailable variable
-
-  on main.tftest.hcl line 15, in run "test":
-  15:     input_one = var.notreal
-
-The input variable "notreal" is not available to the current run block. You
-can only reference variables defined at the file or global levels.
-
 Error: Reference to unavailable run block
 
   on main.tftest.hcl line 16, in run "test":

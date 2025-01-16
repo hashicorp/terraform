@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -15,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // TestRunTransformer is a GraphTransformer that adds all the test runs,
@@ -73,10 +75,13 @@ func (t *TestRunTransformer) createNodes(g *terraform.Graph) ([]*NodeTestRun, er
 func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*NodeTestRun) error {
 	var errs []error
 	nodeMap := make(map[string]*NodeTestRun)
+	// add all nodes to the map. They are initialized to nil,
+	// and we will update them as we iterate through the nodes in the next loop.
 	for _, node := range nodes {
-		nodeMap[node.run.Name] = node
+		nodeMap[node.run.Name] = nil
 	}
 	for _, node := range nodes {
+		nodeMap[node.run.Name] = node // node encountered, so update the map
 		refs, err := getRefs(node.run)
 		if err != nil {
 			return err
@@ -91,10 +96,31 @@ func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*No
 				continue
 			}
 			dependency, ok := nodeMap[runName]
+			diagPrefix := "You can only reference run blocks that are in the same test file and will execute before the current run block."
+			// Then this is a made up run block, and it doesn't exist at all.
 			if !ok {
-				errs = append(errs, fmt.Errorf("dependency `run.%s` not found for run %q", runName, node.run.Name))
+				diags := tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to unknown run block",
+					Detail:   fmt.Sprintf("The run block %q does not exist within this test file. %s", runName, diagPrefix),
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+				errs = append(errs, tfdiags.NonFatalError{Diagnostics: diags})
 				continue
 			}
+
+			// This run block exists, but it is after the current run block.
+			if dependency == nil {
+				diags := tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to unavailable run block",
+					Detail:   fmt.Sprintf("The run block %q has not executed yet. %s", runName, diagPrefix),
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+				errs = append(errs, tfdiags.NonFatalError{Diagnostics: diags})
+				continue
+			}
+
 			g.Connect(dag.BasicEdge(node, dependency))
 		}
 	}
