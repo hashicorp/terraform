@@ -30,7 +30,7 @@ Commands:
     This function expects the current branch to be main. Run it if you want to set main to the next
     minor version.
     
-  maintenancerelease
+    firstbeta
     This function is expected to be run on the branch of the last minor release. It will make sure
     that backports work properly
   
@@ -160,7 +160,7 @@ function nextminor {
 
 # This function is expected to be run on the branch of the last minor release. It will make sure
 # that backports work properly
-function maintenancerelease {
+function firstbeta {
     # For the maintenance branch we don't want to base our changelog on the unreleased but the backported folder instead
     awk '{sub(/unreleasedDir: unreleased/, "unreleasedDir: backported")}1' ./.changie.yaml > temp && mv temp ./.changie.yaml
     
@@ -187,8 +187,8 @@ function main {
     nextminor "${@:2}"
       ;;
       
-    maintenancerelease)
-    maintenancerelease "${@:2}"
+    firstbeta)
+    firstbeta "${@:2}"
     ;;
     *)
       usage
