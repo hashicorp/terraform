@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 var (
@@ -217,17 +216,17 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 				}
 			case moduletest.Fail:
 				var failedAssertion tfdiags.Diagnostic
-				for _, diag := range run.Diagnostics {
+				for _, d := range run.Diagnostics {
 					// Find the diag resulting from a failed assertion
-					if diag.Description().Summary == failedTestSummary {
-						failedAssertion = diag
+					if d.Description().Summary == failedTestSummary {
+						failedAssertion = d
 						break
 					}
 				}
-				message, body := getFailDetails(run, failedAssertion)
+
 				testCase.Failure = &withMessage{
-					Message: message,
-					Body:    body,
+					Message: failedAssertion.Description().Detail,
+					Body:    format.DiagnosticPlain(failedAssertion, sources, 80),
 				}
 			case moduletest.Error:
 				var diagsStr strings.Builder
@@ -293,41 +292,6 @@ func getSkipDetails(runIndex int, file *moduletest.File, suiteStopped bool) (str
 	}
 
 	// Unhandled case: This results in <skipped></skipped> with no attributes or body
-	return "", ""
-}
-
-// getFailDetails uses data from the diagnostic raised by the failing test to create
-// a message and body text for the <failure> element in the XML
-func getFailDetails(run *moduletest.Run, diag tfdiags.Diagnostic) (string, string) {
-	testCtx := diag.FromExpr()
-
-	// Identify which assertion failed out of multiple assertions in a run block
-	var failedIndex int
-	var found bool
-	for i, assertion := range run.Config.CheckRules {
-		condition, diag := assertion.Condition.Value(testCtx.EvalContext)
-		if diag.HasErrors() {
-			return "", ""
-		}
-
-		if condition.RawEquals(cty.BoolVal(false)) {
-			failedIndex = i
-			found = true
-			break
-		}
-	}
-
-	if found {
-		message, diag := run.Config.CheckRules[failedIndex].ErrorMessage.Value(testCtx.EvalContext)
-		if diag.HasErrors() {
-			return "", ""
-		}
-
-		body := fmt.Sprintf("Test failed on assertion %d of %d", failedIndex+1, len(run.Config.CheckRules))
-		return message.AsString(), body
-	}
-
-	// Unhandled case
 	return "", ""
 }
 
