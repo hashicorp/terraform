@@ -133,6 +133,8 @@ type TestRun struct {
 	// run.
 	ExpectFailures []hcl.Traversal
 
+	StateKey string
+
 	NameDeclRange      hcl.Range
 	VariablesDeclRange hcl.Range
 	DeclRange          hcl.Range
@@ -606,6 +608,11 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 		r.ExpectFailures = failures
 	}
 
+	if attr, exists := content.Attributes["state_key"]; exists {
+		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.StateKey)
+		diags = append(diags, rawDiags...)
+	}
+
 	return &r, diags
 }
 
@@ -807,6 +814,7 @@ var testRunBlockSchema = &hcl.BodySchema{
 		{Name: "command"},
 		{Name: "providers"},
 		{Name: "expect_failures"},
+		{Name: "state_key"},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{
