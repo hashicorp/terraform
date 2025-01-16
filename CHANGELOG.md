@@ -14,7 +14,7 @@ ENHANCEMENTS:
 
 * New command `modules -json`: Displays a full list of all installed modules in a working directory, including whether each module is currently referenced by the working directory's configuration. ([#35884](https://github.com/hashicorp/terraform/issues/35884))
 
-* `terraform test`: Test runs now support using mocked or overridden values during unit test runs (e.g., with command = "plan"). When override_during = "plan" ([#36227](https://github.com/hashicorp/terraform/issues/36227))
+* `terraform test`: Test runs now support using mocked or overridden values during unit test runs (e.g., with command = "plan"). Set `override_during = plan` in the test configuration to use the overridden values during the plan phase. The default value is `override_during = apply`. ([#36227](https://github.com/hashicorp/terraform/issues/36227))
 
 
 BUG FIXES:
