@@ -241,8 +241,6 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		&ReferenceTransformer{},
 
-		&OutputReferencesTransformer{},
-
 		&AttachDependenciesTransformer{},
 
 		// Make sure data sources are aware of any depends_on from the
