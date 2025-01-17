@@ -115,8 +115,6 @@ func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*No
 						Subject:  ref.SourceRange.ToHCL().Ptr(),
 					})
 				}
-			default:
-				continue
 			}
 
 		}
