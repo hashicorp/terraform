@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -136,6 +137,12 @@ func (run *Run) GetReferences() ([]*addrs.Reference, tfdiags.Diagnostics) {
 				references = append(references, reference)
 			}
 		}
+	}
+
+	for _, expr := range run.Config.Variables {
+		moreRefs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, expr)
+		diagnostics = diagnostics.Append(moreDiags)
+		references = append(references, moreRefs...)
 	}
 
 	return references, diagnostics
