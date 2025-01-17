@@ -583,7 +583,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 		// First, make the test context we can use to validate the assertions
 		// of the
-		testCtx := terraformtest.NewEvalTestContext(run, config.Module, planScope, testOnlyVariables, runner.PriorOutputs)
+		testCtx := terraformtest.NewEvalContext(run, config.Module, planScope, testOnlyVariables, runner.PriorOutputs)
 
 		// Second, evaluate the run block directly. We also pass in all the
 		// previous contexts so this run block can refer to outputs from
@@ -665,7 +665,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 	// First, make the test context we can use to validate the assertions
 	// of the
-	testCtx := terraformtest.NewEvalTestContext(run, config.Module, applyScope, testOnlyVariables, runner.PriorOutputs)
+	testCtx := terraformtest.NewEvalContext(run, config.Module, applyScope, testOnlyVariables, runner.PriorOutputs)
 
 	// Second, evaluate the run block directly. We also pass in all the
 	// previous contexts so this run block can refer to outputs from

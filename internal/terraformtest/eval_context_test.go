@@ -734,7 +734,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				priorOutputs[addrs.Run{Name: name}] = val
 			}
 
-			testCtx := NewEvalTestContext(run, config.Module, planScope, test.testOnlyVars, priorOutputs)
+			testCtx := NewEvalContext(run, config.Module, planScope, test.testOnlyVars, priorOutputs)
 			gotStatus, gotOutputs, diags := testCtx.Evaluate()
 
 			if got, want := gotStatus, test.expectedStatus; got != want {
@@ -792,7 +792,7 @@ func encodeCtyValue(t *testing.T, value cty.Value) []byte {
 
 // testModuleInline takes a map of path -> config strings and yields a config
 // structure with those files loaded from disk
-func testModuleInline(t testing.TB, sources map[string]string) *configs.Config {
+func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 	t.Helper()
 
 	cfgPath := t.TempDir()
@@ -820,9 +820,6 @@ func testModuleInline(t testing.TB, sources map[string]string) *configs.Config {
 
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
-
-	// We need to be able to exercise experimental features in our integration tests.
-	loader.AllowLanguageExperiments(true)
 
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
