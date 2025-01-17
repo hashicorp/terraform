@@ -150,6 +150,8 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			currentGlobalVariables = testDirectoryGlobalVariables
 		}
 
+		evalCtx := graph.NewEvalContext()
+		evalCtx.PriorOutputs = priorOutputs
 		fileRunner := &TestFileRunner{
 			Suite: runner,
 			RelevantStates: map[string]*TestFileState{
@@ -158,11 +160,11 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 					State: states.NewState(),
 				},
 			},
-			PriorOutputs: priorOutputs,
 			VariableCaches: &hcltest.VariableCaches{
 				GlobalVariables: currentGlobalVariables,
 				FileVariables:   file.Config.Variables,
 			},
+			EvalContext: evalCtx,
 		}
 
 		runner.View.File(file, moduletest.Starting)
@@ -282,16 +284,9 @@ type TestFileRunner struct {
 	// the test has finished.
 	RelevantStates map[string]*TestFileState
 
-	// PriorOutputs is a mapping from run addresses to cty object values
-	// representing the collected output values from the module under test.
-	//
-	// This is used to allow run blocks to refer back to the output values of
-	// previous run blocks. It is passed into the Evaluate functions that
-	// validate the test assertions, and used when calculating values for
-	// variables within run blocks.
-	PriorOutputs map[addrs.Run]cty.Value
-
 	VariableCaches *hcltest.VariableCaches
+
+	EvalContext *graph.EvalContext
 }
 
 // TestFileState is a helper struct that just maps a run block to the state that
@@ -498,7 +493,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	key := run.GetModuleConfigID()
 	runner.gatherProviders(key, config)
 
-	resetConfig, configDiags := configtest.TransformConfigForTest(config, run, file, runner.VariableCaches, runner.PriorOutputs, runner.Suite.configProviders[key])
+	resetConfig, configDiags := configtest.TransformConfigForTest(config, run, file, runner.VariableCaches, runner.EvalContext.PriorOutputs, runner.Suite.configProviders[key])
 	defer resetConfig()
 
 	run.Diagnostics = run.Diagnostics.Append(configDiags)
@@ -577,20 +572,17 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 			run.Diagnostics = run.Diagnostics.Append(diags)
 		}
 
-		// First, make the test context we can use to validate the assertions
-		// of the
-		testCtx := graph.NewEvalContext(run, config.Module, planScope, testOnlyVariables, runner.PriorOutputs)
-
-		// Second, evaluate the run block directly. We also pass in all the
+		// Evaluate the run block directly in the graph context to validate the assertions
+		// of the run. We also pass in all the
 		// previous contexts so this run block can refer to outputs from
 		// previous run blocks.
-		newStatus, outputVals, moreDiags := testCtx.Evaluate()
+		newStatus, outputVals, moreDiags := runner.EvalContext.EvaluateRun(run, planScope, testOnlyVariables)
 		run.Status = newStatus
 		run.Diagnostics = run.Diagnostics.Append(moreDiags)
 
 		// Now we've successfully validated this run block, lets add it into
 		// our prior run outputs so future run blocks can access it.
-		runner.PriorOutputs[run.Addr()] = outputVals
+		runner.EvalContext.SetOutput(run, outputVals)
 
 		return state, false
 	}
@@ -659,20 +651,17 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		run.Diagnostics = run.Diagnostics.Append(diags)
 	}
 
-	// First, make the test context we can use to validate the assertions
-	// of the
-	testCtx := graph.NewEvalContext(run, config.Module, applyScope, testOnlyVariables, runner.PriorOutputs)
-
-	// Second, evaluate the run block directly. We also pass in all the
+	// Evaluate the run block directly in the graph context to validate the assertions
+	// of the run. We also pass in all the
 	// previous contexts so this run block can refer to outputs from
 	// previous run blocks.
-	newStatus, outputVals, moreDiags := testCtx.Evaluate()
+	newStatus, outputVals, moreDiags := runner.EvalContext.EvaluateRun(run, applyScope, testOnlyVariables)
 	run.Status = newStatus
 	run.Diagnostics = run.Diagnostics.Append(moreDiags)
 
 	// Now we've successfully validated this run block, lets add it into
 	// our prior run outputs so future run blocks can access it.
-	runner.PriorOutputs[run.Addr()] = outputVals
+	runner.EvalContext.SetOutput(run, outputVals)
 
 	return updated, true
 }
@@ -1067,7 +1056,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 		config := state.Run.ModuleConfig
 		key := state.Run.GetModuleConfigID()
 
-		reset, configDiags := configtest.TransformConfigForTest(config, state.Run, file, runner.VariableCaches, runner.PriorOutputs, runner.Suite.configProviders[key])
+		reset, configDiags := configtest.TransformConfigForTest(config, state.Run, file, runner.VariableCaches, runner.EvalContext.PriorOutputs, runner.Suite.configProviders[key])
 		diags = diags.Append(configDiags)
 
 		updated := state.State
@@ -1151,7 +1140,7 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 		}
 		diags = diags.Append(refDiags)
 
-		ctx, ctxDiags := hcltest.EvalContext(hcltest.TargetRunBlock, map[string]hcl.Expression{name: expr}, requiredValues, runner.PriorOutputs)
+		ctx, ctxDiags := hcltest.EvalContext(hcltest.TargetRunBlock, map[string]hcl.Expression{name: expr}, requiredValues, runner.EvalContext.PriorOutputs)
 		diags = diags.Append(ctxDiags)
 
 		value := cty.DynamicVal
