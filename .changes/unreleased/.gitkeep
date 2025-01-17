@@ -1,5 +1,0 @@
-## 1.12.0 (unreleased) 
-
-FIXES:
-
-- Fixes error ("Invalid Terraform version: Malformed version") reading workspace when the remote workspace has the terraform version set to a constraint.
