@@ -170,6 +170,13 @@ func (run *Run) GetStateKey() string {
 	return MainStateIdentifier
 }
 
+// GetModuleConfigID returns the identifier for the module configuration that
+// this run is testing. This is used to uniquely identify the module
+// configuration in the test state.
+func (run *Run) GetModuleConfigID() string {
+	return run.ModuleConfig.Module.SourceDir
+}
+
 // ExplainExpectedFailures is similar to ValidateExpectedFailures except it
 // looks for any diagnostics produced by custom conditions and are included in
 // the expected failures and adds an additional explanation that clarifies the
