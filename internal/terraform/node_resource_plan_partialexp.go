@@ -96,7 +96,7 @@ func (n *nodePlannablePartialExpandedResource) Execute(ctx EvalContext, op walkO
 		return nil
 	case walkPlan:
 		if n.preDestroyRefresh || n.skipPlanChanges {
-			// Destroying any kind of refresh, we also don't really care about
+			// During any kind of refresh, we also don't really care about
 			// partial resources. We only care about the fully-expanded resources
 			// already in state, so we don't need to plan partial resources.
 			return nil
