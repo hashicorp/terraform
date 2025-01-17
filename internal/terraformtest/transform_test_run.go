@@ -8,10 +8,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -76,7 +74,7 @@ func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*No
 		// check for variable references
 		varRefs := t.getVariableNames(node.run)
 
-		refs, refDiags := getRefs(node.run)
+		refs, refDiags := node.run.GetReferences()
 		if refDiags.HasErrors() {
 			return diags.Append(refDiags)
 		}
@@ -146,23 +144,6 @@ func (t *TestRunTransformer) connectStateKeyRuns(g *terraform.Graph, nodes []*No
 			g.Connect(dag.BasicEdge(runs[i], runs[i-1]))
 		}
 	}
-}
-
-func getRefs(run *moduletest.Run) ([]*addrs.Reference, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	refs, refDiags := run.GetReferences()
-	if refDiags.HasErrors() {
-		return nil, refDiags
-	}
-	for _, expr := range run.Config.Variables {
-		moreRefs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, expr)
-		if moreDiags.HasErrors() {
-			diags = diags.Append(moreDiags)
-			continue
-		}
-		refs = append(refs, moreRefs...)
-	}
-	return refs, nil
 }
 
 func (t *TestRunTransformer) getVariableNames(run *moduletest.Run) map[string]struct{} {
