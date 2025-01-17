@@ -725,8 +725,9 @@ func TestEvalContext_Evaluate(t *testing.T) {
 
 			file := config.Module.Tests["main.tftest.hcl"]
 			run := &moduletest.Run{
-				Config: file.Runs[len(file.Runs)-1], // We always simulate the last run block.
-				Name:   "test_case",                 // and it should be named test_case
+				Config:       file.Runs[len(file.Runs)-1], // We always simulate the last run block.
+				Name:         "test_case",                 // and it should be named test_case
+				ModuleConfig: config,
 			}
 
 			priorOutputs := make(map[addrs.Run]cty.Value, len(test.priorOutputs))
@@ -734,8 +735,9 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				priorOutputs[addrs.Run{Name: name}] = val
 			}
 
-			testCtx := NewEvalContext(run, config.Module, planScope, test.testOnlyVars, priorOutputs)
-			gotStatus, gotOutputs, diags := testCtx.Evaluate()
+			testCtx := NewEvalContext()
+			testCtx.PriorOutputs = priorOutputs
+			gotStatus, gotOutputs, diags := testCtx.EvaluateRun(run, planScope, test.testOnlyVars)
 
 			if got, want := gotStatus, test.expectedStatus; got != want {
 				t.Errorf("wrong status %q; want %q", got, want)
