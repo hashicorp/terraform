@@ -1187,7 +1187,7 @@ func TestApplyDestroy(t *testing.T) {
 			},
 		},
 		"destroy-partial-state": {
-			path: "destroy-corrupted-state",
+			path: "destroy-partial-state",
 			state: stackstate.NewStateBuilder().
 				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.parent")).
 					AddDependent(mustAbsComponent("component.child"))).
