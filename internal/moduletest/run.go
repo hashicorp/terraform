@@ -124,14 +124,14 @@ func (run *Run) GetReferences() ([]*addrs.Reference, tfdiags.Diagnostics) {
 
 	for _, rule := range run.Config.CheckRules {
 		for _, variable := range rule.Condition.Variables() {
-			reference, diags := addrs.ParseRef(variable)
+			reference, diags := addrs.ParseRefFromTestingScope(variable)
 			diagnostics = diagnostics.Append(diags)
 			if reference != nil {
 				references = append(references, reference)
 			}
 		}
 		for _, variable := range rule.ErrorMessage.Variables() {
-			reference, diags := addrs.ParseRef(variable)
+			reference, diags := addrs.ParseRefFromTestingScope(variable)
 			diagnostics = diagnostics.Append(diags)
 			if reference != nil {
 				references = append(references, reference)

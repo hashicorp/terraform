@@ -5,9 +5,9 @@ package terraformtest
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
@@ -79,21 +79,16 @@ func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*No
 			return diags.Append(refDiags)
 		}
 		for _, ref := range refs {
-			subjectStr := ref.Subject.String()
-			switch true {
-			case strings.HasPrefix(subjectStr, "run."):
-				runName := strings.TrimPrefix(subjectStr, "run.")
-				if runName == "" {
-					continue
-				}
-				dependency, ok := nodeMap[runName]
+			switch subj := ref.Subject.(type) {
+			case addrs.Run:
+				dependency, ok := nodeMap[subj.Name]
 				diagPrefix := "You can only reference run blocks that are in the same test file and will execute before the current run block."
 				// Then this is a made up run block, and it doesn't exist at all.
 				if !ok {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to unknown run block",
-						Detail:   fmt.Sprintf("The run block %q does not exist within this test file. %s", runName, diagPrefix),
+						Detail:   fmt.Sprintf("The run block %q does not exist within this test file. %s", subj.Name, diagPrefix),
 						Subject:  ref.SourceRange.ToHCL().Ptr(),
 					})
 					continue
@@ -104,23 +99,19 @@ func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*No
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to unavailable run block",
-						Detail:   fmt.Sprintf("The run block %q has not executed yet. %s", runName, diagPrefix),
+						Detail:   fmt.Sprintf("The run block %q has not executed yet. %s", subj.Name, diagPrefix),
 						Subject:  ref.SourceRange.ToHCL().Ptr(),
 					})
 					continue
 				}
 
 				g.Connect(dag.BasicEdge(node, dependency))
-			case strings.HasPrefix(subjectStr, "var."):
-				varName := strings.TrimPrefix(subjectStr, "var.")
-				if varName == "" {
-					continue
-				}
-				if _, ok := varRefs[varName]; !ok {
+			case addrs.InputVariable:
+				if _, ok := varRefs[subj.Name]; !ok {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to unavailable variable",
-						Detail:   fmt.Sprintf("The input variable %q is not available to the current run block. You can only reference variables defined at the file or global levels.", varName),
+						Detail:   fmt.Sprintf("The input variable %q is not available to the current run block. You can only reference variables defined at the file or global levels.", subj.Name),
 						Subject:  ref.SourceRange.ToHCL().Ptr(),
 					})
 				}
