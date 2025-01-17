@@ -26,12 +26,12 @@ import (
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	configtest "github.com/hashicorp/terraform/internal/moduletest/config"
+	"github.com/hashicorp/terraform/internal/moduletest/graph"
 	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/terraformtest"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -318,7 +318,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	}
 
 	// Build the graph for the file.
-	b := terraformtest.TestGraphBuilder{File: file, GlobalVars: runner.VariableCaches.GlobalVariables}
+	b := graph.TestGraphBuilder{File: file, GlobalVars: runner.VariableCaches.GlobalVariables}
 	graph, diags := b.Build(addrs.RootModuleInstance)
 	file.Diagnostics = file.Diagnostics.Append(diags)
 	if diags.HasErrors() {
@@ -376,7 +376,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			}
 		}()
 
-		runNode, ok := v.(*terraformtest.NodeTestRun)
+		runNode, ok := v.(*graph.NodeTestRun)
 		if !ok {
 			// If the vertex isn't a test run, we'll just skip it.
 			return
@@ -495,7 +495,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return state, false
 	}
 
-	key := run.GetStateKey()
+	key := run.GetModuleConfigID()
 	runner.gatherProviders(key, config)
 
 	resetConfig, configDiags := configtest.TransformConfigForTest(config, run, file, runner.VariableCaches, runner.PriorOutputs, runner.Suite.configProviders[key])
@@ -579,7 +579,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 		// First, make the test context we can use to validate the assertions
 		// of the
-		testCtx := terraformtest.NewEvalContext(run, config.Module, planScope, testOnlyVariables, runner.PriorOutputs)
+		testCtx := graph.NewEvalContext(run, config.Module, planScope, testOnlyVariables, runner.PriorOutputs)
 
 		// Second, evaluate the run block directly. We also pass in all the
 		// previous contexts so this run block can refer to outputs from
@@ -661,7 +661,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 	// First, make the test context we can use to validate the assertions
 	// of the
-	testCtx := terraformtest.NewEvalContext(run, config.Module, applyScope, testOnlyVariables, runner.PriorOutputs)
+	testCtx := graph.NewEvalContext(run, config.Module, applyScope, testOnlyVariables, runner.PriorOutputs)
 
 	// Second, evaluate the run block directly. We also pass in all the
 	// previous contexts so this run block can refer to outputs from
@@ -1065,7 +1065,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 		var diags tfdiags.Diagnostics
 
 		config := state.Run.ModuleConfig
-		key := state.Run.GetStateKey()
+		key := state.Run.GetModuleConfigID()
 
 		reset, configDiags := configtest.TransformConfigForTest(config, state.Run, file, runner.VariableCaches, runner.PriorOutputs, runner.Suite.configProviders[key])
 		diags = diags.Append(configDiags)
