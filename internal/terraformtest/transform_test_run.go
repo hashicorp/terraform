@@ -4,7 +4,6 @@
 package terraformtest
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -26,28 +25,21 @@ type TestRunTransformer struct {
 }
 
 func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
-	var errs []error
-
 	// Create and add nodes for each run
-	nodes, err := t.createNodes(g)
-	if err != nil {
-		return err
-	}
+	nodes := t.createNodes(g)
 
 	// Connect nodes based on dependencies
-	if err := t.connectDependencies(g, nodes); err != nil {
-		errs = append(errs, err)
+	if diags := t.connectDependencies(g, nodes); diags.HasErrors() {
+		return tfdiags.NonFatalError{Diagnostics: diags}
 	}
 
 	// Connect nodes with the same state key sequentially
-	if err := t.connectStateKeyRuns(g, nodes); err != nil {
-		errs = append(errs, err)
-	}
+	t.connectStateKeyRuns(g, nodes)
 
-	return errors.Join(errs...)
+	return nil
 }
 
-func (t *TestRunTransformer) createNodes(g *terraform.Graph) ([]*NodeTestRun, error) {
+func (t *TestRunTransformer) createNodes(g *terraform.Graph) []*NodeTestRun {
 	var nodes []*NodeTestRun
 	var prev *NodeTestRun
 	for _, run := range t.File.Runs {
@@ -67,11 +59,11 @@ func (t *TestRunTransformer) createNodes(g *terraform.Graph) ([]*NodeTestRun, er
 		prev = node
 
 	}
-	return nodes, nil
+	return nodes
 }
 
-func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*NodeTestRun) error {
-	var errs []error
+func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*NodeTestRun) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	nodeMap := make(map[string]*NodeTestRun)
 	// add all nodes to the map. They are initialized to nil,
 	// and we will update them as we iterate through the nodes in the next loop.
@@ -82,15 +74,11 @@ func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*No
 		nodeMap[node.run.Name] = node // node encountered, so update the map
 
 		// check for variable references
-		varRefs, err := t.getVariableNames(node.run)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
+		varRefs := t.getVariableNames(node.run)
 
-		refs, err := getRefs(node.run)
-		if err != nil {
-			return err
+		refs, refDiags := getRefs(node.run)
+		if refDiags.HasErrors() {
+			return diags.Append(refDiags)
 		}
 		for _, ref := range refs {
 			subjectStr := ref.Subject.String()
@@ -104,25 +92,23 @@ func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*No
 				diagPrefix := "You can only reference run blocks that are in the same test file and will execute before the current run block."
 				// Then this is a made up run block, and it doesn't exist at all.
 				if !ok {
-					diags := tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to unknown run block",
 						Detail:   fmt.Sprintf("The run block %q does not exist within this test file. %s", runName, diagPrefix),
 						Subject:  ref.SourceRange.ToHCL().Ptr(),
 					})
-					errs = append(errs, tfdiags.NonFatalError{Diagnostics: diags})
 					continue
 				}
 
 				// This run block exists, but it is after the current run block.
 				if dependency == nil {
-					diags := tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to unavailable run block",
 						Detail:   fmt.Sprintf("The run block %q has not executed yet. %s", runName, diagPrefix),
 						Subject:  ref.SourceRange.ToHCL().Ptr(),
 					})
-					errs = append(errs, tfdiags.NonFatalError{Diagnostics: diags})
 					continue
 				}
 
@@ -133,13 +119,12 @@ func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*No
 					continue
 				}
 				if _, ok := varRefs[varName]; !ok {
-					diags := tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to unavailable variable",
 						Detail:   fmt.Sprintf("The input variable %q is not available to the current run block. You can only reference variables defined at the file or global levels.", varName),
 						Subject:  ref.SourceRange.ToHCL().Ptr(),
 					})
-					errs = append(errs, tfdiags.NonFatalError{Diagnostics: diags})
 				}
 			default:
 				continue
@@ -147,10 +132,10 @@ func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*No
 
 		}
 	}
-	return errors.Join(errs...)
+	return diags
 }
 
-func (t *TestRunTransformer) connectStateKeyRuns(g *terraform.Graph, nodes []*NodeTestRun) error {
+func (t *TestRunTransformer) connectStateKeyRuns(g *terraform.Graph, nodes []*NodeTestRun) {
 	stateRuns := make(map[string][]*NodeTestRun)
 	for _, node := range nodes {
 		key := node.run.GetStateKey()
@@ -161,25 +146,26 @@ func (t *TestRunTransformer) connectStateKeyRuns(g *terraform.Graph, nodes []*No
 			g.Connect(dag.BasicEdge(runs[i], runs[i-1]))
 		}
 	}
-	return nil
 }
 
-func getRefs(run *moduletest.Run) ([]*addrs.Reference, error) {
+func getRefs(run *moduletest.Run) ([]*addrs.Reference, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	refs, refDiags := run.GetReferences()
 	if refDiags.HasErrors() {
-		return nil, refDiags.Err()
+		return nil, refDiags
 	}
 	for _, expr := range run.Config.Variables {
 		moreRefs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, expr)
 		if moreDiags.HasErrors() {
-			return nil, moreDiags.Err()
+			diags = diags.Append(moreDiags)
+			continue
 		}
 		refs = append(refs, moreRefs...)
 	}
 	return refs, nil
 }
 
-func (t *TestRunTransformer) getVariableNames(run *moduletest.Run) (map[string]struct{}, error) {
+func (t *TestRunTransformer) getVariableNames(run *moduletest.Run) map[string]struct{} {
 	set := make(map[string]struct{})
 	for name := range t.globalVars {
 		set[name] = struct{}{}
@@ -194,7 +180,7 @@ func (t *TestRunTransformer) getVariableNames(run *moduletest.Run) (map[string]s
 	for name := range run.ModuleConfig.Module.Variables {
 		set[name] = struct{}{}
 	}
-	return set, nil
+	return set
 }
 
 // -------------------------------------------------------- CloseTestGraphTransformer --------------------------------------------------------
