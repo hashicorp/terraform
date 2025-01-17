@@ -19,6 +19,10 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+const (
+	MainStateIdentifier = ""
+)
+
 type Run struct {
 	Config       *configs.TestRun
 	ModuleConfig *configs.Config
@@ -163,7 +167,7 @@ func (run *Run) GetStateKey() string {
 		return run.Config.Module.Source.String()
 	}
 
-	return ""
+	return MainStateIdentifier
 }
 
 // ExplainExpectedFailures is similar to ValidateExpectedFailures except it

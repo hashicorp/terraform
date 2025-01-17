@@ -116,7 +116,6 @@ func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*No
 					})
 				}
 			}
-
 		}
 	}
 	return diags
