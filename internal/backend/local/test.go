@@ -35,10 +35,6 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-const (
-	MainStateIdentifier = ""
-)
-
 type TestSuiteRunner struct {
 	Config *configs.Config
 
@@ -157,7 +153,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		fileRunner := &TestFileRunner{
 			Suite: runner,
 			RelevantStates: map[string]*TestFileState{
-				MainStateIdentifier: {
+				moduletest.MainStateIdentifier: {
 					Run:   nil,
 					State: states.NewState(),
 				},
@@ -424,7 +420,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 		key := run.GetStateKey()
 		config := run.ModuleConfig
 		if run.Config.ConfigUnderTest != nil {
-			if key == MainStateIdentifier {
+			if key == moduletest.MainStateIdentifier {
 				// This is bad. It means somehow the module we're loading has
 				// the same key as main state and we're about to corrupt things.
 
@@ -927,9 +923,10 @@ func (runner *TestFileRunner) wait(ctx *terraform.Context, runningCtx context.Co
 		log.Printf("[DEBUG] TestFileRunner: test execution cancelled during %s", identifier)
 
 		states := make(map[*moduletest.Run]*states.State)
-		states[nil] = runner.RelevantStates[MainStateIdentifier].State
+		mainKey := moduletest.MainStateIdentifier
+		states[nil] = runner.RelevantStates[mainKey].State
 		for key, module := range runner.RelevantStates {
-			if key == MainStateIdentifier {
+			if key == mainKey {
 				continue
 			}
 			states[module.Run] = module.State
