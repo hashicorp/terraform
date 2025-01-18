@@ -28,7 +28,7 @@ import (
 // particular test case, which means a specific "run" block in a .tftest.hcl
 // file.
 type EvalContext struct {
-	Caches *hcltest.VariableCaches
+	VariableCaches *hcltest.VariableCaches
 
 	// PriorOutputs is a mapping from run addresses to cty object values
 	// representing the collected output values from the module under test.
@@ -223,6 +223,13 @@ func (ec *EvalContext) SetOutput(run *moduletest.Run, output cty.Value) {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
 	ec.PriorOutputs[run.Addr()] = output
+}
+
+func (ec *EvalContext) GetCache(run *moduletest.Run) *hcltest.VariableCache {
+	if ec.VariableCaches == nil {
+		return nil
+	}
+	return ec.VariableCaches.GetCache(run.Name, run.ModuleConfig)
 }
 
 func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnostics) {
