@@ -152,6 +152,10 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 
 		evalCtx := graph.NewEvalContext()
 		evalCtx.PriorOutputs = priorOutputs
+		evalCtx.VariableCaches = &hcltest.VariableCaches{
+			GlobalVariables: currentGlobalVariables,
+			FileVariables:   file.Config.Variables,
+		}
 		fileRunner := &TestFileRunner{
 			Suite: runner,
 			RelevantStates: map[string]*TestFileState{
@@ -159,10 +163,6 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 					Run:   nil,
 					State: states.NewState(),
 				},
-			},
-			VariableCaches: &hcltest.VariableCaches{
-				GlobalVariables: currentGlobalVariables,
-				FileVariables:   file.Config.Variables,
 			},
 			EvalContext: evalCtx,
 		}
@@ -284,8 +284,6 @@ type TestFileRunner struct {
 	// the test has finished.
 	RelevantStates map[string]*TestFileState
 
-	VariableCaches *hcltest.VariableCaches
-
 	EvalContext *graph.EvalContext
 }
 
@@ -313,7 +311,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	}
 
 	// Build the graph for the file.
-	b := graph.TestGraphBuilder{File: file, GlobalVars: runner.VariableCaches.GlobalVariables}
+	b := graph.TestGraphBuilder{File: file, GlobalVars: runner.EvalContext.VariableCaches.GlobalVariables}
 	graph, diags := b.Build(addrs.RootModuleInstance)
 	file.Diagnostics = file.Diagnostics.Append(diags)
 	if diags.HasErrors() {
@@ -493,7 +491,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	key := run.GetModuleConfigID()
 	runner.gatherProviders(key, config)
 
-	resetConfig, configDiags := configtest.TransformConfigForTest(config, run, file, runner.VariableCaches, runner.EvalContext.PriorOutputs, runner.Suite.configProviders[key])
+	resetConfig, configDiags := configtest.TransformConfigForTest(config, run, file, runner.EvalContext.VariableCaches, runner.EvalContext.PriorOutputs, runner.Suite.configProviders[key])
 	defer resetConfig()
 
 	run.Diagnostics = run.Diagnostics.Append(configDiags)
@@ -1056,7 +1054,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 		config := state.Run.ModuleConfig
 		key := state.Run.GetModuleConfigID()
 
-		reset, configDiags := configtest.TransformConfigForTest(config, state.Run, file, runner.VariableCaches, runner.EvalContext.PriorOutputs, runner.Suite.configProviders[key])
+		reset, configDiags := configtest.TransformConfigForTest(config, state.Run, file, runner.EvalContext.VariableCaches, runner.EvalContext.PriorOutputs, runner.Suite.configProviders[key])
 		diags = diags.Append(configDiags)
 
 		updated := state.State
@@ -1120,7 +1118,7 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 		refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, expr)
 		for _, ref := range refs {
 			if addr, ok := ref.Subject.(addrs.InputVariable); ok {
-				cache := runner.VariableCaches.GetCache(run.Name, config)
+				cache := runner.EvalContext.GetCache(run)
 
 				value, valueDiags := cache.GetFileVariable(addr.Name)
 				diags = diags.Append(valueDiags)
@@ -1181,7 +1179,7 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 
 		// Otherwise, we'll get it from the cache as a file-level or global
 		// variable.
-		cache := runner.VariableCaches.GetCache(run.Name, config)
+		cache := runner.EvalContext.GetCache(run)
 
 		value, valueDiags := cache.GetFileVariable(variable)
 		diags = diags.Append(valueDiags)
