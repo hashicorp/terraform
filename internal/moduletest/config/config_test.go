@@ -239,6 +239,7 @@ func TestTransformForTest(t *testing.T) {
 				Config: &configs.TestRun{
 					Providers: tc.runProviders,
 				},
+				ModuleConfig: config,
 			}
 
 			availableProviders := make(map[string]bool, len(tc.expectedProviders))
@@ -251,7 +252,7 @@ func TestTransformForTest(t *testing.T) {
 				FileVariables:   make(map[string]hcl.Expression),
 			}
 
-			reset, diags := TransformConfigForTest(config, run, file, variableCaches, nil, availableProviders)
+			reset, diags := TransformConfigForTest(run, file, variableCaches, nil, availableProviders)
 
 			var actualErrs []string
 			for _, err := range diags.Errs() {
