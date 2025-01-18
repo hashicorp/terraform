@@ -39,6 +39,9 @@ type EvalContext struct {
 	// variables within run blocks.
 	PriorOutputs map[addrs.Run]cty.Value
 	outputsLock  sync.Mutex
+
+	ConfigProviders map[string]map[string]bool
+	providersLock   sync.Mutex
 }
 
 // NewEvalContext constructs a new test run evaluation context based on the
@@ -56,8 +59,10 @@ type EvalContext struct {
 // instead. //TODO: rewrite comments
 func NewEvalContext() *EvalContext {
 	return &EvalContext{
-		PriorOutputs: make(map[addrs.Run]cty.Value),
-		outputsLock:  sync.Mutex{},
+		PriorOutputs:    make(map[addrs.Run]cty.Value),
+		outputsLock:     sync.Mutex{},
+		ConfigProviders: make(map[string]map[string]bool),
+		providersLock:   sync.Mutex{},
 	}
 }
 
@@ -230,6 +235,16 @@ func (ec *EvalContext) GetCache(run *moduletest.Run) *hcltest.VariableCache {
 		return nil
 	}
 	return ec.VariableCaches.GetCache(run.Name, run.ModuleConfig)
+}
+
+func (ec *EvalContext) GetProviders(run *moduletest.Run) map[string]bool {
+	return ec.ConfigProviders[run.GetModuleConfigID()]
+}
+
+func (ec *EvalContext) SetProviders(run *moduletest.Run, providers map[string]bool) {
+	ec.providersLock.Lock()
+	defer ec.providersLock.Unlock()
+	ec.ConfigProviders[run.GetModuleConfigID()] = providers
 }
 
 func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnostics) {

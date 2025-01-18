@@ -26,7 +26,7 @@ import (
 // We also return a reset function that should be called to return the
 // configuration to it's original state before the next run block or test file
 // needs to use it.
-func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *moduletest.File, variableCaches *hcltest.VariableCaches, availableRunOutputs map[addrs.Run]cty.Value, requiredProviders map[string]bool) (func(), hcl.Diagnostics) {
+func TransformConfigForTest(run *moduletest.Run, file *moduletest.File, variableCaches *hcltest.VariableCaches, availableRunOutputs map[addrs.Run]cty.Value, requiredProviders map[string]bool) (func(), hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	// Currently, we only need to override the provider settings.
@@ -58,7 +58,7 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 	// the providers from the original config. `next` contains the set of
 	// providers that will be used by the test. `next` starts with the set of
 	// providers from the original config.
-	previous := config.Module.ProviderConfigs
+	previous := run.ModuleConfig.Module.ProviderConfigs
 	next := make(map[string]*configs.Provider)
 	for key, value := range previous {
 		next[key] = value
@@ -89,7 +89,7 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 				AliasRange: ref.InChild.AliasRange,
 				Config: &hcltest.ProviderConfig{
 					Original:            testProvider.Config,
-					VariableCache:       variableCaches.GetCache(run.Name, config),
+					VariableCache:       variableCaches.GetCache(run.Name, run.ModuleConfig),
 					AvailableRunOutputs: availableRunOutputs,
 				},
 				Mock:      testProvider.Mock,
@@ -115,7 +115,7 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 				AliasRange: provider.AliasRange,
 				Config: &hcltest.ProviderConfig{
 					Original:            provider.Config,
-					VariableCache:       variableCaches.GetCache(run.Name, config),
+					VariableCache:       variableCaches.GetCache(run.Name, run.ModuleConfig),
 					AvailableRunOutputs: availableRunOutputs,
 				},
 				Mock:      provider.Mock,
@@ -125,9 +125,9 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 		}
 	}
 
-	config.Module.ProviderConfigs = next
+	run.ModuleConfig.Module.ProviderConfigs = next
 	return func() {
 		// Reset the original config within the returned function.
-		config.Module.ProviderConfigs = previous
+		run.ModuleConfig.Module.ProviderConfigs = previous
 	}, diags
 }
