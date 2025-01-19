@@ -150,10 +150,10 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 
 		evalCtx := graph.NewEvalContext()
 		evalCtx.PriorOutputs = priorOutputs
-		evalCtx.VariableCaches = &hcltest.VariableCaches{
-			GlobalVariables: currentGlobalVariables,
-			FileVariables:   file.Config.Variables,
-		}
+		evalCtx.VariableCaches = hcltest.NewVariableCaches(func(vc *hcltest.VariableCaches) {
+			vc.GlobalVariables = currentGlobalVariables
+			vc.FileVariables = file.Config.Variables
+		})
 		evalCtx.ConfigProviders = configProviders
 		fileRunner := &TestFileRunner{
 			Suite: runner,
@@ -335,7 +335,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 
 // walkGraph goes through the graph and execute each run it finds.
 func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics {
-	par := 1 // defaults to 1 for now, so that run are executed sequentially
+	par := 10 // defaults to 1 for now, so that run are executed sequentially
 	sem := terraform.NewSemaphore(par)
 
 	// Walk the graph.
@@ -411,7 +411,6 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 		}
 
 		key := run.GetStateKey()
-		config := run.ModuleConfig
 		if run.Config.ConfigUnderTest != nil {
 			if key == moduletest.MainStateIdentifier {
 				// This is bad. It means somehow the module we're loading has
@@ -438,7 +437,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 		}
 
 		startTime := time.Now().UTC()
-		state, updatedState := runner.run(run, file, runner.RelevantStates[key].State, config)
+		state, updatedState := runner.run(run, file, runner.RelevantStates[key].State)
 		runDuration := time.Since(startTime)
 		if updatedState {
 			// Only update the most recent run and state if the state was
@@ -463,9 +462,10 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 	return g.AcyclicGraph.Walk(walkFn)
 }
 
-func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, state *states.State, config *configs.Config) (*states.State, bool) {
+func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, state *states.State) (*states.State, bool) {
 	log.Printf("[TRACE] TestFileRunner: executing run block %s/%s", file.Name, run.Name)
 
+	config := run.ModuleConfig
 	if runner.Suite.Cancelled {
 		// Don't do anything, just give up and return immediately.
 		// The surrounding functions should stop this even being called, but in
@@ -497,7 +497,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return state, false
 	}
 
-	validateDiags := runner.validate(config, run, file, start)
+	validateDiags := runner.validate(run, file, start)
 	run.Diagnostics = run.Diagnostics.Append(validateDiags)
 	if validateDiags.HasErrors() {
 		run.Status = moduletest.Error
@@ -661,10 +661,11 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	return updated, true
 }
 
-func (runner *TestFileRunner) validate(config *configs.Config, run *moduletest.Run, file *moduletest.File, start int64) tfdiags.Diagnostics {
+func (runner *TestFileRunner) validate(run *moduletest.Run, file *moduletest.File, start int64) tfdiags.Diagnostics {
 	log.Printf("[TRACE] TestFileRunner: called validate for %s/%s", file.Name, run.Name)
 
 	var diags tfdiags.Diagnostics
+	config := run.ModuleConfig
 
 	tfCtx, ctxDiags := terraform.NewContext(runner.Suite.Opts)
 	diags = diags.Append(ctxDiags)
