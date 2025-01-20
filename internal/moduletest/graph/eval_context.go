@@ -250,14 +250,11 @@ func (ec *EvalContext) SetOutput(run *moduletest.Run, output cty.Value) {
 func (ec *EvalContext) GetOutputs() map[addrs.Run]cty.Value {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
-	return ec.priorOutputs
-}
-
-func (ec *EvalContext) GetOutput(run addrs.Run) (cty.Value, bool) {
-	ec.outputsLock.Lock()
-	defer ec.outputsLock.Unlock()
-	ret, ok := ec.priorOutputs[run]
-	return ret, ok
+	outputCopy := make(map[addrs.Run]cty.Value, len(ec.priorOutputs))
+	for k, v := range ec.priorOutputs {
+		outputCopy[k] = v
+	}
+	return outputCopy
 }
 
 func (ec *EvalContext) GetCache(run *moduletest.Run) *hcltest.VariableCache {
@@ -380,7 +377,7 @@ func (d *evaluationData) GetResource(addr addrs.Resource, rng tfdiags.SourceRang
 // GetRunBlock implements lang.Data.
 func (d *evaluationData) GetRunBlock(addr addrs.Run, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ret, exists := d.ctx.GetOutput(addr) //d.priorVals[addr]
+	ret, exists := d.ctx.GetOutputs()[addr]
 	if !exists {
 		ret = cty.DynamicVal
 		diags = diags.Append(&hcl.Diagnostic{
@@ -429,10 +426,11 @@ func (d *evaluationData) staticValidateRunRef(ref *addrs.Reference) tfdiags.Diag
 	var diags tfdiags.Diagnostics
 
 	addr := ref.Subject.(addrs.Run)
-	_, exists := d.ctx.GetOutput(addr)
+	outputs := d.ctx.GetOutputs()
+	_, exists := outputs[addr]
 	if !exists {
 		var suggestions []string
-		for altAddr := range d.ctx.GetOutputs() {
+		for altAddr := range outputs {
 			suggestions = append(suggestions, altAddr.Name)
 		}
 		sort.Strings(suggestions)

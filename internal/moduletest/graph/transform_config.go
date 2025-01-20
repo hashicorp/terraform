@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
@@ -15,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // TestConfigTransformer is a GraphTransformer that adds all the test runs,
@@ -128,11 +126,7 @@ func TransformConfigForTest(ctx *EvalContext, run *moduletest.Run, file *modulet
 		next[key] = value
 	}
 
-	runOutputs := make(map[addrs.Run]cty.Value)
-	outputs := ctx.GetOutputs()
-	for addr, objVal := range outputs {
-		runOutputs[addr] = objVal
-	}
+	runOutputs := ctx.GetOutputs()
 
 	if len(run.Config.Providers) > 0 {
 		// Then we'll only copy over and overwrite the specific providers asked
