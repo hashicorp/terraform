@@ -1,101 +1,91 @@
-# // To run in parallel, sequential runs must have different state keys, and not depend on each other
-# // NotDepends: true
-# // DiffStateKey: true
+test {
+  // This would set the parallel flag to true in all runs
+  parallel = true
+}
 
-# variables {
-#   foo = "foo"
-# }
+variables {
+  foo = "foo"
+}
 
 
-# run "setup" {
-#   module {
-#     source = "./setup"
-#   }
+run "main_first" {
+  state_key = "start"
+  module {
+    source = "./setup"
+  }
 
-#   variables {
-#     input = "foo"
-#   }
+  variables {
+    input = "foo"
+  }
 
-#   assert {
-#     condition = output.value == var.foo
-#     error_message = "bad"
-#   }
-# }
+  assert {
+    condition = output.value == var.foo
+    error_message = "bad"
+  }
+}
 
-# // Depends on previous run, but has different state key, so would not run in parallel
-# // NotDepends: false
-# // DiffStateKey: true
-# run "test_a" {
-#   variables {
-#     input = run.setup.value
-#   }
+run "main_second" {
+  variables {
+    input = run.main_first.value
+  }
 
-#   assert {
-#     condition = output.value == var.foo
-#     error_message = "double bad"
-#   }
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
 
-#   assert {
-#     condition = run.setup.value == var.foo
-#     error_message = "triple bad"
-#   }
-# }
+  assert {
+    condition = run.main_first.value == var.foo
+    error_message = "triple bad"
+  }
+}
 
-# // Depends on previous run, and has same state key, so would not run in parallel
-# // NotDepends: false
-# // DiffStateKey: false
-# run "test_b" {
-#   variables {
-#     input = run.test_a.value
-#   }
+run "main_third" {
+  variables {
+    input = run.main_second.value
+  }
 
-#   assert {
-#     condition = output.value == var.foo
-#     error_message = "double bad"
-#   }
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
 
-#   assert {
-#     condition = run.setup.value == var.foo
-#     error_message = "triple bad"
-#   }
-# }
+  assert {
+    condition = run.main_first.value == var.foo
+    error_message = "triple bad"
+  }
+}
 
-# // Does not depend on previous run, and has same state key, so would not run in parallel
-# // NotDepends: true
-# // DiffStateKey: false
-# run "test_c" {
+run "main_fourth" {
+  variables {
+    input = "foo"
+  }
 
-#   variables {
-#     input = "foo"
-#   }
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+}
 
-#   assert {
-#     condition = output.value == var.foo
-#     error_message = "double bad"
-#   }
+// The satisfies all the conditions to run in parallel, but the parallel flag is set to false,
+// so it should run in sequence
+run "main_fifth" {
+  state_key = "start"
+  parallel = false
+  variables {
+    input = "foo"
+  }
 
-#   assert {
-#     condition = run.setup.value == var.foo
-#     error_message = "triple bad"
-#   }
-# }
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+}
 
-# // Does not depend on previous run, and has different state key, so would run in parallel
-# // NotDepends: true
-# // DiffStateKey: true
-# run "test_d" {
+// Expected order:
+//   - run [main_first]
+//   - run [main_second]
+//   - run [main_third]
+//   - run [main_fourth]
+//   - run [main_fifth]
 
-#   variables {
-#     input = "foo"
-#   }
-
-#   assert {
-#     condition = output.value == var.foo
-#     error_message = "double bad"
-#   }
-
-#   assert {
-#     condition = run.setup.value == var.foo
-#     error_message = "triple bad"
-#   }
-# }

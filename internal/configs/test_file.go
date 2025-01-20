@@ -66,6 +66,9 @@ type TestFile struct {
 	// order.
 	Runs []*TestRun
 
+	Config          TestFileConfig
+	ConfigDeclRange hcl.Range
+
 	VariablesDeclRange hcl.Range
 }
 
@@ -296,21 +299,48 @@ type TestRunOptions struct {
 
 func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-
-	content, contentDiags := body.Content(testFileSchema)
-	diags = append(diags, contentDiags...)
-
 	tf := TestFile{
 		Providers: make(map[string]*Provider),
 		Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
 	}
+
+	fileMetaContent, remain, contentDiags := body.PartialContent(&hcl.BodySchema{
+		Blocks: []hcl.BlockHeaderSchema{
+			{
+				Type: "test",
+			},
+		},
+	})
+	diags = append(diags, contentDiags...)
+
+	if len(fileMetaContent.Blocks) > 0 {
+		fileMetaBlock := fileMetaContent.Blocks[0]
+		if len(fileMetaContent.Blocks) > 1 {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Multiple \"test\" blocks",
+				Detail:   fmt.Sprintf(`This test file already has a "test" block defined at %s.`, fileMetaBlock.DefRange),
+				Subject:  fileMetaBlock.DefRange.Ptr(),
+			})
+		}
+		var cDiags hcl.Diagnostics
+		tf.Config, cDiags = decodeFileConfigBlock(fileMetaBlock)
+		tf.ConfigDeclRange = fileMetaBlock.DefRange
+		diags = append(diags, cDiags...)
+	}
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	content, contentDiags := remain.Content(testFileSchema)
+	diags = append(diags, contentDiags...)
 
 	runBlockNames := make(map[string]hcl.Range)
 
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "run":
-			run, runDiags := decodeTestRunBlock(block)
+			run, runDiags := decodeTestRunBlock(block, tf.Config)
 			diags = append(diags, runDiags...)
 			if !runDiags.HasErrors() {
 				tf.Runs = append(tf.Runs, run)
@@ -435,7 +465,40 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	return &tf, diags
 }
 
-func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
+type TestFileConfig struct {
+	// Parallel: Indicates if test runs should be executed in parallel.
+	// The decision to execute the runs in parallel will be made based on the
+	// implicit dependencies between the runs or explicit dependencies defined
+	// in the run's depends_on attribute.
+	Parallel bool
+
+	DeclRange hcl.Range
+}
+
+func decodeFileConfigBlock(block *hcl.Block) (TestFileConfig, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+	ret := TestFileConfig{
+		DeclRange: block.DefRange,
+	}
+
+	content, contentDiags := block.Body.Content(testFileConfigBlockSchema)
+	diags = append(diags, contentDiags...)
+	if contentDiags.HasErrors() {
+		return ret, diags
+	}
+
+	if attr, exists := content.Attributes["parallel"]; exists {
+		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &ret.Parallel)
+		diags = append(diags, rawDiags...)
+		if rawDiags.HasErrors() {
+			return ret, diags
+		}
+	}
+
+	return ret, diags
+}
+
+func decodeTestRunBlock(block *hcl.Block, fileConfig TestFileConfig) (*TestRun, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	content, contentDiags := block.Body.Content(testRunBlockSchema)
@@ -447,6 +510,7 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 		Name:          block.Labels[0],
 		NameDeclRange: block.LabelRanges[0],
 		DeclRange:     block.DefRange,
+		Parallel:      fileConfig.Parallel,
 	}
 
 	if !hclsyntax.ValidIdentifier(r.Name) {
@@ -819,6 +883,12 @@ var testFileSchema = &hcl.BodySchema{
 		{
 			Type: "override_module",
 		},
+	},
+}
+
+var testFileConfigBlockSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: "parallel"},
 	},
 }
 

@@ -166,10 +166,6 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"7 passed, 0 failed."},
 			code:        0,
 		},
-		"shared_state_parallel": {
-			expectedOut: []string{"5 passed, 0 failed."},
-			code:        0,
-		},
 		"shared_state_object": {
 			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
@@ -565,6 +561,10 @@ func TestTest_Parallel(t *testing.T) {
 
 	c.Run(nil)
 	output := done(t).All()
+
+	if !strings.Contains(output, "40 passed, 0 failed") {
+		t.Errorf("output didn't produce the right output:\n\n%s", output)
+	}
 
 	// Split the log into lines
 	lines := strings.Split(output, "\n")

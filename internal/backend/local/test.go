@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
@@ -151,7 +152,9 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		evalCtx := graph.NewEvalContext()
 		evalCtx.PriorOutputs = priorOutputs
 		evalCtx.VariableCaches = hcltest.NewVariableCaches(func(vc *hcltest.VariableCaches) {
-			vc.GlobalVariables = currentGlobalVariables
+			for name, value := range currentGlobalVariables {
+				vc.GlobalVariables[name] = value
+			}
 			vc.FileVariables = file.Config.Variables
 		})
 		evalCtx.ConfigProviders = configProviders
@@ -284,6 +287,7 @@ type TestFileRunner struct {
 	RelevantStates map[string]*TestFileState
 
 	EvalContext *graph.EvalContext
+	evalLock    sync.Mutex
 }
 
 // TestFileState is a helper struct that just maps a run block to the state that
@@ -299,6 +303,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	// The file validation only returns warnings so we'll just add them without
 	// checking anything about them.
 	file.Diagnostics = file.Diagnostics.Append(file.Config.Validate(runner.Suite.Config))
+	runner.evalLock = sync.Mutex{}
 
 	// We'll execute the tests in the file. First, mark the overall status as
 	// being skipped. This will ensure that if we've cancelled and the files not
@@ -539,6 +544,8 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 			return state, false
 		}
 
+		runner.evalLock.Lock()
+		defer runner.evalLock.Unlock()
 		resetVariables := runner.AddVariablesToConfig(config, variables)
 		defer resetVariables()
 
