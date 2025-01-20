@@ -55,7 +55,6 @@ func (t *TestRunTransformer) createNodes(g *terraform.Graph) []*NodeTestRun {
 			}
 		}
 		prev = node
-
 	}
 	return nodes
 }

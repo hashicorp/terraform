@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"slices"
 	"sort"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
@@ -221,12 +220,8 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 						if run.ConfigUnderTest != nil {
 							config = run.ConfigUnderTest
 						}
-						runs = append(runs, &moduletest.Run{
-							Config:       run,
-							ModuleConfig: config,
-							Index:        ix,
-							Name:         run.Name,
-						})
+						runs = append(runs, moduletest.NewRun(run, config, ix))
+
 					}
 
 					runCount += len(runs)
@@ -250,12 +245,7 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 					if run.ConfigUnderTest != nil {
 						config = run.ConfigUnderTest
 					}
-					runs = append(runs, &moduletest.Run{
-						Config:       run,
-						ModuleConfig: config,
-						Index:        ix,
-						Name:         run.Name,
-					})
+					runs = append(runs, moduletest.NewRun(run, config, ix))
 				}
 
 				runCount += len(runs)
@@ -287,7 +277,6 @@ type TestFileRunner struct {
 	RelevantStates map[string]*TestFileState
 
 	EvalContext *graph.EvalContext
-	evalLock    sync.Mutex
 }
 
 // TestFileState is a helper struct that just maps a run block to the state that
@@ -303,7 +292,6 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	// The file validation only returns warnings so we'll just add them without
 	// checking anything about them.
 	file.Diagnostics = file.Diagnostics.Append(file.Config.Validate(runner.Suite.Config))
-	runner.evalLock = sync.Mutex{}
 
 	// We'll execute the tests in the file. First, mark the overall status as
 	// being skipped. This will ensure that if we've cancelled and the files not
@@ -525,7 +513,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 	// FilterVariablesToModule only returns warnings, so we don't check the
 	// returned diags for errors.
-	setVariables, testOnlyVariables, setVariableDiags := runner.FilterVariablesToModule(config, variables)
+	setVariables, testOnlyVariables, setVariableDiags := runner.FilterVariablesToModule(run, variables)
 	run.Diagnostics = run.Diagnostics.Append(setVariableDiags)
 
 	tfCtx, ctxDiags := terraform.NewContext(runner.Suite.Opts)
@@ -544,10 +532,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 			return state, false
 		}
 
-		runner.evalLock.Lock()
-		defer runner.evalLock.Unlock()
-		resetVariables := runner.AddVariablesToConfig(config, variables)
-		defer resetVariables()
+		runner.AddVariablesToConfig(run, variables)
 
 		if runner.Suite.Verbose {
 			schemas, diags := tfCtx.Schemas(config, plan.PriorState)
@@ -625,8 +610,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return updated, true
 	}
 
-	resetVariables := runner.AddVariablesToConfig(config, variables)
-	defer resetVariables()
+	runner.AddVariablesToConfig(run, variables)
 
 	if runner.Suite.Verbose {
 		schemas, diags := tfCtx.Schemas(config, updated)
@@ -724,7 +708,7 @@ func (runner *TestFileRunner) destroy(state *states.State, run *moduletest.Run, 
 	// Anything that would have been reported here was already reported during
 	// the original plan, and a successful destroy operation is the only thing
 	// we care about.
-	setVariables, _, _ := runner.FilterVariablesToModule(run.ModuleConfig, variables)
+	setVariables, _, _ := runner.FilterVariablesToModule(run, variables)
 
 	planOpts := &terraform.PlanOpts{
 		Mode:         plans.DestroyMode,
@@ -1250,11 +1234,11 @@ func (runner *TestFileRunner) GetVariables(run *moduletest.Run, references []*ad
 //
 // This function can only return warnings, and the callers can rely on this so
 // please check the callers of this function if you add any error diagnostics.
-func (runner *TestFileRunner) FilterVariablesToModule(config *configs.Config, values terraform.InputValues) (moduleVars, testOnlyVars terraform.InputValues, diags tfdiags.Diagnostics) {
+func (runner *TestFileRunner) FilterVariablesToModule(run *moduletest.Run, values terraform.InputValues) (moduleVars, testOnlyVars terraform.InputValues, diags tfdiags.Diagnostics) {
 	moduleVars = make(terraform.InputValues)
 	testOnlyVars = make(terraform.InputValues)
 	for name, value := range values {
-		_, exists := config.Module.Variables[name]
+		_, exists := run.ModuleConfig.Module.Variables[name]
 		if !exists {
 			// If it's not in the configuration then it's a test-only variable.
 			testOnlyVars[name] = value
@@ -1272,7 +1256,7 @@ func (runner *TestFileRunner) FilterVariablesToModule(config *configs.Config, va
 // This function is essentially the opposite of FilterVariablesToConfig which
 // makes the variables match the config rather than the config match the
 // variables.
-func (runner *TestFileRunner) AddVariablesToConfig(config *configs.Config, variables terraform.InputValues) func() {
+func (runner *TestFileRunner) AddVariablesToConfig(run *moduletest.Run, variables terraform.InputValues) {
 
 	// If we have got variable values from the test file we need to make sure
 	// they have an equivalent entry in the configuration. We're going to do
@@ -1281,16 +1265,16 @@ func (runner *TestFileRunner) AddVariablesToConfig(config *configs.Config, varia
 	// First, take a backup of the existing configuration so we can easily
 	// restore it later.
 	currentVars := make(map[string]*configs.Variable)
-	for name, variable := range config.Module.Variables {
+	for name, variable := range run.ModuleConfig.Module.Variables {
 		currentVars[name] = variable
 	}
 
 	for name, value := range variables {
-		if _, exists := config.Module.Variables[name]; exists {
+		if _, exists := run.ModuleConfig.Module.Variables[name]; exists {
 			continue
 		}
 
-		config.Module.Variables[name] = &configs.Variable{
+		run.ModuleConfig.Module.Variables[name] = &configs.Variable{
 			Name:           name,
 			Type:           value.Value.Type(),
 			ConstraintType: value.Value.Type(),
@@ -1298,9 +1282,4 @@ func (runner *TestFileRunner) AddVariablesToConfig(config *configs.Config, varia
 		}
 	}
 
-	// We return a function that will reset the variables within the config so
-	// it can be used again.
-	return func() {
-		config.Module.Variables = currentVars
-	}
 }

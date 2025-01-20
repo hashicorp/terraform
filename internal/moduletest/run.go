@@ -48,6 +48,27 @@ type Run struct {
 	ExecutionMeta *RunExecutionMeta
 }
 
+func NewRun(config *configs.TestRun, moduleConfig *configs.Config, index int) *Run {
+	// Deep copy the module configuration variables map so that the run can modify
+	// the map safely.
+	newModuleConfig := *moduleConfig
+	if moduleConfig.Module != nil {
+		newModule := *moduleConfig.Module
+		newModule.Variables = make(map[string]*configs.Variable, len(moduleConfig.Module.Variables))
+		for name, variable := range moduleConfig.Module.Variables {
+			newModule.Variables[name] = variable
+		}
+		newModuleConfig.Module = &newModule
+	}
+
+	return &Run{
+		Config:       config,
+		ModuleConfig: &newModuleConfig,
+		Name:         config.Name,
+		Index:        index,
+	}
+}
+
 type RunExecutionMeta struct {
 	Start    time.Time
 	Duration time.Duration
