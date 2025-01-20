@@ -158,13 +158,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		})
 		evalCtx.ConfigProviders = configProviders
 		fileRunner := &TestFileRunner{
-			Suite: runner,
-			RelevantStates: map[string]*TestFileState{
-				moduletest.MainStateIdentifier: {
-					Run:   nil,
-					State: states.NewState(),
-				},
-			},
+			Suite:       runner,
 			EvalContext: evalCtx,
 		}
 
@@ -225,11 +219,7 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 					}
 
 					runCount += len(runs)
-					files[name] = &moduletest.File{
-						Config: file,
-						Name:   name,
-						Runs:   runs,
-					}
+					files[name] = moduletest.NewFile(name, file, runs)
 				}
 
 				return files
@@ -249,11 +239,7 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 				}
 
 				runCount += len(runs)
-				files[name] = &moduletest.File{
-					Config: file,
-					Name:   name,
-					Runs:   runs,
-				}
+				files[name] = moduletest.NewFile(name, file, runs)
 			}
 			return files
 		}(),
@@ -267,23 +253,8 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 type TestFileRunner struct {
 	// Suite contains all the helpful metadata about the test that we need
 	// during the execution of a file.
-	Suite *TestSuiteRunner
-
-	// RelevantStates is a mapping of module keys to it's last applied state
-	// file.
-	//
-	// This is used to clean up the infrastructure created during the test after
-	// the test has finished.
-	RelevantStates map[string]*TestFileState
-
+	Suite       *TestSuiteRunner
 	EvalContext *graph.EvalContext
-}
-
-// TestFileState is a helper struct that just maps a run block to the state that
-// was produced by the execution of that run block.
-type TestFileState struct {
-	Run   *moduletest.Run
-	State *states.State
 }
 
 func (runner *TestFileRunner) Test(file *moduletest.File) {
@@ -365,12 +336,19 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 		sem.Acquire()
 		defer sem.Release()
 
-		// For now, the only vertex type we care about in the graph is the test run.
-		runNode, ok := v.(*graph.NodeTestRun)
-		if !ok {
-			// If the vertex isn't a test run, we'll just skip it.
+		switch v := v.(type) {
+		case *graph.NodeTestRun:
+			// continue
+		case graph.GraphNodeExecutable:
+			diags = v.Execute(runner.EvalContext)
+			return diags
+		default:
+			// If the vertex isn't a test run or executable, we'll just skip it.
 			return
 		}
+
+		// We already know that the vertex is a test run
+		runNode := v.(*graph.NodeTestRun)
 
 		file := runNode.File()
 		run := runNode.Run()
@@ -393,7 +371,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
 			return
 		}
-
+		file.Lock.Lock()
 		if file.Status == moduletest.Error {
 			// If the overall test file has errored, we don't keep trying to
 			// execute tests. Instead, we mark all remaining run blocks as
@@ -402,6 +380,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
 			return
 		}
+		file.Lock.Unlock()
 
 		key := run.GetStateKey()
 		if run.Config.ConfigUnderTest != nil {
@@ -422,23 +401,18 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			}
 		}
 
-		if _, exists := runner.RelevantStates[key]; !exists {
-			runner.RelevantStates[key] = &TestFileState{
-				Run:   nil,
-				State: states.NewState(),
-			}
-		}
-
 		startTime := time.Now().UTC()
-		state, updatedState := runner.run(run, file, runner.RelevantStates[key].State)
+		state, updatedState := runner.run(run, file, runner.EvalContext.GetFileState(key).State)
 		runDuration := time.Since(startTime)
 		if updatedState {
 			// Only update the most recent run and state if the state was
 			// actually updated by this change. We want to use the run that
 			// most recently updated the tracked state as the cleanup
 			// configuration.
-			runner.RelevantStates[key].State = state
-			runner.RelevantStates[key].Run = run
+			runner.EvalContext.SetFileState(key, &graph.TestFileState{
+				Run:   run,
+				State: state,
+			})
 		}
 
 		// If we got far enough to actually execute the run then we'll give
@@ -448,7 +422,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			Duration: runDuration,
 		}
 		runner.Suite.View.Run(run, file, moduletest.Complete, 0)
-		file.Status = file.Status.Merge(run.Status)
+		file.UpdateStatus(run.Status)
 		return
 	}
 
@@ -901,8 +875,8 @@ func (runner *TestFileRunner) wait(ctx *terraform.Context, runningCtx context.Co
 
 		states := make(map[*moduletest.Run]*states.State)
 		mainKey := moduletest.MainStateIdentifier
-		states[nil] = runner.RelevantStates[mainKey].State
-		for key, module := range runner.RelevantStates {
+		states[nil] = runner.EvalContext.GetFileState(mainKey).State
+		for key, module := range runner.EvalContext.FileStates {
 			if key == mainKey {
 				continue
 			}
@@ -982,8 +956,8 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 		return
 	}
 
-	var states []*TestFileState
-	for key, state := range runner.RelevantStates {
+	var states []*graph.TestFileState
+	for key, state := range runner.EvalContext.FileStates {
 
 		empty := true
 		for _, module := range state.State.Modules {
@@ -1021,7 +995,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 		states = append(states, state)
 	}
 
-	slices.SortFunc(states, func(a, b *TestFileState) int {
+	slices.SortFunc(states, func(a, b *graph.TestFileState) int {
 		// We want to clean up later run blocks first. So, we'll sort this in
 		// reverse according to index. This means larger indices first.
 		return b.Run.Index - a.Run.Index

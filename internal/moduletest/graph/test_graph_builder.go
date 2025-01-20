@@ -35,6 +35,7 @@ func (b *TestGraphBuilder) Build(path addrs.ModuleInstance) (*terraform.Graph, t
 func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 	steps := []terraform.GraphTransformer{
 		&TestRunTransformer{File: b.File, globalVars: b.GlobalVars},
+		&TestConfigTransformer{},
 		&TestProvidersTransformer{configsProviderMap: b.ConfigsProviderMap},
 		&CloseTestGraphTransformer{},
 		&terraform.TransitiveReductionTransformer{},

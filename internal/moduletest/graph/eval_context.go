@@ -42,6 +42,14 @@ type EvalContext struct {
 
 	ConfigProviders map[string]map[string]bool
 	providersLock   sync.Mutex
+
+	// FileStates is a mapping of module keys to it's last applied state
+	// file.
+	//
+	// This is used to clean up the infrastructure created during the test after
+	// the test has finished.
+	FileStates map[string]*TestFileState
+	stateLock  sync.Mutex
 }
 
 // NewEvalContext constructs a new test run evaluation context based on the
@@ -63,6 +71,8 @@ func NewEvalContext() *EvalContext {
 		outputsLock:     sync.Mutex{},
 		ConfigProviders: make(map[string]map[string]bool),
 		providersLock:   sync.Mutex{},
+		FileStates:      make(map[string]*TestFileState),
+		stateLock:       sync.Mutex{},
 	}
 }
 
@@ -75,14 +85,15 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 		// This should never happen, but if it does, we can't evaluate the run
 		return moduletest.Error, cty.NilVal, tfdiags.Diagnostics{}
 	}
+
 	mod := run.ModuleConfig.Module
 	// We need a derived evaluation scope that also supports referring to
 	// the prior run output values using the "run.NAME" syntax.
 	evalData := &evaluationData{
+		ctx:       ec,
 		module:    mod,
 		current:   resultScope.Data,
 		extraVars: extraVariableVals,
-		priorVals: ec.PriorOutputs,
 	}
 	scope := &lang.Scope{
 		Data:          evalData,
@@ -230,6 +241,19 @@ func (ec *EvalContext) SetOutput(run *moduletest.Run, output cty.Value) {
 	ec.PriorOutputs[run.Addr()] = output
 }
 
+func (ec *EvalContext) GetOutputs() map[addrs.Run]cty.Value {
+	ec.outputsLock.Lock()
+	defer ec.outputsLock.Unlock()
+	return ec.PriorOutputs
+}
+
+func (ec *EvalContext) GetOutput(run addrs.Run) (cty.Value, bool) {
+	ec.outputsLock.Lock()
+	defer ec.outputsLock.Unlock()
+	ret, ok := ec.PriorOutputs[run]
+	return ret, ok
+}
+
 func (ec *EvalContext) GetCache(run *moduletest.Run) *hcltest.VariableCache {
 	if ec.VariableCaches == nil {
 		return nil
@@ -264,15 +288,35 @@ func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnost
 	return diags
 }
 
+func (ec *EvalContext) SetFileState(key string, state *TestFileState) {
+	ec.stateLock.Lock()
+	defer ec.stateLock.Unlock()
+	fileState := ec.FileStates[key]
+	if fileState != nil {
+		ec.FileStates[key] = state
+		return
+	}
+	ec.FileStates[key] = &TestFileState{
+		Run:   state.Run,
+		State: state.State,
+	}
+}
+
+func (ec *EvalContext) GetFileState(key string) *TestFileState {
+	ec.stateLock.Lock()
+	defer ec.stateLock.Unlock()
+	return ec.FileStates[key]
+}
+
 // evaluationData augments an underlying lang.Data -- presumably resulting
 // from a terraform.Context.PlanAndEval or terraform.Context.ApplyAndEval call --
 // with results from prior runs that should therefore be available when
 // evaluating expressions written inside a "run" block.
 type evaluationData struct {
+	ctx       *EvalContext
 	module    *configs.Module
 	current   lang.Data
 	extraVars terraform.InputValues
-	priorVals map[addrs.Run]cty.Value
 }
 
 var _ lang.Data = (*evaluationData)(nil)
@@ -328,7 +372,7 @@ func (d *evaluationData) GetResource(addr addrs.Resource, rng tfdiags.SourceRang
 // GetRunBlock implements lang.Data.
 func (d *evaluationData) GetRunBlock(addr addrs.Run, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ret, exists := d.priorVals[addr]
+	ret, exists := d.ctx.GetOutput(addr) //d.priorVals[addr]
 	if !exists {
 		ret = cty.DynamicVal
 		diags = diags.Append(&hcl.Diagnostic{
@@ -377,10 +421,10 @@ func (d *evaluationData) staticValidateRunRef(ref *addrs.Reference) tfdiags.Diag
 	var diags tfdiags.Diagnostics
 
 	addr := ref.Subject.(addrs.Run)
-	_, exists := d.priorVals[addr]
+	_, exists := d.ctx.GetOutput(addr)
 	if !exists {
 		var suggestions []string
-		for altAddr := range d.priorVals {
+		for altAddr := range d.ctx.GetOutputs() {
 			suggestions = append(suggestions, altAddr.Name)
 		}
 		sort.Strings(suggestions)
