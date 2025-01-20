@@ -20,8 +20,8 @@ import (
 	"github.com/hashicorp/go-azure-sdk/resource-manager/storage/2023-01-01/storageaccounts"
 	"github.com/hashicorp/go-azure-sdk/sdk/auth"
 	"github.com/hashicorp/go-azure-sdk/sdk/environments"
-	"github.com/tombuildsstuff/giovanni/storage/2023-11-03/blob/blobs"
-	"github.com/tombuildsstuff/giovanni/storage/2023-11-03/blob/containers"
+	"github.com/jackofallops/giovanni/storage/2023-11-03/blob/blobs"
+	"github.com/jackofallops/giovanni/storage/2023-11-03/blob/containers"
 )
 
 const (
