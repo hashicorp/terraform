@@ -197,6 +197,7 @@ require (
 	github.com/huandu/xstrings v1.3.3 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/jackofallops/giovanni v0.28.0 // indirect
 	github.com/jedib0t/go-pretty v4.3.0+incompatible // indirect
 	github.com/jedib0t/go-pretty/v6 v6.5.9 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
@@ -239,7 +240,6 @@ require (
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.42 // indirect
 	github.com/thanhpk/randstr v1.0.6 // indirect
 	github.com/thlib/go-timezone-local v0.0.3 // indirect
-	github.com/tombuildsstuff/giovanni v0.27.0 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/vmihailenco/msgpack/v4 v4.3.12 // indirect

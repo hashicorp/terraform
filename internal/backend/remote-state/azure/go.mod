@@ -9,7 +9,7 @@ require (
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/terraform/internal/legacy v0.0.0-00010101000000-000000000000
-	github.com/tombuildsstuff/giovanni v0.27.0
+	github.com/jackofallops/giovanni v0.28.0
 )
 
 require (
