@@ -66,6 +66,13 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 			err.Error()))
 	}
 
+	if len(test.JUnitXMLFile) > 0 && len(test.CloudRunSource) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Incompatible command-line flags",
+			"The -junit-xml option is currently not compatible with remote test execution via the -cloud-run flag. If you are interested in JUnit XML output for remotely-executed tests please open an issue in GitHub."))
+	}
+
 	switch {
 	case jsonOutput:
 		test.ViewType = ViewJSON

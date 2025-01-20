@@ -252,6 +252,11 @@ func (p *MockProvider) ValidateEphemeralResourceConfig(r providers.ValidateEphem
 	return resp
 }
 
+// UpgradeResourceState mocks out the response from the provider during an UpgradeResourceState RPC
+// The default logic will return the resource's state unchanged, unless other logic is defined on the mock (e.g. UpgradeResourceStateFn)
+//
+// When using this mock you may need to provide custom logic if the plugin-framework alters values in state,
+// e.g. when handling write-only attributes.
 func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
 	p.Lock()
 	defer p.Unlock()

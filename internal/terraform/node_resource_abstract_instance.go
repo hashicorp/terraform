@@ -693,7 +693,17 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 	}
 
 	// Providers are supposed to return null values for all write-only attributes
-	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(resp.NewState, schema, n.ResolvedProvider, n.Addr)
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
+		"Provider produced invalid object",
+		func(path cty.Path) string {
+			return fmt.Sprintf(
+				"Provider %q returned a value for the write-only attribute \"%s%s\" during refresh. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider, n.Addr, tfdiags.FormatCtyPath(path),
+			)
+		},
+		resp.NewState,
+		schema,
+	)
 	diags = diags.Append(writeOnlyDiags)
 
 	if writeOnlyDiags.HasErrors() {
@@ -904,7 +914,11 @@ func (n *NodeAbstractResourceInstance) plan(
 		if priorVal.IsNull() {
 			// Then we are actually creating something, so let's populate the
 			// computed values from our override value.
-			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, schema)
+			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, &mocking.MockedData{
+				Value:             n.override.Values,
+				Range:             n.override.Range,
+				ComputedAsUnknown: !n.override.UseForPlan,
+			}, schema)
 			resp = providers.PlanResourceChangeResponse{
 				PlannedState: override,
 				Diagnostics:  overrideDiags,
@@ -956,7 +970,17 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 
 		// Providers are supposed to return null values for all write-only attributes
-		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(plannedNewVal, schema, n.ResolvedProvider, n.Addr)
+		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
+			"Provider produced invalid plan",
+			func(path cty.Path) string {
+				return fmt.Sprintf(
+					"Provider %q returned a value for the write-only attribute \"%s%s\" during planning. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider, n.Addr, tfdiags.FormatCtyPath(path),
+				)
+			},
+			plannedNewVal,
+			schema,
+		)
 		diags = diags.Append(writeOnlyDiags)
 
 		if writeOnlyDiags.HasErrors() {
@@ -1047,13 +1071,16 @@ func (n *NodeAbstractResourceInstance) plan(
 		plannedNewVal = marks.MarkPaths(plannedNewVal, marks.Sensitive, sensitivePaths)
 	}
 
-	reqRep, reqRepDiags := getRequiredReplaces(unmarkedPriorVal, unmarkedPlannedNewVal, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
+	writeOnlyPaths := schema.WriteOnlyPaths(plannedNewVal, nil)
+
+	reqRep, reqRepDiags := getRequiredReplaces(unmarkedPriorVal, unmarkedPlannedNewVal, writeOnlyPaths, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
 	diags = diags.Append(reqRepDiags)
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
 	}
 
-	action, actionReason := getAction(n.Addr, unmarkedPriorVal, unmarkedPlannedNewVal, createBeforeDestroy, forceReplace, reqRep)
+	woPathSet := cty.NewPathSet(writeOnlyPaths...)
+	action, actionReason := getAction(n.Addr, unmarkedPriorVal, unmarkedPlannedNewVal, createBeforeDestroy, woPathSet, forceReplace, reqRep)
 
 	if action.IsReplace() {
 		// In this strange situation we want to produce a change object that
@@ -1082,7 +1109,11 @@ func (n *NodeAbstractResourceInstance) plan(
 		if n.override != nil {
 			// In this case, we are always creating the resource so we don't
 			// do any validation, and just call out to the mocking library.
-			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, schema)
+			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, &mocking.MockedData{
+				Value:             n.override.Values,
+				Range:             n.override.Range,
+				ComputedAsUnknown: !n.override.UseForPlan,
+			}, schema)
 			resp = providers.PlanResourceChangeResponse{
 				PlannedState: override,
 				Diagnostics:  overrideDiags,
@@ -1140,7 +1171,17 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 
 		// Providers are supposed to return null values for all write-only attributes
-		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(plannedNewVal, schema, n.ResolvedProvider, n.Addr)
+		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
+			"Provider produced invalid plan",
+			func(path cty.Path) string {
+				return fmt.Sprintf(
+					"Provider %q returned a value for the write-only attribute \"%s%s\" during planning. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider, n.Addr, tfdiags.FormatCtyPath(path),
+				)
+			},
+			plannedNewVal,
+			schema,
+		)
 		diags = diags.Append(writeOnlyDiags)
 
 		if writeOnlyDiags.HasErrors() {
@@ -1543,9 +1584,10 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 
 	var resp providers.ReadDataSourceResponse
 	if n.override != nil {
-		override, overrideDiags := mocking.ComputedValuesForDataSource(configVal, mocking.MockedData{
-			Value: n.override.Values,
-			Range: n.override.ValuesRange,
+		override, overrideDiags := mocking.ComputedValuesForDataSource(configVal, &mocking.MockedData{
+			Value:             n.override.Values,
+			Range:             n.override.Range,
+			ComputedAsUnknown: false,
 		}, schema)
 		resp = providers.ReadDataSourceResponse{
 			State:       override,
@@ -2498,9 +2540,10 @@ func (n *NodeAbstractResourceInstance) apply(
 		// values the first time the object is created. Otherwise, we're happy
 		// to just apply whatever the user asked for.
 		if change.Action == plans.Create {
-			override, overrideDiags := mocking.ApplyComputedValuesForResource(unmarkedAfter, mocking.MockedData{
-				Value: n.override.Values,
-				Range: n.override.ValuesRange,
+			override, overrideDiags := mocking.ApplyComputedValuesForResource(unmarkedAfter, &mocking.MockedData{
+				Value:             n.override.Values,
+				Range:             n.override.Range,
+				ComputedAsUnknown: false,
 			}, schema)
 			resp = providers.ApplyResourceChangeResponse{
 				NewState:    override,
@@ -2580,7 +2623,17 @@ func (n *NodeAbstractResourceInstance) apply(
 	}
 
 	// Providers are supposed to return null values for all write-only attributes
-	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(newVal, schema, n.ResolvedProvider, n.Addr)
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
+		"Provider produced invalid object",
+		func(path cty.Path) string {
+			return fmt.Sprintf(
+				"Provider %q returned a value for the write-only attribute \"%s%s\" after apply. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider, n.Addr, tfdiags.FormatCtyPath(path),
+			)
+		},
+		newVal,
+		schema,
+	)
 	diags = diags.Append(writeOnlyDiags)
 
 	if writeOnlyDiags.HasErrors() {
@@ -2763,7 +2816,7 @@ func resourceInstancePrevRunAddr(ctx EvalContext, currentAddr addrs.AbsResourceI
 	return table.OldAddr(currentAddr)
 }
 
-func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value, createBeforeDestroy bool, forceReplace []addrs.AbsResourceInstance, reqRep cty.PathSet) (action plans.Action, actionReason plans.ResourceInstanceChangeActionReason) {
+func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value, createBeforeDestroy bool, writeOnly cty.PathSet, forceReplace []addrs.AbsResourceInstance, reqRep cty.PathSet) (action plans.Action, actionReason plans.ResourceInstanceChangeActionReason) {
 	// The user might also ask us to force replacing a particular resource
 	// instance, regardless of whether the provider thinks it needs replacing.
 	// For example, users typically do this if they learn a particular object
@@ -2790,9 +2843,7 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 	switch {
 	case priorVal.IsNull():
 		action = plans.Create
-	case eq && !matchedForceReplace:
-		action = plans.NoOp
-	case matchedForceReplace || !reqRep.Empty():
+	case matchedForceReplace || !reqRep.Empty() || !writeOnly.Intersection(reqRep).Empty():
 		// If the user "forced replace" of this instance of if there are any
 		// "requires replace" paths left _after our filtering above_ then this
 		// is a replace action.
@@ -2807,6 +2858,8 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 		case !reqRep.Empty():
 			actionReason = plans.ResourceInstanceReplaceBecauseCannotUpdate
 		}
+	case eq && !matchedForceReplace:
+		action = plans.NoOp
 	default:
 		action = plans.Update
 		// "Delete" is never chosen here, because deletion plans are always
@@ -2830,7 +2883,7 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 // function. This function exposes nothing about the priorVal or plannedVal
 // except for the paths that require replacement which can be deduced from the
 // type with or without marks.
-func getRequiredReplaces(priorVal, plannedNewVal cty.Value, requiredReplaces []cty.Path, providerAddr tfaddr.Provider, addr addrs.AbsResourceInstance) (cty.PathSet, tfdiags.Diagnostics) {
+func getRequiredReplaces(priorVal, plannedNewVal cty.Value, writeOnly []cty.Path, requiredReplaces []cty.Path, providerAddr tfaddr.Provider, addr addrs.AbsResourceInstance) (cty.PathSet, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	reqRep := cty.NewPathSet()
@@ -2875,7 +2928,16 @@ func getRequiredReplaces(priorVal, plannedNewVal cty.Value, requiredReplaces []c
 			}
 
 			eqV := plannedChangedVal.Equals(priorChangedVal)
-			if !eqV.IsKnown() || eqV.False() {
+
+			// if attribute/path is writeOnly we have no values to compare
+			// but still respect the required replacement
+			isWriteOnly := false
+			for _, woPath := range writeOnly {
+				if path.Equals(woPath) {
+					isWriteOnly = true
+				}
+			}
+			if !eqV.IsKnown() || eqV.False() || isWriteOnly {
 				reqRep.Add(path)
 			}
 		}

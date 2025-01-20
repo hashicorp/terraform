@@ -295,7 +295,7 @@ certain attributes as _sensitive_, in which case Terraform will show a
 placeholder marker `(sensitive value)` instead of the actual value when rendering
 a plan involving that attribute.
 
-A provider attribute marked as sensitive behaves similarly to an
+A provider attribute marked as sensitive behaves similarly to
 [an input variable declared as sensitive](/terraform/language/values/variables#suppressing-values-in-cli-output),
 where Terraform will hide the value in the plan and apply messages and will
 also hide any other values you derive from it as sensitive.

@@ -109,6 +109,10 @@ func (runner *TestSuiteRunner) Stop() {
 	runner.Stopped = true
 }
 
+func (runner *TestSuiteRunner) IsStopped() bool {
+	return runner.Stopped
+}
+
 func (runner *TestSuiteRunner) Cancel() {
 	runner.Cancelled = true
 }

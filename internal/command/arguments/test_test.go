@@ -137,6 +137,24 @@ func TestParseTest(t *testing.T) {
 				),
 			},
 		},
+		"incompatible flags: -junit-xml and -cloud-run": {
+			args: []string{"-junit-xml=./output.xml", "-cloud-run=foobar"},
+			want: &Test{
+				CloudRunSource: "foobar",
+				JUnitXMLFile:   "./output.xml",
+				Filter:         nil,
+				TestDirectory:  "tests",
+				ViewType:       ViewHuman,
+				Vars:           &Vars{},
+			},
+			wantDiags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Incompatible command-line flags",
+					"The -junit-xml option is currently not compatible with remote test execution via the -cloud-run flag. If you are interested in JUnit XML output for remotely-executed tests please open an issue in GitHub.",
+				),
+			},
+		},
 	}
 
 	cmpOpts := cmpopts.IgnoreUnexported(Operation{}, Vars{}, State{})

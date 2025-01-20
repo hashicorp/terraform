@@ -1,3 +1,4 @@
+- [v1.11](https://github.com/hashicorp/terraform/blob/v1.11/CHANGELOG.md)
 - [v1.10](https://github.com/hashicorp/terraform/blob/v1.10/CHANGELOG.md)
 - [v1.9](https://github.com/hashicorp/terraform/blob/v1.9/CHANGELOG.md)
 - [v1.8](https://github.com/hashicorp/terraform/blob/v1.8/CHANGELOG.md)

@@ -133,6 +133,8 @@ type TestRun struct {
 	// run.
 	ExpectFailures []hcl.Traversal
 
+	StateKey string
+
 	NameDeclRange      hcl.Range
 	VariablesDeclRange hcl.Range
 	DeclRange          hcl.Range
@@ -369,7 +371,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 				tf.Providers[key] = provider
 			}
 		case "override_resource":
-			override, overrideDiags := decodeOverrideResourceBlock(block, TestFileOverrideSource)
+			override, overrideDiags := decodeOverrideResourceBlock(block, false, TestFileOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -386,7 +388,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 				tf.Overrides.Put(subject, override)
 			}
 		case "override_data":
-			override, overrideDiags := decodeOverrideDataBlock(block, TestFileOverrideSource)
+			override, overrideDiags := decodeOverrideDataBlock(block, false, TestFileOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -403,7 +405,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 				tf.Overrides.Put(subject, override)
 			}
 		case "override_module":
-			override, overrideDiags := decodeOverrideModuleBlock(block, TestFileOverrideSource)
+			override, overrideDiags := decodeOverrideModuleBlock(block, false, TestFileOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -507,7 +509,7 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 				r.Module = module
 			}
 		case "override_resource":
-			override, overrideDiags := decodeOverrideResourceBlock(block, RunBlockOverrideSource)
+			override, overrideDiags := decodeOverrideResourceBlock(block, false, RunBlockOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -524,7 +526,7 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 				r.Overrides.Put(subject, override)
 			}
 		case "override_data":
-			override, overrideDiags := decodeOverrideDataBlock(block, RunBlockOverrideSource)
+			override, overrideDiags := decodeOverrideDataBlock(block, false, RunBlockOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -541,7 +543,7 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 				r.Overrides.Put(subject, override)
 			}
 		case "override_module":
-			override, overrideDiags := decodeOverrideModuleBlock(block, RunBlockOverrideSource)
+			override, overrideDiags := decodeOverrideModuleBlock(block, false, RunBlockOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -604,6 +606,11 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 		failures, failDiags := DecodeDependsOn(attr)
 		diags = append(diags, failDiags...)
 		r.ExpectFailures = failures
+	}
+
+	if attr, exists := content.Attributes["state_key"]; exists {
+		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.StateKey)
+		diags = append(diags, rawDiags...)
 	}
 
 	return &r, diags
@@ -807,6 +814,7 @@ var testRunBlockSchema = &hcl.BodySchema{
 		{Name: "command"},
 		{Name: "providers"},
 		{Name: "expect_failures"},
+		{Name: "state_key"},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{

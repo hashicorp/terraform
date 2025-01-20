@@ -39,10 +39,10 @@ func CompactValueStr(val cty.Value) string {
 			// that are both ephemeral and sensitive should have both markings
 			// and should therefore get caught by the marks.Sensitive case
 			// above.
-			continue
+			return "(ephemeral value)"
 		default:
 			// We don't know about any other marks, so we'll be conservative.
-			// This shouldn't actuallyr eachable since the caller should've
+			// This shouldn't actually reachable since the caller should've
 			// checked this and skipped calling compactValueStr anyway.
 			return "value with unrecognized marks (this is a bug in Terraform)"
 		}

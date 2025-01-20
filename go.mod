@@ -27,7 +27,7 @@ require (
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-plugin v1.6.0
 	github.com/hashicorp/go-retryablehttp v0.7.7
-	github.com/hashicorp/go-slug v0.16.0
+	github.com/hashicorp/go-slug v0.16.3
 	github.com/hashicorp/go-tfe v1.70.0
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.7.0
@@ -72,7 +72,7 @@ require (
 	go.uber.org/mock v0.4.0
 	golang.org/x/crypto v0.31.0
 	golang.org/x/mod v0.21.0
-	golang.org/x/net v0.29.0
+	golang.org/x/net v0.33.0
 	golang.org/x/oauth2 v0.23.0
 	golang.org/x/sys v0.28.0
 	golang.org/x/term v0.27.0

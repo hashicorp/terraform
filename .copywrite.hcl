@@ -14,6 +14,7 @@ project {
     "**/*_string.go",
     "**/mock*.go",
     ".changes/unreleased/**",
+    ".changes/backported/**",
     # these directories have their own copywrite config
     "docs/plugin-protocol/**",
     "internal/tfplugin*/**"

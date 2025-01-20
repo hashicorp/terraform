@@ -638,6 +638,16 @@ resource "ephem_write_only" "wo" {
 			},
 		},
 	}
+	// Below we force the write_only attribute's returned state to be Null, mimicking what the plugin-framework would
+	// return during an UpgradeResourceState RPC
+	ephem.UpgradeResourceStateFn = func(ursr providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
+		return providers.UpgradeResourceStateResponse{
+			UpgradedState: cty.ObjectVal(map[string]cty.Value{
+				"normal":     cty.StringVal("normal"),
+				"write_only": cty.NullVal(cty.String),
+			}),
+		}
+	}
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -804,8 +814,8 @@ resource "ephem_write_only" "wo" {
 
 	expectedDiags = append(expectedDiags, tfdiags.Sourceless(
 		tfdiags.Error,
-		"Write-only attribute set",
-		`Provider "provider[\"registry.terraform.io/hashicorp/ephem\"]" returned a value for the write-only attribute "ephem_write_only.wo.write_only". Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.`,
+		"Provider produced invalid object",
+		`Provider "provider[\"registry.terraform.io/hashicorp/ephem\"]" returned a value for the write-only attribute "ephem_write_only.wo.write_only" after apply. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.`,
 	))
 
 	assertDiagnosticsMatch(t, diags, expectedDiags)
@@ -876,8 +886,8 @@ resource "ephem_write_only" "wo" {
 
 	expectedDiags = append(expectedDiags, tfdiags.Sourceless(
 		tfdiags.Error,
-		"Write-only attribute set",
-		`Provider "provider[\"registry.terraform.io/hashicorp/ephem\"]" returned a value for the write-only attribute "ephem_write_only.wo.write_only". Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.`,
+		"Provider produced invalid plan",
+		`Provider "provider[\"registry.terraform.io/hashicorp/ephem\"]" returned a value for the write-only attribute "ephem_write_only.wo.write_only" during planning. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.`,
 	))
 
 	assertDiagnosticsMatch(t, diags, expectedDiags)
@@ -963,8 +973,8 @@ resource "ephem_write_only" "wo" {
 
 	expectedDiags = append(expectedDiags, tfdiags.Sourceless(
 		tfdiags.Error,
-		"Write-only attribute set",
-		`Provider "provider[\"registry.terraform.io/hashicorp/ephem\"]" returned a value for the write-only attribute "ephem_write_only.wo.write_only". Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.`,
+		"Provider produced invalid object",
+		`Provider "provider[\"registry.terraform.io/hashicorp/ephem\"]" returned a value for the write-only attribute "ephem_write_only.wo.write_only" during refresh. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.`,
 	))
 
 	assertDiagnosticsMatch(t, diags, expectedDiags)
