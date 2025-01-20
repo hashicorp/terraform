@@ -30,10 +30,11 @@ import (
 //
 // This is the partial-expanded equivalent of NodePlannableResourceInstance.
 type nodePlannablePartialExpandedResource struct {
-	addr             addrs.PartialExpandedResource
-	config           *configs.Resource
-	resolvedProvider addrs.AbsProviderConfig
-	skipPlanChanges  bool
+	addr              addrs.PartialExpandedResource
+	config            *configs.Resource
+	resolvedProvider  addrs.AbsProviderConfig
+	skipPlanChanges   bool
+	preDestroyRefresh bool
 }
 
 var (
@@ -86,6 +87,24 @@ func (n *nodePlannablePartialExpandedResource) Execute(ctx EvalContext, op walkO
 	//     module.foo[*].type.name[*]
 	//
 	log.Printf("[TRACE] nodePlannablePartialExpandedResource: checking all of %s", n.addr.String())
+
+	switch op {
+	case walkPlanDestroy:
+		// During destroy plans, we never include partial-expanded resources.
+		// We're only interested in fully-expanded resources that we know we
+		// need to destroy.
+		return nil
+	case walkPlan:
+		if n.preDestroyRefresh || n.skipPlanChanges {
+			// During any kind of refresh, we also don't really care about
+			// partial resources. We only care about the fully-expanded resources
+			// already in state, so we don't need to plan partial resources.
+			return nil
+		}
+
+	default:
+		// Continue with the normal planning process
+	}
 
 	var diags tfdiags.Diagnostics
 	switch n.addr.Resource().Mode {

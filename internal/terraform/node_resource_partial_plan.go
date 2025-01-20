@@ -52,10 +52,11 @@ func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, know
 
 		// And add a node to the graph for this resource.
 		g.Add(&nodePlannablePartialExpandedResource{
-			addr:             resourceAddr,
-			config:           n.Config,
-			resolvedProvider: n.ResolvedProvider,
-			skipPlanChanges:  n.skipPlanChanges,
+			addr:              resourceAddr,
+			config:            n.Config,
+			resolvedProvider:  n.ResolvedProvider,
+			skipPlanChanges:   n.skipPlanChanges,
+			preDestroyRefresh: n.preDestroyRefresh,
 		})
 	}
 
@@ -291,11 +292,14 @@ func (n *nodeExpandPlannableResource) knownModuleSubgraph(ctx EvalContext, addr 
 		DynamicTransformer(func(graph *Graph) error {
 			// We'll add a node if there are unknown instance keys.
 			if haveUnknownKeys {
+				addr := addr.Module.UnexpandedResource(addr.Resource)
+
 				graph.Add(&nodePlannablePartialExpandedResource{
-					addr:             addr.Module.UnexpandedResource(addr.Resource),
-					config:           n.Config,
-					resolvedProvider: n.ResolvedProvider,
-					skipPlanChanges:  n.skipPlanChanges,
+					addr:              addr,
+					config:            n.Config,
+					resolvedProvider:  n.ResolvedProvider,
+					skipPlanChanges:   n.skipPlanChanges,
+					preDestroyRefresh: n.preDestroyRefresh,
 				})
 			}
 			return nil
