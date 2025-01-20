@@ -30,6 +30,7 @@ func (n *NodeTestRun) Name() string {
 	return fmt.Sprintf("%s.%s", n.file.Name, n.run.Name)
 }
 
+// Execute adds the providers required by the test run to the context.
 func (n *NodeTestRun) Execute(ctx *EvalContext) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	ctx.SetProviders(n.run, n.requiredProviders)

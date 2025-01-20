@@ -14,12 +14,11 @@ import (
 // TestProvidersTransformer is a GraphTransformer that gathers all the providers
 // from the module configurations that the test runs depend on and attaches the
 // required providers to the test run nodes.
-type TestProvidersTransformer struct {
-	configsProviderMap map[string]map[string]bool
-}
+type TestProvidersTransformer struct{}
 
 func (t *TestProvidersTransformer) Transform(g *terraform.Graph) error {
 	var errs []error
+	configsProviderMap := make(map[string]map[string]bool)
 
 	for _, v := range g.Vertices() {
 		node, ok := v.(*NodeTestRun)
@@ -29,12 +28,12 @@ func (t *TestProvidersTransformer) Transform(g *terraform.Graph) error {
 
 		// Get the providers that the test run depends on
 		configKey := node.run.GetModuleConfigID()
-		if _, ok := t.configsProviderMap[configKey]; !ok {
+		if _, ok := configsProviderMap[configKey]; !ok {
 			providers := t.transformSingleConfig(node.run.ModuleConfig)
-			t.configsProviderMap[configKey] = providers
+			configsProviderMap[configKey] = providers
 		}
 
-		providers, ok := t.configsProviderMap[configKey]
+		providers, ok := configsProviderMap[configKey]
 		if !ok {
 			// This should not happen
 			errs = append(errs, fmt.Errorf("missing providers for module config %q", configKey))

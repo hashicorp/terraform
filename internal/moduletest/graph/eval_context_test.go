@@ -736,7 +736,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 			}
 
 			testCtx := NewEvalContext()
-			testCtx.PriorOutputs = priorOutputs
+			testCtx.priorOutputs = priorOutputs
 			gotStatus, gotOutputs, diags := testCtx.EvaluateRun(run, planScope, test.testOnlyVars)
 
 			if got, want := gotStatus, test.expectedStatus; got != want {

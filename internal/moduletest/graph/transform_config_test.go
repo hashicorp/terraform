@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package config
+package graph
 
 import (
 	"bytes"
@@ -13,11 +13,8 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
-
-	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
-	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
 )
 
 func TestTransformForTest(t *testing.T) {
@@ -247,12 +244,12 @@ func TestTransformForTest(t *testing.T) {
 				availableProviders[provider] = true
 			}
 
-			variableCaches := &hcltest.VariableCaches{
-				GlobalVariables: make(map[string]backendrun.UnparsedVariableValue),
-				FileVariables:   make(map[string]hcl.Expression),
+			ctx := NewEvalContext()
+			ctx.configProviders = map[string]map[string]bool{
+				run.GetModuleConfigID(): availableProviders,
 			}
 
-			reset, diags := TransformConfigForTest(run, file, variableCaches, nil, availableProviders)
+			reset, diags := TransformConfigForTest(ctx, run, file)
 
 			var actualErrs []string
 			for _, err := range diags.Errs() {

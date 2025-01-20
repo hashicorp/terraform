@@ -25,7 +25,6 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
-	configtest "github.com/hashicorp/terraform/internal/moduletest/config"
 	"github.com/hashicorp/terraform/internal/moduletest/graph"
 	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
@@ -88,14 +87,6 @@ func (runner *TestSuiteRunner) Cancel() {
 func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	// First thing, initialise the config providers map.
-	// configProviders is a cache of config keys mapped to all the providers
-	// referenced by the given config.
-	//
-	// The config keys are globally unique across an entire test suite, so we
-	// store this at the suite runner level to get maximum efficiency.
-	configProviders := make(map[string]map[string]bool)
-
 	suite, suiteDiags := runner.collectTests()
 	diags = diags.Append(suiteDiags)
 	if suiteDiags.HasErrors() {
@@ -131,14 +122,14 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		}
 
 		file := suite.Files[name]
+		evalCtx := graph.NewEvalContext()
 
-		priorOutputs := make(map[addrs.Run]cty.Value)
 		for _, run := range file.Runs {
 			// Pre-initialise the prior outputs, so we can easily tell between
 			// a run block that doesn't exist and a run block that hasn't been
 			// executed yet.
 			// (moduletest.EvalContext treats cty.NilVal as "not visited yet")
-			priorOutputs[run.Addr()] = cty.NilVal
+			evalCtx.SetOutput(run, cty.NilVal)
 		}
 
 		currentGlobalVariables := runner.GlobalVariables
@@ -148,15 +139,12 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			currentGlobalVariables = testDirectoryGlobalVariables
 		}
 
-		evalCtx := graph.NewEvalContext()
-		evalCtx.PriorOutputs = priorOutputs
 		evalCtx.VariableCaches = hcltest.NewVariableCaches(func(vc *hcltest.VariableCaches) {
 			for name, value := range currentGlobalVariables {
 				vc.GlobalVariables[name] = value
 			}
 			vc.FileVariables = file.Config.Variables
 		})
-		evalCtx.ConfigProviders = configProviders
 		fileRunner := &TestFileRunner{
 			Suite:       runner,
 			EvalContext: evalCtx,
@@ -274,8 +262,8 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	}
 
 	// Build the graph for the file.
-	b := graph.TestGraphBuilder{File: file, GlobalVars: runner.EvalContext.VariableCaches.GlobalVariables, ConfigsProviderMap: runner.EvalContext.ConfigProviders}
-	graph, diags := b.Build(addrs.RootModuleInstance)
+	b := graph.TestGraphBuilder{File: file, GlobalVars: runner.EvalContext.VariableCaches.GlobalVariables}
+	graph, diags := b.Build()
 	file.Diagnostics = file.Diagnostics.Append(diags)
 	if diags.HasErrors() {
 		file.Status = file.Status.Merge(moduletest.Error)
@@ -338,6 +326,10 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 
 		switch v := v.(type) {
 		case *graph.NodeTestRun:
+			diags = v.Execute(runner.EvalContext)
+			if diags.HasErrors() {
+				return diags
+			}
 			// continue
 		case graph.GraphNodeExecutable:
 			diags = v.Execute(runner.EvalContext)
@@ -359,7 +351,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			// just show up as pending in the printed summary. We will quickly
 			// just mark the overall file status has having errored to indicate
 			// it was interrupted.
-			file.Status = file.Status.Merge(moduletest.Error)
+			file.UpdateStatus(moduletest.Error)
 			g.AcyclicGraph.Terminate()
 			return
 		}
@@ -371,16 +363,17 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
 			return
 		}
-		file.Lock.Lock()
+		unlock := file.Lock()
 		if file.Status == moduletest.Error {
 			// If the overall test file has errored, we don't keep trying to
 			// execute tests. Instead, we mark all remaining run blocks as
 			// skipped, print the status, and move on.
 			run.Status = moduletest.Skip
 			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
+			unlock()
 			return
 		}
-		file.Lock.Unlock()
+		unlock()
 
 		key := run.GetStateKey()
 		if run.Config.ConfigUnderTest != nil {
@@ -396,7 +389,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 				})
 
 				run.Status = moduletest.Error
-				file.Status = moduletest.Error
+				file.UpdateStatus(moduletest.Error)
 				return
 			}
 		}
@@ -455,7 +448,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return state, false
 	}
 
-	resetConfig, configDiags := configtest.TransformConfigForTest(run, file, runner.EvalContext.VariableCaches, runner.EvalContext.PriorOutputs, runner.EvalContext.GetProviders(run))
+	resetConfig, configDiags := graph.TransformConfigForTest(runner.EvalContext, run, file)
 	defer resetConfig()
 
 	run.Diagnostics = run.Diagnostics.Append(configDiags)
@@ -987,7 +980,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 
 			var diags tfdiags.Diagnostics
 			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name)))
-			file.Status = moduletest.Error
+			file.UpdateStatus(moduletest.Error)
 			runner.Suite.View.DestroySummary(diags, nil, file, state.State)
 			continue
 		}
@@ -1015,7 +1008,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 
 		var diags tfdiags.Diagnostics
 
-		reset, configDiags := configtest.TransformConfigForTest(state.Run, file, runner.EvalContext.VariableCaches, runner.EvalContext.PriorOutputs, runner.EvalContext.GetProviders(state.Run))
+		reset, configDiags := graph.TransformConfigForTest(runner.EvalContext, state.Run, file)
 		diags = diags.Append(configDiags)
 
 		updated := state.State
@@ -1028,7 +1021,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 		if !updated.Empty() {
 			// Then we failed to adequately clean up the state, so mark success
 			// as false.
-			file.Status = moduletest.Error
+			file.UpdateStatus(moduletest.Error)
 		}
 		runner.Suite.View.DestroySummary(diags, state.Run, file, updated)
 
@@ -1099,7 +1092,7 @@ func (runner *TestFileRunner) GetVariables(run *moduletest.Run, references []*ad
 		}
 		diags = diags.Append(refDiags)
 
-		ctx, ctxDiags := hcltest.EvalContext(hcltest.TargetRunBlock, map[string]hcl.Expression{name: expr}, requiredValues, runner.EvalContext.PriorOutputs)
+		ctx, ctxDiags := hcltest.EvalContext(hcltest.TargetRunBlock, map[string]hcl.Expression{name: expr}, requiredValues, runner.EvalContext.GetOutputs())
 		diags = diags.Append(ctxDiags)
 
 		value := cty.DynamicVal

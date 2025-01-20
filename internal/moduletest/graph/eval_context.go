@@ -30,17 +30,22 @@ import (
 type EvalContext struct {
 	VariableCaches *hcltest.VariableCaches
 
-	// PriorOutputs is a mapping from run addresses to cty object values
+	// priorOutputs is a mapping from run addresses to cty object values
 	// representing the collected output values from the module under test.
 	//
 	// This is used to allow run blocks to refer back to the output values of
 	// previous run blocks. It is passed into the Evaluate functions that
 	// validate the test assertions, and used when calculating values for
 	// variables within run blocks.
-	PriorOutputs map[addrs.Run]cty.Value
+	priorOutputs map[addrs.Run]cty.Value
 	outputsLock  sync.Mutex
 
-	ConfigProviders map[string]map[string]bool
+	// configProviders is a cache of config keys mapped to all the providers
+	// referenced by the given config.
+	//
+	// The config keys are globally unique across an entire test suite, so we
+	// store this at the suite runner level to get maximum efficiency.
+	configProviders map[string]map[string]bool
 	providersLock   sync.Mutex
 
 	// FileStates is a mapping of module keys to it's last applied state
@@ -67,12 +72,13 @@ type EvalContext struct {
 // instead. //TODO: rewrite comments
 func NewEvalContext() *EvalContext {
 	return &EvalContext{
-		PriorOutputs:    make(map[addrs.Run]cty.Value),
+		priorOutputs:    make(map[addrs.Run]cty.Value),
 		outputsLock:     sync.Mutex{},
-		ConfigProviders: make(map[string]map[string]bool),
+		configProviders: make(map[string]map[string]bool),
 		providersLock:   sync.Mutex{},
 		FileStates:      make(map[string]*TestFileState),
 		stateLock:       sync.Mutex{},
+		VariableCaches:  hcltest.NewVariableCaches(),
 	}
 }
 
@@ -238,19 +244,19 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 func (ec *EvalContext) SetOutput(run *moduletest.Run, output cty.Value) {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
-	ec.PriorOutputs[run.Addr()] = output
+	ec.priorOutputs[run.Addr()] = output
 }
 
 func (ec *EvalContext) GetOutputs() map[addrs.Run]cty.Value {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
-	return ec.PriorOutputs
+	return ec.priorOutputs
 }
 
 func (ec *EvalContext) GetOutput(run addrs.Run) (cty.Value, bool) {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
-	ret, ok := ec.PriorOutputs[run]
+	ret, ok := ec.priorOutputs[run]
 	return ret, ok
 }
 
@@ -262,13 +268,15 @@ func (ec *EvalContext) GetCache(run *moduletest.Run) *hcltest.VariableCache {
 }
 
 func (ec *EvalContext) GetProviders(run *moduletest.Run) map[string]bool {
-	return ec.ConfigProviders[run.GetModuleConfigID()]
+	ec.providersLock.Lock()
+	defer ec.providersLock.Unlock()
+	return ec.configProviders[run.GetModuleConfigID()]
 }
 
 func (ec *EvalContext) SetProviders(run *moduletest.Run, providers map[string]bool) {
 	ec.providersLock.Lock()
 	defer ec.providersLock.Unlock()
-	ec.ConfigProviders[run.GetModuleConfigID()] = providers
+	ec.configProviders[run.GetModuleConfigID()] = providers
 }
 
 func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnostics) {
