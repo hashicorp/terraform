@@ -24,12 +24,12 @@ Each Terraform test lives in a test file. Terraform discovers test files are bas
 
 Each test file contains the following root level attributes and blocks:
 
-- Zero to one [`test`](#test-blocks) blocks.
+- Zero to one [`test`](#test-block) blocks.
 - One to many [`run`](#run-blocks) blocks.
 - Zero to one [`variables`](#variables) block.
 - Zero to many [`provider`](#providers) blocks.
 
-Terraform executes `run` blocks in order, simulating a series of Terraform commands executing directly within the configuration directory. The order of the `variables` and `provider` blocks doesn't matter, Terraform processes all the values within these blocks at the beginning of the test operation. We recommend defining your `variables` and `provider` blocks first, at the beginning of the test file.
+Terraform executes `run` blocks in order (unless configured to be parallel. See [`Parallel Execution`](#parallel-execution)), simulating a series of Terraform commands executing directly within the configuration directory. The order of the `variables` and `provider` blocks doesn't matter, Terraform processes all the values within these blocks at the beginning of the test operation. We recommend defining your `variables` and `provider` blocks first, at the beginning of the test file.
 
 ### Example
 
@@ -852,8 +852,27 @@ variables {
 }
 
 
-run "first" {
-  state_key = "start"
+run "primary_db" {
+  // This is the first run block, and it is available to be executed right away.
+  state_key = "primary"
+  module {
+    source = "./setup"
+  }
+
+  variables {
+    input = "foo"
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "bad"
+  }
+}
+
+run "secondary_db" {
+  // This run block can be executed in parallel with the `primary_db` run block, because it does not reference its
+  // output and has a different state key.
+  state_key = "secondary"
   module {
     source = "./setup"
   }
@@ -869,43 +888,38 @@ run "first" {
 }
 
 run "second" {
+  // This run block can only be executed after the `primary_db` run block is completed, because it references the output of the `primary_db` run block.
   state_key = "unique_2"
   variables {
-    input = run.first.value
+    input = run.primary_db.value
   }
 
   assert {
     condition = output.value == var.foo
     error_message = "double bad"
-  }
-
-  assert {
-    condition = run.first.value == var.foo
-    error_message = "triple bad"
   }
 }
 
 run "third" {
+  // This run block can only be executed after the `primary_db` run block is completed, because it references the output of the `primary_db` run block.
+  // After that, it can be executed in parallel with the `second` run block.
   state_key = "unique_3"
   variables {
-    input = run.second.value
+    input = run.primary_db.value
   }
 
   assert {
     condition = output.value == var.foo
     error_message = "double bad"
   }
-
-  assert {
-    condition = run.first.value == var.foo
-    error_message = "triple bad"
-  }
 }
 
-run "fourth" {
+run "using_external_db" {
+  // This run block does not reference the output of any other run block, and it has a different state key from its
+  // preceding runs, so it can be executed in parallel with runs `primary_db` and `secondary_db`.
   state_key = "unique_4"
   variables {
-    input = "foo"
+    input = "externally_created_db"
   }
 
   assert {
@@ -915,10 +929,14 @@ run "fourth" {
 }
 
 run "fifth" {
+  // This run block has set `parallel = false`, implying that it does not want to be executed in parallel.
+  // Therefore, it will wait for the run `using_external_db` to complete.
   state_key = "unique_5"
-  parallel = false // This overrides the global parallel flag
+
+  // This overrides the global parallel flag.
+  parallel = false
   variables {
-    input = "foo"
+    input = run.secondary_db.value
   }
 
   assert {
@@ -928,9 +946,10 @@ run "fifth" {
 }
 
 run "sixth" {
+  // This run block will wait for the run `fifth` to complete, because run `fifth` is its preceding run and has the `parallel` attribute set to `false`.
   state_key = "unique_6"
   variables {
-    input = "foo"
+    input = run.secondary_db.value
   }
 
   assert {
@@ -940,9 +959,10 @@ run "sixth" {
 }
 
 run "seventh" {
+  // This run block can only be executed after the run `sixth` is completed, because it references the output of the run `sixth`.
   state_key = "unique_7"
   variables {
-    input = "foo"
+    input = run.sixth.value
   }
 
   assert {
@@ -952,9 +972,10 @@ run "seventh" {
 }
 
 run "same_state" {
-  state_key = "start"
+  // This run block uses an existing state key "unique_7", so it will wait for the run `seventh` to complete.
+  state_key = "unique_7"
   variables {
-    input = "foo"
+    input = "another_external_db"
   }
 
   assert {
@@ -962,13 +983,4 @@ run "same_state" {
     error_message = "double bad"
   }
 }
-
 ```
-
-In the above example,
-- The runs `first`, `fourth`, `seventh` can be executed in parallel from the beginning, because they do not reference outputs from each other and they do not share the same state file.
-- The run `second` can only be executed after the run `first` is completed, because it references the output of the run `first`.
-- The run `third` can only be executed after the run `second` is completed.
-- The run `fifth` will not be executed in parallel with any of its preceding runs, because it has the `parallel` attribute set to `false`. It will also force run `sixth` to wait for it to complete.
-- The run `sixth` can only be executed after the run `fifth` is completed, because run `fifth` has the `parallel` attribute set to `false`.
-- The run `same_state` can only be executed after the run `first` is completed, because it shares the same state key with the run `first`.
