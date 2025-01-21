@@ -24,6 +24,7 @@ Each Terraform test lives in a test file. Terraform discovers test files are bas
 
 Each test file contains the following root level attributes and blocks:
 
+- Zero to one [`test`](#test-blocks) blocks.
 - One to many [`run`](#run-blocks) blocks.
 - Zero to one [`variables`](#variables) block.
 - Zero to many [`provider`](#providers) blocks.
@@ -75,6 +76,24 @@ run "valid_string_concat" {
 }
 ```
 
+## Test block
+
+The optional `test` block defines the configuration of the test file, allowing you to configure how the framework
+executes its runs. The block has the following fields:
+
+| Field or Block Name       | Description                                                                                                              | Default Value |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------- |
+| `parallel`                 | An optional boolean attribute, which sets each run to be parallelized, unless overridden at the run level.              | `false`       |
+
+For example:
+
+```hcl
+# with_config.tftest.hcl
+test {
+  parallel = true
+}
+```
+
 ## Run blocks
 
 Each `run` block has the following fields and blocks:
@@ -92,6 +111,7 @@ Each `run` block has the following fields and blocks:
 | [`assert`](#assertions)   | Optional `assert` blocks.                                                                                                |               |
 | `expect_failures`         | An optional attribute.                                                                                                   |               |
 | `state_key`               | An optional attribute.                                                                                                   |               |
+| `parallel`                | An optional boolean attribute.                                                                                           | `false`       |
 
 The `command` attribute and `plan_options` block tell Terraform which command and options to execute for each run block. The default operation, if you do not specify a `command` attribute or the `plan_options` block, is a normal Terraform apply operation.
 
@@ -100,6 +120,46 @@ The `command` attribute states whether the operation should be a [`plan`](/terra
 The `plan_options` block allows test authors to customize the [planning mode](/terraform/cli/commands/plan#planning-modes) and [options](/terraform/cli/commands/plan#planning-options) they would typically need to edit via command-line flags and options. We cover the `-var` and `-var-file` options in the [Variables](#variables) section.
 
 The `state_key` allows for fine-grained control over which internal state file Terraform uses for a given run block. Refer to [Modules State](#modules-state) for more information.
+
+The `parallel` attribute allows you to run multiple `run` blocks in parallel. By default, this attribute is set to `false`. When set to `true`, Terraform will attempt to execute the `run` block in parallel with other `run` blocks that also have the `parallel` attribute set to `true`, and
+which there is no dependency between them.
+
+Adding to the test file from the [Test config example](#test-blocks) above:
+
+```hcl
+# with_config.tftest.hcl
+test {
+  parallel = true
+}
+
+variables {
+  bucket_prefix = "test"
+}
+
+run "first" {
+  assert {
+    condition     = aws_s3_bucket.bucket.bucket == "test-bucket"
+    error_message = "S3 bucket name did not match expected"
+  }
+}
+
+run "second" {
+  assert {
+    condition     = aws_s3_bucket.bucket.bucket == "test-bucket"
+    error_message = "S3 bucket name did not match expected"
+  }
+}
+
+run "third" {
+  parallel = false
+  assert {
+    condition     = aws_s3_bucket.bucket.bucket == "test-bucket"
+    error_message = "S3 bucket name did not match expected"
+  }
+}
+```
+
+In the above example, the `first` and `second` `run` blocks will implicitly have `parallel` set to `true`. The `third` `run` block will override the global setting and set `parallel` to `false`.
 
 ### Assertions
 
@@ -766,3 +826,149 @@ There are instances when Terraform does not execute a custom condition during th
 Other kinds of failure _besides_ the specified expected failures in the checkable object still result in the overall test failing. For example, a variable that expects a boolean value as input fails the surrounding test if Terraform provides the wrong kind of value, even if that variable is included in an `expect_failures` attribute.
 
 The `expect_failures` attribute is included to allow authors to test their configuration and any logic defined within. A type mismatch, as in the previous example, is not something Terraform authors should have to worry about testing as Terraform itself will handle enforce type constraints. As such, you can only `expect_failures` in custom conditions.
+
+## Parallel execution
+
+By default, Terraform executes `run` blocks sequentially. However, you can set the `parallel` attribute to `true` in the file's `test` block or in individual `run` blocks to enable parallel execution.
+
+When `parallel = true` is set in the `test` block, Terraform will attempt to parallelize `run` blocks wherever possible. Two or more `run` blocks can be executed in parallel if:
+
+- They do not reference outputs from each other.
+- They do not share the same state file. The state file is determined by the state key or the module source (when the state key is not set). Therefore, `run` blocks that share the same module configuration must specify different state keys to be executed in parallel.
+- Both runs have the `parallel` attribute set to `true`.
+
+A quick example below demonstrates how terraform will execute `run` blocks in parallel.
+
+```hcl
+# parallel.tftest.hcl
+
+test {
+  // This would set the parallel flag to true in all runs
+  parallel = true
+}
+
+variables {
+  foo = "foo"
+}
+
+
+run "first" {
+  state_key = "start"
+  module {
+    source = "./setup"
+  }
+
+  variables {
+    input = "foo"
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "bad"
+  }
+}
+
+run "second" {
+  state_key = "unique_2"
+  variables {
+    input = run.first.value
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+
+  assert {
+    condition = run.first.value == var.foo
+    error_message = "triple bad"
+  }
+}
+
+run "third" {
+  state_key = "unique_3"
+  variables {
+    input = run.second.value
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+
+  assert {
+    condition = run.first.value == var.foo
+    error_message = "triple bad"
+  }
+}
+
+run "fourth" {
+  state_key = "unique_4"
+  variables {
+    input = "foo"
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+}
+
+run "fifth" {
+  state_key = "unique_5"
+  parallel = false // This overrides the global parallel flag
+  variables {
+    input = "foo"
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+}
+
+run "sixth" {
+  state_key = "unique_6"
+  variables {
+    input = "foo"
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+}
+
+run "seventh" {
+  state_key = "unique_7"
+  variables {
+    input = "foo"
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+}
+
+run "same_state" {
+  state_key = "start"
+  variables {
+    input = "foo"
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+}
+
+```
+
+In the above example,
+- The runs `first`, `fourth`, `seventh` can be executed in parallel from the beginning, because they do not reference outputs from each other and they do not share the same state file.
+- The run `second` can only be executed after the run `first` is completed, because it references the output of the run `first`.
+- The run `third` can only be executed after the run `second` is completed.
+- The run `fifth` will not be executed in parallel with any of its preceding runs, because it has the `parallel` attribute set to `false`. It will also force run `sixth` to wait for it to complete.
+- The run `sixth` can only be executed after the run `fifth` is completed, because run `fifth` has the `parallel` attribute set to `false`.
+- The run `same_state` can only be executed after the run `first` is completed, because it shares the same state key with the run `first`.
