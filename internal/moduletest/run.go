@@ -49,14 +49,18 @@ type Run struct {
 }
 
 func NewRun(config *configs.TestRun, moduleConfig *configs.Config, index int) *Run {
-	// Deep copy the module configuration variables map so that the run can modify
-	// the map safely.
+	// Make a copy the module configuration variables and provider configuration maps
+	// so that the run can modify the map safely.
 	newModuleConfig := *moduleConfig
 	if moduleConfig.Module != nil {
 		newModule := *moduleConfig.Module
 		newModule.Variables = make(map[string]*configs.Variable, len(moduleConfig.Module.Variables))
 		for name, variable := range moduleConfig.Module.Variables {
 			newModule.Variables[name] = variable
+		}
+		newModule.ProviderConfigs = make(map[string]*configs.Provider, len(moduleConfig.Module.ProviderConfigs))
+		for name, provider := range moduleConfig.Module.ProviderConfigs {
+			newModule.ProviderConfigs[name] = provider
 		}
 		newModuleConfig.Module = &newModule
 	}

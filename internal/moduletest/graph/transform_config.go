@@ -84,11 +84,7 @@ type TestFileState struct {
 // available providers. We want to copy the relevant providers from the test
 // file into the configuration. We also want to process the providers so they
 // use variables from the file instead of variables from within the test file.
-//
-// We also return a reset function that should be called to return the
-// configuration to it's original state before the next run block or test file
-// needs to use it.
-func TransformConfigForTest(ctx *EvalContext, run *moduletest.Run, file *moduletest.File) (func(), hcl.Diagnostics) {
+func TransformConfigForTest(ctx *EvalContext, run *moduletest.Run, file *moduletest.File) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	// Currently, we only need to override the provider settings.
@@ -191,8 +187,5 @@ func TransformConfigForTest(ctx *EvalContext, run *moduletest.Run, file *modulet
 	}
 
 	run.ModuleConfig.Module.ProviderConfigs = next
-	return func() {
-		// Reset the original config within the returned function.
-		run.ModuleConfig.Module.ProviderConfigs = previous
-	}, diags
+	return diags
 }

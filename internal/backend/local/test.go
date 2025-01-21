@@ -70,6 +70,9 @@ type TestSuiteRunner struct {
 
 	// Verbose tells the runner to print out plan files during each test run.
 	Verbose bool
+
+	Concurrency int
+	semaphore   terraform.Semaphore
 }
 
 func (runner *TestSuiteRunner) Stop() {
@@ -86,6 +89,11 @@ func (runner *TestSuiteRunner) Cancel() {
 
 func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	if runner.Concurrency < 1 {
+		runner.Concurrency = 10
+	}
+	runner.semaphore = terraform.NewSemaphore(runner.Concurrency)
 
 	suite, suiteDiags := runner.collectTests()
 	diags = diags.Append(suiteDiags)
@@ -287,8 +295,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 
 // walkGraph goes through the graph and execute each run it finds.
 func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics {
-	par := 10 // defaults to 1 for now, so that run are executed sequentially
-	sem := terraform.NewSemaphore(par)
+	sem := runner.Suite.semaphore
 
 	// Walk the graph.
 	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
@@ -448,9 +455,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return state, false
 	}
 
-	resetConfig, configDiags := graph.TransformConfigForTest(runner.EvalContext, run, file)
-	defer resetConfig()
-
+	configDiags := graph.TransformConfigForTest(runner.EvalContext, run, file)
 	run.Diagnostics = run.Diagnostics.Append(configDiags)
 	if configDiags.HasErrors() {
 		run.Status = moduletest.Error
@@ -1008,7 +1013,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 
 		var diags tfdiags.Diagnostics
 
-		reset, configDiags := graph.TransformConfigForTest(runner.EvalContext, state.Run, file)
+		configDiags := graph.TransformConfigForTest(runner.EvalContext, state.Run, file)
 		diags = diags.Append(configDiags)
 
 		updated := state.State
@@ -1024,8 +1029,6 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 			file.UpdateStatus(moduletest.Error)
 		}
 		runner.Suite.View.DestroySummary(diags, state.Run, file, updated)
-
-		reset()
 	}
 }
 

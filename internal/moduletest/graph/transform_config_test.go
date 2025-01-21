@@ -53,32 +53,6 @@ func TestTransformForTest(t *testing.T) {
 		return providers
 	}
 
-	validate := func(t *testing.T, msg string, expected map[string]string, actual map[string]*configs.Provider) {
-		t.Helper()
-
-		converted := make(map[string]string)
-		for key, provider := range actual {
-			content, err := provider.Config.Content(&hcl.BodySchema{
-				Attributes: []hcl.AttributeSchema{
-					{Name: "source", Required: true},
-				},
-			})
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			source, diags := content.Attributes["source"].Expr.Value(nil)
-			if diags.HasErrors() {
-				t.Fatal(diags.Error())
-			}
-			converted[key] = fmt.Sprintf("source = %q", source.AsString())
-		}
-
-		if diff := cmp.Diff(expected, converted); len(diff) > 0 {
-			t.Errorf("%s\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", msg, str(expected), str(converted), diff)
-		}
-	}
-
 	tcs := map[string]struct {
 		configProviders   map[string]string
 		fileProviders     map[string]string
@@ -249,7 +223,7 @@ func TestTransformForTest(t *testing.T) {
 				run.GetModuleConfigID(): availableProviders,
 			}
 
-			reset, diags := TransformConfigForTest(ctx, run, file)
+			diags := TransformConfigForTest(ctx, run, file)
 
 			var actualErrs []string
 			for _, err := range diags.Errs() {
@@ -259,10 +233,27 @@ func TestTransformForTest(t *testing.T) {
 				t.Errorf("unmatched errors\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", strings.Join(tc.expectedErrors, "\n"), strings.Join(actualErrs, "\n"), diff)
 			}
 
-			validate(t, "after transform mismatch", tc.expectedProviders, config.Module.ProviderConfigs)
-			reset()
-			validate(t, "after reset mismatch", tc.configProviders, config.Module.ProviderConfigs)
+			converted := make(map[string]string)
+			for key, provider := range config.Module.ProviderConfigs {
+				content, err := provider.Config.Content(&hcl.BodySchema{
+					Attributes: []hcl.AttributeSchema{
+						{Name: "source", Required: true},
+					},
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
 
+				source, diags := content.Attributes["source"].Expr.Value(nil)
+				if diags.HasErrors() {
+					t.Fatal(diags.Error())
+				}
+				converted[key] = fmt.Sprintf("source = %q", source.AsString())
+			}
+
+			if diff := cmp.Diff(tc.expectedProviders, converted); len(diff) > 0 {
+				t.Errorf("%s\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", "after transform mismatch", str(tc.expectedProviders), str(converted), diff)
+			}
 		})
 	}
 }
