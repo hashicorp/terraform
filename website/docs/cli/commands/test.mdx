@@ -192,8 +192,7 @@ Below is the contents of the resulting `output.xml` file:
   </testsuite>
   <testsuite name="example_2.tftest.hcl" tests="1" skipped="0" failures="1" errors="0">
     <testcase name="false_is_false" classname="example_2.tftest.hcl" time="0.001468" timestamp="2025-01-13T19:23:16Z">
-      <failure message="Test run failed"></failure>
-      <system-err><![CDATA[
+      <failure message="local.false did not match expected value"><![CDATA[
 Error: Test assertion failed
 
   on example_2.tftest.hcl line 3, in run "false_is_false":
@@ -202,7 +201,7 @@ Error: Test assertion failed
     │ local.false is "true"
 
 local.false did not match expected value
-]]></system-err>
+]]></failure>
     </testcase>
   </testsuite>
 </testsuites>
