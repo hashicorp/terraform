@@ -831,11 +831,12 @@ The `expect_failures` attribute is included to allow authors to test their confi
 
 By default, Terraform executes `run` blocks sequentially. However, you can set the `parallel` attribute to `true` in the file's `test` block or in individual `run` blocks to enable parallel execution.
 
-When `parallel = true` is set in the `test` block, Terraform will attempt to parallelize `run` blocks wherever possible. Two or more `run` blocks can be executed in parallel if:
+When `parallel = true` for a `run` block, Terraform will attempt to parallelize such block wherever possible. Two or more `run` blocks can be executed in parallel if:
 
 - They do not reference outputs from each other.
 - They do not share the same state file. The state file is determined by the state key or the module source (when the state key is not set). Therefore, `run` blocks that share the same module configuration must specify different state keys to be executed in parallel.
-- Both runs have the `parallel` attribute set to `true`.
+- They both have the `parallel` attribute set to `true`.
+- All other `run` blocks that they depend on have completed.
 
 A quick example below demonstrates how terraform will execute `run` blocks in parallel.
 
@@ -887,7 +888,7 @@ run "secondary_db" {
   }
 }
 
-run "second" {
+run "site_one" {
   // This run block can only be executed after the `primary_db` run block is completed, because it references the output of the `primary_db` run block.
   state_key = "unique_2"
   variables {
@@ -900,9 +901,9 @@ run "second" {
   }
 }
 
-run "third" {
+run "site_two" {
   // This run block can only be executed after the `primary_db` run block is completed, because it references the output of the `primary_db` run block.
-  // After that, it can be executed in parallel with the `second` run block.
+  // After that, it can be executed in parallel with the `site_one` run block.
   state_key = "unique_3"
   variables {
     input = run.primary_db.value
@@ -928,9 +929,9 @@ run "using_external_db" {
   }
 }
 
-run "fifth" {
+run "site_four" {
   // This run block has set `parallel = false`, implying that it does not want to be executed in parallel.
-  // Therefore, it will wait for the run `using_external_db` to complete.
+  // Therefore, it will wait for all preceding runs to complete before it can be executed.
   state_key = "unique_5"
 
   // This overrides the global parallel flag.
@@ -945,8 +946,8 @@ run "fifth" {
   }
 }
 
-run "sixth" {
-  // This run block will wait for the run `fifth` to complete, because run `fifth` is its preceding run and has the `parallel` attribute set to `false`.
+run "site_five" {
+  // This run block will wait for the run `site_four` to complete, because run `site_four` has the `parallel` attribute set to `false`.
   state_key = "unique_6"
   variables {
     input = run.secondary_db.value
@@ -958,11 +959,11 @@ run "sixth" {
   }
 }
 
-run "seventh" {
-  // This run block can only be executed after the run `sixth` is completed, because it references the output of the run `sixth`.
+run "site_six" {
+  // This run block can only be executed after the run `site_five` is completed, because it references the output of the run `site_five`.
   state_key = "unique_7"
   variables {
-    input = run.sixth.value
+    input = run.site_five.value
   }
 
   assert {
@@ -972,10 +973,25 @@ run "seventh" {
 }
 
 run "same_state" {
-  // This run block uses an existing state key "unique_7", so it will wait for the run `seventh` to complete.
+  // This run block uses an existing state key "unique_7", so it will wait for the run `site_six` to complete.
   state_key = "unique_7"
   variables {
     input = "another_external_db"
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+}
+
+run "site_eight" {
+  // This run block is entirely unrelated to the other run blocks, however, because `site_four`, 
+  // which is one of its preceding runs has the `parallel` attribute set to `false`,
+  // it cannot run until site_four is completed. It can be executed in parallel with `site_five` and `site_six`.
+  state_key = "unique_7"
+  variables {
+    input = "yet_another_external_db"
   }
 
   assert {
