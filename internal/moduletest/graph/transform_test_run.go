@@ -117,6 +117,27 @@ func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*No
 			}
 		}
 	}
+
+	// If there is a run that has opted out of parallelism, we will connect it
+	// sequentially to all previous and subsequent runs. This effectively
+	// divides the parallelizable runs into separate groups, ensuring that
+	// non-parallelizable runs are executed in sequence with respect to all
+	// other runs.
+	for i, node := range nodes {
+		if node.run.Config.Parallel {
+			continue
+		}
+
+		// Connect to all previous runs
+		for j := 0; j < i; j++ {
+			g.Connect(dag.BasicEdge(node, nodes[j]))
+		}
+
+		// Connect to all subsequent runs
+		for j := i + 1; j < len(nodes); j++ {
+			g.Connect(dag.BasicEdge(nodes[j], node))
+		}
+	}
 	return diags
 }
 

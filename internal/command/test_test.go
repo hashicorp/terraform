@@ -525,9 +525,86 @@ func TestTest_SharedState_Order(t *testing.T) {
 	}
 }
 
+func TestTest_Parallel_Divided_Order(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "parallel_divided")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 9, code, output.All())
+	}
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	c.Run(nil)
+	output := done(t).All()
+
+	// Split the log into lines
+	lines := strings.Split(output, "\n")
+
+	// Find the positions of the tests in the log output
+	var mainFirstIndex, mainSecondIndex, mainThirdIndex, mainFourthIndex, mainFifthIndex, mainSixthIndex int
+	for i, line := range lines {
+		if strings.Contains(line, "run \"main_first\"") {
+			mainFirstIndex = i
+		} else if strings.Contains(line, "run \"main_second\"") {
+			mainSecondIndex = i
+		} else if strings.Contains(line, "run \"main_third\"") {
+			mainThirdIndex = i
+		} else if strings.Contains(line, "run \"main_fourth\"") {
+			mainFourthIndex = i
+		} else if strings.Contains(line, "run \"main_fifth\"") {
+			mainFifthIndex = i
+		} else if strings.Contains(line, "run \"main_sixth\"") {
+			mainSixthIndex = i
+		}
+	}
+	if mainFirstIndex == 0 || mainSecondIndex == 0 || mainThirdIndex == 0 || mainFourthIndex == 0 || mainFifthIndex == 0 || mainSixthIndex == 0 {
+		t.Fatalf("one or more tests not found in the log output")
+	}
+
+	// Ensure the order of the tests is correct. The runs before main_fourth can execute in parallel.
+	if mainFirstIndex > mainFourthIndex || mainSecondIndex > mainFourthIndex || mainThirdIndex > mainFourthIndex {
+		t.Errorf("main_first, main_second, or main_third appears after main_fourth in the log output")
+	}
+
+	// Ensure main_fifth and main_sixth do not execute before main_fourth
+	if mainFifthIndex < mainFourthIndex {
+		t.Errorf("main_fifth appears before main_fourth in the log output")
+	}
+	if mainSixthIndex < mainFourthIndex {
+		t.Errorf("main_sixth appears before main_fourth in the log output")
+	}
+}
+
 func TestTest_Parallel(t *testing.T) {
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath(path.Join("test", "shared_state_parallel")), td)
+	testCopyDir(t, testFixturePath(path.Join("test", "parallel")), td)
 	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
