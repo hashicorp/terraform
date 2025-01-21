@@ -163,7 +163,7 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"shared_state": {
-			expectedOut: []string{"7 passed, 0 failed."},
+			expectedOut: []string{"8 passed, 0 failed."},
 			code:        0,
 		},
 		"shared_state_object": {
@@ -502,18 +502,20 @@ func TestTest_SharedState_Order(t *testing.T) {
 		}
 	}
 
-	// Ensure the order of the tests is correct
+	// Ensure the order of the tests is correct. Even though they share no state,
+	// the order should be sequential.
 	expectedOrder := []string{
 		// main.tftest.hcl
 		"run \"setup\"",
 		"run \"test\"",
 
-		// order.tftest.hcl
+		// no-shared-state.tftest.hcl
 		"run \"setup\"",
 		"run \"test_a\"",
 		"run \"test_b\"",
 		"run \"test_c\"",
 		"run \"test_d\"",
+		"run \"test_e\"",
 	}
 
 	for i, line := range expectedOrder {
@@ -572,6 +574,9 @@ func TestTest_Parallel(t *testing.T) {
 	// Find the positions of "test_d", "test_c", "test_setup" in the log output
 	var testDIndex, testCIndex, testSetupIndex int
 	for i, line := range lines {
+		// if strings.Contains(line, "run \"") {
+		// 	fmt.Println(line)
+		// }
 		if strings.Contains(line, "run \"setup\"") {
 			testSetupIndex = i
 		} else if strings.Contains(line, "run \"test_d\"") {

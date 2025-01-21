@@ -142,8 +142,8 @@ type TestRun struct {
 	StateKey string
 
 	// Parallel: Indicates if the test run should be executed in parallel.
-	// This, in combination with the state key, will allow multiple test runs
-	// to run in parallel, provided 2 test runs do not use the same state key.
+	// This, in combination with the state key, will determine if the test run
+	// will be executed in parallel with other test runs.
 	Parallel bool
 
 	NameDeclRange      hcl.Range
@@ -467,9 +467,6 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 
 type TestFileConfig struct {
 	// Parallel: Indicates if test runs should be executed in parallel.
-	// The decision to execute the runs in parallel will be made based on the
-	// implicit dependencies between the runs or explicit dependencies defined
-	// in the run's depends_on attribute.
 	Parallel bool
 
 	DeclRange hcl.Range

@@ -4,7 +4,7 @@ variables {
 
 
 run "setup" {
-  state_key = "test_d"
+  state_key = "setup"
   module {
     source = "./setup"
   }
@@ -20,8 +20,9 @@ run "setup" {
 }
 
 run "test_a" {
+  state_key = "test_a"
   variables {
-    input = run.setup.value
+    input = "foo"
   }
 
   assert {
@@ -36,6 +37,7 @@ run "test_a" {
 }
 
 run "test_b" {
+  state_key = "test_b"
   variables {
     input = run.test_a.value
   }
@@ -52,6 +54,7 @@ run "test_b" {
 }
 
 run "test_c" {
+  state_key = "test_c"
   variables {
     input = "foo"
   }
@@ -65,6 +68,18 @@ run "test_c" {
 
 run "test_d" {
   state_key = "test_d"
+  variables {
+    input = "foo"
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+}
+
+run "test_e" {
+  state_key = "test_e"
   variables {
     input = "foo"
   }

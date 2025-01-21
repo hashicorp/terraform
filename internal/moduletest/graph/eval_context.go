@@ -25,20 +25,23 @@ import (
 )
 
 // EvalContext is a container for context relating to the evaluation of a
-// particular test case, which means a specific "run" block in a .tftest.hcl
-// file.
+// particular .tftest.hcl file.
+// This context is used to track the various values that are available to the
+// test suite, both from the test suite itself and from the results of the runs
+// within the suite.
+// The struct provides concurrency-safe access to the various maps it contains.
 type EvalContext struct {
 	VariableCaches *hcltest.VariableCaches
 
-	// priorOutputs is a mapping from run addresses to cty object values
+	// runOutputs is a mapping from run addresses to cty object values
 	// representing the collected output values from the module under test.
 	//
 	// This is used to allow run blocks to refer back to the output values of
 	// previous run blocks. It is passed into the Evaluate functions that
 	// validate the test assertions, and used when calculating values for
 	// variables within run blocks.
-	priorOutputs map[addrs.Run]cty.Value
-	outputsLock  sync.Mutex
+	runOutputs  map[addrs.Run]cty.Value
+	outputsLock sync.Mutex
 
 	// configProviders is a cache of config keys mapped to all the providers
 	// referenced by the given config.
@@ -57,22 +60,11 @@ type EvalContext struct {
 	stateLock  sync.Mutex
 }
 
-// NewEvalContext constructs a new test run evaluation context based on the
-// definition of the run itself and on the results of the action the run
-// block described.
-//
-// priorOutputs describes the output values from earlier run blocks, which
-// should typically be populated from the second return value from calling
-// [EvalContext.Evaluate] on each earlier blocks' [EvalContext].
-//
-// extraVariableVals, if provided, overlays the input variables that are
-// already available in resultScope in case there are additional input
-// variables that were defined only for use in the test suite. Any variable
-// not defined in extraVariableVals will be evaluated through resultScope
-// instead. //TODO: rewrite comments
+// NewEvalContext constructs a new graph evaluation context for use in
+// evaluating the runs within a test suite.
 func NewEvalContext() *EvalContext {
 	return &EvalContext{
-		priorOutputs:    make(map[addrs.Run]cty.Value),
+		runOutputs:      make(map[addrs.Run]cty.Value),
 		outputsLock:     sync.Mutex{},
 		configProviders: make(map[string]map[string]bool),
 		providersLock:   sync.Mutex{},
@@ -82,9 +74,14 @@ func NewEvalContext() *EvalContext {
 	}
 }
 
-// Evaluate processes the assertions inside the provided configs.TestRun against
+// EvaluateRun processes the assertions inside the provided configs.TestRun against
 // the run results, returning a status, an object value representing the output
 // values from the module under test, and diagnostics describing any problems.
+//
+// extraVariableVals, if provided, overlays the input variables that are
+// already available in resultScope in case there are additional input
+// variables that were defined only for use in the test suite. Any variable
+// not defined in extraVariableVals will be evaluated through resultScope instead.
 func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope, extraVariableVals terraform.InputValues) (moduletest.Status, cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	if run.ModuleConfig == nil {
@@ -244,14 +241,14 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 func (ec *EvalContext) SetOutput(run *moduletest.Run, output cty.Value) {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
-	ec.priorOutputs[run.Addr()] = output
+	ec.runOutputs[run.Addr()] = output
 }
 
 func (ec *EvalContext) GetOutputs() map[addrs.Run]cty.Value {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
-	outputCopy := make(map[addrs.Run]cty.Value, len(ec.priorOutputs))
-	for k, v := range ec.priorOutputs {
+	outputCopy := make(map[addrs.Run]cty.Value, len(ec.runOutputs))
+	for k, v := range ec.runOutputs {
 		outputCopy[k] = v
 	}
 	return outputCopy
@@ -264,10 +261,17 @@ func (ec *EvalContext) GetCache(run *moduletest.Run) *hcltest.VariableCache {
 	return ec.VariableCaches.GetCache(run.Name, run.ModuleConfig)
 }
 
-func (ec *EvalContext) GetProviders(run *moduletest.Run) map[string]bool {
+// ProviderExists returns true if the provider exists for the run inside the context.
+func (ec *EvalContext) ProviderExists(run *moduletest.Run, key string) bool {
 	ec.providersLock.Lock()
 	defer ec.providersLock.Unlock()
-	return ec.configProviders[run.GetModuleConfigID()]
+	runProviders, ok := ec.configProviders[run.GetModuleConfigID()]
+	if !ok {
+		return false
+	}
+
+	found, ok := runProviders[key]
+	return ok && found
 }
 
 func (ec *EvalContext) SetProviders(run *moduletest.Run, providers map[string]bool) {

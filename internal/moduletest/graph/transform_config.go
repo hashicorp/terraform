@@ -160,10 +160,9 @@ func TransformConfigForTest(ctx *EvalContext, run *moduletest.Run, file *modulet
 	} else {
 		// Otherwise, let's copy over and overwrite all providers specified by
 		// the test file itself.
-		requiredProviders := ctx.GetProviders(run)
 		for key, provider := range file.Config.Providers {
 
-			if !requiredProviders[key] {
+			if !ctx.ProviderExists(run, key) {
 				// Then we don't actually need this provider for this
 				// configuration, so skip it.
 				continue
