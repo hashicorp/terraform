@@ -255,9 +255,6 @@ func (ec *EvalContext) GetOutputs() map[addrs.Run]cty.Value {
 }
 
 func (ec *EvalContext) GetCache(run *moduletest.Run) *hcltest.VariableCache {
-	if ec.VariableCaches == nil {
-		return nil
-	}
 	return ec.VariableCaches.GetCache(run.Name, run.ModuleConfig)
 }
 

@@ -20,7 +20,7 @@ type File struct {
 
 	Diagnostics tfdiags.Diagnostics
 
-	mu sync.Mutex
+	sync.Mutex
 }
 
 func NewFile(name string, config *configs.TestFile, runs []*Run) *File {
@@ -28,17 +28,12 @@ func NewFile(name string, config *configs.TestFile, runs []*Run) *File {
 		Name:   name,
 		Config: config,
 		Runs:   runs,
-		mu:     sync.Mutex{},
+		Mutex:  sync.Mutex{},
 	}
 }
 
 func (f *File) UpdateStatus(status Status) {
-	lock := f.Lock()
-	defer lock()
+	f.Lock()
+	defer f.Unlock()
 	f.Status = f.Status.Merge(status)
-}
-
-func (f *File) Lock() func() {
-	f.mu.Lock()
-	return f.mu.Unlock
 }

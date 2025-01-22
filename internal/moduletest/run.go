@@ -24,7 +24,13 @@ const (
 )
 
 type Run struct {
-	Config       *configs.TestRun
+	Config *configs.TestRun
+
+	// ModuleConfig is a copy of the module configuration that the run is testing.
+	// The variables and provider configurations are copied so that the run can
+	// modify them safely without affecting the original configuration.
+	// However, any other fields in the module configuration are still shared between
+	// all runs that use the same module configuration.
 	ModuleConfig *configs.Config
 
 	Verbose *Verbose

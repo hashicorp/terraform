@@ -24,39 +24,23 @@ type TestRunTransformer struct {
 
 func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
 	// Create and add nodes for each run
-	nodes := t.createNodes(g)
+	var nodes []*NodeTestRun
+	for _, run := range t.File.Runs {
+		node := &NodeTestRun{run: run, file: t.File}
+		g.Add(node)
+		nodes = append(nodes, node)
+	}
 
 	// Connect nodes based on dependencies
 	if diags := t.connectDependencies(g, nodes); diags.HasErrors() {
 		return tfdiags.NonFatalError{Diagnostics: diags}
 	}
 
-	// Connect nodes with the same state key sequentially
-	t.connectStateKeyRuns(g, nodes)
+	// Runs with the same state key inherently depend on each other, so we
+	// connect them sequentially.
+	t.connectSameStateRuns(g, nodes)
 
 	return nil
-}
-
-func (t *TestRunTransformer) createNodes(g *terraform.Graph) []*NodeTestRun {
-	var nodes []*NodeTestRun
-	var prev *NodeTestRun
-	for _, run := range t.File.Runs {
-		node := &NodeTestRun{run: run, file: t.File}
-		g.Add(node)
-		nodes = append(nodes, node)
-
-		if prev != nil {
-			parallelized := prev.run.Config.Parallel && run.Config.Parallel
-			// we connect 2 sequential runs IF
-			// 1. at least one of them is NOT eligible for parallelization OR
-			// 2. they are both eligible for parallelization AND have the same state key
-			if !parallelized || (parallelized && prev.run.GetStateKey() == run.GetStateKey()) {
-				g.Connect(dag.BasicEdge(node, prev))
-			}
-		}
-		prev = node
-	}
-	return nodes
 }
 
 func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*NodeTestRun) tfdiags.Diagnostics {
@@ -67,6 +51,7 @@ func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*No
 	for _, node := range nodes {
 		nodeMap[node.run.Name] = nil
 	}
+
 	for _, node := range nodes {
 		nodeMap[node.run.Name] = node // node encountered, so update the map
 
@@ -141,7 +126,7 @@ func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*No
 	return diags
 }
 
-func (t *TestRunTransformer) connectStateKeyRuns(g *terraform.Graph, nodes []*NodeTestRun) {
+func (t *TestRunTransformer) connectSameStateRuns(g *terraform.Graph, nodes []*NodeTestRun) {
 	stateRuns := make(map[string][]*NodeTestRun)
 	for _, node := range nodes {
 		key := node.run.GetStateKey()
@@ -170,40 +155,4 @@ func (t *TestRunTransformer) getVariableNames(run *moduletest.Run) map[string]st
 		set[name] = struct{}{}
 	}
 	return set
-}
-
-// -------------------------------------------------------- CloseTestGraphTransformer --------------------------------------------------------
-
-// CloseTestGraphTransformer is a GraphTransformer that adds a root to the graph.
-type CloseTestGraphTransformer struct{}
-
-func (t *CloseTestGraphTransformer) Transform(g *terraform.Graph) error {
-	// close the root module
-	closeRoot := &nodeCloseTest{}
-	g.Add(closeRoot)
-
-	// since this is closing the root module, make it depend on everything in
-	// the root module.
-	for _, v := range g.Vertices() {
-		if v == closeRoot {
-			continue
-		}
-
-		// since this is closing the root module,  and must be last, we can
-		// connect to anything that doesn't have any up edges.
-		if g.UpEdges(v).Len() == 0 {
-			g.Connect(dag.BasicEdge(closeRoot, v))
-		}
-	}
-
-	return nil
-}
-
-// This node doesn't do anything, it's just to ensure that we have a single
-// root node that depends on everything in the root module.
-type nodeCloseTest struct {
-}
-
-func (n *nodeCloseTest) Name() string {
-	return "testroot"
 }

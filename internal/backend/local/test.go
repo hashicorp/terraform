@@ -333,6 +333,11 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 
 		switch v := v.(type) {
 		case *graph.NodeTestRun:
+			// TODO: The execution of a NodeTestRun is currently split between
+			// its Execute method and the continuation of the walk callback.
+			// Eventually, we should move all the logic related to a test run into
+			// its Execute method, effectively ensuring that the Execute method is
+			// enough to execute a test run in the graph.
 			diags = v.Execute(runner.EvalContext)
 			if diags.HasErrors() {
 				return diags
@@ -370,17 +375,17 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
 			return
 		}
-		unlock := file.Lock()
+		file.Lock()
 		if file.Status == moduletest.Error {
 			// If the overall test file has errored, we don't keep trying to
 			// execute tests. Instead, we mark all remaining run blocks as
 			// skipped, print the status, and move on.
 			run.Status = moduletest.Skip
 			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
-			unlock()
+			file.Unlock()
 			return
 		}
-		unlock()
+		file.Unlock()
 
 		key := run.GetStateKey()
 		if run.Config.ConfigUnderTest != nil {

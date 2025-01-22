@@ -31,6 +31,8 @@ func (n *NodeTestRun) Name() string {
 }
 
 // Execute adds the providers required by the test run to the context.
+// TODO: Eventually, we should move all the logic related to a test run into this method,
+// effectively ensuring that the Execute method is enough to execute a test run in the graph.
 func (n *NodeTestRun) Execute(ctx *EvalContext) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	ctx.SetProviders(n.run, n.requiredProviders)
