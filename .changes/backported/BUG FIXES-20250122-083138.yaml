@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Updated dependency github.com/hashicorp/go-slug v0.16.0 => v0.16.3 to integrate latest changes (fix for CVE-2025-0377)
+time: 2025-01-22T08:31:38.004275+01:00
+custom:
+    Issue: "36273"
