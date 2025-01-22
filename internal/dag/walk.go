@@ -4,7 +4,6 @@
 package dag
 
 import (
-	"context"
 	"errors"
 	"log"
 	"sync"
@@ -66,9 +65,6 @@ type Walker struct {
 	diagsMap       map[Vertex]tfdiags.Diagnostics
 	upstreamFailed map[Vertex]struct{}
 	diagsLock      sync.Mutex
-
-	walkContext       context.Context
-	walkContextCancel context.CancelCauseFunc
 }
 
 func (w *Walker) init() {
@@ -82,12 +78,7 @@ func (w *Walker) init() {
 
 // NewWalker creates a new walker with the given callback function.
 func NewWalker(cb WalkFunc, opts ...func(*Walker)) *Walker {
-	ctx, cancel := context.WithCancelCause(context.Background())
-	w := &Walker{
-		Callback:          cb,
-		walkContext:       ctx,
-		walkContextCancel: cancel,
-	}
+	w := &Walker{Callback: cb}
 	for _, opt := range opts {
 		opt(w)
 	}
@@ -364,9 +355,6 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 
 		case <-depsUpdateCh:
 			// New deps, reloop
-		case <-w.walkContext.Done():
-			// Context cancelled. return immediately.
-			return
 		}
 
 		// Check if we have updated dependencies. This can happen if the

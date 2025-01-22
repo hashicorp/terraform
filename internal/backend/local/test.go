@@ -5,6 +5,7 @@ package local
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"path/filepath"
@@ -253,6 +254,8 @@ type TestFileRunner struct {
 	EvalContext *graph.EvalContext
 }
 
+var graphTerminatedError = errors.New("graph walk terminated")
+
 func (runner *TestFileRunner) Test(file *moduletest.File) {
 	log.Printf("[TRACE] TestFileRunner: executing test file %s", file.Name)
 
@@ -285,8 +288,8 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	// The error the user receives will just be:
 	// 			Failure! 0 passed, 1 failed.
 	// 			exit status 1
-	if diags.HasErrors() && diags.Err().Error() == dag.GraphTerminatedError.Error() {
-		log.Printf("[TRACE] TestFileRunner: graph walk terminated for %s due to error: %s", file.Name, dag.GraphTerminatedError)
+	if diags.HasErrors() && diags.Err().Error() == graphTerminatedError.Error() {
+		log.Printf("[TRACE] TestFileRunner: graph walk terminated for %s", file.Name)
 		return
 	}
 
@@ -297,8 +300,19 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics {
 	sem := runner.Suite.semaphore
 
+	// We'll use this context to cancel the walk if the test is stopped.
+	// There is currently no mechanism by the graph for stopping the entire
+	// graph walk, so we'll just cancel the context and let the walk function
+	// return early for each node.
+	ctx, cancel := context.WithCancelCause(context.Background())
+
 	// Walk the graph.
 	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
+		if ctx.Err() != nil {
+			// If the context was cancelled, the node should just return immediately.
+			return
+		}
+
 		// the walkFn is called asynchronously, and needs to be recovered
 		// separately in the case of a panic.
 		defer logging.PanicHandler()
@@ -364,7 +378,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			// just mark the overall file status has having errored to indicate
 			// it was interrupted.
 			file.UpdateStatus(moduletest.Error)
-			g.AcyclicGraph.Terminate()
+			cancel(graphTerminatedError)
 			return
 		}
 
@@ -431,7 +445,23 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 		return
 	}
 
-	return g.AcyclicGraph.Walk(walkFn)
+	// We want to either wait for the walk to complete or for the context to be
+	// cancelled. If the context is cancelled, we'll return immediately.
+	doneCh := make(chan tfdiags.Diagnostics)
+	go func() {
+		defer close(doneCh)
+		doneCh <- g.AcyclicGraph.Walk(walkFn)
+	}()
+
+	select {
+	case <-ctx.Done():
+		// If the context was cancelled, we'll just return the cause of the
+		// cancellation. For now, this can only be the graphTerminatedError.
+		return tfdiags.Diagnostics{}.Append(context.Cause(ctx))
+	case diags := <-doneCh:
+		return diags
+	}
+
 }
 
 func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, state *states.State) (*states.State, bool) {

@@ -4,7 +4,6 @@
 package dag
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -16,11 +15,7 @@ import (
 // AcyclicGraph is a specialization of Graph that cannot have cycles.
 type AcyclicGraph struct {
 	Graph
-
-	walker *Walker
 }
-
-var GraphTerminatedError = errors.New("graph walk terminated")
 
 // WalkFunc is the callback used for walking the graph.
 type WalkFunc func(Vertex) tfdiags.Diagnostics
@@ -278,39 +273,9 @@ func (g *AcyclicGraph) Cycles() [][]Vertex {
 // This will walk nodes in parallel if it can. The resulting diagnostics
 // contains problems from all graphs visited, in no particular order.
 func (g *AcyclicGraph) Walk(cb WalkFunc) tfdiags.Diagnostics {
-	w := NewWalker(cb, func(w *Walker) {
-		w.Reverse = true
-	})
-	g.walker = w
-
+	w := &Walker{Callback: cb, Reverse: true}
 	w.Update(g)
-	// Start a goroutine to wait for all vertices to return.
-	// This allows us to return immediately while the walk completes.
-	doneCh := make(chan tfdiags.Diagnostics)
-	go func() {
-		doneCh <- w.Wait()
-		close(doneCh)
-	}()
-
-	// we wait for either the walk to complete or the context to be cancelled
-	for {
-		select {
-		case diags := <-doneCh:
-			return diags
-		case <-w.walkContext.Done():
-			err := context.Cause(w.walkContext)
-			var diags tfdiags.Diagnostics
-			return diags.Append(err)
-		}
-	}
-}
-
-// Terminate is a hard stop for the ongoing graph walk. It will stop the walk immediately,
-// and return a GraphTerminatedError.
-func (g *AcyclicGraph) Terminate() {
-	if g.walker != nil {
-		g.walker.walkContextCancel(GraphTerminatedError)
-	}
+	return w.Wait()
 }
 
 // simple convenience helper for converting a dag.Set to a []Vertex
