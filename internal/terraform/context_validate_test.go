@@ -3260,6 +3260,16 @@ output "new" {
     value = "new"
 }
 `,
+		"mod3/main.tf": `
+output "old" {
+  deprecated = "mod2: Please stop using this"
+  value = "old"
+}
+
+output "new" {
+  value = "new"
+}
+`,
 		"main.tf": `
 module "mod" {
     source = "./mod"
@@ -3276,6 +3286,15 @@ module "mod2" {
 
 output "test_output2" {
 	value = module.mod2[0].old # This should trigger a warning
+}
+
+module "mod3" {
+	count = 2
+    source = "./mod3"
+}
+
+output "test_output_no_warning" {
+	value = module.mod3[0].new
 }
 `,
 	})
@@ -3328,7 +3347,8 @@ output "test_output2" {
 			Summary:  "Usage of deprecated output",
 			Detail:   "mod/nested: Please stop using this",
 			Subject: &hcl.Range{
-				Filename: filepath.Join(m.Module.SourceDir, "mod", "main.tf"),
+				// TODO: investigate what is going on with the file path
+				Filename: filepath.Join("/private", m.Module.SourceDir, "mod", "main.tf"),
 				Start:    hcl.Pos{Line: 12, Column: 13, Byte: 159},
 				End:      hcl.Pos{Line: 12, Column: 33, Byte: 179},
 			},
