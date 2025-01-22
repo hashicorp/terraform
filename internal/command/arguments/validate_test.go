@@ -115,7 +115,7 @@ func TestParseValidate_invalid(t *testing.T) {
 			if *got != *tc.want {
 				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
 			}
-			if diff := cmp.Diff(gotDiags, tc.wantDiags, tfdiags.DiagnosticComparer()); diff != "" {
+			if diff := cmp.Diff(gotDiags, tc.wantDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Fatalf("unexpected diff in diags:\n%s", diff)
 			}
 		})

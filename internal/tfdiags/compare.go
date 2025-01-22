@@ -15,9 +15,7 @@ import "github.com/google/go-cmp/cmp"
 // Example usage:
 //
 //	cmp.Diff(diag1, diag2, tfdiags.DiagnosticComparer())
-func DiagnosticComparer() cmp.Option {
-	return cmp.Comparer(diagnosticComparer)
-}
+var DiagnosticComparer cmp.Option = cmp.Comparer(diagnosticComparer)
 
 func diagnosticComparer(l, r Diagnostic) bool {
 	if l.Severity() != r.Severity() {

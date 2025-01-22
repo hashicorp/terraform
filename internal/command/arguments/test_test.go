@@ -165,7 +165,7 @@ func TestParseTest(t *testing.T) {
 				t.Errorf("diff:\n%s", diff)
 			}
 
-			if diff := cmp.Diff(diags, tc.wantDiags, tfdiags.DiagnosticComparer()); diff != "" {
+			if diff := cmp.Diff(diags, tc.wantDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diff in diags:\n%s", diff)
 			}
 		})

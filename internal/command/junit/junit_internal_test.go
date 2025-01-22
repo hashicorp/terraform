@@ -121,7 +121,7 @@ func Test_getWarnings(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			warnings := getWarnings(tc.diags)
 
-			if diff := cmp.Diff(tc.expected, warnings, tfdiags.DiagnosticComparer()); diff != "" {
+			if diff := cmp.Diff(tc.expected, warnings, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("wrong diagnostics\n%s", diff)
 			}
 		})
