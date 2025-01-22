@@ -4,10 +4,9 @@
 package arguments
 
 import (
-	"reflect"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -137,8 +136,8 @@ func TestParseOutput_invalid(t *testing.T) {
 			if *got != *tc.want {
 				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
 			}
-			if !reflect.DeepEqual(gotDiags, tc.wantDiags) {
-				t.Errorf("wrong result\ngot: %s\nwant: %s", spew.Sdump(gotDiags), spew.Sdump(tc.wantDiags))
+			if diff := cmp.Diff(gotDiags, tc.wantDiags, tfdiags.DiagnosticComparer); diff != "" {
+				t.Fatalf("unexpected diff in diags:\n%s", diff)
 			}
 		})
 	}
