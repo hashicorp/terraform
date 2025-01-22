@@ -193,14 +193,6 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 		for i, run := range file.Runs {
 			// Each run is a "test case".
 
-			// By creating a map of diags we can delete them as they're used below
-			// This helps to identify diags that are only appropriate to include in
-			// the "system-err" element
-			diagsMap := make(map[int]tfdiags.Diagnostic, len(run.Diagnostics))
-			for i, diag := range run.Diagnostics {
-				diagsMap[i] = diag
-			}
-
 			testCase := testCase{
 				Name: run.Name,
 
@@ -223,46 +215,64 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 					Body:    body,
 				}
 			case moduletest.Fail:
-				var failedAssertion tfdiags.Diagnostic
-				for key, d := range diagsMap {
-					// Find the diag resulting from a failed assertion
-					if d.Description().Summary == failedTestSummary {
-						failedAssertion = d
-						delete(diagsMap, key)
-						break
+				// When the test fails we only use error diags that originate from failing assertions
+				var failedAssertions tfdiags.Diagnostics
+				for _, d := range run.Diagnostics {
+					if d.Severity() == tfdiags.Error && d.Description().Summary == failedTestSummary {
+						failedAssertions = failedAssertions.Append(d)
 					}
 				}
 
 				testCase.Failure = &withMessage{
-					Message: failedAssertion.Description().Detail,
-					Body:    format.DiagnosticPlain(failedAssertion, sources, 80),
+					Message: failureMessage(failedAssertions, len(run.Config.CheckRules)),
+					Body:    getDiagString(failedAssertions, sources),
 				}
+
 			case moduletest.Error:
-				var diagsStr strings.Builder
-				for key, d := range diagsMap {
-					diagsStr.WriteString(format.DiagnosticPlain(d, sources, 80))
-					delete(diagsMap, key)
+				// When the test errors we use all diags with Error severity
+				var errDiags tfdiags.Diagnostics
+				for _, d := range run.Diagnostics {
+					if d.Severity() == tfdiags.Error {
+						errDiags = errDiags.Append(d)
+					}
 				}
+
 				testCase.Error = &withMessage{
 					Message: "Encountered an error",
-					Body:    diagsStr.String(),
+					Body:    getDiagString(errDiags, sources),
 				}
 			}
-			if len(diagsMap) != 0 && testCase.Error == nil {
-				// If we have diagnostics but the outcome wasn't an error
-				// then we're presumably holding diagnostics that didn't
-				// cause the test to error, such as warnings. We'll place
-				// those into the "system-err" element instead, so that
-				// they'll be reported _somewhere_ at least.
-				var diagsStr strings.Builder
-				for key, diag := range diagsMap {
-					diagsStr.WriteString(format.DiagnosticPlain(diag, sources, 80))
-					delete(diagsMap, key)
+
+			// Determine if there are diagnostics left unused by the switch block above
+			// that should be included in the "system-err" element
+			if len(run.Diagnostics) > 0 {
+				var systemErrDiags tfdiags.Diagnostics
+
+				if run.Status == moduletest.Error && run.Diagnostics.HasWarnings() {
+					// If the test case errored, then all Error diags are in the "error" element
+					// Therefore we'd only need to include warnings in "system-err"
+					systemErrDiags = getWarnings(run.Diagnostics)
 				}
-				testCase.Stderr = &withMessage{
-					Body: diagsStr.String(),
+
+				if run.Status != moduletest.Error {
+					// If a test hasn't errored then we need to find all diagnostics that aren't due
+					// to a failing assertion in a test (these are already displayed in the "failure" element)
+
+					// Collect diags not due to failed assertions, both errors and warnings
+					for _, d := range run.Diagnostics {
+						if d.Description().Summary != failedTestSummary {
+							systemErrDiags = systemErrDiags.Append(d)
+						}
+					}
+				}
+
+				if len(systemErrDiags) > 0 {
+					testCase.Stderr = &withMessage{
+						Body: getDiagString(systemErrDiags, sources),
+					}
 				}
 			}
+
 			enc.EncodeElement(&testCase, xml.StartElement{
 				Name: caseName,
 			})
@@ -275,7 +285,19 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 	return buf.Bytes(), nil
 }
 
-// getSkipDetails checks data about the test suite, file and runs to determine why a given run was skipped
+func failureMessage(failedAssertions tfdiags.Diagnostics, checkCount int) string {
+	if len(failedAssertions) == 0 {
+		return ""
+	}
+
+	if len(failedAssertions) == 1 {
+		// Slightly different format if only single assertion failure
+		return fmt.Sprintf("%d of %d assertions failed: %s", len(failedAssertions), checkCount, failedAssertions[0].Description().Detail)
+	}
+
+	// Handle multiple assertion failures
+	return fmt.Sprintf("%d of %d assertions failed, including: %s", len(failedAssertions), checkCount, failedAssertions[0].Description().Detail)
+}
 // Test can be skipped due to:
 // 1. terraform test recieving an interrupt from users; all unstarted tests will be skipped
 // 2. A previous run in a file has failed, causing subsequent run blocks to be skipped
@@ -320,4 +342,25 @@ func suiteFilesAsSortedList(files map[string]*moduletest.File) []*moduletest.Fil
 		sortedFiles[i] = files[name]
 	}
 	return sortedFiles
+}
+
+func getDiagString(diags tfdiags.Diagnostics, sources map[string][]byte) string {
+	var diagsStr strings.Builder
+	for _, d := range diags {
+		diagsStr.WriteString(format.DiagnosticPlain(d, sources, 80))
+	}
+	return diagsStr.String()
+}
+
+func getWarnings(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+	// Collect warnings
+	warnDiags := tfdiags.Diagnostics{}
+	if diags.HasWarnings() {
+		for _, d := range diags {
+			if d.Severity() == tfdiags.Warning {
+				warnDiags = warnDiags.Append(d)
+			}
+		}
+	}
+	return warnDiags
 }
