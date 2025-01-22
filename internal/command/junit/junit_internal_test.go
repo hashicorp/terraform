@@ -70,7 +70,6 @@ func Test_TestJUnitXMLFile_save(t *testing.T) {
 	}
 }
 
-
 func Test_getWarnings(t *testing.T) {
 
 	errorDiag := &hcl.Diagnostic{
