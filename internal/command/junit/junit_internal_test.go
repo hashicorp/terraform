@@ -8,7 +8,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func Test_TestJUnitXMLFile_save(t *testing.T) {
@@ -62,6 +65,65 @@ func Test_TestJUnitXMLFile_save(t *testing.T) {
 
 			if !bytes.Equal(fileContent, xml) {
 				t.Fatalf("wanted XML:\n%s\n got XML:\n%s\n", string(xml), string(fileContent))
+			}
+		})
+	}
+}
+
+func Test_getWarnings(t *testing.T) {
+
+	errorDiag := &hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "error",
+		Detail:   "this is an error",
+	}
+
+	warnDiag := &hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "warning",
+		Detail:   "this is a warning",
+	}
+
+	cases := map[string]struct {
+		diags    tfdiags.Diagnostics
+		expected tfdiags.Diagnostics
+	}{
+		"empty diags": {
+			diags:    tfdiags.Diagnostics{},
+			expected: tfdiags.Diagnostics{},
+		},
+		"nil diags": {
+			diags:    nil,
+			expected: tfdiags.Diagnostics{},
+		},
+		"all error diags": {
+			diags: func() tfdiags.Diagnostics {
+				var d tfdiags.Diagnostics
+				d = d.Append(errorDiag, errorDiag, errorDiag)
+				return d
+			}(),
+			expected: tfdiags.Diagnostics{},
+		},
+		"mixture of error and warning diags": {
+			diags: func() tfdiags.Diagnostics {
+				var d tfdiags.Diagnostics
+				d = d.Append(errorDiag, errorDiag, warnDiag) // 1 warning
+				return d
+			}(),
+			expected: func() tfdiags.Diagnostics {
+				var d tfdiags.Diagnostics
+				d = d.Append(warnDiag) // 1 warning
+				return d
+			}(),
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			warnings := getWarnings(tc.diags)
+
+			if diff := cmp.Diff(tc.expected, warnings, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("wrong diagnostics\n%s", diff)
 			}
 		})
 	}
@@ -150,4 +212,22 @@ func Test_suiteFilesAsSortedList(t *testing.T) {
 			}
 		})
 	}
+}
+
+// From internal/backend/remote-state/s3/testing_test.go
+// diagnosticComparer is a Comparer function for use with cmp.Diff to compare two tfdiags.Diagnostic values
+func diagnosticComparer(l, r tfdiags.Diagnostic) bool {
+	if l.Severity() != r.Severity() {
+		return false
+	}
+	if l.Description() != r.Description() {
+		return false
+	}
+
+	lp := tfdiags.GetAttribute(l)
+	rp := tfdiags.GetAttribute(r)
+	if len(lp) != len(rp) {
+		return false
+	}
+	return lp.Equals(rp)
 }
