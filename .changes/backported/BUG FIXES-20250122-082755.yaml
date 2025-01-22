@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'element(...): no longer crashes when asked for a negative index into a tuple.'
+time: 2025-01-22T08:27:55.793401+01:00
+custom:
+    Issue: "36376"
