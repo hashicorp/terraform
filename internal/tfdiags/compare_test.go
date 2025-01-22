@@ -83,9 +83,7 @@ func TestDiagnosticComparer(t *testing.T) {
 
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
-			c := DiagnosticComparer()
-
-			output := cmp.Diff(tc.diag1, tc.diag2, c)
+			output := cmp.Diff(tc.diag1, tc.diag2, DiagnosticComparer)
 
 			diffFound := output != ""
 			if diffFound && !tc.expectDiff {
