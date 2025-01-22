@@ -19,11 +19,6 @@ ENHANCEMENTS:
 * `terraform test`: Add new `state_key` attribute for `run` blocks, allowing test authors control over which internal state file should be used for the current test run. ([#36185](https://github.com/hashicorp/terraform/issues/36185))
 
 
-BUG FIXES:
-
-* Updated dependency `github.com/hashicorp/go-slug` `v0.16.0` => `v0.16.3` to integrate latest changes (fix for CVE-2025-0377) ([#36273](https://github.com/hashicorp/terraform/issues/36273))
-
-
 ## Previous Releases
 
 For information on prior major and minor releases, refer to their changelogs:
