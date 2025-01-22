@@ -18,6 +18,10 @@ import (
 // instantiated by the configuration, it is loaded dynamically by a relevant
 // component or removed block. It represents the refresh action of a given
 // instance within state.
+//
+// This is only ever called during a destroy operation, and is used to refresh
+// the state of the component before it is destroyed. If this changes, then
+// the PreDestroyRefresh option should be removed from the plan options.
 type RefreshInstance struct {
 	component *ComponentInstance
 
@@ -69,6 +73,12 @@ func (r *RefreshInstance) Plan(ctx context.Context) (*plans.Plan, tfdiags.Diagno
 		if opts == nil {
 			return nil, diags
 		}
+
+		// For now, the refresh option is only used to separate the refresh
+		// from the apply during a destroy operation. So, we want to use that
+		// option here to ensure that the refresh is done in a way that is
+		// compatible with the destroy operation.
+		opts.PreDestroyRefresh = true
 
 		plan, moreDiags := PlanComponentInstance(ctx, r.component.main, r.component.PlanPrevState(ctx), opts, r.component)
 		return plan, diags.Append(moreDiags)

@@ -1,6 +1,6 @@
 # How to Debug Terraform
 
-As Terraform is written in Go you may use [delve](https://github.com/go-delve/delve) to debug it.
+As Terraform is written in Go you may use [Delve](https://github.com/go-delve/delve) to debug it.
 
 ## 1. Compile & Start Debug Server
 
@@ -10,7 +10,7 @@ One way to do it is to compile a binary with the [appropriate compiler flags](ht
 go install -gcflags="all=-N -l"
 ```
 
-This enables you to then execute the compiled binary via delve, pass any arguments as spin up a debug server which you can then connect to:
+This enables you to then execute the compiled binary via Delve, pass any arguments and spin up a debug server which you can then connect to:
 
 ```sh
 dlv exec $GOBIN/terraform --headless --listen :2345 --log -- apply
@@ -18,7 +18,7 @@ dlv exec $GOBIN/terraform --headless --listen :2345 --log -- apply
 
 ## 2a. Connect via CLI
 
-You may connect to the headless debug server via delve CLI
+You may connect to the headless debug server via Delve CLI
 
 ```sh
 dlv connect :2345

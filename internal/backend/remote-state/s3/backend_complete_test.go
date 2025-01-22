@@ -47,7 +47,7 @@ func ExpectDiagsEqual(expected tfdiags.Diagnostics) DiagsValidator {
 	return func(t *testing.T, diags tfdiags.Diagnostics) {
 		t.Helper()
 
-		if diff := cmp.Diff(diags, expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+		if diff := cmp.Diff(diags, expected, tfdiags.DiagnosticComparer); diff != "" {
 			t.Fatalf("unexpected diagnostics difference: %s", diff)
 		}
 	}
@@ -1610,7 +1610,7 @@ func (d testCaseDriver) Apply(ctx context.Context, t *testing.T) (context.Contex
 
 	var expected tfdiags.Diagnostics
 
-	if diff := cmp.Diff(diags, expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+	if diff := cmp.Diff(diags, expected, tfdiags.DiagnosticComparer); diff != "" {
 		t.Errorf("unexpected diagnostics difference: %s", diff)
 	}
 

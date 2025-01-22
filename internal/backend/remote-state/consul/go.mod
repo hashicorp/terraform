@@ -6,7 +6,7 @@ require (
 	github.com/hashicorp/consul/api v1.13.0
 	github.com/hashicorp/consul/sdk v0.8.0
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
-	github.com/zclconf/go-cty v1.16.0
+	github.com/zclconf/go-cty v1.16.2
 )
 
 require (
@@ -43,9 +43,9 @@ require (
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	golang.org/x/mod v0.21.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/tools v0.25.0 // indirect
 )

@@ -96,18 +96,9 @@ func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase 
 	// We actually checked the errors statically already, so we only care about
 	// the value here.
 	val, diags := EvalComponentInputVariables(ctx, varDecls, wantTy, defs, decl, phase, c)
-	if phase == ApplyPhase {
-		if !val.IsWhollyKnown() {
-			// We can't apply a configuration that has unknown values in it.
-			// This means an error has occured somewhere else, while gathering
-			// the input variables. We return a nil value here, whatever caused
-			// the error should have raised an error diagnostic separately.
-			return cty.NilVal, diags
-		}
-
-		// Note, that unknown values during the planning phase are totally fine.
+	if diags.HasErrors() {
+		return cty.NilVal, diags
 	}
-
 	return val, diags
 }
 
