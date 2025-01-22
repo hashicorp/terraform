@@ -122,7 +122,7 @@ func Test_getWarnings(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			warnings := getWarnings(tc.diags)
 
-			if diff := cmp.Diff(tc.expected, warnings, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(tc.expected, warnings, tfdiags.DiagnosticComparer()); diff != "" {
 				t.Errorf("wrong diagnostics\n%s", diff)
 			}
 		})
@@ -212,22 +212,4 @@ func Test_suiteFilesAsSortedList(t *testing.T) {
 			}
 		})
 	}
-}
-
-// From internal/backend/remote-state/s3/testing_test.go
-// diagnosticComparer is a Comparer function for use with cmp.Diff to compare two tfdiags.Diagnostic values
-func diagnosticComparer(l, r tfdiags.Diagnostic) bool {
-	if l.Severity() != r.Severity() {
-		return false
-	}
-	if l.Description() != r.Description() {
-		return false
-	}
-
-	lp := tfdiags.GetAttribute(l)
-	rp := tfdiags.GetAttribute(r)
-	if len(lp) != len(rp) {
-		return false
-	}
-	return lp.Equals(rp)
 }
