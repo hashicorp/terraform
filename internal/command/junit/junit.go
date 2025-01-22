@@ -328,7 +328,7 @@ func skipDetails(runIndex int, file *moduletest.File, suiteStopped bool) *withMe
 	}
 
 	// Unhandled case: This results in <skipped></skipped> with no attributes or body
-	return nil
+	return &withMessage{}
 }
 
 func suiteFilesAsSortedList(files map[string]*moduletest.File) []*moduletest.File {
