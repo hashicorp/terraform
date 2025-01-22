@@ -207,13 +207,12 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 				testCase.RunTime = execMeta.Duration.Seconds()
 				testCase.Timestamp = execMeta.StartTimestamp()
 			}
+
+			// Depending on run status, add either of: "skipped", "failure", or "error" elements
 			switch run.Status {
 			case moduletest.Skip:
-				message, body := getSkipDetails(i, file, suiteRunnerStopped)
-				testCase.Skipped = &withMessage{
-					Message: message,
-					Body:    body,
-				}
+				testCase.Skipped = skipDetails(i, file, suiteRunnerStopped)
+
 			case moduletest.Fail:
 				// When the test fails we only use error diags that originate from failing assertions
 				var failedAssertions tfdiags.Diagnostics
@@ -298,17 +297,20 @@ func failureMessage(failedAssertions tfdiags.Diagnostics, checkCount int) string
 	// Handle multiple assertion failures
 	return fmt.Sprintf("%d of %d assertions failed, including: %s", len(failedAssertions), checkCount, failedAssertions[0].Description().Detail)
 }
+
+// skipDetails checks data about the test suite, file and runs to determine why a given run was skipped
 // Test can be skipped due to:
 // 1. terraform test recieving an interrupt from users; all unstarted tests will be skipped
 // 2. A previous run in a file has failed, causing subsequent run blocks to be skipped
-func getSkipDetails(runIndex int, file *moduletest.File, suiteStopped bool) (string, string) {
+// The returned value is used to set content in the "skipped" element
+func skipDetails(runIndex int, file *moduletest.File, suiteStopped bool) *withMessage {
 	if suiteStopped {
 		// Test suite experienced an interrupt
 		// This block only handles graceful Stop interrupts, as Cancel interrupts will prevent a JUnit file being produced at all
-		message := "Testcase skipped due to an interrupt"
-		body := "Terraform received an interrupt and stopped gracefully. This caused all remaining testcases to be skipped"
-
-		return message, body
+		return &withMessage{
+			Message: "Testcase skipped due to an interrupt",
+			Body:    "Terraform received an interrupt and stopped gracefully. This caused all remaining testcases to be skipped",
+		}
 	}
 
 	if file.Status == moduletest.Error {
@@ -317,15 +319,16 @@ func getSkipDetails(runIndex int, file *moduletest.File, suiteStopped bool) (str
 		for i := runIndex; i >= 0; i-- {
 			if file.Runs[i].Status == moduletest.Error {
 				// Skipped due to error in previous run within the file
-				message := "Testcase skipped due to a previous testcase error"
-				body := fmt.Sprintf("Previous testcase %q ended in error, which caused the remaining tests in the file to be skipped", file.Runs[i].Name)
-				return message, body
+				return &withMessage{
+					Message: "Testcase skipped due to a previous testcase error",
+					Body:    fmt.Sprintf("Previous testcase %q ended in error, which caused the remaining tests in the file to be skipped", file.Runs[i].Name),
+				}
 			}
 		}
 	}
 
 	// Unhandled case: This results in <skipped></skipped> with no attributes or body
-	return "", ""
+	return nil
 }
 
 func suiteFilesAsSortedList(files map[string]*moduletest.File) []*moduletest.File {
