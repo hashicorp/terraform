@@ -187,21 +187,22 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		}
 
 		runner = &cloud.TestSuiteRunner{
-			ConfigDirectory:  ".", // Always loading from the current directory.
-			TestingDirectory: args.TestDirectory,
-			Config:           config,
-			Services:         c.Services,
-			Source:           args.CloudRunSource,
-			GlobalVariables:  variables,
-			Stopped:          false,
-			Cancelled:        false,
-			StoppedCtx:       stopCtx,
-			CancelledCtx:     cancelCtx,
-			Verbose:          args.Verbose,
-			Filters:          args.Filter,
-			Renderer:         renderer,
-			View:             view,
-			Streams:          c.Streams,
+			ConfigDirectory:      ".", // Always loading from the current directory.
+			TestingDirectory:     args.TestDirectory,
+			Config:               config,
+			Services:             c.Services,
+			Source:               args.CloudRunSource,
+			GlobalVariables:      variables,
+			Stopped:              false,
+			Cancelled:            false,
+			StoppedCtx:           stopCtx,
+			CancelledCtx:         cancelCtx,
+			Verbose:              args.Verbose,
+			OperationParallelism: args.OperationParallelism,
+			Filters:              args.Filter,
+			Renderer:             renderer,
+			View:                 view,
+			Streams:              c.Streams,
 		}
 	} else {
 		localRunner := &local.TestSuiteRunner{
