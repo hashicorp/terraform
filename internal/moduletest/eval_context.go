@@ -179,8 +179,10 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 				Subject:     rule.Condition.Range().Ptr(),
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
-				// Make the ephemerality visible
-				Extra: terraform.DiagnosticCausedByEphemeral(true),
+				// Diagnostic can be identified as originating from a failing test assertion.
+				// Also, values that are ephemeral, sensitive, or unknown are made visible in
+				// renderings of the diagnostic.
+				Extra: terraform.DiagnosticCausedByTestFailure(true),
 			})
 			continue
 		} else {
