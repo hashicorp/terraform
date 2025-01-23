@@ -5,7 +5,6 @@ package local
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"path/filepath"
@@ -131,7 +130,10 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		}
 
 		file := suite.Files[name]
-		evalCtx := graph.NewEvalContext()
+		// The eval context inherits the cancelled context from the runner.
+		// This allows the eval context to stop the graph walk if the runner
+		// requests a hard stop.
+		evalCtx := graph.NewEvalContext(runner.CancelledCtx)
 
 		for _, run := range file.Runs {
 			// Pre-initialise the prior outputs, so we can easily tell between
@@ -254,8 +256,6 @@ type TestFileRunner struct {
 	EvalContext *graph.EvalContext
 }
 
-var graphTerminatedError = errors.New("graph walk terminated")
-
 func (runner *TestFileRunner) Test(file *moduletest.File) {
 	log.Printf("[TRACE] TestFileRunner: executing test file %s", file.Name)
 
@@ -288,7 +288,8 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	// The error the user receives will just be:
 	// 			Failure! 0 passed, 1 failed.
 	// 			exit status 1
-	if diags.HasErrors() && diags.Err().Error() == graphTerminatedError.Error() {
+	if runner.EvalContext.Cancelled() {
+		file.UpdateStatus(moduletest.Error)
 		log.Printf("[TRACE] TestFileRunner: graph walk terminated for %s", file.Name)
 		return
 	}
@@ -300,16 +301,15 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics {
 	sem := runner.Suite.semaphore
 
-	// We'll use this context to cancel the walk if the test is stopped.
-	// There is currently no mechanism by the graph for stopping the entire
-	// graph walk, so we'll just cancel the context and let the walk function
-	// return early for each node.
-	ctx, cancel := context.WithCancelCause(context.Background())
-
 	// Walk the graph.
 	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
-		if ctx.Err() != nil {
-			// If the context was cancelled, the node should just return immediately.
+		if runner.EvalContext.Cancelled() {
+			// If the graph walk has been cancelled, the node should just return immediately.
+			// For now, this means a hard stop has been requested, in this case we don't
+			// even stop to mark future test runs as having been skipped. They'll
+			// just show up as pending in the printed summary. We will quickly
+			// just mark the overall file status has having errored to indicate
+			// it was interrupted.
 			return
 		}
 
@@ -370,17 +370,6 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 
 		file := runNode.File()
 		run := runNode.Run()
-
-		if runner.Suite.Cancelled {
-			// This means a hard stop has been requested, in this case we don't
-			// even stop to mark future tests as having been skipped. They'll
-			// just show up as pending in the printed summary. We will quickly
-			// just mark the overall file status has having errored to indicate
-			// it was interrupted.
-			file.UpdateStatus(moduletest.Error)
-			cancel(graphTerminatedError)
-			return
-		}
 
 		if runner.Suite.Stopped {
 			// Then the test was requested to be stopped, so we just mark each
@@ -445,23 +434,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 		return
 	}
 
-	// We want to either wait for the walk to complete or for the context to be
-	// cancelled. If the context is cancelled, we'll return immediately.
-	doneCh := make(chan tfdiags.Diagnostics)
-	go func() {
-		defer close(doneCh)
-		doneCh <- g.AcyclicGraph.Walk(walkFn)
-	}()
-
-	select {
-	case <-ctx.Done():
-		// If the context was cancelled, we'll just return the cause of the
-		// cancellation. For now, this can only be the graphTerminatedError.
-		return tfdiags.Diagnostics{}.Append(context.Cause(ctx))
-	case diags := <-doneCh:
-		return diags
-	}
-
+	return g.AcyclicGraph.Walk(walkFn)
 }
 
 func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, state *states.State) (*states.State, bool) {

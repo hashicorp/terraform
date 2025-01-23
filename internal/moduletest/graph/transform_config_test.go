@@ -5,6 +5,7 @@ package graph
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -218,7 +219,7 @@ func TestTransformForTest(t *testing.T) {
 				availableProviders[provider] = true
 			}
 
-			ctx := NewEvalContext()
+			ctx := NewEvalContext(context.Background())
 			ctx.configProviders = map[string]map[string]bool{
 				run.GetModuleConfigID(): availableProviders,
 			}

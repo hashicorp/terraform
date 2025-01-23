@@ -4,6 +4,7 @@
 package graph
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"sort"
@@ -58,11 +59,19 @@ type EvalContext struct {
 	// the test has finished.
 	FileStates map[string]*TestFileState
 	stateLock  sync.Mutex
+
+	// cancelContext is a context that can be used to terminate the evaluation of the
+	// test suite.
+	// cancelFunc is the conrresponding cancel function that should be called to
+	// cancel the context.
+	cancelContext context.Context
+	cancelFunc    context.CancelFunc
 }
 
 // NewEvalContext constructs a new graph evaluation context for use in
 // evaluating the runs within a test suite.
-func NewEvalContext() *EvalContext {
+func NewEvalContext(cancelCtx context.Context) *EvalContext {
+	cancelCtx, cancel := context.WithCancel(cancelCtx)
 	return &EvalContext{
 		runOutputs:      make(map[addrs.Run]cty.Value),
 		outputsLock:     sync.Mutex{},
@@ -71,7 +80,21 @@ func NewEvalContext() *EvalContext {
 		FileStates:      make(map[string]*TestFileState),
 		stateLock:       sync.Mutex{},
 		VariableCaches:  hcltest.NewVariableCaches(),
+		cancelContext:   cancelCtx,
+		cancelFunc:      cancel,
 	}
+}
+
+// Cancel cancels the context, which signals to the test suite that it should
+// stop evaluating the test suite.
+func (ec *EvalContext) Cancel() {
+	ec.cancelFunc()
+}
+
+// Cancelled returns true if the context has been stopped. The default cause
+// of the error is context.Canceled.
+func (ec *EvalContext) Cancelled() bool {
+	return ec.cancelContext.Err() != nil
 }
 
 // EvaluateRun processes the assertions inside the provided configs.TestRun against
