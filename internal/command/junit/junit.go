@@ -250,7 +250,7 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 				if run.Status == moduletest.Error && run.Diagnostics.HasWarnings() {
 					// If the test case errored, then all Error diags are in the "error" element
 					// Therefore we'd only need to include warnings in "system-err"
-					systemErrDiags = getWarnings(run.Diagnostics)
+					systemErrDiags = run.Diagnostics.Warnings()
 				}
 
 				if run.Status != moduletest.Error {
@@ -353,17 +353,4 @@ func getDiagString(diags tfdiags.Diagnostics, sources map[string][]byte) string 
 		diagsStr.WriteString(format.DiagnosticPlain(d, sources, 80))
 	}
 	return diagsStr.String()
-}
-
-func getWarnings(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
-	// Collect warnings
-	warnDiags := tfdiags.Diagnostics{}
-	if diags.HasWarnings() {
-		for _, d := range diags {
-			if d.Severity() == tfdiags.Warning {
-				warnDiags = warnDiags.Append(d)
-			}
-		}
-	}
-	return warnDiags
 }
