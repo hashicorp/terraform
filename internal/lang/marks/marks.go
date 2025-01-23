@@ -16,6 +16,11 @@ func (m valueMark) GoString() string {
 	return "marks." + string(m)
 }
 
+type DeprecationMark struct {
+	AttrPath cty.Path
+	Message  string
+}
+
 // Has returns true if and only if the cty.Value has the given mark.
 func Has(val cty.Value, mark valueMark) bool {
 	return val.HasMark(mark)
