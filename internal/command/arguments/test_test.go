@@ -155,12 +155,13 @@ func TestParseTest(t *testing.T) {
 		"incompatible flags: -junit-xml and -cloud-run": {
 			args: []string{"-junit-xml=./output.xml", "-cloud-run=foobar"},
 			want: &Test{
-				CloudRunSource: "foobar",
-				JUnitXMLFile:   "./output.xml",
-				Filter:         nil,
-				TestDirectory:  "tests",
-				ViewType:       ViewHuman,
-				Vars:           &Vars{},
+				CloudRunSource:       "foobar",
+				JUnitXMLFile:         "./output.xml",
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
 			},
 			wantDiags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(
