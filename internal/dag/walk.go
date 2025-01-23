@@ -4,6 +4,7 @@
 package dag
 
 import (
+	"context"
 	"errors"
 	"log"
 	"sync"
@@ -76,6 +77,14 @@ func (w *Walker) init() {
 	}
 }
 
+// NewWalker creates a new walker with the given callback function.
+func NewWalker(cb WalkFunc) *Walker {
+	// Reverse is true by default, so that the default behavior is for
+	// the source of an edge to depend on the target.
+	w := &Walker{Callback: cb, Reverse: true}
+	return w
+}
+
 type walkerVertex struct {
 	// These should only be set once on initialization and never written again.
 	// They are not protected by a lock since they don't need to be since
@@ -83,12 +92,17 @@ type walkerVertex struct {
 
 	// DoneCh is closed when this vertex has completed execution, regardless
 	// of success.
-	//
-	// CancelCh is closed when the vertex should cancel execution. If execution
-	// is already complete (DoneCh is closed), this has no effect. Otherwise,
-	// execution is cancelled as quickly as possible.
-	DoneCh   chan struct{}
-	CancelCh chan struct{}
+	DoneCh chan struct{}
+
+	// CancelCtx is the context used to signal cancellation of the vertex's execution.
+	// It is created during initialization and should not be modified thereafter.
+	// If execution is already complete (DoneCh is closed), this has no effect.
+	// Otherwise, execution is cancelled as quickly as possible.
+	CancelCtx context.Context
+	// cancelCtxFn is the function used to cancel the CancelCtx. It is called to
+	// signal that the vertex's execution should be cancelled. This function should
+	// only be called once and should not be modified after initialization.
+	cancelCtxFn context.CancelFunc
 
 	// Dependency information. Any changes to any of these fields requires
 	// holding DepsLock.
@@ -145,7 +159,7 @@ func (w *Walker) Wait() tfdiags.Diagnostics {
 //
 // Multiple Updates can be called in parallel. Update can be called at any
 // time during a walk.
-func (w *Walker) Update(g *AcyclicGraph) {
+func (w *Walker) Update(ctx context.Context, g *AcyclicGraph) {
 	w.init()
 	v := make(Set)
 	e := make(Set)
@@ -181,10 +195,12 @@ func (w *Walker) Update(g *AcyclicGraph) {
 		w.vertices.Add(raw)
 
 		// Initialize the vertex info
+		ctx, cancelVertex := context.WithCancel(ctx)
 		info := &walkerVertex{
-			DoneCh:   make(chan struct{}),
-			CancelCh: make(chan struct{}),
-			deps:     make(map[Vertex]chan struct{}),
+			DoneCh:      make(chan struct{}),
+			CancelCtx:   ctx,
+			cancelCtxFn: cancelVertex,
+			deps:        make(map[Vertex]chan struct{}),
 		}
 
 		// Add it to the map and kick off the walk
@@ -204,7 +220,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 		}
 
 		// Cancel the vertex
-		close(info.CancelCh)
+		info.cancelCtxFn()
 
 		// Delete it out of the map
 		delete(w.vertexMap, v)
@@ -336,8 +352,8 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 	close(depsCh)
 	for {
 		select {
-		case <-info.CancelCh:
-			// Cancel
+		case <-info.CancelCtx.Done():
+			// Context cancelled. return immediately.
 			return
 
 		case depsSuccess = <-depsCh:
@@ -371,7 +387,7 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 	// If we passed dependencies, we just want to check once more that
 	// we're not cancelled, since this can happen just as dependencies pass.
 	select {
-	case <-info.CancelCh:
+	case <-info.CancelCtx.Done():
 		// Cancelled during an update while dependencies completed.
 		return
 	default:

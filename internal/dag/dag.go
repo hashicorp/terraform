@@ -4,6 +4,7 @@
 package dag
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -272,9 +273,11 @@ func (g *AcyclicGraph) Cycles() [][]Vertex {
 // Walk walks the graph, calling your callback as each node is visited.
 // This will walk nodes in parallel if it can. The resulting diagnostics
 // contains problems from all graphs visited, in no particular order.
-func (g *AcyclicGraph) Walk(cb WalkFunc) tfdiags.Diagnostics {
-	w := &Walker{Callback: cb, Reverse: true}
-	w.Update(g)
+// The context here will be inherited by all nodes in the graph, and
+// the caller can use this to signal cancellation of the graph walk.
+func (g *AcyclicGraph) Walk(ctx context.Context, cb WalkFunc) tfdiags.Diagnostics {
+	w := NewWalker(cb)
+	w.Update(ctx, g)
 	return w.Wait()
 }
 

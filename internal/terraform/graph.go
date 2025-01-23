@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -40,7 +41,7 @@ func (g *Graph) Walk(walker GraphWalker) tfdiags.Diagnostics {
 
 func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 	// The callbacks for enter/exiting a graph
-	ctx := walker.EvalContext()
+	evalCtx := walker.EvalContext()
 
 	// Walk the graph.
 	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
@@ -72,7 +73,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			}
 		}()
 
-		haveOverrides := !ctx.Overrides().Empty()
+		haveOverrides := !evalCtx.Overrides().Empty()
 
 		// If the graph node is overridable, we'll check our overrides to see
 		// if we need to apply any overrides to the node.
@@ -85,7 +86,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			//
 			// See the output node for an example of providing the overrides
 			// directly to the node.
-			if override, ok := ctx.Overrides().GetResourceOverride(overridable.ResourceInstanceAddr(), overridable.ConfigProvider()); ok {
+			if override, ok := evalCtx.Overrides().GetResourceOverride(overridable.ResourceInstanceAddr(), overridable.ConfigProvider()); ok {
 				overridable.SetOverride(override)
 			}
 		}
@@ -99,7 +100,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			// UnkeyedInstanceShim is used by legacy provider configs within a
 			// module to return an instance of that module, since they can never
 			// exist within an expanded instance.
-			if ctx.Overrides().IsOverridden(addr.Module.UnkeyedInstanceShim()) {
+			if evalCtx.Overrides().IsOverridden(addr.Module.UnkeyedInstanceShim()) {
 				log.Printf("[DEBUG] skipping provider %s found within overridden module", addr)
 				return
 			}
@@ -112,7 +113,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		// all intentionally mutually-exclusive by having the same method
 		// name but different signatures, since a node can only belong to
 		// one context at a time.)
-		vertexCtx := ctx
+		vertexCtx := evalCtx
 		if pn, ok := v.(graphNodeEvalContextScope); ok {
 			scope := pn.Path()
 			log.Printf("[TRACE] vertex %q: belongs to %s", dag.VertexName(v), scope)
@@ -199,7 +200,14 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		return
 	}
 
-	return g.AcyclicGraph.Walk(walkFn)
+	// This context is used to pass down the current context to the
+	// graph nodes. Each node inherits this context and the main
+	// function can use it to signal cancellation of the walk.
+	// We don't have any requirement to cancel the walk at this
+	// time, but we pass it down anyway.
+	ctx := context.Background()
+
+	return g.AcyclicGraph.Walk(ctx, walkFn)
 }
 
 // ResourceGraph derives a graph containing addresses of only the nodes in the
