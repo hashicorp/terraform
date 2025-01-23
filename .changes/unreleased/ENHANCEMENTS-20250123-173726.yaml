@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: '`test`: enabled users to see more details about unknown and sensitive values that have caused a run block assertion to fail.'
+time: 2025-01-23T17:37:26.572243Z
+custom:
+    Issue: "36393"
