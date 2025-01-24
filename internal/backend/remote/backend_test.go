@@ -671,6 +671,31 @@ func TestRemote_VerifyWorkspaceTerraformVersion_workspaceErrors(t *testing.T) {
 	}
 }
 
+func TestRemote_VerifyWorkspaceTerraformVersion_versionConstraint(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	// Update the mock remote workspace Terraform version to be a version constraint string
+	if _, err := b.client.Workspaces.Update(
+		context.Background(),
+		b.organization,
+		b.workspace,
+		tfe.WorkspaceUpdateOptions{
+			TerraformVersion: tfe.String(">= 9.9.9"),
+		},
+	); err != nil {
+		t.Fatalf("error: %v", err)
+	}
+	diags := b.VerifyWorkspaceTerraformVersion(backend.DefaultStateName)
+
+	if len(diags) != 1 {
+		t.Fatal("expected diag, but none returned")
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, "Terraform version mismatch") {
+		t.Fatalf("unexpected error: %s", got)
+	}
+}
+
 func TestRemote_VerifyWorkspaceTerraformVersion_ignoreFlagSet(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
