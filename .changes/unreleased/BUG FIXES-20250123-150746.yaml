@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Refreshed state was not used in the plan for orphaned resource instances
+time: 2025-01-23T15:07:46.789595-05:00
+custom:
+    Issue: "36394"
