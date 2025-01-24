@@ -17,6 +17,8 @@ type nodeExpandApplyableResource struct {
 	*NodeAbstractResource
 
 	PartialExpansions []addrs.PartialExpandedResource
+
+	semaphore Semaphore
 }
 
 var (
@@ -161,4 +163,14 @@ func (n *nodeExpandApplyableResource) ephemeralResourceInstanceSubgraph(addr add
 	diags = diags.Append(graphDiags)
 
 	return graph, diags
+}
+
+func (n *nodeExpandApplyableResource) getSemaphore() Semaphore {
+	if n.Config == nil || n.Config.Managed == nil || n.Config.Managed.Concurrency < 1 {
+		return nil
+	}
+	if n.semaphore == nil {
+		n.semaphore = NewSemaphore(n.Config.Managed.Concurrency)
+	}
+	return n.semaphore
 }

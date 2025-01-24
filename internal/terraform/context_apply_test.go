@@ -750,7 +750,112 @@ func TestContext2Apply_refCount(t *testing.T) {
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyRefCountStr)
 	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s\n\ndiff:%s\n", actual, expected, cmp.Diff(expected, actual))
+	}
+}
+
+func TestContext2Apply_controlConcurrencyCountResources(t *testing.T) {
+	m := testModule(t, "apply-ref-count")
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		resp.NewState = req.PlannedState
+		if req.PlannedState.IsNull() {
+			resp.NewState = cty.NullVal(req.PriorState.Type())
+			return
+		}
+
+		planned := req.PlannedState.AsValueMap()
+		if planned == nil {
+			planned = map[string]cty.Value{}
+		}
+
+		id, ok := planned["id"]
+		if !ok || id.IsNull() || !id.IsKnown() {
+			time.Sleep(1 * time.Second)
+			planned["id"] = cty.StringVal(time.Now().Format(time.RFC3339))
+		}
+
+		// our default schema has a computed "type" attr
+		if ty, ok := planned["type"]; ok && !ty.IsNull() {
+			planned["type"] = cty.StringVal(req.TypeName)
+		}
+
+		if cmp, ok := planned["compute"]; ok && !cmp.IsNull() {
+			computed := cmp.AsString()
+			if val, ok := planned[computed]; ok && !val.IsKnown() {
+				planned[computed] = cty.StringVal("computed_value")
+			}
+		}
+
+		for k, v := range planned {
+			if k == "unknown" {
+				// "unknown" should cause an error
+				continue
+			}
+
+			if !v.IsKnown() {
+				switch k {
+				case "type":
+					planned[k] = cty.StringVal(req.TypeName)
+				default:
+					planned[k] = cty.NullVal(v.Type())
+				}
+			}
+		}
+
+		resp.NewState = cty.ObjectVal(planned)
+		return
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	assertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	mod := state.RootModule()
+	if len(mod.Resources) < 2 {
+		t.Fatalf("bad: %#v", mod.Resources)
+	}
+
+	foo, ok := mod.Resources["aws_instance.foo"]
+	if !ok {
+		t.Fatalf("missing resource aws_instance.foo")
+	}
+
+	var times []time.Time
+	// collect the id attribute, which is a timestamp when the resource was created
+	for _, instance := range foo.Instances {
+		curr, err := instance.Current.Decode(cty.DynamicPseudoType)
+		if err != nil {
+			t.Fatalf("decode error: %v", err)
+		}
+		timestamp, err := time.Parse(time.RFC3339, curr.Value.GetAttr("id").AsString())
+		if err != nil {
+			t.Fatalf("time parse error: %v", err)
+		}
+		times = append(times, timestamp)
+	}
+
+	// Sort the times
+	sort.Slice(times, func(i, j int) bool {
+		return times[i].Before(times[j])
+	})
+
+	// Check that the time that the resources were created are at least 1 second apart
+	for i := 0; i < len(times)-1; i++ {
+		if times[i+1].Sub(times[i]) < time.Second {
+			t.Fatalf("resources not created at least 1 second apart: %v", times)
+		}
 	}
 }
 
@@ -2782,6 +2887,104 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 		s.SetResourceInstanceCurrent(oneAddr.Instance(addrs.IntKey(0)), &states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
+		}, providerAddr)
+	})
+
+	if state.String() != want.String() {
+		t.Fatalf("wrong state after step 1\n%s", cmp.Diff(want, state))
+	}
+
+	// Step 2: update with an empty config, to destroy everything
+	m = testModule(t, "empty")
+	ctx = testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	plan, diags = ctx.Plan(m, state, DefaultPlanOpts)
+	assertNoErrors(t, diags)
+	{
+		addr := mustResourceInstanceAddr("test_thing.one[0]")
+		change := plan.Changes.ResourceInstance(addr)
+		if change == nil {
+			t.Fatalf("no planned change for %s", addr)
+		}
+		if got, want := change.Action, plans.Delete; got != want {
+			t.Errorf("wrong action for %s %s; want %s", addr, got, want)
+		}
+		if got, want := change.ActionReason, plans.ResourceInstanceDeleteBecauseNoResourceConfig; got != want {
+			t.Errorf("wrong action for %s %s; want %s", addr, got, want)
+		}
+	}
+
+	state, diags = ctx.Apply(plan, m, nil)
+	assertNoErrors(t, diags)
+
+	// The state should now be _totally_ empty, with just an empty root module
+	// (since that always exists) and no resources at all.
+	want = states.NewState()
+	want.CheckResults = &states.CheckResults{}
+	if !cmp.Equal(state, want) {
+		t.Fatalf("wrong state after step 2\ngot: %swant: %s", spew.Sdump(state), spew.Sdump(want))
+	}
+
+}
+
+func TestContext2Apply_orphanResourceConcurrency(t *testing.T) {
+	// This is a two-step test:
+	// 1. Apply a configuration with resources that have count set.
+	//    This should place the empty resource object in the state to record
+	//    that each exists, and record any instances.
+	// 2. Apply an empty configuration against the same state, which should
+	//    then clean up both the instances and the containing resource objects.
+	p := testProvider("test")
+	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_thing": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+
+	// Step 1: create the resources and instances
+	m := testModule(t, "apply-orphan-resource-concurrency")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	assertNoErrors(t, diags)
+	state, diags := ctx.Apply(plan, m, nil)
+	assertNoErrors(t, diags)
+
+	// At this point both resources should be recorded in the state, along
+	// with the single instance associated with test_thing.one.
+	want := states.BuildState(func(s *states.SyncState) {
+		providerAddr := addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		}
+		oneAddr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_thing",
+			Name: "one",
+		}.Absolute(addrs.RootModuleInstance)
+		s.SetResourceProvider(oneAddr, providerAddr)
+		s.SetResourceInstanceCurrent(oneAddr.Instance(addrs.IntKey(1)), &states.ResourceInstanceObjectSrc{
+			Status:      states.ObjectReady,
+			AttrsJSON:   []byte(`{"id":"foo"}`),
+			Concurrency: 1,
+		}, providerAddr)
+		s.SetResourceInstanceCurrent(oneAddr.Instance(addrs.IntKey(0)), &states.ResourceInstanceObjectSrc{
+			Status:      states.ObjectReady,
+			AttrsJSON:   []byte(`{"id":"foo"}`),
+			Concurrency: 1,
 		}, providerAddr)
 	})
 
