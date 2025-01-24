@@ -63,6 +63,7 @@ type ResourceInstanceObjectSrc struct {
 	Status              ObjectStatus
 	Dependencies        []addrs.ConfigResource
 	CreateBeforeDestroy bool
+	Concurrency         int
 
 	// decodeValueCache stored the decoded value for repeated decodings.
 	decodeValueCache cty.Value
@@ -107,6 +108,7 @@ func (os *ResourceInstanceObjectSrc) Decode(ty cty.Type) (*ResourceInstanceObjec
 		Dependencies:        os.Dependencies,
 		Private:             os.Private,
 		CreateBeforeDestroy: os.CreateBeforeDestroy,
+		Concurrency:         os.Concurrency,
 	}, nil
 }
 

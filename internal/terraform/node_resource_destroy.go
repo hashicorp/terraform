@@ -20,6 +20,8 @@ import (
 // destroyed.
 type NodeDestroyResourceInstance struct {
 	*NodeAbstractResourceInstance
+
+	semaphore Semaphore
 }
 
 var (
@@ -33,6 +35,7 @@ var (
 	_ GraphNodeExecutable          = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeProviderConsumer    = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeProvisionerConsumer = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeLockable            = (*NodeDestroyResourceInstance)(nil)
 )
 
 func (n *NodeDestroyResourceInstance) Name() string {
@@ -138,6 +141,25 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 		return n.dataResourceExecute(ctx)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
+	}
+}
+
+// GraphNodeLockable
+func (n *NodeDestroyResourceInstance) AttachSemaphore(sem Semaphore) {
+	n.semaphore = sem
+}
+
+// GraphNodeLockable
+func (n *NodeDestroyResourceInstance) Lock() {
+	if n.semaphore != nil {
+		n.semaphore.Acquire()
+	}
+}
+
+// GraphNodeLockable
+func (n *NodeDestroyResourceInstance) Unlock() {
+	if n.semaphore != nil {
+		n.semaphore.Release()
 	}
 }
 

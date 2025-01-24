@@ -46,7 +46,7 @@ var (
 	_ GraphNodeDeposer            = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeExecutable         = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeAttachSemaphore    = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeLockable           = (*NodeApplyableResourceInstance)(nil)
 )
 
 // GraphNodeCreator
@@ -94,9 +94,23 @@ func (n *NodeApplyableResourceInstance) AttachDependencies(deps []addrs.ConfigRe
 	n.Dependencies = deps
 }
 
-// GraphNodeAttachSemaphore
+// GraphNodeLockable
 func (n *NodeApplyableResourceInstance) AttachSemaphore(sem Semaphore) {
 	n.semaphore = sem
+}
+
+// GraphNodeLockable
+func (n *NodeApplyableResourceInstance) Lock() {
+	if n.semaphore != nil {
+		n.semaphore.Acquire()
+	}
+}
+
+// GraphNodeLockable
+func (n *NodeApplyableResourceInstance) Unlock() {
+	if n.semaphore != nil {
+		n.semaphore.Release()
+	}
 }
 
 // GraphNodeExecutable

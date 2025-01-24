@@ -174,7 +174,6 @@ func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema 
 	}
 
 	change := changes.GetResourceInstanceChange(addr, addrs.NotDeposed)
-
 	log.Printf("[TRACE] readDiff: Read %s change from plan for %s", change.Action, n.Addr)
 
 	return change, nil
@@ -2545,6 +2544,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		// Copy the previous state, changing only the value
 		newState := &states.ResourceInstanceObject{
 			CreateBeforeDestroy: state.CreateBeforeDestroy,
+			Concurrency:         state.Concurrency,
 			Dependencies:        state.Dependencies,
 			Private:             state.Private,
 			Status:              state.Status,
@@ -2800,6 +2800,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			Value:               newVal,
 			Private:             resp.Private,
 			CreateBeforeDestroy: createBeforeDestroy,
+			Concurrency:         state.Concurrency,
 		}
 
 		// if the resource was being deleted, the dependencies are not going to
@@ -2817,6 +2818,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			Value:               newVal,
 			Private:             resp.Private,
 			CreateBeforeDestroy: createBeforeDestroy,
+			Concurrency:         n.Config.Managed.Concurrency,
 		}
 		return newState, diags
 

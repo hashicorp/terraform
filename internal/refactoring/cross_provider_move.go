@@ -197,6 +197,7 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 		Status:              src.Status,
 		Dependencies:        src.Dependencies,
 		CreateBeforeDestroy: src.CreateBeforeDestroy,
+		Concurrency:         src.Concurrency,
 	}
 
 	data, err := newValue.Encode(move.targetResourceSchema.ImpliedType(), move.targetResourceSchemaVersion)

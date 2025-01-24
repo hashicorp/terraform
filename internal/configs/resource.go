@@ -57,6 +57,7 @@ type ManagedResource struct {
 
 	CreateBeforeDestroy bool
 	PreventDestroy      bool
+	Concurrency         int
 	IgnoreChanges       []hcl.Traversal
 	IgnoreAllChanges    bool
 
@@ -195,6 +196,19 @@ func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagno
 				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Managed.PreventDestroy)
 				diags = append(diags, valDiags...)
 				r.Managed.PreventDestroySet = true
+			}
+
+			if attr, exists := lcContent.Attributes["concurrency"]; exists {
+				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Managed.Concurrency)
+				diags = append(diags, valDiags...)
+				if r.ForEach == nil && r.Count == nil {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid lifecycle argument",
+						Detail:   "The concurrency argument is only valid when used with for_each or count.",
+						Subject:  attr.Expr.Range().Ptr(),
+					})
+				}
 			}
 
 			if attr, exists := lcContent.Attributes["replace_triggered_by"]; exists {
@@ -958,6 +972,9 @@ var resourceLifecycleBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "replace_triggered_by",
+		},
+		{
+			Name: "concurrency",
 		},
 	},
 	Blocks: []hcl.BlockHeaderSchema{

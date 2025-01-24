@@ -285,6 +285,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		newCBD := n.Config.Managed.CreateBeforeDestroy || n.ForceCreateBeforeDestroy
 		updatedCBD = instanceRefreshState.CreateBeforeDestroy != newCBD
 		instanceRefreshState.CreateBeforeDestroy = newCBD
+		instanceRefreshState.Concurrency = n.Config.Managed.Concurrency
 	}
 
 	var refreshDeferred *providers.Deferred
