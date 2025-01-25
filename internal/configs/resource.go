@@ -24,6 +24,7 @@ type Resource struct {
 	Count   hcl.Expression
 	ForEach hcl.Expression
 
+	Concurrency       int
 	ProviderConfigRef *ProviderConfigRef
 	Provider          addrs.Provider
 
@@ -57,7 +58,6 @@ type ManagedResource struct {
 
 	CreateBeforeDestroy bool
 	PreventDestroy      bool
-	Concurrency         int
 	IgnoreChanges       []hcl.Traversal
 	IgnoreAllChanges    bool
 
@@ -199,7 +199,7 @@ func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagno
 			}
 
 			if attr, exists := lcContent.Attributes["concurrency"]; exists {
-				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Managed.Concurrency)
+				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Concurrency)
 				diags = append(diags, valDiags...)
 				if r.ForEach == nil && r.Count == nil {
 					diags = append(diags, &hcl.Diagnostic{
@@ -648,10 +648,24 @@ func decodeDataBlock(block *hcl.Block, override, nested bool) (*Resource, hcl.Di
 			lcContent, lcDiags := block.Body.Content(resourceLifecycleBlockSchema)
 			diags = append(diags, lcDiags...)
 
-			// All of the attributes defined for resource lifecycle are for
+			// All of the attributes except "concurrency" defined for resource lifecycle are for
 			// managed resources only, so we can emit a common error message
 			// for any given attributes that HCL accepted.
 			for name, attr := range lcContent.Attributes {
+				if name == "concurrency" {
+					valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Concurrency)
+					diags = append(diags, valDiags...)
+					if r.ForEach == nil && r.Count == nil {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid lifecycle argument",
+							Detail:   "The concurrency argument is only valid when used with for_each or count.",
+							Subject:  attr.Expr.Range().Ptr(),
+						})
+					}
+
+					continue
+				}
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid data resource lifecycle argument",

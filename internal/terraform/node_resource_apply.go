@@ -166,11 +166,11 @@ func (n *nodeExpandApplyableResource) ephemeralResourceInstanceSubgraph(addr add
 }
 
 func (n *nodeExpandApplyableResource) getSemaphore() Semaphore {
-	if n.Config == nil || n.Config.Managed == nil || n.Config.Managed.Concurrency < 1 {
+	if n.Config == nil || n.Config.Concurrency < 1 {
 		return nil
 	}
 	if n.semaphore == nil {
-		n.semaphore = NewSemaphore(n.Config.Managed.Concurrency)
+		n.semaphore = NewSemaphore(n.Config.Concurrency)
 	}
 	return n.semaphore
 }

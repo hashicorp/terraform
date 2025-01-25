@@ -755,7 +755,7 @@ func TestContext2Apply_refCount(t *testing.T) {
 }
 
 func TestContext2Apply_controlConcurrencyCountResources(t *testing.T) {
-	m := testModule(t, "apply-ref-count")
+	m := testModule(t, "apply-ref-count-concurrency")
 	p := testProvider("aws")
 	p.PlanResourceChangeFn = testDiffFn
 	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
@@ -772,7 +772,7 @@ func TestContext2Apply_controlConcurrencyCountResources(t *testing.T) {
 
 		id, ok := planned["id"]
 		if !ok || id.IsNull() || !id.IsKnown() {
-			time.Sleep(1 * time.Second)
+			time.Sleep(1 * time.Second) // mimic a slow resource creation
 			planned["id"] = cty.StringVal(time.Now().Format(time.RFC3339))
 		}
 
@@ -807,6 +807,15 @@ func TestContext2Apply_controlConcurrencyCountResources(t *testing.T) {
 		resp.NewState = cty.ObjectVal(planned)
 		return
 	}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		time.Sleep(1 * time.Second) // mimic a slow data source read
+		return providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal(time.Now().Format(time.RFC3339)),
+				"foo": cty.StringVal("bar"),
+			}),
+		}
+	}
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -827,6 +836,9 @@ func TestContext2Apply_controlConcurrencyCountResources(t *testing.T) {
 		t.Fatalf("bad: %#v", mod.Resources)
 	}
 
+	// Testing that the resource instances respect the concurrency limit of 1,
+	// and that the resources are therefore created in order, with a delay of at
+	// least 1 second between each resource creation.
 	foo, ok := mod.Resources["aws_instance.foo"]
 	if !ok {
 		t.Fatalf("missing resource aws_instance.foo")
@@ -855,6 +867,40 @@ func TestContext2Apply_controlConcurrencyCountResources(t *testing.T) {
 	for i := 0; i < len(times)-1; i++ {
 		if times[i+1].Sub(times[i]) < time.Second {
 			t.Fatalf("resources not created at least 1 second apart: %v", times)
+		}
+	}
+
+	// Testing that the data source instances respect the concurrency limit of 1,
+	// and that the resources are therefore created in order, with a delay of at
+	// least 1 second between each resource creation.
+	baz, ok := mod.Resources["data.aws_data_source.baz"]
+	if !ok {
+		t.Fatalf("missing resource data.aws_data_source.baz")
+	}
+
+	times = []time.Time{}
+	// collect the id attribute, which is a timestamp when the resource was created
+	for _, instance := range baz.Instances {
+		curr, err := instance.Current.Decode(cty.DynamicPseudoType)
+		if err != nil {
+			t.Fatalf("decode error: %v", err)
+		}
+		timestamp, err := time.Parse(time.RFC3339, curr.Value.GetAttr("id").AsString())
+		if err != nil {
+			t.Fatalf("time parse error: %v", err)
+		}
+		times = append(times, timestamp)
+	}
+
+	// Sort the times
+	sort.Slice(times, func(i, j int) bool {
+		return times[i].Before(times[j])
+	})
+
+	// Check that the time that the resources were read are at least 1 second apart
+	for i := 0; i < len(times)-1; i++ {
+		if times[i+1].Sub(times[i]) < time.Second {
+			t.Fatalf("resources not read at least 1 second apart: %v", times)
 		}
 	}
 }

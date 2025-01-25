@@ -37,7 +37,7 @@ func (t *DynamicConcurrencyTransformer) Transform(g *Graph) error {
 		}
 
 		// If the concurrency is not configured, we don't need to do anything.
-		if rn.Config == nil || rn.Config.Managed == nil || rn.Config.Managed.Concurrency < 1 {
+		if rn.Config == nil || rn.Config.Concurrency < 1 {
 			continue
 		}
 

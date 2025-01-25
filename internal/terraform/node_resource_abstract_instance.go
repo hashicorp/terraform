@@ -2818,7 +2818,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			Value:               newVal,
 			Private:             resp.Private,
 			CreateBeforeDestroy: createBeforeDestroy,
-			Concurrency:         n.Config.Managed.Concurrency,
+			Concurrency:         n.Config.Concurrency,
 		}
 		return newState, diags
 
