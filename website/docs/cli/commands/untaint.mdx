@@ -1,14 +1,16 @@
 ---
-page_title: 'Command: untaint'
+page_title: terraform untaint command reference
 description: |-
-  The `terraform untaint` command tells Terraform that an object is functioning
-  correctly, even though its creation failed or it was previously manually
-  marked as degraded.
+  The `terraform untaint` command removes the `tainted` status from infrastructure objects tracked in the Terraform state data.
 ---
 
-# Command: untaint
+# `terraform untaint` command
 
-Terraform has a marker called "tainted" which it uses to track that an object
+This topic provides reference information about the `terraform untaint` command.
+
+## Introduction
+
+Terraform has a marker called `tainted` which it uses to track that an object
 might be damaged and so a future Terraform plan ought to replace it.
 
 Terraform automatically marks an object as "tainted" if an error occurs during

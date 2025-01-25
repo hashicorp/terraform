@@ -121,6 +121,10 @@ func (p *provider) ValidateResourceTypeConfig(_ context.Context, req *tfplugin5.
 	validateResp := p.provider.ValidateResourceConfig(providers.ValidateResourceConfigRequest{
 		TypeName: req.TypeName,
 		Config:   configVal,
+		ClientCapabilities: providers.ClientCapabilities{
+			DeferralAllowed:            true,
+			WriteOnlyAttributesAllowed: true,
+		},
 	})
 
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, validateResp.Diagnostics)

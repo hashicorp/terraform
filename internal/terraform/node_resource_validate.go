@@ -366,7 +366,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 				// use that to check whether the Attribute is Computed and
 				// non-Optional.
 				if !diags.HasErrors() {
-					path := traversalToPath(traversal)
+					path, _ := traversalToPath(traversal)
 
 					attrSchema := schema.AttributeByPath(path)
 
@@ -390,8 +390,9 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		// Use unmarked value for validate request
 		unmarkedConfigVal, _ := configVal.UnmarkDeep()
 		req := providers.ValidateResourceConfigRequest{
-			TypeName: n.Config.Type,
-			Config:   unmarkedConfigVal,
+			TypeName:           n.Config.Type,
+			Config:             unmarkedConfigVal,
+			ClientCapabilities: ctx.ClientCapabilities(),
 		}
 
 		resp := provider.ValidateResourceConfig(req)
@@ -749,21 +750,24 @@ func validateDependsOn(ctx EvalContext, dependsOn []hcl.Traversal) (diags tfdiag
 // by calling [tfdiags.Diagnostics.InConfigBody] before returning them to
 // any caller that expects fully-resolved diagnostics.
 func validateResourceForbiddenEphemeralValues(ctx EvalContext, value cty.Value, schema *configschema.Block) (diags tfdiags.Diagnostics) {
-	// NOTE: We take a schema argument in anticipation of a future feature
-	// that might allow managed resources to declare certain attributes as
-	// being "write-only", which would create a little nested island where
-	// ephemeral values are permitted in return for providers accepting that
-	// those values will not be preserved between plan and apply or between
-	// sequential plan/apply rounds. But we aren't doing that yet, so we
-	// just ignore that argument for now.
-
 	for _, path := range ephemeral.EphemeralValuePaths(value) {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Invalid use of ephemeral value",
-			"Ephemeral values are not valid in resource arguments, because resource instances must persist between Terraform phases.",
-			path,
-		))
+		attr := schema.AttributeByPath(path)
+		if attr == nil {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Could not find schema for attribute",
+				"This is most likely a bug in Terraform, please report it.",
+				path,
+			))
+		} else if !attr.WriteOnly {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid use of ephemeral value",
+				"Ephemeral values are not valid in resource arguments, because resource instances must persist between Terraform phases.",
+				path,
+			))
+		}
+
 	}
 	return diags
 }

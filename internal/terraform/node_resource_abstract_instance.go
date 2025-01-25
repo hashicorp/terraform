@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -431,15 +432,13 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		// Allow the provider to check the destroy plan, and insert any
 		// necessary private data.
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
-			TypeName:         n.Addr.Resource.Resource.Type,
-			Config:           nullVal,
-			PriorState:       unmarkedPriorVal,
-			ProposedNewState: nullVal,
-			PriorPrivate:     currentState.Private,
-			ProviderMeta:     metaConfigVal,
-			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
-			},
+			TypeName:           n.Addr.Resource.Resource.Type,
+			Config:             nullVal,
+			PriorState:         unmarkedPriorVal,
+			ProposedNewState:   nullVal,
+			PriorPrivate:       currentState.Private,
+			ProviderMeta:       metaConfigVal,
+			ClientCapabilities: ctx.ClientCapabilities(),
 		})
 		deferred = resp.Deferred
 
@@ -633,13 +632,11 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		}
 	} else {
 		resp = provider.ReadResource(providers.ReadResourceRequest{
-			TypeName:     n.Addr.Resource.Resource.Type,
-			PriorState:   priorVal,
-			Private:      state.Private,
-			ProviderMeta: metaConfigVal,
-			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
-			},
+			TypeName:           n.Addr.Resource.Resource.Type,
+			PriorState:         priorVal,
+			Private:            state.Private,
+			ProviderMeta:       metaConfigVal,
+			ClientCapabilities: ctx.ClientCapabilities(),
 		})
 
 		// If we don't support deferrals, but the provider reports a deferral and does not
@@ -692,6 +689,24 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		))
 	}
 	if diags.HasErrors() {
+		return state, deferred, diags
+	}
+
+	// Providers are supposed to return null values for all write-only attributes
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
+		"Provider produced invalid object",
+		func(path cty.Path) string {
+			return fmt.Sprintf(
+				"Provider %q returned a value for the write-only attribute \"%s%s\" during refresh. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider, n.Addr, tfdiags.FormatCtyPath(path),
+			)
+		},
+		resp.NewState,
+		schema,
+	)
+	diags = diags.Append(writeOnlyDiags)
+
+	if writeOnlyDiags.HasErrors() {
 		return state, deferred, diags
 	}
 
@@ -852,8 +867,9 @@ func (n *NodeAbstractResourceInstance) plan(
 	unmarkedConfigVal, _ := origConfigVal.UnmarkDeep()
 	validateResp := provider.ValidateResourceConfig(
 		providers.ValidateResourceConfigRequest{
-			TypeName: n.Addr.Resource.Resource.Type,
-			Config:   unmarkedConfigVal,
+			TypeName:           n.Addr.Resource.Resource.Type,
+			Config:             unmarkedConfigVal,
+			ClientCapabilities: ctx.ClientCapabilities(),
 		},
 	)
 	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
@@ -898,7 +914,11 @@ func (n *NodeAbstractResourceInstance) plan(
 		if priorVal.IsNull() {
 			// Then we are actually creating something, so let's populate the
 			// computed values from our override value.
-			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, schema)
+			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, &mocking.MockedData{
+				Value:             n.override.Values,
+				Range:             n.override.Range,
+				ComputedAsUnknown: !n.override.UseForPlan,
+			}, schema)
 			resp = providers.PlanResourceChangeResponse{
 				PlannedState: override,
 				Diagnostics:  overrideDiags,
@@ -912,15 +932,13 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 	} else {
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
-			TypeName:         n.Addr.Resource.Resource.Type,
-			Config:           unmarkedConfigVal,
-			PriorState:       unmarkedPriorVal,
-			ProposedNewState: proposedNewVal,
-			PriorPrivate:     priorPrivate,
-			ProviderMeta:     metaConfigVal,
-			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
-			},
+			TypeName:           n.Addr.Resource.Resource.Type,
+			Config:             unmarkedConfigVal,
+			PriorState:         unmarkedPriorVal,
+			ProposedNewState:   proposedNewVal,
+			PriorPrivate:       priorPrivate,
+			ProviderMeta:       metaConfigVal,
+			ClientCapabilities: ctx.ClientCapabilities(),
 		})
 		// If we don't support deferrals, but the provider reports a deferral and does not
 		// emit any error level diagnostics, we should emit an error.
@@ -949,6 +967,24 @@ func (n *NodeAbstractResourceInstance) plan(
 			// is always a bug in the client-side stub. This is more likely caused
 			// by an incompletely-configured mock provider in tests, though.
 			panic(fmt.Sprintf("PlanResourceChange of %s produced nil value", n.Addr))
+		}
+
+		// Providers are supposed to return null values for all write-only attributes
+		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
+			"Provider produced invalid plan",
+			func(path cty.Path) string {
+				return fmt.Sprintf(
+					"Provider %q returned a value for the write-only attribute \"%s%s\" during planning. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider, n.Addr, tfdiags.FormatCtyPath(path),
+				)
+			},
+			plannedNewVal,
+			schema,
+		)
+		diags = diags.Append(writeOnlyDiags)
+
+		if writeOnlyDiags.HasErrors() {
+			return nil, nil, deferred, keyData, diags
 		}
 
 		// We allow the planned new value to disagree with configuration _values_
@@ -1025,20 +1061,26 @@ func (n *NodeAbstractResourceInstance) plan(
 	// Add the marks back to the planned new value -- this must happen after
 	// ignore changes have been processed. We add in the schema marks as well,
 	// to ensure that provider defined private attributes are marked correctly
-	// here.
+	// here. We remove the ephemeral marks, the provider is expected to return null
+	// for write-only attributes (the only place where ephemeral values are allowed).
+	// This is verified in objchange.AssertPlanValid already.
 	unmarkedPlannedNewVal := plannedNewVal
-	plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
+	_, nonEphemeralMarks := marks.PathsWithMark(unmarkedPaths, marks.Ephemeral)
+	plannedNewVal = plannedNewVal.MarkWithPaths(nonEphemeralMarks)
 	if sensitivePaths := schema.SensitivePaths(plannedNewVal, nil); len(sensitivePaths) != 0 {
 		plannedNewVal = marks.MarkPaths(plannedNewVal, marks.Sensitive, sensitivePaths)
 	}
 
-	reqRep, reqRepDiags := getRequiredReplaces(unmarkedPriorVal, unmarkedPlannedNewVal, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
+	writeOnlyPaths := schema.WriteOnlyPaths(plannedNewVal, nil)
+
+	reqRep, reqRepDiags := getRequiredReplaces(unmarkedPriorVal, unmarkedPlannedNewVal, writeOnlyPaths, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
 	diags = diags.Append(reqRepDiags)
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
 	}
 
-	action, actionReason := getAction(n.Addr, unmarkedPriorVal, unmarkedPlannedNewVal, createBeforeDestroy, forceReplace, reqRep)
+	woPathSet := cty.NewPathSet(writeOnlyPaths...)
+	action, actionReason := getAction(n.Addr, unmarkedPriorVal, unmarkedPlannedNewVal, createBeforeDestroy, woPathSet, forceReplace, reqRep)
 
 	if action.IsReplace() {
 		// In this strange situation we want to produce a change object that
@@ -1067,22 +1109,24 @@ func (n *NodeAbstractResourceInstance) plan(
 		if n.override != nil {
 			// In this case, we are always creating the resource so we don't
 			// do any validation, and just call out to the mocking library.
-			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, schema)
+			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, &mocking.MockedData{
+				Value:             n.override.Values,
+				Range:             n.override.Range,
+				ComputedAsUnknown: !n.override.UseForPlan,
+			}, schema)
 			resp = providers.PlanResourceChangeResponse{
 				PlannedState: override,
 				Diagnostics:  overrideDiags,
 			}
 		} else {
 			resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
-				TypeName:         n.Addr.Resource.Resource.Type,
-				Config:           unmarkedConfigVal,
-				PriorState:       nullPriorVal,
-				ProposedNewState: proposedNewVal,
-				PriorPrivate:     plannedPrivate,
-				ProviderMeta:     metaConfigVal,
-				ClientCapabilities: providers.ClientCapabilities{
-					DeferralAllowed: deferralAllowed,
-				},
+				TypeName:           n.Addr.Resource.Resource.Type,
+				Config:             unmarkedConfigVal,
+				PriorState:         nullPriorVal,
+				ProposedNewState:   proposedNewVal,
+				PriorPrivate:       plannedPrivate,
+				ProviderMeta:       metaConfigVal,
+				ClientCapabilities: ctx.ClientCapabilities(),
 			})
 
 			// If we don't support deferrals, but the provider reports a deferral and does not
@@ -1108,8 +1152,8 @@ func (n *NodeAbstractResourceInstance) plan(
 		plannedNewVal = resp.PlannedState
 		plannedPrivate = resp.PlannedPrivate
 
-		if len(unmarkedPaths) > 0 {
-			plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
+		if len(nonEphemeralMarks) > 0 {
+			plannedNewVal = plannedNewVal.MarkWithPaths(nonEphemeralMarks)
 		}
 
 		for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
@@ -1123,6 +1167,24 @@ func (n *NodeAbstractResourceInstance) plan(
 			))
 		}
 		if diags.HasErrors() {
+			return nil, nil, deferred, keyData, diags
+		}
+
+		// Providers are supposed to return null values for all write-only attributes
+		writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
+			"Provider produced invalid plan",
+			func(path cty.Path) string {
+				return fmt.Sprintf(
+					"Provider %q returned a value for the write-only attribute \"%s%s\" during planning. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider, n.Addr, tfdiags.FormatCtyPath(path),
+				)
+			},
+			plannedNewVal,
+			schema,
+		)
+		diags = diags.Append(writeOnlyDiags)
+
+		if writeOnlyDiags.HasErrors() {
 			return nil, nil, deferred, keyData, diags
 		}
 	}
@@ -1217,7 +1279,7 @@ func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, sch
 		return config, nil
 	}
 
-	ignoreChanges := traversalsToPaths(n.Config.Managed.IgnoreChanges)
+	ignoreChanges, keys := traversalsToPaths(n.Config.Managed.IgnoreChanges)
 	ignoreAll := n.Config.Managed.IgnoreAllChanges
 
 	if len(ignoreChanges) == 0 && !ignoreAll {
@@ -1225,6 +1287,8 @@ func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, sch
 	}
 
 	if ignoreAll {
+		log.Printf("[TRACE] processIgnoreChanges: Ignoring all changes for %s", n.Addr)
+
 		// Legacy providers need up to clean up their invalid plans and ensure
 		// no changes are passed though, but that also means making an invalid
 		// config with computed values. In that case we just don't supply a
@@ -1247,6 +1311,7 @@ func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, sch
 
 		return ret, nil
 	}
+	log.Printf("[TRACE] processIgnoreChanges: Ignoring changes for %s at [%s]", n.Addr, strings.Join(keys, ", "))
 
 	if prior.IsNull() || config.IsNull() {
 		// Ignore changes doesn't apply when we're creating for the first time.
@@ -1261,36 +1326,49 @@ func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, sch
 
 // Convert the hcl.Traversal values we get form the configuration to the
 // cty.Path values we need to operate on the cty.Values
-func traversalsToPaths(traversals []hcl.Traversal) []cty.Path {
+func traversalsToPaths(traversals []hcl.Traversal) ([]cty.Path, []string) {
 	paths := make([]cty.Path, len(traversals))
+	keys := make([]string, len(traversals))
 	for i, traversal := range traversals {
-		path := traversalToPath(traversal)
+		path, key := traversalToPath(traversal)
 		paths[i] = path
+		keys[i] = key
 	}
-	return paths
+	return paths, keys
 }
 
-func traversalToPath(traversal hcl.Traversal) cty.Path {
+func traversalToPath(traversal hcl.Traversal) (cty.Path, string) {
 	path := make(cty.Path, len(traversal))
+	var key strings.Builder
 	for si, step := range traversal {
 		switch ts := step.(type) {
 		case hcl.TraverseRoot:
 			path[si] = cty.GetAttrStep{
 				Name: ts.Name,
 			}
+			key.WriteString(ts.Name)
 		case hcl.TraverseAttr:
 			path[si] = cty.GetAttrStep{
 				Name: ts.Name,
 			}
+			key.WriteString(".")
+			key.WriteString(ts.Name)
 		case hcl.TraverseIndex:
 			path[si] = cty.IndexStep{
 				Key: ts.Key,
+			}
+			if ts.Key.Type().IsPrimitiveType() {
+				key.WriteString("[")
+				key.WriteString(tfdiags.CompactValueStr(ts.Key))
+				key.WriteString("]")
+			} else {
+				key.WriteString("[...]")
 			}
 		default:
 			panic(fmt.Sprintf("unsupported traversal step %#v", step))
 		}
 	}
-	return path
+	return path, key.String()
 }
 
 func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChangesPath []cty.Path) (cty.Value, tfdiags.Diagnostics) {
@@ -1506,9 +1584,10 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 
 	var resp providers.ReadDataSourceResponse
 	if n.override != nil {
-		override, overrideDiags := mocking.ComputedValuesForDataSource(configVal, mocking.MockedData{
-			Value: n.override.Values,
-			Range: n.override.ValuesRange,
+		override, overrideDiags := mocking.ComputedValuesForDataSource(configVal, &mocking.MockedData{
+			Value:             n.override.Values,
+			Range:             n.override.Range,
+			ComputedAsUnknown: false,
 		}, schema)
 		resp = providers.ReadDataSourceResponse{
 			State:       override,
@@ -1516,12 +1595,10 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		}
 	} else {
 		resp = provider.ReadDataSource(providers.ReadDataSourceRequest{
-			TypeName:     n.Addr.ContainingResource().Resource.Type,
-			Config:       configVal,
-			ProviderMeta: metaConfigVal,
-			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
-			},
+			TypeName:           n.Addr.ContainingResource().Resource.Type,
+			Config:             configVal,
+			ProviderMeta:       metaConfigVal,
+			ClientCapabilities: ctx.ClientCapabilities(),
 		})
 
 		// If we don't support deferrals, but the provider reports a deferral and does not
@@ -2463,9 +2540,10 @@ func (n *NodeAbstractResourceInstance) apply(
 		// values the first time the object is created. Otherwise, we're happy
 		// to just apply whatever the user asked for.
 		if change.Action == plans.Create {
-			override, overrideDiags := mocking.ApplyComputedValuesForResource(unmarkedAfter, mocking.MockedData{
-				Value: n.override.Values,
-				Range: n.override.ValuesRange,
+			override, overrideDiags := mocking.ApplyComputedValuesForResource(unmarkedAfter, &mocking.MockedData{
+				Value:             n.override.Values,
+				Range:             n.override.Range,
+				ComputedAsUnknown: false,
 			}, schema)
 			resp = providers.ApplyResourceChangeResponse{
 				NewState:    override,
@@ -2541,6 +2619,24 @@ func (n *NodeAbstractResourceInstance) apply(
 		// Bail early in this particular case, because an object that doesn't
 		// conform to the schema can't be saved in the state anyway -- the
 		// serializer will reject it.
+		return nil, diags
+	}
+
+	// Providers are supposed to return null values for all write-only attributes
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
+		"Provider produced invalid object",
+		func(path cty.Path) string {
+			return fmt.Sprintf(
+				"Provider %q returned a value for the write-only attribute \"%s%s\" after apply. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider, n.Addr, tfdiags.FormatCtyPath(path),
+			)
+		},
+		newVal,
+		schema,
+	)
+	diags = diags.Append(writeOnlyDiags)
+
+	if writeOnlyDiags.HasErrors() {
 		return nil, diags
 	}
 
@@ -2720,7 +2816,7 @@ func resourceInstancePrevRunAddr(ctx EvalContext, currentAddr addrs.AbsResourceI
 	return table.OldAddr(currentAddr)
 }
 
-func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value, createBeforeDestroy bool, forceReplace []addrs.AbsResourceInstance, reqRep cty.PathSet) (action plans.Action, actionReason plans.ResourceInstanceChangeActionReason) {
+func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value, createBeforeDestroy bool, writeOnly cty.PathSet, forceReplace []addrs.AbsResourceInstance, reqRep cty.PathSet) (action plans.Action, actionReason plans.ResourceInstanceChangeActionReason) {
 	// The user might also ask us to force replacing a particular resource
 	// instance, regardless of whether the provider thinks it needs replacing.
 	// For example, users typically do this if they learn a particular object
@@ -2747,9 +2843,7 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 	switch {
 	case priorVal.IsNull():
 		action = plans.Create
-	case eq && !matchedForceReplace:
-		action = plans.NoOp
-	case matchedForceReplace || !reqRep.Empty():
+	case matchedForceReplace || !reqRep.Empty() || !writeOnly.Intersection(reqRep).Empty():
 		// If the user "forced replace" of this instance of if there are any
 		// "requires replace" paths left _after our filtering above_ then this
 		// is a replace action.
@@ -2764,6 +2858,8 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 		case !reqRep.Empty():
 			actionReason = plans.ResourceInstanceReplaceBecauseCannotUpdate
 		}
+	case eq && !matchedForceReplace:
+		action = plans.NoOp
 	default:
 		action = plans.Update
 		// "Delete" is never chosen here, because deletion plans are always
@@ -2787,7 +2883,7 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 // function. This function exposes nothing about the priorVal or plannedVal
 // except for the paths that require replacement which can be deduced from the
 // type with or without marks.
-func getRequiredReplaces(priorVal, plannedNewVal cty.Value, requiredReplaces []cty.Path, providerAddr tfaddr.Provider, addr addrs.AbsResourceInstance) (cty.PathSet, tfdiags.Diagnostics) {
+func getRequiredReplaces(priorVal, plannedNewVal cty.Value, writeOnly []cty.Path, requiredReplaces []cty.Path, providerAddr tfaddr.Provider, addr addrs.AbsResourceInstance) (cty.PathSet, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	reqRep := cty.NewPathSet()
@@ -2832,7 +2928,16 @@ func getRequiredReplaces(priorVal, plannedNewVal cty.Value, requiredReplaces []c
 			}
 
 			eqV := plannedChangedVal.Equals(priorChangedVal)
-			if !eqV.IsKnown() || eqV.False() {
+
+			// if attribute/path is writeOnly we have no values to compare
+			// but still respect the required replacement
+			isWriteOnly := false
+			for _, woPath := range writeOnly {
+				if path.Equals(woPath) {
+					isWriteOnly = true
+				}
+			}
+			if !eqV.IsKnown() || eqV.False() || isWriteOnly {
 				reqRep.Add(path)
 			}
 		}

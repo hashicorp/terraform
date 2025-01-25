@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -150,6 +151,24 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 	resp := move.targetProvider.MoveResourceState(request)
 	diags = diags.Append(resp.Diagnostics)
 	if resp.Diagnostics.HasErrors() {
+		return diags
+	}
+
+	// Providers are supposed to return null values for all write-only attributes
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
+		"Provider returned invalid value",
+		func(path cty.Path) string {
+			return fmt.Sprintf(
+				"The provider %q returned a value for the write-only attribute \"%s%s\" during an across type move operation to %s. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				move.targetProviderAddr, target, tfdiags.FormatCtyPath(path), target,
+			)
+		},
+		resp.TargetState,
+		move.targetResourceSchema,
+	)
+	diags = diags.Append(writeOnlyDiags)
+
+	if writeOnlyDiags.HasErrors() {
 		return diags
 	}
 

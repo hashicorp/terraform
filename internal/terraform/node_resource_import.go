@@ -8,9 +8,11 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type graphNodeImportState struct {
@@ -73,9 +75,16 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 	// Reset our states
 	n.states = nil
 
-	provider, _, err := getProvider(ctx, n.ResolvedProvider)
+	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
+		return diags
+	}
+
+	schema, _ := providerSchema.SchemaForResourceType(n.Addr.Resource.Resource.Mode, n.Addr.Resource.Resource.Type)
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Resource.Type))
 		return diags
 	}
 
@@ -95,14 +104,33 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 	}
 
 	resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
-		TypeName: n.Addr.Resource.Resource.Type,
-		ID:       n.ID,
-		ClientCapabilities: providers.ClientCapabilities{
-			DeferralAllowed: false,
-		},
+		TypeName:           n.Addr.Resource.Resource.Type,
+		ID:                 n.ID,
+		ClientCapabilities: ctx.ClientCapabilities(),
 	})
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
+		return diags
+	}
+
+	// Providers are supposed to return null values for all write-only attributes
+	var writeOnlyDiags tfdiags.Diagnostics
+	for _, imported := range resp.ImportedResources {
+		writeOnlyDiags = ephemeral.ValidateWriteOnlyAttributes(
+			"Import returned a non-null value for a write-only attribute",
+			func(path cty.Path) string {
+				return fmt.Sprintf(
+					"Provider %q returned a value for the write-only attribute \"%s%s\" during import. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider, n.Addr, tfdiags.FormatCtyPath(path),
+				)
+			},
+			imported.State,
+			schema,
+		)
+		diags = diags.Append(writeOnlyDiags)
+	}
+
+	if writeOnlyDiags.HasErrors() {
 		return diags
 	}
 

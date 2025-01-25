@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'jsondecode(...): improved error message when objects contain duplicate keys'
+time: 2025-01-22T11:00:52.861759+01:00
+custom:
+    Issue: "36376"

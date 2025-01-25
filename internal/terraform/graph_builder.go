@@ -27,6 +27,10 @@ type BasicGraphBuilder struct {
 	Steps []GraphTransformer
 	// Optional name to add to the graph debug log
 	Name string
+
+	// SkipGraphValidation indicates whether the graph validation (enabled by default)
+	// should be skipped after the graph is built.
+	SkipGraphValidation bool
 }
 
 func (b *BasicGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
@@ -56,6 +60,13 @@ func (b *BasicGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Di
 				return g, diags
 			}
 		}
+	}
+
+	// Return early if the graph validation is skipped
+	// This behavior is currently only used by the graph command
+	// which only wants to display the dot representation of the graph
+	if b.SkipGraphValidation {
+		return g, diags
 	}
 
 	if err := g.Validate(); err != nil {

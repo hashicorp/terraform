@@ -129,7 +129,7 @@ func (t *DestroyEdgeTransformer) tryInterProviderDestroyEdge(g *Graph, from, to 
 	// Check for cycles, and back out the edge if there are any.
 	// The cycles we are looking for only appears between providers, so don't
 	// waste time checking for cycles if both nodes use the same provider.
-	if fromProvider != toProvider && len(g.Cycles()) > 0 {
+	if fromProvider != toProvider && g.Ancestors(to).Include(from) {
 		log.Printf("[DEBUG] DestroyEdgeTransformer: skipping inter-provider edge %s->%s which creates a cycle",
 			dag.VertexName(from), dag.VertexName(to))
 		g.RemoveEdge(e)

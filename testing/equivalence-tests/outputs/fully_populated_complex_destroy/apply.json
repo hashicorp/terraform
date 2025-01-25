@@ -90,11 +90,9 @@
   },
   {
     "@level": "info",
-    "@message": "tfcoremock_complex_resource.complex: Destruction complete after 0s",
     "@module": "terraform.ui",
     "hook": {
       "action": "delete",
-      "elapsed_seconds": 0,
       "resource": {
         "addr": "tfcoremock_complex_resource.complex",
         "implied_provider": "tfcoremock",

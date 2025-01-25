@@ -1,17 +1,18 @@
 ---
-page_title: 'Internals: Machine-Readable UI'
+page_title: Machine-readable output reference
 description: >-
-  Terraform provides a machine-readable streaming JSON UI output for plan,
-  apply, and refresh operations.
+  Terraform streams machine-readable output in JSON format, letting you use third-party tools to monitor operations.
 ---
 
-# Machine-Readable UI
+# Machine-readable UI Output Reference
 
--> **Note:** This format is available in Terraform 0.15.3 and later.
+This topic provides reference information about the machine-readable output Terraform prints. 
 
-By default, many Terraform commands display UI output as unstructured text, intended to be read by a user via a terminal emulator. This text stream is not a stable interface for integrations. Some commands support a `-json` flag, which enables a structured JSON output mode with a defined interface.
+## Introduction
 
-For long-running commands such as `plan`, `apply`, `refresh`, and `test`, the `-json` flag outputs a stream of JSON UI messages, one per line. These can be processed one message at a time, with integrating software filtering, combining, or modifying the output as desired.
+By default, many Terraform commands display UI output as unstructured text that is intended to be read in a terminal emulator. This text stream is not a stable interface for integrations. Some commands support a `-json` flag, which enables a structured JSON output mode with a defined interface.
+
+For long-running commands such as `plan`, `apply`, `refresh`, and `test`, the `-json` flag outputs a stream of JSON UI messages. The ouptut messages appear one per line so that you can process the messages by integrating software filtering, combining, or modifying the output as desired.
 
 The first message output has type `version`, and includes a `ui` key, which as of Terraform 1.1.0 has
 value `"1.0"`. The semantics of this version are:
@@ -23,8 +24,8 @@ value `"1.0"`. The semantics of this version are:
   backward-compatible. Reject any input which reports an unsupported major
   version.
 
-We will introduce new major versions only within the bounds of
-[the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
+Refer to 
+[Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises) for additional information.
 
 ## Sample JSON Output
 

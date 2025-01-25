@@ -110,6 +110,12 @@ func TestConvertSchemaBlocks(t *testing.T) {
 												Type:     []byte(`"number"`),
 												Required: true,
 											},
+											{
+												Name:      "write_only",
+												Type:      []byte(`"string"`),
+												Optional:  true,
+												WriteOnly: true,
+											},
 										},
 									},
 									Computed: true,
@@ -229,6 +235,11 @@ func TestConvertSchemaBlocks(t *testing.T) {
 											"required": {
 												Type:     cty.Number,
 												Required: true,
+											},
+											"write_only": {
+												Type:      cty.String,
+												Optional:  true,
+												WriteOnly: true,
 											},
 										},
 									},
@@ -411,6 +422,25 @@ func TestConvertProtoSchemaBlocks(t *testing.T) {
 						Computed: true,
 					},
 					{
+						Name: "object",
+						NestedType: &proto.Schema_Object{
+							Nesting: proto.Schema_Object_SINGLE,
+							Attributes: []*proto.Schema_Attribute{
+								{
+									Name:     "optional",
+									Type:     []byte(`"string"`),
+									Optional: true,
+								},
+								{
+									Name:      "write_only",
+									Type:      []byte(`"string"`),
+									Optional:  true,
+									WriteOnly: true,
+								},
+							},
+						},
+					},
+					{
 						Name:     "optional",
 						Type:     []byte(`"string"`),
 						Optional: true,
@@ -426,6 +456,12 @@ func TestConvertProtoSchemaBlocks(t *testing.T) {
 						Type:     []byte(`"number"`),
 						Required: true,
 					},
+					{
+						Name:      "write_only",
+						Type:      []byte(`"string"`),
+						Optional:  true,
+						WriteOnly: true,
+					},
 				},
 			},
 			&configschema.Block{
@@ -433,6 +469,22 @@ func TestConvertProtoSchemaBlocks(t *testing.T) {
 					"computed": {
 						Type:     cty.List(cty.Bool),
 						Computed: true,
+					},
+					"object": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"optional": {
+									Type:     cty.String,
+									Optional: true,
+								},
+								"write_only": {
+									Type:      cty.String,
+									Optional:  true,
+									WriteOnly: true,
+								},
+							},
+						},
 					},
 					"optional": {
 						Type:     cty.String,
@@ -446,6 +498,11 @@ func TestConvertProtoSchemaBlocks(t *testing.T) {
 					"required": {
 						Type:     cty.Number,
 						Required: true,
+					},
+					"write_only": {
+						Type:      cty.String,
+						Optional:  true,
+						WriteOnly: true,
 					},
 				},
 			},

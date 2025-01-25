@@ -1025,6 +1025,139 @@ func TestApplyDestroy(t *testing.T) {
 				},
 			},
 		},
+		"destroy after manual removal": {
+			path: "removed-offline",
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.parent")).
+					AddDependent(mustAbsComponent("component.child")).
+					AddOutputValue("value", cty.StringVal("hello"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.parent.testing_resource.resource")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "parent",
+							"value": "hello",
+						}),
+						Status: states.ObjectReady,
+					})).
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.child")).
+					AddDependency(mustAbsComponent("component.parent")).
+					AddInputVariable("value", cty.StringVal("hello"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.child.testing_resource.resource")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "child",
+							"value": "hello",
+						}),
+						Status: states.ObjectReady,
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("child", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("child"),
+					"value": cty.StringVal("hello"),
+				})).Build(),
+			cycles: []TestCycle{
+				{
+					planMode: plans.DestroyMode,
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:               mustAbsComponentInstance("component.child"),
+							Action:             plans.Delete,
+							Mode:               plans.DestroyMode,
+							PlanComplete:       true,
+							PlanApplyable:      true,
+							RequiredComponents: collections.NewSet(mustAbsComponent("component.parent")),
+							PlannedInputValues: map[string]plans.DynamicValue{
+								"value": mustPlanDynamicValueDynamicType(cty.UnknownVal(cty.String)),
+							},
+							PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+								"value": nil,
+							},
+							PlannedOutputValues: make(map[string]cty.Value),
+							PlannedCheckResults: &states.CheckResults{},
+							PlanTimestamp:       fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.child.testing_resource.resource"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("testing_resource.resource"),
+								PrevRunAddr:  mustAbsResourceInstance("testing_resource.resource"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Delete,
+									Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":    cty.StringVal("child"),
+										"value": cty.StringVal("hello"),
+									})),
+									After: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+										"id":    cty.String,
+										"value": cty.String,
+									}))),
+								},
+							},
+							PriorStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":    "child",
+									"value": "hello",
+								}),
+								Status:       states.ObjectReady,
+								Dependencies: make([]addrs.ConfigResource, 0),
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:               mustAbsComponentInstance("component.parent"),
+							Action:             plans.Delete,
+							Mode:               plans.DestroyMode,
+							PlanComplete:       true,
+							PlanApplyable:      false,
+							PlannedInputValues: make(map[string]plans.DynamicValue),
+							PlannedOutputValues: map[string]cty.Value{
+								"value": cty.DynamicVal,
+							},
+							PlannedCheckResults: &states.CheckResults{},
+							PlanTimestamp:       fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.resource"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.child"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.child"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.child.testing_resource.resource"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+						},
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.parent"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.parent"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.resource"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+						},
+					},
+				},
+			},
+		},
 		"partial destroy recovery": {
 			path:        "component-chain",
 			description: "this test simulates a partial destroy recovery",
@@ -1181,6 +1314,159 @@ func TestApplyDestroy(t *testing.T) {
 						},
 						&stackstate.AppliedChangeInputVariable{
 							Addr: mustStackInputVariable("value"),
+						},
+					},
+				},
+			},
+		},
+		"destroy-partial-state": {
+			path: "destroy-partial-state",
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.parent")).
+					AddDependent(mustAbsComponent("component.child"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.parent.testing_resource.primary")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id": "primary",
+						}),
+						Status: states.ObjectReady,
+					})).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.parent.testing_resource.secondary")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "secondary",
+							"value": "primary",
+						}),
+						Status: states.ObjectReady,
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("primary", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("primary"),
+					"value": cty.NullVal(cty.String),
+				})).
+				AddResource("secondary", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("secondary"),
+					"value": cty.StringVal("primary"),
+				})).
+				Build(),
+			cycles: []TestCycle{
+				{
+					planMode: plans.DestroyMode,
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:                mustAbsComponentInstance("component.child"),
+							Action:              plans.Delete,
+							Mode:                plans.DestroyMode,
+							PlanApplyable:       true,
+							PlanComplete:        true,
+							RequiredComponents:  collections.NewSet(mustAbsComponent("component.parent")),
+							PlannedOutputValues: make(map[string]cty.Value),
+							PlanTimestamp:       fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:               mustAbsComponentInstance("component.parent"),
+							Action:             plans.Delete,
+							Mode:               plans.DestroyMode,
+							PlanApplyable:      true,
+							PlanComplete:       true,
+							PlannedInputValues: make(map[string]plans.DynamicValue),
+							PlannedOutputValues: map[string]cty.Value{
+								"deleted_id": cty.DynamicVal,
+							},
+							PlannedCheckResults: &states.CheckResults{},
+							PlanTimestamp:       fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.primary"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("testing_resource.primary"),
+								PrevRunAddr:  mustAbsResourceInstance("testing_resource.primary"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Delete,
+									Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":    cty.StringVal("primary"),
+										"value": cty.NullVal(cty.String),
+									})),
+									After: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+										"id":    cty.String,
+										"value": cty.String,
+									}))),
+								},
+							},
+							PriorStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":    "primary",
+									"value": nil,
+								}),
+								Status:       states.ObjectReady,
+								Dependencies: make([]addrs.ConfigResource, 0),
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						&stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.secondary"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("testing_resource.secondary"),
+								PrevRunAddr:  mustAbsResourceInstance("testing_resource.secondary"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Delete,
+									Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":    cty.StringVal("secondary"),
+										"value": cty.StringVal("primary"),
+									})),
+									After: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+										"id":    cty.String,
+										"value": cty.String,
+									}))),
+								},
+							},
+							PriorStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":    "secondary",
+									"value": "primary",
+								}),
+								Status: states.ObjectReady,
+								Dependencies: []addrs.ConfigResource{
+									mustAbsResourceInstance("testing_resource.primary").ConfigResource(),
+								},
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.child"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.child"),
+						},
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.parent"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.parent"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.primary"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.secondary"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
 						},
 					},
 				},

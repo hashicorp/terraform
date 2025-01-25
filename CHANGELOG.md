@@ -1,8 +1,4 @@
-## 1.11.0 (Unreleased)
-
-ENHANCEMENTS:
-
-- `init`: Provider installation will utilise credentials configured in a `.netrc` file for the download and shasum URLs returned by provider registries. ([https://github.com/hashicorp/terraform/pull/35843](35843))
+## 1.12.0 (Unreleased)
 
 EXPERIMENTS:
 
@@ -16,6 +12,7 @@ Experiments are only enabled in alpha releases of Terraform CLI. The following f
 
 For information on prior major and minor releases, refer to their changelogs:
 
+- [v1.11](https://github.com/hashicorp/terraform/blob/v1.11/CHANGELOG.md)
 - [v1.10](https://github.com/hashicorp/terraform/blob/v1.10/CHANGELOG.md)
 - [v1.9](https://github.com/hashicorp/terraform/blob/v1.9/CHANGELOG.md)
 - [v1.8](https://github.com/hashicorp/terraform/blob/v1.8/CHANGELOG.md)

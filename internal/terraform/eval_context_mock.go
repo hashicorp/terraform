@@ -424,3 +424,10 @@ func (c *MockEvalContext) Forget() bool {
 	c.ForgetCalled = true
 	return c.ForgetValues
 }
+
+func (ctx *MockEvalContext) ClientCapabilities() providers.ClientCapabilities {
+	return providers.ClientCapabilities{
+		DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
+		WriteOnlyAttributesAllowed: true,
+	}
+}

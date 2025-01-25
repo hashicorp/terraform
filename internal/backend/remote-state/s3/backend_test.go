@@ -362,7 +362,7 @@ func TestBackendConfig_InvalidRegion(t *testing.T) {
 			confDiags := b.Configure(configSchema)
 			diags = diags.Append(confDiags)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -528,7 +528,7 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -660,7 +660,7 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 
 			_, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -783,7 +783,7 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -943,7 +943,7 @@ func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -1409,6 +1409,22 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				),
 			},
 		},
+
+		"dynamodb_table deprecation": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket":         cty.StringVal("test"),
+				"key":            cty.StringVal("test"),
+				"region":         cty.StringVal("us-west-2"),
+				"dynamodb_table": cty.StringVal("test"),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				attributeWarningDiag(
+					"Deprecated Parameter",
+					`The parameter "dynamodb_table" is deprecated. Use parameter "use_lockfile" instead.`,
+					cty.GetAttrPath("dynamodb_table"),
+				),
+			},
+		},
 	}
 
 	for name, tc := range cases {
@@ -1419,7 +1435,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 
 			_, valDiags := b.PrepareConfig(populateSchema(t, b.ConfigSchema(), tc.config))
 
-			if diff := cmp.Diff(valDiags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(valDiags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -1919,7 +1935,7 @@ func TestBackendConfig_Proxy(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -2483,7 +2499,7 @@ func TestBackendConfigKmsKeyId(t *testing.T) {
 				diags = diags.Append(confDiags)
 			}
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Fatalf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -2613,7 +2629,7 @@ func TestBackendSSECustomerKey(t *testing.T) {
 				diags = diags.Append(confDiags)
 			}
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Fatalf("unexpected diagnostics difference: %s", diff)
 			}
 
@@ -3267,7 +3283,7 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 			var diags tfdiags.Diagnostics
 			validateNestedAttribute(assumeRoleSchema, config, path, &diags)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})

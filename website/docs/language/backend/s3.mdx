@@ -1,14 +1,12 @@
 ---
 page_title: 'Backend Type: s3'
-description: Terraform can store state remotely in S3 and lock that state with DynamoDB.
+description: Terraform can store and lock state remotely in Amazon S3.
 ---
 
 # S3
 
 Stores the state as a given key in a given bucket on [Amazon S3](https://aws.amazon.com/s3/).
-This backend also supports state locking and consistency checking via [Dynamo DB](https://aws.amazon.com/dynamodb/), which can be enabled by setting the `dynamodb_table` field to an existing DynamoDB table name.
-A single DynamoDB table can be used to lock multiple remote state files.
-Terraform generates key names that include the values of the `bucket` and `key` variables.
+This backend also supports state locking which can be enabled by setting the `use_lockfile` argument to `true`.
 
 ~> **Warning!** It is highly recommended that you enable
 [Bucket Versioning](https://docs.aws.amazon.com/AmazonS3/latest/userguide/manage-versioning-examples.html)
@@ -19,8 +17,8 @@ on the S3 bucket to allow for state recovery in the case of accidental deletions
 ```hcl
 terraform {
   backend "s3" {
-    bucket = "example-bucket"
-    key    = "path/to/state"
+    bucket = "mybucket"
+    key    = "path/to/my/key"
     region = "us-east-1"
   }
 }
@@ -40,6 +38,26 @@ Other workspaces are stored using the path `<workspace_key_prefix>/<workspace_na
 The default workspace key prefix is `env:` and it can be configured using the parameter `workspace_key_prefix`.
 Using the example above, the state for the workspace `development` would be stored at the path `env:/development/path/to/my/key`.
 
+
+### State Locking
+
+State locking is an opt-in feature of the S3 backend.
+
+Locking can be enabled via S3 or DynamoDB. However, **DynamoDB-based locking is deprecated** and will be removed in a future minor version. To support migration from older versions of Terraform that only support DynamoDB-based locking, the S3 and DynamoDB arguments can be configured simultaneously.
+
+#### Enabling S3 State Locking
+
+To enable S3 state locking, use the following optional argument:
+
+- `use_lockfile` - (Optional) Whether to use a lockfile for locking the state file. Defaults to `false`.
+
+#### Enabling DynamoDB State Locking (Deprecated)
+
+To enable DynamoDB state locking, use the following optional arguments:
+
+- `dynamodb_endpoint` - (Optional, **Deprecated**) Custom endpoint URL for the AWS DynamoDB API. Use `endpoints.dynamodb` instead.
+- `dynamodb_table` - (Optional, **Deprecated**) Name of the DynamoDB Table to use for state locking and consistency. The table must have a partition key named `LockID` with a type of `String`.
+
 ## Permissions Required
 
 ### S3 Bucket Permissions
@@ -47,10 +65,14 @@ Using the example above, the state for the workspace `development` would be stor
 When not using [workspaces](/terraform/language/state/workspaces)(or when only using the `default` workspace), Terraform will need the following AWS IAM permissions on the target backend bucket:
 
 * `s3:ListBucket` on `arn:aws:s3:::mybucket`. At a minimum, this must be able to list the path where the state is stored.
-* `s3:GetObject` on `arn:aws:s3:::mybucket/path/to/my/key` and `arn:aws:s3:::mybucket/path/to/my/key.tflock`
-* `s3:PutObject` on `arn:aws:s3:::mybucket/path/to/my/key` and `arn:aws:s3:::mybucket/path/to/my/key.tflock`
+* `s3:GetObject` on `arn:aws:s3:::mybucket/path/to/my/key`
+* `s3:PutObject` on `arn:aws:s3:::mybucket/path/to/my/key`
 
-Note: `s3:DeleteObject` is not needed, as Terraform will not delete the state storage.
+-> **Note:** If `use_lockfile` is set, `s3:GetObject`, `s3:PutObject`,
+and `s3:DeleteObject` are required on the lock file, e.g.,
+`arn:aws:s3:::mybucket/path/to/my/key.tflock`.
+
+-> **Note:** `s3:DeleteObject` is not required on the state file, as Terraform does not delete it.
 
 This is seen in the following AWS IAM Statement:
 
@@ -61,13 +83,24 @@ This is seen in the following AWS IAM Statement:
     {
       "Effect": "Allow",
       "Action": "s3:ListBucket",
-      "Resource": "arn:aws:s3:::mybucket"
+      "Resource": "arn:aws:s3:::mybucket",
+      "Condition": {
+        "StringEquals": {
+          "s3:prefix": "mybucket/path/to/my/key"
+        }
+      }
     },
     {
       "Effect": "Allow",
       "Action": ["s3:GetObject", "s3:PutObject"],
       "Resource": [
-        "arn:aws:s3:::mybucket/path/to/my/key",
+        "arn:aws:s3:::mybucket/path/to/my/key"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": [
         "arn:aws:s3:::mybucket/path/to/my/key.tflock"
       ]
     }
@@ -75,12 +108,16 @@ This is seen in the following AWS IAM Statement:
 }
 ```
 
-When using [workspaces](/terraform/language/state/workspaces), Terraform will also need permissions to create, list, read, update, and delete the workspace state storage:
+When using [workspaces](/terraform/language/state/workspaces), Terraform will also need permissions to create, list, read, update, and delete the workspace state file:
 
 * `s3:ListBucket` on `arn:aws:s3:::mybucket`. At a minumum, this must be able to list the path where the `default` workspace is stored as well as the other workspaces.
-* `s3:GetObject` on `arn:aws:s3:::mybucket/path/to/my/key`, `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key` and `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key.tflock`
-* `s3:PutObject` on `arn:aws:s3:::mybucket/path/to/my/key`, `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key` and `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key.tflock`
-* `s3:DeleteObject` on `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key` and `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key.tflock`
+* `s3:GetObject` on `arn:aws:s3:::mybucket/path/to/my/key`, `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key`
+* `s3:PutObject` on `arn:aws:s3:::mybucket/path/to/my/key`, `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key`
+* `s3:DeleteObject` on `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key`
+
+-> **Note:** If `use_lockfile` is set, `s3:GetObject`, `s3:PutObject`,
+and `s3:DeleteObject` are required on the lock file, e.g.,
+`arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key.tflock`.
 
 -> **Note:** AWS can control access to S3 buckets with either IAM policies
 attached to users/groups/roles (like the example above) or resource policies
@@ -91,7 +128,7 @@ documentation about
 
 ### DynamoDB Table Permissions
 
-If you are using state locking, Terraform will need the following AWS IAM
+If you are using the deprecated DynamoDB-based locking mechanism, Terraform will need the following AWS IAM
 permissions on the DynamoDB table (`arn:aws:dynamodb:::table/mytable`):
 
 * `dynamodb:DescribeTable`
@@ -157,7 +194,7 @@ data.terraform_remote_state.network:
 
 ## Configuration
 
-This backend requires the configuration of the AWS Region and S3 state storage. Other configuration, such as enabling DynamoDB state locking, is optional.
+This backend requires the configuration of the AWS Region and S3 state storage. Other configuration, such as enabling state locking, is optional.
 
 ### Credentials and Shared Configuration
 
@@ -169,7 +206,7 @@ The following configuration is required:
 
 The following configuration is optional:
 
-* `use_lockfile` - (Experimental, Optional) Whether to use a lockfile for locking the state file. Defaults to `false`.
+* `use_lockfile` - (Optional) Whether to use a lockfile for locking the state file. Defaults to `false`.
 * `access_key` - (Optional) AWS access key. If configured, must also configure `secret_key`. This can also be sourced from the `AWS_ACCESS_KEY_ID` environment variable, AWS shared credentials file (e.g. `~/.aws/credentials`), or AWS shared configuration file (e.g. `~/.aws/config`).
 * `allowed_account_ids` - (Optional) List of allowed AWS account IDs to prevent potential destruction of a live environment. Conflicts with `forbidden_account_ids`.
 * `custom_ca_bundle` - (Optional) File containing custom root and intermediate certificates. Can also be set using the `AWS_CA_BUNDLE` environment variable. Setting ca_bundle in the shared config file is not supported.
@@ -220,7 +257,7 @@ The following configuration is optional:
 
 The optional argument `endpoints` contains the following arguments:
 
-* `dynamodb` - (Optional) Custom endpoint URL for the AWS DynamoDB API.
+* `dynamodb` - (Optional, **Deprecated**) Custom endpoint URL for the AWS DynamoDB API.
   This can also be sourced from the environment variable `AWS_ENDPOINT_URL_DYNAMODB` or the deprecated environment variable `AWS_DYNAMODB_ENDPOINT`.
 * `iam` - (Optional) Custom endpoint URL for the AWS IAM API.
   This can also be sourced from the environment variable `AWS_ENDPOINT_URL_IAM` or the deprecated environment variable `AWS_IAM_ENDPOINT`.
@@ -325,24 +362,6 @@ The following configuration is optional:
 * `use_path_style` - (Optional) Enable path-style S3 URLs (`https://<HOST>/<BUCKET>` instead of `https://<BUCKET>.<HOST>`).
 * `workspace_key_prefix` - (Optional) Prefix applied to the state path inside the bucket. This is only relevant when using a non-default workspace. Defaults to `env:`.
 
-### State Locking
-
-State locking is an opt-in feature of the S3 backend.
-
-Locking can be enabled via an S3 "lockfile" (introduced as **experimental** in Terraform 1.10) or DynamoDB.
-To support migration from older versions of Terraform which only support DynamoDB-based locking, the S3 and DynamoDB arguments below can be configured simultaneously.
-In a future minor version the DynamoDB locking mechanism will be removed.
-
-To enable S3 state locking, use the following optional argument:
-
-* `use_lockfile` - (Optional, Experimental) Whether to use a lockfile for locking the state file. Defaults to `false`.
-
-To enable DynamoDB state locking, use the following optional arguments:
-
-* `dynamodb_endpoint` - (Optional, **Deprecated**) Custom endpoint URL for the AWS DynamoDB API.
-  Use `endpoints.dynamodb` instead.
-* `dynamodb_table` - (Optional) Name of DynamoDB Table to use for state locking and consistency. The table must have a partition key named `LockID` with type of `String`.
-
 ## Multi-account AWS Architecture
 
 A common architectural pattern is for an organization to use a number of
@@ -389,15 +408,11 @@ Your administrative AWS account will contain at least the following items:
   levels of access to the other AWS accounts.
 * An [S3 bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingBucket.html)
   that will contain the Terraform state files for each workspace.
-* A [DynamoDB table](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.CoreComponents.html#HowItWorks.CoreComponents.TablesItemsAttributes)
-  that will be used for locking to prevent concurrent operations on a single
-  workspace.
 
-Provide the S3 bucket name and DynamoDB table name to Terraform within the
-S3 backend configuration using the `bucket` and `dynamodb_table` arguments
-respectively, and configure a suitable `workspace_key_prefix` to contain
-the states of the various workspaces that will subsequently be created for
-this configuration.
+Provide the S3 bucket name to Terraform in the S3 backend configuration 
+using the `bucket` argument. Set `use_lockfile` to true to enable state locking.
+Configure a suitable `workspace_key_prefix` to manage states of workspaces that
+will be created for this configuration.
 
 ### Environment Account Setup
 
@@ -526,12 +541,14 @@ services, such as ECS.
 
 ### Protecting Access to Workspace State
 
-In a simple implementation of the pattern described in the prior sections,
-all users have access to read and write states for all workspaces. In many
-cases it is desirable to apply more precise access constraints to the
-Terraform state objects in S3, so that for example only trusted administrators
-are allowed to modify the production state, or to control _reading_ of a state
-that contains sensitive information.
+In a simple implementation of the pattern described earlier,  
+all users can read and write states for all workspaces.  
+In many cases, it is desirable to apply precise access controls  
+to the Terraform state objects stored in S3. For example, only  
+trusted administrators should modify the production state.  
+It is also important to control access to _reading_ the state file.  
+If state locking is enabled, the lock file (`<key>.tflock`)  
+must also be included in the access controls.  
 
 Amazon S3 supports fine-grained access control on a per-object-path basis
 using IAM policy. A full description of S3's access control mechanism is
@@ -555,70 +572,34 @@ to only a single state object within an S3 bucket is shown below:
     {
       "Effect": "Allow",
       "Action": ["s3:GetObject", "s3:PutObject"],
-      "Resource": "arn:aws:s3:::example-bucket/myapp/production/tfstate"
-    }
-  ]
-}
-```
-
-The example backend configuration below documents the corresponding `bucket` and `key` arguments:
-
-```hcl
-terraform {
-  backend "s3" {
-    bucket = "example-bucket"
-    key    = "path/to/state"
-    region = "us-east-1"
-  }
-}
-```
-
-Refer to the [AWS documentation on S3 access control](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-access-control.html) for more details.
-
-DynamoDB does not assign a separate resource ARN to each key in a table, but you can write more precise policies for a DynamoDB table [using an IAM `Condition` element](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/specifying-conditions.html).
-For example, you can use the `dynamodb:LeadingKeys` condition key to match on the partition key values that the S3 backend will use:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
+      "Resource": [
+        "arn:aws:s3:::example-bucket/myapp/production/tfstate",
+      ]
+    },
     {
       "Effect": "Allow",
-      "Action": [
-        "dynamodb:DeleteItem",
-        "dynamodb:GetItem",
-        "dynamodb:PutItem"
-      ],
-      "Resource": "arn:aws:dynamodb:us-east-1:12341234:table/example-table",
-      "Condition": {
-        "ForAllValues:StringEquals": {
-          "dynamodb:LeadingKeys": [
-            "example-bucket/path/to/state",
-            "example-bucket/path/to/state-md5"
-          ]
-        }
-      }
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": [
+        "arn:aws:s3:::example-bucket/myapp/production/tfstate.tflock"
+      ]
     }
   ]
 }
 ```
 
-Note that DynamoDB ARNs are regional and account-specific, unlike S3 bucket ARNs, so you must also specify the correct region and AWS account ID for your DynamoDB table in the `Resource` element.
-
-The example backend configuration below documents the corresponding arguments:
+The example backend configuration below documents the corresponding `bucket`, `key` and `use_lockfile` arguments:
 
 ```hcl
 terraform {
   backend "s3" {
-    bucket         = "example-bucket"
-    key            = "path/to/state"
-    region         = "us-east-1"
-    dynamodb_table = "example-table"
+    bucket       = "example-bucket"
+    key          = "path/to/state"
+    use_lockfile = true
+    region       = "us-east-1"
   }
 }
 ```
-
-Refer to the [AWS documentation on DynamoDB fine-grained locking](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/specifying-conditions.html) for more details.
+Refer to the [AWS documentation on S3 access control](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-access-control.html) for more details.
 
 ### Configuring Custom User-Agent Information
 

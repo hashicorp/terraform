@@ -256,11 +256,9 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 			}
 
 			resp := client.ConfigureProvider(providers.ConfigureProviderRequest{
-				TerraformVersion: version.SemVer.String(),
-				Config:           unmarkedArgs,
-				ClientCapabilities: providers.ClientCapabilities{
-					DeferralAllowed: true,
-				},
+				TerraformVersion:   version.SemVer.String(),
+				Config:             unmarkedArgs,
+				ClientCapabilities: ClientCapabilities(),
 			})
 			diags = diags.Append(resp.Diagnostics)
 			if resp.Diagnostics.HasErrors() {

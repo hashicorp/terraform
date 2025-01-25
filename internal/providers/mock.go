@@ -182,7 +182,18 @@ func (m *Mock) PlanResourceChange(request PlanResourceChangeRequest) PlanResourc
 			panic(fmt.Errorf("failed to retrieve schema for resource %s", request.TypeName))
 		}
 
-		value, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, resource.Block)
+		replacement := &mocking.MockedData{
+			Value:             cty.NilVal, // If we have no data then we use cty.NilVal.
+			ComputedAsUnknown: true,
+		}
+		// if we are allowed to use the mock defaults for plan, we can populate the computed fields with the mock defaults.
+		if mockedResource, exists := m.Data.MockResources[request.TypeName]; exists && mockedResource.UseForPlan {
+			replacement.Value = mockedResource.Defaults
+			replacement.Range = mockedResource.DefaultsRange
+			replacement.ComputedAsUnknown = false
+		}
+
+		value, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, replacement, resource.Block)
 		response.Diagnostics = response.Diagnostics.Append(diags)
 		response.PlannedState = value
 		response.PlannedPrivate = []byte("create")
@@ -220,7 +231,7 @@ func (m *Mock) ApplyResourceChange(request ApplyResourceChangeRequest) ApplyReso
 			panic(fmt.Errorf("failed to retrieve schema for resource %s", request.TypeName))
 		}
 
-		replacement := mocking.MockedData{
+		replacement := &mocking.MockedData{
 			Value: cty.NilVal, // If we have no data then we use cty.NilVal.
 		}
 		if mockedResource, exists := m.Data.MockResources[request.TypeName]; exists {
@@ -275,7 +286,7 @@ func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceRespo
 		panic(fmt.Errorf("failed to retrieve schema for data source %s", request.TypeName))
 	}
 
-	mockedData := mocking.MockedData{
+	mockedData := &mocking.MockedData{
 		Value: cty.NilVal, // If we have no mocked data we use cty.NilVal.
 	}
 	if mockedDataSource, exists := m.Data.MockDataSources[request.TypeName]; exists {

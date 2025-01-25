@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?><testsuites>
+  <testsuite name="main.tftest.hcl" tests="2" skipped="0" failures="1" errors="0">
+    <testcase name="failing_assertion" classname="main.tftest.hcl" time="TIME_REDACTED" timestamp="TIMESTAMP_REDACTED">
+      <failure message="1 of 3 assertions failed: local variable &#39;number&#39; has a value greater than zero, so assertion 2 will fail"><![CDATA[
+Error: Test assertion failed
+
+  on main.tftest.hcl line 7, in run "failing_assertion":
+   7:     condition     = local.number < 0
+    ├────────────────
+    │ local.number is 10
+
+local variable 'number' has a value greater than zero, so assertion 2 will fail
+]]></failure>
+    </testcase>
+    <testcase name="passing_assertion" classname="main.tftest.hcl" time="TIME_REDACTED" timestamp="TIMESTAMP_REDACTED"></testcase>
+  </testsuite>
+</testsuites>

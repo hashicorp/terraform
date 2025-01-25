@@ -1,20 +1,22 @@
 ---
-page_title: 'Command: test'
+page_title: terraform test command reference
 description: >-
   The `terraform test` command loads and executes Terraform testing files.
 ---
 
-# Command: test
+# `terraform test` command
 
-The `terraform test` command reads in Terraform testing files and executes the tests within.
+The `terraform test` command loads and exectures Terraform testing files.
 
-The `test` command, and the test file syntax, are particularly helpful for module authors who want to validate and test their shared modules. You can also use the `test` command to validate root modules.
+## Introduction
+
+The `terraform test` command and the test file syntax help module authors validate and test their shared modules. You can also use the `terraform test` command to validate root modules.
 
 ## Usage
 
 Usage: `terraform test [options]`
 
-This command searches the current directory and the specified testing directory (`tests`, by default) for any Terraform testing files, and executes the specified tests. Refer to [Tests](/terraform/language/tests) for more details on test files.
+This command searches the current directory and the specified testing directory for Terraform testing files and executes the specified tests. By default, the directory containing test files is named `tests`. Refer to [Tests](/terraform/language/tests) for more details on test files.
 
 Terraform then executes a series of Terraform plan or apply commands according to the test files' specifications, and also validates the relevant plan and state files according to the test files' specifications.
 
@@ -22,13 +24,15 @@ Terraform then executes a series of Terraform plan or apply commands according t
 
 ## General Options
 
-The following options apply to the Terraform `test` command:
+The following options apply to the Terraform `terraform test` command:
 
 * `-cloud-run=<module source>` - This test run executes remotely on HCP Terraform within the specified Terraform [private registry](/terraform/language/modules/sources#terraform-registry) module.
 
 * `-filter=testfile` - Limits the `terraform test` operation to the specified test files.
 
 * `-json` - Displays machine-readable JSON output for your testing results.
+
+* `-junit-xml=<output file path>` - Saves a test report in JUnit XML format to the specified file. This is currently incompatible with remote test execution using the the `-cloud-run` option. The file path must be relative or absolute.
 
 * `-test-directory=<relative directory>` - Overrides the directory that Terraform looks into for test files. Note that Terraform always loads testing files within the main configuration directory. The default testing directory is `tests`.
 
@@ -40,7 +44,7 @@ Each Terraform test file will maintain all Terraform state it requires within me
 
 ### Terraform Test Cleanup
 
-The Terraform `test` command creates _real_ infrastructure. Once Terraform fully executes each test file, Terraform attempts to destroy any remaining infrastructure. If it cannot do this, Terraform reports a list of resources it created but could not destroy.
+The Terraform `terraform test` command creates _real_ infrastructure. Once Terraform fully executes each test file, Terraform attempts to destroy any remaining infrastructure. If it cannot do this, Terraform reports a list of resources it created but could not destroy.
 
 You should monitor the output of the test command closely to ensure Terraform removes the infrastructure it created or perform manual cleanup if not. We recommend creating dedicated testing accounts within the target providers that you can routinely and safely purge to ensure any accidental and costly resources aren't left behind.
 
@@ -132,3 +136,92 @@ The testing directory must be beneath the main configuration directory, but it c
 > Note: Test files within the root configuration directory are always loaded, regardless of the `-test-directory` value.
 
 We do not recommend changing the default test directory. The option for customization is included for configuration authors who may have included a `tests` submodule in their configuration before the `terraform test` command was released. In general, the default test directory of `tests` should always be used.
+
+
+## Example: Test Output Format Options
+
+Below is a contrived example of Terraform testing that makes assertions about the values of local variables `true` and `false`.
+There are two test files: one contains a passing test, and one contains a failing test.
+
+```hcl
+# main.tf
+locals {
+  true  = "true"
+  false = "true" # incorrect, should be "false"!
+}
+```
+
+The assertion that `local.true == "true"` in `example_1.tftest.hcl` will pass:
+
+```hcl
+# example_1.tftest.hcl
+run "true_is_true" {
+  assert {
+    condition     = local.true == "true"
+    error_message = "local.true did not match expected value"
+  }
+}
+```
+
+The assertion that `local.false == "false"` in `example_2.tftest.hcl` will fail:
+
+```hcl
+# example_2.tftest.hcl
+run "false_is_false" {
+  assert {
+    condition     = local.false == "false"
+    error_message = "local.false did not match expected value"
+  }
+}
+```
+
+### Test output in JUnit XML format, saved to file
+
+Below is the output of the `terraform test -junit-xml=./output.xml` command using the example files above.
+The test output is:
+
+* Printed to the terminal in the default, human-readable format.
+* Also saved in JUnit XML format in the file specified by the flag.
+
+Below is the contents of the resulting `output.xml` file:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?><testsuites>
+  <testsuite name="example_1.tftest.hcl" tests="1" skipped="0" failures="0" errors="0">
+    <testcase name="true_is_true" classname="example_1.tftest.hcl" time="0.002295" timestamp="2025-01-13T19:23:16Z"></testcase>
+  </testsuite>
+  <testsuite name="example_2.tftest.hcl" tests="1" skipped="0" failures="1" errors="0">
+    <testcase name="false_is_false" classname="example_2.tftest.hcl" time="0.001468" timestamp="2025-01-13T19:23:16Z">
+      <failure message="local.false did not match expected value"><![CDATA[
+Error: Test assertion failed
+
+  on example_2.tftest.hcl line 3, in run "false_is_false":
+   3:     condition     = local.false == "false"
+    ├────────────────
+    │ local.false is "true"
+
+local.false did not match expected value
+]]></failure>
+    </testcase>
+  </testsuite>
+</testsuites>
+```
+
+If a run block contains a failing assertion, the `<testcase>` element will contain a `<failure>` element that includes the error message and further details.
+
+A `<testcase>` element could contain a `<skipped>` element that includes details about why a test was skipped. This could either be due to an error causing remaining run blocks to be skipped, or due to the command being interrupted.
+
+#### Mapping Terraform test command concepts to JUnit XML format
+
+The test report generated when using `-junit-xml` maps Terraform test command concepts to JUnit XML format according to the table below:
+
+| Terraform test concept            | Element in JUnit XML output                 |
+| ----------------------------------| --------------------------------------------|
+| Test directory                    | `<testsuites>`                              |
+| Test file                         | `<testsuite>`                               |
+| Run block                         | `<testcase>`                                |
+| Run block assertion               | None; details are included only on failure  |
+| Test failure                      | `<failure>`                                 |
+| Test was skipped                  | `<skipped>`                                 |
+| Test stopped due to error         | `<error>`                                   |
+| Any unhandled warnings or errors  | `<system-err>`                              |

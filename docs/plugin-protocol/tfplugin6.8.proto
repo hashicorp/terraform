@@ -241,6 +241,10 @@ message ClientCapabilities {
     // The deferral_allowed capability signals that the client is able to
     // handle deferred responses from the provider.
     bool deferral_allowed = 1;
+    
+    // The write_only_attributes_allowed capability signals that the client
+    // is able to handle write_only attributes for managed resources.
+    bool write_only_attributes_allowed = 2;
 }
 
 // Deferred is a message that indicates that change is deferred for a reason.
@@ -404,6 +408,7 @@ message ValidateResourceConfig {
     message Request {
         string type_name = 1;
         DynamicValue config = 2;
+        ClientCapabilities client_capabilities = 3;
     }
     message Response {
         repeated Diagnostic diagnostics = 1;

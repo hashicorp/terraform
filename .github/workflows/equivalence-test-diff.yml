@@ -29,7 +29,7 @@ jobs:
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
         with:
           go-version: ${{ steps.go.outputs.version }}
           cache-dependency-path: go.sum
@@ -38,7 +38,7 @@ jobs:
         shell: bash
         run: |
           ./.github/scripts/equivalence-test.sh download_equivalence_test_binary \
-            0.4.0 \
+            0.5.0 \
             ./bin/equivalence-tests \
             linux \
             amd64

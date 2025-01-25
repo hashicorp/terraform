@@ -6,6 +6,7 @@ package moduleref
 import (
 	"strings"
 
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/modsdir"
 )
@@ -35,7 +36,7 @@ func NewResolver(internalManifest modsdir.Manifest) *Resolver {
 		internalManifest: internalManifestCopy,
 		manifest: &Manifest{
 			FormatVersion: FormatVersion,
-			Records:       []Record{},
+			Records:       Records{},
 		},
 	}
 }
@@ -44,7 +45,7 @@ func NewResolver(internalManifest modsdir.Manifest) *Resolver {
 // and return a new manifest encapsulating this information.
 func (r *Resolver) Resolve(cfg *configs.Config) *Manifest {
 	// First find all the referenced modules.
-	r.findAndTrimReferencedEntries(cfg)
+	r.findAndTrimReferencedEntries(cfg, nil, nil)
 
 	return r.manifest
 }
@@ -52,32 +53,47 @@ func (r *Resolver) Resolve(cfg *configs.Config) *Manifest {
 // findAndTrimReferencedEntries will traverse a given Terraform configuration
 // and attempt find a caller for every entry in the internal module manifest.
 // If an entry is found, it will be removed from the internal manifest and
-// appended to the manifest that records this new information.
-func (r *Resolver) findAndTrimReferencedEntries(cfg *configs.Config) {
-	for entryKey, entry := range r.internalManifest {
-		for callerKey := range cfg.Module.ModuleCalls {
-			// Construct the module path with the caller key to get
-			// the full module entry key. If it's a root module caller
-			// do nothing since the path will be empty.
-			path := strings.Join(cfg.Path, ".")
-			if path != "" {
-				callerKey = path + "." + callerKey
-			}
-
-			// This is a sufficient check as caller keys are unique per module
-			// entry.
-			if callerKey == entryKey {
-				r.manifest.addModuleEntry(entry)
-				// "Trim" the entry from the internal manifest, saving us cycles
-				// as we descend into the module tree.
-				delete(r.internalManifest, entryKey)
+// appended to the manifest that records this new information in a nested heirarchy.
+func (r *Resolver) findAndTrimReferencedEntries(cfg *configs.Config, parentRecord *Record, parentKey *string) {
+	var name string
+	var versionConstraints version.Constraints
+	if parentKey != nil {
+		for key := range cfg.Parent.Children {
+			if key == *parentKey {
+				name = key
+				if cfg.Parent.Module.ModuleCalls[key] != nil {
+					versionConstraints = cfg.Parent.Module.ModuleCalls[key].Version.Required
+				}
 				break
 			}
 		}
 	}
 
+	childRecord := &Record{
+		Key:                name,
+		Source:             cfg.SourceAddr,
+		VersionConstraints: versionConstraints,
+	}
+	key := strings.Join(cfg.Path, ".")
+
+	for entryKey, entry := range r.internalManifest {
+		if entryKey == key {
+			// Use resolved version from manifest
+			childRecord.Version = entry.Version
+			if parentRecord.Source != nil {
+				parentRecord.addChild(childRecord)
+			} else {
+				r.manifest.addModuleEntry(childRecord)
+			}
+			// "Trim" the entry from the internal manifest, saving us cycles
+			// as we descend into the module tree.
+			delete(r.internalManifest, entryKey)
+			break
+		}
+	}
+
 	// Traverse the child configurations
-	for _, childCfg := range cfg.Children {
-		r.findAndTrimReferencedEntries(childCfg)
+	for childKey, childCfg := range cfg.Children {
+		r.findAndTrimReferencedEntries(childCfg, childRecord, &childKey)
 	}
 }

@@ -3400,6 +3400,286 @@ resource "test_object" "test" {
 			},
 		},
 	}
+
+	// refresh and destroy operations are a little different than normal
+	// operations. As they only execute against known resources in state, if
+	// a count or foreach attribute is unknown we don't actually have to defer
+	// the resources for these operations. We do know the resources that are all
+	// in state, and the operation should ignore the configuration anyway.
+	//
+	// the following tests iterate through various scenarios where count and
+	// foreach might be unknown during a refresh or destroy operation.
+
+	unknownCountDuringRefresh = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "number" {
+	type = number
+}
+
+resource "test" "a" {
+	count = var.number
+	name = "a${count.index}"
+}
+`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a[0]"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name": "a0",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.RefreshOnlyMode
+				},
+				inputs: map[string]cty.Value{
+					"number": cty.UnknownVal(cty.Number),
+				},
+				wantActions:  map[string]plans.Action{},
+				wantPlanned:  make(map[string]cty.Value),
+				wantDeferred: make(map[string]ExpectedDeferred),
+				complete:     true,
+			},
+		},
+	}
+	unknownCountDuringDestroy = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "number" {
+	type = number
+}
+
+resource "test" "a" {
+	count = var.number
+	name = "a${count.index}"
+}
+`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a[0]"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name": "a0",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.DestroyMode
+				},
+				inputs: map[string]cty.Value{
+					"number": cty.UnknownVal(cty.Number),
+				},
+				wantActions: map[string]plans.Action{
+					"test.a[0]": plans.Delete,
+				},
+				wantPlanned:  make(map[string]cty.Value),
+				wantDeferred: make(map[string]ExpectedDeferred),
+				complete:     true,
+			},
+		},
+	}
+	unknownForEachDuringRefresh = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "foreach" {
+	type = set(string)
+}
+
+resource "test" "a" {
+	for_each = var.foreach
+	name = each.value
+}
+`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a[\"a\"]"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name": "a",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.RefreshOnlyMode
+				},
+				inputs: map[string]cty.Value{
+					"foreach": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				wantActions:  map[string]plans.Action{},
+				wantPlanned:  make(map[string]cty.Value),
+				wantDeferred: make(map[string]ExpectedDeferred),
+				complete:     true,
+			},
+		},
+	}
+	unknownForEachDuringDestroy = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "foreach" {
+	type = set(string)
+}
+
+resource "test" "a" {
+	for_each = var.foreach
+	name = each.value
+}
+`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a[\"a\"]"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name": "a",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.DestroyMode
+				},
+				inputs: map[string]cty.Value{
+					"foreach": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				wantActions: map[string]plans.Action{
+					"test.a[\"a\"]": plans.Delete,
+				},
+				wantPlanned:  make(map[string]cty.Value),
+				wantDeferred: make(map[string]ExpectedDeferred),
+				complete:     true,
+			},
+		},
+	}
+	unknownForEachDuringRefreshWithImport = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "foreach" {
+	type = set(string)
+}
+
+resource "test" "a" {
+	for_each = var.foreach
+	name = each.value
+}
+
+import {
+	for_each = var.foreach
+	id = each.value
+	to = test.a[each.key]
+}
+`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a[\"a\"]"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name": "a",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.RefreshOnlyMode
+				},
+				inputs: map[string]cty.Value{
+					"foreach": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				wantActions:  map[string]plans.Action{},
+				wantPlanned:  make(map[string]cty.Value),
+				wantDeferred: make(map[string]ExpectedDeferred),
+				complete:     true,
+			},
+		},
+	}
+	unknownForEachDuringDestroyWithImport = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "foreach" {
+	type = set(string)
+}
+
+resource "test" "a" {
+	for_each = var.foreach
+	name = each.value
+}
+
+import {
+	for_each = var.foreach
+	id = each.value
+	to = test.a[each.key]
+}
+`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a[\"a\"]"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name": "a",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.DestroyMode
+				},
+				inputs: map[string]cty.Value{
+					"foreach": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				wantActions: map[string]plans.Action{
+					"test.a[\"a\"]": plans.Delete,
+				},
+				wantPlanned:  make(map[string]cty.Value),
+				wantDeferred: make(map[string]ExpectedDeferred),
+				complete:     true,
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
@@ -3453,6 +3733,12 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"ephemeral_open_deferral_dependencies":                    ephemeralResourceOpenDeferralWithDependency,
 		"ephemeral_open_deferral_expanded":                        ephemeralResourceOpenDeferralExpanded,
 		"ephemeral_open_deferral_provider_usage":                  ephemeralResourceOpenDeferralProviderUsage,
+		"unknown_count_during_refresh":                            unknownCountDuringRefresh,
+		"unknown_count_during_destroy":                            unknownCountDuringDestroy,
+		"unknown_foreach_during_refresh":                          unknownForEachDuringRefresh,
+		"unknown_foreach_during_destroy":                          unknownForEachDuringDestroy,
+		"unknown_foreach_during_refresh_with_import":              unknownForEachDuringRefreshWithImport,
+		"unknown_foreach_during_destroy_with_import":              unknownForEachDuringDestroyWithImport,
 	}
 
 	for name, test := range tests {

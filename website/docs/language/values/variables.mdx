@@ -196,10 +196,14 @@ variable "session_token" {
 Ephemeral variables are available during the current Terraform operation, and Terraform does not store them in state or plan files. So, unlike [`sensitive`](#sensitive) inputs, Terraform ensures ephemeral values are not available beyond the lifetime of the current Terraform run.
 
 You can only reference ephemeral variables in specific contexts or Terraform throws an error. The following are valid contexts for referencing ephemeral variables:
+
+* In a [write-only argument](/terraform/language/resources/ephemeral#write-only-arguments)
 * Another ephemeral variable
 * In [local values](/terraform/language/values/locals#ephemeral-values)
 * In [ephemeral resources](/terraform/language/resources/ephemeral)
 * In [ephemeral outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files)
+* Configuring providers in the `provider` block
+* In [provisioner](/terraform/language/resources/provisioners/syntax) and [connection](/terraform/language/resources/provisioners/connection) blocks
 
 If another expression references an `ephemeral` variable, that expression implicitly becomes ephemeral.
 

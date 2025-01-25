@@ -4,10 +4,12 @@
 package command
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -219,12 +221,25 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"mocking": {
-			expectedOut: []string{"6 passed, 0 failed."},
+			expectedOut: []string{"10 passed, 0 failed."},
 			code:        0,
 		},
 		"mocking-invalid": {
-			expectedErr: []string{"Invalid outputs attribute"},
-			initCode:    1,
+			expectedErr: []string{
+				"Invalid outputs attribute",
+				"The override_during attribute must be a value of plan or apply.",
+			},
+			initCode: 1,
+		},
+		"mocking-error": {
+			expectedErr: []string{
+				"Unknown condition value",
+				"plan_mocked_overridden.tftest.hcl",
+				"test_resource.primary[0].id",
+				"plan_mocked_provider.tftest.hcl",
+				"test_resource.secondary[0].id",
+			},
+			code: 1,
 		},
 		"dangling_data_block": {
 			expectedOut: []string{"2 passed, 0 failed."},
@@ -273,6 +288,11 @@ func TestTest_Runs(t *testing.T) {
 		"ephemeral_resource": {
 			expectedOut: []string{"0 passed, 1 failed."},
 			expectedErr: []string{"Ephemeral resource instance has expired", "Ephemeral resources cannot be asserted"},
+			code:        1,
+		},
+		"with_state_key": {
+			expectedOut: []string{"3 passed, 1 failed."},
+			expectedErr: []string{"Test assertion failed", "resource renamed without moved block"},
 			code:        1,
 		},
 	}
@@ -1748,8 +1768,9 @@ Condition expression could not be evaluated at this time. This means you have
 executed a %s block with %s and one of the values your
 condition depended on is not known until after the plan has been applied.
 Either remove this value from your condition, or execute an %s command
-from this %s block.
-`, "`run`", "`command = plan`", "`apply`", "`run`"),
+from this %s block. Alternatively, if there is an override for this value,
+you can make it available during the plan phase by setting %s in the %s block.
+`, "`run`", "`command = plan`", "`apply`", "`run`", "`override_during =\nplan`", "`override_`"),
 		},
 		"unknown_value_in_vars": {
 			code: 1,
@@ -2317,5 +2338,84 @@ required.
 
 	if provider.ResourceCount() > 0 {
 		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_JUnitOutput(t *testing.T) {
+
+	tcs := map[string]struct {
+		path         string
+		code         int
+		wantFilename string
+	}{
+		"can create XML for a single file with 1 pass, 1 fail": {
+			path:         "junit-output/1pass-1fail",
+			wantFilename: "expected-output.xml",
+			code:         1, // Test failure
+		},
+		"can create XML for multiple files with 1 pass each": {
+			path:         "junit-output/multiple-files",
+			wantFilename: "expected-output.xml",
+			code:         0,
+		},
+		"can display a test run's errors under the equivalent test case element": {
+			path:         "junit-output/missing-provider",
+			wantFilename: "expected-output.xml",
+			code:         1, // Test error
+		},
+	}
+
+	for tn, tc := range tcs {
+		t.Run(tn, func(t *testing.T) {
+			// Setup test
+			td := t.TempDir()
+			testPath := path.Join("test", tc.path)
+			testCopyDir(t, testFixturePath(testPath), td)
+			defer testChdir(t, td)()
+
+			provider := testing_command.NewProvider(nil)
+			view, done := testView(t)
+
+			c := &TestCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(provider.Provider),
+					View:             view,
+				},
+			}
+
+			// Run command with -junit-xml=./output.xml flag
+			outputFile := fmt.Sprintf("%s/output.xml", td)
+			code := c.Run([]string{fmt.Sprintf("-junit-xml=%s", outputFile), "-no-color"})
+			done(t)
+
+			// Assertions
+			if code != tc.code {
+				t.Errorf("expected status code %d but got %d", tc.code, code)
+			}
+
+			actualOut, err := os.ReadFile(outputFile)
+			if err != nil {
+				t.Fatalf("error opening XML file: %s", err)
+			}
+			expectedOutputFile := fmt.Sprintf("%s/%s", td, tc.wantFilename)
+			expectedOutput, err := os.ReadFile(expectedOutputFile)
+			if err != nil {
+				t.Fatalf("error opening XML file: %s", err)
+			}
+
+			// actual output will include timestamps and test duration data, which isn't deterministic; redact it for comparison
+			timeRegexp := regexp.MustCompile(`time=\"[0-9\.]+\"`)
+			actualOut = timeRegexp.ReplaceAll(actualOut, []byte("time=\"TIME_REDACTED\""))
+			timestampRegexp := regexp.MustCompile(`timestamp="[^"]+"`)
+			actualOut = timestampRegexp.ReplaceAll(actualOut, []byte("timestamp=\"TIMESTAMP_REDACTED\""))
+
+			if !bytes.Equal(actualOut, expectedOutput) {
+				t.Fatalf("wanted XML:\n%s\n got XML:\n%s\n", string(expectedOutput), string(actualOut))
+			}
+
+			if provider.ResourceCount() > 0 {
+				t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+			}
+		})
 	}
 }

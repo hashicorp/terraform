@@ -7,9 +7,12 @@ import (
 	"encoding/json"
 	"os"
 	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/moduleref"
@@ -18,8 +21,9 @@ import (
 func TestModules_noJsonFlag(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(dir, 0755)
+	testCopyDir(t, testFixturePath("modules-nested-dependencies"), dir)
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	defer testChdir(t, dir)()
 
 	cmd := &ModulesCommand{
@@ -32,24 +36,70 @@ func TestModules_noJsonFlag(t *testing.T) {
 
 	args := []string{}
 	code := cmd.Run(args)
-	if code == 0 {
-		t.Fatal("expected an non zero exit status\n")
+	if code != 0 {
+		t.Fatalf("Got a non-zero exit code: %d\n", code)
 	}
 
-	output := ui.ErrorWriter.String()
-	if !strings.Contains(output, "The `terraform modules` command requires the `-json` flag.\n") {
-		t.Fatal("expected an error message about requiring -json flag.\n")
+	actual := done(t).All()
+
+	expectedOutputHuman := `
+Modules declared by configuration:
+.
+├── "other"[./mods/other]
+└── "test"[./mods/test]
+    └── "test2"[./test2]
+        └── "test3"[./test3]
+
+`
+	if runtime.GOOS == "windows" {
+		expectedOutputHuman = `
+Modules declared by configuration:
+.
+├── "other"[.\mods\other]
+└── "test"[.\mods\test]
+	└── "test2"[.\test2]
+		└── "test3"[.\test3]
+
+`
 	}
 
-	if !strings.Contains(output, modulesCommandHelp) {
-		t.Fatal("expected the modules command help to be displayed\n")
+	if diff := cmp.Diff(expectedOutputHuman, actual); diff != "" {
+		t.Fatalf("unexpected output:\n%s\n", diff)
+	}
+}
+
+func TestModules_noJsonFlag_noModules(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(dir, 0755)
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	defer testChdir(t, dir)()
+
+	cmd := &ModulesCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	args := []string{}
+	code := cmd.Run(args)
+	if code != 0 {
+		t.Fatalf("Got a non-zero exit code: %d\n", code)
+	}
+
+	actual := done(t).All()
+
+	if diff := cmp.Diff("No modules found in configuration.\n", actual); diff != "" {
+		t.Fatalf("unexpected output (-want +got):\n%s", diff)
 	}
 }
 
 func TestModules_fullCmd(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(dir, 0755)
-	testCopyDir(t, testFixturePath("modules"), dir)
+	testCopyDir(t, testFixturePath("modules-nested-dependencies"), dir)
 
 	ui := new(cli.MockUi)
 	view, done := testView(t)
@@ -70,7 +120,7 @@ func TestModules_fullCmd(t *testing.T) {
 	}
 
 	output := done(t).All()
-	compareJSONOutput(t, output, expectedOutput)
+	compareJSONOutput(t, output, expectedOutputJSON)
 }
 
 func TestModules_fullCmd_unreferencedEntries(t *testing.T) {
@@ -96,7 +146,7 @@ func TestModules_fullCmd_unreferencedEntries(t *testing.T) {
 		t.Fatalf("Got a non-zero exit code: %d\n", code)
 	}
 	output := done(t).All()
-	compareJSONOutput(t, output, expectedOutput)
+	compareJSONOutput(t, output, expectedOutputJSON)
 }
 
 func TestModules_uninstalledModules(t *testing.T) {
@@ -154,4 +204,4 @@ func compareJSONOutput(t *testing.T, got string, want string) {
 	}
 }
 
-var expectedOutput = `{"format_version":"1.0","modules":[{"key":"child","source":"./child","version":""},{"key":"count_child","source":"./child","version":""}]}`
+var expectedOutputJSON = `{"format_version":"1.0","modules":[{"key":"test","source":"./mods/test","version":""},{"key":"test2","source":"./test2","version":""},{"key":"test3","source":"./test3","version":""},{"key":"other","source":"./mods/other","version":""}]}`

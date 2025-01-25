@@ -19,6 +19,7 @@ var ignoreUnexported = cmpopts.IgnoreUnexported(
 	proto.Schema_Block{},
 	proto.Schema_NestedBlock{},
 	proto.Schema_Attribute{},
+	proto.Schema_Object{},
 )
 
 func TestProtoDiagnostics(t *testing.T) {
