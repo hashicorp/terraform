@@ -43,6 +43,7 @@ type Module struct {
 	Variables map[string]*Variable
 	Locals    map[string]*Local
 	Outputs   map[string]*Output
+	Locks     map[string]*Lock
 
 	ModuleCalls map[string]*ModuleCall
 
@@ -84,6 +85,7 @@ type File struct {
 	Variables []*Variable
 	Locals    []*Local
 	Outputs   []*Output
+	Locks     []*Lock
 
 	ModuleCalls []*ModuleCall
 
@@ -124,6 +126,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		Variables:          map[string]*Variable{},
 		Locals:             map[string]*Local{},
 		Outputs:            map[string]*Output{},
+		Locks:              map[string]*Lock{},
 		ModuleCalls:        map[string]*ModuleCall{},
 		ManagedResources:   map[string]*Resource{},
 		EphemeralResources: map[string]*Resource{},
@@ -317,6 +320,18 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			})
 		}
 		m.Outputs[o.Name] = o
+	}
+
+	for _, o := range file.Locks {
+		if existing, exists := m.Locks[o.Name]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate lock definition",
+				Detail:   fmt.Sprintf("A lock named %q was already defined at %s. Lock names must be unique within a module.", existing.Name, existing.DeclRange),
+				Subject:  &o.DeclRange,
+			})
+		}
+		m.Locks[o.Name] = o
 	}
 
 	for _, mc := range file.ModuleCalls {

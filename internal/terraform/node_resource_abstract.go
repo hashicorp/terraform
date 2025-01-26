@@ -87,6 +87,8 @@ type NodeAbstractResource struct {
 	generateConfigPath string
 
 	forceCreateBeforeDestroy bool
+
+	lock addrs.Lock
 }
 
 var (
@@ -191,6 +193,11 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		if n.Schema != nil {
 			refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema)
 			result = append(result, refs...)
+		}
+
+		if n.Config.Lock != nil {
+			ref, _ := addrs.ParseRef(n.Config.Lock)
+			result = append(result, ref)
 		}
 
 		if c.Managed != nil {
@@ -374,6 +381,39 @@ func (n *NodeAbstractResource) ResourceAddr() addrs.ConfigResource {
 // GraphNodeTargetable
 func (n *NodeAbstractResource) SetTargets(targets []addrs.Targetable) {
 	n.Targets = targets
+}
+
+func (n *NodeAbstractResource) setLock(lock addrs.Lock) {
+	n.lock = lock
+}
+
+// GraphNodeLockable
+func (n *NodeAbstractResource) LockedBy() addrs.Lock {
+	return n.lock
+}
+
+// GraphNodeLockable
+func (n *NodeAbstractResource) Lock(ctx EvalContext) {
+	if n.lock != (addrs.Lock{}) {
+		// TODO: Add to interface
+		builtin, ok := ctx.(*BuiltinEvalContext)
+		if !ok {
+			panic(fmt.Errorf("NodeAbstractResource: expected BuiltinEvalContext, got %T", ctx))
+		}
+		builtin.GetSemaphore(addrs.RootModuleInstance.Lock(n.lock.Name)).Acquire()
+	}
+}
+
+// GraphNodeLockable
+func (n *NodeAbstractResource) Unlock(ctx EvalContext) {
+	if n.lock != (addrs.Lock{}) {
+		// TODO: Add to interface
+		builtin, ok := ctx.(*BuiltinEvalContext)
+		if !ok {
+			panic(fmt.Errorf("NodeAbstractResource: expected BuiltinEvalContext, got %T", ctx))
+		}
+		builtin.GetSemaphore(addrs.RootModuleInstance.Lock(n.lock.Name)).Release()
+	}
 }
 
 // graphNodeAttachDataResourceDependsOn

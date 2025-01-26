@@ -25,6 +25,7 @@ type Resource struct {
 	ForEach hcl.Expression
 
 	Concurrency       int
+	Lock              hcl.Traversal
 	ProviderConfigRef *ProviderConfigRef
 	Provider          addrs.Provider
 
@@ -198,17 +199,10 @@ func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagno
 				r.Managed.PreventDestroySet = true
 			}
 
-			if attr, exists := lcContent.Attributes["concurrency"]; exists {
-				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Concurrency)
-				diags = append(diags, valDiags...)
-				if r.ForEach == nil && r.Count == nil {
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid lifecycle argument",
-						Detail:   "The concurrency argument is only valid when used with for_each or count.",
-						Subject:  attr.Expr.Range().Ptr(),
-					})
-				}
+			if attr, exists := lcContent.Attributes["lock"]; exists {
+				traversal, travDiags := hcl.AbsTraversalForExpr(attr.Expr)
+				diags = append(diags, travDiags...)
+				r.Lock = traversal
 			}
 
 			if attr, exists := lcContent.Attributes["replace_triggered_by"]; exists {
@@ -521,6 +515,46 @@ func decodeEphemeralBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagn
 	return r, diags
 }
 
+// Lock represents an "lock" block in a module or file.
+type Lock struct {
+	Name           string
+	Concurrency    hcl.Expression
+	ConcurrencySet bool
+	DeclRange      hcl.Range
+}
+
+func decodeLockBlock(block *hcl.Block, override bool) (*Lock, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+	o := &Lock{
+		Name:      block.Labels[0],
+		DeclRange: block.DefRange,
+	}
+
+	schema := lockBlockSchema
+	if override {
+		schema = schemaForOverrides(schema)
+	}
+
+	content, moreDiags := block.Body.Content(schema)
+	diags = append(diags, moreDiags...)
+
+	if !hclsyntax.ValidIdentifier(o.Name) {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid lock name",
+			Detail:   badIdentifierDetail,
+			Subject:  &block.LabelRanges[0],
+		})
+	}
+
+	if attr, exists := content.Attributes["concurrency"]; exists {
+		o.Concurrency = attr.Expr
+		o.ConcurrencySet = true
+	}
+
+	return o, diags
+}
+
 func decodeDataBlock(block *hcl.Block, override, nested bool) (*Resource, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	r := &Resource{
@@ -652,18 +686,10 @@ func decodeDataBlock(block *hcl.Block, override, nested bool) (*Resource, hcl.Di
 			// managed resources only, so we can emit a common error message
 			// for any given attributes that HCL accepted.
 			for name, attr := range lcContent.Attributes {
-				if name == "concurrency" {
-					valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Concurrency)
-					diags = append(diags, valDiags...)
-					if r.ForEach == nil && r.Count == nil {
-						diags = append(diags, &hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Invalid lifecycle argument",
-							Detail:   "The concurrency argument is only valid when used with for_each or count.",
-							Subject:  attr.Expr.Range().Ptr(),
-						})
-					}
-
+				if name == "lock" {
+					traversal, travDiags := hcl.AbsTraversalForExpr(attr.Expr)
+					diags = append(diags, travDiags...)
+					r.Lock = traversal
 					continue
 				}
 				diags = append(diags, &hcl.Diagnostic{
@@ -988,7 +1014,7 @@ var resourceLifecycleBlockSchema = &hcl.BodySchema{
 			Name: "replace_triggered_by",
 		},
 		{
-			Name: "concurrency",
+			Name: "lock",
 		},
 	},
 	Blocks: []hcl.BlockHeaderSchema{

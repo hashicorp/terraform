@@ -69,6 +69,8 @@ type ContextGraphWalker struct {
 	provisionerCache    map[string]provisioners.Interface
 	provisionerSchemas  map[string]*configschema.Block
 	provisionerLock     sync.Mutex
+	semaphores          addrs.Map[addrs.AbsLock, Semaphore]
+	semaphoresLock      sync.Mutex
 }
 
 var _ GraphWalker = (*ContextGraphWalker)(nil)
@@ -139,6 +141,8 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Evaluator:               evaluator,
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
+		Semaphores:              w.semaphores,
+		SemaphoresLock:          &w.semaphoresLock,
 	}
 
 	return ctx
@@ -151,13 +155,14 @@ func (w *ContextGraphWalker) init() {
 	w.providerSchemas = make(map[string]providers.ProviderSchema)
 	w.provisionerCache = make(map[string]provisioners.Interface)
 	w.provisionerSchemas = make(map[string]*configschema.Block)
+	w.semaphores = addrs.MakeMap[addrs.AbsLock, Semaphore]()
 }
 
 func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfdiags.Diagnostics {
 	// If the node is controlled by a lock besides the semaphore, acquire it first
 	if lv, ok := n.(GraphNodeLockable); ok {
-		lv.Lock()
-		defer lv.Unlock()
+		lv.Lock(ctx)
+		defer lv.Unlock(ctx)
 	}
 
 	// Acquire a lock on the semaphore

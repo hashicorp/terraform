@@ -1,5 +1,5 @@
 resource "test_object" "A" {
-  count = 1
+  count = 2
 }
 
 resource "test_object" "B" {

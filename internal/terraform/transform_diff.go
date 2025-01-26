@@ -83,6 +83,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 	for _, rc := range changes.Resources {
 		addr := rc.Addr
 		dk := rc.DeposedKey
+		var abstract *NodeAbstractResourceInstance
 
 		log.Printf("[TRACE] DiffTransformer: found %s change for %s %s", rc.Action, addr, dk)
 
@@ -160,7 +161,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 
 		if update {
 			// All actions except destroying the node type chosen by t.Concrete
-			abstract := NewNodeAbstractResourceInstance(addr)
+			abstract = NewNodeAbstractResourceInstance(addr)
 			var node dag.Vertex = abstract
 			if f := t.Concrete; f != nil {
 				node = f(abstract)
@@ -190,7 +191,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			// which one depends on whether we're destroying a current object
 			// or a deposed object.
 			var node GraphNodeResourceInstance
-			abstract := NewNodeAbstractResourceInstance(addr)
+			abstract = NewNodeAbstractResourceInstance(addr)
 			if dk == states.NotDeposed {
 				node = &NodeDestroyResourceInstance{
 					NodeAbstractResourceInstance: abstract,
@@ -211,7 +212,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 
 		if forget {
 			var node GraphNodeResourceInstance
-			abstract := NewNodeAbstractResourceInstance(addr)
+			abstract = NewNodeAbstractResourceInstance(addr)
 			if dk == states.NotDeposed {
 				node = &NodeForgetResourceInstance{
 					NodeAbstractResourceInstance: abstract,
@@ -225,6 +226,18 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 
 			log.Printf("[TRACE] DiffTransformer: %s will be represented for forgetting by %s", addr, dag.VertexName(node))
 			g.Add(node)
+		}
+
+		// If the resource node is locked, we need to attach the lock to the
+		// resource instances.
+		if abstract != nil { // abstract should never be nil, but just in case
+			el := resourceNodes.Get(addr.ConfigResource())
+			for _, rsrcNode := range el {
+				rsrcNode, ok := rsrcNode.(GraphNodeLockable)
+				if ok {
+					abstract.lock = rsrcNode.LockedBy()
+				}
+			}
 		}
 
 	}

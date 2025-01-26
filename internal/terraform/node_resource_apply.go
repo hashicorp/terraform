@@ -127,6 +127,7 @@ func (n *nodeExpandApplyableResource) ephemeralResourceInstanceSubgraph(addr add
 		a.ProvisionerSchemas = n.ProvisionerSchemas
 		a.ProviderMetas = n.ProviderMetas
 		a.dependsOn = n.dependsOn
+		a.setLock(n.lock)
 
 		// we still need the Plannable resource instance
 		return &NodeApplyableResourceInstance{

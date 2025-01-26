@@ -532,6 +532,15 @@ var outputBlockSchema = &hcl.BodySchema{
 	},
 }
 
+var lockBlockSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{
+			Name:     "concurrency",
+			Required: true,
+		},
+	},
+}
+
 func checkVariableValidationBlock(varName string, vv *CheckRule) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 

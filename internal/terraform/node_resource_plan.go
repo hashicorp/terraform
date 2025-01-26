@@ -480,6 +480,7 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 			Schema:        n.Schema,
 			Addr:          n.ResourceAddr(),
 			InstanceAddrs: instanceAddrs,
+			Lock:          n.lock, // The lock is shared between all instances
 		},
 
 		// Add the count/for_each orphans
@@ -546,6 +547,7 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 		a.Dependencies = n.dependencies
 		a.preDestroyRefresh = n.preDestroyRefresh
 		a.generateConfigPath = n.generateConfigPath
+		a.setLock(n.lock)
 
 		m = &NodePlannableResourceInstance{
 			NodeAbstractResourceInstance: a,
@@ -595,6 +597,7 @@ func (n *nodeExpandPlannableResource) concreteResourceOrphan(a *NodeAbstractReso
 	a.Schema = n.Schema
 	a.ProvisionerSchemas = n.ProvisionerSchemas
 	a.ProviderMetas = n.ProviderMetas
+	a.setLock(n.lock)
 
 	return &NodePlannableResourceInstanceOrphan{
 		NodeAbstractResourceInstance: a,

@@ -144,25 +144,6 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 	}
 }
 
-// GraphNodeLockable
-func (n *NodeDestroyResourceInstance) AttachSemaphore(sem Semaphore) {
-	n.semaphore = sem
-}
-
-// GraphNodeLockable
-func (n *NodeDestroyResourceInstance) Lock() {
-	if n.semaphore != nil {
-		n.semaphore.Acquire()
-	}
-}
-
-// GraphNodeLockable
-func (n *NodeDestroyResourceInstance) Unlock() {
-	if n.semaphore != nil {
-		n.semaphore.Release()
-	}
-}
-
 func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 

@@ -91,6 +91,8 @@ type BuiltinEvalContext struct {
 	InstanceExpanderValue   *instances.Expander
 	MoveResultsValue        refactoring.MoveResults
 	OverrideValues          *mocking.Overrides
+	Semaphores              addrs.Map[addrs.AbsLock, Semaphore]
+	SemaphoresLock          *sync.Mutex
 }
 
 // BuiltinEvalContext implements EvalContext
@@ -315,6 +317,20 @@ func (ctx *BuiltinEvalContext) ClosePlugins() error {
 	}
 
 	return diags.Err()
+}
+
+func (ctx *BuiltinEvalContext) SetSemaphore(addr addrs.AbsLock, semaphore Semaphore) {
+	ctx.SemaphoresLock.Lock()
+	defer ctx.SemaphoresLock.Unlock()
+
+	ctx.Semaphores.Put(addr, semaphore)
+}
+
+func (ctx *BuiltinEvalContext) GetSemaphore(addr addrs.AbsLock) Semaphore {
+	ctx.SemaphoresLock.Lock()
+	defer ctx.SemaphoresLock.Unlock()
+
+	return ctx.Semaphores.Get(addr)
 }
 
 func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, keyData InstanceKeyEvalData) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
