@@ -6315,3 +6315,47 @@ resource "aws_instance" "foo" {
 		t.Errorf("unexpected error message\ngot: %s\nwant substring: %s", got, want)
 	}
 }
+
+func TestContext2Plan_orphanUpdateInstance(t *testing.T) {
+	// ean orphaned instance should still reflect the refreshed state in the plan
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  for_each = {}
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+		state := req.PriorState.AsValueMap()
+		state["test_string"] = cty.StringVal("new")
+		resp.NewState = cty.ObjectVal(state)
+		return resp
+	}
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr(`test_object.a["old"]`), &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"test_string":"old"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	assertNoErrors(t, diags)
+
+	resourceType := p.GetProviderSchemaResponse.ResourceTypes["test_object"].Block.ImpliedType()
+	change, err := plan.Changes.ResourceInstance(mustResourceInstanceAddr(`test_object.a["old"]`)).Decode(resourceType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if change.Before.GetAttr("test_string").AsString() != "new" {
+		t.Fatalf("resource before value not refreshed in plan: %#v\n", change.Before)
+	}
+}
