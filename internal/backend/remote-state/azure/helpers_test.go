@@ -155,9 +155,9 @@ func BuildTestMeta(t *testing.T, ctx context.Context) *TestMeta {
 		t.Fatalf("Missing ARM_TENANT_ID")
 	}
 
-	location := os.Getenv("ARM_TEST_LOCATION")
+	location := os.Getenv("ARM_LOCATION")
 	if location == "" {
-		t.Fatalf("Missing ARM_TEST_LOCATION")
+		t.Fatalf("Missing ARM_LOCATION")
 	}
 
 	clientID := os.Getenv("ARM_CLIENT_ID")
@@ -251,7 +251,7 @@ func (c *TestMeta) buildTestResources(ctx context.Context) error {
 	// Populate the storage account access key
 	resp, err := c.storageAccountsClient.GetProperties(ctx, said, storageaccounts.DefaultGetPropertiesOperationOptions())
 	if err != nil {
-		return fmt.Errorf("getting %s: %+v", said, err)
+		return fmt.Errorf("retrieving %s: %+v", said, err)
 	}
 	if resp.Model == nil {
 		return fmt.Errorf("unexpected null model of %s", said)

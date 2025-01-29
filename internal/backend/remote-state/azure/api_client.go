@@ -84,17 +84,17 @@ func buildClient(ctx context.Context, config BackendConfig) (*Client, error) {
 	client.configureClient(client.storageAccountsClient.Client, resourceManagerAuth)
 
 	// Populating the storage account detail
-	said := commonids.NewStorageAccountID(config.SubscriptionID, config.ResourceGroupName, client.storageAccountName)
-	resp, err := client.storageAccountsClient.GetProperties(ctx, said, storageaccounts.DefaultGetPropertiesOperationOptions())
+	storageAccountId := commonids.NewStorageAccountID(config.SubscriptionID, config.ResourceGroupName, client.storageAccountName)
+	resp, err := client.storageAccountsClient.GetProperties(ctx, storageAccountId, storageaccounts.DefaultGetPropertiesOperationOptions())
 	if err != nil {
-		return nil, fmt.Errorf("getting %s: %+v", said, err)
+		return nil, fmt.Errorf("retrieving %s: %+v", storageAccountId, err)
 	}
 	if resp.Model == nil {
-		return nil, fmt.Errorf("unexpected null model of %s", said)
+		return nil, fmt.Errorf("retrieving %s: model was nil", storageAccountId)
 	}
-	client.accountDetail, err = populateAccountDetails(said, *resp.Model)
+	client.accountDetail, err = populateAccountDetails(storageAccountId, *resp.Model)
 	if err != nil {
-		return nil, fmt.Errorf("populating details for %s: %+v", said, err)
+		return nil, fmt.Errorf("populating details for %s: %+v", storageAccountId, err)
 	}
 
 	return &client, nil
@@ -174,11 +174,10 @@ func (c *Client) getBlobClient(ctx context.Context) (bc *blobs.Client, err error
 	log.Printf("[DEBUG] Building the Blob Client from an Access Token (using user credentials)")
 	key, err := c.accountDetail.AccountKey(ctx, c.storageAccountsClient)
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving key for Storage Account %q: %s", c.storageAccountName, err)
+		return nil, fmt.Errorf("retrieving key for Storage Account %q: %s", c.storageAccountName, err)
 	}
-	accessKey := *key
 
-	authorizer, err := auth.NewSharedKeyAuthorizer(c.storageAccountName, accessKey, auth.SharedKey)
+	authorizer, err := auth.NewSharedKeyAuthorizer(c.storageAccountName, *key, auth.SharedKey)
 	if err != nil {
 		return nil, fmt.Errorf("new shared key authorizer: %v", err)
 	}
@@ -261,11 +260,10 @@ func (c *Client) getContainersClient(ctx context.Context) (cc *containers.Client
 	log.Printf("[DEBUG] Building the Container Client from an Access Token (using user credentials)")
 	key, err := c.accountDetail.AccountKey(ctx, c.storageAccountsClient)
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving key for Storage Account %q: %s", c.storageAccountName, err)
+		return nil, fmt.Errorf("retrieving key for Storage Account %q: %s", c.storageAccountName, err)
 	}
-	accessKey := *key
 
-	authorizer, err := auth.NewSharedKeyAuthorizer(c.storageAccountName, accessKey, auth.SharedKey)
+	authorizer, err := auth.NewSharedKeyAuthorizer(c.storageAccountName, *key, auth.SharedKey)
 	if err != nil {
 		return nil, fmt.Errorf("new shared key authorizer: %v", err)
 	}
