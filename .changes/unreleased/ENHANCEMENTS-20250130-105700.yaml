@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Update the `azure` backend authentication mechanisms
+time: 2025-01-30T10:57:00.080984883+11:00
+custom:
+    Issue: "36258"
