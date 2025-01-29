@@ -10,9 +10,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"time"
 
+	"github.com/hashicorp/go-azure-helpers/lang/response"
 	"github.com/hashicorp/go-uuid"
 	"github.com/jackofallops/giovanni/storage/2023-11-03/blob/blobs"
 
@@ -53,7 +53,7 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 	ctx := newCtx()
 	blob, err := c.giovanniBlobClient.Get(ctx, c.containerName, c.keyName, options)
 	if err != nil {
-		if responseWasNotFound(blob.HttpResponse) {
+		if response.WasNotFound(blob.HttpResponse) {
 			return nil, nil
 		}
 		return nil, err
@@ -103,7 +103,7 @@ func (c *RemoteClient) Put(data []byte) error {
 
 	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, getOptions)
 	if err != nil {
-		if !responseWasNotFound(blob.HttpResponse) {
+		if !response.WasNotFound(blob.HttpResponse) {
 			return err
 		}
 	}
@@ -127,7 +127,7 @@ func (c *RemoteClient) Delete() error {
 	ctx := newCtx()
 	resp, err := c.giovanniBlobClient.Delete(ctx, c.containerName, c.keyName, options)
 	if err != nil {
-		if !responseWasNotFound(resp.HttpResponse) {
+		if !response.WasNotFound(resp.HttpResponse) {
 			return err
 		}
 	}
@@ -169,7 +169,7 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	properties, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{})
 	if err != nil {
 		// error if we had issues getting the blob
-		if !responseWasNotFound(properties.HttpResponse) {
+		if !response.WasNotFound(properties.HttpResponse) {
 			return "", getLockInfoErr(err)
 		}
 		// if we don't find the blob, we need to build it
@@ -294,8 +294,4 @@ func (c *RemoteClient) Unlock(id string) error {
 	c.leaseID = ""
 
 	return nil
-}
-
-func responseWasNotFound(resp *http.Response) bool {
-	return resp != nil && resp.StatusCode == http.StatusNotFound
 }

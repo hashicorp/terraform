@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/go-azure-helpers/lang/response"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
@@ -31,7 +32,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 	ctx := newCtx()
 	client, err := b.apiClient.getContainersClient(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("gettign container client: %v", err)
+		return nil, fmt.Errorf("retrieving container client: %v", err)
 	}
 	resp, err := client.ListBlobs(ctx, b.containerName, params)
 	if err != nil {
@@ -72,7 +73,7 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 	}
 
 	if resp, err := client.Delete(ctx, b.containerName, b.path(name), blobs.DeleteInput{}); err != nil {
-		if !responseWasNotFound(resp.HttpResponse) {
+		if !response.WasNotFound(resp.HttpResponse) {
 			return err
 		}
 	}

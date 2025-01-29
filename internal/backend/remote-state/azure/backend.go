@@ -6,6 +6,7 @@ package azure
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-azure-sdk/sdk/auth"
 	"github.com/hashicorp/go-azure-sdk/sdk/environments"
@@ -107,7 +108,7 @@ func New() backend.Backend {
 			"endpoint": {
 				Type:       schema.TypeString,
 				Optional:   true,
-				Deprecated: "`endpoint` is deprecated and no longer used, it will be removed in a future version of Terraform",
+				Deprecated: "`endpoint` is deprecated in favor of `msi_endpoint`, it will be removed in a future version of Terraform",
 			},
 
 			// Client Certificate specific fields
@@ -254,7 +255,7 @@ type BackendConfig struct {
 func (b *Backend) configure(ctx context.Context) error {
 	// This is to make the go-azure-sdk/sdk/client Client happy.
 	if _, ok := ctx.Deadline(); !ok {
-		ctx, _ = context.WithTimeout(ctx, veryLongTimeout)
+		ctx, _ = context.WithTimeout(ctx, 5*time.Minute)
 	}
 
 	// Grab the resource data
