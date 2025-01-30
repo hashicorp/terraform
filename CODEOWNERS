@@ -28,5 +28,15 @@ builtin/provisioners/file               @hashicorp/terraform-core
 builtin/provisioners/local-exec         @hashicorp/terraform-core
 builtin/provisioners/remote-exec        @hashicorp/terraform-core
 
-# Docs on developer.hashicorp.com/terraform/docs
-website/        @hashicorp/terraform-core @hashicorp/terraform-education @hashicorp/web-presence
+# engineering and web presence get notified of, and can approve changes to web tooling, but not content at on developer.hashicorp.com/terraform/docs
+
+/website/               @hashicorp/web-presence @hashicorp/terraform-core
+/website/data/
+/website/public/
+/website/content/
+
+# education and engineering get notified of, and can approve changes to web content at on developer.hashicorp.com/terraform/docs
+
+/website/data/          @hashicorp/terraform-education @hashicorp/terraform-core
+/website/public/        @hashicorp/terraform-education @hashicorp/terraform-core
+/website/content/       @hashicorp/terraform-education @hashicorp/terraform-core
