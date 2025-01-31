@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -353,6 +354,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		diags = diags.Append(
 			validateResourceForbiddenEphemeralValues(ctx, configVal, schema).InConfigBody(n.Config.Config, n.Addr.String()),
 		)
+		diags = diags.Append(validateResourceDeprecatedOutputUsage(configVal).InConfigBody(n.Config.Config, n.Addr.String()))
 
 		if n.Config.Managed != nil { // can be nil only in tests with poorly-configured mocks
 			for _, traversal := range n.Config.Managed.IgnoreChanges {
@@ -431,6 +433,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		diags = diags.Append(
 			validateResourceForbiddenEphemeralValues(ctx, configVal, schema).InConfigBody(n.Config.Config, n.Addr.String()),
 		)
+		diags = diags.Append(validateResourceDeprecatedOutputUsage(configVal).InConfigBody(n.Config.Config, n.Addr.String()))
 
 		// Use unmarked value for validate request
 		unmarkedConfigVal, _ := configVal.UnmarkDeep()
@@ -542,6 +545,24 @@ func (n *NodeValidatableResource) validateCheckRules(ctx EvalContext, config *co
 
 		_, errorMessageDiags := n.evaluateExpr(ctx, cr.ErrorMessage, cty.Bool, selfAddr, keyData)
 		diags = diags.Append(errorMessageDiags)
+	}
+
+	return diags
+}
+
+func validateResourceDeprecatedOutputUsage(val cty.Value) (diags tfdiags.Diagnostics) {
+	_, pathMarks := val.UnmarkDeepWithPaths()
+	for _, pathMark := range pathMarks {
+		for mark := range pathMark.Marks {
+			if m, ok := mark.(marks.DeprecationMark); ok {
+				diags = diags.Append(tfdiags.AttributeValue(
+					tfdiags.Error,
+					"Deprecated Value used",
+					m.Message,
+					pathMark.Path,
+				))
+			}
+		}
 	}
 
 	return diags
