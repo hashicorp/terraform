@@ -315,7 +315,7 @@ A local value assigns a name to an expression, so you can use the name multiple 
 
 ## `publish_output` block configuration
 
--> **Note**: To use the `publish_output` block you must use at least Terraform version `terraform_1.10.0-alpha20241009` or higher. We recommend downloading the [latest version of Terraform](https://releases.hashicorp.com/terraform/) to use the most up-to-date functionality.
+-> **Note**: To use the `publish_output` block requires at least Terraform version `terraform_1.10.0-alpha20241009` or higher. We recommend downloading the [latest version of Terraform](https://releases.hashicorp.com/terraform/) to use the most up-to-date functionality.
 
 To export information from one Stack to another, declare the `publish_output` block in your deployment configuration to export data that another Stack can intake.
 
@@ -359,19 +359,20 @@ publish_output "vpc_id" {
   value       = deployment.network.vpc_id
 }
 ```
+
 </CodeBlockConfig>
 
 This example uses the `publish_output` block to expose the `vpc_id` output from the `network` deployment of this Stack. Another Stack in the same project could then intake your `vpc_id` output by declaring an `upstream_input` block. 
 
-To learn more about passing information between Stacks, reference [Pass data from one Stack to another](/terraform/language/stacks/link-stacks).
+To learn more about passing information between Stacks, refer to [Pass data from one Stack to another](/terraform/language/stacks/deploy/link-stacks).
 
 ## `upstream_input` block configuration 
 
--> **Note**: To use the`upstream_input` block you must use at least version`terraform_1.10.0-alpha20241009` or higher. We recommend downloading the[latest version of Terraform](https://releases.hashicorp.com/terraform/) to use the most up-to-date functionality.
+-> **Note**: The `upstream_input` block requires at least Terraform version `terraform_1.10.0-alpha20241009` or higher. We recommend downloading the [latest version of Terraform](https://releases.hashicorp.com/terraform/) to use the most up-to-date functionality.
 
-To read outputs from other Stacks in your project, declare an`upstream_input` block for each Stack you want to reference. If the Stack's output values change, HCP Terraform automatically triggers runs for any Stacks that depend on those outputs.  
+To read outputs from other Stacks in your project, declare an `upstream_input` block for each Stack you want to reference. If the Stack's output values change, HCP Terraform automatically triggers runs for any Stacks that depend on those outputs.  
 
-We refer to the Stack that declares an`upstream_input` block as the downstream Stack. An upstream Stack publishes outputs using the`publish_output` block, and a downstream Stack consumes those outputs. For example, if Stack B relies on outputs from Stack A, Stack B is the downstream Stack.
+We refer to the Stack that declares an `upstream_input` block as the downstream Stack. An upstream Stack publishes outputs using the `publish_output` block, and a downstream Stack consumes those outputs. For example, if Stack B relies on outputs from Stack A, Stack B is the downstream Stack.
 
 ### Complete configuration
 
@@ -386,7 +387,7 @@ upstream_input "upstream_stack_name" {
 }
 ```
 
-<CodeBlockConfig>
+</CodeBlockConfig>
 
 ### Specification
 
@@ -397,14 +398,14 @@ This section provides details about the fields you can configure in the `upstrea
 | `type` | The only supported type is “stack”. | string | Required |
 | `source` | The upstream Stack’s URL, in the format: `"app.terraform.io/{organization_name}/{project_name}/{upstream_stack_name}"` | string | Required |
 
-For example, you could input a VPC ID from an upstream Stack that manages your shared networking service. You can use the`upstream_input` block to pass information from your network Stack into your application Stack.
+For example, you could input a VPC ID from an upstream Stack that manages your shared networking service. You can use the `upstream_input` block to pass information from your network Stack into your application Stack.
 
 <CodeBlockConfig filename="application.tfdeploy.hcl">
 
 ```hcl
 # Application Stack's deployment configuration
 
-upstream_input "networking_stack" {
+upstream_input "network_stack" {
   type   = "stack"
   source = "app.terraform.io/hashicorp/Default Project/networking-stack"
 }
@@ -415,8 +416,7 @@ deployment "application" {
   }
 }
 ```
+
 </CodeBlockConfig>
 
-Your application Stack can now securely consume outputs from your network Stack, such as its `vpc_id`, in this Stack's deployments. 
-
-To learn more about passing information between Stacks, reference [Pass data from one Stack to another](/terraform/language/stacks/link-stacks).
+Your application Stack can now securely consume and use outputs from your network Stack. To learn more about passing information between Stacks, reference [Pass data from one Stack to another](/terraform/language/stacks/deploy/link-stacks).
