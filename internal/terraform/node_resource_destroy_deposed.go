@@ -333,6 +333,25 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	return diags.Append(updateStateHook(ctx))
 }
 
+// GraphNodeLockable
+func (n *NodeDestroyDeposedResourceInstanceObject) AttachSemaphore(sem Semaphore) {
+	n.semaphore = sem
+}
+
+// GraphNodeLockable
+func (n *NodeDestroyDeposedResourceInstanceObject) Lock() {
+	if n.semaphore != nil {
+		n.semaphore.Acquire()
+	}
+}
+
+// GraphNodeLockable
+func (n *NodeDestroyDeposedResourceInstanceObject) Unlock() {
+	if n.semaphore != nil {
+		n.semaphore.Release()
+	}
+}
+
 // NodeForgetDeposedResourceInstanceObject represents deposed resource
 // instance objects during apply. Nodes of this type are inserted by
 // DiffTransformer when the planned changeset contains "forget" changes for

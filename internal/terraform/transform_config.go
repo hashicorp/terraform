@@ -171,25 +171,6 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 			importTargets: imports,
 		}
 
-		// If the resource has defined a lock, we attach the address to the
-		// resource.
-		if r.Lock != nil {
-			ref, diags := addrs.ParseRef(r.Lock)
-			if diags.HasErrors() {
-				return diags.Err()
-			}
-
-			lock, ok := ref.Subject.(addrs.Lock)
-			if !ok {
-				return fmt.Errorf("expected lock address, got %T", ref.Subject)
-			}
-			abstract.lock = lock
-		}
-
-		if err := transformLock(g, config); err != nil {
-			return err
-		}
-
 		var node dag.Vertex = abstract
 		if f := t.Concrete; f != nil {
 			node = f(abstract)

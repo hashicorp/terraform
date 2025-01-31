@@ -1,12 +1,8 @@
-lock "aws" {
-  concurrency = 1
-}
-
 resource "aws_instance" "foo" {
   count = 3
 
   lifecycle {
-    lock = lock.aws
+    concurrency = 1
   }
 }
 
@@ -18,6 +14,6 @@ data "aws_data_source" "baz" {
   count = 2
 
   lifecycle {
-    lock = lock.aws
+    concurrency = 1
   }
 }

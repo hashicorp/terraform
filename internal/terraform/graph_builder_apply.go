@@ -226,6 +226,8 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
 
+		&DynamicConcurrencyTransformer{State: b.State},
+
 		// Close any ephemeral resource instances.
 		&ephemeralResourceCloseTransformer{},
 

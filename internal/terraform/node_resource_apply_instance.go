@@ -94,6 +94,25 @@ func (n *NodeApplyableResourceInstance) AttachDependencies(deps []addrs.ConfigRe
 	n.Dependencies = deps
 }
 
+// GraphNodeLockable
+func (n *NodeApplyableResourceInstance) AttachSemaphore(sem Semaphore) {
+	n.semaphore = sem
+}
+
+// GraphNodeLockable
+func (n *NodeApplyableResourceInstance) Lock() {
+	if n.semaphore != nil {
+		n.semaphore.Acquire()
+	}
+}
+
+// GraphNodeLockable
+func (n *NodeApplyableResourceInstance) Unlock() {
+	if n.semaphore != nil {
+		n.semaphore.Release()
+	}
+}
+
 // GraphNodeExecutable
 func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()

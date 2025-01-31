@@ -188,13 +188,6 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 				file.ManagedResources = append(file.ManagedResources, cfg)
 			}
 
-		case "lock":
-			cfg, cfgDiags := decodeLockBlock(block, override)
-			diags = append(diags, cfgDiags...)
-			if cfg != nil {
-				file.Locks = append(file.Locks, cfg)
-			}
-
 		case "data":
 			cfg, cfgDiags := decodeDataBlock(block, override, false)
 			diags = append(diags, cfgDiags...)
@@ -319,10 +312,6 @@ var configFileSchema = &hcl.BodySchema{
 		{
 			Type:       "resource",
 			LabelNames: []string{"type", "name"},
-		},
-		{
-			Type:       "lock",
-			LabelNames: []string{"name"},
 		},
 		{
 			Type:       "data",

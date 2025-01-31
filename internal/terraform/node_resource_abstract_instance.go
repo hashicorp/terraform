@@ -161,38 +161,6 @@ func (n *NodeAbstractResourceInstance) SetOverride(override *configs.Override) {
 	n.override = override
 }
 
-// GraphNodeLockable
-func (n *NodeAbstractResourceInstance) Lock(ctx EvalContext) {
-	// If the resource is a root module instance, we use the lock
-	// on the module itself.
-	if n.Addr.Module.Equal(addrs.RootModuleInstance) {
-		n.NodeAbstractResource.Lock(ctx)
-		return
-	}
-
-	// Otherwise, we have to use the lock inside the containing module.
-	if n.lock != (addrs.Lock{}) {
-		// TODO: Add to interface
-		builtin, ok := ctx.(*BuiltinEvalContext)
-		if !ok {
-			panic(fmt.Errorf("NodeAbstractResourceInstance: expected BuiltinEvalContext, got %T", ctx))
-		}
-		builtin.GetSemaphore(n.Addr.Module.Lock(n.lock.Name)).Acquire()
-	}
-}
-
-// GraphNodeLockable
-func (n *NodeAbstractResourceInstance) Unlock(ctx EvalContext) {
-	if n.lock != (addrs.Lock{}) {
-		// TODO: Add to interface
-		builtin, ok := ctx.(*BuiltinEvalContext)
-		if !ok {
-			panic(fmt.Errorf("NodeAbstractResourceInstance: expected BuiltinEvalContext, got %T", ctx))
-		}
-		builtin.GetSemaphore(n.Addr.Module.Lock(n.lock.Name)).Release()
-	}
-}
-
 // readDiff returns the planned change for a particular resource instance
 // object.
 func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema providers.ProviderSchema) (*plans.ResourceInstanceChange, error) {

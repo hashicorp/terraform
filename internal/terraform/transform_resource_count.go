@@ -21,14 +21,12 @@ type ResourceCountTransformer struct {
 
 	Addr          addrs.ConfigResource
 	InstanceAddrs []addrs.AbsResourceInstance
-	Lock          addrs.Lock
 }
 
 func (t *ResourceCountTransformer) Transform(g *Graph) error {
 	for _, addr := range t.InstanceAddrs {
 		abstract := NewNodeAbstractResourceInstance(addr)
 		abstract.Schema = t.Schema
-		abstract.setLock(t.Lock)
 		var node dag.Vertex = abstract
 		if f := t.Concrete; f != nil {
 			node = f(abstract)
