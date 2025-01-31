@@ -675,24 +675,98 @@ func TestRemote_VerifyWorkspaceTerraformVersion_versionConstraint(t *testing.T) 
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	// Update the mock remote workspace Terraform version to be a version constraint string
-	if _, err := b.client.Workspaces.Update(
-		context.Background(),
-		b.organization,
-		b.workspace,
-		tfe.WorkspaceUpdateOptions{
-			TerraformVersion: tfe.String(">= 9.9.9"),
-		},
-	); err != nil {
-		t.Fatalf("error: %v", err)
-	}
-	diags := b.VerifyWorkspaceTerraformVersion(backend.DefaultStateName)
+	p := tfversion.Prerelease
+	v := tfversion.Version
+	defer func() {
+		tfversion.Prerelease = p
+		tfversion.Version = v
+	}()
 
-	if len(diags) != 1 {
-		t.Fatal("expected diag, but none returned")
+	// Define our test case struct
+	type testCase struct {
+		terraformVersion  string
+		versionConstraint string
+		shouldSatisfy     bool
+		prerelease        string
 	}
-	if got := diags.Err().Error(); !strings.Contains(got, "Terraform version mismatch") {
-		t.Fatalf("unexpected error: %s", got)
+
+	// Create a slice of test cases
+	testCases := []testCase{
+		{
+			terraformVersion:  "1.8.0",
+			versionConstraint: "> 1.9.0",
+			shouldSatisfy:     false,
+			prerelease:        "",
+		},
+		{
+			terraformVersion:  "1.10.1",
+			versionConstraint: "~> 1.10.0",
+			shouldSatisfy:     true,
+			prerelease:        "",
+		},
+		{
+			terraformVersion:  "1.10.0",
+			versionConstraint: "> 1.9.0",
+			shouldSatisfy:     true,
+			prerelease:        "",
+		},
+		{
+			terraformVersion:  "1.8.0",
+			versionConstraint: "~> 1.9.0",
+			shouldSatisfy:     false,
+			prerelease:        "",
+		},
+		{
+			terraformVersion:  "1.10.0",
+			versionConstraint: "> v1.9.4",
+			shouldSatisfy:     true,
+			prerelease:        "dev",
+		},
+		{
+			terraformVersion:  "1.10.0",
+			versionConstraint: "> 1.10.0",
+			shouldSatisfy:     false,
+			prerelease:        "dev",
+		},
+	}
+
+	// Now we loop through each test case, utilizing the values of each case
+	// to setup our test and assert accordingly.
+	for _, tc := range testCases {
+
+		// Set the version for this test.
+		tfversion.Prerelease = tc.prerelease
+		tfversion.Version = tc.terraformVersion
+
+		// Update the mock remote workspace Terraform version to be a version constraint string
+		if _, err := b.client.Workspaces.Update(
+			context.Background(),
+			b.organization,
+			b.workspace,
+			tfe.WorkspaceUpdateOptions{
+				TerraformVersion: tfe.String(tc.versionConstraint),
+			},
+		); err != nil {
+			t.Fatalf("error: %v", err)
+		}
+		diags := b.VerifyWorkspaceTerraformVersion(backend.DefaultStateName)
+
+		if tc.shouldSatisfy {
+			if len(diags) > 0 {
+				t.Fatalf("expected no diagnostics, but got: %v", diags.Err().Error())
+			}
+		} else {
+			if len(diags) == 0 {
+				t.Fatal("expected diagnostic, but none returned")
+			}
+			if got := diags.Err().Error(); !strings.Contains(got, "Terraform version mismatch") {
+				t.Fatalf("unexpected error: %s", got)
+			}
+		}
+		// Mock the Terraform version
+		// Update the mocked workspace with the constraint
+		// Call `VerifyWorkspaceTerraformVersion` and assert any diagnostics depending on whether
+		// shouldSatisfy is true or not
 	}
 }
 
