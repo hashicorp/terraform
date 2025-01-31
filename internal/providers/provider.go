@@ -507,6 +507,10 @@ const (
 	// DeferredReasonDeferredPrereq is used when the reason for deferring is
 	// that a required prerequisite resource was itself deferred.
 	DeferredReasonDeferredPrereq DeferredReason = "deferred_prereq"
+
+	// DeferredReasonExcluded is used when the reason for deferring is
+	// that a resource was explicitly requested to be excluded from the plan.
+	DeferredReasonExcluded DeferredReason = "deferred_excluded"
 )
 
 type Deferred struct {

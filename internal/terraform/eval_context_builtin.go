@@ -70,6 +70,11 @@ type BuiltinEvalContext struct {
 	// DeferralsValue is the object returned by [BuiltinEvalContext.Deferrals].
 	DeferralsValue *deferring.Deferred
 
+	// ExcludedValue is returned by [BuiltinEvalContext.Excludeds]
+	// The returned value is a set containing the address of resources that have
+	// been marked for exclusion.
+	ExcludedValue addrs.Set[addrs.Targetable]
+
 	// forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
 	forget bool
@@ -612,6 +617,10 @@ func (ctx *BuiltinEvalContext) NamedValues() *namedvals.State {
 
 func (ctx *BuiltinEvalContext) Deferrals() *deferring.Deferred {
 	return ctx.DeferralsValue
+}
+
+func (ctx *BuiltinEvalContext) Excluded() addrs.Set[addrs.Targetable] {
+	return ctx.ExcludedValue
 }
 
 func (ctx *BuiltinEvalContext) Changes() *plans.ChangesSync {

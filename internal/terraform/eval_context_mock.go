@@ -395,6 +395,10 @@ func (c *MockEvalContext) Deferrals() *deferring.Deferred {
 	return c.DeferralsState
 }
 
+func (ctx *MockEvalContext) Excluded() addrs.Set[addrs.Targetable] {
+	return nil
+}
+
 func (c *MockEvalContext) Changes() *plans.ChangesSync {
 	c.ChangesCalled = true
 	return c.ChangesChanges

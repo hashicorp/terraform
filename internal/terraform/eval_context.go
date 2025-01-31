@@ -192,6 +192,10 @@ type EvalContext interface {
 	// perform a planned action due to an upstream dependency being deferred.
 	Deferrals() *deferring.Deferred
 
+	// Excluded is a set containing the address of resources that have
+	// been marked for exclusion.
+	Excluded() addrs.Set[addrs.Targetable]
+
 	// ClientCapabilities returns the client capabilities sent to the providers
 	// for each request. They define what this terraform instance is capable of.
 	ClientCapabilities() providers.ClientCapabilities

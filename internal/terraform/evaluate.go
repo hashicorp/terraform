@@ -556,7 +556,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// certain that stacks-specific behaviors won't leak out into the standard
 	// runtime.
 	//
-	// TODO: When deferred actions are more stable and robust in stacks, it
+	// TODO: When deferred actions are more stable and robust in stacks, it--
 	// would be nice to rework this function to rely on the ResourceInstanceKeys
 	// result for _all_ of its work, rather than continuing to duplicate a bunch
 	// of the logic we've tried to encapsulate over ther already.
