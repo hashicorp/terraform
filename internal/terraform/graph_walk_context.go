@@ -54,6 +54,8 @@ type ContextGraphWalker struct {
 	// only allowd in the context of a destroy plan.
 	Forget bool
 
+	Excluded addrs.Set[addrs.Targetable]
+
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
 	NonFatalDiagnostics tfdiags.Diagnostics
@@ -139,6 +141,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Evaluator:               evaluator,
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
+		ExcludedValue:           w.Excluded,
 	}
 
 	return ctx

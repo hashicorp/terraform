@@ -66,6 +66,8 @@ type Operation struct {
 	// their dependencies.
 	Targets []addrs.Targetable
 
+	Exclude []addrs.Targetable
+
 	// ForceReplace addresses cause Terraform to force a particular set of
 	// resource instances to generate "replace" actions in any plan where they
 	// would normally have generated "no-op" or "update" actions.
@@ -94,20 +96,16 @@ type Operation struct {
 	// method Parse to populate the exported fields from these, validating
 	// the raw values in the process.
 	targetsRaw      []string
+	excludeRaw      []string
 	forceReplaceRaw []string
 	destroyRaw      bool
 	refreshOnlyRaw  bool
 }
 
-// Parse must be called on Operation after initial flag parse. This processes
-// the raw target flags into addrs.Targetable values, returning diagnostics if
-// invalid.
-func (o *Operation) Parse() tfdiags.Diagnostics {
+func parseTargets(raw []string) ([]addrs.Targetable, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-
-	o.Targets = nil
-
-	for _, tr := range o.targetsRaw {
+	targets := make([]addrs.Targetable, len(raw))
+	for _, tr := range raw {
 		traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(tr), "", hcl.Pos{Line: 1, Column: 1})
 		if syntaxDiags.HasErrors() {
 			diags = diags.Append(tfdiags.Sourceless(
@@ -128,8 +126,20 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 			continue
 		}
 
-		o.Targets = append(o.Targets, target.Subject)
+		targets = append(targets, target.Subject)
 	}
+
+	return targets, diags
+}
+
+// Parse must be called on Operation after initial flag parse. This processes
+// the raw target flags into addrs.Targetable values, returning diagnostics if
+// invalid.
+func (o *Operation) Parse() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	o.Targets, diags = parseTargets(o.targetsRaw)
+	o.Exclude, diags = parseTargets(o.excludeRaw)
 
 	for _, raw := range o.forceReplaceRaw {
 		traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(raw), "", hcl.Pos{Line: 1, Column: 1})
@@ -240,6 +250,7 @@ func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars
 		f.BoolVar(&operation.destroyRaw, "destroy", false, "destroy")
 		f.BoolVar(&operation.refreshOnlyRaw, "refresh-only", false, "refresh-only")
 		f.Var((*FlagStringSlice)(&operation.targetsRaw), "target", "target")
+		f.Var((*FlagStringSlice)(&operation.excludeRaw), "exclude", "exclude")
 		f.Var((*FlagStringSlice)(&operation.forceReplaceRaw), "replace", "replace")
 	}
 

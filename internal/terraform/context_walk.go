@@ -48,6 +48,8 @@ type graphWalkOpts struct {
 	// DeferralAlowed indicates that the current runtime supports deferred actions.
 	DeferralAllowed bool
 
+	Excluded addrs.Set[addrs.Targetable]
+
 	// ExternalDependencyDeferred indicates that something that this entire
 	// configuration depends on (outside the view of this modules runtime)
 	// has deferred changes, and therefore we must treat _all_ actions
@@ -198,5 +200,6 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		PlanTimestamp:           opts.PlanTimeTimestamp,
 		providerFuncResults:     opts.ProviderFuncResults,
 		Forget:                  opts.Forget,
+		Excluded:                opts.Excluded,
 	}
 }

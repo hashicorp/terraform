@@ -200,11 +200,12 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 	planOpts := &terraform.PlanOpts{
 		Mode:               op.PlanMode,
 		Targets:            op.Targets,
+		Exclude:            op.Exclude,
 		ForceReplace:       op.ForceReplace,
 		SetVariables:       variables,
 		SkipRefresh:        op.Type != backendrun.OperationTypeRefresh && !op.PlanRefresh,
 		GenerateConfigPath: op.GenerateConfigOut,
-		DeferralAllowed:    op.DeferralAllowed,
+		DeferralAllowed:    op.DeferralAllowed || len(op.Exclude) > 0,
 	}
 	run.PlanOpts = planOpts
 

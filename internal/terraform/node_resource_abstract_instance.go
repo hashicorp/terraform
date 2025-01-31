@@ -428,6 +428,13 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		resp = providers.PlanResourceChangeResponse{
 			PlannedState: nullVal,
 		}
+	} else if ctx.Excluded().Has(n.Addr) {
+		resp = providers.PlanResourceChangeResponse{
+			PlannedState: cty.UnknownVal(nullVal.Type()),
+			Deferred: &providers.Deferred{
+				Reason: providers.DeferredReasonExcluded,
+			},
+		}
 	} else {
 		// Allow the provider to check the destroy plan, and insert any
 		// necessary private data.
@@ -929,6 +936,13 @@ func (n *NodeAbstractResourceInstance) plan(
 			resp = providers.PlanResourceChangeResponse{
 				PlannedState: proposedNewVal,
 			}
+		}
+	} else if ctx.Excluded().Has(n.Addr) {
+		resp = providers.PlanResourceChangeResponse{
+			PlannedState: cty.UnknownVal(proposedNewVal.Type()),
+			Deferred: &providers.Deferred{
+				Reason: providers.DeferredReasonExcluded,
+			},
 		}
 	} else {
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
