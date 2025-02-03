@@ -66,7 +66,8 @@ type Operation struct {
 	// their dependencies.
 	Targets []addrs.Targetable
 
-	Exclude []addrs.Targetable
+	// Excluded is a slice of Targetable addresses that should be excluded from the operation.
+	Excluded []addrs.Targetable
 
 	// ForceReplace addresses cause Terraform to force a particular set of
 	// resource instances to generate "replace" actions in any plan where they
@@ -139,7 +140,7 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	o.Targets, diags = parseTargets(o.targetsRaw)
-	o.Exclude, diags = parseTargets(o.excludeRaw)
+	o.Excluded, diags = parseTargets(o.excludeRaw)
 
 	for _, raw := range o.forceReplaceRaw {
 		traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(raw), "", hcl.Pos{Line: 1, Column: 1})

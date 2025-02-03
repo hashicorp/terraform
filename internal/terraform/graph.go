@@ -274,8 +274,7 @@ func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targets []addrs.Target
 				// but the target value is a more specific target inside
 				// the dynamic node, we want to filter that specific target.
 				var directTargets []addrs.Targetable
-				n, ok := v.(GraphNodeTargetable)
-				if ok {
+				if n, ok := v.(GraphNodeTargetable); ok {
 					directTargets = n.Targets()
 				}
 				subDiags := g.walk(ctx, walker, directTargets)

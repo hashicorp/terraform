@@ -28,7 +28,7 @@ func (b *Cloud) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statem
 		PlanOpts: &terraform.PlanOpts{
 			Mode:     op.PlanMode,
 			Targets:  op.Targets,
-			Excluded: op.Exclude,
+			Excluded: op.Excluded,
 		},
 	}
 

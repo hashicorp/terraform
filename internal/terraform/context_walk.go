@@ -182,11 +182,6 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		deferred.SetExternalDependencyDeferred()
 	}
 
-	targets := opts.Targets
-	if targets == nil {
-		targets = addrs.MakeSet[addrs.Targetable]()
-	}
-
 	return &ContextGraphWalker{
 		Context:                 c,
 		State:                   state,
@@ -208,7 +203,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		providerFuncResults:     opts.ProviderFuncResults,
 		Forget:                  opts.Forget,
 		excluded:                opts.Excluded,
-		targets:                 targets,
+		targets:                 opts.Targets,
 		targetedNodes:           dag.Set{},
 		excludedNodes:           dag.Set{},
 	}

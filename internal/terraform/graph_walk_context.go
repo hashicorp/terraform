@@ -76,10 +76,10 @@ type ContextGraphWalker struct {
 	provisionerCache    map[string]provisioners.Interface
 	provisionerSchemas  map[string]*configschema.Block
 	provisionerLock     sync.Mutex
-	targetedNodes       dag.Set
-	excludedNodes       dag.Set
-	refLock             sync.Mutex
-	exLock              sync.Mutex
+
+	targetedNodes dag.Set
+	excludedNodes dag.Set
+	refLock       sync.Mutex
 }
 
 var _ GraphWalker = (*ContextGraphWalker)(nil)
@@ -153,7 +153,6 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		TargetedNodes:           w.targetedNodes,
 		ExcludedNodes:           w.excludedNodes,
 		refsLock:                &w.refLock,
-		excLock:                 &w.exLock,
 	}
 
 	return ctx

@@ -74,7 +74,6 @@ type BuiltinEvalContext struct {
 	TargetedNodes dag.Set
 	ExcludedNodes dag.Set
 	refsLock      *sync.Mutex
-	excLock       *sync.Mutex
 
 	// forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
@@ -635,8 +634,8 @@ func (ctx *BuiltinEvalContext) Targets(node dag.Vertex) bool {
 }
 
 func (ctx *BuiltinEvalContext) Excludes(node dag.Vertex) bool {
-	ctx.excLock.Lock()
-	defer ctx.excLock.Unlock()
+	ctx.refsLock.Lock()
+	defer ctx.refsLock.Unlock()
 	return ctx.ExcludedNodes.Include(node)
 }
 
@@ -647,7 +646,7 @@ func (ctx *BuiltinEvalContext) AddTarget(node dag.Vertex) {
 }
 
 func (ctx *BuiltinEvalContext) AddExclude(node dag.Vertex) {
-	ctx.excLock.Lock()
-	defer ctx.excLock.Unlock()
+	ctx.refsLock.Lock()
+	defer ctx.refsLock.Unlock()
 	ctx.ExcludedNodes.Add(node)
 }

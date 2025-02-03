@@ -29,7 +29,7 @@ func (b *Remote) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, state
 		PlanOpts: &terraform.PlanOpts{
 			Mode:     op.PlanMode,
 			Targets:  op.Targets,
-			Excluded: op.Exclude,
+			Excluded: op.Excluded,
 		},
 	}
 
