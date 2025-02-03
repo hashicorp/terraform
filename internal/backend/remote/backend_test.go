@@ -734,9 +734,13 @@ func TestRemote_VerifyWorkspaceTerraformVersion_versionConstraint(t *testing.T) 
 	// to setup our test and assert accordingly.
 	for _, tc := range testCases {
 
-		// Set the version for this test.
-		tfversion.Prerelease = tc.prerelease
-		tfversion.Version = tc.terraformVersion
+		// Save and restore the actual version.
+		p := tfversion.Prerelease
+		v := tfversion.Version
+		defer func() {
+			tfversion.Prerelease = p
+			tfversion.Version = v
+		}()
 
 		// Update the mock remote workspace Terraform version to be a version constraint string
 		if _, err := b.client.Workspaces.Update(
