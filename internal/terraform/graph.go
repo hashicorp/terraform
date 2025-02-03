@@ -41,57 +41,65 @@ func (g *Graph) Walk(walker GraphWalker) tfdiags.Diagnostics {
 	}))
 }
 
-func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targets []addrs.Targetable) tfdiags.Diagnostics {
-	// The callbacks for enter/exiting a graph
+// getTargetable extracts the targetable address from a node. The order
+// of the checks is important, as the GraphNodeResourceInstance takes precedence
+// over the GraphNodeConfigResource.
+func getTargetable(node dag.Vertex) addrs.Targetable {
+	switch n := node.(type) {
+	case GraphNodeResourceInstance:
+		return n.ResourceInstanceAddr()
+	case GraphNodeConfigResource:
+		return n.ResourceAddr()
+	default:
+		return nil
+	}
+}
 
-	// If we have a list of targets, we will not take into account the excluded
-	// values. If we don't have any targets, we will exclude the nodes that are
-	// not targeted.
-	if walker.ExcludedAddrs().Size() > 0 {
-	GNode:
+// isExcluded checks if a node or its ancestors are in the exclusion list.
+func isExcluded(g *Graph, node dag.Vertex, excludedAddrs addrs.Set[addrs.Targetable]) bool {
+	contains := func(t addrs.Targetable) bool {
+		for _, excluded := range excludedAddrs {
+			if excluded.TargetContains(t) {
+				return true
+			}
+		}
+		return false
+	}
+	targetable := getTargetable(node)
+	if targetable != nil && contains(targetable) {
+		return true
+	}
+
+	for _, dep := range g.Ancestors(node) {
+		if targetable := getTargetable(dep); targetable != nil && contains(targetable) {
+			return true
+		}
+	}
+	return false
+}
+
+func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targets []addrs.Targetable) tfdiags.Diagnostics {
+	// If we are performing inverse targeting (exclusion),
+	// we build an exclusion list of nodes that are either directly
+	// excluded or have ancestors that are excluded.
+	excludeAddrs := walker.ExcludedAddrs()
+	if excludeAddrs.Size() > 0 {
 		for _, node := range g.Vertices() {
-			var targetable addrs.Targetable
-			if tn, ok := node.(GraphNodeConfigResource); ok {
-				targetable = tn.ResourceAddr()
-			}
-			if tn, ok := node.(GraphNodeResourceInstance); ok {
-				targetable = tn.ResourceInstanceAddr()
-			}
-			if targetable == nil {
+			// If the node is already excluded, we don't need to do anything
+			if ctx.Excludes(node) {
 				continue
 			}
 
-			// If any of the node's ancestors were excluded, we should exclude this node as well.
-			deps := g.Ancestors(node)
-			for _, dep := range deps {
-				if tn, ok := dep.(GraphNodeConfigResource); ok {
-					targetable = tn.ResourceAddr()
-				} else if tn, ok := dep.(GraphNodeResourceInstance); ok {
-					targetable = tn.ResourceInstanceAddr()
-				} else {
-					continue
-				}
-				for _, excluded := range walker.ExcludedAddrs() {
-					if excluded.TargetContains(targetable) {
-						fmt.Println("Excluding indirect node", dag.VertexName(node))
-						ctx.AddExclude(node)
-						continue GNode
-					}
-				}
-			}
-
-			// If the node is not excluded, then we target it
-			for _, excluded := range walker.ExcludedAddrs() {
-				if !excluded.TargetContains(targetable) {
-					targets = append(targets, targetable)
-				} else {
-					ctx.AddExclude(node)
-					fmt.Println("Excluding node", dag.VertexName(node))
-				}
+			// If the node or any of its ancestors are in the exclusion list,
+			// we should mark it as excluded in the context.
+			if isExcluded(g, node, excludeAddrs) {
+				ctx.AddExclude(node)
+				continue
 			}
 		}
 	}
 
+	// we want to build a list of targetable nodes that are not in the exclusion list.
 	if len(targets) == 0 {
 		for _, node := range g.Vertices() {
 			if !ctx.Excludes(node) {
@@ -99,12 +107,14 @@ func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targets []addrs.Target
 			}
 		}
 	} else {
-		// This will ensure that we only target the nodes (and its dependants)
-		// that are in the list of targets
-		targetedNodes, _ := selectTargetedNodes(g, targets)
+		// This graph is being targeted, so we filter the graph,
+		// and add the targeted nodes to the context.
+		targetedNodes := selectTargetedNodes(g, targets)
 		for _, node := range targetedNodes {
 			ctx.AddTarget(node)
 		}
+
+		// any node left in the graph that is not targeted is excluded.
 		for _, node := range g.Vertices() {
 			if !ctx.Targets(node) {
 				ctx.AddExclude(node)
@@ -112,6 +122,7 @@ func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targets []addrs.Target
 		}
 	}
 
+	// The callbacks for enter/exiting a graph
 	// Walk the graph.
 	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
 		// the walkFn is called asynchronously, and needs to be recovered

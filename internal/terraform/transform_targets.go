@@ -30,10 +30,7 @@ type TargetsTransformer struct {
 
 func (t *TargetsTransformer) Transform(g *Graph) error {
 	if len(t.Targets) > 0 {
-		targetedNodes, err := selectTargetedNodes(g, t.Targets)
-		if err != nil {
-			return err
-		}
+		targetedNodes := selectTargetedNodes(g, t.Targets)
 
 		for _, v := range g.Vertices() {
 			if !targetedNodes.Include(v) {
@@ -49,7 +46,7 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 // Returns a set of targeted nodes. A targeted node is either addressed
 // directly, address indirectly via its container, or it's a dependency of a
 // targeted node.
-func selectTargetedNodes(g *Graph, _addrs []addrs.Targetable) (dag.Set, error) {
+func selectTargetedNodes(g *Graph, _addrs []addrs.Targetable) dag.Set {
 	targetedNodes := make(dag.Set)
 
 	vertices := g.Vertices()
@@ -120,7 +117,7 @@ func selectTargetedNodes(g *Graph, _addrs []addrs.Targetable) (dag.Set, error) {
 		}
 	}
 
-	return targetedNodes, nil
+	return targetedNodes
 }
 
 func nodeIsTarget(v dag.Vertex, targets addrs.Set[addrs.Targetable]) bool {
