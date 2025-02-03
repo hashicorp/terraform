@@ -763,10 +763,6 @@ func TestRemote_VerifyWorkspaceTerraformVersion_versionConstraint(t *testing.T) 
 				t.Fatalf("unexpected error: %s", got)
 			}
 		}
-		// Mock the Terraform version
-		// Update the mocked workspace with the constraint
-		// Call `VerifyWorkspaceTerraformVersion` and assert any diagnostics depending on whether
-		// shouldSatisfy is true or not
 	}
 }
 
