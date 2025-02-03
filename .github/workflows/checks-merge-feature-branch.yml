@@ -5,10 +5,12 @@ on:
   # - If there are changes outside the ignored, non-code paths below
   push:
     branches:
+      #  Allow list
       - '*'
-    branches-ignore:
-      - 'main'
-      - 'v[0-9]+.[0-9]+'
+      # Disallow list
+      - '!main'
+      - '!v[0-9]+.[0-9]+'
+
     paths-ignore:
       - 'CHANGELOG.md'
       - '.changes/**'
