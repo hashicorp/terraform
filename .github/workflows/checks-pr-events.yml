@@ -23,4 +23,4 @@ permissions:
 
 jobs:
  quick-checks:
-  uses: ./.github/workflows/reusable/checks.yml
+  uses: ./.github/workflows/checks.yml
