@@ -16,6 +16,15 @@
 name: Quick Checks
 
 on:
+  # We always run checks on:
+  # - PR merges to main
+  # - PR merges to release branches
+  push:
+    branches:
+      - 'main'
+      - 'v[0-9]+.[0-9]+'
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
   pull_request:
     types:
       - opened
