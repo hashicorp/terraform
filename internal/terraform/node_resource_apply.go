@@ -56,6 +56,14 @@ func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	}
 
 	var diags tfdiags.Diagnostics
+	// expansion not needed if the resource is excluded.
+	// The actual expansion of this resource is done in the
+	// plan stage anyway, and all we do here is apply the
+	// module instances.
+	if ctx.Excludes(n) {
+		return nil, diags
+	}
+
 	expander := ctx.InstanceExpander()
 	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
 	for _, module := range moduleInstances {
@@ -143,7 +151,7 @@ func (n *nodeExpandApplyableResource) ephemeralResourceInstanceSubgraph(addr add
 		},
 
 		// Targeting
-		&TargetsTransformer{Targets: n.Targets},
+		// &TargetsTransformer{Targets: n.Targets},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},

@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
@@ -49,6 +50,7 @@ type graphWalkOpts struct {
 	DeferralAllowed bool
 
 	Excluded addrs.Set[addrs.Targetable]
+	Targets  addrs.Set[addrs.Targetable]
 
 	// ExternalDependencyDeferred indicates that something that this entire
 	// configuration depends on (outside the view of this modules runtime)
@@ -180,6 +182,11 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		deferred.SetExternalDependencyDeferred()
 	}
 
+	targets := opts.Targets
+	if targets == nil {
+		targets = addrs.MakeSet[addrs.Targetable]()
+	}
+
 	return &ContextGraphWalker{
 		Context:                 c,
 		State:                   state,
@@ -200,6 +207,9 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		PlanTimestamp:           opts.PlanTimeTimestamp,
 		providerFuncResults:     opts.ProviderFuncResults,
 		Forget:                  opts.Forget,
-		Excluded:                opts.Excluded,
+		excluded:                opts.Excluded,
+		targets:                 targets,
+		targetedNodes:           dag.Set{},
+		excludedNodes:           dag.Set{},
 	}
 }

@@ -98,6 +98,10 @@ func (s Set[T]) Sorted(less func(i, j T) bool) []T {
 	return ret
 }
 
+func (s Set[T]) Size() int {
+	return len(s)
+}
+
 // SetSortedNatural returns a slice containing the elements of the given set
 // sorted into their "natural" order, as defined by the type's method "Less".
 //

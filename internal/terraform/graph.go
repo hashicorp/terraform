@@ -35,12 +35,82 @@ func (g *Graph) DirectedGraph() dag.Grapher {
 // will be walked with full parallelism, so the walker should expect
 // to be called in concurrently.
 func (g *Graph) Walk(walker GraphWalker) tfdiags.Diagnostics {
-	return g.walk(walker)
+	ctx := walker.EvalContext()
+	return g.walk(ctx, walker, walker.TargetAddrs().Sorted(func(i, j addrs.Targetable) bool {
+		return i.String() < j.String()
+	}))
 }
 
-func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
+func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targets []addrs.Targetable) tfdiags.Diagnostics {
 	// The callbacks for enter/exiting a graph
-	ctx := walker.EvalContext()
+
+	// If we have a list of targets, we will not take into account the excluded
+	// values. If we don't have any targets, we will exclude the nodes that are
+	// not targeted.
+	if walker.ExcludedAddrs().Size() > 0 {
+	GNode:
+		for _, node := range g.Vertices() {
+			var targetable addrs.Targetable
+			if tn, ok := node.(GraphNodeConfigResource); ok {
+				targetable = tn.ResourceAddr()
+			}
+			if tn, ok := node.(GraphNodeResourceInstance); ok {
+				targetable = tn.ResourceInstanceAddr()
+			}
+			if targetable == nil {
+				continue
+			}
+
+			// If any of the node's ancestors were excluded, we should exclude this node as well.
+			deps := g.Ancestors(node)
+			for _, dep := range deps {
+				if tn, ok := dep.(GraphNodeConfigResource); ok {
+					targetable = tn.ResourceAddr()
+				} else if tn, ok := dep.(GraphNodeResourceInstance); ok {
+					targetable = tn.ResourceInstanceAddr()
+				} else {
+					continue
+				}
+				for _, excluded := range walker.ExcludedAddrs() {
+					if excluded.TargetContains(targetable) {
+						fmt.Println("Excluding indirect node", dag.VertexName(node))
+						ctx.AddExclude(node)
+						continue GNode
+					}
+				}
+			}
+
+			// If the node is not excluded, then we target it
+			for _, excluded := range walker.ExcludedAddrs() {
+				if !excluded.TargetContains(targetable) {
+					targets = append(targets, targetable)
+				} else {
+					ctx.AddExclude(node)
+					fmt.Println("Excluding node", dag.VertexName(node))
+				}
+			}
+		}
+	}
+
+	if len(targets) == 0 {
+		for _, node := range g.Vertices() {
+			if !ctx.Excludes(node) {
+				ctx.AddTarget(node)
+			}
+		}
+	} else {
+		// This will ensure that we only target the nodes (and its dependants)
+		// that are in the list of targets
+		targetedNodes, _ := selectTargetedNodes(g, targets)
+		for _, node := range targetedNodes {
+			ctx.AddTarget(node)
+		}
+		for _, node := range g.Vertices() {
+			if !ctx.Targets(node) {
+				ctx.AddExclude(node)
+			}
+		}
+	}
 
 	// Walk the graph.
 	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
@@ -181,7 +251,23 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 
 				// Walk the subgraph
 				log.Printf("[TRACE] vertex %q: entering dynamic subgraph", dag.VertexName(v))
-				subDiags := g.walk(walker)
+				// If the dynamic node is excluded, we should exclude all of the
+				// nodes in the subgraph.
+				if ctx.Excludes(v) {
+					for _, node := range g.Vertices() {
+						ctx.AddExclude(node)
+					}
+				}
+
+				// If the dynamic node was directly targeted with a target value,
+				// but the target value is a more specific target inside
+				// the dynamic node, we want to filter that specific target.
+				var directTargets []addrs.Targetable
+				n, ok := v.(GraphNodeTargetable)
+				if ok {
+					directTargets = n.Targets()
+				}
+				subDiags := g.walk(ctx, walker, directTargets)
 				diags = diags.Append(subDiags)
 				if subDiags.HasErrors() {
 					var errs []string

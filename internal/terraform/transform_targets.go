@@ -17,6 +17,7 @@ import (
 // node must filter this list to targets considered relevant.
 type GraphNodeTargetable interface {
 	SetTargets([]addrs.Targetable)
+	Targets() []addrs.Targetable
 }
 
 // TargetsTransformer is a GraphTransformer that, when the user specifies a
@@ -29,7 +30,7 @@ type TargetsTransformer struct {
 
 func (t *TargetsTransformer) Transform(g *Graph) error {
 	if len(t.Targets) > 0 {
-		targetedNodes, err := t.selectTargetedNodes(g, t.Targets)
+		targetedNodes, err := selectTargetedNodes(g, t.Targets)
 		if err != nil {
 			return err
 		}
@@ -48,20 +49,20 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 // Returns a set of targeted nodes. A targeted node is either addressed
 // directly, address indirectly via its container, or it's a dependency of a
 // targeted node.
-func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targetable) (dag.Set, error) {
+func selectTargetedNodes(g *Graph, _addrs []addrs.Targetable) (dag.Set, error) {
 	targetedNodes := make(dag.Set)
 
 	vertices := g.Vertices()
-
+	set := addrs.MakeSet(_addrs...)
 	for _, v := range vertices {
-		if t.nodeIsTarget(v, addrs) {
+		if nodeIsTarget(v, set) {
 			targetedNodes.Add(v)
 
 			// We inform nodes that ask about the list of targets - helps for nodes
 			// that need to dynamically expand. Note that this only occurs for nodes
 			// that are already directly targeted.
 			if tn, ok := v.(GraphNodeTargetable); ok {
-				tn.SetTargets(addrs)
+				tn.SetTargets(_addrs)
 			}
 
 			for _, d := range g.Ancestors(v) {
@@ -122,7 +123,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 	return targetedNodes, nil
 }
 
-func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetable) bool {
+func nodeIsTarget(v dag.Vertex, targets addrs.Set[addrs.Targetable]) bool {
 	var vertexAddr addrs.Targetable
 	switch r := v.(type) {
 	case *nodeApplyableDeferredPartialInstance:

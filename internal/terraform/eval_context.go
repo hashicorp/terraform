@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -191,10 +192,6 @@ type EvalContext interface {
 	// perform a planned action due to an upstream dependency being deferred.
 	Deferrals() *deferring.Deferred
 
-	// Excluded is a set containing the address of resources that have
-	// been marked for exclusion.
-	Excluded() addrs.Set[addrs.Targetable]
-
 	// ClientCapabilities returns the client capabilities sent to the providers
 	// for each request. They define what this terraform instance is capable of.
 	ClientCapabilities() providers.ClientCapabilities
@@ -220,6 +217,11 @@ type EvalContext interface {
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowed in the context of a destroy plan.
 	Forget() bool
+
+	Targets(node dag.Vertex) bool
+	Excludes(node dag.Vertex) bool
+	AddTarget(node dag.Vertex)
+	AddExclude(node dag.Vertex)
 }
 
 func evalContextForModuleInstance(baseCtx EvalContext, addr addrs.ModuleInstance) EvalContext {

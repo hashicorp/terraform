@@ -189,6 +189,7 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		ExternalProviderConfigs: opts.ExternalProviders,
 
 		DeferralAllowed: true,
+		Targets:         addrs.MakeSet(plan.TargetAddrs...),
 
 		// We need to propagate the check results from the plan phase,
 		// because that will tell us which checkable objects we're expecting

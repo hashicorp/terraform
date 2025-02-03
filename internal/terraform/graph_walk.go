@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -14,6 +15,8 @@ type GraphWalker interface {
 	enterScope(evalContextScope) EvalContext
 	exitScope(evalContextScope)
 	Execute(EvalContext, GraphNodeExecutable) tfdiags.Diagnostics
+	TargetAddrs() addrs.Set[addrs.Targetable]
+	ExcludedAddrs() addrs.Set[addrs.Targetable]
 }
 
 // NullGraphWalker is a GraphWalker implementation that does nothing.
@@ -25,3 +28,5 @@ func (NullGraphWalker) EvalContext() EvalContext                                
 func (NullGraphWalker) enterScope(evalContextScope) EvalContext                      { return new(MockEvalContext) }
 func (NullGraphWalker) exitScope(evalContextScope)                                   {}
 func (NullGraphWalker) Execute(EvalContext, GraphNodeExecutable) tfdiags.Diagnostics { return nil }
+func (NullGraphWalker) TargetAddrs() addrs.Set[addrs.Targetable]                     { return nil }
+func (NullGraphWalker) ExcludedAddrs() addrs.Set[addrs.Targetable]                   { return nil }

@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"context"
+	"log"
 	"sync"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
@@ -54,7 +56,10 @@ type ContextGraphWalker struct {
 	// only allowd in the context of a destroy plan.
 	Forget bool
 
-	Excluded addrs.Set[addrs.Targetable]
+	// These values are set from the command line and are used to filter the
+	// graph to only include the resources that are targeted.
+	excluded addrs.Set[addrs.Targetable]
+	targets  addrs.Set[addrs.Targetable]
 
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
@@ -71,6 +76,10 @@ type ContextGraphWalker struct {
 	provisionerCache    map[string]provisioners.Interface
 	provisionerSchemas  map[string]*configschema.Block
 	provisionerLock     sync.Mutex
+	targetedNodes       dag.Set
+	excludedNodes       dag.Set
+	refLock             sync.Mutex
+	exLock              sync.Mutex
 }
 
 var _ GraphWalker = (*ContextGraphWalker)(nil)
@@ -141,7 +150,10 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Evaluator:               evaluator,
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
-		ExcludedValue:           w.Excluded,
+		TargetedNodes:           w.targetedNodes,
+		ExcludedNodes:           w.excludedNodes,
+		refsLock:                &w.refLock,
+		excLock:                 &w.exLock,
 	}
 
 	return ctx
@@ -160,6 +172,49 @@ func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfd
 	// Acquire a lock on the semaphore
 	w.Context.parallelSem.Acquire()
 	defer w.Context.parallelSem.Release()
+	targets := ctx.Targets(n)
+	excludes := ctx.Excludes(n)
+	switch n := n.(type) {
+	// always execute these nodes
+	case *NodeRootVariable, *nodeExpandModule:
+		return n.Execute(ctx, w.Operation)
+	case *NodePlannableResourceInstance:
+		if !targets || excludes {
+			_, diags := n.simpleValidate(ctx, w.Operation)
+			return diags
+		} else {
+			return n.Execute(ctx, w.Operation)
+		}
+	case *NodeApplyableResourceInstance:
+		if !targets || excludes {
+			_, diags := n.simpleValidate(ctx, w.Operation)
+			return diags
+		} else {
+			return n.Execute(ctx, w.Operation)
+		}
+	case *nodePlannablePartialExpandedResource:
+		return n.Execute(ctx, w.Operation)
+	}
+	_, kok := n.(graphNodeExpandsInstances)
+	dontInclude := !kok && !targets
+	if dontInclude || excludes {
+		if ev, ok := n.(GraphNodeExcludable); ok {
+			if excluded, diags := ev.simpleValidate(ctx, w.Operation); excluded {
+				return diags
+			}
+		} else {
+			log.Printf("[TRACE] vertex %q: not targeted, skipping", dag.VertexName(n))
+			return nil
+		}
+	}
 
 	return n.Execute(ctx, w.Operation)
+}
+
+func (w *ContextGraphWalker) TargetAddrs() addrs.Set[addrs.Targetable] {
+	return w.targets
+}
+
+func (w *ContextGraphWalker) ExcludedAddrs() addrs.Set[addrs.Targetable] {
+	return w.excluded
 }

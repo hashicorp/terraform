@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -380,10 +381,6 @@ func (c *MockEvalContext) Deferrals() *deferring.Deferred {
 	return c.DeferralsState
 }
 
-func (ctx *MockEvalContext) Excluded() addrs.Set[addrs.Targetable] {
-	return nil
-}
-
 func (c *MockEvalContext) Changes() *plans.ChangesSync {
 	c.ChangesCalled = true
 	return c.ChangesChanges
@@ -434,4 +431,20 @@ func (ctx *MockEvalContext) ClientCapabilities() providers.ClientCapabilities {
 		DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
 		WriteOnlyAttributesAllowed: true,
 	}
+}
+
+func (ctx *MockEvalContext) Targets(node dag.Vertex) bool {
+	return false
+}
+
+func (ctx *MockEvalContext) Excludes(node dag.Vertex) bool {
+	return false
+}
+
+func (ctx *MockEvalContext) AddTarget(node dag.Vertex) {
+
+}
+
+func (ctx *MockEvalContext) AddExclude(node dag.Vertex) {
+
 }

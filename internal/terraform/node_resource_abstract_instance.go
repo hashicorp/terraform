@@ -357,6 +357,96 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 	return nil
 }
 
+// If the resource instance is excluded, we only want to do some basic
+// schema checks and then defer the change.
+func (n *NodeAbstractResourceInstance) simpleValidate(ctx EvalContext, op walkOperation) (bool, tfdiags.Diagnostics) {
+	deferralAllowed := ctx.Deferrals().DeferralAllowed()
+	excludes := deferralAllowed
+
+	addr := n.ResourceInstanceAddr()
+	var diags tfdiags.Diagnostics
+	resource := n.Addr.Resource.Resource
+
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return excludes, diags.Append(err)
+	}
+
+	schema, _ := providerSchema.SchemaForResourceAddr(resource)
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", resource.Type))
+		return excludes, diags
+	}
+
+	currentState, diags := n.readResourceInstanceState(ctx, addr)
+	if diags.HasErrors() {
+		return excludes, diags
+	}
+
+	var priorVal cty.Value
+	var priorPrivate []byte
+	var changes *plans.ResourceInstanceChange
+	switch op {
+	case walkDestroy:
+		// If there is no state or our attributes object is null then we're already
+		// destroyed.
+		if currentState == nil || currentState.Value.IsNull() {
+			// We still need to generate a NoOp change, because that allows
+			// outside consumers of the plan to distinguish between us affirming
+			// that we checked something and concluded no changes were needed
+			// vs. that something being entirely excluded e.g. due to -target.
+			noop := &plans.ResourceInstanceChange{
+				Addr:        n.Addr,
+				PrevRunAddr: n.prevRunAddr(ctx),
+				// DeposedKey:  deposedKey, //TODO
+				Change: plans.Change{
+					Action: plans.NoOp,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.NullVal(cty.DynamicPseudoType),
+				},
+				ProviderAddr: n.ResolvedProvider,
+			}
+			changes = noop
+		}
+	default:
+		if currentState != nil {
+			if currentState.Status != states.ObjectTainted {
+				priorVal = currentState.Value
+				priorPrivate = currentState.Private
+			} else {
+				priorVal = cty.NullVal(schema.ImpliedType())
+			}
+		} else {
+			priorVal = cty.NullVal(schema.ImpliedType())
+		}
+		changes = &plans.ResourceInstanceChange{
+			Addr:         n.Addr,
+			PrevRunAddr:  n.prevRunAddr(ctx),
+			Private:      priorPrivate,
+			ProviderAddr: n.ResolvedProvider,
+			Change: plans.Change{
+				Before:          priorVal,
+				After:           cty.UnknownVal(priorVal.Type()),
+				GeneratedConfig: n.generatedConfigHCL,
+			},
+		}
+	}
+
+	reason := providers.DeferredReasonExcluded
+	switch addr.Resource.Resource.Mode {
+	case addrs.ManagedResourceMode:
+		ctx.Deferrals().ReportResourceInstanceDeferred(addr, reason, changes)
+	case addrs.DataResourceMode:
+		ctx.Deferrals().ReportDataSourceInstanceDeferred(addr, reason, changes)
+	case addrs.EphemeralResourceMode:
+		ctx.Deferrals().ReportEphemeralResourceInstanceDeferred(addr, reason)
+	default:
+		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
+	}
+	return excludes, diags
+}
+
 // planDestroy returns a plain destroy diff.
 func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, *providers.Deferred, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
@@ -427,13 +517,6 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		// provider.
 		resp = providers.PlanResourceChangeResponse{
 			PlannedState: nullVal,
-		}
-	} else if ctx.Excluded().Has(n.Addr) {
-		resp = providers.PlanResourceChangeResponse{
-			PlannedState: cty.UnknownVal(nullVal.Type()),
-			Deferred: &providers.Deferred{
-				Reason: providers.DeferredReasonExcluded,
-			},
 		}
 	} else {
 		// Allow the provider to check the destroy plan, and insert any
@@ -936,13 +1019,6 @@ func (n *NodeAbstractResourceInstance) plan(
 			resp = providers.PlanResourceChangeResponse{
 				PlannedState: proposedNewVal,
 			}
-		}
-	} else if ctx.Excluded().Has(n.Addr) {
-		resp = providers.PlanResourceChangeResponse{
-			PlannedState: cty.UnknownVal(proposedNewVal.Type()),
-			Deferred: &providers.Deferred{
-				Reason: providers.DeferredReasonExcluded,
-			},
 		}
 	} else {
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{

@@ -121,6 +121,10 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	// duplicating some of the logic for behavior this method would normally
 	// handle.
 	if ctx.Deferrals().DeferralAllowed() { // Expand the imports for this resource.
+		// Dont expand if the entire module is excluded
+		if ctx.Excludes(n) {
+			return nil, diags
+		}
 		knownImports, unknownImports, importDiags := n.expandResourceImports(ctx, true)
 		diags = diags.Append(importDiags)
 
@@ -492,10 +496,6 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 
 		// Attach the state
 		&AttachStateTransformer{State: state},
-
-		// Targeting
-		&TargetsTransformer{Targets: n.Targets},
-
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
 

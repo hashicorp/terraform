@@ -207,26 +207,28 @@ test_thing.b (expand)
 	}
 }
 
-func TestPlanGraphBuilder_targetModule(t *testing.T) {
-	b := &PlanGraphBuilder{
-		Config:  testModule(t, "graph-builder-plan-target-module-provider"),
-		Plugins: simpleMockPluginLibrary(),
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
-		},
-		Operation: walkPlan,
-	}
+// Test now void because we walk everything in the graph, and instead
+// target at a higher level.
+// func TestPlanGraphBuilder_targetModule(t *testing.T) {
+// 	b := &PlanGraphBuilder{
+// 		Config:  testModule(t, "graph-builder-plan-target-module-provider"),
+// 		Plugins: simpleMockPluginLibrary(),
+// 		Targets: []addrs.Targetable{
+// 			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
+// 		},
+// 		Operation: walkPlan,
+// 	}
 
-	g, err := b.Build(addrs.RootModuleInstance)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+// 	g, err := b.Build(addrs.RootModuleInstance)
+// 	if err != nil {
+// 		t.Fatalf("err: %s", err)
+// 	}
 
-	t.Logf("Graph: %s", g.String())
+// 	t.Logf("Graph: %s", g.String())
 
-	testGraphNotContains(t, g, `module.child1.provider["registry.terraform.io/hashicorp/test"]`)
-	testGraphNotContains(t, g, "module.child1.test_object.foo")
-}
+// 	testGraphNotContains(t, g, `module.child1.provider["registry.terraform.io/hashicorp/test"]`)
+// 	testGraphNotContains(t, g, "module.child1.test_object.foo")
+// }
 
 func TestPlanGraphBuilder_forEach(t *testing.T) {
 	awsProvider := mockProviderWithResourceTypeSchema("aws_instance", simpleTestSchema())

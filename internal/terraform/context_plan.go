@@ -67,7 +67,7 @@ type PlanOpts struct {
 	// warnings as part of the planning result.
 	Targets []addrs.Targetable
 
-	Exclude []addrs.Targetable
+	Excluded []addrs.Targetable
 
 	// ForceReplace is a set of resource instance addresses whose corresponding
 	// objects should be forced planned for replacement if the provider's
@@ -722,7 +722,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		Config:                     config,
 		InputState:                 prevRunState,
 		ExternalProviderConfigs:    externalProviderConfigs,
-		DeferralAllowed:            opts.DeferralAllowed,
+		DeferralAllowed:            opts.DeferralAllowed || len(opts.Targets) > 0 || len(opts.Excluded) > 0,
 		ExternalDependencyDeferred: opts.ExternalDependencyDeferred,
 		Changes:                    changes,
 		MoveResults:                moveResults,
@@ -730,7 +730,8 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		PlanTimeTimestamp:          timestamp,
 		ProviderFuncResults:        providerFuncResults,
 		Forget:                     opts.Forget,
-		Excluded:                   addrs.MakeSet(opts.Exclude...),
+		Excluded:                   addrs.MakeSet(opts.Excluded...),
+		Targets:                    addrs.MakeSet(opts.Targets...),
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)

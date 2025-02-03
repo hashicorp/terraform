@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -69,10 +70,11 @@ type BuiltinEvalContext struct {
 	// DeferralsValue is the object returned by [BuiltinEvalContext.Deferrals].
 	DeferralsValue *deferring.Deferred
 
-	// ExcludedValue is returned by [BuiltinEvalContext.Excludeds]
-	// The returned value is a set containing the address of resources that have
-	// been marked for exclusion.
-	ExcludedValue addrs.Set[addrs.Targetable]
+	// TargetedNodes is a set of nodes that are targeted by the current operation.
+	TargetedNodes dag.Set
+	ExcludedNodes dag.Set
+	refsLock      *sync.Mutex
+	excLock       *sync.Mutex
 
 	// forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
@@ -579,10 +581,6 @@ func (ctx *BuiltinEvalContext) Deferrals() *deferring.Deferred {
 	return ctx.DeferralsValue
 }
 
-func (ctx *BuiltinEvalContext) Excluded() addrs.Set[addrs.Targetable] {
-	return ctx.ExcludedValue
-}
-
 func (ctx *BuiltinEvalContext) Changes() *plans.ChangesSync {
 	return ctx.ChangesValue
 }
@@ -628,4 +626,28 @@ func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities
 		DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
 		WriteOnlyAttributesAllowed: true,
 	}
+}
+
+func (ctx *BuiltinEvalContext) Targets(node dag.Vertex) bool {
+	ctx.refsLock.Lock()
+	defer ctx.refsLock.Unlock()
+	return ctx.TargetedNodes.Include(node)
+}
+
+func (ctx *BuiltinEvalContext) Excludes(node dag.Vertex) bool {
+	ctx.excLock.Lock()
+	defer ctx.excLock.Unlock()
+	return ctx.ExcludedNodes.Include(node)
+}
+
+func (ctx *BuiltinEvalContext) AddTarget(node dag.Vertex) {
+	ctx.refsLock.Lock()
+	defer ctx.refsLock.Unlock()
+	ctx.TargetedNodes.Add(node)
+}
+
+func (ctx *BuiltinEvalContext) AddExclude(node dag.Vertex) {
+	ctx.excLock.Lock()
+	defer ctx.excLock.Unlock()
+	ctx.ExcludedNodes.Add(node)
 }

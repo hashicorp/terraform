@@ -67,7 +67,7 @@ type NodeAbstractResource struct {
 	ProvisionerSchemas map[string]*configschema.Block
 
 	// Set from GraphNodeTargetable
-	Targets []addrs.Targetable
+	targets []addrs.Targetable
 
 	// Set from AttachDataResourceDependsOn
 	dependsOn []addrs.ConfigResource
@@ -373,7 +373,11 @@ func (n *NodeAbstractResource) ResourceAddr() addrs.ConfigResource {
 
 // GraphNodeTargetable
 func (n *NodeAbstractResource) SetTargets(targets []addrs.Targetable) {
-	n.Targets = targets
+	n.targets = targets
+}
+
+func (n *NodeAbstractResource) Targets() []addrs.Targetable {
+	return n.targets
 }
 
 // graphNodeAttachDataResourceDependsOn
@@ -463,6 +467,10 @@ func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.Ab
 
 	if addr.Resource.Mode == addrs.EphemeralResourceMode {
 		// ephemeral resources are not included in the state
+		return diags
+	}
+
+	if ctx.Excludes(n) {
 		return diags
 	}
 

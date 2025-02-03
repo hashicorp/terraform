@@ -10,3 +10,7 @@ import "github.com/hashicorp/terraform/internal/tfdiags"
 type GraphNodeExecutable interface {
 	Execute(EvalContext, walkOperation) tfdiags.Diagnostics
 }
+
+type GraphNodeExcludable interface {
+	simpleValidate(EvalContext, walkOperation) (bool, tfdiags.Diagnostics)
+}

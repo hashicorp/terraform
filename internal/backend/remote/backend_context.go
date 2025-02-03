@@ -27,8 +27,9 @@ func (b *Remote) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, state
 	var diags tfdiags.Diagnostics
 	ret := &backendrun.LocalRun{
 		PlanOpts: &terraform.PlanOpts{
-			Mode:    op.PlanMode,
-			Targets: op.Targets,
+			Mode:     op.PlanMode,
+			Targets:  op.Targets,
+			Excluded: op.Exclude,
 		},
 	}
 

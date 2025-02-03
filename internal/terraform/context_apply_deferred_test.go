@@ -3909,6 +3909,287 @@ func TestContextApply_deferredActions(t *testing.T) {
 	}
 }
 
+// func TestContextApply_deferredActions1(t *testing.T) {
+// 	// 	test :=
+
+// 	test := deferredActionsTest{
+// 		configs: map[string]string{
+// 			"main.tf": `
+// variable "resource_count" {
+// 	type = number
+// }
+
+// resource "test" "a" {
+// 	count = var.resource_count
+// 	name  = "a:${count.index}"
+// }
+
+// resource "test" "b" {
+// 	name = "b"
+// }
+
+// resource "test" "c" {
+// 	name = "c"
+// }
+// `,
+// 		},
+// 		stages: []deferredActionsTestStage{
+// 			// In this stage, we're testing that targeting test.a[0] will still
+// 			// prompt the plan to include the deferral of the unknown
+// 			// test.a[*] instances.
+// 			{
+// 				inputs: map[string]cty.Value{
+// 					"resource_count": cty.UnknownVal(cty.Number),
+// 				},
+// 				buildOpts: func(opts *PlanOpts) {
+// 					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.a[0]"), mustResourceInstanceAddr("test.b")}
+// 				},
+// 				wantPlanned: map[string]cty.Value{
+// 					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+// 						"name": cty.UnknownVal(cty.String).Refine().
+// 							StringPrefixFull("a:").
+// 							NotNull().
+// 							NewValue(),
+// 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+// 						"output":         cty.UnknownVal(cty.String),
+// 					}),
+// 					"b": cty.ObjectVal(map[string]cty.Value{
+// 						"name":           cty.StringVal("b"),
+// 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+// 						"output":         cty.UnknownVal(cty.String),
+// 					}),
+// 				},
+// 				wantActions: map[string]plans.Action{
+// 					"test.b": plans.Create,
+// 				},
+// 				wantDeferred: map[string]ExpectedDeferred{
+// 					"test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+// 				},
+// 				allowWarnings: true,
+// 			},
+// 			// This stage is the same as above, except we're targeting the
+// 			// non-instanced test.a. This should still make the unknown
+// 			// test.a[*] instances appear in the plan as deferrals.
+// 			{
+// 				inputs: map[string]cty.Value{
+// 					"resource_count": cty.UnknownVal(cty.Number),
+// 				},
+// 				buildOpts: func(opts *PlanOpts) {
+// 					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.a"), mustResourceInstanceAddr("test.b")}
+// 				},
+// 				wantPlanned: map[string]cty.Value{
+// 					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+// 						"name": cty.UnknownVal(cty.String).Refine().
+// 							StringPrefixFull("a:").
+// 							NotNull().
+// 							NewValue(),
+// 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+// 						"output":         cty.UnknownVal(cty.String),
+// 					}),
+// 					"b": cty.ObjectVal(map[string]cty.Value{
+// 						"name":           cty.StringVal("b"),
+// 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+// 						"output":         cty.UnknownVal(cty.String),
+// 					}),
+// 				},
+// 				wantActions: map[string]plans.Action{
+// 					"test.b": plans.Create,
+// 				},
+// 				wantDeferred: map[string]ExpectedDeferred{
+// 					"test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+// 				},
+// 				allowWarnings: true,
+// 			},
+// 			// Finally, we don't target test.a at all. So we shouldn't see it
+// 			// anywhere in planning or deferrals.
+// 			{
+// 				inputs: map[string]cty.Value{
+// 					"resource_count": cty.UnknownVal(cty.Number),
+// 				},
+// 				buildOpts: func(opts *PlanOpts) {
+// 					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.b")}
+// 				},
+// 				wantPlanned: map[string]cty.Value{
+// 					"b": cty.ObjectVal(map[string]cty.Value{
+// 						"name":           cty.StringVal("b"),
+// 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+// 						"output":         cty.UnknownVal(cty.String),
+// 					}),
+// 				},
+// 				wantActions: map[string]plans.Action{
+// 					"test.b": plans.Create,
+// 				},
+// 				wantDeferred:  map[string]ExpectedDeferred{},
+// 				allowWarnings: true,
+// 			},
+// 		},
+// 	}
+
+// 	if test.skip {
+// 		t.SkipNow()
+// 	}
+
+// 	// Initialise the config.
+// 	cfg := testModuleInline(t, test.configs)
+
+// 	// Initialise the state.
+// 	state := test.state
+// 	if state == nil {
+// 		state = states.NewState()
+// 	}
+
+// 	// Run through our cycle of planning and applying changes, checking
+// 	// the results at each step.
+// 	for ix, stage := range test.stages {
+// 		t.Run(fmt.Sprintf("round-%d", ix), func(t *testing.T) {
+
+// 			provider := &deferredActionsProvider{
+// 				plannedChanges: &deferredActionsChanges{
+// 					changes: make(map[string]cty.Value),
+// 				},
+// 				appliedChanges: &deferredActionsChanges{
+// 					changes: make(map[string]cty.Value),
+// 				},
+// 			}
+// 			other := simpleMockProvider()
+
+// 			ctx := testContext2(t, &ContextOpts{
+// 				Providers: map[addrs.Provider]providers.Factory{
+// 					addrs.NewDefaultProvider("test"):  testProviderFuncFixed(provider.Provider()),
+// 					addrs.NewDefaultProvider("other"): testProviderFuncFixed(other),
+// 				},
+// 			})
+
+// 			opts := &PlanOpts{
+// 				Mode:            plans.NormalMode,
+// 				DeferralAllowed: true,
+// 				SetVariables: func() InputValues {
+// 					values := InputValues{}
+// 					for name, value := range stage.inputs {
+// 						values[name] = &InputValue{
+// 							Value:      value,
+// 							SourceType: ValueFromCaller,
+// 						}
+// 					}
+// 					return values
+// 				}(),
+// 			}
+
+// 			if stage.buildOpts != nil {
+// 				stage.buildOpts(opts)
+// 			}
+
+// 			var plan *plans.Plan
+// 			t.Run("plan", func(t *testing.T) {
+// 				var diags tfdiags.Diagnostics
+
+// 				// Validate is run by default for any plan from the CLI
+// 				// diags = diags.Append(ctx.Validate(cfg, &ValidateOpts{}))
+// 				// Plan won't proceed if validate failed
+// 				if !diags.HasErrors() {
+// 					p, pDiags := ctx.Plan(cfg, state, opts)
+// 					diags = diags.Append(pDiags)
+// 					plan = p
+// 				}
+
+// 				if stage.wantDiagnostic == nil {
+// 					// We expect the correct planned changes and no diagnostics.
+// 					if stage.allowWarnings {
+// 						assertNoErrors(t, diags)
+// 					} else {
+// 						assertNoDiagnostics(t, diags)
+// 					}
+// 				} else {
+// 					if !stage.wantDiagnostic(diags) {
+// 						t.Fatalf("missing expected diagnostics: %s", diags.ErrWithWarnings())
+// 					} else {
+// 						// We don't want to make any further assertions in this case.
+// 						// If diagnostics are expected it's valid that no plan may be returned.
+// 						return
+// 					}
+// 				}
+
+// 				if plan == nil {
+// 					t.Fatalf("plan is nil")
+// 				}
+
+// 				if plan.Complete != stage.complete {
+// 					t.Errorf("wrong completion status in plan: got %v, want %v", plan.Complete, stage.complete)
+// 				}
+
+// 				provider.plannedChanges.Test(t, stage.wantPlanned)
+
+// 				// We expect the correct actions.
+// 				gotActions := make(map[string]plans.Action)
+// 				for _, cs := range plan.Changes.Resources {
+// 					gotActions[cs.Addr.String()] = cs.Action
+// 				}
+// 				if diff := cmp.Diff(stage.wantActions, gotActions); diff != "" {
+// 					t.Errorf("wrong actions in plan\n%s", diff)
+// 				}
+
+// 				gotDeferred := make(map[string]ExpectedDeferred)
+// 				for _, dc := range plan.DeferredResources {
+// 					gotDeferred[dc.ChangeSrc.Addr.String()] = ExpectedDeferred{Reason: dc.DeferredReason, Action: dc.ChangeSrc.Action}
+// 				}
+// 				if diff := cmp.Diff(stage.wantDeferred, gotDeferred); diff != "" {
+// 					t.Errorf("wrong deferred reasons or actions in plan\n%s", diff)
+// 				}
+
+// 				// all the deferred changes should include a valid
+// 				// provider.
+// 				for _, change := range plan.DeferredResources {
+// 					if diff := cmp.Diff("provider[\"registry.terraform.io/hashicorp/test\"]", change.ChangeSrc.ProviderAddr.String()); diff != "" {
+// 						if otherDiff := cmp.Diff("provider[\"registry.terraform.io/hashicorp/other\"]", change.ChangeSrc.ProviderAddr.String()); otherDiff != "" {
+// 							t.Errorf("wrong provider address in plan\n, should be hashicorp/test or hashicorp/other %s", diff)
+// 						}
+// 					}
+// 				}
+// 			})
+
+// 			if stage.wantApplied == nil {
+// 				// Don't execute the apply stage if wantApplied is nil.
+// 				return
+// 			}
+
+// 			if opts.Mode == plans.RefreshOnlyMode {
+// 				// Don't execute the apply stage if mode is refresh-only.
+// 				return
+// 			}
+
+// 			t.Run("apply", func(t *testing.T) {
+// 				if plan == nil {
+// 					// if the previous step failed we won't know because it was another subtest
+// 					t.Fatal("cannot apply a nil plan")
+// 				}
+
+// 				updatedState, diags := ctx.Apply(plan, cfg, nil)
+
+// 				// We expect the correct applied changes and no diagnostics.
+// 				if stage.allowWarnings {
+// 					assertNoErrors(t, diags)
+// 				} else {
+// 					assertNoDiagnostics(t, diags)
+// 				}
+// 				provider.appliedChanges.Test(t, stage.wantApplied)
+
+// 				// We also want the correct output values.
+// 				gotOutputs := make(map[string]cty.Value)
+// 				for name, output := range updatedState.RootOutputValues {
+// 					gotOutputs[name] = output.Value
+// 				}
+// 				if diff := cmp.Diff(stage.wantOutputs, gotOutputs, ctydebug.CmpOptions); diff != "" {
+// 					t.Errorf("wrong output values\n%s", diff)
+// 				}
+
+// 				// Update the state for the next stage.
+// 				state = updatedState
+// 			})
+// 		})
+
+// 	}
+// }
+
 // deferredActionsChanges is a concurrent-safe map of changes from a
 // deferredActionsProvider.
 type deferredActionsChanges struct {
