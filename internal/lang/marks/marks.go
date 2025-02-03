@@ -21,6 +21,20 @@ type DeprecationMark struct {
 	Message  string
 }
 
+func DeprecatedPaths(val cty.Value) (ret []cty.PathValueMarks) {
+    _, pathMarks := val.UnmarkDeepWithPaths()
+    
+	for _, pathMark := range pathMarks {
+		for mark := range pathMark.Marks {
+			if _, ok := mark.(DeprecationMark); ok {
+				return append(ret, pathMark)
+			}
+		}
+	}
+	
+	return ret
+}
+
 // Has returns true if and only if the cty.Value has the given mark.
 func Has(val cty.Value, mark valueMark) bool {
 	return val.HasMark(mark)

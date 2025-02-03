@@ -551,9 +551,11 @@ func (n *NodeValidatableResource) validateCheckRules(ctx EvalContext, config *co
 }
 
 func validateResourceDeprecatedOutputUsage(val cty.Value) (diags tfdiags.Diagnostics) {
-	_, pathMarks := val.UnmarkDeepWithPaths()
+    // TODO: This helper does not help :D Maybe we need another intermediate format or sth?
+    // I wrote it mainly to test the very basis of our assumptions around marks.
+    deprecatedPathMarks := marks.DeprecatedPaths(val)
 
-	for _, pathMark := range pathMarks {
+	for _, pathMark := range deprecatedPathMarks {
 		for mark := range pathMark.Marks {
 			if m, ok := mark.(marks.DeprecationMark); ok {
 				diags = diags.Append(tfdiags.AttributeValue(
