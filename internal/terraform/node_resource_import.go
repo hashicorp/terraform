@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type graphNodeImportState struct {
@@ -103,12 +104,9 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 	}
 
 	resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
-		TypeName: n.Addr.Resource.Resource.Type,
-		ID:       n.ID,
-		ClientCapabilities: providers.ClientCapabilities{
-			DeferralAllowed:            false,
-			WriteOnlyAttributesAllowed: true,
-		},
+		TypeName:           n.Addr.Resource.Resource.Type,
+		ID:                 n.ID,
+		ClientCapabilities: ctx.ClientCapabilities(),
 	})
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
@@ -118,7 +116,17 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 	// Providers are supposed to return null values for all write-only attributes
 	var writeOnlyDiags tfdiags.Diagnostics
 	for _, imported := range resp.ImportedResources {
-		writeOnlyDiags = ephemeral.ValidateWriteOnlyAttributes(imported.State, schema, n.ResolvedProvider, n.Addr)
+		writeOnlyDiags = ephemeral.ValidateWriteOnlyAttributes(
+			"Import returned a non-null value for a write-only attribute",
+			func(path cty.Path) string {
+				return fmt.Sprintf(
+					"Provider %q returned a value for the write-only attribute \"%s%s\" during import. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider, n.Addr, tfdiags.FormatCtyPath(path),
+				)
+			},
+			imported.State,
+			schema,
+		)
 		diags = diags.Append(writeOnlyDiags)
 	}
 

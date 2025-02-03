@@ -142,6 +142,17 @@ func diagnosticsForError(err error) []Diagnostic {
 	}
 }
 
+// Warnings returns a Diagnostics list containing only diagnostics with a severity of Warning.
+func (diags Diagnostics) Warnings() Diagnostics {
+	var warns = Diagnostics{}
+	for _, diag := range diags {
+		if diag.Severity() == Warning {
+			warns = append(warns, diag)
+		}
+	}
+	return warns
+}
+
 // HasErrors returns true if any of the diagnostics in the list have
 // a severity of Error.
 func (diags Diagnostics) HasErrors() bool {

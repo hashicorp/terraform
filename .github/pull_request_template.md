@@ -33,24 +33,14 @@ label to enable the backport bot.
 
 1.11.x
 
-## Draft CHANGELOG entry
+## CHANGELOG entry
 
 <!--
 
-Choose a category, delete the others:
+If your change is user-facing, add a short description in a changelog entry.
+You can use `npx changie new` to create a new changelog entry or manually create a new file in the .changes/unreleasd directory (or .changes/backported if it's a bug fix that should be backported).
 
 -->
 
-### NEW FEATURES | UPGRADE NOTES | ENHANCEMENTS | BUG FIXES | EXPERIMENTS
-
-<!--
-
-Write a short description of the user-facing change. Examples:
-
-- `terraform show -json`: Fixed crash with sensitive set values.
-- When rendering a diff, Terraform now quotes the name of any object attribute whose string representation is not a valid identifier.
-- The local token configuration in the cloud and remote backend now has higher priority than a token specified in a credentials block in the CLI configuration.
-
---> 
-
--  
+- [ ] This change is user-facing and I added a changelog entry.
+- [ ] This change is not user-facing.

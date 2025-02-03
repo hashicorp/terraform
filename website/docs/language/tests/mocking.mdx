@@ -105,9 +105,19 @@ Mocked providers only generate data for computed attributes. All required resour
 
 An example of this is the `bucket` attribute in the `aws_s3_bucket` resource. A real AWS provider will generate a bucket name if one is not specified. A mocked AWS provider will do the same, and only generate a value if one is not already specified in the configuration.
 
+By default, Terraform generates data during the `apply` operation and returns `(known after apply)` values during the `plan` operation. You can override this behavior with the `override_during` attribute in the `mock_provider` block:
+
+```hcl
+mock_provider "aws" {
+  override_during = plan
+}
+```
+
+The above `aws` provider generates the data during the `plan` operation and reuses the same data during the `apply` operation. The `override_during` attribute accepts either `plan` or `apply` as values.
+
 ### Mock Provider data
 
-You can specify specific values for targeted resources and data sources. in a `mock_provider` block, you can write any number of `mock_resource` and `mock_data` blocks. Both the `mock_resource` and `mock_data` blocks accept a type argument that should match the resource or data source you want to provide values for. They also accept a `defaults` object attribute that you can use to specify the values that should be returned for specific attributes.
+You can specify specific values for targeted resources and data sources. In a `mock_provider` block, you can write any number of `mock_resource` and `mock_data` blocks. Both the `mock_resource` and `mock_data` blocks accept a type argument that should match the resource or data source you want to provide values for. They also accept a `defaults` object attribute that you can use to specify the values that should be returned for specific attributes.
 
 The following example demonstrates providing a set `arn` value for all AWS S3 bucket resources and data sources:
 
@@ -127,7 +137,7 @@ mock_provider "aws" {
 }
 ```
 
-In the above example, Terraform uses the supplied value for `arn` attributes in S3 buckets instead of generating a random string. Computed attributes not provided an explicit default will simply fall back to the generic data generation rules.
+In the above example, Terraform uses the supplied value for `arn` attributes in S3 buckets instead of generating a random string. Computed attributes not provided an explicit default will simply fall back to the generic data generation rules. You can also use the `override_during` attribute in the `mock_resource` and `mock_data` blocks to specify when Terraform should generate the values for an individual resource. If you do not not specify the `override_during` attribute, Terraform generates the values using the rules inherited from the `mock_provider` block. If specified, the local value overrides any value specified in the `mock_provider` block.
 
 You can also share mock provider data between tests by writing dedicated mock data files and using the `source` attribute in the `mock_provider` block. Mock data files have `.tfmock.hcl` or `.tfmock.json` extension, and can contain `mock_resource` and `mock_data` blocks as if they were defined in the `mock_provider` block directly.
 
@@ -171,9 +181,9 @@ Overrides can be used with both real and mocked providers and will provide the c
 
 ### Overrides Syntax
 
-All override blocks contain a `target` attribute, which should specify the resource, data source, or module to override. The `override_module` blocks contain an `outputs` attribute, while the `override_resource` and `override_data` blocks contain a `values` attribute.
+All override blocks contain a `target` attribute, which should specify the resource, data source, or module to override. The `override_module` blocks contain an `outputs` attribute, while the `override_resource` and `override_data` blocks contain a `values` attribute. The override blocks also support the `override_during` attribute.
 
-The `outputs` and `values` attributes are optional and if not specified, Terraform will generate values for them automatically.
+The `outputs` and `values` attributes are optional and if not specified, Terraform will generate values for them automatically. The `override_during` attribute is also optional, and if specified it will override the `override_during` attribute in the `mock_provider` block. If not specified, Terraform inherits the behavior from the `mock_provider` block.
 
 The following example demonstrates the override blocks at various different scopes and levels. The main configuration calls the `./modules/s3_data` module to read a file from an S3 bucket, and then creates a `local_file` from the data returned from the module.
 

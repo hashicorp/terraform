@@ -185,7 +185,7 @@ func TestResolver_ResolveNestedChildren(t *testing.T) {
 	}
 }
 
-func countAndListSources(records []*Record) (count int, sources []string) {
+func countAndListSources(records Records) (count int, sources []string) {
 	for _, record := range records {
 		sources = append(sources, record.Source.String())
 		count++

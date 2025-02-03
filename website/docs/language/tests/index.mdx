@@ -91,12 +91,15 @@ Each `run` block has the following fields and blocks:
 | [`providers`](#providers) | An optional `providers` attribute.                                                                                       |               |
 | [`assert`](#assertions)   | Optional `assert` blocks.                                                                                                |               |
 | `expect_failures`         | An optional attribute.                                                                                                   |               |
+| `state_key`               | An optional attribute.                                                                                                   |               |
 
 The `command` attribute and `plan_options` block tell Terraform which command and options to execute for each run block. The default operation, if you do not specify a `command` attribute or the `plan_options` block, is a normal Terraform apply operation.
 
 The `command` attribute states whether the operation should be a [`plan`](/terraform/cli/commands/plan) or an [`apply`](/terraform/cli/commands/apply) operation.
 
 The `plan_options` block allows test authors to customize the [planning mode](/terraform/cli/commands/plan#planning-modes) and [options](/terraform/cli/commands/plan#planning-options) they would typically need to edit via command-line flags and options. We cover the `-var` and `-var-file` options in the [Variables](#variables) section.
+
+The `state_key` allows for fine-grained control over which internal state file Terraform uses for a given run block. Refer to [Modules State](#modules-state) for more information.
 
 ### Assertions
 
@@ -574,15 +577,13 @@ run "verify" {
 
 ### Modules state
 
-While Terraform executes a `terraform test` command, Terraform maintains at least one, but possibly many, state files within memory for each test file.
+While Terraform executes a `terraform test` command, Terraform maintains at least one, but possibly many, state files within memory for each test file. Terraform assigns each internal state file a state key that it uses internally to track the state file. The state key is a unique identifier for the state file and you can override it with the `state_key` attribute of a `run` block.
 
-There is always at least one state file that maintains the state of the main configuration under test. This state file is shared by all `run` blocks that do not have a `module` block specifying an alternate module to load.
+There is always at least one state file that maintains the state of the main configuration under test. This state file is shared by all `run` blocks that do not have a `module` block specifying an alternate module to load. By default, there is also one state file per alternate module that Terraform loads. An alternate module state file is shared by all `run` blocks that execute the given module.
 
-Additionally, there is one state file per alternate module that Terraform loads. An alternate module state file is shared by all `run` blocks that execute the given module.
+You can override this default behavior with the `state_key` attribute and force Terraform to use a specific state file for a given `run` block. This is useful when you want to share state between `run` blocks that do not reference the same module.
 
-The Terraform team is interested in any use cases requiring manual state management or the ability to execute different configurations against the same state within the `test` command. If you have a use case, please file an [issue](https://github.com/hashicorp/terraform/issues/new/choose) and share it with us.
-
-The following example uses comments to explain where the state files for each `run` block originate. In the below example Terraform creates and manages a total of three state files. The first state file is for the main configuration under test, the second for the setup module, and the third for the loader module.
+The following example uses comments to explain where the state files for each `run` block originate using the default behavior. In the below example Terraform creates and manages a total of three state files. The first state file is for the main configuration under test, the second for the setup module, and the third for the loader module.
 
 ```hcl
 run "setup" {
@@ -654,6 +655,34 @@ run "loader" {
   module {
     source = "./testing/loader"
   }
+}
+```
+
+The following example uses the `state_key` attribute to force Terraform to use the same state file for different `run` blocks. In the example below, Terraform creates and manages a single state file that is shared by both the "setup" and "init" run blocks, even though they are loading configuration from separate sources.
+
+```hcl
+run "setup" {
+  state_key = "main"
+
+  module {
+    source = "./testing/setup"
+  }
+}
+
+run "init" {
+
+  # By setting the state key to "main" we are telling Terraform to use the same
+  # state file for this run block as the "setup" run block. This means that the
+  # resources created by the "setup" run block will be available to the
+  # configuration in this run block.
+  state_key = "main"
+
+  assert {
+    # In practice we'd do some interesting checks and tests here but the
+    # assertions aren't important for this example.
+  }
+
+  # ... more assertions ...
 }
 ```
 

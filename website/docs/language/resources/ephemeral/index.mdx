@@ -1,0 +1,73 @@
+---
+page_title: Ephemeral resources
+description: Learn how to use ephemeral resource blocks and write-only arguments to manage temporary data that Terraform does not store in state. 
+---
+
+# Ephemerality in resources
+
+Managing infrastructure often requires creating and handling temporary sensitive values, such as passwords, that you may not want Terraform to persist outside of the current operation. Terraform provides two tools for resources to manage data you do not want to store in state or plan files: the `ephemeral` resource block and ephemeral write-only arguments on specific resources.
+
+## Ephemeral resources
+
+Ephemeral resources are Terraform resources that are essentially temporary. Ephemeral resources have a unique lifecycle, and Terraform does not store them in its state. Each `ephemeral` block describes one or more ephemeral resources, such as a temporary password or connection to another system.
+
+In your configuration, you can only reference an `ephemeral` block in [other ephemeral contexts](/terraform/language/resources/ephemeral/reference#reference-ephemeral-resources).
+
+### Lifecycle
+
+The lifecycle of an ephemeral resource is different from resources and data sources. When Terraform provisions ephemeral resources, it performs the following steps:
+
+1. If Terraform needs to access the result of an ephemeral resource, it opens
+that ephemeral resource. For example, if Terraform opens an ephemeral resource for a Vault secret, the Vault provider obtains a lease and returns a secret. 
+
+1. If Terraform needs access to the ephemeral resource for longer than the
+remote system's enforced expiration time, Terraform asks the provider
+to renew it periodically. For example, if Terraform renews a Vault secret ephemeral resource, the Vault provider then calls Vault's lease renewal API endpoint to extend the expiration time.
+
+1. Once Terraform no longer needs an ephemeral resource, Terraform closes
+it. This happens after the providers that depend on a certain ephemeral resource
+complete all of their work for the current Terraform run phase. For example, closing a Vault secret ephemeral resource means the Vault provider explicitly ends the lease, allowing Vault to immediately revoke the associated credentials.
+
+Terraform follows these lifecycle steps for each instance of an ephemeral
+resource in a given configuration.
+
+### Configuration model
+
+To learn more about the `ephemeral` block, refer to the [Ephemeral resource reference](/terraform/language/resources/ephemeral/reference).
+
+## Write-only arguments
+
+-> **Public Beta**: Write-only arguments are in public beta and available in Terraform v1.11 and later.  Public beta features and APIs are subject to change.
+
+Terraform resources can include ephemeral arguments, also known as attributes, for data that only needs to exist temporarily. An ephemeral argument on a resource is called a "write-only argument". Write-only arguments can help store generated sensitive data for the current Terraform operation, such as a short-lived password, token, or session identifier.
+
+Write-only arguments are only available during runtime, and Terraform omits them from state and plan files. On a new Terraform operation, a write-only argument always start as `null` before Terraform overwrites it with a new value from your configuration.
+
+Write-only arguments are unique among other ephemeral constructs in Terraform because you can assign both ephemeral and non-ephemeral data as the value of a write-only argument.
+
+
+<!-- TODO for GA: Update with a code sample when we have one -->
+
+<!-- TODO for GA: Update once we have a working provider example
+
+Terraform sends write-only arguments to the provider every time it needs to create or update that argument's resource in your configuration. For example, the `aws_db_instance` resource type has a write-only `password` argument:
+
+```hcl
+resource "aws_db_instance" "main" {
+    instance_class       = "db.t3.micro"
+    username             = "admin"
+    # This write-only argument is ephemeral, meaning it is not saved in state.
+    password             = ephemeral.aws_secretsmanager_secret_version.example.secret_string["exampleKey"]
+}
+
+ephemeral "aws_secretsmanager_secret_version" "example" {
+  secret_id = data.aws_secretsmanager_secret.example.id
+}
+```
+
+Every time Terraform creates or updates the `aws_db_instance` resource, Terraform sends the `password` argument to the `aws` provider. The provider then uses the value of the `password` argument, then discards that value and never stores it in state.
+
+
+To learn more about write-only arguments, refer to the [Use write-only arguments](/terraform/language/resources/ephemeral/write-only).
+
+-->

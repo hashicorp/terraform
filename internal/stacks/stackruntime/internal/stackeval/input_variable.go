@@ -107,7 +107,7 @@ func (v *InputVariable) Value(ctx context.Context, phase EvalPhase) cty.Value {
 }
 
 func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
-	return withCtyDynamicValPlaceholder(doOnceWithDiags(
+	return doOnceWithDiags(
 		ctx, v.value.For(phase), v.main,
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
@@ -211,7 +211,7 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 				return cfg.markValue(val), diags
 			}
 		},
-	))
+	)
 }
 
 // ExprReferenceValue implements Referenceable.

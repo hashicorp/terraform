@@ -17,6 +17,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -48,7 +49,8 @@ type TestSuiteRunner struct {
 
 	Opts *terraform.ContextOpts
 
-	View views.Test
+	View  views.Test
+	JUnit junit.JUnit
 
 	// Stopped and Cancelled track whether the user requested the testing
 	// process to be interrupted. Stopped is a nice graceful exit, we'll still
@@ -82,6 +84,10 @@ type TestSuiteRunner struct {
 
 func (runner *TestSuiteRunner) Stop() {
 	runner.Stopped = true
+}
+
+func (runner *TestSuiteRunner) IsStopped() bool {
+	return runner.Stopped
 }
 
 func (runner *TestSuiteRunner) Cancel() {
@@ -170,6 +176,14 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	}
 
 	runner.View.Conclusion(suite)
+
+	if runner.JUnit != nil {
+		artifactDiags := runner.JUnit.Save(suite)
+		diags = diags.Append(artifactDiags)
+		if artifactDiags.HasErrors() {
+			return moduletest.Error, diags
+		}
+	}
 
 	return suite.Status, diags
 }
@@ -346,16 +360,20 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 				file.Status = moduletest.Error
 				continue // Abort!
 			}
+		}
 
-			if _, exists := runner.RelevantStates[key]; !exists {
-				runner.RelevantStates[key] = &TestFileState{
-					Run:   nil,
-					State: states.NewState(),
-				}
+		if run.Config.StateKey != "" {
+			key = run.Config.StateKey
+		}
+
+		if _, exists := runner.RelevantStates[key]; !exists {
+			runner.RelevantStates[key] = &TestFileState{
+				Run:   nil,
+				State: states.NewState(),
 			}
 		}
 
-		startTime := time.Now()
+		startTime := time.Now().UTC()
 		state, updatedState := runner.run(run, file, runner.RelevantStates[key].State, config)
 		runDuration := time.Since(startTime)
 		if updatedState {
@@ -370,6 +388,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		// If we got far enough to actually execute the run then we'll give
 		// the view some additional metadata about the execution.
 		run.ExecutionMeta = &moduletest.RunExecutionMeta{
+			Start:    startTime,
 			Duration: runDuration,
 		}
 		runner.Suite.View.Run(run, file, moduletest.Complete, 0)

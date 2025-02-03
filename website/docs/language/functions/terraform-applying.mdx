@@ -27,6 +27,7 @@ locals {
 
 The `terraform.applying` symbol is an ephemeral value, meaning it is only available during Terraform operations and Terraform does not write this value to plan or state files. Additionally, you can only reference `terraform.applying` in ephemeral contexts:
 
+* In a [write-only argument](/terraform/language/resources/ephemeral#write-only-arguments)
 * In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)  
 * In [local values](/terraform/language/values/locals#ephemeral-values)  
 * In [ephemeral resources](/terraform/language/resources/ephemeral)  
