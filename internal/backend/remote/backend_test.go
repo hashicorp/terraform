@@ -719,7 +719,7 @@ func TestRemote_VerifyWorkspaceTerraformVersion_versionConstraint(t *testing.T) 
 		{
 			terraformVersion:  "1.10.0",
 			versionConstraint: "> v1.9.4",
-			shouldSatisfy:     true,
+			shouldSatisfy:     false,
 			prerelease:        "dev",
 		},
 		{
