@@ -1,0 +1,26 @@
+name: 'Quick Checks: unprotected feature branches'
+
+on:
+  # We only run checks when pushing to a feature branch:
+  # - If there are changes outside the ignored, non-code paths below
+  push:
+    branches:
+      - '*'
+    branches-ignore:
+      - 'main'
+      - 'v[0-9]+.[0-9]+'
+    paths-ignore:
+      - 'CHANGELOG.md'
+      - '.changes/**'
+      - 'version/VERSION'
+      - 'docs/**'
+
+# This workflow runs for not-yet-reviewed external contributions and so it
+# intentionally has no write access and only limited read access to the
+# repository.
+permissions:
+  contents: read
+
+jobs:
+ quick-checks:
+  uses: ./.github/workflows/reusable/checks.yml

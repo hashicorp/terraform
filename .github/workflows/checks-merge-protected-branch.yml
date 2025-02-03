@@ -1,0 +1,22 @@
+name: 'Quick Checks: protected branches & tags'
+
+on:
+  # We always run checks on:
+  # - PR merges to main
+  # - PR merges to release branches
+  push:
+    branches:
+      - 'main'
+      - 'v[0-9]+.[0-9]+'
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+
+# This workflow runs for not-yet-reviewed external contributions and so it
+# intentionally has no write access and only limited read access to the
+# repository.
+permissions:
+  contents: read
+
+jobs:
+ quick-checks:
+  uses: ./.github/workflows/reusable/checks.yml
