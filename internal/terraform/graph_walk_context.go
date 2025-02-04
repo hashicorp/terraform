@@ -175,32 +175,14 @@ func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfd
 	excludes := ctx.Excludes(n)
 	switch n := n.(type) {
 	// always execute these nodes
-	case *NodeRootVariable, *nodeExpandModule:
-		return n.Execute(ctx, w.Operation)
-	case *NodePlannableResourceInstance:
-		if !targets || excludes {
-			_, diags := n.simpleValidate(ctx, w.Operation)
-			return diags
-		} else {
-			return n.Execute(ctx, w.Operation)
-		}
-	case *NodeApplyableResourceInstance:
-		if !targets || excludes {
-			_, diags := n.simpleValidate(ctx, w.Operation)
-			return diags
-		} else {
-			return n.Execute(ctx, w.Operation)
-		}
-	case *nodePlannablePartialExpandedResource:
+	case *NodeRootVariable, *nodeExpandModule, *nodePlannablePartialExpandedResource:
 		return n.Execute(ctx, w.Operation)
 	}
-	_, kok := n.(graphNodeExpandsInstances)
-	dontInclude := !kok && !targets
-	if dontInclude || excludes {
+
+	exclude := !targets || excludes
+	if exclude {
 		if ev, ok := n.(GraphNodeExcludable); ok {
-			if excluded, diags := ev.simpleValidate(ctx, w.Operation); excluded {
-				return diags
-			}
+			return ev.simpleValidate(ctx, w.Operation)
 		} else {
 			log.Printf("[TRACE] vertex %q: not targeted, skipping", dag.VertexName(n))
 			return nil

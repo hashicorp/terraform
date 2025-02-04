@@ -359,32 +359,37 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 
 // If the resource instance is excluded, we only want to do some basic
 // schema checks and then defer the change.
-func (n *NodeAbstractResourceInstance) simpleValidate(ctx EvalContext, op walkOperation) (bool, tfdiags.Diagnostics) {
-	deferralAllowed := ctx.Deferrals().DeferralAllowed()
-	excludes := deferralAllowed
-
+func (n *NodeAbstractResourceInstance) simpleValidate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	addr := n.ResourceInstanceAddr()
 	var diags tfdiags.Diagnostics
 	resource := n.Addr.Resource.Resource
 
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
-		return excludes, diags.Append(err)
+		// The provider may not be available if it depends on other nodes.
+		// We have to decide if we want that to be an error. For now, we'll
+		// just ignore the error since this is a validation step.
+		// TODO: Probably monkeypatch the provider so that we can continue with some validation.
+		return diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Provider not available",
+			Detail:   fmt.Sprintf("Could not fully validate excluded %s due to missing provider: %s", addr, err),
+		})
 	}
 
 	schema, _ := providerSchema.SchemaForResourceAddr(resource)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", resource.Type))
-		return excludes, diags
+		return diags
 	}
 
 	currentState, diags := n.readResourceInstanceState(ctx, addr)
 	if diags.HasErrors() {
-		return excludes, diags
+		return diags
 	}
 
-	var priorVal cty.Value
+	priorVal := cty.NullVal(schema.ImpliedType())
 	var priorPrivate []byte
 	var changes *plans.ResourceInstanceChange
 	switch op {
@@ -410,15 +415,9 @@ func (n *NodeAbstractResourceInstance) simpleValidate(ctx EvalContext, op walkOp
 			changes = noop
 		}
 	default:
-		if currentState != nil {
-			if currentState.Status != states.ObjectTainted {
-				priorVal = currentState.Value
-				priorPrivate = currentState.Private
-			} else {
-				priorVal = cty.NullVal(schema.ImpliedType())
-			}
-		} else {
-			priorVal = cty.NullVal(schema.ImpliedType())
+		if currentState != nil && currentState.Status != states.ObjectTainted {
+			priorVal = currentState.Value
+			priorPrivate = currentState.Private
 		}
 		changes = &plans.ResourceInstanceChange{
 			Addr:         n.Addr,
@@ -438,13 +437,14 @@ func (n *NodeAbstractResourceInstance) simpleValidate(ctx EvalContext, op walkOp
 	case addrs.ManagedResourceMode:
 		ctx.Deferrals().ReportResourceInstanceDeferred(addr, reason, changes)
 	case addrs.DataResourceMode:
+		changes.Action = plans.Read
 		ctx.Deferrals().ReportDataSourceInstanceDeferred(addr, reason, changes)
 	case addrs.EphemeralResourceMode:
 		ctx.Deferrals().ReportEphemeralResourceInstanceDeferred(addr, reason)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
-	return excludes, diags
+	return diags
 }
 
 // planDestroy returns a plain destroy diff.

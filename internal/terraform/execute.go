@@ -12,5 +12,5 @@ type GraphNodeExecutable interface {
 }
 
 type GraphNodeExcludable interface {
-	simpleValidate(EvalContext, walkOperation) (bool, tfdiags.Diagnostics)
+	simpleValidate(EvalContext, walkOperation) tfdiags.Diagnostics
 }

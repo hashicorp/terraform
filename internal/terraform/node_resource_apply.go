@@ -68,6 +68,9 @@ func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
 	for _, module := range moduleInstances {
 		moduleCtx := evalContextForModuleInstance(ctx, module)
+		if diags = n.expandDynamic(moduleCtx, n.Addr.Resource.Absolute(module)); diags.HasErrors() {
+			return nil, diags
+		}
 		diags = diags.Append(n.recordResourceData(moduleCtx, n.Addr.Resource.Absolute(module)))
 	}
 
@@ -105,6 +108,9 @@ func (n *nodeExpandApplyableResource) expandEphemeralResourceInstances(globalCtx
 	// writeResourceState is responsible for informing the expander of what
 	// repetition mode this resource has, which allows expander.ExpandResource
 	// to work below.
+	if diags = n.expandDynamic(moduleCtx, resAddr); diags.HasErrors() {
+		return diags
+	}
 	moreDiags := n.recordResourceData(moduleCtx, resAddr)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

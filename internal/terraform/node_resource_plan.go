@@ -121,10 +121,6 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	// duplicating some of the logic for behavior this method would normally
 	// handle.
 	if ctx.Deferrals().DeferralAllowed() { // Expand the imports for this resource.
-		// Dont expand if the entire module is excluded
-		if ctx.Excludes(n) {
-			return nil, diags
-		}
 		knownImports, unknownImports, importDiags := n.expandResourceImports(ctx, true)
 		diags = diags.Append(importDiags)
 
@@ -415,6 +411,9 @@ func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalCont
 	// writeResourceState is responsible for informing the expander of what
 	// repetition mode this resource has, which allows expander.ExpandResource
 	// to work below.
+	if diags = n.expandDynamic(moduleCtx, resAddr); diags.HasErrors() {
+		return nil, diags
+	}
 	moreDiags := n.recordResourceData(moduleCtx, resAddr)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

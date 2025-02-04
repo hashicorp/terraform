@@ -722,7 +722,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		Config:                     config,
 		InputState:                 prevRunState,
 		ExternalProviderConfigs:    externalProviderConfigs,
-		DeferralAllowed:            opts.DeferralAllowed || len(opts.Targets) > 0 || len(opts.Excluded) > 0,
+		DeferralAllowed:            opts.DeferralAllowed,
 		ExternalDependencyDeferred: opts.ExternalDependencyDeferred,
 		Changes:                    changes,
 		MoveResults:                moveResults,

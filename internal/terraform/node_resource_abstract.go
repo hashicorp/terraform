@@ -413,11 +413,8 @@ func (n *NodeAbstractResource) DotNode(name string, opts *dag.DotOpts) *dag.DotN
 	}
 }
 
-// recordResourceData records some metadata for the resource as a whole in
-// various locations. This currently includes adding resource expansion info to
-// the instance expander, and recording the provider used in the state.
-func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.AbsResource) (diags tfdiags.Diagnostics) {
-
+// expandDynamic adds resource expansion info to the instance expander
+func (n *NodeAbstractResource) expandDynamic(ctx EvalContext, addr addrs.AbsResource) (diags tfdiags.Diagnostics) {
 	// We'll record our expansion decision in the shared "expander" object
 	// so that later operations (i.e. DynamicExpand and expression evaluation)
 	// can refer to it. Since this node represents the abstract module, we need
@@ -465,6 +462,13 @@ func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.Ab
 		expander.SetResourceSingle(addr.Module, n.Addr.Resource)
 	}
 
+	return diags
+}
+
+// recordResourceData records some metadata for the resource as a whole in
+// various locations. This currently includes adding resource expansion info to
+// the instance expander, and recording the provider used in the state.
+func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.AbsResource) (diags tfdiags.Diagnostics) {
 	if addr.Resource.Mode == addrs.EphemeralResourceMode {
 		// ephemeral resources are not included in the state
 		return diags
