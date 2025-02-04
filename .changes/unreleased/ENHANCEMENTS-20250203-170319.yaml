@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Logical binary operators can now short-circuit
+time: 2025-02-03T17:03:19.712067-05:00
+custom:
+    Issue: "36224"
