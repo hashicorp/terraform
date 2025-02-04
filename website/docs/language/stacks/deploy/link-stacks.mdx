@@ -10,7 +10,9 @@ If you have multiple Stacks that do not share a provisioning lifecycle, you can 
 
 ## Background
 
-To output information from a Stack, declare a `publish_output` block in the deployment configuration of the Stack exporting data. We refer to the Stack that declares a `publish_output` block as the upstream Stack.
+You may need to pass data between different Stacks in your project. For example, one Stack in your organization may manage shared services, such as networking infrastructure, and another Stack may manage application components. Using separate Stacks lets you manage the infrastructure independently, but you may still need to share data from your networking Stack with your application Stack. 
+
+To export data from a Stack, add the `publish_output` block to the deployment configuration. 
 
 To use another Stack's output, declare an `upstream_input` block in the deployment configuration of a different Stack in the same project. We refer to the Stack that declares an `upstream_input` block as the downstream Stack. For example, if Stack A produces outputs that Stack B depends on, Stack A is the upstream Stack, and Stack B is the downstream Stack.
 
