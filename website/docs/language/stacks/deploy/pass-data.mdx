@@ -7,7 +7,6 @@ description: Learn how to pass data from one Stack to another using `publish_out
 
 If you have multiple Stacks that do not share a provisioning lifecycle, you can export data from one Stack for another Stack to consume. If the output value of a Stack changes after a run, HCP Terraform automatically triggers runs for any Stacks that depend on those outputs.
 
-
 ## Background
 
 You may need to pass data between different Stacks in your project. For example, one Stack in your organization may manage shared services, such as networking infrastructure, and another Stack may manage application components. Using separate Stacks lets you manage the infrastructure independently, but you may still need to share data from your networking Stack to your application Stack. 
