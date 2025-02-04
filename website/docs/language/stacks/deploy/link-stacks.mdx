@@ -5,9 +5,8 @@ description: Learn how to pass data from one Stack to another using `publish_out
 
 # Pass data from one Stack to another
 
-If you have multiple Stacks that do not share a provisioning lifecycle, there are situations where you want to pass information between Stacks. To export data from one Stack to another, use a `publish_output` block to output data from one Stack, and use an `upstream_input` block in another Stack to consume that output.
+If you have multiple Stacks that do not share a provisioning lifecycle, you can export data from one Stack for another Stack to consume. If the output value of a Stack changes after a run, HCP Terraform automatically triggers runs for any Stacks that depend on those outputs.
 
-If the output value of a Stack changes after a run, HCP Terraform automatically triggers runs for any Stacks that depend on those outputs.
 
 ## Background
 
