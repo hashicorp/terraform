@@ -12,19 +12,17 @@ If you have multiple Stacks that do not share a provisioning lifecycle, you can 
 
 You may need to pass data between different Stacks in your project. For example, one Stack in your organization may manage shared services, such as networking infrastructure, and another Stack may manage application components. Using separate Stacks lets you manage the infrastructure independently, but you may still need to share data from your networking Stack with your application Stack. 
 
-To export data from a Stack, add the `publish_output` block to the deployment configuration. 
+To output information from a Stack, declare a `publish_output` block in the deployment configuration of the Stack exporting data. We refer to the Stack that declares a `publish_output` block as the upstream Stack.
 
-To use another Stack's output, declare an `upstream_input` block in the deployment configuration of a different Stack in the same project. We refer to the Stack that declares an `upstream_input` block as the downstream Stack. For example, if Stack A produces outputs that Stack B depends on, Stack A is the upstream Stack, and Stack B is the downstream Stack.
+To consume the data exported by the upstream Stack, declare an `upstream_input` block in the deployment configuration of a different Stack in the same project. We refer to the Stack that declares an `upstream_input` block as the downstream Stack.
 
-As a real life example, you could have a Stack for shared services, such as networking infrastructure, and a separate Stack for application components. Your Stack separation allows you to manage each Stack independently, and you can export data from your networking Stack with the `publish_output` block and consume that data into your application Stack using the `upstream_input` block.
-
-# Requirements
+## Requirements
 
 The `publish_output` and `upstream_input` blocks require at least Terraform version `terraform_1.10.0-alpha20241009` or higher. We recommend downloading the [latest version of Terraform](https://releases.hashicorp.com/terraform/) to use the most up-to-date functionality.
 
 Downstream Stacks must also reside in the same project as their upstream Stacks.
 
-# Declare outputs
+## Declare outputs
 
 You must declare a `publish_output` block in your deployment configuration for each value you want to output from your current Stack. 
 
@@ -49,7 +47,7 @@ publish_output "vpc_id" {
 
 After applying this configuration, any Stack in the same project can now reference this `vpc_id` output by declaring an `upstream_input` block. Learn more about the [`publish_output` block](/terraform/language/stacks/reference/tfdeploy#publish_output-block-configuration).
 
-## Use an upstream Stack’s inputs
+## Consume the output from an upstream Stack
 
 Declare an `upstream_input` block in your Stack’s deployment configuration to read values from another Stack's `publish_output` block. Adding an `upstream_input` block creates a dependency on the upstream Stack.
 
