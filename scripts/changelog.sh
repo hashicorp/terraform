@@ -64,9 +64,11 @@ function generate {
         npx -y changie@$CHANGIE_VERSION merge -u "## $LATEST_VERSION (Unreleased)"
         
         # If we have no changes yet, the changelog is empty now, so we need to add a header
-        if [[ ! -s CHANGELOG.md ]]; then
+        if ! grep -q "## $LATEST_VERSION" CHANGELOG.md; then
+            CURRENT_CHANGELOG=$(cat CHANGELOG.md)
             echo "## $LATEST_VERSION (Unreleased)" > CHANGELOG.md
             echo "" >> CHANGELOG.md
+            echo "$CURRENT_CHANGELOG" >> CHANGELOG.md
         fi
         ;;
 
