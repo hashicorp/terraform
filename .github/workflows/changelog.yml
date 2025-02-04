@@ -23,6 +23,9 @@ jobs:
   check-changelog-entry:
     name: "Check Changelog Entry"
     runs-on: ubuntu-latest
+    concurrency:
+      group: changelog-${{ github.ref }}
+      cancel-in-progress: true
 
     steps:
       - name: "Changed files"
