@@ -26,8 +26,6 @@ Downstream Stacks must also reside in the same project as their upstream Stacks.
 
 You must declare a `publish_output` block in your deployment configuration for each value you want to output from your current Stack. 
 
-Once you apply a Stack configuration version that includes your `publish_output` block, HCP Terraform publishes a snapshot of those values, which allows HCP Terraform to resolve them. Meaning, you must apply your Stack’s deployment configuration before any downstream Stacks can reference your Stack's outputs.
-
 For example, you can add a `publish_output` block for the `vpc_id`  in your upstream Stack’s deployment configuration.
 
 <CodeBlockConfig filename="network.tfdeploy.hcl">
@@ -37,15 +35,17 @@ For example, you can add a `publish_output` block for the `vpc_id`  in your upst
 
 publish_output "vpc_id" {
   description = "The networking Stack's VPC's ID."
-  # You can directly reference a deployment's values with the
-  # deployment.deployment_name syntax
   value       = deployment.network.vpc_id
 }
 ```
 
 </CodeBlockConfig>
 
-After applying this configuration, any Stack in the same project can now reference this `vpc_id` output by declaring an `upstream_input` block. Learn more about the [`publish_output` block](/terraform/language/stacks/reference/tfdeploy#publish_output-block-configuration).
+You can directly reference a deployment's values with the `deployment.deployment_name` syntax. After applying your configuration, any Stack in the same project can now reference your network deployment's `vpc_id` output by declaring an `upstream_input` block. 
+
+Once you apply a Stack configuration version that includes your `publish_output` block, HCP Terraform publishes a snapshot of those values, which allows HCP Terraform to resolve them. Meaning, you must apply your Stack’s deployment configuration before any downstream Stacks can reference your Stack's outputs. 
+
+Learn more about the [`publish_output` block](/terraform/language/stacks/reference/tfdeploy#publish_output-block-configuration).
 
 ## Consume the output from an upstream Stack
 
@@ -65,7 +65,6 @@ upstream_input "networking_stack" {
 
 deployment "application" {
   inputs = {
-    # This Stack depends on the networking Stack for this value
     vpc_id = upstream_input.network_stack.vpc_id
   }
 }
@@ -77,17 +76,12 @@ After pushing your Stack's configuration into HCP Terraform, HCP Terraform searc
 
 If HCP Terraform finds a published snapshot for your referenced upstream Stack, then all of that Stack's outputs are available to this downstream Stack. Add `upstream_input` blocks for every upstream Stack you want to reference. Learn more about the [`upstream_input` block](/terraform/language/stacks/reference/tfdeploy#upstream_input-block-configuration).
 
-To stop depending on an upstream Stack’s outputs, do the following in your downstream Stack's deployment configuration:
-
-- Remove the upstream Stack's `upstream_input` block  
-- Remove any references to the upstream Stack's outputs
-- Push your configuration changes to HCP Terraform and apply the new configuration
 
 ## Trigger runs when output values change
 
 If an upstream Stack's published output values change, HCP Terraform automatically triggers runs for any downstream Stacks that rely on those outputs. 
 
-For example, if your upstream networking Stack’s output changes, HCP Terraform triggers a new plan for the downstream Stacks that reference that output.
+In the following example, the `application` deployment depends on the Upstream networking Stack. 
 
 <CodeBlockConfig filename="application.tfdeploy.hcl">
 
@@ -101,8 +95,6 @@ upstream_input "network_stack" {
 
 deployment "application" {  
   inputs = {  
-	# This Stack depends on the networking Stack’s output, so if  
-	# the vpc_id changes then HCP Terraform triggers a new run for this Stack.  
     vpc_id = upstream_input.network_stack.vpc_id  
   }  
 }
@@ -110,4 +102,12 @@ deployment "application" {
 
 </CodeBlockConfig>
 
-This approach allows you to decouple Stacks that don’t share a lifecycle, while also ensuring that updates in an upstream Stack ripple out to any downstream Stacks. 
+The application Stack depends on the networking Stack’s output, so if the `vpc_id` changes then HCP Terraform triggers a new run for the application Stack. This approach allows you to decouple Stacks that have separate life cycles and ensures that updates in an upstream Stack propagate to downstream Stacks. 
+
+## Remove upstream Stack dependencies
+
+To stop depending on an upstream Stack’s outputs, do the following in your downstream Stack's deployment configuration:
+
+1. Remove the upstream Stack's `upstream_input` block  
+1. Remove any references to the upstream Stack's outputs
+1. Push your configuration changes to HCP Terraform and apply the new configuration

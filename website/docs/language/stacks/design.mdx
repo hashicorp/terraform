@@ -33,7 +33,7 @@ We recommend structuring your Stacks along technical boundaries to keep them mod
 
 We recommend sticking to technical boundaries when structuring a Stack configuration. A single Stack should represent a single system with a shared lifecycle. 
 
-While keeping a Stack as self-contained as possible is ideal, there are valid cases where a Stack must consume outputs from another Stack. For example, a shared networking Stack can publish outputs like vpc_id or subnet IDs, which downstream application Stacks can consume as inputs. This approach ensures modularity and allows you to manage dependencies between Stacks using well-defined interfaces. For more details, refer to [Pass data from one Stack to another](/terraform/language/stacks/deploy/pass-data).
+While keeping a Stack as self-contained as possible is ideal, there are valid cases where a Stack must consume outputs from another Stack. For example, a shared networking Stack can publish outputs, such as `vpc_id` or subnet IDs, that downstream application Stacks can consume as inputs. This approach ensures modularity and allows you to manage dependencies between Stacks using well-defined interfaces. For more details, refer to [Pass data from one Stack to another](/terraform/language/stacks/deploy/pass-data).
 
 Plan to add a component block to your configuration for every top-level module you want to include in your Stack. After establishing your top-level modules, you can use child modules without adding additional `component` blocks.
 
