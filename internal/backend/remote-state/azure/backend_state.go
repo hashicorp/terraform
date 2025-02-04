@@ -4,17 +4,17 @@
 package azure
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/go-azure-helpers/lang/response"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
-	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
+	"github.com/jackofallops/giovanni/storage/2023-11-03/blob/blobs"
+	"github.com/jackofallops/giovanni/storage/2023-11-03/blob/containers"
 )
 
 const (
@@ -29,14 +29,14 @@ func (b *Backend) Workspaces() ([]string, error) {
 		Prefix: &prefix,
 	}
 
-	ctx := context.TODO()
-	client, err := b.armClient.getContainersClient(ctx)
+	ctx := newCtx()
+	client, err := b.apiClient.getContainersClient(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("retrieving container client: %v", err)
 	}
-	resp, err := client.ListBlobs(ctx, b.armClient.storageAccountName, b.containerName, params)
+	resp, err := client.ListBlobs(ctx, b.containerName, params)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("listing blobs: %v", err)
 	}
 
 	envs := map[string]struct{}{}
@@ -66,14 +66,14 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 		return fmt.Errorf("can't delete default state")
 	}
 
-	ctx := context.TODO()
-	client, err := b.armClient.getBlobClient(ctx)
+	ctx := newCtx()
+	client, err := b.apiClient.getBlobClient(ctx)
 	if err != nil {
 		return err
 	}
 
-	if resp, err := client.Delete(ctx, b.armClient.storageAccountName, b.containerName, b.path(name), blobs.DeleteInput{}); err != nil {
-		if resp.Response.StatusCode != 404 {
+	if resp, err := client.Delete(ctx, b.containerName, b.path(name), blobs.DeleteInput{}); err != nil {
+		if !response.WasNotFound(resp.HttpResponse) {
 			return err
 		}
 	}
@@ -82,8 +82,8 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 }
 
 func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
-	ctx := context.TODO()
-	blobClient, err := b.armClient.getBlobClient(ctx)
+	ctx := newCtx()
+	blobClient, err := b.apiClient.getBlobClient(ctx)
 	if err != nil {
 		return nil, err
 	}
