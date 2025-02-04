@@ -27,13 +27,13 @@ Before writing your Stack configuration, we recommend assessing your current inf
 
 Each Stack should represent a single system or application with a shared lifecycle. Start by analyzing your current infrastructure and identifying the components HCP Terraform should manage together. Components are typically groups of related resources, such as an application’s backend, frontend, or database layer, deployed and scaled together. 
 
-We recommend structuring your Stacks along technical boundaries to keep them modular and manageable. For example, you can create a dedicated Stack for shared services, such as networking infrastructure for VPCs, subnets, or routing tables, and separate Stacks for application components that consume those shared services. This separation allows you to manage shared services independently while passing information between Stacks. For more details, refer to [Pass data from one Stack to another](/terraform/language/stacks/deploy/link-stacks).
+We recommend structuring your Stacks along technical boundaries to keep them modular and manageable. For example, you can create a dedicated Stack for shared services, such as networking infrastructure for VPCs, subnets, or routing tables, and separate Stacks for application components that consume those shared services. This separation allows you to manage shared services independently while passing information between Stacks. For more details, refer to [Pass data from one Stack to another](/terraform/language/stacks/deploy/pass-data).
 
 ### Sketch out your configuration
 
 We recommend sticking to technical boundaries when structuring a Stack configuration. A single Stack should represent a single system with a shared lifecycle. 
 
-While keeping a Stack as self-contained as possible is ideal, there are valid cases where a Stack must consume outputs from another Stack. For example, a shared networking Stack can publish outputs like vpc_id or subnet IDs, which downstream application Stacks can consume as inputs. This approach ensures modularity and allows you to manage dependencies between Stacks using well-defined interfaces. For more details, refer to [Pass data from one Stack to another](/terraform/language/stacks/deploy/link-stacks).
+While keeping a Stack as self-contained as possible is ideal, there are valid cases where a Stack must consume outputs from another Stack. For example, a shared networking Stack can publish outputs like vpc_id or subnet IDs, which downstream application Stacks can consume as inputs. This approach ensures modularity and allows you to manage dependencies between Stacks using well-defined interfaces. For more details, refer to [Pass data from one Stack to another](/terraform/language/stacks/deploy/pass-data).
 
 Plan to add a component block to your configuration for every top-level module you want to include in your Stack. After establishing your top-level modules, you can use child modules without adding additional `component` blocks.
 

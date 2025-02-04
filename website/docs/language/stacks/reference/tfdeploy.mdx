@@ -364,7 +364,7 @@ publish_output "vpc_id" {
 
 This example uses the `publish_output` block to expose the `vpc_id` output from the `network` deployment of this Stack. Another Stack in the same project could then intake your `vpc_id` output by declaring an `upstream_input` block. 
 
-To learn more about passing information between Stacks, refer to [Pass data from one Stack to another](/terraform/language/stacks/deploy/link-stacks).
+To learn more about passing information between Stacks, refer to [Pass data from one Stack to another](/terraform/language/stacks/deploy/pass-data).
 
 ## `upstream_input` block configuration 
 
@@ -419,4 +419,4 @@ deployment "application" {
 
 </CodeBlockConfig>
 
-Your application Stack can now securely consume and use outputs from your network Stack. To learn more about passing information between Stacks, reference [Pass data from one Stack to another](/terraform/language/stacks/deploy/link-stacks).
+Your application Stack can now securely consume and use outputs from your network Stack. To learn more about passing information between Stacks, reference [Pass data from one Stack to another](/terraform/language/stacks/deploy/pass-data).
