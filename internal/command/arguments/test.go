@@ -78,6 +78,10 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 			"The -junit-xml option is currently not compatible with remote test execution via the -cloud-run flag. If you are interested in JUnit XML output for remotely-executed tests please open an issue in GitHub."))
 	}
 
+	if test.OperationParallelism < 1 {
+		test.OperationParallelism = DefaultParallelism
+	}
+
 	switch {
 	case jsonOutput:
 		test.ViewType = ViewJSON

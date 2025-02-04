@@ -135,6 +135,17 @@ func TestParseTest(t *testing.T) {
 			},
 			wantDiags: nil,
 		},
+		"with-parallelism-0": {
+			args: []string{"-parallelism=0"},
+			want: &Test{
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
+			},
+			wantDiags: nil,
+		},
 		"unknown flag": {
 			args: []string{"-boop"},
 			want: &Test{
