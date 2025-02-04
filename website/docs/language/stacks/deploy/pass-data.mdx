@@ -10,7 +10,7 @@ If you have multiple Stacks that do not share a provisioning lifecycle, you can 
 
 ## Background
 
-You may need to pass data between different Stacks in your project. For example, one Stack in your organization may manage shared services, such as networking infrastructure, and another Stack may manage application components. Using separate Stacks lets you manage the infrastructure independently, but you may still need to share data from your networking Stack with your application Stack. 
+You may need to pass data between different Stacks in your project. For example, one Stack in your organization may manage shared services, such as networking infrastructure, and another Stack may manage application components. Using separate Stacks lets you manage the infrastructure independently, but you may still need to share data from your networking Stack to your application Stack. 
 
 To output information from a Stack, declare a `publish_output` block in the deployment configuration of the Stack exporting data. We refer to the Stack that declares a `publish_output` block as the upstream Stack.
 
@@ -18,7 +18,7 @@ To consume the data exported by the upstream Stack, declare an `upstream_input` 
 
 ## Requirements
 
-The `publish_output` and `upstream_input` blocks require at least Terraform version `terraform_1.10.0-alpha20241009` or higher. We recommend downloading the [latest version of Terraform](https://releases.hashicorp.com/terraform/) to use the most up-to-date functionality.
+The `publish_output` and `upstream_input` blocks require at least Terraform version `terraform_1.10.0-alpha20241009` or higher. Download the [latest version of Terraform](https://releases.hashicorp.com/terraform/) to use the most up-to-date functionality.
 
 Downstream Stacks must also reside in the same project as their upstream Stacks.
 
@@ -26,7 +26,7 @@ Downstream Stacks must also reside in the same project as their upstream Stacks.
 
 You must declare a `publish_output` block in your deployment configuration for each value you want to output from your current Stack. 
 
-For example, you can add a `publish_output` block for the `vpc_id`  in your upstream Stack’s deployment configuration.
+For example, you can add a `publish_output` block for the `vpc_id`  in your upstream Stack’s deployment configuration. You can directly reference a deployment's values with the `deployment.deployment_name` syntax.
 
 <CodeBlockConfig filename="network.tfdeploy.hcl">
 
@@ -41,7 +41,7 @@ publish_output "vpc_id" {
 
 </CodeBlockConfig>
 
-You can directly reference a deployment's values with the `deployment.deployment_name` syntax. After applying your configuration, any Stack in the same project can now reference your network deployment's `vpc_id` output by declaring an `upstream_input` block. 
+After applying your configuration, any Stack in the same project can now reference your network deployment's `vpc_id` output by declaring an `upstream_input` block. 
 
 Once you apply a Stack configuration version that includes your `publish_output` block, HCP Terraform publishes a snapshot of those values, which allows HCP Terraform to resolve them. Meaning, you must apply your Stack’s deployment configuration before any downstream Stacks can reference your Stack's outputs. 
 
@@ -81,7 +81,7 @@ If HCP Terraform finds a published snapshot for your referenced upstream Stack, 
 
 If an upstream Stack's published output values change, HCP Terraform automatically triggers runs for any downstream Stacks that rely on those outputs. 
 
-In the following example, the `application` deployment depends on the Upstream networking Stack. 
+In the following example, the `application` deployment depends on the upstream networking Stack. 
 
 <CodeBlockConfig filename="application.tfdeploy.hcl">
 
