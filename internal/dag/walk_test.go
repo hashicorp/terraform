@@ -4,6 +4,7 @@
 package dag
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sync"
@@ -23,7 +24,7 @@ func TestWalker_basic(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		var order []interface{}
 		w := &Walker{Callback: walkCbRecord(&order)}
-		w.Update(&g)
+		w.Update(context.Background(), &g)
 
 		// Wait
 		if err := w.Wait(); err != nil {
@@ -48,8 +49,8 @@ func TestWalker_updateNilGraph(t *testing.T) {
 	for i := 0; i < 50; i++ {
 		var order []interface{}
 		w := &Walker{Callback: walkCbRecord(&order)}
-		w.Update(&g)
-		w.Update(nil)
+		w.Update(context.Background(), &g)
+		w.Update(context.Background(), nil)
 
 		// Wait
 		if err := w.Wait(); err != nil {
@@ -84,7 +85,7 @@ func TestWalker_error(t *testing.T) {
 	}
 
 	w := &Walker{Callback: cb}
-	w.Update(&g)
+	w.Update(context.Background(), &g)
 
 	// Wait
 	if err := w.Wait(); err == nil {
@@ -120,18 +121,18 @@ func TestWalker_newVertex(t *testing.T) {
 
 	// Add the initial vertices
 	w = &Walker{Callback: cb}
-	w.Update(&g)
+	w.Update(context.Background(), &g)
 
 	// if 2 has been visited, the walk is complete so far
 	<-done2
 
 	// Update the graph
 	g.Add(3)
-	w.Update(&g)
+	w.Update(context.Background(), &g)
 
 	// Update the graph again but with the same vertex
 	g.Add(3)
-	w.Update(&g)
+	w.Update(context.Background(), &g)
 
 	// Wait
 	if err := w.Wait(); err != nil {
@@ -159,7 +160,7 @@ func TestWalker_removeVertex(t *testing.T) {
 	cb := func(v Vertex) tfdiags.Diagnostics {
 		if v == 1 {
 			g.Remove(2)
-			w.Update(&g)
+			w.Update(context.Background(), &g)
 		}
 
 		return recordF(v)
@@ -167,7 +168,7 @@ func TestWalker_removeVertex(t *testing.T) {
 
 	// Add the initial vertices
 	w = &Walker{Callback: cb}
-	w.Update(&g)
+	w.Update(context.Background(), &g)
 
 	// Wait
 	if err := w.Wait(); err != nil {
@@ -200,14 +201,14 @@ func TestWalker_newEdge(t *testing.T) {
 		if v == 1 {
 			g.Add(3)
 			g.Connect(BasicEdge(3, 2))
-			w.Update(&g)
+			w.Update(context.Background(), &g)
 		}
 		return diags
 	}
 
 	// Add the initial vertices
 	w = &Walker{Callback: cb}
-	w.Update(&g)
+	w.Update(context.Background(), &g)
 
 	// Wait
 	if err := w.Wait(); err != nil {
@@ -248,7 +249,7 @@ func TestWalker_removeEdge(t *testing.T) {
 		switch v {
 		case 1:
 			g.RemoveEdge(BasicEdge(3, 2))
-			w.Update(&g)
+			w.Update(context.Background(), &g)
 			t.Logf("removed edge from 3 to 2")
 
 		case 2:
@@ -275,7 +276,7 @@ func TestWalker_removeEdge(t *testing.T) {
 
 	// Add the initial vertices
 	w = &Walker{Callback: cb}
-	w.Update(&g)
+	w.Update(context.Background(), &g)
 
 	// Wait
 	if diags := w.Wait(); diags.HasErrors() {

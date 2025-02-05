@@ -4,6 +4,7 @@
 package dag
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -396,7 +397,7 @@ func TestAcyclicGraphWalk(t *testing.T) {
 
 	var visits []Vertex
 	var lock sync.Mutex
-	err := g.Walk(func(v Vertex) tfdiags.Diagnostics {
+	err := g.Walk(context.Background(), func(v Vertex) tfdiags.Diagnostics {
 		lock.Lock()
 		defer lock.Unlock()
 		visits = append(visits, v)
@@ -431,7 +432,7 @@ func TestAcyclicGraphWalk_error(t *testing.T) {
 
 	var visits []Vertex
 	var lock sync.Mutex
-	err := g.Walk(func(v Vertex) tfdiags.Diagnostics {
+	err := g.Walk(context.Background(), func(v Vertex) tfdiags.Diagnostics {
 		lock.Lock()
 		defer lock.Unlock()
 
