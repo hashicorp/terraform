@@ -37,3 +37,9 @@ func (f *File) UpdateStatus(status Status) {
 	defer f.Unlock()
 	f.Status = f.Status.Merge(status)
 }
+
+func (f *File) GetStatus() Status {
+	f.Lock()
+	defer f.Unlock()
+	return f.Status
+}

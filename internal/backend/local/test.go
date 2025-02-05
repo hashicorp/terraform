@@ -347,6 +347,24 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 
 		switch v := v.(type) {
 		case *graph.NodeTestRun:
+			file := v.File()
+			run := v.Run()
+			if file.GetStatus() == moduletest.Error {
+				// If the overall test file has errored, we don't keep trying to
+				// execute tests. Instead, we mark all remaining run blocks as
+				// skipped, print the status, and move on.
+				run.Status = moduletest.Skip
+				runner.Suite.View.Run(run, file, moduletest.Complete, 0)
+				return
+			}
+			if runner.Suite.Stopped {
+				// Then the test was requested to be stopped, so we just mark each
+				// following test as skipped, print the status, and move on.
+				run.Status = moduletest.Skip
+				runner.Suite.View.Run(run, file, moduletest.Complete, 0)
+				return
+			}
+
 			// TODO: The execution of a NodeTestRun is currently split between
 			// its Execute method and the continuation of the walk callback.
 			// Eventually, we should move all the logic related to a test run into
@@ -356,7 +374,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			if diags.HasErrors() {
 				return diags
 			}
-			// continue
+			// continue the execution of the test run.
 		case graph.GraphNodeExecutable:
 			diags = v.Execute(runner.EvalContext)
 			return diags
@@ -370,25 +388,6 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 
 		file := runNode.File()
 		run := runNode.Run()
-
-		if runner.Suite.Stopped {
-			// Then the test was requested to be stopped, so we just mark each
-			// following test as skipped, print the status, and move on.
-			run.Status = moduletest.Skip
-			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
-			return
-		}
-		file.Lock()
-		if file.Status == moduletest.Error {
-			// If the overall test file has errored, we don't keep trying to
-			// execute tests. Instead, we mark all remaining run blocks as
-			// skipped, print the status, and move on.
-			run.Status = moduletest.Skip
-			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
-			file.Unlock()
-			return
-		}
-		file.Unlock()
 
 		key := run.GetStateKey()
 		if run.Config.ConfigUnderTest != nil {

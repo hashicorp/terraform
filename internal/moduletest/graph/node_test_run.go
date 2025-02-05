@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+var _ GraphNodeExecutable = (*NodeTestRun)(nil)
+
 type NodeTestRun struct {
 	file *moduletest.File
 	run  *moduletest.Run
