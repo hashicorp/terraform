@@ -1,4 +1,4 @@
-## 1.11.0-beta2 (February 05, 2025)
+## 1.11.0 (Unreleased)
 
 
 NEW FEATURES:
