@@ -346,7 +346,7 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 		defer sem.Release()
 
 		switch v := v.(type) {
-		case *graph.NodeTestRun:
+		case *graph.NodeTestRun: // NodeTestRun is also executable, so it has to be first.
 			file := v.File()
 			run := v.Run()
 			if file.GetStatus() == moduletest.Error {
@@ -374,7 +374,11 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			if diags.HasErrors() {
 				return diags
 			}
-			// continue the execution of the test run.
+
+			startTime := time.Now().UTC()
+			runner.run(run, file, startTime)
+			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
+			file.UpdateStatus(run.Status)
 		case graph.GraphNodeExecutable:
 			diags = v.Execute(runner.EvalContext)
 			return diags
@@ -382,75 +386,55 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			// If the vertex isn't a test run or executable, we'll just skip it.
 			return
 		}
-
-		// We already know that the vertex is a test run
-		runNode := v.(*graph.NodeTestRun)
-
-		file := runNode.File()
-		run := runNode.Run()
-
-		key := run.GetStateKey()
-		if run.Config.ConfigUnderTest != nil {
-			if key == moduletest.MainStateIdentifier {
-				// This is bad. It means somehow the module we're loading has
-				// the same key as main state and we're about to corrupt things.
-
-				run.Diagnostics = run.Diagnostics.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid module source",
-					Detail:   fmt.Sprintf("The source for the selected module evaluated to %s which should not be possible. This is a bug in Terraform - please report it!", key),
-					Subject:  run.Config.Module.DeclRange.Ptr(),
-				})
-
-				run.Status = moduletest.Error
-				file.UpdateStatus(moduletest.Error)
-				return
-			}
-		}
-
-		startTime := time.Now().UTC()
-		state, updatedState := runner.run(run, file, runner.EvalContext.GetFileState(key).State)
-		runDuration := time.Since(startTime)
-		if updatedState {
-			// Only update the most recent run and state if the state was
-			// actually updated by this change. We want to use the run that
-			// most recently updated the tracked state as the cleanup
-			// configuration.
-			runner.EvalContext.SetFileState(key, &graph.TestFileState{
-				Run:   run,
-				State: state,
-			})
-		}
-
-		// If we got far enough to actually execute the run then we'll give
-		// the view some additional metadata about the execution.
-		run.ExecutionMeta = &moduletest.RunExecutionMeta{
-			Start:    startTime,
-			Duration: runDuration,
-		}
-		runner.Suite.View.Run(run, file, moduletest.Complete, 0)
-		file.UpdateStatus(run.Status)
 		return
 	}
 
 	return g.AcyclicGraph.Walk(walkFn)
 }
 
-func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, state *states.State) (*states.State, bool) {
+func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, startTime time.Time) {
 	log.Printf("[TRACE] TestFileRunner: executing run block %s/%s", file.Name, run.Name)
+	defer func() {
+		// If we got far enough to actually execute the run then we'll give
+		// the view some additional metadata about the execution.
+		run.ExecutionMeta = &moduletest.RunExecutionMeta{
+			Start:    startTime,
+			Duration: time.Since(startTime),
+		}
+	}()
+
+	key := run.GetStateKey()
+	if run.Config.ConfigUnderTest != nil {
+		if key == moduletest.MainStateIdentifier {
+			// This is bad. It means somehow the module we're loading has
+			// the same key as main state and we're about to corrupt things.
+
+			run.Diagnostics = run.Diagnostics.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid module source",
+				Detail:   fmt.Sprintf("The source for the selected module evaluated to %s which should not be possible. This is a bug in Terraform - please report it!", key),
+				Subject:  run.Config.Module.DeclRange.Ptr(),
+			})
+
+			run.Status = moduletest.Error
+			file.UpdateStatus(moduletest.Error)
+			return
+		}
+	}
+	state := runner.EvalContext.GetFileState(key).State
 
 	config := run.ModuleConfig
 	if runner.Suite.Cancelled {
 		// Don't do anything, just give up and return immediately.
 		// The surrounding functions should stop this even being called, but in
 		// case of race conditions or something we can still verify this.
-		return state, false
+		return
 	}
 
 	if runner.Suite.Stopped {
 		// Basically the same as above, except we'll be a bit nicer.
 		run.Status = moduletest.Skip
-		return state, false
+		return
 	}
 
 	start := time.Now().UTC().UnixMilli()
@@ -459,35 +443,35 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	run.Diagnostics = run.Diagnostics.Append(run.Config.Validate(config))
 	if run.Diagnostics.HasErrors() {
 		run.Status = moduletest.Error
-		return state, false
+		return
 	}
 
 	configDiags := graph.TransformConfigForTest(runner.EvalContext, run, file)
 	run.Diagnostics = run.Diagnostics.Append(configDiags)
 	if configDiags.HasErrors() {
 		run.Status = moduletest.Error
-		return state, false
+		return
 	}
 
 	validateDiags := runner.validate(run, file, start)
 	run.Diagnostics = run.Diagnostics.Append(validateDiags)
 	if validateDiags.HasErrors() {
 		run.Status = moduletest.Error
-		return state, false
+		return
 	}
 
 	references, referenceDiags := run.GetReferences()
 	run.Diagnostics = run.Diagnostics.Append(referenceDiags)
 	if referenceDiags.HasErrors() {
 		run.Status = moduletest.Error
-		return state, false
+		return
 	}
 
 	variables, variableDiags := runner.GetVariables(run, references, true)
 	run.Diagnostics = run.Diagnostics.Append(variableDiags)
 	if variableDiags.HasErrors() {
 		run.Status = moduletest.Error
-		return state, false
+		return
 	}
 
 	// FilterVariablesToModule only returns warnings, so we don't check the
@@ -498,7 +482,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	tfCtx, ctxDiags := terraform.NewContext(runner.Suite.Opts)
 	run.Diagnostics = run.Diagnostics.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
-		return state, false
+		return
 	}
 
 	planScope, plan, planDiags := runner.plan(tfCtx, config, state, run, file, setVariables, references, start)
@@ -508,7 +492,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		run.Diagnostics = run.Diagnostics.Append(planDiags)
 		if planDiags.HasErrors() {
 			run.Status = moduletest.Error
-			return state, false
+			return
 		}
 
 		runner.AddVariablesToConfig(run, variables)
@@ -549,8 +533,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		// Now we've successfully validated this run block, lets add it into
 		// our prior run outputs so future run blocks can access it.
 		runner.EvalContext.SetOutput(run, outputVals)
-
-		return state, false
+		return
 	}
 
 	// Otherwise any error during the planning prevents our apply from
@@ -559,7 +542,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	run.Diagnostics = run.Diagnostics.Append(planDiags)
 	if planDiags.HasErrors() {
 		run.Status = moduletest.Error
-		return state, false
+		return
 	}
 
 	// Since we're carrying on an executing the apply operation as well, we're
@@ -586,7 +569,11 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		run.Status = moduletest.Error
 		// Even though the apply operation failed, the graph may have done
 		// partial updates and the returned state should reflect this.
-		return updated, true
+		runner.EvalContext.SetFileState(key, &graph.TestFileState{
+			Run:   run,
+			State: updated,
+		})
+		return
 	}
 
 	runner.AddVariablesToConfig(run, variables)
@@ -628,7 +615,15 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	// our prior run outputs so future run blocks can access it.
 	runner.EvalContext.SetOutput(run, outputVals)
 
-	return updated, true
+	// Only update the most recent run and state if the state was
+	// actually updated by this change. We want to use the run that
+	// most recently updated the tracked state as the cleanup
+	// configuration.
+	runner.EvalContext.SetFileState(key, &graph.TestFileState{
+		Run:   run,
+		State: updated,
+	})
+	return
 }
 
 func (runner *TestFileRunner) validate(run *moduletest.Run, file *moduletest.File, start int64) tfdiags.Diagnostics {
