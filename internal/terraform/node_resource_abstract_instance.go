@@ -2351,10 +2351,28 @@ func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state 
 		// provisioner logging, so we conservatively suppress all output in
 		// this case. This should not apply to connection info values, which
 		// provisioners ought not to be logging anyway.
-		if len(configMarks) > 0 {
+		_, sensitive := configMarks[marks.Sensitive]
+		_, ephemeral := configMarks[marks.Ephemeral]
+
+		switch {
+		case sensitive && ephemeral:
+			outputFn = func(msg string) {
+				ctx.Hook(func(h Hook) (HookAction, error) {
+					h.ProvisionOutput(n.HookResourceIdentity(), prov.Type, "(output suppressed due to sensitive, ephemeral value in config)")
+					return HookActionContinue, nil
+				})
+			}
+		case sensitive:
 			outputFn = func(msg string) {
 				ctx.Hook(func(h Hook) (HookAction, error) {
 					h.ProvisionOutput(n.HookResourceIdentity(), prov.Type, "(output suppressed due to sensitive value in config)")
+					return HookActionContinue, nil
+				})
+			}
+		case ephemeral:
+			outputFn = func(msg string) {
+				ctx.Hook(func(h Hook) (HookAction, error) {
+					h.ProvisionOutput(n.HookResourceIdentity(), prov.Type, "(output suppressed due to ephemeral value in config)")
 					return HookActionContinue, nil
 				})
 			}
