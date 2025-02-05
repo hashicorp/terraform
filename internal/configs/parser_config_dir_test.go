@@ -340,12 +340,23 @@ func TestIsEmptyDir_noExist(t *testing.T) {
 	}
 }
 
-func TestIsEmptyDir_noConfigs(t *testing.T) {
+func TestIsEmptyDir_noConfigsAndTests(t *testing.T) {
 	val, err := IsEmptyDir(filepath.Join("testdata", "dir-empty"), "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if !val {
 		t.Fatal("should be empty")
+	}
+}
+
+func TestIsEmptyDir_noConfigsButHasTests(t *testing.T) {
+	// The top directory has no configs, but it contains test files
+	val, err := IsEmptyDir(filepath.Join("testdata", "only-test-files"), "tests")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if val {
+		t.Fatal("should not be empty")
 	}
 }

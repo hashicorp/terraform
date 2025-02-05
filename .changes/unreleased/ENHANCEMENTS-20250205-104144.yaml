@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Allow terraform init when only test files are present in directory
+time: 2025-02-05T10:41:44.663251+01:00
+custom:
+    Issue: "35040"
