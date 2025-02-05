@@ -35,6 +35,7 @@ func TestTest_Runs(t *testing.T) {
 		code                  int
 		initCode              int
 		skip                  bool
+		desc                  string
 	}{
 		"simple_pass": {
 			expectedOut: []string{"1 passed, 0 failed."},
@@ -53,6 +54,13 @@ func TestTest_Runs(t *testing.T) {
 			args:        []string{"-test-directory", "tests/subdir"},
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
+		},
+		"simple_pass_cmd_parallel": {
+			override:    "simple_pass",
+			args:        []string{"-parallelism", "1"},
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+			desc:        "simple_pass with parallelism set to 1",
 		},
 		"simple_pass_very_nested_alternate": {
 			override:    "simple_pass_very_nested",
