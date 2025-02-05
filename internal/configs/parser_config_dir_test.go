@@ -321,7 +321,7 @@ func TestParserLoadConfigDirFailure(t *testing.T) {
 }
 
 func TestIsEmptyDir(t *testing.T) {
-	val, err := IsEmptyDir(filepath.Join("testdata", "valid-files"))
+	val, err := IsEmptyDir(filepath.Join("testdata", "valid-files"), "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -331,7 +331,7 @@ func TestIsEmptyDir(t *testing.T) {
 }
 
 func TestIsEmptyDir_noExist(t *testing.T) {
-	val, err := IsEmptyDir(filepath.Join("testdata", "nopenopenope"))
+	val, err := IsEmptyDir(filepath.Join("testdata", "nopenopenope"), "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -341,7 +341,7 @@ func TestIsEmptyDir_noExist(t *testing.T) {
 }
 
 func TestIsEmptyDir_noConfigs(t *testing.T) {
-	val, err := IsEmptyDir(filepath.Join("testdata", "dir-empty"))
+	val, err := IsEmptyDir(filepath.Join("testdata", "dir-empty"), "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
