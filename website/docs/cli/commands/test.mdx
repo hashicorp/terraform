@@ -38,6 +38,8 @@ The following options apply to the Terraform `terraform test` command:
 
 * `-verbose` - Prints out the plan or state for each `run` block within a test file, based on the `command` attribute of each `run` block.
 
+* `-parallelism=<n>` - Specifies the number of plan/apply operations to execute in parallel within a single test run. The default is 10.
+
 ## State Management
 
 Each Terraform test file will maintain all Terraform state it requires within memory as it executes, starting empty. This state is entirely separate from any existing state for the configuration under test, so you can safely execute Terraform test commands without affecting any live infrastructure.

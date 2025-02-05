@@ -13,7 +13,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend/backendrun"
 )
 
 func TestProviderConfig(t *testing.T) {
@@ -185,16 +184,15 @@ func TestProviderConfig(t *testing.T) {
 				outputs[addr] = cty.ObjectVal(attrs)
 			}
 
-			variableCaches := &VariableCaches{
-				GlobalVariables: make(map[string]backendrun.UnparsedVariableValue),
-				FileVariables: func() map[string]hcl.Expression {
+			variableCaches := NewVariableCaches(func(vc *VariableCaches) {
+				vc.FileVariables = func() map[string]hcl.Expression {
 					variables := make(map[string]hcl.Expression)
 					for name, value := range tc.variables {
 						variables[name] = hcl.StaticExpr(value, hcl.Range{})
 					}
 					return variables
-				}(),
-			}
+				}()
+			})
 
 			config := ProviderConfig{
 				Original:            file.Body,

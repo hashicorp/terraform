@@ -1,19 +1,81 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package config
+package graph
 
 import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/zclconf/go-cty/cty"
-
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
+
+// TestConfigTransformer is a GraphTransformer that adds all the test runs,
+// and the variables defined in each run block, to the graph.
+type TestConfigTransformer struct{}
+
+func (t *TestConfigTransformer) Transform(g *terraform.Graph) error {
+	// This map tracks the state of each run in the file. If multiple runs
+	// have the same state key, they will share the same state.
+	statesMap := make(map[string]*TestFileState)
+	for _, v := range g.Vertices() {
+		node, ok := v.(*NodeTestRun)
+		if !ok {
+			continue
+		}
+		if _, exists := statesMap[node.run.GetStateKey()]; !exists {
+			statesMap[node.run.GetStateKey()] = &TestFileState{
+				Run:   nil,
+				State: states.NewState(),
+			}
+		}
+	}
+	cfgNode := &nodeConfig{configMap: statesMap}
+	g.Add(cfgNode)
+
+	// Connect all the test runs to the config node, so that the config node
+	// is executed before any of the test runs.
+	for _, v := range g.Vertices() {
+		node, ok := v.(*NodeTestRun)
+		if !ok {
+			continue
+		}
+		g.Connect(dag.BasicEdge(node, cfgNode))
+	}
+
+	return nil
+}
+
+type nodeConfig struct {
+	configMap map[string]*TestFileState
+}
+
+func (n *nodeConfig) Name() string {
+	return "nodeConfig"
+}
+
+type GraphNodeExecutable interface {
+	Execute(ctx *EvalContext) tfdiags.Diagnostics
+}
+
+func (n *nodeConfig) Execute(ctx *EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	ctx.FileStates = n.configMap
+	return diags
+}
+
+// TestFileState is a helper struct that just maps a run block to the state that
+// was produced by the execution of that run block.
+type TestFileState struct {
+	Run   *moduletest.Run
+	State *states.State
+}
 
 // TransformConfigForTest transforms the provided configuration ready for the
 // test execution specified by the provided run block and test file.
@@ -22,11 +84,7 @@ import (
 // available providers. We want to copy the relevant providers from the test
 // file into the configuration. We also want to process the providers so they
 // use variables from the file instead of variables from within the test file.
-//
-// We also return a reset function that should be called to return the
-// configuration to it's original state before the next run block or test file
-// needs to use it.
-func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *moduletest.File, variableCaches *hcltest.VariableCaches, availableRunOutputs map[addrs.Run]cty.Value, requiredProviders map[string]bool) (func(), hcl.Diagnostics) {
+func TransformConfigForTest(ctx *EvalContext, run *moduletest.Run, file *moduletest.File) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	// Currently, we only need to override the provider settings.
@@ -58,11 +116,13 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 	// the providers from the original config. `next` contains the set of
 	// providers that will be used by the test. `next` starts with the set of
 	// providers from the original config.
-	previous := config.Module.ProviderConfigs
+	previous := run.ModuleConfig.Module.ProviderConfigs
 	next := make(map[string]*configs.Provider)
 	for key, value := range previous {
 		next[key] = value
 	}
+
+	runOutputs := ctx.GetOutputs()
 
 	if len(run.Config.Providers) > 0 {
 		// Then we'll only copy over and overwrite the specific providers asked
@@ -89,8 +149,8 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 				AliasRange: ref.InChild.AliasRange,
 				Config: &hcltest.ProviderConfig{
 					Original:            testProvider.Config,
-					VariableCache:       variableCaches.GetCache(run.Name, config),
-					AvailableRunOutputs: availableRunOutputs,
+					VariableCache:       ctx.GetCache(run),
+					AvailableRunOutputs: runOutputs,
 				},
 				Mock:      testProvider.Mock,
 				MockData:  testProvider.MockData,
@@ -102,7 +162,7 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 		// the test file itself.
 		for key, provider := range file.Config.Providers {
 
-			if !requiredProviders[key] {
+			if !ctx.ProviderExists(run, key) {
 				// Then we don't actually need this provider for this
 				// configuration, so skip it.
 				continue
@@ -115,8 +175,8 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 				AliasRange: provider.AliasRange,
 				Config: &hcltest.ProviderConfig{
 					Original:            provider.Config,
-					VariableCache:       variableCaches.GetCache(run.Name, config),
-					AvailableRunOutputs: availableRunOutputs,
+					VariableCache:       ctx.GetCache(run),
+					AvailableRunOutputs: runOutputs,
 				},
 				Mock:      provider.Mock,
 				MockData:  provider.MockData,
@@ -125,9 +185,6 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 		}
 	}
 
-	config.Module.ProviderConfigs = next
-	return func() {
-		// Reset the original config within the returned function.
-		config.Module.ProviderConfigs = previous
-	}, diags
+	run.ModuleConfig.Module.ProviderConfigs = next
+	return diags
 }

@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Terraform Test command now accepts a -parallelism=n option, which sets the number of parallel operations in a test run's plan/apply operation.
+time: 2025-01-23T10:18:38.979866+01:00
+custom:
+    Issue: "34237"

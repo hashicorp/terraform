@@ -1,12 +1,14 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package moduletest
+package graph
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"sort"
+	"sync"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -17,42 +19,109 @@ import (
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/moduletest"
+	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // EvalContext is a container for context relating to the evaluation of a
-// particular test case, which means a specific "run" block in a .tftest.hcl
-// file.
+// particular .tftest.hcl file.
+// This context is used to track the various values that are available to the
+// test suite, both from the test suite itself and from the results of the runs
+// within the suite.
+// The struct provides concurrency-safe access to the various maps it contains.
 type EvalContext struct {
-	run       *Run
-	module    *configs.Module
-	exprScope *lang.Scope
+	VariableCaches *hcltest.VariableCaches
+
+	// runOutputs is a mapping from run addresses to cty object values
+	// representing the collected output values from the module under test.
+	//
+	// This is used to allow run blocks to refer back to the output values of
+	// previous run blocks. It is passed into the Evaluate functions that
+	// validate the test assertions, and used when calculating values for
+	// variables within run blocks.
+	runOutputs  map[addrs.Run]cty.Value
+	outputsLock sync.Mutex
+
+	// configProviders is a cache of config keys mapped to all the providers
+	// referenced by the given config.
+	//
+	// The config keys are globally unique across an entire test suite, so we
+	// store this at the suite runner level to get maximum efficiency.
+	configProviders map[string]map[string]bool
+	providersLock   sync.Mutex
+
+	// FileStates is a mapping of module keys to it's last applied state
+	// file.
+	//
+	// This is used to clean up the infrastructure created during the test after
+	// the test has finished.
+	FileStates map[string]*TestFileState
+	stateLock  sync.Mutex
+
+	// cancelContext is a context that can be used to terminate the evaluation of the
+	// test suite.
+	// cancelFunc is the conrresponding cancel function that should be called to
+	// cancel the context.
+	cancelContext context.Context
+	cancelFunc    context.CancelFunc
 }
 
-// NewEvalContext constructs a new test run evaluation context based on the
-// definition of the run itself and on the results of the action the run
-// block described.
-//
-// priorOutputs describes the output values from earlier run blocks, which
-// should typically be populated from the second return value from calling
-// [EvalContext.Evaluate] on each earlier blocks' [EvalContext].
+// NewEvalContext constructs a new graph evaluation context for use in
+// evaluating the runs within a test suite.
+func NewEvalContext(cancelCtx context.Context) *EvalContext {
+	cancelCtx, cancel := context.WithCancel(cancelCtx)
+	return &EvalContext{
+		runOutputs:      make(map[addrs.Run]cty.Value),
+		outputsLock:     sync.Mutex{},
+		configProviders: make(map[string]map[string]bool),
+		providersLock:   sync.Mutex{},
+		FileStates:      make(map[string]*TestFileState),
+		stateLock:       sync.Mutex{},
+		VariableCaches:  hcltest.NewVariableCaches(),
+		cancelContext:   cancelCtx,
+		cancelFunc:      cancel,
+	}
+}
+
+// Cancel cancels the context, which signals to the test suite that it should
+// stop evaluating the test suite.
+func (ec *EvalContext) Cancel() {
+	ec.cancelFunc()
+}
+
+// Cancelled returns true if the context has been stopped. The default cause
+// of the error is context.Canceled.
+func (ec *EvalContext) Cancelled() bool {
+	return ec.cancelContext.Err() != nil
+}
+
+// EvaluateRun processes the assertions inside the provided configs.TestRun against
+// the run results, returning a status, an object value representing the output
+// values from the module under test, and diagnostics describing any problems.
 //
 // extraVariableVals, if provided, overlays the input variables that are
 // already available in resultScope in case there are additional input
 // variables that were defined only for use in the test suite. Any variable
-// not defined in extraVariableVals will be evaluated through resultScope
-// instead.
-func NewEvalContext(run *Run, module *configs.Module, resultScope *lang.Scope, extraVariableVals terraform.InputValues, priorOutputs map[addrs.Run]cty.Value) *EvalContext {
+// not defined in extraVariableVals will be evaluated through resultScope instead.
+func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope, extraVariableVals terraform.InputValues) (moduletest.Status, cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	if run.ModuleConfig == nil {
+		// This should never happen, but if it does, we can't evaluate the run
+		return moduletest.Error, cty.NilVal, tfdiags.Diagnostics{}
+	}
+
+	mod := run.ModuleConfig.Module
 	// We need a derived evaluation scope that also supports referring to
 	// the prior run output values using the "run.NAME" syntax.
 	evalData := &evaluationData{
-		module:    module,
+		ctx:       ec,
+		module:    mod,
 		current:   resultScope.Data,
 		extraVars: extraVariableVals,
-		priorVals: priorOutputs,
 	}
-	runScope := &lang.Scope{
+	scope := &lang.Scope{
 		Data:          evalData,
 		ParseRef:      addrs.ParseRefFromTestingScope,
 		SourceAddr:    resultScope.SourceAddr,
@@ -61,26 +130,12 @@ func NewEvalContext(run *Run, module *configs.Module, resultScope *lang.Scope, e
 		PlanTimestamp: resultScope.PlanTimestamp,
 		ExternalFuncs: resultScope.ExternalFuncs,
 	}
-	return &EvalContext{
-		run:       run,
-		module:    module,
-		exprScope: runScope,
-	}
-}
 
-// Evaluate processes the assertions inside the provided configs.TestRun against
-// the run results, returning a status, an object value representing the output
-// values from the module under test, and diagnostics describing any problems.
-func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	run := ec.run
-	scope := ec.exprScope
-
-	log.Printf("[TRACE] EvalContext.Evaluate for %s", ec.run.Addr())
+	log.Printf("[TRACE] EvalContext.Evaluate for %s", run.Addr())
 
 	// We're going to assume the run has passed, and then if anything fails this
 	// value will be updated.
-	status := run.Status.Merge(Pass)
+	status := run.Status.Merge(moduletest.Pass)
 
 	// Now validate all the assertions within this run block.
 	for i, rule := range run.Config.CheckRules {
@@ -103,8 +158,8 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 		if moreDiags.HasErrors() {
 			// if we can't evaluate the context properly, we can't evaulate the rule
 			// we add the diagnostics to the main diags and continue to the next rule
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, could not evalaute the context, so cannot evaluate it", i, ec.run.Addr())
-			status = status.Merge(Error)
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, could not evalaute the context, so cannot evaluate it", i, run.Addr())
+			status = status.Merge(moduletest.Error)
 			diags = diags.Append(ruleDiags)
 			continue
 		}
@@ -117,13 +172,13 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 
 		diags = diags.Append(ruleDiags)
 		if ruleDiags.HasErrors() {
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, so cannot evaluate it", i, ec.run.Addr())
-			status = status.Merge(Error)
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, so cannot evaluate it", i, run.Addr())
+			status = status.Merge(moduletest.Error)
 			continue
 		}
 
 		if runVal.IsNull() {
-			status = status.Merge(Error)
+			status = status.Merge(moduletest.Error)
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
 				Summary:     "Invalid condition run",
@@ -132,12 +187,12 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
 			})
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has null condition result", i, ec.run.Addr())
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has null condition result", i, run.Addr())
 			continue
 		}
 
 		if !runVal.IsKnown() {
-			status = status.Merge(Error)
+			status = status.Merge(moduletest.Error)
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
 				Summary:     "Unknown condition value",
@@ -146,13 +201,13 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
 			})
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has unknown condition result", i, ec.run.Addr())
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has unknown condition result", i, run.Addr())
 			continue
 		}
 
 		var err error
 		if runVal, err = convert.Convert(runVal, cty.Bool); err != nil {
-			status = status.Merge(Error)
+			status = status.Merge(moduletest.Error)
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
 				Summary:     "Invalid condition run",
@@ -161,7 +216,7 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
 			})
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has non-boolean condition result", i, ec.run.Addr())
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s has non-boolean condition result", i, run.Addr())
 			continue
 		}
 
@@ -170,8 +225,8 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 		runVal, _ = runVal.Unmark()
 
 		if runVal.False() {
-			log.Printf("[TRACE] EvalContext.Evaluate: test assertion failed for %s assertion %d", ec.run.Addr(), i)
-			status = status.Merge(Fail)
+			log.Printf("[TRACE] EvalContext.Evaluate: test assertion failed for %s assertion %d", run.Addr(), i)
+			status = status.Merge(moduletest.Fail)
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
 				Summary:     "Test assertion failed",
@@ -184,18 +239,18 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 			})
 			continue
 		} else {
-			log.Printf("[TRACE] EvalContext.Evaluate: test assertion succeeded for %s assertion %d", ec.run.Addr(), i)
+			log.Printf("[TRACE] EvalContext.Evaluate: test assertion succeeded for %s assertion %d", run.Addr(), i)
 		}
 	}
 
 	// Our result includes an object representing all of the output values
 	// from the module we've just tested, which will then be available in
 	// any subsequent test cases in the same test suite.
-	outputVals := make(map[string]cty.Value, len(ec.module.Outputs))
-	runRng := tfdiags.SourceRangeFromHCL(ec.run.Config.DeclRange)
-	for _, oc := range ec.module.Outputs {
+	outputVals := make(map[string]cty.Value, len(mod.Outputs))
+	runRng := tfdiags.SourceRangeFromHCL(run.Config.DeclRange)
+	for _, oc := range mod.Outputs {
 		addr := oc.Addr()
-		v, moreDiags := ec.exprScope.Data.GetOutput(addr, runRng)
+		v, moreDiags := scope.Data.GetOutput(addr, runRng)
 		diags = diags.Append(moreDiags)
 		if v == cty.NilVal {
 			v = cty.NullVal(cty.DynamicPseudoType)
@@ -204,6 +259,45 @@ func (ec *EvalContext) Evaluate() (Status, cty.Value, tfdiags.Diagnostics) {
 	}
 
 	return status, cty.ObjectVal(outputVals), diags
+}
+
+func (ec *EvalContext) SetOutput(run *moduletest.Run, output cty.Value) {
+	ec.outputsLock.Lock()
+	defer ec.outputsLock.Unlock()
+	ec.runOutputs[run.Addr()] = output
+}
+
+func (ec *EvalContext) GetOutputs() map[addrs.Run]cty.Value {
+	ec.outputsLock.Lock()
+	defer ec.outputsLock.Unlock()
+	outputCopy := make(map[addrs.Run]cty.Value, len(ec.runOutputs))
+	for k, v := range ec.runOutputs {
+		outputCopy[k] = v
+	}
+	return outputCopy
+}
+
+func (ec *EvalContext) GetCache(run *moduletest.Run) *hcltest.VariableCache {
+	return ec.VariableCaches.GetCache(run.Name, run.ModuleConfig)
+}
+
+// ProviderExists returns true if the provider exists for the run inside the context.
+func (ec *EvalContext) ProviderExists(run *moduletest.Run, key string) bool {
+	ec.providersLock.Lock()
+	defer ec.providersLock.Unlock()
+	runProviders, ok := ec.configProviders[run.GetModuleConfigID()]
+	if !ok {
+		return false
+	}
+
+	found, ok := runProviders[key]
+	return ok && found
+}
+
+func (ec *EvalContext) SetProviders(run *moduletest.Run, providers map[string]bool) {
+	ec.providersLock.Lock()
+	defer ec.providersLock.Unlock()
+	ec.configProviders[run.GetModuleConfigID()] = providers
 }
 
 func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnostics) {
@@ -223,15 +317,35 @@ func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnost
 	return diags
 }
 
+func (ec *EvalContext) SetFileState(key string, state *TestFileState) {
+	ec.stateLock.Lock()
+	defer ec.stateLock.Unlock()
+	fileState := ec.FileStates[key]
+	if fileState != nil {
+		ec.FileStates[key] = state
+		return
+	}
+	ec.FileStates[key] = &TestFileState{
+		Run:   state.Run,
+		State: state.State,
+	}
+}
+
+func (ec *EvalContext) GetFileState(key string) *TestFileState {
+	ec.stateLock.Lock()
+	defer ec.stateLock.Unlock()
+	return ec.FileStates[key]
+}
+
 // evaluationData augments an underlying lang.Data -- presumably resulting
 // from a terraform.Context.PlanAndEval or terraform.Context.ApplyAndEval call --
 // with results from prior runs that should therefore be available when
 // evaluating expressions written inside a "run" block.
 type evaluationData struct {
+	ctx       *EvalContext
 	module    *configs.Module
 	current   lang.Data
 	extraVars terraform.InputValues
-	priorVals map[addrs.Run]cty.Value
 }
 
 var _ lang.Data = (*evaluationData)(nil)
@@ -287,7 +401,7 @@ func (d *evaluationData) GetResource(addr addrs.Resource, rng tfdiags.SourceRang
 // GetRunBlock implements lang.Data.
 func (d *evaluationData) GetRunBlock(addr addrs.Run, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ret, exists := d.priorVals[addr]
+	ret, exists := d.ctx.GetOutputs()[addr]
 	if !exists {
 		ret = cty.DynamicVal
 		diags = diags.Append(&hcl.Diagnostic{
@@ -336,10 +450,11 @@ func (d *evaluationData) staticValidateRunRef(ref *addrs.Reference) tfdiags.Diag
 	var diags tfdiags.Diagnostics
 
 	addr := ref.Subject.(addrs.Run)
-	_, exists := d.priorVals[addr]
+	outputs := d.ctx.GetOutputs()
+	_, exists := outputs[addr]
 	if !exists {
 		var suggestions []string
-		for altAddr := range d.priorVals {
+		for altAddr := range outputs {
 			suggestions = append(suggestions, altAddr.Name)
 		}
 		sort.Strings(suggestions)
