@@ -1,9 +1,14 @@
 # This workflow makes sure contributors don't forget to add a changelog entry or explicitly opt-out of it.
+# 
+# Do not extend this workflow to include checking out the code (e.g. for building and testing purposes) while the pull_request_target trigger is used.
+# Instead, see use of workflow_run in https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/
 
 name: Changelog
 
 on:
-  pull_request:
+  # The pull_request_target trigger event allows PRs raised from forks to have write permissions and access secrets.
+  # We uses it in this workflow to enable writing comments to the PR.
+  pull_request_target:
     types:
       - opened
       - ready_for_review
@@ -12,9 +17,9 @@ on:
       - labeled
       - unlabeled
 
-# This workflow runs for not-yet-reviewed external contributions and so it
-# intentionally has no write access and only limited read access to the
-# repository.
+# This workflow runs for not-yet-reviewed external contributions.
+# Following a pull_request_target trigger the workflow would have write permissions,
+# so we intentionally restrict the permissions to only include write access on pull-requests.
 permissions:
   contents: read
   pull-requests: write
