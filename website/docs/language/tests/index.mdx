@@ -124,7 +124,7 @@ The `state_key` allows for fine-grained control over which internal state file T
 The `parallel` attribute allows you to run multiple `run` blocks in parallel. By default, this attribute is set to `false`. When set to `true`, Terraform will attempt to execute the `run` block in parallel with other `run` blocks that also have the `parallel` attribute set to `true`, and
 which there is no dependency between them.
 
-Adding to the test file from the [Test config example](#test-blocks) above:
+Adding to the test file from the [Test config example](#test-block) above:
 
 ```hcl
 # with_config.tftest.hcl
@@ -1000,3 +1000,17 @@ run "site_eight" {
   }
 }
 ```
+
+-> **Note:** When configuring a series of runs which have `parallel=true` in a test file, if you include a single run with `parallel=false` in this sequence, it creates a synchronization point that effectively divides the workflow into two groups:
+* All runs before the `parallel=false` run must complete first
+* Only after the `parallel=false` run finishes can the subsequent runs begin.
+
+```
+Run A (parallel: true)
+Run B (parallel: true)
+Run C (parallel: false)
+Run D (parallel: true)
+Run E (parallel: true)
+```
+
+Runs A and B can execute simultaneously. Run C will wait until both A and B are done before starting. Finally, runs D and E can run in parallel, but only after C completes.
