@@ -360,3 +360,15 @@ func TestIsEmptyDir_noConfigsButHasTests(t *testing.T) {
 		t.Fatal("should not be empty")
 	}
 }
+
+func TestIsEmptyDir_nestedTestsOnly(t *testing.T) {
+	// The top directory has no configs and no test files, but the nested
+	// directory has test files
+	val, err := IsEmptyDir(filepath.Join("testdata", "only-nested-test-files"), "tests")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if val {
+		t.Fatal("should not be empty")
+	}
+}

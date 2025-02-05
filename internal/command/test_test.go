@@ -45,7 +45,7 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
-		"top-dir-only-test-files-2": {
+		"top-dir-only-nested-test-files": {
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
