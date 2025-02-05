@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'Terraform Test: Runs can now be annotated for possible parallel execution.'
+time: 2025-02-04T18:25:44.195967+01:00
+custom:
+    Issue: "34180"

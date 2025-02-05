@@ -1,10 +1,11 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package config
+package graph
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -13,11 +14,8 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
-
-	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
-	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
 )
 
 func TestTransformForTest(t *testing.T) {
@@ -54,32 +52,6 @@ func TestTransformForTest(t *testing.T) {
 			providers[key] = provider
 		}
 		return providers
-	}
-
-	validate := func(t *testing.T, msg string, expected map[string]string, actual map[string]*configs.Provider) {
-		t.Helper()
-
-		converted := make(map[string]string)
-		for key, provider := range actual {
-			content, err := provider.Config.Content(&hcl.BodySchema{
-				Attributes: []hcl.AttributeSchema{
-					{Name: "source", Required: true},
-				},
-			})
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			source, diags := content.Attributes["source"].Expr.Value(nil)
-			if diags.HasErrors() {
-				t.Fatal(diags.Error())
-			}
-			converted[key] = fmt.Sprintf("source = %q", source.AsString())
-		}
-
-		if diff := cmp.Diff(expected, converted); len(diff) > 0 {
-			t.Errorf("%s\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", msg, str(expected), str(converted), diff)
-		}
 	}
 
 	tcs := map[string]struct {
@@ -239,6 +211,7 @@ func TestTransformForTest(t *testing.T) {
 				Config: &configs.TestRun{
 					Providers: tc.runProviders,
 				},
+				ModuleConfig: config,
 			}
 
 			availableProviders := make(map[string]bool, len(tc.expectedProviders))
@@ -246,12 +219,12 @@ func TestTransformForTest(t *testing.T) {
 				availableProviders[provider] = true
 			}
 
-			variableCaches := &hcltest.VariableCaches{
-				GlobalVariables: make(map[string]backendrun.UnparsedVariableValue),
-				FileVariables:   make(map[string]hcl.Expression),
+			ctx := NewEvalContext(context.Background())
+			ctx.configProviders = map[string]map[string]bool{
+				run.GetModuleConfigID(): availableProviders,
 			}
 
-			reset, diags := TransformConfigForTest(config, run, file, variableCaches, nil, availableProviders)
+			diags := TransformConfigForTest(ctx, run, file)
 
 			var actualErrs []string
 			for _, err := range diags.Errs() {
@@ -261,10 +234,27 @@ func TestTransformForTest(t *testing.T) {
 				t.Errorf("unmatched errors\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", strings.Join(tc.expectedErrors, "\n"), strings.Join(actualErrs, "\n"), diff)
 			}
 
-			validate(t, "after transform mismatch", tc.expectedProviders, config.Module.ProviderConfigs)
-			reset()
-			validate(t, "after reset mismatch", tc.configProviders, config.Module.ProviderConfigs)
+			converted := make(map[string]string)
+			for key, provider := range config.Module.ProviderConfigs {
+				content, err := provider.Config.Content(&hcl.BodySchema{
+					Attributes: []hcl.AttributeSchema{
+						{Name: "source", Required: true},
+					},
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
 
+				source, diags := content.Attributes["source"].Expr.Value(nil)
+				if diags.HasErrors() {
+					t.Fatal(diags.Error())
+				}
+				converted[key] = fmt.Sprintf("source = %q", source.AsString())
+			}
+
+			if diff := cmp.Diff(tc.expectedProviders, converted); len(diff) > 0 {
+				t.Errorf("%s\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", "after transform mismatch", str(tc.expectedProviders), str(converted), diff)
+			}
 		})
 	}
 }
