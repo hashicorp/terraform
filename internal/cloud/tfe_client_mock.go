@@ -1673,9 +1673,10 @@ type MockTestRuns struct {
 	client *MockClient
 
 	// TestRuns and modules keep track of our tfe.TestRun objects.
-	TestRuns map[string]*tfe.TestRun
-	modules  map[string][]*tfe.TestRun
-	logs     map[string]string
+	TestRuns    map[string]*tfe.TestRun
+	modules     map[string][]*tfe.TestRun
+	logs        map[string]string
+	parallelism int
 
 	// delayedCancel allows a mock test run to cancel an operation instead of
 	// completing an operation. It's used
@@ -1767,6 +1768,9 @@ func (m *MockTestRuns) Create(ctx context.Context, options tfe.TestRunCreateOpti
 		"test.log",
 	)
 	m.modules[tr.RegistryModule.ID] = append(m.modules[tr.RegistryModule.ID], tr)
+	if options.Parallelism != nil {
+		m.parallelism = *options.Parallelism
+	}
 
 	return tr, nil
 }
@@ -2168,6 +2172,30 @@ func (m *MockWorkspaces) UpdateByID(ctx context.Context, workspaceID string, opt
 	m.workspaceNames[w.Name] = w
 
 	return w, nil
+}
+
+func (m *MockWorkspaces) ListEffectiveTagBindings(ctx context.Context, workspaceID string) ([]*tfe.EffectiveTagBinding, error) {
+	w, ok := m.workspaceIDs[workspaceID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+	var effectiveTagBindings []*tfe.EffectiveTagBinding
+	for _, tb := range w.TagBindings {
+		effectiveTagBindings = append(effectiveTagBindings, &tfe.EffectiveTagBinding{
+			Key:   tb.Key,
+			Value: tb.Value,
+		})
+	}
+	return effectiveTagBindings, nil
+}
+
+func (m *MockWorkspaces) DeleteAllTagBindings(ctx context.Context, workspaceID string) error {
+	w, ok := m.workspaceIDs[workspaceID]
+	if !ok {
+		return tfe.ErrResourceNotFound
+	}
+	w.TagBindings = nil
+	return nil
 }
 
 func updateMockWorkspaceAttributes(w *tfe.Workspace, options tfe.WorkspaceUpdateOptions) error {
