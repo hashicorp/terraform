@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'ephemeral values: correct error message when ephemeral values are included in provisioner output'
+time: 2025-02-05T09:52:31.116553+01:00
+custom:
+    Issue: "36427"
