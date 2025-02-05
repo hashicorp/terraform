@@ -59,6 +59,9 @@ Options:
 
   -no-color             If specified, output won't contain any color.
 
+  -parallelism=n        Limit the number of concurrent operations within the 
+  						plan/apply operation of a test run. Defaults to 10.
+
   -test-directory=path	Set the Terraform test directory, defaults to "tests".
 
   -var 'foo=bar'        Set a value for one of the input variables in the root
@@ -99,6 +102,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		c.View.HelpPrompt("test")
 		return 1
 	}
+	c.Meta.parallelism = args.OperationParallelism
 
 	view := views.NewTest(args.ViewType, c.View)
 
@@ -183,21 +187,22 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		}
 
 		runner = &cloud.TestSuiteRunner{
-			ConfigDirectory:  ".", // Always loading from the current directory.
-			TestingDirectory: args.TestDirectory,
-			Config:           config,
-			Services:         c.Services,
-			Source:           args.CloudRunSource,
-			GlobalVariables:  variables,
-			Stopped:          false,
-			Cancelled:        false,
-			StoppedCtx:       stopCtx,
-			CancelledCtx:     cancelCtx,
-			Verbose:          args.Verbose,
-			Filters:          args.Filter,
-			Renderer:         renderer,
-			View:             view,
-			Streams:          c.Streams,
+			ConfigDirectory:      ".", // Always loading from the current directory.
+			TestingDirectory:     args.TestDirectory,
+			Config:               config,
+			Services:             c.Services,
+			Source:               args.CloudRunSource,
+			GlobalVariables:      variables,
+			Stopped:              false,
+			Cancelled:            false,
+			StoppedCtx:           stopCtx,
+			CancelledCtx:         cancelCtx,
+			Verbose:              args.Verbose,
+			OperationParallelism: args.OperationParallelism,
+			Filters:              args.Filter,
+			Renderer:             renderer,
+			View:                 view,
+			Streams:              c.Streams,
 		}
 	} else {
 
