@@ -673,6 +673,9 @@ resource "ephem_write_only" "test" {
 			diags := ctx.Validate(m, &ValidateOpts{})
 			if tc.expectValidateDiagnostics != nil {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectValidateDiagnostics(m))
+				// If we expect diagnostics, we should not continue with the plan
+				// as it will fail.
+				return
 			} else {
 				assertNoDiagnostics(t, diags)
 			}
