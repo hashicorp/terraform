@@ -38,5 +38,8 @@ builtin/provisioners/remote-exec        @hashicorp/terraform-core
 # education and engineering get notified of, and can approve changes to web content at on developer.hashicorp.com/terraform/docs
 
 /website/data/          @hashicorp/terraform-education @hashicorp/terraform-core
+/website/docs/          @hashicorp/terraform-education @hashicorp/terraform-core
+/website/img/          @hashicorp/terraform-education @hashicorp/terraform-core
+/website/README.md          @hashicorp/terraform-education @hashicorp/terraform-core
 /website/public/        @hashicorp/terraform-education @hashicorp/terraform-core
 /website/content/       @hashicorp/terraform-education @hashicorp/terraform-core
