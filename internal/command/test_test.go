@@ -35,7 +35,7 @@ func TestTest_Runs(t *testing.T) {
 		code                  int
 		initCode              int
 		skip                  bool
-		desc                  string
+		description           string
 	}{
 		"simple_pass": {
 			expectedOut: []string{"1 passed, 0 failed."},
@@ -60,7 +60,7 @@ func TestTest_Runs(t *testing.T) {
 			args:        []string{"-parallelism", "1"},
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
-			desc:        "simple_pass with parallelism set to 1",
+			description: "simple_pass with parallelism set to 1",
 		},
 		"simple_pass_very_nested_alternate": {
 			override:    "simple_pass_very_nested",
@@ -104,9 +104,11 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
-		"expect_failures_outputs": {
-			expectedOut: []string{"1 passed, 0 failed."},
-			code:        0,
+		"expect_failures_continue": {
+			expectedOut: []string{"1 passed, 1 failed.", "Expected failure while planning"},
+			code:        1,
+			expectedErr: []string{"Module output value precondition failed"},
+			description: "continue test execution after an expected failure",
 		},
 		"expect_failures_resources": {
 			expectedOut: []string{"1 passed, 0 failed."},

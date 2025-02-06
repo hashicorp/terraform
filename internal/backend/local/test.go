@@ -282,7 +282,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	}
 
 	// walk and execute the graph
-	diags = runner.walkGraph(graph)
+	diags = runner.walkGraph(graph, file)
 
 	// If the graph walk was terminated, we don't want to add the diagnostics.
 	// The error the user receives will just be:
@@ -298,8 +298,9 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 }
 
 // walkGraph goes through the graph and execute each run it finds.
-func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics {
+func (runner *TestFileRunner) walkGraph(g *terraform.Graph, file *moduletest.File) tfdiags.Diagnostics {
 	sem := runner.Suite.semaphore
+	collectRunStatus, updateFileStatus := runner.trackRunStatuses(file)
 
 	// Walk the graph.
 	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
@@ -376,9 +377,13 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 			}
 
 			startTime := time.Now().UTC()
-			runner.run(run, file, startTime)
+			deferFileStatus := runner.run(run, file, startTime)
 			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
-			file.UpdateStatus(run.Status)
+			// If the run block is done, but it was due to an expected failure, we
+			// don't want to update the file status immediately. We'll collect the
+			// status of this run block and update the file status at the end of the
+			// file execution.
+			collectRunStatus(run, deferFileStatus)
 		case graph.GraphNodeExecutable:
 			diags = v.Execute(runner.EvalContext)
 			return diags
@@ -389,10 +394,12 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 		return
 	}
 
-	return g.AcyclicGraph.Walk(walkFn)
+	diags := g.AcyclicGraph.Walk(walkFn)
+	updateFileStatus()
+	return diags
 }
 
-func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, startTime time.Time) {
+func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, startTime time.Time) (deferFileStatus bool) {
 	log.Printf("[TRACE] TestFileRunner: executing run block %s/%s", file.Name, run.Name)
 	defer func() {
 		// If we got far enough to actually execute the run then we'll give
@@ -401,6 +408,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 			Start:    startTime,
 			Duration: time.Since(startTime),
 		}
+
 	}()
 
 	key := run.GetStateKey()
@@ -487,9 +495,9 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 	planScope, plan, planDiags := runner.plan(tfCtx, config, state, run, file, setVariables, references, start)
 	if run.Config.Command == configs.PlanTestCommand {
-		// Then we want to assess our conditions and diagnostics differently.
 		planDiags = run.ValidateExpectedFailures(planDiags)
 		run.Diagnostics = run.Diagnostics.Append(planDiags)
+		// Then we want to assess our conditions and diagnostics differently.
 		if planDiags.HasErrors() {
 			run.Status = moduletest.Error
 			return
@@ -536,12 +544,21 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return
 	}
 
-	// Otherwise any error during the planning prevents our apply from
+	// Otherwise any error (expected or unexpected) during the planning prevents our apply from
 	// continuing which is an error.
 	planDiags = run.ExplainExpectedFailures(planDiags)
 	run.Diagnostics = run.Diagnostics.Append(planDiags)
 	if planDiags.HasErrors() {
 		run.Status = moduletest.Error
+		// If the plan failed, but all the failures were expected, then we don't
+		// want to mark the overall file as a failure, so that subsequent runs can
+		// still be executed.
+		// We will collect the status of this run instead of updating the file status.
+		// At the end of the file execution, we will update the file status based on the
+		// statuses of all the runs.
+		if !run.ValidateExpectedFailures(planDiags).HasErrors() {
+			deferFileStatus = true
+		}
 		return
 	}
 
@@ -1254,4 +1271,28 @@ func (runner *TestFileRunner) AddVariablesToConfig(run *moduletest.Run, variable
 		}
 	}
 
+}
+
+// trackRunStatuses is a helper function that returns two functions. The first
+// function is used to collect the statuses of the runs, and the second function
+// is used to update the overall file status based on the statuses of the runs.
+func (runner *TestFileRunner) trackRunStatuses(file *moduletest.File) (func(*moduletest.Run, bool), func()) {
+	statuses := make([]moduletest.Status, len(file.Runs))
+	collector := func(run *moduletest.Run, deferred bool) {
+		if deferred {
+			statuses[run.Index] = run.Status
+		} else {
+			file.UpdateStatus(run.Status)
+		}
+	}
+
+	updater := func() {
+		for _, status := range statuses {
+			file.UpdateStatus(status)
+		}
+	}
+
+	// We'll return two functions, one to collect the statuses of the runs, and
+	// one to update the overall file status.
+	return collector, updater
 }
