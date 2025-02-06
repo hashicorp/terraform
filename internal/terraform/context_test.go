@@ -282,7 +282,7 @@ resource "implicit_thing" "b" {
 					),
 				)
 			}
-			assertDiagnosticsMatch(t, gotDiags, wantDiags)
+			tfdiags.AssertDiagnosticsMatch(t, gotDiags, wantDiags)
 		})
 	}
 }
@@ -1036,52 +1036,10 @@ func assertNoErrors(t *testing.T, diags tfdiags.Diagnostics) {
 	t.FailNow()
 }
 
-// assertDiagnosticsMatch fails the test in progress (using t.Fatal) if the
-// two sets of diagnostics don't match after being normalized using the
-// "ForRPC" processing step, which eliminates the specific type information
-// and HCL expression information of each diagnostic.
-//
-// assertDiagnosticsMatch sorts the two sets of diagnostics in the usual way
-// before comparing them, though diagnostics only have a partial order so that
-// will not totally normalize the ordering of all diagnostics sets.
-func assertDiagnosticsMatch(t *testing.T, got, want tfdiags.Diagnostics) {
-	got = got.ForRPC()
-	want = want.ForRPC()
-	got.Sort()
-	want.Sort()
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Fatalf("wrong diagnostics\n%s", diff)
-	}
-}
-
 type SummaryAndDetail struct {
 	Severity    tfdiags.Severity
 	Subject     string
 	Description string
-}
-
-// assertDiagnosticsSummaryAndDetailMatch fails the test in progress (using t.Fatal) if the
-// two sets of diagnostics don't match their subjects / descriptions after being normalized using the "ForRPC" processing step.
-func assertDiagnosticsSummaryAndDetailMatch(t *testing.T, got, want tfdiags.Diagnostics) {
-	got = got.ForRPC()
-	want = want.ForRPC()
-
-	got.Sort()
-	want.Sort()
-
-	gotSummaryAndDetail := make([]SummaryAndDetail, len(got))
-	for i, diag := range got {
-		gotSummaryAndDetail[i] = SummaryAndDetail{diag.Severity(), diag.Description().Summary, diag.Description().Detail}
-	}
-
-	wantSummaryAndDetail := make([]SummaryAndDetail, len(want))
-	for i, diag := range want {
-		wantSummaryAndDetail[i] = SummaryAndDetail{diag.Severity(), diag.Description().Summary, diag.Description().Detail}
-	}
-
-	if diff := cmp.Diff(wantSummaryAndDetail, gotSummaryAndDetail); diff != "" {
-		t.Fatalf("wrong diagnostics\n%s", diff)
-	}
 }
 
 // checkPlanCompleteAndApplyable reports testing errors if the plan is not

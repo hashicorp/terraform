@@ -1754,11 +1754,6 @@ Note that adding these options may include further additional resource instances
 		})
 		diags.Sort()
 
-		// We're semi-abusing "ForRPC" here just to get diagnostics that are
-		// more easily comparable than the various different diagnostics types
-		// tfdiags uses internally. The RPC-friendly diagnostics are also
-		// comparison-friendly, by discarding all of the dynamic type information.
-		gotDiags := diags.ForRPC()
 		wantDiags := tfdiags.Diagnostics{
 			// Still get the warning about the -target option...
 			tfdiags.Sourceless(
@@ -1771,9 +1766,7 @@ The -target option is not for routine use, and is provided only for exceptional 
 			// ...but now we have no error about test_object.a
 		}.ForRPC()
 
-		if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
-			t.Errorf("wrong diagnostics\n%s", diff)
-		}
+		tfdiags.AssertDiagnosticsMatch(t, wantDiags, diags)
 	})
 }
 
