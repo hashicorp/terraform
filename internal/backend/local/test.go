@@ -468,12 +468,8 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return
 	}
 
-	references, referenceDiags := run.GetReferences()
-	run.Diagnostics = run.Diagnostics.Append(referenceDiags)
-	if referenceDiags.HasErrors() {
-		run.Status = moduletest.Error
-		return
-	}
+	// already validated during static analysis
+	references, _ := run.GetReferences()
 
 	variables, variableDiags := runner.GetVariables(run, references, true)
 	run.Diagnostics = run.Diagnostics.Append(variableDiags)
