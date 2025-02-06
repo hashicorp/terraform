@@ -121,8 +121,7 @@ The `plan_options` block allows test authors to customize the [planning mode](/t
 
 The `state_key` allows for fine-grained control over which internal state file Terraform uses for a given run block. Refer to [Modules State](#modules-state) for more information.
 
-The `parallel` attribute allows you to run multiple `run` blocks in parallel. By default, this attribute is set to `false`. When set to `true`, Terraform will attempt to execute the `run` block in parallel with other `run` blocks that also have the `parallel` attribute set to `true`, and
-which there is no dependency between them.
+The `parallel` attribute allows you to run multiple `run` blocks in parallel. By default, this attribute is set to `false`. When set to `true`, Terraform will attempt to execute the `run` block in parallel with other `run` blocks that also have the `parallel` attribute set to `true` and are not dependent on each other.
 
 Adding to the test file from the [Test config example](#test-block) above:
 
@@ -831,14 +830,14 @@ The `expect_failures` attribute is included to allow authors to test their confi
 
 By default, Terraform executes `run` blocks sequentially. However, you can set the `parallel` attribute to `true` in the file's `test` block or in individual `run` blocks to enable parallel execution.
 
-When `parallel = true` for a `run` block, Terraform will attempt to parallelize such block wherever possible. Two or more `run` blocks can be executed in parallel if:
+When `parallel = true` for a `run` block, Terraform will attempt to parallelize such blocks wherever possible. Two or more `run` blocks can be executed in parallel if:
 
 - They do not reference outputs from each other.
 - They do not share the same state file. The state file is determined by the state key or the module source (when the state key is not set). Therefore, `run` blocks that share the same module configuration must specify different state keys to be executed in parallel.
 - They both have the `parallel` attribute set to `true`.
 - All other `run` blocks that they depend on have completed.
 
-A quick example below demonstrates how terraform will execute `run` blocks in parallel.
+A quick example below demonstrates how Terraform will execute `run` blocks in parallel.
 
 ```hcl
 # parallel.tftest.hcl
