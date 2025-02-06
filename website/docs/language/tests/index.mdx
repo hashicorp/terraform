@@ -835,7 +835,6 @@ When `parallel = true` for a `run` block, Terraform will attempt to parallelize 
 - They do not reference outputs from each other.
 - They do not share the same state file. The state file is determined by the state key or the module source (when the state key is not set). Therefore, `run` blocks that share the same module configuration must specify different state keys to be executed in parallel.
 - They both have the `parallel` attribute set to `true`.
-- All other `run` blocks that they depend on have completed.
 
 A quick example below demonstrates how Terraform will execute `run` blocks in parallel.
 
