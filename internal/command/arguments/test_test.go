@@ -148,6 +148,18 @@ func TestParseTest(t *testing.T) {
 			},
 			wantDiags: nil,
 		},
+		"cloud-with-parallelism-0": {
+			args: []string{"-parallelism=0", "-cloud-run=foobar"},
+			want: &Test{
+				CloudRunSource:       "foobar",
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 0,
+			},
+			wantDiags: nil,
+		},
 		"unknown flag": {
 			args: []string{"-boop"},
 			want: &Test{
