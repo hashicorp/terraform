@@ -324,21 +324,21 @@ func IsIgnoredFile(name string) bool {
 }
 
 // IsEmptyDir returns true if the given filesystem path contains no Terraform
-// configuration files.
+// configuration or test files.
 //
 // Unlike the methods of the Parser type, this function always consults the
 // real filesystem, and thus it isn't appropriate to use when working with
 // configuration loaded from a plan file.
-func IsEmptyDir(path string) (bool, error) {
+func IsEmptyDir(path, testDir string) (bool, error) {
 	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
 		return true, nil
 	}
 
 	p := NewParser(nil)
-	fs, os, _, diags := p.dirFiles(path, "")
+	fs, os, tests, diags := p.dirFiles(path, testDir)
 	if diags.HasErrors() {
 		return false, diags
 	}
 
-	return len(fs) == 0 && len(os) == 0, nil
+	return len(fs) == 0 && len(os) == 0 && len(tests) == 0, nil
 }
