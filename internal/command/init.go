@@ -108,7 +108,7 @@ func (c *InitCommand) Run(args []string) int {
 	if initArgs.FromModule != "" {
 		src := initArgs.FromModule
 
-		empty, err := configs.IsEmptyDir(path)
+		empty, err := configs.IsEmptyDir(path, initArgs.TestsDirectory)
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("Error validating destination directory: %s", err))
 			view.Diagnostics(diags)
@@ -148,7 +148,7 @@ func (c *InitCommand) Run(args []string) int {
 
 	// If our directory is empty, then we're done. We can't get or set up
 	// the backend with an empty directory.
-	empty, err := configs.IsEmptyDir(path)
+	empty, err := configs.IsEmptyDir(path, initArgs.TestsDirectory)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Error checking configuration: %s", err))
 		view.Diagnostics(diags)
