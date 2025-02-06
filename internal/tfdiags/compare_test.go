@@ -31,6 +31,11 @@ func TestDiagnosticComparer(t *testing.T) {
 			expectDiff: false,
 		},
 		// Correctly identifies when things don't match
+		"reports that diagnostics don't match if the concrete type differs": {
+			diag1:      hclDiagnostic{&baseError},
+			diag2:      makeRPCFriendlyDiag(hclDiagnostic{&baseError}),
+			expectDiff: true,
+		},
 		"reports that diagnostics don't match if severity differs": {
 			diag1: hclDiagnostic{&baseError},
 			diag2: func() Diagnostic {
@@ -154,6 +159,11 @@ func TestDiagnosticComparerWithSource(t *testing.T) {
 			expectDiff: false,
 		},
 		// Correctly identifies when things don't match
+		"reports that diagnostics don't match if the concrete type differs": {
+			diag1:      hclDiagnostic{&baseError},
+			diag2:      makeRPCFriendlyDiag(hclDiagnostic{&baseError}),
+			expectDiff: true,
+		},
 		"reports that diagnostics don't match even if sources (Subject) are different; ignored in simple comparison": {
 			diag1: hclDiagnostic{&baseError},
 			diag2: func() Diagnostic {
