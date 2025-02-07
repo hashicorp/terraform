@@ -77,14 +77,14 @@ type TestFileState struct {
 	State *states.State
 }
 
-// TransformConfigForTest transforms the provided configuration ready for the
-// test execution specified by the provided run block and test file.
+// TransformConfigForRun transforms the run's module configuration to include
+// the providers and variables from its block and the test file.
 //
 // In practice, this actually just means performing some surgery on the
 // available providers. We want to copy the relevant providers from the test
 // file into the configuration. We also want to process the providers so they
 // use variables from the file instead of variables from within the test file.
-func TransformConfigForTest(ctx *EvalContext, run *moduletest.Run, file *moduletest.File) hcl.Diagnostics {
+func TransformConfigForRun(ctx *EvalContext, run *moduletest.Run, file *moduletest.File) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	// Currently, we only need to override the provider settings.

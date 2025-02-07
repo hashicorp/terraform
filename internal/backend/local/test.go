@@ -273,16 +273,30 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	}
 
 	// Build the graph for the file.
-	b := graph.TestGraphBuilder{File: file, GlobalVars: runner.EvalContext.VariableCaches.GlobalVariables}
-	graph, diags := b.Build()
+	b := graph.TestGraphBuilder{
+		File:       file,
+		GlobalVars: runner.EvalContext.VariableCaches.GlobalVariables,
+	}
+	g, diags := b.Build()
 	file.Diagnostics = file.Diagnostics.Append(diags)
-	if diags.HasErrors() {
+	errored := diags.HasErrors()
+	// Some runs may have errored during the graph build, but we dont fail immediately
+	// as we still wanted to gather all the diagnostics.
+	// Now we go through the runs and if there are any errors, we'll update the
+	// file status to be errored.
+	for _, run := range file.Runs {
+		if run.Status == moduletest.Error {
+			errored = true
+			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
+		}
+	}
+	if errored {
 		file.Status = file.Status.Merge(moduletest.Error)
 		return
 	}
 
 	// walk and execute the graph
-	diags = runner.walkGraph(graph, file)
+	diags = runner.walkGraph(g, file)
 
 	// If the graph walk was terminated, we don't want to add the diagnostics.
 	// The error the user receives will just be:
@@ -441,18 +455,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	start := time.Now().UTC().UnixMilli()
 	runner.Suite.View.Run(run, file, moduletest.Starting, 0)
 
-	run.Diagnostics = run.Diagnostics.Append(run.Config.Validate(config))
-	if run.Diagnostics.HasErrors() {
-		run.Status = moduletest.Error
-		return
-	}
-
-	configDiags := graph.TransformConfigForTest(runner.EvalContext, run, file)
-	run.Diagnostics = run.Diagnostics.Append(configDiags)
-	if configDiags.HasErrors() {
-		run.Status = moduletest.Error
-		return
-	}
+	graph.TransformConfigForRun(runner.EvalContext, run, file)
 
 	validateDiags := runner.validate(run, file, start)
 	run.Diagnostics = run.Diagnostics.Append(validateDiags)
@@ -461,8 +464,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return
 	}
 
-	// already validated during static analysis
-	references, _ := run.GetReferences()
+	references, _ := run.GetReferences() // already validated during static analysis
 
 	variables, variableDiags := runner.GetVariables(run, references, true)
 	run.Diagnostics = run.Diagnostics.Append(variableDiags)
@@ -1042,8 +1044,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 
 		var diags tfdiags.Diagnostics
 
-		configDiags := graph.TransformConfigForTest(runner.EvalContext, state.Run, file)
-		diags = diags.Append(configDiags)
+		graph.TransformConfigForRun(runner.EvalContext, state.Run, file)
 
 		updated := state.State
 		if !diags.HasErrors() {

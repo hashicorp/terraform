@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -39,4 +40,17 @@ func (n *NodeTestRun) Execute(ctx *EvalContext) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	ctx.SetProviders(n.run, n.requiredProviders)
 	return diags
+}
+
+func validateRuns(g *terraform.Graph) error {
+	for _, v := range g.Vertices() {
+		if node, ok := v.(*NodeTestRun); ok {
+			diags := node.run.Config.Validate(node.run.ModuleConfig)
+			node.run.Diagnostics = node.run.Diagnostics.Append(diags)
+			if diags.HasErrors() {
+				node.run.Status = moduletest.Error
+			}
+		}
+	}
+	return nil
 }

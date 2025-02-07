@@ -224,7 +224,7 @@ func TestTransformForTest(t *testing.T) {
 				run.GetModuleConfigID(): availableProviders,
 			}
 
-			diags := TransformConfigForTest(ctx, run, file)
+			diags := TransformConfigForRun(ctx, run, file)
 
 			var actualErrs []string
 			for _, err := range diags.Errs() {

@@ -1122,6 +1122,23 @@ provider configuration to destroy test_resource.secondary, after which you
 can remove the provider configuration again.
 `,
 		},
+		"missing-provider-definition-in-file": {
+			expectedOut: `main.tftest.hcl... in progress
+  run "passes_validation"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 0 passed, 1 failed.
+`,
+			expectedErr: `
+Error: Missing provider definition for test
+
+  on main.tftest.hcl line 12, in run "passes_validation":
+  12:     test = test
+
+This provider block references a provider definition that does not exist.
+`,
+		},
 		"missing-provider-in-test-module": {
 			expectedOut: `main.tftest.hcl... in progress
   run "passes_validation_primary"... pass
