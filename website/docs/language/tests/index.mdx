@@ -24,11 +24,12 @@ Each Terraform test lives in a test file. Terraform discovers test files are bas
 
 Each test file contains the following root level attributes and blocks:
 
+- Zero to one [`test`](#test-block) blocks.
 - One to many [`run`](#run-blocks) blocks.
 - Zero to one [`variables`](#variables) block.
 - Zero to many [`provider`](#providers) blocks.
 
-Terraform executes `run` blocks in order, simulating a series of Terraform commands executing directly within the configuration directory. The order of the `variables` and `provider` blocks doesn't matter, Terraform processes all the values within these blocks at the beginning of the test operation. We recommend defining your `variables` and `provider` blocks first, at the beginning of the test file.
+By default, Terraform executes `run` blocks sequentially. To execute `run` blocks in parallel, refer to [`Parallel execution`](#parallel-execution). Each `run` block simulates a series of Terraform commands executing directly within the configuration directory. The order of the `variables` and `provider` blocks doesn't matter, Terraform processes all the values within these blocks at the beginning of the test operation. We recommend defining your `variables` and `provider` blocks first, at the beginning of the test file.
 
 ### Example
 
@@ -75,6 +76,24 @@ run "valid_string_concat" {
 }
 ```
 
+## Test block
+
+The optional `test` block defines the configuration of the test file, allowing you to configure how the framework
+executes its runs. The block has the following fields:
+
+| Field or Block Name       | Description                                                                                                              | Default Value |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------- |
+| `parallel`                 | An optional boolean attribute. If `true`, Terraform executes all eligible `run` blocks simultaneously. Refer to [Parallel execution](#parallel-execution) for more information.             | `false`       |
+
+### Example usage
+
+```hcl
+# with_config.tftest.hcl
+test {
+  parallel = true
+}
+```
+
 ## Run blocks
 
 Each `run` block has the following fields and blocks:
@@ -92,6 +111,7 @@ Each `run` block has the following fields and blocks:
 | [`assert`](#assertions)   | Optional `assert` blocks.                                                                                                |               |
 | `expect_failures`         | An optional attribute.                                                                                                   |               |
 | `state_key`               | An optional attribute.                                                                                                   |               |
+| `parallel`                | An optional boolean attribute.                                                                                           | `false`       |
 
 The `command` attribute and `plan_options` block tell Terraform which command and options to execute for each run block. The default operation, if you do not specify a `command` attribute or the `plan_options` block, is a normal Terraform apply operation.
 
@@ -100,6 +120,45 @@ The `command` attribute states whether the operation should be a [`plan`](/terra
 The `plan_options` block allows test authors to customize the [planning mode](/terraform/cli/commands/plan#planning-modes) and [options](/terraform/cli/commands/plan#planning-options) they would typically need to edit via command-line flags and options. We cover the `-var` and `-var-file` options in the [Variables](#variables) section.
 
 The `state_key` allows for fine-grained control over which internal state file Terraform uses for a given run block. Refer to [Modules State](#modules-state) for more information.
+
+The `parallel` attribute lets you run multiple `run` blocks in parallel. By default, this attribute is set to `false`. When set to `true`, Terraform attempts to execute the `run` block in parallel with other `run` blocks that also have the `parallel` attribute set to `true` and are not dependent on each other.
+
+### Example usage
+
+```hcl
+# with_config.tftest.hcl
+test {
+  parallel = true
+}
+
+variables {
+  bucket_prefix = "test"
+}
+
+run "first" {
+  assert {
+    condition     = aws_s3_bucket.bucket.bucket == "test-bucket"
+    error_message = "S3 bucket name did not match expected"
+  }
+}
+
+run "second" {
+  assert {
+    condition     = aws_s3_bucket.bucket.bucket == "test-bucket"
+    error_message = "S3 bucket name did not match expected"
+  }
+}
+
+run "third" {
+  parallel = false
+  assert {
+    condition     = aws_s3_bucket.bucket.bucket == "test-bucket"
+    error_message = "S3 bucket name did not match expected"
+  }
+}
+```
+
+In the above example, the `first` and `second` `run` blocks implicitly have `parallel` set to `true` since the `test` block enables parallel runs. The `third` `run` block sets `parallel` to `false` to override the global setting.
 
 ### Assertions
 
@@ -766,3 +825,188 @@ There are instances when Terraform does not execute a custom condition during th
 Other kinds of failure _besides_ the specified expected failures in the checkable object still result in the overall test failing. For example, a variable that expects a boolean value as input fails the surrounding test if Terraform provides the wrong kind of value, even if that variable is included in an `expect_failures` attribute.
 
 The `expect_failures` attribute is included to allow authors to test their configuration and any logic defined within. A type mismatch, as in the previous example, is not something Terraform authors should have to worry about testing as Terraform itself will handle enforce type constraints. As such, you can only `expect_failures` in custom conditions.
+
+## Parallel execution
+
+By default, Terraform executes `run` blocks sequentially. However, you can set the `parallel` attribute to `true` in the optional `test` block or in individual `run` blocks to enable parallel execution.
+
+Two or more `run` blocks can be executed in parallel if:
+
+- They do not reference outputs from each other.
+- They do not share the same state file. The state file is determined by the state key or the module source when the state key is not set. If two `run` blocks that share the same module configuration, they must specify different state keys to be executed in parallel.
+- They both have the `parallel` attribute set to `true`.
+
+### Example usage
+
+```hcl
+# parallel.tftest.hcl
+
+test {
+  // This would set the parallel flag to true in all runs
+  parallel = true
+}
+
+variables {
+  foo = "foo"
+}
+
+
+run "primary_db" {
+  // This is the first run block, and it is available to be executed right away.
+  state_key = "primary"
+  module {
+    source = "./setup"
+  }
+
+  variables {
+    input = "foo"
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "bad"
+  }
+}
+
+run "secondary_db" {
+  // This run block can be executed in parallel with the `primary_db` run block, because it does not reference its
+  // output and has a different state key.
+  state_key = "secondary"
+  module {
+    source = "./setup"
+  }
+
+  variables {
+    input = "foo"
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "bad"
+  }
+}
+
+run "site_one" {
+  // This run block can only be executed after the `primary_db` run block is completed, because it references the output of the `primary_db` run block.
+  state_key = "unique_2"
+  variables {
+    input = run.primary_db.value
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+}
+
+run "site_two" {
+  // This run block can only be executed after the `primary_db` run block is completed, because it references the output of the `primary_db` run block.
+  // After that, it can be executed in parallel with the `site_one` run block.
+  state_key = "unique_3"
+  variables {
+    input = run.primary_db.value
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+}
+
+run "using_external_db" {
+  // This run block does not reference the output of any other run block, and it has a different state key from its
+  // preceding runs, so it can be executed in parallel with runs `primary_db` and `secondary_db`.
+  state_key = "unique_4"
+  variables {
+    input = "externally_created_db"
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+}
+
+run "site_four" {
+  // This run block has set `parallel = false`.
+  // Therefore, it will wait for all preceding runs to complete before it can be executed.
+  state_key = "unique_5"
+
+  // This overrides the global parallel flag.
+  parallel = false
+  variables {
+    input = run.secondary_db.value
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+}
+
+run "site_five" {
+  // This run block will wait for the run `site_four` to complete, because run `site_four` has the `parallel` attribute set to `false`.
+  state_key = "unique_6"
+  variables {
+    input = run.secondary_db.value
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+}
+
+run "site_six" {
+  // This run block can only be executed after the run `site_five` is completed, because it references the output of the run `site_five`.
+  state_key = "unique_7"
+  variables {
+    input = run.site_five.value
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+}
+
+run "same_state" {
+  // This run block uses an existing state key "unique_7", so it will wait for the run `site_six` to complete.
+  state_key = "unique_7"
+  variables {
+    input = "another_external_db"
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+}
+
+run "site_eight" {
+  // This run block is entirely unrelated to the other run blocks, however, because `site_four`, 
+  // which is one of its preceding runs has the `parallel` attribute set to `false`,
+  // it cannot run until site_four is completed. It can be executed in parallel with `site_five` and `site_six`.
+  state_key = "unique_7"
+  variables {
+    input = "yet_another_external_db"
+  }
+
+  assert {
+    condition = output.value == var.foo
+    error_message = "double bad"
+  }
+}
+```
+
+-> **Note:** When you configure a series of runs that have `parallel=true` in a test file and include a single run with `parallel=false` you create synchronization point that divides the workflow into two groups. All runs before the `parallel=false` run must complete first. Then, after the run with `parallel=false` completes, the subsequent runs begin.
+
+```
+Run A (parallel: true)
+Run B (parallel: true)
+Run C (parallel: false)
+Run D (parallel: true)
+Run E (parallel: true)
+```
+
+Runs A and B execute simultaneously. Run C waits until both A and B are done before starting. Finally, runs D and E run in parallel, but only after C completes.
