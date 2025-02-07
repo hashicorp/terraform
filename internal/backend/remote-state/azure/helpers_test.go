@@ -65,7 +65,7 @@ func testAccAzureBackendRunningInADOPipelines(t *testing.T) {
 	}
 }
 
-// clearEnv cleans up the azure related environment variables.
+// clearARMEnv cleans up the azure related environment variables.
 // This is to ensure the configuration only comes from HCL, which avoids
 // env vars for test setup interfere the behavior.
 //
@@ -74,7 +74,7 @@ func testAccAzureBackendRunningInADOPipelines(t *testing.T) {
 // impact can be eliminated given all the tests are implemented in a similar
 // pattern that those env vars will be consumed at the very begining. The test
 // runner has to ensure to set a **big enough parallelism**.
-func clearEnv() {
+func clearARMEnv() {
 	for _, evexp := range os.Environ() {
 		k, _, ok := strings.Cut(evexp, "=")
 		if !ok {
