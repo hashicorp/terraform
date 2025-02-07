@@ -336,9 +336,10 @@ func (b *Backend) configure(ctx context.Context) error {
 		ClientCertificatePassword: data.Get("client_certificate_password").(string),
 		ClientSecret:              *clientSecret,
 
-		OIDCAssertionToken:    *oidcToken,
-		OIDCTokenRequestURL:   data.Get("oidc_request_url").(string),
-		OIDCTokenRequestToken: data.Get("oidc_request_token").(string),
+		OIDCAssertionToken:             *oidcToken,
+		OIDCTokenRequestURL:            data.Get("oidc_request_url").(string),
+		OIDCTokenRequestToken:          data.Get("oidc_request_token").(string),
+		ADOPipelineServiceConnectionID: data.Get("ado_pipeline_service_connection_id").(string),
 
 		CustomManagedIdentityEndpoint: data.Get("msi_endpoint").(string),
 
