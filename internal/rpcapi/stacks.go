@@ -4,13 +4,17 @@
 package rpcapi
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"go.opentelemetry.io/otel/attribute"
 	otelCodes "go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -18,17 +22,24 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/local"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackmigrate"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -36,6 +47,7 @@ type stacksServer struct {
 	stacks.UnimplementedStacksServer
 
 	stopper            *stopper
+	services           *disco.Disco
 	handles            *handleTable
 	experimentsAllowed bool
 
@@ -55,9 +67,10 @@ type stacksServer struct {
 
 var _ stacks.StacksServer = (*stacksServer)(nil)
 
-func newStacksServer(stopper *stopper, handles *handleTable, opts *serviceOpts) *stacksServer {
+func newStacksServer(stopper *stopper, handles *handleTable, services *disco.Disco, opts *serviceOpts) *stacksServer {
 	return &stacksServer{
 		stopper:            stopper,
+		services:           services,
 		handles:            handles,
 		experimentsAllowed: opts.experimentsAllowed,
 	}
@@ -79,7 +92,7 @@ func (s *stacksServer) OpenStackConfiguration(ctx context.Context, req *stacks.O
 	if diags.HasErrors() {
 		// For errors in the configuration itself we treat that as a successful
 		// result from OpenStackConfiguration but with diagnostics in the
-		// response and no source handle.
+		// response and no source handle. f
 		return &stacks.OpenStackConfiguration_Response{
 			Diagnostics: diagnosticsToProto(diags),
 		}, nil
@@ -774,6 +787,142 @@ func (s *stacksServer) InspectExpressionResult(ctx context.Context, req *stacks.
 		return nil, status.Error(codes.InvalidArgument, "the given stack inspector handle is invalid")
 	}
 	return insp.InspectExpressionResult(ctx, req)
+}
+
+func (s *stacksServer) OpenTerraformState(ctx context.Context, request *stacks.OpenTerraformState_Request) (*stacks.OpenTerraformState_Response, error) {
+	switch data := request.State.(type) {
+	case *stacks.OpenTerraformState_Request_ConfigPath:
+		// load the state specified by this configuration
+
+		workingDirectory := workdir.NewDir(data.ConfigPath)
+		if data := os.Getenv("TF_DATA_DIR"); len(data) > 0 {
+			workingDirectory.OverrideDataDir(data)
+		}
+
+		// Load the currently active workspace from the environment, defaulting
+		// to the default workspace if not set.
+
+		workspace := backend.DefaultStateName
+		if ws := os.Getenv("TF_WORKSPACE"); len(ws) > 0 {
+			workspace = ws
+		}
+
+		workspaceData, err := os.ReadFile(filepath.Join(workingDirectory.DataDir(), local.DefaultWorkspaceFile))
+		if err != nil && !os.IsNotExist(err) {
+			return nil, status.Errorf(codes.InvalidArgument, "failed to read workspace file: %s", err)
+		}
+		if len(workspaceData) > 0 {
+			workspace = string(workspaceData)
+		}
+
+		// Load the state from the backend specified by the .terraform.tfstate
+		// file. This function should return an empty state even if the diags
+		// has errors. This makes it easier for the caller, as they should
+		// close the state handle regardless of the diags.
+		state, diags := stackmigrate.Load(workingDirectory.RootModuleDir(), filepath.Join(workingDirectory.DataDir(), ".terraform.tfstate"), workspace)
+
+		hnd := s.handles.NewTerraformState(state)
+		return &stacks.OpenTerraformState_Response{
+			StateHandle: hnd.ForProtobuf(),
+			Diagnostics: diagnosticsToProto(diags),
+		}, nil
+
+	case *stacks.OpenTerraformState_Request_Raw:
+		// load the state from the raw data
+
+		file, err := statefile.Read(bytes.NewReader(data.Raw))
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid raw state data: %s", err)
+		}
+
+		hnd := s.handles.NewTerraformState(file.State)
+		return &stacks.OpenTerraformState_Response{
+			StateHandle: hnd.ForProtobuf(),
+		}, nil
+
+	default:
+		return nil, status.Error(codes.InvalidArgument, "invalid state source")
+	}
+}
+
+func (s *stacksServer) CloseTerraformState(ctx context.Context, request *stacks.CloseTerraformState_Request) (*stacks.CloseTerraformState_Response, error) {
+	hnd := handle[*states.State](request.StateHandle)
+	err := s.handles.CloseTerraformState(hnd)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	return new(stacks.CloseTerraformState_Response), nil
+}
+
+func (s *stacksServer) MigrateTerraformState(request *stacks.MigrateTerraformState_Request, server stacks.Stacks_MigrateTerraformStateServer) error {
+
+	previousStateHandle := handle[*states.State](request.StateHandle)
+	previousState := s.handles.TerraformState(previousStateHandle)
+	if previousState == nil {
+		return status.Error(codes.InvalidArgument, "the given state handle is invalid")
+	}
+
+	configHandle := handle[*stackconfig.Config](request.ConfigHandle)
+	config := s.handles.StackConfig(configHandle)
+	if config == nil {
+		return status.Error(codes.InvalidArgument, "the given config handle is invalid")
+	}
+
+	dependencyLocksHandle := handle[*depsfile.Locks](request.DependencyLocksHandle)
+	dependencyLocks := s.handles.DependencyLocks(dependencyLocksHandle)
+	if dependencyLocks == nil {
+		return status.Error(codes.InvalidArgument, "the given dependency locks handle is invalid")
+	}
+
+	providerCacheHandle := handle[*providercache.Dir](request.ProviderCacheHandle)
+	providerCache := s.handles.ProviderPluginCache(providerCacheHandle)
+	if providerCache == nil {
+		return status.Error(codes.InvalidArgument, "the given provider cache handle is invalid")
+	}
+
+	providerFactories, err := providerFactoriesForLocks(dependencyLocks, providerCache)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+	}
+
+	migrate := &stackmigrate.Migration{
+		Providers:     providerFactories,
+		PreviousState: previousState,
+		Config:        config,
+	}
+
+	emit := func(change stackstate.AppliedChange) {
+		proto, err := change.AppliedChangeProto()
+		if err != nil {
+			server.Send(&stacks.MigrateTerraformState_Event{
+				Result: &stacks.MigrateTerraformState_Event_Diagnostic{
+					Diagnostic: &terraform1.Diagnostic{
+						Severity: terraform1.Diagnostic_ERROR,
+						Summary:  "Failed to serialize change",
+						Detail:   fmt.Sprintf("Failed to serialize state change for recording in the migration plan: %s", err),
+					},
+				},
+			})
+			return
+		}
+
+		server.Send(&stacks.MigrateTerraformState_Event{
+			Result: &stacks.MigrateTerraformState_Event_AppliedChange{
+				AppliedChange: proto,
+			},
+		})
+	}
+
+	emitDiag := func(diagnostic tfdiags.Diagnostic) {
+		server.Send(&stacks.MigrateTerraformState_Event{
+			Result: &stacks.MigrateTerraformState_Event_Diagnostic{
+				Diagnostic: diagnosticToProto(diagnostic),
+			},
+		})
+	}
+
+	migrate.Migrate(request.ResourceAddressMap, request.ModuleAddressMap, emit, emitDiag)
+	return nil
 }
 
 func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {

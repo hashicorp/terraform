@@ -43,7 +43,7 @@ func TestStacksOpenCloseStackConfiguration(t *testing.T) {
 	ctx := context.Background()
 
 	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
 
 	// In normal use a client would have previously opened a source bundle
 	// using Dependencies.OpenSourceBundle, so we'll simulate the effect
@@ -125,7 +125,7 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 	ctx := context.Background()
 
 	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
 
 	// In normal use a client would have previously opened a source bundle
 	// using Dependencies.OpenSourceBundle, so we'll simulate the effect
@@ -256,7 +256,7 @@ func TestStacksOpenState(t *testing.T) {
 	ctx := context.Background()
 
 	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
 
 	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
 		stacks.RegisterStacksServer(srv, stacksServer)
@@ -321,7 +321,7 @@ func TestStacksOpenPlan(t *testing.T) {
 	ctx := context.Background()
 
 	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
 
 	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
 		stacks.RegisterStacksServer(srv, stacksServer)
@@ -392,7 +392,7 @@ func TestStacksPlanStackChanges(t *testing.T) {
 	}
 
 	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
 	stacksServer.planTimestampOverride = &fakePlanTimestamp
 
 	fakeSourceBundle := &sourcebundle.Bundle{}
@@ -812,7 +812,7 @@ func TestStackChangeProgress(t *testing.T) {
 			ctx := context.Background()
 
 			handles := newHandleTable()
-			stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+			stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
 
 			// For this test, we do actually want to use a "real" provider. We'll
 			// use the providerCacheOverride to side-load the testing provider.

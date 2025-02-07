@@ -83,7 +83,6 @@ func (ac *AppliedChangeResourceInstanceObject) protosForObject() ([]*stacks.Appl
 	var raws []*stacks.AppliedChange_RawChange
 
 	var addr = ac.ResourceInstanceObjectAddr
-	var provider = ac.ProviderConfigAddr
 	var objSrc = ac.NewStateSrc
 
 	// For resource instance objects we use the same key format for both the
@@ -169,7 +168,7 @@ func (ac *AppliedChangeResourceInstanceObject) protosForObject() ([]*stacks.Appl
 				NewValue:     protoValue,
 				ResourceMode: stackutils.ResourceModeForProto(addr.Item.ResourceInstance.Resource.Resource.Mode),
 				ResourceType: addr.Item.ResourceInstance.Resource.Resource.Type,
-				ProviderAddr: provider.Provider.String(),
+				ProviderAddr: ac.ProviderConfigAddr.Provider.String(),
 			},
 		},
 	})
