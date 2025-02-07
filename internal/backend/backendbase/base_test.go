@@ -214,3 +214,41 @@ func TestBase_deprecatedArg(t *testing.T) {
 		}
 	})
 }
+
+func TestBase_nullCrash(t *testing.T) {
+	// This test ensures that we don't crash while applying defaults to
+	// a null value
+
+	b := Base{
+		Schema: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {
+					Type:     cty.String,
+					Required: true,
+				},
+			},
+		},
+		SDKLikeDefaults: SDKLikeDefaults{
+			"foo": {
+				Fallback: "fallback",
+			},
+		},
+	}
+
+	t.Run("error", func(t *testing.T) {
+		// We pass an explicit null value here to simulate an interrupt
+		_, gotDiags := b.PrepareConfig(cty.NullVal(cty.Object(map[string]cty.Type{
+			"foo": cty.String,
+		})))
+		var wantDiags tfdiags.Diagnostics
+		wantDiags = wantDiags.Append(
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid backend configuration",
+				Detail:   "The backend configuration is incorrect: attribute \"foo\" is required.",
+			})
+		if diff := cmp.Diff(wantDiags.ForRPC(), gotDiags.ForRPC()); diff != "" {
+			t.Errorf("wrong diagnostics\n%s", diff)
+		}
+	})
+}
