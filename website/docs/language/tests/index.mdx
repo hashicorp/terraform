@@ -29,7 +29,7 @@ Each test file contains the following root level attributes and blocks:
 - Zero to one [`variables`](#variables) block.
 - Zero to many [`provider`](#providers) blocks.
 
-Terraform executes `run` blocks in order (unless configured to be parallel. See [`Parallel Execution`](#parallel-execution)), simulating a series of Terraform commands executing directly within the configuration directory. The order of the `variables` and `provider` blocks doesn't matter, Terraform processes all the values within these blocks at the beginning of the test operation. We recommend defining your `variables` and `provider` blocks first, at the beginning of the test file.
+By default, Terraform executes `run` blocks sequentially. To execute `run` blocks in parallel, refer to [`Parallel execution`](#parallel-execution). Each `run` block simulates a series of Terraform commands executing directly within the configuration directory. The order of the `variables` and `provider` blocks doesn't matter, Terraform processes all the values within these blocks at the beginning of the test operation. We recommend defining your `variables` and `provider` blocks first, at the beginning of the test file.
 
 ### Example
 
@@ -83,9 +83,9 @@ executes its runs. The block has the following fields:
 
 | Field or Block Name       | Description                                                                                                              | Default Value |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------- |
-| `parallel`                 | An optional boolean attribute, which sets each run to be parallelized, unless overridden at the run level.              | `false`       |
+| `parallel`                 | An optional boolean attribute. If `true`, Terraform executes all eligible `run` blocks simultaneously. Refer to [Parallel execution](#parallel-execution) for more information.             | `false`       |
 
-For example:
+### Example usage
 
 ```hcl
 # with_config.tftest.hcl
@@ -121,9 +121,9 @@ The `plan_options` block allows test authors to customize the [planning mode](/t
 
 The `state_key` allows for fine-grained control over which internal state file Terraform uses for a given run block. Refer to [Modules State](#modules-state) for more information.
 
-The `parallel` attribute allows you to run multiple `run` blocks in parallel. By default, this attribute is set to `false`. When set to `true`, Terraform will attempt to execute the `run` block in parallel with other `run` blocks that also have the `parallel` attribute set to `true` and are not dependent on each other.
+The `parallel` attribute lets you run multiple `run` blocks in parallel. By default, this attribute is set to `false`. When set to `true`, Terraform attempts to execute the `run` block in parallel with other `run` blocks that also have the `parallel` attribute set to `true` and are not dependent on each other.
 
-Adding to the test file from the [Test config example](#test-block) above:
+### Example usage
 
 ```hcl
 # with_config.tftest.hcl
@@ -158,7 +158,7 @@ run "third" {
 }
 ```
 
-In the above example, the `first` and `second` `run` blocks will implicitly have `parallel` set to `true`. The `third` `run` block will override the global setting and set `parallel` to `false`.
+In the above example, the `first` and `second` `run` blocks implicitly have `parallel` set to `true` since the `test` block enables parallel runs. The `third` `run` block sets `parallel` to `false` to override the global setting.
 
 ### Assertions
 
@@ -828,15 +828,15 @@ The `expect_failures` attribute is included to allow authors to test their confi
 
 ## Parallel execution
 
-By default, Terraform executes `run` blocks sequentially. However, you can set the `parallel` attribute to `true` in the file's `test` block or in individual `run` blocks to enable parallel execution.
+By default, Terraform executes `run` blocks sequentially. However, you can set the `parallel` attribute to `true` in the optional `test` block or in individual `run` blocks to enable parallel execution.
 
-When `parallel = true` for a `run` block, Terraform will attempt to parallelize such blocks wherever possible. Two or more `run` blocks can be executed in parallel if:
+Two or more `run` blocks can be executed in parallel if:
 
 - They do not reference outputs from each other.
-- They do not share the same state file. The state file is determined by the state key or the module source (when the state key is not set). Therefore, `run` blocks that share the same module configuration must specify different state keys to be executed in parallel.
+- They do not share the same state file. The state file is determined by the state key or the module source when the state key is not set. If two `run` blocks that share the same module configuration, they must specify different state keys to be executed in parallel.
 - They both have the `parallel` attribute set to `true`.
 
-A quick example below demonstrates how Terraform will execute `run` blocks in parallel.
+### Example usage
 
 ```hcl
 # parallel.tftest.hcl
@@ -928,7 +928,7 @@ run "using_external_db" {
 }
 
 run "site_four" {
-  // This run block has set `parallel = false`, implying that it does not want to be executed in parallel.
+  // This run block has set `parallel = false`.
   // Therefore, it will wait for all preceding runs to complete before it can be executed.
   state_key = "unique_5"
 
@@ -999,9 +999,7 @@ run "site_eight" {
 }
 ```
 
--> **Note:** When configuring a series of runs which have `parallel=true` in a test file, if you include a single run with `parallel=false` in this sequence, it creates a synchronization point that effectively divides the workflow into two groups:
-* All runs before the `parallel=false` run must complete first
-* Only after the `parallel=false` run finishes can the subsequent runs begin.
+-> **Note:** When you configure a series of runs that have `parallel=true` in a test file and include a single run with `parallel=false` you create synchronization point that divides the workflow into two groups. All runs before the `parallel=false` run must complete first. Then, after the run with `parallel=false` completes, the subsequent runs begin.
 
 ```
 Run A (parallel: true)
@@ -1011,4 +1009,4 @@ Run D (parallel: true)
 Run E (parallel: true)
 ```
 
-Runs A and B can execute simultaneously. Run C will wait until both A and B are done before starting. Finally, runs D and E can run in parallel, but only after C completes.
+Runs A and B execute simultaneously. Run C waits until both A and B are done before starting. Finally, runs D and E run in parallel, but only after C completes.
