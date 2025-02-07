@@ -164,7 +164,7 @@ func TestDiagnosticComparerWithSource(t *testing.T) {
 			diag2:      makeRPCFriendlyDiag(hclDiagnostic{&baseError}),
 			expectDiff: true,
 		},
-		"reports that diagnostics don't match even if sources (Subject) are different; ignored in simple comparison": {
+		"reports that diagnostics don't match if sources (Subject) are different": {
 			diag1: hclDiagnostic{&baseError},
 			diag2: func() Diagnostic {
 				d := baseError
@@ -185,7 +185,7 @@ func TestDiagnosticComparerWithSource(t *testing.T) {
 			}(),
 			expectDiff: true,
 		},
-		"reports that diagnostics don't match even if sources (Context) are different; ignored in simple comparison": {
+		"reports that diagnostics don't match if sources (Context) are different": {
 			diag1: hclDiagnostic{&baseError},
 			diag2: func() Diagnostic {
 				d := baseError
