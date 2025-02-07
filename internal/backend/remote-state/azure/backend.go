@@ -156,17 +156,24 @@ func New() backend.Backend {
 				Description: "Allow OpenID Connect to be used for authentication",
 			},
 
+			"ado_pipeline_service_connection_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID"}, nil),
+				Description: "The Azure DevOps Pipeline Service Connection ID.",
+			},
+
 			"oidc_request_token": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_OIDC_REQUEST_TOKEN", "ACTIONS_ID_TOKEN_REQUEST_TOKEN"}, ""),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_OIDC_REQUEST_TOKEN", "ACTIONS_ID_TOKEN_REQUEST_TOKEN", "SYSTEM_ACCESSTOKEN"}, nil),
 				Description: "The bearer token for the request to the OIDC provider. For use when authenticating as a Service Principal using OpenID Connect.",
 			},
 
 			"oidc_request_url": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_OIDC_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_URL"}, ""),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_OIDC_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_URL", "SYSTEM_OIDCREQUESTURI"}, nil),
 				Description: "The URL for the OIDC provider from which to request an ID token. For use when authenticating as a Service Principal using OpenID Connect.",
 			},
 
@@ -329,9 +336,9 @@ func (b *Backend) configure(ctx context.Context) error {
 		ClientCertificatePassword: data.Get("client_certificate_password").(string),
 		ClientSecret:              *clientSecret,
 
-		OIDCAssertionToken:          *oidcToken,
-		GitHubOIDCTokenRequestURL:   data.Get("oidc_request_url").(string),
-		GitHubOIDCTokenRequestToken: data.Get("oidc_request_token").(string),
+		OIDCAssertionToken:    *oidcToken,
+		OIDCTokenRequestURL:   data.Get("oidc_request_url").(string),
+		OIDCTokenRequestToken: data.Get("oidc_request_token").(string),
 
 		CustomManagedIdentityEndpoint: data.Get("msi_endpoint").(string),
 
@@ -341,6 +348,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		EnableAuthenticatingUsingManagedIdentity:   enableManagedIdentity,
 		EnableAuthenticationUsingOIDC:              enableOidc,
 		EnableAuthenticationUsingGitHubOIDC:        enableOidc,
+		EnableAuthenticationUsingADOPipelineOIDC:   enableOidc,
 	}
 
 	backendConfig := BackendConfig{

@@ -179,8 +179,8 @@ require (
 	github.com/hashicorp/consul/api v1.13.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-azure-helpers v0.71.0 // indirect
-	github.com/hashicorp/go-azure-sdk/resource-manager v0.20241212.1154051 // indirect
-	github.com/hashicorp/go-azure-sdk/sdk v0.20241212.1154051 // indirect
+	github.com/hashicorp/go-azure-sdk/resource-manager v0.20250131.1134653 // indirect
+	github.com/hashicorp/go-azure-sdk/sdk v0.20250131.1134653 // indirect
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320 // indirect
 	github.com/hashicorp/go-immutable-radix v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect

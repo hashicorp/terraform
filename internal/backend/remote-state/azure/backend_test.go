@@ -132,6 +132,37 @@ func TestAccBackendGithubOIDCBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
+func TestAccBackendADOPipelinesOIDCBasic(t *testing.T) {
+	t.Parallel()
+
+	testAccAzureBackendRunningInADOPipelines(t)
+
+	ctx := newCtx()
+	m := BuildTestMeta(t, ctx)
+
+	err := m.buildTestResources(ctx)
+	if err != nil {
+		m.destroyTestResources(ctx)
+		t.Fatalf("Error creating Test Resources: %q", err)
+	}
+	defer m.destroyTestResources(ctx)
+
+	clearEnv()
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"subscription_id":      m.subscriptionId,
+		"resource_group_name":  m.names.resourceGroup,
+		"storage_account_name": m.names.storageAccountName,
+		"container_name":       m.names.storageContainerName,
+		"key":                  m.names.storageKeyName,
+		"use_oidc":             true,
+		"tenant_id":            m.tenantId,
+		"client_id":            m.clientId,
+		"environment":          m.env.Name,
+	})).(*Backend)
+
+	backend.TestBackendStates(t, b)
+}
+
 func TestAccBackendAzureADAuthBasic(t *testing.T) {
 	t.Parallel()
 
