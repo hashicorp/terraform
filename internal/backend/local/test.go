@@ -667,18 +667,15 @@ func (runner *TestFileRunner) validate(run *moduletest.Run, file *moduletest.Fil
 		return diags
 	}
 
-	runningCtx, done := context.WithCancel(context.Background())
-
 	var validateDiags tfdiags.Diagnostics
-	go func() {
+	validate := func() {
 		defer logging.PanicHandler()
-		defer done()
 
 		log.Printf("[DEBUG] TestFileRunner: starting validate for %s/%s", file.Name, run.Name)
 		validateDiags = tfCtx.Validate(config, nil)
 		log.Printf("[DEBUG] TestFileRunner: completed validate for  %s/%s", file.Name, run.Name)
-	}()
-	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, nil, moduletest.Running, start)
+	}
+	waitDiags, cancelled := runner.runAndWait(validate, tfCtx, run, file, nil, moduletest.Running, start)
 
 	if cancelled {
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
@@ -725,22 +722,19 @@ func (runner *TestFileRunner) destroy(state *states.State, run *moduletest.Run, 
 		return state, diags
 	}
 
-	runningCtx, done := context.WithCancel(context.Background())
-
 	start := time.Now().UTC().UnixMilli()
 	runner.Suite.View.Run(run, file, moduletest.TearDown, 0)
 
 	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics
-	go func() {
+	planDestroy := func() {
 		defer logging.PanicHandler()
-		defer done()
 
 		log.Printf("[DEBUG] TestFileRunner: starting destroy plan for %s/%s", file.Name, run.Name)
 		plan, planDiags = tfCtx.Plan(run.ModuleConfig, state, planOpts)
 		log.Printf("[DEBUG] TestFileRunner: completed destroy plan for %s/%s", file.Name, run.Name)
-	}()
-	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, nil, moduletest.TearDown, start)
+	}
+	waitDiags, cancelled := runner.runAndWait(planDestroy, tfCtx, run, file, nil, moduletest.TearDown, start)
 
 	if cancelled {
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
@@ -790,20 +784,17 @@ func (runner *TestFileRunner) plan(tfCtx *terraform.Context, config *configs.Con
 		Overrides:          mocking.PackageOverrides(run.Config, file.Config, config),
 	}
 
-	runningCtx, done := context.WithCancel(context.Background())
-
 	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics
 	var planScope *lang.Scope
-	go func() {
+	planAndEval := func() {
 		defer logging.PanicHandler()
-		defer done()
 
 		log.Printf("[DEBUG] TestFileRunner: starting plan for %s/%s", file.Name, run.Name)
 		plan, planScope, planDiags = tfCtx.PlanAndEval(config, state, planOpts)
 		log.Printf("[DEBUG] TestFileRunner: completed plan for %s/%s", file.Name, run.Name)
-	}()
-	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, nil, moduletest.Running, start)
+	}
+	waitDiags, cancelled := runner.runAndWait(planAndEval, tfCtx, run, file, nil, moduletest.Running, start)
 
 	if cancelled {
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
@@ -840,8 +831,6 @@ func (runner *TestFileRunner) apply(tfCtx *terraform.Context, plan *plans.Plan, 
 		created = append(created, change)
 	}
 
-	runningCtx, done := context.WithCancel(context.Background())
-
 	var updated *states.State
 	var applyDiags tfdiags.Diagnostics
 	var newScope *lang.Scope
@@ -861,14 +850,13 @@ func (runner *TestFileRunner) apply(tfCtx *terraform.Context, plan *plans.Plan, 
 		SetVariables: ephemeralVariables,
 	}
 
-	go func() {
+	applyAndEval := func() {
 		defer logging.PanicHandler()
-		defer done()
 		log.Printf("[DEBUG] TestFileRunner: starting apply for %s/%s", file.Name, run.Name)
 		updated, newScope, applyDiags = tfCtx.ApplyAndEval(plan, config, applyOpts)
 		log.Printf("[DEBUG] TestFileRunner: completed apply for %s/%s", file.Name, run.Name)
-	}()
-	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, created, progress, start)
+	}
+	waitDiags, cancelled := runner.runAndWait(applyAndEval, tfCtx, run, file, created, progress, start)
 
 	if cancelled {
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
@@ -878,6 +866,16 @@ func (runner *TestFileRunner) apply(tfCtx *terraform.Context, plan *plans.Plan, 
 	diags = diags.Append(applyDiags)
 
 	return newScope, updated, diags
+}
+
+func (runner *TestFileRunner) runAndWait(fn func(), ctx *terraform.Context, run *moduletest.Run, file *moduletest.File, created []*plans.ResourceInstanceChangeSrc, progress moduletest.Progress, start int64) (diags tfdiags.Diagnostics, cancelled bool) {
+	// This is just a helper so that we get all the attributes needed from the TestFileRunner in one place.
+	w := graph.NewTestWaiter(
+		ctx, runner.Suite.CancelledCtx, runner.Suite.StoppedCtx,
+		runner.EvalContext, runner.Suite.View,
+		run, file, created, progress, start,
+	)
+	return graph.RunAndWait(fn, w)
 }
 
 func (runner *TestFileRunner) wait(ctx *terraform.Context, runningCtx context.Context, run *moduletest.Run, file *moduletest.File, created []*plans.ResourceInstanceChangeSrc, progress moduletest.Progress, start int64) (diags tfdiags.Diagnostics, cancelled bool) {

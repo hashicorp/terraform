@@ -2475,6 +2475,83 @@ Success! 2 passed, 0 failed.
 	}
 }
 
+func TestTest_InvalidConfig(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "invalid_config")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		Ui:             ui,
+		View:           view,
+		Streams:        streams,
+		ProviderSource: providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	output := done(t)
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output = done(t)
+
+	if code != 1 {
+		t.Errorf("expected status code ! but got %d", code)
+	}
+
+	expected := `main.tftest.hcl... in progress
+  run "test"... fail
+
+Error: Failed to load plugin schemas
+
+Error while loading schemas for plugin components: Failed to obtain provider
+schema: Could not load the schema for provider
+registry.terraform.io/hashicorp/test: failed to instantiate provider
+"registry.terraform.io/hashicorp/test" to obtain schema: fork/exec
+.terraform/providers/registry.terraform.io/hashicorp/test/1.0.0/darwin_arm64/terraform-provider-test_1.0.0:
+permission denied..
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 0 passed, 1 failed.
+`
+
+	actual := output.All()
+
+	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
 func TestTest_RunBlocksInProviders(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "provider_runs")), td)
