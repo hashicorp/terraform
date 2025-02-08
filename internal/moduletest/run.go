@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	MainStateIdentifier = ""
+	MainStateIdentifier   = ""
+	MissingFailureSummary = "Missing expected failure"
 )
 
 type Run struct {
@@ -545,7 +546,7 @@ func (run *Run) ValidateExpectedFailures(originals tfdiags.Diagnostics) tfdiags.
 			// diagnostics.
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Missing expected failure",
+				Summary:  MissingFailureSummary,
 				Detail:   fmt.Sprintf("The checkable object, %s, was expected to report an error but did not.", addr.String()),
 				Subject:  sourceRanges.Get(addr).ToHCL().Ptr(),
 			})
