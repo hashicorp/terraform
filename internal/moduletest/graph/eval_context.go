@@ -15,6 +15,7 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -66,6 +67,10 @@ type EvalContext struct {
 	// cancel the context.
 	cancelContext context.Context
 	cancelFunc    context.CancelFunc
+
+	renderer  views.Test
+	cancelled bool
+	stopped   bool
 }
 
 // NewEvalContext constructs a new graph evaluation context for use in
@@ -85,8 +90,18 @@ func NewEvalContext(cancelCtx context.Context) *EvalContext {
 	}
 }
 
-// Cancel cancels the context, which signals to the test suite that it should
-// stop evaluating the test suite.
+// SetRenderer sets the renderer for the test suite.
+func (ec *EvalContext) SetRenderer(renderer views.Test) {
+	ec.renderer = renderer
+}
+
+// Renderer returns the renderer for the test suite.
+func (ec *EvalContext) Renderer() views.Test {
+	return ec.renderer
+}
+
+// Cancel signals to the runs in the test suite that they should stop evaluating
+// the test suite, and return immediately.
 func (ec *EvalContext) Cancel() {
 	ec.cancelFunc()
 }
@@ -95,6 +110,16 @@ func (ec *EvalContext) Cancel() {
 // of the error is context.Canceled.
 func (ec *EvalContext) Cancelled() bool {
 	return ec.cancelContext.Err() != nil
+}
+
+// Stop signals to the runs in the test suite that they should stop evaluating
+// the test suite, and just skip.
+func (ec *EvalContext) Stop() {
+	ec.stopped = true
+}
+
+func (ec *EvalContext) Stopped() bool {
+	return ec.stopped
 }
 
 // EvaluateRun processes the assertions inside the provided configs.TestRun against

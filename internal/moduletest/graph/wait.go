@@ -76,6 +76,12 @@ func NewTestWaiter(ctx *terraform.Context, cancelCtx, stopCtx context.Context, e
 	}
 }
 
+func (w *testWaiter) update(ctx *terraform.Context, progress moduletest.Progress, created []*plans.ResourceInstanceChangeSrc) {
+	w.ctx = ctx
+	w.progress = progress
+	w.created = created
+}
+
 func (w *testWaiter) updateProgress() {
 	now := time.Now().UTC().UnixMilli()
 	w.renderer.Run(w.run, w.file, w.progress, now-w.start)
@@ -95,7 +101,11 @@ func (w *testWaiter) handleCancelled() (tfdiags.Diagnostics, bool) {
 	}
 	w.renderer.FatalInterruptSummary(w.run, w.file, states, w.created)
 
-	go w.ctx.Stop()
+	go func() {
+		if w.ctx != nil {
+			w.ctx.Stop()
+		}
+	}()
 
 	for !w.finished {
 		select {
@@ -117,6 +127,7 @@ func (w *testWaiter) wait() (tfdiags.Diagnostics, bool) {
 		case <-time.After(2 * time.Second):
 			w.updateProgress()
 		case <-w.stoppedCtx.Done():
+			w.evalCtx.Stop()
 			// Soft cancel - wait for completion or hard cancel
 			for !w.finished {
 				select {

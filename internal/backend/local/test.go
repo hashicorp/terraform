@@ -156,6 +156,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			}
 			vc.FileVariables = file.Config.Variables
 		})
+		evalCtx.SetRenderer(runner.View)
 		fileRunner := &TestFileRunner{
 			Suite:       runner,
 			EvalContext: evalCtx,
@@ -384,13 +385,21 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph, file *moduletest.Fil
 			// Eventually, we should move all the logic related to a test run into
 			// its Execute method, effectively ensuring that the Execute method is
 			// enough to execute a test run in the graph.
-			diags = v.Execute(runner.EvalContext)
-			if diags.HasErrors() {
-				return diags
+			startTime := time.Now().UTC()
+			v.AttachSuiteContext(runner.Suite.CancelledCtx, runner.Suite.StoppedCtx, runner.Suite.Opts)
+			runDiags := v.Execute(runner.EvalContext)
+			// The run diags will be reported by the run itself, so we don't need
+			// to add them to the file diagnostics.
+			if !runDiags.HasErrors() {
+				runner.run(run, file)
 			}
 
-			startTime := time.Now().UTC()
-			runner.run(run, file, startTime)
+			// If we got far enough to actually execute the run then we'll give
+			// the view some additional metadata about the execution.
+			run.ExecutionMeta = &moduletest.RunExecutionMeta{
+				Start:    startTime,
+				Duration: time.Since(startTime),
+			}
 			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
 			file.UpdateStatus(run.Status)
 		case graph.GraphNodeExecutable:
@@ -406,65 +415,55 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph, file *moduletest.Fil
 	return g.AcyclicGraph.Walk(walkFn)
 }
 
-func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, startTime time.Time) {
+func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File) {
 	log.Printf("[TRACE] TestFileRunner: executing run block %s/%s", file.Name, run.Name)
-	defer func() {
-		// If we got far enough to actually execute the run then we'll give
-		// the view some additional metadata about the execution.
-		run.ExecutionMeta = &moduletest.RunExecutionMeta{
-			Start:    startTime,
-			Duration: time.Since(startTime),
-		}
 
-	}()
+	// if run.Config.ConfigUnderTest != nil {
+	// 	if key == moduletest.MainStateIdentifier {
+	// 		// This is bad. It means somehow the module we're loading has
+	// 		// the same key as main state and we're about to corrupt things.
 
-	key := run.GetStateKey()
-	if run.Config.ConfigUnderTest != nil {
-		if key == moduletest.MainStateIdentifier {
-			// This is bad. It means somehow the module we're loading has
-			// the same key as main state and we're about to corrupt things.
+	// 		run.Diagnostics = run.Diagnostics.Append(&hcl.Diagnostic{
+	// 			Severity: hcl.DiagError,
+	// 			Summary:  "Invalid module source",
+	// 			Detail:   fmt.Sprintf("The source for the selected module evaluated to %s which should not be possible. This is a bug in Terraform - please report it!", key),
+	// 			Subject:  run.Config.Module.DeclRange.Ptr(),
+	// 		})
 
-			run.Diagnostics = run.Diagnostics.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid module source",
-				Detail:   fmt.Sprintf("The source for the selected module evaluated to %s which should not be possible. This is a bug in Terraform - please report it!", key),
-				Subject:  run.Config.Module.DeclRange.Ptr(),
-			})
-
-			run.Status = moduletest.Error
-			file.UpdateStatus(moduletest.Error)
-			return
-		}
-	}
-	state := runner.EvalContext.GetFileState(key).State
+	// 		run.Status = moduletest.Error
+	// 		file.UpdateStatus(moduletest.Error)
+	// 		return
+	// 	}
+	// }
 
 	config := run.ModuleConfig
-	if runner.Suite.Cancelled {
-		// Don't do anything, just give up and return immediately.
-		// The surrounding functions should stop this even being called, but in
-		// case of race conditions or something we can still verify this.
-		return
-	}
+	// if runner.Suite.Cancelled {
+	// 	// Don't do anything, just give up and return immediately.
+	// 	// The surrounding functions should stop this even being called, but in
+	// 	// case of race conditions or something we can still verify this.
+	// 	return
+	// }
 
-	if runner.Suite.Stopped {
-		// Basically the same as above, except we'll be a bit nicer.
-		run.Status = moduletest.Skip
-		return
-	}
+	// if runner.Suite.Stopped {
+	// 	// Basically the same as above, except we'll be a bit nicer.
+	// 	run.Status = moduletest.Skip
+	// 	return
+	// }
 
 	start := time.Now().UTC().UnixMilli()
-	runner.Suite.View.Run(run, file, moduletest.Starting, 0)
+	// runner.Suite.View.Run(run, file, moduletest.Starting, 0)
 
-	graph.TransformConfigForRun(runner.EvalContext, run, file)
+	// // could be done in build stage, and we just pass context to provider
+	// graph.TransformConfigForRun(runner.EvalContext, run, file)
 
-	validateDiags := runner.validate(run, file, start)
-	run.Diagnostics = run.Diagnostics.Append(validateDiags)
-	if validateDiags.HasErrors() {
-		run.Status = moduletest.Error
-		return
-	}
+	// validateDiags := runner.validate(run, file, start)
+	// run.Diagnostics = run.Diagnostics.Append(validateDiags)
+	// if validateDiags.HasErrors() {
+	// 	run.Status = moduletest.Error
+	// 	return
+	// }
 
-	references, _ := run.GetReferences() // already validated during static analysis
+	references, _ := run.GetReferences() // already validated during graph analysis
 
 	variables, variableDiags := runner.GetVariables(run, references, true)
 	run.Diagnostics = run.Diagnostics.Append(variableDiags)
@@ -484,6 +483,8 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return
 	}
 
+	key := run.GetStateKey()
+	state := runner.EvalContext.GetFileState(key).State
 	planScope, plan, planDiags := runner.plan(tfCtx, config, state, run, file, setVariables, references, start)
 	if run.Config.Command == configs.PlanTestCommand {
 		// Then we want to assess our conditions and diagnostics differently.
