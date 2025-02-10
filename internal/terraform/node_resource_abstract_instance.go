@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
+	"github.com/hashicorp/terraform/internal/lang/format"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -2483,7 +2484,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		var unknownPaths []string
 		cty.Transform(configVal, func(p cty.Path, v cty.Value) (cty.Value, error) {
 			if !v.IsKnown() {
-				unknownPaths = append(unknownPaths, fmt.Sprintf("%#v", p))
+				unknownPaths = append(unknownPaths, format.CtyPath(p))
 			}
 			return v, nil
 		})
