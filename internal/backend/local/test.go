@@ -121,7 +121,12 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		}
 
 		file := suite.Files[name]
-		evalCtx := graph.NewEvalContext(runner.CancelledCtx, runner.StoppedCtx, runner.Verbose)
+		evalCtx := graph.NewEvalContext(&graph.EvalContextOpts{
+			CancelCtx: runner.CancelledCtx,
+			StopCtx:   runner.StoppedCtx,
+			Verbose:   runner.Verbose,
+			Render:    runner.View,
+		})
 
 		for _, run := range file.Runs {
 			// Pre-initialise the prior outputs, so we can easily tell between
@@ -144,7 +149,6 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			}
 			vc.FileVariables = file.Config.Variables
 		})
-		evalCtx.SetRenderer(runner.View)
 		fileRunner := &TestFileRunner{
 			Suite:       runner,
 			EvalContext: evalCtx,
@@ -267,7 +271,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	}
 	g, diags := b.Build()
 	file.Diagnostics = file.Diagnostics.Append(diags)
-	if walkCancelled := runner.renderPreWalkDiags(file, diags); walkCancelled {
+	if walkCancelled := runner.renderPreWalkDiags(file); walkCancelled {
 		return
 	}
 
@@ -358,8 +362,8 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 	return g.AcyclicGraph.Walk(walkFn)
 }
 
-func (runner *TestFileRunner) renderPreWalkDiags(file *moduletest.File, diags tfdiags.Diagnostics) (walkCancelled bool) {
-	errored := diags.HasErrors()
+func (runner *TestFileRunner) renderPreWalkDiags(file *moduletest.File) (walkCancelled bool) {
+	errored := file.Diagnostics.HasErrors()
 	// Some runs may have errored during the graph build, but we didn't fail immediately
 	// as we still wanted to gather all the diagnostics.
 	// Now we go through the runs and if there are any errors, we'll update the

@@ -59,12 +59,12 @@ func NewOperationWaiter(ctx *terraform.Context, evalCtx *EvalContext, n *NodeTes
 // If the function finishes, it returns false. If the function is cancelled or
 // interrupted, it returns true.
 func (w *operationWaiter) Run(fn func()) bool {
-	runningCtx, done := context.WithCancel(context.Background())
+	runningCtx, doneRunning := context.WithCancel(context.Background())
 	w.runningCtx = runningCtx
 
 	go func() {
 		fn()
-		done()
+		doneRunning()
 	}()
 
 	// either the function finishes or a cancel/stop signal is received

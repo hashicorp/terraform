@@ -401,7 +401,6 @@ func TestTest_Runs(t *testing.T) {
 			}
 
 			if len(tc.expectedOut) > 0 {
-				fmt.Println(output.All())
 				for _, expectedOut := range tc.expectedOut {
 					if !strings.Contains(output.Stdout(), expectedOut) {
 						t.Errorf("output didn't contain expected string:\n\n%s", output.Stdout())

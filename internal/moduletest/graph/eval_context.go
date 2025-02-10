@@ -74,13 +74,20 @@ type EvalContext struct {
 	verbose  bool
 }
 
+type EvalContextOpts struct {
+	Verbose   bool
+	Render    views.Test
+	CancelCtx context.Context
+	StopCtx   context.Context
+}
+
 // NewEvalContext constructs a new graph evaluation context for use in
 // evaluating the runs within a test suite.
 // The context is initialized with the provided cancel and stop contexts, and
 // these contexts can be used from external commands to signal the termination of the test suite.
-func NewEvalContext(cancelCtx, stopCtx context.Context, verbose bool) *EvalContext {
-	cancelCtx, cancel := context.WithCancel(cancelCtx)
-	stopCtx, stop := context.WithCancel(stopCtx)
+func NewEvalContext(opts *EvalContextOpts) *EvalContext {
+	cancelCtx, cancel := context.WithCancel(opts.CancelCtx)
+	stopCtx, stop := context.WithCancel(opts.StopCtx)
 	return &EvalContext{
 		runOutputs:      make(map[addrs.Run]cty.Value),
 		outputsLock:     sync.Mutex{},
@@ -93,13 +100,9 @@ func NewEvalContext(cancelCtx, stopCtx context.Context, verbose bool) *EvalConte
 		cancelFunc:      cancel,
 		stopContext:     stopCtx,
 		stopFunc:        stop,
-		verbose:         verbose,
+		verbose:         opts.Verbose,
+		renderer:        opts.Render,
 	}
-}
-
-// SetRenderer sets the renderer for the test suite.
-func (ec *EvalContext) SetRenderer(renderer views.Test) {
-	ec.renderer = renderer
 }
 
 // Renderer returns the renderer for the test suite.

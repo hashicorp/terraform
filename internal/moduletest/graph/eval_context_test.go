@@ -735,7 +735,10 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				priorOutputs[addrs.Run{Name: name}] = val
 			}
 
-			testCtx := NewEvalContext(context.Background(), context.Background(), false)
+			testCtx := NewEvalContext(&EvalContextOpts{
+				CancelCtx: context.Background(),
+				StopCtx:   context.Background(),
+			})
 			testCtx.runOutputs = priorOutputs
 			gotStatus, gotOutputs, diags := testCtx.EvaluateRun(run, planScope, test.testOnlyVars)
 

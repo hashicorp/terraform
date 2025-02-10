@@ -81,9 +81,6 @@ func (n *NodeTestRun) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		return diags
 	}
 
-	// Add the providers required by the test run to the context.
-	evalCtx.SetProviders(n.run, n.requiredProviders)
-
 	// Create a waiter which handles waiting for terraform operations to complete.
 	// While waiting, the wait will also respond to cancellation signals, and
 	// handle them appropriately.
