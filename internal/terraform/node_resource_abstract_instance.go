@@ -341,15 +341,28 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 
 	log.Printf("[TRACE] %s: writing state object for %s", logFuncName, absAddr)
 
-	schema, currentVersion := providerSchema.SchemaForResourceAddr(absAddr.ContainingResource().Resource)
-	if schema == nil {
+	objectSchema, currentObjectVersion := providerSchema.SchemaForResourceAddr(absAddr.ContainingResource().Resource)
+	if objectSchema == nil {
 		// It shouldn't be possible to get this far in any real scenario
 		// without a schema, but we might end up here in contrived tests that
 		// fail to set up their world properly.
 		return fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr)
 	}
 
-	src, err := obj.Encode(schema.ImpliedType(), currentVersion)
+	providerIdentitySchema, err := getResourceIdentitySchemas(ctx, n.ResolvedProvider)
+	if err != nil {
+		return err
+	}
+	identitySchema, currentIdentityVersion := providerIdentitySchema.IdentitySchemaForResourceAddr(absAddr.ContainingResource().Resource)
+	// TODO: Remove after we implemented the rest, in the real world we might not always have an identity schema
+	if identitySchema == nil {
+		// It shouldn't be possible to get this far in any real scenario
+		// without a schema, but we might end up here in contrived tests that
+		// fail to set up their world properly.
+		return fmt.Errorf("failed to encode %s in state: no resource identity schema available", absAddr)
+	}
+
+	src, err := obj.Encode(objectSchema.ImpliedType(), currentObjectVersion, identitySchema.ImpliedType(), currentIdentityVersion)
 	if err != nil {
 		return fmt.Errorf("failed to encode %s in state: %s", absAddr, err)
 	}

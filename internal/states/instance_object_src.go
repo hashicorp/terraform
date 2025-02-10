@@ -40,6 +40,10 @@ type ResourceInstanceObjectSrc struct {
 	// schema version should be recorded in the SchemaVersion field.
 	AttrsJSON []byte
 
+	IdentitySchemaVersion uint64
+
+	IdentitySchemaJSON []byte
+
 	// AttrsFlat is a legacy form of attributes used in older state file
 	// formats, and in the new state format for objects that haven't yet been
 	// upgraded. This attribute is mutually exclusive with Attrs: for any

@@ -27,6 +27,10 @@ type ResourceInstanceObject struct {
 	// Terraform.
 	Value cty.Value
 
+	// Identity is the object-typed value representing the identity of the remote
+	// object within Terraform.
+	Identity cty.Value
+
 	// Private is an opaque value set by the provider when this object was
 	// last created or updated. Terraform Core does not use this value in
 	// any way and it is not exposed anywhere in the user interface, so
@@ -94,7 +98,7 @@ const (
 // The returned object may share internal references with the receiver and
 // so the caller must not mutate the receiver any further once once this
 // method is called.
-func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*ResourceInstanceObjectSrc, error) {
+func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64, identityTy cty.Type, identitySchemaVersion uint64) (*ResourceInstanceObjectSrc, error) {
 	// If it contains marks, remove these marks before traversing the
 	// structure with UnknownAsNull, and save the PathValueMarks
 	// so we can save them in state.
@@ -115,6 +119,11 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	val = cty.UnknownAsNull(val)
 
 	src, err := ctyjson.Marshal(val, ty)
+	if err != nil {
+		return nil, err
+	}
+
+	x, err := ctyjson.Marshal(o.Identity, identityTy)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +149,9 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 		Dependencies:        dependencies,
 		CreateBeforeDestroy: o.CreateBeforeDestroy,
 		// The cached value must have all its marks since it bypasses decoding.
-		decodeValueCache: o.Value,
+		decodeValueCache:      o.Value,
+		IdentitySchemaVersion: identitySchemaVersion,
+		IdentitySchemaJSON:    x,
 	}, nil
 }
 
