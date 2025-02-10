@@ -33,6 +33,10 @@ func (o *offlineProvider) GetProviderSchema() providers.GetProviderSchemaRespons
 	return o.unconfiguredClient.GetProviderSchema()
 }
 
+func (o *offlineProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	return o.unconfiguredClient.GetResourceIdentitySchemas()
+}
+
 func (o *offlineProvider) ValidateProviderConfig(request providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(

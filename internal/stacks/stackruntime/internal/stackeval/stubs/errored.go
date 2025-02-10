@@ -60,6 +60,10 @@ func (p *erroredProvider) GetProviderSchema() providers.GetProviderSchemaRespons
 	return providers.GetProviderSchemaResponse{}
 }
 
+func (p *erroredProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	return providers.GetResourceIdentitySchemasResponse{}
+}
+
 // ImportResourceState implements providers.Interface.
 func (p *erroredProvider) ImportResourceState(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
 	var diags tfdiags.Diagnostics

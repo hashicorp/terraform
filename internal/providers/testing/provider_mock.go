@@ -32,6 +32,9 @@ type MockProvider struct {
 	GetProviderSchemaCalled   bool
 	GetProviderSchemaResponse *providers.GetProviderSchemaResponse
 
+	GetResourceIdentitySchemasCalled   bool
+	GetResourceIdentitySchemasResponse *providers.GetResourceIdentitySchemasResponse
+
 	ValidateProviderConfigCalled   bool
 	ValidateProviderConfigResponse *providers.ValidateProviderConfigResponse
 	ValidateProviderConfigRequest  providers.ValidateProviderConfigRequest
@@ -139,6 +142,15 @@ func (p *MockProvider) getProviderSchema() providers.GetProviderSchemaResponse {
 		Provider:      providers.Schema{},
 		DataSources:   map[string]providers.Schema{},
 		ResourceTypes: map[string]providers.Schema{},
+	}
+}
+
+func (p *MockProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	p.Lock()
+	defer p.Unlock()
+	p.GetResourceIdentitySchemasCalled = true
+	return providers.GetResourceIdentitySchemasResponse{
+		IdentityTypes: map[string]providers.IdentitySchema{},
 	}
 }
 

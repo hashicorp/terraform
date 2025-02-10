@@ -17,6 +17,8 @@ type Interface interface {
 	// GetSchema returns the complete schema for the provider.
 	GetProviderSchema() GetProviderSchemaResponse
 
+	GetResourceIdentitySchemas() GetResourceIdentitySchemasResponse
+
 	// ValidateProviderConfig allows the provider to validate the configuration.
 	// The ValidateProviderConfigResponse.PreparedConfig field is unused. The
 	// final configuration is not stored in the state, and any modifications
@@ -125,6 +127,25 @@ type GetProviderSchemaResponse struct {
 
 	// ServerCapabilities lists optional features supported by the provider.
 	ServerCapabilities ServerCapabilities
+}
+
+// GetResourceIdentitySchemasResponse is the return type for GetProviderSchema, and
+// should only be used when handling a value for that method. The handling of
+// of schemas in any other context should always use ProviderSchema, so that
+// the in-memory representation can be more easily changed separately from the
+// RCP protocol.
+type GetResourceIdentitySchemasResponse struct {
+	// IdentityTypes map the resource type name to that type's identity schema.
+	IdentityTypes map[string]IdentitySchema
+
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type IdentitySchema struct {
+	Version int64
+
+	Attributes configschema.IdentityAttributes
 }
 
 // Schema pairs a provider or resource schema with that schema's version.
