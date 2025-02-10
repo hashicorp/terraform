@@ -103,6 +103,31 @@ func ProtoToProviderSchema(s *proto.Schema) providers.Schema {
 	}
 }
 
+func ProtoToResourceIdentitySchema(s *proto.ResourceIdentitySchema) providers.IdentitySchema {
+	schema := providers.IdentitySchema{
+		Version:    s.Version,
+		Attributes: make(configschema.IdentityAttributes),
+	}
+
+	for _, a := range s.IdentityAttributes {
+		attr := &configschema.IdentityAttribute{
+			Description:       a.Description,
+			RequiredForImport: a.RequiredForImport,
+			OptionalForImport: a.OptionalForImport,
+		}
+
+		if a.Type != nil {
+			if err := json.Unmarshal(a.Type, &attr.Type); err != nil {
+				panic(err)
+			}
+		}
+
+		schema.Attributes[a.Name] = attr
+	}
+
+	return schema
+}
+
 // ProtoToConfigSchema takes the GetSchcema_Block from a grpc response and converts it
 // to a terraform *configschema.Block.
 func ProtoToConfigSchema(b *proto.Schema_Block) *configschema.Block {
