@@ -1,178 +1,219 @@
 # This workflow makes sure contributors don't forget to add a changelog entry or explicitly opt-out of it.
-# 
+#
 # Do not extend this workflow to include checking out the code (e.g. for building and testing purposes) while the pull_request_target trigger is used.
 # Instead, see use of workflow_run in https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/
 
 name: Changelog
 
 on:
-  # The pull_request_target trigger event allows PRs raised from forks to have write permissions and access secrets.
-  # We uses it in this workflow to enable writing comments to the PR.
-  pull_request_target:
-    types:
-      - opened
-      - ready_for_review
-      - reopened
-      - synchronize
-      - labeled
-      - unlabeled
+    # The pull_request_target trigger event allows PRs raised from forks to have write permissions and access secrets.
+    # We uses it in this workflow to enable writing comments to the PR.
+    pull_request_target:
+        types:
+            - opened
+            - ready_for_review
+            - reopened
+            - synchronize
+            - labeled
+            - unlabeled
 
 # This workflow runs for not-yet-reviewed external contributions.
 # Following a pull_request_target trigger the workflow would have write permissions,
 # so we intentionally restrict the permissions to only include write access on pull-requests.
 permissions:
-  contents: read
-  pull-requests: write
+    contents: read
+    pull-requests: write
 
 jobs:
-  check-changelog-entry:
-    name: "Check Changelog Entry"
-    runs-on: ubuntu-latest
-    concurrency:
-      group: changelog-${{ github.ref }}
-      cancel-in-progress: true
+    check-changelog-entry:
+        name: "Check Changelog Entry"
+        runs-on: ubuntu-latest
+        env:
+            # These are used to ensure the correct changelog entry is added for the PR.
+            # Please update the labels on every minor release.
+            CURRENT_LABEL: 1.10-backport
+            NEXT_LABEL: 1.11-backport
+        concurrency:
+            group: changelog-${{ github.ref }}
+            cancel-in-progress: true
 
-    steps:
-      - name: "Changed files"
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
-        id: changelog
-        with:
-          filters: |
-            unreleased:
-              - '.changes/unreleased/*.yaml'
-            backported:
-              - '.changes/backported/*.yaml'
-            changelog:
-              - 'CHANGELOG.md'
-            version:
-              - 'version/VERSION'
+        steps:
+            - name: "Changed files"
+              uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+              id: changelog
+              with:
+                  filters: |
+                      dev:
+                          - '.changes/dev/*.yaml'
+                      next:
+                          - '.changes/next/*.yaml'
+                      current:
+                          - '.changes/current/*.yaml'
+                      changelog:
+                        - 'CHANGELOG.md'
+                      version:
+                        - 'version/VERSION'
 
-      - name: "Check for changelog entry"
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
-        with:
-          script: |
-            async function createOrUpdateChangelogComment(commentDetails, deleteComment) {
-                const commentStart = "## Changelog Warning"
-                
-                const body = commentStart + "\n\n" + commentDetails;
-                const { number: issue_number } = context.issue;
-                const { owner, repo } = context.repo;
-                
-                // List all comments
-                const allComments = (await github.rest.issues.listComments({
-                    issue_number,
-                    owner,
-                    repo,
-                })).data;
+            - name: "Check for changelog entry"
+              uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+              with:
+                  script: |
+                      async function createOrUpdateChangelogComment(commentDetails, deleteComment) {
+                          const commentStart = "## Changelog Warning"
+                          
+                          const body = commentStart + "\n\n" + commentDetails;
+                          const { number: issue_number } = context.issue;
+                          const { owner, repo } = context.repo;
+                          
+                          // List all comments
+                          const allComments = (await github.rest.issues.listComments({
+                              issue_number,
+                              owner,
+                              repo,
+                          })).data;
 
-                const existingComment = allComments.find(c => c.body.startsWith(commentStart));
-                const comment_id = existingComment?.id;
-                
-                if (deleteComment) {
-                    if (existingComment) {
-                        await github.rest.issues.deleteComment({
-                            owner,
-                            repo,
-                            comment_id,
-                        });
-                    }
-                    return;
-                }
+                          const existingComment = allComments.find(c => c.body.startsWith(commentStart));
+                          const comment_id = existingComment?.id;
+                          
+                          if (deleteComment) {
+                              if (existingComment) {
+                                  await github.rest.issues.deleteComment({
+                                      owner,
+                                      repo,
+                                      comment_id,
+                                  });
+                              }
+                              return;
+                          }
 
-                core.setFailed(commentDetails);
+                          core.setFailed(commentDetails);
 
-                if (existingComment) {
-                    await github.rest.issues.updateComment({
-                        owner,
-                        repo,
-                        comment_id,
-                        body,
-                    });
-                } else {
-                    await github.rest.issues.createComment({
-                        owner,
-                        repo,
-                        issue_number,
-                        body,
-                    });
-                }
-            }
-            
-            const unreleasedChangesPresent = ${{steps.changelog.outputs.unreleased}};
-            const backportedChangesPresent = ${{steps.changelog.outputs.backported}};
-            const changelogChangesPresent = ${{steps.changelog.outputs.changelog}};
-            const versionChangesPresent = ${{steps.changelog.outputs.version}};
+                          if (existingComment) {
+                              await github.rest.issues.updateComment({
+                                  owner,
+                                  repo,
+                                  comment_id,
+                                  body,
+                              });
+                          } else {
+                              await github.rest.issues.createComment({
+                                  owner,
+                                  repo,
+                                  issue_number,
+                                  body,
+                              });
+                          }
+                      }
 
-            const prLabels = await github.rest.issues.listLabelsOnIssue({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo
-            });
-            const backportLabel = prLabels.data.find(label => label.name.includes('-backport'));
-            const noChangelogNeededLabel = prLabels.data.find(label => label.name === 'no-changelog-needed');
-            const dependenciesLabel = prLabels.data.find(label => label.name === 'dependencies');
+                      const devChangesPresent = ${{steps.changelog.outputs.dev}};
+                      const nextChangesPresent = ${{steps.changelog.outputs.next}};
+                      const currentChangesPresent = ${{steps.changelog.outputs.current}};
+                      const changelogChangesPresent = ${{steps.changelog.outputs.changelog}};
+                      const versionChangesPresent = ${{steps.changelog.outputs.version}};
 
-            // We want to prohibit contributors from directly changing the CHANGELOG.md, it's 
-            // generated so all changes will be lost during the release process.
-            // Therefore we only allow the changelog to change together with the version.
-            // In very rare cases where we generate changes in the changelog without changing the 
-            // version we will just ignore this failing check.
-            if (changelogChangesPresent && !versionChangesPresent) {
-                await createOrUpdateChangelogComment("Please don't edit the CHANGELOG.md manually. We use changie to control the Changelog generation, please use `npx changie new` to create a new changelog entry.");
-                return;
-            }
+                      const prLabels = await github.rest.issues.listLabelsOnIssue({
+                          issue_number: context.issue.number,
+                          owner: context.repo.owner,
+                          repo: context.repo.repo
+                      });
+                      const nextBackportLabel = prLabels.data.find(label => label.name === ${{ env.NEXT_LABEL }});
+                      const currentBackportLabel = prLabels.data.find(label => label.name === ${{ env.CURRENT_LABEL }});
+                      const noChangelogNeededLabel = prLabels.data.find(label => label.name === 'no-changelog-needed');
+                      const dependenciesLabel = prLabels.data.find(label => label.name === 'dependencies');
 
-            if (dependenciesLabel) {
-                return;
-            }
+                      // We want to prohibit contributors from directly changing the CHANGELOG.md, it's 
+                      // generated so all changes will be lost during the release process.
+                      // Therefore we only allow the changelog to change together with the version.
+                      // In very rare cases where we generate changes in the changelog without changing the 
+                      // version we will just ignore this failing check.
+                      if (changelogChangesPresent && !versionChangesPresent) {
+                          await createOrUpdateChangelogComment("Please don't edit the CHANGELOG.md manually. We use changie to control the Changelog generation, please use `npx changie new` to create a new changelog entry.");
+                          return;
+                      }
 
-            if (noChangelogNeededLabel) {
-                if (unreleasedChangesPresent || backportedChangesPresent) {
-                    await createOrUpdateChangelogComment("Please remove either the 'no-changelog-needed' label or the changelog entry from this PR.");
-                    return;
-                }
-                
-                // Nothing to complain about, so delete any existing comment
-                await createOrUpdateChangelogComment("", true);
-                return;
-            }
-            
-            const changieInstruction = 'You can use [`changie new`](https://changie.dev/cli/changie_new/) (without flags) to generate it. ';
-            
-            if (backportLabel) {
-                if (unreleasedChangesPresent) {
-                    await createOrUpdateChangelogComment("Please move the changelog entry from `./.changes/unreleased` to `./.changes/backported` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
-                    return;
-                }
-                
-                if (!backportedChangesPresent) {
-                    await createOrUpdateChangelogComment("Please add a changelog entry to `./.changes/backported` for this change. "+ changieInstruction +"If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
-                    return;
-                }
-            } else {
-                if (backportedChangesPresent) {
-                    await createOrUpdateChangelogComment("Please move the changelog entry from `./.changes/backported` to `./.changes/unreleased` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
-                    return;
-                }
+                      if (dependenciesLabel) {
+                          return;
+                      }
 
-                if (!unreleasedChangesPresent) {
-                    await createOrUpdateChangelogComment("Please add a changelog entry to `./.changes/unreleased` for this change. "+ changieInstruction +"If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
-                    return;
-                }
-            }
+                      if (noChangelogNeededLabel) {
+                          if (devChangesPresent || nextChangesPresent) {
+                              await createOrUpdateChangelogComment("Please remove either the 'no-changelog-needed' label or the changelog entry from this PR.");
+                              return;
+                          }
+                          
+                          // Nothing to complain about, so delete any existing comment
+                          await createOrUpdateChangelogComment("", true);
+                          return;
+                      }
 
-            // Nothing to complain about, so delete any existing comment
-            await createOrUpdateChangelogComment("", true);
-      - name: Checkout changie config
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          ref: ${{ github.head_ref }}
-          sparse-checkout: |
-            .changie.yaml
-            .changes/
-          sparse-checkout-cone-mode: false
-      - name: Validate changie fragment is valid
-        uses: miniscruff/changie-action@6dcc2533cac0495148ed4046c438487e4dceaa23 # v2.0.0
-        with:
-          version: latest
-          args: merge -u "." --dry-run
+
+                      // If we want to backport this to the current branch, the backlog entry should only exist in the ./.changes/current directory
+                      if (currentBackportLabel) {
+                        if (devChangesPresent) {
+                            await createOrUpdateChangelogComment("Please move the changelog entry from `./.changes/dev` to `./.changes/current` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
+                            return;
+                        }
+
+                        if (nextChangesPresent) {
+                            await createOrUpdateChangelogComment("Please move the changelog entry from `./.changes/next` to `./.changes/current` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
+                            return;
+                        }
+
+                        if (!currentChangesPresent) {
+                            await createOrUpdateChangelogComment("Please add a changelog entry to `./.changes/current` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
+                            return;
+                        }
+
+                        // If we have no current backport label, but a next backport label we should only have a changelog entry in the ./.changes/next directory
+                      } else if (nextBackportLabel) {
+                          if (devChangesPresent) {
+                              await createOrUpdateChangelogComment("Please move the changelog entry from `./.changes/dev` to `./.changes/next` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
+                              return;
+                          }
+                          
+                          if (currentChangesPresent) {
+                              await createOrUpdateChangelogComment("Please move the changelog entry from `./.changes/current` to `./.changes/next` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
+                              return;
+                          }
+
+                          
+                          if (!nextChangesPresent) {
+                              await createOrUpdateChangelogComment("Please add a changelog entry to `./.changes/next` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
+                              return;
+                          }
+                          
+                          // If we don't have a backport label we only expect changes in the ./.changes/dev directory
+                      } else {
+                          if (nextChangesPresent) {
+                              await createOrUpdateChangelogComment("Please move the changelog entry from `./.changes/next` to `./.changes/dev` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
+                              return;
+                          }
+                          
+                          if (currentChangesPresent) {
+                              await createOrUpdateChangelogComment("Please move the changelog entry from `./.changes/current` to `./.changes/dev` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
+                              return;
+                          }
+
+                          if (!devChangesPresent) {
+                              await createOrUpdateChangelogComment("Please add a changelog entry to `./.changes/dev` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
+                              return;
+                          }
+                      }
+
+                      // Nothing to complain about, so delete any existing comment
+                      await createOrUpdateChangelogComment("", true);
+
+            - name: Checkout changie config
+              uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+              with:
+                  ref: ${{ github.head_ref }}
+                  sparse-checkout: |
+                      .changie.yaml
+                      .changes/
+                  sparse-checkout-cone-mode: false
+
+            - name: Validate changie fragment is valid
+              uses: miniscruff/changie-action@6dcc2533cac0495148ed4046c438487e4dceaa23 # v2.0.0
+              with:
+                  version: latest
+                  args: merge -u "." --dry-run
