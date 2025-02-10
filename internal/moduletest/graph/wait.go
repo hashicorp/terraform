@@ -14,15 +14,53 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// RunAndWait runs the given function in a goroutine and waits for it to finish.
-// The function is passed a function that can be called to signal that it should
-// stop running.
-func RunAndWait(fn func(), waiter *testWaiter) (tfdiags.Diagnostics, bool) {
+// operationWaiter waits for an operation within
+// a test run execution to complete.
+type operationWaiter struct {
+	ctx        *terraform.Context
+	runningCtx context.Context
+	run        *moduletest.Run
+	file       *moduletest.File
+	created    []*plans.ResourceInstanceChangeSrc
+	progress   moduletest.Progress
+	start      int64
+	identifier string
+	finished   bool
+	evalCtx    *EvalContext
+	renderer   views.Test
+}
+
+// NewOperationWaiter creates a new operation waiter.
+func NewOperationWaiter(ctx *terraform.Context, evalCtx *EvalContext, n *NodeTestRun,
+	progress moduletest.Progress, start int64) *operationWaiter {
+	identifier := "validate"
+	if n.file != nil {
+		identifier = n.file.Name
+		if n.run != nil {
+			identifier = fmt.Sprintf("%s/%s", identifier, n.run.Name)
+		}
+	}
+
+	return &operationWaiter{
+		ctx:        ctx,
+		run:        n.run,
+		file:       n.file,
+		progress:   progress,
+		start:      start,
+		identifier: identifier,
+		evalCtx:    evalCtx,
+		renderer:   evalCtx.Renderer(),
+	}
+}
+
+// Run executes the given function in a goroutine and waits for it to finish.
+// If the function finishes, it returns false. If the function is cancelled or
+// interrupted, it returns true.
+func (w *operationWaiter) Run(fn func()) bool {
 	runningCtx, done := context.WithCancel(context.Background())
-	waiter.runningCtx = runningCtx
+	w.runningCtx = runningCtx
 
 	go func() {
 		fn()
@@ -30,66 +68,54 @@ func RunAndWait(fn func(), waiter *testWaiter) (tfdiags.Diagnostics, bool) {
 	}()
 
 	// either the function finishes or a cancel/stop signal is received
-	return waiter.wait()
-
+	return w.wait()
 }
 
-type testWaiter struct {
-	ctx          *terraform.Context
-	runningCtx   context.Context
-	run          *moduletest.Run
-	file         *moduletest.File
-	created      []*plans.ResourceInstanceChangeSrc
-	progress     moduletest.Progress
-	start        int64
-	identifier   string
-	finished     bool
-	cancelledCtx context.Context
-	stoppedCtx   context.Context
-	evalCtx      *EvalContext
-	renderer     views.Test
-}
+func (w *operationWaiter) wait() bool {
+	log.Printf("[TRACE] TestFileRunner: waiting for execution during %s", w.identifier)
 
-func NewTestWaiter(ctx *terraform.Context, cancelCtx, stopCtx context.Context, evalCtx *EvalContext, renderer views.Test,
-	run *moduletest.Run, file *moduletest.File, created []*plans.ResourceInstanceChangeSrc,
-	progress moduletest.Progress, start int64) *testWaiter {
-	identifier := "validate"
-	if file != nil {
-		identifier = file.Name
-		if run != nil {
-			identifier = fmt.Sprintf("%s/%s", identifier, run.Name)
+	for !w.finished {
+		select {
+		case <-time.After(2 * time.Second):
+			w.updateProgress()
+		case <-w.evalCtx.stopContext.Done():
+			// Soft cancel - wait for completion or hard cancel
+			for !w.finished {
+				select {
+				case <-time.After(2 * time.Second):
+					w.updateProgress()
+				case <-w.evalCtx.cancelContext.Done():
+					return w.handleCancelled()
+				case <-w.runningCtx.Done():
+					w.finished = true
+				}
+			}
+		case <-w.evalCtx.cancelContext.Done():
+			return w.handleCancelled()
+		case <-w.runningCtx.Done():
+			w.finished = true
 		}
 	}
 
-	return &testWaiter{
-		ctx:          ctx,
-		run:          run,
-		file:         file,
-		created:      created,
-		progress:     progress,
-		start:        start,
-		identifier:   identifier,
-		cancelledCtx: cancelCtx,
-		stoppedCtx:   stopCtx,
-		evalCtx:      evalCtx,
-		renderer:     renderer,
-	}
+	return false
 }
 
-func (w *testWaiter) update(ctx *terraform.Context, progress moduletest.Progress, created []*plans.ResourceInstanceChangeSrc) {
+// update refreshes the operationWaiter with the latest terraform context, progress, and any newly created resources.
+// This should be called before starting a new Terraform operation.
+func (w *operationWaiter) update(ctx *terraform.Context, progress moduletest.Progress, created []*plans.ResourceInstanceChangeSrc) {
 	w.ctx = ctx
 	w.progress = progress
 	w.created = created
 }
 
-func (w *testWaiter) updateProgress() {
+func (w *operationWaiter) updateProgress() {
 	now := time.Now().UTC().UnixMilli()
 	w.renderer.Run(w.run, w.file, w.progress, now-w.start)
 }
 
-func (w *testWaiter) handleCancelled() (tfdiags.Diagnostics, bool) {
+// handleCancelled is called when the test execution is hard cancelled.
+func (w *operationWaiter) handleCancelled() bool {
 	log.Printf("[DEBUG] TestFileRunner: test execution cancelled during %s", w.identifier)
-
 	states := make(map[*moduletest.Run]*states.State)
 	mainKey := moduletest.MainStateIdentifier
 	states[nil] = w.evalCtx.GetFileState(mainKey).State
@@ -116,35 +142,5 @@ func (w *testWaiter) handleCancelled() (tfdiags.Diagnostics, bool) {
 		}
 	}
 
-	return nil, true
-}
-
-func (w *testWaiter) wait() (tfdiags.Diagnostics, bool) {
-	log.Printf("[TRACE] TestFileRunner: waiting for execution during %s", w.identifier)
-
-	for !w.finished {
-		select {
-		case <-time.After(2 * time.Second):
-			w.updateProgress()
-		case <-w.stoppedCtx.Done():
-			w.evalCtx.Stop()
-			// Soft cancel - wait for completion or hard cancel
-			for !w.finished {
-				select {
-				case <-time.After(2 * time.Second):
-					w.updateProgress()
-				case <-w.cancelledCtx.Done():
-					return w.handleCancelled()
-				case <-w.runningCtx.Done():
-					w.finished = true
-				}
-			}
-		case <-w.cancelledCtx.Done():
-			return w.handleCancelled()
-		case <-w.runningCtx.Done():
-			w.finished = true
-		}
-	}
-
-	return nil, false
+	return true
 }

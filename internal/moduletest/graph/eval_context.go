@@ -61,22 +61,26 @@ type EvalContext struct {
 	FileStates map[string]*TestFileState
 	stateLock  sync.Mutex
 
-	// cancelContext is a context that can be used to terminate the evaluation of the
-	// test suite.
-	// cancelFunc is the conrresponding cancel function that should be called to
-	// cancel the context.
+	// cancelContext and stopContext can be used to terminate the evaluation of the
+	// test suite when a cancellation or stop signal is received.
+	// cancelFunc and stopFunc are the corresponding functions to call to signal
+	// the termination.
 	cancelContext context.Context
 	cancelFunc    context.CancelFunc
+	stopContext   context.Context
+	stopFunc      context.CancelFunc
 
-	renderer  views.Test
-	cancelled bool
-	stopped   bool
+	renderer views.Test
+	verbose  bool
 }
 
 // NewEvalContext constructs a new graph evaluation context for use in
 // evaluating the runs within a test suite.
-func NewEvalContext(cancelCtx context.Context) *EvalContext {
+// The context is initialized with the provided cancel and stop contexts, and
+// these contexts can be used from external commands to signal the termination of the test suite.
+func NewEvalContext(cancelCtx, stopCtx context.Context, verbose bool) *EvalContext {
 	cancelCtx, cancel := context.WithCancel(cancelCtx)
+	stopCtx, stop := context.WithCancel(stopCtx)
 	return &EvalContext{
 		runOutputs:      make(map[addrs.Run]cty.Value),
 		outputsLock:     sync.Mutex{},
@@ -87,6 +91,9 @@ func NewEvalContext(cancelCtx context.Context) *EvalContext {
 		VariableCaches:  hcltest.NewVariableCaches(),
 		cancelContext:   cancelCtx,
 		cancelFunc:      cancel,
+		stopContext:     stopCtx,
+		stopFunc:        stop,
+		verbose:         verbose,
 	}
 }
 
@@ -115,11 +122,16 @@ func (ec *EvalContext) Cancelled() bool {
 // Stop signals to the runs in the test suite that they should stop evaluating
 // the test suite, and just skip.
 func (ec *EvalContext) Stop() {
-	ec.stopped = true
+	ec.stopFunc()
 }
 
 func (ec *EvalContext) Stopped() bool {
-	return ec.stopped
+	return ec.stopContext.Err() != nil
+}
+
+// Verbose returns true if the context is in verbose mode.
+func (ec *EvalContext) Verbose() bool {
+	return ec.verbose
 }
 
 // EvaluateRun processes the assertions inside the provided configs.TestRun against

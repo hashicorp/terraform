@@ -219,7 +219,7 @@ func TestTransformForTest(t *testing.T) {
 				availableProviders[provider] = true
 			}
 
-			ctx := NewEvalContext(context.Background())
+			ctx := NewEvalContext(context.Background(), context.Background(), false)
 			ctx.configProviders = map[string]map[string]bool{
 				run.GetModuleConfigID(): availableProviders,
 			}

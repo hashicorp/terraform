@@ -794,7 +794,7 @@ func TestTest_ProviderAlias(t *testing.T) {
 
 	output := done(t)
 
-	if code := init.Run(nil); code != 0 {
+	if code := init.Run([]string{"-no-color"}); code != 0 {
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -807,7 +807,7 @@ func TestTest_ProviderAlias(t *testing.T) {
 		Meta: meta,
 	}
 
-	code := command.Run(nil)
+	code := command.Run([]string{"-no-color"})
 	output = done(t)
 
 	printedOutput := false

@@ -34,7 +34,7 @@ func (b *TestGraphBuilder) Build() (*terraform.Graph, tfdiags.Diagnostics) {
 func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 	steps := []terraform.GraphTransformer{
 		&TestRunTransformer{File: b.File, globalVars: b.GlobalVars},
-		&TestConfigTransformer{},
+		&TestConfigTransformer{File: b.File},
 		terraform.DynamicTransformer(validateRunConfigs),
 		&TestProvidersTransformer{},
 		&CloseTestGraphTransformer{},
@@ -42,4 +42,27 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 	}
 
 	return steps
+}
+
+func validateRunConfigs(g *terraform.Graph) error {
+	for _, v := range g.Vertices() {
+		if node, ok := v.(*NodeTestRun); ok {
+			diags := node.run.Config.Validate(node.run.ModuleConfig)
+			node.run.Diagnostics = node.run.Diagnostics.Append(diags)
+			if diags.HasErrors() {
+				node.run.Status = moduletest.Error
+			}
+		}
+	}
+	return nil
+}
+
+// dynamicNode is a helper node which can be added to the graph to execute
+// a dynamic function at some desired point in the graph.
+type dynamicNode struct {
+	eval func(*EvalContext) tfdiags.Diagnostics
+}
+
+func (n *dynamicNode) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
+	return n.eval(evalCtx)
 }

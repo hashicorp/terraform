@@ -5,6 +5,7 @@ package graph
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -16,58 +17,12 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// TestConfigTransformer is a GraphTransformer that adds all the test runs,
-// and the variables defined in each run block, to the graph.
-type TestConfigTransformer struct{}
-
-func (t *TestConfigTransformer) Transform(g *terraform.Graph) error {
-	// This map tracks the state of each run in the file. If multiple runs
-	// have the same state key, they will share the same state.
-	statesMap := make(map[string]*TestFileState)
-	for _, v := range g.Vertices() {
-		node, ok := v.(*NodeTestRun)
-		if !ok {
-			continue
-		}
-		if _, exists := statesMap[node.run.GetStateKey()]; !exists {
-			statesMap[node.run.GetStateKey()] = &TestFileState{
-				Run:   nil,
-				State: states.NewState(),
-			}
-		}
-	}
-	cfgNode := &nodeConfig{configMap: statesMap}
-	g.Add(cfgNode)
-
-	// Connect all the test runs to the config node, so that the config node
-	// is executed before any of the test runs.
-	for _, v := range g.Vertices() {
-		node, ok := v.(*NodeTestRun)
-		if !ok {
-			continue
-		}
-		g.Connect(dag.BasicEdge(node, cfgNode))
-	}
-
-	return nil
-}
-
-type nodeConfig struct {
-	configMap map[string]*TestFileState
-}
-
-func (n *nodeConfig) Name() string {
-	return "nodeConfig"
-}
-
 type GraphNodeExecutable interface {
 	Execute(ctx *EvalContext) tfdiags.Diagnostics
 }
 
-func (n *nodeConfig) Execute(ctx *EvalContext) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-	ctx.FileStates = n.configMap
-	return diags
+type BindContextOpts interface {
+	BindContextOpts(opts *terraform.ContextOpts)
 }
 
 // TestFileState is a helper struct that just maps a run block to the state that
@@ -75,6 +30,106 @@ func (n *nodeConfig) Execute(ctx *EvalContext) tfdiags.Diagnostics {
 type TestFileState struct {
 	Run   *moduletest.Run
 	State *states.State
+}
+
+// TestConfigTransformer is a GraphTransformer that adds all the test runs,
+// and the variables defined in each run block, to the graph.
+// It also adds a cleanup node for each state that is created by the test runs.
+type TestConfigTransformer struct {
+	File *moduletest.File
+}
+
+func (t *TestConfigTransformer) Transform(g *terraform.Graph) error {
+	// This map tracks the state of each run in the file. If multiple runs
+	// have the same state key, they will share the same state.
+	statesMap := make(map[string]*TestFileState)
+
+	// a root config node that will add the file states to the context
+	rootConfigNode := t.addRootConfigNode(g, statesMap)
+
+	cleanupMap := make(map[string]*NodeStateCleanup)
+	for _, v := range g.Vertices() {
+		node, ok := v.(*NodeTestRun)
+		if !ok {
+			continue
+		}
+		key := node.run.GetStateKey()
+		if _, exists := statesMap[key]; !exists {
+			state := &TestFileState{
+				Run:   nil,
+				State: states.NewState(),
+			}
+			statesMap[key] = state
+			cleanupMap[key] = &NodeStateCleanup{stateKey: key, file: t.File}
+			g.Add(cleanupMap[key])
+		}
+
+		// Connect all the test runs to the config node, so that the config node
+		// is executed before any of the test runs.
+		g.Connect(dag.BasicEdge(node, rootConfigNode))
+	}
+
+	// Add a root cleanup node that runs before cleanup nodes for each state.
+	// Right now it just simply renders a teardown summary, so as to maintain
+	// existing CLI output.
+	rootCleanupNode := t.addRootCleanupNode(g)
+
+	for _, v := range g.Vertices() {
+		switch node := v.(type) {
+		case *NodeTestRun:
+			// All the runs that share the same state, must share the same cleanup node,
+			// which only executes once after all the runs have completed.
+			cleanupNode := cleanupMap[node.run.GetStateKey()]
+			g.Connect(dag.BasicEdge(cleanupNode, node))
+
+			// root cleanup node must execute only after all the test runs
+			// We could decide to change this behavior in future, and just run the cleanup
+			// node after all its dependent runs have completed, but that'll lead
+			// to a change in the CLI output.
+			g.Connect(dag.BasicEdge(rootCleanupNode, node))
+		}
+	}
+
+	// connect all cleanup nodes in reverse-sequential order to
+	// preserve existing behavior, starting from the root cleanup node,
+	// which must run first.
+	added := make(map[string]bool)
+	var prev dag.Vertex = rootCleanupNode
+	for _, v := range slices.Backward(t.File.Runs) {
+		key := v.GetStateKey()
+		if _, exists := added[key]; !exists {
+			node := cleanupMap[key]
+			g.Connect(dag.BasicEdge(node, prev))
+			prev = node
+			added[key] = true
+		}
+	}
+
+	return nil
+}
+
+func (t *TestConfigTransformer) addRootConfigNode(g *terraform.Graph, statesMap map[string]*TestFileState) *dynamicNode {
+	rootConfigNode := &dynamicNode{
+		eval: func(ctx *EvalContext) tfdiags.Diagnostics {
+			var diags tfdiags.Diagnostics
+			ctx.FileStates = statesMap
+			return diags
+		},
+	}
+	g.Add(rootConfigNode)
+	return rootConfigNode
+}
+
+func (t *TestConfigTransformer) addRootCleanupNode(g *terraform.Graph) *dynamicNode {
+	rootCleanupNode := &dynamicNode{
+		eval: func(ctx *EvalContext) tfdiags.Diagnostics {
+			var diags tfdiags.Diagnostics
+			ctx.Renderer().File(t.File, moduletest.TearDown)
+			return diags
+		},
+	}
+	g.Add(rootCleanupNode)
+	return rootCleanupNode
 }
 
 // TransformConfigForRun transforms the run's module configuration to include
