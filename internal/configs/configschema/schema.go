@@ -84,6 +84,18 @@ type Attribute struct {
 	WriteOnly bool
 }
 
+type IdentityAttributes map[string]*IdentityAttribute
+
+type IdentityAttribute struct {
+	// Type is a type specification that the attribute's value must conform to.
+	Type cty.Type
+
+	Description string
+
+	RequiredForImport bool
+	OptionalForImport bool
+}
+
 // Object represents the embedding of a structural object inside an Attribute.
 type Object struct {
 	// Attributes describes the nested attributes which may appear inside the
