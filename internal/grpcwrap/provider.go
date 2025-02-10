@@ -538,6 +538,15 @@ func (p *provider) CallFunction(_ context.Context, req *tfplugin5.CallFunction_R
 
 	return resp, nil
 }
+
+func (p *provider) GetResourceIdentitySchemas(_ context.Context, req *tfplugin5.GetResourceIdentitySchemas_Request) (*tfplugin5.GetResourceIdentitySchemas_Response, error) {
+	panic("Not implemented yet")
+}
+
+func (p *provider) UpgradeResourceIdentity(_ context.Context, req *tfplugin5.UpgradeResourceIdentity_Request) (*tfplugin5.UpgradeResourceIdentity_Response, error) {
+	panic("Not implemented yet")
+}
+
 func (p *provider) Stop(context.Context, *tfplugin5.Stop_Request) (*tfplugin5.Stop_Response, error) {
 	resp := &tfplugin5.Stop_Response{}
 	err := p.provider.Stop()
