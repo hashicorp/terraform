@@ -25,9 +25,6 @@ type NodeTestRun struct {
 	file    *moduletest.File
 	run     *moduletest.Run
 	ctxOpts *terraform.ContextOpts
-
-	// requiredProviders is a map of provider names that the test run depends on.
-	requiredProviders map[string]bool
 }
 
 func (n *NodeTestRun) Run() *moduletest.Run {
@@ -133,7 +130,6 @@ func (n *NodeTestRun) execute(ctx *EvalContext, waiter *operationWaiter) {
 	} else {
 		n.testApply(ctx, variables, waiter)
 	}
-	return
 }
 
 // Validating the module config which the run acts on

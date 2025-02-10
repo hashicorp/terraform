@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -30,6 +31,7 @@ type operationWaiter struct {
 	finished   bool
 	evalCtx    *EvalContext
 	renderer   views.Test
+	lock       sync.Mutex
 }
 
 // NewOperationWaiter creates a new operation waiter.
@@ -52,6 +54,7 @@ func NewOperationWaiter(ctx *terraform.Context, evalCtx *EvalContext, n *NodeTes
 		identifier: identifier,
 		evalCtx:    evalCtx,
 		renderer:   evalCtx.Renderer(),
+		lock:       sync.Mutex{},
 	}
 }
 
@@ -103,6 +106,8 @@ func (w *operationWaiter) wait() bool {
 // update refreshes the operationWaiter with the latest terraform context, progress, and any newly created resources.
 // This should be called before starting a new Terraform operation.
 func (w *operationWaiter) update(ctx *terraform.Context, progress moduletest.Progress, created []*plans.ResourceInstanceChangeSrc) {
+	w.lock.Lock()
+	defer w.lock.Unlock()
 	w.ctx = ctx
 	w.progress = progress
 	w.created = created

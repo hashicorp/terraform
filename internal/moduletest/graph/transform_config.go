@@ -93,6 +93,7 @@ func (t *TestConfigTransformer) Transform(g *terraform.Graph) error {
 	// connect all cleanup nodes in reverse-sequential order to
 	// preserve existing behavior, starting from the root cleanup node,
 	// which must run first.
+	// TODO: Order by parallelism, so that cleanup nodes that can run in parallel
 	added := make(map[string]bool)
 	var prev dag.Vertex = rootCleanupNode
 	for _, v := range slices.Backward(t.File.Runs) {

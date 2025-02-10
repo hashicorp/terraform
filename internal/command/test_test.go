@@ -2532,7 +2532,7 @@ Error while loading schemas for plugin components: Failed to obtain provider
 schema: Could not load the schema for provider
 registry.terraform.io/hashicorp/test: failed to instantiate provider
 "registry.terraform.io/hashicorp/test" to obtain schema: fork/exec
-.terraform/providers/registry.terraform.io/hashicorp/test/1.0.0/darwin_arm64/terraform-provider-test_1.0.0:
+.terraform/providers/registry.terraform.io/hashicorp/test/1.0.0/OS_ARCH/terraform-provider-test_1.0.0:
 permission denied..
 main.tftest.hcl... tearing down
 main.tftest.hcl... fail
@@ -2541,6 +2541,11 @@ Failure! 0 passed, 1 failed.
 `
 
 	actual := output.All()
+
+	// Replace OS_ARCH with a placeholder in both actual and expected output
+	re := regexp.MustCompile(`\.terraform/providers/registry\.terraform\.io/hashicorp/test/1\.0\.0/[^/]+/terraform-provider-test_1\.0\.0`)
+	actual = re.ReplaceAllString(actual, ".terraform/providers/registry.terraform.io/hashicorp/test/1.0.0/OS_ARCH/terraform-provider-test_1.0.0")
+	expected = re.ReplaceAllString(expected, ".terraform/providers/registry.terraform.io/hashicorp/test/1.0.0/OS_ARCH/terraform-provider-test_1.0.0")
 
 	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
 		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)

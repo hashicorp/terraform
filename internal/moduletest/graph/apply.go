@@ -122,7 +122,6 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 		Run:   run,
 		State: updated,
 	})
-	return
 }
 
 func (n *NodeTestRun) apply(tfCtx *terraform.Context, plan *plans.Plan, progress moduletest.Progress, variables terraform.InputValues, waiter *operationWaiter) (*lang.Scope, *states.State, tfdiags.Diagnostics) {
