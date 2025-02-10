@@ -84,17 +84,15 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 
 	runNode := &NodeTestRun{file: file, run: state.Run, ctxOpts: n.ctxOpts}
 	updated := state.State
-	if !diags.HasErrors() {
-		startTime := time.Now().UTC()
-		waiter := NewOperationWaiter(nil, evalCtx, runNode, moduletest.Running, startTime.UnixMilli())
-		var destroyDiags tfdiags.Diagnostics
-		cancelled := waiter.Run(func() {
-			updated, destroyDiags = n.destroy(evalCtx, runNode, waiter)
-			diags = diags.Append(destroyDiags)
-		})
-		if cancelled {
-			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
-		}
+	startTime := time.Now().UTC()
+	waiter := NewOperationWaiter(nil, evalCtx, runNode, moduletest.Running, startTime.UnixMilli())
+	var destroyDiags tfdiags.Diagnostics
+	cancelled := waiter.Run(func() {
+		updated, destroyDiags = n.destroy(evalCtx, runNode, waiter)
+		diags = diags.Append(destroyDiags)
+	})
+	if cancelled {
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
 	}
 
 	if !updated.Empty() {

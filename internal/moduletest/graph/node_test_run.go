@@ -138,8 +138,8 @@ func (n *NodeTestRun) testValidate(ctx *EvalContext, waiter *operationWaiter) {
 	file := n.file
 	config := run.ModuleConfig
 
-	TransformConfigForRun(ctx, run, file)
 	log.Printf("[TRACE] TestFileRunner: called validate for %s/%s", file.Name, run.Name)
+	TransformConfigForRun(ctx, run, file)
 	tfCtx, ctxDiags := terraform.NewContext(n.ctxOpts)
 	if ctxDiags.HasErrors() {
 		return

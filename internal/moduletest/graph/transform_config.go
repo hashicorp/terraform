@@ -78,7 +78,7 @@ func (t *TestConfigTransformer) Transform(g *terraform.Graph) error {
 		switch node := v.(type) {
 		case *NodeTestRun:
 			// All the runs that share the same state, must share the same cleanup node,
-			// which only executes once after all the runs have completed.
+			// which only executes once after all the dependent runs have completed.
 			cleanupNode := cleanupMap[node.run.GetStateKey()]
 			g.Connect(dag.BasicEdge(cleanupNode, node))
 
@@ -90,17 +90,17 @@ func (t *TestConfigTransformer) Transform(g *terraform.Graph) error {
 		}
 	}
 
-	// connect all cleanup nodes in reverse-sequential order to
-	// preserve existing behavior, starting from the root cleanup node,
-	// which must run first.
-	// TODO: Order by parallelism, so that cleanup nodes that can run in parallel
+	// connect all cleanup nodes in reverse-sequential order of run index to
+	// preserve existing behavior, starting from the root cleanup node.
 	added := make(map[string]bool)
-	var prev dag.Vertex = rootCleanupNode
+	var prev dag.Vertex
 	for _, v := range slices.Backward(t.File.Runs) {
 		key := v.GetStateKey()
 		if _, exists := added[key]; !exists {
 			node := cleanupMap[key]
-			g.Connect(dag.BasicEdge(node, prev))
+			if prev != nil {
+				g.Connect(dag.BasicEdge(node, prev))
+			}
 			prev = node
 			added[key] = true
 		}
