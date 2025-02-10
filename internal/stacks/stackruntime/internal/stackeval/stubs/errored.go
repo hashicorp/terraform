@@ -60,6 +60,10 @@ func (p *erroredProvider) GetProviderSchema() providers.GetProviderSchemaRespons
 	return providers.GetProviderSchemaResponse{}
 }
 
+func (p *erroredProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	return providers.GetResourceIdentitySchemasResponse{}
+}
+
 // ImportResourceState implements providers.Interface.
 func (p *erroredProvider) ImportResourceState(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
 	var diags tfdiags.Diagnostics
@@ -176,6 +180,22 @@ func (p *erroredProvider) UpgradeResourceState(req providers.UpgradeResourceStat
 		nil, // nil attribute path means the overall configuration block
 	))
 	return providers.UpgradeResourceStateResponse{
+		Diagnostics: diags,
+	}
+}
+
+func (p *erroredProvider) UpgradeResourceIdentity(req providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse {
+	// Ideally we'd just skip this altogether and echo back what the caller
+	// provided, but the request is in a different serialization format than
+	// the response and so only the real provider can deal with this one.
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is invalid",
+		"Cannot decode the prior state for this resource instance because its provider configuration is invalid.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.UpgradeResourceIdentityResponse{
 		Diagnostics: diags,
 	}
 }
