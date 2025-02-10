@@ -57,7 +57,7 @@ func (diags Diagnostics) Append(new ...interface{}) Diagnostics {
 			diags = append(diags, ti)
 		case Diagnostics:
 			diags = append(diags, ti...) // flatten
-		case diagnosticsAsError:
+		case DiagnosticsAsError:
 			diags = diags.Append(ti.Diagnostics) // unwrap
 		case NonFatalError:
 			diags = diags.Append(ti.Diagnostics) // unwrap
@@ -111,7 +111,7 @@ func diagnosticsForError(err error) []Diagnostic {
 
 	// If we've wrapped a Diagnostics in an error then we'll unwrap
 	// it and add it directly.
-	var asErr diagnosticsAsError
+	var asErr DiagnosticsAsError
 	if errors.As(err, &asErr) {
 		return asErr.Diagnostics
 	}
@@ -206,7 +206,7 @@ func (diags Diagnostics) Err() error {
 	if !diags.HasErrors() {
 		return nil
 	}
-	return diagnosticsAsError{diags}
+	return DiagnosticsAsError{diags}
 }
 
 // ErrWithWarnings is similar to Err except that it will also return a non-nil
@@ -257,11 +257,12 @@ func (diags Diagnostics) Sort() {
 	sort.Stable(sortDiagnostics(diags))
 }
 
-type diagnosticsAsError struct {
+// DiagnosticsAsError embeds diagnostics, and satisfies the error interface.
+type DiagnosticsAsError struct {
 	Diagnostics
 }
 
-func (dae diagnosticsAsError) Error() string {
+func (dae DiagnosticsAsError) Error() string {
 	diags := dae.Diagnostics
 	switch {
 	case len(diags) == 0:
@@ -291,7 +292,7 @@ func (dae diagnosticsAsError) Error() string {
 
 // WrappedErrors is an implementation of errwrap.Wrapper so that an error-wrapped
 // diagnostics object can be picked apart by errwrap-aware code.
-func (dae diagnosticsAsError) WrappedErrors() []error {
+func (dae DiagnosticsAsError) WrappedErrors() []error {
 	var errs []error
 	for _, diag := range dae.Diagnostics {
 		if wrapper, isErr := diag.(nativeError); isErr {
