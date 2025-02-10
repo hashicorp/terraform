@@ -35,6 +35,21 @@ func (b *Block) specType() cty.Type {
 	return hcldec.ImpliedType(b.DecoderSpec())
 }
 
+func (b *IdentityAttributes) ImpliedType() cty.Type {
+	return b.specType().WithoutOptionalAttributesDeep()
+}
+
+// specType returns the cty.Type used for decoding a configuration
+// block using the receiving block schema. This is the type used internally by
+// hcldec to decode configuration.
+func (b *IdentityAttributes) specType() cty.Type {
+	if b == nil {
+		return cty.EmptyObject
+	}
+
+	return hcldec.ImpliedType(b.DecoderSpec())
+}
+
 // ContainsSensitive returns true if any of the attributes of the receiving
 // block or any of its descendant blocks are marked as sensitive.
 //
