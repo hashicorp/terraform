@@ -77,6 +77,11 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return resp
 }
 
+func (p *Provider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	// TODO
+	return providers.GetResourceIdentitySchemasResponse{}
+}
+
 // ValidateProviderConfig is used to validate the configuration values.
 func (p *Provider) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
 	// At this moment there is nothing to configure for the terraform provider,
