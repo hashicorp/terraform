@@ -171,3 +171,17 @@ func (a *Attribute) internalValidate(name, prefix string) error {
 
 	return err
 }
+
+func (o *Object) InternalValidate() error {
+	var err error
+
+	for name, attrS := range o.Attributes {
+		if attrS == nil {
+			err = errors.Join(err, fmt.Errorf("%s%s: attribute schema is nil", "", name))
+			continue
+		}
+		err = errors.Join(err, attrS.internalValidate(name, ""))
+	}
+
+	return err
+}

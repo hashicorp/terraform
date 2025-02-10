@@ -491,12 +491,12 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 		return nil, nil
 	}
 
-	schema, currentVersion := (providerSchema).SchemaForResourceAddr(addr.Resource.ContainingResource())
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceAddr(addr.Resource.ContainingResource())
+	if schema.Body == nil {
 		// Shouldn't happen since we should've failed long ago if no schema is present
 		return nil, diags.Append(fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr))
 	}
-	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema, currentVersion)
+	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema)
 	if n.Config != nil {
 		upgradeDiags = upgradeDiags.InConfigBody(n.Config.Config, addr.String())
 	}
@@ -505,7 +505,13 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 		return nil, diags
 	}
 
-	obj, err := src.Decode(schema.ImpliedType())
+	src, upgradeDiags = upgradeResourceIdentity(addr, provider, src, schema)
+	diags = diags.Append(upgradeDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	obj, err := src.Decode(schema)
 	if err != nil {
 		diags = diags.Append(err)
 	}
@@ -536,14 +542,14 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 		return nil, diags
 	}
 
-	schema, currentVersion := (providerSchema).SchemaForResourceAddr(addr.Resource.ContainingResource())
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceAddr(addr.Resource.ContainingResource())
+	if schema.Body == nil {
 		// Shouldn't happen since we should've failed long ago if no schema is present
 		return nil, diags.Append(fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr))
 
 	}
 
-	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema, currentVersion)
+	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema)
 	if n.Config != nil {
 		upgradeDiags = upgradeDiags.InConfigBody(n.Config.Config, addr.String())
 	}
@@ -556,7 +562,13 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 		return nil, diags
 	}
 
-	obj, err := src.Decode(schema.ImpliedType())
+	src, upgradeDiags = upgradeResourceIdentity(addr, provider, src, schema)
+	diags = diags.Append(upgradeDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	obj, err := src.Decode(schema)
 	if err != nil {
 		diags = diags.Append(err)
 	}

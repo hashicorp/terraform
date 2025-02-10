@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
@@ -52,15 +53,17 @@ func TestAppliedChangeAsProto(t *testing.T) {
 					Module:   addrs.RootModule,
 					Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
 				},
-				Schema: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"id": {
-							Type:     cty.String,
-							Required: true,
-						},
-						"secret": {
-							Type:      cty.String,
-							Sensitive: true,
+				Schema: providers.Schema{
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id": {
+								Type:     cty.String,
+								Required: true,
+							},
+							"secret": {
+								Type:      cty.String,
+								Sensitive: true,
+							},
 						},
 					},
 				},
@@ -160,15 +163,17 @@ func TestAppliedChangeAsProto(t *testing.T) {
 					Module:   addrs.RootModule,
 					Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
 				},
-				Schema: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"id": {
-							Type:     cty.String,
-							Required: true,
-						},
-						"secret": {
-							Type:      cty.String,
-							Sensitive: true,
+				Schema: providers.Schema{
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id": {
+								Type:     cty.String,
+								Required: true,
+							},
+							"secret": {
+								Type:      cty.String,
+								Sensitive: true,
+							},
 						},
 					},
 				},

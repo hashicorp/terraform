@@ -624,3 +624,43 @@ func TestConvertProtoSchemaBlocks(t *testing.T) {
 		})
 	}
 }
+
+func TestProtoToResourceIdentitySchema(t *testing.T) {
+	tests := map[string]struct {
+		Block *proto.ResourceIdentitySchema
+		Want  *configschema.Object
+	}{
+		"simple": {
+			&proto.ResourceIdentitySchema{
+				IdentityAttributes: []*proto.ResourceIdentitySchema_IdentityAttribute{
+					{
+						Name:              "id",
+						Type:              []byte(`"string"`),
+						RequiredForImport: true,
+						OptionalForImport: false,
+						Description:       "Something",
+					},
+				},
+			},
+			&configschema.Object{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:        cty.String,
+						Description: "Something",
+						Required:    true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			converted := ProtoToResourceIdentitySchema(tc.Block)
+			if !cmp.Equal(converted.Body, tc.Want, typeComparer, valueComparer, equateEmpty) {
+				t.Fatal(cmp.Diff(converted.Body, tc.Want, typeComparer, valueComparer, equateEmpty))
+			}
+		})
+	}
+}

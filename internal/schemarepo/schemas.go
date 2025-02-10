@@ -40,10 +40,10 @@ func (ss *Schemas) ProviderConfig(provider addrs.Provider) *configschema.Block {
 // a resource using the "provider" meta-argument. Therefore it's important to
 // always pass the correct provider name, even though it many cases it feels
 // redundant.
-func (ss *Schemas) ResourceTypeConfig(provider addrs.Provider, resourceMode addrs.ResourceMode, resourceType string) (block *configschema.Block, schemaVersion uint64) {
+func (ss *Schemas) ResourceTypeConfig(provider addrs.Provider, resourceMode addrs.ResourceMode, resourceType string) providers.Schema {
 	ps := ss.ProviderSchema(provider)
 	if ps.ResourceTypes == nil {
-		return nil, 0
+		return providers.Schema{}
 	}
 	return ps.SchemaForResourceType(resourceMode, resourceType)
 }

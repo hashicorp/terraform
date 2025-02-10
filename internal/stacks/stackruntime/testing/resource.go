@@ -56,7 +56,7 @@ func (t *testingResource) Read(request providers.ReadResourceRequest, store *Res
 	var exists bool
 	response.NewState, exists = store.Get(id)
 	if !exists {
-		response.NewState = cty.NullVal(TestingResourceSchema.ImpliedType())
+		response.NewState = cty.NullVal(TestingResourceSchema.Body.ImpliedType())
 	}
 	return
 }
@@ -110,7 +110,7 @@ func (d *deferredResource) Read(request providers.ReadResourceRequest, store *Re
 	var exists bool
 	response.NewState, exists = store.Get(id)
 	if !exists {
-		response.NewState = cty.NullVal(DeferredResourceSchema.ImpliedType())
+		response.NewState = cty.NullVal(DeferredResourceSchema.Body.ImpliedType())
 	}
 	return
 }
@@ -173,7 +173,7 @@ func (f *failedResource) Read(request providers.ReadResourceRequest, store *Reso
 	var exists bool
 	response.NewState, exists = store.Get(id)
 	if !exists {
-		response.NewState = cty.NullVal(FailedResourceSchema.ImpliedType())
+		response.NewState = cty.NullVal(FailedResourceSchema.Body.ImpliedType())
 	}
 	return
 }
@@ -253,7 +253,7 @@ func (b *blockedResource) Read(request providers.ReadResourceRequest, store *Res
 	var exists bool
 	response.NewState, exists = store.Get(id)
 	if !exists {
-		response.NewState = cty.NullVal(DeferredResourceSchema.ImpliedType())
+		response.NewState = cty.NullVal(DeferredResourceSchema.Body.ImpliedType())
 	}
 	return
 }

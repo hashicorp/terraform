@@ -9,6 +9,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 
+	"maps"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -58,5 +60,31 @@ func getProvider(ctx EvalContext, addr addrs.AbsProviderConfig) (providers.Inter
 	if err != nil {
 		return nil, providers.ProviderSchema{}, fmt.Errorf("failed to read schema for provider %s: %w", addr, err)
 	}
+
+	identitySchemas, err := ctx.ResourceIdentitySchemas(addr)
+	if err == nil && len(identitySchemas.IdentityTypes) > 0 {
+		resourceTypes := make(map[string]providers.Schema, len(schema.ResourceTypes))
+		maps.Copy(resourceTypes, schema.ResourceTypes)
+
+		// We only merge resource identity schemas when a provider has them available
+		for name, identitySchema := range identitySchemas.IdentityTypes {
+			if resource, ok := schema.ResourceTypes[name]; !ok {
+				// This shouldn't happen, but in case we get an identity for a non-existent resource type
+				log.Printf("[WARN] Failed to find resource type %s for provider %s", name, addr)
+				continue
+			} else {
+				resourceTypes[name] = providers.Schema{
+					Body:    resource.Body,
+					Version: resource.Version,
+
+					Identity:        identitySchema.Body,
+					IdentityVersion: identitySchema.Version,
+				}
+			}
+		}
+
+		schema.ResourceTypes = resourceTypes
+	}
+
 	return provider, schema, nil
 }

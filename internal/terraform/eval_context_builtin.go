@@ -196,6 +196,10 @@ func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (pro
 	return ctx.Plugins.ProviderSchema(addr.Provider)
 }
 
+func (ctx *BuiltinEvalContext) ResourceIdentitySchemas(addr addrs.AbsProviderConfig) (providers.ResourceIdentitySchemas, error) {
+	return ctx.Plugins.ResourceIdentitySchemas(addr.Provider)
+}
+
 func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.AbsProviderConfig) error {
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()

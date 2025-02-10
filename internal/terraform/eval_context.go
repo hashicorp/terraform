@@ -70,6 +70,8 @@ type EvalContext interface {
 	// resources in one module are able to use providers from other modules.
 	ProviderSchema(addrs.AbsProviderConfig) (providers.ProviderSchema, error)
 
+	ResourceIdentitySchemas(addrs.AbsProviderConfig) (providers.ResourceIdentitySchemas, error)
+
 	// CloseProvider closes provider connections that aren't needed anymore.
 	//
 	// This method will panic if the module instance address of the given

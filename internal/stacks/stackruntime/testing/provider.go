@@ -19,42 +19,52 @@ import (
 )
 
 var (
-	TestingResourceSchema = &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"id":    {Type: cty.String, Optional: true, Computed: true},
-			"value": {Type: cty.String, Optional: true},
+	TestingResourceSchema = providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"id":    {Type: cty.String, Optional: true, Computed: true},
+				"value": {Type: cty.String, Optional: true},
+			},
 		},
 	}
 
-	DeferredResourceSchema = &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"id":       {Type: cty.String, Optional: true, Computed: true},
-			"value":    {Type: cty.String, Optional: true},
-			"deferred": {Type: cty.Bool, Required: true},
+	DeferredResourceSchema = providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"id":       {Type: cty.String, Optional: true, Computed: true},
+				"value":    {Type: cty.String, Optional: true},
+				"deferred": {Type: cty.Bool, Required: true},
+			},
 		},
 	}
 
-	FailedResourceSchema = &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"id":         {Type: cty.String, Optional: true, Computed: true},
-			"value":      {Type: cty.String, Optional: true},
-			"fail_plan":  {Type: cty.Bool, Optional: true, Computed: true},
-			"fail_apply": {Type: cty.Bool, Optional: true, Computed: true},
+	FailedResourceSchema = providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"id":         {Type: cty.String, Optional: true, Computed: true},
+				"value":      {Type: cty.String, Optional: true},
+				"fail_plan":  {Type: cty.Bool, Optional: true, Computed: true},
+				"fail_apply": {Type: cty.Bool, Optional: true, Computed: true},
+			},
 		},
 	}
 
-	BlockedResourceSchema = &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"id":                 {Type: cty.String, Optional: true, Computed: true},
-			"value":              {Type: cty.String, Optional: true},
-			"required_resources": {Type: cty.Set(cty.String), Optional: true},
+	BlockedResourceSchema = providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"id":                 {Type: cty.String, Optional: true, Computed: true},
+				"value":              {Type: cty.String, Optional: true},
+				"required_resources": {Type: cty.Set(cty.String), Optional: true},
+			},
 		},
 	}
 
-	TestingDataSourceSchema = &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"id":    {Type: cty.String, Required: true},
-			"value": {Type: cty.String, Computed: true},
+	TestingDataSourceSchema = providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"id":    {Type: cty.String, Required: true},
+				"value": {Type: cty.String, Computed: true},
+			},
 		},
 	}
 )
@@ -127,21 +137,21 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 				},
 				ResourceTypes: map[string]providers.Schema{
 					"testing_resource": {
-						Body: TestingResourceSchema,
+						Body: TestingResourceSchema.Body,
 					},
 					"testing_deferred_resource": {
-						Body: DeferredResourceSchema,
+						Body: DeferredResourceSchema.Body,
 					},
 					"testing_failed_resource": {
-						Body: FailedResourceSchema,
+						Body: FailedResourceSchema.Body,
 					},
 					"testing_blocked_resource": {
-						Body: BlockedResourceSchema,
+						Body: BlockedResourceSchema.Body,
 					},
 				},
 				DataSources: map[string]providers.Schema{
 					"testing_data_source": {
-						Body: TestingDataSourceSchema,
+						Body: TestingDataSourceSchema.Body,
 					},
 				},
 				Functions: map[string]providers.FunctionDecl{

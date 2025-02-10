@@ -424,16 +424,16 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 		r.PreviousAddress = rc.PrevRunAddr.String()
 	}
 
-	schema, _ := schemas.ResourceTypeConfig(
+	schema := schemas.ResourceTypeConfig(
 		rc.ProviderAddr.Provider,
 		addr.Resource.Resource.Mode,
 		addr.Resource.Resource.Type,
 	)
-	if schema == nil {
+	if schema.Body == nil {
 		return r, fmt.Errorf("no schema found for %s (in provider %s)", r.Address, rc.ProviderAddr.Provider)
 	}
 
-	changeV, err := rc.Decode(schema.ImpliedType())
+	changeV, err := rc.Decode(schema.Body.ImpliedType())
 	if err != nil {
 		return r, err
 	}
@@ -452,7 +452,7 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 			return r, err
 		}
 		sensitivePaths := rc.BeforeSensitivePaths
-		sensitivePaths = append(sensitivePaths, schema.SensitivePaths(changeV.Before, nil)...)
+		sensitivePaths = append(sensitivePaths, schema.Body.SensitivePaths(changeV.Before, nil)...)
 		bs := jsonstate.SensitiveAsBool(marks.MarkPaths(changeV.Before, marks.Sensitive, sensitivePaths))
 		beforeSensitive, err = ctyjson.Marshal(bs, bs.Type())
 		if err != nil {
@@ -479,7 +479,7 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 			afterUnknown = unknownAsBool(changeV.After)
 		}
 		sensitivePaths := rc.AfterSensitivePaths
-		sensitivePaths = append(sensitivePaths, schema.SensitivePaths(changeV.After, nil)...)
+		sensitivePaths = append(sensitivePaths, schema.Body.SensitivePaths(changeV.After, nil)...)
 		as := jsonstate.SensitiveAsBool(marks.MarkPaths(changeV.After, marks.Sensitive, sensitivePaths))
 		afterSensitive, err = ctyjson.Marshal(as, as.Type())
 		if err != nil {

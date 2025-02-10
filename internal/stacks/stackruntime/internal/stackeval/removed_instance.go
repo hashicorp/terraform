@@ -14,11 +14,11 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
@@ -323,7 +323,7 @@ func (r *RemovedInstance) RequiredComponents(ctx context.Context) collections.Se
 }
 
 // ResourceSchema implements stackplan.PlanProducer.
-func (r *RemovedInstance) ResourceSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, typ string) (*configschema.Block, error) {
+func (r *RemovedInstance) ResourceSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, typ string) (providers.Schema, error) {
 	// This should not be able to fail with an error because we should
 	// be retrieving the same schema that was already used to encode
 	// the object we're working with. The error handling here is for
@@ -332,11 +332,11 @@ func (r *RemovedInstance) ResourceSchema(ctx context.Context, providerTypeAddr a
 	providerType := r.main.ProviderType(ctx, providerTypeAddr)
 	providerSchema, err := providerType.Schema(ctx)
 	if err != nil {
-		return nil, err
+		return providers.Schema{}, err
 	}
-	ret, _ := providerSchema.SchemaForResourceType(mode, typ)
-	if ret == nil {
-		return nil, fmt.Errorf("schema does not include %v %q", mode, typ)
+	ret := providerSchema.SchemaForResourceType(mode, typ)
+	if ret.Body == nil {
+		return providers.Schema{}, fmt.Errorf("schema does not include %v %q", mode, typ)
 	}
 	return ret, nil
 }
