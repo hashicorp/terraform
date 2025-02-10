@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -25,13 +25,24 @@ type operationWaiter struct {
 	run        *moduletest.Run
 	file       *moduletest.File
 	created    []*plans.ResourceInstanceChangeSrc
-	progress   moduletest.Progress
+	progress   atomicProgress[moduletest.Progress]
 	start      int64
 	identifier string
 	finished   bool
 	evalCtx    *EvalContext
 	renderer   views.Test
-	lock       sync.Mutex
+}
+
+type atomicProgress[T moduletest.Progress] struct {
+	internal atomic.Value
+}
+
+func (a *atomicProgress[T]) Load() T {
+	return a.internal.Load().(T)
+}
+
+func (a *atomicProgress[T]) Store(progress T) {
+	a.internal.Store(progress)
 }
 
 // NewOperationWaiter creates a new operation waiter.
@@ -45,16 +56,18 @@ func NewOperationWaiter(ctx *terraform.Context, evalCtx *EvalContext, n *NodeTes
 		}
 	}
 
+	p := atomicProgress[moduletest.Progress]{}
+	p.Store(progress)
+
 	return &operationWaiter{
 		ctx:        ctx,
 		run:        n.run,
 		file:       n.file,
-		progress:   progress,
+		progress:   p,
 		start:      start,
 		identifier: identifier,
 		evalCtx:    evalCtx,
 		renderer:   evalCtx.Renderer(),
-		lock:       sync.Mutex{},
 	}
 }
 
@@ -106,16 +119,15 @@ func (w *operationWaiter) wait() bool {
 // update refreshes the operationWaiter with the latest terraform context, progress, and any newly created resources.
 // This should be called before starting a new Terraform operation.
 func (w *operationWaiter) update(ctx *terraform.Context, progress moduletest.Progress, created []*plans.ResourceInstanceChangeSrc) {
-	w.lock.Lock()
-	defer w.lock.Unlock()
 	w.ctx = ctx
-	w.progress = progress
+	w.progress.Store(progress)
 	w.created = created
 }
 
 func (w *operationWaiter) updateProgress() {
 	now := time.Now().UTC().UnixMilli()
-	w.renderer.Run(w.run, w.file, w.progress, now-w.start)
+	progress := w.progress.Load()
+	w.renderer.Run(w.run, w.file, progress, now-w.start)
 }
 
 // handleCancelled is called when the test execution is hard cancelled.
