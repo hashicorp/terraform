@@ -176,6 +176,55 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return resp
 }
 
+func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	// check the global cache if we can
+	// FIXME: A global cache is inappropriate when Terraform Core is being
+	// used in a non-Terraform-CLI mode where we shouldn't assume that all
+	// calls share the same provider implementations.
+	if !p.Addr.IsZero() {
+		if resp, ok := providers.ResourceIdentitySchemaCache.Get(p.Addr); ok {
+			logger.Trace("GRPCProvider.v6: returning cached resource identity schemas", p.Addr.String())
+			return resp
+		}
+	}
+	logger.Trace("GRPCProvider.v6: GetResourceIdentitySchemas")
+
+	// TODO local cache?
+
+	var resp providers.GetResourceIdentitySchemasResponse
+
+	resp.IdentityTypes = make(map[string]providers.IdentitySchema)
+
+	protoResp, err := p.client.GetResourceIdentitySchemas(p.ctx, new(proto6.GetResourceIdentitySchemas_Request))
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	if resp.Diagnostics.HasErrors() {
+		return resp
+	}
+
+	for name, res := range protoResp.IdentitySchemas {
+		resp.IdentityTypes[name] = convert.ProtoToResourceIdentitySchema(res)
+	}
+
+	// set the global cache if we can
+	// FIXME: A global cache is inappropriate when Terraform Core is being
+	// used in a non-Terraform-CLI mode where we shouldn't assume that all
+	// calls share the same provider implementations.
+	if !p.Addr.IsZero() {
+		providers.ResourceIdentitySchemaCache.Set(p.Addr, resp)
+	}
+
+	return resp
+}
+
 func (p *GRPCProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 	logger.Trace("GRPCProvider.v6: ValidateProviderConfig")
 

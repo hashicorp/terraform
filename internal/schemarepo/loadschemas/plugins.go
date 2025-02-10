@@ -190,6 +190,48 @@ func (cp *Plugins) ProviderSchema(addr addrs.Provider) (providers.ProviderSchema
 	return resp, nil
 }
 
+func (cp *Plugins) ResourceIdentitySchemas(addr addrs.Provider) (providers.ResourceIdentitySchemas, error) {
+	// Check the global schema cache first.
+	// This cache is only written by the provider client, and transparently
+	// used by GetProviderSchema, but we check it here because at this point we
+	// may be able to avoid spinning up the provider instance at all.
+	// We skip this if we have preloaded schemas because that suggests that
+	// our caller is not Terraform CLI and therefore it's probably inappropriate
+	// to assume that provider schemas are unique process-wide.
+	//
+	// FIXME: A global cache is inappropriate when Terraform Core is being
+	// used in a non-Terraform-CLI mode where we shouldn't assume that all
+	// calls share the same provider implementations.
+	schemas, ok := providers.ResourceIdentitySchemaCache.Get(addr)
+	if ok {
+		log.Printf("[TRACE] terraform.contextPlugins: Resource identity schemas for provider %q is in the global cache", addr)
+		return schemas, nil
+	}
+
+	// TODO preload identity schemas?
+
+	log.Printf("[TRACE] terraform.contextPlugins: Initializing provider %q to read its resource identity schemas", addr)
+	provider, err := cp.NewProviderInstance(addr)
+	if err != nil {
+		return schemas, fmt.Errorf("failed to instantiate provider %q to obtain resource identity schemas: %s", addr, err)
+	}
+	defer provider.Close()
+
+	resp := provider.GetResourceIdentitySchemas()
+	if resp.Diagnostics.HasErrors() {
+		return resp, fmt.Errorf("failed to retrieve resource identity schemas from provider %q: %s", addr, resp.Diagnostics.Err())
+	}
+
+	for t, r := range resp.IdentityTypes {
+		// TODO validate?
+		if r.Version < 0 {
+			return resp, fmt.Errorf("provider %s has invalid negative schema version for managed resource type %q, which is a bug in the provider", addr, t)
+		}
+	}
+
+	return resp, nil
+}
+
 // ProviderConfigSchema is a helper wrapper around ProviderSchema which first
 // reads the full schema of the given provider and then extracts just the
 // provider's configuration schema, which defines what's expected in a
