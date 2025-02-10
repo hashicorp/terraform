@@ -35,7 +35,7 @@ func TestTest_Runs(t *testing.T) {
 		code                  int
 		initCode              int
 		skip                  bool
-		desc                  string
+		description           string
 	}{
 		"simple_pass": {
 			expectedOut: []string{"1 passed, 0 failed."},
@@ -68,7 +68,7 @@ func TestTest_Runs(t *testing.T) {
 			args:        []string{"-parallelism", "1"},
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
-			desc:        "simple_pass with parallelism set to 1",
+			description: "simple_pass with parallelism set to 1",
 		},
 		"simple_pass_very_nested_alternate": {
 			override:    "simple_pass_very_nested",
@@ -109,10 +109,6 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"expect_failures_inputs": {
-			expectedOut: []string{"1 passed, 0 failed."},
-			code:        0,
-		},
-		"expect_failures_outputs": {
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
@@ -405,7 +401,7 @@ func TestTest_Runs(t *testing.T) {
 				Meta: meta,
 			}
 
-			code := c.Run(tc.args)
+			code := c.Run(append(tc.args, "-no-color"))
 			output := done(t)
 
 			if code != tc.code {
@@ -1843,6 +1839,7 @@ the apply operation could not be executed and so the overall test case will
 be marked as a failure and the original diagnostic included in the test
 report.
 
+  run "no_run"... skip
 input.tftest.hcl... tearing down
 input.tftest.hcl... fail
 output.tftest.hcl... in progress
@@ -1875,7 +1872,7 @@ test report.
 resource.tftest.hcl... tearing down
 resource.tftest.hcl... fail
 
-Failure! 1 passed, 3 failed.
+Failure! 1 passed, 3 failed, 1 skipped.
 `
 	actualOut := output.Stdout()
 	if diff := cmp.Diff(expectedOut, actualOut); len(diff) > 0 {
@@ -1911,6 +1908,71 @@ Error: Resource postcondition failed
     │ self.value is "acd"
 
 input must contain the character 'b'
+`
+	actualErr := output.Stderr()
+	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_MissingExpectedFailuresDuringApply(t *testing.T) {
+	// Test asserting that the test run fails, but not errors out, when expected failures are not present during apply.
+	// This lets subsequent runs continue to execute and the file to be marked as failed.
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "expect_failures_during_apply")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	if code == 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	expectedOut := `main.tftest.hcl... in progress
+  run "test"... fail
+  run "follow-up"... pass
+
+Warning: Value for undeclared variable
+
+  on main.tftest.hcl line 16, in run "follow-up":
+  16:     input = "does not matter"
+
+The module under test does not declare a variable named "input", but it is
+declared in run block "follow-up".
+
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 1 passed, 1 failed.
+`
+	actualOut := output.Stdout()
+	if diff := cmp.Diff(expectedOut, actualOut); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
+	}
+
+	expectedErr := `
+Error: Missing expected failure
+
+  on main.tftest.hcl line 7, in run "test":
+   7:     output.output
+
+The checkable object, output.output, was expected to report an error but did
+not.
 `
 	actualErr := output.Stderr()
 	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
