@@ -1,6 +1,27 @@
 ## 1.12.0 (Unreleased)
 
 
+
+ENHANCEMENTS:
+
+* Terraform Test command now accepts a -parallelism=n option, which sets the number of parallel operations in a test run's plan/apply operation. ([#34237](https://github.com/hashicorp/terraform/issues/34237))
+
+* Logical binary operators can now short-circuit ([#36224](https://github.com/hashicorp/terraform/issues/36224))
+
+* Terraform Test: Runs can now be annotated for possible parallel execution. ([#34180](https://github.com/hashicorp/terraform/issues/34180))
+
+* Allow terraform init when tests are present but no configuration files are directly inside the current directory ([#35040](https://github.com/hashicorp/terraform/issues/35040))
+
+* Terraform Test: Continue subsequent test execution when an expected failure is not encountered. ([#34969](https://github.com/hashicorp/terraform/issues/34969))
+
+
+BUG FIXES:
+
+* Refreshed state was not used in the plan for orphaned resource instances ([#36394](https://github.com/hashicorp/terraform/issues/36394))
+
+* Fixes malformed Terraform version error when the remote backend reads a remote workspace that specifies a Terraform version constraint. ([#36356](https://github.com/hashicorp/terraform/issues/36356))
+
+
 EXPERIMENTS:
 
 Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
