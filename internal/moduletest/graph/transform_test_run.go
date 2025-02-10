@@ -33,7 +33,7 @@ func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
 
 	// Connect nodes based on dependencies
 	if diags := t.connectDependencies(g, nodes); diags.HasErrors() {
-		return tfdiags.NonFatalError{Diagnostics: diags}
+		return tfdiags.DiagnosticsAsError{Diagnostics: diags}
 	}
 
 	// Runs with the same state key inherently depend on each other, so we

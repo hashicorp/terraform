@@ -320,11 +320,6 @@ func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnost
 func (ec *EvalContext) SetFileState(key string, state *TestFileState) {
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
-	fileState := ec.FileStates[key]
-	if fileState != nil {
-		ec.FileStates[key] = state
-		return
-	}
 	ec.FileStates[key] = &TestFileState{
 		Run:   state.Run,
 		State: state.State,
