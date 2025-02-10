@@ -4,9 +4,9 @@
 package tfdiags
 
 import (
-	"bytes"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 )
@@ -15,7 +15,7 @@ import (
 // representation of a cty.Path. The result uses a syntax similar to the
 // HCL expression language in the hope of it being familiar to users.
 func FormatCtyPath(path cty.Path) string {
-	var buf bytes.Buffer
+	var buf strings.Builder
 	for _, step := range path {
 		switch ts := step.(type) {
 		case cty.GetAttrStep:
