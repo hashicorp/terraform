@@ -178,31 +178,22 @@ func (n *NodeTestRun) apply(tfCtx *terraform.Context, plan *plans.Plan, progress
 // checkForMissingExpectedFailures checks for missing expected failures in the diagnostics.
 // It updates the run status based on the presence of errors or missing expected failures.
 func (n *NodeTestRun) checkForMissingExpectedFailures(run *moduletest.Run, diags tfdiags.Diagnostics) (failOrErr bool) {
-	// If there are errors in the diagnostics, update the run status to error.
-	if diags.HasErrors() {
-		run.Status = moduletest.Error
-	}
-
-	// Retrieve diagnostics that are either unrelated to expected failures or report missing expected failures.
+	// Retrieve and append diagnostics that are either unrelated to expected failures
+	// or report missing expected failures.
 	unexpectedDiags := run.ValidateExpectedFailures(diags)
-	var nonFailureDiags tfdiags.Diagnostics
+	run.Diagnostics = run.Diagnostics.Append(unexpectedDiags)
 	for _, diag := range unexpectedDiags {
-		switch {
-		// If any diagnostic indicates a missing expected failure, update the run status to fail.
-		case diag.Description().Summary == moduletest.MissingFailureSummary:
-			diag.ExtraInfo()
-			run.Status = moduletest.Fail
-		default:
-			// Append other diagnostics.
-			nonFailureDiags = nonFailureDiags.Append(diag)
+		// // If any diagnostic indicates a missing expected failure, set the run status to fail.
+		if ok := moduletest.DiagnosticFromMissingExpectedFailure(diag); ok {
+			run.Status = run.Status.Merge(moduletest.Fail)
+			continue
+		}
+
+		// upgrade the run status to error if there still are other errors in the diagnostics
+		if diag.Severity() == tfdiags.Error {
+			run.Status = run.Status.Merge(moduletest.Error)
+			break
 		}
 	}
-	// If there are other errors, update the run status to error.
-	if nonFailureDiags.HasErrors() {
-		run.Status = moduletest.Error
-	}
-
-	// Append all diagnostics that are not expected failures to the run diagnostics.
-	run.Diagnostics = run.Diagnostics.Append(unexpectedDiags)
 	return run.Status > moduletest.Pass
 }

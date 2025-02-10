@@ -20,8 +20,7 @@ import (
 )
 
 const (
-	MainStateIdentifier   = ""
-	MissingFailureSummary = "Missing expected failure"
+	MainStateIdentifier = ""
 )
 
 type Run struct {
@@ -546,12 +545,35 @@ func (run *Run) ValidateExpectedFailures(originals tfdiags.Diagnostics) tfdiags.
 			// diagnostics.
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  MissingFailureSummary,
+				Summary:  "Missing expected failure",
 				Detail:   fmt.Sprintf("The checkable object, %s, was expected to report an error but did not.", addr.String()),
 				Subject:  sourceRanges.Get(addr).ToHCL().Ptr(),
+				Extra:    missingExpectedFailure(true),
 			})
 		}
 	}
 
 	return diags
+}
+
+// DiagnosticExtraFromMissingExpectedFailure provides an interface for diagnostic ExtraInfo to
+// denote that a diagnostic was generated as a result of a missing expected failure.
+type DiagnosticExtraFromMissingExpectedFailure interface {
+	DiagnosticFromMissingExpectedFailure() bool
+}
+
+// DiagnosticFromMissingExpectedFailure checks if the provided diagnostic
+// is a result of a missing expected failure.
+func DiagnosticFromMissingExpectedFailure(diag tfdiags.Diagnostic) bool {
+	maybe := tfdiags.ExtraInfo[DiagnosticExtraFromMissingExpectedFailure](diag)
+	if maybe == nil {
+		return false
+	}
+	return maybe.DiagnosticFromMissingExpectedFailure()
+}
+
+type missingExpectedFailure bool
+
+func (missingExpectedFailure) DiagnosticFromMissingExpectedFailure() bool {
+	return true
 }
