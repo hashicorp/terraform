@@ -80,6 +80,11 @@ func (s simple) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return s.schema
 }
 
+func (s simple) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	// TODO
+	return providers.GetResourceIdentitySchemasResponse{}
+}
+
 func (s simple) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 	return resp
 }

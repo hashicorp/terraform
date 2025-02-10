@@ -37,3 +37,10 @@ func (ss ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeName
 func (ss ProviderSchema) SchemaForResourceAddr(addr addrs.Resource) (schema *configschema.Block, version uint64) {
 	return ss.SchemaForResourceType(addr.Mode, addr.Type)
 }
+
+type ResourceIdentitySchemas = GetResourceIdentitySchemasResponse
+
+func (ss ResourceIdentitySchemas) IdentitySchemaForResourceAddr(addr addrs.Resource) (schema configschema.IdentityAttributes, version uint64) {
+	res := ss.IdentityTypes[addr.Type]
+	return res.Attributes, uint64(res.Version)
+}

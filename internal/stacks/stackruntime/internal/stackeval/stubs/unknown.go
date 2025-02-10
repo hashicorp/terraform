@@ -39,6 +39,10 @@ func (u *unknownProvider) GetProviderSchema() providers.GetProviderSchemaRespons
 	return u.unconfiguredClient.GetProviderSchema()
 }
 
+func (u *unknownProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	return u.unconfiguredClient.GetResourceIdentitySchemas()
+}
+
 func (u *unknownProvider) ValidateProviderConfig(request providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
 	// This is offline functionality, so we can hand it off to the unconfigured
 	// client.

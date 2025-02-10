@@ -66,6 +66,11 @@ func (m *Mock) GetProviderSchema() GetProviderSchemaResponse {
 	return *m.schema
 }
 
+func (m *Mock) GetResourceIdentitySchemas() GetResourceIdentitySchemasResponse {
+	// TODO
+	return GetResourceIdentitySchemasResponse{}
+}
+
 func (m *Mock) ValidateProviderConfig(request ValidateProviderConfigRequest) (response ValidateProviderConfigResponse) {
 	// The config for the mocked providers is consistent, and validated when we
 	// parse the HCL directly. So we'll just make no change here.
