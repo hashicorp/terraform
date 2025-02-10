@@ -6641,6 +6641,7 @@ resource "test_instance" "a" {
   lifecycle {
     ignore_changes = [data]
   }
+  data = "new value"
 }
 `,
 	})
@@ -6673,7 +6674,7 @@ resource "test_instance" "a" {
 		mustResourceInstanceAddr("test_instance.a").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
-			AttrsJSON:    []byte(`{"id":"a","data":"foo"}`),
+			AttrsJSON:    []byte(`{"id":"a","data":"old value"}`),
 			Dependencies: []addrs.ConfigResource{},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
@@ -6693,6 +6694,237 @@ resource "test_instance" "a" {
 		if c.Action != plans.NoOp {
 			t.Fatalf("expected no changes, got %s for %q", c.Action, c.Addr)
 		}
+	}
+}
+
+func TestContext2Plan_validateIgnoreChanges(t *testing.T) {
+
+	cases := map[string]struct {
+		config map[string]string
+	}{
+		"ignored fields can be listed without quotation marks": {
+			config: map[string]string{
+				"main.tf": `
+		resource "test_instance" "a" {
+		  lifecycle {
+		    ignore_changes = [data, foobar]
+		  }
+			data = "new value"
+		}
+		`,
+			},
+		},
+		// This is deprecated as of TF 0.12
+		"ignored fields can be listed with quotation marks": {
+			config: map[string]string{
+				"main.tf": `
+		resource "test_instance" "a" {
+		  lifecycle {
+		    ignore_changes = ["data", "foobar"]
+		  }
+		  data = "new value"
+		}
+		`,
+			},
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+
+			// Setup
+			m := testModuleInline(t, tc.config)
+
+			p := testProvider("test")
+			p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+				ResourceTypes: map[string]*configschema.Block{
+					"test_instance": {
+						Attributes: map[string]*configschema.Attribute{
+							"id":     {Type: cty.String, Computed: true},
+							"data":   {Type: cty.String, Optional: true},
+							"foobar": {Type: cty.String, Optional: true},
+						},
+					},
+				},
+			})
+			p.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
+				var diags tfdiags.Diagnostics
+				if req.TypeName == "test_instance" {
+					if !req.Config.GetAttr("id").IsNull() {
+						diags = diags.Append(errors.New("id cannot be set in config"))
+					}
+				}
+				return providers.ValidateResourceConfigResponse{
+					Diagnostics: diags,
+				}
+			}
+
+			state := states.NewState()
+			root := state.EnsureModule(addrs.RootModuleInstance)
+			root.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test_instance.a").Resource,
+				&states.ResourceInstanceObjectSrc{
+					Status:       states.ObjectReady,
+					AttrsJSON:    []byte(`{"id":"a","data":"old value"}`),
+					Dependencies: []addrs.ConfigResource{},
+				},
+				mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+			)
+
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			// Plan
+			plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+			if diags.HasErrors() {
+				t.Fatal(diags.Err())
+			}
+
+			// Assert the plan is empty due to ignore_changes
+			for _, c := range plan.Changes.Resources {
+				if c.Action != plans.NoOp {
+					t.Fatalf("expected NoOp plan, got %s\n", c.Action)
+				}
+			}
+		})
+	}
+}
+
+func TestContext2Plan_validateIgnoreChangesConditional(t *testing.T) {
+
+	cases := map[string]struct {
+		config      map[string]string
+		expectError bool
+	}{
+		"ignore_changes can be set as a conditional expression": {
+			config: map[string]string{
+				"main.tf": `
+		variable "ignore_data" {
+			type = bool
+			default = false
+		}
+		 resource "test_instance" "a" {
+		     lifecycle {
+		        ignore_changes = var.ignore_data ? [data, foobar] : [foobar]
+		     }
+		     data = "new value"
+		 }
+		`,
+			},
+			expectError: false,
+		},
+		// //  This test currently panics
+		// //  We should stop users using string references in the new conditional expressions
+		// //  as use of string references is deprecated in the existing ignore_changes features.
+		// "conditional expressions used for ignore_changes cannot refer to fields using strings": {
+		// 	config: map[string]string{
+		// 		"main.tf": `
+		// variable "ignore_data" {
+		// 	type = bool
+		// 	default = false
+		// }
+		//  resource "test_instance" "a" {
+		//      lifecycle {
+		//         ignore_changes = var.ignore_data ? ["data", "foobar"] : [ "foobar"]
+		//      }
+		//      data = "new value"
+		//  }
+		// `,
+		// 	},
+		// 	expectError: true, // This should be blocked from being valid
+		// },
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+
+			// Setup
+			m := testModuleInline(t, tc.config)
+			p := testProvider("test")
+			p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+				ResourceTypes: map[string]*configschema.Block{
+					"test_instance": {
+						Attributes: map[string]*configschema.Attribute{
+							"id":     {Type: cty.String, Computed: true},
+							"data":   {Type: cty.String, Optional: true},
+							"foobar": {Type: cty.String, Optional: true},
+						},
+					},
+				},
+			})
+			p.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
+				var diags tfdiags.Diagnostics
+				if req.TypeName == "test_instance" {
+					if !req.Config.GetAttr("id").IsNull() {
+						diags = diags.Append(errors.New("id cannot be set in config"))
+					}
+				}
+				return providers.ValidateResourceConfigResponse{
+					Diagnostics: diags,
+				}
+			}
+
+			state := states.NewState()
+			root := state.EnsureModule(addrs.RootModuleInstance)
+			root.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test_instance.a").Resource,
+				&states.ResourceInstanceObjectSrc{
+					Status:       states.ObjectReady,
+					AttrsJSON:    []byte(`{"id":"a","data":"old value"}`),
+					Dependencies: []addrs.ConfigResource{},
+				},
+				mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+			)
+
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+			plan, diags := ctx.Plan(m, state, &PlanOpts{
+				Mode: plans.NormalMode,
+				SetVariables: map[string]*InputValue{
+					"ignore_data": {Value: cty.True},
+				},
+			})
+			if !tc.expectError && diags.HasErrors() {
+				t.Fatalf("expected no errors but got: %s", diags.Err())
+			}
+			if tc.expectError && !diags.HasErrors() {
+				t.Fatal("expected an error but got none")
+			}
+			if tc.expectError {
+				// Stop early if expected error
+				return
+			}
+
+			// Assert the plan is empty due to ignore_changes evaluating to inlcude the data field
+			for _, c := range plan.Changes.Resources {
+				if c.Action != plans.NoOp {
+					t.Fatalf("expected NoOp plan, got %s\n", c.Action)
+				}
+			}
+
+			plan, diags = ctx.Plan(m, state, &PlanOpts{
+				Mode: plans.NormalMode,
+				SetVariables: map[string]*InputValue{
+					"ignore_data": {Value: cty.False},
+				},
+			})
+			if diags.HasErrors() {
+				t.Fatal(diags.Err())
+			}
+
+			// Assert the plan is NOT empty due to ignore_changes evaluating to NOT inlcude the data field
+			for _, c := range plan.Changes.Resources {
+				if c.Action != plans.Update {
+					t.Fatalf("expected Update plan, got %s\n", c.Action)
+				}
+			}
+		})
 	}
 }
 
@@ -6747,9 +6979,14 @@ resource "test_instance" "a" {
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
 	})
-	_, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
+	}
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Fatalf("expected NoOp plan, got %s\n", c.Action)
+		}
 	}
 }
 
@@ -6829,6 +7066,202 @@ variable "ignore_data" {
 		Mode: plans.NormalMode,
 		SetVariables: map[string]*InputValue{
 			"ignore_data": {Value: cty.False},
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.Update {
+			t.Fatalf("expected Update plan, got %s\n", c.Action)
+		}
+	}
+}
+
+func TestContext2Plan_validateIgnore(t *testing.T) {
+
+	// First: data field is ignored using a regular array of field names
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+ resource "test_instance" "a" {
+     lifecycle {
+        ignore_changes = ["data"]
+     }
+     data = "foo"
+ }
+`,
+	})
+
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":   {Type: cty.String, Computed: true},
+					"data": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	p.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
+		var diags tfdiags.Diagnostics
+		if req.TypeName == "test_instance" {
+			if !req.Config.GetAttr("id").IsNull() {
+				diags = diags.Append(errors.New("id cannot be set in config"))
+			}
+		}
+		return providers.ValidateResourceConfigResponse{
+			Diagnostics: diags,
+		}
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a","data":"old"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Fatalf("expected NoOp plan, got %s\n", c.Action)
+		}
+	}
+
+	// Second: data field is ignored using a regular array of field names, no quotes
+	m = testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "ignore_data" {
+	type = bool
+	default = false
+}
+ resource "test_instance" "a" {
+     lifecycle {
+        ignore_changes = [data]
+     }
+     data = "foo"
+ }
+`,
+	})
+
+	plan, diags = ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: map[string]*InputValue{
+			"ignore_data": {Value: cty.True}, // Conditional ignores `data` field
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Fatalf("expected NoOp plan, got %s\n", c.Action)
+		}
+	}
+
+	// Third: data field is ignored using a conditional
+	m = testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "ignore_data" {
+	type = bool
+	default = false
+}
+ resource "test_instance" "a" {
+     lifecycle {
+        ignore_changes = var.ignore_data ? [data] : []
+     }
+     data = "foo"
+ }
+`,
+	})
+
+	plan, diags = ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: map[string]*InputValue{
+			"ignore_data": {Value: cty.True}, // Conditional ignores `data` field
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Fatalf("expected NoOp plan, got %s\n", c.Action)
+		}
+	}
+
+	plan, diags = ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: map[string]*InputValue{
+			"ignore_data": {Value: cty.False}, // Conditional no longer ignores `data` field
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.Update {
+			t.Fatalf("expected Update plan, got %s\n", c.Action)
+		}
+	}
+
+	// Second: data field is ignored using a conditional with legacy format
+	m = testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "ignore_data" {
+	type = bool
+	default = false
+}
+ resource "test_instance" "a" {
+     lifecycle {
+        ignore_changes = var.ignore_data ? ["data"] : []
+     }
+     data = "foo"
+ }
+`,
+	})
+
+	plan, diags = ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: map[string]*InputValue{
+			"ignore_data": {Value: cty.True}, // Conditional ignores `data` field
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Fatalf("expected NoOp plan, got %s\n", c.Action)
+		}
+	}
+
+	plan, diags = ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: map[string]*InputValue{
+			"ignore_data": {Value: cty.False}, // Conditional no longer ignores `data` field
 		},
 	})
 	if diags.HasErrors() {
