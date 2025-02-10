@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fixes hanging behavior seen when applying a saved plan with -auto-approve using the cloud backend
+time: 2025-02-06T15:50:25.767607-05:00
+custom:
+  Issue: "36453"
