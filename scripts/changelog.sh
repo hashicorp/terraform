@@ -13,7 +13,9 @@ function usage {
 Usage: ./changelog.sh <command> [<options>]
 
 Description:
-  This script will update CHANGELOG.md with the given version and date.
+  This script will update CHANGELOG.md with the given version and date and add the changelog entries.
+  It will also set the version/VERSION file to the correct version.
+  In general this script should handle most release related tasks within this repository.
 
 Commands:
   generate <release-type>
@@ -26,14 +28,14 @@ Commands:
     `release`: will make the initial minor release for this branch.
     `patch`: will generate a new patch release
 
-  nextminor
-    This function expects the current branch to be main. Run it if you want to set main to the next
-    minor version.
-    
-  firstbeta
-    This function is expected to be run on the branch of the last minor release. It will make sure
-    that backports work properly
-  
+  prepareMainBranch:
+    Run on main branch: Updates the minor version.
+
+  prepareReleaseBranch:
+    Run on newly created release branch: Makes sure we can backport changes properly.
+
+  prepareMaintenanceBranch:
+    Run on newly created maintenance branch: Makes sure we can backport changes properly.
 EOF
 }
 
@@ -139,7 +141,7 @@ function generate {
 
 # This function expects the current branch to be main. Run it if you want to set main to the next
 # minor version.
-function nextminor {
+function prepareMainBranch {
     # Prepend the latest version to the previous releases
     LATEST_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
     LATEST_VERSION=${LATEST_VERSION%.*} # Remove the patch version
@@ -160,20 +162,41 @@ function nextminor {
     generate "dev"
 }
 
-# This function is expected to be run on the branch of the last minor release. It will make sure
+# This function is expected to be run on the upcoming release branch. It will make sure
 # that backports work properly
-function firstbeta {
+# Transitions from dev -> next
+function prepareReleaseBranch {
     # For the maintenance branch we don't want to base our changelog on the unreleased but the backported folder instead
-    awk '{sub(/unreleasedDir: unreleased/, "unreleasedDir: backported")}1' ./.changie.yaml > temp && mv temp ./.changie.yaml
+    awk '{sub(/unreleasedDir: dev/, "unreleasedDir: next")}1' ./.changie.yaml > temp && mv temp ./.changie.yaml
     
     # If we have backported changes, we need to remove them now since they were backported into the
     # last version
-    rm -f ./.changes/backported/*.yaml
+    rm -f ./.changes/next/*.yaml
     
     # If we have unreleased changes, they will be released in the next patch, therefore they need
-    # to go into the backported folder
-    if [ "$(ls -A ./.changes/unreleased/)" ]; then
-        mv ./.changes/unreleased/* ./.changes/backported/
+    # to go into the next folder
+    if [ "$(ls -A ./.changes/dev/)" ]; then
+        mv ./.changes/dev/* ./.changes/next/
+    fi
+
+    generate "dev"
+}
+
+# This function is expected to be run on the upcoming release branch. It will make sure
+# that backports work properly
+# Transitions from next -> current
+function prepareMaintenanceBranch {
+    # For the maintenance branch we don't want to base our changelog on the unreleased but the backported folder instead
+    awk '{sub(/unreleasedDir: next/, "unreleasedDir: current")}1' ./.changie.yaml > temp && mv temp ./.changie.yaml
+    
+    # If we have backported changes, we need to remove them now since they were backported into the
+    # last version
+    rm -f ./.changes/current/*.yaml
+    
+    # If we have unreleased changes, they will be released in the next patch, therefore they need
+    # to go into the current folder
+    if [ "$(ls -A ./.changes/next/)" ]; then
+        mv ./.changes/next/* ./.changes/current/
     fi
 
     generate "dev"
@@ -185,13 +208,18 @@ function main {
     generate "${@:2}"
       ;;
 
-    nextminor)
-    nextminor "${@:2}"
+    prepareMainBranch)
+    prepareMainBranch "${@:2}"
       ;;
       
-    firstbeta)
-    firstbeta "${@:2}"
-    ;;
+    prepareReleaseBranch)
+    prepareReleaseBranch "${@:2}"
+      ;;
+    
+    prepareMaintenanceBranch)
+    prepareMaintenanceBranch "${@:2}"
+      ;;
+    
     *)
       usage
       exit 1
