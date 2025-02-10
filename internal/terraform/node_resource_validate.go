@@ -357,9 +357,9 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 
 		if n.Config.Managed != nil { // can be nil only in tests with poorly-configured mocks
 
-			if n.Config.Managed.NewIgnoreChanges != nil {
+			if n.Config.Managed.IgnoreChangesConditional != nil {
 				keyData, selfAddr := n.stubRepetitionData(n.Config.Count != nil, n.Config.ForEach != nil)
-				val, ignoreChangesDiags := n.evaluateExpr(ctx, n.Config.Managed.NewIgnoreChanges, cty.List(cty.String), selfAddr, keyData)
+				val, ignoreChangesDiags := n.evaluateExpr(ctx, n.Config.Managed.IgnoreChangesConditional, cty.List(cty.String), selfAddr, keyData)
 				diags = diags.Append(ignoreChangesDiags)
 
 				if !ignoreChangesDiags.HasErrors() {
@@ -372,12 +372,12 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 								Severity: hcl.DiagError,
 								Summary:  "Invalid ignore_changes wildcard",
 								Detail:   "The [\"*\"] form of ignore_changes wildcard was deprecated and is now invalid. Use \"ignore_changes = all\" to ignore changes to all attributes.",
-								Subject:  n.Config.Managed.NewIgnoreChanges.Range().Ptr(),
+								Subject:  n.Config.Managed.IgnoreChangesConditional.Range().Ptr(),
 							})
 						}
 
 						// The range is slightly off, not sure if we can be better than this
-						traversal, traversalDiags := stringToTraversal(v.AsString(), n.Config.Managed.NewIgnoreChanges.Range())
+						traversal, traversalDiags := stringToTraversal(v.AsString(), n.Config.Managed.IgnoreChangesConditional.Range())
 						diags = diags.Append(traversalDiags)
 						// validate the ignore_changes traversals apply.
 						moreDiags := schema.StaticValidateTraversal(traversal)

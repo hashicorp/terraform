@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/zclconf/go-cty/cty"
 
@@ -17,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -1231,33 +1232,79 @@ func (n *NodeAbstractResource) processIgnoreChanges(ctx EvalContext, prior, conf
 		return config, nil
 	}
 
-	if n.Config.Managed.NewIgnoreChanges == nil {
+	if n.Config.Managed.IgnoreChangesConditional == nil && n.Config.Managed.IgnoreChanges == nil {
 		return config, nil
 	}
 
 	var diags tfdiags.Diagnostics
-	expr := n.Config.Managed.NewIgnoreChanges
-	refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRef, expr)
-	diags = diags.Append(refDiags)
+	var traversals []hcl.Traversal
 
-	scope := ctx.EvaluationScope(nil, nil, keyData)
-
-	hclCtx, moreDiags := scope.EvalContext(refs)
-	diags = diags.Append(moreDiags)
-
-	ignoreChangesVal, hclDiags := expr.Value(hclCtx)
-	diags = diags.Append(hclDiags)
-	if diags.HasErrors() {
-		return config, diags
+	if len(n.Config.Managed.IgnoreChanges) != 0 {
+		traversals = n.Config.Managed.IgnoreChanges
 	}
 
-	var traversals []hcl.Traversal
-	for it := ignoreChangesVal.ElementIterator(); it.Next(); {
-		_, v := it.Element()
-		traversal, traversalDiags := stringToTraversal(v.AsString(), n.Config.Managed.NewIgnoreChanges.Range())
-		diags = diags.Append(traversalDiags)
+	if n.Config.Managed.IgnoreChangesConditional != nil {
+		// NOTE: langrefs.ReferencesInExpr behaves differently if the argument is a reference string instead
+		// of a proper reference.
+		// The old version of this discovery used that function, but now it's unused.
 
-		traversals = append(traversals, traversal)
+		// Here we should get and evaluate the condition w/ the normal eval context
+		// Then, get other expressions to get traversal
+		// How do we get a single traversal from the expression in TrueResult etc?
+
+		// We need to evaluate parts of the conditional separately, so we do a
+		// type assertion to access the base value that has individual Condition,
+		// TrueResult, and FalseResult expressions
+		if conditionalExp, ok := n.Config.Managed.IgnoreChangesConditional.(*hclsyntax.ConditionalExpr); ok {
+
+			var conditionRefs []*addrs.Reference
+
+			// Evaluate the condition of the conditional expression
+			if v, ok := conditionalExp.Condition.(*hclsyntax.ScopeTraversalExpr); ok {
+				r, d := addrs.ParseRef(v.Traversal)
+				diags = diags.Append(d)
+				conditionRefs = append(conditionRefs, r)
+			}
+
+			scope := ctx.EvaluationScope(nil, nil, keyData)
+
+			hclCtx, moreDiags := scope.EvalContext(conditionRefs)
+			diags = diags.Append(moreDiags)
+
+			condition, hclDiags := conditionalExp.Condition.Value(hclCtx)
+			diags = diags.Append(hclDiags)
+			if diags.HasErrors() {
+				return config, diags
+			}
+
+			if condition == cty.BoolVal(true) {
+				// Use 'true' result from conditional expression
+				// We need to access the expressions, so we do a type assertion
+				// to access the base value that allows access to expressions
+				if v, ok := conditionalExp.TrueResult.(*hclsyntax.TupleConsExpr); ok {
+					for _, e := range v.ExprList() {
+						// Get a relative traversal for each entry in the 'true' field reference list
+						traversal, d := hcl.RelTraversalForExpr(e)
+						traversals = append(traversals, traversal)
+						diags = diags.Append(d)
+					}
+				}
+			}
+			if condition == cty.BoolVal(false) {
+				// Use 'false' result from conditional expression
+				// We need to access the expressions, so we do a type assertion
+				// to access the base value that allows access to expressions
+				if v, ok := conditionalExp.FalseResult.(*hclsyntax.TupleConsExpr); ok {
+					for _, e := range v.ExprList() {
+						// Get a relative traversal for each entry in the 'false' field reference list
+						traversal, d := hcl.RelTraversalForExpr(e)
+						traversals = append(traversals, traversal)
+						diags = diags.Append(d)
+					}
+				}
+			}
+		}
+
 	}
 
 	ignoreChanges := traversalsToPaths(traversals)

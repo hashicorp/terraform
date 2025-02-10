@@ -60,7 +60,7 @@ type ManagedResource struct {
 	IgnoreChanges       []hcl.Traversal
 	IgnoreAllChanges    bool
 
-	NewIgnoreChanges hcl.Expression
+	IgnoreChangesConditional hcl.Expression
 
 	CreateBeforeDestroySet bool
 	PreventDestroySet      bool
@@ -208,23 +208,85 @@ func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagno
 
 			if attr, exists := lcContent.Attributes["ignore_changes"]; exists {
 
-				// ignore_changes can either be a list of relative traversals
-				// or it can be just the keyword "all" to ignore changes to this
-				// resource entirely.
+				// ignore_changes can either be
+				// - a list of relative traversals
+				// - a conditional expression that returns one of two lists of relative traversals
+				// - just the keyword "all" to ignore changes to this resource entirely.
+				// These can look like:
 				//   ignore_changes = [ami, instance_type]
+				//   ignore_changes = var.ignore_instance_type ? [ami, instance_type] : [ami]
 				//   ignore_changes = all
 				// We also allow two legacy forms for compatibility with earlier
-				// versions:
+				// versions. If detected, these are shimmed:
 				//   ignore_changes = ["ami", "instance_type"]
 				//   ignore_changes = ["*"]
 
 				kw := hcl.ExprAsKeyword(attr.Expr)
-
-				switch {
-				case kw == "all":
+				if kw == "all" {
 					r.Managed.IgnoreAllChanges = true
-				default:
-					r.Managed.NewIgnoreChanges = attr.Expr
+				} else {
+
+					switch attr.Expr.(type) {
+					case *hclsyntax.ConditionalExpr:
+						// ignore_changes is a conditional
+						r.Managed.IgnoreChangesConditional = attr.Expr
+					case *hclsyntax.TupleConsExpr:
+						// ignore_changes is a tuple/list
+						exprs, listDiags := hcl.ExprList(attr.Expr)
+						diags = append(diags, listDiags...)
+
+						var ignoreAllRange hcl.Range
+
+						for _, expr := range exprs {
+
+							// The expr might be the literal string "*", which
+							// we accept as a deprecated way of saying "all".
+							//
+							// This needs to be guarded against before we attempt to create
+							// relative traversals below.
+							if shimIsIgnoreChangesStar(expr) {
+								r.Managed.IgnoreAllChanges = true
+								ignoreAllRange = expr.Range()
+								diags = append(diags, &hcl.Diagnostic{
+									Severity: hcl.DiagError,
+									Summary:  "Invalid ignore_changes wildcard",
+									Detail:   "The [\"*\"] form of ignore_changes wildcard was deprecated and is now invalid. Use \"ignore_changes = all\" to ignore changes to all attributes.",
+									Subject:  attr.Expr.Range().Ptr(),
+								})
+								continue
+							}
+
+							// For other expressions we:
+							// 1) Shim from "foo" to foo
+							// 2) Create a relative traversal
+							expr, shimDiags := shimTraversalInString(expr, false)
+							diags = append(diags, shimDiags...)
+
+							traversal, travDiags := hcl.RelTraversalForExpr(expr)
+							diags = append(diags, travDiags...)
+							if len(traversal) != 0 {
+								r.Managed.IgnoreChanges = append(r.Managed.IgnoreChanges, traversal)
+							}
+						}
+
+						if r.Managed.IgnoreAllChanges && len(r.Managed.IgnoreChanges) != 0 {
+							diags = append(diags, &hcl.Diagnostic{
+								Severity: hcl.DiagError,
+								Summary:  "Invalid ignore_changes ruleset",
+								Detail:   "Cannot mix wildcard string \"*\" with non-wildcard references.",
+								Subject:  &ignoreAllRange,
+								Context:  attr.Expr.Range().Ptr(),
+							})
+						}
+					default:
+						// If we're here, something went wrong.
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid ignore_changes expression",
+							Detail:   "An unexpected expression type was encountered when parsing the ignore_changes field.",
+							Subject:  attr.Expr.Range().Ptr(),
+						})
+					}
 				}
 			}
 
