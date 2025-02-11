@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/zclconf/go-cty/cty"
@@ -19,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -1248,79 +1246,12 @@ func (n *NodeAbstractResource) processIgnoreChanges(ctx EvalContext, prior, conf
 	}
 
 	if n.Config.Managed.IgnoreChangesConditional != nil {
-		// NOTE: langrefs.ReferencesInExpr behaves differently if the argument is a reference string instead
-		// of a proper reference.
-		// The old version of this discovery used that function, but now it's unused.
-
-		// Here we should get and evaluate the condition w/ the normal eval context
-		// Then, get other expressions to get traversal
-		// How do we get a single traversal from the expression in TrueResult etc?
-
-		// We need to evaluate parts of the conditional separately, so we do a
-		// type assertion to access the base value that has individual Condition,
-		// TrueResult, and FalseResult expressions
-		if conditionalExp, ok := n.Config.Managed.IgnoreChangesConditional.(*hclsyntax.ConditionalExpr); ok {
-
-			var conditionRefs []*addrs.Reference
-
-			// Evaluate the condition of the conditional expression
-			r, d := langrefs.ReferencesInExpr(addrs.ParseRef, conditionalExp.Condition)
-			diags = diags.Append(d)
-			conditionRefs = append(conditionRefs, r...)
-
-			scope := ctx.EvaluationScope(nil, nil, keyData)
-
-			hclCtx, moreDiags := scope.EvalContext(conditionRefs)
-			diags = diags.Append(moreDiags)
-
-			condition, hclDiags := conditionalExp.Condition.Value(hclCtx)
-			diags = diags.Append(hclDiags)
-			if diags.HasErrors() {
-				return config, diags
-			}
-
-			if !condition.IsKnown() {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity:    hcl.DiagError,
-					Summary:     fmt.Sprint("ignore_changes condition known after apply"),
-					Detail:      "The condition could not be evaluated at this time, a result will be known when this plan is applied.",
-					Subject:     conditionalExp.Condition.Range().Ptr(),
-					Expression:  conditionalExp.Condition,
-					EvalContext: hclCtx,
-				})
-				return config, diags
-			}
-
-			if condition == cty.BoolVal(true) {
-				// Use 'true' result from conditional expression
-				// We need to access the expressions, so we do a type assertion
-				// to access the base value that allows access to expressions
-				if v, ok := conditionalExp.TrueResult.(*hclsyntax.TupleConsExpr); ok {
-					for _, e := range v.ExprList() {
-						// Get a relative traversal for each entry in the 'true' field reference list
-						traversal, d := hcl.RelTraversalForExpr(e)
-						traversals = append(traversals, traversal)
-						diags = diags.Append(d)
-					}
-				}
-			}
-			if condition == cty.BoolVal(false) {
-				// Use 'false' result from conditional expression
-				// We need to access the expressions, so we do a type assertion
-				// to access the base value that allows access to expressions
-				if v, ok := conditionalExp.FalseResult.(*hclsyntax.TupleConsExpr); ok {
-					for _, e := range v.ExprList() {
-						// Get a relative traversal for each entry in the 'false' field reference list
-						traversal, d := hcl.RelTraversalForExpr(e)
-						traversals = append(traversals, traversal)
-						diags = diags.Append(d)
-					}
-				}
-			}
+		var conditionalDiags tfdiags.Diagnostics
+		traversals, conditionalDiags = evaluateIgnoreChangesConditional(n.Config.Managed.IgnoreChangesConditional, ctx, keyData)
+		diags = diags.Append(conditionalDiags)
+		if diags.HasErrors() {
+			return config, diags
 		}
-	}
-	if diags.HasErrors() {
-		return config, diags
 	}
 
 	ignoreChanges := traversalsToPaths(traversals)
