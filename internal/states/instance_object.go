@@ -84,6 +84,24 @@ const (
 	ObjectPlanned ObjectStatus = 'P'
 )
 
+// EncodeWithoutIdentity marshals the value within the receiver to produce a
+// ResourceInstanceObjectSrc ready to be written to a state file. It does not
+// include the identity data in the state representation.
+func (o *ResourceInstanceObject) EncodeWithIdentity(ty cty.Type, schemaVersion uint64, identityTy cty.Type, identitySchemaVersion uint64) (*ResourceInstanceObjectSrc, error) {
+	src, err := o.Encode(ty, schemaVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	src.IdentitySchemaJSON, err = ctyjson.Marshal(o.Identity, identityTy)
+	if err != nil {
+		return nil, err
+	}
+
+	src.IdentitySchemaVersion = identitySchemaVersion
+	return src, nil
+}
+
 // Encode marshals the value within the receiver to produce a
 // ResourceInstanceObjectSrc ready to be written to a state file.
 //
@@ -98,7 +116,7 @@ const (
 // The returned object may share internal references with the receiver and
 // so the caller must not mutate the receiver any further once once this
 // method is called.
-func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64, identityTy cty.Type, identitySchemaVersion uint64) (*ResourceInstanceObjectSrc, error) {
+func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*ResourceInstanceObjectSrc, error) {
 	// If it contains marks, remove these marks before traversing the
 	// structure with UnknownAsNull, and save the PathValueMarks
 	// so we can save them in state.
@@ -119,11 +137,6 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64, ident
 	val = cty.UnknownAsNull(val)
 
 	src, err := ctyjson.Marshal(val, ty)
-	if err != nil {
-		return nil, err
-	}
-
-	x, err := ctyjson.Marshal(o.Identity, identityTy)
 	if err != nil {
 		return nil, err
 	}
@@ -149,9 +162,7 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64, ident
 		Dependencies:        dependencies,
 		CreateBeforeDestroy: o.CreateBeforeDestroy,
 		// The cached value must have all its marks since it bypasses decoding.
-		decodeValueCache:      o.Value,
-		IdentitySchemaVersion: identitySchemaVersion,
-		IdentitySchemaJSON:    x,
+		decodeValueCache: o.Value,
 	}, nil
 }
 
