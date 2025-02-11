@@ -219,12 +219,15 @@ func TestTransformForTest(t *testing.T) {
 				availableProviders[provider] = true
 			}
 
-			ctx := NewEvalContext(context.Background())
+			ctx := NewEvalContext(&EvalContextOpts{
+				CancelCtx: context.Background(),
+				StopCtx:   context.Background(),
+			})
 			ctx.configProviders = map[string]map[string]bool{
 				run.GetModuleConfigID(): availableProviders,
 			}
 
-			diags := TransformConfigForTest(ctx, run, file)
+			diags := TransformConfigForRun(ctx, run, file)
 
 			var actualErrs []string
 			for _, err := range diags.Errs() {

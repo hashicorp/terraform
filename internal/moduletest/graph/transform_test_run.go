@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -18,15 +17,14 @@ import (
 // TestRunTransformer is a GraphTransformer that adds all the test runs,
 // and the variables defined in each run block, to the graph.
 type TestRunTransformer struct {
-	File       *moduletest.File
-	globalVars map[string]backendrun.UnparsedVariableValue
+	opts *graphOptions
 }
 
 func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
 	// Create and add nodes for each run
 	var nodes []*NodeTestRun
-	for _, run := range t.File.Runs {
-		node := &NodeTestRun{run: run, file: t.File}
+	for _, run := range t.opts.File.Runs {
+		node := &NodeTestRun{run: run, opts: t.opts}
 		g.Add(node)
 		nodes = append(nodes, node)
 	}
@@ -141,14 +139,14 @@ func (t *TestRunTransformer) connectSameStateRuns(g *terraform.Graph, nodes []*N
 
 func (t *TestRunTransformer) getVariableNames(run *moduletest.Run) map[string]struct{} {
 	set := make(map[string]struct{})
-	for name := range t.globalVars {
+	for name := range t.opts.GlobalVars {
 		set[name] = struct{}{}
 	}
 	for name := range run.Config.Variables {
 		set[name] = struct{}{}
 	}
 
-	for name := range t.File.Config.Variables {
+	for name := range t.opts.File.Config.Variables {
 		set[name] = struct{}{}
 	}
 	for name := range run.ModuleConfig.Module.Variables {
