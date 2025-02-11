@@ -138,6 +138,9 @@ type TestRun struct {
 	// configuration load process and should be used when the test is executed.
 	ConfigUnderTest *Config
 
+	// File is a reference to the parent TestFile that contains this run block.
+	File *TestFile
+
 	// ExpectFailures should be a list of checkable objects that are expected
 	// to report a failure from their custom conditions as part of this test
 	// run.
@@ -271,6 +274,23 @@ func (run *TestRun) Validate(config *Config) tfdiags.Diagnostics {
 		}
 	}
 
+	// All the providers defined within a run block should target an existing
+	// provider block within the test file.
+	for _, ref := range run.Providers {
+		_, ok := run.File.Providers[ref.InParent.String()]
+		if !ok {
+			// Then this reference was invalid as we didn't have the
+			// specified provider in the parent. This should have been
+			// caught earlier in validation anyway so is unlikely to happen.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Missing provider definition for %s", ref.InParent.String()),
+				Detail:   "This provider block references a provider definition that does not exist.",
+				Subject:  ref.InParent.NameRange.Ptr(),
+			})
+		}
+	}
+
 	return diags
 }
 
@@ -306,7 +326,7 @@ type TestRunOptions struct {
 
 func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-	tf := TestFile{
+	tf := &TestFile{
 		Providers: make(map[string]*Provider),
 		Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
 	}
@@ -333,7 +353,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "run":
-			run, runDiags := decodeTestRunBlock(block, tf.Config)
+			run, runDiags := decodeTestRunBlock(block, tf)
 			diags = append(diags, runDiags...)
 			if !runDiags.HasErrors() {
 				tf.Runs = append(tf.Runs, run)
@@ -473,7 +493,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 		}
 	}
 
-	return &tf, diags
+	return tf, diags
 }
 
 func decodeFileConfigBlock(fileContent *hcl.BodyContent) (*TestFileConfig, hcl.Diagnostics) {
@@ -513,19 +533,19 @@ func decodeFileConfigBlock(fileContent *hcl.BodyContent) (*TestFileConfig, hcl.D
 	return ret, diags
 }
 
-func decodeTestRunBlock(block *hcl.Block, fileConfig *TestFileConfig) (*TestRun, hcl.Diagnostics) {
+func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	content, contentDiags := block.Body.Content(testRunBlockSchema)
 	diags = append(diags, contentDiags...)
 
 	r := TestRun{
-		Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
-
+		Overrides:     addrs.MakeMap[addrs.Targetable, *Override](),
+		File:          file,
 		Name:          block.Labels[0],
 		NameDeclRange: block.LabelRanges[0],
 		DeclRange:     block.DefRange,
-		Parallel:      fileConfig != nil && fileConfig.Parallel,
+		Parallel:      file.Config != nil && file.Config.Parallel,
 	}
 
 	if !hclsyntax.ValidIdentifier(r.Name) {
