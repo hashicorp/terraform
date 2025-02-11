@@ -20,10 +20,6 @@ type GraphNodeExecutable interface {
 	Execute(ctx *EvalContext) tfdiags.Diagnostics
 }
 
-type BindContextOpts interface {
-	BindContextOpts(opts *terraform.ContextOpts)
-}
-
 // TestFileState is a helper struct that just maps a run block to the state that
 // was produced by the execution of that run block.
 type TestFileState struct {

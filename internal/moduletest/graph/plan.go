@@ -18,7 +18,7 @@ import (
 )
 
 func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues, waiter *operationWaiter) {
-	file, run := n.file, n.run
+	file, run := n.File(), n.run
 	config := run.ModuleConfig
 
 	// FilterVariablesToModule only returns warnings, so we don't check the
@@ -26,11 +26,8 @@ func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues
 	setVariables, testOnlyVariables, setVariableDiags := n.FilterVariablesToModule(variables)
 	run.Diagnostics = run.Diagnostics.Append(setVariableDiags)
 
-	tfCtx, ctxDiags := terraform.NewContext(n.ctxOpts)
-	run.Diagnostics = run.Diagnostics.Append(ctxDiags)
-	if ctxDiags.HasErrors() {
-		return
-	}
+	// ignore diags because validate has covered it
+	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
 
 	// execute the terraform plan operation
 	planScope, plan, planDiags := n.plan(ctx, tfCtx, setVariables, waiter)
@@ -84,7 +81,7 @@ func (n *NodeTestRun) testPlan(ctx *EvalContext, variables terraform.InputValues
 }
 
 func (n *NodeTestRun) plan(ctx *EvalContext, tfCtx *terraform.Context, variables terraform.InputValues, waiter *operationWaiter) (*lang.Scope, *plans.Plan, tfdiags.Diagnostics) {
-	file, run := n.file, n.run
+	file, run := n.File(), n.run
 	config := run.ModuleConfig
 	log.Printf("[TRACE] TestFileRunner: called plan for %s/%s", file.Name, run.Name)
 

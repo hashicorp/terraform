@@ -18,13 +18,11 @@ import (
 
 var (
 	_ GraphNodeExecutable = (*NodeTestRun)(nil)
-	_ BindContextOpts     = (*NodeTestRun)(nil)
 )
 
 type NodeTestRun struct {
-	file    *moduletest.File
-	run     *moduletest.Run
-	ctxOpts *terraform.ContextOpts
+	run  *moduletest.Run
+	opts *graphOptions
 }
 
 func (n *NodeTestRun) Run() *moduletest.Run {
@@ -32,11 +30,11 @@ func (n *NodeTestRun) Run() *moduletest.Run {
 }
 
 func (n *NodeTestRun) File() *moduletest.File {
-	return n.file
+	return n.opts.File
 }
 
 func (n *NodeTestRun) Name() string {
-	return fmt.Sprintf("%s.%s", n.file.Name, n.run.Name)
+	return fmt.Sprintf("%s.%s", n.opts.File.Name, n.run.Name)
 }
 
 func (n *NodeTestRun) References() []*addrs.Reference {
@@ -44,17 +42,20 @@ func (n *NodeTestRun) References() []*addrs.Reference {
 	return references
 }
 
-func (n *NodeTestRun) BindContextOpts(opts *terraform.ContextOpts) {
-	n.ctxOpts = opts
-}
-
 // Execute executes the test run block and update the status of the run block
 // based on the result of the execution.
 func (n *NodeTestRun) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
-	log.Printf("[TRACE] TestFileRunner: executing run block %s/%s", n.file.Name, n.run.Name)
+	log.Printf("[TRACE] TestFileRunner: executing run block %s/%s", n.File().Name, n.run.Name)
 	startTime := time.Now().UTC()
 	var diags tfdiags.Diagnostics
-	file, run := n.file, n.run
+	file, run := n.File(), n.run
+
+	// At the end of the function, we'll update the status of the file based on
+	// the status of the run block, and render the run summary.
+	defer func() {
+		evalCtx.Renderer().Run(run, file, moduletest.Complete, 0)
+		file.UpdateStatus(run.Status)
+	}()
 
 	if file.GetStatus() == moduletest.Error {
 		// If the overall test file has errored, we don't keep trying to
@@ -106,7 +107,7 @@ func (n *NodeTestRun) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 }
 
 func (n *NodeTestRun) execute(ctx *EvalContext, waiter *operationWaiter) {
-	file, run := n.file, n.run
+	file, run := n.File(), n.run
 	ctx.Renderer().Run(run, file, moduletest.Starting, 0)
 	if run.Config.ConfigUnderTest != nil && run.GetStateKey() == moduletest.MainStateIdentifier {
 		// This is bad, and should not happen because the state key is derived from the custom module source.
@@ -135,12 +136,12 @@ func (n *NodeTestRun) execute(ctx *EvalContext, waiter *operationWaiter) {
 // Validating the module config which the run acts on
 func (n *NodeTestRun) testValidate(ctx *EvalContext, waiter *operationWaiter) {
 	run := n.run
-	file := n.file
+	file := n.File()
 	config := run.ModuleConfig
 
 	log.Printf("[TRACE] TestFileRunner: called validate for %s/%s", file.Name, run.Name)
 	TransformConfigForRun(ctx, run, file)
-	tfCtx, ctxDiags := terraform.NewContext(n.ctxOpts)
+	tfCtx, ctxDiags := terraform.NewContext(n.opts.ContextOpts)
 	if ctxDiags.HasErrors() {
 		return
 	}

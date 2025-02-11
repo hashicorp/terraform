@@ -49,8 +49,8 @@ func (a *atomicProgress[T]) Store(progress T) {
 func NewOperationWaiter(ctx *terraform.Context, evalCtx *EvalContext, n *NodeTestRun,
 	progress moduletest.Progress, start int64) *operationWaiter {
 	identifier := "validate"
-	if n.file != nil {
-		identifier = n.file.Name
+	if n.File() != nil {
+		identifier = n.File().Name
 		if n.run != nil {
 			identifier = fmt.Sprintf("%s/%s", identifier, n.run.Name)
 		}
@@ -62,7 +62,7 @@ func NewOperationWaiter(ctx *terraform.Context, evalCtx *EvalContext, n *NodeTes
 	return &operationWaiter{
 		ctx:        ctx,
 		run:        n.run,
-		file:       n.file,
+		file:       n.File(),
 		progress:   p,
 		start:      start,
 		identifier: identifier,

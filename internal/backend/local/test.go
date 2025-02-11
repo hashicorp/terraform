@@ -266,8 +266,9 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 
 	// Build the graph for the file.
 	b := graph.TestGraphBuilder{
-		File:       file,
-		GlobalVars: runner.EvalContext.VariableCaches.GlobalVariables,
+		File:        file,
+		GlobalVars:  runner.EvalContext.VariableCaches.GlobalVariables,
+		ContextOpts: runner.Suite.Opts,
 	}
 	g, diags := b.Build()
 	file.Diagnostics = file.Diagnostics.Append(diags)
@@ -338,20 +339,6 @@ func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics 
 		// Acquire a lock on the semaphore
 		sem.Acquire()
 		defer sem.Release()
-
-		// Bind the terraform context options to the node
-		if v, ok := v.(graph.BindContextOpts); ok {
-			v.BindContextOpts(runner.Suite.Opts)
-		}
-
-		// handle test run node separately
-		if runNode, ok := v.(*graph.NodeTestRun); ok {
-			file := runNode.File()
-			diags = runNode.Execute(runner.EvalContext)
-			runner.EvalContext.Renderer().Run(runNode.Run(), file, moduletest.Complete, 0)
-			file.UpdateStatus(runNode.Run().Status)
-			return
-		}
 
 		if executable, ok := v.(graph.GraphNodeExecutable); ok {
 			diags = executable.Execute(runner.EvalContext)

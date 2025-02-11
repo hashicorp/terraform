@@ -19,27 +19,21 @@ import (
 
 var (
 	_ GraphNodeExecutable = (*NodeStateCleanup)(nil)
-	_ BindContextOpts     = (*NodeStateCleanup)(nil)
 )
 
 type NodeStateCleanup struct {
-	file     *moduletest.File
 	stateKey string
-	ctxOpts  *terraform.ContextOpts
+	opts     *graphOptions
 }
 
 func (n *NodeStateCleanup) Name() string {
 	return fmt.Sprintf("cleanup.%s", n.stateKey)
 }
 
-func (n *NodeStateCleanup) BindContextOpts(opts *terraform.ContextOpts) {
-	n.ctxOpts = opts
-}
-
 // Execute destroys the resources created in the state file.
 func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	file := n.file
+	file := n.opts.File
 	state := evalCtx.GetFileState(n.stateKey)
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
 
@@ -82,7 +76,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	}
 	TransformConfigForRun(evalCtx, state.Run, file)
 
-	runNode := &NodeTestRun{file: file, run: state.Run, ctxOpts: n.ctxOpts}
+	runNode := &NodeTestRun{run: state.Run, opts: n.opts}
 	updated := state.State
 	startTime := time.Now().UTC()
 	waiter := NewOperationWaiter(nil, evalCtx, runNode, moduletest.Running, startTime.UnixMilli())
@@ -105,7 +99,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 }
 
 func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waiter *operationWaiter) (*states.State, tfdiags.Diagnostics) {
-	file := n.file
+	file := n.opts.File
 	fileState := ctx.GetFileState(n.stateKey)
 	state := fileState.State
 	run := runNode.run
@@ -136,7 +130,7 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waite
 		Overrides:    mocking.PackageOverrides(run.Config, file.Config, run.ModuleConfig),
 	}
 
-	tfCtx, ctxDiags := terraform.NewContext(runNode.ctxOpts)
+	tfCtx, ctxDiags := terraform.NewContext(n.opts.ContextOpts)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		return state, diags

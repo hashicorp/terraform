@@ -15,7 +15,7 @@ import (
 // TestStateCleanupTransformer is a GraphTransformer that adds a cleanup node
 // for each state that is created by the test runs.
 type TestStateCleanupTransformer struct {
-	File *moduletest.File
+	opts *graphOptions
 }
 
 func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
@@ -28,7 +28,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 		}
 		key := node.run.GetStateKey()
 		if _, exists := cleanupMap[key]; !exists {
-			cleanupMap[key] = &NodeStateCleanup{stateKey: key, file: t.File}
+			cleanupMap[key] = &NodeStateCleanup{stateKey: key, opts: t.opts}
 			g.Add(cleanupMap[key])
 		}
 
@@ -55,7 +55,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	// TODO: Parallelize cleanup nodes execution instead of sequential.
 	added := make(map[string]bool)
 	var prev dag.Vertex
-	for _, v := range slices.Backward(t.File.Runs) {
+	for _, v := range slices.Backward(t.opts.File.Runs) {
 		key := v.GetStateKey()
 		if _, exists := added[key]; !exists {
 			node := cleanupMap[key]
@@ -74,7 +74,7 @@ func (t *TestStateCleanupTransformer) addRootCleanupNode(g *terraform.Graph) *dy
 	rootCleanupNode := &dynamicNode{
 		eval: func(ctx *EvalContext) tfdiags.Diagnostics {
 			var diags tfdiags.Diagnostics
-			ctx.Renderer().File(t.File, moduletest.TearDown)
+			ctx.Renderer().File(t.opts.File, moduletest.TearDown)
 			return diags
 		},
 	}

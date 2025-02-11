@@ -17,8 +17,15 @@ import (
 // a terraform test file. The file may contain multiple runs, and each run may have
 // dependencies on other runs.
 type TestGraphBuilder struct {
-	File       *moduletest.File
-	GlobalVars map[string]backendrun.UnparsedVariableValue
+	File        *moduletest.File
+	GlobalVars  map[string]backendrun.UnparsedVariableValue
+	ContextOpts *terraform.ContextOpts
+}
+
+type graphOptions struct {
+	File        *moduletest.File
+	GlobalVars  map[string]backendrun.UnparsedVariableValue
+	ContextOpts *terraform.ContextOpts
 }
 
 // See GraphBuilder
@@ -32,10 +39,15 @@ func (b *TestGraphBuilder) Build() (*terraform.Graph, tfdiags.Diagnostics) {
 
 // See GraphBuilder
 func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
+	opts := &graphOptions{
+		File:        b.File,
+		GlobalVars:  b.GlobalVars,
+		ContextOpts: b.ContextOpts,
+	}
 	steps := []terraform.GraphTransformer{
-		&TestRunTransformer{File: b.File, globalVars: b.GlobalVars},
+		&TestRunTransformer{opts},
 		&TestConfigTransformer{File: b.File},
-		&TestStateCleanupTransformer{File: b.File},
+		&TestStateCleanupTransformer{opts},
 		terraform.DynamicTransformer(validateRunConfigs),
 		&TestProvidersTransformer{},
 		&CloseTestGraphTransformer{},

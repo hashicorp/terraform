@@ -18,7 +18,7 @@ import (
 )
 
 func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValues, waiter *operationWaiter) {
-	file, run := n.file, n.run
+	file, run := n.File(), n.run
 	config := run.ModuleConfig
 	key := n.run.GetStateKey()
 
@@ -27,11 +27,8 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	setVariables, testOnlyVariables, setVariableDiags := n.FilterVariablesToModule(variables)
 	run.Diagnostics = run.Diagnostics.Append(setVariableDiags)
 
-	tfCtx, ctxDiags := terraform.NewContext(n.ctxOpts)
-	run.Diagnostics = run.Diagnostics.Append(ctxDiags)
-	if ctxDiags.HasErrors() {
-		return
-	}
+	// ignore diags because validate has covered it
+	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
 
 	// execute the terraform plan operation
 	_, plan, planDiags := n.plan(ctx, tfCtx, setVariables, waiter)
@@ -126,7 +123,7 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 
 func (n *NodeTestRun) apply(tfCtx *terraform.Context, plan *plans.Plan, progress moduletest.Progress, variables terraform.InputValues, waiter *operationWaiter) (*lang.Scope, *states.State, tfdiags.Diagnostics) {
 	run := n.run
-	file := n.file
+	file := n.File()
 	log.Printf("[TRACE] TestFileRunner: called apply for %s/%s", file.Name, run.Name)
 
 	var diags tfdiags.Diagnostics
