@@ -1303,7 +1303,9 @@ func (n *NodeAbstractResource) processIgnoreChanges(ctx EvalContext, prior, conf
 				}
 			}
 		}
-
+	}
+	if diags.HasErrors() {
+		return config, diags
 	}
 
 	ignoreChanges := traversalsToPaths(traversals)

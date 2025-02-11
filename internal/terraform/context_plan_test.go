@@ -6833,26 +6833,25 @@ func TestContext2Plan_validateIgnoreChangesConditional(t *testing.T) {
 			},
 			expectError: false,
 		},
-		// //  This test currently panics
-		// //  We should stop users using string references in the new conditional expressions
-		// //  as use of string references is deprecated in the existing ignore_changes features.
-		// "conditional expressions used for ignore_changes cannot refer to fields using strings": {
-		// 	config: map[string]string{
-		// 		"main.tf": `
-		// variable "ignore_data" {
-		// 	type = bool
-		// 	default = false
-		// }
-		//  resource "test_instance" "a" {
-		//      lifecycle {
-		//         ignore_changes = var.ignore_data ? ["data", "foobar"] : [ "foobar"]
-		//      }
-		//      data = "new value"
-		//  }
-		// `,
-		// 	},
-		// 	expectError: true, // This should be blocked from being valid
-		// },
+		//  We should stop users using string references in the new conditional expressions
+		//  as use of string references is deprecated in the existing ignore_changes features.
+		"conditional expressions used for ignore_changes cannot refer to fields using strings": {
+			config: map[string]string{
+				"main.tf": `
+		variable "ignore_data" {
+			type = bool
+			default = false
+		}
+		 resource "test_instance" "a" {
+		     lifecycle {
+		        ignore_changes = var.ignore_data ? ["data", "foobar"] : [ "foobar"]
+		     }
+		     data = "new value"
+		 }
+		`,
+			},
+			expectError: true, // This should be blocked from being valid
+		},
 	}
 
 	for tn, tc := range cases {
