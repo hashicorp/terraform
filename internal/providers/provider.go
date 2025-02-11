@@ -365,6 +365,10 @@ type ReadResourceResponse struct {
 	// Deferred if present signals that the provider was not able to fully
 	// complete this operation and a susequent run is required.
 	Deferred *Deferred
+
+	// Identity is the object-typed value representing the identity of the remote
+	// object within Terraform.
+	Identity cty.Value
 }
 
 type PlanResourceChangeRequest struct {

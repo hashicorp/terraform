@@ -1690,3 +1690,165 @@ resource "test_resource" "foo" {
 		t.Fatalf("invalid state\nexpected: %s\ngot: %s\n", expected, jsonState)
 	}
 }
+
+// TODO: Expectation for resource identity in request
+// TODO: Move to plan tests
+// TODO: Double check if we need specific refresh tests as well
+func TestContext2Refresh_resource_identity_adds_missing(t *testing.T) {
+
+	for name, tc := range map[string]struct {
+		StoredIdentitySchemaVersion uint64
+		StoredIdentityJSON          []byte
+		IdentitySchema              providers.IdentitySchema
+		IdentityType                cty.Type
+		IdentityData                cty.Value
+		ExpectedIdentity            cty.Value
+		ExpectedError               error
+	}{
+		"no previous identity": {
+			IdentitySchema: providers.IdentitySchema{
+				Version: 0,
+				Attributes: configschema.IdentityAttributes{
+					"id": {
+						Type:              cty.String,
+						RequiredForImport: true,
+					},
+				},
+			},
+			IdentityType: cty.Object(map[string]cty.Type{
+				"id": cty.String,
+			}),
+			IdentityData: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
+			ExpectedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
+		},
+		// "identity version mismatch": {
+		// 	StoredIdentitySchemaVersion: 1,
+		// 	StoredIdentityJSON:          []byte(`{"id": "foo"}`),
+		// 	IdentitySchema: providers.IdentitySchema{
+		// 		Version: 0,
+		// 		Attributes: configschema.IdentityAttributes{
+		// 			"id": {
+		// 				Type:              cty.String,
+		// 				RequiredForImport: true,
+		// 			},
+		// 		},
+		// 	},
+		// 	IdentityType: cty.Object(map[string]cty.Type{
+		// 		"id": cty.String,
+		// 	}),
+		// 	IdentityData: cty.ObjectVal(map[string]cty.Value{
+		// 		"id": cty.StringVal("foo"),
+		// 	}),
+		// 	ExpectedError: fmt.Errorf("identity schema version mismatch: stored 1, expected 0"),
+		// },
+		// "identity type mismatch": {
+		// 	StoredIdentitySchemaVersion: 0,
+		// 	StoredIdentityJSON:          []byte(`{"arn": "foo"}`),
+		// 	IdentitySchema: providers.IdentitySchema{
+		// 		Version: 0,
+		// 		Attributes: configschema.IdentityAttributes{
+		// 			"id": {
+		// 				Type:              cty.String,
+		// 				RequiredForImport: true,
+		// 			},
+		// 		},
+		// 	},
+		// 	IdentityType: cty.Object(map[string]cty.Type{
+		// 		"id": cty.String,
+		// 	}),
+		// 	IdentityData: cty.ObjectVal(map[string]cty.Value{
+		// 		"id": cty.StringVal("foo"),
+		// 	}),
+		// 	ExpectedIdentity: cty.ObjectVal(map[string]cty.Value{
+		// 		"id": cty.StringVal("foo"),
+		// 	}),
+		// 	ExpectedError: fmt.Errorf("identity schema mismatch, could not decode"),
+		// },
+		// "identity upgrade": {},
+		// "identity recorded, no identity sent": {},
+	} {
+		t.Run(name, func(t *testing.T) {
+			p := testProvider("aws")
+			m := testModule(t, "refresh-basic")
+
+			state := states.NewState()
+			root := state.EnsureModule(addrs.RootModuleInstance)
+
+			root.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("aws_instance.web").Resource,
+				&states.ResourceInstanceObjectSrc{
+					Status:                states.ObjectReady,
+					AttrsJSON:             []byte(`{"id":"foo","foo":"bar"}`),
+					IdentitySchemaVersion: tc.StoredIdentitySchemaVersion,
+					IdentitySchemaJSON:    tc.StoredIdentityJSON,
+				},
+				mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+			)
+
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				},
+			})
+
+			schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+			ty := schema.ImpliedType()
+			readState, err := hcl2shim.HCL2ValueFromFlatmap(map[string]string{"id": "foo", "foo": "baz"}, ty)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			p.GetResourceIdentitySchemasResponse = &providers.GetResourceIdentitySchemasResponse{
+				IdentityTypes: map[string]providers.IdentitySchema{
+					"aws_instance": tc.IdentitySchema,
+				},
+			}
+			p.ReadResourceResponse = &providers.ReadResourceResponse{
+				NewState: readState,
+				Identity: tc.IdentityData,
+			}
+
+			s, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.RefreshOnlyMode})
+			if diags.HasErrors() {
+				t.Fatal(diags.Err())
+			}
+
+			if !p.ReadResourceCalled {
+				t.Fatal("ReadResource should be called")
+			}
+
+			if !p.GetResourceIdentitySchemasCalled {
+				t.Fatal("GetResourceIdentitySchemas should be called")
+			}
+
+			mod := s.PriorState.RootModule()
+			fromState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.DecodeWithIdentity(ty, tc.IdentityType, uint64(tc.IdentitySchema.Version))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if tc.ExpectedError != nil {
+				if err != tc.ExpectedError {
+					t.Fatalf("unexpected error\nwant: %v\ngot: %v", tc.ExpectedError, err)
+				}
+			} else {
+				newState, err := schema.CoerceValue(fromState.Value)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if !cmp.Equal(readState, newState, valueComparer) {
+					t.Fatal(cmp.Diff(readState, newState, valueComparer, equateEmpty))
+				}
+
+				if tc.ExpectedIdentity.Equals(fromState.Identity).False() {
+					t.Fatalf("wrong identity\nwant: %s\ngot: %s", tc.ExpectedIdentity.GoString(), fromState.Identity.GoString())
+				}
+			}
+		})
+	}
+}
