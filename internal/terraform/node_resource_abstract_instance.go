@@ -1233,14 +1233,17 @@ func (n *NodeAbstractResource) processIgnoreChanges(ctx EvalContext, prior, conf
 		return config, nil
 	}
 
-	if n.Config.Managed.IgnoreChangesConditional == nil && n.Config.Managed.IgnoreChanges == nil {
+	if n.Config.Managed.IgnoreAllChanges == false &&
+		n.Config.Managed.IgnoreChangesConditional == nil &&
+		n.Config.Managed.IgnoreChanges == nil {
+		// nothing to ignore
 		return config, nil
 	}
 
 	var diags tfdiags.Diagnostics
 	var traversals []hcl.Traversal
 
-	if len(n.Config.Managed.IgnoreChanges) != 0 {
+	if len(n.Config.Managed.IgnoreChanges) > 0 {
 		traversals = n.Config.Managed.IgnoreChanges
 	}
 
