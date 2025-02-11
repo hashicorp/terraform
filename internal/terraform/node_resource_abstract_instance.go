@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -1260,11 +1261,9 @@ func (n *NodeAbstractResource) processIgnoreChanges(ctx EvalContext, prior, conf
 			var conditionRefs []*addrs.Reference
 
 			// Evaluate the condition of the conditional expression
-			if v, ok := conditionalExp.Condition.(*hclsyntax.ScopeTraversalExpr); ok {
-				r, d := addrs.ParseRef(v.Traversal)
-				diags = diags.Append(d)
-				conditionRefs = append(conditionRefs, r)
-			}
+			r, d := langrefs.ReferencesInExpr(addrs.ParseRef, conditionalExp.Condition)
+			diags = diags.Append(d)
+			conditionRefs = append(conditionRefs, r...)
 
 			scope := ctx.EvaluationScope(nil, nil, keyData)
 

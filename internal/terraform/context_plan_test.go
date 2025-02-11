@@ -6799,19 +6799,36 @@ func TestContext2Plan_validateIgnoreChangesConditional(t *testing.T) {
 		config      map[string]string
 		expectError bool
 	}{
-		"ignore_changes can be set as a conditional expression": {
+		"ignore_changes can be set as a conditional expression: condition is single value ": {
 			config: map[string]string{
 				"main.tf": `
 		variable "ignore_data" {
 			type = bool
 			default = false
 		}
-		 resource "test_instance" "a" {
-		     lifecycle {
-		        ignore_changes = var.ignore_data ? [data, foobar] : [foobar]
-		     }
-		     data = "new value"
-		 }
+		resource "test_instance" "a" {
+			lifecycle {
+				ignore_changes = var.ignore_data ? [data, foobar] : [foobar]
+			}
+			data = "new value"
+		}
+		`,
+			},
+			expectError: false,
+		},
+		"ignore_changes can be set as a conditional expression: condition is an expression": {
+			config: map[string]string{
+				"main.tf": `
+		variable "ignore_data" {
+			type = bool
+			default = false
+		}
+		resource "test_instance" "a" {
+			lifecycle {
+				ignore_changes = var.ignore_data && true ? [data, foobar] : [foobar]
+			}
+			data = "new value"
+		}
 		`,
 			},
 			expectError: false,
