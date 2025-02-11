@@ -72,7 +72,7 @@ func TestResourceInstanceObject_encode(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			rios, err := obj.Encode(value.Type(), 0, cty.EmptyObject, 0) // TODO
+			rios, err := obj.Encode(value.Type(), 0)
 			if err != nil {
 				t.Errorf("unexpected error: %s", err)
 			}
@@ -113,7 +113,7 @@ func TestResourceInstanceObject_encodeInvalidMarks(t *testing.T) {
 		Value:  value,
 		Status: ObjectReady,
 	}
-	_, err := obj.Encode(value.Type(), 0, cty.EmptyObject, 0)
+	_, err := obj.Encode(value.Type(), 0)
 	if err == nil {
 		t.Fatalf("unexpected success; want error")
 	}

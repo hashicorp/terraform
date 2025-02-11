@@ -358,7 +358,7 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 	marshal := func() (*states.ResourceInstanceObjectSrc, error) {
 		return obj.EncodeWithIdentity(objectSchema.ImpliedType(), currentObjectVersion, identitySchema.ImpliedType(), currentIdentityVersion)
 	}
-	if identitySchema == nil {
+	if identitySchema == nil || obj.Identity == cty.NilVal {
 		marshal = func() (*states.ResourceInstanceObjectSrc, error) {
 			return obj.Encode(objectSchema.ImpliedType(), currentObjectVersion)
 		}
@@ -653,6 +653,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 			Private:            state.Private,
 			ProviderMeta:       metaConfigVal,
 			ClientCapabilities: ctx.ClientCapabilities(),
+			// TODO: Send identity in read request
 		})
 
 		// If we don't support deferrals, but the provider reports a deferral and does not
@@ -737,6 +738,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 	ret := state.DeepCopy()
 	ret.Value = newState
 	ret.Private = resp.Private
+	ret.Identity = resp.Identity
 
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
