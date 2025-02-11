@@ -149,6 +149,11 @@ func (p *MockProvider) GetResourceIdentitySchemas() providers.GetResourceIdentit
 	p.Lock()
 	defer p.Unlock()
 	p.GetResourceIdentitySchemasCalled = true
+
+	if p.GetResourceIdentitySchemasResponse != nil {
+		return *p.GetResourceIdentitySchemasResponse
+	}
+
 	return providers.GetResourceIdentitySchemasResponse{
 		IdentityTypes: map[string]providers.IdentitySchema{},
 	}

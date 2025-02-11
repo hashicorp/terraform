@@ -4,6 +4,8 @@
 package states
 
 import (
+	"fmt"
+
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
@@ -70,6 +72,32 @@ type ResourceInstanceObjectSrc struct {
 
 	// decodeValueCache stored the decoded value for repeated decodings.
 	decodeValueCache cty.Value
+}
+
+// DecodeWithIdentity unmarshals the raw representation of the object attributes
+// and identity schema.
+func (os *ResourceInstanceObjectSrc) DecodeWithIdentity(ty cty.Type, identityTy cty.Type, identitySchemaVersion uint64) (*ResourceInstanceObject, error) {
+	// TODO: On call-side this should lead to an upgrade call (plus we need the old schema as well)
+	// We might have no identity data at all
+	if len(os.IdentitySchemaJSON) == 0 {
+		return os.Decode(ty) // Task failed successfully
+	}
+
+	if os.IdentitySchemaVersion != identitySchemaVersion {
+		return nil, fmt.Errorf("identity schema version mismatch: got %d, want %d", os.IdentitySchemaVersion, identitySchemaVersion)
+	}
+
+	rio, err := os.Decode(ty)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode object schema: %e", err)
+	}
+
+	rio.Identity, err = ctyjson.Unmarshal(os.IdentitySchemaJSON, identityTy)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode identity schema: %e", err)
+	}
+
+	return rio, nil
 }
 
 // Decode unmarshals the raw representation of the object attributes. Pass the
