@@ -15,6 +15,7 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -60,18 +61,33 @@ type EvalContext struct {
 	FileStates map[string]*TestFileState
 	stateLock  sync.Mutex
 
-	// cancelContext is a context that can be used to terminate the evaluation of the
-	// test suite.
-	// cancelFunc is the conrresponding cancel function that should be called to
-	// cancel the context.
+	// cancelContext and stopContext can be used to terminate the evaluation of the
+	// test suite when a cancellation or stop signal is received.
+	// cancelFunc and stopFunc are the corresponding functions to call to signal
+	// the termination.
 	cancelContext context.Context
 	cancelFunc    context.CancelFunc
+	stopContext   context.Context
+	stopFunc      context.CancelFunc
+
+	renderer views.Test
+	verbose  bool
+}
+
+type EvalContextOpts struct {
+	Verbose   bool
+	Render    views.Test
+	CancelCtx context.Context
+	StopCtx   context.Context
 }
 
 // NewEvalContext constructs a new graph evaluation context for use in
 // evaluating the runs within a test suite.
-func NewEvalContext(cancelCtx context.Context) *EvalContext {
-	cancelCtx, cancel := context.WithCancel(cancelCtx)
+// The context is initialized with the provided cancel and stop contexts, and
+// these contexts can be used from external commands to signal the termination of the test suite.
+func NewEvalContext(opts *EvalContextOpts) *EvalContext {
+	cancelCtx, cancel := context.WithCancel(opts.CancelCtx)
+	stopCtx, stop := context.WithCancel(opts.StopCtx)
 	return &EvalContext{
 		runOutputs:      make(map[addrs.Run]cty.Value),
 		outputsLock:     sync.Mutex{},
@@ -82,11 +98,20 @@ func NewEvalContext(cancelCtx context.Context) *EvalContext {
 		VariableCaches:  hcltest.NewVariableCaches(),
 		cancelContext:   cancelCtx,
 		cancelFunc:      cancel,
+		stopContext:     stopCtx,
+		stopFunc:        stop,
+		verbose:         opts.Verbose,
+		renderer:        opts.Render,
 	}
 }
 
-// Cancel cancels the context, which signals to the test suite that it should
-// stop evaluating the test suite.
+// Renderer returns the renderer for the test suite.
+func (ec *EvalContext) Renderer() views.Test {
+	return ec.renderer
+}
+
+// Cancel signals to the runs in the test suite that they should stop evaluating
+// the test suite, and return immediately.
 func (ec *EvalContext) Cancel() {
 	ec.cancelFunc()
 }
@@ -95,6 +120,21 @@ func (ec *EvalContext) Cancel() {
 // of the error is context.Canceled.
 func (ec *EvalContext) Cancelled() bool {
 	return ec.cancelContext.Err() != nil
+}
+
+// Stop signals to the runs in the test suite that they should stop evaluating
+// the test suite, and just skip.
+func (ec *EvalContext) Stop() {
+	ec.stopFunc()
+}
+
+func (ec *EvalContext) Stopped() bool {
+	return ec.stopContext.Err() != nil
+}
+
+// Verbose returns true if the context is in verbose mode.
+func (ec *EvalContext) Verbose() bool {
+	return ec.verbose
 }
 
 // EvaluateRun processes the assertions inside the provided configs.TestRun against

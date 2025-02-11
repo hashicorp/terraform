@@ -55,6 +55,9 @@ func (b *BasicGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Di
 		if err != nil {
 			if nf, isNF := err.(tfdiags.NonFatalError); isNF {
 				diags = diags.Append(nf.Diagnostics)
+			} else if diag, isDiag := err.(tfdiags.DiagnosticsAsError); isDiag {
+				diags = diags.Append(diag.Diagnostics)
+				return g, diags
 			} else {
 				diags = diags.Append(err)
 				return g, diags

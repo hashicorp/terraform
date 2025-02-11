@@ -16,58 +16,8 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// TestConfigTransformer is a GraphTransformer that adds all the test runs,
-// and the variables defined in each run block, to the graph.
-type TestConfigTransformer struct{}
-
-func (t *TestConfigTransformer) Transform(g *terraform.Graph) error {
-	// This map tracks the state of each run in the file. If multiple runs
-	// have the same state key, they will share the same state.
-	statesMap := make(map[string]*TestFileState)
-	for _, v := range g.Vertices() {
-		node, ok := v.(*NodeTestRun)
-		if !ok {
-			continue
-		}
-		if _, exists := statesMap[node.run.GetStateKey()]; !exists {
-			statesMap[node.run.GetStateKey()] = &TestFileState{
-				Run:   nil,
-				State: states.NewState(),
-			}
-		}
-	}
-	cfgNode := &nodeConfig{configMap: statesMap}
-	g.Add(cfgNode)
-
-	// Connect all the test runs to the config node, so that the config node
-	// is executed before any of the test runs.
-	for _, v := range g.Vertices() {
-		node, ok := v.(*NodeTestRun)
-		if !ok {
-			continue
-		}
-		g.Connect(dag.BasicEdge(node, cfgNode))
-	}
-
-	return nil
-}
-
-type nodeConfig struct {
-	configMap map[string]*TestFileState
-}
-
-func (n *nodeConfig) Name() string {
-	return "nodeConfig"
-}
-
 type GraphNodeExecutable interface {
 	Execute(ctx *EvalContext) tfdiags.Diagnostics
-}
-
-func (n *nodeConfig) Execute(ctx *EvalContext) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-	ctx.FileStates = n.configMap
-	return diags
 }
 
 // TestFileState is a helper struct that just maps a run block to the state that
@@ -77,14 +27,62 @@ type TestFileState struct {
 	State *states.State
 }
 
-// TransformConfigForTest transforms the provided configuration ready for the
-// test execution specified by the provided run block and test file.
+// TestConfigTransformer is a GraphTransformer that adds all the test runs,
+// and the variables defined in each run block, to the graph.
+type TestConfigTransformer struct {
+	File *moduletest.File
+}
+
+func (t *TestConfigTransformer) Transform(g *terraform.Graph) error {
+	// This map tracks the state of each run in the file. If multiple runs
+	// have the same state key, they will share the same state.
+	statesMap := make(map[string]*TestFileState)
+
+	// a root config node that will add the file states to the context
+	rootConfigNode := t.addRootConfigNode(g, statesMap)
+
+	for _, v := range g.Vertices() {
+		node, ok := v.(*NodeTestRun)
+		if !ok {
+			continue
+		}
+		key := node.run.GetStateKey()
+		if _, exists := statesMap[key]; !exists {
+			state := &TestFileState{
+				Run:   nil,
+				State: states.NewState(),
+			}
+			statesMap[key] = state
+		}
+
+		// Connect all the test runs to the config node, so that the config node
+		// is executed before any of the test runs.
+		g.Connect(dag.BasicEdge(node, rootConfigNode))
+	}
+
+	return nil
+}
+
+func (t *TestConfigTransformer) addRootConfigNode(g *terraform.Graph, statesMap map[string]*TestFileState) *dynamicNode {
+	rootConfigNode := &dynamicNode{
+		eval: func(ctx *EvalContext) tfdiags.Diagnostics {
+			var diags tfdiags.Diagnostics
+			ctx.FileStates = statesMap
+			return diags
+		},
+	}
+	g.Add(rootConfigNode)
+	return rootConfigNode
+}
+
+// TransformConfigForRun transforms the run's module configuration to include
+// the providers and variables from its block and the test file.
 //
 // In practice, this actually just means performing some surgery on the
 // available providers. We want to copy the relevant providers from the test
 // file into the configuration. We also want to process the providers so they
 // use variables from the file instead of variables from within the test file.
-func TransformConfigForTest(ctx *EvalContext, run *moduletest.Run, file *moduletest.File) hcl.Diagnostics {
+func TransformConfigForRun(ctx *EvalContext, run *moduletest.Run, file *moduletest.File) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	// Currently, we only need to override the provider settings.
