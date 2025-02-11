@@ -84,7 +84,7 @@ run "main_fifth" {
 }
 
 run "main_sixth" {
-  state_key = "uniq_5"
+  state_key = "uniq_6"
   variables {
     input = "foo"
   }
