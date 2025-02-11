@@ -6833,6 +6833,28 @@ func TestContext2Plan_validateIgnoreChangesConditional(t *testing.T) {
 			},
 			expectError: false,
 		},
+		"ignore_changes cannot be unknown": {
+			config: map[string]string{
+				"main.tf": `
+		variable "ignore_data" {
+			type = bool
+			default = false
+		}
+		resource "test_instance" "a" {
+			lifecycle {
+				# timestamp() is unknown during plan
+				# This allows forcing an unknown value for the condition
+				ignore_changes = timestamp() == "2018-05-13T07:44:12Z" ? [data, foobar] : [foobar]
+			}
+			data = "new value"
+		 }
+		resource "test_instance" "b" {
+			data = "foobar"
+		 }
+		`,
+			},
+			expectError: true,
+		},
 		//  We should stop users using string references in the new conditional expressions
 		//  as use of string references is deprecated in the existing ignore_changes features.
 		"conditional expressions used for ignore_changes cannot refer to fields using strings": {
@@ -6917,7 +6939,7 @@ func TestContext2Plan_validateIgnoreChangesConditional(t *testing.T) {
 				return
 			}
 
-			// Assert the plan is empty due to ignore_changes evaluating to inlcude the data field
+			// Assert the plan is empty due to ignore_changes evaluating to include the data field
 			for _, c := range plan.Changes.Resources {
 				if c.Action != plans.NoOp {
 					t.Fatalf("expected NoOp plan, got %s\n", c.Action)
@@ -6934,7 +6956,7 @@ func TestContext2Plan_validateIgnoreChangesConditional(t *testing.T) {
 				t.Fatal(diags.Err())
 			}
 
-			// Assert the plan is NOT empty due to ignore_changes evaluating to NOT inlcude the data field
+			// Assert the plan is NOT empty due to ignore_changes evaluating to NOT include the data field
 			for _, c := range plan.Changes.Resources {
 				if c.Action != plans.Update {
 					t.Fatalf("expected Update plan, got %s\n", c.Action)

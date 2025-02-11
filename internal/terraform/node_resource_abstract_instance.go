@@ -1276,6 +1276,18 @@ func (n *NodeAbstractResource) processIgnoreChanges(ctx EvalContext, prior, conf
 				return config, diags
 			}
 
+			if !condition.IsKnown() {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity:    hcl.DiagError,
+					Summary:     fmt.Sprint("ignore_changes condition known after apply"),
+					Detail:      "The condition could not be evaluated at this time, a result will be known when this plan is applied.",
+					Subject:     conditionalExp.Condition.Range().Ptr(),
+					Expression:  conditionalExp.Condition,
+					EvalContext: hclCtx,
+				})
+				return config, diags
+			}
+
 			if condition == cty.BoolVal(true) {
 				// Use 'true' result from conditional expression
 				// We need to access the expressions, so we do a type assertion
