@@ -53,3 +53,24 @@ func assertDiagnosticMatch(got, want Diagnostic) string {
 
 	return cmp.Diff(want, got, DiagnosticComparer)
 }
+
+// AssertNoDiagnostics will fail a test if any diagnostics are present.
+// If diagnostics are present, they will each be logged.
+func AssertNoDiagnostics(t *testing.T, diags Diagnostics) {
+	t.Helper()
+	AssertDiagnosticCount(t, diags, 0)
+}
+
+// AssertDiagnosticCount will fail a test if the number of diagnostics present
+// doesn't match the expected number.
+// If an incorrect number of diagnostics are present, they will each be logged.
+func AssertDiagnosticCount(t *testing.T, diags Diagnostics, want int) {
+	t.Helper()
+	if len(diags) != want {
+		t.Errorf("wrong number of diagnostics %d; want %d", len(diags), want)
+		for _, diag := range diags {
+			t.Logf("- %#v", diag)
+		}
+		t.FailNow()
+	}
+}
