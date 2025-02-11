@@ -74,3 +74,51 @@ func AssertDiagnosticCount(t *testing.T, diags Diagnostics, want int) {
 		t.FailNow()
 	}
 }
+
+// tfdiags.AssertNoDiagnostics fails the test in progress (using t.Fatal) if the given
+// diagnostics has any errors.
+func AssertNoErrors(t *testing.T, diags Diagnostics) {
+	t.Helper()
+	if !diags.HasErrors() {
+		return
+	}
+	LogDiagnostics(t, diags)
+	t.FailNow()
+}
+
+// LogDiagnostics is a test helper that logs the given diagnostics to to the
+// given testing.T using t.Log, in a way that is hopefully useful in debugging
+// a test. It does not generate any errors or fail the test. See
+// tfdiags.AssertNoDiagnostics and tfdiags.AssertNoErrors for more specific helpers that can
+// also fail the test.
+func LogDiagnostics(t *testing.T, diags Diagnostics) {
+	t.Helper()
+	for _, diag := range diags {
+		desc := diag.Description()
+		rng := diag.Source()
+
+		var severity string
+		switch diag.Severity() {
+		case Error:
+			severity = "ERROR"
+		case Warning:
+			severity = "WARN"
+		default:
+			severity = "???" // should never happen
+		}
+
+		if subj := rng.Subject; subj != nil {
+			if desc.Detail == "" {
+				t.Logf("[%s@%s] %s", severity, subj.StartString(), desc.Summary)
+			} else {
+				t.Logf("[%s@%s] %s: %s", severity, subj.StartString(), desc.Summary, desc.Detail)
+			}
+		} else {
+			if desc.Detail == "" {
+				t.Logf("[%s] %s", severity, desc.Summary)
+			} else {
+				t.Logf("[%s] %s: %s", severity, desc.Summary, desc.Detail)
+			}
+		}
+	}
+}
