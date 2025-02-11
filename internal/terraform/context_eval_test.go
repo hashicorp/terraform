@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestContextEval(t *testing.T) {
@@ -134,7 +135,7 @@ output "out" {
 	_, diags := ctx.Eval(m, states.NewState(), addrs.RootModuleInstance, &EvalOpts{
 		SetVariables: testInputValuesUnset(m.Module.Variables),
 	})
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 }
 
 func TestContextPlanAndEval(t *testing.T) {
@@ -174,7 +175,7 @@ func TestContextPlanAndEval(t *testing.T) {
 			},
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	// This test isn't really about whether the plan is correct, but we'll
 	// do some basic checks on it anyway because if the plan is incorrect
@@ -212,7 +213,7 @@ func TestContextPlanAndEval(t *testing.T) {
 		expr := hcltest.MockExprTraversalSrc(`var.a`)
 		want := cty.StringVal("a value")
 		got, diags := scope.EvalExpr(expr, cty.String)
-		assertNoDiagnostics(t, diags)
+		tfdiags.AssertNoDiagnostics(t, diags)
 
 		if !want.RawEquals(got) {
 			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
@@ -224,7 +225,7 @@ func TestContextPlanAndEval(t *testing.T) {
 			"arg": cty.StringVal("a value"),
 		})
 		got, diags := scope.EvalExpr(expr, cty.DynamicPseudoType)
-		assertNoDiagnostics(t, diags)
+		tfdiags.AssertNoDiagnostics(t, diags)
 
 		if !want.RawEquals(got) {
 			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
@@ -269,7 +270,7 @@ func TestContextApplyAndEval(t *testing.T) {
 			},
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	// This test isn't really about whether the plan is correct, but we'll
 	// do some basic checks on it anyway because if the plan is incorrect
@@ -298,7 +299,7 @@ func TestContextApplyAndEval(t *testing.T) {
 	}
 
 	finalState, scope, diags := ctx.ApplyAndEval(plan, m, nil)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 	if finalState == nil {
 		t.Fatalf("no final state")
 	}
@@ -313,7 +314,7 @@ func TestContextApplyAndEval(t *testing.T) {
 		expr := hcltest.MockExprTraversalSrc(`var.a`)
 		want := cty.StringVal("a value")
 		got, diags := scope.EvalExpr(expr, cty.String)
-		assertNoDiagnostics(t, diags)
+		tfdiags.AssertNoDiagnostics(t, diags)
 
 		if !want.RawEquals(got) {
 			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
@@ -325,7 +326,7 @@ func TestContextApplyAndEval(t *testing.T) {
 			"arg": cty.StringVal("a value"),
 		})
 		got, diags := scope.EvalExpr(expr, cty.DynamicPseudoType)
-		assertNoDiagnostics(t, diags)
+		tfdiags.AssertNoDiagnostics(t, diags)
 
 		if !want.RawEquals(got) {
 			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
@@ -372,5 +373,5 @@ locals {
 	_, diags := ctx.Eval(m, states.NewState(), addrs.RootModuleInstance, &EvalOpts{
 		SetVariables: testInputValuesUnset(m.Module.Variables),
 	})
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 }
