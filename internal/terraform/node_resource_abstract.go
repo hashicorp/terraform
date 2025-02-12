@@ -524,7 +524,7 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 			// on the wire. In future we will change all of our internal
 			// representations to int64 too.
 			Version:         int64(src.SchemaVersion),
-			RawIdentityJSON: src.IdentitySchemaJSON,
+			RawIdentityJSON: src.IdentityJSON,
 		}
 
 		resp := provider.UpgradeResourceIdentity(req)
@@ -633,7 +633,7 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 			// on the wire. In future we will change all of our internal
 			// representations to int64 too.
 			Version:         int64(src.SchemaVersion),
-			RawIdentityJSON: src.IdentitySchemaJSON,
+			RawIdentityJSON: src.IdentityJSON,
 		}
 
 		resp := provider.UpgradeResourceIdentity(req)
