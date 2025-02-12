@@ -34,6 +34,13 @@ Hello, Valentina!
 Hello, Valentina!
 ```
 
+We can specify an argument position number
+
+```
+> format("%[1]s%[2]s%[1]s%[3]s", "/", "path", "file.tf")
+"/path/file.tf"
+```
+
 The formatting verb `%#v` accepts a value of any type and presents it using JSON encoding, similar to jsonencode. This can be useful for describing the values given to a module in [custom condition check](/terraform/language/expressions/custom-conditions#error-messages) error messages.
 
 ```
