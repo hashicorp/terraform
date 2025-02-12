@@ -14,5 +14,5 @@ directories=$(find . -type f -name '.copywrite.hcl' -execdir pwd \;)
 args=${1:-}
 
 for dir in $directories; do
-    cd $dir && pwd && go run github.com/hashicorp/copywrite headers $args
+    cd $dir && pwd && go tool github.com/hashicorp/copywrite headers $args
 done
