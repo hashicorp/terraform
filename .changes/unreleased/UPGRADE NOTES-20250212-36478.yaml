@@ -1,0 +1,5 @@
+kind: UPGRADE NOTES
+body: On Linux, Terraform now requires Linux kernel version 3.2 or later; support for previous versions has been discontinued.
+time: 2025-02-06T16:20:53.83763+01:00
+custom:
+    Issue: "36478"
