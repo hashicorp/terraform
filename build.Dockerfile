@@ -41,7 +41,7 @@ LABEL org.opencontainers.image.title=${BIN_NAME} \
       org.opencontainers.image.vendor="HashiCorp" \
       org.opencontainers.image.licenses="BUSL-1.1"
 
-RUN apk add --no-cache git openssh
+RUN apk add --no-cache git openssh ca-certificates
 
 # Copy the license file as per Legal requirement
 COPY LICENSE "/usr/share/doc/${BIN_NAME}/LICENSE.txt"
