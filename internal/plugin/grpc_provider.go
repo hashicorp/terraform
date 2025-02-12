@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plugin/convert"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 )
 
@@ -218,7 +219,14 @@ func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentit
 	}
 
 	for name, res := range protoResp.IdentitySchemas {
-		resp.IdentityTypes[name] = convert.ProtoToResourceIdentitySchema(res)
+		var protoDiags tfdiags.Diagnostics
+		resp.IdentityTypes[name], protoDiags = convert.ProtoToResourceIdentitySchema(res)
+
+		var wrappedDiags tfdiags.Diagnostics
+		for _, diag := range protoDiags {
+			wrappedDiags = wrappedDiags.Append(fmt.Errorf("error in resource identity schema for resource %q: %s", name, diag))
+		}
+		resp.Diagnostics = resp.Diagnostics.Append(wrappedDiags)
 	}
 
 	// set the global cache if we can

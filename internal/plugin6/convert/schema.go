@@ -5,11 +5,13 @@ package convert
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"sort"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	proto "github.com/hashicorp/terraform/internal/tfplugin6"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -103,7 +105,8 @@ func ProtoToProviderSchema(s *proto.Schema) providers.Schema {
 	}
 }
 
-func ProtoToResourceIdentitySchema(s *proto.ResourceIdentitySchema) providers.IdentitySchema {
+func ProtoToResourceIdentitySchema(s *proto.ResourceIdentitySchema) (providers.IdentitySchema, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	schema := providers.IdentitySchema{
 		Version:    s.Version,
 		Attributes: make(configschema.IdentityAttributes),
@@ -118,14 +121,23 @@ func ProtoToResourceIdentitySchema(s *proto.ResourceIdentitySchema) providers.Id
 
 		if a.Type != nil {
 			if err := json.Unmarshal(a.Type, &attr.Type); err != nil {
-				panic(err)
+				diags = diags.Append(fmt.Errorf("Could not unmarshal type for attribute %q: %w", a.Name, err))
 			}
+		} else {
+			diags = diags.Append(fmt.Errorf("Attribute %q is missing a type definition", a.Name))
+		}
+
+		if attr.RequiredForImport && attr.OptionalForImport {
+			diags = diags.Append(fmt.Errorf("Attribute %q cannot be both required and optional for import", a.Name))
+		}
+		if !attr.RequiredForImport && !attr.OptionalForImport {
+			diags = diags.Append(fmt.Errorf("Attribute %q must be either required or optional for import", a.Name))
 		}
 
 		schema.Attributes[a.Name] = attr
 	}
 
-	return schema
+	return schema, diags
 }
 
 // ProtoToConfigSchema takes the GetSchcema_Block from a grpc response and converts it
