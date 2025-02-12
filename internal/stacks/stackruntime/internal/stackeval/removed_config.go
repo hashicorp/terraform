@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	stackparser "github.com/hashicorp/terraform/internal/stacks/stackconfig/parser"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -108,7 +109,7 @@ func (r *RemovedConfig) CheckModuleTree(ctx context.Context) (*configs.Config, t
 			return nil, diags
 		}
 
-		walker := newSourceBundleModuleWalker(rootModuleSource, sources, parser)
+		walker := stackparser.NewSourceBundleModuleWalker(rootModuleSource, sources, parser)
 		configRoot, hclDiags := configs.BuildConfig(rootMod, walker, nil)
 		diags = diags.Append(hclDiags)
 		if hclDiags.HasErrors() {

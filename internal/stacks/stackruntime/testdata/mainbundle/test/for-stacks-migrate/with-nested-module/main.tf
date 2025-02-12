@@ -28,6 +28,14 @@ resource "testing_resource" "another" {
   value = var.input
 }
 
+module "child_mod" {
+  source = "./child"
+  input = var.input
+  providers = {
+    testing = testing
+  }
+}
+
 output "id" {
   value = testing_resource.data.id
 }

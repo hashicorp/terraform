@@ -17,12 +17,12 @@ variable "input" {
   type = string
 }
 
-resource "testing_resource" "data" {
+resource "testing_resource" "child_data" {
   id    = var.id
   value = var.input
 }
 
-resource "testing_resource" "another" {
+resource "testing_resource" "another_child_data" {
   count = 2
   id    = var.id
   value = var.input
