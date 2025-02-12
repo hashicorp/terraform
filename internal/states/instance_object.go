@@ -11,8 +11,8 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/format"
 	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // ResourceInstanceObject is the local representation of a specific remote
@@ -173,8 +173,15 @@ func unmarkValueForStorage(v cty.Value) (unmarkedV cty.Value, sensitivePaths []c
 	if len(withOtherMarks) != 0 {
 		return cty.NilVal, nil, fmt.Errorf(
 			"%s: cannot serialize value marked as %#v for inclusion in a state snapshot (this is a bug in Terraform)",
-			tfdiags.FormatCtyPath(withOtherMarks[0].Path), withOtherMarks[0].Marks,
+			format.CtyPath(withOtherMarks[0].Path), withOtherMarks[0].Marks,
 		)
 	}
+
+	// sort the sensitive paths for consistency in comparison and serialization
+	sort.Slice(sensitivePaths, func(i, j int) bool {
+		// use our human-readable format of paths for comparison
+		return format.CtyPath(sensitivePaths[i]) < format.CtyPath(sensitivePaths[j])
+	})
+
 	return val, sensitivePaths, nil
 }

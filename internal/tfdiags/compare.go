@@ -15,9 +15,11 @@ import "github.com/google/go-cmp/cmp"
 // Example usage:
 //
 //	cmp.Diff(diag1, diag2, tfdiags.DiagnosticComparer)
-var DiagnosticComparer cmp.Option = cmp.Comparer(diagnosticComparer)
+var DiagnosticComparer cmp.Option = cmp.Comparer(diagnosticComparerSimple)
 
-func diagnosticComparer(l, r Diagnostic) bool {
+// diagnosticComparerSimple returns false when a difference is identified between
+// the two Diagnostic arguments.
+func diagnosticComparerSimple(l, r Diagnostic) bool {
 	if l.Severity() != r.Severity() {
 		return false
 	}
@@ -25,6 +27,7 @@ func diagnosticComparer(l, r Diagnostic) bool {
 		return false
 	}
 
+	// Do the diagnostics originate from the same attribute name, if any?
 	lp := GetAttribute(l)
 	rp := GetAttribute(r)
 	if len(lp) != len(rp) {

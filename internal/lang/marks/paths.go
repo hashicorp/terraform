@@ -4,9 +4,10 @@
 package marks
 
 import (
-	"fmt"
 	"sort"
+	"strings"
 
+	"github.com/hashicorp/terraform/internal/lang/format"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -77,9 +78,17 @@ func MarksEqual(a, b []cty.PathValueMarks) bool {
 
 	less := func(s []cty.PathValueMarks) func(i, j int) bool {
 		return func(i, j int) bool {
+			cmp := strings.Compare(format.CtyPath(s[i].Path), format.CtyPath(s[j].Path))
+
+			switch {
+			case cmp < 0:
+				return true
+			case cmp > 0:
+				return false
+			}
 			// the sort only needs to be consistent, so use the GoString format
 			// to get a comparable value
-			return fmt.Sprintf("%#v", s[i]) < fmt.Sprintf("%#v", s[j])
+			return s[i].Marks.GoString() < s[j].Marks.GoString()
 		}
 	}
 

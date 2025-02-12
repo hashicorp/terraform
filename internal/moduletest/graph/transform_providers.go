@@ -4,11 +4,10 @@
 package graph
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // TestProvidersTransformer is a GraphTransformer that gathers all the providers
@@ -17,8 +16,11 @@ import (
 type TestProvidersTransformer struct{}
 
 func (t *TestProvidersTransformer) Transform(g *terraform.Graph) error {
-	var errs []error
 	configsProviderMap := make(map[string]map[string]bool)
+	runProviderMap := make(map[*NodeTestRun]map[string]bool)
+
+	// a root provider node that will add the providers to the context
+	rootProviderNode := t.createRootNode(g, runProviderMap)
 
 	for _, v := range g.Vertices() {
 		node, ok := v.(*NodeTestRun)
@@ -32,18 +34,13 @@ func (t *TestProvidersTransformer) Transform(g *terraform.Graph) error {
 			providers := t.transformSingleConfig(node.run.ModuleConfig)
 			configsProviderMap[configKey] = providers
 		}
+		runProviderMap[node] = configsProviderMap[configKey]
 
-		providers, ok := configsProviderMap[configKey]
-		if !ok {
-			// This should not happen
-			errs = append(errs, fmt.Errorf("missing providers for module config %q", configKey))
-			continue
-		}
-
-		// Add the required providers for the test run node
-		node.requiredProviders = providers
+		// Add an edge from the test run node to the root provider node
+		g.Connect(dag.BasicEdge(v, rootProviderNode))
 	}
-	return errors.Join(errs...)
+
+	return nil
 }
 
 func (t *TestProvidersTransformer) transformSingleConfig(config *configs.Config) map[string]bool {
@@ -87,4 +84,17 @@ func (t *TestProvidersTransformer) transformSingleConfig(config *configs.Config)
 	}
 
 	return providers
+}
+
+func (t *TestProvidersTransformer) createRootNode(g *terraform.Graph, providerMap map[*NodeTestRun]map[string]bool) *dynamicNode {
+	node := &dynamicNode{
+		eval: func(ctx *EvalContext) tfdiags.Diagnostics {
+			for node, providers := range providerMap {
+				ctx.SetProviders(node.run, providers)
+			}
+			return nil
+		},
+	}
+	g.Add(node)
+	return node
 }
