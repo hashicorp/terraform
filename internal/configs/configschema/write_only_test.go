@@ -63,14 +63,12 @@ func TestBlock_WriteOnlyPaths(t *testing.T) {
 			cty.UnknownVal(schema.ImpliedType()),
 			[]cty.Path{
 				{cty.GetAttrStep{Name: "wo"}},
-				{cty.GetAttrStep{Name: "nested"}, cty.GetAttrStep{Name: "honk"}},
 			},
 		},
 		"null object": {
 			cty.NullVal(schema.ImpliedType()),
 			[]cty.Path{
 				{cty.GetAttrStep{Name: "wo"}},
-				{cty.GetAttrStep{Name: "nested"}, cty.GetAttrStep{Name: "honk"}},
 			},
 		},
 		"object with unknown attributes and blocks": {
@@ -85,7 +83,6 @@ func TestBlock_WriteOnlyPaths(t *testing.T) {
 			}),
 			[]cty.Path{
 				{cty.GetAttrStep{Name: "wo"}},
-				{cty.GetAttrStep{Name: "nested"}, cty.GetAttrStep{Name: "honk"}},
 			},
 		},
 		"object with block value": {
@@ -109,7 +106,6 @@ func TestBlock_WriteOnlyPaths(t *testing.T) {
 			}),
 			[]cty.Path{
 				{cty.GetAttrStep{Name: "wo"}},
-				{cty.GetAttrStep{Name: "nested"}, cty.GetAttrStep{Name: "honk"}},
 				{cty.GetAttrStep{Name: "list"}, cty.IndexStep{Key: cty.NumberIntVal(0)}, cty.GetAttrStep{Name: "wo"}},
 				{cty.GetAttrStep{Name: "list"}, cty.IndexStep{Key: cty.NumberIntVal(1)}, cty.GetAttrStep{Name: "wo"}},
 			},
@@ -139,7 +135,9 @@ func TestBlock_WriteOnlyPaths(t *testing.T) {
 			}),
 			[]cty.Path{
 				{cty.GetAttrStep{Name: "wo"}},
-				{cty.GetAttrStep{Name: "nested"}, cty.GetAttrStep{Name: "honk"}},
+				{cty.GetAttrStep{Name: "nested"}, cty.IndexStep{Key: cty.NumberIntVal(0)}, cty.GetAttrStep{Name: "honk"}},
+				{cty.GetAttrStep{Name: "nested"}, cty.IndexStep{Key: cty.NumberIntVal(1)}, cty.GetAttrStep{Name: "honk"}},
+				{cty.GetAttrStep{Name: "nested"}, cty.IndexStep{Key: cty.NumberIntVal(2)}, cty.GetAttrStep{Name: "honk"}},
 			},
 		},
 	}
