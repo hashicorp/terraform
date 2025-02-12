@@ -155,6 +155,10 @@ func (p *Provider) UpgradeResourceState(req providers.UpgradeResourceStateReques
 	return upgradeDataStoreResourceState(req)
 }
 
+func (p *Provider) UpgradeResourceIdentity(req providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse {
+	return upgradeDataStoreResourceIdentity(req)
+}
+
 // ReadResource refreshes a resource and returns its current state.
 func (p *Provider) ReadResource(req providers.ReadResourceRequest) providers.ReadResourceResponse {
 	return readDataStoreResourceState(req)

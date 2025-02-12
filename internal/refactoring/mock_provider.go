@@ -49,6 +49,10 @@ func (provider *mockProvider) UpgradeResourceState(providers.UpgradeResourceStat
 	panic("not implemented in mock")
 }
 
+func (provider *mockProvider) UpgradeResourceIdentity(providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse {
+	panic("not implemented in mock")
+}
+
 func (provider *mockProvider) ConfigureProvider(providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 	panic("not implemented in mock")
 }

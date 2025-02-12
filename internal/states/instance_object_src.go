@@ -75,7 +75,7 @@ type ResourceInstanceObjectSrc struct {
 }
 
 // DecodeWithIdentity unmarshals the raw representation of the object attributes
-// and identity schema.
+// and identity schema. We expect the caller to make sure upgrades of the resource identity happen beforehand.
 func (os *ResourceInstanceObjectSrc) DecodeWithIdentity(ty cty.Type, identityTy cty.Type, identitySchemaVersion uint64) (*ResourceInstanceObject, error) {
 	// TODO: On call-side this should lead to an upgrade call (plus we need the old schema as well)
 	// We might have no identity data at all
@@ -94,7 +94,7 @@ func (os *ResourceInstanceObjectSrc) DecodeWithIdentity(ty cty.Type, identityTy 
 
 	rio.Identity, err = ctyjson.Unmarshal(os.IdentitySchemaJSON, identityTy)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode identity schema: %e", err)
+		return nil, fmt.Errorf("failed to decode identity schema: %s. This is most likely a bug in the Provider, providers must not change the identity schema without updating the identity schema version", err.Error())
 	}
 
 	return rio, nil

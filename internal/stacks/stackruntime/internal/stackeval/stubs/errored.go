@@ -184,6 +184,22 @@ func (p *erroredProvider) UpgradeResourceState(req providers.UpgradeResourceStat
 	}
 }
 
+func (p *erroredProvider) UpgradeResourceIdentity(req providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse {
+	// Ideally we'd just skip this altogether and echo back what the caller
+	// provided, but the request is in a different serialization format than
+	// the response and so only the real provider can deal with this one.
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is invalid",
+		"Cannot decode the prior state for this resource instance because its provider configuration is invalid.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.UpgradeResourceIdentityResponse{
+		Diagnostics: diags,
+	}
+}
+
 // ValidateDataResourceConfig implements providers.Interface.
 func (p *erroredProvider) ValidateDataResourceConfig(req providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
 	// We'll just optimistically assume the configuration is valid, so that
