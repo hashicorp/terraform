@@ -74,6 +74,12 @@ func (u *unknownProvider) UpgradeResourceState(request providers.UpgradeResource
 	return u.unconfiguredClient.UpgradeResourceState(request)
 }
 
+func (u *unknownProvider) UpgradeResourceIdentity(request providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse {
+	// This is offline functionality, so we can hand it off to the unconfigured
+	// client.
+	return u.unconfiguredClient.UpgradeResourceIdentity(request)
+}
+
 func (u *unknownProvider) ConfigureProvider(request providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 	// This shouldn't be called, we don't configure an unknown provider within
 	// stacks and Terraform Core shouldn't call this method.

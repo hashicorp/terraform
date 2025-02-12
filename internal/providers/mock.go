@@ -136,6 +136,40 @@ func (m *Mock) UpgradeResourceState(request UpgradeResourceStateRequest) (respon
 	return response
 }
 
+func (m *Mock) UpgradeResourceIdentity(request UpgradeResourceIdentityRequest) (response UpgradeResourceIdentityResponse) {
+	// We can't do this from a mocked provider, so we just return whatever identity
+	// is in the request back unchanged.
+
+	schema := m.GetResourceIdentitySchemas()
+	response.Diagnostics = response.Diagnostics.Append(schema.Diagnostics)
+	if schema.Diagnostics.HasErrors() {
+		// We couldn't retrieve the schema for some reason, so the mock
+		// provider can't really function.
+		return response
+	}
+
+	resource, exists := schema.IdentityTypes[request.TypeName]
+	if !exists {
+		// This means something has gone wrong much earlier, we should have
+		// failed a validation somewhere if a resource type doesn't exist.
+		panic(fmt.Errorf("failed to retrieve identity schema for resource %s", request.TypeName))
+	}
+
+	schemaType := resource.Attributes.ImpliedType()
+	value, err := ctyjson.Unmarshal(request.RawIdentityJSON, schemaType)
+
+	if err != nil {
+		// Generally, we shouldn't get an error here. The mocked providers are
+		// only used in tests, and we can't use different versions of providers
+		// within/between tests so the types should always match up. As such,
+		// we're not gonna return a super detailed error here.
+		response.Diagnostics = response.Diagnostics.Append(err)
+		return response
+	}
+	response.UpgradedIdentity = value
+	return response
+}
+
 func (m *Mock) ConfigureProvider(request ConfigureProviderRequest) (response ConfigureProviderResponse) {
 	// Do nothing here, we don't have anything to configure within the mocked
 	// providers. We don't want to call the original providers from here as

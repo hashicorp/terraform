@@ -105,6 +105,15 @@ func (p simple) UpgradeResourceState(req providers.UpgradeResourceStateRequest) 
 	return resp
 }
 
+func (p simple) UpgradeResourceIdentity(req providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
+	schema := p.GetResourceIdentitySchemas().IdentityTypes[req.TypeName].Attributes
+	ty := schema.ImpliedType()
+	val, err := ctyjson.Unmarshal(req.RawIdentityJSON, ty)
+	resp.Diagnostics = resp.Diagnostics.Append(err)
+	resp.UpgradedIdentity = val
+	return resp
+}
+
 func (s simple) ConfigureProvider(providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 	return resp
 }

@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"fmt"
 	"reflect"
 	"sort"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestContext2Refresh(t *testing.T) {
@@ -1695,15 +1697,15 @@ resource "test_resource" "foo" {
 // TODO: Move to plan tests
 // TODO: Double check if we need specific refresh tests as well
 func TestContext2Refresh_resource_identity_adds_missing(t *testing.T) {
-
 	for name, tc := range map[string]struct {
-		StoredIdentitySchemaVersion uint64
-		StoredIdentityJSON          []byte
-		IdentitySchema              providers.IdentitySchema
-		IdentityType                cty.Type
-		IdentityData                cty.Value
-		ExpectedIdentity            cty.Value
-		ExpectedError               error
+		StoredIdentitySchemaVersion         uint64
+		StoredIdentityJSON                  []byte
+		IdentitySchema                      providers.IdentitySchema
+		IdentityData                        cty.Value
+		ExpectedIdentity                    cty.Value
+		ExpectedError                       error
+		ExpectUpgradeResourceIdentityCalled bool
+		UpgradeResourceIdentityResponse     providers.UpgradeResourceIdentityResponse
 	}{
 		"no previous identity": {
 			IdentitySchema: providers.IdentitySchema{
@@ -1715,9 +1717,6 @@ func TestContext2Refresh_resource_identity_adds_missing(t *testing.T) {
 					},
 				},
 			},
-			IdentityType: cty.Object(map[string]cty.Type{
-				"id": cty.String,
-			}),
 			IdentityData: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.StringVal("foo"),
 			}),
@@ -1725,51 +1724,115 @@ func TestContext2Refresh_resource_identity_adds_missing(t *testing.T) {
 				"id": cty.StringVal("foo"),
 			}),
 		},
-		// "identity version mismatch": {
-		// 	StoredIdentitySchemaVersion: 1,
-		// 	StoredIdentityJSON:          []byte(`{"id": "foo"}`),
-		// 	IdentitySchema: providers.IdentitySchema{
-		// 		Version: 0,
-		// 		Attributes: configschema.IdentityAttributes{
-		// 			"id": {
-		// 				Type:              cty.String,
-		// 				RequiredForImport: true,
-		// 			},
-		// 		},
-		// 	},
-		// 	IdentityType: cty.Object(map[string]cty.Type{
-		// 		"id": cty.String,
-		// 	}),
-		// 	IdentityData: cty.ObjectVal(map[string]cty.Value{
-		// 		"id": cty.StringVal("foo"),
-		// 	}),
-		// 	ExpectedError: fmt.Errorf("identity schema version mismatch: stored 1, expected 0"),
-		// },
-		// "identity type mismatch": {
-		// 	StoredIdentitySchemaVersion: 0,
-		// 	StoredIdentityJSON:          []byte(`{"arn": "foo"}`),
-		// 	IdentitySchema: providers.IdentitySchema{
-		// 		Version: 0,
-		// 		Attributes: configschema.IdentityAttributes{
-		// 			"id": {
-		// 				Type:              cty.String,
-		// 				RequiredForImport: true,
-		// 			},
-		// 		},
-		// 	},
-		// 	IdentityType: cty.Object(map[string]cty.Type{
-		// 		"id": cty.String,
-		// 	}),
-		// 	IdentityData: cty.ObjectVal(map[string]cty.Value{
-		// 		"id": cty.StringVal("foo"),
-		// 	}),
-		// 	ExpectedIdentity: cty.ObjectVal(map[string]cty.Value{
-		// 		"id": cty.StringVal("foo"),
-		// 	}),
-		// 	ExpectedError: fmt.Errorf("identity schema mismatch, could not decode"),
-		// },
-		// "identity upgrade": {},
-		// "identity recorded, no identity sent": {},
+		"identity version mismatch": {
+			StoredIdentitySchemaVersion: 1,
+			StoredIdentityJSON:          []byte(`{"id": "foo"}`),
+			IdentitySchema: providers.IdentitySchema{
+				Version: 0,
+				Attributes: configschema.IdentityAttributes{
+					"id": {
+						Type:              cty.String,
+						RequiredForImport: true,
+					},
+				},
+			},
+			IdentityData: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
+			ExpectedError: fmt.Errorf("identity schema version mismatch: got 1, want 0"),
+		},
+		"identity type mismatch": {
+			StoredIdentitySchemaVersion: 0,
+			StoredIdentityJSON:          []byte(`{"arn": "foo"}`),
+			IdentitySchema: providers.IdentitySchema{
+				Version: 0,
+				Attributes: configschema.IdentityAttributes{
+					"id": {
+						Type:              cty.String,
+						RequiredForImport: true,
+					},
+				},
+			},
+			IdentityData: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
+			ExpectedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
+			ExpectedError: fmt.Errorf("failed to decode identity schema: unsupported attribute \"arn\". This is most likely a bug in the Provider, providers must not change the identity schema without updating the identity schema version"),
+		},
+		"identity upgrade succeeds": {
+			StoredIdentitySchemaVersion: 1,
+			StoredIdentityJSON:          []byte(`{"arn": "foo"}`),
+			IdentitySchema: providers.IdentitySchema{
+				Version: 2,
+				Attributes: configschema.IdentityAttributes{
+					"id": {
+						Type:              cty.String,
+						RequiredForImport: true,
+					},
+				},
+			},
+			IdentityData: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
+			UpgradeResourceIdentityResponse: providers.UpgradeResourceIdentityResponse{
+				UpgradedIdentity: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+			},
+			ExpectedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
+			ExpectUpgradeResourceIdentityCalled: true,
+		},
+		"identity upgrade failed": {
+			StoredIdentitySchemaVersion: 1,
+			StoredIdentityJSON:          []byte(`{"id": "foo"}`),
+			IdentitySchema: providers.IdentitySchema{
+				Version: 2,
+				Attributes: configschema.IdentityAttributes{
+					"arn": {
+						Type:              cty.String,
+						RequiredForImport: true,
+					},
+				},
+			},
+			IdentityData: cty.ObjectVal(map[string]cty.Value{
+				"arn": cty.StringVal("arn:foo"),
+			}),
+			UpgradeResourceIdentityResponse: providers.UpgradeResourceIdentityResponse{
+				UpgradedIdentity: cty.NilVal,
+				Diagnostics: tfdiags.Diagnostics{
+					tfdiags.Sourceless(tfdiags.Error, "failed to upgrade resource identity", "provider was unable to do so"),
+				},
+			},
+			ExpectedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"arn": cty.StringVal("arn:foo"),
+			}),
+			ExpectUpgradeResourceIdentityCalled: true,
+			ExpectedError:                       fmt.Errorf("failed to upgrade resource identity: provider was unable to do so"),
+		},
+		"identity sent to provider differs from returned one": {
+			StoredIdentitySchemaVersion: 0,
+			StoredIdentityJSON:          []byte(`{"id": "foo"}`),
+			IdentitySchema: providers.IdentitySchema{
+				Version: 0,
+				Attributes: configschema.IdentityAttributes{
+					"id": {
+						Type:              cty.String,
+						RequiredForImport: true,
+					},
+				},
+			},
+			IdentityData: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("bar"),
+			}),
+			ExpectedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
+			ExpectedError: fmt.Errorf("Provider produced different identity: Provider \"registry.terraform.io/hashicorp/aws\" planned an different identity for aws_instance.web during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			p := testProvider("aws")
@@ -1812,9 +1875,24 @@ func TestContext2Refresh_resource_identity_adds_missing(t *testing.T) {
 				Identity: tc.IdentityData,
 			}
 
+			p.UpgradeResourceIdentityResponse = &tc.UpgradeResourceIdentityResponse
+
 			s, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.RefreshOnlyMode})
-			if diags.HasErrors() {
-				t.Fatal(diags.Err())
+
+			// TODO: maybe move to comparing diagnostics instead
+			if tc.ExpectedError != nil {
+				if !diags.HasErrors() {
+					t.Fatal("expected error, got none")
+				}
+				if diags.Err().Error() != tc.ExpectedError.Error() {
+					t.Fatalf("unexpected error\nwant: %v\ngot:  %v", tc.ExpectedError, diags.Err())
+				}
+
+				return
+			} else {
+				if diags.HasErrors() {
+					t.Fatal(diags.Err())
+				}
 			}
 
 			if !p.ReadResourceCalled {
@@ -1825,30 +1903,29 @@ func TestContext2Refresh_resource_identity_adds_missing(t *testing.T) {
 				t.Fatal("GetResourceIdentitySchemas should be called")
 			}
 
+			if tc.ExpectUpgradeResourceIdentityCalled && !p.UpgradeResourceIdentityCalled {
+				t.Fatal("UpgradeResourceIdentity should be called")
+			}
+
 			mod := s.PriorState.RootModule()
-			fromState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.DecodeWithIdentity(ty, tc.IdentityType, uint64(tc.IdentitySchema.Version))
+			fromState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.DecodeWithIdentity(ty, tc.IdentitySchema.Attributes.ImpliedType(), uint64(tc.IdentitySchema.Version))
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			if tc.ExpectedError != nil {
-				if err != tc.ExpectedError {
-					t.Fatalf("unexpected error\nwant: %v\ngot: %v", tc.ExpectedError, err)
-				}
-			} else {
-				newState, err := schema.CoerceValue(fromState.Value)
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				if !cmp.Equal(readState, newState, valueComparer) {
-					t.Fatal(cmp.Diff(readState, newState, valueComparer, equateEmpty))
-				}
-
-				if tc.ExpectedIdentity.Equals(fromState.Identity).False() {
-					t.Fatalf("wrong identity\nwant: %s\ngot: %s", tc.ExpectedIdentity.GoString(), fromState.Identity.GoString())
-				}
+			newState, err := schema.CoerceValue(fromState.Value)
+			if err != nil {
+				t.Fatal(err)
 			}
+
+			if !cmp.Equal(readState, newState, valueComparer) {
+				t.Fatal(cmp.Diff(readState, newState, valueComparer, equateEmpty))
+			}
+
+			if tc.ExpectedIdentity.Equals(fromState.Identity).False() {
+				t.Fatalf("wrong identity\nwant: %s\ngot: %s", tc.ExpectedIdentity.GoString(), fromState.Identity.GoString())
+			}
+
 		})
 	}
 }

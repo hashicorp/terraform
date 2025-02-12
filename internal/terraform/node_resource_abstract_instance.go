@@ -645,6 +645,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		// to the provider so we'll just return whatever was in state.
 		resp = providers.ReadResourceResponse{
 			NewState: priorVal,
+			Identity: state.Identity,
 		}
 	} else {
 		resp = provider.ReadResource(providers.ReadResourceRequest{
@@ -725,6 +726,18 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 
 	if writeOnlyDiags.HasErrors() {
 		return state, deferred, diags
+	}
+
+	// Identities can not change on read
+	if !state.Identity.IsNull() && state.Identity.Equals(resp.Identity).False() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced different identity",
+			fmt.Sprintf(
+				"Provider %q planned an different identity for %s during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.Provider, absAddr,
+			),
+		))
 	}
 
 	newState := objchange.NormalizeObjectFromLegacySDK(resp.NewState, schema)

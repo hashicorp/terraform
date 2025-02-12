@@ -58,6 +58,12 @@ type MockProvider struct {
 	UpgradeResourceStateRequest  providers.UpgradeResourceStateRequest
 	UpgradeResourceStateFn       func(providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse
 
+	UpgradeResourceIdentityCalled   bool
+	UpgradeResourceIdentityTypeName string
+	UpgradeResourceIdentityResponse *providers.UpgradeResourceIdentityResponse
+	UpgradeResourceIdentityRequest  providers.UpgradeResourceIdentityRequest
+	UpgradeResourceIdentityFn       func(providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse
+
 	ConfigureProviderCalled   bool
 	ConfigureProviderResponse *providers.ConfigureProviderResponse
 	ConfigureProviderRequest  providers.ConfigureProviderRequest
@@ -150,6 +156,10 @@ func (p *MockProvider) GetResourceIdentitySchemas() providers.GetResourceIdentit
 	defer p.Unlock()
 	p.GetResourceIdentitySchemasCalled = true
 
+	return p.getResourceIdentitySchemas()
+}
+
+func (p *MockProvider) getResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
 	if p.GetResourceIdentitySchemasResponse != nil {
 		return *p.GetResourceIdentitySchemasResponse
 	}
@@ -319,6 +329,44 @@ func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 		}
 		resp.UpgradedState = v
 	}
+
+	return resp
+}
+
+func (p *MockProvider) UpgradeResourceIdentity(r providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before UpgradeResourceIdentity %q", r.TypeName))
+		return resp
+	}
+	p.UpgradeResourceIdentityCalled = true
+	p.UpgradeResourceIdentityRequest = r
+
+	if p.UpgradeResourceIdentityFn != nil {
+		return p.UpgradeResourceIdentityFn(r)
+	}
+
+	if p.UpgradeResourceIdentityResponse != nil {
+		return *p.UpgradeResourceIdentityResponse
+	}
+
+	identitySchema, ok := p.getResourceIdentitySchemas().IdentityTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
+		return resp
+	}
+
+	identityType := identitySchema.Attributes.ImpliedType()
+
+	v, err := ctyjson.Unmarshal(r.RawIdentityJSON, identityType)
+
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+	resp.UpgradedIdentity = v
 
 	return resp
 }
