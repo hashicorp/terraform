@@ -1764,7 +1764,7 @@ Note that adding these options may include further additional resource instances
 The -target option is not for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
 			),
 			// ...but now we have no error about test_object.a
-		}.ForRPC()
+		}
 
 		tfdiags.AssertDiagnosticsMatch(t, wantDiags, diags)
 	})
