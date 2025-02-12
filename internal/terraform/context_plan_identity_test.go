@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -157,6 +158,37 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 			}),
 			ExpectedError: fmt.Errorf("Provider produced different identity: Provider \"registry.terraform.io/hashicorp/aws\" planned an different identity for aws_instance.web during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
 		},
+		"identity with unknowns": {
+			IdentitySchema: providers.IdentitySchema{
+				Version: 0,
+				Attributes: configschema.IdentityAttributes{
+					"id": {
+						Type:              cty.String,
+						RequiredForImport: true,
+					},
+				},
+			},
+			IdentityData: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.UnknownVal(cty.String),
+			}),
+			ExpectedError: fmt.Errorf("Provider produced invalid identity: Provider \"registry.terraform.io/hashicorp/aws\" planned an identity with unknown values for aws_instance.web during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
+		},
+
+		"identity with marks": {
+			IdentitySchema: providers.IdentitySchema{
+				Version: 0,
+				Attributes: configschema.IdentityAttributes{
+					"id": {
+						Type:              cty.String,
+						RequiredForImport: true,
+					},
+				},
+			},
+			IdentityData: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("marked value").Mark(marks.Sensitive),
+			}),
+			ExpectedError: fmt.Errorf("Provider produced invalid identity: Provider \"registry.terraform.io/hashicorp/aws\" planned an identity with marks for aws_instance.web during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			p := testProvider("aws")
@@ -171,7 +203,7 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 					Status:                states.ObjectReady,
 					AttrsJSON:             []byte(`{"id":"foo","foo":"bar"}`),
 					IdentitySchemaVersion: tc.StoredIdentitySchemaVersion,
-					IdentitySchemaJSON:    tc.StoredIdentityJSON,
+					IdentityJSON:          tc.StoredIdentityJSON,
 				},
 				mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 			)
@@ -288,7 +320,7 @@ func TestContext2Plan_resource_identity_refresh_destroy_deposed(t *testing.T) {
 
 	p.GetResourceIdentitySchemasResponse = &providers.GetResourceIdentitySchemasResponse{
 		IdentityTypes: map[string]providers.IdentitySchema{
-			"aws_instance": providers.IdentitySchema{
+			"aws_instance": {
 				Version: 0,
 				Attributes: configschema.IdentityAttributes{
 					"id": {
