@@ -27,7 +27,7 @@ func (m *migration) migrateComponents(components collections.Map[Config, collect
 	// work out the dependencies between the component instances.
 	dependencies, dependents := m.calculateDependencies(components)
 	for instance := range instances.All() {
-		cfg := m.Migration.Config.Component(Config{
+		cfg := m.Config.Component(Config{
 			Stack: instance.Stack.ConfigAddr(),
 			Item:  instance.Item.Component,
 		})
@@ -37,9 +37,9 @@ func (m *migration) migrateComponents(components collections.Map[Config, collect
 
 		// We need to see the inputs and outputs from the component, so we can
 		// create the component instance with the correct values.
-		config := m.moduleConfig(cfg.FinalSourceAddr)
-		if config == nil {
-			// We should have emitted diagnostics for this already.
+		config, diags := m.moduleConfig(cfg.FinalSourceAddr)
+		if diags.HasErrors() {
+			m.emitDiags(diags)
 			continue
 		}
 
@@ -99,9 +99,9 @@ func (m *migration) calculateDependencies(components collections.Map[Config, col
 				continue
 			}
 
-			stack, component := m.getStackComponent(instance)
-			if stack == nil || component == nil {
-				// We should have emitted diagnostics for this already.
+			stack, component, diags := m.findStackAndComponent(instance)
+			if diags.HasErrors() {
+				m.emitDiags(diags)
 				continue
 			}
 
@@ -195,7 +195,7 @@ func (m *migration) componentDependenciesFromTraversal(traversal hcl.Traversal, 
 		return ds, diags
 	case stackaddrs.StackCall:
 		targetStackAddress := append(current.ConfigAddr(), stackaddrs.StackStep(ref))
-		stack := m.Migration.Config.Stack(targetStackAddress)
+		stack := m.Config.Stack(targetStackAddress)
 
 		if stack == nil {
 			// reference to a stack that does not exist in the configuration.

@@ -9,7 +9,9 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -29,7 +31,7 @@ func (m *migration) migrateResources(resources map[string]string, modules map[st
 		components.Get(configComponent).Add(instance)
 	}
 
-	for _, module := range m.Migration.PreviousState.Modules {
+	for _, module := range m.PreviousState.Modules {
 		for _, resource := range module.Resources {
 			// the search will replace the target's module with the component instance,
 			// therefore, any further function call that needs the original module
@@ -45,9 +47,9 @@ func (m *migration) migrateResources(resources map[string]string, modules map[st
 
 			trackComponent(target.Component) // record the component instance
 
-			providerAddr, ok := m.getOwningProvider(target, originalModule)
-			if !ok {
-				// getOwningProvider should have emitted a diagnostic already
+			providerAddr, diags := m.getOwningProvider(target, originalModule)
+			if diags.HasErrors() {
+				m.emitDiags(diags)
 				continue
 			}
 
@@ -151,7 +153,7 @@ func (m *migration) search(resource addrs.AbsResource, resources map[string]stri
 				Item:      resource,
 			}, diags
 		} else {
-			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Resource not found", fmt.Sprintf("Resource %s not found in mapping.", resource.Resource.String())))
+			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Resource not found", fmt.Sprintf("Resource %q not found in mapping.", resource.Resource.String())))
 			return empty, diags
 		}
 	}
@@ -165,6 +167,7 @@ func (m *migration) search(resource addrs.AbsResource, resources map[string]stri
 		if diags.HasErrors() {
 			return empty, diags
 		}
+		// retain the instance key
 		inst.Item.Key = resource.Module[0].InstanceKey
 		return stackaddrs.AbsResource{
 			Component: inst,
@@ -174,7 +177,119 @@ func (m *migration) search(resource addrs.AbsResource, resources map[string]stri
 			},
 		}, diags
 	} else {
-		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Module not found", fmt.Sprintf("Module %s not found in mapping.", resource.Module[0].Name)))
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Module not found", fmt.Sprintf("Module %q not found in mapping.", resource.Module[0].Name)))
 		return empty, diags
 	}
+}
+
+// getOwningProvider returns the address of the provider configuration
+// that was used to create the given resource instance.
+//
+// The provided config address is the location within the previous configuration
+// and we need to find the corresponding provider configuration in the new
+// configuration.
+func (m *migration) getOwningProvider(target stackaddrs.AbsResource, origModule addrs.Module) (addrs.AbsProviderConfig, tfdiags.Diagnostics) {
+	stack, component, diags := m.findStackAndComponent(target.Component)
+	if diags.HasErrors() {
+		return addrs.AbsProviderConfig{}, diags
+	}
+
+	moduleConfig, diags := m.moduleConfig(component.FinalSourceAddr)
+	if diags.HasErrors() {
+		return addrs.AbsProviderConfig{}, diags
+	}
+
+	moduleProvider, ok := m.findProviderInModule(origModule, target.Item.Resource, moduleConfig)
+	if !ok {
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Provider not found", fmt.Sprintf("Provider not found for resource %s in component %s.", target.Item.Resource.String(), target.Component.Item.Component.Name)))
+		return addrs.AbsProviderConfig{}, diags
+	}
+
+	// translate the local provider
+	expr, ok := component.ProviderConfigs[moduleProvider]
+	if !ok {
+		// Then the module uses a provider not referenced in the component.
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Provider not found", fmt.Sprintf("Provider %s not found in component %s.", moduleProvider.LocalName, target.Component.Item.Component.Name)))
+		return addrs.AbsProviderConfig{}, diags
+	}
+
+	vars := expr.Variables()
+	if len(vars) != 1 {
+		// This should be an exact reference to a single provider, if it's not
+		// we can't really do anything.
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Invalid reference", "Provider references should be a simple reference to a single provider."))
+		return addrs.AbsProviderConfig{}, diags
+	}
+
+	ref, _, moreDiags := stackaddrs.ParseReference(vars[0])
+	diags = diags.Append(moreDiags)
+
+	switch ref := ref.Target.(type) {
+	case stackaddrs.ProviderConfigRef:
+		provider, ok := stack.RequiredProviders.ProviderForLocalName(ref.ProviderLocalName)
+		if !ok {
+			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Provider not found", fmt.Sprintf("Provider %s was needed by the resource %s but was not found in the stack configuration.", ref.ProviderLocalName, target.Item.Resource.String())))
+			return addrs.AbsProviderConfig{}, diags
+		}
+
+		return addrs.AbsProviderConfig{
+			Module:   addrs.RootModule,
+			Provider: provider,
+			Alias:    moduleProvider.Alias, // we still use the alias from the module provider as this is referenced as if from within the module.
+		}, diags
+	default:
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Invalid reference", "Non-provider reference found in provider configuration."))
+		return addrs.AbsProviderConfig{}, diags
+	}
+}
+
+// findProviderInModule searches for the provider configuration that was used to create the given resource instance.
+func (m *migration) findProviderInModule(module addrs.Module, resource addrs.Resource, config *configs.Config) (addrs.LocalProviderConfig, bool) {
+	if module.IsRoot() {
+		r := config.Module.ResourceByAddr(resource)
+		if r == nil {
+			return addrs.LocalProviderConfig{}, false
+		}
+
+		return r.ProviderConfigAddr(), true
+	}
+
+	next, ok := config.Children[module[0]]
+	if !ok {
+		return addrs.LocalProviderConfig{}, false
+	}
+
+	// the address points to another module, so we continue the search
+	// within the next module's configuration.
+	provider, ok := m.findProviderInModule(module[1:], resource, next)
+	if !ok {
+		return addrs.LocalProviderConfig{}, false
+	}
+
+	call, ok := config.Module.ModuleCalls[module[0]]
+	if !ok {
+		return addrs.LocalProviderConfig{}, false
+	}
+
+	for _, p := range call.Providers {
+		if p.InChild.Name == provider.LocalName && p.InChild.Alias == provider.Alias {
+			return p.InParent.Addr(), true
+		}
+	}
+	return addrs.LocalProviderConfig{}, false
+}
+
+func (m *migration) findStackAndComponent(instance Instance) (*stackconfig.Stack, *stackconfig.Component, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	stack := m.Config.Stack(instance.Stack.ConfigAddr())
+	if stack == nil {
+		return nil, nil, diags.Append(tfdiags.Sourceless(tfdiags.Error, "Stack not found", fmt.Sprintf("Stack %s not found in configuration.", instance.Stack.ConfigAddr())))
+	}
+
+	component := m.Config.Component(stackaddrs.ConfigComponentForAbsInstance(instance))
+	if component == nil {
+		return stack, nil, diags.Append(tfdiags.Sourceless(tfdiags.Error, "Component not found", fmt.Sprintf("Component %s not found in stack %s.", instance.Item.Component.Name, instance.Stack.ConfigAddr())))
+	}
+
+	return stack, component, diags
 }
