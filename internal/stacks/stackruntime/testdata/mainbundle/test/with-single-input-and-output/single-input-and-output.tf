@@ -22,12 +22,6 @@ resource "testing_resource" "data" {
   value = var.input
 }
 
-resource "testing_resource" "another" {
-  count = 2
-  id    = var.id
-  value = var.input
-}
-
 output "id" {
   value = testing_resource.data.id
 }
