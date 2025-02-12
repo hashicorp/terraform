@@ -18,6 +18,10 @@ func copyAndExtendPath(path cty.Path, nextSteps ...cty.PathStep) cty.Path {
 	return newPath
 }
 
+// WARNING: SensitivePaths must exactly mirror the WriteOnlyPaths method, since
+// they both use the same process just for different attribute types. Any fixes
+// here must be made in WriteOnlyPaths, and vice versa.
+
 // SensitivePaths returns a set of paths into the given value that should
 // be marked as sensitive based on the static declarations in the schema.
 func (b *Block) SensitivePaths(val cty.Value, basePath cty.Path) []cty.Path {
