@@ -269,9 +269,9 @@ func (m *migration) providerDependencies(expr hcl.Expression, current stackaddrs
 				continue
 			}
 
-			provider := m.provider(addr)
-			if provider == nil {
-				// provider should have emitted a diagnostic already
+			provider, pDiags := m.provider(addr)
+			if pDiags.HasErrors() {
+				diags = diags.Append(pDiags)
 				continue // skip this provider if we can't get the schema
 			}
 

@@ -5,13 +5,11 @@ package stackmigrate
 
 import (
 	stdcmp "cmp"
-	"context"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -22,12 +20,10 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
-	"github.com/hashicorp/terraform/internal/stacks/stackruntime"
 	stacks_testing_provider "github.com/hashicorp/terraform/internal/stacks/stackruntime/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/states"
@@ -730,7 +726,7 @@ func TestMigrateConfig_NestedModuleResources(t *testing.T) {
 	}
 }
 
-func TestMigrateConfig_NestedModule_ModuleMapping(t *testing.T) {
+func TestMigrateConfig_MissingConfigResource(t *testing.T) {
 	cfg := loadMainBundleConfigForTest(t, filepath.Join("for-stacks-migrate", "with-nested-module"))
 
 	lock := depsfile.NewLocks()
@@ -794,43 +790,12 @@ func TestMigrateConfig_NestedModule_ModuleMapping(t *testing.T) {
 		mustDefaultRootProvider("testing"),
 	)
 
-	childModule := state.EnsureModule(addrs.RootModuleInstance.Child("child_mod", addrs.NoKey))
-	childModule.SetResourceInstanceCurrent(
+	rootModule.SetResourceInstanceCurrent(
 		addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: "testing_resource",
-			Name: "child_data",
+			Name: "for_child",
 		}.Instance(addrs.NoKey),
-		&states.ResourceInstanceObjectSrc{
-			Status: states.ObjectReady,
-			AttrsJSON: []byte(`{
-				"id": "foo",
-				"value": "hello"
-			}`),
-		},
-		mustDefaultRootProvider("testing"),
-	)
-	childModule.SetResourceInstanceCurrent(
-		addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "testing_resource",
-			Name: "another_child_data",
-		}.Instance(addrs.IntKey(0)),
-		&states.ResourceInstanceObjectSrc{
-			Status: states.ObjectReady,
-			AttrsJSON: []byte(`{
-				"id": "foo",
-				"value": "hello"
-			}`),
-		},
-		mustDefaultRootProvider("testing"),
-	)
-	childModule.SetResourceInstanceCurrent(
-		addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "testing_resource",
-			Name: "another_child_data",
-		}.Instance(addrs.IntKey(1)),
 		&states.ResourceInstanceObjectSrc{
 			Status: states.ObjectReady,
 			AttrsJSON: []byte(`{
@@ -851,15 +816,15 @@ func TestMigrateConfig_NestedModule_ModuleMapping(t *testing.T) {
 		Config:        cfg,
 	}
 	resources := map[string]string{
-		"testing_resource.data":    "parent",
-		"testing_resource.another": "parent",
+		"testing_resource.data":      "parent",
+		"testing_resource.another":   "parent",
+		"testing_resource.for_child": "child",
 	}
-	modules := map[string]string{
-		"child_mod": "child",
-	}
+	modules := map[string]string{}
 
 	appliedResources := []*stackstate.AppliedChangeResourceInstanceObject{}
 	appliedComponents := []*stackstate.AppliedChangeComponentInstance{}
+
 	expectedResources := []*stackstate.AppliedChangeResourceInstanceObject{
 		{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.data"),
@@ -900,46 +865,8 @@ func TestMigrateConfig_NestedModule_ModuleMapping(t *testing.T) {
 			ProviderConfigAddr: mustDefaultRootProvider("testing"),
 			Schema:             stacks_testing_provider.TestingResourceSchema,
 		},
-		{
-			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.child.testing_resource.child_data"),
-			NewStateSrc: &states.ResourceInstanceObjectSrc{
-				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
-					"id":    "foo",
-					"value": "hello",
-				}),
-				Status:  states.ObjectReady,
-				Private: nil,
-			},
-			ProviderConfigAddr: mustDefaultRootProvider("testing"),
-			Schema:             stacks_testing_provider.TestingResourceSchema,
-		},
-		{
-			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.child.testing_resource.another_child_data[0]"),
-			NewStateSrc: &states.ResourceInstanceObjectSrc{
-				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
-					"id":    "foo",
-					"value": "hello",
-				}),
-				Status:  states.ObjectReady,
-				Private: nil,
-			},
-			ProviderConfigAddr: mustDefaultRootProvider("testing"),
-			Schema:             stacks_testing_provider.TestingResourceSchema,
-		},
-		{
-			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.child.testing_resource.another_child_data[1]"),
-			NewStateSrc: &states.ResourceInstanceObjectSrc{
-				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
-					"id":    "foo",
-					"value": "hello",
-				}),
-				Status:  states.ObjectReady,
-				Private: nil,
-			},
-			ProviderConfigAddr: mustDefaultRootProvider("testing"),
-			Schema:             stacks_testing_provider.TestingResourceSchema,
-		},
 	}
+
 	expectedComponents := []*stackstate.AppliedChangeComponentInstance{
 		{
 			ComponentAddr:         mustAbsComponent("component.parent"),
@@ -968,217 +895,12 @@ func TestMigrateConfig_NestedModule_ModuleMapping(t *testing.T) {
 	}
 
 	var expDiags, gotDiags tfdiags.Diagnostics
-	mig.Migrate(resources, modules, func(change stackstate.AppliedChange) {
-		switch c := change.(type) {
-		case *stackstate.AppliedChangeResourceInstanceObject:
-			appliedResources = append(appliedResources, c)
-		case *stackstate.AppliedChangeComponentInstance:
-			appliedComponents = append(appliedComponents, c)
-		}
-	}, func(diagnostic tfdiags.Diagnostic) {
-		gotDiags = append(gotDiags, diagnostic)
-	})
-
-	if diff := cmp.Diff(expDiags, gotDiags); diff != "" {
-		t.Errorf("unexpected diagnostics:\n%s", diff)
-	}
-
-	if diff := compareAppliedChanges(t, expectedResources, appliedResources, func(c *stackstate.AppliedChangeResourceInstanceObject) string {
-		return c.ResourceInstanceObjectAddr.String()
-	}); diff != "" {
-		t.Errorf("unexpected applied resource changes:\n%s", diff)
-	}
-
-	if diff := compareAppliedChanges(t, expectedComponents, appliedComponents, func(c *stackstate.AppliedChangeComponentInstance) string {
-		return c.ComponentAddr.String()
-	}); diff != "" {
-		t.Errorf("unexpected applied component changes:\n%s", diff)
-	}
-}
-
-func TestMigrateConfig_MissingModuleMapping(t *testing.T) {
-	cfg := loadMainBundleConfigForTest(t, filepath.Join("for-stacks-migrate", "with-nested-module"))
-
-	lock := depsfile.NewLocks()
-	lock.SetProvider(
-		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
-		providerreqs.PreferredHashes([]providerreqs.Hash{}),
-	)
-
-	state := states.BuildState(func(ss *states.SyncState) {
-		ss.SetOutputValue(addrs.AbsOutputValue{
-			Module:      addrs.RootModuleInstance,
-			OutputValue: addrs.OutputValue{Name: "output"},
-		}, cty.StringVal("before"), false)
-	})
-	rootModule := state.RootModule()
-	rootModule.SetResourceInstanceCurrent(
-		addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "testing_resource",
-			Name: "data",
-		}.Instance(addrs.NoKey),
-		&states.ResourceInstanceObjectSrc{
-			Status: states.ObjectReady,
-			AttrsJSON: []byte(`{
-				"id": "foo",
-				"value": "hello"
-			}`),
-		},
-		mustDefaultRootProvider("testing"),
-	)
-	rootModule.SetResourceInstanceCurrent(
-		addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "testing_resource",
-			Name: "another",
-		}.Instance(addrs.IntKey(0)),
-		&states.ResourceInstanceObjectSrc{
-			Status: states.ObjectReady,
-			AttrsJSON: []byte(`{
-				"id": "foo",
-				"value": "hello"
-			}`),
-		},
-		mustDefaultRootProvider("testing"),
-	)
-	rootModule.SetResourceInstanceCurrent(
-		addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "testing_resource",
-			Name: "another",
-		}.Instance(addrs.IntKey(1)),
-		&states.ResourceInstanceObjectSrc{
-			Status: states.ObjectReady,
-			AttrsJSON: []byte(`{
-				"id": "foo",
-				"value": "hello"
-			}`),
-		},
-		mustDefaultRootProvider("testing"),
-	)
-
-	childModule := state.EnsureModule(addrs.RootModuleInstance.Child("child_mod", addrs.NoKey))
-	childModule.SetResourceInstanceCurrent(
-		addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "testing_resource",
-			Name: "child_data",
-		}.Instance(addrs.NoKey),
-		&states.ResourceInstanceObjectSrc{
-			Status: states.ObjectReady,
-			AttrsJSON: []byte(`{
-				"id": "foo",
-				"value": "hello"
-			}`),
-		},
-		mustDefaultRootProvider("testing"),
-	)
-	childModule.SetResourceInstanceCurrent(
-		addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "testing_resource",
-			Name: "another_child_data",
-		}.Instance(addrs.IntKey(0)),
-		&states.ResourceInstanceObjectSrc{
-			Status: states.ObjectReady,
-			AttrsJSON: []byte(`{
-				"id": "foo",
-				"value": "hello"
-			}`),
-		},
-		mustDefaultRootProvider("testing"),
-	)
-
-	mig := Migration{
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(t), nil
-			},
-		},
-		PreviousState: state,
-		Config:        cfg,
-	}
-	resources := map[string]string{
-		"testing_resource.data":                    "parent",
-		"testing_resource.another":                 "parent",
-		"child_mod.testing_resource.child_data[0]": "child",
-	}
-	modules := map[string]string{}
-
-	appliedResources := []*stackstate.AppliedChangeResourceInstanceObject{}
-	appliedComponents := []*stackstate.AppliedChangeComponentInstance{}
-
-	// partially applied changes for the parent module only
-	expectedResources := []*stackstate.AppliedChangeResourceInstanceObject{
-		{
-			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.data"),
-			NewStateSrc: &states.ResourceInstanceObjectSrc{
-				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
-					"id":    "foo",
-					"value": "hello",
-				}),
-				Status:  states.ObjectReady,
-				Private: nil,
-			},
-			ProviderConfigAddr: mustDefaultRootProvider("testing"),
-			Schema:             stacks_testing_provider.TestingResourceSchema,
-		},
-		{
-			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.another[0]"),
-			NewStateSrc: &states.ResourceInstanceObjectSrc{
-				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
-					"id":    "foo",
-					"value": "hello",
-				}),
-				Status:  states.ObjectReady,
-				Private: nil,
-			},
-			ProviderConfigAddr: mustDefaultRootProvider("testing"),
-			Schema:             stacks_testing_provider.TestingResourceSchema,
-		},
-		{
-			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.another[1]"),
-			NewStateSrc: &states.ResourceInstanceObjectSrc{
-				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
-					"id":    "foo",
-					"value": "hello",
-				}),
-				Status:  states.ObjectReady,
-				Private: nil,
-			},
-			ProviderConfigAddr: mustDefaultRootProvider("testing"),
-			Schema:             stacks_testing_provider.TestingResourceSchema,
-		},
-	}
-
-	expectedComponents := []*stackstate.AppliedChangeComponentInstance{
-		{
-			ComponentAddr:         mustAbsComponent("component.parent"),
-			ComponentInstanceAddr: mustAbsComponentInstance("component.parent"),
-			OutputValues: map[addrs.OutputValue]cty.Value{
-				{Name: "id"}: cty.DynamicVal,
-			},
-			InputVariables: map[addrs.InputVariable]cty.Value{
-				{Name: "id"}:    cty.DynamicVal,
-				{Name: "input"}: cty.DynamicVal,
-			},
-		},
-	}
-
-	var expDiags, gotDiags tfdiags.Diagnostics
+	// all components and resources should be migrated except for the missing "testing_resource.for_child"
 	expDiags = expDiags.Append(hcl.Diagnostics{
 		{
 			Severity: hcl.DiagError,
-			Summary:  "Module not found",
-			Detail:   "Module \"child_mod\" not found in mapping.",
-		},
-		{
-			Severity: hcl.DiagError,
-			Summary:  "Module not found",
-			Detail:   "Module \"child_mod\" not found in mapping.",
+			Summary:  "Provider not found",
+			Detail:   "Resource \"testing_resource.for_child\" not found in root module.",
 		},
 	})
 	mig.Migrate(resources, modules, func(change stackstate.AppliedChange) {
@@ -1209,7 +931,592 @@ func TestMigrateConfig_MissingModuleMapping(t *testing.T) {
 	}
 }
 
+func TestMigrateConfig_MissingMappingForStateResource(t *testing.T) {
+	cfg := loadMainBundleConfigForTest(t, filepath.Join("for-stacks-migrate", "with-nested-module"))
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	state := states.BuildState(func(ss *states.SyncState) {
+		ss.SetOutputValue(addrs.AbsOutputValue{
+			Module:      addrs.RootModuleInstance,
+			OutputValue: addrs.OutputValue{Name: "output"},
+		}, cty.StringVal("before"), false)
+	})
+	rootModule := state.RootModule()
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "testing_resource",
+			Name: "data",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status: states.ObjectReady,
+			AttrsJSON: []byte(`{
+				"id": "foo",
+				"value": "hello"
+			}`),
+		},
+		mustDefaultRootProvider("testing"),
+	)
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "testing_resource",
+			Name: "another",
+		}.Instance(addrs.IntKey(0)),
+		&states.ResourceInstanceObjectSrc{
+			Status: states.ObjectReady,
+			AttrsJSON: []byte(`{
+				"id": "foo",
+				"value": "hello"
+			}`),
+		},
+		mustDefaultRootProvider("testing"),
+	)
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "testing_resource",
+			Name: "another",
+		}.Instance(addrs.IntKey(1)),
+		&states.ResourceInstanceObjectSrc{
+			Status: states.ObjectReady,
+			AttrsJSON: []byte(`{
+				"id": "foo",
+				"value": "hello"
+			}`),
+		},
+		mustDefaultRootProvider("testing"),
+	)
+
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "testing_resource",
+			Name: "for_child",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status: states.ObjectReady,
+			AttrsJSON: []byte(`{
+				"id": "foo",
+				"value": "hello"
+			}`),
+		},
+		mustDefaultRootProvider("testing"),
+	)
+
+	mig := Migration{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		PreviousState: state,
+		Config:        cfg,
+	}
+	resources := map[string]string{
+		"testing_resource.data":    "parent",
+		"testing_resource.another": "parent",
+	}
+	modules := map[string]string{}
+
+	appliedResources := []*stackstate.AppliedChangeResourceInstanceObject{}
+	appliedComponents := []*stackstate.AppliedChangeComponentInstance{}
+
+	expectedResources := []*stackstate.AppliedChangeResourceInstanceObject{
+		{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.data"),
+			NewStateSrc: &states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+					"id":    "foo",
+					"value": "hello",
+				}),
+				Status:  states.ObjectReady,
+				Private: nil,
+			},
+			ProviderConfigAddr: mustDefaultRootProvider("testing"),
+			Schema:             stacks_testing_provider.TestingResourceSchema,
+		},
+		{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.another[0]"),
+			NewStateSrc: &states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+					"id":    "foo",
+					"value": "hello",
+				}),
+				Status:  states.ObjectReady,
+				Private: nil,
+			},
+			ProviderConfigAddr: mustDefaultRootProvider("testing"),
+			Schema:             stacks_testing_provider.TestingResourceSchema,
+		},
+		{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.another[1]"),
+			NewStateSrc: &states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+					"id":    "foo",
+					"value": "hello",
+				}),
+				Status:  states.ObjectReady,
+				Private: nil,
+			},
+			ProviderConfigAddr: mustDefaultRootProvider("testing"),
+			Schema:             stacks_testing_provider.TestingResourceSchema,
+		},
+	}
+
+	expectedComponents := []*stackstate.AppliedChangeComponentInstance{
+		// this component has a dependent "child", but that other component
+		// is not present in the modules mapping, so it is not included here
+		{
+			ComponentAddr:         mustAbsComponent("component.parent"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.parent"),
+			OutputValues: map[addrs.OutputValue]cty.Value{
+				{Name: "id"}: cty.DynamicVal,
+			},
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				{Name: "id"}:    cty.DynamicVal,
+				{Name: "input"}: cty.DynamicVal,
+			},
+		},
+	}
+
+	var expDiags, gotDiags tfdiags.Diagnostics
+	expDiags = expDiags.Append(hcl.Diagnostics{
+		{
+			Severity: hcl.DiagError,
+			Summary:  "Resource not found",
+			Detail:   "Resource \"testing_resource.for_child\" not found in mapping.",
+		},
+	})
+	mig.Migrate(resources, modules, func(change stackstate.AppliedChange) {
+		switch c := change.(type) {
+		case *stackstate.AppliedChangeResourceInstanceObject:
+			appliedResources = append(appliedResources, c)
+		case *stackstate.AppliedChangeComponentInstance:
+			appliedComponents = append(appliedComponents, c)
+		}
+	}, func(diagnostic tfdiags.Diagnostic) {
+		gotDiags = append(gotDiags, diagnostic)
+	})
+
+	if diff := cmp.Diff(expDiags, gotDiags, tfdiags.DiagnosticComparer); diff != "" {
+		t.Fatalf("unexpected diagnostics:\n%s", diff)
+	}
+
+	if diff := compareAppliedChanges(t, expectedResources, appliedResources, func(c *stackstate.AppliedChangeResourceInstanceObject) string {
+		return c.ResourceInstanceObjectAddr.String()
+	}); diff != "" {
+		t.Errorf("unexpected applied resource changes:\n%s", diff)
+	}
+
+	if diff := compareAppliedChanges(t, expectedComponents, appliedComponents, func(c *stackstate.AppliedChangeComponentInstance) string {
+		return c.ComponentAddr.String()
+	}); diff != "" {
+		t.Errorf("unexpected applied component changes:\n%s", diff)
+	}
+}
+
+// func TestMigrateConfig_MissingParentModuleMapping(t *testing.T) {
+// 	cfg := loadMainBundleConfigForTest(t, filepath.Join("for-stacks-migrate", "with-nested-module"))
+
+// 	lock := depsfile.NewLocks()
+// 	lock.SetProvider(
+// 		addrs.NewDefaultProvider("testing"),
+// 		providerreqs.MustParseVersion("0.0.0"),
+// 		providerreqs.MustParseVersionConstraints("=0.0.0"),
+// 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+// 	)
+
+// 	state := states.BuildState(func(ss *states.SyncState) {
+// 		ss.SetOutputValue(addrs.AbsOutputValue{
+// 			Module:      addrs.RootModuleInstance,
+// 			OutputValue: addrs.OutputValue{Name: "output"},
+// 		}, cty.StringVal("before"), false)
+// 	})
+// 	rootModule := state.RootModule()
+// 	rootModule.SetResourceInstanceCurrent(
+// 		addrs.Resource{
+// 			Mode: addrs.ManagedResourceMode,
+// 			Type: "testing_resource",
+// 			Name: "data",
+// 		}.Instance(addrs.NoKey),
+// 		&states.ResourceInstanceObjectSrc{
+// 			Status: states.ObjectReady,
+// 			AttrsJSON: []byte(`{
+// 				"id": "foo",
+// 				"value": "hello"
+// 			}`),
+// 		},
+// 		mustDefaultRootProvider("testing"),
+// 	)
+// 	rootModule.SetResourceInstanceCurrent(
+// 		addrs.Resource{
+// 			Mode: addrs.ManagedResourceMode,
+// 			Type: "testing_resource",
+// 			Name: "another",
+// 		}.Instance(addrs.IntKey(0)),
+// 		&states.ResourceInstanceObjectSrc{
+// 			Status: states.ObjectReady,
+// 			AttrsJSON: []byte(`{
+// 				"id": "foo",
+// 				"value": "hello"
+// 			}`),
+// 		},
+// 		mustDefaultRootProvider("testing"),
+// 	)
+// 	rootModule.SetResourceInstanceCurrent(
+// 		addrs.Resource{
+// 			Mode: addrs.ManagedResourceMode,
+// 			Type: "testing_resource",
+// 			Name: "another",
+// 		}.Instance(addrs.IntKey(1)),
+// 		&states.ResourceInstanceObjectSrc{
+// 			Status: states.ObjectReady,
+// 			AttrsJSON: []byte(`{
+// 				"id": "foo",
+// 				"value": "hello"
+// 			}`),
+// 		},
+// 		mustDefaultRootProvider("testing"),
+// 	)
+
+// 	childModule := state.EnsureModule(addrs.RootModuleInstance.Child("child_mod", addrs.NoKey))
+// 	childModule.SetResourceInstanceCurrent(
+// 		addrs.Resource{
+// 			Mode: addrs.ManagedResourceMode,
+// 			Type: "testing_resource",
+// 			Name: "child_data",
+// 		}.Instance(addrs.NoKey),
+// 		&states.ResourceInstanceObjectSrc{
+// 			Status: states.ObjectReady,
+// 			AttrsJSON: []byte(`{
+// 				"id": "foo",
+// 				"value": "hello"
+// 			}`),
+// 		},
+// 		mustDefaultRootProvider("testing"),
+// 	)
+// 	childModule.SetResourceInstanceCurrent(
+// 		addrs.Resource{
+// 			Mode: addrs.ManagedResourceMode,
+// 			Type: "testing_resource",
+// 			Name: "another_child_data",
+// 		}.Instance(addrs.IntKey(0)),
+// 		&states.ResourceInstanceObjectSrc{
+// 			Status: states.ObjectReady,
+// 			AttrsJSON: []byte(`{
+// 				"id": "foo",
+// 				"value": "hello"
+// 			}`),
+// 		},
+// 		mustDefaultRootProvider("testing"),
+// 	)
+
+// 	mig := Migration{
+// 		Providers: map[addrs.Provider]providers.Factory{
+// 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+// 				return stacks_testing_provider.NewProvider(t), nil
+// 			},
+// 		},
+// 		PreviousState: state,
+// 		Config:        cfg,
+// 	}
+// 	resources := map[string]string{
+// 		"testing_resource.data":                    "parent",
+// 		"testing_resource.another":                 "parent",
+// 		"child_mod.testing_resource.child_data[0]": "child",
+// 	}
+// 	modules := map[string]string{}
+
+// 	appliedResources := []*stackstate.AppliedChangeResourceInstanceObject{}
+// 	appliedComponents := []*stackstate.AppliedChangeComponentInstance{}
+
+// 	// partially applied changes for the parent module only
+// 	expectedResources := []*stackstate.AppliedChangeResourceInstanceObject{
+// 		{
+// 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.data"),
+// 			NewStateSrc: &states.ResourceInstanceObjectSrc{
+// 				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+// 					"id":    "foo",
+// 					"value": "hello",
+// 				}),
+// 				Status:  states.ObjectReady,
+// 				Private: nil,
+// 			},
+// 			ProviderConfigAddr: mustDefaultRootProvider("testing"),
+// 			Schema:             stacks_testing_provider.TestingResourceSchema,
+// 		},
+// 		{
+// 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.another[0]"),
+// 			NewStateSrc: &states.ResourceInstanceObjectSrc{
+// 				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+// 					"id":    "foo",
+// 					"value": "hello",
+// 				}),
+// 				Status:  states.ObjectReady,
+// 				Private: nil,
+// 			},
+// 			ProviderConfigAddr: mustDefaultRootProvider("testing"),
+// 			Schema:             stacks_testing_provider.TestingResourceSchema,
+// 		},
+// 		{
+// 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_resource.another[1]"),
+// 			NewStateSrc: &states.ResourceInstanceObjectSrc{
+// 				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+// 					"id":    "foo",
+// 					"value": "hello",
+// 				}),
+// 				Status:  states.ObjectReady,
+// 				Private: nil,
+// 			},
+// 			ProviderConfigAddr: mustDefaultRootProvider("testing"),
+// 			Schema:             stacks_testing_provider.TestingResourceSchema,
+// 		},
+// 	}
+
+// 	expectedComponents := []*stackstate.AppliedChangeComponentInstance{
+// 		// this component has a dependency on another component, but that other component
+// 		// is not present in the modules mapping, so it is not included here
+// 		{
+// 			ComponentAddr:         mustAbsComponent("component.parent"),
+// 			ComponentInstanceAddr: mustAbsComponentInstance("component.parent"),
+// 			OutputValues: map[addrs.OutputValue]cty.Value{
+// 				{Name: "id"}: cty.DynamicVal,
+// 			},
+// 			InputVariables: map[addrs.InputVariable]cty.Value{
+// 				{Name: "id"}:    cty.DynamicVal,
+// 				{Name: "input"}: cty.DynamicVal,
+// 			},
+// 		},
+// 	}
+
+// 	var expDiags, gotDiags tfdiags.Diagnostics
+// 	expDiags = expDiags.Append(hcl.Diagnostics{
+// 		{
+// 			Severity: hcl.DiagError,
+// 			Summary:  "Module not found",
+// 			Detail:   "Module \"child_mod\" not found in mapping.",
+// 		},
+// 		{
+// 			Severity: hcl.DiagError,
+// 			Summary:  "Module not found",
+// 			Detail:   "Module \"child_mod\" not found in mapping.",
+// 		},
+// 	})
+// 	mig.Migrate(resources, modules, func(change stackstate.AppliedChange) {
+// 		switch c := change.(type) {
+// 		case *stackstate.AppliedChangeResourceInstanceObject:
+// 			appliedResources = append(appliedResources, c)
+// 		case *stackstate.AppliedChangeComponentInstance:
+// 			appliedComponents = append(appliedComponents, c)
+// 		}
+// 	}, func(diagnostic tfdiags.Diagnostic) {
+// 		gotDiags = append(gotDiags, diagnostic)
+// 	})
+
+// 	if diff := cmp.Diff(expDiags, gotDiags, tfdiags.DiagnosticComparer); diff != "" {
+// 		t.Fatalf("unexpected diagnostics:\n%s", diff)
+// 	}
+
+// 	if diff := compareAppliedChanges(t, expectedResources, appliedResources, func(c *stackstate.AppliedChangeResourceInstanceObject) string {
+// 		return c.ResourceInstanceObjectAddr.String()
+// 	}); diff != "" {
+// 		t.Errorf("unexpected applied resource changes:\n%s", diff)
+// 	}
+
+// 	if diff := compareAppliedChanges(t, expectedComponents, appliedComponents, func(c *stackstate.AppliedChangeComponentInstance) string {
+// 		return c.ComponentAddr.String()
+// 	}); diff != "" {
+// 		t.Errorf("unexpected applied component changes:\n%s", diff)
+// 	}
+// }
+
 func TestMigrateConfigDependsOn(t *testing.T) {
+	cfg := loadMainBundleConfigForTest(t, filepath.Join("for-stacks-migrate", "with-depends-on"))
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	state := states.BuildState(func(ss *states.SyncState) {
+		ss.SetOutputValue(addrs.AbsOutputValue{
+			Module:      addrs.RootModuleInstance,
+			OutputValue: addrs.OutputValue{Name: "output"},
+		}, cty.StringVal("before"), false)
+	})
+
+	rootModule := state.RootModule()
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "testing_resource",
+			Name: "data",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status: states.ObjectReady,
+			AttrsJSON: []byte(`{
+				"id": "foo",
+				"value": "depends_test"
+			}`),
+		},
+		mustDefaultRootProvider("testing"),
+	)
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "testing_resource",
+			Name: "second",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status: states.ObjectReady,
+			AttrsJSON: []byte(`{
+				"id": "foo",
+				"value": "depends_test"
+			}`),
+		},
+		mustDefaultRootProvider("testing"),
+	)
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "testing_resource",
+			Name: "third",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status: states.ObjectReady,
+			AttrsJSON: []byte(`{
+				"id": "foo",
+				"value": "depends_test"
+			}`),
+		},
+		mustDefaultRootProvider("testing"),
+	)
+
+	mig := Migration{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		PreviousState: state,
+		Config:        cfg,
+	}
+
+	resources := map[string]string{
+		"testing_resource.data":   "component.first",
+		"testing_resource.second": "component.second",
+		"testing_resource.third":  "component.second",
+	}
+	modules := map[string]string{}
+
+	appliedResources := []*stackstate.AppliedChangeResourceInstanceObject{}
+	appliedComponents := []*stackstate.AppliedChangeComponentInstance{}
+	expectedComponents := []*stackstate.AppliedChangeComponentInstance{
+		// component.first depends on component.second
+		{
+			ComponentAddr:         mustAbsComponent("component.first"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.first"),
+
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				{Name: "input"}: cty.DynamicVal,
+				{Name: "id"}:    cty.DynamicVal,
+			},
+			Dependents: collections.NewSet(mustAbsComponent("component.second")),
+		},
+		{
+			ComponentAddr:         mustAbsComponent("component.second"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.second"),
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				{Name: "input"}: cty.DynamicVal,
+				{Name: "id"}:    cty.DynamicVal,
+			},
+			Dependencies: collections.NewSet(mustAbsComponent("component.first")),
+		},
+	}
+
+	expectedResources := []*stackstate.AppliedChangeResourceInstanceObject{
+		{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.first.testing_resource.data"),
+			NewStateSrc: &states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+					"id":    "foo",
+					"value": "depends_test",
+				}),
+				Status:  states.ObjectReady,
+				Private: nil,
+			},
+			ProviderConfigAddr: mustDefaultRootProvider("testing"),
+			Schema:             stacks_testing_provider.TestingResourceSchema,
+		},
+		{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.second.testing_resource.second"),
+			NewStateSrc: &states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+					"id":    "foo",
+					"value": "depends_test",
+				}),
+				Status:  states.ObjectReady,
+				Private: nil,
+			},
+			ProviderConfigAddr: mustDefaultRootProvider("testing"),
+			Schema:             stacks_testing_provider.TestingResourceSchema,
+		},
+		{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.second.testing_resource.third"),
+			NewStateSrc: &states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+					"id":    "foo",
+					"value": "depends_test",
+				}),
+				Status:  states.ObjectReady,
+				Private: nil,
+			},
+			ProviderConfigAddr: mustDefaultRootProvider("testing"),
+			Schema:             stacks_testing_provider.TestingResourceSchema,
+		},
+	}
+
+	var expDiags, gotDiags tfdiags.Diagnostics
+	mig.Migrate(resources, modules, func(change stackstate.AppliedChange) {
+		switch c := change.(type) {
+		case *stackstate.AppliedChangeResourceInstanceObject:
+			appliedResources = append(appliedResources, c)
+		case *stackstate.AppliedChangeComponentInstance:
+			appliedComponents = append(appliedComponents, c)
+		}
+	}, func(diagnostic tfdiags.Diagnostic) {
+		gotDiags = append(gotDiags, diagnostic)
+	})
+
+	if diff := compareAppliedChanges(t, expectedComponents, appliedComponents, func(c *stackstate.AppliedChangeComponentInstance) string {
+		return c.ComponentAddr.String()
+	}); diff != "" {
+		t.Fatalf("unexpected applied component changes:\n%s", diff)
+	}
+
+	if diff := compareAppliedChanges(t, expectedResources, appliedResources, func(c *stackstate.AppliedChangeResourceInstanceObject) string {
+		return c.ResourceInstanceObjectAddr.String()
+	}); diff != "" {
+		t.Fatalf("unexpected applied resource changes:\n%s", diff)
+	}
+
+	if diff := cmp.Diff(expDiags, gotDiags); diff != "" {
+		t.Fatalf("unexpected diagnostics:\n%s", diff)
+	}
+}
+
+func TestMigrate_UnsupportedComponentRef(t *testing.T) {
 	cfg := loadMainBundleConfigForTest(t, filepath.Join("for-stacks-migrate", "with-depends-on"))
 
 	lock := depsfile.NewLocks()
@@ -1311,16 +1618,7 @@ func TestMigrateConfigDependsOn(t *testing.T) {
 				{Name: "input"}: cty.DynamicVal,
 				{Name: "id"}:    cty.DynamicVal,
 			},
-			Dependencies: collections.NewSet(mustAbsComponent("component.first"), mustAbsComponent("stack.embedded.component.self")),
-		},
-		{
-			ComponentAddr:         mustAbsComponent("component.self"),
-			ComponentInstanceAddr: mustAbsComponentInstance("stack.embedded.component.self"),
-			InputVariables: map[addrs.InputVariable]cty.Value{
-				{Name: "input"}: cty.DynamicVal,
-				{Name: "id"}:    cty.DynamicVal,
-			},
-			Dependents: collections.NewSet(mustAbsComponent("component.second")),
+			Dependencies: collections.NewSet(mustAbsComponent("component.first")),
 		},
 	}
 
@@ -1351,22 +1649,17 @@ func TestMigrateConfigDependsOn(t *testing.T) {
 			ProviderConfigAddr: mustDefaultRootProvider("testing"),
 			Schema:             stacks_testing_provider.TestingResourceSchema,
 		},
-		{
-			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("stack.embedded.component.self.testing_resource.third"),
-			NewStateSrc: &states.ResourceInstanceObjectSrc{
-				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
-					"id":    "foo",
-					"value": "depends_test",
-				}),
-				Status:  states.ObjectReady,
-				Private: nil,
-			},
-			ProviderConfigAddr: mustDefaultRootProvider("testing"),
-			Schema:             stacks_testing_provider.TestingResourceSchema,
-		},
 	}
 
-	var expDiags, gotDiags tfdiags.Diagnostics
+	var gotDiags tfdiags.Diagnostics
+	expDiags := tfdiags.Diagnostics{}.Append(hcl.Diagnostics{
+		{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid component instance",
+			Detail:   "Only root component instances are allowed, got \"stack.embedded.component.self\"",
+		},
+	})
+
 	mig.Migrate(resources, modules, func(change stackstate.AppliedChange) {
 		switch c := change.(type) {
 		case *stackstate.AppliedChangeResourceInstanceObject:
@@ -1390,7 +1683,7 @@ func TestMigrateConfigDependsOn(t *testing.T) {
 		t.Fatalf("unexpected applied resource changes:\n%s", diff)
 	}
 
-	if diff := cmp.Diff(expDiags, gotDiags); diff != "" {
+	if diff := cmp.Diff(expDiags, gotDiags, tfdiags.DiagnosticComparer); diff != "" {
 		t.Fatalf("unexpected diagnostics:\n%s", diff)
 	}
 }
@@ -1419,178 +1712,6 @@ func compareAppliedChanges[A stackstate.AppliedChange, U stdcmp.Ordered](t *test
 	})
 
 	return cmp.Diff(mp_exp, mp_act, sorter, changesCmpOpts, cmpopts.EquateEmpty())
-}
-
-func TestMigrateConfig2(t *testing.T) {
-
-	ctx := context.Background()
-	cfg := loadMainBundleConfigForTest(t, filepath.Join("with-single-input", "valid"))
-
-	fakePlanTimestamp, err := time.Parse(time.RFC3339, "2021-01-01T00:00:00Z")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	lock := depsfile.NewLocks()
-	lock.SetProvider(
-		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
-		providerreqs.PreferredHashes([]providerreqs.Hash{}),
-	)
-
-	planReq := stackruntime.PlanRequest{
-		PlanMode: plans.NormalMode,
-
-		Config: cfg,
-		ProviderFactories: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(t), nil
-			},
-		},
-		DependencyLocks:    *lock,
-		ForcePlanTimestamp: &fakePlanTimestamp,
-		InputValues: map[stackaddrs.InputVariable]stackruntime.ExternalInputValue{
-			{Name: "id"}: {
-				Value: cty.StringVal("foo"),
-			},
-			{Name: "input"}: {
-				Value: cty.StringVal("hello"),
-			},
-		},
-
-		// We have in the previous state a resource that is not in our
-		// underlying data store. This simulates the case where someone went
-		// in and manually deleted a resource that Terraform is managing.
-		//
-		// Some providers will return an error in this case, but some will
-		// not. We need to ensure that we handle the second case gracefully.
-		// PrevState: stackstate.NewStateBuilder().
-		// 	AddResourceInstance(stackstate.NewResourceInstanceBuilder().
-		// 		SetAddr(mustAbsResourceInstanceObject("component.self.testing_resource.missing")).
-		// 		SetProviderAddr(mustDefaultRootProvider("testing")).
-		// 		SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
-		// 			SchemaVersion: 0,
-		// 			AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
-		// 				"id":    "e84b59f2",
-		// 				"value": "hello",
-		// 			}),
-		// 			Status: states.ObjectReady,
-		// 		})).
-		// 	Build(),
-	}
-
-	planChangesCh := make(chan stackplan.PlannedChange)
-	planDiagsCh := make(chan tfdiags.Diagnostic)
-	planResp := stackruntime.PlanResponse{
-		PlannedChanges: planChangesCh,
-		Diagnostics:    planDiagsCh,
-	}
-
-	go stackruntime.Plan(ctx, &planReq, &planResp)
-	planChanges, planDiags := collectPlanOutput(planChangesCh, planDiagsCh)
-	if len(planDiags) > 0 {
-		t.Fatalf("unexpected diagnostics during planning: %s", planDiags)
-	}
-
-	planLoader := stackplan.NewLoader()
-	for _, change := range planChanges {
-		proto, err := change.PlannedChangeProto()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		for _, rawMsg := range proto.Raw {
-			err = planLoader.AddRaw(rawMsg)
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
-	plan, err := planLoader.Plan()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	state := states.BuildState(func(ss *states.SyncState) {
-		ss.SetOutputValue(addrs.AbsOutputValue{
-			Module:      addrs.RootModuleInstance,
-			OutputValue: addrs.OutputValue{Name: "output"},
-		}, cty.StringVal("before"), false)
-	})
-	rootModule := state.RootModule()
-	rootModule.SetResourceInstanceCurrent(
-		addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "testing_resource",
-			Name: "data",
-		}.Instance(addrs.NoKey),
-		&states.ResourceInstanceObjectSrc{
-			Status: states.ObjectReady,
-			AttrsJSON: []byte(`{
-				"id": "foo",
-				"value": "hello"
-			}`),
-		},
-		mustDefaultRootProvider("testing"),
-	)
-	// foo := states.NewResourceInstanceBuilder().
-	// 	SetAddr(mustAbsResourceInstanceObject("component.self.testing_resource.missing")).
-	// 	SetProviderAddr(mustDefaultRootProvider("testing")).
-	// 	SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
-	// 		SchemaVersion: 0,
-	// 		AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
-	// 			"id":    "e84b59f2",
-	// 			"value": "hello",
-	// 		}),
-	// 		Status: states.ObjectReady,
-	// 	})
-	_ = plan
-	mig := Migration{
-		Providers:     planReq.ProviderFactories,
-		PreviousState: state,
-		Config:        cfg,
-	}
-	resources := map[string]string{
-		"testing_resource.data": "self",
-	}
-	applied := []stackstate.AppliedChange{}
-	expected := []stackstate.AppliedChange{
-		&stackstate.AppliedChangeResourceInstanceObject{
-			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
-			NewStateSrc: &states.ResourceInstanceObjectSrc{
-				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
-					"id":    "foo",
-					"value": "hello",
-				}),
-				Status:  states.ObjectReady,
-				Private: nil,
-			},
-			ProviderConfigAddr: mustDefaultRootProvider("testing"),
-			Schema:             stacks_testing_provider.TestingResourceSchema,
-		},
-		&stackstate.AppliedChangeComponentInstance{
-			ComponentAddr:         mustAbsComponent("component.self"),
-			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-			OutputValues:          map[addrs.OutputValue]cty.Value{},
-			InputVariables: map[addrs.InputVariable]cty.Value{
-				{Name: "id"}:    cty.DynamicVal,
-				{Name: "input"}: cty.DynamicVal,
-			},
-		},
-	}
-	modules := map[string]string{}
-	mig.Migrate(resources, modules, func(change stackstate.AppliedChange) {
-		applied = append(applied, change)
-	}, func(diagnostic tfdiags.Diagnostic) {
-		fmt.Println(diagnostic)
-	})
-
-	if diff := cmp.Diff(expected, applied, changesCmpOpts); diff != "" {
-		t.Fatalf("unexpected applied changes:\n%s", diff)
-	}
-
-	fmt.Println(applied)
 }
 
 func cmpJSONMap() cmp.Option {

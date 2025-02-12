@@ -103,25 +103,24 @@ func (m *migration) emitDiags(diags tfdiags.Diagnostics) {
 	}
 }
 
-func (m *migration) provider(provider addrs.Provider) providers.Interface {
+func (m *migration) provider(provider addrs.Provider) (providers.Interface, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	if p, ok := m.providers[provider]; ok {
-		return p
+		return p, diags
 	}
 
 	factory, ok := m.Migration.Providers[provider]
 	if !ok {
-		m.providers[provider] = nil
-		return nil
+		return nil, tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Provider not found", fmt.Sprintf("Provider %s not found in required_providers.", provider.ForDisplay()))}
 	}
 
 	p, err := factory()
 	if err != nil {
-		m.providers[provider] = nil
-		return nil
+		return nil, tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Provider initialization failed", fmt.Sprintf("Failed to initialize provider %s: %s", provider.ForDisplay(), err.Error()))}
 	}
 
 	m.providers[provider] = p
-	return p
+	return p, diags
 }
 
 func (m *migration) close() {
