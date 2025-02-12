@@ -20,7 +20,7 @@ import (
 )
 
 // TODO: Add tests for deposed resource instances
-func TestContext2Plan_resource_identity_adds_missing(t *testing.T) {
+func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 	for name, tc := range map[string]struct {
 		StoredIdentitySchemaVersion         uint64
 		StoredIdentityJSON                  []byte
@@ -249,7 +249,97 @@ func TestContext2Plan_resource_identity_adds_missing(t *testing.T) {
 			if tc.ExpectedIdentity.Equals(fromState.Identity).False() {
 				t.Fatalf("wrong identity\nwant: %s\ngot: %s", tc.ExpectedIdentity.GoString(), fromState.Identity.GoString())
 			}
-
 		})
 	}
+}
+
+// This test validates if a resource identity that is deposed and will be destroyed
+// can be refreshed with an identity during the plan.
+func TestContext2Plan_resource_identity_refresh_destroy_deposed(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "refresh-basic")
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+
+	deposedKey := states.DeposedKey("00000001")
+	root.SetResourceInstanceDeposed(
+		mustResourceInstanceAddr("aws_instance.web").Resource,
+		deposedKey,
+		&states.ResourceInstanceObjectSrc{ // no identity recorded
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo","foo":"bar"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	ty := schema.ImpliedType()
+	readState, err := hcl2shim.HCL2ValueFromFlatmap(map[string]string{"id": "foo", "foo": "baz"}, ty)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p.GetResourceIdentitySchemasResponse = &providers.GetResourceIdentitySchemasResponse{
+		IdentityTypes: map[string]providers.IdentitySchema{
+			"aws_instance": providers.IdentitySchema{
+				Version: 0,
+				Attributes: configschema.IdentityAttributes{
+					"id": {
+						Type:              cty.String,
+						RequiredForImport: true,
+					},
+				},
+			},
+		},
+	}
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: readState,
+		Identity: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("foo"),
+		}),
+	}
+
+	s, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.RefreshOnlyMode})
+
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should be called")
+	}
+
+	if !p.GetResourceIdentitySchemasCalled {
+		t.Fatal("GetResourceIdentitySchemas should be called")
+	}
+
+	identitySchema := p.GetResourceIdentitySchemasResponse.IdentityTypes["aws_instance"]
+	mod := s.PriorState.RootModule()
+	fromState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Deposed[deposedKey].DecodeWithIdentity(ty, identitySchema.Attributes.ImpliedType(), uint64(identitySchema.Version))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	newState, err := schema.CoerceValue(fromState.Value)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !cmp.Equal(readState, newState, valueComparer) {
+		t.Fatal(cmp.Diff(readState, newState, valueComparer, equateEmpty))
+	}
+	expectedIdentity := cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("foo"),
+	})
+	if expectedIdentity.Equals(fromState.Identity).False() {
+		t.Fatalf("wrong identity\nwant: %s\ngot: %s", expectedIdentity.GoString(), fromState.Identity.GoString())
+	}
+
 }
