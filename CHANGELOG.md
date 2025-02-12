@@ -1,4 +1,4 @@
-## 1.11.0 (Unreleased)
+## 1.11.0-rc1 (February 12, 2025)
 
 
 NEW FEATURES:
@@ -20,10 +20,16 @@ ENHANCEMENTS:
 
 * `terraform test`: Add new `state_key` attribute for `run` blocks, allowing test authors control over which internal state file should be used for the current test run. ([#36185](https://github.com/hashicorp/terraform/issues/36185))
 
+* Include `ca-certificates` package in our official Docker image to help with certificate handling by downstream ([#36471](https://github.com/hashicorp/terraform/issues/36471))
+
 
 BUG FIXES:
 
 * ephemeral values: correct error message when ephemeral values are included in provisioner output ([#36427](https://github.com/hashicorp/terraform/issues/36427))
+
+* Attempting to override a variable during `apply` via `TF_VAR_` environment variable will now yield warning instead of misleading error. ([#36435](https://github.com/hashicorp/terraform/issues/36435))
+
+* backends: Fix crash when interrupting during interactive prompt for values ([#36448](https://github.com/hashicorp/terraform/issues/36448))
 
 
 ## Previous Releases
