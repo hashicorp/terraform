@@ -256,7 +256,7 @@ const (
 	prevRunState
 )
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type phaseState
+//go:generate go tool golang.org/x/tools/cmd/stringer -type phaseState
 
 // writeResourceInstanceState saves the given object as the current object for
 // the selected resource instance.
