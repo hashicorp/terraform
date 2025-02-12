@@ -35,7 +35,131 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func TestMigrateConfig(t *testing.T) {
+func TestMigrate_Module(t *testing.T) {
+	cfg := loadMainBundleConfigForTest(t, filepath.Join("with-single-input", "valid"))
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	state := states.BuildState(func(ss *states.SyncState) {
+		ss.SetOutputValue(addrs.AbsOutputValue{
+			Module:      addrs.RootModuleInstance,
+			OutputValue: addrs.OutputValue{Name: "output"},
+		}, cty.StringVal("before"), false)
+	})
+	rootModule := state.RootModule()
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "testing_resource",
+			Name: "data",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status: states.ObjectReady,
+			AttrsJSON: []byte(`{
+				"id": "foo",
+				"value": "hello"
+			}`),
+		},
+		mustDefaultRootProvider("testing"),
+	)
+	rootModule.SetResourceInstanceDeposed(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "testing_resource",
+			Name: "data",
+		}.Instance(addrs.NoKey),
+		states.NewDeposedKey(),
+		&states.ResourceInstanceObjectSrc{
+			Status: states.ObjectReady,
+			AttrsJSON: []byte(`{
+				"id": "foo",
+				"value": "hello"
+			}`),
+		},
+		mustDefaultRootProvider("testing"),
+	)
+	mig := Migration{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		PreviousState: state,
+		Config:        cfg,
+	}
+	resources := map[string]string{}
+	modules := map[string]string{"": "self"}
+
+	applied := []stackstate.AppliedChange{}
+	expected := []stackstate.AppliedChange{
+		&stackstate.AppliedChangeResourceInstanceObject{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+			NewStateSrc: &states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+					"id":    "foo",
+					"value": "hello",
+				}),
+				Status:  states.ObjectReady,
+				Private: nil,
+			},
+			ProviderConfigAddr: mustDefaultRootProvider("testing"),
+			Schema:             stacks_testing_provider.TestingResourceSchema,
+		},
+		&stackstate.AppliedChangeResourceInstanceObject{
+			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+				Component: mustAbsResourceInstanceObject("component.self.testing_resource.data").Component,
+				Item: addrs.AbsResourceInstanceObject{
+					ResourceInstance: mustAbsResourceInstanceObject("component.self.testing_resource.data").Item.ResourceInstance,
+					DeposedKey:       states.NewDeposedKey(),
+				},
+			},
+			NewStateSrc: &states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+					"id":    "foo",
+					"value": "hello",
+				}),
+				Status:  states.ObjectReady,
+				Private: nil,
+			},
+			ProviderConfigAddr: mustDefaultRootProvider("testing"),
+			Schema:             stacks_testing_provider.TestingResourceSchema,
+		},
+		&stackstate.AppliedChangeComponentInstance{
+			ComponentAddr:         mustAbsComponent("component.self"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+			OutputValues:          map[addrs.OutputValue]cty.Value{},
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				{Name: "id"}:    cty.DynamicVal,
+				{Name: "input"}: cty.DynamicVal,
+			},
+		},
+	}
+
+	var expDiags, gotDiags tfdiags.Diagnostics
+	mig.Migrate(resources, modules, func(change stackstate.AppliedChange) {
+		applied = append(applied, change)
+	}, func(diagnostic tfdiags.Diagnostic) {
+		gotDiags = append(gotDiags, diagnostic)
+	})
+
+	if diff := cmp.Diff(expected, applied, changesCmpOpts, cmpopts.IgnoreFields(
+		addrs.AbsResourceInstanceObject{}, "DeposedKey",
+	)); diff != "" {
+		t.Fatalf("unexpected applied changes:\n%s", diff)
+	}
+
+	if diff := cmp.Diff(expDiags, gotDiags); diff != "" {
+		t.Fatalf("unexpected diagnostics:\n%s", diff)
+	}
+}
+
+func TestMigrate_RootResources(t *testing.T) {
 	cfg := loadMainBundleConfigForTest(t, filepath.Join("with-single-input", "valid"))
 
 	lock := depsfile.NewLocks()
@@ -161,8 +285,8 @@ func TestMigrateConfig(t *testing.T) {
 	}
 }
 
-func TestMigrateConfigChildComponent(t *testing.T) {
-	cfg := loadMainBundleConfigForTest(t, filepath.Join("for-stacks-migrate", "with-single-input-and-output", "input-dependency"))
+func TestMigrate_ComponentDependency(t *testing.T) {
+	cfg := loadMainBundleConfigForTest(t, filepath.Join("for-stacks-migrate", "with-dependency", "input-dependency"))
 
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
