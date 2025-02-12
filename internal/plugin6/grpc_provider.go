@@ -71,8 +71,9 @@ type GRPCProvider struct {
 
 	// schema stores the schema for this provider. This is used to properly
 	// serialize the requests for schemas.
-	mu     sync.Mutex
-	schema providers.GetProviderSchemaResponse
+	mu            sync.Mutex
+	schema        providers.GetProviderSchemaResponse
+	identityTypes map[string]providers.IdentitySchema
 }
 
 func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
@@ -192,7 +193,11 @@ func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentit
 	}
 	logger.Trace("GRPCProvider.v6: GetResourceIdentitySchemas")
 
-	// TODO local cache?
+	if p.identityTypes != nil {
+		return providers.GetResourceIdentitySchemasResponse{
+			IdentityTypes: p.identityTypes,
+		}
+	}
 
 	var resp providers.GetResourceIdentitySchemasResponse
 
@@ -221,6 +226,7 @@ func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentit
 	if !p.Addr.IsZero() {
 		providers.ResourceIdentitySchemaCache.Set(p.Addr, resp)
 	}
+	p.identityTypes = resp.IdentityTypes
 
 	return resp
 }

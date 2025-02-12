@@ -78,8 +78,11 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 }
 
 func (p *Provider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
-	// TODO
-	return providers.GetResourceIdentitySchemasResponse{}
+	return providers.GetResourceIdentitySchemasResponse{
+		IdentityTypes: map[string]providers.IdentitySchema{
+			"terraform_data": dataStoreResourceIdentitySchema(),
+		},
+	}
 }
 
 // ValidateProviderConfig is used to validate the configuration values.
