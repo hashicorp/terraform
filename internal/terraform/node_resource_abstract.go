@@ -508,7 +508,7 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 
 	providerIdentitySchema, err := getResourceIdentitySchemas(ctx, n.ResolvedProvider)
 	if err != nil {
-		return nil, diags.Append(err) // TODO: Wrap error
+		return nil, diags.Append(fmt.Errorf("Could not read provider identity schema: %w", err))
 	}
 	identitySchema, currentIdentityVersion := providerIdentitySchema.IdentitySchemaForResourceAddr(addr.Resource.ContainingResource())
 
@@ -617,7 +617,7 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 
 	providerIdentitySchema, err := getResourceIdentitySchemas(ctx, n.ResolvedProvider)
 	if err != nil {
-		return nil, diags.Append(err) // TODO: Wrap error
+		return nil, diags.Append(fmt.Errorf("Could not read provider identity schema: %w", err))
 	}
 	identitySchema, currentIdentityVersion := providerIdentitySchema.IdentitySchemaForResourceAddr(addr.Resource.ContainingResource())
 
