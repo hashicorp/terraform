@@ -93,7 +93,7 @@ func (o *ResourceInstanceObject) EncodeWithIdentity(ty cty.Type, schemaVersion u
 		return nil, err
 	}
 
-	src.IdentitySchemaJSON, err = ctyjson.Marshal(o.Identity, identityTy)
+	src.IdentityJSON, err = ctyjson.Marshal(o.Identity, identityTy)
 	if err != nil {
 		return nil, err
 	}
