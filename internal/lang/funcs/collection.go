@@ -515,7 +515,7 @@ var SumFunc = function.New(&function.Spec{
 		ty := args[0].Type()
 
 		if !ty.IsListType() && !ty.IsSetType() && !ty.IsTupleType() {
-			return cty.NilVal, function.NewArgErrorf(0, fmt.Sprintf("argument must be list, set, or tuple. Received %s", ty.FriendlyName()))
+			return cty.NilVal, function.NewArgErrorf(0, "argument must be list, set, or tuple. Received %s", ty.FriendlyName())
 		}
 
 		if !args[0].IsWhollyKnown() {

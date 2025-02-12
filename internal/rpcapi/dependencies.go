@@ -566,7 +566,7 @@ func (s *dependenciesServer) GetProviderSchema(ctx context.Context, req *depende
 
 	schemaResp, err := loadProviderSchema(providerAddr, providerVersion, cacheDir)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &dependencies.GetProviderSchema_Response{
