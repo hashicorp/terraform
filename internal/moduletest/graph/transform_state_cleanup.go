@@ -47,6 +47,9 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 			// All the runs that share the same state, must share the same cleanup node,
 			// which only executes once after all the dependent runs have completed.
 			g.Connect(dag.BasicEdge(rootCleanupNode, node))
+		case *NodeStateCleanup:
+			// Connect the cleanup node to the root cleanup node.
+			g.Connect(dag.BasicEdge(node, rootCleanupNode))
 		}
 	}
 
