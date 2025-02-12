@@ -495,7 +495,7 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		Dependencies:            deps,
 		CreateBeforeDestroy:     obj.CreateBeforeDestroy,
 		IdentitySchemaVersion:   obj.IdentitySchemaVersion,
-		IdentitySchemaRaw:       obj.IdentitySchemaJSON,
+		IdentityRaw:             obj.IdentityJSON,
 	}), diags
 }
 
@@ -705,7 +705,7 @@ type instanceObjectStateV4 struct {
 	AttributeSensitivePaths json.RawMessage   `json:"sensitive_attributes,omitempty"`
 
 	IdentitySchemaVersion uint64          `json:"identity_schema_version"`
-	IdentitySchemaRaw     json.RawMessage `json:"identity,omitempty"`
+	IdentityRaw           json.RawMessage `json:"identity,omitempty"`
 
 	PrivateRaw []byte `json:"private,omitempty"`
 

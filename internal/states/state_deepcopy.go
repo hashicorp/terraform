@@ -143,9 +143,9 @@ func (os *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 	}
 
 	var identityJSON []byte
-	if os.IdentitySchemaJSON != nil {
-		identityJSON = make([]byte, len(os.IdentitySchemaJSON))
-		copy(identityJSON, os.IdentitySchemaJSON)
+	if os.IdentityJSON != nil {
+		identityJSON = make([]byte, len(os.IdentityJSON))
+		copy(identityJSON, os.IdentityJSON)
 	}
 
 	var sensitiveAttrPaths []cty.Path
@@ -178,7 +178,7 @@ func (os *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 		Dependencies:          dependencies,
 		CreateBeforeDestroy:   os.CreateBeforeDestroy,
 		decodeValueCache:      os.decodeValueCache,
-		IdentitySchemaJSON:    identityJSON,
+		IdentityJSON:          identityJSON,
 		IdentitySchemaVersion: os.IdentitySchemaVersion,
 	}
 }
