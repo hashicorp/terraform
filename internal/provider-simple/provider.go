@@ -58,8 +58,19 @@ func (s simple) GetProviderSchema() providers.GetProviderSchemaResponse {
 }
 
 func (s simple) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
-	// TODO
-	return providers.GetResourceIdentitySchemasResponse{}
+	return providers.GetResourceIdentitySchemasResponse{
+		IdentityTypes: map[string]providers.IdentitySchema{
+			"simple_resource": {
+				Version: 0,
+				Attributes: configschema.IdentityAttributes{
+					"id": {
+						Type:              cty.String,
+						RequiredForImport: true,
+					},
+				},
+			},
+		},
+	}
 }
 
 func (s simple) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
