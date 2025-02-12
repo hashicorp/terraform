@@ -55,6 +55,11 @@ func upgradeDataStoreResourceState(req providers.UpgradeResourceStateRequest) (r
 	return resp
 }
 
+func upgradeDataStoreResourceIdentity(req providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
+	// TODO: Implement this
+	panic("not implemented")
+}
+
 func readDataStoreResourceState(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
 	resp.NewState = req.PriorState
 	return resp

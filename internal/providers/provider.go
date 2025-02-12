@@ -43,6 +43,12 @@ type Interface interface {
 	// result is used for any further processing.
 	UpgradeResourceState(UpgradeResourceStateRequest) UpgradeResourceStateResponse
 
+	// UpgradeResourceIdentity is called when the state loader encounters an
+	// instance identity whose schema version is less than the one reported by
+	// the currently-used version of the corresponding provider, and the upgraded
+	// result is used for any further processing.
+	UpgradeResourceIdentity(UpgradeResourceIdentityRequest) UpgradeResourceIdentityResponse
+
 	// Configure configures and initialized the provider.
 	ConfigureProvider(ConfigureProviderRequest) ConfigureProviderResponse
 
@@ -270,6 +276,26 @@ type UpgradeResourceStateRequest struct {
 type UpgradeResourceStateResponse struct {
 	// UpgradedState is the newly upgraded resource state.
 	UpgradedState cty.Value
+
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type UpgradeResourceIdentityRequest struct {
+	// TypeName is the name of the resource type being upgraded
+	TypeName string
+
+	// Version is version of the schema that created the current identity.
+	Version int64
+
+	// RawIdentityJSON contains the identity that needs to be
+	// upgraded to match the current schema version.
+	RawIdentityJSON []byte
+}
+
+type UpgradeResourceIdentityResponse struct {
+	// UpgradedState is the newly upgraded resource identity.
+	UpgradedIdentity cty.Value
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
