@@ -124,7 +124,7 @@ type NestingMode int
 
 // Object represents the embedding of a NestedBl
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=NestingMode
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=NestingMode
 
 const (
 	nestingModeInvalid NestingMode = iota
