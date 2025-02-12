@@ -654,7 +654,6 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 			Private:            state.Private,
 			ProviderMeta:       metaConfigVal,
 			ClientCapabilities: ctx.ClientCapabilities(),
-			// TODO: Send identity in read request
 		})
 
 		// If we don't support deferrals, but the provider reports a deferral and does not
@@ -728,16 +727,9 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		return state, deferred, diags
 	}
 
-	// Identities can not change on read
-	if !state.Identity.IsNull() && state.Identity.Equals(resp.Identity).False() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider produced different identity",
-			fmt.Sprintf(
-				"Provider %q planned an different identity for %s during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider.Provider, absAddr,
-			),
-		))
+	diags = diags.Append(n.validateIdentity(state, resp.Identity, false))
+	if diags.HasErrors() {
+		return state, deferred, diags
 	}
 
 	newState := objchange.NormalizeObjectFromLegacySDK(resp.NewState, schema)
@@ -2858,6 +2850,47 @@ func (n *NodeAbstractResourceInstance) apply(
 
 func (n *NodeAbstractResourceInstance) prevRunAddr(ctx EvalContext) addrs.AbsResourceInstance {
 	return resourceInstancePrevRunAddr(ctx, n.Addr)
+}
+
+func (n *NodeAbstractResourceInstance) validateIdentity(state *states.ResourceInstanceObject, newIdentity cty.Value, isAllowedToChange bool) (diags tfdiags.Diagnostics) {
+
+	// Identities can not contain unknown values
+	if !newIdentity.IsWhollyKnown() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid identity",
+			fmt.Sprintf(
+				"Provider %q planned an identity with unknown values for %s during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.Provider, n.Addr,
+			),
+		))
+	}
+
+	// Identities can not contain marks
+	if _, marks := newIdentity.UnmarkDeep(); len(marks) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid identity",
+			fmt.Sprintf(
+				"Provider %q planned an identity with marks for %s during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.Provider, n.Addr,
+			),
+		))
+	}
+
+	// Identities can not change (except if they are re-created or initially recorded)
+	if !isAllowedToChange && !state.Identity.IsNull() && state.Identity.Equals(newIdentity).False() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced different identity",
+			fmt.Sprintf(
+				"Provider %q planned an different identity for %s during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.Provider, n.Addr,
+			),
+		))
+	}
+
+	return diags
 }
 
 func resourceInstancePrevRunAddr(ctx EvalContext, currentAddr addrs.AbsResourceInstance) addrs.AbsResourceInstance {
