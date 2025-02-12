@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 # This Dockerfile is not intended for general use, but is rather used to
 # produce our "light" release packages as part of our official release
 # pipeline.
