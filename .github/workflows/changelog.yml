@@ -28,13 +28,8 @@ jobs:
     check-changelog-entry:
         name: "Check Changelog Entry"
         runs-on: ubuntu-latest
-        env:
-            # These are used to ensure the correct changelog entry is added for the PR.
-            # Please update the labels on every minor release.
-            CURRENT_LABEL: 1.10-backport
-            NEXT_LABEL: 1.11-backport
         concurrency:
-            group: changelog-${{ github.ref }}
+            group: changelog-${{ github.head_ref }}
             cancel-in-progress: true
 
         steps:
@@ -43,21 +38,25 @@ jobs:
               id: changelog
               with:
                   filters: |
-                      dev:
-                          - '.changes/dev/*.yaml'
-                      next:
-                          - '.changes/next/*.yaml'
-                      current:
-                          - '.changes/current/*.yaml'
+                      changes:
+                          - '.changes/*/*.yaml'
                       changelog:
                         - 'CHANGELOG.md'
                       version:
                         - 'version/VERSION'
+                  list-files: json
+
+            - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+              with:
+                  sparse-checkout: |
+                      version/VERSION
+                  ref: ${{ github.ref }} # Ref refers to the target branch of this PR
 
             - name: "Check for changelog entry"
               uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
               with:
                   script: |
+                      const fs = require("fs");
                       async function createOrUpdateChangelogComment(commentDetails, deleteComment) {
                           const commentStart = "## Changelog Warning"
                           
@@ -105,9 +104,9 @@ jobs:
                           }
                       }
 
-                      const devChangesPresent = ${{steps.changelog.outputs.dev}};
-                      const nextChangesPresent = ${{steps.changelog.outputs.next}};
-                      const currentChangesPresent = ${{steps.changelog.outputs.current}};
+                      // TODO: Does this need a JSON.parse?
+                      const changesPresent = ${{steps.changelog.outputs.changes}};
+                      const changedChangesFiles = ${{steps.changelog.outputs.changes_files}};
                       const changelogChangesPresent = ${{steps.changelog.outputs.changelog}};
                       const versionChangesPresent = ${{steps.changelog.outputs.version}};
 
@@ -116,8 +115,28 @@ jobs:
                           owner: context.repo.owner,
                           repo: context.repo.repo
                       });
-                      const nextBackportLabel = prLabels.data.find(label => label.name === ${{ env.NEXT_LABEL }});
-                      const currentBackportLabel = prLabels.data.find(label => label.name === ${{ env.CURRENT_LABEL }});
+                      const backportLabels = prLabels.data.filter(label => label.name.endsWith("-backport"));
+                      const backportVersions = backportLabels.map(label => label.name.split("-")[0]);
+
+                      const currentVersionFile = fs.readFileSync("./version/VERSION", "utf-8");
+                      const currentVersionParts = currentVersionFile.split(".");
+                      currentVersionParts.pop();
+                      const currentVersion = currentVersionParts.join(".");
+
+                      const allVersions = [currentVersion, ...backportVersions]
+                      allVersions.sort((a, b) => {
+                        const as = a.split(".").map(Number);
+                        const bs = b.split(".").map(Number);
+
+                        if (as[0] !== bs[0]) {
+                          return as[0] - bs[0];
+                        }
+                        
+                        if (as[1] !== bs[1]) {
+                          return as[1] - bs[1];
+                        }
+                      });
+
                       const noChangelogNeededLabel = prLabels.data.find(label => label.name === 'no-changelog-needed');
                       const dependenciesLabel = prLabels.data.find(label => label.name === 'dependencies');
 
@@ -136,7 +155,7 @@ jobs:
                       }
 
                       if (noChangelogNeededLabel) {
-                          if (devChangesPresent || nextChangesPresent) {
+                          if (changesPresent) {
                               await createOrUpdateChangelogComment("Please remove either the 'no-changelog-needed' label or the changelog entry from this PR.");
                               return;
                           }
@@ -146,58 +165,21 @@ jobs:
                           return;
                       }
 
+                      // We only want to have a changelog entry for the oldest version this PR will
+                      // land in.
+                      const onlyExpectedChangeVersion = allVersions[0]
+                      const missingChangelogEntry = !changedChangesFiles.some(filePath => filePath.includes("/v"+onlyExpectedChangeVersion+"/"))
+                      const unexpectedChangelogEntry = changedChangesFiles.filter(filePath => !filePath.includes("/v"+onlyExpectedChangeVersion+"/"))
 
-                      // If we want to backport this to the current branch, the backlog entry should only exist in the ./.changes/current directory
-                      if (currentBackportLabel) {
-                        if (devChangesPresent) {
-                            await createOrUpdateChangelogComment("Please move the changelog entry from `./.changes/dev` to `./.changes/current` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
-                            return;
-                        }
 
-                        if (nextChangesPresent) {
-                            await createOrUpdateChangelogComment("Please move the changelog entry from `./.changes/next` to `./.changes/current` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
-                            return;
-                        }
+                      if (missingChangelogEntry) {
+                          await createOrUpdateChangelogComment(`Please add a changelog entry for in the .changes/v${onlyExpectedChangeVersion} folder. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.`);
+                          return;
+                      }
 
-                        if (!currentChangesPresent) {
-                            await createOrUpdateChangelogComment("Please add a changelog entry to `./.changes/current` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
-                            return;
-                        }
-
-                        // If we have no current backport label, but a next backport label we should only have a changelog entry in the ./.changes/next directory
-                      } else if (nextBackportLabel) {
-                          if (devChangesPresent) {
-                              await createOrUpdateChangelogComment("Please move the changelog entry from `./.changes/dev` to `./.changes/next` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
-                              return;
-                          }
-                          
-                          if (currentChangesPresent) {
-                              await createOrUpdateChangelogComment("Please move the changelog entry from `./.changes/current` to `./.changes/next` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
-                              return;
-                          }
-
-                          
-                          if (!nextChangesPresent) {
-                              await createOrUpdateChangelogComment("Please add a changelog entry to `./.changes/next` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
-                              return;
-                          }
-                          
-                          // If we don't have a backport label we only expect changes in the ./.changes/dev directory
-                      } else {
-                          if (nextChangesPresent) {
-                              await createOrUpdateChangelogComment("Please move the changelog entry from `./.changes/next` to `./.changes/dev` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
-                              return;
-                          }
-                          
-                          if (currentChangesPresent) {
-                              await createOrUpdateChangelogComment("Please move the changelog entry from `./.changes/current` to `./.changes/dev` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
-                              return;
-                          }
-
-                          if (!devChangesPresent) {
-                              await createOrUpdateChangelogComment("Please add a changelog entry to `./.changes/dev` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
-                              return;
-                          }
+                      if (unexpectedChangelogEntry.length > 0) {
+                          await createOrUpdateChangelogComment(`Please remove the changelog entry for the following paths: ${unexpectedChangelogEntry.join(", ")}. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.`);
+                          return;
                       }
 
                       // Nothing to complain about, so delete any existing comment

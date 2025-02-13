@@ -28,14 +28,8 @@ Commands:
     `release`: will make the initial minor release for this branch.
     `patch`: will generate a new patch release
 
-  prepareMainBranch:
+  nextMinor:
     Run on main branch: Updates the minor version.
-
-  prepareReleaseBranch:
-    Run on newly created release branch: Makes sure we can backport changes properly.
-
-  prepareMaintenanceBranch:
-    Run on newly created maintenance branch: Makes sure we can backport changes properly.
 EOF
 }
 
@@ -141,7 +135,7 @@ function generate {
 
 # This function expects the current branch to be main. Run it if you want to set main to the next
 # minor version.
-function prepareMainBranch {
+function nextMinor {
     # Prepend the latest version to the previous releases
     LATEST_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
     LATEST_VERSION=${LATEST_VERSION%.*} # Remove the patch version
@@ -152,54 +146,22 @@ function prepareMainBranch {
     NEXT_VERSION=$(npx -y changie@$CHANGIE_VERSION next minor)
     # Remove all existing per-release changelogs
     rm ./.changes/*.*.*.md
-    # Remove all unreleased changes
-    rm ./.changes/unreleased/*.yaml
-    # Remove all backported changes
-    rm ./.changes/backported/*.yaml
+    
     # Create a new empty version file for the next minor version
     touch ./.changes/$NEXT_VERSION.md
     
+    LATEST_MAJOR_MINOR=$(echo $LATEST_VERSION | awk -F. '{print $1"."$2}')
+    NEXT_MAJOR_MINOR=$(echo $NEXT_VERSION | awk -F. '{print $1"."$2}')
+    
+    # Create a new changes directory for the next minor version
+    mkdir ./.changes/v$NEXT_MAJOR_MINOR
+    touch ./.changes/v$NEXT_MAJOR_MINOR/.gitkeep
+
+    # Set changies changes dir to the new version
+    awk "{sub(/unreleasedDir: v$LATEST_MAJOR_MINOR/, \"unreleasedDir: v$NEXT_MAJOR_MINOR\")}1" ./.changie.yaml > temp && mv temp ./.changie.yaml
     generate "dev"
-}
-
-# This function is expected to be run on the upcoming release branch. It will make sure
-# that backports work properly
-# Transitions from dev -> next
-function prepareReleaseBranch {
-    # For the maintenance branch we don't want to base our changelog on the unreleased but the backported folder instead
-    awk '{sub(/unreleasedDir: dev/, "unreleasedDir: next")}1' ./.changie.yaml > temp && mv temp ./.changie.yaml
     
-    # If we have backported changes, we need to remove them now since they were backported into the
-    # last version
-    rm -f ./.changes/next/*.yaml
-    
-    # If we have unreleased changes, they will be released in the next patch, therefore they need
-    # to go into the next folder
-    if [ "$(ls -A ./.changes/dev/)" ]; then
-        mv ./.changes/dev/* ./.changes/next/
-    fi
-
-    generate "dev"
-}
-
-# This function is expected to be run on the upcoming release branch. It will make sure
-# that backports work properly
-# Transitions from next -> current
-function prepareMaintenanceBranch {
-    # For the maintenance branch we don't want to base our changelog on the unreleased but the backported folder instead
-    awk '{sub(/unreleasedDir: next/, "unreleasedDir: current")}1' ./.changie.yaml > temp && mv temp ./.changie.yaml
-    
-    # If we have backported changes, we need to remove them now since they were backported into the
-    # last version
-    rm -f ./.changes/current/*.yaml
-    
-    # If we have unreleased changes, they will be released in the next patch, therefore they need
-    # to go into the current folder
-    if [ "$(ls -A ./.changes/next/)" ]; then
-        mv ./.changes/next/* ./.changes/current/
-    fi
-
-    generate "dev"
+    echo "\n\n Please clean up the .changes folders that are no longer needed, but keep the .gitkeep file for the last two versions to enable backporting."
 }
 
 function main {
@@ -208,18 +170,9 @@ function main {
     generate "${@:2}"
       ;;
 
-    prepareMainBranch)
-    prepareMainBranch "${@:2}"
+    nextMinor)
+    nextMinor "${@:2}"
       ;;
-      
-    prepareReleaseBranch)
-    prepareReleaseBranch "${@:2}"
-      ;;
-    
-    prepareMaintenanceBranch)
-    prepareMaintenanceBranch "${@:2}"
-      ;;
-    
     *)
       usage
       exit 1
