@@ -5,6 +5,7 @@ package configschema
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/zclconf/go-cty/cty"
 )
@@ -21,7 +22,7 @@ func (b *Block) WriteOnlyPaths(val cty.Value, basePath cty.Path) []cty.Path {
 	// We can mark attributes as write-only even if the value is null
 	for name, attrS := range b.Attributes {
 		if attrS.WriteOnly {
-			attrPath := copyAndExtendPath(basePath, cty.GetAttrStep{Name: name})
+			attrPath := slices.Concat(basePath, cty.GetAttrPath(name))
 			ret = append(ret, attrPath)
 		}
 	}
@@ -31,7 +32,7 @@ func (b *Block) WriteOnlyPaths(val cty.Value, basePath cty.Path) []cty.Path {
 		return ret
 	}
 
-	// Extract marks for nested attribute type values
+	// Extract paths for marks from nested attribute type values
 	for name, attrS := range b.Attributes {
 		// If the attribute has no nested type, or the nested type doesn't
 		// contain any write-only attributes, skip inspecting it
@@ -40,11 +41,11 @@ func (b *Block) WriteOnlyPaths(val cty.Value, basePath cty.Path) []cty.Path {
 		}
 
 		// Create a copy of the path, with this step added, to add to our PathValueMarks slice
-		attrPath := copyAndExtendPath(basePath, cty.GetAttrStep{Name: name})
+		attrPath := slices.Concat(basePath, cty.GetAttrPath(name))
 		ret = append(ret, attrS.NestedType.writeOnlyPaths(val.GetAttr(name), attrPath)...)
 	}
 
-	// Extract marks for nested blocks
+	// Extract paths for marks from nested blocks
 	for name, blockS := range b.BlockTypes {
 		// If our block doesn't contain any write-only attributes, skip inspecting it
 		if !blockS.Block.ContainsWriteOnly() {
@@ -57,7 +58,7 @@ func (b *Block) WriteOnlyPaths(val cty.Value, basePath cty.Path) []cty.Path {
 		}
 
 		// Create a copy of the path, with this step added, to add to our PathValueMarks slice
-		blockPath := copyAndExtendPath(basePath, cty.GetAttrStep{Name: name})
+		blockPath := slices.Concat(basePath, cty.GetAttrPath(name))
 
 		switch blockS.Nesting {
 		case NestingSingle, NestingGroup:
@@ -68,7 +69,7 @@ func (b *Block) WriteOnlyPaths(val cty.Value, basePath cty.Path) []cty.Path {
 				idx, blockEV := it.Element()
 				// Create a copy of the path, with this block instance's index
 				// step added, to add to our PathValueMarks slice
-				blockInstancePath := copyAndExtendPath(blockPath, cty.IndexStep{Key: idx})
+				blockInstancePath := slices.Concat(blockPath, cty.IndexPath(idx))
 				morePaths := blockS.Block.WriteOnlyPaths(blockEV, blockInstancePath)
 				ret = append(ret, morePaths...)
 			}
@@ -97,7 +98,7 @@ func (o *Object) writeOnlyPaths(val cty.Value, basePath cty.Path) []cty.Path {
 		switch o.Nesting {
 		case NestingSingle, NestingGroup:
 			// Create a path to this attribute
-			attrPath := copyAndExtendPath(basePath, cty.GetAttrStep{Name: name})
+			attrPath := slices.Concat(basePath, cty.GetAttrPath(name))
 			if attrS.WriteOnly {
 				// If the entire attribute is write-only, mark it so
 				ret = append(ret, attrPath)
@@ -119,7 +120,7 @@ func (o *Object) writeOnlyPaths(val cty.Value, basePath cty.Path) []cty.Path {
 				// of the loops: index into the collection, then the contained
 				// attribute name. This is because we have one type
 				// representing multiple collection elements.
-				attrPath := copyAndExtendPath(basePath, cty.IndexStep{Key: idx}, cty.GetAttrStep{Name: name})
+				attrPath := slices.Concat(basePath, cty.IndexPath(idx).GetAttr(name))
 
 				if attrS.WriteOnly {
 					// If the entire attribute is write-only, mark it so

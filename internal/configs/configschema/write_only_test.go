@@ -230,7 +230,6 @@ func TestBlock_WriteOnlyPaths(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			val := tc.value
 			if err := schema.InternalValidate(); err != nil {
 				t.Fatal(err)
 			}
