@@ -683,6 +683,16 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 		case "backend":
 			backend, backedDiags := decodeBackendBlock(block)
 			diags = append(diags, backedDiags...)
+
+			if r.Backend != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Multiple backend blocks within a run",
+					Detail:   fmt.Sprintf("A backend block has already been defined inside the run %q at at %s.", r.Name, backendRange),
+					Subject:  backendRange.Ptr(),
+				})
+				continue
+			}
 			r.Backend = backend
 		}
 	}
