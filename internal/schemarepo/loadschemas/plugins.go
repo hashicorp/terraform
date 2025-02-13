@@ -219,6 +219,14 @@ func (cp *Plugins) ResourceIdentitySchemas(addr addrs.Provider) (providers.Resou
 
 	resp := provider.GetResourceIdentitySchemas()
 	if resp.Diagnostics.HasErrors() {
+		for _, diag := range resp.Diagnostics {
+			if diag.Description().Summary == "Unsupported plugin method" {
+				// Some providers may not support the GetResourceIdentitySchemas method.
+				// In this case, we return an empty set of schemas.
+				return resp, nil
+			}
+		}
+
 		return resp, fmt.Errorf("failed to retrieve resource identity schemas from provider %q: %s", addr, resp.Diagnostics.Err())
 	}
 
