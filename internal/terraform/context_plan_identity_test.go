@@ -20,7 +20,6 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// TODO: Add tests for deposed resource instances
 func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 	for name, tc := range map[string]struct {
 		StoredIdentitySchemaVersion         uint64
