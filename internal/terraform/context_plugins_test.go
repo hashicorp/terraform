@@ -42,6 +42,7 @@ func simpleMockPluginLibrary() *loadschemas.Plugins {
 			},
 		},
 		nil,
+		nil,
 	)
 }
 

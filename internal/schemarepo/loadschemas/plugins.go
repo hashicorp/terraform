@@ -21,17 +21,20 @@ type Plugins struct {
 	provisionerFactories map[string]provisioners.Factory
 
 	preloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema
+	preloadedIdentitySchemas map[addrs.Provider]providers.ResourceIdentitySchemas
 }
 
 func NewPlugins(
 	providerFactories map[addrs.Provider]providers.Factory,
 	provisionerFactories map[string]provisioners.Factory,
 	preloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema,
+	preloadedIdentitySchemas map[addrs.Provider]providers.ResourceIdentitySchemas,
 ) *Plugins {
 	ret := &Plugins{
 		providerFactories:        providerFactories,
 		provisionerFactories:     provisionerFactories,
 		preloadedProviderSchemas: preloadedProviderSchemas,
+		preloadedIdentitySchemas: preloadedIdentitySchemas,
 	}
 	return ret
 }
@@ -51,6 +54,11 @@ func (cp *Plugins) HasProvider(addr addrs.Provider) bool {
 
 func (cp *Plugins) HasPreloadedSchemaForProvider(addr addrs.Provider) bool {
 	_, ok := cp.preloadedProviderSchemas[addr]
+	return ok
+}
+
+func (cp *Plugins) HasPreloadedIdentitySchemaForProvider(addr addrs.Provider) bool {
+	_, ok := cp.preloadedIdentitySchemas[addr]
 	return ok
 }
 
@@ -208,12 +216,17 @@ func (cp *Plugins) ResourceIdentitySchemas(addr addrs.Provider) (providers.Resou
 		return schemas, nil
 	}
 
-	// TODO preload identity schemas?
+	if is, ok := cp.preloadedIdentitySchemas[addr]; ok {
+		return is, nil
+	}
 
 	log.Printf("[TRACE] terraform.contextPlugins: Initializing provider %q to read its resource identity schemas", addr)
 	provider, err := cp.NewProviderInstance(addr)
 	if err != nil {
-		return schemas, fmt.Errorf("failed to instantiate provider %q to obtain resource identity schemas: %s", addr, err)
+		// A provider might have provided preloaded resource schemas but is missing the identity schemas.
+		// We will return an empty set of schemas in this case.
+		log.Printf("[TRACE] failed to instantiate provider %q to obtain resource identity schemas: %s", addr, err)
+		return providers.ResourceIdentitySchemas{}, nil
 	}
 	defer provider.Close()
 
