@@ -156,6 +156,8 @@ type TestRun struct {
 	// will be executed in parallel with other test runs.
 	Parallel bool
 
+	Backend *Backend
+
 	NameDeclRange      hcl.Range
 	VariablesDeclRange hcl.Range
 	DeclRange          hcl.Range
@@ -648,6 +650,10 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 				}
 				r.Overrides.Put(subject, override)
 			}
+		case "backend":
+			backend, backedDiags := decodeBackendBlock(block)
+			diags = append(diags, backedDiags...)
+			r.Backend = backend
 		}
 	}
 
@@ -938,6 +944,10 @@ var testRunBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Type: "override_module",
+		},
+		{
+			Type:       "backend",
+			LabelNames: []string{"name"},
 		},
 	},
 }

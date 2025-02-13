@@ -10,8 +10,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// Backend represents a "backend" block inside a "terraform" block in a module
-// or file.
+// Backend represents a "backend" block
+// This could be inside a "terraform" block in a module
+// or file, or in a "run" block in a .tftest.hcl file.
 type Backend struct {
 	Type   string
 	Config hcl.Body
