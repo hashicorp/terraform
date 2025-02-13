@@ -56,7 +56,16 @@ func testAccAzureBackendRunningInGitHubActions(t *testing.T) {
 	}
 }
 
-// clearEnv cleans up the azure related environment variables.
+// these kind of tests can only run when within ADO Pipelines (e.g. OIDC)
+func testAccAzureBackendRunningInADOPipelines(t *testing.T) {
+	testAccAzureBackend(t)
+
+	if os.Getenv("TF_RUNNING_IN_ADO_PIPELINES") == "" {
+		t.Skip("Skipping test since not running in ADO Pipelines")
+	}
+}
+
+// clearARMEnv cleans up the azure related environment variables.
 // This is to ensure the configuration only comes from HCL, which avoids
 // env vars for test setup interfere the behavior.
 //
@@ -65,7 +74,7 @@ func testAccAzureBackendRunningInGitHubActions(t *testing.T) {
 // impact can be eliminated given all the tests are implemented in a similar
 // pattern that those env vars will be consumed at the very begining. The test
 // runner has to ensure to set a **big enough parallelism**.
-func clearEnv() {
+func clearARMEnv() {
 	for _, evexp := range os.Environ() {
 		k, _, ok := strings.Cut(evexp, "=")
 		if !ok {
@@ -178,19 +187,21 @@ func BuildTestMeta(t *testing.T, ctx context.Context) *TestMeta {
 	// - MSI: For MSI related tests
 	// - OIDC: For OIDC related tests
 	authConfig := &auth.Credentials{
-		Environment:                 *env,
-		TenantID:                    tenantID,
-		ClientID:                    clientID,
-		ClientSecret:                clientSecret,
-		ClientCertificatePath:       os.Getenv("ARM_CLIENT_CERTIFICATE_PATH"),
-		ClientCertificatePassword:   os.Getenv("ARM_CLIENT_CERTIFICATE_PASSWORD"),
-		GitHubOIDCTokenRequestURL:   os.Getenv("ACTIONS_ID_TOKEN_REQUEST_URL"),
-		GitHubOIDCTokenRequestToken: os.Getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN"),
+		Environment:                    *env,
+		TenantID:                       tenantID,
+		ClientID:                       clientID,
+		ClientSecret:                   clientSecret,
+		ClientCertificatePath:          os.Getenv("ARM_CLIENT_CERTIFICATE_PATH"),
+		ClientCertificatePassword:      os.Getenv("ARM_CLIENT_CERTIFICATE_PASSWORD"),
+		OIDCTokenRequestURL:            getEnvvars("ACTIONS_ID_TOKEN_REQUEST_URL", "SYSTEM_OIDCREQUESTURI"),
+		OIDCTokenRequestToken:          getEnvvars("ACTIONS_ID_TOKEN_REQUEST_TOKEN", "SYSTEM_ACCESSTOKEN"),
+		ADOPipelineServiceConnectionID: os.Getenv("ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID"),
 
 		EnableAuthenticatingUsingClientSecret:      true,
 		EnableAuthenticatingUsingClientCertificate: true,
 		EnableAuthenticatingUsingManagedIdentity:   true,
 		EnableAuthenticationUsingGitHubOIDC:        true,
+		EnableAuthenticationUsingADOPipelineOIDC:   true,
 	}
 
 	resourceManagerAuth, err := auth.NewAuthorizerFromCredentials(ctx, *authConfig, env.ResourceManager)
@@ -324,4 +335,14 @@ func randString(strlen int) string {
 		result[i] = charSet[rand.Intn(len(charSet))]
 	}
 	return string(result)
+}
+
+// getEnvvars return the first non-empty env var specified. If none is found, it returns empty string.
+func getEnvvars(envvars ...string) string {
+	for _, envvar := range envvars {
+		if v := os.Getenv(envvar); v != "" {
+			return v
+		}
+	}
+	return ""
 }

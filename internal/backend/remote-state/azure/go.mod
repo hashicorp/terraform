@@ -4,8 +4,8 @@ go 1.24.0
 
 require (
 	github.com/hashicorp/go-azure-helpers v0.71.0
-	github.com/hashicorp/go-azure-sdk/resource-manager v0.20241212.1154051
-	github.com/hashicorp/go-azure-sdk/sdk v0.20241212.1154051
+	github.com/hashicorp/go-azure-sdk/resource-manager v0.20250131.1134653
+	github.com/hashicorp/go-azure-sdk/sdk v0.20250131.1134653
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/terraform/internal/legacy v0.0.0-00010101000000-000000000000

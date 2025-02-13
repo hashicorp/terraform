@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Azure Backend supports ADO Pipelines OIDC token refresh by using the `oidc_request_url`, `oidc_request_token` and (the new) `ado_pipeline_service_connection_id`.
+time: 2025-02-07T16:48:03.902464157+11:00
+custom:
+    Issue: "36458"

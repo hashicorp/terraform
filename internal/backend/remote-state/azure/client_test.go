@@ -29,7 +29,7 @@ func TestRemoteClientAccessKeyBasic(t *testing.T) {
 	}
 	defer m.destroyTestResources(ctx)
 
-	clearEnv()
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": m.names.storageAccountName,
 		"container_name":       m.names.storageContainerName,
@@ -61,7 +61,7 @@ func TestRemoteClientManagedServiceIdentityBasic(t *testing.T) {
 	}
 	defer m.destroyTestResources(ctx)
 
-	clearEnv()
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"subscription_id":      m.subscriptionId,
 		"resource_group_name":  m.names.resourceGroup,
@@ -101,7 +101,7 @@ func TestRemoteClientSasTokenBasic(t *testing.T) {
 		t.Fatalf("Error building SAS Token: %+v", err)
 	}
 
-	clearEnv()
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": m.names.storageAccountName,
 		"container_name":       m.names.storageContainerName,
@@ -133,7 +133,7 @@ func TestRemoteClientServicePrincipalBasic(t *testing.T) {
 	}
 	defer m.destroyTestResources(ctx)
 
-	clearEnv()
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"subscription_id":      m.subscriptionId,
 		"resource_group_name":  m.names.resourceGroup,
@@ -169,7 +169,7 @@ func TestRemoteClientAccessKeyLocks(t *testing.T) {
 	}
 	defer m.destroyTestResources(ctx)
 
-	clearEnv()
+	clearARMEnv()
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": m.names.storageAccountName,
@@ -215,7 +215,7 @@ func TestRemoteClientServicePrincipalLocks(t *testing.T) {
 	}
 	defer m.destroyTestResources(ctx)
 
-	clearEnv()
+	clearARMEnv()
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"subscription_id":      m.subscriptionId,
