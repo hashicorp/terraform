@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 changesDir: .changes
-unreleasedDir: dev
+unreleasedDir: v1.12
 versionFooterPath: version_footer.tpl.md
 changelogPath: CHANGELOG.md
 versionExt: md
