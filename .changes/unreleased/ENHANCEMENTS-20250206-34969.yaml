@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'Terraform Test: Continue subsequent test execution when an expected failure is not encountered.'
+time: 2025-02-06T16:20:53.83763+01:00
+custom:
+    Issue: "34969"
