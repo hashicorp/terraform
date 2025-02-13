@@ -326,6 +326,18 @@ type TestRunOptions struct {
 	DeclRange hcl.Range
 }
 
+// runBlockBackend is used when parsing a single test file as part of ensuring
+// there is only a single backend block for a given internal state file.
+// TODO(SarahFrench) this also needs to be done across multiple test files - ?
+type runBlockBackend struct {
+	Backend *Backend
+
+	// RunName is the name of the run block containing the backend block for this Backend
+	// This is usually used in diagnostics to help avoid duplicate backends for a given internal
+	// state file.
+	RunName string
+}
+
 func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	tf := &TestFile{
@@ -351,6 +363,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	diags = append(diags, contentDiags...)
 
 	runBlockNames := make(map[string]hcl.Range)
+	stateKeyBackend := make(map[string]runBlockBackend) // Track backends per state key in the file
 
 	for _, block := range content.Blocks {
 		switch block.Type {
@@ -372,6 +385,23 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 			}
 			runBlockNames[run.Name] = run.DeclRange
 
+			if rb, exists := stateKeyBackend[run.StateKey]; exists && run.Backend != nil {
+				// we've encountered >1 backend blocks in a given run block state
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Multiple \"backend\" blocks for internal state file",
+					Detail:   fmt.Sprintf("The run %q already uses an internal state file that's loaded by a backend in the run %q. Please ensure that a \"backend\" block is only in the first apply run block for a given internal state file.", run.Name, rb.RunName),
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue
+			}
+			if run.Backend != nil {
+				// record newly-encountered backend blocks
+				stateKeyBackend[run.StateKey] = runBlockBackend{
+					Backend: run.Backend,
+					RunName: run.Name,
+				}
+			}
 		case "variables":
 			if tf.Variables != nil {
 				diags = append(diags, &hcl.Diagnostic{
