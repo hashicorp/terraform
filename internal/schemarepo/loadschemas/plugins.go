@@ -223,9 +223,22 @@ func (cp *Plugins) ResourceIdentitySchemas(addr addrs.Provider) (providers.Resou
 	}
 
 	for t, r := range resp.IdentityTypes {
-		// TODO validate?
 		if r.Version < 0 {
 			return resp, fmt.Errorf("provider %s has invalid negative schema version for managed resource type %q, which is a bug in the provider", addr, t)
+		}
+
+		for attrName, attrTy := range r.Attributes.ImpliedType().AttributeTypes() {
+			if attrTy.MapElementType() != nil {
+				return resp, fmt.Errorf("provider %s has invalid schema for managed resource type %q, attribute %q is a map, which is not allowed in identity schemas", addr, t, attrName)
+			}
+
+			if attrTy.SetElementType() != nil {
+				return resp, fmt.Errorf("provider %s has invalid schema for managed resource type %q, attribute %q is a set, which is not allowed in identity schemas", addr, t, attrName)
+			}
+
+			if attrTy.IsObjectType() {
+				return resp, fmt.Errorf("provider %s has invalid schema for managed resource type %q, attribute %q is an object, which is not allowed in identity schemas", addr, t, attrName)
+			}
 		}
 	}
 
