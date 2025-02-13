@@ -1,3 +1,5 @@
+## 1.12.0-alpha20250213 (February 13, 2025)
+
 EXPERIMENTS:
 
 Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
