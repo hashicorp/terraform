@@ -222,6 +222,9 @@ func TestParserLoadTestFiles_Invalid(t *testing.T) {
 		"duplicate_backend_blocks_in_run": {
 			"duplicate_backend_blocks_in_run.tftest.hcl:3,3-18: Multiple backend blocks within a run; A backend block has already been defined inside the run \"setup\" at duplicate_backend_blocks_in_run.tftest.hcl:3,3-18.",
 		},
+		"backend_block_in_plan_run": {
+			"backend_block_in_plan_run.tftest.hcl:6,3-18: Invalid backend block; A backend block can only be used in the first apply run block for a given internal state file. It cannot be included in a block to run a plan command.",
+		},
 	}
 
 	for name, expected := range tcs {

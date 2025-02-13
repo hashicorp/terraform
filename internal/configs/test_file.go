@@ -695,6 +695,9 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 				continue
 			}
 			r.Backend = backend
+
+			// More backend validation is done later, once all blocks/attrs processed.
+			backendRange = &block.DefRange
 		}
 	}
 
@@ -752,6 +755,17 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 	if attr, exists := content.Attributes["parallel"]; exists {
 		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Parallel)
 		diags = append(diags, rawDiags...)
+	}
+
+	if r.Command != ApplyTestCommand && r.Backend != nil {
+		// Backend blocks must be used in the first _apply_ run block for a given internal state file.
+		// So, they cannot be present in a plan run block
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid backend block",
+			Detail:   "A backend block can only be used in the first apply run block for a given internal state file. It cannot be included in a block to run a plan command.",
+			Subject:  backendRange.Ptr(),
+		})
 	}
 
 	return &r, diags
