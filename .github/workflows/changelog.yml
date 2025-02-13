@@ -163,6 +163,8 @@ jobs:
 
             // Nothing to complain about, so delete any existing comment
             await createOrUpdateChangelogComment("", true);
+      - name: Checkout changie config
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Validate changie fragment is valid
         uses: miniscruff/changie-action@6dcc2533cac0495148ed4046c438487e4dceaa23 # v2.0.0
         with:
