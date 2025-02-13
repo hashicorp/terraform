@@ -61,7 +61,7 @@ orchestrate "replan" "replan_prod_for_errors" {
 }
 ```
 
-The above `orchestrate` block triggers a replan if the production development of a Stack errors out and if HCP Terraform hasn't already attempted to replan.
+The above `orchestrate` block triggers a replan if the production deployment of a Stack errors out and if HCP Terraform hasn't already attempted to replan.
 
 ### Leverage orchestration context
 
@@ -72,9 +72,9 @@ Use `context` to create more sophisticated checks and conditions. For example, y
 ```hcl
 # deployments.tfdeploy.hcl
 
-orchestrate "auto_approve" "no_pet_changes" {
+orchestrate "auto_approve" "allow_plans" {
     check {
-        # Check that the pet component has no changes
+        # Check that the operation is a plan
         condition = context.operation == "plan"
         reason = "Apply operations need manual approval."
     }
@@ -92,7 +92,7 @@ orchestrate "auto_approve" "safe_plans" {
         reason    = "Plan is destroying ${context.plan.changes.remove} resources."
     }
 
-    # Ensure that the deployment is not your production environment. 
+    # Ensure that the deployment is not to your production environment. 
     check {
         condition = context.plan.deployment != deployment.production
         reason    = "Production plans are not eligible for auto_approve."

@@ -200,9 +200,9 @@ identity_token "aws" {
 
 deployment "staging" {
   inputs = {
-    aws_region     = "eu-west-1"
-    role_arn       = "arn:aws:iam::123456789101:role/my-oidc-role"
-    aws_token = identity_token.aws.jwt
+    aws_region = "eu-west-1"
+    role_arn   = "arn:aws:iam::123456789101:role/my-oidc-role"
+    aws_token  = identity_token.aws.jwt
   }
 }
 ```
@@ -227,7 +227,7 @@ variable "aws_role" {
 
 provider "aws" "this" {
   config {
-    region = var.region
+    region = var.aws_region
     assume_role_with_web_identity {
       role_arn           = var.aws_role
       web_identity_token = var.aws_token
@@ -289,8 +289,8 @@ store "varset" "available_regions" {
 
 deployment "main" {
   inputs = {
-    regions = store.varset.available_regions.regions
-    tfe_token        = store.varset.tokens.tfe_token
+    regions   = store.varset.available_regions.regions
+    tfe_token = store.varset.tokens.tfe_token
   }
 }
 ```
@@ -303,14 +303,14 @@ For example, if you have an HCP Terraform [variable set](/terraform/cloud-docs/w
 
 ```hcl
 store "varset" "tokens" {
-    id       = "<variable_set_id>"
-    category = "terraform"
+  id       = "<variable_set_id>"
+  category = "terraform"
 }
 
 deployment "main" {
-    inputs = {
-        token = store.varset.tokens.example_token
-    }
+  inputs = {
+    token = store.varset.tokens.example_token
+  }
 }
 ```
 
@@ -324,7 +324,7 @@ A local value assigns a name to an expression, so you can use the name multiple 
 
 The `publish_output` block requires at least Terraform version `terraform_1.10.0-alpha20241009` or higher. Download [latest version of Terraform](https://releases.hashicorp.com/terraform/) to use the most up-to-date functionality.
 
-The `publish_output` block specifies a value to export from your current Stack, which other Stacks in the same project can consume. Declare one `publish_output` block for each value to export your Stack.
+The `publish_output` block specifies a value to export from your current Stack, which other Stacks in the same project can consume. Declare one `publish_output` block for each value to export from your Stack.
 
 ### Complete configuration
 
@@ -347,8 +347,8 @@ This section provides details about the fields you can configure in the output b
 
 | Field | Description | Type | Required |
 | :---- | :---- | :---- | :---- |
-| `value` | The value to output.  | any | Required |
 | `description` | A human-friendly description for the output. | string | Optional |
+| `value` | The value to output.  | any | Required |
 
 ### Reference
 
