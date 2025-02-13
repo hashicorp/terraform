@@ -137,6 +137,8 @@ jobs:
                 return;
             }
             
+            const changieInstruction = 'You can use [`changie new`](https://changie.dev/cli/changie_new/) (without flags) to generate it. ';
+            
             if (backportLabel) {
                 if (unreleasedChangesPresent) {
                     await createOrUpdateChangelogComment("Please move the changelog entry from `./.changes/unreleased` to `./.changes/backported` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
@@ -144,7 +146,7 @@ jobs:
                 }
                 
                 if (!backportedChangesPresent) {
-                    await createOrUpdateChangelogComment("Please add a changelog entry to `./.changes/backported` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
+                    await createOrUpdateChangelogComment("Please add a changelog entry to `./.changes/backported` for this change. "+ changieInstruction +"If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
                     return;
                 }
             } else {
@@ -154,7 +156,7 @@ jobs:
                 }
 
                 if (!unreleasedChangesPresent) {
-                    await createOrUpdateChangelogComment("Please add a changelog entry to `./.changes/unreleased` for this change. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
+                    await createOrUpdateChangelogComment("Please add a changelog entry to `./.changes/unreleased` for this change. "+ changieInstruction +"If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.");
                     return;
                 }
             }
