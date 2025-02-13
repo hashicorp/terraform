@@ -820,7 +820,12 @@ func (s *stacksServer) OpenTerraformState(ctx context.Context, request *stacks.O
 		// file. This function should return an empty state even if the diags
 		// has errors. This makes it easier for the caller, as they should
 		// close the state handle regardless of the diags.
-		state, diags := stackmigrate.Load(workingDirectory.RootModuleDir(), filepath.Join(workingDirectory.DataDir(), ".terraform.tfstate"), workspace)
+		loader := stackmigrate.Loader{
+			ConfigurationPath: workingDirectory.RootModuleDir(),
+			BackendStatePath:  filepath.Join(workingDirectory.DataDir(), ".terraform.tfstate"),
+			Workspace:         workspace,
+		}
+		state, diags := loader.Load()
 
 		hnd := s.handles.NewTerraformState(state)
 		return &stacks.OpenTerraformState_Response{

@@ -5,59 +5,84 @@ package stackmigrate
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/backend"
-	backendinit "github.com/hashicorp/terraform/internal/backend/init"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/backend/local"
+	"github.com/hashicorp/terraform/internal/backend/remote"
+	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/command/clistate"
+	"github.com/hashicorp/terraform/internal/command/workdir"
+	pluginDiscovery "github.com/hashicorp/terraform/internal/plugin/discovery"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+type Loader struct {
+	ConfigurationPath string
+	BackendStatePath  string
+	Workspace         string
+	discovery         *disco.Disco
+}
+
 // Load loads a state from the given configPath. The configuration at configPath
 // must have been initialized via `terraform init` before calling this function.
-func Load(configurationPath, backendStatePath, workspace string) (*states.State, tfdiags.Diagnostics) {
+// The backend state is loaded from backendStatePath. For local backends, there
+// is no backend state file, so this can be an empty string.
+func (l *Loader) Load(opts ...func(*Loader)) (*states.State, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	state := states.NewState()
+
+	// setup the backend discovery
+	l.discovery, diags = setupDiscovery()
+	if diags.HasErrors() {
+		return state, diags
+	}
+
+	// apply any options. These options may override the defaults set above.
+	for _, opt := range opts {
+		opt(l)
+	}
+	backendInit.Init(l.discovery)
+
 	// First, we'll load the "backend state". This should have been initialised
 	// by the `terraform init` command, and contains the configuration for the
 	// backend that we're using.
-
-	backendStateManager := &clistate.LocalState{
-		Path: backendStatePath,
+	var backendState *workdir.BackendStateFile
+	var err error
+	// If the backend state file is not provided, we'll assume that we're using
+	// a local backend.
+	if l.BackendStatePath != "" {
+		st := &clistate.LocalState{Path: l.BackendStatePath}
+		if err := st.RefreshState(); err != nil {
+			diags = diags.Append(fmt.Errorf("error loading backend state: %s", err))
+			return state, diags
+		}
+		backendState = st.State()
 	}
-	if err := backendStateManager.RefreshState(); err != nil {
-		diags = diags.Append(fmt.Errorf("error loading backend state: %s", err))
-		return state, diags
-	}
-	backendState := backendStateManager.State()
 
 	// Now that we have the backend state, we can initialise the backend itself
 	// based on what we had from the `terraform init` command.
-
 	var backend backend.Backend
-	if backendState == nil {
+	var backendConfig cty.Value
+	if backendState == nil { // local backend
 		backend = local.New()
-		moreDiags := backend.Configure(cty.ObjectVal(map[string]cty.Value{
-			"path":          cty.StringVal(filepath.Join(configurationPath, local.DefaultStateFilename)),
-			"workspace_dir": cty.StringVal(filepath.Join(configurationPath, local.DefaultWorkspaceDir)),
-		}))
-		diags = diags.Append(moreDiags)
-		if diags.HasErrors() {
-			return state, diags
-		}
+		backendConfig = cty.ObjectVal(map[string]cty.Value{
+			"path":          cty.StringVal(fmt.Sprintf("%s/%s", l.ConfigurationPath, "terraform.tfstate")),
+			"workspace_dir": cty.StringVal(l.ConfigurationPath),
+		})
 	} else {
-		f := backendinit.Backend(backendState.Backend.Type)
-		if f == nil {
+		initFn := backendInit.Backend(backendState.Backend.Type)
+		if initFn == nil {
 			diags = diags.Append(fmt.Errorf("unknown backend type %q", backendState.Backend.Type))
 			return state, diags
 		}
 
-		backend := f()
+		backend = initFn()
 		schema := backend.ConfigSchema()
 		config, err := backendState.Backend.Config(schema)
 		if err != nil {
@@ -70,24 +95,28 @@ func Load(configurationPath, backendStatePath, workspace string) (*states.State,
 		}
 
 		var moreDiags tfdiags.Diagnostics
-
-		config, moreDiags = backend.PrepareConfig(config)
+		backendConfig, moreDiags = backend.PrepareConfig(config)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
 			return state, diags
 		}
 
-		moreDiags = backend.Configure(config)
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
-			return state, diags
+		// it's safe to ignore terraform version conflict between the local and remote environments.
+		if backendR, ok := backend.(*remote.Remote); ok {
+			backendR.IgnoreVersionConflict()
 		}
+	}
+
+	// Now that we have the backend and its configuration, we can configure it.
+	moreDiags := backend.Configure(backendConfig)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return state, diags
 	}
 
 	// The backend is initialised and configured, so now we can load the state
 	// from the backend.
-
-	stateManager, err := backend.StateMgr(workspace)
+	stateManager, err := backend.StateMgr(l.Workspace)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("error loading state: %s", err))
 		return state, diags
@@ -116,4 +145,21 @@ func Load(configurationPath, backendStatePath, workspace string) (*states.State,
 	}
 
 	return state, diags
+}
+
+func setupDiscovery() (*disco.Disco, tfdiags.Diagnostics) {
+	config, diags := cliconfig.LoadConfig()
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// Load the credentials source
+	helperPlugins := pluginDiscovery.FindPlugins("credentials", cliconfig.GlobalPluginDirs())
+	credSrc, err := config.CredentialsSource(helperPlugins)
+
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("error loading credentials source: %s", err))
+		return nil, diags
+	}
+	return disco.NewWithCredentialsSource(credSrc), diags
 }
