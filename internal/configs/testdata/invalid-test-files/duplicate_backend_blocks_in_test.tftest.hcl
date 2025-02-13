@@ -2,7 +2,7 @@ run "setup" {
   command = apply
 
   backend "local" {
-    path = "/tests/state"
+    path = "/tests/state/terraform.tfstate"
   }
 }
 
@@ -13,6 +13,6 @@ run "test" {
   command = apply
 
   backend "local" {
-    path = "/tests/state"
+    path = "/tests/state/terraform.tfstate"
   }
 }
