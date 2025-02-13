@@ -98,7 +98,6 @@ func (o *Object) writeOnlyPaths(val cty.Value, basePath cty.Path) []cty.Path {
 		case NestingSingle, NestingGroup:
 			// Create a path to this attribute
 			attrPath := copyAndExtendPath(basePath, cty.GetAttrStep{Name: name})
-
 			if attrS.WriteOnly {
 				// If the entire attribute is write-only, mark it so
 				ret = append(ret, attrPath)
@@ -130,7 +129,7 @@ func (o *Object) writeOnlyPaths(val cty.Value, basePath cty.Path) []cty.Path {
 				}
 			}
 		default:
-			panic(fmt.Sprintf("unsupported nesting mode %s", attrS.NestedType.Nesting))
+			panic(fmt.Sprintf("unsupported nesting mode %s", o.Nesting))
 		}
 	}
 	return ret
