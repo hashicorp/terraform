@@ -389,8 +389,8 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 				// we've encountered >1 backend blocks in a given run block state
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Multiple \"backend\" blocks for internal state file",
-					Detail:   fmt.Sprintf("The run %q already uses an internal state file that's loaded by a backend in the run %q. Please ensure that a \"backend\" block is only in the first apply run block for a given internal state file.", run.Name, rb.RunName),
+					Summary:  "Multiple backend blocks for internal state file",
+					Detail:   fmt.Sprintf("The run %q already uses an internal state file that's loaded by a backend in the run %q. Please ensure that a backend block is only in the first apply run block for a given internal state file.", run.Name, rb.RunName),
 					Subject:  block.DefRange.Ptr(),
 				})
 				continue
@@ -571,6 +571,7 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 		})
 	}
 
+	var backendRange *hcl.Range // Stored for validation once all blocks/attrs processed
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "assert":
@@ -688,7 +689,7 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Multiple backend blocks within a run",
-					Detail:   fmt.Sprintf("A backend block has already been defined inside the run %q at at %s.", r.Name, backendRange),
+					Detail:   fmt.Sprintf("A backend block has already been defined inside the run %q at %s.", r.Name, backendRange),
 					Subject:  backendRange.Ptr(),
 				})
 				continue

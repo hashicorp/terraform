@@ -217,10 +217,10 @@ func TestParserLoadTestFiles_Invalid(t *testing.T) {
 			"duplicate_file_config.tftest.hcl:5,1-5: Multiple \"test\" blocks; This test file already has a \"test\" block defined at duplicate_file_config.tftest.hcl:1,1-5.",
 		},
 		"duplicate_backend_blocks_in_test": {
-			"duplicate_backend_blocks_in_test.tftest.hcl:12,1-11: Multiple \"backend\" blocks for internal state file; The run \"test\" already uses an internal state file that's loaded by a backend in the run \"setup\". Please ensure that a \"backend\" block is only in the first apply run block for a given internal state file.",
+			"duplicate_backend_blocks_in_test.tftest.hcl:12,1-11: Multiple backend blocks for internal state file; The run \"test\" already uses an internal state file that's loaded by a backend in the run \"setup\". Please ensure that a backend block is only in the first apply run block for a given internal state file.",
 		},
 		"duplicate_backend_blocks_in_run": {
-			"duplicate_backend_blocks_in_run.tftest.hcl:3,3-18: Multiple backend blocks within a run; A backend block has already been defined inside the run \"setup\" at at duplicate_backend_blocks_in_run.tftest.hcl:3,3-18.",
+			"duplicate_backend_blocks_in_run.tftest.hcl:3,3-18: Multiple backend blocks within a run; A backend block has already been defined inside the run \"setup\" at duplicate_backend_blocks_in_run.tftest.hcl:3,3-18.",
 		},
 	}
 
