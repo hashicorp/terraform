@@ -24,14 +24,16 @@ import (
 // internal provider implementation.
 func Provider6(p providers.Interface) tfplugin6.ProviderServer {
 	return &provider6{
-		provider: p,
-		schema:   p.GetProviderSchema(),
+		provider:        p,
+		schema:          p.GetProviderSchema(),
+		identitySchemas: p.GetResourceIdentitySchemas(),
 	}
 }
 
 type provider6 struct {
-	provider providers.Interface
-	schema   providers.GetProviderSchemaResponse
+	provider        providers.Interface
+	schema          providers.GetProviderSchemaResponse
+	identitySchemas providers.GetResourceIdentitySchemasResponse
 }
 
 func (p *provider6) GetMetadata(_ context.Context, req *tfplugin6.GetMetadata_Request) (*tfplugin6.GetMetadata_Response, error) {
@@ -590,7 +592,17 @@ func (p *provider6) CallFunction(_ context.Context, req *tfplugin6.CallFunction_
 }
 
 func (p *provider6) GetResourceIdentitySchemas(_ context.Context, req *tfplugin6.GetResourceIdentitySchemas_Request) (*tfplugin6.GetResourceIdentitySchemas_Response, error) {
-	panic("Not implemented yet")
+	resp := &tfplugin6.GetResourceIdentitySchemas_Response{
+		IdentitySchemas: map[string]*tfplugin6.ResourceIdentitySchema{},
+		Diagnostics:     []*tfplugin6.Diagnostic{},
+	}
+
+	for name, schema := range p.identitySchemas.IdentityTypes {
+		resp.IdentitySchemas[name] = convert.ResourceIdentitySchemaToProto(schema)
+	}
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, p.identitySchemas.Diagnostics)
+	return resp, nil
 }
 
 func (p *provider6) UpgradeResourceIdentity(_ context.Context, req *tfplugin6.UpgradeResourceIdentity_Request) (*tfplugin6.UpgradeResourceIdentity_Response, error) {

@@ -338,3 +338,32 @@ func configschemaObjectToProto(b *configschema.Object) *proto.Schema_Object {
 		Nesting:    nesting,
 	}
 }
+
+func ResourceIdentitySchemaToProto(schema providers.IdentitySchema) *proto.ResourceIdentitySchema {
+	identityAttributes := []*proto.ResourceIdentitySchema_IdentityAttribute{}
+
+	for _, name := range sortedKeys(schema.Attributes) {
+		a := schema.Attributes[name]
+		attr := &proto.ResourceIdentitySchema_IdentityAttribute{
+			Name:              name,
+			Description:       a.Description,
+			RequiredForImport: a.RequiredForImport,
+			OptionalForImport: a.OptionalForImport,
+		}
+
+		if a.Type != cty.NilType {
+			ty, err := json.Marshal(a.Type)
+			if err != nil {
+				panic(err)
+			}
+			attr.Type = ty
+		}
+
+		identityAttributes = append(identityAttributes, attr)
+	}
+
+	return &proto.ResourceIdentitySchema{
+		Version:            schema.Version,
+		IdentityAttributes: identityAttributes,
+	}
+}
