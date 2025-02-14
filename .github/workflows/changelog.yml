@@ -169,6 +169,7 @@ jobs:
           ref: ${{ github.head_ref }}
           sparse-checkout: |
             .changie.yaml
+            .changes/
           sparse-checkout-cone-mode: false
       - name: Validate changie fragment is valid
         uses: miniscruff/changie-action@6dcc2533cac0495148ed4046c438487e4dceaa23 # v2.0.0
