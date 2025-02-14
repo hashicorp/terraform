@@ -99,7 +99,7 @@ func (m *migration) calculateDependencies(components collections.Map[Config, col
 				continue
 			}
 
-			stack, component, diags := m.findStackAndComponent(instance)
+			stack, component, diags := m.stackAndComponentConfig(instance)
 			if diags.HasErrors() {
 				m.emitDiags(diags)
 				continue

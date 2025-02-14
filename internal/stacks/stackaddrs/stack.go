@@ -168,7 +168,7 @@ func (s StackInstance) UniqueKey() collections.UniqueKey[StackInstance] {
 	return stackInstanceUniqueKey(s.String())
 }
 
-// Contains returns true is the receiver contains the given stack, or false
+// Contains returns true if the receiver contains the given stack, or false
 // otherwise. Contains is true if stack is a child stack of the receiver. If
 // stack is the same as the receiver, Contains returns true.
 func (s StackInstance) Contains(stack StackInstance) bool {

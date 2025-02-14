@@ -171,7 +171,7 @@ func (m *migration) search(resource addrs.AbsResource, resources map[string]stri
 // and we need to find the corresponding provider configuration in the new
 // configuration.
 func (m *migration) getOwningProvider(target stackaddrs.AbsResource, origModule addrs.Module) (addrs.AbsProviderConfig, tfdiags.Diagnostics) {
-	stack, component, diags := m.findStackAndComponent(target.Component)
+	stack, component, diags := m.stackAndComponentConfig(target.Component)
 	if diags.HasErrors() {
 		return addrs.AbsProviderConfig{}, diags
 	}
@@ -268,7 +268,7 @@ func (m *migration) findProviderInModule(module addrs.Module, resource addrs.Res
 	return addrs.LocalProviderConfig{}, diags
 }
 
-func (m *migration) findStackAndComponent(instance Instance) (*stackconfig.Stack, *stackconfig.Component, tfdiags.Diagnostics) {
+func (m *migration) stackAndComponentConfig(instance Instance) (*stackconfig.Stack, *stackconfig.Component, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	stack := m.Config.Stack(instance.Stack.ConfigAddr())
 	if stack == nil {

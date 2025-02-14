@@ -59,6 +59,9 @@ func (config *Config) Stack(stack stackaddrs.Stack) *Stack {
 
 func (config *Config) Component(component stackaddrs.ConfigComponent) *Component {
 	stack := config.Stack(component.Stack)
+	if stack == nil || stack.Components == nil {
+		return nil
+	}
 	return stack.Components[component.Item.Name]
 }
 
