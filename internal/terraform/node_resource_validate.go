@@ -752,22 +752,29 @@ func validateDependsOn(ctx EvalContext, dependsOn []hcl.Traversal) (diags tfdiag
 func validateResourceForbiddenEphemeralValues(ctx EvalContext, value cty.Value, schema *configschema.Block) (diags tfdiags.Diagnostics) {
 	for _, path := range ephemeral.EphemeralValuePaths(value) {
 		attr := schema.AttributeByPath(path)
+		// We know the config decoded, so the "attribute" exists in the
+		// schema somehow. If the ephemeral mark ended up being hoisted into
+		// a container however, especially if that container is a block,
+		// it's not actually an assignable attribute so we need to make a
+		// generic sounding error with a little more context because the
+		// AttributeValue diagnostic won't point to anything except the
+		// resource block.
+		//
 		if attr == nil {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
-				"Could not find schema for attribute",
-				"This is most likely a bug in Terraform, please report it.",
+				"Invalid use of ephemeral value",
+				fmt.Sprintf("Ephemeral values are not valid for %q, because it is not an assignable attribute.", strings.TrimPrefix(tfdiags.FormatCtyPath(path), ".")),
 				path,
 			))
 		} else if !attr.WriteOnly {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
 				"Invalid use of ephemeral value",
-				"Ephemeral values are not valid in resource arguments, because resource instances must persist between Terraform phases.",
+				fmt.Sprintf("Ephemeral values are not valid for %q, because it is not a write-only attribute and must be persisted to state.", strings.TrimPrefix(tfdiags.FormatCtyPath(path), ".")),
 				path,
 			))
 		}
-
 	}
 	return diags
 }
