@@ -37,6 +37,7 @@ If you are using a Yum-based distribution, add the repository using
 `yum-config-manager` as follows:
 
 Yum - Amazon Linux 2 / RHEL 7 / CentOS 7
+
 ```bash
 sudo yum install -y yum-utils
 sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/$release/hashicorp.repo
@@ -45,16 +46,18 @@ sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/$release/h
 If you are using a DNF-based distribution, add the repository using
 `dnf config-manager` as follows:
 
-dnf 5 - Fedora >= 41
-```bash
-sudo dnf install -y dnf-plugins-core
-sudo dnf config-manager addrepo --from-repofile=https://rpm.releases.hashicorp.com/$release/hashicorp.repo
-```
-
 dnf 4 - Amazon Linux 3 / Fedora <= 40 / RHEL 8 / RHEL 9 / CentOS 8 / CentOS 9
+
 ```bash
 sudo dnf install dnf-plugins-core
 sudo dnf config-manager --add-repo https://rpm.releases.hashicorp.com/$release/hashicorp.repo
+```
+
+dnf 5 - Fedora >= 41
+
+```bash
+sudo dnf install -y dnf-plugins-core
+sudo dnf config-manager addrepo --from-repofile=https://rpm.releases.hashicorp.com/$release/hashicorp.repo
 ```
 
 In both cases, the Terraform package name is `terraform`. For example:
@@ -84,6 +87,7 @@ following distribution releases:
 * Fedora 35
 * Fedora 36
 * Fedora 37
+* Fedora 40
 * Fedora 41
 * RHEL 7 (and CentOS 7)
 * RHEL 8 (and CentOS 8)
