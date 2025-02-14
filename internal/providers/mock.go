@@ -37,7 +37,8 @@ type Mock struct {
 	Provider Interface
 	Data     *configs.MockData
 
-	schema *GetProviderSchemaResponse
+	schema         *GetProviderSchemaResponse
+	identitySchema *GetResourceIdentitySchemasResponse
 }
 
 func (m *Mock) GetProviderSchema() GetProviderSchemaResponse {
@@ -67,8 +68,13 @@ func (m *Mock) GetProviderSchema() GetProviderSchemaResponse {
 }
 
 func (m *Mock) GetResourceIdentitySchemas() GetResourceIdentitySchemasResponse {
-	// TODO
-	return GetResourceIdentitySchemasResponse{}
+	if m.identitySchema == nil {
+		// Cache the schema, it's not changing.
+		schema := m.Provider.GetResourceIdentitySchemas()
+
+		m.identitySchema = &schema
+	}
+	return *m.identitySchema
 }
 
 func (m *Mock) ValidateProviderConfig(request ValidateProviderConfigRequest) (response ValidateProviderConfigResponse) {
