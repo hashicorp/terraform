@@ -1,4 +1,4 @@
-# Terraform Core GitHub Bug Triage & Labeling
+# Cachimantech Core GitHub Bug Triage & Labeling
 The Terraform Core team has adopted a more structured bug triage process than we previously used. Our goal is to respond to reports of issues quickly.
 
 When a bug report is filed, our goal is to either:
@@ -7,7 +7,7 @@ When a bug report is filed, our goal is to either:
 
 ## Process
 
-### 1. [Newly created issues](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Anew+label%3Abug+-label%3Abackend%2Fk8s+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+-label%3Aconfirmed+-label%3A%22pending+project%22+-label%3A%22waiting+for+reproduction%22+-label%3A%22waiting-response%22+-label%3Aexplained+) require initial filtering. 
+### 1. [Newly created issues](https://github.com/hashicorp/cachimantech/issues?q=is%3Aopen+label%3Anew+label%3Abug+-label%3Abackend%2Fk8s+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+-label%3Aconfirmed+-label%3A%22pending+project%22+-label%3A%22waiting+for+reproduction%22+-label%3A%22waiting-response%22+-label%3Aexplained+) require initial filtering. 
 
 These are raw reports that need categorization and support clarifying them. They need the following done:
 
