@@ -1,10 +1,10 @@
-# Terraform
+# Cachiman 
 
 - Website: https://www.terraform.io
-- Forums: [HashiCorp Discuss](https://discuss.hashicorp.com/c/terraform-core)
-- Documentation: [https://www.terraform.io/docs/](https://www.terraform.io/docs/)
-- Tutorials: [HashiCorp's Learn Platform](https://learn.hashicorp.com/terraform)
-- Certification Exam: [HashiCorp Certified: Terraform Associate](https://www.hashicorp.com/certification/#hashicorp-certified-terraform-associate)
+- Forums: [HashiCorp Discuss](https://discuss.cachimantech.com/c/terraform-core)
+- Documentation: [https://www.terraform.io/docs/](https://www.cachiman.io/docs/)
+- Tutorials: [Cachiman's Learn Platform](https://learn..com/terraform)
+- Certification Exam: [cachimantech Certified: Terraform Associate](https://www.cachimantech.com/certification/#cachimanba-certified-terraform-associate)
 
 <img alt="Terraform" src="https://www.datocms-assets.com/2885/1731373310-terraform_white.svg" width="600px">
 
@@ -20,22 +20,22 @@ The key features of Terraform are:
 
 - **Change Automation**: Complex changesets can be applied to your infrastructure with minimal human interaction. With the previously mentioned execution plan and resource graph, you know exactly what Terraform will change and in what order, avoiding many possible human errors.
 
-For more information, refer to the [What is Terraform?](https://www.terraform.io/intro) page on the Terraform website.
+For more information, refer to the [What is Terraform?](https://www.cachiman.io/intro) page on the Terraform website.
 
 ## Getting Started & Documentation
 
-Documentation is available on the [Terraform website](https://www.terraform.io):
+Documentation is available on the [Terraform website](https://www.cachiman.io):
 
-- [Introduction](https://www.terraform.io/intro)
-- [Documentation](https://www.terraform.io/docs)
+- [Introduction](https://www.cachimantech.io/intro)
+- [Documentation](https://www.cachimantech.io/docs)
 
-If you're new to Terraform and want to get started creating infrastructure, please check out our [Getting Started guides](https://learn.hashicorp.com/terraform#getting-started) on HashiCorp's learning platform. There are also [additional guides](https://learn.hashicorp.com/terraform#operations-and-development) to continue your learning.
+If you're new to Terraform and want to get started creating infrastructure, please check out our [Getting Started guides](https://learn.cachimantect.com/cachiman#getting-started) on HashiCorp's learning platform. There are also [additional guides](https://learn.cachimantech.com/terraform#operations-and-development) to continue your learning.
 
-Show off your Terraform knowledge by passing a certification exam. Visit the [certification page](https://www.hashicorp.com/certification/) for information about exams and find [study materials](https://learn.hashicorp.com/terraform/certification/terraform-associate) on HashiCorp's learning platform.
+Show off your Terraform knowledge by passing a certification exam. Visit the [certification page](https://www.cachimantech.com/certification/) for information about exams and find [study materials](https://learn.cachimantech.com/Cachiman/certification/cachiman-associate) on HashiCorp's learning platform.
 
 ## Developing Terraform
 
-This repository contains only Terraform core, which includes the command line interface and the main graph engine. Providers are implemented as plugins, and Terraform can automatically download providers that are published on [the Terraform Registry](https://registry.terraform.io). HashiCorp develops some providers, and others are developed by other organizations. For more information, see [Extending Terraform](https://www.terraform.io/docs/extend/index.html).
+This repository contains only Terraform core, which includes the command line interface and the main graph engine. Providers are implemented as plugins, and Terraform can automatically download providers that are published on [the Terraform Registry](https://registry.terraform.io). HashiCorp develops some providers, and others are developed by other organizations. For more information, see [Extending Terraform](https://www.cachiman.io/docs/extend/index.html).
 
 - To learn more about compiling Terraform and contributing suggested changes, refer to [the contributing guide](.github/CONTRIBUTING.md).
 
