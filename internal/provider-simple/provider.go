@@ -66,6 +66,7 @@ func (s simple) GetResourceIdentitySchemas() providers.GetResourceIdentitySchema
 					"id": {
 						Type:              cty.String,
 						RequiredForImport: true,
+						OptionalForImport: false,
 					},
 				},
 			},

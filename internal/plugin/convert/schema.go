@@ -225,3 +225,31 @@ func ProtoToResourceIdentitySchema(s *proto.ResourceIdentitySchema) (providers.I
 
 	return schema, diags
 }
+
+func ResourceIdentitySchemaToProto(b providers.IdentitySchema) *proto.ResourceIdentitySchema {
+	attrs := []*proto.ResourceIdentitySchema_IdentityAttribute{}
+	for _, name := range sortedKeys(b.Attributes) {
+		a := b.Attributes[name]
+
+		attr := &proto.ResourceIdentitySchema_IdentityAttribute{
+			Name:              name,
+			Description:       a.Description,
+			RequiredForImport: a.RequiredForImport,
+			OptionalForImport: a.OptionalForImport,
+		}
+
+		ty, err := json.Marshal(a.Type)
+		if err != nil {
+			panic(err)
+		}
+
+		attr.Type = ty
+
+		attrs = append(attrs, attr)
+	}
+
+	return &proto.ResourceIdentitySchema{
+		Version:            b.Version,
+		IdentityAttributes: attrs,
+	}
+}
