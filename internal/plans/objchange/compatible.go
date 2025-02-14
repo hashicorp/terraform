@@ -38,11 +38,11 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 	}
 
 	if planned.IsNull() && !actual.IsNull() {
-		errs = append(errs, path.NewErrorf(fmt.Sprintf("%swas absent, but now present", atRoot)))
+		errs = append(errs, path.NewErrorf("%swas absent, but now present", atRoot))
 		return errs
 	}
 	if actual.IsNull() && !planned.IsNull() {
-		errs = append(errs, path.NewErrorf(fmt.Sprintf("%swas present, but now absent", atRoot)))
+		errs = append(errs, path.NewErrorf("%swas present, but now absent", atRoot))
 		return errs
 	}
 	if planned.IsNull() {

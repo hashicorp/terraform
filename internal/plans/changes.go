@@ -413,7 +413,7 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 // apply step.
 type ResourceInstanceChangeActionReason rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=ResourceInstanceChangeActionReason changes.go
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=ResourceInstanceChangeActionReason changes.go
 
 const (
 	// In most cases there's no special reason for choosing a particular
