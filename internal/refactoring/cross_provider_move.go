@@ -100,9 +100,7 @@ func (m *crossTypeMover) prepareCrossTypeMove(stmt *MoveStatement, source, targe
 		})
 		return nil, diags
 	}
-
 	targetResourceSchema, targetResourceSchemaVersion := targetSchema.SchemaForResourceAddr(target.Resource)
-
 	return &crossTypeMove{
 		targetProvider:              targetProvider,
 		targetProviderAddr:          *targetProviderAddr,
