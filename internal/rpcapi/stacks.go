@@ -66,8 +66,9 @@ type stacksServer struct {
 }
 
 var (
-	_                   stacks.StacksServer = (*stacksServer)(nil)
-	WorkspaceNameEnvVar                     = "TF_WORKSPACE"
+	_ stacks.StacksServer = (*stacksServer)(nil)
+
+	WorkspaceNameEnvVar = "TF_WORKSPACE"
 )
 
 func newStacksServer(stopper *stopper, handles *handleTable, services *disco.Disco, opts *serviceOpts) *stacksServer {
@@ -95,7 +96,7 @@ func (s *stacksServer) OpenStackConfiguration(ctx context.Context, req *stacks.O
 	if diags.HasErrors() {
 		// For errors in the configuration itself we treat that as a successful
 		// result from OpenStackConfiguration but with diagnostics in the
-		// response and no source handle. f
+		// response and no source handle.
 		return &stacks.OpenStackConfiguration_Response{
 			Diagnostics: diagnosticsToProto(diags),
 		}, nil
@@ -824,6 +825,7 @@ func (s *stacksServer) OpenTerraformState(ctx context.Context, request *stacks.O
 			ConfigurationPath: workingDirectory.RootModuleDir(),
 			BackendStatePath:  filepath.Join(workingDirectory.DataDir(), ".terraform.tfstate"),
 			Workspace:         workspace,
+			Discovery:         s.services,
 		}
 		state, diags := loader.LoadState()
 

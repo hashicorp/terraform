@@ -124,10 +124,9 @@ func TestLoad(t *testing.T) {
 		ConfigurationPath: dir,
 		BackendStatePath:  backendStatePath,
 		Workspace:         "test",
+		Discovery:         testDisco(s),
 	}
-	loadedState, diags := loader.LoadState(func(l *Loader) {
-		l.discovery = testDisco(s)
-	})
+	loadedState, diags := loader.LoadState()
 	if diags.HasErrors() {
 		t.Fatalf("failed to load state: %s", diags.Err())
 	}

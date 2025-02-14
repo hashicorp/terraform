@@ -26,28 +26,17 @@ type Loader struct {
 	ConfigurationPath string
 	BackendStatePath  string
 	Workspace         string
-	discovery         *disco.Disco
+	Discovery         *disco.Disco
 }
 
 // LoadState loads a state from the given configPath. The configuration at configPath
 // must have been initialized via `terraform init` before calling this function.
 // The backend state is loaded from backendStatePath. For local backends, there
 // is no backend state file, so this can be an empty string.
-func (l *Loader) LoadState(opts ...func(*Loader)) (*states.State, tfdiags.Diagnostics) {
+func (l *Loader) LoadState() (*states.State, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	state := states.NewState()
-
-	// setup the backend discovery
-	l.discovery, diags = setupDiscovery()
-	if diags.HasErrors() {
-		return state, diags
-	}
-
-	// apply any options. These options may override the defaults set above.
-	for _, opt := range opts {
-		opt(l)
-	}
-	backendInit.Init(l.discovery)
+	backendInit.Init(l.Discovery)
 
 	// First, we'll load the "backend state". This should have been initialised
 	// by the `terraform init` command, and contains the configuration for the
