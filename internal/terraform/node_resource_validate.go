@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
-	"github.com/hashicorp/terraform/internal/lang/format"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -765,14 +764,14 @@ func validateResourceForbiddenEphemeralValues(ctx EvalContext, value cty.Value, 
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
 				"Invalid use of ephemeral value",
-				fmt.Sprintf("Ephemeral values are not valid for %q, because it is not an assignable attribute.", strings.TrimPrefix(format.CtyPath(path), ".")),
+				fmt.Sprintf("Ephemeral values are not valid for %q, because it is not an assignable attribute.", strings.TrimPrefix(tfdiags.FormatCtyPath(path), ".")),
 				path,
 			))
 		} else if !attr.WriteOnly {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
 				"Invalid use of ephemeral value",
-				fmt.Sprintf("Ephemeral values are not valid for %q, because it is not a write-only attribute and must be persisted to state.", strings.TrimPrefix(format.CtyPath(path), ".")),
+				fmt.Sprintf("Ephemeral values are not valid for %q, because it is not a write-only attribute and must be persisted to state.", strings.TrimPrefix(tfdiags.FormatCtyPath(path), ".")),
 				path,
 			))
 		}
