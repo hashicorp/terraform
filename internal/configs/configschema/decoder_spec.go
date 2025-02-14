@@ -225,7 +225,12 @@ func (a *IdentityAttribute) decoderSpec(name string) hcldec.Spec {
 
 	ret := &hcldec.AttrSpec{Name: name}
 	ret.Type = a.Type
-	ret.Required = a.RequiredForImport // TODO? check
+	// When dealing with IdentityAttribute we expect every attribute to be required.
+	// This is generally true for all communication between providers and Terraform.
+	// For import, we allow the user to only specify a subset of the attributes, where
+	// RequiredForImport attributes are required and OptionalForImport attributes are optional.
+	// The validation for this will rely on a separate spec.
+	ret.Required = true
 
 	return ret
 }
