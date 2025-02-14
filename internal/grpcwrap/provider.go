@@ -5,6 +5,7 @@ package grpcwrap
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
@@ -556,7 +557,30 @@ func (p *provider) GetResourceIdentitySchemas(_ context.Context, req *tfplugin5.
 }
 
 func (p *provider) UpgradeResourceIdentity(_ context.Context, req *tfplugin5.UpgradeResourceIdentity_Request) (*tfplugin5.UpgradeResourceIdentity_Response, error) {
-	panic("Not implemented yet")
+	resp := &tfplugin5.UpgradeResourceIdentity_Response{}
+	resourceIdentitySchema, ok := p.identitySchemas.IdentityTypes[req.TypeName]
+	if !ok {
+		return nil, fmt.Errorf("resource identity schema not found for type %q", req.TypeName)
+	}
+	ty := resourceIdentitySchema.Attributes.ImpliedType()
+	upgradeResp := p.provider.UpgradeResourceIdentity(providers.UpgradeResourceIdentityRequest{
+		TypeName:        req.TypeName,
+		Version:         req.Version,
+		RawIdentityJSON: req.RawIdentity,
+	})
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, upgradeResp.Diagnostics)
+	if upgradeResp.Diagnostics.HasErrors() {
+		return resp, nil
+	}
+
+	dv, err := encodeDynamicValue(upgradeResp.UpgradedIdentity, ty)
+	if err != nil {
+		return nil, err
+	}
+	resp.UpgradedIdentity = &tfplugin5.ResourceIdentityData{
+		IdentityData: dv,
+	}
+	return resp, nil
 }
 
 func (p *provider) Stop(context.Context, *tfplugin5.Stop_Request) (*tfplugin5.Stop_Response, error) {
