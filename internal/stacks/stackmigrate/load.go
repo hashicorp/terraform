@@ -29,11 +29,11 @@ type Loader struct {
 	discovery         *disco.Disco
 }
 
-// Load loads a state from the given configPath. The configuration at configPath
+// LoadState loads a state from the given configPath. The configuration at configPath
 // must have been initialized via `terraform init` before calling this function.
 // The backend state is loaded from backendStatePath. For local backends, there
 // is no backend state file, so this can be an empty string.
-func (l *Loader) Load(opts ...func(*Loader)) (*states.State, tfdiags.Diagnostics) {
+func (l *Loader) LoadState(opts ...func(*Loader)) (*states.State, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	state := states.NewState()
 
@@ -54,16 +54,14 @@ func (l *Loader) Load(opts ...func(*Loader)) (*states.State, tfdiags.Diagnostics
 	// backend that we're using.
 	var backendState *workdir.BackendStateFile
 	var err error
-	// If the backend state file is not provided, we'll assume that we're using
-	// a local backend.
-	if l.BackendStatePath != "" {
-		st := &clistate.LocalState{Path: l.BackendStatePath}
-		if err := st.RefreshState(); err != nil {
-			diags = diags.Append(fmt.Errorf("error loading backend state: %s", err))
-			return state, diags
-		}
-		backendState = st.State()
+	st := &clistate.LocalState{Path: l.BackendStatePath}
+	// If the backend state file is not provided, RefreshState will
+	// return nil, and we assume that we're using a local backend.
+	if err := st.RefreshState(); err != nil {
+		diags = diags.Append(fmt.Errorf("error loading backend state: %s", err))
+		return state, diags
 	}
+	backendState = st.State()
 
 	// Now that we have the backend state, we can initialise the backend itself
 	// based on what we had from the `terraform init` command.

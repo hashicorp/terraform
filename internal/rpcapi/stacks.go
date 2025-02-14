@@ -825,7 +825,7 @@ func (s *stacksServer) OpenTerraformState(ctx context.Context, request *stacks.O
 			BackendStatePath:  filepath.Join(workingDirectory.DataDir(), ".terraform.tfstate"),
 			Workspace:         workspace,
 		}
-		state, diags := loader.Load()
+		state, diags := loader.LoadState()
 
 		hnd := s.handles.NewTerraformState(state)
 		return &stacks.OpenTerraformState_Response{
@@ -835,7 +835,6 @@ func (s *stacksServer) OpenTerraformState(ctx context.Context, request *stacks.O
 
 	case *stacks.OpenTerraformState_Request_Raw:
 		// load the state from the raw data
-
 		file, err := statefile.Read(bytes.NewReader(data.Raw))
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid raw state data: %s", err)
@@ -880,15 +879,23 @@ func (s *stacksServer) MigrateTerraformState(request *stacks.MigrateTerraformSta
 		return status.Error(codes.InvalidArgument, "the given dependency locks handle is invalid")
 	}
 
-	providerCacheHandle := handle[*providercache.Dir](request.ProviderCacheHandle)
-	providerCache := s.handles.ProviderPluginCache(providerCacheHandle)
-	if providerCache == nil {
-		return status.Error(codes.InvalidArgument, "the given provider cache handle is invalid")
-	}
+	var providerFactories map[addrs.Provider]providers.Factory
+	if s.providerCacheOverride != nil {
+		// This is only used in tests to side load providers without needing a
+		// real provider cache.
+		providerFactories = s.providerCacheOverride
+	} else {
+		providerCacheHandle := handle[*providercache.Dir](request.ProviderCacheHandle)
+		providerCache := s.handles.ProviderPluginCache(providerCacheHandle)
+		if providerCache == nil {
+			return status.Error(codes.InvalidArgument, "the given provider cache handle is invalid")
+		}
 
-	providerFactories, err := providerFactoriesForLocks(dependencyLocks, providerCache)
-	if err != nil {
-		return status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+		var err error
+		providerFactories, err = providerFactoriesForLocks(dependencyLocks, providerCache)
+		if err != nil {
+			return status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+		}
 	}
 
 	migrate := &stackmigrate.Migration{

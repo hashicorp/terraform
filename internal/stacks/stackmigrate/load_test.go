@@ -59,11 +59,11 @@ func TestLoad_Local(t *testing.T) {
 			},
 		)
 	})
-	statePath := testStateFile(t, state)
+	statePath := TestStateFile(t, state)
 	loader := &Loader{
 		ConfigurationPath: strings.TrimSuffix(statePath, "/terraform.tfstate"),
 	}
-	loadedState, diags := loader.Load()
+	loadedState, diags := loader.LoadState()
 	if diags.HasErrors() {
 		t.Fatalf("failed to load state: %s", diags.Err())
 	}
@@ -107,7 +107,7 @@ func TestLoad(t *testing.T) {
 			},
 		)
 	})
-	statePath := testStateFile(t, state)
+	statePath := TestStateFile(t, state)
 
 	s := testServer(t, statePath)
 	backendStatePath := testBackendStateFile(t, cty.ObjectVal(map[string]cty.Value{
@@ -125,7 +125,7 @@ func TestLoad(t *testing.T) {
 		BackendStatePath:  backendStatePath,
 		Workspace:         "test",
 	}
-	loadedState, diags := loader.Load(func(l *Loader) {
+	loadedState, diags := loader.LoadState(func(l *Loader) {
 		l.discovery = testDisco(s)
 	})
 	if diags.HasErrors() {
@@ -143,30 +143,6 @@ func mustResourceAddr(s string) addrs.ConfigResource {
 		panic(diags.Err())
 	}
 	return addr.Config()
-}
-
-func testStateFile(t *testing.T, s *states.State) string {
-	t.Helper()
-
-	path := filepath.Join(t.TempDir(), "terraform.tfstate")
-
-	f, err := os.Create(path)
-	if err != nil {
-		t.Fatalf("failed to create temporary state file %s: %s", path, err)
-	}
-	defer f.Close()
-
-	sf := &statefile.File{
-		Serial:  0,
-		Lineage: "fake-for-testing",
-		State:   s,
-	}
-	statefile.Write(sf, f)
-	if err != nil {
-		t.Fatalf("failed to write state to temporary file %s: %s", path, err)
-	}
-
-	return path
 }
 
 func testBackendStateFile(t *testing.T, value cty.Value) string {
