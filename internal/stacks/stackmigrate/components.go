@@ -85,18 +85,17 @@ func (m *migration) calculateDependencies(components collections.Map[Instance, c
 		for resource := range cmpnts.All() {
 			instance := resource.AbsResource.Component
 
-			ds := collections.NewSet[AbsComponent]()
-			addDependency := func(cmpt AbsComponent) {
-				ds.Add(cmpt)
+			compDepSet := collections.NewSet[AbsComponent]()
 
-				if !dependents.HasKey(cmpt) {
-					dependents.Put(cmpt, collections.NewSet[AbsComponent]())
-				}
-				dependents.Get(cmpt).Add(addr)
-			}
+			// We collect the component's dependencies, and also
+			// add the component to the dependent set of its dependencies.
 			addDependencies := func(dss collections.Set[AbsComponent]) {
-				for d := range dss.All() {
-					addDependency(d)
+				compDepSet.Merge(dss)
+				for cmpt := range dss.All() {
+					if !dependents.HasKey(cmpt) {
+						dependents.Put(cmpt, collections.NewSet[AbsComponent]())
+					}
+					dependents.Get(cmpt).Add(addr)
 				}
 			}
 
@@ -108,7 +107,6 @@ func (m *migration) calculateDependencies(components collections.Map[Instance, c
 			addDependencies(inputDependencies)
 
 			// Then, check the depends_on directly.
-
 			for _, traversal := range component.DependsOn {
 				dependsOnDependencies, dependsOnDiags := m.componentDependenciesFromTraversal(traversal, instance.Stack, cfgComponents)
 				m.emitDiags(dependsOnDiags)
@@ -116,7 +114,6 @@ func (m *migration) calculateDependencies(components collections.Map[Instance, c
 			}
 
 			// Then, check the foreach.
-
 			forEachDependencies, forEachDiags := m.componentDependenciesFromExpression(component.ForEach, instance.Stack, cfgComponents)
 			m.emitDiags(forEachDiags)
 			addDependencies(forEachDependencies)
@@ -131,7 +128,7 @@ func (m *migration) calculateDependencies(components collections.Map[Instance, c
 
 			// We're happy we got all the dependencies for this component, so we
 			// can store them now.
-			dependencies.Put(addr, ds)
+			dependencies.Put(addr, compDepSet)
 		}
 	}
 	return dependencies, dependents
