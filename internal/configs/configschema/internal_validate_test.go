@@ -265,6 +265,45 @@ func TestBlockInternalValidate(t *testing.T) {
 			},
 			[]string{"bad: block schema is nil"},
 		},
+		"nested set block with write-only attribute": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"bad": {
+						Nesting: NestingSet,
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"wo": {
+									Type:      cty.String,
+									Optional:  true,
+									WriteOnly: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			[]string{"bad: NestingSet blocks may not contain WriteOnly attributes"},
+		},
+		"nested set attributes with write-only attribute": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"bad": {
+						NestedType: &Object{
+							Attributes: map[string]*Attribute{
+								"wo": {
+									Type:      cty.String,
+									Optional:  true,
+									WriteOnly: true,
+								},
+							},
+							Nesting: NestingSet,
+						},
+						Optional: true,
+					},
+				},
+			},
+			[]string{"bad: NestingSet attributes may not contain WriteOnly attributes"},
+		},
 	}
 
 	for name, test := range tests {
