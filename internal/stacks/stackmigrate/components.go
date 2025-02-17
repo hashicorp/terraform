@@ -5,7 +5,6 @@ package stackmigrate
 
 import (
 	"fmt"
-	"iter"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
@@ -18,23 +17,16 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func (m *migration) migrateComponents(components collections.Map[AbsComponent, collections.Set[*stackResource]]) {
+func (m *migration) migrateComponents(components collections.Map[Instance, collections.Set[*stackResource]]) {
 	// We need to calculate the dependencies between components, so we can
 	// populate the dependencies and dependents fields in the component instances.
 	dependencies, dependents := m.calculateDependencies(components)
 
-	for _, cmpnts := range components.All() {
-		resource := first(cmpnts.All())
-		if resource == nil {
-			// we only need to process the first resource for each config,
-			// as they all have the same component definition.
-			continue
-		}
-		instance := resource.AbsResource.Component
-
+	for instance := range components.All() {
 		// We need to see the inputs and outputs from the component, so we can
 		// create the component instance with the correct values.
-		config := resource.ModuleConfig
+		// ignore the diag because we already found this when loading the config.
+		config, _ := m.moduleConfig(m.Config.Component(stackaddrs.ConfigComponentForAbsInstance(instance)))
 
 		// We can put unknown values into the state for now, as Stacks should
 		// perform a refresh before actually using any of these anyway.
@@ -54,6 +46,7 @@ func (m *migration) migrateComponents(components collections.Map[AbsComponent, c
 			Item:  instance.Item.Component,
 		}
 
+		// We emit a change a change for each component instance
 		m.emit(&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr: AbsComponent{
 				Stack: stackaddrs.RootStackInstance,
@@ -73,24 +66,24 @@ func (m *migration) migrateComponents(components collections.Map[AbsComponent, c
 	}
 }
 
-func (m *migration) calculateDependencies(components collections.Map[AbsComponent, collections.Set[*stackResource]]) (collections.Map[AbsComponent, collections.Set[AbsComponent]], collections.Map[AbsComponent, collections.Set[AbsComponent]]) {
+func (m *migration) calculateDependencies(components collections.Map[Instance, collections.Set[*stackResource]]) (collections.Map[AbsComponent, collections.Set[AbsComponent]], collections.Map[AbsComponent, collections.Set[AbsComponent]]) {
+	// The dependency map cares only about config components rather than instances,
+	// so we need to convert the map to use the config component address.
+	cfgComponents := collections.NewMap[AbsComponent, collections.Set[*stackResource]]()
+	for in, cmpnts := range components.All() {
+		cfgComponents.Put(AbsComponent{
+			Stack: in.Stack,
+			Item:  in.Item.Component,
+		}, cmpnts)
+	}
+
 	dependencies := collections.NewMap[AbsComponent, collections.Set[AbsComponent]]()
 	dependents := collections.NewMap[AbsComponent, collections.Set[AbsComponent]]()
 
 	// First, we're going to work out the dependencies between components.
-	for _, cmpnts := range components.All() {
+	for addr, cmpnts := range cfgComponents.All() {
 		for resource := range cmpnts.All() {
 			instance := resource.AbsResource.Component
-			addr := AbsComponent{
-				Stack: instance.Stack,
-				Item:  instance.Item.Component,
-			}
-
-			if dependencies.HasKey(addr) {
-				// Then we've seen another instance of this component before, and
-				// we don't need to process it again.
-				continue
-			}
 
 			ds := collections.NewSet[AbsComponent]()
 			addDependency := func(cmpt AbsComponent) {
@@ -110,28 +103,28 @@ func (m *migration) calculateDependencies(components collections.Map[AbsComponen
 			component := resource.ComponentConfig
 			stack := resource.StackConfig
 			// First, check the inputs.
-			inputDependencies, inputDiags := m.componentDependenciesFromExpression(component.Inputs, instance.Stack, components)
+			inputDependencies, inputDiags := m.componentDependenciesFromExpression(component.Inputs, instance.Stack, cfgComponents)
 			m.emitDiags(inputDiags)
 			addDependencies(inputDependencies)
 
 			// Then, check the depends_on directly.
 
 			for _, traversal := range component.DependsOn {
-				dependsOnDependencies, dependsOnDiags := m.componentDependenciesFromTraversal(traversal, instance.Stack, components)
+				dependsOnDependencies, dependsOnDiags := m.componentDependenciesFromTraversal(traversal, instance.Stack, cfgComponents)
 				m.emitDiags(dependsOnDiags)
 				addDependencies(dependsOnDependencies)
 			}
 
 			// Then, check the foreach.
 
-			forEachDependencies, forEachDiags := m.componentDependenciesFromExpression(component.ForEach, instance.Stack, components)
+			forEachDependencies, forEachDiags := m.componentDependenciesFromExpression(component.ForEach, instance.Stack, cfgComponents)
 			m.emitDiags(forEachDiags)
 			addDependencies(forEachDependencies)
 
 			// Finally, we're going to look at the providers, and see if they
 			// depend on any other components.
 			for _, expr := range component.ProviderConfigs {
-				pds, diags := m.providerDependencies(expr, instance.Stack, stack, components)
+				pds, diags := m.providerDependencies(expr, instance.Stack, stack, cfgComponents)
 				m.emitDiags(diags)
 				addDependencies(pds)
 			}
@@ -272,12 +265,4 @@ func (m *migration) providerDependencies(expr hcl.Expression, current stackaddrs
 		}
 	}
 	return ds, diags
-}
-
-func first[T any](s iter.Seq[T]) T {
-	var ret T
-	for v := range s {
-		return v
-	}
-	return ret
 }

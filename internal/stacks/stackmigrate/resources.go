@@ -44,21 +44,17 @@ func (r *stackResource) UniqueKey() collections.UniqueKey[*stackResource] {
 // implement the UniqueKey interface for stackResource
 func (r *stackResource) IsUniqueKey(*stackResource) {}
 
-func (m *migration) migrateResources(resources map[string]string, modules map[string]string) collections.Map[AbsComponent, collections.Set[*stackResource]] {
-	components := collections.NewMap[AbsComponent, collections.Set[*stackResource]]()
+func (m *migration) migrateResources(resources map[string]string, modules map[string]string) collections.Map[Instance, collections.Set[*stackResource]] {
+	components := collections.NewMap[Instance, collections.Set[*stackResource]]()
 
 	// for each resource in the config, we track the instances that belong to the
 	// same component.
 	trackComponent := func(resource *stackResource) {
 		instance := resource.AbsResource.Component
-		configComponent := AbsComponent{
-			Stack: instance.Stack,
-			Item:  instance.Item.Component,
+		if !components.HasKey(instance) {
+			components.Put(instance, collections.NewSet[*stackResource]())
 		}
-		if !components.HasKey(configComponent) {
-			components.Put(configComponent, collections.NewSet[*stackResource]())
-		}
-		components.Get(configComponent).Add(resource)
+		components.Get(instance).Add(resource)
 	}
 
 	for _, elem := range m.stateResources().Elems {
