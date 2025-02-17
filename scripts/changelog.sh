@@ -28,7 +28,7 @@ Commands:
     `release`: will make the initial minor release for this branch.
     `patch`: will generate a new patch release
 
-  nextMinor:
+  nextminor:
     Run on main branch: Updates the minor version.
 EOF
 }
@@ -135,7 +135,7 @@ function generate {
 
 # This function expects the current branch to be main. Run it if you want to set main to the next
 # minor version.
-function nextMinor {
+function nextminor {
     # Prepend the latest version to the previous releases
     LATEST_VERSION=$(npx -y changie@$CHANGIE_VERSION latest -r --skip-prereleases)
     LATEST_VERSION=${LATEST_VERSION%.*} # Remove the patch version
@@ -170,8 +170,8 @@ function main {
     generate "${@:2}"
       ;;
 
-    nextMinor)
-    nextMinor "${@:2}"
+    nextminor)
+    nextminor "${@:2}"
       ;;
     *)
       usage
