@@ -224,18 +224,8 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 				// If the attribute values here contain any DynamicPseudoTypes,
 				// the concrete type must be an object.
 				useObject := false
-				switch {
-				case coll.Type().IsObjectType():
+				if coll.Type().IsObjectType() || blockS.ImpliedType().HasDynamicTypes() {
 					useObject = true
-				default:
-					// It's possible that we were given a map, and need to coerce it to an object
-					ety := coll.Type().ElementType()
-					for _, v := range elems {
-						if !v.Type().Equals(ety) {
-							useObject = true
-							break
-						}
-					}
 				}
 
 				if useObject {
