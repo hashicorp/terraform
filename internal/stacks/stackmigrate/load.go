@@ -13,10 +13,8 @@ import (
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/backend/remote"
-	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/workdir"
-	pluginDiscovery "github.com/hashicorp/terraform/internal/plugin/discovery"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -45,7 +43,8 @@ func (l *Loader) LoadState() (*states.State, tfdiags.Diagnostics) {
 	var err error
 	st := &clistate.LocalState{Path: l.BackendStatePath}
 	// If the backend state file is not provided, RefreshState will
-	// return nil, and we assume that we're using a local backend.
+	// return nil error and State will be empty.
+	// In this case, we assume that we're using a local backend.
 	if err := st.RefreshState(); err != nil {
 		diags = diags.Append(fmt.Errorf("error loading backend state: %s", err))
 		return state, diags
@@ -132,21 +131,4 @@ func (l *Loader) LoadState() (*states.State, tfdiags.Diagnostics) {
 	}
 
 	return state, diags
-}
-
-func setupDiscovery() (*disco.Disco, tfdiags.Diagnostics) {
-	config, diags := cliconfig.LoadConfig()
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
-	// Load the credentials source
-	helperPlugins := pluginDiscovery.FindPlugins("credentials", cliconfig.GlobalPluginDirs())
-	credSrc, err := config.CredentialsSource(helperPlugins)
-
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("error loading credentials source: %s", err))
-		return nil, diags
-	}
-	return disco.NewWithCredentialsSource(credSrc), diags
 }

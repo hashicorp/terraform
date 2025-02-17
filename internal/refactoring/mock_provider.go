@@ -3,6 +3,7 @@ package refactoring
 import (
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -19,8 +20,8 @@ type mockProvider struct {
 func (provider *mockProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
-			"foo": {},
-			"bar": {},
+			"foo": {Block: &configschema.Block{}},
+			"bar": {Block: &configschema.Block{}},
 		},
 		ServerCapabilities: providers.ServerCapabilities{
 			MoveResourceState: provider.moveResourceState,
