@@ -30,6 +30,10 @@ Commands:
 
   nextminor:
     Run on main branch: Updates the minor version.
+        
+    
+  listIssuesInRelease:
+    Lists all issues in the release passed as an argument.
 EOF
 }
 
@@ -164,6 +168,27 @@ function nextminor {
     echo "\n\n Please clean up the .changes folders that are no longer needed, but keep the .gitkeep file for the last two versions to enable backporting."
 }
 
+function listIssuesInRelease() {
+    RELEASE_MAJOR_MINOR="${1:-}"
+    if [ -z "$RELEASE_MAJOR_MINOR" ]; then
+        echo "No release version specified"
+        exit 1
+    fi
+    
+    # Check if yq is installed
+    if ! command -v yq &> /dev/null; then
+        echo "yq could not be found"
+        exit 1
+    fi
+    
+    echo "Listing issues in release $RELEASE_MAJOR_MINOR"
+    # Loop through files in .changes/v$RELEASE_MAJOR_MINOR
+    for file in ./.changes/v$RELEASE_MAJOR_MINOR/*.yaml; do
+        ISSUE=$(cat "$file" | yq '.custom.Issue')
+        echo "- https://github.com/hashicorp/terraform/issues/$ISSUE"
+    done
+}
+
 function main {
   case "$1" in
     generate)
@@ -173,6 +198,11 @@ function main {
     nextminor)
     nextminor "${@:2}"
       ;;
+
+    listIssuesInRelease)
+    listIssuesInRelease "${@:2}"
+      ;;
+
     *)
       usage
       exit 1
