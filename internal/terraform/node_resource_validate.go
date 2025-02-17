@@ -752,6 +752,16 @@ func validateDependsOn(ctx EvalContext, dependsOn []hcl.Traversal) (diags tfdiag
 func validateResourceForbiddenEphemeralValues(ctx EvalContext, value cty.Value, schema *configschema.Block) (diags tfdiags.Diagnostics) {
 	for _, path := range ephemeral.EphemeralValuePaths(value) {
 		attr := schema.AttributeByPath(path)
+
+		// If this attribute doesn't exist (usually through a dynamic type) or
+		// itself isn't write-only, it may be nested within a more complex type
+		// which is write-only. We need to walk upwards through the path
+		// segments and see of something wrapping this path is write-only.
+		for (attr == nil || !attr.WriteOnly) && len(path) > 1 {
+			path = path[:len(path)-1]
+			attr = schema.AttributeByPath((path))
+		}
+
 		// We know the config decoded, so the "attribute" exists in the
 		// schema somehow. If the ephemeral mark ended up being hoisted into
 		// a container however, especially if that container is a block,
@@ -759,7 +769,6 @@ func validateResourceForbiddenEphemeralValues(ctx EvalContext, value cty.Value, 
 		// generic sounding error with a little more context because the
 		// AttributeValue diagnostic won't point to anything except the
 		// resource block.
-		//
 		if attr == nil {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
