@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
-	stackparser "github.com/hashicorp/terraform/internal/stacks/stackconfig/parser"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -35,8 +34,14 @@ type Migration struct {
 
 // Alias common types to make the code more readable.
 type (
-	Config       = stackaddrs.ConfigComponent
-	Instance     = stackaddrs.AbsComponentInstance
+	// ConfigComponent is the definition of a component in a stack configuration,
+	// and therefore is unique for all instances of a component in a stack.
+	Config = stackaddrs.ConfigComponent
+
+	// Every instance of a component in a stack instance has a unique address.
+	Instance = stackaddrs.AbsComponentInstance
+
+	// Every instance of a component in a stack has the same AbsComponent address.
 	AbsComponent = stackaddrs.AbsComponent
 )
 
@@ -70,31 +75,34 @@ type migration struct {
 	configs   map[sourceaddrs.FinalSource]*configs.Config
 }
 
-// moduleConfig returns the configuration for the given address. If the configuration
+func (m *migration) stateResources() addrs.Map[addrs.AbsResource, *states.Resource] {
+	resources := addrs.MakeMap[addrs.AbsResource, *states.Resource]()
+	for _, module := range m.PreviousState.Modules {
+		for _, resource := range module.Resources {
+			resources.Put(resource.Addr, resource)
+		}
+	}
+	return resources
+}
+
+// moduleConfig returns the module configuration for the component. If the configuration
 // has already been loaded, it will be returned from the cache.
-func (m *migration) moduleConfig(addr sourceaddrs.FinalSource) (*configs.Config, tfdiags.Diagnostics) {
+func (m *migration) moduleConfig(component *stackconfig.Component) (*configs.Config, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	if cfg, ok := m.configs[addr]; ok {
+	if component.FinalSourceAddr == nil {
+		// if there is no final source address, then the configuration was likely
+		// loaded via a shallow load, but we need the full configuration.
+		panic("component has no final source address")
+	}
+	if cfg, ok := m.configs[component.FinalSourceAddr]; ok {
 		return cfg, diags
 	}
-
-	if !m.parser.IsConfigDir(addr) {
-		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Component configuration not found", fmt.Sprintf("Component configuration not found at %s", addr)))
+	moduleConfig, diags := component.ModuleConfig(m.parser.Bundle())
+	if diags.HasErrors() {
 		return nil, diags
 	}
-
-	module, moreDiags := m.parser.LoadConfigDir(addr)
-	diags = diags.Append(moreDiags)
-
-	if module != nil {
-		walker := stackparser.NewSourceBundleModuleWalker(addr, m.Config.Sources, m.parser)
-		config, moreDiags := configs.BuildConfig(module, walker, nil)
-		diags = diags.Append(moreDiags)
-
-		m.configs[addr] = config
-	}
-
-	return m.configs[addr], diags
+	m.configs[component.FinalSourceAddr] = moduleConfig
+	return moduleConfig, diags
 }
 
 func (m *migration) emitDiags(diags tfdiags.Diagnostics) {

@@ -5,6 +5,7 @@ package stackmigrate
 
 import (
 	"fmt"
+	"iter"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
@@ -17,35 +18,26 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func (m *migration) migrateComponents(components collections.Map[Config, collections.Set[Instance]]) {
-	// merge all the instances of the components into a single set.
-	instances := collections.NewSet[Instance]()
-	for _, cmpnts := range components.All() {
-		instances.Merge(cmpnts)
-	}
-
-	// work out the dependencies between the component instances.
+func (m *migration) migrateComponents(components collections.Map[AbsComponent, collections.Set[*stackResource]]) {
+	// We need to calculate the dependencies between components, so we can
+	// populate the dependencies and dependents fields in the component instances.
 	dependencies, dependents := m.calculateDependencies(components)
-	for instance := range instances.All() {
-		cfg := m.Config.Component(Config{
-			Stack: instance.Stack.ConfigAddr(),
-			Item:  instance.Item.Component,
-		})
-		if cfg.FinalSourceAddr == nil {
-			panic("component has no final source address")
+
+	for _, cmpnts := range components.All() {
+		resource := first(cmpnts.All())
+		if resource == nil {
+			// we only need to process the first resource for each config,
+			// as they all have the same component definition.
+			continue
 		}
+		instance := resource.AbsResource.Component
 
 		// We need to see the inputs and outputs from the component, so we can
 		// create the component instance with the correct values.
-		config, diags := m.moduleConfig(cfg.FinalSourceAddr)
-		if diags.HasErrors() {
-			m.emitDiags(diags)
-			continue
-		}
+		config := resource.ModuleConfig
 
 		// We can put unknown values into the state for now, as Stacks should
 		// perform a refresh before actually using any of these anyway.
-
 		inputs := make(map[addrs.InputVariable]cty.Value, len(config.Module.Variables))
 		for name := range config.Module.Variables {
 			inputs[addrs.InputVariable{Name: name}] = cty.DynamicVal
@@ -81,13 +73,14 @@ func (m *migration) migrateComponents(components collections.Map[Config, collect
 	}
 }
 
-func (m *migration) calculateDependencies(components collections.Map[Config, collections.Set[Instance]]) (collections.Map[AbsComponent, collections.Set[AbsComponent]], collections.Map[AbsComponent, collections.Set[AbsComponent]]) {
+func (m *migration) calculateDependencies(components collections.Map[AbsComponent, collections.Set[*stackResource]]) (collections.Map[AbsComponent, collections.Set[AbsComponent]], collections.Map[AbsComponent, collections.Set[AbsComponent]]) {
 	dependencies := collections.NewMap[AbsComponent, collections.Set[AbsComponent]]()
 	dependents := collections.NewMap[AbsComponent, collections.Set[AbsComponent]]()
 
 	// First, we're going to work out the dependencies between components.
 	for _, cmpnts := range components.All() {
-		for instance := range cmpnts.All() {
+		for resource := range cmpnts.All() {
+			instance := resource.AbsResource.Component
 			addr := AbsComponent{
 				Stack: instance.Stack,
 				Item:  instance.Item.Component,
@@ -96,12 +89,6 @@ func (m *migration) calculateDependencies(components collections.Map[Config, col
 			if dependencies.HasKey(addr) {
 				// Then we've seen another instance of this component before, and
 				// we don't need to process it again.
-				continue
-			}
-
-			stack, component, diags := m.stackAndComponentConfig(instance)
-			if diags.HasErrors() {
-				m.emitDiags(diags)
 				continue
 			}
 
@@ -120,6 +107,8 @@ func (m *migration) calculateDependencies(components collections.Map[Config, col
 				}
 			}
 
+			component := resource.ComponentConfig
+			stack := resource.StackConfig
 			// First, check the inputs.
 			inputDependencies, inputDiags := m.componentDependenciesFromExpression(component.Inputs, instance.Stack, components)
 			m.emitDiags(inputDiags)
@@ -157,7 +146,7 @@ func (m *migration) calculateDependencies(components collections.Map[Config, col
 
 // componentDependenciesFromExpression returns a set of components that are
 // referenced in the given expression.
-func (m *migration) componentDependenciesFromExpression(expr hcl.Expression, current stackaddrs.StackInstance, components collections.Map[Config, collections.Set[Instance]]) (ds collections.Set[AbsComponent], diags tfdiags.Diagnostics) {
+func (m *migration) componentDependenciesFromExpression(expr hcl.Expression, current stackaddrs.StackInstance, components collections.Map[AbsComponent, collections.Set[*stackResource]]) (ds collections.Set[AbsComponent], diags tfdiags.Diagnostics) {
 	ds = collections.NewSet[AbsComponent]()
 	if expr == nil {
 		return ds, diags
@@ -173,26 +162,26 @@ func (m *migration) componentDependenciesFromExpression(expr hcl.Expression, cur
 
 // componentDependenciesFromTraversal returns the component that is referenced
 // in the given traversal, if it is a component reference.
-func (m *migration) componentDependenciesFromTraversal(traversal hcl.Traversal, current stackaddrs.StackInstance, components collections.Map[Config, collections.Set[Instance]]) (ds collections.Set[AbsComponent], diags tfdiags.Diagnostics) {
-	ds = collections.NewSet[AbsComponent]()
+func (m *migration) componentDependenciesFromTraversal(traversal hcl.Traversal, current stackaddrs.StackInstance, components collections.Map[AbsComponent, collections.Set[*stackResource]]) (deps collections.Set[AbsComponent], diags tfdiags.Diagnostics) {
+	deps = collections.NewSet[AbsComponent]()
 
-	reff, _, moreDiags := stackaddrs.ParseReference(traversal)
+	parsed, _, moreDiags := stackaddrs.ParseReference(traversal)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		// Then the configuration is invalid, so we'll skip this variable.
 		// The user should have ran a separate validation step before
 		// performing the migration to catch this.
-		return ds, diags
+		return deps, diags
 	}
 
-	switch ref := reff.Target.(type) {
+	switch ref := parsed.Target.(type) {
 	case stackaddrs.Component:
 		// We have a reference to a component in the current stack.
-		ds.Add(AbsComponent{
+		deps.Add(AbsComponent{
 			Stack: current,
 			Item:  ref,
 		})
-		return ds, diags
+		return deps, diags
 	case stackaddrs.StackCall:
 		targetStackAddress := append(current.ConfigAddr(), stackaddrs.StackStep(ref))
 		stack := m.Config.Stack(targetStackAddress)
@@ -202,41 +191,34 @@ func (m *migration) componentDependenciesFromTraversal(traversal hcl.Traversal, 
 			diags = diags.Append(hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Stack not found",
-				Detail:   fmt.Sprintf("Stack %s not found in configuration.", targetStackAddress),
-				Subject:  reff.SourceRange.ToHCL().Ptr(),
+				Detail:   fmt.Sprintf("Stack %q not found in configuration.", targetStackAddress),
+				Subject:  parsed.SourceRange.ToHCL().Ptr(),
 			})
-			return ds, diags
+			return deps, diags
 		}
 
-		// we have the configurations for the components in this stack, we just
-		// need to scope them down to the components that are in the current
-		// stack instance.
 		for name := range stack.Components {
-			configComponentAddress := Config{
-				Stack: targetStackAddress,
+			// If the component in the stack call is part of the mapping, then it will
+			// be present in the map, and we will add it to the dependencies.
+			// Otherwise, we will ignore it.
+			componentAddr := AbsComponent{
+				Stack: current.Child(ref.Name, addrs.NoKey),
 				Item:  stackaddrs.Component{Name: name},
 			}
 
-			if components, ok := components.GetOk(configComponentAddress); ok {
-				for component := range components.All() {
-					if current.Contains(component.Stack) {
-						ds.Add(AbsComponent{
-							Stack: component.Stack,
-							Item:  component.Item.Component,
-						})
-					}
-				}
+			if _, ok := components.GetOk(componentAddr); ok {
+				deps.Add(componentAddr)
 			}
 		}
-		return ds, diags
+		return deps, diags
 	default:
 		// This is not a component reference, and we only care about
 		// component dependencies.
-		return ds, diags
+		return deps, diags
 	}
 }
 
-func (m *migration) providerDependencies(expr hcl.Expression, current stackaddrs.StackInstance, stack *stackconfig.Stack, components collections.Map[Config, collections.Set[Instance]]) (ds collections.Set[AbsComponent], diags tfdiags.Diagnostics) {
+func (m *migration) providerDependencies(expr hcl.Expression, current stackaddrs.StackInstance, stack *stackconfig.Stack, components collections.Map[AbsComponent, collections.Set[*stackResource]]) (ds collections.Set[AbsComponent], diags tfdiags.Diagnostics) {
 	ds = collections.NewSet[AbsComponent]()
 	for _, v := range expr.Variables() {
 		ref, _, moreDiags := stackaddrs.ParseReference(v)
@@ -290,4 +272,12 @@ func (m *migration) providerDependencies(expr hcl.Expression, current stackaddrs
 		}
 	}
 	return ds, diags
+}
+
+func first[T any](s iter.Seq[T]) T {
+	var ret T
+	for v := range s {
+		return v
+	}
+	return ret
 }
