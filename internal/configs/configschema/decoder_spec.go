@@ -183,19 +183,6 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 	return ret
 }
 
-func (b *IdentityAttributes) DecoderSpec() hcldec.Spec {
-	ret := hcldec.ObjectSpec{}
-	if b == nil {
-		return ret
-	}
-
-	for name, attrS := range *b {
-		ret[name] = attrS.decoderSpec(name)
-	}
-
-	return ret
-}
-
 func (a *Attribute) decoderSpec(name string) hcldec.Spec {
 	if a == nil || (a.Type == cty.NilType && a.NestedType == nil) {
 		panic("Invalid attribute schema: schema is nil.")
@@ -215,23 +202,6 @@ func (a *Attribute) decoderSpec(name string) hcldec.Spec {
 
 	ret.Type = a.Type
 	ret.Required = a.Required
-	return ret
-}
-
-func (a *IdentityAttribute) decoderSpec(name string) hcldec.Spec {
-	if a == nil || a.Type == cty.NilType {
-		panic("Invalid attribute schema: schema is nil.")
-	}
-
-	ret := &hcldec.AttrSpec{Name: name}
-	ret.Type = a.Type
-	// When dealing with IdentityAttribute we expect every attribute to be required.
-	// This is generally true for all communication between providers and Terraform.
-	// For import, we allow the user to only specify a subset of the attributes, where
-	// RequiredForImport attributes are required and OptionalForImport attributes are optional.
-	// The validation for this will rely on a separate spec.
-	ret.Required = true
-
 	return ret
 }
 
