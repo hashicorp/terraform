@@ -44,11 +44,13 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	}
 
 	empty := true
-	for _, module := range state.State.Modules {
-		for _, resource := range module.Resources {
-			if resource.Addr.Resource.Mode == addrs.ManagedResourceMode {
-				empty = false
-				break
+	if !state.State.Empty() {
+		for _, module := range state.State.Modules {
+			for _, resource := range module.Resources {
+				if resource.Addr.Resource.Mode == addrs.ManagedResourceMode {
+					empty = false
+					break
+				}
 			}
 		}
 	}

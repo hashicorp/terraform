@@ -127,6 +127,12 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"1 passed, 0 failed"},
 			code:        0,
 		},
+		"no_state": {
+			expectedOut: []string{"0 passed, 1 failed"},
+			expectedErr: []string{"No value for required variable"},
+			description: "the run apply fails, causing it to produce a nil state.",
+			code:        1,
+		},
 		"variables": {
 			expectedOut: []string{"2 passed, 0 failed"},
 			code:        0,
@@ -664,9 +670,6 @@ func TestTest_Parallel(t *testing.T) {
 	// Find the positions of "test_d", "test_c", "test_setup" in the log output
 	var testDIndex, testCIndex, testSetupIndex int
 	for i, line := range lines {
-		// if strings.Contains(line, "run \"") {
-		// 	fmt.Println(line)
-		// }
 		if strings.Contains(line, "run \"setup\"") {
 			testSetupIndex = i
 		} else if strings.Contains(line, "run \"test_d\"") {
