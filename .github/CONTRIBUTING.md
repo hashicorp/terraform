@@ -164,7 +164,7 @@ Make sure to select the correct kind of change:
 | ENHANCEMENTS     | Use this if you've improved existing functionality in Terraform. Examples include: adding a new field to a remote-state backend, or adding a new environment variable to use when configuring Terraform. |
 | BUG FIXES        | Use this if you've fixed a user-facing issue. Examples include: crash fixes, improvements to error feedback, regression fixes. |
 | NOTES            | This is used for changes that are unlikely to cause user-facing issues but might have edge cases. For example, changes to how the Terraform binary is built. |
-| UPGRADE NOTES    | Use this if you've introduced a change that force users need to take action when upgrading, or changes Terraform's behaviour notably. For example, deprecating a field on a remote-state backend or changing the output of Terraform operations. |
+| UPGRADE NOTES    | Use this if you've introduced a change that forces users to take action when upgrading, or changes Terraform's behaviour notably. For example, deprecating a field on a remote-state backend or changing the output of Terraform operations. |
 | BREAKING CHANGES | Use this if you've introduced a change that could make a valid Terraform configuration stop working after a user upgrades Terraform versions. This might be paired with an upgrade note change file. Examples include: removing a field on a remote-state backend, changing a builtin function's behavior, making validation stricter. |
 
 #### Backport a PR to a past release
