@@ -25,6 +25,7 @@ To report a bug, an enhancement proposal, or give any other product feedback, pl
 		- [Getting Your Pull Requests Merged Faster](#getting-your-pull-requests-merged-faster)
 		- [Changelog entries](#changelog-entries)
 		- [Create a change file using `changie`](#create-a-change-file-using-changie)
+		- [Backport a PR to a past release](#backport-a-pr-to-a-past-release)
 	- [PR Checks](#pr-checks)
 - [Terraform CLI/Core Development Environment](#terraform-clicore-development-environment)
 - [Acceptance Tests: Testing interactions with external services](#acceptance-tests-testing-interactions-with-external-services)
@@ -153,6 +154,12 @@ This is different if you are backporting your changes to an earlier release vers
 #### Create a change file using `changie`
 
 If your change is user-facing you can use `npx changie new` to create a new changelog entry via your terminal. The command is interactive and you will need to: select which kind of change you're introducing, provide a short description, and enter either the number of the GitHub issue your PR closes or your PR's number.
+
+#### Backport a PR to a past release
+
+PRs can be backported to previous release version as part of preparing a patch release. For example, a fix for a bug could be merged into main but also backported to one or two previous minor versions.
+
+If you want to backport your PR then the PR needs to have one or more [backport labels](https://github.com/hashicorp/terraform/labels?q=backport) added. The PR reviewer will then ensure that the PR is merged into those versions' release branches, as well as merged into `main`.
 
 ### PR Checks
 
