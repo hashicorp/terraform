@@ -1,6 +1,28 @@
 # How to Debug Terraform
 
+Contents:
+- [Debugging automated tests](#debugging-automated-tests)
+    - [Debugging automated tests in VSCode](#debugging-automated-tests-in-vscode)
+
 As Terraform is written in Go you may use [Delve](https://github.com/go-delve/delve) to debug it.
+
+GoLand includes [debugging features](https://www.jetbrains.com/help/go/debugging-code.html), and the [Go extension for VS Code](https://code.visualstudio.com/docs/languages/go#_debugging) makes it easy to use Delve when debugging Go codebases in VS Code. 
+
+## Debugging automated tests
+
+Debugging an automated test is often the most straightforward workflow for debugging a section of the codebase. For example, the Go extension for VS Code](https://code.visualstudio.com/docs/languages/go#_debugging) adds `run test | debug test` options above all tests in a `*_test.go` file. These allow debugging without any prior configuration.
+
+### Debugging automated tests in VSCode
+
+As described above, debugging tests in VS Code is easily achieved through the Go extension.
+
+If you need more control over how tests are run while debugging, e.g. environment variable values, look at the [example debugger launch configuration 'Run selected test'](./debugging-configs/vscode/debug-automated-tests/launch.json). You can adapt this example to create your own [launch configuration file](https://code.visualstudio.com/docs/editor/debugging#_launch-configurations).
+
+When using this debugger configuration you must highlight a test's name and launch the debugger configuration:
+
+<p align="center">
+    <img width="75%" alt="Debugging a single test using the example 'Run selected test' debugger configuration shared in this repository" src="./images/vscode-debugging-test.png"/>
+</p>
 
 ## 1. Compile & Start Debug Server
 
