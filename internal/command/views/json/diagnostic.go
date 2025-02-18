@@ -5,6 +5,8 @@ package json
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -17,6 +19,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 // These severities map to the tfdiags.Severity values, plus an explicit
@@ -382,7 +385,11 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 								value.Statement = "will be known only after apply"
 							}
 						default:
-							value.Statement = fmt.Sprintf("is %s", tfdiags.CompactValueStr(val))
+							valRep := tfdiags.CompactValueStr(val)
+							if tfdiags.IsFailedRunDiagnostic(diag) {
+								valRep = marshalValue(val, valRep)
+							}
+							value.Statement = fmt.Sprintf("is %s", valRep)
 						}
 						values = append(values, value)
 						seen[traversalStr] = struct{}{}
@@ -391,6 +398,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 				sort.Slice(values, func(i, j int) bool {
 					return values[i].Traversal < values[j].Traversal
 				})
+
 				diagnostic.Snippet.Values = values
 
 				if callInfo := tfdiags.ExtraInfo[hclsyntax.FunctionCallDiagExtra](diag); callInfo != nil && callInfo.CalledFunctionName() != "" {
@@ -414,6 +422,30 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 	}
 
 	return diagnostic
+}
+
+// Each line in the out is prepended with this prefix.
+var ttyOutPrefix = "    | "
+
+// marshalValue marshals a cty.Value to a JSON string, or returns a fallback
+// string if any failure is encountered. The marshalled JSON string is pretty
+// printed with a prefix for each line.
+func marshalValue(val cty.Value, fallback string) string {
+	switch {
+	case val.Type().IsPrimitiveType():
+		return fallback
+	default:
+		jsonVal, err := ctyjson.Marshal(val, val.Type())
+		if err != nil {
+			return ""
+		}
+		jsonVal = append(jsonVal, '\n')
+		var str bytes.Buffer
+		if err := json.Indent(&str, jsonVal, ttyOutPrefix, "  "); err != nil {
+			return fallback
+		}
+		return str.String()
+	}
 }
 
 func parseRange(src []byte, rng hcl.Range) (*hcl.File, int) {
