@@ -5,6 +5,8 @@ Contents:
     - [Debugging automated tests in VSCode](#debugging-automated-tests-in-vscode)
 - [Debugging Terraform operations that use real Terraform configurations](#debugging-terraform-operations-that-use-real-terraform-configurations)
     - [Launch Terraform with the `dlv` CLI tool](#launch-terraform-with-the-dlv-cli-tool)
+    - [Launch Terraform with VS Code's debugging tool](#launch-terraform-with-vs-codes-debugging-tool)
+
 
 As Terraform is written in Go you may use [Delve](https://github.com/go-delve/delve) to debug it.
 
@@ -69,3 +71,28 @@ The repository provides [an example 'Connect to dlv server' launch configuration
     <img width="75%" alt="vscode debugger" src="./images/vscode-debugging.png"/>
 </p>
 
+
+### Launch Terraform with VS Code's debugging tool
+
+In this workflow you:
+* Update the debugger's launch configuration to point at the directory containing your Terraform configuration
+* Connect to the debug server to monitor progress through breakpoints
+
+#### 1. Update the debugger's launch configuration
+
+Look at the [example debugger launch configuration 'Run Terraform in debug mode'](./debugging-configs/vscode/launch-from-vscode-debugger/launch.json). You can adapt this example to create your own [launch configuration file](https://code.visualstudio.com/docs/editor/debugging#_launch-configurations).
+
+To use this launch configuration:
+* Prepare a local Terraform project
+* Get the absolute path to that directory
+* Update the launch configuration to use that path, either in the -chdir argument or as a `cwd` attribute in the launch configuration.
+* Make sure the `args` array's element reflect the command you'd like to debug.
+* Provide any required environment variables through the `env` or `envFile` attributes.
+
+#### 2. Run the launch configuration in VS Code
+
+Navigate to the Run and Debug view in the left-side Activity Bar. After selecting the `Run Terraform in debug mode` configuration in the Run and Debug view from the left-side, press the green arrow.
+
+This is equivalent to running a Terraform CLI command in the local Terraform project's directory. For example, if you run and debug a plan command that saves a plan file, that plan file will be created.
+
+This workflow is useful if you need to set up a complicated prior state to replicate a bug or if you want to debug code behaviour given a specific configuration.
