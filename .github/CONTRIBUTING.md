@@ -155,6 +155,18 @@ This is different if you are backporting your changes to an earlier release vers
 
 If your change is user-facing you can use `npx changie new` to create a new changelog entry via your terminal. The command is interactive and you will need to: select which kind of change you're introducing, provide a short description, and enter either the number of the GitHub issue your PR closes or your PR's number.
 
+Make sure to select the correct kind of change:
+
+
+| Change kind      | When to use |
+|------------------|-------------|
+| NEW FEATURES     | Use this if you've added new, separate functionality to Terraform. For example, introduction of ephemeral resources. |
+| ENHANCEMENTS     | Use this if you've improved existing functionality Terraform. Examples include: adding a new field to a remote-state backend, or adding a new environment variable to use when configuring Terraform. |
+| BUG FIXES        | Use this if you've fixed a user-facing issue. Examples include: crash fixes, improvements to error feedback, regression fixes. |
+| NOTES            | This is used for changes that are unlikely to cause user-facing issues but might have edge cases. For example, changes to how the Terraform binary is built. |
+| UPGRADE NOTES    | Use this if you've introduced a change that force users need to take action whe upgrading, or changes Terraform's behaviour notably. For example, deprecating a field on a remote-state backend or changing the output of Terraform operations. |
+| BREAKING CHANGES | Use this if you've introduced a change that could make a valid Terraform configuration stop working after a user upgrades Terraform versions. This might be paired with an upgrade note change file. Examples include: removing a field on a remote-state backend, changing a builtin function's behavior, making validation stricter. |
+
 #### Backport a PR to a past release
 
 PRs can be backported to previous release version as part of preparing a patch release. For example, a fix for a bug could be merged into main but also backported to one or two previous minor versions.
