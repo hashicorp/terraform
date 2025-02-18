@@ -30,8 +30,7 @@ Commands:
 
   nextminor:
     Run on main branch: Updates the minor version.
-        
-    
+
   listIssuesInRelease:
     Lists all issues in the release passed as an argument.
 EOF
@@ -151,6 +150,11 @@ function nextminor {
     # Remove all existing per-release changelogs
     rm ./.changes/*.*.*.md
     
+    # Remove all old changelog entries
+    rm ./.changes/v*/*.yaml
+    
+    
+    
     # Create a new empty version file for the next minor version
     touch ./.changes/$NEXT_VERSION.md
     
@@ -164,8 +168,6 @@ function nextminor {
     # Set changies changes dir to the new version
     awk "{sub(/unreleasedDir: v$LATEST_MAJOR_MINOR/, \"unreleasedDir: v$NEXT_MAJOR_MINOR\")}1" ./.changie.yaml > temp && mv temp ./.changie.yaml
     generate "dev"
-    
-    echo "\n\n Please clean up the .changes folders that are no longer needed, but keep the .gitkeep file for the last two versions to enable backporting."
 }
 
 function listIssuesInRelease() {
