@@ -175,7 +175,7 @@ jobs:
 
 
                       if (missingChangelogEntry) {
-                          await createOrUpdateChangelogComment(`Please add a changelog entry for in the .changes/v${onlyExpectedChangeVersion} folder. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.`);
+                          await createOrUpdateChangelogComment(`Currently this PR would target a v${onlyExpectedChangeVersion} release. Please add a changelog entry for in the .changes/v${onlyExpectedChangeVersion} folder, or discuss which release you'd like to target with your reviewer. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.`);
                           return;
                       }
 
