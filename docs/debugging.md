@@ -3,6 +3,8 @@
 Contents:
 - [Debugging automated tests](#debugging-automated-tests)
     - [Debugging automated tests in VSCode](#debugging-automated-tests-in-vscode)
+- [Debugging Terraform operations that use real Terraform configurations](#debugging-terraform-operations-that-use-real-terraform-configurations)
+    - [Launch Terraform with the `dlv` CLI tool](#launch-terraform-with-the-dlv-cli-tool)
 
 As Terraform is written in Go you may use [Delve](https://github.com/go-delve/delve) to debug it.
 
@@ -24,6 +26,19 @@ When using this debugger configuration you must highlight a test's name and laun
     <img width="75%" alt="Debugging a single test using the example 'Run selected test' debugger configuration shared in this repository" src="./images/vscode-debugging-test.png"/>
 </p>
 
+
+## Debugging Terraform operations that use real Terraform configurations
+
+### Launch Terraform with the `dlv` CLI tool
+
+In this workflow you:
+* Build Terraform using compiler flags
+* Start a debug server with a command containing the terraform command you want to debug
+    * This command is run in the working directory that contains your Terraform configuration
+* Connect to the debug server to monitor progress through breakpoints
+
+#### 1. Compile & Start Debug Server
+
 ## 1. Compile & Start Debug Server
 
 One way to do it is to compile a binary with the [appropriate compiler flags](https://pkg.go.dev/cmd/compile#hdr-Command_Line):
@@ -38,7 +53,7 @@ This enables you to then execute the compiled binary via Delve, pass any argumen
 dlv exec $GOBIN/terraform --headless --listen :2345 --log -- apply
 ```
 
-## 2a. Connect via CLI
+#### 2a. Connect via CLI
 
 You may connect to the headless debug server via Delve CLI
 
@@ -46,10 +61,11 @@ You may connect to the headless debug server via Delve CLI
 dlv connect :2345
 ```
 
-## 2b. Connect from VS Code
+#### 2b. Connect from VS Code
 
-The repository provides a launch configuration, making it possible to use VS Code's native debugging integration:
+The repository provides [an example 'Connect to dlv server' launch configuration](./debugging-configs/vscode/launch-via-cli/launch.json), making it possible to use VS Code's native debugging integration via the [Go extension for VS Code](https://code.visualstudio.com/docs/languages/go#_debugging):
 
-![vscode debugger](./images/vscode-debugging.png)
+<p align="center">
+    <img width="75%" alt="vscode debugger" src="./images/vscode-debugging.png"/>
+</p>
 
-Note that this debugging workflow is different from the test-based one, which itself shouldn't require any of the above steps above nor the mentioned launch configuration. Meaning, that if you already have a test that hits the right lines of code you want to be debugging, or you can write one, then that may be an easier workflow.
