@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: "New command `modules -json`: Displays a full list of all installed modules in a working directory, including whether each module is currently referenced by the working directory's configuration."
-time: 2025-01-02T13:10:22.419624+01:00
-custom:
-    Issue: "35884"

@@ -14,11 +14,25 @@ ENHANCEMENTS:
 
 * `init`: Provider installation will utilise credentials configured in a `.netrc` file for the download and shasum URLs returned by provider registries. ([#35843](https://github.com/hashicorp/terraform/issues/35843))
 
-* New command `modules -json`: Displays a full list of all installed modules in a working directory, including whether each module is currently referenced by the working directory's configuration. ([#35884](https://github.com/hashicorp/terraform/issues/35884))
-
 * `terraform test`: Test runs now support using mocked or overridden values during unit test runs (e.g., with command = "plan"). Set `override_during = plan` in the test configuration to use the overridden values during the plan phase. The default value is `override_during = apply`. ([#36227](https://github.com/hashicorp/terraform/issues/36227))
 
 * `terraform test`: Add new `state_key` attribute for `run` blocks, allowing test authors control over which internal state file should be used for the current test run. ([#36185](https://github.com/hashicorp/terraform/issues/36185))
+
+* Updates the azure backend authentication to match the terraform-provider-azurermprovider authentication, in several ways:
+
+- github.com/hashicorp/go-azure-helpers: v0.43.0 -> v0.71.0
+- github.com/hashicorp/go-azure-sdk/[resource-manager/sdk]: v0.20241212.1154051. This replaces the deprecated Azure SDK used before
+- github.com/jackofallops/giovanni: v0.15.1 -> v0.27.0. Meanwhile, updating the azure storage API version from 2018-11-09 to 2023-11-03
+
+Following new properties are added for the azure backend configuration:
+
+- use_cli
+- use_aks_workload_identity
+- client_id_file_path
+- client_certificate
+- client_id_file_path
+- client_secret_file_path
+ ([#36258](https://github.com/hashicorp/terraform/issues/36258))
 
 * Include `ca-certificates` package in our official Docker image to help with certificate handling by downstream ([#36471](https://github.com/hashicorp/terraform/issues/36471))
 
