@@ -1,44 +1,76 @@
 ---
 page_title: Use write-only arguments
-description: Learn how to use write-only arguments to set temporary values that can only be overwritten and are not stored in Terraform's state.
+description: Learn how to use write-only arguments to set temporary values on resources that are not stored in Terraform's state or plan files.
 ---
-
-<!-- THIS IS HIDDEN FOR NOW - TODO FOR GA: unhide when we have a code snippet to share and I can add more details -->
 
 # Use write-only arguments
 
-Terraform resources can include ephemeral arguments, also known as attributes, for data that only needs to exist temporarily. An ephemeral argument on a resource is called a "write-only argument". Write-only arguments can help store generated sensitive data for the current Terraform operation, such as a short-lived password, token, or session identifier.
-
--> **Public Beta**: Write-only arguments are in public beta and available in Terraform v1.11 and later.  Public beta features and APIs are subject to change.
-
+Terraform resources can include specifically ephemeral arguments for data that only needs to exist temporarily. An ephemeral argument on a resource is called a **write-only argument**. Write-only arguments can store sensitive data for the current Terraform operation, such as a short-lived password, token, or session identifier.
 
 ## Introduction
 
-Write-only arguments are only available during runtime, and Terraform omits them from state and plan files. On a new Terraform operation, a write-only argument always start as `null` before Terraform overwrites it with a new value from your configuration.
+Write-only arguments are only available during the runtime of a Terraform operation, and Terraform omits them from state and plan files. On a new Terraform operation, a write-only argument starts as `null` before Terraform overwrites it with a new value from your configuration.
 
 Write-only arguments are unique among other ephemeral constructs in Terraform because you can assign both ephemeral and non-ephemeral data as the value of a write-only argument.
 
-<!-- TODO: Update with a code sample when we have one
+## Define a write-only argument
 
-## Define a write-only value
+Providers define write-only arguments on specific fields in their resources. For example, the `aws_db_instance` resource type has a write-only `password` argument:
 
-## Set a write-only value
+```hcl
+resource "aws_db_instance" "main" {
+ instance_class = "db.t5.micro"
+ username       = "admin"
 
-Example of setting an ephemeral value:
+ password_wo = ephemeral.random.password.value
+ password_wo_version = 1
+}
+```
 
-Example of setting a non-ephemeral value:
+The `password_wo` argument is write-only, and can accept with an ephemeral or non-ephemeral value. 
 
-Add guidance on avoiding acciedentally leaking a non-ephemeral value in a write-only argument.
+```hcl
+resource "aws_db_instance" "main" {
+ instance_class = "db.t5.micro"
+ username       = "admin"
 
--->
+ password_wo = 5
+ password_wo_version = 1
+}
+```
+
+
+Add guidance on avoiding accidentally leaking a non-ephemeral value in a write-only argument.
+
+### Versioning ephemeral values
 
 <!-- TODO: Update with provider code samples when we have them
 
 ## Provider examples
 
+```hcl
+provider "aws" {
+  region = "eu-west-2"
+}
+
+provider "random" {}
+
+ephemeral "random" "password" {
+}
+
+resource "aws_db_instance" "main" {
+ instance_class = "db.t5.micro"
+ username       = "admin"
+
+# 'password' is a write-only argument 
+# 'password_wo_version' controls when the password_wo gets updated 
+ password_wo = ephemeral.random.password.value
+ password_wo_version = 1
+}
+```
+
 ### Vault example
 
 ### AWS example
 
--->
 

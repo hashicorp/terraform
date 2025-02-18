@@ -37,37 +37,25 @@ To learn more about the `ephemeral` block, refer to the [Ephemeral resource refe
 
 ## Write-only arguments
 
--> **Public Beta**: Write-only arguments are in public beta and available in Terraform v1.11 and later.  Public beta features and APIs are subject to change.
+Terraform resources can include specifically ephemeral arguments for data that only needs to exist temporarily. An ephemeral argument on a resource is called a **write-only argument**. Write-only arguments can store sensitive data for the current Terraform operation, such as a short-lived password, token, or session identifier.
 
-Terraform resources can include ephemeral arguments, also known as attributes, for data that only needs to exist temporarily. An ephemeral argument on a resource is called a "write-only argument". Write-only arguments can help store generated sensitive data for the current Terraform operation, such as a short-lived password, token, or session identifier.
-
-Write-only arguments are only available during runtime, and Terraform omits them from state and plan files. On a new Terraform operation, a write-only argument always start as `null` before Terraform overwrites it with a new value from your configuration.
-
-Write-only arguments are unique among other ephemeral constructs in Terraform because you can assign both ephemeral and non-ephemeral data as the value of a write-only argument.
-
-
-<!-- TODO for GA: Update with a code sample when we have one -->
-
-<!-- TODO for GA: Update once we have a working provider example
+Write-only arguments are only available during runtime, and Terraform omits them from state and plan files. Write-only arguments are unique among other ephemeral constructs in Terraform because you can assign both ephemeral and non-ephemeral data as the value of a write-only argument.
 
 Terraform sends write-only arguments to the provider every time it needs to create or update that argument's resource in your configuration. For example, the `aws_db_instance` resource type has a write-only `password` argument:
 
 ```hcl
-resource "aws_db_instance" "main" {
-    instance_class       = "db.t3.micro"
-    username             = "admin"
-    # This write-only argument is ephemeral, meaning it is not saved in state.
-    password             = ephemeral.aws_secretsmanager_secret_version.example.secret_string["exampleKey"]
-}
-
 ephemeral "aws_secretsmanager_secret_version" "example" {
   secret_id = data.aws_secretsmanager_secret.example.id
 }
+
+resource "aws_db_instance" "main" {
+    instance_class       = "db.t3.micro"
+    username             = "admin"
+    password_wo             = ephemeral.aws_secretsmanager_secret_version.example.secret_string["exampleKey"]
+    password_wo_version = 1
+}
 ```
 
-Every time Terraform creates or updates the `aws_db_instance` resource, Terraform sends the `password` argument to the `aws` provider. The provider then uses the value of the `password` argument, then discards that value and never stores it in state.
+Every time Terraform creates or updates the `aws_db_instance` resource, Terraform sends the `password` argument to the `aws` provider. The provider then uses the value of the `password` argument and discards it without storing it.
 
-
-To learn more about write-only arguments, refer to the [Use write-only arguments](/terraform/language/resources/ephemeral/write-only).
-
--->
+To learn more about using write-only arguments, refer to the [Use write-only arguments](/terraform/language/resources/ephemeral/write-only).
