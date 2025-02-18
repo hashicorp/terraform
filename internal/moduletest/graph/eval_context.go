@@ -275,7 +275,7 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
 				// Make the ephemerality visible
-				Extra: terraform.DiagnosticCausedByEphemeral(true),
+				Extra: tfdiags.FailedRunDiagnosticInstance,
 			})
 			continue
 		} else {
