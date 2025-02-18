@@ -23,6 +23,8 @@ To report a bug, an enhancement proposal, or give any other product feedback, pl
 		- [Maintainers](#maintainers)
 	- [Pull Request Lifecycle](#pull-request-lifecycle)
 		- [Getting Your Pull Requests Merged Faster](#getting-your-pull-requests-merged-faster)
+		- [Changelog entries](#changelog-entries)
+		- [Create a change file using `changie`](#create-a-change-file-using-changie)
 	- [PR Checks](#pr-checks)
 - [Terraform CLI/Core Development Environment](#terraform-clicore-development-environment)
 - [Acceptance Tests: Testing interactions with external services](#acceptance-tests-testing-interactions-with-external-services)
@@ -121,8 +123,7 @@ If an an unmaintained area of code interests you and you'd like to become a main
 
 1. You are welcome to submit a [draft pull request](https://github.blog/2019-02-14-introducing-draft-pull-requests/) for commentary or review before it is fully completed. It's also a good idea to include specific questions or items you'd like feedback on.
 2. Once you believe your pull request is ready to be merged you can create your pull request.
-3. If your change is user-facing, add a short description in a changelog entry.
-You can use `npx changie new` to create a new changelog entry or manually create a new file in the .changes/unreleased directory.
+3. If your change is user-facing, add a short description in a [changelog entry](#changelog-entries).
 4. When time permits Terraform's core team members will look over your contribution and either merge, or provide comments letting you know if there is anything left to do. It may take some time for us to respond. We may also have questions that we need answered about the code, either because something doesn't make sense to us or because we want to understand your thought process. We kindly ask that you do not target specific team members. 
 5. If we have requested changes, you can either make those changes or, if you disagree with the suggested changes, we can have a conversation about our reasoning and agree on a path forward. This may be a multi-step process. Our view is that pull requests are a chance to collaborate, and we welcome conversations about how to do things better. It is the contributor's responsibility to address any changes requested. While reviewers are happy to give guidance, it is unsustainable for us to perform the coding work necessary to get a PR into a mergeable state.
 6. Once all outstanding comments and checklist items have been addressed, your contribution will be merged! Merged PRs may or may not be included in the next release based on changes the Terraform teams deems as breaking or not. The core team takes care of updating the [CHANGELOG.md](https://github.com/hashicorp/terraform/blob/main/CHANGELOG.md) as they merge.
@@ -140,12 +141,26 @@ If we request changes, try to make those changes in a timely manner. Otherwise, 
 
 Even with everyone making their best effort to be responsive, it can be time-consuming to get a PR merged. It can be frustrating to deal with the back-and-forth as we make sure that we understand the changes fully. Please bear with us, and please know that we appreciate the time and energy you put into the project.
 
+#### Changelog entries
+
+If your PR's changes are not user-facing add the label `no-changelog-needed`. If this label isn't present and your PR doesn't include any change files a Github Action workflow will prompt you to add whichever is needed.
+
+If your PR's changes are user-facing then you will need to add a change file in your PR. See the next section for how to create one. The change file will need to be created in the `.changes/v1.XX/` folder that matches the version number present in [version/VERSION on the main branch](https://github.com/hashicorp/terraform/blob/main/version/VERSION).
+
+This is different if you are backporting your changes to an earlier release version. In that case, put the change file in the `.changes/v1.XX/` folder for the earliest version that the change is being backported into. For example if a PR was labelled 1.11-backport and 1.10-backport then the change file should be created in the `.changes/v1.10/` folder only.
+
+
+#### Create a change file using `changie`
+
+If your change is user-facing you can use `npx changie new` to create a new changelog entry via your terminal. The command is interactive and you will need to: select which kind of change you're introducing, provide a short description, and enter either the number of the GitHub issue your PR closes or your PR's number.
+
 ### PR Checks
 
 The following checks run when a PR is opened:
 
 - Contributor License Agreement (CLA): If this is your first contribution to Terraform you will be asked to sign the CLA.
 - Tests: tests include unit tests and acceptance tests, and all tests must pass before a PR can be merged.
+- Change files: PRs that include user-facing changes should include change files (see [Pull Request Lifecycle](#pull-request-lifecycle)). Automation will verify if PRs are labelled correctly and/or contain appropriate change files.
 - Vercel: this is an internal tool that does not run correctly for external contributors. We are aware of this and work around it for external contributions. 
 
 ----
