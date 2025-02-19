@@ -685,7 +685,19 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 			backend, backedDiags := decodeBackendBlock(block)
 			diags = append(diags, backedDiags...)
 
+			if backend.Type == "remote" {
+				// Enhanced backends are not in use
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Only state storage backends can be used in a run",
+					Detail:   fmt.Sprintf("The \"remote\" backend type cannot be used in the backend block in run %q at %s.", r.Name, block.DefRange),
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue
+			}
+
 			if r.Backend != nil {
+				// We've already encountered a backend for this run block
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Multiple backend blocks within a run",
