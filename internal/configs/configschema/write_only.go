@@ -19,17 +19,16 @@ import (
 func (b *Block) WriteOnlyPaths(val cty.Value, basePath cty.Path) []cty.Path {
 	var ret []cty.Path
 
-	// We can mark attributes as write-only even if the value is null
+	// the value as a whole cannot be write-only, so nothing to return
+	if val.IsNull() || !val.IsKnown() {
+		return ret
+	}
+
 	for name, attrS := range b.Attributes {
 		if attrS.WriteOnly {
 			attrPath := slices.Concat(basePath, cty.GetAttrPath(name))
 			ret = append(ret, attrPath)
 		}
-	}
-
-	// If the value is null, no other marks are possible
-	if val.IsNull() {
-		return ret
 	}
 
 	// Extract paths for marks from nested attribute type values

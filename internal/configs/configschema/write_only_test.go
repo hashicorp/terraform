@@ -115,15 +115,11 @@ func TestBlock_WriteOnlyPaths(t *testing.T) {
 	}{
 		"unknown value": {
 			cty.UnknownVal(schema.ImpliedType()),
-			[]cty.Path{
-				{cty.GetAttrStep{Name: "wo"}},
-			},
+			[]cty.Path{},
 		},
 		"null object": {
 			cty.NullVal(schema.ImpliedType()),
-			[]cty.Path{
-				{cty.GetAttrStep{Name: "wo"}},
-			},
+			[]cty.Path{},
 		},
 		"object with unknown attributes and blocks": {
 			cty.ObjectVal(map[string]cty.Value{
