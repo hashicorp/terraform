@@ -19,7 +19,7 @@ import (
 func (b *Block) WriteOnlyPaths(val cty.Value, basePath cty.Path) []cty.Path {
 	var ret []cty.Path
 
-	// the value as a whole cannot be write-only, so nothing to return
+	// a block cannot be write-only, so nothing to return
 	if val.IsNull() || !val.IsKnown() {
 		return ret
 	}
