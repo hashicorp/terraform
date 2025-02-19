@@ -1,4 +1,4 @@
-## 1.11.0 (Unreleased)
+## 1.11.0-rc2 (February 19, 2025)
 
 
 NEW FEATURES:
@@ -31,7 +31,7 @@ ENHANCEMENTS:
         - client_secret_file_path
  ([#36258](https://github.com/hashicorp/terraform/issues/36258))
 
-* Include `ca-certificates` package in our official Docker image to help with certificate handling by downstream ([#36471](https://github.com/hashicorp/terraform/issues/36471))
+* Include `ca-certificates` package in our official Docker image to help with certificate handling by downstream ([#36486](https://github.com/hashicorp/terraform/issues/36486))
 
 
 BUG FIXES:
@@ -41,6 +41,8 @@ BUG FIXES:
 * Attempting to override a variable during `apply` via `TF_VAR_` environment variable will now yield warning instead of misleading error. ([#36435](https://github.com/hashicorp/terraform/issues/36435))
 
 * backends: Fix crash when interrupting during interactive prompt for values ([#36448](https://github.com/hashicorp/terraform/issues/36448))
+
+* Fixes hanging behavior seen when applying a saved plan with -auto-approve using the cloud backend ([#36453](https://github.com/hashicorp/terraform/issues/36453))
 
 
 ## Previous Releases
