@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'config: `output` blocks now can have an explicit type constraints'
+time: 2025-02-03T17:58:07.110141+01:00
+custom:
+    Issue: "36411"

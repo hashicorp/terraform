@@ -346,11 +346,23 @@ type Output struct {
 	Sensitive   bool
 	Ephemeral   bool
 
+	// ConstraintType is a type constraint which the result is guaranteed
+	// to conform to when used in the calling module.
+	ConstraintType cty.Type
+	// TypeDefaults describes any optional attribute defaults that should be
+	// applied to the Expr result before type conversion.
+	TypeDefaults *typeexpr.Defaults
+
 	Preconditions []*CheckRule
 
 	DescriptionSet bool
 	SensitiveSet   bool
 	EphemeralSet   bool
+	// TypeSet is true if there was an explicit "type" argument in the
+	// configuration block. This is mainly to allow distinguish explicitly
+	// setting vs. just using the default type constraint when processing
+	// override files.
+	TypeSet bool
 
 	DeclRange hcl.Range
 }
@@ -388,6 +400,19 @@ func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostic
 
 	if attr, exists := content.Attributes["value"]; exists {
 		o.Expr = attr.Expr
+	}
+
+	if attr, exists := content.Attributes["type"]; exists {
+		ty, defaults, moreDiags := typeexpr.TypeConstraintWithDefaults(attr.Expr)
+		diags = append(diags, moreDiags...)
+		o.ConstraintType = ty
+		o.TypeDefaults = defaults
+		o.TypeSet = true
+	}
+	if o.ConstraintType == cty.NilType {
+		// If no constraint is given then the type will be inferred
+		// automatically from the value.
+		o.ConstraintType = cty.DynamicPseudoType
 	}
 
 	if attr, exists := content.Attributes["sensitive"]; exists {
@@ -524,6 +549,9 @@ var outputBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "ephemeral",
+		},
+		{
+			Name: "type",
 		},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
