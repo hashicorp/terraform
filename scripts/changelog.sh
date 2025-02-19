@@ -26,14 +26,11 @@ Commands:
     `release`: will make the initial minor release for this branch.
     `patch`: will generate a new patch release
 
-  nextminor
-    This function expects the current branch to be main. Run it if you want to set main to the next
-    minor version.
-    
-  firstbeta
-    This function is expected to be run on the branch of the last minor release. It will make sure
-    that backports work properly
-  
+  nextminor:
+    Run on main branch: Updates the minor version.
+
+  listIssuesInRelease:
+    Lists all issues in the release passed as an argument.
 EOF
 }
 
@@ -160,23 +157,25 @@ function nextminor {
     generate "dev"
 }
 
-# This function is expected to be run on the branch of the last minor release. It will make sure
-# that backports work properly
-function firstbeta {
-    # For the maintenance branch we don't want to base our changelog on the unreleased but the backported folder instead
-    awk '{sub(/unreleasedDir: unreleased/, "unreleasedDir: backported")}1' ./.changie.yaml > temp && mv temp ./.changie.yaml
-    
-    # If we have backported changes, we need to remove them now since they were backported into the
-    # last version
-    rm -f ./.changes/backported/*.yaml
-    
-    # If we have unreleased changes, they will be released in the next patch, therefore they need
-    # to go into the backported folder
-    if [ "$(ls -A ./.changes/unreleased/)" ]; then
-        mv ./.changes/unreleased/* ./.changes/backported/
+function listIssuesInRelease() {
+    RELEASE_MAJOR_MINOR="${1:-}"
+    if [ -z "$RELEASE_MAJOR_MINOR" ]; then
+        echo "No release version specified"
+        exit 1
     fi
-
-    generate "dev"
+    
+    # Check if yq is installed
+    if ! command -v yq &> /dev/null; then
+        echo "yq could not be found"
+        exit 1
+    fi
+    
+    echo "Listing issues in release $RELEASE_MAJOR_MINOR"
+    # Loop through files in .changes/v$RELEASE_MAJOR_MINOR
+    for file in ./.changes/v$RELEASE_MAJOR_MINOR/*.yaml; do
+        ISSUE=$(cat "$file" | yq '.custom.Issue')
+        echo "- https://github.com/hashicorp/terraform/issues/$ISSUE"
+    done
 }
 
 function main {
@@ -188,10 +187,11 @@ function main {
     nextminor)
     nextminor "${@:2}"
       ;;
-      
-    firstbeta)
-    firstbeta "${@:2}"
-    ;;
+
+    listIssuesInRelease)
+    listIssuesInRelease "${@:2}"
+      ;;
+
     *)
       usage
       exit 1

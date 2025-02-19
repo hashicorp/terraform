@@ -153,7 +153,7 @@ jobs:
           bin_name: terraform
           target: default
           arch: ${{matrix.arch}}
-          dockerfile: .github/workflows/build-Dockerfile
+          dockerfile: build.Dockerfile
           smoke_test: .github/scripts/verify_docker v${{ env.version }}
           tags: |
             docker.io/hashicorp/${{env.repo}}:${{env.version}}

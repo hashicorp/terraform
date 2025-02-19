@@ -108,7 +108,7 @@ resource "test_object" "test" {
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid use of ephemeral value",
-					Detail:   "Ephemeral values are not valid in resource arguments, because resource instances must persist between Terraform phases.",
+					Detail:   `Ephemeral values are not valid for "test_string", because it is not a write-only attribute and must be persisted to state.`,
 				})
 			},
 		},
