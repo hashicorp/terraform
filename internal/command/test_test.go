@@ -896,12 +896,32 @@ func TestTest_ComplexCondition(t *testing.T) {
 	}
 
 	expected := `main.tftest.hcl... in progress
+  run "validate_diff_types"... fail
+
+Error: Test assertion failed
+
+  on main.tftest.hcl line 21, in run "validate_diff_types":
+  21:     condition = var.tr1 == var.tr2 
+    ├────────────────
+    │ var.tr1 is {
+    |   "iops": null,
+    |   "size": 60
+    | }
+
+    │ var.tr2 is {
+    |   "iops": null,
+    |   "size": 60
+    | }
+
+    │ ~diff: LHS and RHS values are of different types
+
+expected to fail
   run "validate_output"... fail
 
 Error: Test assertion failed
 
-  on main.tftest.hcl line 11, in run "validate_output":
-  11:     condition = output.foo == var.foo[0]
+  on main.tftest.hcl line 28, in run "validate_output":
+  28:     condition = output.foo == var.foo[0]
     ├────────────────
     │ output.foo is {
     |   "bar": "notbaz",
@@ -927,8 +947,8 @@ expected to fail
 
 Error: Test assertion failed
 
-  on main.tftest.hcl line 18, in run "validate_complex_output":
-  18:     condition = output.complex == var.foo
+  on main.tftest.hcl line 35, in run "validate_complex_output":
+  35:     condition = output.complex == var.foo
     ├────────────────
     │ output.complex is {
     |   "root": [
@@ -954,13 +974,14 @@ Error: Test assertion failed
     |   }
     | ]
 
+    │ ~diff: LHS and RHS values are of different types
 
 expected to fail
   run "validate_complex_output_pass"... pass
 main.tftest.hcl... tearing down
 main.tftest.hcl... fail
 
-Failure! 1 passed, 2 failed.
+Failure! 1 passed, 3 failed.
 `
 
 	if diff := cmp.Diff(output.All(), expected); len(diff) > 0 {
@@ -2169,6 +2190,7 @@ Error: Test assertion failed
     │ output.null_output is null
 
     │ test_resource.resource.value is "bar"
+    │ ~diff: LHS and RHS values are of different types
 
 this is always going to fail
 `,
