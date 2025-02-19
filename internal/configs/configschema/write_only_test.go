@@ -69,6 +69,19 @@ func TestBlock_WriteOnlyPaths(t *testing.T) {
 								},
 							},
 						},
+						"single_wo": {
+							Optional:  true,
+							WriteOnly: true,
+							NestedType: &Object{
+								Nesting: NestingSingle,
+								Attributes: map[string]*Attribute{
+									"not_wo": {
+										Optional: true,
+										Type:     cty.String,
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -115,15 +128,11 @@ func TestBlock_WriteOnlyPaths(t *testing.T) {
 	}{
 		"unknown value": {
 			cty.UnknownVal(schema.ImpliedType()),
-			[]cty.Path{
-				{cty.GetAttrStep{Name: "wo"}},
-			},
+			[]cty.Path{},
 		},
 		"null object": {
 			cty.NullVal(schema.ImpliedType()),
-			[]cty.Path{
-				{cty.GetAttrStep{Name: "wo"}},
-			},
+			[]cty.Path{},
 		},
 		"object with unknown attributes and blocks": {
 			cty.ObjectVal(map[string]cty.Value{
@@ -206,6 +215,7 @@ func TestBlock_WriteOnlyPaths(t *testing.T) {
 			[]cty.Path{
 				{cty.GetAttrStep{Name: "wo"}},
 				{cty.GetAttrStep{Name: "single"}, cty.GetAttrStep{Name: "wo"}},
+				cty.GetAttrPath("single").GetAttr(("single_wo")),
 				{cty.GetAttrStep{Name: "single_block"}, cty.GetAttrStep{Name: "wo"}},
 			},
 		},
@@ -223,7 +233,40 @@ func TestBlock_WriteOnlyPaths(t *testing.T) {
 			[]cty.Path{
 				{cty.GetAttrStep{Name: "wo"}},
 				{cty.GetAttrStep{Name: "single"}, cty.GetAttrStep{Name: "wo"}},
+				cty.GetAttrPath("single").GetAttr(("single_wo")),
 				{cty.GetAttrStep{Name: "single"}, cty.GetAttrStep{Name: "nested_single"}, cty.GetAttrStep{Name: "wo"}},
+			},
+		},
+		"single nested write-only attr": {
+			cty.ObjectVal(map[string]cty.Value{
+				"single": cty.ObjectVal(map[string]cty.Value{
+					"single_wo": cty.ObjectVal(map[string]cty.Value{
+						"not_wo": cty.StringVal("foo").Mark("test"),
+					}),
+				}),
+			}),
+			[]cty.Path{
+				cty.GetAttrPath("wo"),
+				cty.GetAttrPath("single").GetAttr(("wo")),
+				cty.GetAttrPath("single").GetAttr(("single_wo")),
+			},
+		},
+		"single nested null write-only attr": {
+			cty.ObjectVal(map[string]cty.Value{
+				"single": cty.NullVal(cty.Object(map[string]cty.Type{
+					"not_wo": cty.String,
+					"wo":     cty.String,
+					"nested_single": cty.Object(map[string]cty.Type{
+						"not_wo": cty.String,
+						"wo":     cty.String,
+					}),
+					"single_wo": cty.Object(map[string]cty.Type{
+						"not_wo": cty.String,
+					}),
+				})),
+			}),
+			[]cty.Path{
+				{cty.GetAttrStep{Name: "wo"}},
 			},
 		},
 	}
