@@ -19,17 +19,16 @@ import (
 func (b *Block) SensitivePaths(val cty.Value, basePath cty.Path) []cty.Path {
 	var ret []cty.Path
 
-	// We can mark attributes as sensitive even if the value is null
+	// A block as a whole cannot be sensitive, so nothing to return
+	if val.IsNull() || !val.IsKnown() {
+		return ret
+	}
+
 	for name, attrS := range b.Attributes {
 		if attrS.Sensitive {
 			attrPath := slices.Concat(basePath, cty.GetAttrPath(name))
 			ret = append(ret, attrPath)
 		}
-	}
-
-	// If the value is null, no other marks are possible
-	if val.IsNull() {
-		return ret
 	}
 
 	// Extract paths for marks from nested attribute type values
