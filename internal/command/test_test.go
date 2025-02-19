@@ -146,8 +146,10 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"simple_fail": {
 			expectedOut: []string{"0 passed, 1 failed."},
-			expectedErr: []string{"invalid value"},
-			code:        1,
+			expectedErr: []string{"invalid value", `    │ ~diff: 
+    | - "bar"
+    | + "zap"`},
+			code: 1,
 		},
 		"custom_condition_checks": {
 			expectedOut: []string{"0 passed, 1 failed."},
@@ -301,8 +303,11 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"ephemeral_input_with_error": {
 			expectedOut: []string{"Error message refers to ephemeral values", "1 passed, 1 failed."},
-			expectedErr: []string{"Test assertion failed", "has an ephemeral value"},
-			code:        1,
+			expectedErr: []string{"Test assertion failed", "has an ephemeral value",
+				`│ ~diff: 
+    | - (ephemeral value)
+    | + "bar"`},
+			code: 1,
 		},
 		"ephemeral_resource": {
 			expectedOut: []string{"0 passed, 1 failed."},
@@ -907,6 +912,14 @@ Error: Test assertion failed
     |   "bar": "baz",
     |   "qux": "quux"
     | }
+
+    │ ~diff: 
+    | 	{
+    | - "bar": "notbaz",
+    | + "bar": "baz",
+    | 	"qux": "quux"
+    | 	}
+    | 	
 
 
 expected to fail
@@ -2927,7 +2940,7 @@ func TestTest_JUnitOutput(t *testing.T) {
 			actualOut = timestampRegexp.ReplaceAll(actualOut, []byte("timestamp=\"TIMESTAMP_REDACTED\""))
 
 			if !bytes.Equal(actualOut, expectedOutput) {
-				t.Fatalf("wanted XML:\n%s\n got XML:\n%s\n", string(expectedOutput), string(actualOut))
+				t.Fatalf("wanted XML:\n%s\n got XML:\n%s\ndiff:%s\n", string(expectedOutput), string(actualOut), cmp.Diff(expectedOutput, actualOut))
 			}
 
 			if provider.ResourceCount() > 0 {

@@ -416,6 +416,12 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 					diagnostic.Snippet.FunctionCall = callInfo
 				}
 
+				if expr, ok := fromExpr.Expression.(*hclsyntax.BinaryOpExpr); ok && tfdiags.IsFailedRunDiagnostic(diag) {
+					if diff := diffBinaryFailedRunDiagnostic(ctx, expr); diff != (DiagnosticExpressionValue{}) {
+						diagnostic.Snippet.Values = append(diagnostic.Snippet.Values, diff)
+					}
+				}
+
 			}
 
 		}
@@ -446,6 +452,96 @@ func marshalValue(val cty.Value, fallback string) string {
 		}
 		return str.String()
 	}
+}
+
+// diffBinaryFailedRunDiagnostic is used to diff the two values of a binary expression
+// in a failed run diagnostic. More often than not, run assert expressions are binary
+// expressions, i.e., `a == b`. If the values are of different types, we don't diff them.
+func diffBinaryFailedRunDiagnostic(ctx *hcl.EvalContext, expr *hclsyntax.BinaryOpExpr) DiagnosticExpressionValue {
+	// The expression has already been evaluated and failed, so we can ignore the diags here.
+	lhs, _ := expr.LHS.Value(ctx)
+	rhs, _ := expr.RHS.Value(ctx)
+
+	// The types do not match. We don't need to diff them?
+	if !lhs.Type().Equals(rhs.Type()) {
+		return DiagnosticExpressionValue{}
+	}
+
+	formatValue := func(val cty.Value) (fmt.Stringer, error) {
+		var buf bytes.Buffer
+
+		switch {
+		case val.Type().IsPrimitiveType():
+			buf.WriteString(tfdiags.CompactValueStr(val))
+		default:
+			jsonVal, err := ctyjson.Marshal(val, val.Type())
+			if err != nil {
+				return nil, fmt.Errorf("unexpected error marshalling value: %s", err)
+			}
+			jsonVal = append(jsonVal, '\n')
+
+			// The JSON format for the diff should not be indented, as the diff formatter will do that.
+			if err := json.Indent(&buf, jsonVal, "", ""); err != nil {
+				return nil, fmt.Errorf("unexpected error formatting JSON: %s", err)
+			}
+		}
+		return &buf, nil
+	}
+
+	var err error
+	lhsStr, err := formatValue(lhs)
+	if err != nil {
+		panic(err)
+	}
+	rhsStr, err := formatValue(rhs)
+	if err != nil {
+		panic(err)
+	}
+
+	diff := DiagnosticExpressionValue{
+		Traversal: "~diff:",
+		Statement: diffJSON(lhsStr, rhsStr),
+	}
+	return diff
+}
+
+func diffJSON(strA, strB fmt.Stringer) string {
+	lhsLines := strings.Split(strA.String(), "\n")
+	rhsLines := strings.Split(strB.String(), "\n")
+
+	var ret strings.Builder
+	ret.WriteString("\n")
+
+	// Keep track of matching lines
+	i, j := 0, 0
+	for i < len(lhsLines) || j < len(rhsLines) {
+		// If we've reached the end of one side, print remaining lines from other side
+		if i >= len(lhsLines) {
+			ret.WriteString(fmt.Sprintf("%s+ %s\n", ttyOutPrefix, rhsLines[j]))
+			j++
+			continue
+		}
+		if j >= len(rhsLines) {
+			ret.WriteString(fmt.Sprintf("%s- %s\n", ttyOutPrefix, lhsLines[i]))
+			i++
+			continue
+		}
+
+		// If lines match, just print one side
+		if lhsLines[i] == rhsLines[j] {
+			ret.WriteString(fmt.Sprintf("%s	%s\n", ttyOutPrefix, lhsLines[i]))
+			i++
+			j++
+		} else {
+			// Lines differ - show both versions
+			ret.WriteString(fmt.Sprintf("%s- %s\n", ttyOutPrefix, lhsLines[i]))
+			ret.WriteString(fmt.Sprintf("%s+ %s\n", ttyOutPrefix, rhsLines[j]))
+			i++
+			j++
+		}
+	}
+
+	return ret.String()
 }
 
 func parseRange(src []byte, rng hcl.Range) (*hcl.File, int) {
