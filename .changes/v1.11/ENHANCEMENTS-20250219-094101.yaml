@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'backend/oss: Add new argument tablestore_instance_name used in VPC context'
+time: 2025-02-19T09:41:01.733881+08:00
+custom:
+    Issue: "36253"
