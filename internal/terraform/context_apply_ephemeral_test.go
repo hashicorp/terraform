@@ -94,7 +94,7 @@ resource "test_object" "test" {
 	})
 
 	plan, diags := ctx.Plan(m, nil, DefaultPlanOpts)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if !ephem.OpenEphemeralResourceCalled {
 		t.Error("OpenEphemeralResourceCalled not called")
@@ -114,7 +114,7 @@ resource "test_object" "test" {
 	renewDone = sync.OnceFunc(func() { close(renewed) })
 
 	_, diags = ctx.Apply(plan, m, nil)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if !ephem.OpenEphemeralResourceCalled {
 		t.Error("OpenEphemeralResourceCalled not called")
@@ -227,7 +227,7 @@ output "data" {
 	})
 
 	plan, diags := ctx.Plan(m, nil, DefaultPlanOpts)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if !ephem.OpenEphemeralResourceCalled {
 		t.Error("OpenEphemeralResourceCalled not called")
@@ -241,7 +241,7 @@ output "data" {
 	ephem.CloseEphemeralResourceCalled = false
 
 	state, diags := ctx.Apply(plan, m, nil)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if !ephem.OpenEphemeralResourceCalled {
 		t.Error("OpenEphemeralResourceCalled not called")
@@ -255,7 +255,7 @@ output "data" {
 	ephem.CloseEphemeralResourceCalled = false
 
 	plan, diags = ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if !ephem.OpenEphemeralResourceCalled {
 		t.Error("OpenEphemeralResourceCalled not called")
@@ -268,7 +268,7 @@ output "data" {
 	ephem.CloseEphemeralResourceCalled = false
 
 	_, diags = ctx.Apply(plan, m, nil)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if !ephem.OpenEphemeralResourceCalled {
 		t.Error("OpenEphemeralResourceCalled not called")
@@ -343,7 +343,7 @@ resource "test_object" "test" {
 	})
 
 	diags := ctx.Validate(m, &ValidateOpts{})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	plan, diags := ctx.Plan(m, nil, &PlanOpts{
 		SetVariables: InputValues{
@@ -353,13 +353,13 @@ resource "test_object" "test" {
 			},
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	// reset the ephemeral call flags
 	ephem.ConfigureProviderCalled = false
 
 	_, diags = ctx.Apply(plan, m, nil)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 }
 
 func TestContext2Apply_write_only_attribute_not_in_plan_and_state(t *testing.T) {
@@ -415,14 +415,14 @@ resource "ephem_write_only" "wo" {
 			"ephem": ephemVar,
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if len(plan.Changes.Resources) != 1 {
 		t.Fatalf("Expected 1 resource change, got %d", len(plan.Changes.Resources))
 	}
 
 	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
-	assertNoDiagnostics(t, schemaDiags)
+	tfdiags.AssertNoDiagnostics(t, schemaDiags)
 	planChanges, err := plan.Changes.Decode(schemas)
 	if err != nil {
 		t.Fatalf("Failed to decode plan changes: %v.", err)
@@ -437,7 +437,7 @@ resource "ephem_write_only" "wo" {
 			"ephem": ephemVar,
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	resource := state.Resource(addrs.AbsResource{
 		Module: addrs.RootModuleInstance,
@@ -543,14 +543,14 @@ resource "ephem_write_only" "wo" {
 			"ephem": ephemVar,
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if len(plan.Changes.Resources) != 1 {
 		t.Fatalf("Expected 1 resource change, got %d", len(plan.Changes.Resources))
 	}
 
 	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
-	assertNoDiagnostics(t, schemaDiags)
+	tfdiags.AssertNoDiagnostics(t, schemaDiags)
 	planChanges, err := plan.Changes.Decode(schemas)
 	if err != nil {
 		t.Fatalf("Failed to decode plan changes: %v.", err)
@@ -565,7 +565,7 @@ resource "ephem_write_only" "wo" {
 			"ephem": ephemVar,
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	resource := state.Resource(addrs.AbsResource{
 		Module: addrs.RootModuleInstance,
@@ -682,14 +682,14 @@ resource "ephem_write_only" "wo" {
 			"ephem": ephemVar,
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if len(plan.Changes.Resources) != 1 {
 		t.Fatalf("Expected 1 resource change, got %d", len(plan.Changes.Resources))
 	}
 
 	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
-	assertNoDiagnostics(t, schemaDiags)
+	tfdiags.AssertNoDiagnostics(t, schemaDiags)
 	planChanges, err := plan.Changes.Decode(schemas)
 	if err != nil {
 		t.Fatalf("Failed to decode plan changes: %v.", err)
@@ -704,7 +704,7 @@ resource "ephem_write_only" "wo" {
 			"ephem": ephemVar,
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	resource := state.Resource(addrs.AbsResource{
 		Module: addrs.RootModuleInstance,
@@ -802,7 +802,7 @@ resource "ephem_write_only" "wo" {
 		},
 	})
 
-	assertNoDiagnostics(t, planDiags)
+	tfdiags.AssertNoDiagnostics(t, planDiags)
 
 	_, diags := ctx.Apply(plan, m, &ApplyOpts{
 		SetVariables: InputValues{

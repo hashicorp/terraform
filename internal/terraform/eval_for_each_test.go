@@ -265,7 +265,7 @@ func TestEvaluateForEachExpression_allowUnknown(t *testing.T) {
 
 			// With allowUnknown set, all of these expressions should be treated
 			// as valid for_each values.
-			assertNoDiagnostics(t, diags)
+			tfdiags.AssertNoDiagnostics(t, diags)
 
 			if known {
 				t.Errorf("result is known; want unknown")

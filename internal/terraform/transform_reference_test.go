@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestReferenceTransformer_simple(t *testing.T) {
@@ -377,7 +378,7 @@ resource "test_resource" "in_modc" {
 	})
 
 	g, _, diags := ctx.planGraph(cfg, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	// find the data resource node
 	for _, v := range g.Vertices() {

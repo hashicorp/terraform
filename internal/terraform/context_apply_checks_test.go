@@ -791,10 +791,10 @@ check "check_should_not_panic" {
 			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 		)
 	}), DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	_, diags = ctx.Apply(plan, m, nil)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 }
 
 func validateCheckDiagnostics(t *testing.T, stage string, expectedWarning, expectedError string, actual tfdiags.Diagnostics) bool {
@@ -822,7 +822,7 @@ func validateCheckDiagnostics(t *testing.T, stage string, expectedWarning, expec
 		}
 	}
 
-	assertNoErrors(t, actual)
+	tfdiags.AssertNoErrors(t, actual)
 	return false
 }
 

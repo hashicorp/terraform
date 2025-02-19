@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestContext2Plan_providerFunctionBasic(t *testing.T) {
@@ -76,7 +77,7 @@ output "noop_equals" {
 	})
 
 	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	expect, err := msgpack.Marshal(cty.StringVal("ok"), cty.DynamicPseudoType)
 	if err != nil {
@@ -204,7 +205,7 @@ func TestContext2Plan_providerFunctionImpureApply(t *testing.T) {
 	})
 
 	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	// Write / Read plan to simulate running it through a Plan file
 	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)

@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestContext2Refresh(t *testing.T) {
@@ -1050,7 +1051,7 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 	c, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	_, diags = c.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
 	if !diags.HasErrors() {

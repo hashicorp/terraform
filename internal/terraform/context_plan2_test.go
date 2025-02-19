@@ -90,7 +90,7 @@ resource "test_object" "a" {
 	})
 
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	if !p.UpgradeResourceStateCalled {
 		t.Errorf("Provider's UpgradeResourceState wasn't called; should've been")
@@ -215,7 +215,7 @@ data "test_data_source" "foo" {
 	})
 
 	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	for _, res := range plan.Changes.Resources {
 		if res.Action != plans.NoOp {
@@ -258,7 +258,7 @@ output "out" {
 	})
 
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	change, err := plan.Changes.Outputs[0].Decode()
 	if err != nil {
@@ -323,7 +323,7 @@ resource "test_object" "a" {
 	})
 
 	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 }
 
 func TestContext2Plan_dataReferencesResourceInModules(t *testing.T) {
@@ -396,7 +396,7 @@ resource "test_resource" "b" {
 	})
 
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	oldMod := oldDataAddr.Module
 
@@ -496,7 +496,7 @@ func TestContext2Plan_resourceChecksInExpandedModule(t *testing.T) {
 
 	priorState := states.NewState()
 	plan, diags := ctx.Plan(m, priorState, DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	resourceInsts := []addrs.AbsResourceInstance{
 		mustResourceInstanceAddr("module.child[0].test.test1"),
@@ -681,7 +681,7 @@ data "test_data_source" "a" {
 	})
 
 	plan, diags := ctx.Plan(m, priorState, DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	if rc := plan.Changes.ResourceInstance(dataAddr); rc != nil {
 		if got, want := rc.Action, plans.Read; got != want {
@@ -709,7 +709,7 @@ data "test_data_source" "a" {
 	// data resources is a plan-time concern, but we'll still try applying the
 	// plan here just to make sure it's valid.
 	newState, diags := ctx.Apply(plan, m, nil)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	if rs := newState.ResourceInstance(dataAddr); rs != nil {
 		if !rs.HasCurrent() {
@@ -996,7 +996,7 @@ resource "test_object" "a" {
 		Mode:        plans.DestroyMode,
 		SkipRefresh: false, // the default
 	})
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	if !upgradeResourceStateCalled {
 		t.Errorf("Provider's UpgradeResourceState wasn't called; should've been")
@@ -1096,7 +1096,7 @@ resource "test_object" "a" {
 		Mode:        plans.DestroyMode,
 		SkipRefresh: true,
 	})
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	if !p.UpgradeResourceStateCalled {
 		t.Errorf("Provider's UpgradeResourceState wasn't called; should've been")
@@ -1186,7 +1186,7 @@ output "result" {
 	})
 
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	for _, res := range plan.Changes.Resources {
 		if res.Action != plans.Create {
@@ -1235,7 +1235,7 @@ provider "test" {
 	_, diags := ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.DestroyMode,
 	})
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 }
 
 func TestContext2Plan_movedResourceBasic(t *testing.T) {
@@ -2117,7 +2117,7 @@ resource "test_object" "b" {
 		},
 	})
 	//
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 }
 
 func TestContext2Plan_movedResourceRefreshOnly(t *testing.T) {
@@ -2721,7 +2721,7 @@ data "test_data_source" "foo" {
 	})
 
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	for _, res := range plan.Changes.Resources {
 		switch res.Addr.String() {
@@ -2976,7 +2976,7 @@ output "output" {
 	})
 
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	for _, res := range plan.Changes.Resources {
 		// both existing data sources should be read during plan
@@ -3158,7 +3158,7 @@ resource "test_resource" "a" {
 				},
 			},
 		})
-		assertNoErrors(t, diags)
+		tfdiags.AssertNoErrors(t, diags)
 		for _, res := range plan.Changes.Resources {
 			switch res.Addr.String() {
 			case "test_resource.a":
@@ -3220,7 +3220,7 @@ resource "test_resource" "a" {
 				},
 			},
 		})
-		assertNoErrors(t, diags)
+		tfdiags.AssertNoErrors(t, diags)
 		if len(diags) == 0 {
 			t.Fatalf("no diags, but should have warnings")
 		}
@@ -3326,7 +3326,7 @@ resource "test_resource" "a" {
 				},
 			},
 		})
-		assertNoErrors(t, diags)
+		tfdiags.AssertNoErrors(t, diags)
 		if len(diags) == 0 {
 			t.Fatalf("no diags, but should have warnings")
 		}
@@ -3379,7 +3379,7 @@ resource "test_resource" "a" {
 				},
 			},
 		})
-		assertNoErrors(t, diags)
+		tfdiags.AssertNoErrors(t, diags)
 		if got, want := len(diags), 2; got != want {
 			t.Errorf("wrong number of warnings, got %d, want %d", got, want)
 		}
@@ -3478,7 +3478,7 @@ resource "test_resource" "a" {
 				},
 			},
 		})
-		assertNoErrors(t, diags)
+		tfdiags.AssertNoErrors(t, diags)
 		for _, res := range plan.Changes.Resources {
 			switch res.Addr.String() {
 			case "test_resource.a":
@@ -3548,7 +3548,7 @@ resource "test_resource" "a" {
 				},
 			},
 		})
-		assertNoErrors(t, diags)
+		tfdiags.AssertNoErrors(t, diags)
 		if len(diags) == 0 {
 			t.Fatalf("no diags, but should have warnings")
 		}
@@ -3624,7 +3624,7 @@ resource "test_resource" "a" {
 				},
 			},
 		})
-		assertNoErrors(t, diags)
+		tfdiags.AssertNoErrors(t, diags)
 		if got, want := diags.ErrWithWarnings().Error(), "Resource postcondition failed: Results cannot be empty."; got != want {
 			t.Fatalf("wrong error:\ngot:  %s\nwant: %q", got, want)
 		}
@@ -3665,7 +3665,7 @@ resource "test_resource" "a" {
 				},
 			},
 		})
-		assertNoErrors(t, diags)
+		tfdiags.AssertNoErrors(t, diags)
 		if got, want := len(diags), 2; got != want {
 			t.Errorf("wrong number of warnings, got %d, want %d", got, want)
 		}
@@ -3717,7 +3717,7 @@ output "a" {
 				},
 			},
 		})
-		assertNoErrors(t, diags)
+		tfdiags.AssertNoErrors(t, diags)
 		addr := addrs.RootModuleInstance.OutputValue("a")
 		outputPlan := plan.Changes.OutputValue(addr)
 		if outputPlan == nil {
@@ -3769,7 +3769,7 @@ output "a" {
 				},
 			},
 		})
-		assertNoErrors(t, diags)
+		tfdiags.AssertNoErrors(t, diags)
 		if len(diags) == 0 {
 			t.Fatalf("no diags, but should have warnings")
 		}
@@ -4079,7 +4079,7 @@ data "test_object" "a" {
 	})
 
 	_, diags := ctx.Plan(m, state, DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 }
 
 func TestContext2Plan_applyGraphError(t *testing.T) {
@@ -4177,7 +4177,7 @@ output "out" {
 		Mode: plans.DestroyMode,
 	})
 
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	// ensure that the given states are valid and can be serialized
 	if plan.PrevRunState == nil {
@@ -4251,7 +4251,7 @@ resource "test_object" "b" {
 	_, diags := ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.NormalMode,
 	})
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 }
 
 // make sure there are no cycles with changes around a provider configured via
@@ -4314,9 +4314,9 @@ resource "test_object" "b" {
 	// plan+apply to create the initial state
 	opts := SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables))
 	plan, diags := ctx.Plan(m, states.NewState(), opts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 	state, diags := ctx.Apply(plan, m, nil)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	// Resource changes which have dependencies across providers which
 	// themselves depend on resources can result in cycles.
@@ -4330,7 +4330,7 @@ resource "test_object" "b" {
 	opts.ForceReplace = []addrs.AbsResourceInstance{addrA, addrB}
 
 	_, diags = ctx.Plan(m, state, opts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 }
 
 func TestContext2Plan_destroyPartialState(t *testing.T) {
@@ -4430,7 +4430,7 @@ output "out" {
 	_, diags := ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.DestroyMode,
 	})
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 }
 
 func TestContext2Plan_destroyPartialStateLocalRef(t *testing.T) {
@@ -4472,7 +4472,7 @@ output "out" {
 	_, diags := ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.DestroyMode,
 	})
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 }
 
 // Make sure the data sources in the prior state are serializeable even if
@@ -4563,7 +4563,7 @@ resource "test_object" "a" {
 	// plan+apply to create the initial state
 	opts := SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables))
 	plan, diags := ctx.Plan(m, state, opts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	for _, c := range plan.Changes.Resources {
 		if c.Action != plans.NoOp {
@@ -4614,7 +4614,7 @@ func TestContext2Plan_externalProvidersWithState(t *testing.T) {
 			addrs.MustParseProviderSourceString("hashicorp/foo"): *fooProvider.GetProviderSchemaResponse,
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	fooProvider.ConfigureProviderCalled = true
 	_, diags = ctx.Plan(m, state, &PlanOpts{
@@ -4625,7 +4625,7 @@ func TestContext2Plan_externalProvidersWithState(t *testing.T) {
 			}: fooProvider,
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 }
 
 func TestContext2Plan_externalProviders(t *testing.T) {
@@ -4740,7 +4740,7 @@ func TestContext2Plan_externalProviders(t *testing.T) {
 			bazAddr: *bazProvider.GetProviderSchemaResponse,
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	// Many of the MockProvider methods check whether Configure was called and
 	// return an error if not, and so we'll set that flag ahead of time to
@@ -4758,7 +4758,7 @@ func TestContext2Plan_externalProviders(t *testing.T) {
 			bazConfigAddr: bazProvider,
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	// If everything has worked as intended, the Plan call should've skipped
 	// configuring and closing all of the providers, because that's the
@@ -4872,7 +4872,7 @@ func TestContext2Apply_externalDependencyDeferred(t *testing.T) {
 		DeferralAllowed:            true,
 		ExternalDependencyDeferred: true,
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 	if plan.Applyable {
 		t.Fatal("plan is applyable; should not be, because there's nothing to do yet")
 	}
@@ -5415,7 +5415,7 @@ resource "test_resource" "a" {
 			},
 		},
 	})
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 	for _, res := range plan.Changes.Resources {
 		switch res.Addr.String() {
 		case "test_resource.a":
@@ -5470,7 +5470,7 @@ resource "test_object" "obj" {
 	})
 
 	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	ch := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.obj"))
 	if len(ch.AfterSensitivePaths) == 0 {
@@ -5537,7 +5537,7 @@ resource "test_object" "obj" {
 	})
 
 	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	ch := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.obj"))
 	if ch.Action != plans.NoOp {
@@ -5701,7 +5701,7 @@ func TestContext2Plan_ephemeralInProviderConfig(t *testing.T) {
 			},
 		}),
 	)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if !p.ConfigureProviderCalled {
 		t.Fatal("ConfigureProvider was not called")
@@ -5761,7 +5761,7 @@ output "value" {
 
 	// Just shouldn't crash.
 	_, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 }
 
 func TestContext2Plan_sensitiveRequiredReplace(t *testing.T) {
@@ -5878,7 +5878,7 @@ resource "test_object" "obj" {
 	})
 
 	plan, diags := ctx.Plan(m, state, nil)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	if plan.Changes.Empty() {
 		t.Fatal("unexpected empty plan")
@@ -5905,7 +5905,7 @@ resource "test_object" "obj" {
 	}
 
 	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
-	assertNoDiagnostics(t, schemaDiags)
+	tfdiags.AssertNoDiagnostics(t, schemaDiags)
 
 	changes, err := plan.Changes.Decode(schemas)
 	if err != nil {
@@ -5973,7 +5973,7 @@ resource "test_object" "obj" {
 	})
 
 	plan, diags := ctx.Plan(m, state, nil)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	if plan.Changes.Empty() {
 		t.Fatal("unexpected empty plan")
@@ -6000,7 +6000,7 @@ resource "test_object" "obj" {
 	}
 
 	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
-	assertNoDiagnostics(t, schemaDiags)
+	tfdiags.AssertNoDiagnostics(t, schemaDiags)
 
 	changes, err := plan.Changes.Decode(schemas)
 	if err != nil {
@@ -6156,7 +6156,7 @@ output "staying" {
 	ctx := testContext2(t, &ContextOpts{})
 
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	expectedChanges := &plans.Changes{
 		Outputs: []*plans.OutputChange{
@@ -6246,7 +6246,7 @@ data "test_data_source" "foo" {
 	})
 
 	_, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 }
 
 func TestContext2Plan_upgradeState_WriteOnlyAttribute(t *testing.T) {
@@ -6341,7 +6341,7 @@ resource "test_object" "a" {
 	})
 
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	resourceType := p.GetProviderSchemaResponse.ResourceTypes["test_object"].Block.ImpliedType()
 	change, err := plan.Changes.ResourceInstance(mustResourceInstanceAddr(`test_object.a["old"]`)).Decode(resourceType)

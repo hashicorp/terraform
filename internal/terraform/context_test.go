@@ -175,7 +175,7 @@ terraform {}
 
 func TestContext_missingPlugins(t *testing.T) {
 	ctx, diags := NewContext(&ContextOpts{})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	configSrc := `
 terraform {
@@ -326,7 +326,7 @@ func TestContext_preloadedProviderSchemas(t *testing.T) {
 		`,
 	})
 	_, diags := tfCore.Schemas(cfg, states.NewState())
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if provider.GetProviderSchemaCalled {
 		t.Error("called GetProviderSchema even though a preloaded schema was provided")
@@ -1014,34 +1014,6 @@ func legacyDiffComparisonString(changes *plans.ChangesSrc) string {
 	return buf.String()
 }
 
-// assertNoDiagnostics fails the test in progress (using t.Fatal) if the given
-// diagnostics is non-empty.
-func assertNoDiagnostics(t *testing.T, diags tfdiags.Diagnostics) {
-	t.Helper()
-	if len(diags) == 0 {
-		return
-	}
-	logDiagnostics(t, diags)
-	t.FailNow()
-}
-
-// assertNoDiagnostics fails the test in progress (using t.Fatal) if the given
-// diagnostics has any errors.
-func assertNoErrors(t *testing.T, diags tfdiags.Diagnostics) {
-	t.Helper()
-	if !diags.HasErrors() {
-		return
-	}
-	logDiagnostics(t, diags)
-	t.FailNow()
-}
-
-type SummaryAndDetail struct {
-	Severity    tfdiags.Severity
-	Subject     string
-	Description string
-}
-
 // checkPlanCompleteAndApplyable reports testing errors if the plan is not
 // flagged as being both complete and applyable.
 //
@@ -1092,43 +1064,6 @@ func checkPlanErrored(t *testing.T, plan *plans.Plan) {
 		t.Error("plan is not marked as errored; should be")
 	} else if plan.Applyable {
 		t.Error("plan is applyable; plans with errors should never be applyable")
-	}
-}
-
-// logDiagnostics is a test helper that logs the given diagnostics to to the
-// given testing.T using t.Log, in a way that is hopefully useful in debugging
-// a test. It does not generate any errors or fail the test. See
-// assertNoDiagnostics and assertNoErrors for more specific helpers that can
-// also fail the test.
-func logDiagnostics(t *testing.T, diags tfdiags.Diagnostics) {
-	t.Helper()
-	for _, diag := range diags {
-		desc := diag.Description()
-		rng := diag.Source()
-
-		var severity string
-		switch diag.Severity() {
-		case tfdiags.Error:
-			severity = "ERROR"
-		case tfdiags.Warning:
-			severity = "WARN"
-		default:
-			severity = "???" // should never happen
-		}
-
-		if subj := rng.Subject; subj != nil {
-			if desc.Detail == "" {
-				t.Logf("[%s@%s] %s", severity, subj.StartString(), desc.Summary)
-			} else {
-				t.Logf("[%s@%s] %s: %s", severity, subj.StartString(), desc.Summary, desc.Detail)
-			}
-		} else {
-			if desc.Detail == "" {
-				t.Logf("[%s] %s", severity, desc.Summary)
-			} else {
-				t.Logf("[%s] %s: %s", severity, desc.Summary, desc.Detail)
-			}
-		}
 	}
 }
 

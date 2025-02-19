@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestDestroyEdgeTransformer_basic(t *testing.T) {
@@ -400,7 +401,7 @@ func TestPruneUnusedNodesTransformer_rootModuleOutputValues(t *testing.T) {
 		},
 	}
 	graph, diags := builder.Build(addrs.RootModuleInstance)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	// At this point, thanks to pruneUnusedNodesTransformer, we should still
 	// have the node for the output value, but the "test.a (expand)" node

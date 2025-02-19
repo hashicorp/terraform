@@ -1869,10 +1869,10 @@ func TestContext2Plan_computedInFunction(t *testing.T) {
 	})
 
 	diags := ctx.Validate(m, nil)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	if !p.ReadDataSourceCalled {
 		t.Fatalf("ReadDataSource was not called on provider during plan; should've been called")
@@ -6231,7 +6231,7 @@ resource "test_instance" "b" {
 	})
 
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	t.Run("test_instance.a[0]", func(t *testing.T) {
 		instAddr := mustResourceInstanceAddr("test_instance.a[0]")
@@ -6400,7 +6400,7 @@ data "test_data_source" "e" {
 	})
 
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	rc := plan.Changes.ResourceInstance(addrs.Resource{
 		Mode: addrs.DataResourceMode,
@@ -6521,7 +6521,7 @@ resource "test_instance" "a" {
 		Mode:        plans.NormalMode,
 		SkipRefresh: true,
 	})
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	if p.ReadResourceCalled {
 		t.Fatal("Resource should not have been refreshed")
@@ -6580,7 +6580,7 @@ data "test_data_source" "b" {
 	})
 
 	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	// The change to data source a should not prevent data source b from being
 	// read.
