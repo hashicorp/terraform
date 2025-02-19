@@ -15,7 +15,7 @@ import (
 // types, and the others will be used only for one of plan or apply.
 type ComponentInstanceStatus rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=ComponentInstanceStatus component_instance.go
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=ComponentInstanceStatus component_instance.go
 
 const (
 	ComponentInstanceStatusInvalid ComponentInstanceStatus = 0

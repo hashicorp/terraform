@@ -91,7 +91,7 @@ func isPlausibleRawKeyType(s string) bool {
 // See the documentation for [KeyType] for more information.
 type UnrecognizedKeyHandling rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type UnrecognizedKeyHandling
+//go:generate go tool golang.org/x/tools/cmd/stringer -type UnrecognizedKeyHandling
 
 const (
 	FailIfUnrecognized     UnrecognizedKeyHandling = 'F'

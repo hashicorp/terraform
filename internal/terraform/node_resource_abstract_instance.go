@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
+	"github.com/hashicorp/terraform/internal/lang/format"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -255,7 +256,7 @@ const (
 	prevRunState
 )
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type phaseState
+//go:generate go tool golang.org/x/tools/cmd/stringer -type phaseState
 
 // writeResourceInstanceState saves the given object as the current object for
 // the selected resource instance.
@@ -2501,7 +2502,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		var unknownPaths []string
 		cty.Transform(configVal, func(p cty.Path, v cty.Value) (cty.Value, error) {
 			if !v.IsKnown() {
-				unknownPaths = append(unknownPaths, fmt.Sprintf("%#v", p))
+				unknownPaths = append(unknownPaths, format.CtyPath(p))
 			}
 			return v, nil
 		})

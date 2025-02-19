@@ -5596,7 +5596,7 @@ func TestContext2Plan_ephemeralInResource(t *testing.T) {
 	wantDiags = wantDiags.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagError,
 		Summary:  "Invalid use of ephemeral value",
-		Detail:   "Ephemeral values are not valid in resource arguments, because resource instances must persist between Terraform phases.",
+		Detail:   `Ephemeral values are not valid for "in", because it is not a write-only attribute and must be persisted to state.`,
 		Subject: &hcl.Range{
 			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 			Start: hcl.Pos{
@@ -5610,7 +5610,7 @@ func TestContext2Plan_ephemeralInResource(t *testing.T) {
 	wantDiags = wantDiags.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagError,
 		Summary:  "Invalid use of ephemeral value",
-		Detail:   "Ephemeral values are not valid in resource arguments, because resource instances must persist between Terraform phases.",
+		Detail:   `Ephemeral values are not valid for "in", because it is not a write-only attribute and must be persisted to state.`,
 		Subject: &hcl.Range{
 			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 			Start: hcl.Pos{

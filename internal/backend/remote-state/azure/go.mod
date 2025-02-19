@@ -1,11 +1,11 @@
 module github.com/hashicorp/terraform/internal/backend/remote-state/azure
 
-go 1.23.3
+go 1.24.0
 
 require (
 	github.com/hashicorp/go-azure-helpers v0.71.0
-	github.com/hashicorp/go-azure-sdk/resource-manager v0.20241212.1154051
-	github.com/hashicorp/go-azure-sdk/sdk v0.20241212.1154051
+	github.com/hashicorp/go-azure-sdk/resource-manager v0.20250131.1134653
+	github.com/hashicorp/go-azure-sdk/sdk v0.20250131.1134653
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/terraform/internal/legacy v0.0.0-00010101000000-000000000000
@@ -54,14 +54,14 @@ require (
 	github.com/vmihailenco/msgpack/v4 v4.3.12 // indirect
 	github.com/vmihailenco/tagparser v0.1.1 // indirect
 	github.com/zclconf/go-cty v1.16.2 // indirect
-	golang.org/x/crypto v0.32.0 // indirect
-	golang.org/x/mod v0.21.0 // indirect
-	golang.org/x/net v0.34.0 // indirect
+	golang.org/x/crypto v0.33.0 // indirect
+	golang.org/x/mod v0.23.0 // indirect
+	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/oauth2 v0.23.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
-	golang.org/x/tools v0.25.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/tools v0.30.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	software.sslmate.com/src/go-pkcs12 v0.4.0 // indirect

@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform/internal/backend/remote-state/cos
 
-go 1.23.3
+go 1.24.0
 
 require (
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
@@ -33,12 +33,12 @@ require (
 	github.com/mozillazg/go-httpheader v0.3.0 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/zclconf/go-cty v1.16.2 // indirect
-	golang.org/x/mod v0.21.0 // indirect
-	golang.org/x/net v0.34.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
-	golang.org/x/tools v0.25.0 // indirect
+	golang.org/x/mod v0.23.0 // indirect
+	golang.org/x/net v0.35.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/tools v0.30.0 // indirect
 )
 
 replace github.com/hashicorp/terraform/internal/backend/remote-state/azure => ../azure

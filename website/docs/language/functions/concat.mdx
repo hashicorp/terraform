@@ -17,4 +17,15 @@ description: The concat function combines two or more lists into a single list.
   "b",
   "c",
 ]
+
+# Can do multiple lists of mixed types, arguments can also be empty lists
+concat([], [1, "a"], [[3], "c"])
+[
+  1,
+  "a",
+  [
+    3,
+  ],
+  "c",
+]
 ```

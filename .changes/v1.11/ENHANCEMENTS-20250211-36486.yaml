@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Include `ca-certificates` package in our official Docker image to help with certificate handling by downstream
+time: 2025-02-11T16:59:22.000+00:00
+custom:
+    Issue: "36486"
