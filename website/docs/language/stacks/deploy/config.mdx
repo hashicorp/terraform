@@ -38,17 +38,17 @@ The `deployment` block accepts a map of `inputs` where you can specify any uniqu
 # deployments.tfdeploy.hcl
 
 deployment "production" {
-    inputs = {
-        aws_region     = "us-west-1"
-        instance_count = 2
-    }
+  inputs = {
+    aws_region     = "us-west-1"
+    instance_count = 2
+  }
 }
 
 deployment "staging" {
-    inputs = {
-        aws_region     = "us-west-1"
-        instance_count = 1
-    }
+  inputs = {
+    aws_region     = "us-west-1"
+    instance_count = 1
+  }
 }
 ```
 
@@ -62,15 +62,15 @@ The `identity_token` block tells HCP Terraform to generate a JSON Web Token (JWT
 # deployments.tfdeploy.hcl
 
 identity_token "aws" {
-    audience = ["aws.workload.identity"]
+  audience = ["aws.workload.identity"]
 }
 
 deployment "staging" {
-    inputs = {
-        aws_region     = "eu-west-1"
-        role_arn       = "arn:aws:iam::123456789101:role/my-oidc-role"
-        aws_token      = identity_token.aws.jwt
-    }
+  inputs = {
+    aws_region = "eu-west-1"
+    role_arn   = "arn:aws:iam::123456789101:role/my-oidc-role"
+    aws_token  = identity_token.aws.jwt
+  }
 }
 ```
 
@@ -80,13 +80,13 @@ That deployment generates a JWT token named `aws_token`, which is available to t
 # providers.tfstack.hcl
 
 provider "aws" "this" {
-    config {
-        region = var.region
-        assume_role_with_web_identity {
-            role_arn           = var.aws_role
-            web_identity_token = var.aws_token
-        }
+  config {
+    region = var.aws_region
+    assume_role_with_web_identity {
+      role_arn           = var.aws_role
+      web_identity_token = var.aws_token
     }
+  }
 }
 ```
 
@@ -100,11 +100,11 @@ The `orchestrate` block lets you codify your stack’s behavior by creating orch
 # deployments.tfdeploy.hcl
 
 orchestrate "auto_approve" "no_pet_changes" {
-    check {
-        # Check that the pet component has no changes
-        condition = context.plan.component_changes["component.pet"].total == 0
-        reason = "Changes proposed to pet component."
-    }
+  check {
+    # Check that the pet component has no changes
+    condition = context.plan.component_changes["component.pet"].total == 0
+    reason    = "Changes proposed to pet component."
+  }
 }
 ```
 
