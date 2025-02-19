@@ -149,9 +149,6 @@ func (m *migration) search(resource addrs.AbsResource, resources map[string]stri
 
 	parseComponentInstance := func(target string) (Instance, tfdiags.Diagnostics) {
 		fullTarget := "component." + strings.TrimPrefix(target, "component.")
-		// if strings.Contains(target, "stack.") {
-		// 	fullTarget = target
-		// }
 		if len(strings.Split(fullTarget, ".")) > 2 {
 			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Invalid component instance", fmt.Sprintf("Only root component instances are allowed, got %q", target)))
 			return Instance{}, diags

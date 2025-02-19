@@ -18,10 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// TODO: This file currently never includes source information in the diags it
-//   emits when it totally could. This should be added when we productionise
-//   everything.
-
 // Migration is a struct that aids in migrating a terraform state to a stack configuration.
 type Migration struct {
 	// Providers is a map of provider addresses available to the stack.
