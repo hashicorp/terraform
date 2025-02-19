@@ -462,9 +462,12 @@ func diffBinaryFailedRunDiagnostic(ctx *hcl.EvalContext, expr *hclsyntax.BinaryO
 	lhs, _ := expr.LHS.Value(ctx)
 	rhs, _ := expr.RHS.Value(ctx)
 
-	// The types do not match. We don't need to diff them?
+	// The types do not match. We don't diff them.
 	if !lhs.Type().Equals(rhs.Type()) {
-		return DiagnosticExpressionValue{}
+		return DiagnosticExpressionValue{
+			Traversal: "~diff:",
+			Statement: "LHS and RHS values are of different types",
+		}
 	}
 
 	formatValue := func(val cty.Value) (fmt.Stringer, error) {
