@@ -1,0 +1,27 @@
+---
+page_title: slugify - Functions - Configuration Language
+description: |-
+  The slugify function takes two values: a separator and a string. It returns a slug of the original string separated by the specified separator.
+---
+
+# `slugify` Function
+
+`slugify` takes two values: a separator and a string. It returns a slug of the original string separated by the specified separator.
+
+```hcl
+slugify(separator, string)
+```
+
+## Examples
+
+```
+> slugify("-", ""HellO#$?World!")
+hello-world
+
+> slugify("_","abc 123 abc 456 _")
+abc_123_abc_456
+```
+
+## Related Functions
+
+- [`replace`](/terraform/language/functions/replace) searches a given string for another given substring, and replaces all occurrences with a given replacement string.

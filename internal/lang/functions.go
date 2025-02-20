@@ -145,6 +145,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"sha512":           funcs.Sha512Func,
 			"signum":           stdlib.SignumFunc,
 			"slice":            stdlib.SliceFunc,
+			"slugify":          funcs.SlugifyFunc,
 			"sort":             stdlib.SortFunc,
 			"split":            stdlib.SplitFunc,
 			"startswith":       funcs.StartsWithFunc,
