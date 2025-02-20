@@ -20,21 +20,21 @@ type Plugins struct {
 	providerFactories    map[addrs.Provider]providers.Factory
 	provisionerFactories map[string]provisioners.Factory
 
-	preloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema
-	preloadedIdentitySchemas map[addrs.Provider]providers.ResourceIdentitySchemas
+	preloadedProviderSchemas         map[addrs.Provider]providers.ProviderSchema
+	preloadedResourceIdentitySchemas map[addrs.Provider]providers.ResourceIdentitySchemas
 }
 
 func NewPlugins(
 	providerFactories map[addrs.Provider]providers.Factory,
 	provisionerFactories map[string]provisioners.Factory,
 	preloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema,
-	preloadedIdentitySchemas map[addrs.Provider]providers.ResourceIdentitySchemas,
+	preloadedResourceIdentitySchemas map[addrs.Provider]providers.ResourceIdentitySchemas,
 ) *Plugins {
 	ret := &Plugins{
-		providerFactories:        providerFactories,
-		provisionerFactories:     provisionerFactories,
-		preloadedProviderSchemas: preloadedProviderSchemas,
-		preloadedIdentitySchemas: preloadedIdentitySchemas,
+		providerFactories:                providerFactories,
+		provisionerFactories:             provisionerFactories,
+		preloadedProviderSchemas:         preloadedProviderSchemas,
+		preloadedResourceIdentitySchemas: preloadedResourceIdentitySchemas,
 	}
 	return ret
 }
@@ -57,8 +57,8 @@ func (cp *Plugins) HasPreloadedSchemaForProvider(addr addrs.Provider) bool {
 	return ok
 }
 
-func (cp *Plugins) HasPreloadedIdentitySchemaForProvider(addr addrs.Provider) bool {
-	_, ok := cp.preloadedIdentitySchemas[addr]
+func (cp *Plugins) HasPreloadedResourceIdentitySchemasForProvider(addr addrs.Provider) bool {
+	_, ok := cp.preloadedResourceIdentitySchemas[addr]
 	return ok
 }
 
@@ -210,13 +210,13 @@ func (cp *Plugins) ResourceIdentitySchemas(addr addrs.Provider) (providers.Resou
 	// FIXME: A global cache is inappropriate when Terraform Core is being
 	// used in a non-Terraform-CLI mode where we shouldn't assume that all
 	// calls share the same provider implementations.
-	schemas, ok := providers.ResourceIdentitySchemaCache.Get(addr)
+	schemas, ok := providers.ResourceIdentitySchemasCache.Get(addr)
 	if ok {
 		log.Printf("[TRACE] terraform.contextPlugins: Resource identity schemas for provider %q is in the global cache", addr)
 		return schemas, nil
 	}
 
-	if is, ok := cp.preloadedIdentitySchemas[addr]; ok {
+	if is, ok := cp.preloadedResourceIdentitySchemas[addr]; ok {
 		return is, nil
 	}
 

@@ -506,11 +506,11 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 		return nil, diags
 	}
 
-	providerIdentitySchema, err := getResourceIdentitySchemas(ctx, n.ResolvedProvider)
+	resourceIdentitySchemas, err := getResourceIdentitySchemas(ctx, n.ResolvedProvider)
 	if err != nil {
 		return nil, diags.Append(fmt.Errorf("Could not read provider identity schema: %w", err))
 	}
-	identitySchema, currentIdentityVersion := providerIdentitySchema.IdentitySchemaForResourceAddr(addr.Resource.ContainingResource())
+	identitySchema, currentIdentityVersion := resourceIdentitySchemas.IdentitySchemaForResourceAddr(addr.Resource.ContainingResource())
 
 	// We need to upgrade the identity schema as well, if necessary.
 	if src.IdentitySchemaVersion < currentIdentityVersion {
@@ -615,11 +615,11 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 		return nil, diags
 	}
 
-	providerIdentitySchema, err := getResourceIdentitySchemas(ctx, n.ResolvedProvider)
+	resourceIdentitySchemas, err := getResourceIdentitySchemas(ctx, n.ResolvedProvider)
 	if err != nil {
 		return nil, diags.Append(fmt.Errorf("Could not read provider identity schema: %w", err))
 	}
-	identitySchema, currentIdentityVersion := providerIdentitySchema.IdentitySchemaForResourceAddr(addr.Resource.ContainingResource())
+	identitySchema, currentIdentityVersion := resourceIdentitySchemas.IdentitySchemaForResourceAddr(addr.Resource.ContainingResource())
 
 	// We need to upgrade the identity schema as well, if necessary.
 	if src.IdentitySchemaVersion < currentIdentityVersion {

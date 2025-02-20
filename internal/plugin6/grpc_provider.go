@@ -187,7 +187,7 @@ func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentit
 	// used in a non-Terraform-CLI mode where we shouldn't assume that all
 	// calls share the same provider implementations.
 	if !p.Addr.IsZero() {
-		if resp, ok := providers.ResourceIdentitySchemaCache.Get(p.Addr); ok {
+		if resp, ok := providers.ResourceIdentitySchemasCache.Get(p.Addr); ok {
 			logger.Trace("GRPCProvider.v6: returning cached resource identity schemas", p.Addr.String())
 			return resp
 		}
@@ -236,7 +236,7 @@ func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentit
 	// used in a non-Terraform-CLI mode where we shouldn't assume that all
 	// calls share the same provider implementations.
 	if !p.Addr.IsZero() {
-		providers.ResourceIdentitySchemaCache.Set(p.Addr, resp)
+		providers.ResourceIdentitySchemasCache.Set(p.Addr, resp)
 	}
 	p.identityTypes = resp.IdentityTypes
 
@@ -396,13 +396,13 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 func (p *GRPCProvider) UpgradeResourceIdentity(r providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
 	logger.Trace("GRPCProvider.v6: UpgradeResourceIdentity")
 
-	schema := p.GetResourceIdentitySchemas()
-	if schema.Diagnostics.HasErrors() {
-		resp.Diagnostics = schema.Diagnostics
+	schemas := p.GetResourceIdentitySchemas()
+	if schemas.Diagnostics.HasErrors() {
+		resp.Diagnostics = schemas.Diagnostics
 		return resp
 	}
 
-	resSchema, ok := schema.IdentityTypes[r.TypeName]
+	resSchema, ok := schemas.IdentityTypes[r.TypeName]
 	if !ok {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown resource type %q", r.TypeName))
 		return resp
