@@ -328,7 +328,6 @@ type TestRunOptions struct {
 
 // runBlockBackend is used when parsing a single test file as part of ensuring
 // there is only a single backend block for a given internal state file.
-// TODO(SarahFrench) this also needs to be done across multiple test files - ?
 type runBlockBackend struct {
 	Backend *Backend
 
