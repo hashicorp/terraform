@@ -9,9 +9,9 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
-// SchemaCache is a global cache of Schemas.
+// ResourceIdentitySchemasCache is a global cache of identity schemas.
 // This will be accessed by both core and the provider clients to ensure that
-// large schemas are stored in a single location.
+// identity schemas are stored in a single location.
 //
 // FIXME: A global cache is inappropriate when Terraform Core is being
 // used in a non-Terraform-CLI mode where we shouldn't assume that all
@@ -19,27 +19,24 @@ import (
 // as a per-terraform.Context cache instead, or to have callers preload
 // the schemas for the providers they intend to use and pass them in
 // to terraform.NewContext so we don't need to load them at runtime.
-var ResourceIdentitySchemaCache = &identitySchemaCache{
+var ResourceIdentitySchemasCache = &identitySchemasCache{
 	m: make(map[addrs.Provider]ResourceIdentitySchemas),
 }
 
-// Global cache for provider schemas
-// Cache the entire response to ensure we capture any new fields, like
-// ServerCapabilities. This also serves to capture errors so that multiple
-// concurrent calls resulting in an error can be handled in the same manner.
-type identitySchemaCache struct {
+// Global cache for resource identity schemas
+type identitySchemasCache struct {
 	mu sync.Mutex
 	m  map[addrs.Provider]ResourceIdentitySchemas
 }
 
-func (c *identitySchemaCache) Set(p addrs.Provider, s ResourceIdentitySchemas) {
+func (c *identitySchemasCache) Set(p addrs.Provider, s ResourceIdentitySchemas) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.m[p] = s
 }
 
-func (c *identitySchemaCache) Get(p addrs.Provider) (ResourceIdentitySchemas, bool) {
+func (c *identitySchemasCache) Get(p addrs.Provider) (ResourceIdentitySchemas, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

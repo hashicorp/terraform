@@ -43,7 +43,7 @@ type ContextOpts struct {
 	Providers    map[addrs.Provider]providers.Factory
 	Provisioners map[string]provisioners.Factory
 
-	// PreloadedProviderSchemas and PreloadedIdentitySchemas are optional maps of provider
+	// PreloadedProviderSchemas and PreloadedResourceIdentitySchemas are optional maps of provider
 	// schemas that were already loaded from providers by the caller. This is intended
 	// to avoid redundant re-fetching of schemas when the caller has already
 	// loaded them for some other reason.
@@ -58,8 +58,8 @@ type ContextOpts struct {
 	//
 	// Callers must not access (read or write) the given map once it has
 	// been passed to Terraform Core using this field.
-	PreloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema
-	PreloadedIdentitySchemas map[addrs.Provider]providers.ResourceIdentitySchemas
+	PreloadedProviderSchemas         map[addrs.Provider]providers.ProviderSchema
+	PreloadedResourceIdentitySchemas map[addrs.Provider]providers.ResourceIdentitySchemas
 
 	UIInput UIInput
 }
@@ -148,7 +148,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		par = 10
 	}
 
-	plugins := newContextPlugins(opts.Providers, opts.Provisioners, opts.PreloadedProviderSchemas, opts.PreloadedIdentitySchemas)
+	plugins := newContextPlugins(opts.Providers, opts.Provisioners, opts.PreloadedProviderSchemas, opts.PreloadedResourceIdentitySchemas)
 
 	log.Printf("[TRACE] terraform.NewContext: complete")
 
