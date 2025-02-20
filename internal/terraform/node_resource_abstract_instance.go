@@ -349,11 +349,11 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 		return fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr)
 	}
 
-	providerIdentitySchema, err := getResourceIdentitySchemas(ctx, n.ResolvedProvider)
+	resourceIdentitySchemas, err := getResourceIdentitySchemas(ctx, n.ResolvedProvider)
 	if err != nil {
 		return err
 	}
-	identitySchema, currentIdentityVersion := providerIdentitySchema.IdentitySchemaForResourceAddr(absAddr.ContainingResource().Resource)
+	identitySchema, currentIdentityVersion := resourceIdentitySchemas.IdentitySchemaForResourceAddr(absAddr.ContainingResource().Resource)
 
 	marshal := func() (*states.ResourceInstanceObjectSrc, error) {
 		return obj.EncodeWithIdentity(objectSchema.ImpliedType(), currentObjectVersion, identitySchema.ImpliedType(), currentIdentityVersion)
