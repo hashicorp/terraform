@@ -384,9 +384,11 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 								}
 								value.Statement = "will be known only after apply"
 							}
-						default:
+						default: // mark-free, known traversal
 							valRep := tfdiags.CompactValueStr(val)
-							if tfdiags.IsFailedRunDiagnostic(diag) {
+							// If this diagnostic is caused by a failed run, we'll
+							// include the full JSON representation of the traversal's value.
+							if tfdiags.DiagnosticCausedByTestFailure(diag) {
 								valRep = marshalValue(val, valRep)
 							}
 							value.Statement = fmt.Sprintf("is %s", valRep)
@@ -416,7 +418,9 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 					diagnostic.Snippet.FunctionCall = callInfo
 				}
 
-				if expr, ok := fromExpr.Expression.(*hclsyntax.BinaryOpExpr); ok && tfdiags.IsFailedRunDiagnostic(diag) {
+				// When the diagnostic is caused by a failed run whose assertion is a binary expression,
+				// we'll include a diff of the two values in the diagnostic snippet.
+				if expr, ok := fromExpr.Expression.(*hclsyntax.BinaryOpExpr); ok && tfdiags.DiagnosticCausedByTestFailure(diag) {
 					if diff := diffBinaryFailedRunDiagnostic(ctx, expr); diff != (DiagnosticExpressionValue{}) {
 						diagnostic.Snippet.Values = append(diagnostic.Snippet.Values, diff)
 					}
