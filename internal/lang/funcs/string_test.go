@@ -17,6 +17,55 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 )
 
+func TestSlugify(t *testing.T) {
+	tests := []struct {
+		String    cty.Value
+		Separator cty.Value
+		Want      cty.Value
+	}{
+		{
+			String:    cty.StringVal("HellO"),
+			Separator: cty.StringVal("-"),
+			Want:      cty.StringVal("hello"),
+		},
+		{
+			String:    cty.StringVal("HellO World!"),
+			Separator: cty.StringVal("-"),
+			Want:      cty.StringVal("hello-world"),
+		},
+		{
+			String:    cty.StringVal("HellO World!"),
+			Separator: cty.StringVal("_"),
+			Want:      cty.StringVal("hello_world"),
+		},
+		{
+			String:    cty.StringVal("HellO#$?World!"),
+			Separator: cty.StringVal("_"),
+			Want:      cty.StringVal("hello_world"),
+		},
+		{
+			String:    cty.StringVal(""),
+			Separator: cty.StringVal("_"),
+			Want:      cty.StringVal(""),
+		},
+		{
+			String:    cty.StringVal("abc 123 abc 456 _"),
+			Separator: cty.StringVal("_"),
+			Want:      cty.StringVal("abc_123_abc_456"),
+		},
+	}
+	for k, v := range tests {
+		got, err := SlugifyFunc.Call([]cty.Value{v.Separator, v.String})
+		if err != nil {
+			t.Fatalf("got an error and didn't expect one: %s", err.Error())
+		}
+		if !got.RawEquals(v.Want) {
+			t.Fatalf("test case [%v]: expected %s, got %s", k, v.Want.AsString(), got.AsString())
+		}
+	}
+
+}
+
 func TestReplace(t *testing.T) {
 	tests := []struct {
 		String  cty.Value

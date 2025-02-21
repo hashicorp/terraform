@@ -392,6 +392,12 @@ var DescriptionList = map[string]descriptionEntry{
 		Description:      "`slice` extracts some consecutive elements from within a list.",
 		ParamDescription: []string{"", "", ""},
 	},
+	"slugify": {
+		Description: "`slugify` is a function that takes a string and transforms it into a \"slug\" which is a URL-friendly, human-readable version of the string.",
+		ParamDescription: []string{
+			"A separator that will be used to replace spaces and other non-alphanumeric characters.",
+			"A string to be transformed into a slug."},
+	},
 	"sort": {
 		Description:      "`sort` takes a list of strings and returns a new list with those strings sorted lexicographically.",
 		ParamDescription: []string{""},
