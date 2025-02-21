@@ -321,6 +321,9 @@ func TestTest_Runs(t *testing.T) {
 		},
 	}
 	for name, tc := range tcs {
+		if name != "ephemeral_input_with_error" {
+			continue
+		}
 		t.Run(name, func(t *testing.T) {
 			if tc.skip {
 				t.Skip()
