@@ -869,6 +869,20 @@ func TestFunctions(t *testing.T) {
 				}),
 			},
 		},
+		"slugify": {
+			{
+				`slugify("-","Hello World")`,
+				cty.StringVal("hello-world"),
+			},
+			{
+				`slugify("_","Hello World")`,
+				cty.StringVal("hello_world"),
+			},
+			{
+				`slugify("-","Hello$World!=")`,
+				cty.StringVal("hello-world"),
+			},
+		},
 
 		"sort": {
 			{
