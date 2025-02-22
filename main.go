@@ -183,6 +183,33 @@ func realMain() int {
 	}
 	services.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 
+	// Get the command line args.
+	binName := filepath.Base(os.Args[0])
+	args := os.Args[1:]
+
+	originalWd, err := os.Getwd()
+	if err != nil {
+		// It would be very strange to end up here
+		Ui.Error(fmt.Sprintf("Failed to determine current working directory: %s", err))
+		return 1
+	}
+
+	// The arguments can begin with a -chdir option to ask Terraform to switch
+	// to a different working directory for the rest of its work. If that
+	// option is present then extractChdirOption returns a trimmed args with that option removed.
+	overrideWd, args, err := extractChdirOption(args)
+	if err != nil {
+		Ui.Error(fmt.Sprintf("Invalid -chdir option: %s", err))
+		return 1
+	}
+	if overrideWd != "" {
+		err := os.Chdir(overrideWd)
+		if err != nil {
+			Ui.Error(fmt.Sprintf("Error handling -chdir option: %s", err))
+			return 1
+		}
+	}
+
 	providerSrc, diags := providerSource(config.ProviderInstallation, services)
 	if len(diags) > 0 {
 		Ui.Error("There are some problems with the provider_installation configuration:")
@@ -212,33 +239,6 @@ func realMain() int {
 
 	// Initialize the backends.
 	backendInit.Init(services)
-
-	// Get the command line args.
-	binName := filepath.Base(os.Args[0])
-	args := os.Args[1:]
-
-	originalWd, err := os.Getwd()
-	if err != nil {
-		// It would be very strange to end up here
-		Ui.Error(fmt.Sprintf("Failed to determine current working directory: %s", err))
-		return 1
-	}
-
-	// The arguments can begin with a -chdir option to ask Terraform to switch
-	// to a different working directory for the rest of its work. If that
-	// option is present then extractChdirOption returns a trimmed args with that option removed.
-	overrideWd, args, err := extractChdirOption(args)
-	if err != nil {
-		Ui.Error(fmt.Sprintf("Invalid -chdir option: %s", err))
-		return 1
-	}
-	if overrideWd != "" {
-		err := os.Chdir(overrideWd)
-		if err != nil {
-			Ui.Error(fmt.Sprintf("Error handling -chdir option: %s", err))
-			return 1
-		}
-	}
 
 	// In tests, Commands may already be set to provide mock commands
 	if Commands == nil {
