@@ -431,3 +431,12 @@ func (ctx *MockEvalContext) ClientCapabilities() providers.ClientCapabilities {
 		WriteOnlyAttributesAllowed: true,
 	}
 }
+
+func (ctx *MockEvalContext) ReferencableDeprecationMessage(addrs.Module, addrs.Referenceable) (string, bool) {
+	// TODO: implement
+	return "", false
+}
+
+func (ctx *MockEvalContext) MarkReferencableAsDeprecated(addrs.ConfigOutputValue, string) {
+	// TODO: implement
+}
