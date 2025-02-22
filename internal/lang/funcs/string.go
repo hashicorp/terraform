@@ -18,6 +18,35 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 )
 
+var SlugifyFunc = function.New(&function.Spec{
+	Description: "returns a string that is lowercased and replaces all non-alphanumeric chars with the specified separator",
+	Params: []function.Parameter{
+		{
+			Name:         "str",
+			Type:         cty.String,
+			AllowUnknown: true,
+			AllowNull:    false,
+		},
+		{
+			Name: "separator",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		seperator := args[0].AsString()
+		str := args[1].AsString()
+
+		re := regexp.MustCompile(`[^a-z0-9\n]+`)
+
+		output := strings.ToLower(str)
+		output = re.ReplaceAllString(output, seperator)
+		output = strings.TrimSuffix(output, seperator)
+
+		return cty.StringVal(output), nil
+	},
+})
+
 // StartsWithFunc constructs a function that checks if a string starts with
 // a specific prefix using strings.HasPrefix
 var StartsWithFunc = function.New(&function.Spec{

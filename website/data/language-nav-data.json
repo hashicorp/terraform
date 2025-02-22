@@ -458,6 +458,10 @@
             "href": "/language/functions/replace"
           },
           {
+            "title": "<code>slugify</code>",
+            "href": "/language/functions/slugify"
+          },
+          {
             "title": "<code>split</code>",
             "href": "/language/functions/split"
           },
@@ -1000,6 +1004,7 @@
       { "title": "sha512", "path": "functions/sha512", "hidden": true },
       { "title": "signum", "path": "functions/signum", "hidden": true },
       { "title": "slice", "path": "functions/slice", "hidden": true },
+      { "title": "slugify", "path": "functions/slugify", "hidden": true },
       { "title": "sort", "path": "functions/sort", "hidden": true },
       { "title": "split", "path": "functions/split", "hidden": true },
       { "title": "startswith", "path": "functions/startswith", "hidden": true },

@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: adds slugify function
+time: 2025-02-20T10:46:36.260483816-05:00
+custom:
+    Issue: "36472"
