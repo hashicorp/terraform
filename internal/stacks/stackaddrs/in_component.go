@@ -128,7 +128,7 @@ type InComponentable interface {
 }
 
 func ParseAbsResourceInstanceObject(traversal hcl.Traversal) (AbsResourceInstanceObject, tfdiags.Diagnostics) {
-	stack, remain, diags := parseAbsComponentInstance(traversal)
+	stack, remain, diags := ParseAbsComponentInstanceOnly(traversal)
 	if diags.HasErrors() {
 		return AbsResourceInstanceObject{}, diags
 	}
