@@ -30,11 +30,17 @@ func copyDir(dst, src string) error {
 		// destination with the path without the src on it.
 		dstPath := filepath.Join(dst, path[len(src):])
 
-		// we don't want to try and copy the same file over itself.
-		if eq, err := sameFile(path, dstPath); eq {
+		// Call os.Stat on dstPath to obtain os.FileInfo since os.SameFile
+		// requires FileInfo objects for comparison.
+		dstInfo, err := os.Stat(dstPath)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				return err
+			}
+		} else if os.SameFile(info, dstInfo) {
+			// The destination file exists and is the same as the source file;
+			// skip copying.
 			return nil
-		} else if err != nil {
-			return err
 		}
 
 		// If we have a directory, make that subdirectory, then continue
@@ -85,34 +91,4 @@ func copyDir(dst, src string) error {
 	}
 
 	return filepath.Walk(src, walkFn)
-}
-
-// sameFile tried to determine if to paths are the same file.
-// If the paths don't match, we lookup the inode on supported systems.
-func sameFile(a, b string) (bool, error) {
-	if a == b {
-		return true, nil
-	}
-
-	aIno, err := inode(a)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, err
-	}
-
-	bIno, err := inode(b)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, err
-	}
-
-	if aIno > 0 && aIno == bIno {
-		return true, nil
-	}
-
-	return false, nil
 }
