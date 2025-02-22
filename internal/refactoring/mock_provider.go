@@ -29,6 +29,10 @@ func (provider *mockProvider) GetProviderSchema() providers.GetProviderSchemaRes
 	}
 }
 
+func (provider *mockProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	panic("not implemented in mock")
+}
+
 func (provider *mockProvider) ValidateProviderConfig(providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
 	panic("not implemented in mock")
 }
@@ -42,6 +46,10 @@ func (provider *mockProvider) ValidateDataResourceConfig(providers.ValidateDataR
 }
 
 func (provider *mockProvider) UpgradeResourceState(providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) UpgradeResourceIdentity(providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse {
 	panic("not implemented in mock")
 }
 

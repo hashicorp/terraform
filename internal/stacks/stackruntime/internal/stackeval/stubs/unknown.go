@@ -39,6 +39,10 @@ func (u *unknownProvider) GetProviderSchema() providers.GetProviderSchemaRespons
 	return u.unconfiguredClient.GetProviderSchema()
 }
 
+func (u *unknownProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	return u.unconfiguredClient.GetResourceIdentitySchemas()
+}
+
 func (u *unknownProvider) ValidateProviderConfig(request providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
 	// This is offline functionality, so we can hand it off to the unconfigured
 	// client.
@@ -68,6 +72,12 @@ func (u *unknownProvider) UpgradeResourceState(request providers.UpgradeResource
 	// This is offline functionality, so we can hand it off to the unconfigured
 	// client.
 	return u.unconfiguredClient.UpgradeResourceState(request)
+}
+
+func (u *unknownProvider) UpgradeResourceIdentity(request providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse {
+	// This is offline functionality, so we can hand it off to the unconfigured
+	// client.
+	return u.unconfiguredClient.UpgradeResourceIdentity(request)
 }
 
 func (u *unknownProvider) ConfigureProvider(request providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {

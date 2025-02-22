@@ -199,6 +199,7 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 		CreateBeforeDestroy: src.CreateBeforeDestroy,
 	}
 
+	// TODO: We need to handle identity data in move scenarios.
 	data, err := newValue.Encode(move.targetResourceSchema.ImpliedType(), move.targetResourceSchemaVersion)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{

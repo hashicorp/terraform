@@ -17,6 +17,8 @@ type Interface interface {
 	// GetSchema returns the complete schema for the provider.
 	GetProviderSchema() GetProviderSchemaResponse
 
+	GetResourceIdentitySchemas() GetResourceIdentitySchemasResponse
+
 	// ValidateProviderConfig allows the provider to validate the configuration.
 	// The ValidateProviderConfigResponse.PreparedConfig field is unused. The
 	// final configuration is not stored in the state, and any modifications
@@ -40,6 +42,12 @@ type Interface interface {
 	// currently-used version of the corresponding provider, and the upgraded
 	// result is used for any further processing.
 	UpgradeResourceState(UpgradeResourceStateRequest) UpgradeResourceStateResponse
+
+	// UpgradeResourceIdentity is called when the state loader encounters an
+	// instance identity whose schema version is less than the one reported by
+	// the currently-used version of the corresponding provider, and the upgraded
+	// result is used for any further processing.
+	UpgradeResourceIdentity(UpgradeResourceIdentityRequest) UpgradeResourceIdentityResponse
 
 	// Configure configures and initialized the provider.
 	ConfigureProvider(ConfigureProviderRequest) ConfigureProviderResponse
@@ -125,6 +133,25 @@ type GetProviderSchemaResponse struct {
 
 	// ServerCapabilities lists optional features supported by the provider.
 	ServerCapabilities ServerCapabilities
+}
+
+// GetResourceIdentitySchemasResponse is the return type for GetProviderSchema, and
+// should only be used when handling a value for that method. The handling of
+// of schemas in any other context should always use ProviderSchema, so that
+// the in-memory representation can be more easily changed separately from the
+// RCP protocol.
+type GetResourceIdentitySchemasResponse struct {
+	// IdentityTypes map the resource type name to that type's identity schema.
+	IdentityTypes map[string]IdentitySchema
+
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type IdentitySchema struct {
+	Version int64
+
+	Attributes configschema.IdentityAttributes
 }
 
 // Schema pairs a provider or resource schema with that schema's version.
@@ -254,6 +281,26 @@ type UpgradeResourceStateResponse struct {
 	Diagnostics tfdiags.Diagnostics
 }
 
+type UpgradeResourceIdentityRequest struct {
+	// TypeName is the name of the resource type being upgraded
+	TypeName string
+
+	// Version is version of the schema that created the current identity.
+	Version int64
+
+	// RawIdentityJSON contains the identity that needs to be
+	// upgraded to match the current schema version.
+	RawIdentityJSON []byte
+}
+
+type UpgradeResourceIdentityResponse struct {
+	// UpgradedState is the newly upgraded resource identity.
+	UpgradedIdentity cty.Value
+
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
 type ConfigureProviderRequest struct {
 	// Terraform version is the version string from the running instance of
 	// terraform. Providers can use TerraformVersion to verify compatibility,
@@ -344,6 +391,10 @@ type ReadResourceResponse struct {
 	// Deferred if present signals that the provider was not able to fully
 	// complete this operation and a susequent run is required.
 	Deferred *Deferred
+
+	// Identity is the object-typed value representing the identity of the remote
+	// object within Terraform.
+	Identity cty.Value
 }
 
 type PlanResourceChangeRequest struct {

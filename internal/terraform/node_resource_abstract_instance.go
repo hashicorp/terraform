@@ -341,15 +341,30 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 
 	log.Printf("[TRACE] %s: writing state object for %s", logFuncName, absAddr)
 
-	schema, currentVersion := providerSchema.SchemaForResourceAddr(absAddr.ContainingResource().Resource)
-	if schema == nil {
+	objectSchema, currentObjectVersion := providerSchema.SchemaForResourceAddr(absAddr.ContainingResource().Resource)
+	if objectSchema == nil {
 		// It shouldn't be possible to get this far in any real scenario
 		// without a schema, but we might end up here in contrived tests that
 		// fail to set up their world properly.
 		return fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr)
 	}
 
-	src, err := obj.Encode(schema.ImpliedType(), currentVersion)
+	resourceIdentitySchemas, err := getResourceIdentitySchemas(ctx, n.ResolvedProvider)
+	if err != nil {
+		return err
+	}
+	identitySchema, currentIdentityVersion := resourceIdentitySchemas.IdentitySchemaForResourceAddr(absAddr.ContainingResource().Resource)
+
+	marshal := func() (*states.ResourceInstanceObjectSrc, error) {
+		return obj.EncodeWithIdentity(objectSchema.ImpliedType(), currentObjectVersion, identitySchema.ImpliedType(), currentIdentityVersion)
+	}
+	if identitySchema == nil || obj.Identity == cty.NilVal {
+		marshal = func() (*states.ResourceInstanceObjectSrc, error) {
+			return obj.Encode(objectSchema.ImpliedType(), currentObjectVersion)
+		}
+	}
+
+	src, err := marshal()
 	if err != nil {
 		return fmt.Errorf("failed to encode %s in state: %s", absAddr, err)
 	}
@@ -630,6 +645,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		// to the provider so we'll just return whatever was in state.
 		resp = providers.ReadResourceResponse{
 			NewState: priorVal,
+			Identity: state.Identity,
 		}
 	} else {
 		resp = provider.ReadResource(providers.ReadResourceRequest{
@@ -711,6 +727,11 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		return state, deferred, diags
 	}
 
+	diags = diags.Append(n.validateIdentity(state, resp.Identity, false))
+	if diags.HasErrors() {
+		return state, deferred, diags
+	}
+
 	newState := objchange.NormalizeObjectFromLegacySDK(resp.NewState, schema)
 	if !newState.RawEquals(resp.NewState) {
 		// We had to fix up this object in some way, and we still need to
@@ -722,6 +743,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 	ret := state.DeepCopy()
 	ret.Value = newState
 	ret.Private = resp.Private
+	ret.Identity = resp.Identity
 
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
@@ -2828,6 +2850,47 @@ func (n *NodeAbstractResourceInstance) apply(
 
 func (n *NodeAbstractResourceInstance) prevRunAddr(ctx EvalContext) addrs.AbsResourceInstance {
 	return resourceInstancePrevRunAddr(ctx, n.Addr)
+}
+
+func (n *NodeAbstractResourceInstance) validateIdentity(state *states.ResourceInstanceObject, newIdentity cty.Value, isAllowedToChange bool) (diags tfdiags.Diagnostics) {
+
+	// Identities can not contain unknown values
+	if !newIdentity.IsWhollyKnown() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid identity",
+			fmt.Sprintf(
+				"Provider %q planned an identity with unknown values for %s during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.Provider, n.Addr,
+			),
+		))
+	}
+
+	// Identities can not contain marks
+	if _, marks := newIdentity.UnmarkDeep(); len(marks) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid identity",
+			fmt.Sprintf(
+				"Provider %q planned an identity with marks for %s during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.Provider, n.Addr,
+			),
+		))
+	}
+
+	// Identities can not change (except if they are re-created or initially recorded)
+	if !isAllowedToChange && !state.Identity.IsNull() && state.Identity.Equals(newIdentity).False() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced different identity",
+			fmt.Sprintf(
+				"Provider %q planned an different identity for %s during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.Provider, n.Addr,
+			),
+		))
+	}
+
+	return diags
 }
 
 func resourceInstancePrevRunAddr(ctx EvalContext, currentAddr addrs.AbsResourceInstance) addrs.AbsResourceInstance {

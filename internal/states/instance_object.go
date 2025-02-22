@@ -27,6 +27,10 @@ type ResourceInstanceObject struct {
 	// Terraform.
 	Value cty.Value
 
+	// Identity is the object-typed value representing the identity of the remote
+	// object within Terraform.
+	Identity cty.Value
+
 	// Private is an opaque value set by the provider when this object was
 	// last created or updated. Terraform Core does not use this value in
 	// any way and it is not exposed anywhere in the user interface, so
@@ -79,6 +83,24 @@ const (
 	// unknown values, because the state is not able to represent them.
 	ObjectPlanned ObjectStatus = 'P'
 )
+
+// EncodeWithoutIdentity marshals the value within the receiver to produce a
+// ResourceInstanceObjectSrc ready to be written to a state file. It does not
+// include the identity data in the state representation.
+func (o *ResourceInstanceObject) EncodeWithIdentity(ty cty.Type, schemaVersion uint64, identityTy cty.Type, identitySchemaVersion uint64) (*ResourceInstanceObjectSrc, error) {
+	src, err := o.Encode(ty, schemaVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	src.IdentityJSON, err = ctyjson.Marshal(o.Identity, identityTy)
+	if err != nil {
+		return nil, err
+	}
+
+	src.IdentitySchemaVersion = identitySchemaVersion
+	return src, nil
+}
 
 // Encode marshals the value within the receiver to produce a
 // ResourceInstanceObjectSrc ready to be written to a state file.

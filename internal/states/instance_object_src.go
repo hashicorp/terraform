@@ -4,6 +4,8 @@
 package states
 
 import (
+	"fmt"
+
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
@@ -40,6 +42,10 @@ type ResourceInstanceObjectSrc struct {
 	// schema version should be recorded in the SchemaVersion field.
 	AttrsJSON []byte
 
+	IdentitySchemaVersion uint64
+
+	IdentityJSON []byte
+
 	// AttrsFlat is a legacy form of attributes used in older state file
 	// formats, and in the new state format for objects that haven't yet been
 	// upgraded. This attribute is mutually exclusive with Attrs: for any
@@ -66,6 +72,30 @@ type ResourceInstanceObjectSrc struct {
 
 	// decodeValueCache stored the decoded value for repeated decodings.
 	decodeValueCache cty.Value
+}
+
+// DecodeWithIdentity unmarshals the raw representation of the object attributes
+// and identity schema. We expect the caller to make sure upgrades of the resource identity happen beforehand.
+func (os *ResourceInstanceObjectSrc) DecodeWithIdentity(ty cty.Type, identityTy cty.Type, identitySchemaVersion uint64) (*ResourceInstanceObject, error) {
+	if len(os.IdentityJSON) == 0 {
+		return os.Decode(ty) // Task failed successfully
+	}
+
+	if os.IdentitySchemaVersion != identitySchemaVersion {
+		return nil, fmt.Errorf("identity schema version mismatch: got %d, want %d", os.IdentitySchemaVersion, identitySchemaVersion)
+	}
+
+	rio, err := os.Decode(ty)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode object schema: %e", err)
+	}
+
+	rio.Identity, err = ctyjson.Unmarshal(os.IdentityJSON, identityTy)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode identity schema: %s. This is most likely a bug in the Provider, providers must not change the identity schema without updating the identity schema version", err.Error())
+	}
+
+	return rio, nil
 }
 
 // Decode unmarshals the raw representation of the object attributes. Pass the
