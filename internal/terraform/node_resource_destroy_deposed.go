@@ -218,6 +218,7 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 type NodeDestroyDeposedResourceInstanceObject struct {
 	*NodeAbstractResourceInstance
 	DeposedKey states.DeposedKey
+	semaphore  Semaphore
 }
 
 var (
@@ -232,6 +233,7 @@ var (
 	_ GraphNodeProviderConsumer              = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProvisionerConsumer           = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeDestroyer                     = (*NodeDestroyDeposedResourceInstanceObject)(nil)
+	_ GraphNodeLockable                      = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 )
 
 func (n *NodeDestroyDeposedResourceInstanceObject) Name() string {
@@ -329,6 +331,25 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
 
 	return diags.Append(updateStateHook(ctx))
+}
+
+// GraphNodeLockable
+func (n *NodeDestroyDeposedResourceInstanceObject) AttachSemaphore(sem Semaphore) {
+	n.semaphore = sem
+}
+
+// GraphNodeLockable
+func (n *NodeDestroyDeposedResourceInstanceObject) Lock() {
+	if n.semaphore != nil {
+		n.semaphore.Acquire()
+	}
+}
+
+// GraphNodeLockable
+func (n *NodeDestroyDeposedResourceInstanceObject) Unlock() {
+	if n.semaphore != nil {
+		n.semaphore.Release()
+	}
 }
 
 // NodeForgetDeposedResourceInstanceObject represents deposed resource

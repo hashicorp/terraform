@@ -50,6 +50,12 @@ type ResourceInstanceObject struct {
 	// destroy operations, we need to record the status to ensure a resource
 	// removed from the config will still be destroyed in the same manner.
 	CreateBeforeDestroy bool
+
+	// Concurrency is the status of the lifecycle concurrency option when this
+	// instance was last updated. When there is more than one instance of a
+	// resource, the concurrency option can be used to control the number of
+	// instances that can be created or destroyed concurrently.
+	Concurrency int
 }
 
 // ObjectStatus represents the status of a RemoteObject.
@@ -139,6 +145,7 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 		Status:              o.Status,
 		Dependencies:        dependencies,
 		CreateBeforeDestroy: o.CreateBeforeDestroy,
+		Concurrency:         o.Concurrency,
 		// The cached value must have all its marks since it bypasses decoding.
 		decodeValueCache: o.Value,
 	}, nil
