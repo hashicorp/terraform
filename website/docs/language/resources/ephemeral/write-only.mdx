@@ -33,6 +33,7 @@ resource "aws_db_instance" "test" {
   username            = "admin"
   skip_final_snapshot = true
   password_wo = <ephemeral or non-ephemeral value>
+  password_wo_version = 1
 }
 ```
 
@@ -48,10 +49,11 @@ resource "aws_db_instance" "test" {
   username            = "admin"
   skip_final_snapshot = true
   password_wo = "my-password-here"
+  password_wo_version = 1
 }
 ```
 
-However, write-only arguments are most useful for passing ephemeral values to resources. For example, you can use an `ephemeral` resource to generate a random password and pass it to the `password_wo` write-only argument:
+However, we recommend using write-only arguments for passing ephemeral values to resources. For example, you can use an `ephemeral` resource to generate a random password and pass it to the `password_wo` write-only argument:
 
 <CodeBlockConfig highlight="11">
 
@@ -67,6 +69,7 @@ resource "aws_db_instance" "test" {
   username            = "admin"
   skip_final_snapshot = true
   password_wo = ephemeral.random.password.value
+  password_wo_version = 1
 }
 ```
 
