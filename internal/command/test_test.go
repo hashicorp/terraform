@@ -147,8 +147,8 @@ func TestTest_Runs(t *testing.T) {
 		"simple_fail": {
 			expectedOut: []string{"0 passed, 1 failed."},
 			expectedErr: []string{"invalid value", `    │ ~~diff: 
-    | - "\"bar\""
-    | + "\"zap\""`},
+    | - "bar"
+    | + "zap"`},
 			code: 1,
 		},
 		"custom_condition_checks": {
@@ -306,7 +306,7 @@ func TestTest_Runs(t *testing.T) {
 			expectedErr: []string{"Test assertion failed",
 				`│ ~~diff: 
     | - "(ephemeral value)"
-    | + "\"bar\""`},
+    | + "bar"`},
 			code: 1,
 		},
 		"ephemeral_resource": {
@@ -897,11 +897,12 @@ func TestTest_ComplexCondition(t *testing.T) {
   run "validate_diff_types"... fail
   run "validate_output"... fail
   run "validate_complex_output"... fail
+  run "validate_complex_output_sensitive"... fail
   run "validate_complex_output_pass"... pass
 main.tftest.hcl... tearing down
 main.tftest.hcl... fail
 
-Failure! 1 passed, 3 failed.
+Failure! 1 passed, 4 failed.
 `
 
 	expectedErr := `
@@ -911,12 +912,12 @@ Error: Test assertion failed
   21:     condition = var.tr1 == var.tr2 
     ├────────────────
     │ ~lhs is {
-    |   "iops": "null",
-    |   "size": "60"
+    |   "iops": null,
+    |   "size": 60
     | }
     │ ~rhs is {
     |   "iops": null,
-    |   "size": "60"
+    |   "size": 60
     | }
     │ ~~diff: LHS and RHS values are of different types
 
@@ -928,18 +929,18 @@ Error: Test assertion failed
   28:     condition = output.foo == var.foo[0]
     ├────────────────
     │ ~lhs is {
-    |   "bar": "\"notbaz\"",
-    |   "qux": "\"quux\""
+    |   "bar": "notbaz",
+    |   "qux": "quux"
     | }
     │ ~rhs is {
-    |   "bar": "\"baz\"",
-    |   "qux": "\"quux\""
+    |   "bar": "baz",
+    |   "qux": "quux"
     | }
     │ ~~diff: 
     | 	{
-    | - "bar": "\"notbaz\"",
-    | + "bar": "\"baz\"",
-    | 	"qux": "\"quux\""
+    | - "bar": "notbaz",
+    | + "bar": "baz",
+    | 	"qux": "quux"
     | 	}
 
 
@@ -954,25 +955,69 @@ Error: Test assertion failed
     |   "root": [
     |     {
     |       "bar": [
-    |         "1"
+    |         1
     |       ],
-    |       "qux": "\"quux\""
+    |       "qux": "quux"
     |     },
     |     {
     |       "bar": [
-    |         "2"
+    |         2
     |       ],
-    |       "qux": "\"quux\""
+    |       "qux": "quux"
     |     }
     |   ]
     | }
     │ ~rhs is [
     |   {
-    |     "bar": "\"baz\"",
-    |     "qux": "\"quux\""
+    |     "bar": "baz",
+    |     "qux": "quux"
     |   }
     | ]
     │ ~~diff: LHS and RHS values are of different types
+
+expected to fail
+
+Error: Test assertion failed
+
+  on main.tftest.hcl line 42, in run "validate_complex_output_sensitive":
+  42:     condition = output.complex == output.complex_sensitive
+    ├────────────────
+    │ ~lhs is {
+    |   "root": [
+    |     {
+    |       "bar": [
+    |         1
+    |       ],
+    |       "qux": "quux"
+    |     },
+    |     {
+    |       "bar": [
+    |         2
+    |       ],
+    |       "qux": "quux"
+    |     }
+    |   ]
+    | }
+    │ ~rhs is "(sensitive value)"
+    │ ~~diff: 
+    | - {
+    | + "(sensitive value)"
+    | - "root": [
+    | - {
+    | - "bar": [
+    | - 1
+    | - ],
+    | - "qux": "quux"
+    | - },
+    | - {
+    | - "bar": [
+    | - 2
+    | - ],
+    | - "qux": "quux"
+    | - }
+    | - ]
+    | - }
+
 
 expected to fail
 `
@@ -2183,7 +2228,7 @@ Error: Test assertion failed
   on main.tftest.hcl line 8, in run "first":
    8:     condition     = test_resource.resource.value == output.null_output
     ├────────────────
-    │ ~lhs is "\"bar\""
+    │ ~lhs is "bar"
     │ ~rhs is null
     │ ~~diff: LHS and RHS values are of different types
 
@@ -2425,17 +2470,17 @@ Error: Test assertion failed
     ├────────────────
     │ ~lhs is {
     |   "baz": "(sensitive value)",
-    |   "foo": "\"bar\""
+    |   "foo": "bar"
     | }
     │ ~rhs is {
-    |   "baz": "\"9ddca5a9\"",
-    |   "foo": "\"bar\""
+    |   "baz": "9ddca5a9",
+    |   "foo": "bar"
     | }
     │ ~~diff: 
     | 	{
     | - "baz": "(sensitive value)",
-    | + "baz": "\"9ddca5a9\"",
-    | 	"foo": "\"bar\""
+    | + "baz": "9ddca5a9",
+    | 	"foo": "bar"
     | 	}
 
 

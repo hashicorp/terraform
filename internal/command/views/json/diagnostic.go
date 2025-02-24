@@ -415,7 +415,8 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 				// When the diagnostic is caused by a failed run whose assertion is a binary expression,
 				// we'll include a diff of the two values in the diagnostic snippet.
 				if expr, ok := fromExpr.Expression.(*hclsyntax.BinaryOpExpr); ok && tfdiags.DiagnosticCausedByTestFailure(diag) {
-					diagnostic.Snippet.Values = diffBinaryFailedRunDiagnostic(ctx, expr, diag)
+					// replace all existing snippets with the LHS, RHS and diff snippet
+					diagnostic.Snippet.Values = diffBinaryFailedRunDiagnostic(ctx, expr)
 				}
 
 			}
@@ -432,7 +433,7 @@ var ttyOutPrefix = "    | "
 // diffBinaryFailedRunDiagnostic is used to diff the two values of a binary expression
 // in a failed run diagnostic. More often than not, run assert expressions are binary
 // expressions, i.e., `a == b`. If the values are of different types, we don't diff them.
-func diffBinaryFailedRunDiagnostic(ctx *hcl.EvalContext, expr *hclsyntax.BinaryOpExpr, orig tfdiags.Diagnostic) []DiagnosticExpressionValue {
+func diffBinaryFailedRunDiagnostic(ctx *hcl.EvalContext, expr *hclsyntax.BinaryOpExpr) []DiagnosticExpressionValue {
 	// The expression has already been evaluated and failed, so we can ignore the diags here.
 	lhs, _ := expr.LHS.Value(ctx)
 	rhs, _ := expr.RHS.Value(ctx)
@@ -444,7 +445,9 @@ func diffBinaryFailedRunDiagnostic(ctx *hcl.EvalContext, expr *hclsyntax.BinaryO
 		var str bytes.Buffer
 
 		val, err := cty.Transform(val, func(path cty.Path, val cty.Value) (cty.Value, error) {
-			if val.Type().IsPrimitiveType() {
+			// If a value is sensitive or ephemeral, we redact it, otherwise
+			// we return the value as is.
+			if val.HasMark(marks.Sensitive) || val.HasMark(marks.Ephemeral) {
 				return cty.StringVal(tfdiags.CompactValueStr(val)), nil
 			}
 			return val, nil

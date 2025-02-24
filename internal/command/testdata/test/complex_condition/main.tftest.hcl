@@ -37,6 +37,13 @@ run "validate_complex_output" {
   }
 }
 
+run "validate_complex_output_sensitive" {
+  assert {
+    condition = output.complex == output.complex_sensitive
+    error_message = "expected to fail"
+  }
+}
+
 run "validate_complex_output_pass" {
   assert {
     condition = output.complex != var.foo
