@@ -17,7 +17,7 @@ import (
 
 func dataStoreResourceSchema() providers.Schema {
 	return providers.Schema{
-		Block: &configschema.Block{
+		Body: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"input":            {Type: cty.DynamicPseudoType, Optional: true},
 				"output":           {Type: cty.DynamicPseudoType, Computed: true},
@@ -44,7 +44,7 @@ func validateDataStoreResourceConfig(req providers.ValidateResourceConfigRequest
 }
 
 func upgradeDataStoreResourceState(req providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
-	ty := dataStoreResourceSchema().Block.ImpliedType()
+	ty := dataStoreResourceSchema().Body.ImpliedType()
 	val, err := ctyjson.Unmarshal(req.RawStateJSON, ty)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
@@ -160,7 +160,7 @@ func importDataStore(req providers.ImportResourceStateRequest) (resp providers.I
 	v := cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal(req.ID),
 	})
-	state, err := schema.Block.CoerceValue(v)
+	state, err := schema.Body.CoerceValue(v)
 	resp.Diagnostics = resp.Diagnostics.Append(err)
 
 	resp.ImportedResources = []providers.ImportedResource{
@@ -200,7 +200,7 @@ func moveDataStoreResourceState(req providers.MoveResourceStateRequest) (resp pr
 		return resp
 	}
 
-	nullResourceSchemaType := nullResourceSchema().Block.ImpliedType()
+	nullResourceSchemaType := nullResourceSchema().Body.ImpliedType()
 	nullResourceValue, err := ctyjson.Unmarshal(req.SourceStateJSON, nullResourceSchemaType)
 
 	if err != nil {
@@ -233,7 +233,7 @@ func moveDataStoreResourceState(req providers.MoveResourceStateRequest) (resp pr
 		"triggers_replace": triggersReplace,
 	})
 
-	state, err := schema.Block.CoerceValue(v)
+	state, err := schema.Body.CoerceValue(v)
 
 	// null_resource did not use private state, so it is unnecessary to move.
 	resp.Diagnostics = resp.Diagnostics.Append(err)
@@ -244,7 +244,7 @@ func moveDataStoreResourceState(req providers.MoveResourceStateRequest) (resp pr
 
 func nullResourceSchema() providers.Schema {
 	return providers.Schema{
-		Block: &configschema.Block{
+		Body: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"id":       {Type: cty.String, Computed: true},
 				"triggers": {Type: cty.Map(cty.String), Optional: true},

@@ -19,13 +19,13 @@ func (ss ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeName
 	switch mode {
 	case addrs.ManagedResourceMode:
 		res := ss.ResourceTypes[typeName]
-		return res.Block, uint64(res.Version)
+		return res.Body, uint64(res.Version)
 	case addrs.DataResourceMode:
 		// Data resources don't have schema versions right now, since state is discarded for each refresh
-		return ss.DataSources[typeName].Block, 0
+		return ss.DataSources[typeName].Body, 0
 	case addrs.EphemeralResourceMode:
 		// Ephemeral resources don't have schema versions because their objects never outlive a single phase
-		return ss.EphemeralResourceTypes[typeName].Block, 0
+		return ss.EphemeralResourceTypes[typeName].Body, 0
 	default:
 		// Shouldn't happen, because the above cases are comprehensive.
 		return nil, 0

@@ -72,7 +72,7 @@ check "passing" {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -126,7 +126,7 @@ check "failing" {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -185,7 +185,7 @@ check "failing" {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -255,7 +255,7 @@ check "nested_data_block" {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -323,7 +323,7 @@ check "resource_block" {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"id": {
 										Type:     cty.String,
@@ -335,7 +335,7 @@ check "resource_block" {
 					},
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"id": {
 										Type:     cty.String,
@@ -421,7 +421,7 @@ check "error" {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -496,7 +496,7 @@ check "error" {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -508,7 +508,7 @@ check "error" {
 					},
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -588,7 +588,7 @@ check "passing" {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -636,7 +636,7 @@ check "error" {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"number": {
 										Type:     cty.Number,
@@ -679,7 +679,7 @@ check "error" {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					DataSources: map[string]providers.Schema{
 						"checks_object": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"id": {
 										Type:     cty.String,
