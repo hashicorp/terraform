@@ -48,7 +48,7 @@ The following table describes the operators you can use to configure version con
 | `=`, <br/>no operator | Allows only one exact version number. Cannot be combined with other conditions. |
 | `!=` | Excludes an exact version number. |
 | `>`,<br/> `>=`,<br/> `<`,<br/> `<=` | Compares to a specified version. Terraform allows versions that resolve to `true`. The `>` and `>=` operators request newer versions. The `<` and `<=` operators request older versions. |
-| `~>` | Allows only the right-most version component to increment. Examples: <ul><li>`~> 1.0.4`: Allows Terraform to install `1.0.5` and `1.0.10` but not `1.1.0`.</li><li>`1.1`: Allows Terraform to install `1.2` and `1.10` but not `2.0`. </li></ul>|
+| `~>` | Allows only the right-most version component to increment. Examples: <ul><li>`~> 1.0.4`: Allows Terraform to install `1.0.5` and `1.0.10` but not `1.1.0`.</li><li>`~> 1.1`: Allows Terraform to install `1.2` and `1.10` but not `2.0`. </li></ul>|
 
 ## Version constraint behavior
 
