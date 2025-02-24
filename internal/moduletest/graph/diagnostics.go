@@ -23,25 +23,27 @@ import "github.com/hashicorp/terraform/internal/tfdiags"
 // When using this, set the Extra to DiagnosticCausedByTestFailure(true) and also
 // populate the EvalContext and Expression fields of the diagnostic.
 
-type DiagnosticCausedByTestFailure bool
+type DiagnosticCausedByTestFailure struct {
+	allowSensitive bool
+}
 
-var _ tfdiags.DiagnosticExtraCausedByTestFailure = DiagnosticCausedByTestFailure(true)
-var _ tfdiags.DiagnosticExtraBecauseEphemeral = DiagnosticCausedByTestFailure(true)
-var _ tfdiags.DiagnosticExtraBecauseSensitive = DiagnosticCausedByTestFailure(true)
-var _ tfdiags.DiagnosticExtraBecauseUnknown = DiagnosticCausedByTestFailure(true)
+var _ tfdiags.DiagnosticExtraCausedByTestFailure = (*DiagnosticCausedByTestFailure)(nil)
+var _ tfdiags.DiagnosticExtraBecauseEphemeral = (*DiagnosticCausedByTestFailure)(nil)
+var _ tfdiags.DiagnosticExtraBecauseSensitive = (*DiagnosticCausedByTestFailure)(nil)
+var _ tfdiags.DiagnosticExtraBecauseUnknown = (*DiagnosticCausedByTestFailure)(nil)
 
 func (e DiagnosticCausedByTestFailure) DiagnosticCausedByTestFailure() bool {
-	return bool(e)
+	return true
 }
 
 func (e DiagnosticCausedByTestFailure) DiagnosticCausedByEphemeral() bool {
-	return bool(e)
+	return true
 }
 
 func (e DiagnosticCausedByTestFailure) DiagnosticCausedBySensitive() bool {
-	return bool(e)
+	return e.allowSensitive
 }
 
 func (e DiagnosticCausedByTestFailure) DiagnosticCausedByUnknown() bool {
-	return bool(e)
+	return true
 }

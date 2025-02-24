@@ -146,7 +146,7 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"simple_fail": {
 			expectedOut: []string{"0 passed, 1 failed."},
-			expectedErr: []string{"invalid value", `    │ ~diff: 
+			expectedErr: []string{"invalid value", `    │ ~~diff: 
     | - "bar"
     | + "zap"`},
 			code: 1,
@@ -303,8 +303,7 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"ephemeral_input_with_error": {
 			expectedOut: []string{"Error message refers to ephemeral values", "1 passed, 1 failed."},
-			expectedErr: []string{"Test assertion failed", "has an ephemeral value",
-				`│ ~diff: 
+			expectedErr: []string{"Test assertion failed", `    │ ~~diff: 
     | - (ephemeral value)
     | + "bar"`},
 			code: 1,
@@ -321,9 +320,6 @@ func TestTest_Runs(t *testing.T) {
 		},
 	}
 	for name, tc := range tcs {
-		if name != "ephemeral_input_with_error" {
-			continue
-		}
 		t.Run(name, func(t *testing.T) {
 			if tc.skip {
 				t.Skip()
@@ -906,17 +902,17 @@ Error: Test assertion failed
   on main.tftest.hcl line 21, in run "validate_diff_types":
   21:     condition = var.tr1 == var.tr2 
     ├────────────────
-    │ var.tr1 is {
-    |   "iops": null,
-    |   "size": 60
+    │ ~lhs is {
+    |   "iops": "null",
+    |   "size": "60"
     | }
 
-    │ var.tr2 is {
+    │ ~rhs is {
     |   "iops": null,
-    |   "size": 60
+    |   "size": "60"
     | }
 
-    │ ~diff: LHS and RHS values are of different types
+    │ ~~diff: LHS and RHS values are of different types
 
 expected to fail
   run "validate_output"... fail
@@ -926,21 +922,21 @@ Error: Test assertion failed
   on main.tftest.hcl line 28, in run "validate_output":
   28:     condition = output.foo == var.foo[0]
     ├────────────────
-    │ output.foo is {
-    |   "bar": "notbaz",
-    |   "qux": "quux"
+    │ ~lhs is {
+    |   "bar": "\"notbaz\"",
+    |   "qux": "\"quux\""
     | }
 
-    │ var.foo[0] is {
-    |   "bar": "baz",
-    |   "qux": "quux"
+    │ ~rhs is {
+    |   "bar": "\"baz\"",
+    |   "qux": "\"quux\""
     | }
 
-    │ ~diff: 
+    │ ~~diff: 
     | 	{
-    | - "bar": "notbaz",
-    | + "bar": "baz",
-    | 	"qux": "quux"
+    | - "bar": "\"notbaz\"",
+    | + "bar": "\"baz\"",
+    | 	"qux": "\"quux\""
     | 	}
     | 	
 
@@ -953,31 +949,31 @@ Error: Test assertion failed
   on main.tftest.hcl line 35, in run "validate_complex_output":
   35:     condition = output.complex == var.foo
     ├────────────────
-    │ output.complex is {
+    │ ~lhs is {
     |   "root": [
     |     {
     |       "bar": [
-    |         1
+    |         "1"
     |       ],
-    |       "qux": "quux"
+    |       "qux": "\"quux\""
     |     },
     |     {
     |       "bar": [
-    |         2
+    |         "2"
     |       ],
-    |       "qux": "quux"
+    |       "qux": "\"quux\""
     |     }
     |   ]
     | }
 
-    │ var.foo is [
+    │ ~rhs is [
     |   {
-    |     "bar": "baz",
-    |     "qux": "quux"
+    |     "bar": "\"baz\"",
+    |     "qux": "\"quux\""
     |   }
     | ]
 
-    │ ~diff: LHS and RHS values are of different types
+    │ ~~diff: LHS and RHS values are of different types
 
 expected to fail
   run "validate_complex_output_pass"... pass
@@ -2190,10 +2186,10 @@ Error: Test assertion failed
   on main.tftest.hcl line 8, in run "first":
    8:     condition     = test_resource.resource.value == output.null_output
     ├────────────────
-    │ output.null_output is null
+    │ ~lhs is "bar"
+    │ ~rhs is null
 
-    │ test_resource.resource.value is "bar"
-    │ ~diff: LHS and RHS values are of different types
+    │ ~~diff: LHS and RHS values are of different types
 
 this is always going to fail
 `,
@@ -2362,24 +2358,24 @@ func TestTest_SensitiveInputValues(t *testing.T) {
 	if code := init.Run(nil); code != 0 {
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+	t.Run("when show-sensitive flag is off", func(t *testing.T) {
+		// Reset the streams for the next command.
+		streams, done = terminal.StreamsForTesting(t)
+		meta.Streams = streams
+		meta.View = views.NewView(streams)
 
-	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+		c := &TestCommand{
+			Meta: meta,
+		}
 
-	c := &TestCommand{
-		Meta: meta,
-	}
+		code := c.Run([]string{"-no-color", "-verbose"})
+		output = done(t)
 
-	code := c.Run([]string{"-no-color", "-verbose"})
-	output = done(t)
+		if code != 1 {
+			t.Errorf("expected status code 1 but got %d", code)
+		}
 
-	if code != 0 {
-		t.Errorf("expected status code 0 but got %d", code)
-	}
-
-	expected := `main.tftest.hcl... in progress
+		expected := `main.tftest.hcl... in progress
   run "setup"... pass
 
 
@@ -2402,21 +2398,177 @@ Outputs:
 
 password = (sensitive value)
 
-main.tftest.hcl... tearing down
-main.tftest.hcl... pass
+  run "test_failed"... fail
 
-Success! 2 passed, 0 failed.
+# test_resource.resource:
+resource "test_resource" "resource" {
+    destroy_fail = false
+    id           = "9ddca5a9"
+    value        = (sensitive value)
+}
+
+
+Outputs:
+
+password = (sensitive value)
+
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 2 passed, 1 failed.
 `
 
-	actual := output.All()
+		expectedErr := `
+Error: Test assertion failed
 
-	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
-		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
-	}
+  on main.tftest.hcl line 27, in run "test_failed":
+  27:     condition = var.complex == {
+  28:       foo = "bar"
+  29:       baz = test_resource.resource.id
+  30:     }
+    ├────────────────
+    │ ~lhs is {
+    |   "baz": "(sensitive value)",
+    |   "foo": "\"bar\""
+    | }
 
-	if provider.ResourceCount() > 0 {
-		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
-	}
+    │ ~rhs is {
+    |   "baz": "\"9ddca5a9\"",
+    |   "foo": "\"bar\""
+    | }
+
+    │ ~~diff: 
+    | 	{
+    | - "baz": "(sensitive value)",
+    | + "baz": "\"9ddca5a9\"",
+    | 	"foo": "\"bar\""
+    | 	}
+    | 	
+
+
+expected to fail
+`
+
+		actual := output.Stdout()
+
+		if diff := cmp.Diff(actual, expected); len(diff) > 0 {
+			t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+		}
+
+		if diff := cmp.Diff(output.Stderr(), expectedErr); len(diff) > 0 {
+			t.Errorf("stderr didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, output.Stderr(), diff)
+		}
+
+		if provider.ResourceCount() > 0 {
+			t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+		}
+	})
+
+	t.Run("when show-sensitive flag is on", func(t *testing.T) {
+		// Reset the streams for the next command.
+		streams, done = terminal.StreamsForTesting(t)
+		meta.Streams = streams
+		meta.View = views.NewView(streams)
+
+		c := &TestCommand{
+			Meta: meta,
+		}
+
+		code := c.Run([]string{"-no-color", "-verbose", "-show-sensitive"})
+		output = done(t)
+
+		if code != 1 {
+			t.Errorf("expected status code 1 but got %d", code)
+		}
+
+		expected := `main.tftest.hcl... in progress
+  run "setup"... pass
+
+
+
+Outputs:
+
+password = (sensitive value)
+
+  run "test"... pass
+
+# test_resource.resource:
+resource "test_resource" "resource" {
+    destroy_fail = false
+    id           = "9ddca5a9"
+    value        = (sensitive value)
+}
+
+
+Outputs:
+
+password = (sensitive value)
+
+  run "test_failed"... fail
+
+# test_resource.resource:
+resource "test_resource" "resource" {
+    destroy_fail = false
+    id           = "9ddca5a9"
+    value        = (sensitive value)
+}
+
+
+Outputs:
+
+password = (sensitive value)
+
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 2 passed, 1 failed.
+`
+
+		expectedErr := `
+Error: Test assertion failed
+
+  on main.tftest.hcl line 27, in run "test_failed":
+  27:     condition = var.complex == {
+  28:       foo = "bar"
+  29:       baz = test_resource.resource.id
+  30:     }
+    ├────────────────
+    │ ~lhs is {
+    |   "baz": "\"password\"",
+    |   "foo": "\"bar\""
+    | }
+
+    │ ~rhs is {
+    |   "baz": "\"9ddca5a9\"",
+    |   "foo": "\"bar\""
+    | }
+
+    │ ~~diff: 
+    | 	{
+    | - "baz": "\"password\"",
+    | + "baz": "\"9ddca5a9\"",
+    | 	"foo": "\"bar\""
+    | 	}
+    | 	
+
+
+expected to fail
+`
+
+		actual := output.Stdout()
+
+		if diff := cmp.Diff(actual, expected); len(diff) > 0 {
+			t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+		}
+
+		if diff := cmp.Diff(output.Stderr(), expectedErr); len(diff) > 0 {
+			t.Errorf("stderr didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, output.Stderr(), diff)
+		}
+
+		if provider.ResourceCount() > 0 {
+			t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+		}
+	})
 }
 
 // This test takes around 10 seconds to complete, as we're testing the progress

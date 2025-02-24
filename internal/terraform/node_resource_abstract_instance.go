@@ -1360,7 +1360,7 @@ func traversalToPath(traversal hcl.Traversal) (cty.Path, string) {
 			}
 			if ts.Key.Type().IsPrimitiveType() {
 				key.WriteString("[")
-				key.WriteString(tfdiags.CompactValueStr(ts.Key))
+				key.WriteString(tfdiags.CompactValueStr(ts.Key, nil))
 				key.WriteString("]")
 			} else {
 				key.WriteString("[...]")

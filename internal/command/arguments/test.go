@@ -43,6 +43,9 @@ type Test struct {
 	// human-readable format or JSON for each run step depending on the
 	// ViewType.
 	Verbose bool
+
+	// ShowSensitive allows sensitive values to be shown in the errors of the test execution output.
+	ShowSensitive bool
 }
 
 func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
@@ -60,6 +63,7 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 	cmdFlags.StringVar(&test.JUnitXMLFile, "junit-xml", "", "junit-xml")
 	cmdFlags.BoolVar(&test.Verbose, "verbose", false, "verbose")
 	cmdFlags.IntVar(&test.OperationParallelism, "parallelism", DefaultParallelism, "parallelism")
+	cmdFlags.BoolVar(&test.ShowSensitive, "show-sensitive", false, "show-sensitive")
 
 	// TODO: Finalise the name of this flag.
 	cmdFlags.StringVar(&test.CloudRunSource, "cloud-run", "", "cloud-run")

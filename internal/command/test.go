@@ -75,6 +75,11 @@ Options:
 
   -verbose              Print the plan or state for each test run block as it
                         executes.
+
+  -show-sensitive    	Show sensitive values in the error output. Note that 
+						this may expose sensitive information, and should be 
+						used only with test data. Sensitive values are shown 
+						only in the error output, not in the plan or apply output.
 `
 	return strings.TrimSpace(helpText)
 }
@@ -222,6 +227,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			CancelledCtx:        cancelCtx,
 			Filter:              args.Filter,
 			Verbose:             args.Verbose,
+			ShowSensitive:       args.ShowSensitive,
 		}
 
 		// JUnit output is only compatible with local test execution

@@ -101,7 +101,7 @@ func TestCompactValueStr(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%#v", test.Val), func(t *testing.T) {
-			got := CompactValueStr(test.Val)
+			got := CompactValueStr(test.Val, nil)
 			if got != test.Want {
 				t.Errorf("wrong result\nvalue: %#v\ngot:   %s\nwant:  %s", test.Val, got, test.Want)
 			}

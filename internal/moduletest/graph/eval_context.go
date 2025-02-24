@@ -70,8 +70,9 @@ type EvalContext struct {
 	stopContext   context.Context
 	stopFunc      context.CancelFunc
 
-	renderer views.Test
-	verbose  bool
+	renderer      views.Test
+	verbose       bool
+	showSensitive bool
 }
 
 type EvalContextOpts struct {
@@ -79,6 +80,11 @@ type EvalContextOpts struct {
 	Render    views.Test
 	CancelCtx context.Context
 	StopCtx   context.Context
+
+	// ShowSensitive is a flag that controls whether sensitive values
+	// should be included in the diagnostics. If this is false, then sensitive
+	// values will be redacted from the diagnostics.
+	ShowSensitive bool
 }
 
 // NewEvalContext constructs a new graph evaluation context for use in
@@ -102,6 +108,7 @@ func NewEvalContext(opts *EvalContextOpts) *EvalContext {
 		stopFunc:        stop,
 		verbose:         opts.Verbose,
 		renderer:        opts.Render,
+		showSensitive:   opts.ShowSensitive,
 	}
 }
 
@@ -277,7 +284,7 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 				// Diagnostic can be identified as originating from a failing test assertion.
 				// Also, values that are ephemeral, sensitive, or unknown are made visible in
 				// renderings of the diagnostic.
-				Extra: DiagnosticCausedByTestFailure(true),
+				Extra: DiagnosticCausedByTestFailure{ec.showSensitive},
 			})
 			continue
 		} else {

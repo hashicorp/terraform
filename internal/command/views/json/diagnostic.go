@@ -384,14 +384,8 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 								}
 								value.Statement = "will be known only after apply"
 							}
-						default: // mark-free, known traversal
-							valRep := tfdiags.CompactValueStr(val)
-							// If this diagnostic is caused by a failed run, we'll
-							// include the full JSON representation of the traversal's value.
-							if tfdiags.DiagnosticCausedByTestFailure(diag) {
-								valRep = marshalValue(val, valRep)
-							}
-							value.Statement = fmt.Sprintf("is %s", valRep)
+						default:
+							value.Statement = fmt.Sprintf("is %s", tfdiags.CompactValueStr(val, nil))
 						}
 						values = append(values, value)
 						seen[traversalStr] = struct{}{}
@@ -421,9 +415,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 				// When the diagnostic is caused by a failed run whose assertion is a binary expression,
 				// we'll include a diff of the two values in the diagnostic snippet.
 				if expr, ok := fromExpr.Expression.(*hclsyntax.BinaryOpExpr); ok && tfdiags.DiagnosticCausedByTestFailure(diag) {
-					if diff := diffBinaryFailedRunDiagnostic(ctx, expr); diff != (DiagnosticExpressionValue{}) {
-						diagnostic.Snippet.Values = append(diagnostic.Snippet.Values, diff)
-					}
+					diagnostic.Snippet.Values = diffBinaryFailedRunDiagnostic(ctx, expr, diag)
 				}
 
 			}
@@ -434,82 +426,93 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 	return diagnostic
 }
 
-// Each line in the out is prepended with this prefix.
+// Each line in the test diag output is prepended with this prefix.
 var ttyOutPrefix = "    | "
-
-// marshalValue marshals a cty.Value to a JSON string, or returns a fallback
-// string if any failure is encountered. The marshalled JSON string is pretty
-// printed with a prefix for each line.
-func marshalValue(val cty.Value, fallback string) string {
-	switch {
-	case val.Type().IsPrimitiveType():
-		return fallback
-	default:
-		jsonVal, err := ctyjson.Marshal(val, val.Type())
-		if err != nil {
-			return ""
-		}
-		jsonVal = append(jsonVal, '\n')
-		var str bytes.Buffer
-		if err := json.Indent(&str, jsonVal, ttyOutPrefix, "  "); err != nil {
-			return fallback
-		}
-		return str.String()
-	}
-}
 
 // diffBinaryFailedRunDiagnostic is used to diff the two values of a binary expression
 // in a failed run diagnostic. More often than not, run assert expressions are binary
 // expressions, i.e., `a == b`. If the values are of different types, we don't diff them.
-func diffBinaryFailedRunDiagnostic(ctx *hcl.EvalContext, expr *hclsyntax.BinaryOpExpr) DiagnosticExpressionValue {
+func diffBinaryFailedRunDiagnostic(ctx *hcl.EvalContext, expr *hclsyntax.BinaryOpExpr, orig tfdiags.Diagnostic) []DiagnosticExpressionValue {
 	// The expression has already been evaluated and failed, so we can ignore the diags here.
 	lhs, _ := expr.LHS.Value(ctx)
 	rhs, _ := expr.RHS.Value(ctx)
 
-	// The types do not match. We don't diff them.
-	if !lhs.Type().Equals(rhs.Type()) {
-		return DiagnosticExpressionValue{
-			Traversal: "~diff:",
-			Statement: "LHS and RHS values are of different types",
-		}
+	allowSensitive := tfdiags.DiagnosticCausedBySensitive(orig)
+	allowed := make(cty.ValueMarks)
+	if allowSensitive {
+		allowed[marks.Sensitive] = struct{}{}
 	}
 
-	formatValue := func(val cty.Value) (fmt.Stringer, error) {
+	formatValue := func(val cty.Value) (fmt.Stringer, string, error) {
 		var buf bytes.Buffer
+		var str bytes.Buffer
+
+		val, err := cty.Transform(val, func(path cty.Path, val cty.Value) (cty.Value, error) {
+			if val.Type().IsPrimitiveType() {
+				return cty.StringVal(tfdiags.CompactValueStr(val, allowed)), nil
+			}
+			return val, nil
+		})
+		if err != nil {
+			return nil, "", fmt.Errorf("unexpected error transforming value: %s", err)
+		}
 
 		switch {
 		case val.Type().IsPrimitiveType():
-			buf.WriteString(tfdiags.CompactValueStr(val))
+			buf.WriteString(val.AsString())
+			return &buf, val.AsString(), nil
 		default:
 			jsonVal, err := ctyjson.Marshal(val, val.Type())
 			if err != nil {
-				return nil, fmt.Errorf("unexpected error marshalling value: %s", err)
+				return nil, "", fmt.Errorf("unexpected error marshalling value: %s", err)
 			}
 			jsonVal = append(jsonVal, '\n')
 
 			// The JSON format for the diff should not be indented, as the diff formatter will do that.
 			if err := json.Indent(&buf, jsonVal, "", ""); err != nil {
-				return nil, fmt.Errorf("unexpected error formatting JSON: %s", err)
+				return nil, "", fmt.Errorf("unexpected error formatting JSON: %s", err)
+			}
+
+			if err := json.Indent(&str, jsonVal, ttyOutPrefix, "  "); err != nil {
+				return nil, "", fmt.Errorf("unexpected error formatting JSON: %s", err)
 			}
 		}
-		return &buf, nil
+		return &buf, str.String(), nil
 	}
 
 	var err error
-	lhsStr, err := formatValue(lhs)
+	lhsStr, noIndentLhs, err := formatValue(lhs)
 	if err != nil {
 		panic(err)
 	}
-	rhsStr, err := formatValue(rhs)
+	rhsStr, noIndentRhs, err := formatValue(rhs)
 	if err != nil {
 		panic(err)
 	}
 
+	var ret []DiagnosticExpressionValue
+	ret = append(ret, DiagnosticExpressionValue{
+		Traversal: "~lhs",
+		Statement: fmt.Sprintf("is %s", noIndentLhs),
+	})
+	ret = append(ret, DiagnosticExpressionValue{
+		Traversal: "~rhs",
+		Statement: fmt.Sprintf("is %s", noIndentRhs),
+	})
+
+	// The types do not match. We don't diff them.
+	if !lhs.Type().Equals(rhs.Type()) {
+		return append(ret, DiagnosticExpressionValue{
+			Traversal: "~~diff:",
+			Statement: "LHS and RHS values are of different types",
+		})
+	}
+
 	diff := DiagnosticExpressionValue{
-		Traversal: "~diff:",
+		Traversal: "~~diff:",
 		Statement: diffJSON(lhsStr, rhsStr),
 	}
-	return diff
+	return append(ret, diff)
 }
 
 func diffJSON(strA, strB fmt.Stringer) string {
