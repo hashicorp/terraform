@@ -33,6 +33,7 @@ var (
 		".tfvars",
 		".tftest.hcl",
 		".tfmock.hcl",
+		".tfbackend",
 	}
 )
 
