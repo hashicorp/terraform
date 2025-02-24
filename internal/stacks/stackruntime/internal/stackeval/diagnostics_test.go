@@ -65,11 +65,11 @@ func TestNamedPromisesPlan(t *testing.T) {
 				&providertest.MockProvider{
 					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 						Provider: providers.Schema{
-							Block: &configschema.Block{},
+							Body: &configschema.Block{},
 						},
 						ResourceTypes: map[string]providers.Schema{
 							"happycloud_thingy": providers.Schema{
-								Block: &configschema.Block{},
+								Body: &configschema.Block{},
 							},
 						},
 					},

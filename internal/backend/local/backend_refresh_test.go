@@ -65,7 +65,7 @@ func TestLocal_refreshInput(t *testing.T) {
 
 	schema := providers.ProviderSchema{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"value": {Type: cty.String, Optional: true},
 				},
@@ -73,7 +73,7 @@ func TestLocal_refreshInput(t *testing.T) {
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":  {Type: cty.String, Computed: true},
 						"foo": {Type: cty.String, Optional: true},
@@ -160,7 +160,7 @@ func TestLocal_refreshValidateProviderConfigured(t *testing.T) {
 
 	schema := providers.ProviderSchema{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"value": {Type: cty.String, Optional: true},
 				},
@@ -168,7 +168,7 @@ func TestLocal_refreshValidateProviderConfigured(t *testing.T) {
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":  {Type: cty.String, Computed: true},
 						"ami": {Type: cty.String, Optional: true},
@@ -309,7 +309,7 @@ func refreshFixtureSchema() providers.ProviderSchema {
 	return providers.ProviderSchema{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"ami": {Type: cty.String, Optional: true},
 						"id":  {Type: cty.String, Computed: true},

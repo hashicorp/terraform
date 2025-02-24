@@ -21,7 +21,7 @@ type simple struct {
 
 func Provider() providers.Interface {
 	simpleResource := providers.Schema{
-		Block: &configschema.Block{
+		Body: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"id": {
 					Computed: true,
@@ -38,7 +38,7 @@ func Provider() providers.Interface {
 	return simple{
 		schema: providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
-				Block: nil,
+				Body: nil,
 			},
 			ResourceTypes: map[string]providers.Schema{
 				"simple_resource": simpleResource,
@@ -87,7 +87,7 @@ func (s simple) ValidateDataResourceConfig(req providers.ValidateDataResourceCon
 }
 
 func (p simple) UpgradeResourceState(req providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
-	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
+	ty := p.schema.ResourceTypes[req.TypeName].Body.ImpliedType()
 	val, err := ctyjson.Unmarshal(req.RawStateJSON, ty)
 	resp.Diagnostics = resp.Diagnostics.Append(err)
 	resp.UpgradedState = val

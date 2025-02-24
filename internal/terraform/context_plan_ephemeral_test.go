@@ -49,7 +49,7 @@ ephemeral "ephem_resource" "data" {
 output "value" {
     value = terraform.applying
     # Testing that this errors in the best way to ensure the symbol is ephemeral
-    ephemeral = false 
+    ephemeral = false
 }
 `,
 				"main.tf": `
@@ -295,7 +295,7 @@ module "child" {
 		"provider-defined functions": {
 			module: map[string]string{
 				"child/main.tf": `
-				
+
 terraform {
     required_providers {
         ephem = {
@@ -517,13 +517,13 @@ ephemeral "ephem_resource" "data" {
 variable "ephem" {
   type        = string
   ephemeral   = true
-  
+
   validation {
     condition     = length(var.ephem) > 4
     error_message = "This should fail but not show the value: ${var.ephem}"
   }
 }
-  
+
 output "out" {
   value = ephemeralasnull(var.ephem)
 }
@@ -573,7 +573,7 @@ resource "ephem_write_only" "test" {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					EphemeralResourceTypes: map[string]providers.Schema{
 						"ephem_resource": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"value": {
 										Type:     cty.String,
@@ -600,7 +600,7 @@ resource "ephem_write_only" "test" {
 					},
 					ResourceTypes: map[string]providers.Schema{
 						"ephem_write_only": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"write_only": {
 										Type:      cty.String,
@@ -752,7 +752,7 @@ resource "sink_object" "empty" {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			EphemeralResourceTypes: map[string]providers.Schema{
 				"ephem_resource": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"value": {
 								Type:     cty.String,
@@ -771,7 +771,7 @@ resource "sink_object" "empty" {
 
 	sink := simpleMockProvider()
 	sink.GetProviderSchemaResponse.ResourceTypes = map[string]providers.Schema{
-		"sink_object": {Block: simpleTestSchema()},
+		"sink_object": {Body: simpleTestSchema()},
 	}
 	sink.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 		if req.Config.GetAttr("test_string").IsKnown() {

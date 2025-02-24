@@ -23,11 +23,11 @@ func TestPlanGraphBuilder_impl(t *testing.T) {
 func TestPlanGraphBuilder(t *testing.T) {
 	awsProvider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{Block: simpleTestSchema()},
+			Provider: providers.Schema{Body: simpleTestSchema()},
 			ResourceTypes: map[string]providers.Schema{
-				"aws_security_group": {Block: simpleTestSchema()},
-				"aws_instance":       {Block: simpleTestSchema()},
-				"aws_load_balancer":  {Block: simpleTestSchema()},
+				"aws_security_group": {Body: simpleTestSchema()},
+				"aws_instance":       {Body: simpleTestSchema()},
+				"aws_load_balancer":  {Body: simpleTestSchema()},
 			},
 		},
 	}

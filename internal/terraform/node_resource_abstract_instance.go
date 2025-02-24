@@ -1714,7 +1714,7 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 	if n.ProviderMetas != nil {
 		if m, ok := n.ProviderMetas[n.ResolvedProvider.Provider]; ok && m != nil {
 			// if the provider doesn't support this feature, throw an error
-			if providerSchema.ProviderMeta.Block == nil {
+			if providerSchema.ProviderMeta.Body == nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ResolvedProvider.Provider.String()),
@@ -1723,7 +1723,7 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 				})
 			} else {
 				var configDiags tfdiags.Diagnostics
-				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta.Block, nil, EvalDataForNoInstanceKey)
+				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta.Body, nil, EvalDataForNoInstanceKey)
 				diags = diags.Append(configDiags)
 			}
 		}

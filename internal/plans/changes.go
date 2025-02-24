@@ -60,11 +60,11 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 			panic(fmt.Sprintf("unexpected resource mode %s", rc.Addr.Resource.Resource.Mode))
 		}
 
-		if schema.Block == nil {
+		if schema.Body == nil {
 			return changesSrc, fmt.Errorf("Changes.Encode: missing schema for %s", rc.Addr)
 		}
 
-		rcs, err := rc.Encode(schema.Block.ImpliedType())
+		rcs, err := rc.Encode(schema.Body.ImpliedType())
 		if err != nil {
 			return changesSrc, fmt.Errorf("Changes.Encode: %w", err)
 		}

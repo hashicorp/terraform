@@ -81,7 +81,7 @@ func TestContext2Apply_stop(t *testing.T) {
 			ResourceTypes: map[string]providers.Schema{
 				"indefinite": {
 					Version: 1,
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"result": {
 								Type:     cty.String,
@@ -273,7 +273,7 @@ func TestContext2Apply_unstable(t *testing.T) {
 		Type: "test_resource",
 		Name: "foo",
 	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
-	schema := p.GetProviderSchemaResponse.ResourceTypes["test_resource"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["test_resource"].Body
 	rds := plan.Changes.ResourceInstance(addr)
 	rd, err := rds.Decode(schema.ImpliedType())
 	if err != nil {
@@ -8322,7 +8322,7 @@ func TestContext2Apply_ignoreChangesCreate(t *testing.T) {
 	p.PlanResourceChangeFn = testDiffFn
 	p.ApplyResourceChangeFn = testApplyFn
 
-	instanceSchema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	instanceSchema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	instanceSchema.Attributes["required_field"] = &configschema.Attribute{
 		Type:     cty.String,
 		Required: true,
@@ -8463,7 +8463,7 @@ func TestContext2Apply_ignoreChangesAll(t *testing.T) {
 	p.PlanResourceChangeFn = testDiffFn
 	p.ApplyResourceChangeFn = testApplyFn
 
-	instanceSchema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	instanceSchema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	instanceSchema.Attributes["required_field"] = &configschema.Attribute{
 		Type:     cty.String,
 		Required: true,
@@ -10414,7 +10414,7 @@ func TestContext2Apply_ProviderMeta_refresh_set(t *testing.T) {
 	rrcPMs := map[string]cty.Value{}
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
 		rrcPMs[req.TypeName] = req.ProviderMeta
-		newState, err := p.GetProviderSchemaResponse.ResourceTypes[req.TypeName].Block.CoerceValue(req.PriorState)
+		newState, err := p.GetProviderSchemaResponse.ResourceTypes[req.TypeName].Body.CoerceValue(req.PriorState)
 		if err != nil {
 			panic(err)
 		}

@@ -622,9 +622,9 @@ func TestNodeValidatableResource_ValidateResource_invalidIgnoreChangesComputed(t
 
 	mp := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{Block: ms},
+			Provider: providers.Schema{Body: ms},
 			ResourceTypes: map[string]providers.Schema{
-				"test_object": providers.Schema{Block: ms},
+				"test_object": providers.Schema{Body: ms},
 			},
 		},
 	}

@@ -295,7 +295,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 			addrs.NewDefaultProvider("test"): {
 				ResourceTypes: map[string]providers.Schema{
 					"test_resource": {
-						Block: &configschema.Block{
+						Body: &configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
 								"id": {
 									Type:     cty.String,
@@ -469,7 +469,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 			addrs.NewDefaultProvider("test"): {
 				ResourceTypes: map[string]providers.Schema{
 					"test_resource": {
-						Block: &configschema.Block{
+						Body: &configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
 								"id": {
 									Type:     cty.String,

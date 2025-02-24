@@ -3345,7 +3345,7 @@ ephemeral "test" "dep" {
 	ephemeralResourceOpenDeferralExpanded = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
-			
+
 variable "each" {
   type = set(string)
 }
@@ -3952,7 +3952,7 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"test": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"name": {
 								Type:     cty.String,
@@ -3972,7 +3972,7 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			},
 			DataSources: map[string]providers.Schema{
 				"test": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"name": {
 								Type:     cty.String,
@@ -3988,7 +3988,7 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			},
 			EphemeralResourceTypes: map[string]providers.Schema{
 				"test": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"name": {
 								Type:     cty.String,

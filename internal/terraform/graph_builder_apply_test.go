@@ -467,12 +467,12 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 		cty.ObjectVal(map[string]cty.Value{
 			"id":          cty.StringVal("b_id"),
 			"test_string": cty.StringVal("a_id"),
-		}), instanceSchema.Block.ImpliedType())
+		}), instanceSchema.Body.ImpliedType())
 	bAfter, _ := plans.NewDynamicValue(
 		cty.ObjectVal(map[string]cty.Value{
 			"id":          cty.StringVal("b_id"),
 			"test_string": cty.StringVal("changed"),
-		}), instanceSchema.Block.ImpliedType())
+		}), instanceSchema.Body.ImpliedType())
 
 	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
@@ -572,12 +572,12 @@ func TestApplyGraphBuilder_updateFromCBDOrphan(t *testing.T) {
 		cty.ObjectVal(map[string]cty.Value{
 			"id":          cty.StringVal("b_id"),
 			"test_string": cty.StringVal("a_id"),
-		}), instanceSchema.Block.ImpliedType())
+		}), instanceSchema.Body.ImpliedType())
 	bAfter, _ := plans.NewDynamicValue(
 		cty.ObjectVal(map[string]cty.Value{
 			"id":          cty.StringVal("b_id"),
 			"test_string": cty.StringVal("changed"),
-		}), instanceSchema.Block.ImpliedType())
+		}), instanceSchema.Body.ImpliedType())
 
 	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{

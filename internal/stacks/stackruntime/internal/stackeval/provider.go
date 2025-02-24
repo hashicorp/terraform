@@ -251,7 +251,7 @@ func (p *Provider) References(ctx context.Context) []stackaddrs.AbsReference {
 	var ret []stackaddrs.Reference
 	ret = append(ret, ReferencesInExpr(ctx, cfg.ForEach)...)
 	if schema, err := p.ProviderType(ctx).Schema(ctx); err == nil {
-		ret = append(ret, ReferencesInBody(ctx, cfg.Config, schema.Provider.Block.DecoderSpec())...)
+		ret = append(ret, ReferencesInBody(ctx, cfg.Config, schema.Provider.Body.DecoderSpec())...)
 	}
 	return makeReferencesAbsolute(ret, p.Addr().Stack)
 }

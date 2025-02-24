@@ -69,7 +69,7 @@ func TestConsole_tfvars(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"value": {Type: cty.String, Optional: true},
 					},
@@ -121,7 +121,7 @@ func TestConsole_unsetRequiredVars(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"value": {Type: cty.String, Optional: true},
 					},

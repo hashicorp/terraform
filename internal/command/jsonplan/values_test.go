@@ -351,7 +351,7 @@ func testSchemas() *terraform.Schemas {
 				ResourceTypes: map[string]providers.Schema{
 					"test_thing": {
 						Version: 1,
-						Block: &configschema.Block{
+						Body: &configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
 								"woozles": {Type: cty.String, Optional: true, Computed: true},
 								"foozles": {Type: cty.String, Optional: true},

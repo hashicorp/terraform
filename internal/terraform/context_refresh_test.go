@@ -43,7 +43,7 @@ func TestContext2Refresh(t *testing.T) {
 		},
 	})
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 	readState, err := hcl2shim.HCL2ValueFromFlatmap(map[string]string{"id": "foo", "foo": "baz"}, ty)
 	if err != nil {
@@ -130,7 +130,7 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 		},
 	})
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["test_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["test_instance"].Body
 	ty := schema.ImpliedType()
 
 	s, diags := ctx.Refresh(m, startingState, &PlanOpts{Mode: plans.NormalMode})
@@ -516,7 +516,7 @@ func TestContext2Refresh_delete(t *testing.T) {
 	})
 
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
-		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block.ImpliedType()),
+		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body.ImpliedType()),
 	}
 
 	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
@@ -768,7 +768,7 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 	})
 
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
-		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block.ImpliedType()),
+		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body.ImpliedType()),
 	}
 
 	state := states.NewState()
@@ -807,7 +807,7 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 		},
 	})
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	readStateVal, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
@@ -1339,7 +1339,7 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 		got := state.String()
 		want := strings.TrimSpace(`
 test_thing.bar:
-  ID = 
+  ID =
   provider = provider["registry.terraform.io/hashicorp/test"]
   name = foo
 `)
@@ -1419,7 +1419,7 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 		got := state.String()
 		want := strings.TrimSpace(`
 test_thing.bar:
-  ID = 
+  ID =
   provider = provider["registry.terraform.io/hashicorp/test"]
   name = foo
 `)

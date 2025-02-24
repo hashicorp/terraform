@@ -184,7 +184,7 @@ func TestShowJSON(t *testing.T) {
 					addrs.NewDefaultProvider("test"): {
 						ResourceTypes: map[string]providers.Schema{
 							"test_resource": {
-								Block: &configschema.Block{
+								Body: &configschema.Block{
 									Attributes: map[string]*configschema.Attribute{
 										"id":  {Type: cty.String, Optional: true, Computed: true},
 										"foo": {Type: cty.String, Optional: true},

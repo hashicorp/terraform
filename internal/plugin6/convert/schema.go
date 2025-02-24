@@ -101,7 +101,7 @@ func protoSchemaNestedBlock(name string, b *configschema.NestedBlock) *proto.Sch
 func ProtoToProviderSchema(s *proto.Schema) providers.Schema {
 	return providers.Schema{
 		Version: s.Version,
-		Block:   ProtoToConfigSchema(s.Block),
+		Body:    ProtoToConfigSchema(s.Block),
 	}
 }
 

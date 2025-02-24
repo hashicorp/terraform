@@ -28,7 +28,7 @@ func (ss *Schemas) ProviderSchema(provider addrs.Provider) providers.ProviderSch
 // ProviderConfig returns the schema for the provider configuration of the
 // given provider type, or nil if no such schema is available.
 func (ss *Schemas) ProviderConfig(provider addrs.Provider) *configschema.Block {
-	return ss.ProviderSchema(provider).Provider.Block
+	return ss.ProviderSchema(provider).Provider.Body
 }
 
 // ResourceTypeConfig returns the schema for the configuration of a given

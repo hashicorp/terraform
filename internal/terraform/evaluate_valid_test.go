@@ -104,7 +104,7 @@ For example, to correlate with indices of a referring resource, use:
 			addrs.NewDefaultProvider("aws"): {
 				ResourceTypes: map[string]providers.Schema{
 					"aws_instance": {
-						Block: &configschema.Block{},
+						Body: &configschema.Block{},
 					},
 				},
 			},
@@ -112,12 +112,12 @@ For example, to correlate with indices of a referring resource, use:
 				ResourceTypes: map[string]providers.Schema{
 					// intentional mismatch between resource type prefix and provider type
 					"boop_instance": {
-						Block: &configschema.Block{},
+						Body: &configschema.Block{},
 					},
 				},
 				DataSources: map[string]providers.Schema{
 					"boop_data": {
-						Block: &configschema.Block{
+						Body: &configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
 								"id": {
 									Type:     cty.String,
@@ -129,7 +129,7 @@ For example, to correlate with indices of a referring resource, use:
 				},
 				EphemeralResourceTypes: map[string]providers.Schema{
 					"beep": {
-						Block: &configschema.Block{},
+						Body: &configschema.Block{},
 					},
 				},
 			},

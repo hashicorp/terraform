@@ -39,7 +39,7 @@ func TestStateShow(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":  {Type: cty.String, Optional: true, Computed: true},
 						"foo": {Type: cty.String, Optional: true},
@@ -116,7 +116,7 @@ func TestStateShow_multi(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":  {Type: cty.String, Optional: true, Computed: true},
 						"foo": {Type: cty.String, Optional: true},
@@ -227,7 +227,7 @@ func TestStateShow_configured_provider(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":  {Type: cty.String, Optional: true, Computed: true},
 						"foo": {Type: cty.String, Optional: true},

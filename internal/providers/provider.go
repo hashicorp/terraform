@@ -162,7 +162,7 @@ type IdentitySchema struct {
 // for everything within a particular provider.
 type Schema struct {
 	Version int64
-	Block   *configschema.Block
+	Body    *configschema.Block
 }
 
 // ServerCapabilities allows providers to communicate extra information

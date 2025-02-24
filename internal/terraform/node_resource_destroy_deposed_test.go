@@ -45,7 +45,7 @@ func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
 		ProviderSchemaSchema: providers.ProviderSchema{
 			ResourceTypes: map[string]providers.Schema{
 				"test_instance": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"id": {
 								Type:     cty.String,
@@ -103,7 +103,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 	schema := providers.ProviderSchema{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {
 							Type:     cty.String,

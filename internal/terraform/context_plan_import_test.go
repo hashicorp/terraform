@@ -747,7 +747,7 @@ import {
 
 	p.GetProviderSchemaResponse.ResourceTypes = map[string]providers.Schema{
 		"test_object": {
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"test_id": {
 						Type:     cty.String,
@@ -1486,13 +1486,13 @@ import {
 
 	p := simpleMockProvider()
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-		Provider: providers.Schema{Block: simpleTestSchema()},
+		Provider: providers.Schema{Body: simpleTestSchema()},
 		ResourceTypes: map[string]providers.Schema{
-			"test_object": providers.Schema{Block: simpleTestSchema()},
+			"test_object": providers.Schema{Body: simpleTestSchema()},
 		},
 		DataSources: map[string]providers.Schema{
 			"test_object": providers.Schema{
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"objects": {
 							Type:     cty.List(cty.String),
@@ -1609,7 +1609,7 @@ import {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"test_object": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"sensitive_string": {
 								Type:      cty.String,

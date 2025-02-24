@@ -118,11 +118,11 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 			panic(fmt.Sprintf("unexpected resource mode %s", rcs.Addr.Resource.Resource.Mode))
 		}
 
-		if schema.Block == nil {
+		if schema.Body == nil {
 			return nil, fmt.Errorf("ChangesSrc.Decode: missing schema for %s", rcs.Addr)
 		}
 
-		rc, err := rcs.Decode(schema.Block.ImpliedType())
+		rc, err := rcs.Decode(schema.Body.ImpliedType())
 		if err != nil {
 			return nil, err
 		}
