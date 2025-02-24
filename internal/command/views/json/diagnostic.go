@@ -385,7 +385,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 								value.Statement = "will be known only after apply"
 							}
 						default:
-							value.Statement = fmt.Sprintf("is %s", tfdiags.CompactValueStr(val, nil))
+							value.Statement = fmt.Sprintf("is %s", tfdiags.CompactValueStr(val))
 						}
 						values = append(values, value)
 						seen[traversalStr] = struct{}{}
@@ -437,19 +437,15 @@ func diffBinaryFailedRunDiagnostic(ctx *hcl.EvalContext, expr *hclsyntax.BinaryO
 	lhs, _ := expr.LHS.Value(ctx)
 	rhs, _ := expr.RHS.Value(ctx)
 
-	allowSensitive := tfdiags.DiagnosticCausedBySensitive(orig)
-	allowed := make(cty.ValueMarks)
-	if allowSensitive {
-		allowed[marks.Sensitive] = struct{}{}
-	}
-
+	// formatValue formats all values within the cty.Value, and applies the redaction
+	// rules for sensitive and ephemeral values.
 	formatValue := func(val cty.Value) (fmt.Stringer, string, error) {
 		var buf bytes.Buffer
 		var str bytes.Buffer
 
 		val, err := cty.Transform(val, func(path cty.Path, val cty.Value) (cty.Value, error) {
 			if val.Type().IsPrimitiveType() {
-				return cty.StringVal(tfdiags.CompactValueStr(val, allowed)), nil
+				return cty.StringVal(tfdiags.CompactValueStr(val)), nil
 			}
 			return val, nil
 		})
@@ -457,26 +453,20 @@ func diffBinaryFailedRunDiagnostic(ctx *hcl.EvalContext, expr *hclsyntax.BinaryO
 			return nil, "", fmt.Errorf("unexpected error transforming value: %s", err)
 		}
 
-		switch {
-		case val.Type().IsPrimitiveType():
-			buf.WriteString(val.AsString())
-			return &buf, val.AsString(), nil
-		default:
-			jsonVal, err := ctyjson.Marshal(val, val.Type())
-			if err != nil {
-				return nil, "", fmt.Errorf("unexpected error marshalling value: %s", err)
-			}
-			jsonVal = append(jsonVal, '\n')
-
-			// The JSON format for the diff should not be indented, as the diff formatter will do that.
-			if err := json.Indent(&buf, jsonVal, "", ""); err != nil {
-				return nil, "", fmt.Errorf("unexpected error formatting JSON: %s", err)
-			}
-
-			if err := json.Indent(&str, jsonVal, ttyOutPrefix, "  "); err != nil {
-				return nil, "", fmt.Errorf("unexpected error formatting JSON: %s", err)
-			}
+		jsonVal, err := ctyjson.Marshal(val, val.Type())
+		if err != nil {
+			return nil, "", fmt.Errorf("unexpected error marshalling value: %s", err)
 		}
+
+		// The JSON format for the diff should not be indented, as the diff formatter will do that.
+		if err := json.Indent(&buf, jsonVal, "", ""); err != nil {
+			return nil, "", fmt.Errorf("unexpected error formatting JSON: %s", err)
+		}
+
+		if err := json.Indent(&str, jsonVal, ttyOutPrefix, "  "); err != nil {
+			return nil, "", fmt.Errorf("unexpected error formatting JSON: %s", err)
+		}
+
 		return &buf, str.String(), nil
 	}
 
@@ -490,15 +480,10 @@ func diffBinaryFailedRunDiagnostic(ctx *hcl.EvalContext, expr *hclsyntax.BinaryO
 		panic(err)
 	}
 
-	var ret []DiagnosticExpressionValue
-	ret = append(ret, DiagnosticExpressionValue{
-		Traversal: "~lhs",
-		Statement: fmt.Sprintf("is %s", noIndentLhs),
-	})
-	ret = append(ret, DiagnosticExpressionValue{
-		Traversal: "~rhs",
-		Statement: fmt.Sprintf("is %s", noIndentRhs),
-	})
+	ret := []DiagnosticExpressionValue{
+		{Traversal: "~lhs", Statement: fmt.Sprintf("is %s", noIndentLhs)},
+		{Traversal: "~rhs", Statement: fmt.Sprintf("is %s", noIndentRhs)},
+	}
 
 	// The types do not match. We don't diff them.
 	if !lhs.Type().Equals(rhs.Type()) {

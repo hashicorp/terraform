@@ -355,7 +355,7 @@ func (b *Local) opApply(
 									"because a saved plan includes the variable values that were set when it was created. "+
 									"The saved plan specifies %s as the value whereas during apply the value %s was %s. "+
 									"To declare an ephemeral variable which is not saved in the plan file, use ephemeral = true.",
-									varName, tfdiags.CompactValueStr(plannedVar, nil), tfdiags.CompactValueStr(parsedVar.Value, nil),
+									varName, tfdiags.CompactValueStr(plannedVar), tfdiags.CompactValueStr(parsedVar.Value),
 									parsedVar.SourceType.DiagnosticLabel()),
 								Subject: rng,
 							})
@@ -368,7 +368,7 @@ func (b *Local) opApply(
 									"set when it was created. The saved plan specifies %s as the value whereas during apply "+
 									"the value %s was %s. To declare an ephemeral variable which is not saved in the plan "+
 									"file, use ephemeral = true.",
-									varName, tfdiags.CompactValueStr(plannedVar, nil), tfdiags.CompactValueStr(parsedVar.Value, nil),
+									varName, tfdiags.CompactValueStr(plannedVar), tfdiags.CompactValueStr(parsedVar.Value),
 									parsedVar.SourceType.DiagnosticLabel()),
 								Subject: rng,
 							})
@@ -380,7 +380,7 @@ func (b *Local) opApply(
 							panic(fmt.Sprintf("Attempted to change variable %s when applying a saved plan. "+
 								"The saved plan specifies %s as the value whereas during apply the value %s was %s. "+
 								"This is a bug in Terraform, please report it.",
-								varName, tfdiags.CompactValueStr(plannedVar, nil), tfdiags.CompactValueStr(parsedVar.Value, nil),
+								varName, tfdiags.CompactValueStr(plannedVar), tfdiags.CompactValueStr(parsedVar.Value),
 								parsedVar.SourceType.DiagnosticLabel()))
 						}
 					}

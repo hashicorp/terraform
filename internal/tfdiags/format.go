@@ -20,18 +20,13 @@ import (
 // types it instead summarizes the type, size, etc to produce something
 // that is hopefully still somewhat useful but not as verbose as a rendering
 // of the entire data structure.
-// If any of the marks in the value are in allowedMarks, the redacted message
-// for that mark is not applied.
-func CompactValueStr(val cty.Value, allowedMarks cty.ValueMarks) string {
+func CompactValueStr(val cty.Value) string {
 	// This is a specialized subset of value rendering tailored to producing
 	// helpful but concise messages in diagnostics. It is not comprehensive
 	// nor intended to be used for other purposes.
 
 	val, valMarks := val.Unmark()
 	for mark := range valMarks {
-		if _, ok := allowedMarks[mark]; ok {
-			continue
-		}
 		switch mark {
 		case marks.Sensitive:
 			// We check this in here just to make sure, but note that the caller
@@ -128,7 +123,7 @@ func TraversalStr(traversal hcl.Traversal) string {
 		case hcl.TraverseIndex:
 			buf.WriteByte('[')
 			if keyTy := tStep.Key.Type(); keyTy.IsPrimitiveType() {
-				buf.WriteString(CompactValueStr(tStep.Key, nil))
+				buf.WriteString(CompactValueStr(tStep.Key))
 			} else {
 				// We'll just use a placeholder for more complex values,
 				// since otherwise our result could grow ridiculously long.

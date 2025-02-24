@@ -62,9 +62,8 @@ type TestSuiteRunner struct {
 	// Verbose tells the runner to print out plan files during each test run.
 	Verbose bool
 
-	ShowSensitive bool
-	Concurrency   int
-	semaphore     terraform.Semaphore
+	Concurrency int
+	semaphore   terraform.Semaphore
 }
 
 func (runner *TestSuiteRunner) Stop() {
@@ -123,11 +122,10 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 
 		file := suite.Files[name]
 		evalCtx := graph.NewEvalContext(&graph.EvalContextOpts{
-			ShowSensitive: runner.ShowSensitive,
-			CancelCtx:     runner.CancelledCtx,
-			StopCtx:       runner.StoppedCtx,
-			Verbose:       runner.Verbose,
-			Render:        runner.View,
+			CancelCtx: runner.CancelledCtx,
+			StopCtx:   runner.StoppedCtx,
+			Verbose:   runner.Verbose,
+			Render:    runner.View,
 		})
 
 		for _, run := range file.Runs {
