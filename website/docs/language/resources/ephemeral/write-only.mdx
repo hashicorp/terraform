@@ -1,6 +1,6 @@
 ---
 page_title: Use write-only arguments
-description: Learn how to use write-only arguments to set temporary values on resources that are not stored in Terraform's state or plan files.
+description: Learn how to use write-only arguments to set temporary values that are not stored in Terraform's state or plan files.
 ---
 
 # Use write-only arguments
@@ -17,7 +17,7 @@ Unlike other ephemeral constructs in Terraform, such as ephemeral resources or v
 
 ## Requirements
 
-To use write-only arguments, you must use Terraform v.1.11 or later and use  a `resource` that supports write-only arguments.
+To use write-only arguments, you must use Terraform v.1.11 or later and use a resource that supports write-only arguments.
 
 ## Declare a write-only argument
 
@@ -32,7 +32,7 @@ resource "aws_db_instance" "test" {
   engine              = "postgres"
   username            = "admin"
   skip_final_snapshot = true
-  password_wo = <ephemeral or non-ephemeral value>
+  password_wo         = <ephemeral or non-ephemeral value>
   password_wo_version = 1
 }
 ```
@@ -48,7 +48,7 @@ resource "aws_db_instance" "test" {
   engine              = "postgres"
   username            = "admin"
   skip_final_snapshot = true
-  password_wo = "my-password-here"
+  password_wo         = "my-password-here"
   password_wo_version = 1
 }
 ```
@@ -68,7 +68,7 @@ resource "aws_db_instance" "test" {
   engine              = "postgres"
   username            = "admin"
   skip_final_snapshot = true
-  password_wo = ephemeral.random.password.value
+  password_wo          = ephemeral.random.password.value
   password_wo_version = 1
 }
 ```
@@ -103,7 +103,7 @@ resource "aws_db_instance" "test" {
 
 </CodeBlockConfig>
 
-The provider now uses the write-only argument value when creating the `aws_db_instance` resource and when the `password_wo_version` version argument increments. The `password_wo_version` version argument is stored in state, allowing Terraform to track when the write-only argument changes.
+The provider now uses the write-only argument value when creating the `aws_db_instance` resource and whenever you increment the `password_wo_version` version argument. The `password_wo_version` version argument is stored in state, allowing Terraform to track when the write-only argument changes.
 
 To trigger an update of a write-only argument, increment the version argument's value in your configuration:
 
