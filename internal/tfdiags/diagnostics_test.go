@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 )
 
@@ -539,9 +538,7 @@ func TestWarnings(t *testing.T) {
 		t.Run(tn, func(t *testing.T) {
 			warnings := tc.diags.Warnings()
 
-			if diff := cmp.Diff(tc.expected, warnings, DiagnosticComparer); diff != "" {
-				t.Errorf("wrong diagnostics\n%s", diff)
-			}
+			AssertDiagnosticsMatch(t, tc.expected, warnings)
 		})
 	}
 }
