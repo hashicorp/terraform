@@ -5,29 +5,27 @@ description: Learn how to use write-only arguments to set temporary values on re
 
 # Use write-only arguments
 
-Terraform resources can include ephemeral arguments for data that only needs to exist temporarily. An ephemeral argument on a resource is called a **write-only argument**. Use write-only arguments to store sensitive data for the current Terraform operation, such as a short-lived password, token, or session identifier. 
+Write-only arguments let you securely pass temporary values to Terraform resources during a Terraform operation without persisting those values to state or plan files. Use write-only arguments to store sensitive data for the current Terraform operation, such as a short-lived password, token, or session identifier. 
 
 ## Background
 
 Write-only arguments are only available during the runtime of a Terraform operation, and Terraform omits those values from state and plan files.
 
-You can use write-only arguments to pass ephemeral data directly to a resource without Terraform persisting that value. For example, you can directly pass a generated password or a fetched token to a write-only argument without risking Terraform exposing that value in its artifacts.
+You can use write-only arguments to pass ephemeral values directly to a resource without Terraform persisting that value. For example, you can directly pass a generated password or a fetched token to a write-only argument without risking Terraform exposing that value. Use write-only arguments to ensure sensitive data only exists during the current Terraform operation.
 
-Write-only arguments are unique among other ephemeral constructs in Terraform because they accept both ephemeral and non-ephemeral values.
+Unlike other ephemeral constructs in Terraform, such as ephemeral resources or variables, write-only arguments also accept both ephemeral and non-ephemeral values.
 
 ## Requirements
 
-To define write-only arguments you must use Terraform v.1.11 or later, and use  a `resource` that supports write-only arguments.
+To use write-only arguments, you must use Terraform v.1.11 or later and use  a `resource` that supports write-only arguments.
 
 ## Declare a write-only argument
 
-Providers indicate in the Terraform registry whether a resource contains write-only arguments. For example, the `aws` provider's `aws_db_instance` resource has a write-only `password_wo` argument. The `password_wo` argument accepts a value to use as the database password:
+Providers indicate in the Terraform registry whether an argument is write-only. For example, the `aws` provider's `aws_db_instance` resource has a write-only `password_wo` argument. The `password_wo` argument accepts a value to use as the database password:
+
+<CodeBlockConfig highlight="7">
 
 ```hcl
-ephemeral "random" "password" {
-  length = 16
-}
-
 resource "aws_db_instance" "test" {
   instance_class      = "db.t5.micro"
   allocated_storage   = "5"
@@ -38,7 +36,9 @@ resource "aws_db_instance" "test" {
 }
 ```
 
-Write-only arguments can accept both ephemeral and non-ephemeral values. For example, you could use a literal string as the value of a write-only argument:
+</CodeBlockConfig>
+
+Write-only arguments accept both ephemeral and non-ephemeral values. For example, you could also use a string as the value of a write-only argument:
 
 ```hcl
 resource "aws_db_instance" "test" {
@@ -47,11 +47,13 @@ resource "aws_db_instance" "test" {
   engine              = "postgres"
   username            = "admin"
   skip_final_snapshot = true
-  password_wo = "your-password-here"
+  password_wo = "my-password-here"
 }
 ```
 
-However, write-only arguments are most useful when you use ephemeral values. For example, you can use an `ephemeral` resource to generate a random password and pass it to the `password_wo` write-only argument:
+However, write-only arguments are most useful for passing ephemeral values to resources. For example, you can use an `ephemeral` resource to generate a random password and pass it to the `password_wo` write-only argument:
+
+<CodeBlockConfig highlight="11">
 
 ```hcl
 ephemeral "random" "password" {
@@ -68,28 +70,54 @@ resource "aws_db_instance" "test" {
 }
 ```
 
-During a Terraform operation, the provider uses the `password_wo` value to configure the database instance and then discards that value without storing it in the plan or state file. 
+</CodeBlockConfig>
 
-Terraform sends write-only arguments to the provider every time it needs to create or update that argument's resource in your configuration. Meaning, every time an apply creates or updates the `aws_db_instance` resource, Terraform sends the `password_wo` argument to the `aws` provider. The provider uses the `password_wo` value to configure the database instance and then discards the password value afterwards.
+During a Terraform operation, the provider uses the `password_wo` value to configure the database instance, and then Terraform discards that value without storing it in the plan or state file. 
 
-## Control updates with version attributes
+## Update write-only arguments with versions
 
-Write-only arguments often have associated version arguments that control when Terraform updates the write-only argument. The version attribute is stored in state, allowing Terraform to track when the write-only argument changes.
+Terraform does not store write-only arguments in state files, so Terraform has no way of knowing if a write-only argument value has changed. Because Terraform cannot track write-only argument values, it sends write-only arguments to the provider during every operation.
 
-For example, the `aws_db_instance` resource has a `password_wo_version` argument that controls when Terraform sends the `password_wo` value to the provider. The provider only receives the `password_wo` value when the `password_wo_version` argument changes or when creating a new resource:
+Terraform also cannot create plan diffs for write-only arguments because it does not store them in plan files, so providers only use write-only arguments when creating a new resource.
+
+Providers implement version arguments to let practitioners track write-only argument values and control when a provider uses those write-only arguments. The implementation of write-only arguments and their version arguments is provider-specific, so consult the Registry for more details about your specific provider.
+
+For example, the `aws_db_instance` resource has an accompanying `password_wo_version` argument for the `password_wo` write-only argument:
+
+<CodeBlockConfig highlight="11-12">
 
 ```hcl
+resource "aws_db_instance" "test" {
+  instance_class      = "db.t5.micro"
+  allocated_storage   = "5"
+  engine              = "postgres"
+  username            = "admin"
+  skip_final_snapshot = true
+  password_wo         = "new-password-here"
+  password_wo_version = 1
+}
+```
+
+</CodeBlockConfig>
+
+The provider now uses the write-only argument value when creating the `aws_db_instance` resource and when the `password_wo_version` version argument increments. The `password_wo_version` version argument is stored in state, allowing Terraform to track when the write-only argument changes.
+
+To trigger an update of a write-only argument, increment the version argument's value in your configuration:
+
+```hcl
+
 resource "aws_db_instance" "main" {
   instance_class      = "db.t5.micro"
   allocated_storage   = "5"
-  engine             = "postgres"
-  username           = "admin"
+  engine              = "postgres"
+  username            = "admin"
   password_wo         = "new-password-here"
   password_wo_version = 2
 }
 ```
 
-To trigger an update of a write-only argument, modify the write-only argument's value in your configuration and increment the corresponding version attribute.
+When you increment the `password_wo_version` argument, Terraform notices that change in its plan and notifies the `aws` provider. The `aws` provider then uses the new `password_wo` value to update the `aws_db_instance` resource.
 
+<!--- TODO: add Vault example once the provider supports write-only args --->
 
 
