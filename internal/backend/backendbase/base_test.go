@@ -56,9 +56,7 @@ func TestBase_coerceError(t *testing.T) {
 			// This is incorrect because the schema wants a string
 			"foo": cty.MapValEmpty(cty.String),
 		}))
-		// We'll use the "RPC" representation of the diagnostics just because
-		// it's convenient for comparing without any unusual cmp options.
-		gotDiags := diags.InConfigBody(body, "").ForRPC()
+		gotDiags := diags.InConfigBody(body, "")
 		var wantDiags tfdiags.Diagnostics
 		wantDiags = wantDiags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -66,10 +64,8 @@ func TestBase_coerceError(t *testing.T) {
 			Detail:   "The backend configuration is incorrect: .foo: string required.",
 			Subject:  &hcl.Range{Filename: "MockExprLiteral"},
 		})
-		wantDiags = wantDiags.ForRPC()
-		if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
-			t.Errorf("wrong diagnostics\n%s", diff)
-		}
+
+		tfdiags.AssertDiagnosticsMatch(t, gotDiags, wantDiags)
 	})
 }
 
@@ -166,9 +162,8 @@ func TestBase_deprecatedArg(t *testing.T) {
 		_, diags := b.PrepareConfig(cty.ObjectVal(map[string]cty.Value{
 			"deprecated": cty.StringVal("hello"),
 		}))
-		// We'll use the "RPC" representation of the diagnostics just because
-		// it's convenient for comparing without any unusual cmp options.
-		gotDiags := diags.InConfigBody(body, "").ForRPC()
+
+		gotDiags := diags.InConfigBody(body, "")
 		var wantDiags tfdiags.Diagnostics
 		wantDiags = wantDiags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
@@ -176,10 +171,7 @@ func TestBase_deprecatedArg(t *testing.T) {
 			Detail:   "The argument .deprecated is deprecated. Refer to the backend documentation for more information.",
 			Subject:  &hcl.Range{Filename: "MockExprLiteral"},
 		})
-		wantDiags = wantDiags.ForRPC()
-		if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
-			t.Errorf("wrong diagnostics\n%s", diff)
-		}
+		tfdiags.AssertDiagnosticsMatch(t, wantDiags, gotDiags)
 	})
 	t.Run("nested deprecated", func(t *testing.T) {
 		_, diags := b.PrepareConfig(cty.ObjectVal(map[string]cty.Value{
@@ -192,9 +184,7 @@ func TestBase_deprecatedArg(t *testing.T) {
 				}),
 			}),
 		}))
-		// We'll use the "RPC" representation of the diagnostics just because
-		// it's convenient for comparing without any unusual cmp options.
-		gotDiags := diags.InConfigBody(body, "").ForRPC()
+		gotDiags := diags.InConfigBody(body, "")
 		var wantDiags tfdiags.Diagnostics
 		wantDiags = wantDiags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
@@ -208,10 +198,7 @@ func TestBase_deprecatedArg(t *testing.T) {
 			Detail:   "The argument .nested[1].deprecated is deprecated. Refer to the backend documentation for more information.",
 			Subject:  &hcl.Range{Filename: "MockExprLiteral"},
 		})
-		wantDiags = wantDiags.ForRPC()
-		if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
-			t.Errorf("wrong diagnostics\n%s", diff)
-		}
+		tfdiags.AssertDiagnosticsMatch(t, wantDiags, gotDiags)
 	})
 }
 

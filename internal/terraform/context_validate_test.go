@@ -3064,7 +3064,7 @@ output "test" {
 			},
 		},
 	)
-	assertDiagnosticsMatch(t, diags, wantDiags)
+	tfdiags.AssertDiagnosticsMatch(t, diags, wantDiags)
 }
 
 func TestContext2Validate_ephemeralOutput_child(t *testing.T) {

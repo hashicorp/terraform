@@ -672,7 +672,7 @@ resource "ephem_write_only" "test" {
 
 			diags := ctx.Validate(m, &ValidateOpts{})
 			if tc.expectValidateDiagnostics != nil {
-				assertDiagnosticsSummaryAndDetailMatch(t, diags, tc.expectValidateDiagnostics(m))
+				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectValidateDiagnostics(m))
 				// If we expect diagnostics, we should not continue with the plan
 				// as it will fail.
 				return
@@ -693,7 +693,7 @@ resource "ephem_write_only" "test" {
 
 			plan, diags := ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, inputs))
 			if tc.expectPlanDiagnostics != nil {
-				assertDiagnosticsSummaryAndDetailMatch(t, diags, tc.expectPlanDiagnostics(m))
+				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectPlanDiagnostics(m))
 			} else {
 				assertNoDiagnostics(t, diags)
 			}

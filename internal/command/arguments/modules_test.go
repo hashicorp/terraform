@@ -6,7 +6,6 @@ package arguments
 import (
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -82,9 +81,7 @@ func TestParseModules_invalid(t *testing.T) {
 			if *got != *tc.want {
 				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
 			}
-			if diff := cmp.Diff(gotDiags, tc.wantDiags, tfdiags.DiagnosticComparer); diff != "" {
-				t.Fatalf("unexpected diff in diags:\n%s", diff)
-			}
+			tfdiags.AssertDiagnosticsMatch(t, gotDiags, tc.wantDiags)
 		})
 	}
 }
