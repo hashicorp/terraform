@@ -2487,7 +2487,6 @@ Success! 2 passed, 0 failed.
 }
 
 func TestTest_InvalidConfig(t *testing.T) {
-	t.Skip("TODO(dsa0x): Unable to reproduce this flakiness locally, skipping for now. Need to investigate or remove.")
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "invalid_config")), td)
 	defer testChdir(t, td)()
@@ -2536,9 +2535,14 @@ func TestTest_InvalidConfig(t *testing.T) {
 		t.Errorf("expected status code ! but got %d", code)
 	}
 
-	expected := `main.tftest.hcl... in progress
+	expectedOut := `main.tftest.hcl... in progress
   run "test"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
 
+Failure! 0 passed, 1 failed.
+`
+	expectedErr := `
 Error: Failed to load plugin schemas
 
 Error while loading schemas for plugin components: Failed to obtain provider
@@ -2547,16 +2551,16 @@ registry.terraform.io/hashicorp/test: failed to instantiate provider
 "registry.terraform.io/hashicorp/test" to obtain schema: fork/exec
 .terraform/providers/registry.terraform.io/hashicorp/test/1.0.0/%s/terraform-provider-test_1.0.0:
 permission denied..
-main.tftest.hcl... tearing down
-main.tftest.hcl... fail
-
-Failure! 0 passed, 1 failed.
 `
-	expected = fmt.Sprintf(expected, runtime.GOOS+"_"+runtime.GOARCH)
-	actual := output.All()
+	expectedErr = fmt.Sprintf(expectedErr, runtime.GOOS+"_"+runtime.GOARCH)
+	out := output.Stdout()
+	err := output.Stderr()
 
-	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
-		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	if diff := cmp.Diff(out, expectedOut); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, out, diff)
+	}
+	if diff := cmp.Diff(err, expectedErr); len(diff) > 0 {
+		t.Errorf("error didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, err, diff)
 	}
 
 	if provider.ResourceCount() > 0 {
