@@ -37,9 +37,9 @@ To learn more about the `ephemeral` resource block, refer to the [Ephemeral reso
 
 ## Write-only arguments
 
-Terraform resources can include ephemeral arguments, called **write-only arguments**. Unlike other ephemeral constructs in Terraform, write-only arguments accept both ephemeral and non-ephemeral values. 
+Terraform's managed resources, defined by `resource` blocks, can include ephemeral arguments, called **write-only arguments**. Write-only arguments are only available during the current Terraform operation, and Terraform does not store them in state or plan files.  
 
-Write-only arguments are only available during runtime, so you can securely pass temporary values to resources during a Terraform operation without persisting those values to state or plan files. For example, the `aws_db_instance` resource has a write-only `password_wo` argument that accepts a database password:
+Use write-only arguments to securely pass temporary values to resources during a Terraform operation without worrying about Terraform persisting those values. For example, the `aws_db_instance` resource has a write-only `password_wo` argument that accepts a database password:
 
 ```hcl
 ephemeral "random" "password" {
