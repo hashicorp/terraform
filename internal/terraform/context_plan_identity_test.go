@@ -213,7 +213,7 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 				},
 			})
 
-			schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+			schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 			ty := schema.ImpliedType()
 			readState, err := hcl2shim.HCL2ValueFromFlatmap(map[string]string{"id": "foo", "foo": "baz"}, ty)
 			if err != nil {
@@ -310,7 +310,7 @@ func TestContext2Plan_resource_identity_refresh_destroy_deposed(t *testing.T) {
 		},
 	})
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 	readState, err := hcl2shim.HCL2ValueFromFlatmap(map[string]string{"id": "foo", "foo": "baz"}, ty)
 	if err != nil {
