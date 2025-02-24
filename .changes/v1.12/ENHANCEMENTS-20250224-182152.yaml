@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'fmt: Added the ability to format .tfbackend files'
+time: 2025-02-24T18:21:52.181981Z
+custom:
+    Issue: "36570"
