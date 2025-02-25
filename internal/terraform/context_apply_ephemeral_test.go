@@ -818,7 +818,7 @@ resource "ephem_write_only" "wo" {
 		`Provider "provider[\"registry.terraform.io/hashicorp/ephem\"]" returned a value for the write-only attribute "ephem_write_only.wo.write_only" after apply. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.`,
 	))
 
-	assertDiagnosticsMatch(t, diags, expectedDiags)
+	tfdiags.AssertDiagnosticsMatch(t, diags, expectedDiags)
 }
 
 func TestContext2Apply_write_only_attribute_provider_plan_with_non_null_value(t *testing.T) {
@@ -890,7 +890,7 @@ resource "ephem_write_only" "wo" {
 		`Provider "provider[\"registry.terraform.io/hashicorp/ephem\"]" returned a value for the write-only attribute "ephem_write_only.wo.write_only" during planning. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.`,
 	))
 
-	assertDiagnosticsMatch(t, diags, expectedDiags)
+	tfdiags.AssertDiagnosticsMatch(t, diags, expectedDiags)
 }
 
 func TestContext2Apply_write_only_attribute_provider_read_with_non_null_value(t *testing.T) {
@@ -977,5 +977,5 @@ resource "ephem_write_only" "wo" {
 		`Provider "provider[\"registry.terraform.io/hashicorp/ephem\"]" returned a value for the write-only attribute "ephem_write_only.wo.write_only" during refresh. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.`,
 	))
 
-	assertDiagnosticsMatch(t, diags, expectedDiags)
+	tfdiags.AssertDiagnosticsMatch(t, diags, expectedDiags)
 }
