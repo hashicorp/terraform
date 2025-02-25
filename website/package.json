@@ -6,7 +6,7 @@
     "content-check": "hc-content --config base-docs"
   },
   "devDependencies": {
-    "@hashicorp/platform-cli": "^2.7.3",
+    "@hashicorp/platform-cli": "^2.8.0",
     "@hashicorp/platform-content-conformance": "^0.0.12",
     "next": "^14.0.4"
   },
