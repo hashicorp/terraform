@@ -60,10 +60,8 @@ func TestLoad_Local(t *testing.T) {
 		)
 	})
 	statePath := TestStateFile(t, state)
-	loader := &Loader{
-		ConfigurationPath: strings.TrimSuffix(statePath, "/terraform.tfstate"),
-	}
-	loadedState, diags := loader.LoadState()
+	loader := &Loader{}
+	loadedState, diags := loader.LoadState(strings.TrimSuffix(statePath, "/terraform.tfstate"))
 	if diags.HasErrors() {
 		t.Fatalf("failed to load state: %s", diags.Err())
 	}
@@ -118,15 +116,11 @@ func TestLoad(t *testing.T) {
 			"prefix": cty.StringVal("my-app-"),
 		}),
 	}))
-	dir := strings.TrimSuffix(backendStatePath, "/terraform.tfstate")
+	dir := strings.TrimSuffix(backendStatePath, ".terraform/.terraform.tfstate")
 	defer s.Close()
-	loader := Loader{
-		ConfigurationPath: dir,
-		BackendStatePath:  backendStatePath,
-		Workspace:         "test",
-		Discovery:         testDisco(s),
-	}
-	loadedState, diags := loader.LoadState()
+	loader := Loader{Discovery: testDisco(s)}
+	os.Setenv(WorkspaceNameEnvVar, "test")
+	loadedState, diags := loader.LoadState(dir)
 	if diags.HasErrors() {
 		t.Fatalf("failed to load state: %s", diags.Err())
 	}
@@ -147,7 +141,12 @@ func mustResourceAddr(s string) addrs.ConfigResource {
 func testBackendStateFile(t *testing.T, value cty.Value) string {
 	t.Helper()
 
-	path := filepath.Join(t.TempDir(), "terraform.tfstate")
+	path := filepath.Join(t.TempDir(), ".terraform", ".terraform.tfstate")
+
+	err := os.MkdirAll(filepath.Dir(path), 0755)
+	if err != nil {
+		t.Fatalf("failed to create directories for temporary state file %s: %s", path, err)
+	}
 
 	f, err := os.Create(path)
 	if err != nil {

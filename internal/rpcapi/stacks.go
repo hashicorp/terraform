@@ -8,8 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
@@ -22,9 +20,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/backend/local"
-	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providercache"
@@ -796,38 +791,12 @@ func (s *stacksServer) InspectExpressionResult(ctx context.Context, req *stacks.
 func (s *stacksServer) OpenTerraformState(ctx context.Context, request *stacks.OpenTerraformState_Request) (*stacks.OpenTerraformState_Response, error) {
 	switch data := request.State.(type) {
 	case *stacks.OpenTerraformState_Request_ConfigPath:
-		// load the state specified by this configuration
-		workingDirectory := workdir.NewDir(data.ConfigPath)
-		if data := os.Getenv("TF_DATA_DIR"); len(data) > 0 {
-			workingDirectory.OverrideDataDir(data)
-		}
-
-		// Load the currently active workspace from the environment, defaulting
-		// to the default workspace if not set.
-		workspace := backend.DefaultStateName
-		if ws := os.Getenv(WorkspaceNameEnvVar); len(ws) > 0 {
-			workspace = ws
-		}
-
-		workspaceData, err := os.ReadFile(filepath.Join(workingDirectory.DataDir(), local.DefaultWorkspaceFile))
-		if err != nil && !os.IsNotExist(err) {
-			return nil, status.Errorf(codes.InvalidArgument, "failed to read workspace file: %s", err)
-		}
-		if len(workspaceData) > 0 {
-			workspace = string(workspaceData)
-		}
-
 		// Load the state from the backend specified by the .terraform.tfstate
 		// file. This function should return an empty state even if the diags
 		// has errors. This makes it easier for the caller, as they should
 		// close the state handle regardless of the diags.
-		loader := stackmigrate.Loader{
-			ConfigurationPath: workingDirectory.RootModuleDir(),
-			BackendStatePath:  filepath.Join(workingDirectory.DataDir(), ".terraform.tfstate"),
-			Workspace:         workspace,
-			Discovery:         s.services,
-		}
-		state, diags := loader.LoadState()
+		loader := stackmigrate.Loader{Discovery: s.services}
+		state, diags := loader.LoadState(data.ConfigPath)
 
 		hnd := s.handles.NewTerraformState(state)
 		return &stacks.OpenTerraformState_Response{

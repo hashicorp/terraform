@@ -5,6 +5,8 @@ package stackmigrate
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -21,18 +23,22 @@ import (
 )
 
 type Loader struct {
-	ConfigurationPath string
-	BackendStatePath  string
-	Workspace         string
-	Discovery         *disco.Disco
+	Discovery *disco.Disco
 }
+
+var (
+	WorkspaceNameEnvVar = "TF_WORKSPACE"
+)
 
 // LoadState loads a state from the given configPath. The configuration at configPath
 // must have been initialized via `terraform init` before calling this function.
-// The backend state is loaded from backendStatePath. For local backends, there
-// is no backend state file, so this can be an empty string.
-func (l *Loader) LoadState() (*states.State, tfdiags.Diagnostics) {
+func (l *Loader) LoadState(configPath string) (*states.State, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	workingDirectory, workspace, err := l.loadWorkingDir(configPath)
+	if err != nil {
+		return nil, diags.Append(fmt.Errorf("error loading working directory: %s", err))
+	}
+
 	state := states.NewState()
 	backendInit.Init(l.Discovery)
 
@@ -40,8 +46,8 @@ func (l *Loader) LoadState() (*states.State, tfdiags.Diagnostics) {
 	// by the `terraform init` command, and contains the configuration for the
 	// backend that we're using.
 	var backendState *workdir.BackendStateFile
-	var err error
-	st := &clistate.LocalState{Path: l.BackendStatePath}
+	backendStatePath := filepath.Join(workingDirectory.DataDir(), ".terraform.tfstate")
+	st := &clistate.LocalState{Path: backendStatePath}
 	// If the backend state file is not provided, RefreshState will
 	// return nil error and State will be empty.
 	// In this case, we assume that we're using a local backend.
@@ -58,8 +64,8 @@ func (l *Loader) LoadState() (*states.State, tfdiags.Diagnostics) {
 	if backendState == nil { // local backend
 		backend = local.New()
 		backendConfig = cty.ObjectVal(map[string]cty.Value{
-			"path":          cty.StringVal(fmt.Sprintf("%s/%s", l.ConfigurationPath, "terraform.tfstate")),
-			"workspace_dir": cty.StringVal(l.ConfigurationPath),
+			"path":          cty.StringVal(fmt.Sprintf("%s/%s", configPath, "terraform.tfstate")),
+			"workspace_dir": cty.StringVal(configPath),
 		})
 	} else {
 		initFn := backendInit.Backend(backendState.Backend.Type)
@@ -102,7 +108,7 @@ func (l *Loader) LoadState() (*states.State, tfdiags.Diagnostics) {
 
 	// The backend is initialised and configured, so now we can load the state
 	// from the backend.
-	stateManager, err := backend.StateMgr(l.Workspace)
+	stateManager, err := backend.StateMgr(workspace)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("error loading state: %s", err))
 		return state, diags
@@ -131,4 +137,29 @@ func (l *Loader) LoadState() (*states.State, tfdiags.Diagnostics) {
 	}
 
 	return state, diags
+}
+
+func (l *Loader) loadWorkingDir(configPath string) (*workdir.Dir, string, error) {
+	// load the state specified by this configuration
+	workingDirectory := workdir.NewDir(configPath)
+	if data := os.Getenv("TF_DATA_DIR"); len(data) > 0 {
+		workingDirectory.OverrideDataDir(data)
+	}
+	configPath = workingDirectory.RootModuleDir()
+
+	// Load the currently active workspace from the environment, defaulting
+	// to the default workspace if not set.
+	workspace := backend.DefaultStateName
+	if ws := os.Getenv(WorkspaceNameEnvVar); len(ws) > 0 {
+		workspace = ws
+	}
+
+	workspaceData, err := os.ReadFile(filepath.Join(workingDirectory.DataDir(), local.DefaultWorkspaceFile))
+	if err != nil && !os.IsNotExist(err) {
+		return nil, "", fmt.Errorf("failed to read workspace file: %s", err)
+	}
+	if len(workspaceData) > 0 {
+		workspace = string(workspaceData)
+	}
+	return workingDirectory, workspace, nil
 }

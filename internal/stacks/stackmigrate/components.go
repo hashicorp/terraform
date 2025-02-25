@@ -90,7 +90,7 @@ func (m *migration) calculateDependencies(components collections.Map[Instance, c
 			// We collect the component's dependencies, and also
 			// add the component to the dependent set of its dependencies.
 			addDependencies := func(dss collections.Set[AbsComponent]) {
-				compDepSet.Merge(dss)
+				compDepSet.AddAll(dss)
 				for cmpt := range dss.All() {
 					if !dependents.HasKey(cmpt) {
 						dependents.Put(cmpt, collections.NewSet[AbsComponent]())
@@ -144,7 +144,7 @@ func (m *migration) componentDependenciesFromExpression(expr hcl.Expression, cur
 
 	for _, v := range expr.Variables() {
 		dss, moreDiags := m.componentDependenciesFromTraversal(v, current, components)
-		ds.Merge(dss)
+		ds.AddAll(dss)
 		diags = diags.Append(moreDiags)
 	}
 	return ds, diags
@@ -227,7 +227,7 @@ func (m *migration) providerDependencies(expr hcl.Expression, current stackaddrs
 
 			dss, moreDiags := m.componentDependenciesFromExpression(config.ForEach, current, components)
 			diags = diags.Append(moreDiags)
-			ds.Merge(dss)
+			ds.AddAll(dss)
 
 			if config.Config == nil {
 				// if there is no configuration, then there won't be any
@@ -252,7 +252,7 @@ func (m *migration) providerDependencies(expr hcl.Expression, current stackaddrs
 			for _, traversal := range traversals {
 				dss, moreDiags := m.componentDependenciesFromTraversal(traversal, current, components)
 				diags = diags.Append(moreDiags)
-				ds.Merge(dss)
+				ds.AddAll(dss)
 			}
 
 		default:

@@ -76,10 +76,10 @@ func (s Set[T]) Add(vs ...T) {
 	}
 }
 
-// Merge inserts all the members of vs into the set.
+// AddAll inserts all the members of vs into the set.
 //
 // The behavior is the same as calling Add for each member of vs.
-func (s Set[T]) Merge(vs Set[T]) {
+func (s Set[T]) AddAll(vs Set[T]) {
 	for v := range vs.All() {
 		s.Add(v)
 	}
