@@ -146,9 +146,9 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"simple_fail": {
 			expectedOut: []string{"0 passed, 1 failed."},
-			expectedErr: []string{"invalid value", `    │ ~~diff: 
-    | - "bar"
-    | + "zap"`},
+			expectedErr: []string{"invalid value", `    │ Diff:
+    │ - "bar"
+    │ + "zap"`},
 			code: 1,
 		},
 		"custom_condition_checks": {
@@ -304,9 +304,9 @@ func TestTest_Runs(t *testing.T) {
 		"ephemeral_input_with_error": {
 			expectedOut: []string{"Error message refers to ephemeral values", "1 passed, 1 failed."},
 			expectedErr: []string{"Test assertion failed",
-				`│ ~~diff: 
-    | - "(ephemeral value)"
-    | + "bar"`},
+				`    │ Diff:
+    │ - "(ephemeral value)"
+    │ + "bar"`},
 			code: 1,
 		},
 		"ephemeral_resource": {
@@ -911,15 +911,26 @@ Error: Test assertion failed
   on main.tftest.hcl line 21, in run "validate_diff_types":
   21:     condition = var.tr1 == var.tr2 
     ├────────────────
-    │ ~lhs is {
-    |   "iops": null,
-    |   "size": 60
-    | }
-    │ ~rhs is {
-    |   "iops": null,
-    |   "size": 60
-    | }
-    │ ~~diff: LHS and RHS values are of different types
+    │ LHS:
+    │   {
+    │     "iops": null,
+    │     "size": 60
+    │   }
+    │ RHS:
+    │   {
+    │     "iops": null,
+    │     "size": 60
+    │   }
+    │ Warning: LHS and RHS values are of different types
+
+    │ var.tr1 is {
+    │     "iops": null,
+    │     "size": 60
+    │   }
+    │ var.tr2 is {
+    │     "iops": null,
+    │     "size": 60
+    │   }
 
 expected to fail
 
@@ -928,21 +939,31 @@ Error: Test assertion failed
   on main.tftest.hcl line 28, in run "validate_output":
   28:     condition = output.foo == var.foo[0]
     ├────────────────
-    │ ~lhs is {
-    |   "bar": "notbaz",
-    |   "qux": "quux"
-    | }
-    │ ~rhs is {
-    |   "bar": "baz",
-    |   "qux": "quux"
-    | }
-    │ ~~diff: 
-    | 	{
-    | - "bar": "notbaz",
-    | + "bar": "baz",
-    | 	"qux": "quux"
-    | 	}
+    │ LHS:
+    │   {
+    │     "bar": "notbaz",
+    │     "qux": "quux"
+    │   }
+    │ RHS:
+    │   {
+    │     "bar": "baz",
+    │     "qux": "quux"
+    │   }
+    │ Diff:
+    │   {
+    │ -   "bar": "notbaz",
+    │ +   "bar": "baz",
+    │     "qux": "quux"
+    │   }
 
+    │ output.foo is {
+    │     "bar": "notbaz",
+    │     "qux": "quux"
+    │   }
+    │ var.foo[0] is {
+    │     "bar": "baz",
+    │     "qux": "quux"
+    │   }
 
 expected to fail
 
@@ -951,29 +972,77 @@ Error: Test assertion failed
   on main.tftest.hcl line 35, in run "validate_complex_output":
   35:     condition = output.complex == var.foo
     ├────────────────
-    │ ~lhs is {
-    |   "root": [
-    |     {
-    |       "bar": [
-    |         1
-    |       ],
-    |       "qux": "quux"
-    |     },
-    |     {
-    |       "bar": [
-    |         2
-    |       ],
-    |       "qux": "quux"
-    |     }
-    |   ]
-    | }
-    │ ~rhs is [
-    |   {
-    |     "bar": "baz",
-    |     "qux": "quux"
-    |   }
-    | ]
-    │ ~~diff: LHS and RHS values are of different types
+    │ LHS:
+    │   {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "quux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+    │ RHS:
+    │   [
+    │     {
+    │       "bar": "baz",
+    │       "qux": "quux"
+    │     }
+    │   ]
+    │ Warning: LHS and RHS values are of different types
+    │ Diff:
+    │ - {
+    │ + [
+    │ -   "root": [
+    │ +   {
+    │ -     {
+    │ +     "bar": "baz",
+    │ -       "bar": [
+    │ +     "qux": "quux"
+    │ -         1
+    │ +   }
+    │ -       ],
+    │ + ]
+    │         "qux": "quux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+
+    │ output.complex is {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "quux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+    │ var.foo is [
+    │     {
+    │       "bar": "baz",
+    │       "qux": "quux"
+    │     }
+    │   ]
 
 expected to fail
 
@@ -982,42 +1051,61 @@ Error: Test assertion failed
   on main.tftest.hcl line 42, in run "validate_complex_output_sensitive":
   42:     condition = output.complex == output.complex_sensitive
     ├────────────────
-    │ ~lhs is {
-    |   "root": [
-    |     {
-    |       "bar": [
-    |         1
-    |       ],
-    |       "qux": "quux"
-    |     },
-    |     {
-    |       "bar": [
-    |         2
-    |       ],
-    |       "qux": "quux"
-    |     }
-    |   ]
-    | }
-    │ ~rhs is "(sensitive value)"
-    │ ~~diff: 
-    | - {
-    | + "(sensitive value)"
-    | - "root": [
-    | - {
-    | - "bar": [
-    | - 1
-    | - ],
-    | - "qux": "quux"
-    | - },
-    | - {
-    | - "bar": [
-    | - 2
-    | - ],
-    | - "qux": "quux"
-    | - }
-    | - ]
-    | - }
+    │ LHS:
+    │   {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "quux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+    │ RHS:
+    │   "(sensitive value)"
+    │ Diff:
+    │ - {
+    │ + "(sensitive value)"
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "quux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
 
+    │ output.complex is {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "quux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+    │ output.complex_sensitive is "(sensitive value)"
 
 expected to fail
 `
@@ -2228,9 +2316,17 @@ Error: Test assertion failed
   on main.tftest.hcl line 8, in run "first":
    8:     condition     = test_resource.resource.value == output.null_output
     ├────────────────
-    │ ~lhs is "bar"
-    │ ~rhs is null
-    │ ~~diff: LHS and RHS values are of different types
+    │ LHS:
+    │   "bar"
+    │ RHS:
+    │   null
+    │ Warning: LHS and RHS values are of different types
+    │ Diff:
+    │ - "bar"
+    │ + null
+
+    │ output.null_output is null
+    │ test_resource.resource.value is "bar"
 
 this is always going to fail
 `,
@@ -2468,21 +2564,28 @@ Error: Test assertion failed
   29:       baz = test_resource.resource.id
   30:     }
     ├────────────────
-    │ ~lhs is {
-    |   "baz": "(sensitive value)",
-    |   "foo": "bar"
-    | }
-    │ ~rhs is {
-    |   "baz": "9ddca5a9",
-    |   "foo": "bar"
-    | }
-    │ ~~diff: 
-    | 	{
-    | - "baz": "(sensitive value)",
-    | + "baz": "9ddca5a9",
-    | 	"foo": "bar"
-    | 	}
+    │ LHS:
+    │   {
+    │     "baz": "(sensitive value)",
+    │     "foo": "bar"
+    │   }
+    │ RHS:
+    │   {
+    │     "baz": "9ddca5a9",
+    │     "foo": "bar"
+    │   }
+    │ Diff:
+    │   {
+    │ -   "baz": "(sensitive value)",
+    │ +   "baz": "9ddca5a9",
+    │     "foo": "bar"
+    │   }
 
+    │ test_resource.resource.id is "9ddca5a9"
+    │ var.complex is {
+    │     "baz": "(sensitive value)",
+    │     "foo": "bar"
+    │   }
 
 expected to fail
 `

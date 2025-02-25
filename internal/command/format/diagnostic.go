@@ -7,6 +7,8 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
+	"iter"
 	"sort"
 	"strings"
 
@@ -281,7 +283,7 @@ func appendSourceSnippets(buf *bytes.Buffer, diag *viewsjson.Diagnostic, color *
 			)
 		}
 
-		if len(snippet.Values) > 0 || (snippet.FunctionCall != nil && snippet.FunctionCall.Signature != nil) {
+		if len(snippet.Values) > 0 || (snippet.FunctionCall != nil && snippet.FunctionCall.Signature != nil) || snippet.TestAssertionExpr != nil {
 			// The diagnostic may also have information about the dynamic
 			// values of relevant variables at the point of evaluation.
 			// This is particularly useful for expressions that get evaluated
@@ -312,11 +314,81 @@ func appendSourceSnippets(buf *bytes.Buffer, diag *viewsjson.Diagnostic, color *
 				}
 				buf.WriteString(")\n")
 			}
+
+			// The diagnostic may also have information about failures from test assertions
+			// in a `terraform test` run. This is useful for understanding the values that
+			// were being compared when the assertion failed.
+			// Also, we'll print a JSON diff of the two values to make it easier to see the
+			// differences.
+			if snippet.TestAssertionExpr != nil {
+				fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [bold]LHS[reset]:\n"))
+				for line := range strings.SplitSeq(snippet.TestAssertionExpr.LHS, "\n") {
+					fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset]   %s\n"), line)
+				}
+				fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [bold]RHS[reset]:\n"))
+				for line := range strings.SplitSeq(snippet.TestAssertionExpr.RHS, "\n") {
+					fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset]   %s\n"), line)
+				}
+				if snippet.TestAssertionExpr.Warning != "" {
+					fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] [bold]Warning[reset]: %s\n"), snippet.TestAssertionExpr.Warning)
+				}
+				printJSONDiff(buf, color, snippet.TestAssertionExpr.LHS, snippet.TestAssertionExpr.RHS)
+				fmt.Fprintln(buf)
+			}
+
 			for _, value := range values {
-				fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] [bold]%s[reset] %s\n"), value.Traversal, value.Statement)
+				valSlice := strings.Split(value.Statement, "\n")
+				fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] [bold]%s[reset] %s\n"), value.Traversal, valSlice[0])
+				for _, line := range valSlice[1:] {
+					fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset]   %s\n"), line)
+				}
 			}
 		}
 	}
 
 	buf.WriteByte('\n')
+}
+
+func printJSONDiff(buf io.Writer, color *colorstring.Colorize, strA, strB string) {
+	// No visible difference in the JSON, so we'll just return
+	if strA == strB {
+		return
+	}
+	fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [bold]Diff[reset]:\n"))
+	nextLhs, stopLhs := iter.Pull(strings.SplitSeq(strA, "\n"))
+	nextRhs, stopRhs := iter.Pull(strings.SplitSeq(strB, "\n"))
+
+	printLine := func(prefix, line string) {
+		fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] %s %s\n"), prefix, line)
+	}
+
+	// We'll iterate over both sides of the expression and print the differences
+	// between them.
+	for {
+		lhsLine, lhsOk := nextLhs()
+		rhsLine, rhsOk := nextRhs()
+
+		if !lhsOk && !rhsOk {
+			break
+		}
+
+		if !lhsOk {
+			printLine(" ", rhsLine)
+			continue
+		}
+		if !rhsOk {
+			printLine(" ", lhsLine)
+			continue
+		}
+
+		if lhsLine == rhsLine {
+			printLine(" ", lhsLine)
+		} else {
+			printLine("-", lhsLine)
+			printLine("+", rhsLine)
+		}
+	}
+
+	stopLhs()
+	stopRhs()
 }

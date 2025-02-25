@@ -5,8 +5,6 @@ package json
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -19,7 +17,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 // These severities map to the tfdiags.Severity values, plus an explicit
@@ -106,6 +103,11 @@ type DiagnosticSnippet struct {
 	// FunctionCall is information about a function call whose failure is
 	// being reported by this diagnostic, if any.
 	FunctionCall *DiagnosticFunctionCall `json:"function_call,omitempty"`
+
+	// TestAssertionExpr is information derived from a diagnostic that is caused
+	// by a failed run assertion. This field is only populated when the assertion
+	// is a binary expression, i.e `a operand b``.
+	TestAssertionExpr *DiagnosticTestBinaryExpr `json:"test_assertion_expr,omitempty"`
 }
 
 // DiagnosticExpressionValue represents an HCL traversal string (e.g.
@@ -130,6 +132,16 @@ type DiagnosticFunctionCall struct {
 	// called, if any. Might be omitted if we're reporting that a call failed
 	// because the given function name isn't known, for example.
 	Signature *Function `json:"signature,omitempty"`
+}
+
+// DiagnosticTestBinaryExpr represents a failed test assertion diagnostic
+// caused by a binary expression. It includes the left-hand side (LHS) and
+// right-hand side (RHS) values of the binary expression, as well as a warning
+// message if there is a potential issue with the values being compared.
+type DiagnosticTestBinaryExpr struct {
+	LHS     string `json:"lhs"`
+	RHS     string `json:"rhs"`
+	Warning string `json:"warning"`
 }
 
 // NewDiagnostic takes a tfdiags.Diagnostic and a map of configuration sources,
@@ -280,6 +292,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 				includeUnknown := tfdiags.DiagnosticCausedByUnknown(diag)
 				includeEphemeral := tfdiags.DiagnosticCausedByEphemeral(diag)
 				includeSensitive := tfdiags.DiagnosticCausedBySensitive(diag)
+				testDiag := tfdiags.ExtraInfo[tfdiags.DiagnosticExtraCausedByTestFailure](diag)
 			Traversals:
 				for _, traversal := range vars {
 					for len(traversal) > 1 {
@@ -299,6 +312,22 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 						value := DiagnosticExpressionValue{
 							Traversal: traversalStr,
 						}
+
+						// If the diagnostic is caused by a failed run assertion,
+						// we'll redact sensitive and ephemeral values within traversals, but format
+						// the values in a more human-readable way than the general case.
+						// If the value is unknown, we'll leave it to the general case to handle.
+						if testDiag != nil && val.IsKnown() {
+							valBuf, err := tfdiags.FormatValueStr(val)
+							if err != nil {
+								panic(err)
+							}
+							value.Statement = fmt.Sprintf("is %s", valBuf)
+							values = append(values, value)
+							seen[traversalStr] = struct{}{}
+							continue Traversals
+						}
+
 						// We'll skip any value that has a mark that we don't
 						// know how to handle, because in that case we can't
 						// know what that mark is intended to represent and so
@@ -412,11 +441,10 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 					diagnostic.Snippet.FunctionCall = callInfo
 				}
 
-				// When the diagnostic is caused by a failed run whose assertion is a binary expression,
-				// we'll include a diff of the two values in the diagnostic snippet.
-				if expr, ok := fromExpr.Expression.(*hclsyntax.BinaryOpExpr); ok && tfdiags.DiagnosticCausedByTestFailure(diag) {
-					// replace all existing snippets with the LHS, RHS and diff snippet
-					diagnostic.Snippet.Values = diffBinaryFailedRunDiagnostic(ctx, expr)
+				if testDiag != nil {
+					// If the test assertion is a binary expression, we'll include the human-readable
+					// formatted LHS and RHS values in the diagnostic snippet.
+					diagnostic.Snippet.TestAssertionExpr = formatRunBinaryDiag(ctx, fromExpr.Expression)
 				}
 
 			}
@@ -427,119 +455,34 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 	return diagnostic
 }
 
-// Each line in the test diag output is prepended with this prefix.
-var ttyOutPrefix = "    | "
-
-// diffBinaryFailedRunDiagnostic is used to diff the two values of a binary expression
-// in a failed run diagnostic. More often than not, run assert expressions are binary
-// expressions, i.e., `a == b`. If the values are of different types, we don't diff them.
-func diffBinaryFailedRunDiagnostic(ctx *hcl.EvalContext, expr *hclsyntax.BinaryOpExpr) []DiagnosticExpressionValue {
+// formatRunBinaryDiag formats the binary expression that caused the failed run diagnostic.
+// The LHS and RHS values are formatted in a more human-readable way, redacting
+// sensitive and ephemeral values only for the exact values that hold the mark(s).
+func formatRunBinaryDiag(ctx *hcl.EvalContext, expr hcl.Expression) *DiagnosticTestBinaryExpr {
+	bExpr, ok := expr.(*hclsyntax.BinaryOpExpr)
+	if !ok {
+		return nil
+	}
 	// The expression has already been evaluated and failed, so we can ignore the diags here.
-	lhs, _ := expr.LHS.Value(ctx)
-	rhs, _ := expr.RHS.Value(ctx)
+	lhs, _ := bExpr.LHS.Value(ctx)
+	rhs, _ := bExpr.RHS.Value(ctx)
 
-	// formatValue formats all values within the cty.Value, and applies the redaction
-	// rules for sensitive and ephemeral values.
-	formatValue := func(val cty.Value) (fmt.Stringer, string, error) {
-		var buf bytes.Buffer
-		var str bytes.Buffer
-
-		val, err := cty.Transform(val, func(path cty.Path, val cty.Value) (cty.Value, error) {
-			// If a value is sensitive or ephemeral, we redact it, otherwise
-			// we return the value as is.
-			if val.HasMark(marks.Sensitive) || val.HasMark(marks.Ephemeral) {
-				return cty.StringVal(tfdiags.CompactValueStr(val)), nil
-			}
-			return val, nil
-		})
-		if err != nil {
-			return nil, "", fmt.Errorf("unexpected error transforming value: %s", err)
-		}
-
-		jsonVal, err := ctyjson.Marshal(val, val.Type())
-		if err != nil {
-			return nil, "", fmt.Errorf("unexpected error marshalling value: %s", err)
-		}
-
-		// The JSON format for the diff should not be indented, as the diff formatter will do that.
-		if err := json.Indent(&buf, jsonVal, "", ""); err != nil {
-			return nil, "", fmt.Errorf("unexpected error formatting JSON: %s", err)
-		}
-
-		if err := json.Indent(&str, jsonVal, ttyOutPrefix, "  "); err != nil {
-			return nil, "", fmt.Errorf("unexpected error formatting JSON: %s", err)
-		}
-
-		return &buf, str.String(), nil
-	}
-
-	var err error
-	lhsStr, noIndentLhs, err := formatValue(lhs)
+	lhsStr, err := tfdiags.FormatValueStr(lhs)
 	if err != nil {
 		panic(err)
 	}
-	rhsStr, noIndentRhs, err := formatValue(rhs)
+	rhsStr, err := tfdiags.FormatValueStr(rhs)
 	if err != nil {
 		panic(err)
 	}
 
-	ret := []DiagnosticExpressionValue{
-		{Traversal: "~lhs", Statement: fmt.Sprintf("is %s", noIndentLhs)},
-		{Traversal: "~rhs", Statement: fmt.Sprintf("is %s", noIndentRhs)},
-	}
+	ret := &DiagnosticTestBinaryExpr{LHS: lhsStr, RHS: rhsStr}
 
 	// The types do not match. We don't diff them.
 	if !lhs.Type().Equals(rhs.Type()) {
-		return append(ret, DiagnosticExpressionValue{
-			Traversal: "~~diff:",
-			Statement: "LHS and RHS values are of different types",
-		})
+		ret.Warning = "LHS and RHS values are of different types"
 	}
-
-	diff := DiagnosticExpressionValue{
-		Traversal: "~~diff:",
-		Statement: diffJSON(lhsStr, rhsStr),
-	}
-	return append(ret, diff)
-}
-
-func diffJSON(strA, strB fmt.Stringer) string {
-	lhsLines := strings.Split(strA.String(), "\n")
-	rhsLines := strings.Split(strB.String(), "\n")
-
-	var ret strings.Builder
-	ret.WriteString("\n")
-
-	// Keep track of matching lines
-	i, j := 0, 0
-	for i < len(lhsLines) || j < len(rhsLines) {
-		// If we've reached the end of one side, print remaining lines from other side
-		if i >= len(lhsLines) {
-			ret.WriteString(fmt.Sprintf("%s+ %s\n", ttyOutPrefix, rhsLines[j]))
-			j++
-			continue
-		}
-		if j >= len(rhsLines) {
-			ret.WriteString(fmt.Sprintf("%s- %s\n", ttyOutPrefix, lhsLines[i]))
-			i++
-			continue
-		}
-
-		// If lines match, just print one side
-		if lhsLines[i] == rhsLines[j] {
-			ret.WriteString(fmt.Sprintf("%s	%s\n", ttyOutPrefix, lhsLines[i]))
-			i++
-			j++
-		} else {
-			// Lines differ - show both versions
-			ret.WriteString(fmt.Sprintf("%s- %s\n", ttyOutPrefix, lhsLines[i]))
-			ret.WriteString(fmt.Sprintf("%s+ %s\n", ttyOutPrefix, rhsLines[j]))
-			i++
-			j++
-		}
-	}
-
-	return ret.String()
+	return ret
 }
 
 func parseRange(src []byte, rng hcl.Range) (*hcl.File, int) {
