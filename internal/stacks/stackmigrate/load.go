@@ -15,6 +15,7 @@ import (
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/backend/remote"
+	"github.com/hashicorp/terraform/internal/command"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/states"
@@ -32,14 +33,15 @@ var (
 
 // LoadState loads a state from the given configPath. The configuration at configPath
 // must have been initialized via `terraform init` before calling this function.
+// The function returns an empty state even if there are errors.
 func (l *Loader) LoadState(configPath string) (*states.State, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	state := states.NewState()
 	workingDirectory, workspace, err := l.loadWorkingDir(configPath)
 	if err != nil {
-		return nil, diags.Append(fmt.Errorf("error loading working directory: %s", err))
+		return state, diags.Append(fmt.Errorf("error loading working directory: %s", err))
 	}
 
-	state := states.NewState()
 	backendInit.Init(l.Discovery)
 
 	// First, we'll load the "backend state". This should have been initialised
@@ -145,21 +147,14 @@ func (l *Loader) loadWorkingDir(configPath string) (*workdir.Dir, string, error)
 	if data := os.Getenv("TF_DATA_DIR"); len(data) > 0 {
 		workingDirectory.OverrideDataDir(data)
 	}
-	configPath = workingDirectory.RootModuleDir()
+	meta := &command.Meta{WorkingDir: workingDirectory}
 
 	// Load the currently active workspace from the environment, defaulting
 	// to the default workspace if not set.
-	workspace := backend.DefaultStateName
-	if ws := os.Getenv(WorkspaceNameEnvVar); len(ws) > 0 {
-		workspace = ws
+	workspace, err := meta.Workspace()
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to load workspace: %s", err)
 	}
 
-	workspaceData, err := os.ReadFile(filepath.Join(workingDirectory.DataDir(), local.DefaultWorkspaceFile))
-	if err != nil && !os.IsNotExist(err) {
-		return nil, "", fmt.Errorf("failed to read workspace file: %s", err)
-	}
-	if len(workspaceData) > 0 {
-		workspace = string(workspaceData)
-	}
 	return workingDirectory, workspace, nil
 }

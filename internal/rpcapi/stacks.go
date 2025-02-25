@@ -791,8 +791,8 @@ func (s *stacksServer) InspectExpressionResult(ctx context.Context, req *stacks.
 func (s *stacksServer) OpenTerraformState(ctx context.Context, request *stacks.OpenTerraformState_Request) (*stacks.OpenTerraformState_Response, error) {
 	switch data := request.State.(type) {
 	case *stacks.OpenTerraformState_Request_ConfigPath:
-		// Load the state from the backend specified by the .terraform.tfstate
-		// file. This function should return an empty state even if the diags
+		// Load the state from the backend.
+		// This function should return an empty state even if the diags
 		// has errors. This makes it easier for the caller, as they should
 		// close the state handle regardless of the diags.
 		loader := stackmigrate.Loader{Discovery: s.services}
