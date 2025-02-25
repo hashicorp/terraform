@@ -1181,8 +1181,14 @@ func TestStacksMigrateTerraformState(t *testing.T) {
 		StateHandle:           resp.StateHandle,
 		ConfigHandle:          openResp.StackConfigHandle,
 		DependencyLocksHandle: lockHandle.ForProtobuf(),
-		ResourceAddressMap: map[string]string{
-			"testing_deferred_resource.resource": "self",
+		Mappings: []*stacks.MigrateTerraformState_Request_Mapping{
+			{Type: &stacks.MigrateTerraformState_Request_Mapping_ResourceAddress{
+				ResourceAddress: &stacks.StringMap{
+					Values: map[string]string{
+						"testing_deferred_resource.resource": "self",
+					},
+				},
+			}},
 		},
 	})
 
