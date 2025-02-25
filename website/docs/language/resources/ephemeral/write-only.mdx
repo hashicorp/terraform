@@ -105,7 +105,7 @@ resource "aws_db_instance" "test" {
 
 </CodeBlockConfig>
 
-The provider now uses the write-only argument value when creating the `aws_db_instance` resource and whenever you increment the `password_wo_version` version argument. The `password_wo_version` version argument is stored in state, allowing Terraform to track when the write-only argument changes.
+The provider uses the write-only argument value when creating the `aws_db_instance` resource and Terraform stores the `password_wo_version` argument value in state.
 
 To trigger an update of a write-only argument, increment the version argument's value in your configuration:
 
