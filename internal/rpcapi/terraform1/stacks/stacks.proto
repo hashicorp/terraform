@@ -111,24 +111,24 @@ message MigrateTerraformState {
 
     // Mapping of terraform constructs to stack components.
     message Mapping {
-      oneof type {
-          // resource_address maps resources in the root module to their new
-          // components. The keys are the addresses of the resources in the Terraform
-          // state, and the values are the names of the new components.
-          //
-          // eg. resource_type.resource_name -> component_name
-          StringMap resource_address = 1;
-
-          // module_address maps modules in the root module to their new
-          // components. The keys are the module names in the Terraform state, and
-          // the values are the names of the new components.
-          //
-          // eg. module_name -> component_name
-          StringMap module_address = 2;
-      }
+      // resource_address_map maps resources in the root module to their new
+      // components. The keys are the addresses of the resources in the Terraform
+      // state, and the values are the names of the new components.
+      //
+      // eg. resource_type.resource_name -> component_name
+      map<string, string> resource_address_map = 1;
+      // module_address_map maps modules in the root module to their new
+      // components. The keys are the module names in the Terraform state, and
+      // the values are the names of the new components.
+      //
+      // eg. module_name -> component_name
+      map<string, string> module_address_map = 2;
     }
-
-    repeated Mapping mappings = 5;
+    
+    oneof mapping {
+      // simple is a simple mapping of Terraform addresses to stack component
+      Mapping simple = 5;
+    }
 
   }
   message Event {

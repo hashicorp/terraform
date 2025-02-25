@@ -905,19 +905,15 @@ func (s *stacksServer) MigrateTerraformState(request *stacks.MigrateTerraformSta
 		})
 	}
 
-	var resourceAddrMap map[string]string
-	var moduleAddrMap map[string]string
-
-	for _, mapping := range request.GetMappings() {
-		switch {
-		case mapping.GetModuleAddress() != nil:
-			moduleAddrMap = mapping.GetModuleAddress().GetValues()
-		case mapping.GetResourceAddress() != nil:
-			resourceAddrMap = mapping.GetResourceAddress().GetValues()
-		}
+	mapping := request.GetMapping()
+	switch mapping := mapping.(type) {
+	case *stacks.MigrateTerraformState_Request_Simple:
+		migrate.Migrate(
+			mapping.Simple.ResourceAddressMap,
+			mapping.Simple.ModuleAddressMap,
+			emit, emitDiag)
 	}
 
-	migrate.Migrate(resourceAddrMap, moduleAddrMap, emit, emitDiag)
 	return nil
 }
 
