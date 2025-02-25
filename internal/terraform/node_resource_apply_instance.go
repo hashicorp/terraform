@@ -34,6 +34,8 @@ type NodeApplyableResourceInstance struct {
 	// it might contain addresses that have nothing to do with the resource
 	// that this node represents, which the node itself must therefore ignore.
 	forceReplace []addrs.AbsResourceInstance
+
+	semaphore Semaphore
 }
 
 var (
@@ -44,6 +46,7 @@ var (
 	_ GraphNodeDeposer            = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeExecutable         = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeLockable           = (*NodeApplyableResourceInstance)(nil)
 )
 
 // GraphNodeCreator
@@ -89,6 +92,25 @@ func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
 // GraphNodeAttachDependencies
 func (n *NodeApplyableResourceInstance) AttachDependencies(deps []addrs.ConfigResource) {
 	n.Dependencies = deps
+}
+
+// GraphNodeLockable
+func (n *NodeApplyableResourceInstance) AttachSemaphore(sem Semaphore) {
+	n.semaphore = sem
+}
+
+// GraphNodeLockable
+func (n *NodeApplyableResourceInstance) Lock() {
+	if n.semaphore != nil {
+		n.semaphore.Acquire()
+	}
+}
+
+// GraphNodeLockable
+func (n *NodeApplyableResourceInstance) Unlock() {
+	if n.semaphore != nil {
+		n.semaphore.Release()
+	}
 }
 
 // GraphNodeExecutable
