@@ -11,6 +11,8 @@ Write-only arguments let you securely pass temporary values to Terraform resourc
 
 Write-only arguments are only available during the runtime of a Terraform operation, and Terraform omits those values from state and plan files.
 
+> **Hands-on**: Declare a write-only argument in the [Upgrade RDS major version](/terraform/tutorials/aws/rds-upgrade) tutorial.
+
 You can use write-only arguments to pass ephemeral values directly to a resource without Terraform persisting that value. For example, you can directly pass a generated password or a fetched token to a write-only argument without risking Terraform exposing that value. Use write-only arguments to ensure sensitive data only exists during the current Terraform operation.
 
 Unlike other ephemeral constructs in Terraform, such as ephemeral resources or variables, write-only arguments also accept both ephemeral and non-ephemeral values.
