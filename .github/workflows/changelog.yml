@@ -33,6 +33,64 @@ jobs:
             cancel-in-progress: true
 
         steps:
+            - name: "Label PR based on the PR template"
+              uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+              id: auto-label
+              with:
+                script: |
+                    // Case sensitivity issue for [X] or [x], so downcase everything
+                    const emptyNoChangelogCheckmark = "- [ ] This change is not user-facing.".toLowerCase()
+                    const checkedNoChangelogCheckmark = "- [x] This change is not user-facing.".toLowerCase()
+
+                    const { body } = await github.rest.issues.get({
+                        issue_number: context.issue.number,
+                        owner: context.repo.owner,
+                        repo: context.repo.repo
+                    })
+                    body = body.toLowerCase()
+                    const hasEmptyCheckMark = body.includes(emptyNoChangelogCheckmark)
+                    const hasCheckedCheckMark = body.includes(checkedNoChangelogCheckmark)
+
+                    if ((hasEmptyCheckMark && hasCheckedCheckMark) || ( !hasEmptyCheckMark && !hasCheckedCheckMark)) {
+                        // The template is either not in use, or it's been duplicated.
+                        // In this case leave things alone.
+                        return
+                    }
+
+                    const noChangeLogLabel = 'no-changelog-needed'
+                    const prLabels = await github.rest.issues.listLabelsOnIssue({
+                        issue_number: context.issue.number,
+                        owner: context.repo.owner,
+                        repo: context.repo.repo
+                    });
+                    const labelPresent = prLabels.includes(noChangeLogLabel)
+
+                    if ((hasEmptyCheckMark && !labelPresent) || (hasCheckedCheckMark && labelPresent)) {
+                        // Labelling and issue body match
+                        return
+                    }
+
+                    if (hasEmptyCheckMark && labelPresent) {
+                        // The 'no-changelog-needed' label is added but the issue body
+                        // doesn't indicate the change isn't user-facing.
+
+                        // TODO: Do we update the issue body to match the label, or remove the label?
+                        // Updating the issue body feels more correct.
+                    }
+
+                    if (hasCheckedCheckMark && !labelPresent) {
+                        // The 'no-changelog-needed' label is missing
+                        // but the issue body indicates the change isn't user-facing.
+                        // The label should be present!
+
+                        const result = await github.rest.issues.addLabels({
+                            issue_number: context.issue.number,
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            labels: [noChangeLogLabel]
+                        });
+                    }
+
             - name: "Changed files"
               uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
               id: changelog
