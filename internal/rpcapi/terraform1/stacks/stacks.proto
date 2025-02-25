@@ -91,11 +91,6 @@ message CloseTerraformState {
   }
 }
 
-// StringMap is a simple map of strings to strings.
-message StringMap {
-  map<string, string> values = 1;
-}
-
 // MigrateTerraformState migrates a Terraform state into Stacks state using
 // a mapping of addresses.
 //
@@ -126,7 +121,7 @@ message MigrateTerraformState {
     }
     
     oneof mapping {
-      // simple is a simple mapping of Terraform addresses to stack component
+      // simple is a simple mapping of Terraform addresses to stack components
       Mapping simple = 5;
     }
 
