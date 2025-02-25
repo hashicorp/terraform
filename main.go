@@ -183,7 +183,49 @@ func realMain() int {
 	}
 	services.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 
-	providerSrc, diags := providerSource(config.ProviderInstallation, services)
+	// Get the command line args.
+	binName := filepath.Base(os.Args[0])
+	args := os.Args[1:]
+
+	originalWd, err := os.Getwd()
+	if err != nil {
+		// It would be very strange to end up here
+		Ui.Error(fmt.Sprintf("Failed to determine current working directory: %s", err))
+		return 1
+	}
+
+	// The arguments can begin with a -chdir option to ask Terraform to switch
+	// to a different working directory for the rest of its work. If that
+	// option is present then extractChdirOption returns a trimmed args with that option removed.
+	overrideWd, args, err := extractChdirOption(args)
+	if err != nil {
+		Ui.Error(fmt.Sprintf("Invalid -chdir option: %s", err))
+		return 1
+	}
+	if overrideWd != "" {
+		err := os.Chdir(overrideWd)
+		if err != nil {
+			Ui.Error(fmt.Sprintf("Error handling -chdir option: %s", err))
+			return 1
+		}
+		fmt.Printf("Passed in value: %v\n", overrideWd)
+		// normalize the path of the override directory
+		overrideWd, err = os.Getwd()
+		if err != nil {
+			// It would be very strange to end up here
+			Ui.Error(fmt.Sprintf("Failed to determine current working directory: %s", err))
+			return 1
+		}
+		fmt.Printf("OS value: %v\n", overrideWd)
+		// set the directory back to original directory temporarily
+		err = os.Chdir(originalWd)
+		if err != nil {
+			Ui.Error(fmt.Sprintf("Error handling -chdir option for temporary reset: %s", err))
+			return 1
+		}
+	}
+
+	providerSrc, diags := providerSource(config.ProviderInstallation, services, overrideWd)
 	if len(diags) > 0 {
 		Ui.Error("There are some problems with the provider_installation configuration:")
 		for _, diag := range diags {
@@ -213,25 +255,7 @@ func realMain() int {
 	// Initialize the backends.
 	backendInit.Init(services)
 
-	// Get the command line args.
-	binName := filepath.Base(os.Args[0])
-	args := os.Args[1:]
-
-	originalWd, err := os.Getwd()
-	if err != nil {
-		// It would be very strange to end up here
-		Ui.Error(fmt.Sprintf("Failed to determine current working directory: %s", err))
-		return 1
-	}
-
-	// The arguments can begin with a -chdir option to ask Terraform to switch
-	// to a different working directory for the rest of its work. If that
-	// option is present then extractChdirOption returns a trimmed args with that option removed.
-	overrideWd, args, err := extractChdirOption(args)
-	if err != nil {
-		Ui.Error(fmt.Sprintf("Invalid -chdir option: %s", err))
-		return 1
-	}
+	// set the directory back to the override directory
 	if overrideWd != "" {
 		err := os.Chdir(overrideWd)
 		if err != nil {
