@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -390,6 +391,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 
 		// Use unmarked value for validate request
 		unmarkedConfigVal, _ := configVal.UnmarkDeep()
+		log.Printf("[TRACE] Validating config for %q", n.Addr)
 		req := providers.ValidateResourceConfigRequest{
 			TypeName:           n.Config.Type,
 			Config:             unmarkedConfigVal,

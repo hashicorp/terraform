@@ -83,6 +83,41 @@ func (diags Diagnostics) Append(new ...interface{}) Diagnostics {
 	return diags
 }
 
+func (diags Diagnostics) ContainsDiagnostic(diag ComparableDiagnostic) bool {
+	for _, d := range diags {
+		if cd, ok := d.(ComparableDiagnostic); ok && diag.Equals(cd) {
+			return true
+		}
+	}
+	return false
+}
+
+func (diags Diagnostics) AppendWithoutDuplicates(newDiags ...Diagnostic) Diagnostics {
+	for _, newItem := range newDiags {
+		if newItem == nil {
+			continue
+		}
+
+		cd, ok := newItem.(ComparableDiagnostic)
+		if !ok {
+			// append what we cannot compare
+			diags = diags.Append(newItem)
+		}
+
+		if diags.ContainsDiagnostic(cd) {
+			continue
+		}
+
+		diags = diags.Append(newItem)
+	}
+
+	if len(diags) == 0 {
+		return nil
+	}
+
+	return diags
+}
+
 func diagnosticsForError(err error) []Diagnostic {
 	if err == nil {
 		return nil
