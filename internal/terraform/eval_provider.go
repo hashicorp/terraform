@@ -60,16 +60,3 @@ func getProvider(ctx EvalContext, addr addrs.AbsProviderConfig) (providers.Inter
 	}
 	return provider, schema, nil
 }
-
-func getResourceIdentitySchemas(ctx EvalContext, addr addrs.AbsProviderConfig) (providers.ResourceIdentitySchemas, error) {
-	if addr.Provider.Type == "" {
-		// Should never happen
-		panic("GetProviderIdentitySchema used with uninitialized provider configuration address")
-	}
-	identitySchema, err := ctx.ResourceIdentitySchemas(addr)
-	if err != nil {
-		return providers.ResourceIdentitySchemas{}, fmt.Errorf("failed to read identity schema for provider %s: %w", addr, err)
-	}
-	return identitySchema, nil
-
-}

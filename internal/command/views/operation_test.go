@@ -118,12 +118,12 @@ func TestOperation_planNoChanges(t *testing.T) {
 					Type: "test_resource",
 					Name: "somewhere",
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
-				schema, _ := schemas.ResourceTypeConfig(
+				schema := schemas.ResourceTypeConfig(
 					addrs.NewDefaultProvider("test"),
 					addr.Resource.Resource.Mode,
 					addr.Resource.Resource.Type,
 				)
-				ty := schema.ImpliedType()
+				ty := schema.Body.ImpliedType()
 				rc := &plans.ResourceInstanceChange{
 					Addr:        addr,
 					PrevRunAddr: addr,
@@ -159,12 +159,12 @@ func TestOperation_planNoChanges(t *testing.T) {
 					Type: "test_resource",
 					Name: "somewhere",
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
-				schema, _ := schemas.ResourceTypeConfig(
+				schema := schemas.ResourceTypeConfig(
 					addrs.NewDefaultProvider("test"),
 					addr.Resource.Resource.Mode,
 					addr.Resource.Resource.Type,
 				)
-				ty := schema.ImpliedType()
+				ty := schema.Body.ImpliedType()
 				rc := &plans.ResourceInstanceChange{
 					Addr:        addr,
 					PrevRunAddr: addr,
@@ -206,12 +206,12 @@ func TestOperation_planNoChanges(t *testing.T) {
 					Type: "test_resource",
 					Name: "somewhere",
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
-				schema, _ := schemas.ResourceTypeConfig(
+				schema := schemas.ResourceTypeConfig(
 					addrs.NewDefaultProvider("test"),
 					addr.Resource.Resource.Mode,
 					addr.Resource.Resource.Type,
 				)
-				ty := schema.ImpliedType()
+				ty := schema.Body.ImpliedType()
 				rc := &plans.ResourceInstanceChange{
 					Addr:        addr,
 					PrevRunAddr: addr,
@@ -252,12 +252,12 @@ func TestOperation_planNoChanges(t *testing.T) {
 					Type: "test_resource",
 					Name: "anywhere",
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
-				schema, _ := schemas.ResourceTypeConfig(
+				schema := schemas.ResourceTypeConfig(
 					addrs.NewDefaultProvider("test"),
 					addr.Resource.Resource.Mode,
 					addr.Resource.Resource.Type,
 				)
-				ty := schema.ImpliedType()
+				ty := schema.Body.ImpliedType()
 				rc := &plans.ResourceInstanceChange{
 					Addr:        addr,
 					PrevRunAddr: addrPrev,

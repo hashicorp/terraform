@@ -57,19 +57,19 @@ func TestLocalProvider(t *testing.T, b *Local, name string, schema providers.Pro
 			return resp
 		}
 
-		rSchema, _ := schema.SchemaForResourceType(addrs.ManagedResourceMode, req.TypeName)
-		if rSchema == nil {
-			rSchema = &configschema.Block{} // default schema is empty
+		rSchema := schema.SchemaForResourceType(addrs.ManagedResourceMode, req.TypeName)
+		if rSchema.Body == nil {
+			rSchema.Body = &configschema.Block{} // default schema is empty
 		}
 		plannedVals := map[string]cty.Value{}
-		for name, attrS := range rSchema.Attributes {
+		for name, attrS := range rSchema.Body.Attributes {
 			val := req.ProposedNewState.GetAttr(name)
 			if attrS.Computed && val.IsNull() {
 				val = cty.UnknownVal(attrS.Type)
 			}
 			plannedVals[name] = val
 		}
-		for name := range rSchema.BlockTypes {
+		for name := range rSchema.Body.BlockTypes {
 			// For simplicity's sake we just copy the block attributes over
 			// verbatim, since this package's mock providers are all relatively
 			// simple -- we're testing the backend, not esoteric provider features.
@@ -99,7 +99,6 @@ func TestLocalProvider(t *testing.T, b *Local, name string, schema providers.Pro
 	}
 
 	return p
-
 }
 
 // TestLocalSingleState is a backend implementation that wraps Local

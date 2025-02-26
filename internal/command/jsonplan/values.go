@@ -195,16 +195,16 @@ func marshalPlanResources(changes *plans.ChangesSrc, ris []addrs.AbsResourceInst
 			)
 		}
 
-		schema, schemaVer := schemas.ResourceTypeConfig(
+		schema := schemas.ResourceTypeConfig(
 			r.ProviderAddr.Provider,
 			r.Addr.Resource.Resource.Mode,
 			resource.Type,
 		)
-		if schema == nil {
+		if schema.Body == nil {
 			return nil, fmt.Errorf("no schema found for %s", r.Addr.String())
 		}
-		resource.SchemaVersion = schemaVer
-		changeV, err := r.Decode(schema.ImpliedType())
+		resource.SchemaVersion = schema.Version
+		changeV, err := r.Decode(schema.Body.ImpliedType())
 		if err != nil {
 			return nil, err
 		}
@@ -220,10 +220,10 @@ func marshalPlanResources(changes *plans.ChangesSrc, ris []addrs.AbsResourceInst
 
 		if changeV.After != cty.NilVal {
 			if changeV.After.IsWhollyKnown() {
-				resource.AttributeValues = marshalAttributeValues(changeV.After, schema)
+				resource.AttributeValues = marshalAttributeValues(changeV.After, schema.Body)
 			} else {
 				knowns := omitUnknowns(changeV.After)
-				resource.AttributeValues = marshalAttributeValues(knowns, schema)
+				resource.AttributeValues = marshalAttributeValues(knowns, schema.Body)
 			}
 		}
 

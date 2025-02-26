@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/format"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 // ResourceInstanceObject is the local representation of a specific remote
@@ -56,6 +57,24 @@ type ResourceInstanceObject struct {
 	CreateBeforeDestroy bool
 }
 
+// NewResourceInstanceObjectFromIR converts the receiving
+// ImportedObject into a ResourceInstanceObject that has status ObjectReady.
+//
+// The returned object does not know its own resource type, so the caller must
+// retain the ResourceType value from the source object if this information is
+// needed.
+//
+// The returned object also has no dependency addresses, but the caller may
+// freely modify the direct fields of the returned object without affecting
+// the receiver.
+func NewResourceInstanceObjectFromIR(ir providers.ImportedResource) *ResourceInstanceObject {
+	return &ResourceInstanceObject{
+		Status:  ObjectReady,
+		Value:   ir.State,
+		Private: ir.Private,
+	}
+}
+
 // ObjectStatus represents the status of a RemoteObject.
 type ObjectStatus rune
 
@@ -84,24 +103,6 @@ const (
 	ObjectPlanned ObjectStatus = 'P'
 )
 
-// EncodeWithoutIdentity marshals the value within the receiver to produce a
-// ResourceInstanceObjectSrc ready to be written to a state file. It does not
-// include the identity data in the state representation.
-func (o *ResourceInstanceObject) EncodeWithIdentity(ty cty.Type, schemaVersion uint64, identityTy cty.Type, identitySchemaVersion uint64) (*ResourceInstanceObjectSrc, error) {
-	src, err := o.Encode(ty, schemaVersion)
-	if err != nil {
-		return nil, err
-	}
-
-	src.IdentityJSON, err = ctyjson.Marshal(o.Identity, identityTy)
-	if err != nil {
-		return nil, err
-	}
-
-	src.IdentitySchemaVersion = identitySchemaVersion
-	return src, nil
-}
-
 // Encode marshals the value within the receiver to produce a
 // ResourceInstanceObjectSrc ready to be written to a state file.
 //
@@ -116,7 +117,7 @@ func (o *ResourceInstanceObject) EncodeWithIdentity(ty cty.Type, schemaVersion u
 // The returned object may share internal references with the receiver and
 // so the caller must not mutate the receiver any further once once this
 // method is called.
-func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*ResourceInstanceObjectSrc, error) {
+func (o *ResourceInstanceObject) Encode(schema providers.Schema) (*ResourceInstanceObjectSrc, error) {
 	// If it contains marks, remove these marks before traversing the
 	// structure with UnknownAsNull, and save the PathValueMarks
 	// so we can save them in state.
@@ -136,9 +137,17 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	// and raise an error about that.
 	val = cty.UnknownAsNull(val)
 
-	src, err := ctyjson.Marshal(val, ty)
+	src, err := ctyjson.Marshal(val, schema.Body.ImpliedType())
 	if err != nil {
 		return nil, err
+	}
+
+	var idJSON []byte
+	if len(schema.Identity) > 0 {
+		idJSON, err = ctyjson.Marshal(o.Identity, schema.Identity.ImpliedType())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Dependencies are collected and merged in an unordered format (using map
@@ -154,15 +163,18 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	sort.Slice(dependencies, func(i, j int) bool { return dependencies[i].String() < dependencies[j].String() })
 
 	return &ResourceInstanceObjectSrc{
-		SchemaVersion:       schemaVersion,
-		AttrsJSON:           src,
-		AttrSensitivePaths:  sensitivePaths,
-		Private:             o.Private,
-		Status:              o.Status,
-		Dependencies:        dependencies,
-		CreateBeforeDestroy: o.CreateBeforeDestroy,
+		SchemaVersion:         schema.Version,
+		AttrsJSON:             src,
+		AttrSensitivePaths:    sensitivePaths,
+		Private:               o.Private,
+		Status:                o.Status,
+		Dependencies:          dependencies,
+		CreateBeforeDestroy:   o.CreateBeforeDestroy,
+		IdentityJSON:          idJSON,
+		IdentitySchemaVersion: uint64(schema.IdentityVersion),
 		// The cached value must have all its marks since it bypasses decoding.
-		decodeValueCache: o.Value,
+		decodeValueCache:    o.Value,
+		decodeIdentityCache: o.Identity,
 	}, nil
 }
 

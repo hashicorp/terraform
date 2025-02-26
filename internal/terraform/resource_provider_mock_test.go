@@ -139,7 +139,7 @@ func getProviderSchemaResponseFromProviderSchema(providerSchema *providerSchema)
 	for name, schema := range providerSchema.ResourceTypes {
 		resp.ResourceTypes[name] = providers.Schema{
 			Body:    schema,
-			Version: int64(providerSchema.ResourceTypeSchemaVersions[name]),
+			Version: providerSchema.ResourceTypeSchemaVersions[name],
 		}
 	}
 

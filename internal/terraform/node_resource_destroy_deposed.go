@@ -447,30 +447,15 @@ func (n *NodeDestroyDeposedResourceInstanceObject) writeResourceInstanceState(ct
 		return err
 	}
 
-	objectSchema, currentObjectVersion := providerSchema.SchemaForResourceAddr(absAddr.ContainingResource().Resource)
-	if objectSchema == nil {
+	schema := providerSchema.SchemaForResourceAddr(absAddr.ContainingResource().Resource)
+	if schema.Body == nil {
 		// It shouldn't be possible to get this far in any real scenario
 		// without a schema, but we might end up here in contrived tests that
 		// fail to set up their world properly.
 		return fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr)
 	}
 
-	resourceIdentitySchemas, err := getResourceIdentitySchemas(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
-	}
-	identitySchema, currentIdentityVersion := resourceIdentitySchemas.IdentitySchemaForResourceAddr(absAddr.ContainingResource().Resource)
-
-	marshal := func() (*states.ResourceInstanceObjectSrc, error) {
-		return obj.EncodeWithIdentity(objectSchema.ImpliedType(), currentObjectVersion, identitySchema.ImpliedType(), currentIdentityVersion)
-	}
-	if identitySchema == nil {
-		marshal = func() (*states.ResourceInstanceObjectSrc, error) {
-			return obj.Encode(objectSchema.ImpliedType(), currentObjectVersion)
-		}
-	}
-
-	src, err := marshal()
+	src, err := obj.Encode(schema)
 	if err != nil {
 		return fmt.Errorf("failed to encode %s in state: %s", absAddr, err)
 	}

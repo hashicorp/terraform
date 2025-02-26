@@ -65,16 +65,16 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			typeName := addr.Resource.Type
 			providerFqn := tv.Provider()
 
-			schema, version, err := t.Plugins.ResourceTypeSchema(providerFqn, mode, typeName)
+			schema, err := t.Plugins.ResourceTypeSchema(providerFqn, mode, typeName)
 			if err != nil {
 				return fmt.Errorf("failed to read schema for %s in %s: %s", addr, providerFqn, err)
 			}
-			if schema == nil {
+			if schema.Body == nil {
 				log.Printf("[ERROR] AttachSchemaTransformer: No resource schema available for %s", addr)
 				continue
 			}
 			log.Printf("[TRACE] AttachSchemaTransformer: attaching resource schema to %s", dag.VertexName(v))
-			tv.AttachResourceSchema(schema, version)
+			tv.AttachResourceSchema(schema.Body, schema.Version)
 		}
 
 		if tv, ok := v.(GraphNodeAttachProviderConfigSchema); ok {

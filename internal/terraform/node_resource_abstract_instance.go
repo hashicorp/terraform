@@ -167,8 +167,8 @@ func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema 
 	changes := ctx.Changes()
 	addr := n.ResourceInstanceAddr()
 
-	schema, _ := providerSchema.SchemaForResourceAddr(addr.Resource.Resource)
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceAddr(addr.Resource.Resource)
+	if schema.Body == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		return nil, fmt.Errorf("provider does not support resource type %q", addr.Resource.Resource.Type)
 	}
@@ -341,30 +341,15 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 
 	log.Printf("[TRACE] %s: writing state object for %s", logFuncName, absAddr)
 
-	objectSchema, currentObjectVersion := providerSchema.SchemaForResourceAddr(absAddr.ContainingResource().Resource)
-	if objectSchema == nil {
+	schema := providerSchema.SchemaForResourceAddr(absAddr.ContainingResource().Resource)
+	if schema.Body == nil {
 		// It shouldn't be possible to get this far in any real scenario
 		// without a schema, but we might end up here in contrived tests that
 		// fail to set up their world properly.
 		return fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr)
 	}
 
-	resourceIdentitySchemas, err := getResourceIdentitySchemas(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
-	}
-	identitySchema, currentIdentityVersion := resourceIdentitySchemas.IdentitySchemaForResourceAddr(absAddr.ContainingResource().Resource)
-
-	marshal := func() (*states.ResourceInstanceObjectSrc, error) {
-		return obj.EncodeWithIdentity(objectSchema.ImpliedType(), currentObjectVersion, identitySchema.ImpliedType(), currentIdentityVersion)
-	}
-	if identitySchema == nil || obj.Identity == cty.NilVal {
-		marshal = func() (*states.ResourceInstanceObjectSrc, error) {
-			return obj.Encode(objectSchema.ImpliedType(), currentObjectVersion)
-		}
-	}
-
-	src, err := marshal()
+	src, err := obj.Encode(schema)
 	if err != nil {
 		return fmt.Errorf("failed to encode %s in state: %s", absAddr, err)
 	}
@@ -611,8 +596,8 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		return state, deferred, diags
 	}
 
-	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.Resource.ContainingResource())
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceAddr(n.Addr.Resource.ContainingResource())
+	if schema.Body == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Resource.Type))
 		return state, deferred, diags
@@ -695,7 +680,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		))
 	}
 
-	for _, err := range resp.NewState.Type().TestConformance(schema.ImpliedType()) {
+	for _, err := range resp.NewState.Type().TestConformance(schema.Body.ImpliedType()) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Provider produced invalid object",
@@ -719,7 +704,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 			)
 		},
 		resp.NewState,
-		schema,
+		schema.Body,
 	)
 	diags = diags.Append(writeOnlyDiags)
 
@@ -732,7 +717,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		return state, deferred, diags
 	}
 
-	newState := objchange.NormalizeObjectFromLegacySDK(resp.NewState, schema)
+	newState := objchange.NormalizeObjectFromLegacySDK(resp.NewState, schema.Body)
 	if !newState.RawEquals(resp.NewState) {
 		// We had to fix up this object in some way, and we still need to
 		// accept any changes for compatibility, so all we can do is log a
@@ -759,7 +744,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 	// the prior state. New marks may appear when the prior state was from an
 	// import operation, or if the provider added new marks to the schema.
 	ret.Value = ret.Value.MarkWithPaths(priorMarks)
-	if moreSensitivePaths := schema.SensitivePaths(ret.Value, nil); len(moreSensitivePaths) != 0 {
+	if moreSensitivePaths := schema.Body.SensitivePaths(ret.Value, nil); len(moreSensitivePaths) != 0 {
 		ret.Value = marks.MarkPaths(ret.Value, marks.Sensitive, moreSensitivePaths)
 	}
 
@@ -785,8 +770,8 @@ func (n *NodeAbstractResourceInstance) plan(
 		return nil, nil, deferred, keyData, diags.Append(err)
 	}
 
-	schema, _ := providerSchema.SchemaForResourceAddr(resource)
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceAddr(resource)
+	if schema.Body == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", resource.Type))
 		return nil, nil, deferred, keyData, diags
@@ -841,10 +826,10 @@ func (n *NodeAbstractResourceInstance) plan(
 		return plannedChange, currentState.DeepCopy(), deferred, keyData, diags
 	}
 
-	origConfigVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
+	origConfigVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema.Body, nil, keyData)
 	diags = diags.Append(configDiags)
 	diags = diags.Append(
-		validateResourceForbiddenEphemeralValues(ctx, origConfigVal, schema).InConfigBody(n.Config.Config, n.Addr.String()),
+		validateResourceForbiddenEphemeralValues(ctx, origConfigVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 	)
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
@@ -870,10 +855,10 @@ func (n *NodeAbstractResourceInstance) plan(
 			// result as if the provider had marked at least one argument
 			// change as "requires replacement".
 			priorValTainted = currentState.Value
-			priorVal = cty.NullVal(schema.ImpliedType())
+			priorVal = cty.NullVal(schema.Body.ImpliedType())
 		}
 	} else {
-		priorVal = cty.NullVal(schema.ImpliedType())
+		priorVal = cty.NullVal(schema.Body.ImpliedType())
 	}
 
 	log.Printf("[TRACE] Re-validating config for %q", n.Addr)
@@ -907,7 +892,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	// starting values.
 	// Here we operate on the marked values, so as to revert any changes to the
 	// marks as well as the value.
-	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(priorVal, origConfigVal, schema)
+	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(priorVal, origConfigVal, schema.Body)
 	diags = diags.Append(ignoreChangeDiags)
 	if ignoreChangeDiags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
@@ -919,7 +904,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	unmarkedConfigVal, unmarkedPaths := configValIgnored.UnmarkDeepWithPaths()
 	unmarkedPriorVal, _ := priorVal.UnmarkDeepWithPaths()
 
-	proposedNewVal := objchange.ProposedNew(schema, unmarkedPriorVal, unmarkedConfigVal)
+	proposedNewVal := objchange.ProposedNew(schema.Body, unmarkedPriorVal, unmarkedConfigVal)
 
 	// Call pre-diff hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
@@ -941,7 +926,7 @@ func (n *NodeAbstractResourceInstance) plan(
 				Value:             n.override.Values,
 				Range:             n.override.Range,
 				ComputedAsUnknown: !n.override.UseForPlan,
-			}, schema)
+			}, schema.Body)
 			resp = providers.PlanResourceChangeResponse{
 				PlannedState: override,
 				Diagnostics:  overrideDiags,
@@ -1002,7 +987,7 @@ func (n *NodeAbstractResourceInstance) plan(
 				)
 			},
 			plannedNewVal,
-			schema,
+			schema.Body,
 		)
 		diags = diags.Append(writeOnlyDiags)
 
@@ -1014,7 +999,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		// here, since that allows the provider to do special logic like a
 		// DiffSuppressFunc, but we still require that the provider produces
 		// a value whose type conforms to the schema.
-		for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
+		for _, err := range plannedNewVal.Type().TestConformance(schema.Body.ImpliedType()) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Provider produced invalid plan",
@@ -1029,7 +1014,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			return nil, nil, deferred, keyData, diags
 		}
 
-		if errs := objchange.AssertPlanValid(schema, unmarkedPriorVal, unmarkedConfigVal, plannedNewVal); len(errs) > 0 {
+		if errs := objchange.AssertPlanValid(schema.Body, unmarkedPriorVal, unmarkedConfigVal, plannedNewVal); len(errs) > 0 {
 			if resp.LegacyTypeSystem {
 				// The shimming of the old type system in the legacy SDK is not precise
 				// enough to pass this consistency check, so we'll give it a pass here,
@@ -1090,11 +1075,11 @@ func (n *NodeAbstractResourceInstance) plan(
 	unmarkedPlannedNewVal := plannedNewVal
 	_, nonEphemeralMarks := marks.PathsWithMark(unmarkedPaths, marks.Ephemeral)
 	plannedNewVal = plannedNewVal.MarkWithPaths(nonEphemeralMarks)
-	if sensitivePaths := schema.SensitivePaths(plannedNewVal, nil); len(sensitivePaths) != 0 {
+	if sensitivePaths := schema.Body.SensitivePaths(plannedNewVal, nil); len(sensitivePaths) != 0 {
 		plannedNewVal = marks.MarkPaths(plannedNewVal, marks.Sensitive, sensitivePaths)
 	}
 
-	writeOnlyPaths := schema.WriteOnlyPaths(plannedNewVal, nil)
+	writeOnlyPaths := schema.Body.WriteOnlyPaths(plannedNewVal, nil)
 
 	reqRep, reqRepDiags := getRequiredReplaces(unmarkedPriorVal, unmarkedPlannedNewVal, writeOnlyPaths, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
 	diags = diags.Append(reqRepDiags)
@@ -1117,7 +1102,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		// The resulting change should show any computed attributes changing
 		// from known prior values to unknown values, unless the provider is
 		// able to predict new values for any of these computed attributes.
-		nullPriorVal := cty.NullVal(schema.ImpliedType())
+		nullPriorVal := cty.NullVal(schema.Body.ImpliedType())
 
 		// Since there is no prior state to compare after replacement, we need
 		// a new unmarked config from our original with no ignored values.
@@ -1127,7 +1112,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 
 		// create a new proposed value from the null state and the config
-		proposedNewVal = objchange.ProposedNew(schema, nullPriorVal, unmarkedConfigVal)
+		proposedNewVal = objchange.ProposedNew(schema.Body, nullPriorVal, unmarkedConfigVal)
 
 		if n.override != nil {
 			// In this case, we are always creating the resource so we don't
@@ -1136,7 +1121,7 @@ func (n *NodeAbstractResourceInstance) plan(
 				Value:             n.override.Values,
 				Range:             n.override.Range,
 				ComputedAsUnknown: !n.override.UseForPlan,
-			}, schema)
+			}, schema.Body)
 			resp = providers.PlanResourceChangeResponse{
 				PlannedState: override,
 				Diagnostics:  overrideDiags,
@@ -1179,7 +1164,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			plannedNewVal = plannedNewVal.MarkWithPaths(nonEphemeralMarks)
 		}
 
-		for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
+		for _, err := range plannedNewVal.Type().TestConformance(schema.Body.ImpliedType()) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Provider produced invalid plan",
@@ -1203,7 +1188,7 @@ func (n *NodeAbstractResourceInstance) plan(
 				)
 			},
 			plannedNewVal,
-			schema,
+			schema.Body,
 		)
 		diags = diags.Append(writeOnlyDiags)
 
@@ -1565,8 +1550,8 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	if diags.HasErrors() {
 		return newVal, deferred, diags
 	}
-	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource().Resource)
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource().Resource)
+	if schema.Body == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", n.ResolvedProvider, n.Addr.ContainingResource().Resource.Type))
 		return newVal, deferred, diags
@@ -1611,7 +1596,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 			Value:             n.override.Values,
 			Range:             n.override.Range,
 			ComputedAsUnknown: false,
-		}, schema)
+		}, schema.Body)
 		resp = providers.ReadDataSourceResponse{
 			State:       override,
 			Diagnostics: overrideDiags,
@@ -1642,12 +1627,12 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	if newVal == cty.NilVal {
 		// This can happen with incompletely-configured mocks. We'll allow it
 		// and treat it as an alias for a properly-typed null value.
-		newVal = cty.NullVal(schema.ImpliedType())
+		newVal = cty.NullVal(schema.Body.ImpliedType())
 	}
 
 	// We don't want to run the checks if the data source read is deferred
 	if deferred == nil {
-		for _, err := range newVal.Type().TestConformance(schema.ImpliedType()) {
+		for _, err := range newVal.Type().TestConformance(schema.Body.ImpliedType()) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Provider produced invalid object",
@@ -1692,7 +1677,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		}
 	}
 	newVal = newVal.MarkWithPaths(pvm)
-	if sensitivePaths := schema.SensitivePaths(newVal, nil); len(sensitivePaths) != 0 {
+	if sensitivePaths := schema.Body.SensitivePaths(newVal, nil); len(sensitivePaths) != 0 {
 		newVal = marks.MarkPaths(newVal, marks.Sensitive, sensitivePaths)
 	}
 
@@ -1771,14 +1756,14 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	}
 
 	config := *n.Config
-	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource().Resource)
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource().Resource)
+	if schema.Body == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", n.ResolvedProvider, n.Addr.ContainingResource().Resource.Type))
 		return nil, nil, deferred, keyData, diags
 	}
 
-	objTy := schema.ImpliedType()
+	objTy := schema.Body.ImpliedType()
 	priorVal := cty.NullVal(objTy)
 
 	forEach, _, _ := evaluateForEachExpression(config.ForEach, ctx, false)
@@ -1796,10 +1781,10 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	}
 
 	var configDiags tfdiags.Diagnostics
-	configVal, _, configDiags = ctx.EvaluateBlock(config.Config, schema, nil, keyData)
+	configVal, _, configDiags = ctx.EvaluateBlock(config.Config, schema.Body, nil, keyData)
 	diags = diags.Append(configDiags)
 	diags = diags.Append(
-		validateResourceForbiddenEphemeralValues(ctx, configVal, schema).InConfigBody(n.Config.Config, n.Addr.String()),
+		validateResourceForbiddenEphemeralValues(ctx, configVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 	)
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
@@ -1863,13 +1848,13 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 			reason = plans.ResourceInstanceReadBecauseDependencyPending
 		}
 
-		proposedNewVal := objchange.PlannedDataResourceObject(schema, unmarkedConfigVal)
+		proposedNewVal := objchange.PlannedDataResourceObject(schema.Body, unmarkedConfigVal)
 
 		// even though we are only returning the config value because we can't
 		// yet read the data source, we need to incorporate the schema marks so
 		// that downstream consumers can detect them when planning.
 		proposedNewVal = proposedNewVal.MarkWithPaths(unmarkedPaths)
-		if sensitivePaths := schema.SensitivePaths(proposedNewVal, nil); len(sensitivePaths) != 0 {
+		if sensitivePaths := schema.Body.SensitivePaths(proposedNewVal, nil); len(sensitivePaths) != 0 {
 			proposedNewVal = marks.MarkPaths(proposedNewVal, marks.Sensitive, sensitivePaths)
 		}
 
@@ -1938,13 +1923,13 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 		if readDiags.HasErrors() {
 			// If we had errors, then we can cover that up by marking the new
 			// state as unknown.
-			newVal = objchange.PlannedDataResourceObject(schema, unmarkedConfigVal)
+			newVal = objchange.PlannedDataResourceObject(schema.Body, unmarkedConfigVal)
 
 			// not only do we want to ensure this synthetic value has the marks,
 			// but since this is the value being returned from the data source
 			// we need to ensure the schema marks are added as well.
 			newVal = newVal.MarkWithPaths(unmarkedPaths)
-			if sensitivePaths := schema.SensitivePaths(newVal, nil); len(sensitivePaths) != 0 {
+			if sensitivePaths := schema.Body.SensitivePaths(newVal, nil); len(sensitivePaths) != 0 {
 				newVal = marks.MarkPaths(newVal, marks.Sensitive, sensitivePaths)
 			}
 
@@ -2101,8 +2086,8 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 	}
 
 	config := *n.Config
-	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource().Resource)
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource().Resource)
+	if schema.Body == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", n.ResolvedProvider, n.Addr.ContainingResource().Resource.Type))
 		return nil, keyData, diags
@@ -2132,7 +2117,7 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 		return nil, keyData, diags
 	}
 
-	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
+	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema.Body, nil, keyData)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		return nil, keyData, diags
@@ -2498,8 +2483,8 @@ func (n *NodeAbstractResourceInstance) apply(
 	if err != nil {
 		return nil, diags.Append(err)
 	}
-	schema, _ := providerSchema.SchemaForResourceType(n.Addr.Resource.Resource.Mode, n.Addr.Resource.Resource.Type)
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceType(n.Addr.Resource.Resource.Mode, n.Addr.Resource.Resource.Type)
+	if schema.Body == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Resource.Type))
 		return nil, diags
@@ -2510,7 +2495,7 @@ func (n *NodeAbstractResourceInstance) apply(
 	configVal := cty.NullVal(cty.DynamicPseudoType)
 	if applyConfig != nil {
 		var configDiags tfdiags.Diagnostics
-		configVal, _, configDiags = ctx.EvaluateBlock(applyConfig.Config, schema, nil, keyData)
+		configVal, _, configDiags = ctx.EvaluateBlock(applyConfig.Config, schema.Body, nil, keyData)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
 			return nil, diags
@@ -2585,7 +2570,7 @@ func (n *NodeAbstractResourceInstance) apply(
 				Value:             n.override.Values,
 				Range:             n.override.Range,
 				ComputedAsUnknown: false,
-			}, schema)
+			}, schema.Body)
 			resp = providers.ApplyResourceChangeResponse{
 				NewState:    override,
 				Diagnostics: overrideDiags,
@@ -2629,7 +2614,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		// we were trying to execute a delete, because the provider in this case
 		// probably left the newVal unset intending it to be interpreted as "null".
 		if change.After.IsNull() {
-			newVal = cty.NullVal(schema.ImpliedType())
+			newVal = cty.NullVal(schema.Body.ImpliedType())
 		}
 
 		if !diags.HasErrors() {
@@ -2645,7 +2630,7 @@ func (n *NodeAbstractResourceInstance) apply(
 	}
 
 	var conformDiags tfdiags.Diagnostics
-	for _, err := range newVal.Type().TestConformance(schema.ImpliedType()) {
+	for _, err := range newVal.Type().TestConformance(schema.Body.ImpliedType()) {
 		conformDiags = conformDiags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Provider produced invalid object",
@@ -2673,7 +2658,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			)
 		},
 		newVal,
-		schema,
+		schema.Body,
 	)
 	diags = diags.Append(writeOnlyDiags)
 
@@ -2726,7 +2711,7 @@ func (n *NodeAbstractResourceInstance) apply(
 	// won't be included in afterPaths, which are only what was read from the
 	// After plan value.
 	newVal = newVal.MarkWithPaths(afterPaths)
-	if sensitivePaths := schema.SensitivePaths(newVal, nil); len(sensitivePaths) != 0 {
+	if sensitivePaths := schema.Body.SensitivePaths(newVal, nil); len(sensitivePaths) != 0 {
 		newVal = marks.MarkPaths(newVal, marks.Sensitive, sensitivePaths)
 	}
 
@@ -2740,7 +2725,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		// a pass since the other errors are usually the explanation for
 		// this one and so it's more helpful to let the user focus on the
 		// root cause rather than distract with this extra problem.
-		if errs := objchange.AssertObjectCompatible(schema, change.After, newVal); len(errs) > 0 {
+		if errs := objchange.AssertObjectCompatible(schema.Body, change.After, newVal); len(errs) > 0 {
 			if resp.LegacyTypeSystem {
 				// The shimming of the old type system in the legacy SDK is not precise
 				// enough to pass this consistency check, so we'll give it a pass here,

@@ -7,7 +7,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -161,8 +160,11 @@ type IdentitySchema struct {
 // "Schemas" (plural) instead represents the overall collection of schemas
 // for everything within a particular provider.
 type Schema struct {
-	Version int64
+	Version uint64
 	Body    *configschema.Block
+
+	IdentityVersion uint64
+	Identity        configschema.IdentityAttributes
 }
 
 // ServerCapabilities allows providers to communicate extra information
@@ -591,24 +593,6 @@ type MoveResourceStateResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
-}
-
-// AsInstanceObject converts the receiving ImportedObject into a
-// ResourceInstanceObject that has status ObjectReady.
-//
-// The returned object does not know its own resource type, so the caller must
-// retain the ResourceType value from the source object if this information is
-// needed.
-//
-// The returned object also has no dependency addresses, but the caller may
-// freely modify the direct fields of the returned object without affecting
-// the receiver.
-func (ir ImportedResource) AsInstanceObject() *states.ResourceInstanceObject {
-	return &states.ResourceInstanceObject{
-		Status:  states.ObjectReady,
-		Value:   ir.State,
-		Private: ir.Private,
-	}
 }
 
 type ReadDataSourceRequest struct {

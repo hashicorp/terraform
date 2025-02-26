@@ -58,8 +58,8 @@ type ContextOpts struct {
 	//
 	// Callers must not access (read or write) the given map once it has
 	// been passed to Terraform Core using this field.
-	PreloadedProviderSchemas         map[addrs.Provider]providers.ProviderSchema
-	PreloadedResourceIdentitySchemas map[addrs.Provider]providers.ResourceIdentitySchemas
+	PreloadedProviderSchemas         map[addrs.Provider]providers.ProviderSchema          // check how they are loaded
+	PreloadedResourceIdentitySchemas map[addrs.Provider]providers.ResourceIdentitySchemas // remove
 
 	UIInput UIInput
 }

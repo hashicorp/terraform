@@ -60,6 +60,8 @@ func loadProviderSchemas(schemas map[addrs.Provider]providers.ProviderSchema, co
 			return
 		}
 
+		// maybe inject identities here
+
 		schemas[fqn] = schema
 	}
 

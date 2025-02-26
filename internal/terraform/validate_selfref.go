@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -28,20 +27,20 @@ func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema p
 		addrStrs = append(addrStrs, tAddr.ContainingResource().String())
 	}
 
-	var schema *configschema.Block
+	var schema providers.Schema
 	switch tAddr := addr.(type) {
 	case addrs.Resource:
-		schema, _ = providerSchema.SchemaForResourceAddr(tAddr)
+		schema = providerSchema.SchemaForResourceAddr(tAddr)
 	case addrs.ResourceInstance:
-		schema, _ = providerSchema.SchemaForResourceAddr(tAddr.ContainingResource())
+		schema = providerSchema.SchemaForResourceAddr(tAddr.ContainingResource())
 	}
 
-	if schema == nil {
+	if schema.Body == nil {
 		diags = diags.Append(fmt.Errorf("no schema available for %s to validate for self-references; this is a bug in Terraform and should be reported", addr))
 		return diags
 	}
 
-	refs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, config, schema)
+	refs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, config, schema.Body)
 	for _, ref := range refs {
 		for _, addrStr := range addrStrs {
 			if ref.Subject.String() == addrStr {
