@@ -79,7 +79,8 @@ func DiagnosticFromJSON(diag *viewsjson.Diagnostic, color *colorstring.Colorize,
 	// be pure text that lends itself well to word-wrapping.
 	fmt.Fprintf(&buf, color.Color("[bold]%s[reset]\n\n"), diag.Summary)
 
-	appendSourceSnippets(&buf, diag, color)
+	f := &snippetFormatter{&buf, diag, color}
+	f.write()
 
 	if diag.Detail != "" {
 		paraWidth := width - leftRuleWidth - 1 // leave room for the left rule
@@ -153,7 +154,8 @@ func DiagnosticPlainFromJSON(diag *viewsjson.Diagnostic, width int) string {
 	// be pure text that lends itself well to word-wrapping.
 	fmt.Fprintf(&buf, "%s\n\n", diag.Summary)
 
-	appendSourceSnippets(&buf, diag, disabledColorize)
+	f := &snippetFormatter{&buf, diag, disabledColorize}
+	f.write()
 
 	if diag.Detail != "" {
 		if width > 1 {
@@ -217,7 +219,17 @@ func DiagnosticWarningsCompact(diags tfdiags.Diagnostics, color *colorstring.Col
 	return b.String()
 }
 
-func appendSourceSnippets(buf *bytes.Buffer, diag *viewsjson.Diagnostic, color *colorstring.Colorize) {
+// snippetFormatter handles formatting diagnostic information with source snippets
+type snippetFormatter struct {
+	buf   *bytes.Buffer
+	diag  *viewsjson.Diagnostic
+	color *colorstring.Colorize
+}
+
+func (f *snippetFormatter) write() {
+	diag := f.diag
+	buf := f.buf
+	color := f.color
 	if diag.Address != "" {
 		fmt.Fprintf(buf, "  with %s,\n", diag.Address)
 	}
@@ -315,37 +327,54 @@ func appendSourceSnippets(buf *bytes.Buffer, diag *viewsjson.Diagnostic, color *
 				buf.WriteString(")\n")
 			}
 
+			// always print the values unless in the case of a test assertion, where we only print them if the user has requested verbose output
+			printValues := snippet.TestAssertionExpr == nil || snippet.TestAssertionExpr.ShowVerbose
+
 			// The diagnostic may also have information about failures from test assertions
 			// in a `terraform test` run. This is useful for understanding the values that
 			// were being compared when the assertion failed.
 			// Also, we'll print a JSON diff of the two values to make it easier to see the
 			// differences.
 			if snippet.TestAssertionExpr != nil {
-				fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [bold]LHS[reset]:\n"))
-				for line := range strings.SplitSeq(snippet.TestAssertionExpr.LHS, "\n") {
-					fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset]   %s\n"), line)
-				}
-				fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [bold]RHS[reset]:\n"))
-				for line := range strings.SplitSeq(snippet.TestAssertionExpr.RHS, "\n") {
-					fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset]   %s\n"), line)
-				}
-				if snippet.TestAssertionExpr.Warning != "" {
-					fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] [bold]Warning[reset]: %s\n"), snippet.TestAssertionExpr.Warning)
-				}
-				printJSONDiff(buf, color, snippet.TestAssertionExpr.LHS, snippet.TestAssertionExpr.RHS)
-				fmt.Fprintln(buf)
+				f.printTestDiagOutput(snippet.TestAssertionExpr)
 			}
 
-			for _, value := range values {
-				valSlice := strings.Split(value.Statement, "\n")
-				fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] [bold]%s[reset] %s\n"), value.Traversal, valSlice[0])
-				for _, line := range valSlice[1:] {
-					fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset]   %s\n"), line)
+			if printValues {
+				for _, value := range values {
+					valSlice := strings.Split(value.Statement, "\n")
+					fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] [bold]%s[reset] %s\n"),
+						value.Traversal, valSlice[0])
+
+					for _, line := range valSlice[1:] {
+						fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset]   %s\n"), line)
+					}
 				}
 			}
 		}
 	}
 
+	buf.WriteByte('\n')
+}
+
+func (f *snippetFormatter) printTestDiagOutput(diag *viewsjson.DiagnosticTestBinaryExpr) {
+	buf := f.buf
+	color := f.color
+	// We only print the LHS and RHS if the user has requested verbose output
+	// for the test assertion.
+	if diag.ShowVerbose {
+		fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [bold]LHS[reset]:\n"))
+		for line := range strings.SplitSeq(diag.LHS, "\n") {
+			fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset]   %s\n"), line)
+		}
+		fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [bold]RHS[reset]:\n"))
+		for line := range strings.SplitSeq(diag.RHS, "\n") {
+			fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset]   %s\n"), line)
+		}
+	}
+	if diag.Warning != "" {
+		fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] [bold]Warning[reset]: %s\n"), diag.Warning)
+	}
+	printJSONDiff(buf, color, diag.LHS, diag.RHS)
 	buf.WriteByte('\n')
 }
 
@@ -355,6 +384,8 @@ func printJSONDiff(buf io.Writer, color *colorstring.Colorize, strA, strB string
 		return
 	}
 	fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [bold]Diff[reset]:\n"))
+	fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [bold]--- actual[reset]\n"))
+	fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [bold]+++ expected[reset]\n"))
 	nextLhs, stopLhs := iter.Pull(strings.SplitSeq(strA, "\n"))
 	nextRhs, stopRhs := iter.Pull(strings.SplitSeq(strB, "\n"))
 

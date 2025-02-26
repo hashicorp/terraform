@@ -277,7 +277,7 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 				// Diagnostic can be identified as originating from a failing test assertion.
 				// Also, values that are ephemeral, sensitive, or unknown are replaced with
 				// redacted values in renderings of the diagnostic.
-				Extra: DiagnosticCausedByTestFailure(true),
+				Extra: DiagnosticCausedByTestFailure{Verbose: ec.verbose},
 			})
 			continue
 		} else {

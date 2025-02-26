@@ -146,8 +146,7 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"simple_fail": {
 			expectedOut: []string{"0 passed, 1 failed."},
-			expectedErr: []string{"invalid value", `    │ Diff:
-    │ - "bar"
+			expectedErr: []string{"invalid value", `│ - "bar"
     │ + "zap"`},
 			code: 1,
 		},
@@ -304,8 +303,7 @@ func TestTest_Runs(t *testing.T) {
 		"ephemeral_input_with_error": {
 			expectedOut: []string{"Error message refers to ephemeral values", "1 passed, 1 failed."},
 			expectedErr: []string{"Test assertion failed",
-				`    │ Diff:
-    │ - "(ephemeral value)"
+				`│ - "(ephemeral value)"
     │ + "bar"`},
 			code: 1,
 		},
@@ -911,6 +909,166 @@ Error: Test assertion failed
   on main.tftest.hcl line 21, in run "validate_diff_types":
   21:     condition = var.tr1 == var.tr2 
     ├────────────────
+    │ Warning: LHS and RHS values are of different types
+
+
+expected to fail
+
+Error: Test assertion failed
+
+  on main.tftest.hcl line 28, in run "validate_output":
+  28:     condition = output.foo == var.foo[0]
+    ├────────────────
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │   {
+    │ -   "bar": "notbaz",
+    │ +   "bar": "baz",
+    │     "qux": "quux"
+    │   }
+
+
+expected to fail
+
+Error: Test assertion failed
+
+  on main.tftest.hcl line 35, in run "validate_complex_output":
+  35:     condition = output.complex == var.foo
+    ├────────────────
+    │ Warning: LHS and RHS values are of different types
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │ - {
+    │ + [
+    │ -   "root": [
+    │ +   {
+    │ -     {
+    │ +     "bar": "baz",
+    │ -       "bar": [
+    │ +     "qux": "quux"
+    │ -         1
+    │ +   }
+    │ -       ],
+    │ + ]
+    │         "qux": "quux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+
+
+expected to fail
+
+Error: Test assertion failed
+
+  on main.tftest.hcl line 42, in run "validate_complex_output_sensitive":
+  42:     condition = output.complex == output.complex_sensitive
+    ├────────────────
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │ - {
+    │ + "(sensitive value)"
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "quux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+
+
+expected to fail
+`
+	if diff := cmp.Diff(output.Stdout(), expectedOut); len(diff) > 0 {
+		t.Errorf("\nexpected: \n%s\ngot: %s\ndiff: %s", expectedOut, output.All(), diff)
+	}
+
+	if diff := cmp.Diff(output.Stderr(), expectedErr); len(diff) > 0 {
+		t.Errorf("\nexpected stderr: \n%s\ngot: %s\ndiff: %s", expectedErr, output.Stderr(), diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		if !printedOutput {
+			t.Errorf("should have deleted all resources on completion but left %s\n\n%s", provider.ResourceString(), output.All())
+		} else {
+			t.Errorf("should have deleted all resources on completion but left %s", provider.ResourceString())
+		}
+	}
+}
+
+func TestTest_ComplexConditionVerbose(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "complex_condition")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.0.0"}})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	output := done(t)
+
+	if code := init.Run([]string{"-no-color"}); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	command := &TestCommand{
+		Meta: meta,
+	}
+
+	code := command.Run([]string{"-no-color", "-verbose"})
+	output = done(t)
+
+	printedOutput := false
+
+	if code != 1 {
+		printedOutput = true
+		t.Errorf("expected status code 1 but got %d: %s", code, output.All())
+	}
+
+	expectedErr := `
+Error: Test assertion failed
+
+  on main.tftest.hcl line 21, in run "validate_diff_types":
+  21:     condition = var.tr1 == var.tr2 
+    ├────────────────
     │ LHS:
     │   {
     │     "iops": null,
@@ -950,6 +1108,8 @@ Error: Test assertion failed
     │     "qux": "quux"
     │   }
     │ Diff:
+    │ --- actual
+    │ +++ expected
     │   {
     │ -   "bar": "notbaz",
     │ +   "bar": "baz",
@@ -998,6 +1158,8 @@ Error: Test assertion failed
     │   ]
     │ Warning: LHS and RHS values are of different types
     │ Diff:
+    │ --- actual
+    │ +++ expected
     │ - {
     │ + [
     │ -   "root": [
@@ -1071,6 +1233,8 @@ Error: Test assertion failed
     │ RHS:
     │   "(sensitive value)"
     │ Diff:
+    │ --- actual
+    │ +++ expected
     │ - {
     │ + "(sensitive value)"
     │     "root": [
@@ -1109,8 +1273,22 @@ Error: Test assertion failed
 
 expected to fail
 `
-	if diff := cmp.Diff(output.Stdout(), expectedOut); len(diff) > 0 {
-		t.Errorf("\nexpected: \n%s\ngot: %s\ndiff: %s", expectedOut, output.All(), diff)
+	outputs := []string{
+		"main.tftest.hcl... in progress",
+		"  run \"validate_diff_types\"... fail",
+		"  run \"validate_output\"... fail",
+		"  run \"validate_complex_output\"... fail",
+		"  run \"validate_complex_output_sensitive\"... fail",
+		"  run \"validate_complex_output_pass\"... pass",
+		"main.tftest.hcl... tearing down",
+		"main.tftest.hcl... fail",
+		"Failure! 1 passed, 4 failed.",
+	}
+	stdout := output.Stdout()
+	for _, expected := range outputs {
+		if !strings.Contains(stdout, expected) {
+			t.Errorf("output didn't contain expected output %q", expected)
+		}
 	}
 
 	if diff := cmp.Diff(output.Stderr(), expectedErr); len(diff) > 0 {
@@ -2316,17 +2494,13 @@ Error: Test assertion failed
   on main.tftest.hcl line 8, in run "first":
    8:     condition     = test_resource.resource.value == output.null_output
     ├────────────────
-    │ LHS:
-    │   "bar"
-    │ RHS:
-    │   null
     │ Warning: LHS and RHS values are of different types
     │ Diff:
+    │ --- actual
+    │ +++ expected
     │ - "bar"
     │ + null
 
-    │ output.null_output is null
-    │ test_resource.resource.value is "bar"
 
 this is always going to fail
 `,
@@ -2575,6 +2749,8 @@ Error: Test assertion failed
     │     "foo": "bar"
     │   }
     │ Diff:
+    │ --- actual
+    │ +++ expected
     │   {
     │ -   "baz": "(sensitive value)",
     │ +   "baz": "9ddca5a9",
