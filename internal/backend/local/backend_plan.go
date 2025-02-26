@@ -76,7 +76,7 @@ func (b *Local) opPlan(
 		b.ContextOpts = new(terraform.ContextOpts)
 	}
 
-	// Get our context
+	// Set up backend and get our context
 	lr, configSnap, opState, ctxDiags := b.localRun(op)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
@@ -120,7 +120,9 @@ func (b *Local) opPlan(
 	// NOTE: We intentionally don't stop here on errors because we always want
 	// to try to present a partial plan report and, if the user chose to,
 	// generate a partial saved plan file for external analysis.
-	diags = diags.Append(planDiags)
+	// Plan() may produce some diagnostic warnings which were already
+	// produced when setting up context above, so we deduplicate them here.
+	diags = diags.AppendWithoutDuplicates(planDiags...)
 
 	// Even if there are errors we need to handle anything that may be
 	// contained within the plan, so only exit if there is no data at all.
