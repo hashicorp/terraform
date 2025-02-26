@@ -20,21 +20,18 @@ type Plugins struct {
 	providerFactories    map[addrs.Provider]providers.Factory
 	provisionerFactories map[string]provisioners.Factory
 
-	preloadedProviderSchemas         map[addrs.Provider]providers.ProviderSchema
-	preloadedResourceIdentitySchemas map[addrs.Provider]providers.ResourceIdentitySchemas
+	preloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema
 }
 
 func NewPlugins(
 	providerFactories map[addrs.Provider]providers.Factory,
 	provisionerFactories map[string]provisioners.Factory,
 	preloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema,
-	preloadedResourceIdentitySchemas map[addrs.Provider]providers.ResourceIdentitySchemas,
 ) *Plugins {
 	ret := &Plugins{
-		providerFactories:                providerFactories,
-		provisionerFactories:             provisionerFactories,
-		preloadedProviderSchemas:         preloadedProviderSchemas,
-		preloadedResourceIdentitySchemas: preloadedResourceIdentitySchemas,
+		providerFactories:        providerFactories,
+		provisionerFactories:     provisionerFactories,
+		preloadedProviderSchemas: preloadedProviderSchemas,
 	}
 	return ret
 }
@@ -54,11 +51,6 @@ func (cp *Plugins) HasProvider(addr addrs.Provider) bool {
 
 func (cp *Plugins) HasPreloadedSchemaForProvider(addr addrs.Provider) bool {
 	_, ok := cp.preloadedProviderSchemas[addr]
-	return ok
-}
-
-func (cp *Plugins) HasPreloadedResourceIdentitySchemasForProvider(addr addrs.Provider) bool {
-	_, ok := cp.preloadedResourceIdentitySchemas[addr]
 	return ok
 }
 
@@ -210,10 +202,6 @@ func (cp *Plugins) ResourceIdentitySchemas(addr addrs.Provider) (providers.Resou
 	if ok {
 		log.Printf("[TRACE] terraform.contextPlugins: Resource identity schemas for provider %q is in the global cache", addr)
 		return schemas, nil
-	}
-
-	if is, ok := cp.preloadedResourceIdentitySchemas[addr]; ok {
-		return is, nil
 	}
 
 	log.Printf("[TRACE] terraform.contextPlugins: Initializing provider %q to read its resource identity schemas", addr)

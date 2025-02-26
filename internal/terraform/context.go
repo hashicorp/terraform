@@ -58,8 +58,7 @@ type ContextOpts struct {
 	//
 	// Callers must not access (read or write) the given map once it has
 	// been passed to Terraform Core using this field.
-	PreloadedProviderSchemas         map[addrs.Provider]providers.ProviderSchema          // check how they are loaded
-	PreloadedResourceIdentitySchemas map[addrs.Provider]providers.ResourceIdentitySchemas // remove
+	PreloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema // TODO check how they are loaded
 
 	UIInput UIInput
 }
@@ -148,7 +147,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		par = 10
 	}
 
-	plugins := newContextPlugins(opts.Providers, opts.Provisioners, opts.PreloadedProviderSchemas, opts.PreloadedResourceIdentitySchemas)
+	plugins := newContextPlugins(opts.Providers, opts.Provisioners, opts.PreloadedProviderSchemas)
 
 	log.Printf("[TRACE] terraform.NewContext: complete")
 
