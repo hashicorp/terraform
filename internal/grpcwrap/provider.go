@@ -562,7 +562,7 @@ func (p *provider) UpgradeResourceIdentity(_ context.Context, req *tfplugin5.Upg
 	if !ok {
 		return nil, fmt.Errorf("resource identity schema not found for type %q", req.TypeName)
 	}
-	ty := resourceIdentitySchema.Attributes.ImpliedType()
+	ty := resourceIdentitySchema.Body.ImpliedType()
 	upgradeResp := p.provider.UpgradeResourceIdentity(providers.UpgradeResourceIdentityRequest{
 		TypeName:        req.TypeName,
 		Version:         req.Version,

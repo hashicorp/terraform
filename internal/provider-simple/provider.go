@@ -62,11 +62,13 @@ func (s simple) GetResourceIdentitySchemas() providers.GetResourceIdentitySchema
 		IdentityTypes: map[string]providers.IdentitySchema{
 			"simple_resource": {
 				Version: 0,
-				Attributes: configschema.IdentityAttributes{
-					"id": {
-						Type:              cty.String,
-						RequiredForImport: true,
-						OptionalForImport: false,
+				Body: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Required: true,
+							Optional: false,
+						},
 					},
 				},
 			},
@@ -95,7 +97,7 @@ func (p simple) UpgradeResourceState(req providers.UpgradeResourceStateRequest) 
 }
 
 func (p simple) UpgradeResourceIdentity(req providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
-	schema := p.GetResourceIdentitySchemas().IdentityTypes[req.TypeName].Attributes
+	schema := p.GetResourceIdentitySchemas().IdentityTypes[req.TypeName].Body
 	ty := schema.ImpliedType()
 	val, err := ctyjson.Unmarshal(req.RawIdentityJSON, ty)
 	resp.Diagnostics = resp.Diagnostics.Append(err)
