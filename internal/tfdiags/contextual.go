@@ -205,6 +205,26 @@ func (d *attributeDiagnostic) ElaborateFromConfigBody(body hcl.Body, addr string
 	return &ret
 }
 
+func (d *attributeDiagnostic) Equals(otherDiag ComparableDiagnostic) bool {
+	od, ok := otherDiag.(*attributeDiagnostic)
+	if !ok {
+		return false
+	}
+	if d.severity != od.severity {
+		return false
+	}
+	if d.summary != od.summary {
+		return false
+	}
+	if d.detail != od.detail {
+		return false
+	}
+	if d.address != od.address {
+		return false
+	}
+	return d.attrPath.Equals(od.attrPath)
+}
+
 func traversePathSteps(traverse []cty.PathStep, body hcl.Body) hcl.Body {
 	for i := 0; i < len(traverse); i++ {
 		step := traverse[i]

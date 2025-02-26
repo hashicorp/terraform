@@ -20,18 +20,15 @@ var DiagnosticComparer cmp.Option = cmp.Comparer(diagnosticComparerSimple)
 // diagnosticComparerSimple returns false when a difference is identified between
 // the two Diagnostic arguments.
 func diagnosticComparerSimple(l, r Diagnostic) bool {
-	if l.Severity() != r.Severity() {
-		return false
-	}
-	if l.Description() != r.Description() {
+	ld, ok := l.(ComparableDiagnostic)
+	if !ok {
 		return false
 	}
 
-	// Do the diagnostics originate from the same attribute name, if any?
-	lp := GetAttribute(l)
-	rp := GetAttribute(r)
-	if len(lp) != len(rp) {
+	rd, ok := r.(ComparableDiagnostic)
+	if !ok {
 		return false
 	}
-	return lp.Equals(rp)
+
+	return ld.Equals(rd)
 }
