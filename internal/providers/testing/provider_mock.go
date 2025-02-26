@@ -358,7 +358,7 @@ func (p *MockProvider) UpgradeResourceIdentity(r providers.UpgradeResourceIdenti
 		return resp
 	}
 
-	identityType := identitySchema.Attributes.ImpliedType()
+	identityType := identitySchema.Body.ImpliedType()
 
 	v, err := ctyjson.Unmarshal(r.RawIdentityJSON, identityType)
 

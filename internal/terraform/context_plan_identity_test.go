@@ -34,10 +34,12 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 		"no previous identity": {
 			IdentitySchema: providers.IdentitySchema{
 				Version: 0,
-				Attributes: configschema.IdentityAttributes{
-					"id": {
-						Type:              cty.String,
-						RequiredForImport: true,
+				Body: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Required: true,
+						},
 					},
 				},
 			},
@@ -53,10 +55,12 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 			StoredIdentityJSON:          []byte(`{"id": "foo"}`),
 			IdentitySchema: providers.IdentitySchema{
 				Version: 0,
-				Attributes: configschema.IdentityAttributes{
-					"id": {
-						Type:              cty.String,
-						RequiredForImport: true,
+				Body: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Required: true,
+						},
 					},
 				},
 			},
@@ -70,10 +74,12 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 			StoredIdentityJSON:          []byte(`{"arn": "foo"}`),
 			IdentitySchema: providers.IdentitySchema{
 				Version: 0,
-				Attributes: configschema.IdentityAttributes{
-					"id": {
-						Type:              cty.String,
-						RequiredForImport: true,
+				Body: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Required: true,
+						},
 					},
 				},
 			},
@@ -90,10 +96,12 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 			StoredIdentityJSON:          []byte(`{"arn": "foo"}`),
 			IdentitySchema: providers.IdentitySchema{
 				Version: 2,
-				Attributes: configschema.IdentityAttributes{
-					"id": {
-						Type:              cty.String,
-						RequiredForImport: true,
+				Body: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Required: true,
+						},
 					},
 				},
 			},
@@ -115,10 +123,12 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 			StoredIdentityJSON:          []byte(`{"id": "foo"}`),
 			IdentitySchema: providers.IdentitySchema{
 				Version: 2,
-				Attributes: configschema.IdentityAttributes{
-					"arn": {
-						Type:              cty.String,
-						RequiredForImport: true,
+				Body: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"arn": {
+							Type:     cty.String,
+							Required: true,
+						},
 					},
 				},
 			},
@@ -142,10 +152,12 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 			StoredIdentityJSON:          []byte(`{"id": "foo"}`),
 			IdentitySchema: providers.IdentitySchema{
 				Version: 0,
-				Attributes: configschema.IdentityAttributes{
-					"id": {
-						Type:              cty.String,
-						RequiredForImport: true,
+				Body: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Required: true,
+						},
 					},
 				},
 			},
@@ -160,10 +172,12 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 		"identity with unknowns": {
 			IdentitySchema: providers.IdentitySchema{
 				Version: 0,
-				Attributes: configschema.IdentityAttributes{
-					"id": {
-						Type:              cty.String,
-						RequiredForImport: true,
+				Body: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Required: true,
+						},
 					},
 				},
 			},
@@ -176,10 +190,12 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 		"identity with marks": {
 			IdentitySchema: providers.IdentitySchema{
 				Version: 0,
-				Attributes: configschema.IdentityAttributes{
-					"id": {
-						Type:              cty.String,
-						RequiredForImport: true,
+				Body: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Required: true,
+						},
 					},
 				},
 			},
@@ -321,10 +337,12 @@ func TestContext2Plan_resource_identity_refresh_destroy_deposed(t *testing.T) {
 		IdentityTypes: map[string]providers.IdentitySchema{
 			"aws_instance": {
 				Version: 0,
-				Attributes: configschema.IdentityAttributes{
-					"id": {
-						Type:              cty.String,
-						RequiredForImport: true,
+				Body: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Required: true,
+						},
 					},
 				},
 			},

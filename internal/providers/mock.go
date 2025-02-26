@@ -161,7 +161,7 @@ func (m *Mock) UpgradeResourceIdentity(request UpgradeResourceIdentityRequest) (
 		panic(fmt.Errorf("failed to retrieve identity schema for resource %s", request.TypeName))
 	}
 
-	schemaType := resource.Attributes.ImpliedType()
+	schemaType := resource.Body.ImpliedType()
 	value, err := ctyjson.Unmarshal(request.RawIdentityJSON, schemaType)
 
 	if err != nil {

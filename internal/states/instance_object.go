@@ -143,7 +143,7 @@ func (o *ResourceInstanceObject) Encode(schema providers.Schema) (*ResourceInsta
 	}
 
 	var idJSON []byte
-	if len(schema.Identity) > 0 {
+	if schema.Identity != nil {
 		idJSON, err = ctyjson.Marshal(o.Identity, schema.Identity.ImpliedType())
 		if err != nil {
 			return nil, err

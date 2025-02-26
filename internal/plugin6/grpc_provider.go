@@ -421,7 +421,7 @@ func (p *GRPCProvider) UpgradeResourceIdentity(r providers.UpgradeResourceIdenti
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	ty := resSchema.Attributes.ImpliedType()
+	ty := resSchema.Body.ImpliedType()
 	resp.UpgradedIdentity = cty.NullVal(ty)
 	if protoResp.UpgradedIdentity == nil {
 		return resp

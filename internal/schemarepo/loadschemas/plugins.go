@@ -232,7 +232,7 @@ func (cp *Plugins) ResourceIdentitySchemas(addr addrs.Provider) (providers.Resou
 			return resp, fmt.Errorf("provider %s has invalid negative schema version for managed resource type %q, which is a bug in the provider", addr, t)
 		}
 
-		for attrName, attrTy := range r.Attributes.ImpliedType().AttributeTypes() {
+		for attrName, attrTy := range r.Body.ImpliedType().AttributeTypes() {
 			if attrTy.MapElementType() != nil {
 				return resp, fmt.Errorf("provider %s has invalid schema for managed resource type %q, attribute %q is a map, which is not allowed in identity schemas", addr, t, attrName)
 			}

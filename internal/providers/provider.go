@@ -150,7 +150,7 @@ type GetResourceIdentitySchemasResponse struct {
 type IdentitySchema struct {
 	Version int64
 
-	Attributes configschema.IdentityAttributes
+	Body *configschema.Object
 }
 
 // Schema pairs a provider or resource schema with that schema's version.
@@ -164,7 +164,7 @@ type Schema struct {
 	Body    *configschema.Block
 
 	IdentityVersion uint64
-	Identity        configschema.IdentityAttributes
+	Identity        *configschema.Object
 }
 
 // ServerCapabilities allows providers to communicate extra information

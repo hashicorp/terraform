@@ -108,15 +108,15 @@ func ProtoToProviderSchema(s *proto.Schema) providers.Schema {
 func ProtoToResourceIdentitySchema(s *proto.ResourceIdentitySchema) (providers.IdentitySchema, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	schema := providers.IdentitySchema{
-		Version:    s.Version,
-		Attributes: make(configschema.IdentityAttributes),
+		Version: s.Version,
+		Body:    &configschema.Object{},
 	}
 
 	for _, a := range s.IdentityAttributes {
-		attr := &configschema.IdentityAttribute{
-			Description:       a.Description,
-			RequiredForImport: a.RequiredForImport,
-			OptionalForImport: a.OptionalForImport,
+		attr := &configschema.Attribute{
+			Description: a.Description,
+			Required:    a.RequiredForImport,
+			Optional:    a.OptionalForImport,
 		}
 
 		if a.Type != nil {
@@ -127,14 +127,14 @@ func ProtoToResourceIdentitySchema(s *proto.ResourceIdentitySchema) (providers.I
 			diags = diags.Append(fmt.Errorf("Attribute %q is missing a type definition", a.Name))
 		}
 
-		if attr.RequiredForImport && attr.OptionalForImport {
+		if attr.Required && attr.Optional {
 			diags = diags.Append(fmt.Errorf("Attribute %q cannot be both required and optional for import", a.Name))
 		}
-		if !attr.RequiredForImport && !attr.OptionalForImport {
+		if !attr.Required && !attr.Optional {
 			diags = diags.Append(fmt.Errorf("Attribute %q must be either required or optional for import", a.Name))
 		}
 
-		schema.Attributes[a.Name] = attr
+		schema.Body.Attributes[a.Name] = attr
 	}
 
 	return schema, diags
@@ -342,13 +342,13 @@ func configschemaObjectToProto(b *configschema.Object) *proto.Schema_Object {
 func ResourceIdentitySchemaToProto(schema providers.IdentitySchema) *proto.ResourceIdentitySchema {
 	identityAttributes := []*proto.ResourceIdentitySchema_IdentityAttribute{}
 
-	for _, name := range sortedKeys(schema.Attributes) {
-		a := schema.Attributes[name]
+	for _, name := range sortedKeys(schema.Body.Attributes) {
+		a := schema.Body.Attributes[name]
 		attr := &proto.ResourceIdentitySchema_IdentityAttribute{
 			Name:              name,
 			Description:       a.Description,
-			RequiredForImport: a.RequiredForImport,
-			OptionalForImport: a.OptionalForImport,
+			RequiredForImport: a.Required,
+			OptionalForImport: a.Optional,
 		}
 
 		if a.Type != cty.NilType {

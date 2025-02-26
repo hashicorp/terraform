@@ -31,11 +31,13 @@ func dataStoreResourceSchema() providers.Schema {
 func dataStoreResourceIdentitySchema() providers.IdentitySchema {
 	return providers.IdentitySchema{
 		Version: 0,
-		Attributes: configschema.IdentityAttributes{
-			"id": &configschema.IdentityAttribute{
-				Type:              cty.String,
-				Description:       "The unique identifier for the data store.",
-				RequiredForImport: true,
+		Body: &configschema.Object{
+			Attributes: map[string]*configschema.Attribute{
+				"id": {
+					Type:        cty.String,
+					Description: "The unique identifier for the data store.",
+					Required:    true,
+				},
 			},
 		},
 	}
