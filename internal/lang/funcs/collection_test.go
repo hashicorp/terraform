@@ -1833,6 +1833,18 @@ func TestTranspose(t *testing.T) {
 			}).WithMarks(cty.NewValueMarks("beep", "boop", "bloop")),
 			false,
 		},
+		{
+			cty.NilVal,
+			cty.NilVal,
+			true,
+		},
+		{
+			cty.MapVal(map[string]cty.Value{
+				"test": cty.NilVal,
+			}),
+			cty.NilVal,
+			false,
+		},
 	}
 
 	for _, test := range tests {
