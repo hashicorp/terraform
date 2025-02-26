@@ -83,7 +83,7 @@ During a Terraform operation, the provider uses the `password_wo` value to confi
 
 Terraform does not store write-only arguments in state files, so Terraform has no way of knowing if a write-only argument value has changed. Because Terraform cannot track write-only argument values, it sends write-only arguments to the provider during every operation.
 
-Terraform also cannot create plan diffs for write-only arguments because it does not store them in plan files, so providers only use write-only arguments when creating a new resource.
+Terraform also cannot create plan diffs for write-only arguments because it does not store those values in plan files. However, providers typically include version arguments alongside write-only arguments. Terraform stores version arguments in state, and can track if a version argument changes.
 
 Providers implement version arguments to let practitioners track write-only argument values and control when a provider uses those write-only arguments. The implementation of write-only arguments and their version arguments is provider-specific, so consult the Registry for more details about your specific provider.
 
