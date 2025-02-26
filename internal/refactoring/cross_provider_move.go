@@ -10,7 +10,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -100,21 +99,19 @@ func (m *crossTypeMover) prepareCrossTypeMove(stmt *MoveStatement, source, targe
 		})
 		return nil, diags
 	}
-	targetResourceSchema, targetResourceSchemaVersion := targetSchema.SchemaForResourceAddr(target.Resource)
+	schema := targetSchema.SchemaForResourceAddr(target.Resource)
 	return &crossTypeMove{
-		targetProvider:              targetProvider,
-		targetProviderAddr:          *targetProviderAddr,
-		targetResourceSchema:        targetResourceSchema,
-		targetResourceSchemaVersion: targetResourceSchemaVersion,
-		sourceProviderAddr:          sourceProviderAddr,
+		targetProvider:       targetProvider,
+		targetProviderAddr:   *targetProviderAddr,
+		targetResourceSchema: schema,
+		sourceProviderAddr:   sourceProviderAddr,
 	}, diags
 }
 
 type crossTypeMove struct {
-	targetProvider              providers.Interface
-	targetProviderAddr          addrs.AbsProviderConfig
-	targetResourceSchema        *configschema.Block
-	targetResourceSchemaVersion uint64
+	targetProvider       providers.Interface
+	targetProviderAddr   addrs.AbsProviderConfig
+	targetResourceSchema providers.Schema
 
 	sourceProviderAddr addrs.AbsProviderConfig
 }
@@ -162,7 +159,7 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 			)
 		},
 		resp.TargetState,
-		move.targetResourceSchema,
+		move.targetResourceSchema.Body,
 	)
 	diags = diags.Append(writeOnlyDiags)
 
@@ -200,7 +197,7 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 	}
 
 	// TODO: We need to handle identity data in move scenarios.
-	data, err := newValue.Encode(move.targetResourceSchema.ImpliedType(), move.targetResourceSchemaVersion)
+	data, err := newValue.Encode(move.targetResourceSchema)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,

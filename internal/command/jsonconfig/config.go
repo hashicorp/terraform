@@ -472,17 +472,17 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 			}
 		}
 
-		schema, schemaVer := schemas.ResourceTypeConfig(
+		schema := schemas.ResourceTypeConfig(
 			v.Provider,
 			v.Mode,
 			v.Type,
 		)
-		if schema == nil {
+		if schema.Body == nil {
 			return nil, fmt.Errorf("no schema found for %s (in provider %s)", v.Addr().String(), v.Provider)
 		}
-		r.SchemaVersion = schemaVer
+		r.SchemaVersion = schema.Version
 
-		r.Expressions = marshalExpressions(v.Config, schema)
+		r.Expressions = marshalExpressions(v.Config, schema.Body)
 
 		// Managed is populated only for Mode = addrs.ManagedResourceMode
 		if v.Managed != nil && len(v.Managed.Provisioners) > 0 {

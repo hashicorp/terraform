@@ -492,12 +492,12 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 		return nil, nil
 	}
 
-	schema, currentVersion := (providerSchema).SchemaForResourceAddr(addr.Resource.ContainingResource())
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceAddr(addr.Resource.ContainingResource())
+	if schema.Body == nil {
 		// Shouldn't happen since we should've failed long ago if no schema is present
 		return nil, diags.Append(fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr))
 	}
-	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema, currentVersion)
+	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema.Body, schema.Version)
 	if n.Config != nil {
 		upgradeDiags = upgradeDiags.InConfigBody(n.Config.Config, addr.String())
 	}
@@ -506,14 +506,8 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 		return nil, diags
 	}
 
-	resourceIdentitySchemas, err := getResourceIdentitySchemas(ctx, n.ResolvedProvider)
-	if err != nil {
-		return nil, diags.Append(fmt.Errorf("Could not read provider identity schema: %w", err))
-	}
-	identitySchema, currentIdentityVersion := resourceIdentitySchemas.IdentitySchemaForResourceAddr(addr.Resource.ContainingResource())
-
 	// We need to upgrade the identity schema as well, if necessary.
-	if src.IdentitySchemaVersion < currentIdentityVersion {
+	if src.IdentitySchemaVersion < uint64(schema.IdentityVersion) {
 		providerType := addr.Resource.Resource.ImpliedProvider()
 		req := providers.UpgradeResourceIdentityRequest{
 			TypeName: addr.Resource.Resource.Type,
@@ -543,7 +537,7 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 		}
 
 		newIdentity := resp.UpgradedIdentity
-		if errs := newIdentity.Type().TestConformance(identitySchema.ImpliedType()); len(errs) > 0 {
+		if errs := newIdentity.Type().TestConformance(schema.Identity.ImpliedType()); len(errs) > 0 {
 			for _, err := range errs {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -556,7 +550,7 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 
 		// As we upgraded the identity we don't need to read it from state anymore
 		// we can just decode the src without the identity and add it in afterwards
-		obj, err := src.Decode(schema.ImpliedType())
+		obj, err := src.Decode(schema)
 		if err != nil {
 			diags = diags.Append(err)
 		}
@@ -564,7 +558,7 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 		return obj, diags
 	}
 
-	obj, err := src.DecodeWithIdentity(schema.ImpliedType(), identitySchema.ImpliedType(), currentIdentityVersion)
+	obj, err := src.Decode(schema)
 	if err != nil {
 		diags = diags.Append(err)
 	}
@@ -595,14 +589,14 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 		return nil, diags
 	}
 
-	schema, currentVersion := (providerSchema).SchemaForResourceAddr(addr.Resource.ContainingResource())
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceAddr(addr.Resource.ContainingResource())
+	if schema.Body == nil {
 		// Shouldn't happen since we should've failed long ago if no schema is present
 		return nil, diags.Append(fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr))
 
 	}
 
-	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema, currentVersion)
+	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema.Body, schema.Version)
 	if n.Config != nil {
 		upgradeDiags = upgradeDiags.InConfigBody(n.Config.Config, addr.String())
 	}
@@ -615,14 +609,8 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 		return nil, diags
 	}
 
-	resourceIdentitySchemas, err := getResourceIdentitySchemas(ctx, n.ResolvedProvider)
-	if err != nil {
-		return nil, diags.Append(fmt.Errorf("Could not read provider identity schema: %w", err))
-	}
-	identitySchema, currentIdentityVersion := resourceIdentitySchemas.IdentitySchemaForResourceAddr(addr.Resource.ContainingResource())
-
 	// We need to upgrade the identity schema as well, if necessary.
-	if src.IdentitySchemaVersion < currentIdentityVersion {
+	if src.IdentitySchemaVersion < uint64(schema.IdentityVersion) {
 		providerType := addr.Resource.Resource.ImpliedProvider()
 		req := providers.UpgradeResourceIdentityRequest{
 			TypeName: addr.Resource.Resource.Type,
@@ -652,7 +640,7 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 		}
 
 		newIdentity := resp.UpgradedIdentity
-		if errs := newIdentity.Type().TestConformance(identitySchema.ImpliedType()); len(errs) > 0 {
+		if errs := newIdentity.Type().TestConformance(schema.Identity.ImpliedType()); len(errs) > 0 {
 			for _, err := range errs {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -664,7 +652,7 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 		}
 		// As we upgraded the identity we don't need to read it from state anymore
 		// we can just decode the src without the identity and add it in afterwards
-		obj, err := src.Decode(schema.ImpliedType())
+		obj, err := src.Decode(schema)
 		if err != nil {
 			diags = diags.Append(err)
 		}
@@ -672,7 +660,7 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 		return obj, diags
 	}
 
-	obj, err := src.DecodeWithIdentity(schema.ImpliedType(), identitySchema.ImpliedType(), currentIdentityVersion)
+	obj, err := src.Decode(schema)
 	if err != nil {
 		diags = diags.Append(err)
 	}

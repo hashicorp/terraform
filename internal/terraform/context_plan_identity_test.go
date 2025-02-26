@@ -213,8 +213,8 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 				},
 			})
 
-			schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
-			ty := schema.ImpliedType()
+			schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"]
+			ty := schema.Body.ImpliedType()
 			readState, err := hcl2shim.HCL2ValueFromFlatmap(map[string]string{"id": "foo", "foo": "baz"}, ty)
 			if err != nil {
 				t.Fatal(err)
@@ -263,12 +263,12 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 			}
 
 			mod := s.PriorState.RootModule()
-			fromState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.DecodeWithIdentity(ty, tc.IdentitySchema.Attributes.ImpliedType(), uint64(tc.IdentitySchema.Version))
+			fromState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.Decode(schema)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			newState, err := schema.CoerceValue(fromState.Value)
+			newState, err := schema.Body.CoerceValue(fromState.Value)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -310,8 +310,8 @@ func TestContext2Plan_resource_identity_refresh_destroy_deposed(t *testing.T) {
 		},
 	})
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
-	ty := schema.ImpliedType()
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"]
+	ty := schema.Body.ImpliedType()
 	readState, err := hcl2shim.HCL2ValueFromFlatmap(map[string]string{"id": "foo", "foo": "baz"}, ty)
 	if err != nil {
 		t.Fatal(err)
@@ -351,14 +351,13 @@ func TestContext2Plan_resource_identity_refresh_destroy_deposed(t *testing.T) {
 		t.Fatal("GetResourceIdentitySchemas should be called")
 	}
 
-	identitySchema := p.GetResourceIdentitySchemasResponse.IdentityTypes["aws_instance"]
 	mod := s.PriorState.RootModule()
-	fromState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Deposed[deposedKey].DecodeWithIdentity(ty, identitySchema.Attributes.ImpliedType(), uint64(identitySchema.Version))
+	fromState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Deposed[deposedKey].Decode(schema)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	newState, err := schema.CoerceValue(fromState.Value)
+	newState, err := schema.Body.CoerceValue(fromState.Value)
 	if err != nil {
 		t.Fatal(err)
 	}

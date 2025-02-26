@@ -4,14 +4,13 @@
 package states
 
 import (
-	"fmt"
-
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 // ResourceInstanceObjectSrc is a not-fully-decoded version of
@@ -72,30 +71,8 @@ type ResourceInstanceObjectSrc struct {
 
 	// decodeValueCache stored the decoded value for repeated decodings.
 	decodeValueCache cty.Value
-}
-
-// DecodeWithIdentity unmarshals the raw representation of the object attributes
-// and identity schema. We expect the caller to make sure upgrades of the resource identity happen beforehand.
-func (os *ResourceInstanceObjectSrc) DecodeWithIdentity(ty cty.Type, identityTy cty.Type, identitySchemaVersion uint64) (*ResourceInstanceObject, error) {
-	if len(os.IdentityJSON) == 0 {
-		return os.Decode(ty) // Task failed successfully
-	}
-
-	if os.IdentitySchemaVersion != identitySchemaVersion {
-		return nil, fmt.Errorf("identity schema version mismatch: got %d, want %d", os.IdentitySchemaVersion, identitySchemaVersion)
-	}
-
-	rio, err := os.Decode(ty)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode object schema: %e", err)
-	}
-
-	rio.Identity, err = ctyjson.Unmarshal(os.IdentityJSON, identityTy)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode identity schema: %s. This is most likely a bug in the Provider, providers must not change the identity schema without updating the identity schema version", err.Error())
-	}
-
-	return rio, nil
+	// decodeIdentityCache stored the decoded identity for repeated decodings.
+	decodeIdentityCache cty.Value
 }
 
 // Decode unmarshals the raw representation of the object attributes. Pass the
@@ -108,9 +85,10 @@ func (os *ResourceInstanceObjectSrc) DecodeWithIdentity(ty cty.Type, identityTy 
 // The returned object may share internal references with the receiver and
 // so the caller must not mutate the receiver any further once once this
 // method is called.
-func (os *ResourceInstanceObjectSrc) Decode(ty cty.Type) (*ResourceInstanceObject, error) {
+func (os *ResourceInstanceObjectSrc) Decode(schema providers.Schema) (*ResourceInstanceObject, error) {
 	var val cty.Value
 	var err error
+	attrsTy := schema.Body.ImpliedType()
 
 	switch {
 	case os.decodeValueCache != cty.NilVal:
@@ -118,14 +96,24 @@ func (os *ResourceInstanceObjectSrc) Decode(ty cty.Type) (*ResourceInstanceObjec
 
 	case os.AttrsFlat != nil:
 		// Legacy mode. We'll do our best to unpick this from the flatmap.
-		val, err = hcl2shim.HCL2ValueFromFlatmap(os.AttrsFlat, ty)
+		val, err = hcl2shim.HCL2ValueFromFlatmap(os.AttrsFlat, attrsTy)
 		if err != nil {
 			return nil, err
 		}
 
 	default:
-		val, err = ctyjson.Unmarshal(os.AttrsJSON, ty)
+		val, err = ctyjson.Unmarshal(os.AttrsJSON, attrsTy)
 		val = marks.MarkPaths(val, marks.Sensitive, os.AttrSensitivePaths)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var identity cty.Value
+	if os.decodeIdentityCache != cty.NilVal {
+		identity = os.decodeIdentityCache
+	} else if os.IdentityJSON != nil {
+		identity, err = ctyjson.Unmarshal(os.IdentityJSON, schema.Identity.ImpliedType())
 		if err != nil {
 			return nil, err
 		}
@@ -133,6 +121,7 @@ func (os *ResourceInstanceObjectSrc) Decode(ty cty.Type) (*ResourceInstanceObjec
 
 	return &ResourceInstanceObject{
 		Value:               val,
+		Identity:            identity,
 		Status:              os.Status,
 		Dependencies:        os.Dependencies,
 		Private:             os.Private,

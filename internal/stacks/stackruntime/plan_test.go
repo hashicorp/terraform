@@ -1081,12 +1081,14 @@ func TestPlanWithSingleResource(t *testing.T) {
 			// type from the real terraform.io/builtin/terraform provider
 			// maintained elsewhere in this codebase. If that schema changes
 			// in future then this should change to match it.
-			Schema: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"input":            {Type: cty.DynamicPseudoType, Optional: true},
-					"output":           {Type: cty.DynamicPseudoType, Computed: true},
-					"triggers_replace": {Type: cty.DynamicPseudoType, Optional: true},
-					"id":               {Type: cty.String, Computed: true},
+			Schema: providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"input":            {Type: cty.DynamicPseudoType, Optional: true},
+						"output":           {Type: cty.DynamicPseudoType, Computed: true},
+						"triggers_replace": {Type: cty.DynamicPseudoType, Optional: true},
+						"id":               {Type: cty.String, Computed: true},
+					},
 				},
 			},
 		},
@@ -1843,7 +1845,7 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 					After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 						"id":    cty.UnknownVal(cty.String),
 						"value": cty.StringVal("secret"),
-					}), stacks_testing_provider.TestingResourceSchema),
+					}), stacks_testing_provider.TestingResourceSchema.Body),
 					AfterSensitivePaths: []cty.Path{
 						cty.GetAttrPath("value"),
 					},
@@ -2006,7 +2008,7 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 					After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 						"id":    cty.UnknownVal(cty.String),
 						"value": cty.StringVal("secret"),
-					}), stacks_testing_provider.TestingResourceSchema),
+					}), stacks_testing_provider.TestingResourceSchema.Body),
 					AfterSensitivePaths: []cty.Path{
 						cty.GetAttrPath("value"),
 					},
@@ -2324,7 +2326,7 @@ func TestPlanWithCheckableObjects(t *testing.T) {
 					After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 						"id":    cty.StringVal("test"),
 						"value": cty.StringVal("bar"),
-					}), stacks_testing_provider.TestingResourceSchema),
+					}), stacks_testing_provider.TestingResourceSchema.Body),
 				},
 			},
 
@@ -2458,7 +2460,7 @@ func TestPlanWithDeferredResource(t *testing.T) {
 							"id":       cty.StringVal("62594ae3"),
 							"value":    cty.NullVal(cty.String),
 							"deferred": cty.BoolVal(true),
-						}), stacks_testing_provider.DeferredResourceSchema),
+						}), stacks_testing_provider.DeferredResourceSchema.Body),
 						AfterSensitivePaths: nil,
 					},
 				},
@@ -2623,7 +2625,7 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 							"id":    cty.UnknownVal(cty.String),
 							"value": cty.UnknownVal(cty.String),
-						}), stacks_testing_provider.TestingResourceSchema),
+						}), stacks_testing_provider.TestingResourceSchema.Body),
 						AfterSensitivePaths: nil,
 					},
 				},
@@ -2704,7 +2706,7 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 							"id":    cty.UnknownVal(cty.String),
 							"value": cty.UnknownVal(cty.String),
-						}), stacks_testing_provider.TestingResourceSchema),
+						}), stacks_testing_provider.TestingResourceSchema.Body),
 						AfterSensitivePaths: nil,
 					},
 				},
@@ -2865,7 +2867,7 @@ func TestPlanWithDeferredComponentReferences(t *testing.T) {
 						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 							"id":    cty.UnknownVal(cty.String),
 							"value": cty.UnknownVal(cty.String),
-						}), stacks_testing_provider.TestingResourceSchema),
+						}), stacks_testing_provider.TestingResourceSchema.Body),
 						AfterSensitivePaths: nil,
 					},
 				},
@@ -2950,7 +2952,7 @@ func TestPlanWithDeferredComponentReferences(t *testing.T) {
 					After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 						"id":    cty.UnknownVal(cty.String),
 						"value": cty.StringVal("known"),
-					}), stacks_testing_provider.TestingResourceSchema),
+					}), stacks_testing_provider.TestingResourceSchema.Body),
 				},
 				ProviderAddr: addrs.AbsProviderConfig{
 					Module:   addrs.RootModule,
@@ -3116,7 +3118,7 @@ func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 							"id":    cty.UnknownVal(cty.String),
 							"value": cty.UnknownVal(cty.String),
-						}), stacks_testing_provider.TestingResourceSchema),
+						}), stacks_testing_provider.TestingResourceSchema.Body),
 						AfterSensitivePaths: nil,
 					},
 				},
@@ -3266,7 +3268,7 @@ func TestPlanWithDeferredEmbeddedStackAndComponentForEach(t *testing.T) {
 						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 							"id":    cty.UnknownVal(cty.String),
 							"value": cty.UnknownVal(cty.String),
-						}), stacks_testing_provider.TestingResourceSchema),
+						}), stacks_testing_provider.TestingResourceSchema.Body),
 						AfterSensitivePaths: nil,
 					},
 				},
@@ -3465,7 +3467,7 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 							"id":    cty.UnknownVal(cty.String),
 							"value": cty.StringVal("primary"),
-						}), stacks_testing_provider.TestingResourceSchema),
+						}), stacks_testing_provider.TestingResourceSchema.Body),
 					},
 				},
 				Schema: stacks_testing_provider.TestingResourceSchema,
@@ -3537,7 +3539,7 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 							"id":    cty.UnknownVal(cty.String),
 							"value": cty.StringVal("secondary"),
-						}), stacks_testing_provider.TestingResourceSchema),
+						}), stacks_testing_provider.TestingResourceSchema.Body),
 					},
 				},
 				Schema: stacks_testing_provider.TestingResourceSchema,

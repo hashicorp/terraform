@@ -11,6 +11,8 @@ import (
 // IdentityAttributes represents a set of attributes in an identity schema
 type IdentityAttributes map[string]*IdentityAttribute
 
+// replace by object or maybe block?
+
 // IdentityAttribute represents a single attribute in an identity schema
 type IdentityAttribute struct {
 	// Type is a type specification that the attribute's value must conform to.

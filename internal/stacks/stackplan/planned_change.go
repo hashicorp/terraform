@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
@@ -366,7 +365,7 @@ type PlannedChangeResourceInstancePlanned struct {
 	//
 	// Can be nil if and only if ChangeSrc and PriorStateSrc are both nil
 	// themselves.
-	Schema *configschema.Block
+	Schema providers.Schema
 }
 
 var _ PlannedChange = (*PlannedChangeResourceInstancePlanned)(nil)

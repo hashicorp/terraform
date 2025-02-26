@@ -81,8 +81,8 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 		return diags
 	}
 
-	schema, _ := providerSchema.SchemaForResourceType(n.Addr.Resource.Resource.Mode, n.Addr.Resource.Resource.Type)
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceType(n.Addr.Resource.Resource.Mode, n.Addr.Resource.Resource.Type)
+	if schema.Body == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Resource.Type))
 		return diags
@@ -125,7 +125,7 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 				)
 			},
 			imported.State,
-			schema,
+			schema.Body,
 		)
 		diags = diags.Append(writeOnlyDiags)
 	}
@@ -250,7 +250,7 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 		return diags
 	}
 
-	state := n.State.AsInstanceObject()
+	state := states.NewResourceInstanceObjectFromIR(n.State)
 
 	// Refresh
 	riNode := &NodeAbstractResourceInstance{

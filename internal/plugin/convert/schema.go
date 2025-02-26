@@ -94,7 +94,7 @@ func protoSchemaNestedBlock(name string, b *configschema.NestedBlock) *proto.Sch
 // ProtoToProviderSchema takes a proto.Schema and converts it to a providers.Schema.
 func ProtoToProviderSchema(s *proto.Schema) providers.Schema {
 	return providers.Schema{
-		Version: s.Version,
+		Version: uint64(s.Version),
 		Body:    ProtoToConfigSchema(s.Block),
 	}
 }
