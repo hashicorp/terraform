@@ -54,7 +54,7 @@ resource "aws_db_instance" "test" {
   engine              = "postgres"
   username            = "admin"
   skip_final_snapshot = true
-  password_wo = ephemeral.random.password.value
+  password_wo         = ephemeral.random.password.value
   password_wo_version = 1
 }
 ```
