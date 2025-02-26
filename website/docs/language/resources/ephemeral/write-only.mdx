@@ -5,15 +5,13 @@ description: Learn how to use write-only arguments to set temporary values that 
 
 # Use write-only arguments
 
-Write-only arguments let you securely pass ephemeral values to Terraform resources during a Terraform operation without persisting those values to state or plan files. Use write-only arguments to store sensitive data for the current Terraform operation, such as a password, token, or session identifier. 
+Write-only arguments let you securely pass temporary values to Terraform's managed resources during an operation without persisting those values to state or plan files. Use write-only arguments to handle sensitive data such as passwords, API tokens, and other secrets.
 
 ## Background
 
-Write-only arguments are only available during the runtime of a Terraform operation, and Terraform omits those values from state and plan files.
+Write-only arguments complement [other ephemeral values](/terraform/language/resources/ephemeral/reference#reference-ephemeral-resources) in Terraform, letting you securely pass sensitive data throughout your configuration without ever storing it in Terraform's artifacts. For example, you can generate a random password using an `ephemeral` resource then pass it to a write-only argument on another `resource` block. The provider uses the write-only argument value to configure the resource, then Terraform discards the value without storing it.
 
 > **Hands-on**: Declare a write-only argument in the [Upgrade RDS major version](/terraform/tutorials/aws/rds-upgrade) tutorial.
-
-You can use write-only arguments to pass ephemeral values directly to a resource without Terraform persisting that value. For example, you can directly pass a generated password or a fetched token to a write-only argument without risking Terraform exposing that value. Use write-only arguments to ensure sensitive data only exists during the current Terraform operation.
 
 Unlike other ephemeral constructs in Terraform, such as ephemeral resources or variables, write-only arguments accept both ephemeral and non-ephemeral values.
 
