@@ -60,9 +60,28 @@ func loadProviderSchemas(schemas map[addrs.Provider]providers.ProviderSchema, co
 			return
 		}
 
-		// identitySchemas, err := plugins.ResourceIdentitySchemas(fqn)
+		identitySchemas, err := plugins.ResourceIdentitySchemas(fqn)
+		if err != nil {
+			// We just log and ignore the error
+			log.Printf("[WARN] Failed to obtain resource identity schemas for provider %s: %s", fqn, err)
+		} else {
+			// Iterate over the identity schemas and merge them into the provider schema
+			for name, identitySchema := range identitySchemas.IdentityTypes {
+				if resource, ok := schema.ResourceTypes[name]; !ok {
+					// This shouldn't happen, but in case we get an identity for a non-existent resource type
+					log.Printf("[WARN] Failed to find resource type %s for provider %s", name, fqn)
+					continue
+				} else {
+					schema.ResourceTypes[name] = providers.Schema{
+						Body:    resource.Body,
+						Version: resource.Version,
 
-		// maybe inject identities here
+						Identity:        identitySchema.Body,
+						IdentityVersion: uint64(identitySchema.Version),
+					}
+				}
+			}
+		}
 
 		schemas[fqn] = schema
 	}
