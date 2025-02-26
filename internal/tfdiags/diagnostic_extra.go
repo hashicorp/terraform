@@ -246,6 +246,9 @@ type DiagnosticExtraCausedByTestFailure interface {
 	// DiagnosticCausedByTestFailure returns true if the associated
 	// diagnostic is the result of a failed assertion in a run block.
 	DiagnosticCausedByTestFailure() bool
+
+	// IsTestVerboseMode returns true if the test was executed in verbose mode.
+	IsTestVerboseMode() bool
 }
 
 // DiagnosticCausedByTestFailure returns true if the given diagnostic

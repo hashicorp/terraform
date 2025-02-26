@@ -139,9 +139,10 @@ type DiagnosticFunctionCall struct {
 // right-hand side (RHS) values of the binary expression, as well as a warning
 // message if there is a potential issue with the values being compared.
 type DiagnosticTestBinaryExpr struct {
-	LHS     string `json:"lhs"`
-	RHS     string `json:"rhs"`
-	Warning string `json:"warning"`
+	LHS         string `json:"lhs"`
+	RHS         string `json:"rhs"`
+	Warning     string `json:"warning"`
+	ShowVerbose bool   `json:"show_verbose"`
 }
 
 // NewDiagnostic takes a tfdiags.Diagnostic and a map of configuration sources,
@@ -445,6 +446,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 					// If the test assertion is a binary expression, we'll include the human-readable
 					// formatted LHS and RHS values in the diagnostic snippet.
 					diagnostic.Snippet.TestAssertionExpr = formatRunBinaryDiag(ctx, fromExpr.Expression)
+					diagnostic.Snippet.TestAssertionExpr.ShowVerbose = testDiag.IsTestVerboseMode()
 				}
 
 			}
