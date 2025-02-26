@@ -5,7 +5,7 @@ description: Learn how to use write-only arguments to set temporary values that 
 
 # Use write-only arguments
 
-Write-only arguments let you securely pass temporary values to Terraform resources during a Terraform operation without persisting those values to state or plan files. Use write-only arguments to store sensitive data for the current Terraform operation, such as a short-lived password, token, or session identifier. 
+Write-only arguments let you securely pass ephemeral values to Terraform resources during a Terraform operation without persisting those values to state or plan files. Use write-only arguments to store sensitive data for the current Terraform operation, such as a password, token, or session identifier. 
 
 ## Background
 
@@ -15,7 +15,7 @@ Write-only arguments are only available during the runtime of a Terraform operat
 
 You can use write-only arguments to pass ephemeral values directly to a resource without Terraform persisting that value. For example, you can directly pass a generated password or a fetched token to a write-only argument without risking Terraform exposing that value. Use write-only arguments to ensure sensitive data only exists during the current Terraform operation.
 
-Unlike other ephemeral constructs in Terraform, such as ephemeral resources or variables, write-only arguments also accept both ephemeral and non-ephemeral values.
+Unlike other ephemeral constructs in Terraform, such as ephemeral resources or variables, write-only arguments accept both ephemeral and non-ephemeral values.
 
 ## Requirements
 
@@ -55,7 +55,7 @@ resource "aws_db_instance" "test" {
 }
 ```
 
-However, we recommend using write-only arguments for passing ephemeral values to resources. For example, you can use an `ephemeral` resource to generate a random password and pass it to the `password_wo` write-only argument:
+However, we recommend using write-only arguments for passing ephemeral values to resources. If you use a non-ephemeral value, Terraform stores that value or hard-codes it in your configuration. For example, you can use an `ephemeral` resource to generate a random password and pass it to the `password_wo` write-only argument:
 
 <CodeBlockConfig highlight="11">
 
