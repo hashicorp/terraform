@@ -20,9 +20,8 @@ func newContextPlugins(
 	providerFactories map[addrs.Provider]providers.Factory,
 	provisionerFactories map[string]provisioners.Factory,
 	preloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema,
-	preloadedResourceIdentitySchemas map[addrs.Provider]providers.ResourceIdentitySchemas,
 ) *loadschemas.Plugins {
-	return loadschemas.NewPlugins(providerFactories, provisionerFactories, preloadedProviderSchemas, preloadedResourceIdentitySchemas)
+	return loadschemas.NewPlugins(providerFactories, provisionerFactories, preloadedProviderSchemas)
 }
 
 // Schemas is a deprecated old name for schemarepo.Schemas

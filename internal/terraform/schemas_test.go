@@ -49,5 +49,5 @@ func schemaOnlyProvidersForTesting(schemas map[addrs.Provider]providers.Provider
 		}
 	}
 
-	return newContextPlugins(factories, nil, nil, nil)
+	return newContextPlugins(factories, nil, nil)
 }
