@@ -103,6 +103,11 @@ type DiagnosticSnippet struct {
 	// FunctionCall is information about a function call whose failure is
 	// being reported by this diagnostic, if any.
 	FunctionCall *DiagnosticFunctionCall `json:"function_call,omitempty"`
+
+	// TestAssertionExpr is information derived from a diagnostic that is caused
+	// by a failed run assertion. This field is only populated when the assertion
+	// is a binary expression, i.e `a operand b``.
+	TestAssertionExpr *DiagnosticTestBinaryExpr `json:"test_assertion_expr,omitempty"`
 }
 
 // DiagnosticExpressionValue represents an HCL traversal string (e.g.
@@ -127,6 +132,17 @@ type DiagnosticFunctionCall struct {
 	// called, if any. Might be omitted if we're reporting that a call failed
 	// because the given function name isn't known, for example.
 	Signature *Function `json:"signature,omitempty"`
+}
+
+// DiagnosticTestBinaryExpr represents a failed test assertion diagnostic
+// caused by a binary expression. It includes the left-hand side (LHS) and
+// right-hand side (RHS) values of the binary expression, as well as a warning
+// message if there is a potential issue with the values being compared.
+type DiagnosticTestBinaryExpr struct {
+	LHS         string `json:"lhs"`
+	RHS         string `json:"rhs"`
+	Warning     string `json:"warning"`
+	ShowVerbose bool   `json:"show_verbose"`
 }
 
 // NewDiagnostic takes a tfdiags.Diagnostic and a map of configuration sources,
@@ -277,6 +293,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 				includeUnknown := tfdiags.DiagnosticCausedByUnknown(diag)
 				includeEphemeral := tfdiags.DiagnosticCausedByEphemeral(diag)
 				includeSensitive := tfdiags.DiagnosticCausedBySensitive(diag)
+				testDiag := tfdiags.ExtraInfo[tfdiags.DiagnosticExtraCausedByTestFailure](diag)
 			Traversals:
 				for _, traversal := range vars {
 					for len(traversal) > 1 {
@@ -296,6 +313,22 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 						value := DiagnosticExpressionValue{
 							Traversal: traversalStr,
 						}
+
+						// If the diagnostic is caused by a failed run assertion,
+						// we'll redact sensitive and ephemeral values within traversals, but format
+						// the values in a more human-readable way than the general case.
+						// If the value is unknown, we'll leave it to the general case to handle.
+						if testDiag != nil && val.IsKnown() {
+							valBuf, err := tfdiags.FormatValueStr(val)
+							if err != nil {
+								panic(err)
+							}
+							value.Statement = fmt.Sprintf("is %s", valBuf)
+							values = append(values, value)
+							seen[traversalStr] = struct{}{}
+							continue Traversals
+						}
+
 						// We'll skip any value that has a mark that we don't
 						// know how to handle, because in that case we can't
 						// know what that mark is intended to represent and so
@@ -391,6 +424,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 				sort.Slice(values, func(i, j int) bool {
 					return values[i].Traversal < values[j].Traversal
 				})
+
 				diagnostic.Snippet.Values = values
 
 				if callInfo := tfdiags.ExtraInfo[hclsyntax.FunctionCallDiagExtra](diag); callInfo != nil && callInfo.CalledFunctionName() != "" {
@@ -408,12 +442,49 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 					diagnostic.Snippet.FunctionCall = callInfo
 				}
 
+				if testDiag != nil {
+					// If the test assertion is a binary expression, we'll include the human-readable
+					// formatted LHS and RHS values in the diagnostic snippet.
+					diagnostic.Snippet.TestAssertionExpr = formatRunBinaryDiag(ctx, fromExpr.Expression)
+					diagnostic.Snippet.TestAssertionExpr.ShowVerbose = testDiag.IsTestVerboseMode()
+				}
+
 			}
 
 		}
 	}
 
 	return diagnostic
+}
+
+// formatRunBinaryDiag formats the binary expression that caused the failed run diagnostic.
+// The LHS and RHS values are formatted in a more human-readable way, redacting
+// sensitive and ephemeral values only for the exact values that hold the mark(s).
+func formatRunBinaryDiag(ctx *hcl.EvalContext, expr hcl.Expression) *DiagnosticTestBinaryExpr {
+	bExpr, ok := expr.(*hclsyntax.BinaryOpExpr)
+	if !ok {
+		return nil
+	}
+	// The expression has already been evaluated and failed, so we can ignore the diags here.
+	lhs, _ := bExpr.LHS.Value(ctx)
+	rhs, _ := bExpr.RHS.Value(ctx)
+
+	lhsStr, err := tfdiags.FormatValueStr(lhs)
+	if err != nil {
+		panic(err)
+	}
+	rhsStr, err := tfdiags.FormatValueStr(rhs)
+	if err != nil {
+		panic(err)
+	}
+
+	ret := &DiagnosticTestBinaryExpr{LHS: lhsStr, RHS: rhsStr}
+
+	// The types do not match. We don't diff them.
+	if !lhs.Type().Equals(rhs.Type()) {
+		ret.Warning = "LHS and RHS values are of different types"
+	}
+	return ret
 }
 
 func parseRange(src []byte, rng hcl.Range) (*hcl.File, int) {

@@ -233,3 +233,30 @@ func DoNotConsolidateDiagnostic(diag Diagnostic) bool {
 	}
 	return maybe.DoNotConsolidateDiagnostic()
 }
+
+// DiagnosticExtraCausedByTestFailure is an interface implemented by
+// values in the Extra field of Diagnostic when the diagnostic is caused by a
+// failing assertion in a run block during the `test` command.
+//
+// Just implementing this interface is not sufficient signal, though. Callers
+// must also call the DiagnosticCausedByTestFailure method in order to
+// confirm the result, or use the package-level function
+// DiagnosticCausedByTestFailure as a convenient wrapper.
+type DiagnosticExtraCausedByTestFailure interface {
+	// DiagnosticCausedByTestFailure returns true if the associated
+	// diagnostic is the result of a failed assertion in a run block.
+	DiagnosticCausedByTestFailure() bool
+
+	// IsTestVerboseMode returns true if the test was executed in verbose mode.
+	IsTestVerboseMode() bool
+}
+
+// DiagnosticCausedByTestFailure returns true if the given diagnostic
+// is the result of a failed assertion in a run block.
+func DiagnosticCausedByTestFailure(diag Diagnostic) bool {
+	maybe := ExtraInfo[DiagnosticExtraCausedByTestFailure](diag)
+	if maybe == nil {
+		return false
+	}
+	return maybe.DiagnosticCausedByTestFailure()
+}
