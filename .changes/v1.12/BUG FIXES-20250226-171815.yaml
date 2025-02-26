@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'Avoid reporting duplicate attribute-associated diagnostics, such as "Available Write-only Attribute Alternative"'
+time: 2025-02-26T17:18:15.521208Z
+custom:
+    Issue: "36579"
