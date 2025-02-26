@@ -67,7 +67,7 @@ func TestApply_componentOrdering(t *testing.T) {
 	testProviderSchema := providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_report": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"marker": {
 							Type:     cty.String,

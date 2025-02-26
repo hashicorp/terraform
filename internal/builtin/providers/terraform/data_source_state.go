@@ -19,7 +19,7 @@ import (
 
 func dataSourceRemoteStateGetSchema() providers.Schema {
 	return providers.Schema{
-		Block: &configschema.Block{
+		Body: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"backend": {
 					Type:            cty.String,

@@ -168,12 +168,12 @@ func TestContext2Plan_providerFunctionImpureApply(t *testing.T) {
 
 	p := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{Block: simpleTestSchema()},
+			Provider: providers.Schema{Body: simpleTestSchema()},
 			ResourceTypes: map[string]providers.Schema{
-				"test_object": providers.Schema{Block: simpleTestSchema()},
+				"test_object": providers.Schema{Body: simpleTestSchema()},
 			},
 			DataSources: map[string]providers.Schema{
-				"test_object": providers.Schema{Block: simpleTestSchema()},
+				"test_object": providers.Schema{Body: simpleTestSchema()},
 			},
 			Functions: map[string]providers.FunctionDecl{
 				"echo": providers.FunctionDecl{
@@ -231,7 +231,7 @@ func TestContext2Plan_providerFunctionImpureApply(t *testing.T) {
 func TestContext2Validate_providerFunctionDiagnostics(t *testing.T) {
 	provider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{Block: simpleTestSchema()},
+			Provider: providers.Schema{Body: simpleTestSchema()},
 			Functions: map[string]providers.FunctionDecl{
 				"echo": providers.FunctionDecl{
 					Parameters: []providers.FunctionParam{

@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plugin6/convert"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	proto6 "github.com/hashicorp/terraform/internal/tfplugin6"
 )
 
@@ -71,8 +72,9 @@ type GRPCProvider struct {
 
 	// schema stores the schema for this provider. This is used to properly
 	// serialize the requests for schemas.
-	mu     sync.Mutex
-	schema providers.GetProviderSchemaResponse
+	mu            sync.Mutex
+	schema        providers.GetProviderSchemaResponse
+	identityTypes map[string]providers.IdentitySchema
 }
 
 func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
@@ -93,7 +95,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 
 	// If the local cache is non-zero, we know this instance has called
 	// GetProviderSchema at least once and we can return early.
-	if p.schema.Provider.Block != nil {
+	if p.schema.Provider.Body != nil {
 		return p.schema
 	}
 
@@ -176,6 +178,71 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return resp
 }
 
+func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	// check the global cache if we can
+	// FIXME: A global cache is inappropriate when Terraform Core is being
+	// used in a non-Terraform-CLI mode where we shouldn't assume that all
+	// calls share the same provider implementations.
+	if !p.Addr.IsZero() {
+		if resp, ok := providers.ResourceIdentitySchemasCache.Get(p.Addr); ok {
+			logger.Trace("GRPCProvider.v6: returning cached resource identity schemas", p.Addr.String())
+			return resp
+		}
+	}
+	logger.Trace("GRPCProvider.v6: GetResourceIdentitySchemas")
+
+	if p.identityTypes != nil {
+		return providers.GetResourceIdentitySchemasResponse{
+			IdentityTypes: p.identityTypes,
+		}
+	}
+
+	var resp providers.GetResourceIdentitySchemasResponse
+
+	resp.IdentityTypes = make(map[string]providers.IdentitySchema)
+
+	protoResp, err := p.client.GetResourceIdentitySchemas(p.ctx, new(proto6.GetResourceIdentitySchemas_Request))
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	if resp.Diagnostics.HasErrors() {
+		return resp
+	}
+
+	for name, res := range protoResp.IdentitySchemas {
+		var protoDiags tfdiags.Diagnostics
+		resp.IdentityTypes[name], protoDiags = convert.ProtoToResourceIdentitySchema(res)
+
+		var wrappedDiags tfdiags.Diagnostics
+		for _, diag := range protoDiags {
+			wrappedDiags = wrappedDiags.Append(fmt.Errorf("error in resource identity schema for resource %q: %s", name, diag))
+		}
+		resp.Diagnostics = resp.Diagnostics.Append(wrappedDiags)
+	}
+
+	if resp.Diagnostics.HasErrors() {
+		return resp
+	}
+
+	// set the global cache if we can
+	// FIXME: A global cache is inappropriate when Terraform Core is being
+	// used in a non-Terraform-CLI mode where we shouldn't assume that all
+	// calls share the same provider implementations.
+	if !p.Addr.IsZero() {
+		providers.ResourceIdentitySchemasCache.Set(p.Addr, resp)
+	}
+	p.identityTypes = resp.IdentityTypes
+
+	return resp
+}
+
 func (p *GRPCProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 	logger.Trace("GRPCProvider.v6: ValidateProviderConfig")
 
@@ -185,7 +252,7 @@ func (p *GRPCProvider) ValidateProviderConfig(r providers.ValidateProviderConfig
 		return resp
 	}
 
-	ty := schema.Provider.Block.ImpliedType()
+	ty := schema.Provider.Body.ImpliedType()
 
 	mp, err := msgpack.Marshal(r.Config, ty)
 	if err != nil {
@@ -222,7 +289,7 @@ func (p *GRPCProvider) ValidateResourceConfig(r providers.ValidateResourceConfig
 		return resp
 	}
 
-	mp, err := msgpack.Marshal(r.Config, resourceSchema.Block.ImpliedType())
+	mp, err := msgpack.Marshal(r.Config, resourceSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -259,7 +326,7 @@ func (p *GRPCProvider) ValidateDataResourceConfig(r providers.ValidateDataResour
 		return resp
 	}
 
-	mp, err := msgpack.Marshal(r.Config, dataSchema.Block.ImpliedType())
+	mp, err := msgpack.Marshal(r.Config, dataSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -310,7 +377,7 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	ty := resSchema.Block.ImpliedType()
+	ty := resSchema.Body.ImpliedType()
 	resp.UpgradedState = cty.NullVal(ty)
 	if protoResp.UpgradedState == nil {
 		return resp
@@ -326,6 +393,50 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 	return resp
 }
 
+func (p *GRPCProvider) UpgradeResourceIdentity(r providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
+	logger.Trace("GRPCProvider.v6: UpgradeResourceIdentity")
+
+	schemas := p.GetResourceIdentitySchemas()
+	if schemas.Diagnostics.HasErrors() {
+		resp.Diagnostics = schemas.Diagnostics
+		return resp
+	}
+
+	resSchema, ok := schemas.IdentityTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown resource type %q", r.TypeName))
+		return resp
+	}
+
+	protoReq := &proto6.UpgradeResourceIdentity_Request{
+		TypeName:    r.TypeName,
+		Version:     int64(r.Version),
+		RawIdentity: r.RawIdentityJSON,
+	}
+
+	protoResp, err := p.client.UpgradeResourceIdentity(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	ty := resSchema.Body.ImpliedType()
+	resp.UpgradedIdentity = cty.NullVal(ty)
+	if protoResp.UpgradedIdentity == nil {
+		return resp
+	}
+
+	identity, err := decodeDynamicValue(protoResp.UpgradedIdentity.IdentityData, ty)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+	resp.UpgradedIdentity = identity
+
+	return resp
+}
+
 func (p *GRPCProvider) ConfigureProvider(r providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 	logger.Trace("GRPCProvider.v6: ConfigureProvider")
 
@@ -334,7 +445,7 @@ func (p *GRPCProvider) ConfigureProvider(r providers.ConfigureProviderRequest) (
 	var mp []byte
 
 	// we don't have anything to marshal if there's no config
-	mp, err := msgpack.Marshal(r.Config, schema.Provider.Block.ImpliedType())
+	mp, err := msgpack.Marshal(r.Config, schema.Provider.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -388,7 +499,7 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 
 	metaSchema := schema.ProviderMeta
 
-	mp, err := msgpack.Marshal(r.PriorState, resSchema.Block.ImpliedType())
+	mp, err := msgpack.Marshal(r.PriorState, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -401,8 +512,8 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
-	if metaSchema.Block != nil {
-		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Block.ImpliedType())
+	if metaSchema.Body != nil {
+		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Body.ImpliedType())
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 			return resp
@@ -417,7 +528,7 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	state, err := decodeDynamicValue(protoResp.NewState, resSchema.Block.ImpliedType())
+	state, err := decodeDynamicValue(protoResp.NewState, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -455,19 +566,19 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		return resp
 	}
 
-	priorMP, err := msgpack.Marshal(r.PriorState, resSchema.Block.ImpliedType())
+	priorMP, err := msgpack.Marshal(r.PriorState, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
 
-	configMP, err := msgpack.Marshal(r.Config, resSchema.Block.ImpliedType())
+	configMP, err := msgpack.Marshal(r.Config, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
 
-	propMP, err := msgpack.Marshal(r.ProposedNewState, resSchema.Block.ImpliedType())
+	propMP, err := msgpack.Marshal(r.ProposedNewState, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -482,8 +593,8 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
-	if metaSchema.Block != nil {
-		metaTy := metaSchema.Block.ImpliedType()
+	if metaSchema.Body != nil {
+		metaTy := metaSchema.Body.ImpliedType()
 		metaVal := r.ProviderMeta
 		if metaVal == cty.NilVal {
 			metaVal = cty.NullVal(metaTy)
@@ -503,7 +614,7 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	state, err := decodeDynamicValue(protoResp.PlannedState, resSchema.Block.ImpliedType())
+	state, err := decodeDynamicValue(protoResp.PlannedState, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -540,17 +651,17 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 
 	metaSchema := schema.ProviderMeta
 
-	priorMP, err := msgpack.Marshal(r.PriorState, resSchema.Block.ImpliedType())
+	priorMP, err := msgpack.Marshal(r.PriorState, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
-	plannedMP, err := msgpack.Marshal(r.PlannedState, resSchema.Block.ImpliedType())
+	plannedMP, err := msgpack.Marshal(r.PlannedState, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
-	configMP, err := msgpack.Marshal(r.Config, resSchema.Block.ImpliedType())
+	configMP, err := msgpack.Marshal(r.Config, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -564,8 +675,8 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		PlannedPrivate: r.PlannedPrivate,
 	}
 
-	if metaSchema.Block != nil {
-		metaTy := metaSchema.Block.ImpliedType()
+	if metaSchema.Body != nil {
+		metaTy := metaSchema.Body.ImpliedType()
 		metaVal := r.ProviderMeta
 		if metaVal == cty.NilVal {
 			metaVal = cty.NullVal(metaTy)
@@ -587,7 +698,7 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 
 	resp.Private = protoResp.Private
 
-	state, err := decodeDynamicValue(protoResp.NewState, resSchema.Block.ImpliedType())
+	state, err := decodeDynamicValue(protoResp.NewState, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -634,7 +745,7 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 			continue
 		}
 
-		state, err := decodeDynamicValue(imported.State, resSchema.Block.ImpliedType())
+		state, err := decodeDynamicValue(imported.State, resSchema.Body.ImpliedType())
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 			return resp
@@ -684,7 +795,7 @@ func (p *GRPCProvider) MoveResourceState(r providers.MoveResourceStateRequest) (
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown resource type %q; this is a bug in Terraform - please report it", r.TargetTypeName))
 		return resp
 	}
-	resp.TargetState, err = decodeDynamicValue(protoResp.TargetState, targetType.Block.ImpliedType())
+	resp.TargetState, err = decodeDynamicValue(protoResp.TargetState, targetType.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -711,7 +822,7 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 
 	metaSchema := schema.ProviderMeta
 
-	config, err := msgpack.Marshal(r.Config, dataSchema.Block.ImpliedType())
+	config, err := msgpack.Marshal(r.Config, dataSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -725,8 +836,8 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
-	if metaSchema.Block != nil {
-		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Block.ImpliedType())
+	if metaSchema.Body != nil {
+		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Body.ImpliedType())
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 			return resp
@@ -741,7 +852,7 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	state, err := decodeDynamicValue(protoResp.State, dataSchema.Block.ImpliedType())
+	state, err := decodeDynamicValue(protoResp.State, dataSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -767,7 +878,7 @@ func (p *GRPCProvider) ValidateEphemeralResourceConfig(r providers.ValidateEphem
 		return resp
 	}
 
-	mp, err := msgpack.Marshal(r.Config, ephemSchema.Block.ImpliedType())
+	mp, err := msgpack.Marshal(r.Config, ephemSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -802,7 +913,7 @@ func (p *GRPCProvider) OpenEphemeralResource(r providers.OpenEphemeralResourceRe
 		return resp
 	}
 
-	config, err := msgpack.Marshal(r.Config, ephemSchema.Block.ImpliedType())
+	config, err := msgpack.Marshal(r.Config, ephemSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -823,7 +934,7 @@ func (p *GRPCProvider) OpenEphemeralResource(r providers.OpenEphemeralResourceRe
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	state, err := decodeDynamicValue(protoResp.Result, ephemSchema.Block.ImpliedType())
+	state, err := decodeDynamicValue(protoResp.Result, ephemSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp

@@ -379,7 +379,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				)
 			}
 
-			schema, version := schemas.ResourceTypeConfig(
+			schema := schemas.ResourceTypeConfig(
 				r.ProviderConfig.Provider,
 				resAddr.Mode,
 				resAddr.Type,
@@ -387,16 +387,16 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 			// It is possible that the only instance is deposed
 			if ri.Current != nil {
-				if version != ri.Current.SchemaVersion {
-					return nil, fmt.Errorf("schema version %d for %s in state does not match version %d from the provider", ri.Current.SchemaVersion, resAddr, version)
+				if schema.Version != ri.Current.SchemaVersion {
+					return nil, fmt.Errorf("schema version %d for %s in state does not match version %d from the provider", ri.Current.SchemaVersion, resAddr, schema.Version)
 				}
 
 				current.SchemaVersion = ri.Current.SchemaVersion
 
-				if schema == nil {
+				if schema.Body == nil {
 					return nil, fmt.Errorf("no schema found for %s (in provider %s)", resAddr.String(), r.ProviderConfig.Provider)
 				}
-				riObj, err := ri.Current.Decode(schema.ImpliedType())
+				riObj, err := ri.Current.Decode(schema)
 				if err != nil {
 					return nil, err
 				}
@@ -407,7 +407,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				if err != nil {
 					return nil, fmt.Errorf("preparing attribute values for %s: %w", current.Address, err)
 				}
-				sensitivePaths = append(sensitivePaths, schema.SensitivePaths(value, nil)...)
+				sensitivePaths = append(sensitivePaths, schema.Body.SensitivePaths(value, nil)...)
 				s := SensitiveAsBool(marks.MarkPaths(value, marks.Sensitive, sensitivePaths))
 				v, err := ctyjson.Marshal(s, s.Type())
 				if err != nil {
@@ -448,7 +448,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 					Index:        current.Index,
 				}
 
-				riObj, err := rios.Decode(schema.ImpliedType())
+				riObj, err := rios.Decode(schema)
 				if err != nil {
 					return nil, err
 				}
@@ -459,7 +459,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				if err != nil {
 					return nil, fmt.Errorf("preparing attribute values for %s: %w", current.Address, err)
 				}
-				sensitivePaths = append(sensitivePaths, schema.SensitivePaths(value, nil)...)
+				sensitivePaths = append(sensitivePaths, schema.Body.SensitivePaths(value, nil)...)
 				s := SensitiveAsBool(marks.MarkPaths(value, marks.Sensitive, sensitivePaths))
 				v, err := ctyjson.Marshal(s, s.Type())
 				if err != nil {

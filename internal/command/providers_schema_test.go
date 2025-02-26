@@ -127,7 +127,7 @@ func providersSchemaFixtureProvider() *testing_provider.MockProvider {
 func providersSchemaFixtureSchema() *providers.GetProviderSchemaResponse {
 	return &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"region": {Type: cty.String, Optional: true},
 				},
@@ -135,7 +135,7 @@ func providersSchemaFixtureSchema() *providers.GetProviderSchemaResponse {
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":  {Type: cty.String, Optional: true, Computed: true},
 						"ami": {Type: cty.String, Optional: true},

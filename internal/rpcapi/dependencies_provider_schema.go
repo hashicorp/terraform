@@ -158,7 +158,7 @@ func providerSchemaToProto(schemaResp providers.GetProviderSchemaResponse) *depe
 
 func schemaElementToProto(elem providers.Schema) *dependencies.Schema {
 	return &dependencies.Schema{
-		Block: schemaBlockToProto(elem.Block),
+		Block: schemaBlockToProto(elem.Body),
 	}
 }
 

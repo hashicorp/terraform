@@ -28,7 +28,7 @@ func (ss *Schemas) ProviderSchema(provider addrs.Provider) providers.ProviderSch
 // ProviderConfig returns the schema for the provider configuration of the
 // given provider type, or nil if no such schema is available.
 func (ss *Schemas) ProviderConfig(provider addrs.Provider) *configschema.Block {
-	return ss.ProviderSchema(provider).Provider.Block
+	return ss.ProviderSchema(provider).Provider.Body
 }
 
 // ResourceTypeConfig returns the schema for the configuration of a given
@@ -40,10 +40,10 @@ func (ss *Schemas) ProviderConfig(provider addrs.Provider) *configschema.Block {
 // a resource using the "provider" meta-argument. Therefore it's important to
 // always pass the correct provider name, even though it many cases it feels
 // redundant.
-func (ss *Schemas) ResourceTypeConfig(provider addrs.Provider, resourceMode addrs.ResourceMode, resourceType string) (block *configschema.Block, schemaVersion uint64) {
+func (ss *Schemas) ResourceTypeConfig(provider addrs.Provider, resourceMode addrs.ResourceMode, resourceType string) providers.Schema {
 	ps := ss.ProviderSchema(provider)
 	if ps.ResourceTypes == nil {
-		return nil, 0
+		return providers.Schema{}
 	}
 	return ps.SchemaForResourceType(resourceMode, resourceType)
 }

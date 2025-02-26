@@ -48,7 +48,7 @@ func TestManagedDataValidate(t *testing.T) {
 
 func TestManagedDataUpgradeState(t *testing.T) {
 	schema := dataStoreResourceSchema()
-	ty := schema.Block.ImpliedType()
+	ty := schema.Body.ImpliedType()
 
 	state := cty.ObjectVal(map[string]cty.Value{
 		"input":  cty.StringVal("input"),
@@ -104,7 +104,7 @@ func TestManagedDataRead(t *testing.T) {
 }
 
 func TestManagedDataPlan(t *testing.T) {
-	schema := dataStoreResourceSchema().Block
+	schema := dataStoreResourceSchema().Body
 	ty := schema.ImpliedType()
 
 	for name, tc := range map[string]struct {
@@ -256,7 +256,7 @@ func TestManagedDataApply(t *testing.T) {
 		testUUIDHook = nil
 	}()
 
-	schema := dataStoreResourceSchema().Block
+	schema := dataStoreResourceSchema().Body
 	ty := schema.ImpliedType()
 
 	for name, tc := range map[string]struct {

@@ -844,7 +844,7 @@ func testSchemas() *terraform.Schemas {
 			addrs.NewDefaultProvider("test"): {
 				ResourceTypes: map[string]providers.Schema{
 					"test_thing": {
-						Block: &configschema.Block{
+						Body: &configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
 								"woozles": {Type: cty.String, Optional: true, Computed: true},
 								"foozles": {Type: cty.String, Optional: true, Sensitive: true},
@@ -852,7 +852,7 @@ func testSchemas() *terraform.Schemas {
 						},
 					},
 					"test_instance": {
-						Block: &configschema.Block{
+						Body: &configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
 								"id":  {Type: cty.String, Optional: true, Computed: true},
 								"foo": {Type: cty.String, Optional: true},
@@ -861,7 +861,7 @@ func testSchemas() *terraform.Schemas {
 						},
 					},
 					"test_map_attr": {
-						Block: &configschema.Block{
+						Body: &configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
 								"data": {Type: cty.Map(cty.String), Optional: true, Computed: true, Sensitive: true},
 							},

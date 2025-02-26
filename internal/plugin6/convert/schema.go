@@ -5,11 +5,13 @@ package convert
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"sort"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	proto "github.com/hashicorp/terraform/internal/tfplugin6"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -98,9 +100,44 @@ func protoSchemaNestedBlock(name string, b *configschema.NestedBlock) *proto.Sch
 // ProtoToProviderSchema takes a proto.Schema and converts it to a providers.Schema.
 func ProtoToProviderSchema(s *proto.Schema) providers.Schema {
 	return providers.Schema{
-		Version: s.Version,
-		Block:   ProtoToConfigSchema(s.Block),
+		Version: uint64(s.Version),
+		Body:    ProtoToConfigSchema(s.Block),
 	}
+}
+
+func ProtoToResourceIdentitySchema(s *proto.ResourceIdentitySchema) (providers.IdentitySchema, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	schema := providers.IdentitySchema{
+		Version: s.Version,
+		Body:    &configschema.Object{},
+	}
+
+	for _, a := range s.IdentityAttributes {
+		attr := &configschema.Attribute{
+			Description: a.Description,
+			Required:    a.RequiredForImport,
+			Optional:    a.OptionalForImport,
+		}
+
+		if a.Type != nil {
+			if err := json.Unmarshal(a.Type, &attr.Type); err != nil {
+				diags = diags.Append(fmt.Errorf("Could not unmarshal type for attribute %q: %w", a.Name, err))
+			}
+		} else {
+			diags = diags.Append(fmt.Errorf("Attribute %q is missing a type definition", a.Name))
+		}
+
+		if attr.Required && attr.Optional {
+			diags = diags.Append(fmt.Errorf("Attribute %q cannot be both required and optional for import", a.Name))
+		}
+		if !attr.Required && !attr.Optional {
+			diags = diags.Append(fmt.Errorf("Attribute %q must be either required or optional for import", a.Name))
+		}
+
+		schema.Body.Attributes[a.Name] = attr
+	}
+
+	return schema, diags
 }
 
 // ProtoToConfigSchema takes the GetSchcema_Block from a grpc response and converts it
@@ -299,5 +336,34 @@ func configschemaObjectToProto(b *configschema.Object) *proto.Schema_Object {
 	return &proto.Schema_Object{
 		Attributes: attributes,
 		Nesting:    nesting,
+	}
+}
+
+func ResourceIdentitySchemaToProto(schema providers.IdentitySchema) *proto.ResourceIdentitySchema {
+	identityAttributes := []*proto.ResourceIdentitySchema_IdentityAttribute{}
+
+	for _, name := range sortedKeys(schema.Body.Attributes) {
+		a := schema.Body.Attributes[name]
+		attr := &proto.ResourceIdentitySchema_IdentityAttribute{
+			Name:              name,
+			Description:       a.Description,
+			RequiredForImport: a.Required,
+			OptionalForImport: a.Optional,
+		}
+
+		if a.Type != cty.NilType {
+			ty, err := json.Marshal(a.Type)
+			if err != nil {
+				panic(err)
+			}
+			attr.Type = ty
+		}
+
+		identityAttributes = append(identityAttributes, attr)
+	}
+
+	return &proto.ResourceIdentitySchema{
+		Version:            schema.Version,
+		IdentityAttributes: identityAttributes,
 	}
 }

@@ -87,7 +87,7 @@ func TestValidateSelfRef(t *testing.T) {
 			ps := providers.ProviderSchema{
 				ResourceTypes: map[string]providers.Schema{
 					"aws_instance": {
-						Block: &configschema.Block{
+						Body: &configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
 								"foo": {
 									Type:     cty.String,

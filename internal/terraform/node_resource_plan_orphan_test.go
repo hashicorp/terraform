@@ -47,7 +47,7 @@ func TestNodeResourcePlanOrphanExecute(t *testing.T) {
 		ProviderSchemaSchema: providers.ProviderSchema{
 			ResourceTypes: map[string]providers.Schema{
 				"test_object": {
-					Block: simpleTestSchema(),
+					Body: simpleTestSchema(),
 				},
 			},
 		},
@@ -103,7 +103,7 @@ func TestNodeResourcePlanOrphanExecute_alreadyDeleted(t *testing.T) {
 	p := simpleMockProvider()
 	p.ConfigureProvider(providers.ConfigureProviderRequest{})
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
-		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["test_string"].Block.ImpliedType()),
+		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["test_string"].Body.ImpliedType()),
 	}
 	ctx := &MockEvalContext{
 		StateState:               state.SyncWrapper(),
@@ -114,7 +114,7 @@ func TestNodeResourcePlanOrphanExecute_alreadyDeleted(t *testing.T) {
 		ProviderSchemaSchema: providers.ProviderSchema{
 			ResourceTypes: map[string]providers.Schema{
 				"test_object": {
-					Block: simpleTestSchema(),
+					Body: simpleTestSchema(),
 				},
 			},
 		},
@@ -186,7 +186,7 @@ func TestNodeResourcePlanOrphanExecute_deposed(t *testing.T) {
 	p := simpleMockProvider()
 	p.ConfigureProvider(providers.ConfigureProviderRequest{})
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
-		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["test_string"].Block.ImpliedType()),
+		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["test_string"].Body.ImpliedType()),
 	}
 	ctx := &MockEvalContext{
 		StateState:               state.SyncWrapper(),
@@ -197,7 +197,7 @@ func TestNodeResourcePlanOrphanExecute_deposed(t *testing.T) {
 		ProviderSchemaSchema: providers.ProviderSchema{
 			ResourceTypes: map[string]providers.Schema{
 				"test_object": {
-					Block: simpleTestSchema(),
+					Body: simpleTestSchema(),
 				},
 			},
 		},

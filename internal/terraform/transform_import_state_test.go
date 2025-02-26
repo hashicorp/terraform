@@ -36,7 +36,7 @@ func TestGraphNodeImportStateExecute(t *testing.T) {
 		ProviderSchemaSchema: providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"aws_instance": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"id": {
 								Type:     cty.String,
@@ -90,7 +90,7 @@ func TestGraphNodeImportStateSubExecute(t *testing.T) {
 		ProviderSchemaSchema: providers.ProviderSchema{
 			ResourceTypes: map[string]providers.Schema{
 				"aws_instance": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"id": {
 								Type:     cty.String,
@@ -152,7 +152,7 @@ func TestGraphNodeImportStateSubExecuteNull(t *testing.T) {
 		ProviderSchemaSchema: providers.ProviderSchema{
 			ResourceTypes: map[string]providers.Schema{
 				"aws_instance": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"id": {
 								Type:     cty.String,

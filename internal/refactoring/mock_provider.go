@@ -20,13 +20,17 @@ type mockProvider struct {
 func (provider *mockProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
-			"foo": {Block: &configschema.Block{}},
-			"bar": {Block: &configschema.Block{}},
+			"foo": {Body: &configschema.Block{}},
+			"bar": {Body: &configschema.Block{}},
 		},
 		ServerCapabilities: providers.ServerCapabilities{
 			MoveResourceState: provider.moveResourceState,
 		},
 	}
+}
+
+func (provider *mockProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	panic("not implemented in mock")
 }
 
 func (provider *mockProvider) ValidateProviderConfig(providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
@@ -42,6 +46,10 @@ func (provider *mockProvider) ValidateDataResourceConfig(providers.ValidateDataR
 }
 
 func (provider *mockProvider) UpgradeResourceState(providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) UpgradeResourceIdentity(providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse {
 	panic("not implemented in mock")
 }
 

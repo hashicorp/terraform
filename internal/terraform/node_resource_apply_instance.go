@@ -407,8 +407,8 @@ func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plan
 	var diags tfdiags.Diagnostics
 	addr := n.ResourceInstanceAddr().Resource
 
-	schema, _ := providerSchema.SchemaForResourceAddr(addr.ContainingResource())
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceAddr(addr.ContainingResource())
+	if schema.Body == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support %q", addr.Resource.Type))
 		return diags
@@ -450,7 +450,7 @@ func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plan
 		}
 	}
 
-	errs := objchange.AssertObjectCompatible(schema, plannedChange.After, actualChange.After)
+	errs := objchange.AssertObjectCompatible(schema.Body, plannedChange.After, actualChange.After)
 	for _, err := range errs {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,

@@ -626,7 +626,7 @@ something bad happened during this test
 						}: {
 							ResourceTypes: map[string]providers.Schema{
 								"test_resource": {
-									Block: &configschema.Block{
+									Body: &configschema.Block{
 										Attributes: map[string]*configschema.Attribute{
 											"value": {
 												Type: cty.String,
@@ -699,7 +699,7 @@ Plan: 1 to add, 0 to change, 0 to destroy.
 						}: {
 							ResourceTypes: map[string]providers.Schema{
 								"test_resource": {
-									Block: &configschema.Block{
+									Body: &configschema.Block{
 										Attributes: map[string]*configschema.Attribute{
 											"value": {
 												Type: cty.String,
@@ -2747,7 +2747,7 @@ func TestTestJSON_Run(t *testing.T) {
 						}: {
 							ResourceTypes: map[string]providers.Schema{
 								"test_resource": {
-									Block: &configschema.Block{
+									Body: &configschema.Block{
 										Attributes: map[string]*configschema.Attribute{
 											"value": {
 												Type: cty.String,
@@ -2875,7 +2875,7 @@ func TestTestJSON_Run(t *testing.T) {
 						}: {
 							ResourceTypes: map[string]providers.Schema{
 								"test_resource": {
-									Block: &configschema.Block{
+									Body: &configschema.Block{
 										Attributes: map[string]*configschema.Attribute{
 											"value": {
 												Type: cty.String,

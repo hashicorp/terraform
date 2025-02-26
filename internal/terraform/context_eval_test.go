@@ -148,7 +148,7 @@ func TestContextPlanAndEval(t *testing.T) {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"test_thing": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"arg": {
 								Type:     cty.String,
@@ -243,7 +243,7 @@ func TestContextApplyAndEval(t *testing.T) {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"test_thing": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"arg": {
 								Type:     cty.String,
@@ -350,7 +350,7 @@ locals {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			EphemeralResourceTypes: map[string]providers.Schema{
 				"ephem_resource": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"value": {
 								Type:     cty.String,
