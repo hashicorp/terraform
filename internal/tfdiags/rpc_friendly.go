@@ -51,6 +51,24 @@ func (d *rpcFriendlyDiag) Source() Source {
 	}
 }
 
+func (d *rpcFriendlyDiag) Equals(otherDiag ComparableDiagnostic) bool {
+	od, ok := otherDiag.(*rpcFriendlyDiag)
+	if !ok {
+		return false
+	}
+	if d.Severity_ != od.Severity_ {
+		return false
+	}
+	if d.Summary_ != od.Summary_ {
+		return false
+	}
+	if d.Detail_ != od.Detail_ {
+		return false
+	}
+
+	return true
+}
+
 func (d rpcFriendlyDiag) FromExpr() *FromExpr {
 	// RPC-friendly diagnostics cannot preserve expression information because
 	// expressions themselves are not RPC-friendly.

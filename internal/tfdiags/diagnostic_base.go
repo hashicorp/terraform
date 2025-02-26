@@ -38,3 +38,23 @@ func (d diagnosticBase) FromExpr() *FromExpr {
 func (d diagnosticBase) ExtraInfo() interface{} {
 	return nil
 }
+
+func (d diagnosticBase) Equals(otherDiag ComparableDiagnostic) bool {
+	od, ok := otherDiag.(diagnosticBase)
+	if !ok {
+		return false
+	}
+	if d.severity != od.severity {
+		return false
+	}
+	if d.summary != od.summary {
+		return false
+	}
+	if d.detail != od.detail {
+		return false
+	}
+	if d.address != od.address {
+		return false
+	}
+	return true
+}
