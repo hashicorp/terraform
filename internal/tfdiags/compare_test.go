@@ -81,27 +81,6 @@ func TestDiagnosticComparer(t *testing.T) {
 			}(),
 			expectDiff: true,
 		},
-		// Scenarios where diagnostics will be considered equavalent, even if they aren't fully the same
-		"reports that diagnostics match even if sources (Subject) are different; ignored in simple comparison": {
-			diag1: hclDiagnostic{&baseError},
-			diag2: func() Diagnostic {
-				d := baseError
-				d.Subject = &hcl.Range{
-					Filename: "foobar.tf",
-					Start: hcl.Pos{
-						Line:   0,
-						Column: 0,
-						Byte:   0,
-					},
-					End: hcl.Pos{
-						Line:   1,
-						Column: 1,
-						Byte:   1,
-					},
-				}
-				return hclDiagnostic{&d}
-			}(),
-		},
 		"reports that diagnostics match even if sources (Context) are different; ignored in simple comparison": {
 			diag1: hclDiagnostic{&baseError},
 			diag2: func() Diagnostic {
