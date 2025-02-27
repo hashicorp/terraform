@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -497,7 +496,7 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 		// Shouldn't happen since we should've failed long ago if no schema is present
 		return nil, diags.Append(fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr))
 	}
-	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema.Body, schema.Version)
+	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema)
 	if n.Config != nil {
 		upgradeDiags = upgradeDiags.InConfigBody(n.Config.Config, addr.String())
 	}
@@ -506,56 +505,10 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 		return nil, diags
 	}
 
-	// We need to upgrade the identity schema as well, if necessary.
-	if src.IdentitySchemaVersion < uint64(schema.IdentityVersion) {
-		providerType := addr.Resource.Resource.ImpliedProvider()
-		req := providers.UpgradeResourceIdentityRequest{
-			TypeName: addr.Resource.Resource.Type,
-
-			// TODO: The internal schema version representations are all using
-			// uint64 instead of int64, but unsigned integers aren't friendly
-			// to all protobuf target languages so in practice we use int64
-			// on the wire. In future we will change all of our internal
-			// representations to int64 too.
-			Version:         int64(src.SchemaVersion),
-			RawIdentityJSON: src.IdentityJSON,
-		}
-
-		resp := provider.UpgradeResourceIdentity(req)
-		diags = diags.Append(resp.Diagnostics)
-		if diags.HasErrors() {
-			return nil, diags
-		}
-
-		if !resp.UpgradedIdentity.IsWhollyKnown() {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid resource identity upgrade",
-				fmt.Sprintf("The %s provider upgraded the identity for %s from a previous version, but produced an invalid result: The returned state contains unknown values.", providerType, addr),
-			))
-			return nil, diags
-		}
-
-		newIdentity := resp.UpgradedIdentity
-		if errs := newIdentity.Type().TestConformance(schema.Identity.ImpliedType()); len(errs) > 0 {
-			for _, err := range errs {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Invalid resource identity upgrade",
-					fmt.Sprintf("The %s provider upgraded the identity for %s from a previous version, but produced an invalid result: %s.", providerType, addr, tfdiags.FormatError(err)),
-				))
-			}
-			return nil, diags
-		}
-
-		// As we upgraded the identity we don't need to read it from state anymore
-		// we can just decode the src without the identity and add it in afterwards
-		obj, err := src.Decode(schema)
-		if err != nil {
-			diags = diags.Append(err)
-		}
-		obj.Identity = newIdentity
-		return obj, diags
+	src, upgradeDiags = upgradeResourceIdentity(addr, provider, src, schema)
+	diags = diags.Append(upgradeDiags)
+	if diags.HasErrors() {
+		return nil, diags
 	}
 
 	obj, err := src.Decode(schema)
@@ -596,7 +549,7 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 
 	}
 
-	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema.Body, schema.Version)
+	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema)
 	if n.Config != nil {
 		upgradeDiags = upgradeDiags.InConfigBody(n.Config.Config, addr.String())
 	}
@@ -609,55 +562,10 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 		return nil, diags
 	}
 
-	// We need to upgrade the identity schema as well, if necessary.
-	if src.IdentitySchemaVersion < uint64(schema.IdentityVersion) {
-		providerType := addr.Resource.Resource.ImpliedProvider()
-		req := providers.UpgradeResourceIdentityRequest{
-			TypeName: addr.Resource.Resource.Type,
-
-			// TODO: The internal schema version representations are all using
-			// uint64 instead of int64, but unsigned integers aren't friendly
-			// to all protobuf target languages so in practice we use int64
-			// on the wire. In future we will change all of our internal
-			// representations to int64 too.
-			Version:         int64(src.SchemaVersion),
-			RawIdentityJSON: src.IdentityJSON,
-		}
-
-		resp := provider.UpgradeResourceIdentity(req)
-		diags = diags.Append(resp.Diagnostics)
-		if diags.HasErrors() {
-			return nil, diags
-		}
-
-		if !resp.UpgradedIdentity.IsWhollyKnown() {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid resource identity upgrade",
-				fmt.Sprintf("The %s provider upgraded the identity for %s from a previous version, but produced an invalid result: The returned state contains unknown values.", providerType, addr),
-			))
-			return nil, diags
-		}
-
-		newIdentity := resp.UpgradedIdentity
-		if errs := newIdentity.Type().TestConformance(schema.Identity.ImpliedType()); len(errs) > 0 {
-			for _, err := range errs {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Invalid resource identity upgrade",
-					fmt.Sprintf("The %s provider upgraded the identity for %s from a previous version, but produced an invalid result: %s.", providerType, addr, tfdiags.FormatError(err)),
-				))
-			}
-			return nil, diags
-		}
-		// As we upgraded the identity we don't need to read it from state anymore
-		// we can just decode the src without the identity and add it in afterwards
-		obj, err := src.Decode(schema)
-		if err != nil {
-			diags = diags.Append(err)
-		}
-		obj.Identity = newIdentity
-		return obj, diags
+	src, upgradeDiags = upgradeResourceIdentity(addr, provider, src, schema)
+	diags = diags.Append(upgradeDiags)
+	if diags.HasErrors() {
+		return nil, diags
 	}
 
 	obj, err := src.Decode(schema)

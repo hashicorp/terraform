@@ -195,7 +195,9 @@ func ProtoToResourceIdentitySchema(s *proto.ResourceIdentitySchema) (providers.I
 	var diags tfdiags.Diagnostics
 	schema := providers.IdentitySchema{
 		Version: s.Version,
-		Body:    &configschema.Object{},
+		Body: &configschema.Object{
+			Nesting: configschema.NestingSingle,
+		},
 	}
 
 	for _, a := range s.IdentityAttributes {
