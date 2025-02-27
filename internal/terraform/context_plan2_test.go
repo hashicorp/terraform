@@ -1770,6 +1770,104 @@ The -target option is not for routine use, and is provided only for exceptional 
 	})
 }
 
+func TestContext2Plan_movedResourceWithIdentity(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object.a")
+	addrB := mustResourceInstanceAddr("test_object.b")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_object" "b" {
+			}
+
+			moved {
+				from = test_object.a
+				to   = test_object.b
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		// The prior state tracks test_object.a, which we should treat as
+		// test_object.b because of the "moved" block in the config.
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON:             []byte(`{}`),
+			Status:                states.ObjectReady,
+			IdentitySchemaVersion: 0,
+			IdentityJSON:          []byte(`{"id": "before"}`),
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_object": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+		IdentityTypes: map[string]*configschema.Object{
+			"test_object": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+		IdentityTypeSchemaVersions: map[string]uint64{
+			"test_object": 0,
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	t.Run(addrA.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addrA)
+		if instPlan != nil {
+			t.Fatalf("unexpected plan for %s; should've moved to %s", addrA, addrB)
+		}
+	})
+	t.Run(addrB.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addrB)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addrB)
+		}
+
+		beforeIdentity, err := instPlan.BeforeIdentity.Decode(cty.Object(map[string]cty.Type{
+			"id": cty.String,
+		}))
+		if err != nil {
+			t.Fatalf("unexpected error decoding before identity: %s", err)
+		}
+
+		if beforeIdentity.IsNull() {
+			t.Fatalf("after identity is null")
+		}
+		expectedIdentity := cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("before"),
+		})
+		if !beforeIdentity.RawEquals(expectedIdentity) {
+			t.Fatalf("after identity doesn't match expected: expected %s, got %s", expectedIdentity.GoString(), beforeIdentity.GoString())
+		}
+	})
+}
+
 func TestContext2Plan_crossResourceMoveBasic(t *testing.T) {
 	addrA := mustResourceInstanceAddr("test_object_one.a")
 	addrB := mustResourceInstanceAddr("test_object_two.a")
@@ -1973,6 +2071,156 @@ func TestContext2Plan_crossProviderMove(t *testing.T) {
 	})
 }
 
+func TestContext2Plan_crossProviderMoveWithIdentity(t *testing.T) {
+	addrA := mustResourceInstanceAddr("one_object.a")
+	addrB := mustResourceInstanceAddr("two_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "two_object" "a" {
+			}
+
+			moved {
+				from = one_object.a
+				to   = two_object.a
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		// The prior state tracks test_object.a, which we should treat as
+		// test_object.b because of the "moved" block in the config.
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON:    []byte(`{"value":"before"}`),
+			Status:       states.ObjectReady,
+			IdentityJSON: []byte(`{"id":"42"}`),
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/one"]`))
+	})
+
+	one := &testing_provider.MockProvider{}
+	one.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"one_object": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"value": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+				Identity: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+					Nesting: configschema.NestingSingle,
+				},
+			},
+		},
+	}
+
+	two := &testing_provider.MockProvider{}
+	two.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"two_object": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"value": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+				Identity: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"arn": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+					Nesting: configschema.NestingSingle,
+				},
+			},
+		},
+		ServerCapabilities: providers.ServerCapabilities{
+			MoveResourceState: true,
+		},
+	}
+
+	expectedTargetIdentity := cty.ObjectVal(map[string]cty.Value{
+		"arn": cty.StringVal("arn:4223"),
+	})
+
+	var receivedSourceIdentity []byte
+	two.MoveResourceStateFn = func(req providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
+		receivedSourceIdentity = req.SourceIdentity
+		return providers.MoveResourceStateResponse{
+			TargetState: cty.ObjectVal(map[string]cty.Value{
+				"value": cty.StringVal("after"),
+			}),
+			TargetIdentity: expectedTargetIdentity,
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("one"): testProviderFuncFixed(one),
+			addrs.NewDefaultProvider("two"): testProviderFuncFixed(two),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	t.Run(addrA.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addrA)
+		if instPlan != nil {
+			t.Fatalf("unexpected plan for %s; should've moved to %s", addrA, addrB)
+		}
+
+		expectedSourceIdentity := `{"id":"42"}`
+		if string(receivedSourceIdentity) != string(expectedSourceIdentity) {
+			t.Errorf("wrong source identity\ngot:  %s\nwant: %s", string(receivedSourceIdentity), string(expectedSourceIdentity))
+		}
+	})
+	t.Run(addrB.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addrB)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addrB)
+		}
+
+		if got, want := instPlan.Addr, addrB; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.PrevRunAddr, addrA; !got.Equal(want) {
+			t.Errorf("wrong previous run address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.Action, plans.Update; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+		}
+
+		targetIdentity, err := instPlan.BeforeIdentity.Decode(cty.Object(map[string]cty.Type{
+			"arn": cty.String,
+		}))
+		if err != nil {
+			t.Fatalf("failed to decode after identity: %s", err)
+		}
+
+		if !targetIdentity.RawEquals(expectedTargetIdentity) {
+			t.Errorf("wrong target identity\ngot:  %s\nwant: %s", targetIdentity.GoString(), expectedTargetIdentity.GoString())
+		}
+	})
+}
+
 func TestContext2Plan_crossResourceMoveMissingConfig(t *testing.T) {
 	addrA := mustResourceInstanceAddr("test_object_one.a")
 	addrB := mustResourceInstanceAddr("test_object_two.a")
@@ -2062,6 +2310,138 @@ func TestContext2Plan_crossResourceMoveMissingConfig(t *testing.T) {
 		}
 		if got, want := instPlan.ActionReason, plans.ResourceInstanceDeleteBecauseNoMoveTarget; got != want {
 			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+}
+
+func TestContext2Plan_crossResourceMoveWithIdentity(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object_one.a")
+	addrB := mustResourceInstanceAddr("test_object_two.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_object_two" "a" {
+			}
+
+			moved {
+				from = test_object_one.a
+				to   = test_object_two.a
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		// The prior state tracks test_object.a, which we should treat as
+		// test_object.b because of the "moved" block in the config.
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON:             []byte(`{"value":"before"}`),
+			Status:                states.ObjectReady,
+			IdentitySchemaVersion: 0,
+			IdentityJSON:          []byte(`{"oneId": "before"}`),
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	expectedSourceIdentity := `{"oneId": "before"}`
+	expectedTargetIdentity := cty.ObjectVal(map[string]cty.Value{
+		"twoId": cty.StringVal("after"),
+	})
+
+	p := &testing_provider.MockProvider{}
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_object_one": &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"value": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			"test_object_two": &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"value": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+		IdentityTypes: map[string]*configschema.Object{
+			"test_object_one": {
+				Attributes: map[string]*configschema.Attribute{
+					"oneId": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+
+			"test_object_two": {
+				Attributes: map[string]*configschema.Attribute{
+					"twoId": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+		IdentityTypeSchemaVersions: map[string]uint64{
+			"test_object_one": 0,
+			"test_object_two": 2,
+		},
+	})
+	p.GetProviderSchemaResponse.ServerCapabilities = providers.ServerCapabilities{
+		MoveResourceState: true,
+	}
+
+	var sourceIdentity []byte
+	p.MoveResourceStateFn = func(req providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
+		sourceIdentity = req.SourceIdentity
+		return providers.MoveResourceStateResponse{
+			TargetState: cty.ObjectVal(map[string]cty.Value{
+				"value": cty.StringVal("after"),
+			}),
+			TargetIdentity: expectedTargetIdentity,
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	assertNoDiagnostics(t, diags)
+
+	if string(expectedSourceIdentity) != string(sourceIdentity) {
+		t.Fatalf("unexpected source identity; expected %s, got %s", string(expectedSourceIdentity), string(sourceIdentity))
+	}
+
+	t.Run(addrA.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addrA)
+		if instPlan != nil {
+			t.Fatalf("unexpected plan for %s; should've moved to %s", addrA, addrB)
+		}
+	})
+	t.Run(addrB.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addrB)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addrB)
+		}
+
+		identity, err := instPlan.BeforeIdentity.Decode(cty.Object(map[string]cty.Type{
+			"twoId": cty.String,
+		}))
+		if err != nil {
+			t.Fatalf("unexpected error decoding identity: %s", err)
+		}
+
+		if !identity.RawEquals(expectedTargetIdentity) {
+			t.Fatalf("unexpected target identity; expected %s, got %s", expectedTargetIdentity.GoString(), identity.GoString())
 		}
 	})
 }
@@ -5894,9 +6274,11 @@ resource "test_object" "obj" {
 					Before: cty.ObjectVal(map[string]cty.Value{
 						"value": cty.NullVal(cty.String),
 					}),
+					BeforeIdentity: cty.NullVal(cty.EmptyObject),
 					After: cty.ObjectVal(map[string]cty.Value{
 						"value": cty.NullVal(cty.String),
 					}),
+					AfterIdentity: cty.NullVal(cty.EmptyObject),
 				},
 				ActionReason:    plans.ResourceInstanceReplaceBecauseCannotUpdate,
 				RequiredReplace: cty.NewPathSet(cty.GetAttrPath("value")),
@@ -5911,6 +6293,7 @@ resource "test_object" "obj" {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if diff := cmp.Diff(expectedChanges, changes, ctydebug.CmpOptions); diff != "" {
 		t.Fatalf("unexpected changes: %s", diff)
 	}
@@ -5989,9 +6372,11 @@ resource "test_object" "obj" {
 					Before: cty.ObjectVal(map[string]cty.Value{
 						"value": cty.NullVal(cty.String),
 					}),
+					BeforeIdentity: cty.NullVal(cty.EmptyObject),
 					After: cty.ObjectVal(map[string]cty.Value{
 						"value": cty.NullVal(cty.String),
 					}),
+					AfterIdentity: cty.NullVal(cty.EmptyObject),
 				},
 				ActionReason:    plans.ResourceInstanceReplaceBecauseCannotUpdate,
 				RequiredReplace: cty.NewPathSet(cty.GetAttrPath("value")),
@@ -6163,17 +6548,21 @@ output "staying" {
 			{
 				Addr: mustAbsOutputValue("output.old"),
 				Change: plans.Change{
-					Action: plans.Delete,
-					Before: cty.StringVal("old_value"),
-					After:  cty.NullVal(cty.DynamicPseudoType),
+					Action:         plans.Delete,
+					Before:         cty.StringVal("old_value"),
+					BeforeIdentity: cty.NullVal(cty.DynamicPseudoType),
+					After:          cty.NullVal(cty.DynamicPseudoType),
+					AfterIdentity:  cty.NullVal(cty.DynamicPseudoType),
 				},
 			},
 			{
 				Addr: mustAbsOutputValue("output.staying"),
 				Change: plans.Change{
-					Action: plans.NoOp,
-					Before: cty.StringVal("foo"),
-					After:  cty.StringVal("foo"),
+					Action:         plans.NoOp,
+					Before:         cty.StringVal("foo"),
+					BeforeIdentity: cty.NullVal(cty.DynamicPseudoType),
+					After:          cty.StringVal("foo"),
+					AfterIdentity:  cty.NullVal(cty.DynamicPseudoType),
 				},
 			},
 		},
@@ -6343,7 +6732,7 @@ resource "test_object" "a" {
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	assertNoErrors(t, diags)
 
-	resourceType := p.GetProviderSchemaResponse.ResourceTypes["test_object"].Body.ImpliedType()
+	resourceType := p.GetProviderSchemaResponse.ResourceTypes["test_object"]
 	change, err := plan.Changes.ResourceInstance(mustResourceInstanceAddr(`test_object.a["old"]`)).Decode(resourceType)
 	if err != nil {
 		t.Fatal(err)

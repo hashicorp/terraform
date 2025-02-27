@@ -120,7 +120,7 @@ func (os *ResourceInstanceObjectSrc) Decode(schema providers.Schema) (*ResourceI
 	} else if os.IdentityJSON != nil {
 		identity, err = ctyjson.Unmarshal(os.IdentityJSON, schema.Identity.ImpliedType())
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode identity schema: %s. This is most likely a bug in the Provider, providers must not change the identity schema without updating the identity schema version", err.Error())
+			return nil, fmt.Errorf("failed to decode identity: %s. This is most likely a bug in the Provider, providers must not change the identity schema without updating the identity schema version", err.Error())
 		}
 	}
 

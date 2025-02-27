@@ -869,8 +869,7 @@ func (c *Context) deferredResources(config *configs.Config, deferrals []*plans.D
 			deferral.Change.Addr.Resource.Resource.Mode,
 			deferral.Change.Addr.Resource.Resource.Type)
 
-		ty := schema.Body.ImpliedType()
-		deferralSrc, err := deferral.Encode(ty)
+		deferralSrc, err := deferral.Encode(schema)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -1084,7 +1083,7 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 					},
 				}
 
-				changeSrc, err := change.Encode(ty)
+				changeSrc, err := change.Encode(schema)
 				if err != nil {
 					diags = diags.Append(err)
 					return nil, diags
