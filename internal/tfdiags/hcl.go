@@ -71,7 +71,26 @@ func (d hclDiagnostic) Equals(otherDiag ComparableDiagnostic) bool {
 	if d.diag.Detail != od.diag.Detail {
 		return false
 	}
+	if !hclRangeEquals(d.diag.Subject, od.diag.Subject) {
+		return false
+	}
 
+	return true
+}
+
+func hclRangeEquals(l, r *hcl.Range) bool {
+	if l == nil || r == nil {
+		return l == r
+	}
+	if l.Filename != r.Filename {
+		return false
+	}
+	if l.Start.Byte != r.Start.Byte {
+		return false
+	}
+	if l.End.Byte != r.End.Byte {
+		return false
+	}
 	return true
 }
 
