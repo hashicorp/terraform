@@ -67,9 +67,9 @@ func (s simple) GetResourceIdentitySchemas() providers.GetResourceIdentitySchema
 						"id": {
 							Type:     cty.String,
 							Required: true,
-							Optional: false,
 						},
 					},
+					Nesting: configschema.NestingSingle,
 				},
 			},
 		},

@@ -92,6 +92,7 @@ func (s simple) GetResourceIdentitySchemas() providers.GetResourceIdentitySchema
 							Required: true,
 						},
 					},
+					Nesting: configschema.NestingSingle,
 				},
 			},
 		},
