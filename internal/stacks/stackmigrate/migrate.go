@@ -5,6 +5,7 @@ package stackmigrate
 
 import (
 	"fmt"
+	"iter"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 
@@ -71,14 +72,16 @@ type migration struct {
 	configs   map[sourceaddrs.FinalSource]*configs.Config
 }
 
-func (m *migration) stateResources() addrs.Map[addrs.AbsResource, *states.Resource] {
-	resources := addrs.MakeMap[addrs.AbsResource, *states.Resource]()
-	for _, module := range m.PreviousState.Modules {
-		for _, resource := range module.Resources {
-			resources.Put(resource.Addr, resource)
+func (m *migration) stateResources() iter.Seq2[addrs.AbsResource, *states.Resource] {
+	return func(yield func(addrs.AbsResource, *states.Resource) bool) {
+		for _, module := range m.PreviousState.Modules {
+			for _, resource := range module.Resources {
+				if !yield(resource.Addr, resource) {
+					return
+				}
+			}
 		}
 	}
-	return resources
 }
 
 // moduleConfig returns the module configuration for the component. If the configuration

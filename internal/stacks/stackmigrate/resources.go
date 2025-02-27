@@ -57,8 +57,7 @@ func (m *migration) migrateResources(resources map[string]string, modules map[st
 		components.Get(instance).Add(resource)
 	}
 
-	for _, elem := range m.stateResources().Elems {
-		resource := elem.Value
+	for _, resource := range m.stateResources() {
 		// check if the state resource has been requested for migration,
 		// either by being in the resources map, or its module being in the modules map.
 		// The returned target builds a new address for the resource within the

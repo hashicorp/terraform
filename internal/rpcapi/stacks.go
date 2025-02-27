@@ -906,12 +906,17 @@ func (s *stacksServer) MigrateTerraformState(request *stacks.MigrateTerraformSta
 	}
 
 	mapping := request.GetMapping()
+	if mapping == nil {
+		return status.Error(codes.InvalidArgument, "missing migration mapping")
+	}
 	switch mapping := mapping.(type) {
 	case *stacks.MigrateTerraformState_Request_Simple:
 		migrate.Migrate(
 			mapping.Simple.ResourceAddressMap,
 			mapping.Simple.ModuleAddressMap,
 			emit, emitDiag)
+	default:
+		return status.Error(codes.InvalidArgument, "unsupported migration mapping")
 	}
 
 	return nil
