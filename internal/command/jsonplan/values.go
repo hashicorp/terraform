@@ -204,7 +204,7 @@ func marshalPlanResources(changes *plans.ChangesSrc, ris []addrs.AbsResourceInst
 			return nil, fmt.Errorf("no schema found for %s", r.Addr.String())
 		}
 		resource.SchemaVersion = uint64(schema.Version)
-		changeV, err := r.Decode(schema.Body.ImpliedType())
+		changeV, err := r.Decode(schema)
 		if err != nil {
 			return nil, err
 		}

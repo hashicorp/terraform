@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 // GraphNodeAttachResourceSchema is an interface implemented by node types
@@ -18,7 +19,7 @@ type GraphNodeAttachResourceSchema interface {
 	GraphNodeConfigResource
 	GraphNodeProviderConsumer
 
-	AttachResourceSchema(schema *configschema.Block, version uint64)
+	AttachResourceSchema(schema *providers.Schema)
 }
 
 // GraphNodeAttachProviderConfigSchema is an interface implemented by node types
@@ -74,7 +75,7 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 				continue
 			}
 			log.Printf("[TRACE] AttachSchemaTransformer: attaching resource schema to %s", dag.VertexName(v))
-			tv.AttachResourceSchema(schema.Body, uint64(schema.Version))
+			tv.AttachResourceSchema(&schema)
 		}
 
 		if tv, ok := v.(GraphNodeAttachProviderConfigSchema); ok {

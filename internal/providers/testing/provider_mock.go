@@ -352,13 +352,14 @@ func (p *MockProvider) UpgradeResourceIdentity(r providers.UpgradeResourceIdenti
 		return *p.UpgradeResourceIdentityResponse
 	}
 
-	identitySchema, ok := p.getResourceIdentitySchemas().IdentityTypes[r.TypeName]
-	if !ok {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
+	schema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]
+
+	if !ok || schema.Identity == nil {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no identity schema found for %q", r.TypeName))
 		return resp
 	}
 
-	identityType := identitySchema.Body.ImpliedType()
+	identityType := schema.Identity.ImpliedType()
 
 	v, err := ctyjson.Unmarshal(r.RawIdentityJSON, identityType)
 
@@ -435,6 +436,10 @@ func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 		}
 		resp.NewState = newState
+		if resp.Identity.IsNull() {
+			resp.Identity = r.CurrentIdentity
+		}
+
 		return resp
 	}
 
@@ -470,6 +475,7 @@ func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 		resp.NewState = r.PriorState
 	}
 
+	resp.Identity = r.CurrentIdentity
 	resp.Private = r.Private
 	return resp
 }
@@ -587,6 +593,7 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	// if the value is nil, we return that directly to correspond to a delete
 	if r.PlannedState.IsNull() {
 		resp.NewState = r.PlannedState
+		resp.NewIdentity = r.PlannedIdentity
 		return resp
 	}
 
@@ -616,6 +623,7 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 
 	resp.NewState = val
 	resp.Private = r.PlannedPrivate
+	resp.NewIdentity = r.PlannedIdentity
 
 	return resp
 }

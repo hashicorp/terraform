@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -53,8 +54,7 @@ type NodeAbstractResource struct {
 	// interfaces if you're running those transforms, but also be explicitly
 	// set if you already have that information.
 
-	Schema        *configschema.Block // Schema for processing the configuration body
-	SchemaVersion uint64              // Schema version of "Schema", as decided by the provider
+	Schema *providers.Schema // Schema for processing the configuration body
 
 	// Config and RemovedConfig are mutally-exclusive, because a
 	// resource can't be both declared and removed at the same time.
@@ -189,7 +189,7 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 
 		// ReferencesInBlock() requires a schema
 		if n.Schema != nil {
-			refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema)
+			refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema.Body)
 			result = append(result, refs...)
 		}
 
@@ -388,9 +388,8 @@ func (n *NodeAbstractResource) AttachResourceConfig(c *configs.Resource, rc *con
 }
 
 // GraphNodeAttachResourceSchema impl
-func (n *NodeAbstractResource) AttachResourceSchema(schema *configschema.Block, version uint64) {
+func (n *NodeAbstractResource) AttachResourceSchema(schema *providers.Schema) {
 	n.Schema = schema
-	n.SchemaVersion = version
 }
 
 // GraphNodeAttachProviderMetaConfigs impl

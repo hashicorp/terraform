@@ -139,7 +139,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 						}),
 					},
 				}
-				rcs, err := rc.Encode(ty)
+				rcs, err := rc.Encode(schema)
 				if err != nil {
 					panic(err)
 				}
@@ -180,7 +180,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 						}),
 					},
 				}
-				rcs, err := rc.Encode(ty)
+				rcs, err := rc.Encode(schema)
 				if err != nil {
 					panic(err)
 				}
@@ -227,7 +227,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 						}),
 					},
 				}
-				rcs, err := rc.Encode(ty)
+				rcs, err := rc.Encode(schema)
 				if err != nil {
 					panic(err)
 				}
@@ -257,7 +257,6 @@ func TestOperation_planNoChanges(t *testing.T) {
 					addr.Resource.Resource.Mode,
 					addr.Resource.Resource.Type,
 				)
-				ty := schema.Body.ImpliedType()
 				rc := &plans.ResourceInstanceChange{
 					Addr:        addr,
 					PrevRunAddr: addrPrev,
@@ -276,7 +275,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 						}),
 					},
 				}
-				rcs, err := rc.Encode(ty)
+				rcs, err := rc.Encode(schema)
 				if err != nil {
 					panic(err)
 				}

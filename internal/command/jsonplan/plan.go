@@ -433,7 +433,7 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 		return r, fmt.Errorf("no schema found for %s (in provider %s)", r.Address, rc.ProviderAddr.Provider)
 	}
 
-	changeV, err := rc.Decode(schema.Body.ImpliedType())
+	changeV, err := rc.Decode(schema)
 	if err != nil {
 		return r, err
 	}
