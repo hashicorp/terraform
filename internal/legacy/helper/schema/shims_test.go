@@ -35,16 +35,16 @@ func testApplyDiff(t *testing.T,
 	diff *terraform.InstanceDiff) {
 
 	testSchema := providers.Schema{
-		Version: int64(resource.SchemaVersion),
-		Block:   resourceSchemaToBlock(resource.Schema),
+		Version: uint64(resource.SchemaVersion),
+		Body:    resourceSchemaToBlock(resource.Schema),
 	}
 
-	stateVal, err := StateValueFromInstanceState(state, testSchema.Block.ImpliedType())
+	stateVal, err := StateValueFromInstanceState(state, testSchema.Body.ImpliedType())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	newState, err := ApplyDiff(stateVal, diff, testSchema.Block)
+	newState, err := ApplyDiff(stateVal, diff, testSchema.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func testApplyDiff(t *testing.T,
 
 	// Resource.Meta will be hanlded separately, so it's OK that we lose the
 	// timeout values here.
-	expectedState, err := StateValueFromInstanceState(expected, testSchema.Block.ImpliedType())
+	expectedState, err := StateValueFromInstanceState(expected, testSchema.Body.ImpliedType())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -333,16 +333,16 @@ func TestShimResourceDiff_Timeout_diff(t *testing.T) {
 	}
 
 	testSchema := providers.Schema{
-		Version: int64(r.SchemaVersion),
-		Block:   resourceSchemaToBlock(r.Schema),
+		Version: uint64(r.SchemaVersion),
+		Body:    resourceSchemaToBlock(r.Schema),
 	}
 
-	initialVal, err := StateValueFromInstanceState(createdState, testSchema.Block.ImpliedType())
+	initialVal, err := StateValueFromInstanceState(createdState, testSchema.Body.ImpliedType())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	appliedVal, err := StateValueFromInstanceState(applied, testSchema.Block.ImpliedType())
+	appliedVal, err := StateValueFromInstanceState(applied, testSchema.Body.ImpliedType())
 	if err != nil {
 		t.Fatal(err)
 	}
