@@ -5,13 +5,11 @@ package convert
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"sort"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 )
 
@@ -191,12 +189,12 @@ func sortedKeys(m interface{}) []string {
 	return keys
 }
 
-func ProtoToResourceIdentitySchema(s *proto.ResourceIdentitySchema) (providers.IdentitySchema, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
+func ProtoToResourceIdentitySchema(s *proto.ResourceIdentitySchema) providers.IdentitySchema {
 	schema := providers.IdentitySchema{
 		Version: s.Version,
 		Body: &configschema.Object{
-			Nesting: configschema.NestingSingle,
+			Attributes: make(map[string]*configschema.Attribute),
+			Nesting:    configschema.NestingSingle,
 		},
 	}
 
@@ -209,23 +207,14 @@ func ProtoToResourceIdentitySchema(s *proto.ResourceIdentitySchema) (providers.I
 
 		if a.Type != nil {
 			if err := json.Unmarshal(a.Type, &attr.Type); err != nil {
-				diags = diags.Append(fmt.Errorf("Could not unmarshal type for attribute %q: %w", a.Name, err))
+				panic(err)
 			}
-		} else {
-			diags = diags.Append(fmt.Errorf("Attribute %q is missing a type definition", a.Name))
-		}
-
-		if attr.Required && attr.Optional {
-			diags = diags.Append(fmt.Errorf("Attribute %q cannot be both required and optional", a.Name))
-		}
-		if !attr.Required && !attr.Optional {
-			diags = diags.Append(fmt.Errorf("Attribute %q must be either required or optional", a.Name))
 		}
 
 		schema.Body.Attributes[a.Name] = attr
 	}
 
-	return schema, diags
+	return schema
 }
 
 func ResourceIdentitySchemaToProto(b providers.IdentitySchema) *proto.ResourceIdentitySchema {
