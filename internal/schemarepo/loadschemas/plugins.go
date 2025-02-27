@@ -228,8 +228,11 @@ func (cp *Plugins) ResourceIdentitySchemas(addr addrs.Provider) (providers.Resou
 	}
 
 	for t, r := range resp.IdentityTypes {
+		if err := r.Body.InternalValidate(); err != nil {
+			return resp, fmt.Errorf("provider %s has invalid identity schema for managed resource type %q, which is a bug in the provider: %q", addr, t, err)
+		}
 		if r.Version < 0 {
-			return resp, fmt.Errorf("provider %s has invalid negative schema version for managed resource type %q, which is a bug in the provider", addr, t)
+			return resp, fmt.Errorf("provider %s has invalid negative identity schema version for managed resource type %q, which is a bug in the provider", addr, t)
 		}
 
 		for attrName, attrTy := range r.Body.ImpliedType().AttributeTypes() {
