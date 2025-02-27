@@ -216,22 +216,32 @@ it is now incorrect.
 
 > Note: This section's audience is contributors to Terraform, not developers creating a new SDK.
 
-New features added to Terraform core often require an update to the plugin protocol. These changes are reflected
-in a new minor version of the plugin protocol. 
+New features added to Terraform core often require an update to the plugin protocol. These changes are reflected in a new minor version of the plugin protocol.
 
-When creating a new minor version, follow this process:
+A new minor release of Terraform we should only introduce one new minor release of the plugin-protocol. The minor release numbers of the plugin protocol and Terraform do not match, but they should have a one-to-one relationship.
+
+### Create new `.proto` files for a new plugin protocol minor version
+
+> Only do this if the latest minor version files in `docs/plugin-protocol/` are already part of a Terraform release.
 
 1) Duplicate the files for the latest minor versions of protocol 5 and 6 and rename them to the next minor version.
-  * Commit those changes before editing the content.
   * Example: When creating the .10 minor versions you would duplicate `docs/plugin-protocol/tfplugin5.9.proto` and `docs/plugin-protocol/tfplugin5.10.proto`, and rename them to `tfplugin5.10.proto` and `tfplugin6.10.proto`.
-2) Edit the two new files with your updates for the next minor version.
-  * When you commit those changes they should be clear diffs on top of the original, duplicated file.
-3) Update symlinks in the `internal/tfplugin*` directories to point at the files for the new minor versions of protocol 5 and 6:
+2) Update symlinks in the `internal/tfplugin*` directories to point at the files for the new minor versions of protocol 5 and 6:
   * Run these commands from the root of the repository, replacing `<MINOR_VERSION>` with the correct value:
     * Update protocol 5's symlink: `ln -sf ../../docs/plugin-protocol/tfplugin5.<MINOR_VERSION>.proto ./internal/tfplugin5/tfplugin5.proto`
     * Update protocol 6's symlink:  `ln -sf ../../docs/plugin-protocol/tfplugin6.<MINOR_VERSION>.proto ./internal/tfplugin6/tfplugin6.proto`
+3) Commit your changes
+  * This will allow the following commits to show only new changes being introduced.
+
+Now, you can begin to introduce your changes to the `.proto` files. See the next section!
+
+### Add updates to a new plugin protocol minor version
+
+2) Edit the `.proto` files for the latest minor version of Protocol 5 and 6 in `docs/plugin-protocol/`.
+3) Commit your changes.
+  * This should be separate to the commit where a new minor's .proto files have been created.
 4) Run `make protobuf`.
-  * This will use the symlinks that you just updated.
+  * This will use the symlinks in the `internal/tfplugin*` directories to access the latest minor versions' `.proto` files.
   * You should see diffs in `internal/tfplugin5/tfplugin5.pb.go` and `internal/tfplugin6/tfplugin6.pb.go`.
 5) Run `make generate`.
   * You should see diffs in `internal/plugin/mock_proto/mock.go` and `internal/plugin6/mock_proto/mock.go`.
