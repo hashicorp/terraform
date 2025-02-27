@@ -7,10 +7,8 @@ import "github.com/google/go-cmp/cmp"
 // DiagnosticComparer returns a cmp.Option that can be used with
 // the package github.com/google/go-cmp/cmp.
 //
-// The comparer checks these match between the diagnostics:
-// 1) Severity
-// 2) Description
-// 3) Attribute cty.Path, if present
+// The comparer relies on the underlying Diagnostic implementing
+// [ComparableDiagnostic].
 //
 // Example usage:
 //
