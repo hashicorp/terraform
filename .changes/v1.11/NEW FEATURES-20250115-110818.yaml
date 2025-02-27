@@ -1,5 +1,0 @@
-kind: NEW FEATURES
-body: '`terraform test`: The `-junit-xml` option for the terraform test command is now generally available. This option allows the command to create a test report in JUnit XML format. Feedback during the experimental phase helped map terraform test concepts to the JUnit XML format, and new additons may happen in future releases.'
-time: 2025-01-15T11:08:18.566206Z
-custom:
-    Issue: "36324"
