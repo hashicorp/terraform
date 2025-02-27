@@ -329,12 +329,12 @@ func TestDiagnostic(t *testing.T) {
 [red]│[reset]     [dark_gray]│[reset] [bold]Diff[reset]:
 [red]│[reset]     [dark_gray]│[reset] [red][bold]--- actual[reset]
 [red]│[reset]     [dark_gray]│[reset] [green][bold]+++ expected[reset]
-[red]│[reset]     [dark_gray]│[reset] [reset]  {
-[red]│[reset]     [dark_gray]│[reset] [red]-   "extra": "str2",
-[red]│[reset]     [dark_gray]│[reset] [green]+   "extra": "str21",
-[red]│[reset]     [dark_gray]│[reset] [red]-   "inner": "str1"
-[red]│[reset]     [dark_gray]│[reset] [green]+   "inner": "str11"
-[red]│[reset]     [dark_gray]│[reset] [reset]  }
+[red]│[reset]     [dark_gray]│[reset]  [reset] {
+[red]│[reset]     [dark_gray]│[reset] [red]-[reset]   "extra": "str2",
+[red]│[reset]     [dark_gray]│[reset] [green]+[reset]   "extra": "str21",
+[red]│[reset]     [dark_gray]│[reset] [red]-[reset]   "inner": "str1"
+[red]│[reset]     [dark_gray]│[reset] [green]+[reset]   "inner": "str11"
+[red]│[reset]     [dark_gray]│[reset]  [reset] }
 [red]│[reset]
 [red]│[reset]
 [red]│[reset] LHS not equal to RHS

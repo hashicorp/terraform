@@ -393,13 +393,12 @@ func printJSONDiff(buf io.Writer, color *colorstring.Colorize, strA, strB string
 		var colour string
 		switch prefix {
 		case "-":
-			colour = "red"
+			colour = "[red]"
 		case "+":
-			colour = "green"
+			colour = "[green]"
 		default:
-			colour = "reset"
 		}
-		msg := fmt.Sprintf("    [dark_gray]│[reset] [%s]%s %s\n", colour, prefix, line)
+		msg := fmt.Sprintf("    [dark_gray]│[reset] %s%s[reset] %s\n", colour, prefix, line)
 		fmt.Fprint(buf, color.Color(msg))
 	}
 
