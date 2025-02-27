@@ -1,23 +1,23 @@
 ---
 page_title: Use write-only arguments
-description: Learn how to use write-only arguments to set temporary values on resources that are not stored in Terraform's state or plan files.
+description: Learn how to use write-only arguments to set temporary values that are not stored in Terraform's state or plan files.
 ---
 
 # Use write-only arguments
 
-Write-only arguments let you securely pass temporary values to Terraform resources during a Terraform operation without persisting those values to state or plan files. Use write-only arguments to store sensitive data for the current Terraform operation, such as a short-lived password, token, or session identifier. 
+Write-only arguments let you securely pass temporary values to Terraform's managed resources during an operation without persisting those values to state or plan files. Use write-only arguments to handle sensitive data such as passwords, API tokens, and other secrets.
 
 ## Background
 
-Write-only arguments are only available during the runtime of a Terraform operation, and Terraform omits those values from state and plan files.
+Write-only arguments complement [other ephemeral values](/terraform/language/resources/ephemeral/reference#reference-ephemeral-resources) in Terraform, letting you securely pass sensitive data throughout your configuration without ever storing it in Terraform's artifacts. For example, you can generate a random password using an `ephemeral` resource then pass it to a write-only argument on another `resource` block. The provider uses the write-only argument value to configure the resource, then Terraform discards the value without storing it.
 
-You can use write-only arguments to pass ephemeral values directly to a resource without Terraform persisting that value. For example, you can directly pass a generated password or a fetched token to a write-only argument without risking Terraform exposing that value. Use write-only arguments to ensure sensitive data only exists during the current Terraform operation.
+> **Hands-on**: Declare a write-only argument in the [Upgrade RDS major version](/terraform/tutorials/aws/rds-upgrade) tutorial.
 
-Unlike other ephemeral constructs in Terraform, such as ephemeral resources or variables, write-only arguments also accept both ephemeral and non-ephemeral values.
+Unlike other ephemeral constructs in Terraform, such as ephemeral resources or variables, write-only arguments accept both ephemeral and non-ephemeral values.
 
 ## Requirements
 
-To use write-only arguments, you must use Terraform v.1.11 or later and use  a `resource` that supports write-only arguments.
+To use write-only arguments, you must use Terraform v.1.11 or later and use a resource that supports write-only arguments.
 
 ## Declare a write-only argument
 
@@ -32,7 +32,8 @@ resource "aws_db_instance" "test" {
   engine              = "postgres"
   username            = "admin"
   skip_final_snapshot = true
-  password_wo = <ephemeral or non-ephemeral value>
+  password_wo         = <ephemeral or non-ephemeral value>
+  password_wo_version = 1
 }
 ```
 
@@ -47,11 +48,12 @@ resource "aws_db_instance" "test" {
   engine              = "postgres"
   username            = "admin"
   skip_final_snapshot = true
-  password_wo = "my-password-here"
+  password_wo         = "my-password-here"
+  password_wo_version = 1
 }
 ```
 
-However, write-only arguments are most useful for passing ephemeral values to resources. For example, you can use an `ephemeral` resource to generate a random password and pass it to the `password_wo` write-only argument:
+However, we recommend using write-only arguments for passing ephemeral values to resources. If you use a non-ephemeral value, Terraform stores that value or hard-codes it in your configuration. For example, you can use an `ephemeral` resource to generate a random password and pass it to the `password_wo` write-only argument:
 
 <CodeBlockConfig highlight="11">
 
@@ -66,7 +68,8 @@ resource "aws_db_instance" "test" {
   engine              = "postgres"
   username            = "admin"
   skip_final_snapshot = true
-  password_wo = ephemeral.random.password.value
+  password_wo         = ephemeral.random.password.value
+  password_wo_version = 1
 }
 ```
 
@@ -78,7 +81,7 @@ During a Terraform operation, the provider uses the `password_wo` value to confi
 
 Terraform does not store write-only arguments in state files, so Terraform has no way of knowing if a write-only argument value has changed. Because Terraform cannot track write-only argument values, it sends write-only arguments to the provider during every operation.
 
-Terraform also cannot create plan diffs for write-only arguments because it does not store them in plan files, so providers only use write-only arguments when creating a new resource.
+Terraform also cannot create plan diffs for write-only arguments because it does not store those values in plan files. However, providers typically include version arguments alongside write-only arguments. Terraform stores version arguments in state, and can track if a version argument changes.
 
 Providers implement version arguments to let practitioners track write-only argument values and control when a provider uses those write-only arguments. The implementation of write-only arguments and their version arguments is provider-specific, so consult the Registry for more details about your specific provider.
 
@@ -93,14 +96,14 @@ resource "aws_db_instance" "test" {
   engine              = "postgres"
   username            = "admin"
   skip_final_snapshot = true
-  password_wo         = "new-password-here"
+  password_wo         = "old-password-here"
   password_wo_version = 1
 }
 ```
 
 </CodeBlockConfig>
 
-The provider now uses the write-only argument value when creating the `aws_db_instance` resource and when the `password_wo_version` version argument increments. The `password_wo_version` version argument is stored in state, allowing Terraform to track when the write-only argument changes.
+The provider uses the write-only argument value when creating the `aws_db_instance` resource and Terraform stores the `password_wo_version` argument value in state.
 
 To trigger an update of a write-only argument, increment the version argument's value in your configuration:
 
