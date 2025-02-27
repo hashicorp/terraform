@@ -265,6 +265,82 @@ func TestDiagnostic(t *testing.T) {
 [red]╵[reset]
 `,
 		},
+		"error origination from failed test assertion": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Test assertion failed",
+				Detail:   "LHS not equal to RHS",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+				Expression: &hclsyntax.BinaryOpExpr{
+					Op: hclsyntax.OpEqual,
+					LHS: &hclsyntax.LiteralValueExpr{
+						Val: cty.ObjectVal(map[string]cty.Value{
+							"inner": cty.StringVal("str1"),
+							"extra": cty.StringVal("str2"),
+						}),
+					},
+					RHS: &hclsyntax.LiteralValueExpr{
+						Val: cty.ObjectVal(map[string]cty.Value{
+							"inner": cty.StringVal("str11"),
+							"extra": cty.StringVal("str21"),
+						}),
+					},
+					SrcRange: hcl.Range{
+						Filename: "test.tf",
+						Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+						End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					},
+				},
+				EvalContext: &hcl.EvalContext{
+					Variables: map[string]cty.Value{
+						"foo": cty.ObjectVal(map[string]cty.Value{
+							"inner": cty.StringVal("str1"),
+						}),
+						"bar": cty.ObjectVal(map[string]cty.Value{
+							"inner": cty.StringVal("str2"),
+						}),
+					},
+				},
+				// This is simulating what the test assertion expression
+				// type would generate on evaluation, by implementing the
+				// same interface it uses.
+				Extra: diagnosticCausedByTestFailure{true},
+			},
+			`[red]╷[reset]
+[red]│[reset] [bold][red]Error: [reset][bold]Test assertion failed[reset]
+[red]│[reset]
+[red]│[reset]   on test.tf line 1:
+[red]│[reset]    1: test [underline]source[reset] code
+[red]│[reset]     [dark_gray]├────────────────[reset]
+[red]│[reset]     [dark_gray]│[reset] [bold]LHS[reset]:
+[red]│[reset]     [dark_gray]│[reset]   {
+[red]│[reset]     [dark_gray]│[reset]     "extra": "str2",
+[red]│[reset]     [dark_gray]│[reset]     "inner": "str1"
+[red]│[reset]     [dark_gray]│[reset]   }
+[red]│[reset]     [dark_gray]│[reset] [bold]RHS[reset]:
+[red]│[reset]     [dark_gray]│[reset]   {
+[red]│[reset]     [dark_gray]│[reset]     "extra": "str21",
+[red]│[reset]     [dark_gray]│[reset]     "inner": "str11"
+[red]│[reset]     [dark_gray]│[reset]   }
+[red]│[reset]     [dark_gray]│[reset] [bold]Diff[reset]:
+[red]│[reset]     [dark_gray]│[reset] [red][bold]--- actual[reset]
+[red]│[reset]     [dark_gray]│[reset] [green][bold]+++ expected[reset]
+[red]│[reset]     [dark_gray]│[reset] [reset]  {
+[red]│[reset]     [dark_gray]│[reset] [red]-   "extra": "str2",
+[red]│[reset]     [dark_gray]│[reset] [green]+   "extra": "str21",
+[red]│[reset]     [dark_gray]│[reset] [red]-   "inner": "str1"
+[red]│[reset]     [dark_gray]│[reset] [green]+   "inner": "str11"
+[red]│[reset]     [dark_gray]│[reset] [reset]  }
+[red]│[reset]
+[red]│[reset]
+[red]│[reset] LHS not equal to RHS
+[red]╵[reset]
+`,
+		},
 	}
 
 	sources := map[string][]byte{
@@ -945,4 +1021,18 @@ var _ tfdiags.DiagnosticExtraBecauseSensitive = diagnosticCausedBySensitive(true
 
 func (e diagnosticCausedBySensitive) DiagnosticCausedBySensitive() bool {
 	return bool(e)
+}
+
+var _ tfdiags.DiagnosticExtraCausedByTestFailure = diagnosticCausedByTestFailure{}
+
+type diagnosticCausedByTestFailure struct {
+	Verbose bool
+}
+
+func (e diagnosticCausedByTestFailure) DiagnosticCausedByTestFailure() bool {
+	return true
+}
+
+func (e diagnosticCausedByTestFailure) IsTestVerboseMode() bool {
+	return e.Verbose
 }

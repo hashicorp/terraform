@@ -384,13 +384,23 @@ func printJSONDiff(buf io.Writer, color *colorstring.Colorize, strA, strB string
 		return
 	}
 	fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [bold]Diff[reset]:\n"))
-	fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [bold]--- actual[reset]\n"))
-	fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [bold]+++ expected[reset]\n"))
+	fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [red][bold]--- actual[reset]\n"))
+	fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [green][bold]+++ expected[reset]\n"))
 	nextLhs, stopLhs := iter.Pull(strings.SplitSeq(strA, "\n"))
 	nextRhs, stopRhs := iter.Pull(strings.SplitSeq(strB, "\n"))
 
 	printLine := func(prefix, line string) {
-		fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] %s %s\n"), prefix, line)
+		var colour string
+		switch prefix {
+		case "-":
+			colour = "red"
+		case "+":
+			colour = "green"
+		default:
+			colour = "reset"
+		}
+		msg := fmt.Sprintf("    [dark_gray]│[reset] [%s]%s %s\n", colour, prefix, line)
+		fmt.Fprint(buf, color.Color(msg))
 	}
 
 	// We'll iterate over both sides of the expression and print the differences
