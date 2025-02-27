@@ -228,10 +228,10 @@ When creating a new minor version, follow this process:
   * When you commit those changes they should be clear diffs on top of the original, duplicated file.
 3) Update symlinks in the `internal/tfplugin*` directories to point at the files for the new minor versions of protocol 5 and 6:
   * Run these commands from the root of the repository, replacing `<MINOR_VERSION>` with the correct value:
-    * `ln -sf ../../docs/plugin-protocol/tfplugin5.<MINOR_VERSION>.proto ./internal/tfplugin5/tfplugin5.proto`
-    * `ln -sf ../../docs/plugin-protocol/tfplugin6.<MINOR_VERSION>.proto ./internal/tfplugin6/tfplugin6.proto`
+    * Update protocol 5's symlink: `ln -sf ../../docs/plugin-protocol/tfplugin5.<MINOR_VERSION>.proto ./internal/tfplugin5/tfplugin5.proto`
+    * Update protocol 6's symlink:  `ln -sf ../../docs/plugin-protocol/tfplugin6.<MINOR_VERSION>.proto ./internal/tfplugin6/tfplugin6.proto`
 4) Run `make protobuf`.
   * This will use the symlinks that you just updated.
   * You should see diffs in `internal/tfplugin5/tfplugin5.pb.go` and `internal/tfplugin6/tfplugin6.pb.go`.
 5) Run `make generate`.
-  * You should see diffs in `internal/plugin/mock_proto/mock.go` and `internal/plugin6/mock_proto/mock.go`
+  * You should see diffs in `internal/plugin/mock_proto/mock.go` and `internal/plugin6/mock_proto/mock.go`.
