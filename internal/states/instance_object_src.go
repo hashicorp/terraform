@@ -4,6 +4,8 @@
 package states
 
 import (
+	"fmt"
+
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
@@ -115,7 +117,7 @@ func (os *ResourceInstanceObjectSrc) Decode(schema providers.Schema) (*ResourceI
 	} else if os.IdentityJSON != nil {
 		identity, err = ctyjson.Unmarshal(os.IdentityJSON, schema.Identity.ImpliedType())
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to decode identity schema: %s. This is most likely a bug in the Provider, providers must not change the identity schema without updating the identity schema version", err.Error())
 		}
 	}
 
@@ -148,5 +150,18 @@ func (os *ResourceInstanceObjectSrc) CompleteUpgrade(newAttrs cty.Value, newType
 
 	new.AttrsJSON = src
 	new.SchemaVersion = newSchemaVersion
+	return new, nil
+}
+
+func (os *ResourceInstanceObjectSrc) CompleteIdentityUpgrade(newAttrs cty.Value, schema providers.Schema) (*ResourceInstanceObjectSrc, error) {
+	new := os.DeepCopy()
+
+	src, err := ctyjson.Marshal(newAttrs, schema.Identity.ImpliedType())
+	if err != nil {
+		return nil, err
+	}
+
+	new.IdentityJSON = src
+	new.IdentitySchemaVersion = schema.IdentityVersion
 	return new, nil
 }

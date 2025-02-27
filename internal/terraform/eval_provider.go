@@ -58,5 +58,26 @@ func getProvider(ctx EvalContext, addr addrs.AbsProviderConfig) (providers.Inter
 	if err != nil {
 		return nil, providers.ProviderSchema{}, fmt.Errorf("failed to read schema for provider %s: %w", addr, err)
 	}
+
+	identitySchemas, err := ctx.ResourceIdentitySchemas(addr)
+	if err != nil {
+		// still continue?
+	}
+	for name, identitySchema := range identitySchemas.IdentityTypes {
+		if resource, ok := schema.ResourceTypes[name]; !ok {
+			// This shouldn't happen, but in case we get an identity for a non-existent resource type
+			log.Printf("[WARN] Failed to find resource type %s for provider %s", name, addr)
+			continue
+		} else {
+			schema.ResourceTypes[name] = providers.Schema{
+				Body:    resource.Body,
+				Version: resource.Version,
+
+				Identity:        identitySchema.Body,
+				IdentityVersion: uint64(identitySchema.Version),
+			}
+		}
+	}
+
 	return provider, schema, nil
 }
