@@ -224,7 +224,7 @@ When creating a new minor version, follow this process:
 1) Duplicate the files for the latest minor versions of protocol 5 and 6 and rename them to the next minor version.
   * Commit those changes before editing the content.
   * Example: When creating the .10 minor versions you would duplicate `docs/plugin-protocol/tfplugin5.9.proto` and `docs/plugin-protocol/tfplugin5.10.proto`, and rename them to `tfplugin5.10.proto` and `tfplugin6.10.proto`.
-2) Edit the two new files with yout updates for the next minor version.
+2) Edit the two new files with your updates for the next minor version.
   * When you commit those changes they should be clear diffs on top of the original, duplicated file.
 3) Update symlinks in the `internal/tfplugin*` directories to point at the files for the new minor versions of protocol 5 and 6:
   * Run these commands from the root of the repository, replacing `<MINOR_VERSION>` with the correct value:
