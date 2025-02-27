@@ -218,7 +218,7 @@ it is now incorrect.
 
 New features added to Terraform core often require an update to the plugin protocol. These changes are reflected in a new minor version of the plugin protocol.
 
-A new minor release of Terraform we should only introduce one new minor release of the plugin-protocol. The minor release numbers of the plugin protocol and Terraform do not match, but they should have a one-to-one relationship.
+A new minor release of Terraform should only introduce one new minor release of the plugin-protocol. The minor release numbers of the plugin protocol and Terraform do not match, but they should have a one-to-one relationship.
 
 ### Create new `.proto` files for a new plugin protocol minor version
 
