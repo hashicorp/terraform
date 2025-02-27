@@ -39,6 +39,7 @@ func dataStoreResourceIdentitySchema() providers.IdentitySchema {
 					Required:    true,
 				},
 			},
+			Nesting: configschema.NestingSingle,
 		},
 	}
 }

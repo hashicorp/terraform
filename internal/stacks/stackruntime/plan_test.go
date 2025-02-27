@@ -1090,6 +1090,16 @@ func TestPlanWithSingleResource(t *testing.T) {
 						"id":               {Type: cty.String, Computed: true},
 					},
 				},
+				Identity: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:        cty.String,
+							Description: "The unique identifier for the data store.",
+							Required:    true,
+						},
+					},
+					Nesting: configschema.NestingSingle,
+				},
 			},
 		},
 	}
