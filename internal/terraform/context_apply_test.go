@@ -275,7 +275,7 @@ func TestContext2Apply_unstable(t *testing.T) {
 	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 	schema := p.GetProviderSchemaResponse.ResourceTypes["test_resource"]
 	rds := plan.Changes.ResourceInstance(addr)
-	rd, err := rds.Decode(schema.Body.ImpliedType())
+	rd, err := rds.Decode(schema)
 	if err != nil {
 		t.Fatal(err)
 	}

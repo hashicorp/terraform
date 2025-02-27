@@ -194,6 +194,7 @@ func (m *Mock) ReadResource(request ReadResourceRequest) ReadResourceResponse {
 	// state. So we'll return what we have.
 	return ReadResourceResponse{
 		NewState: request.PriorState,
+		Identity: request.CurrentIdentity,
 	}
 }
 
@@ -287,13 +288,15 @@ func (m *Mock) ApplyResourceChange(request ApplyResourceChangeRequest) ApplyReso
 		value, diags := mocking.ApplyComputedValuesForResource(request.PlannedState, replacement, resource.Body)
 		response.Diagnostics = response.Diagnostics.Append(diags)
 		response.NewState = value
+		response.NewIdentity = request.PlannedIdentity
 		return response
 
 	default:
 		// For update or destroy operations, we don't have to create any values
 		// so we'll just return the planned state directly.
 		return ApplyResourceChangeResponse{
-			NewState: request.PlannedState,
+			NewState:    request.PlannedState,
+			NewIdentity: request.PlannedIdentity,
 		}
 	}
 }
