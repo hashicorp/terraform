@@ -1,3 +1,5 @@
+## 1.11.1 (Unreleased)
+
 ## 1.11.0 (February 27, 2025)
 
 
@@ -43,8 +45,6 @@ BUG FIXES:
 * backends: Fix crash when interrupting during interactive prompt for values ([#36448](https://github.com/hashicorp/terraform/issues/36448))
 
 * Fixes hanging behavior seen when applying a saved plan with -auto-approve using the cloud backend ([#36453](https://github.com/hashicorp/terraform/issues/36453))
-
-
 ## Previous Releases
 
 For information on prior major and minor releases, refer to their changelogs:
