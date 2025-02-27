@@ -1339,7 +1339,7 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 		got := state.String()
 		want := strings.TrimSpace(`
 test_thing.bar:
-  ID =
+  ID = 
   provider = provider["registry.terraform.io/hashicorp/test"]
   name = foo
 `)
@@ -1419,7 +1419,7 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 		got := state.String()
 		want := strings.TrimSpace(`
 test_thing.bar:
-  ID =
+  ID = 
   provider = provider["registry.terraform.io/hashicorp/test"]
   name = foo
 `)
