@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: '`terraform test`: Test runs now support using mocked or overridden values during unit test runs (e.g., with command = "plan"). Set `override_during = plan` in the test configuration to use the overridden values during the plan phase. The default value is `override_during = apply`.'
-time: 2025-01-08T11:34:33.709443+01:00
-custom:
-    Issue: "36227"
