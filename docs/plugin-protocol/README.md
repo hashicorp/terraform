@@ -211,3 +211,27 @@ new file in this directory for each new minor version and consider all
 previously-tagged definitions as immutable. The outdated comments in those
 files are retained in order to keep the promise of immutability, even though
 it is now incorrect.
+
+## Updating the plugin protocol in Terraform core
+
+> Note: This section's audience is contributors to Terraform, not developers creating a new SDK.
+
+New features added to Terraform core often require an update to the plugin protocol. These changes are reflected
+in a new minor version of the plugin protocol. 
+
+When creating a new minor version, follow this process:
+
+1) Duplicate the files for the latest minor versions of protocol 5 and 6 and rename them to the next minor version.
+  * Commit those changes before editing the content.
+  * Example: When creating the .10 minor versions you would duplicate `docs/plugin-protocol/tfplugin5.9.proto` and `docs/plugin-protocol/tfplugin5.10.proto`, and rename them to `tfplugin5.10.proto` and `tfplugin6.10.proto`.
+2) Edit the two new files with yout updates for the next minor version.
+  * When you commit those changes they should be clear diffs on top of the original, duplicated file.
+3) Update symlinks in the `internal/tfplugin*` directories to point at the files for the new minor versions of protocol 5 and 6:
+  * Run these commands from the root of the repository, replacing `<MINOR_VERSION>` with the correct value:
+    * `ln -sf ../../docs/plugin-protocol/tfplugin5.<MINOR_VERSION>.proto ./internal/tfplugin5/tfplugin5.proto`
+    * `ln -sf ../../docs/plugin-protocol/tfplugin6.<MINOR_VERSION>.proto ./internal/tfplugin6/tfplugin6.proto`
+4) Run `make protobuf`.
+  * This will use the symlinks that you just updated.
+  * You should see diffs in `internal/tfplugin5/tfplugin5.pb.go` and `internal/tfplugin6/tfplugin6.pb.go`.
+5) Run `make generate`.
+  * You should see diffs in `internal/plugin/mock_proto/mock.go` and `internal/plugin6/mock_proto/mock.go`
