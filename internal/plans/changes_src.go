@@ -380,6 +380,11 @@ type ChangeSrc struct {
 	// storage.
 	Before, After DynamicValue
 
+	// BeforeIdentity and AfterIdentity correspond to the fields of the same name in Change,
+	// but have not yet been decoded from the serialized value used for
+	// storage.
+	BeforeIdentity, AfterIdentity DynamicValue
+
 	// BeforeSensitivePaths and AfterSensitivePaths are the paths for any
 	// values in Before or After (respectively) that are considered to be
 	// sensitive. The sensitive marks are removed from the in-memory values

@@ -90,6 +90,13 @@ func (m *crossTypeMover) prepareCrossTypeMove(stmt *MoveStatement, source, targe
 		return nil, diags
 	}
 
+	sourceProvider, err := m.getProvider(sourceProviderAddr.Provider)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to initialise provider", err.Error()))
+		return nil, diags
+	}
+	sourceSchema := sourceProvider.GetProviderSchema()
+
 	if !targetSchema.ServerCapabilities.MoveResourceState {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -99,11 +106,13 @@ func (m *crossTypeMover) prepareCrossTypeMove(stmt *MoveStatement, source, targe
 		})
 		return nil, diags
 	}
-	schema := targetSchema.SchemaForResourceAddr(target.Resource)
+	targetResourceSchema := targetSchema.SchemaForResourceAddr(target.Resource)
+	sourceResourceSchema := sourceSchema.SchemaForResourceAddr(source.Resource)
 	return &crossTypeMove{
 		targetProvider:       targetProvider,
 		targetProviderAddr:   *targetProviderAddr,
-		targetResourceSchema: schema,
+		targetResourceSchema: targetResourceSchema,
+		sourceResourceSchema: sourceResourceSchema,
 		sourceProviderAddr:   sourceProviderAddr,
 	}, diags
 }
@@ -113,7 +122,8 @@ type crossTypeMove struct {
 	targetProviderAddr   addrs.AbsProviderConfig
 	targetResourceSchema providers.Schema
 
-	sourceProviderAddr addrs.AbsProviderConfig
+	sourceProviderAddr   addrs.AbsProviderConfig
+	sourceResourceSchema providers.Schema
 }
 
 // applyCrossTypeMove will update the provider states.SyncState so that value
@@ -128,9 +138,33 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 
 	var diags tfdiags.Diagnostics
 
-	// First, build the request.
-
+	// Get the source identity
 	src := state.ResourceInstance(source).Current
+	var sourceIdentity cty.Value
+	if src != nil {
+		schema := move.sourceResourceSchema
+		if schema.Body == nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Missing resource schema from provider",
+				fmt.Sprintf("No resource schema found for %s when decoding prior state", source.Resource.Resource.Type),
+			))
+
+		}
+		ri, err := src.Decode(schema)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to decode resource state",
+				fmt.Sprintf("Failed to decode resource state for %s: %s", source.Resource.Resource.Type, err),
+			))
+			return diags
+		}
+		sourceIdentity = ri.Identity
+	}
+
+	// Build the request.
+
 	request := providers.MoveResourceStateRequest{
 		SourceProviderAddress: move.sourceProviderAddr.Provider.String(),
 		SourceTypeName:        source.Resource.Resource.Type,
@@ -138,9 +172,10 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 		SourceStateJSON:       src.AttrsJSON,
 		SourcePrivate:         src.Private,
 		TargetTypeName:        target.Resource.Resource.Type,
+		SourceIdentity:        sourceIdentity,
 	}
 
-	// Second, ask the provider to transform the value into the type expected by
+	// Ask the provider to transform the value into the type expected by
 	// the new resource type.
 
 	resp := move.targetProvider.MoveResourceState(request)
@@ -165,6 +200,32 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 
 	if writeOnlyDiags.HasErrors() {
 		return diags
+	}
+
+	if resp.TargetIdentity != cty.NilVal {
+		// Identities can not contain unknown values
+		if !resp.TargetIdentity.IsWhollyKnown() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced invalid identity",
+				fmt.Sprintf(
+					"Provider %q planned an identity with unknown values for the move from %s to %s. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					move.targetProviderAddr, source, target,
+				),
+			))
+		}
+
+		// Identities can not contain marks
+		if _, marks := resp.TargetIdentity.UnmarkDeep(); len(marks) > 0 {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced invalid identity",
+				fmt.Sprintf(
+					"Provider %q planned an identity with marks for  the move from %s to %s. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					move.targetProviderAddr, source, target,
+				),
+			))
+		}
 	}
 
 	if resp.TargetState == cty.NilVal {
@@ -194,9 +255,9 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 		Status:              src.Status,
 		Dependencies:        src.Dependencies,
 		CreateBeforeDestroy: src.CreateBeforeDestroy,
+		Identity:            resp.TargetIdentity,
 	}
 
-	// TODO: We need to handle identity data in move scenarios.
 	data, err := newValue.Encode(move.targetResourceSchema)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{

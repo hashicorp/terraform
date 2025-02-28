@@ -42,8 +42,8 @@ type DeferredResourceInstanceChange struct {
 	Change *ResourceInstanceChange
 }
 
-func (rcs *DeferredResourceInstanceChange) Encode(ty cty.Type) (*DeferredResourceInstanceChangeSrc, error) {
-	change, err := rcs.Change.Encode(ty)
+func (rcs *DeferredResourceInstanceChange) Encode(schema providers.Schema) (*DeferredResourceInstanceChangeSrc, error) {
+	change, err := rcs.Change.Encode(schema)
 	if err != nil {
 		return nil, err
 	}
