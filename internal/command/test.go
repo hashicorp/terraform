@@ -5,10 +5,13 @@ package command
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/hcl/v2"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -121,6 +124,37 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	config, configDiags := c.loadConfigWithTests(".", args.TestDirectory)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
+		view.Diagnostics(nil, nil, diags)
+		return 1
+	}
+
+	// Per file, ensure backends aren't reused
+	var duplicateBackendDiags tfdiags.Diagnostics
+	for _, tf := range config.Module.Tests {
+		bucketHashes := make(map[int]string)
+		for _, bc := range tf.BackendConfigs {
+			f := backendInit.Backend(bc.Backend.Type)
+			b := f()
+			schema := b.ConfigSchema()
+			hash := bc.Backend.Hash(schema)
+
+			if runName, exists := bucketHashes[hash]; exists {
+				// This backend's been encountered before
+				duplicateBackendDiags = duplicateBackendDiags.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Repeat use of the same backend block",
+						Detail:   fmt.Sprintf("The run %q contains a backend configuration that's already been used in the run %q. Sharing the same backend configuration between separate runs will result in conflicting state updates.", bc.RunName, runName),
+						Subject:  bc.Backend.TypeRange.Ptr(),
+					},
+				)
+				continue
+			}
+			bucketHashes[bc.Backend.Hash(schema)] = bc.RunName
+		}
+	}
+	diags = diags.Append(duplicateBackendDiags)
+	if duplicateBackendDiags.HasErrors() {
 		view.Diagnostics(nil, nil, diags)
 		return 1
 	}

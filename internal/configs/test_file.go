@@ -58,6 +58,11 @@ type TestFile struct {
 	// test.
 	Providers map[string]*Provider
 
+	// BackendConfigs is a map of state keys to structs that contain backend configuration.
+	// This should be used to set the state for a given state key at the start
+	// of a test command.
+	BackendConfigs map[string]RunBlockBackend
+
 	// Overrides contains any specific overrides that should be applied for this
 	// test outside any mock providers.
 	Overrides addrs.Map[addrs.Targetable, *Override]
@@ -326,9 +331,8 @@ type TestRunOptions struct {
 	DeclRange hcl.Range
 }
 
-// runBlockBackend is used when parsing a single test file as part of ensuring
-// there is only a single backend block for a given internal state file.
-type runBlockBackend struct {
+// RunBlockBackend records a backend block and which run block it was parsed from
+type RunBlockBackend struct {
 	Backend *Backend
 
 	// RunName is the name of the run block containing the backend block for this Backend
@@ -340,8 +344,9 @@ type runBlockBackend struct {
 func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	tf := &TestFile{
-		Providers: make(map[string]*Provider),
-		Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
+		Providers:      make(map[string]*Provider),
+		BackendConfigs: make(map[string]RunBlockBackend),
+		Overrides:      addrs.MakeMap[addrs.Targetable, *Override](),
 	}
 
 	// we need to retrieve the file config block first, because the run blocks
@@ -362,7 +367,6 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	diags = append(diags, contentDiags...)
 
 	runBlockNames := make(map[string]hcl.Range)
-	stateKeyBackend := make(map[string]runBlockBackend) // Track backends per state key in the file
 
 	for _, block := range content.Blocks {
 		switch block.Type {
@@ -386,7 +390,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 
 			if run.Backend != nil {
 
-				if rb, exists := stateKeyBackend[run.StateKey]; exists {
+				if rb, exists := tf.BackendConfigs[run.StateKey]; exists {
 					// We've encountered >1 backend blocks for a given internal state
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -422,8 +426,8 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 					}
 				}
 
-				// Record the newly-encountered backend block against the state key
-				stateKeyBackend[run.StateKey] = runBlockBackend{
+				// Record the backend block in the test file, under the related state key
+				tf.BackendConfigs[run.StateKey] = RunBlockBackend{
 					Backend: run.Backend,
 					RunName: run.Name,
 				}
