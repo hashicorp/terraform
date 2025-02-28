@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -792,6 +793,19 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 	if attr, exists := content.Attributes["state_key"]; exists {
 		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.StateKey)
 		diags = append(diags, rawDiags...)
+	}
+	// If there's no user-supplied state_key value, set it based on config
+	// under test.
+	if r.StateKey == "" {
+		if r.ConfigUnderTest != nil {
+			// If the run is using an alternate module under test, the source of
+			// that module is returned as the state key.
+			r.StateKey = r.Module.Source.String()
+		} else {
+			// Otherwise, an empty string is returned, and this denotes that the
+			// run is using the root module under test.
+			r.StateKey = ""
+		}
 	}
 
 	if attr, exists := content.Attributes["parallel"]; exists {
