@@ -4,6 +4,9 @@
 package format
 
 import (
+	"bytes"
+	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -331,8 +334,8 @@ func TestDiagnostic(t *testing.T) {
 [red]│[reset]     [dark_gray]│[reset] [green][bold]+++ expected[reset]
 [red]│[reset]     [dark_gray]│[reset]  [reset] {
 [red]│[reset]     [dark_gray]│[reset] [red]-[reset]   "extra": "str2",
-[red]│[reset]     [dark_gray]│[reset] [green]+[reset]   "extra": "str21",
 [red]│[reset]     [dark_gray]│[reset] [red]-[reset]   "inner": "str1"
+[red]│[reset]     [dark_gray]│[reset] [green]+[reset]   "extra": "str21",
 [red]│[reset]     [dark_gray]│[reset] [green]+[reset]   "inner": "str11"
 [red]│[reset]     [dark_gray]│[reset]  [reset] }
 [red]│[reset]
@@ -981,6 +984,243 @@ func TestDiagnosticFromJSON_invalid(t *testing.T) {
 			want := strings.TrimSpace(test.Want)
 			if got != want {
 				t.Errorf("wrong result\ngot:\n%s\n\nwant:\n%s\n\n", got, want)
+			}
+		})
+	}
+}
+
+func TestJsonDiff(t *testing.T) {
+	f := &snippetFormatter{
+		buf: &bytes.Buffer{},
+		color: &colorstring.Colorize{
+			Reset:   true,
+			Disable: true,
+		},
+	}
+
+	tests := []struct {
+		name string
+		strA string
+		strB string
+		diff string
+	}{
+		{
+			name: "Basic different fields",
+			strA: `{
+  "field1": "value1",
+  "field2": "value2",
+  "field3": "value3",
+  "field4": "value4"
+}`,
+			strB: `{
+  "field1": "value1",
+  "field2": "different",
+  "field3": "value3",
+  "field4": "value4"
+}`,
+			diff: `    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │   {
+    │     "field1": "value1",
+    │ -   "field2": "value2",
+    │ +   "field2": "different",
+    │     "field3": "value3",
+    │     "field4": "value4"
+    │   }
+`,
+		},
+		{
+			name: "Unequal number of fields",
+			strA: `{
+  "field1": "value1",
+  "field2": "value2",
+  "field3": "value3",
+  "extraField": "extraValue",
+  "field4": "value4"
+}`,
+			strB: `{
+  "field1": "value1",
+  "fieldX": "valueX",
+  "fieldY": "valueY",
+  "field4": "value4"
+}`,
+			diff: `    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │   {
+    │     "field1": "value1",
+    │ -   "field2": "value2",
+    │ -   "field3": "value3",
+    │ -   "extraField": "extraValue",
+    │ -   "field4": "value4"
+    │ - }
+    │ +   "fieldX": "valueX",
+    │ +   "fieldY": "valueY",
+    │ +   "field4": "value4"
+    │ + }
+`,
+		},
+		{
+			name: "Empty vs non-empty JSON",
+			strA: `{}`,
+			strB: `{
+  "field1": "value1",
+  "field2": "value2"
+}`,
+			diff: `    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │ - {}
+    │ + {
+    │ +   "field1": "value1",
+    │ +   "field2": "value2"
+    │ + }
+`,
+		},
+		{
+			name: "Completely different JSONs",
+			strA: `{
+  "a": 1,
+  "b": 2
+}`,
+			strB: `{
+  "c": 3,
+  "d": 4
+}`,
+			diff: `    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │   {
+    │ -   "a": 1,
+    │ -   "b": 2
+    │ +   "c": 3,
+    │ +   "d": 4
+    │   }
+`,
+		},
+		{
+			name: "Nested objects with differences",
+			strA: `{
+  "outer": {
+    "inner1": "value1",
+    "inner2": "value2"
+  }
+}`,
+			strB: `{
+  "outer": {
+    "inner1": "changed",
+    "inner2": "value2"
+  }
+}`,
+			diff: `    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │   {
+    │     "outer": {
+    │ -     "inner1": "value1",
+    │ +     "inner1": "changed",
+    │       "inner2": "value2"
+    │     }
+    │   }
+`,
+		},
+		{
+			name: "Multiple separate diff blocks",
+			strA: `{
+  "block1": "original1",
+  "unchanged1": "same",
+  "block2": "original2",
+  "unchanged2": "same",
+  "block3": "original3"
+}`,
+			strB: `{
+  "block1": "changed1",
+  "unchanged1": "same",
+  "block2": "changed2",
+  "unchanged2": "same",
+  "block3": "changed3"
+}`,
+			diff: `    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │   {
+    │ -   "block1": "original1",
+    │ +   "block1": "changed1",
+    │     "unchanged1": "same",
+    │ -   "block2": "original2",
+    │ +   "block2": "changed2",
+    │     "unchanged2": "same",
+    │ -   "block3": "original3"
+    │ +   "block3": "changed3"
+    │   }
+`,
+		},
+		{
+			name: "Large number of differences",
+			strA: `{
+  "item1": "a",
+  "item2": "b",
+  "item3": "c",
+  "item4": "d",
+  "item5": "e",
+  "item6": "f",
+  "item7": "g"
+}`,
+			strB: `{
+  "item1": "a",
+  "item2": "B",
+  "item3": "C",
+  "item4": "D",
+  "item5": "e",
+  "item6": "F",
+  "item7": "g"
+}`,
+			diff: `    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │   {
+    │     "item1": "a",
+    │ -   "item2": "b",
+    │ -   "item3": "c",
+    │ -   "item4": "d",
+    │ +   "item2": "B",
+    │ +   "item3": "C",
+    │ +   "item4": "D",
+    │     "item5": "e",
+    │ -   "item6": "f",
+    │ +   "item6": "F",
+    │     "item7": "g"
+    │   }
+`,
+		},
+		{
+			name: "Identical JSONs",
+			strA: `{"field": "value"}`,
+			strB: `{"field": "value"}`,
+			diff: ``, // No output expected for identical JSONs
+		},
+		{
+			name: "simple: no matches",
+			strA: `1`,
+			strB: `2`,
+			diff: `    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │ - 1
+    │ + 2
+`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			f.buf.Reset()
+			f.printJSONDiff(test.strA, test.strB)
+			diff := regexp.MustCompile(`\[[^\]]+\]`).ReplaceAllString(f.buf.String(), "")
+			fmt.Println(diff)
+			if d := cmp.Diff(diff, test.diff); d != "" {
+				t.Errorf("diff mismatch: got %s\n, want %s\n: diff: %s\n", diff, test.diff, d)
 			}
 		})
 	}

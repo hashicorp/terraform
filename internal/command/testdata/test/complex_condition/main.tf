@@ -6,6 +6,8 @@ output "foo" {
   value = {
     bar = "notbaz"
     qux = "quux"
+    matches = "matches"
+    xuq = "xuq"
   }
 }
 

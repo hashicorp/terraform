@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io"
 	"iter"
 	"sort"
 	"strings"
@@ -341,6 +340,9 @@ func (f *snippetFormatter) write() {
 
 			if printValues {
 				for _, value := range values {
+					// if the statement is one line, we'll just print it as is
+					// otherwise, we have to ensure that each line is indented correctly
+					// and that the first line has the traversal information
 					valSlice := strings.Split(value.Statement, "\n")
 					fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] [bold]%s[reset] %s\n"),
 						value.Traversal, valSlice[0])
@@ -374,20 +376,27 @@ func (f *snippetFormatter) printTestDiagOutput(diag *viewsjson.DiagnosticTestBin
 	if diag.Warning != "" {
 		fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] [bold]Warning[reset]: %s\n"), diag.Warning)
 	}
-	printJSONDiff(buf, color, diag.LHS, diag.RHS)
+	f.printJSONDiff(diag.LHS, diag.RHS)
 	buf.WriteByte('\n')
 }
 
-func printJSONDiff(buf io.Writer, color *colorstring.Colorize, strA, strB string) {
+// printJSONDiff prints a colorized line-by-line diff of the JSON values of the LHS and RHS expressions
+// in a test assertion.
+// It visually distinguishes removed and added lines, helping users identify
+// discrepancies between an "actual" (lhsStr) and an "expected" (rhsStr) JSON output.
+func (f *snippetFormatter) printJSONDiff(lhsStr, rhsStr string) {
+
+	buf := f.buf
+	color := f.color
 	// No visible difference in the JSON, so we'll just return
-	if strA == strB {
+	if lhsStr == rhsStr {
 		return
 	}
 	fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [bold]Diff[reset]:\n"))
 	fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [red][bold]--- actual[reset]\n"))
 	fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [green][bold]+++ expected[reset]\n"))
-	nextLhs, stopLhs := iter.Pull(strings.SplitSeq(strA, "\n"))
-	nextRhs, stopRhs := iter.Pull(strings.SplitSeq(strB, "\n"))
+	nextLhs, stopLhs := iter.Pull(strings.SplitSeq(lhsStr, "\n"))
+	nextRhs, stopRhs := iter.Pull(strings.SplitSeq(rhsStr, "\n"))
 
 	printLine := func(prefix, line string) {
 		var colour string
@@ -402,30 +411,50 @@ func printJSONDiff(buf io.Writer, color *colorstring.Colorize, strA, strB string
 		fmt.Fprint(buf, color.Color(msg))
 	}
 
-	// We'll iterate over both sides of the expression and print the differences
-	// between them.
+	// Collect differing lines separately for each side
+	removedLines := []string{}
+	addedLines := []string{}
+
+	// Function to print collected diffs and reset buffers
+	printDiffs := func() {
+		for _, line := range removedLines {
+			printLine("-", line)
+		}
+		for _, line := range addedLines {
+			printLine("+", line)
+		}
+		removedLines = []string{}
+		addedLines = []string{}
+	}
+
+	// We'll iterate over both sides of the expression and collect the differences
+	// along the way. When a match is found, we'll then print all the collected diffs
+	// and the matching line, and then reset the buffers.
 	for {
 		lhsLine, lhsOk := nextLhs()
 		rhsLine, rhsOk := nextRhs()
 
-		if !lhsOk && !rhsOk {
+		if !lhsOk && !rhsOk { // Both sides are done, so we'll print the diffs and break
+			printDiffs()
 			break
 		}
 
+		// If one side is done, we'll just print the remaining lines from the other side
 		if !lhsOk {
-			printLine(" ", rhsLine)
+			addedLines = append(addedLines, rhsLine)
 			continue
 		}
 		if !rhsOk {
-			printLine(" ", lhsLine)
+			removedLines = append(removedLines, lhsLine)
 			continue
 		}
 
 		if lhsLine == rhsLine {
+			printDiffs()
 			printLine(" ", lhsLine)
 		} else {
-			printLine("-", lhsLine)
-			printLine("+", rhsLine)
+			removedLines = append(removedLines, lhsLine)
+			addedLines = append(addedLines, rhsLine)
 		}
 	}
 

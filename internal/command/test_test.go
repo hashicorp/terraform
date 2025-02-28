@@ -906,8 +906,8 @@ Failure! 1 passed, 4 failed.
 	expectedErr := `
 Error: Test assertion failed
 
-  on main.tftest.hcl line 21, in run "validate_diff_types":
-  21:     condition = var.tr1 == var.tr2 
+  on main.tftest.hcl line 37, in run "validate_diff_types":
+  37:     condition = var.tr1 == var.tr2 
     ├────────────────
     │ Warning: LHS and RHS values are of different types
 
@@ -916,8 +916,8 @@ expected to fail
 
 Error: Test assertion failed
 
-  on main.tftest.hcl line 28, in run "validate_output":
-  28:     condition = output.foo == var.foo[0]
+  on main.tftest.hcl line 44, in run "validate_output":
+  44:     condition = output.foo == var.foo
     ├────────────────
     │ Diff:
     │ --- actual
@@ -925,34 +925,33 @@ Error: Test assertion failed
     │   {
     │ -   "bar": "notbaz",
     │ +   "bar": "baz",
-    │     "qux": "quux"
+    │     "matches": "matches",
+    │ -   "qux": "quux",
+    │ -   "xuq": "xuq"
+    │ +   "qux": "qux",
+    │ +   "xuq": "nope"
     │   }
 
 
-expected to fail
+expected to fail due to different values
 
 Error: Test assertion failed
 
-  on main.tftest.hcl line 35, in run "validate_complex_output":
-  35:     condition = output.complex == var.foo
+  on main.tftest.hcl line 52, in run "validate_complex_output":
+  52:     condition = output.complex == var.bar
     ├────────────────
     │ Warning: LHS and RHS values are of different types
     │ Diff:
     │ --- actual
     │ +++ expected
-    │ - {
-    │ + [
-    │ -   "root": [
-    │ +   {
-    │ -     {
-    │ +     "bar": "baz",
-    │ -       "bar": [
-    │ +     "qux": "quux"
-    │ -         1
-    │ +   }
-    │ -       ],
-    │ + ]
-    │         "qux": "quux"
+    │   {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │ -       "qux": "quux"
+    │ +       "qux": "qux"
     │       },
     │       {
     │         "bar": [
@@ -968,29 +967,29 @@ expected to fail
 
 Error: Test assertion failed
 
-  on main.tftest.hcl line 42, in run "validate_complex_output_sensitive":
-  42:     condition = output.complex == output.complex_sensitive
+  on main.tftest.hcl line 60, in run "validate_complex_output_sensitive":
+  60:     condition = output.complex == output.complex_sensitive
     ├────────────────
     │ Diff:
     │ --- actual
     │ +++ expected
     │ - {
+    │ -   "root": [
+    │ -     {
+    │ -       "bar": [
+    │ -         1
+    │ -       ],
+    │ -       "qux": "quux"
+    │ -     },
+    │ -     {
+    │ -       "bar": [
+    │ -         2
+    │ -       ],
+    │ -       "qux": "quux"
+    │ -     }
+    │ -   ]
+    │ - }
     │ + "(sensitive value)"
-    │     "root": [
-    │       {
-    │         "bar": [
-    │           1
-    │         ],
-    │         "qux": "quux"
-    │       },
-    │       {
-    │         "bar": [
-    │           2
-    │         ],
-    │         "qux": "quux"
-    │       }
-    │     ]
-    │   }
 
 
 expected to fail
@@ -998,7 +997,6 @@ expected to fail
 	if diff := cmp.Diff(output.Stdout(), expectedOut); len(diff) > 0 {
 		t.Errorf("\nexpected: \n%s\ngot: %s\ndiff: %s", expectedOut, output.All(), diff)
 	}
-
 	if diff := cmp.Diff(output.Stderr(), expectedErr); len(diff) > 0 {
 		t.Errorf("\nexpected stderr: \n%s\ngot: %s\ndiff: %s", expectedErr, output.Stderr(), diff)
 	}
@@ -1066,8 +1064,8 @@ func TestTest_ComplexConditionVerbose(t *testing.T) {
 	expectedErr := `
 Error: Test assertion failed
 
-  on main.tftest.hcl line 21, in run "validate_diff_types":
-  21:     condition = var.tr1 == var.tr2 
+  on main.tftest.hcl line 37, in run "validate_diff_types":
+  37:     condition = var.tr1 == var.tr2 
     ├────────────────
     │ LHS:
     │   {
@@ -1094,18 +1092,22 @@ expected to fail
 
 Error: Test assertion failed
 
-  on main.tftest.hcl line 28, in run "validate_output":
-  28:     condition = output.foo == var.foo[0]
+  on main.tftest.hcl line 44, in run "validate_output":
+  44:     condition = output.foo == var.foo
     ├────────────────
     │ LHS:
     │   {
     │     "bar": "notbaz",
-    │     "qux": "quux"
+    │     "matches": "matches",
+    │     "qux": "quux",
+    │     "xuq": "xuq"
     │   }
     │ RHS:
     │   {
     │     "bar": "baz",
-    │     "qux": "quux"
+    │     "matches": "matches",
+    │     "qux": "qux",
+    │     "xuq": "nope"
     │   }
     │ Diff:
     │ --- actual
@@ -1113,24 +1115,32 @@ Error: Test assertion failed
     │   {
     │ -   "bar": "notbaz",
     │ +   "bar": "baz",
-    │     "qux": "quux"
+    │     "matches": "matches",
+    │ -   "qux": "quux",
+    │ -   "xuq": "xuq"
+    │ +   "qux": "qux",
+    │ +   "xuq": "nope"
     │   }
 
     │ output.foo is {
     │     "bar": "notbaz",
-    │     "qux": "quux"
+    │     "matches": "matches",
+    │     "qux": "quux",
+    │     "xuq": "xuq"
     │   }
-    │ var.foo[0] is {
+    │ var.foo is {
     │     "bar": "baz",
-    │     "qux": "quux"
+    │     "matches": "matches",
+    │     "qux": "qux",
+    │     "xuq": "nope"
     │   }
 
-expected to fail
+expected to fail due to different values
 
 Error: Test assertion failed
 
-  on main.tftest.hcl line 35, in run "validate_complex_output":
-  35:     condition = output.complex == var.foo
+  on main.tftest.hcl line 52, in run "validate_complex_output":
+  52:     condition = output.complex == var.bar
     ├────────────────
     │ LHS:
     │   {
@@ -1150,29 +1160,34 @@ Error: Test assertion failed
     │     ]
     │   }
     │ RHS:
-    │   [
-    │     {
-    │       "bar": "baz",
-    │       "qux": "quux"
-    │     }
-    │   ]
+    │   {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "qux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
     │ Warning: LHS and RHS values are of different types
     │ Diff:
     │ --- actual
     │ +++ expected
-    │ - {
-    │ + [
-    │ -   "root": [
-    │ +   {
-    │ -     {
-    │ +     "bar": "baz",
-    │ -       "bar": [
-    │ +     "qux": "quux"
-    │ -         1
-    │ +   }
-    │ -       ],
-    │ + ]
-    │         "qux": "quux"
+    │   {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │ -       "qux": "quux"
+    │ +       "qux": "qux"
     │       },
     │       {
     │         "bar": [
@@ -1199,19 +1214,29 @@ Error: Test assertion failed
     │       }
     │     ]
     │   }
-    │ var.foo is [
-    │     {
-    │       "bar": "baz",
-    │       "qux": "quux"
-    │     }
-    │   ]
+    │ var.bar is {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "qux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
 
 expected to fail
 
 Error: Test assertion failed
 
-  on main.tftest.hcl line 42, in run "validate_complex_output_sensitive":
-  42:     condition = output.complex == output.complex_sensitive
+  on main.tftest.hcl line 60, in run "validate_complex_output_sensitive":
+  60:     condition = output.complex == output.complex_sensitive
     ├────────────────
     │ LHS:
     │   {
@@ -1236,22 +1261,22 @@ Error: Test assertion failed
     │ --- actual
     │ +++ expected
     │ - {
+    │ -   "root": [
+    │ -     {
+    │ -       "bar": [
+    │ -         1
+    │ -       ],
+    │ -       "qux": "quux"
+    │ -     },
+    │ -     {
+    │ -       "bar": [
+    │ -         2
+    │ -       ],
+    │ -       "qux": "quux"
+    │ -     }
+    │ -   ]
+    │ - }
     │ + "(sensitive value)"
-    │     "root": [
-    │       {
-    │         "bar": [
-    │           1
-    │         ],
-    │         "qux": "quux"
-    │       },
-    │       {
-    │         "bar": [
-    │           2
-    │         ],
-    │         "qux": "quux"
-    │       }
-    │     ]
-    │   }
 
     │ output.complex is {
     │     "root": [
