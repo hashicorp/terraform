@@ -194,10 +194,6 @@ func (cp *Plugins) ResourceIdentitySchemas(addr addrs.Provider) (providers.Resou
 	// We skip this if we have preloaded schemas because that suggests that
 	// our caller is not Terraform CLI and therefore it's probably inappropriate
 	// to assume that provider schemas are unique process-wide.
-	//
-	// FIXME: A global cache is inappropriate when Terraform Core is being
-	// used in a non-Terraform-CLI mode where we shouldn't assume that all
-	// calls share the same provider implementations.
 	schemas, ok := providers.ResourceIdentitySchemasCache.Get(addr)
 	if ok {
 		log.Printf("[TRACE] terraform.contextPlugins: Resource identity schemas for provider %q is in the global cache", addr)

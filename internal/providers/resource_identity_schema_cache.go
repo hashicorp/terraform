@@ -12,13 +12,6 @@ import (
 // ResourceIdentitySchemasCache is a global cache of identity schemas.
 // This will be accessed by both core and the provider clients to ensure that
 // identity schemas are stored in a single location.
-//
-// FIXME: A global cache is inappropriate when Terraform Core is being
-// used in a non-Terraform-CLI mode where we shouldn't assume that all
-// calls share the same provider implementations. This would be better
-// as a per-terraform.Context cache instead, or to have callers preload
-// the schemas for the providers they intend to use and pass them in
-// to terraform.NewContext so we don't need to load them at runtime.
 var ResourceIdentitySchemasCache = &identitySchemasCache{
 	m: make(map[addrs.Provider]ResourceIdentitySchemas),
 }
