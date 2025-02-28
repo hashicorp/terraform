@@ -82,9 +82,6 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	defer p.mu.Unlock()
 
 	// check the global cache if we can
-	// FIXME: A global cache is inappropriate when Terraform Core is being
-	// used in a non-Terraform-CLI mode where we shouldn't assume that all
-	// calls share the same provider implementations.
 	if !p.Addr.IsZero() {
 		if resp, ok := providers.SchemaCache.Get(p.Addr); ok && resp.ServerCapabilities.GetProviderSchemaOptional {
 			logger.Trace("GRPCProvider: returning cached schema", p.Addr.String())
@@ -163,9 +160,6 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	}
 
 	// set the global cache if we can
-	// FIXME: A global cache is inappropriate when Terraform Core is being
-	// used in a non-Terraform-CLI mode where we shouldn't assume that all
-	// calls share the same provider implementations.
 	if !p.Addr.IsZero() {
 		providers.SchemaCache.Set(p.Addr, resp)
 	}
@@ -182,9 +176,6 @@ func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentit
 	defer p.mu.Unlock()
 
 	// check the global cache if we can
-	// FIXME: A global cache is inappropriate when Terraform Core is being
-	// used in a non-Terraform-CLI mode where we shouldn't assume that all
-	// calls share the same provider implementations.
 	if !p.Addr.IsZero() {
 		if resp, ok := providers.ResourceIdentitySchemasCache.Get(p.Addr); ok {
 			logger.Trace("GRPCProvider: returning cached resource identity schemas", p.Addr.String())
@@ -222,9 +213,6 @@ func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentit
 	}
 
 	// set the global cache if we can
-	// FIXME: A global cache is inappropriate when Terraform Core is being
-	// used in a non-Terraform-CLI mode where we shouldn't assume that all
-	// calls share the same provider implementations.
 	if !p.Addr.IsZero() {
 		providers.ResourceIdentitySchemasCache.Set(p.Addr, resp)
 	}
