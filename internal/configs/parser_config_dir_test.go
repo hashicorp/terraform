@@ -226,6 +226,9 @@ func TestParserLoadTestFiles_Invalid(t *testing.T) {
 		"backend_block_in_plan_run": {
 			"backend_block_in_plan_run.tftest.hcl:6,3-18: Invalid backend block; A backend block can only be used in the first apply run block for a given internal state file. It cannot be included in a block to run a plan command.",
 		},
+		"backend_block_in_second_apply_run": {
+			"backend_block_in_second_apply_run.tftest.hcl:8,1-13: Invalid backend block; The run \"test_2\" cannot load in state using a backend block, because internal state has already been created by an apply command in run \"test_1\". Backend blocks can only be present in the first apply command for a given internal state.",
+		},
 		"non_state_storage_backend_in_test": {
 			"non_state_storage_backend_in_test.tftest.hcl:4,3-19: Only state storage backends can be used in a run; The \"remote\" backend type cannot be used in the backend block in run \"test\" at non_state_storage_backend_in_test.tftest.hcl:4,3-19.",
 		},

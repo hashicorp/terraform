@@ -385,7 +385,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 			runBlockNames[run.Name] = run.DeclRange
 
 			if rb, exists := stateKeyBackend[run.StateKey]; exists && run.Backend != nil {
-				// we've encountered >1 backend blocks in a given run block state
+				// We've encountered >1 backend blocks for a given internal state
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Multiple backend blocks for internal state file",
@@ -394,8 +394,35 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 				})
 				continue
 			}
+
 			if run.Backend != nil {
-				// record newly-encountered backend blocks
+
+				// Check if we have already encountered an apply command for this internal state.
+				if len(tf.Runs) > 1 {
+					var previousApplyRun *TestRun
+					lastIndex := len(tf.Runs) - 1 // avoid comparing the current run block to itself
+					for _, val := range tf.Runs[0:lastIndex] {
+						if val.StateKey != run.StateKey {
+							continue
+						}
+
+						if val.Command == ApplyTestCommand {
+							previousApplyRun = val
+							break
+						}
+					}
+					if previousApplyRun != nil {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid backend block",
+							Detail:   fmt.Sprintf("The run %q cannot load in state using a backend block, because internal state has already been created by an apply command in run %q. Backend blocks can only be present in the first apply command for a given internal state.", run.Name, previousApplyRun.Name),
+							Subject:  block.DefRange.Ptr(),
+						})
+						continue
+					}
+				}
+
+				// Record the newly-encountered backend block against the state key
 				stateKeyBackend[run.StateKey] = runBlockBackend{
 					Backend: run.Backend,
 					RunName: run.Name,
