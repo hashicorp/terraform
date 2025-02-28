@@ -384,18 +384,18 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 			}
 			runBlockNames[run.Name] = run.DeclRange
 
-			if rb, exists := stateKeyBackend[run.StateKey]; exists && run.Backend != nil {
-				// We've encountered >1 backend blocks for a given internal state
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Multiple backend blocks for internal state file",
-					Detail:   fmt.Sprintf("The run %q already uses an internal state file that's loaded by a backend in the run %q. Please ensure that a backend block is only in the first apply run block for a given internal state file.", run.Name, rb.RunName),
-					Subject:  block.DefRange.Ptr(),
-				})
-				continue
-			}
-
 			if run.Backend != nil {
+
+				if rb, exists := stateKeyBackend[run.StateKey]; exists {
+					// We've encountered >1 backend blocks for a given internal state
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Multiple backend blocks for internal state file",
+						Detail:   fmt.Sprintf("The run %q already uses an internal state file that's loaded by a backend in the run %q. Please ensure that a backend block is only in the first apply run block for a given internal state file.", run.Name, rb.RunName),
+						Subject:  block.DefRange.Ptr(),
+					})
+					continue
+				}
 
 				// Check if we have already encountered an apply command for this internal state.
 				if len(tf.Runs) > 1 {
