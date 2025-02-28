@@ -53,8 +53,10 @@ func (d diagnosticBase) Equals(otherDiag ComparableDiagnostic) bool {
 	if d.detail != od.detail {
 		return false
 	}
-	if d.address != od.address {
-		return false
-	}
+
+	// address can differ between and after expansion
+	// even though it represents the same attribute
+	// so we avoid comparing it here
+
 	return true
 }

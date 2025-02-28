@@ -219,12 +219,13 @@ func (d *attributeDiagnostic) Equals(otherDiag ComparableDiagnostic) bool {
 	if d.detail != od.detail {
 		return false
 	}
-	if d.address != od.address {
-		return false
-	}
 	if !d.attrPath.Equals(od.attrPath) {
 		return false
 	}
+
+	// address can differ between and after expansion
+	// even though it represents the same attribute
+	// so we avoid comparing it here
 
 	return sourceRangeEquals(d.subject, od.subject)
 }
@@ -425,9 +426,10 @@ func (d *wholeBodyDiagnostic) Equals(otherDiag ComparableDiagnostic) bool {
 	if d.detail != od.detail {
 		return false
 	}
-	if d.address != od.address {
-		return false
-	}
+
+	// address can differ between and after expansion
+	// even though it represents the same attribute
+	// so we avoid comparing it here
 
 	return sourceRangeEquals(d.subject, od.subject)
 }
