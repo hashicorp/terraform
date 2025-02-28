@@ -160,10 +160,10 @@ type IdentitySchema struct {
 // "Schemas" (plural) instead represents the overall collection of schemas
 // for everything within a particular provider.
 type Schema struct {
-	Version uint64
+	Version int64
 	Body    *configschema.Block
 
-	IdentityVersion uint64
+	IdentityVersion int64
 	Identity        *configschema.Object
 }
 

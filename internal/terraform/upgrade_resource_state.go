@@ -40,7 +40,7 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 	// Legacy flatmap state is already taken care of during conversion.
 	// If the schema version is be changed, then allow the provider to handle
 	// removed attributes.
-	if len(src.AttrsJSON) > 0 && src.SchemaVersion == currentSchema.Version {
+	if len(src.AttrsJSON) > 0 && src.SchemaVersion == uint64(currentSchema.Version) {
 		src.AttrsJSON = stripRemovedStateAttributes(src.AttrsJSON, currentSchema.Body.ImpliedType())
 	}
 
@@ -48,7 +48,7 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 
 	// TODO: This should eventually use a proper FQN.
 	providerType := addr.Resource.Resource.ImpliedProvider()
-	if src.SchemaVersion > currentSchema.Version {
+	if src.SchemaVersion > uint64(currentSchema.Version) {
 		log.Printf("[TRACE] upgradeResourceState: can't downgrade state for %s from version %d to %d", addr, src.SchemaVersion, currentSchema.Version)
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.Sourceless(
@@ -68,7 +68,7 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 	// v0.12, this also includes translating from legacy flatmap to new-style
 	// representation, since only the provider has enough information to
 	// understand a flatmap built against an older schema.
-	if src.SchemaVersion != currentSchema.Version {
+	if src.SchemaVersion != uint64(currentSchema.Version) {
 		log.Printf("[TRACE] upgradeResourceState: upgrading state for %s from version %d to %d using provider %q", addr, src.SchemaVersion, currentSchema.Version, providerType)
 	} else {
 		log.Printf("[TRACE] upgradeResourceState: schema version of %s is still %d; calling provider %q for any other minor fixups", addr, currentSchema.Version, providerType)
@@ -139,7 +139,7 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 		return nil, diags
 	}
 
-	new, err := src.CompleteUpgrade(newValue, currentSchema.Body.ImpliedType(), currentSchema.Version)
+	new, err := src.CompleteUpgrade(newValue, currentSchema.Body.ImpliedType(), uint64(currentSchema.Version))
 	if err != nil {
 		// We already checked for type conformance above, so getting into this
 		// codepath should be rare and is probably a bug somewhere under CompleteUpgrade.
@@ -155,7 +155,7 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 func upgradeResourceIdentity(addr addrs.AbsResourceInstance, provider providers.Interface, src *states.ResourceInstanceObjectSrc, currentSchema providers.Schema) (*states.ResourceInstanceObjectSrc, tfdiags.Diagnostics) {
 	// TODO: This should eventually use a proper FQN.
 	providerType := addr.Resource.Resource.ImpliedProvider()
-	if src.IdentitySchemaVersion > currentSchema.IdentityVersion {
+	if src.IdentitySchemaVersion > uint64(currentSchema.IdentityVersion) {
 		log.Printf("[TRACE] upgradeResourceIdentity: can't downgrade identity for %s from version %d to %d", addr, src.IdentitySchemaVersion, currentSchema.IdentityVersion)
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.Sourceless(
@@ -170,7 +170,7 @@ func upgradeResourceIdentity(addr addrs.AbsResourceInstance, provider providers.
 	}
 
 	// We don't need to do anything if the identity schema version is already up-to-date.
-	if src.IdentitySchemaVersion == currentSchema.IdentityVersion {
+	if src.IdentitySchemaVersion == uint64(currentSchema.IdentityVersion) {
 		return src, nil
 	}
 

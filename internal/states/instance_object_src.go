@@ -162,6 +162,6 @@ func (os *ResourceInstanceObjectSrc) CompleteIdentityUpgrade(newAttrs cty.Value,
 	}
 
 	new.IdentityJSON = src
-	new.IdentitySchemaVersion = schema.IdentityVersion
+	new.IdentitySchemaVersion = uint64(schema.IdentityVersion)
 	return new, nil
 }

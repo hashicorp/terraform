@@ -163,7 +163,7 @@ func (o *ResourceInstanceObject) Encode(schema providers.Schema) (*ResourceInsta
 	sort.Slice(dependencies, func(i, j int) bool { return dependencies[i].String() < dependencies[j].String() })
 
 	return &ResourceInstanceObjectSrc{
-		SchemaVersion:         schema.Version,
+		SchemaVersion:         uint64(schema.Version),
 		AttrsJSON:             src,
 		AttrSensitivePaths:    sensitivePaths,
 		Private:               o.Private,
