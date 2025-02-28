@@ -387,7 +387,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 			// It is possible that the only instance is deposed
 			if ri.Current != nil {
-				if schema.Version != ri.Current.SchemaVersion {
+				if schema.Version != int64(ri.Current.SchemaVersion) {
 					return nil, fmt.Errorf("schema version %d for %s in state does not match version %d from the provider", ri.Current.SchemaVersion, resAddr, schema.Version)
 				}
 

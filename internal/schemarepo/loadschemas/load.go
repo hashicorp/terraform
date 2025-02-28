@@ -77,7 +77,7 @@ func loadProviderSchemas(schemas map[addrs.Provider]providers.ProviderSchema, co
 						Version: resource.Version,
 
 						Identity:        identitySchema.Body,
-						IdentityVersion: uint64(identitySchema.Version),
+						IdentityVersion: identitySchema.Version,
 					}
 				}
 			}

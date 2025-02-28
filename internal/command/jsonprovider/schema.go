@@ -21,7 +21,7 @@ func marshalSchema(schema providers.Schema) *Schema {
 
 	var ret Schema
 	ret.Block = marshalBlock(schema.Body)
-	ret.Version = schema.Version
+	ret.Version = uint64(schema.Version)
 
 	return &ret
 }

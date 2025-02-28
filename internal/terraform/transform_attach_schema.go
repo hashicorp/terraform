@@ -74,7 +74,7 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 				continue
 			}
 			log.Printf("[TRACE] AttachSchemaTransformer: attaching resource schema to %s", dag.VertexName(v))
-			tv.AttachResourceSchema(schema.Body, schema.Version)
+			tv.AttachResourceSchema(schema.Body, uint64(schema.Version))
 		}
 
 		if tv, ok := v.(GraphNodeAttachProviderConfigSchema); ok {
