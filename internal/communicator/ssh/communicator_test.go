@@ -16,6 +16,7 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -732,6 +733,55 @@ func TestScriptPath_randSeed(t *testing.T) {
 	path := c.ScriptPath()
 	if path == staticSeedPath {
 		t.Fatalf("rand not seeded! got: %s", path)
+	}
+}
+
+func TestProxyCommandPlaceholders(t *testing.T) {
+	// Instead of using a real command, we'll mock the exec.Command function
+	// to verify the command string has the placeholders replaced correctly
+
+	// Save the original command function and restore it after the test
+	origCommand := execCommand
+	defer func() { execCommand = origCommand }()
+
+	// Create a variable to capture the command and arguments
+	var capturedCommand string
+	var capturedArgs []string
+
+	// Mock the exec.Command function
+	execCommand = func(command string, args ...string) *exec.Cmd {
+		capturedCommand = command
+		capturedArgs = args
+
+		// Return a command that will succeed but not do anything
+		cmd := exec.Command("echo", "test")
+		return cmd
+	}
+
+	// Call the function with a proxy command that has placeholders
+	proxyCommand := "ssh -W %h:%p bastion-host.example.com"
+	addr := "example.com:2222"
+
+	// Create and call the connect function
+	connectFunc := ProxyCommandConnectFunc(proxyCommand, addr)
+	connectFunc()
+
+	// Verify the placeholders were replaced correctly
+	expectedCommand := "ssh"
+	expectedArgs := []string{"-W", "example.com:2222", "bastion-host.example.com"}
+
+	if capturedCommand != expectedCommand {
+		t.Fatalf("Command mismatch. Expected: %q, Got: %q", expectedCommand, capturedCommand)
+	}
+
+	if len(capturedArgs) != len(expectedArgs) {
+		t.Fatalf("Argument count mismatch. Expected: %d, Got: %d", len(expectedArgs), len(capturedArgs))
+	}
+
+	for i, arg := range expectedArgs {
+		if capturedArgs[i] != arg {
+			t.Fatalf("Argument mismatch at index %d. Expected: %q, Got: %q", i, arg, capturedArgs[i])
+		}
 	}
 }
 

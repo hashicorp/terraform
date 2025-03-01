@@ -15,10 +15,12 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/apparentlymart/go-shquot/shquot"
@@ -30,6 +32,9 @@ import (
 
 	_ "github.com/hashicorp/terraform/internal/logging"
 )
+
+// execCommand is a variable for testing that allows us to mock exec.Command
+var execCommand = exec.Command
 
 const (
 	// DefaultShebang is added at the top of a SSH script file
@@ -174,7 +179,12 @@ func (c *Communicator) Connect(o provisioners.UIOutput) (err error) {
 			))
 		}
 
-		if c.connInfo.ProxyHost != "" {
+		if c.connInfo.ProxyCommand != "" {
+			o.Output(fmt.Sprintf(
+				"Using configured proxy command: %s",
+				c.connInfo.ProxyCommand,
+			))
+		} else if c.connInfo.ProxyHost != "" {
 			o.Output(fmt.Sprintf(
 				"Using configured proxy host...\n"+
 					"  ProxyHost: %s\n"+
@@ -329,7 +339,18 @@ func (c *Communicator) Disconnect() error {
 	if c.conn != nil {
 		conn := c.conn
 		c.conn = nil
-		return conn.Close()
+
+		// Close the connection
+		err := conn.Close()
+		if err != nil {
+			log.Printf("[ERROR] Error closing connection: %s", err)
+			return err
+		}
+
+		// Ensure the proxy command is terminated if this is a proxy command connection
+		if proxyConn, ok := conn.(*proxyCommandConn); ok {
+			proxyConn.Close()
+		}
 	}
 
 	return nil
@@ -603,7 +624,7 @@ func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Re
 
 	if err != nil {
 		if exitErr, ok := err.(*ssh.ExitError); ok {
-			// Otherwise, we have an ExitErorr, meaning we can just read
+			// Otherwise, we have an ExitError, meaning we can just read
 			// the exit status
 			log.Printf("[ERROR] %s", exitErr)
 
@@ -896,4 +917,165 @@ func quoteShell(args []string, targetPlatform string) (string, error) {
 
 	return "", fmt.Errorf("Cannot quote shell command, target platform unknown: %s", targetPlatform)
 
+}
+
+// ProxyCommandConnectFunc is a convenience method for returning a function
+// that connects to a host using a proxy command.
+func ProxyCommandConnectFunc(proxyCommand, addr string) func() (net.Conn, error) {
+	return func() (net.Conn, error) {
+		log.Printf("[DEBUG] Connecting to %s using proxy command: %s", addr, proxyCommand)
+
+		// Replace %h and %p in the proxy command with the host and port
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing address: %s", err)
+		}
+
+		command := strings.Replace(proxyCommand, "%h", host, -1)
+		command = strings.Replace(command, "%p", port, -1)
+
+		// Split the command into command and args
+		cmdParts := strings.Fields(command)
+		if len(cmdParts) == 0 {
+			return nil, fmt.Errorf("Invalid proxy command: %s", proxyCommand)
+		}
+
+		// Create a buffer to capture stderr
+		stderrBuf := new(bytes.Buffer)
+
+		// Create proxy command
+		cmd := execCommand(cmdParts[0], cmdParts[1:]...)
+		cmd.Stderr = stderrBuf
+
+		// Set up the command to run in its own process group
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			Setpgid: true, // Create a new process group
+		}
+
+		// Start the command with pipes
+		stdin, err := cmd.StdinPipe()
+		if err != nil {
+			return nil, fmt.Errorf("Error creating stdin pipe for proxy command: %s", err)
+		}
+
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			stdin.Close()
+			return nil, fmt.Errorf("Error creating stdout pipe for proxy command: %s", err)
+		}
+
+		if err := cmd.Start(); err != nil {
+			stdin.Close()
+			stdout.Close()
+			return nil, fmt.Errorf("Error starting proxy command: %s", err)
+		}
+
+		// Create a wrapper that manages the command and pipes
+		conn := &proxyCommandConn{
+			cmd:        cmd,
+			stderr:     stderrBuf,
+			stdinPipe:  stdin,
+			stdoutPipe: stdout,
+		}
+
+		return conn, nil
+	}
+}
+
+type proxyCommandConn struct {
+	cmd        *exec.Cmd
+	stderr     *bytes.Buffer
+	stdinPipe  io.WriteCloser
+	stdoutPipe io.ReadCloser
+	closed     bool
+	mutex      sync.Mutex
+}
+
+// Read reads data from the connection (the command's stdout)
+func (c *proxyCommandConn) Read(b []byte) (int, error) {
+	if c.closed {
+		return 0, io.EOF
+	}
+	return c.stdoutPipe.Read(b)
+}
+
+// Write writes data to the connection (the command's stdin)
+func (c *proxyCommandConn) Write(b []byte) (int, error) {
+	if c.closed {
+		return 0, io.ErrClosedPipe
+	}
+	return c.stdinPipe.Write(b)
+}
+
+func (c *proxyCommandConn) Close() error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	if c.closed {
+		return nil
+	}
+	c.closed = true
+
+	log.Print("[DEBUG] Closing proxy command connection")
+
+	// Close pipes and hangup
+	if err := c.stdinPipe.Close(); err != nil {
+		log.Printf("[ERROR] Error closing stdin pipe: %s", err)
+	}
+	if err := c.stdoutPipe.Close(); err != nil {
+		log.Printf("[ERROR] Error closing stdout pipe: %s", err)
+	}
+
+	// Send hangup the proxy command and any child processes
+	if c.cmd.Process != nil {
+		pgid, err := syscall.Getpgid(c.cmd.Process.Pid)
+		if err != nil {
+			log.Printf("[ERROR] Error getting process group ID: %s", err)
+			// Fall back to killing just the process if we can't get the process group
+			if err := c.cmd.Process.Signal(syscall.SIGHUP); err != nil {
+				log.Printf("[ERROR] Error sending SIGHUP to proxy command: %s", err)
+			}
+		} else {
+			// Kill the entire process group
+			if err := syscall.Kill(-pgid, syscall.SIGHUP); err != nil {
+				log.Printf("[ERROR] Error sending SIGHUP to process group: %s", err)
+			}
+		}
+
+		// Wait for the process to finish to avoid zombie processes
+		go func() {
+			if err := c.cmd.Wait(); err != nil {
+				// This is expected since we're killing the process
+				log.Printf("[DEBUG] Proxy command exited: %s", err)
+			}
+		}()
+	}
+
+	// If the command failed, log the stderr output
+	if c.stderr.Len() > 0 {
+		log.Printf("[ERROR] Proxy command stderr: %s", c.stderr.String())
+	}
+
+	return nil
+}
+
+// Required methods to implement net.Conn interface
+func (c *proxyCommandConn) LocalAddr() net.Addr {
+	return &net.UnixAddr{Name: "local", Net: "unix"}
+}
+
+func (c *proxyCommandConn) RemoteAddr() net.Addr {
+	return &net.UnixAddr{Name: "remote", Net: "unix"}
+}
+
+func (c *proxyCommandConn) SetDeadline(t time.Time) error {
+	return nil // Not implemented
+}
+
+func (c *proxyCommandConn) SetReadDeadline(t time.Time) error {
+	return nil // Not implemented
+}
+
+func (c *proxyCommandConn) SetWriteDeadline(t time.Time) error {
+	return nil // Not implemented
 }

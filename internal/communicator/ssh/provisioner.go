@@ -70,6 +70,7 @@ type connectionInfo struct {
 	ProxyPort         uint16
 	ProxyUserName     string
 	ProxyUserPassword string
+	ProxyCommand      string
 
 	BastionUser        string
 	BastionPassword    string
@@ -151,6 +152,8 @@ func decodeConnInfo(v cty.Value) (*connectionInfo, error) {
 			}
 		case "agent_identity":
 			connInfo.AgentIdentity = v.AsString()
+		case "proxy_command":
+			connInfo.ProxyCommand = v.AsString()
 		}
 	}
 	return connInfo, nil
@@ -275,37 +278,60 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 		return nil, err
 	}
 
-	var p *proxyInfo
+	var connectFunc func() (net.Conn, error)
 
+	// Check for conflicting connection methods
+	connectionMethodCount := 0
+	if connInfo.ProxyCommand != "" {
+		connectionMethodCount++
+	}
 	if connInfo.ProxyHost != "" {
-		p = newProxyInfo(
-			fmt.Sprintf("%s:%d", connInfo.ProxyHost, connInfo.ProxyPort),
-			connInfo.ProxyScheme,
-			connInfo.ProxyUserName,
-			connInfo.ProxyUserPassword,
-		)
+		connectionMethodCount++
+	}
+	if connInfo.BastionHost != "" {
+		connectionMethodCount++
 	}
 
-	connectFunc := ConnectFunc("tcp", host, p)
+	if connectionMethodCount > 1 {
+		log.Printf("[WARN] Multiple connection methods specified (proxy_command, proxy_host, bastion_host). Using proxy_command if specified, then proxy_host, then bastion_host.")
+	}
 
-	var bastionConf *ssh.ClientConfig
-	if connInfo.BastionHost != "" {
-		bastionHost := fmt.Sprintf("%s:%d", connInfo.BastionHost, connInfo.BastionPort)
+	// If a proxy command is specified, use it
+	if connInfo.ProxyCommand != "" {
+		connectFunc = ProxyCommandConnectFunc(connInfo.ProxyCommand, host)
+	} else {
+		// Otherwise, use the standard connection methods
+		var p *proxyInfo
 
-		bastionConf, err = buildSSHClientConfig(sshClientConfigOpts{
-			user:        connInfo.BastionUser,
-			host:        bastionHost,
-			privateKey:  connInfo.BastionPrivateKey,
-			password:    connInfo.BastionPassword,
-			hostKey:     connInfo.HostKey,
-			certificate: connInfo.BastionCertificate,
-			sshAgent:    sshAgent,
-		})
-		if err != nil {
-			return nil, err
+		if connInfo.ProxyHost != "" {
+			p = newProxyInfo(
+				fmt.Sprintf("%s:%d", connInfo.ProxyHost, connInfo.ProxyPort),
+				connInfo.ProxyScheme,
+				connInfo.ProxyUserName,
+				connInfo.ProxyUserPassword,
+			)
 		}
 
-		connectFunc = BastionConnectFunc("tcp", bastionHost, bastionConf, "tcp", host, p)
+		connectFunc = ConnectFunc("tcp", host, p)
+
+		if connInfo.BastionHost != "" {
+			bastionHost := fmt.Sprintf("%s:%d", connInfo.BastionHost, connInfo.BastionPort)
+
+			bastionConf, err := buildSSHClientConfig(sshClientConfigOpts{
+				user:        connInfo.BastionUser,
+				host:        bastionHost,
+				privateKey:  connInfo.BastionPrivateKey,
+				password:    connInfo.BastionPassword,
+				hostKey:     connInfo.HostKey,
+				certificate: connInfo.BastionCertificate,
+				sshAgent:    sshAgent,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			connectFunc = BastionConnectFunc("tcp", bastionHost, bastionConf, "tcp", host, p)
+		}
 	}
 
 	config := &sshConfig{
