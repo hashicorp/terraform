@@ -151,3 +151,37 @@ special constraints due to how Terraform uses them:
     to upgrade because they tend to have dependencies that overlap with ours
     and so might affect non-telemetry-related behavior, and so it's acceptable
     for those to lag slightly behind to reduce risk in routine upgrades.
+
+
+# Provider Compatibility for Terraform 0.12
+  If you are using any version of Terraform 0.12.31 and all of it's 0.12 patch
+  versions, it requires explicit providerversioning as it does not supports the
+  required_providers block introduced in the later versions. Below are the
+  recommended provider versions for common infrastructure providers when using
+  Terraform 0.12
+    AWS Provider  ---> Use version 2.x as 3.x or above requires Terraform 0.13+
+      provider "aws" {
+        version = "~> 2.70"
+        region  = "us-east-1"
+      }
+    
+    GCP Provider ---> Use version 3.x as 4.x or above requires Terraform 0.13+
+      provider "google" {
+        version = "~> 3.5"
+        project = "your-gcp-project"
+        region  = "us-central1"
+      }
+
+    Azure Provider ---> Use version 2.x, as 3.x and later require Terraform 0.13+
+      provider "azurerm" {
+        version = "~> 2.30"
+        features {}
+      }
+    
+    Kubernetes Provider ---> Use version 1.x, as newer versions require Terraform 0.13+
+      provider "kubernetes" {
+        version                = "~> 1.11"
+        host                   = "https://your-k8s-api-server"
+        token                  = "your-access-token"
+        cluster_ca_certificate = "your-ca-cert"
+      }
