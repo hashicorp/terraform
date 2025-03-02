@@ -1,0 +1,10 @@
+---
+type: documentation
+description: >
+  Added documentation for specifying provider versions in Terraform 0.12 and its patched versions.
+  This update provides guidance on using explicit provider versioning since Terraform 0.12 does not support 
+  the `required_providers` block introduced in later versions.
+issue: 36586
+author: Sheersagar
+signed-off-by: vishavdeshwal@gmail.com
+---
