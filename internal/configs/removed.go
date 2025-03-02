@@ -21,6 +21,8 @@ type Removed struct {
 	// from state. Defaults to true.
 	Destroy bool
 
+	Concurrency int
+
 	// Managed captures a number of metadata fields that are applicable only
 	// for managed resources, and not for other resource modes.
 	//
@@ -71,6 +73,11 @@ func decodeRemovedBlock(block *hcl.Block) (*Removed, hcl.Diagnostics) {
 
 			if attr, exists := lcContent.Attributes["destroy"]; exists {
 				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &removed.Destroy)
+				diags = append(diags, valDiags...)
+			}
+
+			if attr, exists := lcContent.Attributes["concurrency"]; exists {
+				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &removed.Concurrency)
 				diags = append(diags, valDiags...)
 			}
 
@@ -152,6 +159,9 @@ var removedLifecycleBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
 		{
 			Name: "destroy",
+		},
+		{
+			Name: "concurrency",
 		},
 	},
 }

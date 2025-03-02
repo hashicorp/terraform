@@ -43,6 +43,12 @@ type GraphNodeResourceInstance interface {
 	StateDependencies() []addrs.ConfigResource
 }
 
+type GraphNodeLifecycle interface {
+	// Concurrency returns the concurrency limit for this resource, if any.
+	// A return value of -1 indicates no limit.
+	Concurrency() int
+}
+
 // NodeAbstractResource represents a resource that has no associated
 // operations. It registers all the interfaces for a resource that common
 // across multiple operation types.
@@ -87,6 +93,10 @@ type NodeAbstractResource struct {
 	generateConfigPath string
 
 	forceCreateBeforeDestroy bool
+
+	// An optional semaphore. If set, this semaphore will be acquired before
+	// any operations are performed on this resource.
+	semaphore Semaphore
 }
 
 var (
@@ -104,6 +114,8 @@ var (
 	_ graphNodeAttachDataResourceDependsOn = (*NodeAbstractResource)(nil)
 	_ dag.GraphNodeDotter                  = (*NodeAbstractResource)(nil)
 	_ GraphNodeDestroyerCBD                = (*NodeAbstractResource)(nil)
+	_ GraphNodeLockable                    = (*NodeAbstractResource)(nil)
+	_ GraphNodeLifecycle                   = (*NodeAbstractResource)(nil)
 )
 
 // NewNodeAbstractResource creates an abstract resource graph node for
@@ -396,6 +408,37 @@ func (n *NodeAbstractResource) AttachResourceSchema(schema *configschema.Block, 
 // GraphNodeAttachProviderMetaConfigs impl
 func (n *NodeAbstractResource) AttachProviderMetaConfigs(c map[addrs.Provider]*configs.ProviderMeta) {
 	n.ProviderMetas = c
+}
+
+// GraphNodeLifecycle
+func (n *NodeAbstractResource) Concurrency() int {
+	switch {
+	case n.Config != nil && n.Config.Concurrency > 0:
+		return n.Config.Concurrency
+	case n.RemovedConfig != nil && n.RemovedConfig.Concurrency > 0:
+		return n.RemovedConfig.Concurrency
+	}
+
+	return -1
+}
+
+// GraphNodeLockable
+func (n *NodeAbstractResource) AttachSemaphore(sem Semaphore) {
+	n.semaphore = sem
+}
+
+// GraphNodeLockable
+func (n *NodeAbstractResource) Lock() {
+	if n.semaphore != nil {
+		n.semaphore.Acquire()
+	}
+}
+
+// GraphNodeLockable
+func (n *NodeAbstractResource) Unlock() {
+	if n.semaphore != nil {
+		n.semaphore.Release()
+	}
 }
 
 // GraphNodeDotter impl.

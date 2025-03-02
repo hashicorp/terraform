@@ -226,6 +226,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
 
+		// Attach resource-level semaphores. This must come after the
+		// configs are attached (via resource or removed blocks) so that
+		// we can determine the concurrency limit for each resource.
 		&DynamicConcurrencyTransformer{State: b.State},
 
 		// Close any ephemeral resource instances.
