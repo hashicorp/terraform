@@ -218,7 +218,6 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 type NodeDestroyDeposedResourceInstanceObject struct {
 	*NodeAbstractResourceInstance
 	DeposedKey states.DeposedKey
-	semaphore  Semaphore
 }
 
 var (

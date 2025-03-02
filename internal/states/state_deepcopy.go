@@ -171,7 +171,6 @@ func (os *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 		AttrSensitivePaths:  sensitiveAttrPaths,
 		Dependencies:        dependencies,
 		CreateBeforeDestroy: os.CreateBeforeDestroy,
-		Concurrency:         os.Concurrency,
 		decodeValueCache:    os.decodeValueCache,
 	}
 }
@@ -209,7 +208,6 @@ func (o *ResourceInstanceObject) DeepCopy() *ResourceInstanceObject {
 		Private:             private,
 		Dependencies:        dependencies,
 		CreateBeforeDestroy: o.CreateBeforeDestroy,
-		Concurrency:         o.Concurrency,
 	}
 }
 

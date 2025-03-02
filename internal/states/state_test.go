@@ -165,7 +165,6 @@ func TestStateDeepCopyObject(t *testing.T) {
 			},
 		},
 		CreateBeforeDestroy: true,
-		Concurrency:         1,
 	}
 
 	objCopy := obj.DeepCopy()
