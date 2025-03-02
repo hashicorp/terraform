@@ -19,6 +19,18 @@ require so that Terraform can install and use them. The
 [Provider Requirements](/terraform/language/providers/requirements)
 page documents how to declare providers so Terraform can install them.
 
+# Provider Compatibility for Terraform 0.12
+
+If you are using any version of Terraform 0.12.31 and all of its 0.12 patch versions, you must explicitly specify the provider version. Terraform 0.12 does not support the `required_providers` block introduced in later versions. Below are the recommended provider versions for common infrastructure providers when using Terraform 0.12.
+
+| Provider   | Recommended Version | Terraform Compatibility | Example Configuration |
+|------------|--------------------|-------------------------|-----------------------|
+| **AWS**    | `~> 2.70`          | Use version 2.x (3.x+ requires Terraform 0.13+) | ```hcl<br>provider "aws" {<br>  version = "~> 2.70"<br>  region  = "us-east-1"<br>}``` |
+| **GCP**    | `~> 3.5`           | Use version 3.x (4.x+ requires Terraform 0.13+) | ```hcl<br>provider "google" {<br>  version = "~> 3.5"<br>  project = "your-gcp-project"<br>  region  = "us-central1"<br>}``` |
+| **Azure**  | `~> 2.30`          | Use version 2.x (3.x+ requires Terraform 0.13+) | ```hcl<br>provider "azurerm" {<br>  version = "~> 2.30"<br>  features {}<br>}``` |
+| **Kubernetes** | `~> 1.11`       | Use version 1.x (newer versions require Terraform 0.13+) | ```hcl<br>provider "kubernetes" {<br>  version = "~> 1.11"<br>  host = "https://your-k8s-api-server"<br>  token = "your-access-token"<br>  cluster_ca_certificate = "your-ca-cert"<br>}``` |
+
+> **Note:** Ensure that the provider versions specified are compatible with your Terraform 0.12 setup.
 ## Provider Configuration
 
 Provider configurations belong in the root module of a Terraform configuration.
