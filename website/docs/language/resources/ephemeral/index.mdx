@@ -45,7 +45,8 @@ Use write-only arguments to securely pass temporary values to resources during a
 
 ```hcl
 ephemeral "random_password" "db_password" {
-  length = 16
+  length           = 16
+  override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
 resource "aws_secretsmanager_secret" "db_password" {
