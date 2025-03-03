@@ -75,7 +75,7 @@ an ephemeral resource. Since these credentials are managed by an ephemeral resou
 
 ```hcl
 ephemeral "aws_secretsmanager_secret_version" "db_master" {
-  secret_id = data.aws_db_instance.example.master_user_secret[0].secret_arn
+  secret_id = aws_secretsmanager_secret_version.db_password.secret_id
 }
 
 locals {
@@ -83,8 +83,8 @@ locals {
 }
 
 provider "postgresql" {
-  host     = data.aws_db_instance.example.address
-  port     = data.aws_db_instance.example.port
+  host     = aws_db_instance.example.address
+  port     = aws_db_instance.example.port
   username = local.credentials["username"]
   password = local.credentials["password"]
 }
