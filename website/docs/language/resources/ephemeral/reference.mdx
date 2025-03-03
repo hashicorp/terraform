@@ -13,6 +13,10 @@ This topic provides reference information for the `ephemeral` block.
 
 Ephemeral resources are Terraform resources that are essentially temporary. Ephemeral resources have a unique lifecycle, and Terraform does not store them in its state. Each `ephemeral` block describes one or more ephemeral resources, such as a temporary password or connection to another system.
 
+## Deferring
+
+If an input argument of an ephemeral resource references a value that is not yet known but will be during or after the plan, Terraform defers the resource’s execution to the apply stage instead of running it during the plan. This behavior allows Terraform to evaluate the ephemeral resource at the correct time and ensures that the resource is not executed prematurely.
+
 ## Dependency graph
 
 Ephemeral resources form nodes in Terraform's dependency graph, which interact similarly as resources and data sources. For example, when a resource or data source depends on an attribute of an ephemeral resource, Terraform automatically provisions the ephemeral resource first.
