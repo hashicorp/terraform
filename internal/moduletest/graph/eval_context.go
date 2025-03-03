@@ -274,8 +274,10 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 				Subject:     rule.Condition.Range().Ptr(),
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
-				// Make the ephemerality visible
-				Extra: terraform.DiagnosticCausedByEphemeral(true),
+				// Diagnostic can be identified as originating from a failing test assertion.
+				// Also, values that are ephemeral, sensitive, or unknown are replaced with
+				// redacted values in renderings of the diagnostic.
+				Extra: DiagnosticCausedByTestFailure{Verbose: ec.verbose},
 			})
 			continue
 		} else {
