@@ -23,28 +23,32 @@ type GraphNodeExecutable interface {
 // TestFileState is a helper struct that just maps a run block to the state that
 // was produced by the execution of that run block.
 type TestFileState struct {
+	File  *moduletest.File
 	Run   *moduletest.Run
 	State *states.State
 }
 
-// TestConfigTransformer is a GraphTransformer that adds all the test runs,
-// and the variables defined in each run block, to the graph.
-type TestConfigTransformer struct {
+// TestStateTransformer is a GraphTransformer that initializes the context with
+// all the states produced by the test file.
+type TestStateTransformer struct {
 	File *moduletest.File
 }
 
-func (t *TestConfigTransformer) Transform(g *terraform.Graph) error {
+func (t *TestStateTransformer) Transform(g *terraform.Graph) error {
 	// This map tracks the state of each run in the file. If multiple runs
 	// have the same state key, they will share the same state.
 	statesMap := make(map[string]*TestFileState)
 
-	// a root config node that will add the file states to the context
+	// Since the map is a pointer, we can add it to the root config node.
+	// The root config node will then add the file states to the context later
+	// when the graph is executed.
 	rootConfigNode := t.addRootConfigNode(g, statesMap)
 
 	for node := range dag.SelectSeq(g.VerticesSeq(), &NodeTestRun{}) {
 		key := node.run.GetStateKey()
 		if _, exists := statesMap[key]; !exists {
 			state := &TestFileState{
+				File:  t.File,
 				Run:   nil,
 				State: states.NewState(),
 			}
@@ -59,7 +63,7 @@ func (t *TestConfigTransformer) Transform(g *terraform.Graph) error {
 	return nil
 }
 
-func (t *TestConfigTransformer) addRootConfigNode(g *terraform.Graph, statesMap map[string]*TestFileState) *dynamicNode {
+func (t *TestStateTransformer) addRootConfigNode(g *terraform.Graph, statesMap map[string]*TestFileState) *dynamicNode {
 	rootConfigNode := &dynamicNode{
 		eval: func(ctx *EvalContext) tfdiags.Diagnostics {
 			var diags tfdiags.Diagnostics
