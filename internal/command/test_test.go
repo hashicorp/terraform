@@ -2564,6 +2564,50 @@ Failure! 0 passed, 1 failed.
 	}
 }
 
+// TestTest_ReusedBackendConfiguration asserts that it's not valid to re-use the same backend config (i.e the same state file)
+// in parallel runs. This would result in multiple actions attempting to set state, potentially with different resource configurations.
+func TestTest_ReusedBackendConfiguration(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "reused-backend-config")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	// Assertions
+	if code != 1 {
+		t.Errorf("expected status code 1 but got %d", code)
+	}
+
+	expected := `
+Error: Repeat use of the same backend block
+
+  on test_case_two.tftest.hcl line 12, in run "test_2":
+  12:   backend "local" {
+
+The run "test_2" contains a backend configuration that's already been used in
+run "test_1". Sharing the same backend configuration between separate runs
+will result in conflicting state updates.
+`
+	if diff := cmp.Diff(output.All(), expected); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, output.All(), diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
 func TestTest_RunBlocksInProviders(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "provider_runs")), td)

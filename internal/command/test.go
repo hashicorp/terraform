@@ -144,7 +144,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 					&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Repeat use of the same backend block",
-						Detail:   fmt.Sprintf("The run %q contains a backend configuration that's already been used in the run %q. Sharing the same backend configuration between separate runs will result in conflicting state updates.", bc.RunName, runName),
+						Detail:   fmt.Sprintf("The run %q contains a backend configuration that's already been used in run %q. Sharing the same backend configuration between separate runs will result in conflicting state updates.", bc.RunName, runName),
 						Subject:  bc.Backend.TypeRange.Ptr(),
 					},
 				)
