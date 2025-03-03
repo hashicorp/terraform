@@ -27,7 +27,7 @@ Providers indicate in the Terraform registry whether an argument is write-only. 
 
 ```hcl
 resource "aws_db_instance" "test" {
-  instance_class      = "db.t5.micro"
+  instance_class      = "db.t3.micro"
   allocated_storage   = "5"
   engine              = "postgres"
   username            = "example"
@@ -43,7 +43,7 @@ Write-only arguments accept both ephemeral and non-ephemeral values. For example
 
 ```hcl
 resource "aws_db_instance" "test" {
-  instance_class      = "db.t5.micro"
+  instance_class      = "db.t3.micro"
   allocated_storage   = "5"
   engine              = "postgres"
   username            = "example"
@@ -71,7 +71,7 @@ resource "aws_db_instance" "example" {
   engine              = "postgres"
   username            = "example"
   skip_final_snapshot = true
-  password_wo         = ephemeral.random_password.db_password.secret_string
+  password_wo         = ephemeral.random_password.db_password.result
   password_wo_version = 1
 }
 ```
@@ -80,7 +80,7 @@ resource "aws_db_instance" "example" {
 
 During a Terraform operation, the provider uses the `password_wo` value to create the database instance, and then Terraform discards that value without storing it in the plan or state file. 
 
-Note that the way this is written, the `password_wo` value is lost after Terraform generates unless we capture it in another resource or output. For example of storing and retrieving an ephemeral password, Refer to the [expanded example below](#example). 
+Note that the way this is written, the `password_wo` value is lost after Terraform generates unless we capture it in another resource or output. For example of generating, storing, retrieving, and using an ephemeral password as a write-only argument, refer to the [expanded example below](#example). 
 
 ## Update write-only arguments with versions
 
@@ -96,7 +96,7 @@ For example, the `aws_db_instance` resource has an accompanying `password_wo_ver
 
 ```hcl
 resource "aws_db_instance" "test" {
-  instance_class      = "db.t5.micro"
+  instance_class      = "db.t3.micro"
   allocated_storage   = "5"
   engine              = "postgres"
   username            = "example"
@@ -114,7 +114,7 @@ To trigger an update of a write-only argument, increment the version argument's 
 
 ```hcl
 resource "aws_db_instance" "main" {
-  instance_class      = "db.t5.micro"
+  instance_class      = "db.t3.micro"
   allocated_storage   = "5"
   engine              = "postgres"
   username            = "example"
