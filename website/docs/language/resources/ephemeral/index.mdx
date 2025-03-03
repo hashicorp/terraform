@@ -69,7 +69,7 @@ resource "aws_db_instance" "example" {
   username            = "example"
   skip_final_snapshot = true
   password_wo         = ephemeral.aws_secretsmanager_secret_version.db_password.secret_string
-  password_wo_version = 1
+  password_wo_version = aws_secretsmanager_secret_version.db_password.secret_string_wo_version
 }
 ```
 
