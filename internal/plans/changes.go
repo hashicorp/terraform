@@ -658,7 +658,7 @@ func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 	}
 
 	// Identities can not have marks, this should be validated earlier
-	if c.BeforeIdentity != cty.NilVal {
+	if !c.BeforeIdentity.IsNull() {
 		_, unsupportedBeforeIdentityMarks := c.BeforeIdentity.UnmarkDeepWithPaths()
 		if len(unsupportedBeforeIdentityMarks) != 0 {
 			return nil, fmt.Errorf(
@@ -674,7 +674,7 @@ func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 		}
 	}
 
-	if c.AfterIdentity != cty.NilVal {
+	if !c.AfterIdentity.IsNull() {
 		_, unsupportedAfterIdentityMarks := c.AfterIdentity.UnmarkDeepWithPaths()
 
 		if len(unsupportedAfterIdentityMarks) != 0 {

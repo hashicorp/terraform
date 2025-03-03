@@ -450,7 +450,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
 		}
 
-		if resp.PlannedIdentity != cty.NilVal {
+		if !resp.PlannedIdentity.IsNull() {
 			// Destroying is an operation where we allow identity changes.
 			diags = diags.Append(n.validateIdentity(currentState, resp.PlannedIdentity, true))
 		}
@@ -656,7 +656,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 			diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
 		}
 
-		if resp.Identity != cty.NilVal {
+		if !resp.Identity.IsNull() {
 			diags = diags.Append(n.validateIdentity(state, resp.Identity, false))
 		}
 		if resp.Deferred != nil {
@@ -1105,7 +1105,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	woPathSet := cty.NewPathSet(writeOnlyPaths...)
 	action, actionReason := getAction(n.Addr, unmarkedPriorVal, unmarkedPlannedNewVal, createBeforeDestroy, woPathSet, forceReplace, reqRep)
 
-	if plannedIdentity != cty.NilVal {
+	if !plannedIdentity.IsNull() {
 		diags = diags.Append(n.validateIdentity(currentState, plannedIdentity, action.IsReplace()))
 	}
 
@@ -1163,7 +1163,7 @@ func (n *NodeAbstractResourceInstance) plan(
 				diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
 			}
 
-			if resp.PlannedIdentity != cty.NilVal {
+			if !resp.PlannedIdentity.IsNull() {
 				// On replace the identity is allowed to change.
 				diags = diags.Append(n.validateIdentity(currentState, resp.PlannedIdentity, true))
 			}
@@ -2620,7 +2620,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			PlannedIdentity: change.AfterIdentity,
 		})
 
-		if resp.NewIdentity != cty.NilVal {
+		if !resp.NewIdentity.IsNull() {
 			n.validateIdentity(state, resp.NewIdentity, change.Action.IsReplace())
 		}
 	}

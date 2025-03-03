@@ -267,7 +267,7 @@ func (p *provider) ReadResource(_ context.Context, req *tfplugin5.ReadResource_R
 	}
 	resp.NewState = dv
 
-	if readResp.Identity != cty.NilVal {
+	if !readResp.Identity.IsNull() {
 		identitySchema, ok := p.identitySchemas.IdentityTypes[req.TypeName]
 		if !ok {
 			return resp, fmt.Errorf("identity schema not found for type %s", req.TypeName)
@@ -354,7 +354,7 @@ func (p *provider) PlanResourceChange(_ context.Context, req *tfplugin5.PlanReso
 		resp.RequiresReplace = append(resp.RequiresReplace, convert.PathToAttributePath(path))
 	}
 
-	if planResp.PlannedIdentity != cty.NilVal {
+	if !planResp.PlannedIdentity.IsNull() {
 		plannedIdentitySchema, ok := p.identitySchemas.IdentityTypes[req.TypeName]
 		if !ok {
 			return resp, fmt.Errorf("identity schema not found for type %s", req.TypeName)
@@ -439,7 +439,7 @@ func (p *provider) ApplyResourceChange(_ context.Context, req *tfplugin5.ApplyRe
 		return resp, nil
 	}
 
-	if applyResp.NewIdentity != cty.NilVal {
+	if !applyResp.NewIdentity.IsNull() {
 		newIdentitySchema, ok := p.identitySchemas.IdentityTypes[req.TypeName]
 		if !ok {
 			return resp, fmt.Errorf("identity schema not found for type %s", req.TypeName)
@@ -496,7 +496,7 @@ func (p *provider) ImportResourceState(_ context.Context, req *tfplugin5.ImportR
 			Private:  res.Private,
 		}
 
-		if res.Identity != cty.NilVal {
+		if !res.Identity.IsNull() {
 			identitySchema, ok := p.identitySchemas.IdentityTypes[res.TypeName]
 			if !ok {
 				return nil, fmt.Errorf("identity schema not found for type %s", res.TypeName)
@@ -558,7 +558,7 @@ func (p *provider) MoveResourceState(_ context.Context, request *tfplugin5.MoveR
 	resp.TargetState = targetState
 	resp.TargetPrivate = moveResp.TargetPrivate
 
-	if moveResp.TargetIdentity != cty.NilVal {
+	if !moveResp.TargetIdentity.IsNull() {
 		targetIdentitySchema, ok := p.identitySchemas.IdentityTypes[request.TargetTypeName]
 		if !ok {
 			return resp, fmt.Errorf("identity schema not found for type %s", request.TargetTypeName)

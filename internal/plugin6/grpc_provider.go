@@ -486,7 +486,7 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 	}
 
 	var currentIdentity *proto6.ResourceIdentityData
-	if r.CurrentIdentity != cty.NilVal {
+	if !r.CurrentIdentity.IsNull() {
 		currentIdentitySchema, ok := p.identityTypes[r.TypeName]
 		if !ok {
 			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown identity type %s", r.TypeName))
@@ -735,7 +735,7 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		protoReq.ProviderMeta = &proto6.DynamicValue{Msgpack: metaMP}
 	}
 
-	if r.PlannedIdentity != cty.NilVal {
+	if !r.PlannedIdentity.IsNull() {
 		plannedIdentitySchema, ok := p.identityTypes[r.TypeName]
 		if !ok {
 			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("identity type not found for resource type %s", r.TypeName))
@@ -809,7 +809,7 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
 
-	if r.Identity != cty.NilVal {
+	if !r.Identity.IsNull() {
 		identitySchema, ok := p.identityTypes[r.TypeName]
 		if !ok {
 			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown identity type %s", r.TypeName))
@@ -870,7 +870,7 @@ func (p *GRPCProvider) MoveResourceState(r providers.MoveResourceStateRequest) (
 	logger.Trace("GRPCProvider: MoveResourceState")
 
 	var sourceIdentity *proto6.ResourceIdentityData
-	if r.SourceIdentity != cty.NilVal {
+	if !r.SourceIdentity.IsNull() {
 		sourceIdentitySchema, ok := p.identityTypes[r.SourceTypeName]
 		if !ok {
 			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("could not find resource identity schema for type %q", r.SourceTypeName))

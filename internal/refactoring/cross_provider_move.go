@@ -202,7 +202,7 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 		return diags
 	}
 
-	if resp.TargetIdentity != cty.NilVal {
+	if !resp.TargetIdentity.IsNull() {
 		// Identities can not contain unknown values
 		if !resp.TargetIdentity.IsWhollyKnown() {
 			diags = diags.Append(tfdiags.Sourceless(
