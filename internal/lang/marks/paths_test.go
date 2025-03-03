@@ -58,6 +58,40 @@ func TestPathsWithMark(t *testing.T) {
 	}
 }
 
+func TestRemoveAll(t *testing.T) {
+	input := []cty.PathValueMarks{
+		{
+			Path:  cty.GetAttrPath("sensitive"),
+			Marks: cty.NewValueMarks("sensitive"),
+		},
+		{
+			Path:  cty.GetAttrPath("other"),
+			Marks: cty.NewValueMarks("other"),
+		},
+		{
+			Path:  cty.GetAttrPath("both"),
+			Marks: cty.NewValueMarks("sensitive", "other"),
+		},
+	}
+
+	want := []cty.PathValueMarks{
+		{
+			Path:  cty.GetAttrPath("sensitive"),
+			Marks: cty.NewValueMarks("sensitive"),
+		},
+		{
+			Path:  cty.GetAttrPath("both"),
+			Marks: cty.NewValueMarks("sensitive"),
+		},
+	}
+
+	got := RemoveAll(input, "other")
+
+	if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
+		t.Errorf("wrong matched paths\n%s", diff)
+	}
+}
+
 func TestMarkPaths(t *testing.T) {
 	value := cty.ObjectVal(map[string]cty.Value{
 		"s": cty.StringVal(".s"),

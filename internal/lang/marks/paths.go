@@ -40,6 +40,28 @@ func PathsWithMark(pvms []cty.PathValueMarks, wantMark any) (withWanted []cty.Pa
 	return withWanted, withOthers
 }
 
+// RemoveAll take a series of PathValueMarks and removes the unwanted mark from
+// all paths. Paths with no remaining marks will be removed entirely. The
+// PathValuesMarks passed in are not cloned, and RemoveAll will modify the
+// original values, so the prior set of marks should not be retained for use.
+func RemoveAll(pvms []cty.PathValueMarks, remove any) []cty.PathValueMarks {
+	if len(pvms) == 0 {
+		// No-allocations path for the common case where there are no marks at all.
+		return nil
+	}
+
+	var res []cty.PathValueMarks
+
+	for _, pvm := range pvms {
+		delete(pvm.Marks, remove)
+		if len(pvm.Marks) > 0 {
+			res = append(res, pvm)
+		}
+	}
+
+	return res
+}
+
 // MarkPaths transforms the given value by marking each of the given paths
 // with the given mark value.
 func MarkPaths(val cty.Value, mark any, paths []cty.Path) cty.Value {
