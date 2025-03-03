@@ -402,3 +402,76 @@ func TestContext2Plan_resource_identity_refresh_destroy_deposed(t *testing.T) {
 	}
 
 }
+
+func TestContext2Plan_resource_identity_plan(t *testing.T) {
+	for name, tc := range map[string]struct {
+		prevRunState     *states.State
+		plannedIdentity  cty.Value
+		expectedIdentity cty.Value
+	}{
+		"create": {
+			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
+			expectedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			m := testModuleInline(t, map[string]string{
+				"main.tf": `
+       resource "test_resource" "test" {
+       }
+       `,
+			})
+			p := testProvider("test")
+			p.GetResourceIdentitySchemasResponse = &providers.GetResourceIdentitySchemasResponse{
+				IdentityTypes: map[string]providers.IdentitySchema{
+					"test_resource": {
+						Version: 0,
+						Body: &configschema.Object{
+							Attributes: map[string]*configschema.Attribute{
+								"id": {
+									Type:     cty.String,
+									Required: true,
+								},
+							},
+							Nesting: configschema.NestingSingle,
+						},
+					},
+				},
+			}
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+			p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+				return providers.PlanResourceChangeResponse{
+					PlannedState:    req.ProposedNewState,
+					PlannedIdentity: tc.plannedIdentity,
+				}
+			}
+
+			plan, diags := ctx.Plan(m, tc.prevRunState, &PlanOpts{Mode: plans.NormalMode})
+
+			if diags.HasErrors() {
+				t.Fatal(diags.Err())
+			}
+
+			schema := p.GetProviderSchemaResponse.ResourceTypes["test_resource"]
+			schema.Identity = p.GetResourceIdentitySchemasResponse.IdentityTypes["test_resource"].Body
+
+			change, err := plan.Changes.Resources[0].Decode(schema)
+
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if !tc.expectedIdentity.RawEquals(change.AfterIdentity) {
+				t.Fatalf("wrong identity\nwant: %s\ngot: %s", tc.expectedIdentity.GoString(), change.AfterIdentity.GoString())
+			}
+		})
+	}
+}
