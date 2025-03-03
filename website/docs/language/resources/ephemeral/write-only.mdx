@@ -53,29 +53,46 @@ resource "aws_db_instance" "test" {
 }
 ```
 
-However, we recommend using write-only arguments for passing ephemeral values to resources. If you use a non-ephemeral value, Terraform stores that value or hard-codes it in your configuration. For example, you can use an `ephemeral` resource to generate a random password and pass it to the `password_wo` write-only argument:
+However, we recommend using write-only arguments for passing ephemeral values to resources. If you use a non-ephemeral value, Terraform stores that value or hard-codes it in your configuration.
+
+For example, you can use an `ephemeral` resource to generate a random password, store it in AWS Secrets Manager, and then retrieve it using another `ephemeral` resource. Finally, you can pass the password to the `password_wo` write-only argument of the `aws_db_instance` resource:
 
 <CodeBlockConfig highlight="11">
 
 ```hcl
-ephemeral "random" "password" {
-  length = 16
+ephemeral "random_password" "db_password" {
+  length           = 16
+  override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
-resource "aws_db_instance" "test" {
-  instance_class      = "db.t5.micro"
+resource "aws_secretsmanager_secret" "db_password" {
+  name = "db_password"
+}
+
+resource "aws_secretsmanager_secret_version" "db_password" {
+  secret_id                = aws_secretsmanager_secret.db_password.id
+  secret_string_wo         = ephemeral.random_password.db_password.result
+  secret_string_wo_version = 1
+}
+
+ephemeral "aws_secretsmanager_secret_version" "db_password" {
+  secret_id = aws_secretsmanager_secret_version.db_password.secret_id
+}
+
+resource "aws_db_instance" "example" {
+  instance_class      = "db.t3.micro"
   allocated_storage   = "5"
   engine              = "postgres"
-  username            = "admin"
+  username            = "example"
   skip_final_snapshot = true
-  password_wo         = ephemeral.random.password.value
-  password_wo_version = 1
+  password_wo         = ephemeral.aws_secretsmanager_secret_version.db_password.secret_string
+  password_wo_version = aws_secretsmanager_secret_version.db_password.secret_string_wo_version
 }
 ```
 
 </CodeBlockConfig>
 
-During a Terraform operation, the provider uses the `password_wo` value to configure the database instance, and then Terraform discards that value without storing it in the plan or state file. 
+During a Terraform operation, the provider uses the `password_wo` value to create the database instance, and then Terraform discards that value without storing it in the plan or state file. 
 
 ## Update write-only arguments with versions
 
