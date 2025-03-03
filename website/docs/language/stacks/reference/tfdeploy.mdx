@@ -7,11 +7,11 @@ description: Stacks help you provision and coordinate your infrastructure lifecy
 
 A deployment configuration file defines how to deploy your Stack's infrastructure. Each Stack deployment runs in its agent, wholly isolated from other Stack deployments.
 
-Every Stack needs a deployment configuration file, `tfdeploy.hcl`, and this page describes all of the blocks you can use within a deployment configuration file. Note that none of the blocks in the deployment configuration file support [meta-arguments](/terraform/language/resources/syntax#meta-arguments). 
+Every Stack needs a deployment configuration file, `tfdeploy.hcl`, and this page describes all of the blocks you can use within a deployment configuration file. Note that none of the blocks in the deployment configuration file support [meta-arguments](/terraform/language/resources/syntax#meta-arguments).
 
 ## `deployment` block configuration
 
-The `deployment` block is where you define how many times you want to deploy your Stack's infrastructure. Each Stack requires at least one `deployment` block, and you can add a new `deployment` block every time you want to deploy your Stack’s infrastructure again. 
+The `deployment` block is where you define how many times you want to deploy your Stack's infrastructure. Each Stack requires at least one `deployment` block, and you can add a new `deployment` block every time you want to deploy your Stack’s infrastructure again.
 
 -> **Note**: HCP Terraform supports up to a maximum of 20 deployments.
 
@@ -41,7 +41,9 @@ Each Stack must have at least one `deployment` block, and the label of the `depl
 | :---- | :---- | :---- | :---- |
 | `inputs` | A mapping of Stack variable names for this deployment.  The keys in this map must correspond to the names of variables defined in the Stack. The values must be valid HCL literals meeting the type constraint of those variables. | map | Required |
 
-For example, the following `deployment` block accepts inputs for variables named `aws_region` and `instance_count` and creates a new deployment in HCP Terraform named “production”. 
+### Reference
+
+For example, the following `deployment` block accepts inputs for variables named `aws_region` and `instance_count` and creates a new deployment in HCP Terraform named “production”.
 
 ```hcl
 deployment "production" {
@@ -74,28 +76,16 @@ orchestrate "auto_approve" "name_of_check" {
 }
 ```
 
-The `orchestrate` block label includes the rule type and the rule name, which together must be unique within the Stack. 
+The `orchestrate` block label includes the rule type and the rule name, which together must be unique within the Stack.
 
 There are two orchestration rules to choose from:
 
-* The `auto_approve` rule executes after a Stack creates a plan and automatically approves a plan if all checks pass.  
+* The `auto_approve` rule executes after a Stack creates a plan and automatically approves a plan if all checks pass.
 * The `replan` rule executes after a Stack applies a plan, automatically triggering a replan if all the checks pass.
 
 HCP Terraform evaluates the `check` blocks within your `orchestrate` block to determine if it should approve a plan. If all of the checks pass, then HCP Terraform approves the plan for you. If one or more `conditions` do not pass, then HCP Terraform shows the `reason` why, and you must manually approve that plan.
 
-For example, the following `orchestrate` block automatically approves deployments if a component has not changed.
-
-```hcl
-orchestrate "auto_approve" "no_pet_changes" {
-    check {
-        # Check that the pet component has no changes
-        condition = context.plan.component_changes["component.pet"].total == 0
-        reason = "Changes proposed to pet component."
-    }
-}
-```
-
-By default, each Stack has an `auto_approve` rule named `empty_plan`, which automatically approves a plan if it contains no changes. 
+By default, each Stack has an `auto_approve` rule named `empty_plan`, which automatically approves a plan if it contains no changes.
 
 ### Specification
 
@@ -115,7 +105,7 @@ The `check` block contains the following configurable fields.
 
 ### Orchestration Context
 
-A `check` block’s `condition` field has access to a `context` variable, which includes information about the context of the current deployment plan. The `context` variable contains the following fields. 
+A `check` block’s `condition` field has access to a `context` variable, which includes information about the context of the current deployment plan. The `context` variable contains the following fields.
 
 | Field | Description | Type |
 | :---- | :---- | :---- |
@@ -125,7 +115,7 @@ A `check` block’s `condition` field has access to a `context` variable, which 
 | `errors` | A set of diagnostic error message objects. | set of objects |
 | `warnings` | A set of diagnostic warning message objects. | set of objects |
 
-The diagnostic message objects that the `context.errors` and `context.warnings` fields return includes the following information. 
+The diagnostic message objects that the `context.errors` and `context.warnings` fields return includes the following information.
 
 | Field | Description | Type |
 | :---- | :---- | :---- |
@@ -159,9 +149,24 @@ The object in the `context.plan.deployment` field includes the following fields.
 | :---- | :---- | :---- |
 | `deployment_name` | The name of the current deployment HCP Terraform is running this plan on.  You can use this field to check which deployment is running this plan. For example, you can check if this plan is on your production deployment: `context.plan.deployment == deployment.production`. | string |
 
+### Reference
+
+For example, the following `orchestrate` block automatically approves deployments if a component has not changed.
+
+```hcl
+orchestrate "auto_approve" "no_pet_changes" {
+  check {
+    condition = context.plan.component_changes["component.pet"].total == 0
+    reason    = "Changes proposed to pet component."
+  }
+}
+```
+
+If nothing changes in the `component.pet` component, HCP Terraform automatically approves the plan.
+
 ## `identity_token` block configuration
 
-The `identity_token` block defines a JSON Web Token (JWT) that Terraform generates for a given deployment if that `deployment` block references an `identity_token` in its `inputs`. 
+The `identity_token` block defines a JSON Web Token (JWT) that Terraform generates for a given deployment if that `deployment` block references an `identity_token` in its `inputs`.
 
 You can directly pass the token generated by the `identity_token` block to a provider's configuration for OIDC authentication. For more information on authenticating a Stack using OIDC, refer to [Authenticate a Stack](/terraform/language/stacks/deploy/authenticate).
 
@@ -183,6 +188,8 @@ This section provides details about the fields you can configure in the `identit
 | :---- | :---- | :---- | :---- |
 | `audience` | The audience of your token is the resource(s) that uses this token after Terraform generates it. You specify an audience to ensure that the cloud service authorizing the workload is confident that the token you present is intended for that service. | set of strings | Required |
 
+### Reference
+
 Once defined, you can reference an identity token's `jwt` attribute in a deployment's inputs. For example, below we generate a token for a particular role ARN in AWS.
 
 ```hcl
@@ -193,9 +200,9 @@ identity_token "aws" {
 
 deployment "staging" {
   inputs = {
-    aws_region     = "eu-west-1"
-    role_arn       = "arn:aws:iam::123456789101:role/my-oidc-role"
-    aws_token = identity_token.aws.jwt
+    aws_region = "eu-west-1"
+    role_arn   = "arn:aws:iam::123456789101:role/my-oidc-role"
+    aws_token  = identity_token.aws.jwt
   }
 }
 ```
@@ -220,11 +227,9 @@ variable "aws_role" {
 
 provider "aws" "this" {
   config {
-    region = var.region
+    region = var.aws_region
     assume_role_with_web_identity {
       role_arn           = var.aws_role
-      # Your configuration anticipates the aws_token we created
-      # with the indentity_token block in your deployments file.
       web_identity_token = var.aws_token
     }
   }
@@ -248,23 +253,6 @@ store "store_type" "store_name" {
 ```
 
 A store’s type defines where Terraform should look for that store’s credentials and how to decode the credentials it finds. You cannot share arguments across store types.
-
-For example, if you have an HCP Terraform [variable set](/terraform/cloud-docs/workspaces/variables/managing-variables#variable-sets) that contains a value you want to use in your deployment, you can create a `store` block to access that variable set.
-
-```hcl
-store "varset" "tokens" {
-    id       = "<variable_set_id>"
-    category = "terraform"
-}
-
-deployment "main" {
-    inputs = {
-        token = store.varset.tokens.example_token
-    }
-}
-```
-
-You cannot access an entire store and must specifically access individual keys within that store. Meaning, we can access your example’s `example_token` variable by accessing the store’s `varset` type, `store.varset`, then accessing the specific store, `store.varset.tokens.example_token`.
 
 ### `varset` specification and configuration
 
@@ -301,14 +289,139 @@ store "varset" "available_regions" {
 
 deployment "main" {
   inputs = {
-    regions = store.varset.available_regions.regions
-    tfe_token        = store.varset.tokens.tfe_token
+    regions   = store.varset.available_regions.regions
+    tfe_token = store.varset.tokens.tfe_token
   }
 }
 ```
 
 You can access specific environment variables by key from the `store.varset.available_regions` store, and you can access specific Terraform variables by key using the `store.varset.tokens` store.
 
+### Reference
+
+For example, if you have an HCP Terraform [variable set](/terraform/cloud-docs/workspaces/variables/managing-variables#variable-sets) that contains a value you want to use in your deployment, you can create a `store` block to access that variable set.
+
+```hcl
+store "varset" "tokens" {
+  id       = "<variable_set_id>"
+  category = "terraform"
+}
+
+deployment "main" {
+  inputs = {
+    token = store.varset.tokens.example_token
+  }
+}
+```
+
+You cannot access an entire store and must specifically access individual keys within that store. Meaning, we can access your example’s `example_token` variable by accessing the store’s `varset` type, `store.varset`, then accessing the specific store, `store.varset.tokens.example_token`.
+
 ## `locals` block configuration
 
 A local value assigns a name to an expression, so you can use the name multiple times within your Stack configuration instead of repeating the expression. The `locals` block works exactly as it does in traditional Terraform configurations. Learn more about [the `locals` block](/terraform/language/values/locals).
+
+## `publish_output` block configuration
+
+The `publish_output` block requires at least Terraform version `terraform_1.10.0-alpha20241009` or higher. Download [latest version of Terraform](https://releases.hashicorp.com/terraform/) to use the most up-to-date functionality.
+
+The `publish_output` block specifies a value to export from your current Stack, which other Stacks in the same project can consume. Declare one `publish_output` block for each value to export from your Stack.
+
+### Complete configuration
+
+When every field is defined, a `publish_output` block has the following form:
+
+<CodeBlockConfig hideClipboard>
+
+```hcl
+publish_output "output_name" {
+  description = "Description of the purpose of this output"
+  value       = deployment.deployment_name.some_value
+}
+```
+
+</CodeBlockConfig>
+
+### Specification
+
+This section provides details about the fields you can configure in the output block.
+
+| Field | Description | Type | Required |
+| :---- | :---- | :---- | :---- |
+| `description` | A human-friendly description for the output. | string | Optional |
+| `value` | The value to output.  | any | Required |
+
+### Reference
+
+For example, you could output the VPC ID from your networking deployment, making it available to other Stacks to input.
+
+<CodeBlockConfig filename="network.tfdeploy.hcl">
+
+```hcl
+# Network Stack's deployment configuration
+
+publish_output "vpc_id" {
+  description = "The networking Stack's VPC's ID."
+  value       = deployment.network.vpc_id
+}
+```
+
+</CodeBlockConfig>
+
+To learn more about passing information between Stacks, refer to [Pass data from one Stack to another](/terraform/language/stacks/deploy/pass-data).
+
+## `upstream_input` block configuration
+
+The `upstream_input` block requires at least Terraform version `terraform_1.10.0-alpha20241009` or higher. Download [latest version of Terraform](https://releases.hashicorp.com/terraform/) to use the most up-to-date functionality.
+
+The `upstream_input` block specifies another Stack in the same project to consume outputs from. Declare an `upstream_input` block for each Stack you want to reference. If an output from a upstream Stack changes, HCP Terraform automatically triggers runs for any Stacks that depend on those outputs.
+
+To learn more about passing information between Stacks, refer to [Pass data from one Stack to another](/terraform/language/stacks/deploy/link-stacks).
+
+### Complete configuration
+
+When every field is defined, an `upstream_input` block has the following form:
+
+<CodeBlockConfig hideClipboard>
+
+```hcl
+upstream_input "upstream_stack_name" {
+  type   = "stack"
+  source = "app.terraform.io/{organization_name}/{project_name}/{upstream_stack_name}"
+}
+```
+
+</CodeBlockConfig>
+
+### Specification
+
+This section provides details about the fields you can configure in the `upstream_input` block.
+
+| Field | Description | Type | Required |
+| :---- | :---- | :---- | :---- |
+| `type` | The only supported type is “stack”. | string | Required |
+| `source` | The upstream Stack’s URL, in the format: `"app.terraform.io/{organization_name}/{project_name}/{upstream_stack_name}"` | string | Required |
+
+### Reference
+
+For example, you could input a VPC ID from an upstream Stack that manages your shared networking service. You can use the `upstream_input` block to pass information from your network Stack into your application Stack.
+
+<CodeBlockConfig filename="application.tfdeploy.hcl">
+
+```hcl
+# Application Stack's deployment configuration
+
+upstream_input "network_stack" {
+  type   = "stack"
+  source = "app.terraform.io/hashicorp/Default Project/networking-stack"
+}
+
+deployment "application" {
+  inputs = {
+    vpc_id = upstream_input.network_stack.vpc_id
+  }
+}
+```
+
+</CodeBlockConfig>
+
+Your application Stack can now securely consume and use outputs from your network Stack. To learn more about passing information between Stacks, reference [Pass data from one Stack to another](/terraform/language/stacks/deploy/pass-data).

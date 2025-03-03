@@ -1,0 +1,19 @@
+kind: ENHANCEMENTS
+body: |
+  Updates the azure backend authentication to match the terraform-provider-azurermprovider authentication, in several ways:
+  
+  - github.com/hashicorp/go-azure-helpers: v0.43.0 -> v0.71.0
+  - github.com/hashicorp/go-azure-sdk/[resource-manager/sdk]: v0.20241212.1154051. This replaces the deprecated Azure SDK used before
+  - github.com/jackofallops/giovanni: v0.15.1 -> v0.27.0. Meanwhile, updating the azure storage API version from 2018-11-09 to 2023-11-03
+
+  Following new properties are added for the azure backend configuration:
+
+  - use_cli
+  - use_aks_workload_identity
+  - client_id_file_path
+  - client_certificate
+  - client_id_file_path
+  - client_secret_file_path
+time: 2025-01-30T10:57:00.080984883+11:00
+custom:
+    Issue: "36258"

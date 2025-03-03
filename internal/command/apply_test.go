@@ -994,6 +994,64 @@ func TestApply_planUndeclaredVars(t *testing.T) {
 	}
 }
 
+func TestApply_planWithEnvVars(t *testing.T) {
+	_, snap := testModuleWithSnapshot(t, "apply-output-only")
+	plan := testPlan(t)
+
+	addr, diags := addrs.ParseAbsOutputValueStr("output.shadow")
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	shadowVal := mustNewDynamicValue("noot", cty.DynamicPseudoType)
+	plan.VariableValues = map[string]plans.DynamicValue{
+		"shadow": shadowVal,
+	}
+	plan.Changes.Outputs = append(plan.Changes.Outputs, &plans.OutputChangeSrc{
+		Addr: addr,
+		ChangeSrc: plans.ChangeSrc{
+			Action: plans.Create,
+			After:  shadowVal,
+		},
+	})
+	planPath := testPlanFileMatchState(
+		t,
+		snap,
+		states.NewState(),
+		plan,
+		statemgr.SnapshotMeta{},
+	)
+
+	statePath := testTempFile(t)
+
+	p := applyFixtureProvider()
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	t.Setenv("TF_VAR_shadow", "env")
+
+	args := []string{
+		"-state", statePath,
+		"-no-color",
+		planPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatal("unexpected failure: ", output.All())
+	}
+
+	expectedWarn := "Warning: Ignoring variable when applying a saved plan\n"
+	if !strings.Contains(output.Stdout(), expectedWarn) {
+		t.Fatalf("expected warning in output, given: %q", output.Stdout())
+	}
+}
+
 // A saved plan includes a list of "apply-time variables", i.e. ephemeral
 // input variables that were set during the plan, and must therefore be set
 // during apply. No other variables may be set during apply.

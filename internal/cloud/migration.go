@@ -17,7 +17,7 @@ import (
 // the context of Cloud integration mode.
 type ConfigChangeMode rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type ConfigChangeMode
+//go:generate go tool golang.org/x/tools/cmd/stringer -type ConfigChangeMode
 
 const (
 	// ConfigMigrationIn represents when the configuration calls for using

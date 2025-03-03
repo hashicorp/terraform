@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Changes to the order of sensitive attributes in the state format would erroneously indicate a plan contained changes when there were none.
+time: 2025-02-10T16:30:38.78853-05:00
+custom:
+    Issue: "36465"

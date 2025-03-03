@@ -211,6 +211,10 @@ func TestParserLoadTestFiles_Invalid(t *testing.T) {
 			"invalid_resource_override_target.tftest.hcl:3,3-36: Invalid override target; You can only target resources from override_resource blocks, not data.aws_instance.target.",
 			"invalid_resource_override_target.tftest.hcl:8,3-24: Invalid override target; You can only target resources from override_resource blocks, not module.child.",
 		},
+		"duplicate_file_config": {
+			"duplicate_file_config.tftest.hcl:3,1-5: Multiple \"test\" blocks; This test file already has a \"test\" block defined at duplicate_file_config.tftest.hcl:1,1-5.",
+			"duplicate_file_config.tftest.hcl:5,1-5: Multiple \"test\" blocks; This test file already has a \"test\" block defined at duplicate_file_config.tftest.hcl:1,1-5.",
+		},
 	}
 
 	for name, expected := range tcs {
@@ -321,7 +325,7 @@ func TestParserLoadConfigDirFailure(t *testing.T) {
 }
 
 func TestIsEmptyDir(t *testing.T) {
-	val, err := IsEmptyDir(filepath.Join("testdata", "valid-files"))
+	val, err := IsEmptyDir(filepath.Join("testdata", "valid-files"), "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -331,7 +335,7 @@ func TestIsEmptyDir(t *testing.T) {
 }
 
 func TestIsEmptyDir_noExist(t *testing.T) {
-	val, err := IsEmptyDir(filepath.Join("testdata", "nopenopenope"))
+	val, err := IsEmptyDir(filepath.Join("testdata", "nopenopenope"), "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -340,12 +344,35 @@ func TestIsEmptyDir_noExist(t *testing.T) {
 	}
 }
 
-func TestIsEmptyDir_noConfigs(t *testing.T) {
-	val, err := IsEmptyDir(filepath.Join("testdata", "dir-empty"))
+func TestIsEmptyDir_noConfigsAndTests(t *testing.T) {
+	val, err := IsEmptyDir(filepath.Join("testdata", "dir-empty"), "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if !val {
 		t.Fatal("should be empty")
+	}
+}
+
+func TestIsEmptyDir_noConfigsButHasTests(t *testing.T) {
+	// The top directory has no configs, but it contains test files
+	val, err := IsEmptyDir(filepath.Join("testdata", "only-test-files"), "tests")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if val {
+		t.Fatal("should not be empty")
+	}
+}
+
+func TestIsEmptyDir_nestedTestsOnly(t *testing.T) {
+	// The top directory has no configs and no test files, but the nested
+	// directory has test files
+	val, err := IsEmptyDir(filepath.Join("testdata", "only-nested-test-files"), "tests")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if val {
+		t.Fatal("should not be empty")
 	}
 }

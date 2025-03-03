@@ -220,7 +220,7 @@ func (data MockedData) makeKnown(attribute *configschema.Attribute, with cty.Val
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
 				"Failed to compute attribute",
-				fmt.Sprintf("Terraform could not compute a value for the target type %s with the mocked data defined at %s with the attribute %q: %s.", attribute.ImpliedType().FriendlyName(), data.Range, fmtPath(append(path, relPath...)), err),
+				fmt.Sprintf("Terraform could not compute a value for the target type %s with the mocked data defined at %s with the attribute %q: %s.", attribute.ImpliedType().FriendlyName(), data.Range, tfdiags.FormatCtyPath(append(path, relPath...)), err),
 				path))
 
 			// We still want to return a valid value here. If the conversion did
@@ -285,7 +285,7 @@ func (data MockedData) getMockedDataForPath(path cty.Path) (cty.Value, tfdiags.D
 				diags = diags.Append(tfdiags.AttributeValue(
 					tfdiags.Error,
 					"Failed to compute attribute",
-					fmt.Sprintf("Terraform expected an object type for attribute %q defined within the mocked data at %s, but found %s.", fmtPath(currentPath), data.Range, current.Type().FriendlyName()),
+					fmt.Sprintf("Terraform expected an object type for attribute %q defined within the mocked data at %s, but found %s.", tfdiags.FormatCtyPath(currentPath), data.Range, current.Type().FriendlyName()),
 					currentPath))
 
 				return cty.NilVal, diags
@@ -303,24 +303,4 @@ func (data MockedData) getMockedDataForPath(path cty.Path) (cty.Value, tfdiags.D
 	}
 
 	return current, diags
-}
-
-func fmtPath(path cty.Path) string {
-	var current string
-
-	first := true
-	for _, step := range path {
-		// Since we only ever parse the attribute steps when finding replacement
-		// values, we can do the same again here.
-		switch step := step.(type) {
-		case cty.GetAttrStep:
-			if first {
-				first = false
-				current = step.Name
-				continue
-			}
-			current = fmt.Sprintf("%s.%s", current, step.Name)
-		}
-	}
-	return current
 }

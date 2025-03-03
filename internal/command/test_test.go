@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -35,8 +36,17 @@ func TestTest_Runs(t *testing.T) {
 		code                  int
 		initCode              int
 		skip                  bool
+		description           string
 	}{
 		"simple_pass": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
+		"top-dir-only-test-files": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
+		"top-dir-only-nested-test-files": {
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
@@ -53,6 +63,13 @@ func TestTest_Runs(t *testing.T) {
 			args:        []string{"-test-directory", "tests/subdir"},
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
+		},
+		"simple_pass_cmd_parallel": {
+			override:    "simple_pass",
+			args:        []string{"-parallelism", "1"},
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+			description: "simple_pass with parallelism set to 1",
 		},
 		"simple_pass_very_nested_alternate": {
 			override:    "simple_pass_very_nested",
@@ -96,10 +113,6 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
-		"expect_failures_outputs": {
-			expectedOut: []string{"1 passed, 0 failed."},
-			code:        0,
-		},
 		"expect_failures_resources": {
 			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
@@ -113,6 +126,12 @@ func TestTest_Runs(t *testing.T) {
 			args:        []string{"-filter=one.tftest.hcl"},
 			expectedOut: []string{"1 passed, 0 failed"},
 			code:        0,
+		},
+		"no_state": {
+			expectedOut: []string{"0 passed, 1 failed"},
+			expectedErr: []string{"No value for required variable"},
+			description: "the run apply fails, causing it to produce a nil state.",
+			code:        1,
 		},
 		"variables": {
 			expectedOut: []string{"2 passed, 0 failed"},
@@ -163,7 +182,7 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"shared_state": {
-			expectedOut: []string{"2 passed, 0 failed."},
+			expectedOut: []string{"8 passed, 0 failed."},
 			code:        0,
 		},
 		"shared_state_object": {
@@ -389,7 +408,7 @@ func TestTest_Runs(t *testing.T) {
 				Meta: meta,
 			}
 
-			code := c.Run(tc.args)
+			code := c.Run(append(tc.args, "-no-color"))
 			output := done(t)
 
 			if code != tc.code {
@@ -450,6 +469,228 @@ func TestTest_Interrupt(t *testing.T) {
 	if provider.ResourceCount() > 0 {
 		// we asked for a nice stop in this one, so it should still have tidied everything up.
 		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_SharedState_Order(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "shared_state")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 9, code, output.All())
+	}
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	c.Run(nil)
+	output := done(t).All()
+
+	// Split the log into lines
+	lines := strings.Split(output, "\n")
+
+	var arr []string
+	for _, line := range lines {
+		if strings.Contains(line, "run \"") && strings.Contains(line, "\x1b[32mpass") {
+			arr = append(arr, line)
+		}
+	}
+
+	// Ensure the order of the tests is correct. Even though they share no state,
+	// the order should be sequential.
+	expectedOrder := []string{
+		// main.tftest.hcl
+		"run \"setup\"",
+		"run \"test\"",
+
+		// no-shared-state.tftest.hcl
+		"run \"setup\"",
+		"run \"test_a\"",
+		"run \"test_b\"",
+		"run \"test_c\"",
+		"run \"test_d\"",
+		"run \"test_e\"",
+	}
+
+	for i, line := range expectedOrder {
+		if !strings.Contains(arr[i], line) {
+			t.Errorf("unexpected test order: expected %q, got %q", line, arr[i])
+		}
+	}
+}
+
+func TestTest_Parallel_Divided_Order(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "parallel_divided")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 9, code, output.All())
+	}
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	c.Run(nil)
+	output := done(t).All()
+
+	// Split the log into lines
+	lines := strings.Split(output, "\n")
+
+	// Find the positions of the tests in the log output
+	var mainFirstIndex, mainSecondIndex, mainThirdIndex, mainFourthIndex, mainFifthIndex, mainSixthIndex int
+	for i, line := range lines {
+		if strings.Contains(line, "run \"main_first\"") {
+			mainFirstIndex = i
+		} else if strings.Contains(line, "run \"main_second\"") {
+			mainSecondIndex = i
+		} else if strings.Contains(line, "run \"main_third\"") {
+			mainThirdIndex = i
+		} else if strings.Contains(line, "run \"main_fourth\"") {
+			mainFourthIndex = i
+		} else if strings.Contains(line, "run \"main_fifth\"") {
+			mainFifthIndex = i
+		} else if strings.Contains(line, "run \"main_sixth\"") {
+			mainSixthIndex = i
+		}
+	}
+	if mainFirstIndex == 0 || mainSecondIndex == 0 || mainThirdIndex == 0 || mainFourthIndex == 0 || mainFifthIndex == 0 || mainSixthIndex == 0 {
+		t.Fatalf("one or more tests not found in the log output")
+	}
+
+	// Ensure the order of the tests is correct. The runs before main_fourth can execute in parallel.
+	if mainFirstIndex > mainFourthIndex || mainSecondIndex > mainFourthIndex || mainThirdIndex > mainFourthIndex {
+		t.Errorf("main_first, main_second, or main_third appears after main_fourth in the log output")
+	}
+
+	// Ensure main_fifth and main_sixth do not execute before main_fourth
+	if mainFifthIndex < mainFourthIndex {
+		t.Errorf("main_fifth appears before main_fourth in the log output")
+	}
+	if mainSixthIndex < mainFourthIndex {
+		t.Errorf("main_sixth appears before main_fourth in the log output")
+	}
+}
+
+func TestTest_Parallel(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "parallel")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 9, code, output.All())
+	}
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	c.Run(nil)
+	output := done(t).All()
+
+	if !strings.Contains(output, "40 passed, 0 failed") {
+		t.Errorf("output didn't produce the right output:\n\n%s", output)
+	}
+
+	// Split the log into lines
+	lines := strings.Split(output, "\n")
+
+	// Find the positions of "test_d", "test_c", "test_setup" in the log output
+	var testDIndex, testCIndex, testSetupIndex int
+	for i, line := range lines {
+		if strings.Contains(line, "run \"setup\"") {
+			testSetupIndex = i
+		} else if strings.Contains(line, "run \"test_d\"") {
+			testDIndex = i
+		} else if strings.Contains(line, "run \"test_c\"") {
+			testCIndex = i
+		}
+	}
+	if testDIndex == 0 || testCIndex == 0 || testSetupIndex == 0 {
+		t.Fatalf("test_d, test_c, or test_setup not found in the log output")
+	}
+
+	// Ensure "test_d" appears before "test_c", because test_d has no dependencies,
+	// and would therefore run in parallel to much earlier tests which test_c depends on.
+	if testDIndex > testCIndex {
+		t.Errorf("test_d appears after test_c in the log output")
+	}
+
+	// Ensure "test_d" appears after "test_setup", because they have the same state key
+	if testDIndex < testSetupIndex {
+		t.Errorf("test_d appears before test_setup in the log output")
 	}
 }
 
@@ -564,7 +805,7 @@ func TestTest_ProviderAlias(t *testing.T) {
 
 	output := done(t)
 
-	if code := init.Run(nil); code != 0 {
+	if code := init.Run([]string{"-no-color"}); code != 0 {
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -577,7 +818,7 @@ func TestTest_ProviderAlias(t *testing.T) {
 		Meta: meta,
 	}
 
-	code := command.Run(nil)
+	code := command.Run([]string{"-no-color"})
 	output = done(t)
 
 	printedOutput := false
@@ -890,6 +1131,23 @@ it has been removed. This occurs when a provider configuration is removed
 while objects created by that provider still exist in the state. Re-add the
 provider configuration to destroy test_resource.secondary, after which you
 can remove the provider configuration again.
+`,
+		},
+		"missing-provider-definition-in-file": {
+			expectedOut: `main.tftest.hcl... in progress
+  run "passes_validation"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 0 passed, 1 failed.
+`,
+			expectedErr: `
+Error: Missing provider definition for test
+
+  on main.tftest.hcl line 12, in run "passes_validation":
+  12:     test = test
+
+This provider block references a provider definition that does not exist.
 `,
 		},
 		"missing-provider-in-test-module": {
@@ -1413,18 +1671,6 @@ func TestTest_BadReferences(t *testing.T) {
 	}
 
 	expectedOut := `main.tftest.hcl... in progress
-  run "setup"... pass
-  run "test"... fail
-
-Warning: Value for undeclared variable
-
-  on main.tftest.hcl line 17, in run "test":
-  17:     input_three = run.madeup.response
-
-The module under test does not declare a variable named "input_three", but it
-is declared in run block "test".
-
-  run "finalise"... skip
 main.tftest.hcl... tearing down
 main.tftest.hcl... fail
 providers.tftest.hcl... in progress
@@ -1432,7 +1678,7 @@ providers.tftest.hcl... in progress
 providers.tftest.hcl... tearing down
 providers.tftest.hcl... fail
 
-Failure! 1 passed, 2 failed, 1 skipped.
+Failure! 0 passed, 1 failed.
 `
 	actualOut := output.Stdout()
 	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
@@ -1614,6 +1860,7 @@ the apply operation could not be executed and so the overall test case will
 be marked as a failure and the original diagnostic included in the test
 report.
 
+  run "no_run"... skip
 input.tftest.hcl... tearing down
 input.tftest.hcl... fail
 output.tftest.hcl... in progress
@@ -1646,7 +1893,7 @@ test report.
 resource.tftest.hcl... tearing down
 resource.tftest.hcl... fail
 
-Failure! 1 passed, 3 failed.
+Failure! 1 passed, 3 failed, 1 skipped.
 `
 	actualOut := output.Stdout()
 	if diff := cmp.Diff(expectedOut, actualOut); len(diff) > 0 {
@@ -1682,6 +1929,71 @@ Error: Resource postcondition failed
     │ self.value is "acd"
 
 input must contain the character 'b'
+`
+	actualErr := output.Stderr()
+	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_MissingExpectedFailuresDuringApply(t *testing.T) {
+	// Test asserting that the test run fails, but not errors out, when expected failures are not present during apply.
+	// This lets subsequent runs continue to execute and the file to be marked as failed.
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "expect_failures_during_apply")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	if code == 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	expectedOut := `main.tftest.hcl... in progress
+  run "test"... fail
+  run "follow-up"... pass
+
+Warning: Value for undeclared variable
+
+  on main.tftest.hcl line 16, in run "follow-up":
+  16:     input = "does not matter"
+
+The module under test does not declare a variable named "input", but it is
+declared in run block "follow-up".
+
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 1 passed, 1 failed.
+`
+	actualOut := output.Stdout()
+	if diff := cmp.Diff(expectedOut, actualOut); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
+	}
+
+	expectedErr := `
+Error: Missing expected failure
+
+  on main.tftest.hcl line 7, in run "test":
+   7:     output.output
+
+The checkable object, output.output, was expected to report an error but did
+not.
 `
 	actualErr := output.Stderr()
 	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
@@ -2167,6 +2479,88 @@ Success! 2 passed, 0 failed.
 
 	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
 		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_InvalidConfig(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "invalid_config")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		Ui:             ui,
+		View:           view,
+		Streams:        streams,
+		ProviderSource: providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	output := done(t)
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output = done(t)
+
+	if code != 1 {
+		t.Errorf("expected status code ! but got %d", code)
+	}
+
+	expectedOut := `main.tftest.hcl... in progress
+  run "test"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 0 passed, 1 failed.
+`
+	expectedErr := `
+Error: Failed to load plugin schemas
+
+Error while loading schemas for plugin components: Failed to obtain provider
+schema: Could not load the schema for provider
+registry.terraform.io/hashicorp/test: failed to instantiate provider
+"registry.terraform.io/hashicorp/test" to obtain schema: fork/exec
+.terraform/providers/registry.terraform.io/hashicorp/test/1.0.0/%s/terraform-provider-test_1.0.0:
+permission denied..
+`
+	expectedErr = fmt.Sprintf(expectedErr, runtime.GOOS+"_"+runtime.GOARCH)
+	out := output.Stdout()
+	err := output.Stderr()
+
+	if diff := cmp.Diff(out, expectedOut); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, out, diff)
+	}
+	if diff := cmp.Diff(err, expectedErr); len(diff) > 0 {
+		t.Errorf("error didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, err, diff)
 	}
 
 	if provider.ResourceCount() > 0 {

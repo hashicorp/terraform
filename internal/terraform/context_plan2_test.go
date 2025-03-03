@@ -1754,11 +1754,6 @@ Note that adding these options may include further additional resource instances
 		})
 		diags.Sort()
 
-		// We're semi-abusing "ForRPC" here just to get diagnostics that are
-		// more easily comparable than the various different diagnostics types
-		// tfdiags uses internally. The RPC-friendly diagnostics are also
-		// comparison-friendly, by discarding all of the dynamic type information.
-		gotDiags := diags.ForRPC()
 		wantDiags := tfdiags.Diagnostics{
 			// Still get the warning about the -target option...
 			tfdiags.Sourceless(
@@ -1769,11 +1764,9 @@ Note that adding these options may include further additional resource instances
 The -target option is not for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
 			),
 			// ...but now we have no error about test_object.a
-		}.ForRPC()
-
-		if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
-			t.Errorf("wrong diagnostics\n%s", diff)
 		}
+
+		tfdiags.AssertDiagnosticsMatch(t, wantDiags, diags)
 	})
 }
 
@@ -5603,7 +5596,7 @@ func TestContext2Plan_ephemeralInResource(t *testing.T) {
 	wantDiags = wantDiags.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagError,
 		Summary:  "Invalid use of ephemeral value",
-		Detail:   "Ephemeral values are not valid in resource arguments, because resource instances must persist between Terraform phases.",
+		Detail:   `Ephemeral values are not valid for "in", because it is not a write-only attribute and must be persisted to state.`,
 		Subject: &hcl.Range{
 			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 			Start: hcl.Pos{
@@ -5617,7 +5610,7 @@ func TestContext2Plan_ephemeralInResource(t *testing.T) {
 	wantDiags = wantDiags.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagError,
 		Summary:  "Invalid use of ephemeral value",
-		Detail:   "Ephemeral values are not valid in resource arguments, because resource instances must persist between Terraform phases.",
+		Detail:   `Ephemeral values are not valid for "in", because it is not a write-only attribute and must be persisted to state.`,
 		Subject: &hcl.Range{
 			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 			Start: hcl.Pos{

@@ -4402,8 +4402,143 @@ resource "test_object" "c" {
 // 	// testObjA := plan.PriorState.Modules[""].Resources["test_object.a"].Instances[addrs.NoKey].Current
 // 	// testObjA.Dependencies = append(testObjA.Dependencies, mustResourceInstanceAddr("test_object.b").ContainingResource().Config())
 
-// 	_, diags = ctx.Apply(plan, m, nil)
-// 	if !diags.HasErrors() {
-// 		t.Fatal("expected cycle error from apply")
-// 	}
-// }
+//		_, diags = ctx.Apply(plan, m, nil)
+//		if !diags.HasErrors() {
+//			t.Fatal("expected cycle error from apply")
+//		}
+//	}
+func TestContext2Apply_writeOnlyDestroy(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "x" {
+  test_string = "ok"
+  test_wo = "secret"
+}`,
+	})
+
+	p := &testing_provider.MockProvider{}
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{Block: simpleTestSchema()},
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": providers.Schema{
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"test_string": {
+							Type:     cty.String,
+							Optional: true,
+						},
+						"test_wo": {
+							Type:      cty.Number,
+							Optional:  true,
+							WriteOnly: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.x").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"ok", "test_wo": null}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+		// we don't want to refresh, because that actually runs a normal plan
+		SkipRefresh: true,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("plan: %s", diags.Err())
+	}
+
+	_, diags = ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("apply: %s", diags.Err())
+	}
+}
+
+func TestContext2Apply_writeOnlyApplyError(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "x" {
+  test_string = "ok"
+  test_wo = "secret"
+}`,
+	})
+
+	p := &testing_provider.MockProvider{}
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{Block: simpleTestSchema()},
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": providers.Schema{
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"test_string": {
+							Type:     cty.String,
+							Optional: true,
+						},
+						"test_wo": {
+							Type:      cty.Number,
+							Optional:  true,
+							WriteOnly: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		resp.Diagnostics = resp.Diagnostics.Append(errors.New("provider oops"))
+		return resp
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.x").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"ok", "test_wo": null}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+		// we don't want to refresh, because that actually runs a normal plan
+		SkipRefresh: true,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("plan: %s", diags.Err())
+	}
+
+	_, diags = ctx.Apply(plan, m, nil)
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	}
+
+	msg := diags.ErrWithWarnings().Error()
+	if len(diags) != 1 && !strings.Contains(msg, "provider oops") {
+		t.Fatalf("expected only 'provider oops', but got: %s", msg)
+	}
+}

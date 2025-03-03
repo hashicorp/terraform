@@ -82,6 +82,10 @@ type TestSuiteRunner struct {
 	// Verbose tells the runner to print out plan files during each test run.
 	Verbose bool
 
+	// OperationParallelism is the limit Terraform places on total parallel operations
+	// during the plan or apply command within a single test run.
+	OperationParallelism int
+
 	// Filters restricts which test files will be executed.
 	Filters []string
 
@@ -204,6 +208,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		Filters:       runner.Filters,
 		TestDirectory: tfe.String(runner.TestingDirectory),
 		Verbose:       tfe.Bool(runner.Verbose),
+		Parallelism:   tfe.Int(runner.OperationParallelism),
 		Variables: func() []*tfe.RunVariable {
 			runVariables := make([]*tfe.RunVariable, 0, len(variables))
 			for name, value := range variables {

@@ -108,7 +108,7 @@ resource "test_object" "test" {
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid use of ephemeral value",
-					Detail:   "Ephemeral values are not valid in resource arguments, because resource instances must persist between Terraform phases.",
+					Detail:   `Ephemeral values are not valid for "test_string", because it is not a write-only attribute and must be persisted to state.`,
 				})
 			},
 		},
@@ -672,7 +672,7 @@ resource "ephem_write_only" "test" {
 
 			diags := ctx.Validate(m, &ValidateOpts{})
 			if tc.expectValidateDiagnostics != nil {
-				assertDiagnosticsSummaryAndDetailMatch(t, diags, tc.expectValidateDiagnostics(m))
+				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectValidateDiagnostics(m))
 				// If we expect diagnostics, we should not continue with the plan
 				// as it will fail.
 				return
@@ -693,7 +693,7 @@ resource "ephem_write_only" "test" {
 
 			plan, diags := ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, inputs))
 			if tc.expectPlanDiagnostics != nil {
-				assertDiagnosticsSummaryAndDetailMatch(t, diags, tc.expectPlanDiagnostics(m))
+				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectPlanDiagnostics(m))
 			} else {
 				assertNoDiagnostics(t, diags)
 			}

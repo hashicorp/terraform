@@ -48,20 +48,10 @@ jobs:
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
         with:
           go-version: ${{ steps.go.outputs.version }}
-
-      # NOTE: This cache is shared so the following step must always be
-      # identical across the unit-tests, e2e-tests, and consistency-checks
-      # jobs, or else weird things could happen.
-      - name: Cache Go modules
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-        with:
-          path: "~/go/pkg"
-          key: go-mod-${{ hashFiles('go.sum') }}
-          restore-keys: |
-            go-mod-
+          cache-dependency-path: go.sum
 
       - name: "Unit tests"
         run: |
@@ -83,20 +73,10 @@ jobs:
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
         with:
           go-version: ${{ steps.go.outputs.version }}
-
-      # NOTE: This cache is shared so the following step must always be
-      # identical across the unit-tests, e2e-tests, and consistency-checks
-      # jobs, or else weird things could happen.
-      - name: Cache Go modules
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-        with:
-          path: "~/go/pkg"
-          key: go-mod-${{ hashFiles('go.sum') }}
-          restore-keys: |
-            go-mod-
+          cache-dependency-path: go.sum
 
       # The race detector add significant time to the unit tests, so only run
       # it for select packages.
@@ -121,20 +101,10 @@ jobs:
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
         with:
           go-version: ${{ steps.go.outputs.version }}
-
-      # NOTE: This cache is shared so the following step must always be
-      # identical across the unit-tests, e2e-tests, and consistency-checks
-      # jobs, or else weird things could happen.
-      - name: Cache Go modules
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-        with:
-          path: "~/go/pkg"
-          key: go-mod-${{ hashFiles('go.sum') }}
-          restore-keys: |
-            go-mod-
+          cache-dependency-path: go.sum
 
       - name: "End-to-end tests"
         run: |
@@ -155,20 +125,10 @@ jobs:
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
         with:
           go-version: ${{ steps.go.outputs.version }}
-
-      # NOTE: This cache is shared so the following step must always be
-      # identical across the unit-tests, e2e-tests, and consistency-checks
-      # jobs, or else weird things could happen.
-      - name: Cache Go modules
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-        with:
-          path: "~/go/pkg"
-          key: go-mod-${{ hashFiles('go.sum') }}
-          restore-keys: |
-            go-mod-
+          cache-dependency-path: go.sum
 
       - name: "go.mod and go.sum consistency check"
         run: |

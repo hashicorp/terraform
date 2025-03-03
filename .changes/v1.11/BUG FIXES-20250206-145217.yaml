@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'backends: Fix crash when interrupting during interactive prompt for values'
+time: 2025-02-06T14:52:17.033964+01:00
+custom:
+    Issue: "36448"

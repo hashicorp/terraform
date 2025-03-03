@@ -66,7 +66,17 @@ type TestFile struct {
 	// order.
 	Runs []*TestRun
 
+	Config *TestFileConfig
+
 	VariablesDeclRange hcl.Range
+}
+
+// TestFileConfig represents the configuration block within a test file.
+type TestFileConfig struct {
+	// Parallel: Indicates if test runs should be executed in parallel.
+	Parallel bool
+
+	DeclRange hcl.Range
 }
 
 // TestRun represents a single run block within a test file.
@@ -128,12 +138,23 @@ type TestRun struct {
 	// configuration load process and should be used when the test is executed.
 	ConfigUnderTest *Config
 
+	// File is a reference to the parent TestFile that contains this run block.
+	File *TestFile
+
 	// ExpectFailures should be a list of checkable objects that are expected
 	// to report a failure from their custom conditions as part of this test
 	// run.
 	ExpectFailures []hcl.Traversal
 
+	// StateKey when given, will be used to identify the state file to use for
+	// this test run. If not provided, the state key is derived from the
+	// configuration under test.
 	StateKey string
+
+	// Parallel: Indicates if the test run should be executed in parallel.
+	// This, in combination with the state key, will determine if the test run
+	// will be executed in parallel with other test runs.
+	Parallel bool
 
 	NameDeclRange      hcl.Range
 	VariablesDeclRange hcl.Range
@@ -253,6 +274,23 @@ func (run *TestRun) Validate(config *Config) tfdiags.Diagnostics {
 		}
 	}
 
+	// All the providers defined within a run block should target an existing
+	// provider block within the test file.
+	for _, ref := range run.Providers {
+		_, ok := run.File.Providers[ref.InParent.String()]
+		if !ok {
+			// Then this reference was invalid as we didn't have the
+			// specified provider in the parent. This should have been
+			// caught earlier in validation anyway so is unlikely to happen.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Missing provider definition for %s", ref.InParent.String()),
+				Detail:   "This provider block references a provider definition that does not exist.",
+				Subject:  ref.InParent.NameRange.Ptr(),
+			})
+		}
+	}
+
 	return diags
 }
 
@@ -288,21 +326,34 @@ type TestRunOptions struct {
 
 func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
-
-	content, contentDiags := body.Content(testFileSchema)
-	diags = append(diags, contentDiags...)
-
-	tf := TestFile{
+	tf := &TestFile{
 		Providers: make(map[string]*Provider),
 		Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
 	}
+
+	// we need to retrieve the file config block first, because the run blocks
+	// may depend on some of its settings.
+	configContent, remain, contentDiags := body.PartialContent(&hcl.BodySchema{
+		Blocks: []hcl.BlockHeaderSchema{{Type: "test"}},
+	})
+	diags = append(diags, contentDiags...)
+
+	var cDiags hcl.Diagnostics
+	tf.Config, cDiags = decodeFileConfigBlock(configContent)
+	diags = append(diags, cDiags...)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	content, contentDiags := remain.Content(testFileSchema)
+	diags = append(diags, contentDiags...)
 
 	runBlockNames := make(map[string]hcl.Range)
 
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "run":
-			run, runDiags := decodeTestRunBlock(block)
+			run, runDiags := decodeTestRunBlock(block, tf)
 			diags = append(diags, runDiags...)
 			if !runDiags.HasErrors() {
 				tf.Runs = append(tf.Runs, run)
@@ -424,21 +475,59 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 		}
 	}
 
-	return &tf, diags
+	return tf, diags
 }
 
-func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
+func decodeFileConfigBlock(fileContent *hcl.BodyContent) (*TestFileConfig, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	// The "test" block is optional, so we just return a nil config if it doesn't exist.
+	if len(fileContent.Blocks) == 0 {
+		return nil, diags
+	}
+
+	block := fileContent.Blocks[0]
+	for _, other := range fileContent.Blocks[1:] {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Multiple \"test\" blocks",
+			Detail:   fmt.Sprintf(`This test file already has a "test" block defined at %s.`, block.DefRange),
+			Subject:  other.DefRange.Ptr(),
+		})
+	}
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	ret := &TestFileConfig{DeclRange: block.DefRange}
+
+	content, contentDiags := block.Body.Content(testFileConfigBlockSchema)
+	diags = append(diags, contentDiags...)
+	if content == nil {
+		return ret, diags
+	}
+
+	if attr, exists := content.Attributes["parallel"]; exists {
+		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &ret.Parallel)
+		diags = append(diags, rawDiags...)
+	}
+
+	return ret, diags
+}
+
+func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	content, contentDiags := block.Body.Content(testRunBlockSchema)
 	diags = append(diags, contentDiags...)
 
 	r := TestRun{
-		Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
-
+		Overrides:     addrs.MakeMap[addrs.Targetable, *Override](),
+		File:          file,
 		Name:          block.Labels[0],
 		NameDeclRange: block.LabelRanges[0],
 		DeclRange:     block.DefRange,
+		Parallel:      file.Config != nil && file.Config.Parallel,
 	}
 
 	if !hclsyntax.ValidIdentifier(r.Name) {
@@ -610,6 +699,11 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 
 	if attr, exists := content.Attributes["state_key"]; exists {
 		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.StateKey)
+		diags = append(diags, rawDiags...)
+	}
+
+	if attr, exists := content.Attributes["parallel"]; exists {
+		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Parallel)
 		diags = append(diags, rawDiags...)
 	}
 
@@ -809,12 +903,19 @@ var testFileSchema = &hcl.BodySchema{
 	},
 }
 
+var testFileConfigBlockSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: "parallel"},
+	},
+}
+
 var testRunBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
 		{Name: "command"},
 		{Name: "providers"},
 		{Name: "expect_failures"},
 		{Name: "state_key"},
+		{Name: "parallel"},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{

@@ -6,7 +6,10 @@ package azure
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/hashicorp/go-azure-sdk/sdk/auth"
+	"github.com/hashicorp/go-azure-sdk/sdk/environments"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 )
@@ -15,6 +18,19 @@ import (
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
+			"subscription_id": {
+				Type:        schema.TypeString,
+				Optional:    true, // TODO: make this Required in a future version
+				Description: "The Subscription ID where the Storage Account is located.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_SUBSCRIPTION_ID", ""),
+			},
+
+			"resource_group_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Resource Group where the Storage Account is located.",
+			},
+
 			"storage_account_name": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -24,157 +40,194 @@ func New() backend.Backend {
 			"container_name": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The container name.",
+				Description: "The container name to use in the Storage Account.",
 			},
 
 			"key": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "The blob key.",
+				Description: "The blob key to use in the Storage Container.",
 			},
 
-			"metadata_host": {
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("ARM_METADATA_HOST", ""),
-				Description: "The Metadata URL which will be used to obtain the Cloud Environment.",
+			"snapshot": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Whether to enable automatic blob snapshotting.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_SNAPSHOT", false),
 			},
 
 			"environment": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The Azure cloud environment.",
+				Description: "The Cloud Environment which should be used. Possible values are public, usgovernment, and china. Defaults to public. Not used and should not be specified when `metadata_host` is specified.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_ENVIRONMENT", "public"),
+			},
+
+			"metadata_host": {
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_METADATA_HOSTNAME", "ARM_METADATA_HOST"}, ""), // TODO: remove support for `METADATA_HOST` in a future version
+				Description: "The Hostname which should be used for the Azure Metadata Service.",
 			},
 
 			"access_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The access key.",
+				Description: "The access key to use when authenticating using a Storage Access Key.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_ACCESS_KEY", ""),
 			},
 
 			"sas_token": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "A SAS Token used to interact with the Blob Storage Account.",
+				Description: "The SAS Token to use when authenticating using a SAS Token.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_SAS_TOKEN", ""),
-			},
-
-			"snapshot": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Enable/Disable automatic blob snapshotting",
-				DefaultFunc: schema.EnvDefaultFunc("ARM_SNAPSHOT", false),
-			},
-
-			"resource_group_name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The resource group name.",
-			},
-
-			"client_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Client ID.",
-				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_ID", ""),
-			},
-
-			"endpoint": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A custom Endpoint used to access the Azure Resource Manager API's.",
-				DefaultFunc: schema.EnvDefaultFunc("ARM_ENDPOINT", ""),
-			},
-
-			"subscription_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Subscription ID.",
-				DefaultFunc: schema.EnvDefaultFunc("ARM_SUBSCRIPTION_ID", ""),
 			},
 
 			"tenant_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The Tenant ID.",
+				Description: "The Tenant ID to use when authenticating using Azure Active Directory.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_TENANT_ID", ""),
 			},
 
-			// Service Principal (Client Certificate) specific
-			"client_certificate_password": {
+			"client_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The password associated with the Client Certificate specified in `client_certificate_path`",
-				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_CERTIFICATE_PASSWORD", ""),
+				Description: "The Client ID to use when authenticating using Azure Active Directory.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_ID", ""),
 			},
+
+			"client_id_file_path": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The path to a file containing the Client ID which should be used.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_ID_FILE_PATH", nil),
+			},
+
+			"endpoint": {
+				Type:       schema.TypeString,
+				Optional:   true,
+				Deprecated: "`endpoint` is deprecated in favor of `msi_endpoint`, it will be removed in a future version of Terraform",
+			},
+
+			// Client Certificate specific fields
+			"client_certificate": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_CERTIFICATE", ""),
+				Description: "Base64 encoded PKCS#12 certificate bundle to use when authenticating as a Service Principal using a Client Certificate",
+			},
+
 			"client_certificate_path": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The path to the PFX file used as the Client Certificate when authenticating as a Service Principal",
+				Description: "The path to the Client Certificate associated with the Service Principal for use when authenticating as a Service Principal using a Client Certificate.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_CERTIFICATE_PATH", ""),
 			},
 
-			// Service Principal (Client Secret) specific
+			"client_certificate_password": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The password associated with the Client Certificate. For use when authenticating as a Service Principal using a Client Certificate",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_CERTIFICATE_PASSWORD", ""),
+			},
+
+			// Client Secret specific fields
 			"client_secret": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The Client Secret.",
+				Description: "The Client Secret which should be used. For use When authenticating as a Service Principal using a Client Secret.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_SECRET", ""),
 			},
 
-			// Managed Service Identity specific
-			"use_msi": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Should Managed Service Identity be used?",
-				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_MSI", false),
-			},
-			"msi_endpoint": {
+			"client_secret_file_path": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The Managed Service Identity Endpoint.",
-				DefaultFunc: schema.EnvDefaultFunc("ARM_MSI_ENDPOINT", ""),
+				Description: "The path to a file containing the Client Secret which should be used. For use When authenticating as a Service Principal using a Client Secret.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_SECRET_FILE_PATH", nil),
 			},
 
-			// OIDC auth specific fields
+			// OIDC specific fields
 			"use_oidc": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_OIDC", false),
-				Description: "Allow OIDC to be used for authentication",
+				Description: "Allow OpenID Connect to be used for authentication",
 			},
+
+			"ado_pipeline_service_connection_id": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID"}, nil),
+				Description: "The Azure DevOps Pipeline Service Connection ID.",
+			},
+
+			"oidc_request_token": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_OIDC_REQUEST_TOKEN", "ACTIONS_ID_TOKEN_REQUEST_TOKEN", "SYSTEM_ACCESSTOKEN"}, nil),
+				Description: "The bearer token for the request to the OIDC provider. For use when authenticating as a Service Principal using OpenID Connect.",
+			},
+
+			"oidc_request_url": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_OIDC_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_URL", "SYSTEM_OIDCREQUESTURI"}, nil),
+				Description: "The URL for the OIDC provider from which to request an ID token. For use when authenticating as a Service Principal using OpenID Connect.",
+			},
+
 			"oidc_token": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ARM_OIDC_TOKEN", ""),
-				Description: "A generic JWT token that can be used for OIDC authentication. Should not be used in conjunction with `oidc_request_token`.",
+				Description: "The OIDC ID token for use when authenticating as a Service Principal using OpenID Connect.",
 			},
+
 			"oidc_token_file_path": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ARM_OIDC_TOKEN_FILE_PATH", ""),
-				Description: "Path to file containing a generic JWT token that can be used for OIDC authentication. Should not be used in conjunction with `oidc_request_token`.",
+				Description: "The path to a file containing an OIDC ID token for use when authenticating as a Service Principal using OpenID Connect.",
 			},
-			"oidc_request_url": {
+
+			// Managed Identity specific fields
+			"use_msi": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Allow Managed Identity to be used for Authentication.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_MSI", false),
+			},
+
+			"msi_endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_OIDC_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_URL"}, ""),
-				Description: "The URL of the OIDC provider from which to request an ID token. Needs to be used in conjunction with `oidc_request_token`. This is meant to be used for Github Actions.",
+				Description: "The path to a custom endpoint for Managed Identity - in most circumstances this should be detected automatically.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_MSI_ENDPOINT", ""),
 			},
-			"oidc_request_token": {
-				Type:        schema.TypeString,
+
+			// Azure CLI specific fields
+			"use_cli": {
+				Type:        schema.TypeBool,
 				Optional:    true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_OIDC_REQUEST_TOKEN", "ACTIONS_ID_TOKEN_REQUEST_TOKEN"}, ""),
-				Description: "The bearer token to use for the request to the OIDC providers `oidc_request_url` URL to fetch an ID token. Needs to be used in conjunction with `oidc_request_url`. This is meant to be used for Github Actions.",
+				Default:     true,
+				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_CLI", true),
+				Description: "Allow Azure CLI to be used for Authentication.",
+			},
+
+			// Azure AKS Workload Identity fields
+			"use_aks_workload_identity": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_AKS_WORKLOAD_IDENTITY", false),
+				Description: "Allow Azure AKS Workload Identity to be used for Authentication.",
 			},
 
 			// Feature Flags
 			"use_azuread_auth": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Should Terraform use AzureAD Authentication to access the Blob?",
+				Description: "Whether to use Azure Active Directory authentication to access the Storage Data Plane APIs.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_AZUREAD", false),
 			},
 		},
@@ -189,7 +242,7 @@ type Backend struct {
 	*schema.Backend
 
 	// The fields below are set from configure
-	armClient     *ArmClient
+	apiClient     *Client
 	containerName string
 	keyName       string
 	accountName   string
@@ -197,35 +250,19 @@ type Backend struct {
 }
 
 type BackendConfig struct {
-	// Required
-	StorageAccountName string
-
-	// Optional
-	AccessKey                     string
-	ClientID                      string
-	ClientCertificatePassword     string
-	ClientCertificatePath         string
-	ClientSecret                  string
-	CustomResourceManagerEndpoint string
-	MetadataHost                  string
-	Environment                   string
-	MsiEndpoint                   string
-	OIDCToken                     string
-	OIDCTokenFilePath             string
-	OIDCRequestURL                string
-	OIDCRequestToken              string
-	ResourceGroupName             string
-	SasToken                      string
-	SubscriptionID                string
-	TenantID                      string
-	UseMsi                        bool
-	UseOIDC                       bool
-	UseAzureADAuthentication      bool
+	AuthConfig               *auth.Credentials
+	SubscriptionID           string
+	ResourceGroupName        string
+	StorageAccountName       string
+	AccessKey                string
+	SasToken                 string
+	UseAzureADAuthentication bool
 }
 
 func (b *Backend) configure(ctx context.Context) error {
-	if b.containerName != "" {
-		return nil
+	// This is to make the go-azure-sdk/sdk/client Client happy.
+	if _, ok := ctx.Deadline(); !ok {
+		ctx, _ = context.WithTimeout(ctx, 5*time.Minute)
 	}
 
 	// Grab the resource data
@@ -235,40 +272,106 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.keyName = data.Get("key").(string)
 	b.snapshot = data.Get("snapshot").(bool)
 
-	config := BackendConfig{
-		AccessKey:                     data.Get("access_key").(string),
-		ClientID:                      data.Get("client_id").(string),
-		ClientCertificatePassword:     data.Get("client_certificate_password").(string),
-		ClientCertificatePath:         data.Get("client_certificate_path").(string),
-		ClientSecret:                  data.Get("client_secret").(string),
-		CustomResourceManagerEndpoint: data.Get("endpoint").(string),
-		MetadataHost:                  data.Get("metadata_host").(string),
-		Environment:                   data.Get("environment").(string),
-		MsiEndpoint:                   data.Get("msi_endpoint").(string),
-		OIDCToken:                     data.Get("oidc_token").(string),
-		OIDCTokenFilePath:             data.Get("oidc_token_file_path").(string),
-		OIDCRequestURL:                data.Get("oidc_request_url").(string),
-		OIDCRequestToken:              data.Get("oidc_request_token").(string),
-		ResourceGroupName:             data.Get("resource_group_name").(string),
-		SasToken:                      data.Get("sas_token").(string),
-		StorageAccountName:            data.Get("storage_account_name").(string),
-		SubscriptionID:                data.Get("subscription_id").(string),
-		TenantID:                      data.Get("tenant_id").(string),
-		UseMsi:                        data.Get("use_msi").(bool),
-		UseOIDC:                       data.Get("use_oidc").(bool),
-		UseAzureADAuthentication:      data.Get("use_azuread_auth").(bool),
+	var clientCertificateData []byte
+	if encodedCert := data.Get("client_certificate").(string); encodedCert != "" {
+		var err error
+		clientCertificateData, err = decodeCertificate(encodedCert)
+		if err != nil {
+			return err
+		}
 	}
 
-	armClient, err := buildArmClient(context.TODO(), config)
+	oidcToken, err := getOidcToken(data)
 	if err != nil {
 		return err
 	}
 
-	thingsNeededToLookupAccessKeySpecified := config.AccessKey == "" && config.SasToken == "" && config.ResourceGroupName == ""
-	if thingsNeededToLookupAccessKeySpecified && !config.UseAzureADAuthentication {
-		return fmt.Errorf("Either an Access Key / SAS Token or the Resource Group for the Storage Account must be specified - or Azure AD Authentication must be enabled")
+	clientSecret, err := getClientSecret(data)
+	if err != nil {
+		return err
 	}
 
-	b.armClient = armClient
+	clientId, err := getClientId(data)
+	if err != nil {
+		return err
+	}
+
+	tenantId, err := getTenantId(data)
+	if err != nil {
+		return err
+	}
+
+	var (
+		env *environments.Environment
+
+		envName      = data.Get("environment").(string)
+		metadataHost = data.Get("metadata_host").(string)
+	)
+
+	if metadataHost != "" {
+		logEntry("[DEBUG] Configuring cloud environment from Metadata Service at %q", metadataHost)
+		if env, err = environments.FromEndpoint(ctx, fmt.Sprintf("https://%s", metadataHost)); err != nil {
+			return err
+		}
+	} else {
+		logEntry("[DEBUG] Configuring built-in cloud environment by name: %q", envName)
+		if env, err = environments.FromName(envName); err != nil {
+			return err
+		}
+	}
+
+	var (
+		enableAzureCli        = data.Get("use_cli").(bool)
+		enableManagedIdentity = data.Get("use_msi").(bool)
+		enableOidc            = data.Get("use_oidc").(bool) || data.Get("use_aks_workload_identity").(bool)
+	)
+
+	authConfig := &auth.Credentials{
+		Environment: *env,
+		ClientID:    *clientId,
+		TenantID:    *tenantId,
+
+		ClientCertificateData:     clientCertificateData,
+		ClientCertificatePath:     data.Get("client_certificate_path").(string),
+		ClientCertificatePassword: data.Get("client_certificate_password").(string),
+		ClientSecret:              *clientSecret,
+
+		OIDCAssertionToken:             *oidcToken,
+		OIDCTokenRequestURL:            data.Get("oidc_request_url").(string),
+		OIDCTokenRequestToken:          data.Get("oidc_request_token").(string),
+		ADOPipelineServiceConnectionID: data.Get("ado_pipeline_service_connection_id").(string),
+
+		CustomManagedIdentityEndpoint: data.Get("msi_endpoint").(string),
+
+		EnableAuthenticatingUsingClientCertificate: true,
+		EnableAuthenticatingUsingClientSecret:      true,
+		EnableAuthenticatingUsingAzureCLI:          enableAzureCli,
+		EnableAuthenticatingUsingManagedIdentity:   enableManagedIdentity,
+		EnableAuthenticationUsingOIDC:              enableOidc,
+		EnableAuthenticationUsingGitHubOIDC:        enableOidc,
+		EnableAuthenticationUsingADOPipelineOIDC:   enableOidc,
+	}
+
+	backendConfig := BackendConfig{
+		AuthConfig:               authConfig,
+		SubscriptionID:           data.Get("subscription_id").(string),
+		ResourceGroupName:        data.Get("resource_group_name").(string),
+		StorageAccountName:       data.Get("storage_account_name").(string),
+		AccessKey:                data.Get("access_key").(string),
+		SasToken:                 data.Get("sas_token").(string),
+		UseAzureADAuthentication: data.Get("use_azuread_auth").(bool),
+	}
+
+	propertiesNeededToLookupAccessKeySpecified := backendConfig.AccessKey == "" && backendConfig.SasToken == "" && backendConfig.ResourceGroupName == ""
+	if propertiesNeededToLookupAccessKeySpecified && !backendConfig.UseAzureADAuthentication {
+		return fmt.Errorf("either an Access Key / SAS Token or the Resource Group for the Storage Account must be specified - or Azure AD Authentication must be enabled")
+	}
+
+	client, err := buildClient(ctx, backendConfig)
+	if err != nil {
+		return err
+	}
+
+	b.apiClient = client
 	return nil
 }

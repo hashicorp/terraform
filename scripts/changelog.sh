@@ -13,7 +13,9 @@ function usage {
 Usage: ./changelog.sh <command> [<options>]
 
 Description:
-  This script will update CHANGELOG.md with the given version and date.
+  This script will update CHANGELOG.md with the given version and date and add the changelog entries.
+  It will also set the version/VERSION file to the correct version.
+  In general this script should handle most release related tasks within this repository.
 
 Commands:
   generate <release-type>
@@ -26,14 +28,11 @@ Commands:
     `release`: will make the initial minor release for this branch.
     `patch`: will generate a new patch release
 
-  nextminor
-    This function expects the current branch to be main. Run it if you want to set main to the next
-    minor version.
-    
-  firstbeta
-    This function is expected to be run on the branch of the last minor release. It will make sure
-    that backports work properly
-  
+  nextminor:
+    Run on main branch: Updates the minor version.
+
+  listIssuesInRelease:
+    Lists all issues in the release passed as an argument.
 EOF
 }
 
@@ -64,9 +63,11 @@ function generate {
         npx -y changie@$CHANGIE_VERSION merge -u "## $LATEST_VERSION (Unreleased)"
         
         # If we have no changes yet, the changelog is empty now, so we need to add a header
-        if [[ ! -s CHANGELOG.md ]]; then
+        if ! grep -q "## $LATEST_VERSION" CHANGELOG.md; then
+            CURRENT_CHANGELOG=$(cat CHANGELOG.md)
             echo "## $LATEST_VERSION (Unreleased)" > CHANGELOG.md
             echo "" >> CHANGELOG.md
+            echo "$CURRENT_CHANGELOG" >> CHANGELOG.md
         fi
         ;;
 
@@ -148,33 +149,46 @@ function nextminor {
     NEXT_VERSION=$(npx -y changie@$CHANGIE_VERSION next minor)
     # Remove all existing per-release changelogs
     rm ./.changes/*.*.*.md
-    # Remove all unreleased changes
-    rm ./.changes/unreleased/*.yaml
-    # Remove all backported changes
-    rm ./.changes/backported/*.yaml
+    
+    # Remove all old changelog entries
+    rm ./.changes/v*/*.yaml
+    
+    
+    
     # Create a new empty version file for the next minor version
     touch ./.changes/$NEXT_VERSION.md
     
+    LATEST_MAJOR_MINOR=$(echo $LATEST_VERSION | awk -F. '{print $1"."$2}')
+    NEXT_MAJOR_MINOR=$(echo $NEXT_VERSION | awk -F. '{print $1"."$2}')
+    
+    # Create a new changes directory for the next minor version
+    mkdir ./.changes/v$NEXT_MAJOR_MINOR
+    touch ./.changes/v$NEXT_MAJOR_MINOR/.gitkeep
+
+    # Set changies changes dir to the new version
+    awk "{sub(/unreleasedDir: v$LATEST_MAJOR_MINOR/, \"unreleasedDir: v$NEXT_MAJOR_MINOR\")}1" ./.changie.yaml > temp && mv temp ./.changie.yaml
     generate "dev"
 }
 
-# This function is expected to be run on the branch of the last minor release. It will make sure
-# that backports work properly
-function firstbeta {
-    # For the maintenance branch we don't want to base our changelog on the unreleased but the backported folder instead
-    awk '{sub(/unreleasedDir: unreleased/, "unreleasedDir: backported")}1' ./.changie.yaml > temp && mv temp ./.changie.yaml
-    
-    # If we have backported changes, we need to remove them now since they were backported into the
-    # last version
-    rm -f ./.changes/backported/*.yaml
-    
-    # If we have unreleased changes, they will be released in the next patch, therefore they need
-    # to go into the backported folder
-    if [ "$(ls -A ./.changes/unreleased/)" ]; then
-        mv ./.changes/unreleased/* ./.changes/backported/
+function listIssuesInRelease() {
+    RELEASE_MAJOR_MINOR="${1:-}"
+    if [ -z "$RELEASE_MAJOR_MINOR" ]; then
+        echo "No release version specified"
+        exit 1
     fi
-
-    generate "dev"
+    
+    # Check if yq is installed
+    if ! command -v yq &> /dev/null; then
+        echo "yq could not be found"
+        exit 1
+    fi
+    
+    echo "Listing issues in release $RELEASE_MAJOR_MINOR"
+    # Loop through files in .changes/v$RELEASE_MAJOR_MINOR
+    for file in ./.changes/v$RELEASE_MAJOR_MINOR/*.yaml; do
+        ISSUE=$(cat "$file" | yq '.custom.Issue')
+        echo "- https://github.com/hashicorp/terraform/issues/$ISSUE"
+    done
 }
 
 function main {
@@ -186,10 +200,11 @@ function main {
     nextminor)
     nextminor "${@:2}"
       ;;
-      
-    firstbeta)
-    firstbeta "${@:2}"
-    ;;
+
+    listIssuesInRelease)
+    listIssuesInRelease "${@:2}"
+      ;;
+
     *)
       usage
       exit 1

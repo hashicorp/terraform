@@ -43,6 +43,8 @@ Each Stack must have at least one `component` block, and the label of the compon
 | `providers` | A mapping of provider names to providers declared in your Stack configuration. Modules cannot configure their own providers. You must [declare providers](/terraform/language/stacks/create/declare-providers) in the top level of the Stack and pass them into each module in the Stack. | map | Required |
 | `depends_on` | A list of other components that HCP Terraform must execute before this component. You do not need to include another component’s outputs in this list, because Terraform automatically recognizes them.  | list | Optional |
 
+### Reference
+
 The `component` block also supports the `for_each` meta-argument.  For example, the following configuration uses `for_each` to provision modules in multiple AWS regions for a given environment.
 
 ```hcl
@@ -228,6 +230,8 @@ This section provides details about the fields you can configure in the `removed
 | `from` | The name of the resource you want to remove. | string | Required |
 | `source` | The source module of the component you want to remove. | string | Required |
 | `providers` | A mapping of provider names to the providers that the component you want to remove uses. HCP Terraform needs your component providers to remove that component properly. | map | Required |
+
+### Reference
 
 The `removed` block also supports the `for_each` meta-argument to support removing multiple `components`.  For example, if you are trying to remove a dynamic component that HCP Terraform deploys in multiple AWS regions.
 

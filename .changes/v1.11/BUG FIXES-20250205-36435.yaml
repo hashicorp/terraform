@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Attempting to override a variable during `apply` via `TF_VAR_` environment variable will now yield warning instead of misleading error.
+time: 2025-02-05T12:53:26.000+00:00
+custom:
+    Issue: "36435"
