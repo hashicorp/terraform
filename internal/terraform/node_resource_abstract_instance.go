@@ -2898,7 +2898,7 @@ func (n *NodeAbstractResourceInstance) validateIdentity(state *states.ResourceIn
 	}
 
 	// Identities can not change (except if they are re-created or initially recorded)
-	if !isAllowedToChange && !state.Identity.IsNull() && state.Identity.Equals(newIdentity).False() {
+	if !isAllowedToChange && state != nil && !state.Identity.IsNull() && state.Identity.Equals(newIdentity).False() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Provider produced different identity",
