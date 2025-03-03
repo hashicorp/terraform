@@ -1061,6 +1061,8 @@ github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.58 h1:lf6PxLIHge0UL5LJgt/Szs
 github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.58/go.mod h1:9DB57cKw/ZNu1UQJX1YNmaJ7A2/+xCpCUUwbGZy4Qx0=
 github.com/hashicorp/cli v1.1.6 h1:CMOV+/LJfL1tXCOKrgAX0uRKnzjj/mpmqNXloRSy2K8=
 github.com/hashicorp/cli v1.1.6/go.mod h1:MPon5QYlgjjo0BSoAiN0ESeT5fRzDjVRp+uioJ0piz4=
+github.com/hashicorp/cli v1.1.7 h1:/fZJ+hNdwfTSfsxMBa9WWMlfjUZbX8/LnUxgAd7lCVU=
+github.com/hashicorp/cli v1.1.7/go.mod h1:e6Mfpga9OCT1vqzFuoGZiiF/KaG9CbUfO5s3ghU3YgU=
 github.com/hashicorp/consul/api v1.13.0 h1:2hnLQ0GjQvw7f3O61jMO8gbasZviZTrt9R8WzgiirHc=
 github.com/hashicorp/consul/api v1.13.0/go.mod h1:ZlVrynguJKcYr54zGaDbaL3fOvKC9m72FhPvA8T35KQ=
 github.com/hashicorp/consul/sdk v0.8.0 h1:OJtKBtEjboEZvG6AOUdh4Z1Zbyu0WcxQ0qatRrZHTVU=
