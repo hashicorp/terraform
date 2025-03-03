@@ -92,7 +92,10 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 func testModuleInline(t testing.TB, sources map[string]string) *configs.Config {
 	t.Helper()
 
-	cfgPath := t.TempDir()
+	cfgPath, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	for path, configStr := range sources {
 		dir := filepath.Dir(path)

@@ -65,6 +65,9 @@ func (d *rpcFriendlyDiag) Equals(otherDiag ComparableDiagnostic) bool {
 	if d.Detail_ != od.Detail_ {
 		return false
 	}
+	if !sourceRangeEquals(d.Subject_, od.Subject_) {
+		return false
+	}
 
 	return true
 }
