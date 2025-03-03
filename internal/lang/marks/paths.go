@@ -30,9 +30,12 @@ func PathsWithMark(pvms []cty.PathValueMarks, wantMark any) (withWanted []cty.Pa
 		if _, ok := pvm.Marks[wantMark]; ok {
 			withWanted = append(withWanted, pvm.Path)
 		}
+
 		for mark := range pvm.Marks {
 			if mark != wantMark {
 				withOthers = append(withOthers, pvm)
+				// only add a path with unwanted marks a single time
+				break
 			}
 		}
 	}

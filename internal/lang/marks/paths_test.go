@@ -16,7 +16,7 @@ func TestPathsWithMark(t *testing.T) {
 	input := []cty.PathValueMarks{
 		{
 			Path:  cty.GetAttrPath("sensitive"),
-			Marks: cty.NewValueMarks(Sensitive),
+			Marks: cty.NewValueMarks("sensitive"),
 		},
 		{
 			Path:  cty.GetAttrPath("other"),
@@ -24,11 +24,15 @@ func TestPathsWithMark(t *testing.T) {
 		},
 		{
 			Path:  cty.GetAttrPath("both"),
-			Marks: cty.NewValueMarks(Sensitive, "other"),
+			Marks: cty.NewValueMarks("sensitive", "other"),
+		},
+		{
+			Path:  cty.GetAttrPath("neither"),
+			Marks: cty.NewValueMarks("x", "y"),
 		},
 	}
 
-	gotPaths, gotOthers := PathsWithMark(input, Sensitive)
+	gotPaths, gotOthers := PathsWithMark(input, "sensitive")
 	wantPaths := []cty.Path{
 		cty.GetAttrPath("sensitive"),
 		cty.GetAttrPath("both"),
@@ -40,13 +44,17 @@ func TestPathsWithMark(t *testing.T) {
 		},
 		{
 			Path:  cty.GetAttrPath("both"),
-			Marks: cty.NewValueMarks(Sensitive, "other"),
+			Marks: cty.NewValueMarks("sensitive", "other"),
 			// Note that this intentionally preserves the fact that the
 			// attribute was both sensitive _and_ had another mark, since
 			// that gives the caller the most possible information to
 			// potentially handle this combination in a special way in
 			// an error message, or whatever. It also conveniently avoids
 			// allocating a new mark set, which is nice.
+		},
+		{
+			Path:  cty.GetAttrPath("neither"),
+			Marks: cty.NewValueMarks("x", "y"),
 		},
 	}
 
