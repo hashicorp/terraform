@@ -618,7 +618,7 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		protoReq.ProviderMeta = &proto6.DynamicValue{Msgpack: metaMP}
 	}
 
-	if r.PriorIdentity != cty.NilVal {
+	if !r.PriorIdentity.IsNull() {
 		priorIdentitySchema, ok := p.identityTypes[r.TypeName]
 		if !ok {
 			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("identity type not found for resource type %s", r.TypeName))

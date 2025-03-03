@@ -5894,9 +5894,11 @@ resource "test_object" "obj" {
 					Before: cty.ObjectVal(map[string]cty.Value{
 						"value": cty.NullVal(cty.String),
 					}),
+					BeforeIdentity: cty.NullVal(cty.EmptyObject),
 					After: cty.ObjectVal(map[string]cty.Value{
 						"value": cty.NullVal(cty.String),
 					}),
+					AfterIdentity: cty.NullVal(cty.EmptyObject),
 				},
 				ActionReason:    plans.ResourceInstanceReplaceBecauseCannotUpdate,
 				RequiredReplace: cty.NewPathSet(cty.GetAttrPath("value")),
@@ -5911,6 +5913,7 @@ resource "test_object" "obj" {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if diff := cmp.Diff(expectedChanges, changes, ctydebug.CmpOptions); diff != "" {
 		t.Fatalf("unexpected changes: %s", diff)
 	}
@@ -5989,9 +5992,11 @@ resource "test_object" "obj" {
 					Before: cty.ObjectVal(map[string]cty.Value{
 						"value": cty.NullVal(cty.String),
 					}),
+					BeforeIdentity: cty.NullVal(cty.EmptyObject),
 					After: cty.ObjectVal(map[string]cty.Value{
 						"value": cty.NullVal(cty.String),
 					}),
+					AfterIdentity: cty.NullVal(cty.EmptyObject),
 				},
 				ActionReason:    plans.ResourceInstanceReplaceBecauseCannotUpdate,
 				RequiredReplace: cty.NewPathSet(cty.GetAttrPath("value")),
@@ -6163,17 +6168,21 @@ output "staying" {
 			{
 				Addr: mustAbsOutputValue("output.old"),
 				Change: plans.Change{
-					Action: plans.Delete,
-					Before: cty.StringVal("old_value"),
-					After:  cty.NullVal(cty.DynamicPseudoType),
+					Action:         plans.Delete,
+					Before:         cty.StringVal("old_value"),
+					BeforeIdentity: cty.NullVal(cty.DynamicPseudoType),
+					After:          cty.NullVal(cty.DynamicPseudoType),
+					AfterIdentity:  cty.NullVal(cty.DynamicPseudoType),
 				},
 			},
 			{
 				Addr: mustAbsOutputValue("output.staying"),
 				Change: plans.Change{
-					Action: plans.NoOp,
-					Before: cty.StringVal("foo"),
-					After:  cty.StringVal("foo"),
+					Action:         plans.NoOp,
+					Before:         cty.StringVal("foo"),
+					BeforeIdentity: cty.NullVal(cty.DynamicPseudoType),
+					After:          cty.StringVal("foo"),
+					AfterIdentity:  cty.NullVal(cty.DynamicPseudoType),
 				},
 			},
 		},
@@ -6343,7 +6352,7 @@ resource "test_object" "a" {
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	assertNoErrors(t, diags)
 
-	resourceType := p.GetProviderSchemaResponse.ResourceTypes["test_object"].Body.ImpliedType()
+	resourceType := p.GetProviderSchemaResponse.ResourceTypes["test_object"]
 	change, err := plan.Changes.ResourceInstance(mustResourceInstanceAddr(`test_object.a["old"]`)).Decode(resourceType)
 	if err != nil {
 		t.Fatal(err)

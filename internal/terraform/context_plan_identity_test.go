@@ -173,7 +173,7 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 			ExpectedIdentity: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.StringVal("foo"),
 			}),
-			ExpectedError: fmt.Errorf("Provider produced different identity: Provider \"registry.terraform.io/hashicorp/aws\" planned an different identity for aws_instance.web during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
+			ExpectedError: fmt.Errorf("Provider produced different identity: Provider \"registry.terraform.io/hashicorp/aws\" planned an different identity for aws_instance.web. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
 		},
 		"identity with unknowns": {
 			IdentitySchema: providers.IdentitySchema{
@@ -191,7 +191,7 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 			IdentityData: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.UnknownVal(cty.String),
 			}),
-			ExpectedError: fmt.Errorf("Provider produced invalid identity: Provider \"registry.terraform.io/hashicorp/aws\" planned an identity with unknown values for aws_instance.web during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
+			ExpectedError: fmt.Errorf("Provider produced invalid identity: Provider \"registry.terraform.io/hashicorp/aws\" planned an identity with unknown values for aws_instance.web. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
 		},
 
 		"identity with marks": {
@@ -210,7 +210,7 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 			IdentityData: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.StringVal("marked value").Mark(marks.Sensitive),
 			}),
-			ExpectedError: fmt.Errorf("Provider produced invalid identity: Provider \"registry.terraform.io/hashicorp/aws\" planned an identity with marks for aws_instance.web during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
+			ExpectedError: fmt.Errorf("Provider produced invalid identity: Provider \"registry.terraform.io/hashicorp/aws\" planned an identity with marks for aws_instance.web. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
