@@ -158,6 +158,9 @@
     ]
   },
   { "title": "Data Sources", "path": "data-sources" },
+  { "title": "moved", "hidden": true, "path": "moved" },
+  { "title": "resource", "hidden": true, "path": "resource" },
+  { "title": "terraform", "hidden": true, "path": "terraform" },
   {
     "title": "Meta-Arguments",
     "hidden": true,
@@ -271,14 +274,6 @@
         ]
       }
     ]
-  },
-  {
-    "title": "Moved block",
-    "path": "moved"
-  },
-  {
-    "title": "Terraform block",
-    "path": "terraform"
   },
   {
     "title": "Backend block",
@@ -1108,6 +1103,25 @@
   {
     "title": "v1.x Compatibility Promises",
     "path": "v1-compatibility-promises"
+  },
+  { "divider": true },
+  { "heading": "Reference" },
+  {
+    "title": "Configuration blocks",
+    "routes": [
+      {
+        "title": "resource",
+        "href": "resource"
+      },
+      {
+        "title": "moved",
+        "href": "moved"
+      },
+      {
+        "title": "terraform",
+        "href": "terraform"
+      }
+    ]
   },
   { "divider": true },
   { "title": "Terraform Internals", "href": "/internals" }
