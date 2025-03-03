@@ -212,7 +212,7 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"destroy_fail": {
-			expectedOut:           []string{"2 passed, 0 failed."},
+			expectedOut:           []string{"3 passed, 0 failed."},
 			expectedErr:           []string{`Terraform left the following resources in state`},
 			code:                  1,
 			expectedResourceCount: 4,
@@ -478,10 +478,28 @@ func TestTest_DestroyFail(t *testing.T) {
 	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
 	view, done := testView(t)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		View:             view,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{Meta: meta}
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
+	}
 
 	interrupt := make(chan struct{})
 	provider.Interrupt = interrupt
+	view, done = testView(t)
 
 	c := &TestCommand{
 		Meta: Meta{
@@ -496,12 +514,13 @@ func TestTest_DestroyFail(t *testing.T) {
 	err := output.Stderr()
 
 	cleanupMessage := `main.tftest.hcl... in progress
+  run "setup"... pass
   run "single"... pass
   run "double"... pass
 main.tftest.hcl... tearing down
 main.tftest.hcl... fail
 
-Failure! 2 passed, 0 failed.
+Failure! 3 passed, 0 failed.
 `
 
 	cleanupErr := `Terraform encountered an error destroying resources created while executing
