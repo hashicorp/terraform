@@ -212,10 +212,10 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"destroy_fail": {
-			expectedOut:           []string{"1 passed, 0 failed."},
+			expectedOut:           []string{"2 passed, 0 failed."},
 			expectedErr:           []string{`Terraform left the following resources in state`},
 			code:                  1,
-			expectedResourceCount: 1,
+			expectedResourceCount: 4,
 		},
 		"default_optional_values": {
 			expectedOut: []string{"4 passed, 0 failed."},
@@ -469,6 +469,86 @@ func TestTest_Interrupt(t *testing.T) {
 	if provider.ResourceCount() > 0 {
 		// we asked for a nice stop in this one, so it should still have tidied everything up.
 		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_DestroyFail(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "destroy_fail")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	interrupt := make(chan struct{})
+	provider.Interrupt = interrupt
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+			ShutdownCh:       interrupt,
+		},
+	}
+
+	c.Run([]string{"-no-color"})
+	output := done(t)
+	err := output.Stderr()
+
+	cleanupMessage := `main.tftest.hcl... in progress
+  run "single"... pass
+  run "double"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 2 passed, 0 failed.
+`
+
+	cleanupErr := `Terraform encountered an error destroying resources created while executing
+main.tftest.hcl/double.
+
+Error: Failed to destroy resource
+
+destroy_fail is set to true
+
+Error: Failed to destroy resource
+
+destroy_fail is set to true
+
+Terraform left the following resources in state after executing
+main.tftest.hcl/double, and they need to be cleaned up manually:
+  - test_resource.another
+  - test_resource.resource
+Terraform encountered an error destroying resources created while executing
+main.tftest.hcl/single.
+
+Error: Failed to destroy resource
+
+destroy_fail is set to true
+
+Error: Failed to destroy resource
+
+destroy_fail is set to true
+
+Terraform left the following resources in state after executing
+main.tftest.hcl/single, and they need to be cleaned up manually:
+  - test_resource.another
+  - test_resource.resource
+`
+
+	// It's really important that the above message is printed, so we're testing
+	// for it specifically and making sure it contains all the resources.
+	if diff := cmp.Diff(cleanupErr, err); diff != "" {
+		t.Errorf("expected err to be %s\n\nbut got %s\n\n diff:%s\n", cleanupErr, err, diff)
+	}
+	if diff := cmp.Diff(cleanupMessage, output.Stdout()); diff != "" {
+		t.Errorf("expected output to be %s\n\nbut got %s\n\n diff:%s\n", cleanupMessage, output.Stdout(), diff)
+	}
+
+	// This time the test command shouldn't have cleaned up the resource because
+	// the destroy failed.
+	if provider.ResourceCount() != 4 {
+		t.Errorf("should not have deleted all resources on completion but only has %v", provider.ResourceString())
 	}
 }
 
