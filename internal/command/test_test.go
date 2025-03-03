@@ -9,8 +9,10 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"runtime"
+	"sort"
 	"strings"
 	"testing"
 
@@ -19,9 +21,12 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend/local"
 	testing_command "github.com/hashicorp/terraform/internal/command/testing"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/moduletest/graph"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terminal"
 )
 
@@ -212,10 +217,10 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"destroy_fail": {
-			expectedOut:           []string{"1 passed, 0 failed."},
+			expectedOut:           []string{"2 passed, 0 failed."},
 			expectedErr:           []string{`Terraform left the following resources in state`},
 			code:                  1,
-			expectedResourceCount: 1,
+			expectedResourceCount: 4,
 		},
 		"default_optional_values": {
 			expectedOut: []string{"4 passed, 0 failed."},
@@ -469,6 +474,149 @@ func TestTest_Interrupt(t *testing.T) {
 	if provider.ResourceCount() > 0 {
 		// we asked for a nice stop in this one, so it should still have tidied everything up.
 		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_DestroyFail(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "destroy_fail")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	interrupt := make(chan struct{})
+	provider.Interrupt = interrupt
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+			ShutdownCh:       interrupt,
+		},
+	}
+
+	c.Run([]string{"-no-color"})
+	output := done(t)
+
+	cleanupMessage := `main.tftest.hcl... in progress
+  run "single"... pass
+  run "double"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 2 passed, 0 failed.
+`
+
+	cleanupErr := `Terraform encountered an error destroying resources created while executing
+main.tftest.hcl/double.
+
+Error: Failed to destroy resource
+
+destroy_fail is set to true
+
+Error: Failed to destroy resource
+
+destroy_fail is set to true
+
+Terraform left the following resources in state after executing
+main.tftest.hcl/double, and they need to be cleaned up manually:
+  - test_resource.another
+  - test_resource.resource
+Terraform encountered an error destroying resources created while executing
+main.tftest.hcl/single.
+
+Error: Failed to destroy resource
+
+destroy_fail is set to true
+
+Error: Failed to destroy resource
+
+destroy_fail is set to true
+
+Terraform left the following resources in state after executing
+main.tftest.hcl/single, and they need to be cleaned up manually:
+  - test_resource.another
+  - test_resource.resource
+`
+
+	// It's really important that the above message is printed, so we're testing
+	// for it specifically and making sure it contains all the resources.
+	if diff := cmp.Diff(cleanupErr, output.Stderr()); diff != "" {
+		t.Errorf("expected err to be %s\n\nbut got %s\n\n diff:%s\n", cleanupErr, output.Stderr(), diff)
+	}
+	if diff := cmp.Diff(cleanupMessage, output.Stdout()); diff != "" {
+		t.Errorf("expected output to be %s\n\nbut got %s\n\n diff:%s\n", cleanupMessage, output.Stdout(), diff)
+	}
+
+	// This time the test command shouldn't have cleaned up the resource because
+	// the destroy failed.
+	if provider.ResourceCount() != 4 {
+		t.Errorf("should not have deleted all resources on completion but only has %v", provider.ResourceString())
+	}
+
+	// Verify the manifest.json file
+	manifestPath := path.Join(td, ".terraform/test", "manifest.json")
+	manifestFile, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatalf("failed to read manifest.json: %s", err)
+	}
+
+	var manifest graph.TestManifest
+	if err := json.Unmarshal(manifestFile, &manifest); err != nil {
+		t.Fatalf("failed to unmarshal manifest.json: %s", err)
+	}
+
+	// function to get the state for a given state key within the manifest
+	stateGetter := func(stateKey string) (*states.State, error) {
+		backend := local.New()
+		dir := filepath.Dir(stateKey)
+		backendConfig := cty.ObjectVal(map[string]cty.Value{
+			"path":          cty.StringVal(stateKey),
+			"workspace_dir": cty.StringVal(dir),
+		})
+		diags := backend.Configure(backendConfig)
+		if diags.HasErrors() {
+			return nil, fmt.Errorf("failed to configure backend: %s", diags)
+		}
+
+		mgr, err := backend.StateMgr("default")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create state manager: %s", err)
+		}
+		if err := mgr.RefreshState(); err != nil {
+			return nil, fmt.Errorf("failed to refresh state: %s", err)
+		}
+		return mgr.State(), nil
+	}
+
+	expectedStates := map[string][]string{
+		"main.":       {"test_resource.another", "test_resource.resource"},
+		"main.double": {"test_resource.another", "test_resource.resource"},
+	}
+	actualStates := make(map[string][]string)
+
+	// Verify the states in the manifest
+	for fileName, file := range manifest.Files {
+		for name, state := range file.States {
+			state, err := stateGetter(state.Path)
+			if err != nil {
+				t.Fatalf("failed to get state: %s", err)
+			}
+
+			var resources []string
+			for _, module := range state.Modules {
+				for _, resource := range module.Resources {
+					resources = append(resources, resource.Addr.String())
+				}
+			}
+			sort.Strings(resources)
+			actualStates[strings.TrimSuffix(fileName, ".tftest.hcl")+"."+name] = resources
+		}
+	}
+
+	if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
+		t.Fatalf("unexpected states: %s", diff)
 	}
 }
 
