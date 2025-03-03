@@ -582,8 +582,14 @@ var TransposeFunc = function.New(&function.Spec{
 
 		for it := inputMap.ElementIterator(); it.Next(); {
 			inKey, inVal := it.Element()
+			if inVal.IsNull() {
+				return cty.MapValEmpty(cty.List(cty.String)), errors.New("input must not contain null list")
+			}
 			for iter := inVal.ElementIterator(); iter.Next(); {
 				_, val := iter.Element()
+				if val.IsNull() {
+					return cty.MapValEmpty(cty.List(cty.String)), errors.New("input list must not contain null string")
+				}
 				if !val.Type().Equals(cty.String) {
 					return cty.MapValEmpty(cty.List(cty.String)), errors.New("input must be a map of lists of strings")
 				}
