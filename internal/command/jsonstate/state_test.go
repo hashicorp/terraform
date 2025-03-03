@@ -620,6 +620,54 @@ func TestMarshalResources(t *testing.T) {
 			},
 			false,
 		},
+		"single resource_with_identity": {
+			map[string]*states.Resource{
+				"test_identity.baz": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_identity",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.NoKey: {
+							Current: &states.ResourceInstanceObjectSrc{
+								Status:       states.ObjectReady,
+								AttrsJSON:    []byte(`{"woozles":"confuzles","foozles":"sensuzles","name":"bar"}`),
+								IdentityJSON: []byte(`{"foozles":"sensuzles","name":"bar"}`),
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			testSchemas(),
+			[]Resource{
+				{
+					Address:      "test_identity.bar",
+					Mode:         "managed",
+					Type:         "test_identity",
+					Name:         "bar",
+					Index:        nil,
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					AttributeValues: AttributeValues{
+						"name":    json.RawMessage(`"bar"`),
+						"foozles": json.RawMessage(`"sensuzles"`),
+						"woozles": json.RawMessage(`"confuzles"`),
+					},
+					SensitiveValues: json.RawMessage("{\"foozles\":true}"),
+					IdentityValues: IdentityValues{
+						"name":    json.RawMessage(`"bar"`),
+						"foozles": json.RawMessage(`"sensuzles"`),
+					},
+				},
+			},
+			false,
+		},
 	}
 
 	for name, test := range tests {
@@ -865,6 +913,22 @@ func testSchemas() *terraform.Schemas {
 							Attributes: map[string]*configschema.Attribute{
 								"data": {Type: cty.Map(cty.String), Optional: true, Computed: true, Sensitive: true},
 							},
+						},
+					},
+					"test_identity": {
+						Body: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"name":    {Type: cty.String, Required: true},
+								"woozles": {Type: cty.String, Optional: true, Computed: true},
+								"foozles": {Type: cty.String, Optional: true, Sensitive: true},
+							},
+						},
+						Identity: &configschema.Object{
+							Attributes: map[string]*configschema.Attribute{
+								"name":    {Type: cty.String, Required: true},
+								"foozles": {Type: cty.String, Optional: true},
+							},
+							Nesting: configschema.NestingSingle,
 						},
 					},
 				},
