@@ -73,7 +73,6 @@ resource "aws_db_instance" "example" {
 }
 ```
 
-
 If an input argument of an ephemeral resource references a value that is not yet known but will be during or after the plan, Terraform defers the resource’s execution to the apply stage instead of running it during the plan. This behavior allows Terraform to evaluate the ephemeral resource at the correct time and ensures that the resource is not executed prematurely.
 
 In the above example, the ephemeral resource `aws_secretsmanager_secret_version` references an input argument that is initially unknown. As a result, Terraform defers its execution to the apply stage, ensuring that the resource is evaluated at the correct time. 
