@@ -124,7 +124,7 @@ resource "aws_db_instance" "main" {
 When you increment the `password_wo_version` argument, Terraform notices that change in its plan and notifies the `aws` provider. The `aws` provider then uses the new `password_wo` value to update the `aws_db_instance` resource.
 
 
-## Example
+## Examples
 
 You can use an `ephemeral` resource to generate a random password, store it in AWS Secrets Manager, and then retrieve it using another `ephemeral` resource. Finally, you can pass the password to the `password_wo` write-only argument of the `aws_db_instance` resource:
 
@@ -168,3 +168,28 @@ In the above example, the ephemeral resource `aws_secretsmanager_secret_version`
 Terraform first creates the secret in AWS Secrets Manager using the ephemeral `random_password`, then retrieve it using the ephemeral `aws_secretsmanager_secret_version` resource, and finally write the password to the write-only `password_wo` argument of the `aws_db_instance` resource.
 
 
+Another example of a using a write-only argument is to create a MySQL database in Azure. In this example, Terraform generates an password using an `ephemeral` resource and passes it to the `administrator_password_wo` write-only argument of the `azurerm_mysql_flexible_server` resource:
+
+```hcl
+provider "azurerm" {
+  features {}
+}
+
+ephemeral "random_password" "db_password" {
+  length           = 16
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
+resource "azurerm_mysql_flexible_server" "example" {
+  name                 = "example-mysql-flexible-server"
+  resource_group_name  = azurerm_resource_group.example.name
+  location             = azurerm_resource_group.example.location
+  sku_name             = "B_Standard_B1s"
+
+  administrator_login               = "newuser"
+  administrator_password_wo         = ephemeral.random_password.db_password.result
+  administrator_password_wo_version = 1
+}
+```
+
+The `azure` provider uses the random password to create a MySQL database, and Terraform discards the password without storing it.
