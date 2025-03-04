@@ -405,9 +405,14 @@ func TestContext2Plan_resource_identity_refresh_destroy_deposed(t *testing.T) {
 
 func TestContext2Plan_resource_identity_plan(t *testing.T) {
 	for name, tc := range map[string]struct {
-		prevRunState     *states.State
+		mode            plans.Mode
+		prevRunState    *states.State
+		requiresReplace []cty.Path
+
 		plannedIdentity  cty.Value
 		expectedIdentity cty.Value
+
+		expectDiagnostics tfdiags.Diagnostics
 	}{
 		"create": {
 			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
@@ -416,6 +421,117 @@ func TestContext2Plan_resource_identity_plan(t *testing.T) {
 			expectedIdentity: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.StringVal("foo"),
 			}),
+		},
+		"update": {
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_resource",
+						Name: "test",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:                states.ObjectReady,
+						AttrsJSON:             []byte(`{"id":"bar"}`),
+						IdentitySchemaVersion: 0,
+						IdentityJSON:          []byte(`{"id":"bar"}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+			}),
+			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("bar"),
+			}),
+			expectedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("bar"),
+			}),
+		},
+		"delete": {
+			mode: plans.DestroyMode,
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_resource",
+						Name: "test",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:                states.ObjectReady,
+						AttrsJSON:             []byte(`{"id":"bar"}`),
+						IdentitySchemaVersion: 0,
+						IdentityJSON:          []byte(`{"id":"bar"}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+			}),
+			plannedIdentity: cty.NilVal,
+			expectedIdentity: cty.NullVal(cty.Object(map[string]cty.Type{
+				"id": cty.String,
+			})),
+		},
+		"replace": {
+			mode: plans.DestroyMode,
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_resource",
+						Name: "test",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:                states.ObjectReady,
+						AttrsJSON:             []byte(`{"id":"foo"}`),
+						IdentitySchemaVersion: 0,
+						IdentityJSON:          []byte(`{"id":"foo"}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+			}),
+			requiresReplace: []cty.Path{cty.GetAttrPath("id")},
+			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("bar"),
+			}),
+			expectedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("bar"),
+			}),
+		},
+
+		"update - changing identity": {
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_resource",
+						Name: "test",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:                states.ObjectReady,
+						AttrsJSON:             []byte(`{"id":"bar"}`),
+						IdentitySchemaVersion: 0,
+						IdentityJSON:          []byte(`{"id":"bar"}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+			}),
+			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
+
+			expectDiagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Error, "Provider produced different identity", "Provider \"registry.terraform.io/hashicorp/test\" planned an different identity for test_resource.test. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
+			},
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -451,26 +567,31 @@ func TestContext2Plan_resource_identity_plan(t *testing.T) {
 				return providers.PlanResourceChangeResponse{
 					PlannedState:    req.ProposedNewState,
 					PlannedIdentity: tc.plannedIdentity,
+					RequiresReplace: tc.requiresReplace,
 				}
 			}
 
 			plan, diags := ctx.Plan(m, tc.prevRunState, &PlanOpts{Mode: plans.NormalMode})
 
-			if diags.HasErrors() {
-				t.Fatal(diags.Err())
-			}
+			if tc.expectDiagnostics != nil {
+				if diff := cmp.Diff(diags, tc.expectDiagnostics, tfdiags.DiagnosticComparer); diff != "" {
+					t.Fatalf("unexpected diagnostics difference: %s", diff)
+				}
+			} else {
+				assertNoDiagnostics(t, diags)
 
-			schema := p.GetProviderSchemaResponse.ResourceTypes["test_resource"]
-			schema.Identity = p.GetResourceIdentitySchemasResponse.IdentityTypes["test_resource"].Body
+				schema := p.GetProviderSchemaResponse.ResourceTypes["test_resource"]
+				schema.Identity = p.GetResourceIdentitySchemasResponse.IdentityTypes["test_resource"].Body
 
-			change, err := plan.Changes.Resources[0].Decode(schema)
+				change, err := plan.Changes.Resources[0].Decode(schema)
 
-			if err != nil {
-				t.Fatal(err)
-			}
+				if err != nil {
+					t.Fatal(err)
+				}
 
-			if !tc.expectedIdentity.RawEquals(change.AfterIdentity) {
-				t.Fatalf("wrong identity\nwant: %s\ngot: %s", tc.expectedIdentity.GoString(), change.AfterIdentity.GoString())
+				if !tc.expectedIdentity.RawEquals(change.AfterIdentity) {
+					t.Fatalf("wrong identity\nwant: %s\ngot: %s", tc.expectedIdentity.GoString(), change.AfterIdentity.GoString())
+				}
 			}
 		})
 	}

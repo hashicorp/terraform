@@ -116,6 +116,7 @@ func (s simple) Stop() error {
 func (s simple) ReadResource(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
 	// just return the same state we received
 	resp.NewState = req.PriorState
+	resp.Identity = req.CurrentIdentity
 	return resp
 }
 

@@ -435,6 +435,7 @@ func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 		}
 		resp.NewState = newState
+		resp.Identity = r.CurrentIdentity
 		return resp
 	}
 
@@ -470,6 +471,7 @@ func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 		resp.NewState = r.PriorState
 	}
 
+	resp.Identity = r.CurrentIdentity
 	resp.Private = r.Private
 	return resp
 }

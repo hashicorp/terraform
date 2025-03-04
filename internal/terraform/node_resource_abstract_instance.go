@@ -1108,6 +1108,9 @@ func (n *NodeAbstractResourceInstance) plan(
 	if !plannedIdentity.IsNull() {
 		diags = diags.Append(n.validateIdentity(currentState, plannedIdentity, action.IsReplace()))
 	}
+	if diags.HasErrors() {
+		return nil, nil, deferred, keyData, diags
+	}
 
 	if action.IsReplace() {
 		// In this strange situation we want to produce a change object that
