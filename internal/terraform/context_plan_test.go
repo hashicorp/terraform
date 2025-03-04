@@ -50,7 +50,7 @@ func TestContext2Plan_basic(t *testing.T) {
 		t.Fatalf("wrong number of resources %d; want fewer than two\n%s", l, spew.Sdump(plan.Changes.Resources))
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 	for _, r := range plan.Changes.Resources {
 		ric, err := r.Decode(ty)
@@ -129,7 +129,7 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 		t.Fatalf("\nexpected: %q\ngot:      %q\n", expectedState, plan.PriorState.String())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	type InstanceGen struct {
@@ -290,7 +290,7 @@ func TestContext2Plan_escapedVar(t *testing.T) {
 		t.Fatalf("expected resource creation, got %s", res.Action)
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	ric, err := res.Decode(ty)
@@ -363,7 +363,7 @@ func TestContext2Plan_modules(t *testing.T) {
 		t.Error("expected 3 resource in plan, got", len(plan.Changes.Resources))
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	expectFoo := objectVal(t, schema, map[string]cty.Value{
@@ -417,7 +417,7 @@ func TestContext2Plan_moduleExpand(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	expected := map[string]struct{}{
@@ -477,7 +477,7 @@ func TestContext2Plan_moduleCycle(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -531,7 +531,7 @@ func TestContext2Plan_moduleDeadlock(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+		schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 		ty := schema.ImpliedType()
 
 		for _, res := range plan.Changes.Resources {
@@ -575,7 +575,7 @@ func TestContext2Plan_moduleInput(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -629,7 +629,7 @@ func TestContext2Plan_moduleInputComputed(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -688,7 +688,7 @@ func TestContext2Plan_moduleInputFromVar(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -749,7 +749,7 @@ func TestContext2Plan_moduleMultiVar(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 5 {
@@ -822,7 +822,7 @@ func TestContext2Plan_moduleOrphans(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -916,7 +916,7 @@ func TestContext2Plan_moduleOrphansWithProvisioner(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 3 {
@@ -1187,7 +1187,7 @@ func TestContext2Plan_moduleProviderVar(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 1 {
@@ -1229,7 +1229,7 @@ func TestContext2Plan_moduleVar(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -1330,7 +1330,7 @@ func TestContext2Plan_moduleVarComputed(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -1660,7 +1660,7 @@ func TestContext2Plan_computed(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -1804,7 +1804,7 @@ func TestContext2Plan_computedDataResource(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
-	schema := p.GetProviderSchemaResponse.DataSources["aws_vpc"].Block
+	schema := p.GetProviderSchemaResponse.DataSources["aws_vpc"].Body
 	ty := schema.ImpliedType()
 
 	if rc := plan.Changes.ResourceInstance(addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "aws_instance", Name: "foo"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)); rc == nil {
@@ -1988,7 +1988,7 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 		}
 	}
 
-	schema := p.GetProviderSchemaResponse.DataSources["aws_data_source"].Block
+	schema := p.GetProviderSchemaResponse.DataSources["aws_data_source"].Body
 	ty := schema.ImpliedType()
 
 	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
@@ -2073,7 +2073,7 @@ func TestContext2Plan_computedList(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -2136,7 +2136,7 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 3 {
@@ -2190,7 +2190,7 @@ func TestContext2Plan_count(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 6 {
@@ -2298,7 +2298,7 @@ func TestContext2Plan_countModuleStatic(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 3 {
@@ -2351,7 +2351,7 @@ func TestContext2Plan_countModuleStaticGrandchild(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 3 {
@@ -2404,7 +2404,7 @@ func TestContext2Plan_countIndex(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -2461,7 +2461,7 @@ func TestContext2Plan_countVar(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 4 {
@@ -2538,7 +2538,7 @@ func TestContext2Plan_countZero(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 1 {
@@ -2579,7 +2579,7 @@ func TestContext2Plan_countOneIndex(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -2656,7 +2656,7 @@ func TestContext2Plan_countDecreaseToOne(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 4 {
@@ -2740,7 +2740,7 @@ func TestContext2Plan_countIncreaseFromNotSet(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 4 {
@@ -2817,7 +2817,7 @@ func TestContext2Plan_countIncreaseFromOne(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 4 {
@@ -2908,7 +2908,7 @@ func TestContext2Plan_countIncreaseFromOneCorrupted(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 5 {
@@ -3033,7 +3033,7 @@ func TestContext2Plan_countIncreaseWithSplatReference(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 6 {
@@ -3087,7 +3087,7 @@ func TestContext2Plan_forEach(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 8 {
@@ -3183,7 +3183,7 @@ func TestContext2Plan_destroy(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -3244,7 +3244,7 @@ func TestContext2Plan_moduleDestroy(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -3307,7 +3307,7 @@ func TestContext2Plan_moduleDestroyCycle(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -3368,7 +3368,7 @@ func TestContext2Plan_moduleDestroyMultivar(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -3424,7 +3424,7 @@ func TestContext2Plan_pathVar(t *testing.T) {
 		t.Fatalf("err: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 1 {
@@ -3479,7 +3479,7 @@ func TestContext2Plan_diffVar(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -3594,7 +3594,7 @@ func TestContext2Plan_orphan(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -3678,7 +3678,7 @@ func TestContext2Plan_state(t *testing.T) {
 	if len(plan.Changes.Resources) < 2 {
 		t.Fatalf("bad: %#v", plan.Changes.Resources)
 	}
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -3732,11 +3732,11 @@ func TestContext2Plan_requiresReplace(t *testing.T) {
 	p := testProvider("test")
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{},
+			Body: &configschema.Block{},
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_thing": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"v": {
 							Type:     cty.String,
@@ -3778,7 +3778,7 @@ func TestContext2Plan_requiresReplace(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["test_thing"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["test_thing"].Body
 	ty := schema.ImpliedType()
 
 	if got, want := len(plan.Changes.Resources), 1; got != want {
@@ -3844,7 +3844,7 @@ func TestContext2Plan_taint(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -3922,7 +3922,7 @@ func TestContext2Plan_taintIgnoreChanges(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 1 {
@@ -4003,7 +4003,7 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 			t.Fatalf("unexpected errors: %s", diags.Err())
 		}
 
-		schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+		schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 		ty := schema.ImpliedType()
 
 		if len(plan.Changes.Resources) != 3 {
@@ -4069,7 +4069,7 @@ func TestContext2Plan_targeted(t *testing.T) {
 		t.Error("plan marked as complete; should not be because it used targeting")
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 1 {
@@ -4124,7 +4124,7 @@ func TestContext2Plan_targetedCrossModule(t *testing.T) {
 		t.Error("plan marked as complete; should not be because it used targeting")
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -4194,7 +4194,7 @@ func TestContext2Plan_targetedModuleWithProvider(t *testing.T) {
 		t.Error("plan marked as complete; should not be because it used targeting")
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["null_resource"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["null_resource"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 1 {
@@ -4257,7 +4257,7 @@ func TestContext2Plan_targetedOrphan(t *testing.T) {
 		t.Error("plan marked as complete; should not be because it used targeting")
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 1 {
@@ -4327,7 +4327,7 @@ func TestContext2Plan_targetedModuleOrphan(t *testing.T) {
 		t.Error("plan marked as complete; should not be because it used targeting")
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 1 {
@@ -4374,7 +4374,7 @@ func TestContext2Plan_targetedModuleUntargetedVariable(t *testing.T) {
 		t.Error("plan marked as complete; should not be because it used targeting")
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -4479,7 +4479,7 @@ func TestContext2Plan_targetedOverTen(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	for _, res := range plan.Changes.Resources {
@@ -4578,7 +4578,7 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 1 {
@@ -4713,7 +4713,7 @@ func TestContext2Plan_ignoreChangesInMap(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["test_ignore_changes_map"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["test_ignore_changes_map"].Body
 	ty := schema.ImpliedType()
 
 	if got, want := len(plan.Changes.Resources), 1; got != want {
@@ -4776,7 +4776,7 @@ func TestContext2Plan_ignoreChangesSensitive(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 1 {
@@ -4885,7 +4885,7 @@ func TestContext2Plan_computedValueInMap(t *testing.T) {
 	}
 
 	for _, res := range plan.Changes.Resources {
-		schema := p.GetProviderSchemaResponse.ResourceTypes[res.Addr.Resource.Resource.Type].Block
+		schema := p.GetProviderSchemaResponse.ResourceTypes[res.Addr.Resource.Resource.Type].Body
 
 		ric, err := res.Decode(schema.ImpliedType())
 		if err != nil {
@@ -4940,7 +4940,7 @@ func TestContext2Plan_moduleVariableFromSplat(t *testing.T) {
 	}
 
 	for _, res := range plan.Changes.Resources {
-		schema := p.GetProviderSchemaResponse.ResourceTypes[res.Addr.Resource.Resource.Type].Block
+		schema := p.GetProviderSchemaResponse.ResourceTypes[res.Addr.Resource.Resource.Type].Body
 
 		ric, err := res.Decode(schema.ImpliedType())
 		if err != nil {
@@ -5022,9 +5022,9 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 		var schema *configschema.Block
 		switch res.Addr.Resource.Resource.Mode {
 		case addrs.DataResourceMode:
-			schema = p.GetProviderSchemaResponse.DataSources[res.Addr.Resource.Resource.Type].Block
+			schema = p.GetProviderSchemaResponse.DataSources[res.Addr.Resource.Resource.Type].Body
 		case addrs.ManagedResourceMode:
-			schema = p.GetProviderSchemaResponse.ResourceTypes[res.Addr.Resource.Resource.Type].Block
+			schema = p.GetProviderSchemaResponse.ResourceTypes[res.Addr.Resource.Resource.Type].Body
 		}
 
 		ric, err := res.Decode(schema.ImpliedType())
@@ -5164,7 +5164,7 @@ func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
 	}
 
 	res := plan.Changes.Resources[0]
-	schema := p.GetProviderSchemaResponse.ResourceTypes[res.Addr.Resource.Resource.Type].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes[res.Addr.Resource.Resource.Type].Body
 
 	ric, err := res.Decode(schema.ImpliedType())
 	if err != nil {
@@ -5588,7 +5588,7 @@ func TestContext2Plan_variableSensitivity(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 1 {
@@ -5654,7 +5654,7 @@ func TestContext2Plan_variableSensitivityModule(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 1 {
@@ -5754,7 +5754,7 @@ func TestContext2Plan_requiredModuleOutput(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["test_resource"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["test_resource"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -5817,7 +5817,7 @@ func TestContext2Plan_requiredModuleObject(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["test_resource"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["test_resource"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 2 {
@@ -6286,7 +6286,7 @@ func TestContext2Plan_targetedModuleInstance(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
 	ty := schema.ImpliedType()
 
 	if len(plan.Changes.Resources) != 1 {

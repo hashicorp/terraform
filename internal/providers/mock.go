@@ -54,7 +54,7 @@ func (m *Mock) GetProviderSchema() GetProviderSchemaResponse {
 		// that could be in use elsewhere.
 		schema.Provider = Schema{
 			Version: schema.Provider.Version,
-			Block:   nil, // Empty - we support no blocks or attributes in mock provider configurations.
+			Body:    nil, // Empty - we support no blocks or attributes in mock provider configurations.
 		}
 
 		// Note, we leave the resource and data source schemas as they are since
@@ -107,7 +107,7 @@ func (m *Mock) UpgradeResourceState(request UpgradeResourceStateRequest) (respon
 		panic(fmt.Errorf("failed to retrieve schema for resource %s", request.TypeName))
 	}
 
-	schemaType := resource.Block.ImpliedType()
+	schemaType := resource.Body.ImpliedType()
 
 	var value cty.Value
 	var err error
@@ -193,7 +193,7 @@ func (m *Mock) PlanResourceChange(request PlanResourceChangeRequest) PlanResourc
 			replacement.ComputedAsUnknown = false
 		}
 
-		value, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, replacement, resource.Block)
+		value, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, replacement, resource.Body)
 		response.Diagnostics = response.Diagnostics.Append(diags)
 		response.PlannedState = value
 		response.PlannedPrivate = []byte("create")
@@ -239,7 +239,7 @@ func (m *Mock) ApplyResourceChange(request ApplyResourceChangeRequest) ApplyReso
 			replacement.Range = mockedResource.DefaultsRange
 		}
 
-		value, diags := mocking.ApplyComputedValuesForResource(request.PlannedState, replacement, resource.Block)
+		value, diags := mocking.ApplyComputedValuesForResource(request.PlannedState, replacement, resource.Body)
 		response.Diagnostics = response.Diagnostics.Append(diags)
 		response.NewState = value
 		return response
@@ -294,7 +294,7 @@ func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceRespo
 		mockedData.Range = mockedDataSource.DefaultsRange
 	}
 
-	value, diags := mocking.ComputedValuesForDataSource(request.Config, mockedData, datasource.Block)
+	value, diags := mocking.ComputedValuesForDataSource(request.Config, mockedData, datasource.Body)
 	response.Diagnostics = response.Diagnostics.Append(diags)
 	response.State = value
 	return response

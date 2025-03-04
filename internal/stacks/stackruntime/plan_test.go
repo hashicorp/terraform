@@ -1535,7 +1535,7 @@ func TestPlanWithProviderConfig(t *testing.T) {
 	providerAddr := addrs.MustParseProviderSourceString("example.com/test/test")
 	providerSchema := &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"name": {
 						Type:     cty.String,
