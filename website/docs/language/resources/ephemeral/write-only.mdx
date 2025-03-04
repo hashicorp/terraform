@@ -78,7 +78,7 @@ resource "aws_db_instance" "example" {
 
 During a Terraform operation, the provider uses the `password_wo` value to create the database instance, and then Terraform discards that value without storing it in the plan or state file. 
 
-Note that the way this is written, the `password_wo` value is lost after Terraform generates unless we capture it in another resource or output. For an example of generating, storing, retrieving, and using an ephemeral password as a write-only argument, refer to the [expanded example below](#example). 
+Note that the way this is written, the `password_wo` value is lost after Terraform generates unless we capture it in another resource or output. For an example of generating, storing, retrieving, and using an ephemeral password as a write-only argument, refer to the [expanded examples below](#examples). 
 
 ## Update write-only arguments with versions
 
@@ -126,6 +126,10 @@ When you increment the `password_wo_version` argument, Terraform notices that ch
 
 ## Examples
 
+The following demonstrates how to use write-only arguments with different cloud providers.
+
+### Set and store an ephemeral password in AWS Secrets Manager
+
 You can use an `ephemeral` resource to generate a random password, store it in AWS Secrets Manager, and then retrieve it using another `ephemeral` resource. Finally, you can pass the password to the `password_wo` write-only argument of the `aws_db_instance` resource:
 
 <CodeBlockConfig>
@@ -167,6 +171,7 @@ In the above example, the ephemeral resource `aws_secretsmanager_secret_version`
 
 Terraform first creates the secret in AWS Secrets Manager using the ephemeral `random_password`, then retrieve it using the ephemeral `aws_secretsmanager_secret_version` resource, and finally write the password to the write-only `password_wo` argument of the `aws_db_instance` resource.
 
+### Create a MySQL database in Azure
 
 Another example of a using a write-only argument is to create a MySQL database in Azure. In this example, Terraform generates an password using an `ephemeral` resource and passes it to the `administrator_password_wo` write-only argument of the `azurerm_mysql_flexible_server` resource:
 
