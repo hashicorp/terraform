@@ -69,6 +69,8 @@ type ContextGraphWalker struct {
 	provisionerCache    map[string]provisioners.Interface
 	provisionerSchemas  map[string]*configschema.Block
 	provisionerLock     sync.Mutex
+
+	DeprecatedReferencables map[string]string
 }
 
 var _ GraphWalker = (*ContextGraphWalker)(nil)
@@ -139,6 +141,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Evaluator:               evaluator,
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
+		DeprecatedReferencables: w.DeprecatedReferencables,
 	}
 
 	return ctx
@@ -151,6 +154,7 @@ func (w *ContextGraphWalker) init() {
 	w.providerSchemas = make(map[string]providers.ProviderSchema)
 	w.provisionerCache = make(map[string]provisioners.Interface)
 	w.provisionerSchemas = make(map[string]*configschema.Block)
+	w.DeprecatedReferencables = make(map[string]string)
 }
 
 func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfdiags.Diagnostics {
