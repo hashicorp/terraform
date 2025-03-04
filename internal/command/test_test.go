@@ -2566,30 +2566,19 @@ Failure! 0 passed, 1 failed.
 
 // TestTest_ReusedBackendConfiguration asserts that it's not valid to re-use the same backend config (i.e the same state file)
 // in parallel runs. This would result in multiple actions attempting to set state, potentially with different resource configurations.
+//
+// Note - this test is written to assert that diagnostics are returned about re-used backend blocks between run blocks, but it allows either
+// of the conflicting run blocks to cause the error to be raised. This is because run blocks without matching state keys aren't run in a
+// deterministic order.
 func TestTest_ReusedBackendConfiguration(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath(path.Join("test", "reused-backend-config")), td)
-	defer testChdir(t, td)()
 
-	provider := testing_command.NewProvider(nil)
-	view, done := testView(t)
-
-	c := &TestCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(provider.Provider),
-			View:             view,
-		},
-	}
-
-	code := c.Run([]string{"-no-color"})
-	output := done(t)
-
-	// Assertions
-	if code != 1 {
-		t.Errorf("expected status code 1 but got %d", code)
-	}
-
-	expectedRegex := regexp.MustCompile(`
+	testCases := map[string]struct {
+		dirName        string
+		expectErrRegex string
+	}{
+		"validation detects when backend config is reused by runs using different user-supplied state key value": {
+			dirName: "reused-backend-config",
+			expectErrRegex: `
 Error: Repeat use of the same backend block
 
   on main.tftest.hcl line \d+, in run "test_(1|2)":
@@ -2597,28 +2586,86 @@ Error: Repeat use of the same backend block
 
 The run "test_(1|2)" contains a backend configuration that's already been used in
 run "test_(1|2)". Sharing the same backend configuration between separate runs
-will result in conflicting state updates.
-`)
-	if !expectedRegex.MatchString(output.All()) {
-		// Because a regex is used to account for non-deterministic ordering of run blocks, we need a string to render
-		// in the failed test message
-		expected := `
+will result in conflicting state updates.`,
+		},
+		"validation detects when backend config is reused when the implicit state key corresponds to a child module ": {
+			dirName: "reused-backend-config-child-modules",
+			expectErrRegex: `
 Error: Repeat use of the same backend block
 
-  on main.tftest.hcl line <NUMBER>, in run "test_<NUMBER>":
-  12:   backend "local" {
+  on main.tftest.hcl line \d+, in run "test_(1|2)":
+  \d+:   backend "local" {
 
-The run "test_<NUMBER>" contains a backend configuration that's already been used in
-run "test_<NUMBER>". Sharing the same backend configuration between separate runs
-will result in conflicting state updates.
-`
-		if diff := cmp.Diff(output.All(), expected); len(diff) > 0 {
-			t.Errorf("output didn't match expected. Where expected includes \"<NUMBER>\" there should be a number:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, output.All(), diff)
-		}
+The run "test_(1|2)" contains a backend configuration that's already been used in
+run "test_(1|2)". Sharing the same backend configuration between separate runs
+will result in conflicting state updates.`,
+		},
 	}
 
-	if provider.ResourceCount() > 0 {
-		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	for tn, tc := range testCases {
+		t.Run(tn, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(path.Join("test", tc.dirName)), td)
+			defer testChdir(t, td)()
+
+			provider := testing_command.NewProvider(nil)
+
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"test": {"1.0.0"},
+			})
+			defer close()
+
+			streams, done := terminal.StreamsForTesting(t)
+			view := views.NewView(streams)
+			ui := new(cli.MockUi)
+
+			meta := Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				Ui:               ui,
+				View:             view,
+				Streams:          streams,
+				ProviderSource:   providerSource,
+			}
+
+			init := &InitCommand{
+				Meta: meta,
+			}
+
+			output := done(t)
+
+			if code := init.Run(nil); code != 0 {
+				t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+			}
+
+			// Reset the streams for the next command.
+			streams, done = terminal.StreamsForTesting(t)
+			meta.Streams = streams
+			meta.View = views.NewView(streams)
+
+			c := &TestCommand{
+				Meta: meta,
+			}
+
+			code := c.Run([]string{"-no-color"})
+			output = done(t)
+
+			// Assertions
+			if code != 1 {
+				t.Errorf("expected status code 1 but got %d", code)
+			}
+
+			expectErrRegex := regexp.MustCompile(tc.expectErrRegex)
+			if !expectErrRegex.MatchString(output.All()) {
+				// t.Errorf("output didn't match the expected regex:\regex:\n%s\nactual:\n%s", tc.expectErrRegex, output.All())
+				if diff := cmp.Diff(output.All(), tc.expectErrRegex); len(diff) > 0 {
+					t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectErrRegex, output.All(), diff)
+				}
+			}
+
+			if provider.ResourceCount() > 0 {
+				t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+			}
+		})
 	}
 }
 
