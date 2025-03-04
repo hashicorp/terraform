@@ -319,7 +319,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
 		}
 
-		if !instanceRefreshState.Identity.IsNull() {
+		if instanceRefreshState != nil && !instanceRefreshState.Identity.IsNull() {
 			diags = diags.Append(n.validateIdentity(priorInstanceRefreshState, instanceRefreshState.Identity, false))
 		}
 
