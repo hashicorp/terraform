@@ -2567,8 +2567,6 @@ Failure! 0 passed, 1 failed.
 // TestTest_ReusedBackendConfiguration asserts that it's not valid to re-use the same backend config (i.e the same state file)
 // in parallel runs. This would result in multiple actions attempting to set state, potentially with different resource configurations.
 func TestTest_ReusedBackendConfiguration(t *testing.T) {
-	t.Skip("TODO(SarahFrench): Unable to reproduce this flakiness locally, skipping for now. Need to investigate or remove.") // Similar failure to TestTest_InvalidConfig?
-
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "reused-backend-config")), td)
 	defer testChdir(t, td)()
@@ -2591,18 +2589,32 @@ func TestTest_ReusedBackendConfiguration(t *testing.T) {
 		t.Errorf("expected status code 1 but got %d", code)
 	}
 
-	expected := `
+	expectedRegex := regexp.MustCompile(`
 Error: Repeat use of the same backend block
 
-  on main.tftest.hcl line 12, in run "test_2":
+  on main.tftest.hcl line \d+, in run "test_(1|2)":
+  \d+:   backend "local" {
+
+The run "test_(1|2)" contains a backend configuration that's already been used in
+run "test_(1|2)". Sharing the same backend configuration between separate runs
+will result in conflicting state updates.
+`)
+	if !expectedRegex.MatchString(output.All()) {
+		// Because a regex is used to account for non-deterministic ordering of run blocks, we need a string to render
+		// in the failed test message
+		expected := `
+Error: Repeat use of the same backend block
+
+  on main.tftest.hcl line <NUMBER>, in run "test_<NUMBER>":
   12:   backend "local" {
 
-The run "test_2" contains a backend configuration that's already been used in
-run "test_1". Sharing the same backend configuration between separate runs
+The run "test_<NUMBER>" contains a backend configuration that's already been used in
+run "test_<NUMBER>". Sharing the same backend configuration between separate runs
 will result in conflicting state updates.
 `
-	if diff := cmp.Diff(output.All(), expected); len(diff) > 0 {
-		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, output.All(), diff)
+		if diff := cmp.Diff(output.All(), expected); len(diff) > 0 {
+			t.Errorf("output didn't match expected. Where expected includes \"<NUMBER>\" there should be a number:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, output.All(), diff)
+		}
 	}
 
 	if provider.ResourceCount() > 0 {
