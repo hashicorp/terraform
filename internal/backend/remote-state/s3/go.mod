@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.63.0
 	github.com/aws/smithy-go v1.21.0
 	github.com/google/go-cmp v0.6.0
-	github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.58
+	github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.62
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/hcl/v2 v2.23.1-0.20250203194505-ba0759438da2
