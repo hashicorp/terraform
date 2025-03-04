@@ -77,6 +77,16 @@ func buildClient(ctx context.Context, config BackendConfig) (*Client, error) {
 		return nil, fmt.Errorf("unable to build authorizer for Resource Manager API: %+v", err)
 	}
 
+	// When using Azure CLI to auth, the user can leave the "subscription_id" unspecified. In this case the subscription id is inferred from
+	// the Azure CLI default subscription.
+	if config.SubscriptionID == "" {
+		if cachedAuth, ok := resourceManagerAuth.(*auth.CachedAuthorizer); ok {
+			if cliAuth, ok := cachedAuth.Source.(*auth.AzureCliAuthorizer); ok && cliAuth.DefaultSubscriptionID != "" {
+				config.SubscriptionID = cliAuth.DefaultSubscriptionID
+			}
+		}
+	}
+
 	client.storageAccountsClient, err = storageaccounts.NewStorageAccountsClientWithBaseURI(config.AuthConfig.Environment.ResourceManager)
 	if err != nil {
 		return nil, fmt.Errorf("building Storage Accounts client: %+v", err)

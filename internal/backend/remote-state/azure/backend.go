@@ -20,7 +20,7 @@ func New() backend.Backend {
 		Schema: map[string]*schema.Schema{
 			"subscription_id": {
 				Type:        schema.TypeString,
-				Optional:    true, // TODO: make this Required in a future version
+				Optional:    true,
 				Description: "The Subscription ID where the Storage Account is located.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_SUBSCRIPTION_ID", ""),
 			},
