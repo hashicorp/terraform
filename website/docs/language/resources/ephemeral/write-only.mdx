@@ -53,9 +53,11 @@ resource "aws_db_instance" "test" {
 }
 ```
 
-However, we recommend using write-only arguments for passing ephemeral values to resources. For example, you can use an `ephemeral` resource to generate a random password and pass it to the `password_wo` write-only argument:
+However, we recommend using write-only arguments for passing ephemeral values to resources. If you use a non-ephemeral value, Terraform stores that value or hard-codes it in your configuration.
 
-<CodeBlockConfig highlight="11">
+For example, you can use an `ephemeral` resource to generate a random password and pass it to the `password_wo` write-only argument:
+
+<CodeBlockConfig highlight="12">
 
 ```hcl
 ephemeral "random_password" "db_password" {
@@ -78,7 +80,7 @@ resource "aws_db_instance" "example" {
 
 During a Terraform operation, the provider uses the `password_wo` value to create the database instance, and then Terraform discards that value without storing it in the plan or state file. 
 
-Note that the way this is written, the `password_wo` value is lost after Terraform generates unless we capture it in another resource or output. For example of generating, storing, retrieving, and using an ephemeral password as a write-only argument, refer to the [expanded example below](#example). 
+Note that the way this is written, the `password_wo` value is lost after Terraform generates unless we capture it in another resource or output. For an example of generating, storing, retrieving, and using an ephemeral password as a write-only argument, refer to the [expanded example below](#example). 
 
 ## Update write-only arguments with versions
 
