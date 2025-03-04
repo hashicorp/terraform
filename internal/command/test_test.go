@@ -2588,7 +2588,7 @@ The run "test_(1|2)" contains a backend configuration that's already been used i
 run "test_(1|2)". Sharing the same backend configuration between separate runs
 will result in conflicting state updates.`,
 		},
-		"validation detects when backend config is reused when the implicit state key corresponds to a child module ": {
+		"validation detects when backend config is reused by runs using different implicit state key (corresponding to root and a child module) ": {
 			dirName: "reused-backend-config-child-modules",
 			expectErrRegex: `
 Error: Repeat use of the same backend block
