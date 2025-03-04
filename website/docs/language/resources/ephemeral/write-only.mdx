@@ -53,9 +53,7 @@ resource "aws_db_instance" "test" {
 }
 ```
 
-However, we recommend using write-only arguments for passing ephemeral values to resources. If you use a non-ephemeral value, Terraform stores that value or hard-codes it in your configuration.
-
-For example, you can use an `ephemeral` resource to generate a random password and pass it to the `password_wo` write-only argument:
+However, we recommend using write-only arguments for passing ephemeral values to resources. For example, you can use an `ephemeral` resource to generate a random password and pass it to the `password_wo` write-only argument:
 
 <CodeBlockConfig highlight="11">
 
