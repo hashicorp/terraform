@@ -73,7 +73,9 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		// above. If we do reach here, then something has gone badly wrong
 		// and we can't really recover from it.
 
-		diags := tfdiags.Diagnostics{}.Append(tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name)))
+		diags := tfdiags.Diagnostics{
+			tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name))),
+		}
 		file.UpdateStatus(moduletest.Error)
 		evalCtx.Renderer().DestroySummary(diags, nil, file, state.State)
 
