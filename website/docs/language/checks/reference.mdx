@@ -1,0 +1,146 @@
+---
+page_title: Check block configuration reference
+description: Learn about the `check` block, which you can specify in Terraform configuration to validate infrastructure outside the usual resource lifecycle.
+---
+
+# Check block configuration reference
+
+The `check` block validates infrastructure outside the plan and apply lifecycle, allowing ongoing verification of your infrastructure.
+
+The check block executes as the last step of plan or apply operations after Terraform has planned or provisioned your infrastructure. Unlike other validation rules, check blocks do not affect the current operation's status. When an assertion fails, Terraform reports a warning and continues execution. For information on other validation rules, refer to [Validate your configuration](/terraform/language/expressions/custom-conditions).
+
+HCP Terraform can automatically validate whether checks in a workspace's configuration continue to pass after Terraform provisions new infrastructure. Refer to [Continuous validation](/terraform/cloud-docs/workspaces/health#continuous-validation) for details.
+
+## Configuration model
+
+The following list outlines field hierarchy, language-specific data types, and requirements in the `check` block.
+
+- [`check`](#check): block
+  - [`data`](#check-data-source_type): block (optional)
+    - `<configuration>`: varies by data source
+  - [`assert`](#check-assert): block (required)
+    - [`condition`](#check-assert-condition): expression
+    - [`error_message`](#check-assert-error_message): string
+
+## Complete configuration
+
+When every field is defined, a `check` block has the following form:
+
+```hcl
+check "name" {
+  data "source_type" "name" {
+    <data_source_configuration>
+  }
+
+  assert {
+    condition     = <condition expression>
+    error_message = "<error message>"
+  }
+}
+```
+
+## Specification
+
+This section provides details about the fields you can configure in the `check` block.
+
+### `check`
+
+The check parent block contains the validation you are configuring. The following table describes the fields you can set in the `check` block.
+
+| Field | Description | Type | Required |
+| --- | --- | --- | --- |
+| `assert` | Defines validation conditions that Terraform evaluates during plan and apply operations. A check block must contain at least one assertion. | Block | Required |
+| `data` | Defines a nested data source for validation. You can only reference this data source within its enclosing `check` block. | Block | Optional |
+
+### `assert`
+A `check` block must have at least one `assert` block that contains the validation conditions that Terraform evaluates during plan and apply operations.
+
+Defines the conditions that Terraform evaluates during plan and apply operations. In order for a `check` block to pass successfully, all assertions within the `check` block must evaluate to true. Condition arguments within `assert` blocks can refer to nested data sources within the enclosing `check` block and any variables, resources, data sources, or module outputs within the current module.
+
+The following table describes the fields you can set in the `assert` block.
+
+| Field | Description | Type | Required |
+| --- | --- | --- | --- |
+| `condition` | Expression that Terraform evaluates to determine if a check passed. If the expression evaluates as true, then the assert block passes. Condition arguments can refer to nested data sources within the enclosing `check` block, and any variables, resources, data sources, or module outputs within the current module. | Expression | Required |
+| `error_message` | Message to display when the condition evaluates to false. | String | Required |
+
+### `data "<SOURCE_TYPE>"`
+
+A `check` block can have a nested data block which you can to validate the status of a piece of infrastructure outside of the usual Terraform resource lifecycle. You can only reference a nested data source within its enclosing check block. If a nested data source's provider raises errors, they are masked as warnings and do not prevent Terraform from continuing operation execution.
+
+Nested data sources support the following [meta-arguments](TODO:datasource ref link):
+- `depends_on`
+- `provider`
+
+We recommend implementing the `depends_on` meta-argument if your nested data source depends on the existence of another resource without referencing it directly. For example, if your check block verifies that a website API returns 200, that check fails the first time Terraform runs your configuration because your website's infrastructure does not exist yet. 
+
+You can have your nested data source `depends_on` an essential piece of your site's infrastructure, such as the load balancer, to ensure Terraform only runs the check when the website is up. The check returns `known after apply` until that crucial piece of your website is ready. 
+
+A problem with this strategy is if the resource your nested data source `depends_on` changes, its `check` block returns `known after apply` until Terraform updates that resource. We only recommend using `depends_on` if your nested data source requires the existence of another resource without referencing it directly.
+
+## Examples
+
+The following examples demonstrate common configuration patterns for specific use cases.
+
+### Validate endpoint health
+
+The following example validates that an endpoint returns a healthy status code:
+
+```hcl
+check "health_check" {
+  data "http" "endpoint" {
+    url = "https://api.example.com/health"
+  }
+
+  assert {
+    condition     = data.http.endpoint.status_code == 200
+    error_message = "Health check failed: ${data.http.endpoint.url} returned ${data.http.endpoint.status_code}"
+  }
+}
+```
+
+If the website's endpoint returns a 200 status code, then the website is healthy and the check passes.  
+
+### Multiple assertions
+
+This example shows how to validate multiple conditions within a single check block:
+
+```hcl
+check "service_validation" {
+  assert {
+    condition     = data.aws_lb.app.enable_deletion_protection
+    error_message = "Load balancer must have deletion protection enabled"
+  }
+
+  assert {
+    condition     = length(data.aws_lb.app.security_groups) > 0
+    error_message = "Load balancer must have at least one security group"
+  }
+
+  data "aws_lb" "app" {
+    name = "application-lb"
+  }
+}
+```
+
+The check passes if the load balancer has at least one security group and has deletion protection enabled. 
+
+### Resource dependency
+
+This example shows how to use `depends_on` to ensure the check only runs after a resource is available:
+
+```hcl
+check "database_connection" {
+  data "postgresql_database" "app_db" {
+    name       = "application"
+    depends_on = [aws_db_instance.main]
+  }
+
+  assert {
+    condition     = data.postgresql_database.app_db.allow_connections
+    error_message = "Database is not accepting connections"
+  }
+}
+```
+
+The check returns `known after apply` until Terraform creates the `aws_db_instance.main` database, meaning the check won't throw false warnings until Terraform creates that crucial piece of your configuration.

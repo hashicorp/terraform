@@ -332,7 +332,14 @@
       }
     ]
   },
-  { "title": "Checks", "path": "checks" },
+  {
+      "title": "LOOK HERE!",
+      "routes": [
+        { "title": "Checks (OLD)", "path": "checks" },
+        { "title": "Check block", "path": "checks/reference" },
+        { "title": "Validate your configuration", "path": "checks/validate" }
+    ]
+  },
   {
       "title": "Import",
       "routes": [
