@@ -128,7 +128,7 @@ func TestApplyDestroy(t *testing.T) {
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
 							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
 							NewStateSrc:                nil, // We should be removing this from the state file.
-							Schema:                     nil,
+							Schema:                     providers.Schema{},
 						},
 						&stackstate.AppliedChangeInputVariable{
 							Addr:  mustStackInputVariable("id"),
@@ -185,7 +185,7 @@ func TestApplyDestroy(t *testing.T) {
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.data.testing_data_source.data"),
 							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
-							Schema:                     nil,
+							Schema:                     providers.Schema{},
 							NewStateSrc:                nil, // deleted
 						},
 
@@ -193,7 +193,7 @@ func TestApplyDestroy(t *testing.T) {
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.data.testing_data_source.missing"),
 							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
-							Schema:                     nil,
+							Schema:                     providers.Schema{},
 							NewStateSrc:                nil,
 						},
 						&stackstate.AppliedChangeInputVariable{
@@ -264,7 +264,7 @@ func TestApplyDestroy(t *testing.T) {
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.data.testing_data_source.missing"),
 							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
-							Schema:                     nil,
+							Schema:                     providers.Schema{},
 							NewStateSrc:                nil, // deleted
 						},
 						&stackstate.AppliedChangeResourceInstanceObject{
@@ -306,13 +306,13 @@ func TestApplyDestroy(t *testing.T) {
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.data.testing_data_source.data"),
 							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
-							Schema:                     nil,
+							Schema:                     providers.Schema{},
 							NewStateSrc:                nil, // deleted
 						},
 						&stackstate.AppliedChangeResourceInstanceObject{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
 							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
-							Schema:                     nil,
+							Schema:                     providers.Schema{},
 							NewStateSrc:                nil, // deleted
 						},
 						&stackstate.AppliedChangeInputVariable{

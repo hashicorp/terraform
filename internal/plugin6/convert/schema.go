@@ -103,6 +103,34 @@ func ProtoToProviderSchema(s *proto.Schema) providers.Schema {
 	}
 }
 
+func ProtoToResourceIdentitySchema(s *proto.ResourceIdentitySchema) providers.IdentitySchema {
+	schema := providers.IdentitySchema{
+		Version: s.Version,
+		Body: &configschema.Object{
+			Attributes: make(map[string]*configschema.Attribute),
+			Nesting:    configschema.NestingSingle,
+		},
+	}
+
+	for _, a := range s.IdentityAttributes {
+		attr := &configschema.Attribute{
+			Description: a.Description,
+			Required:    a.RequiredForImport,
+			Optional:    a.OptionalForImport,
+		}
+
+		if a.Type != nil {
+			if err := json.Unmarshal(a.Type, &attr.Type); err != nil {
+				panic(err)
+			}
+		}
+
+		schema.Body.Attributes[a.Name] = attr
+	}
+
+	return schema
+}
+
 // ProtoToConfigSchema takes the GetSchcema_Block from a grpc response and converts it
 // to a terraform *configschema.Block.
 func ProtoToConfigSchema(b *proto.Schema_Block) *configschema.Block {
@@ -299,5 +327,34 @@ func configschemaObjectToProto(b *configschema.Object) *proto.Schema_Object {
 	return &proto.Schema_Object{
 		Attributes: attributes,
 		Nesting:    nesting,
+	}
+}
+
+func ResourceIdentitySchemaToProto(schema providers.IdentitySchema) *proto.ResourceIdentitySchema {
+	identityAttributes := []*proto.ResourceIdentitySchema_IdentityAttribute{}
+
+	for _, name := range sortedKeys(schema.Body.Attributes) {
+		a := schema.Body.Attributes[name]
+		attr := &proto.ResourceIdentitySchema_IdentityAttribute{
+			Name:              name,
+			Description:       a.Description,
+			RequiredForImport: a.Required,
+			OptionalForImport: a.Optional,
+		}
+
+		if a.Type != cty.NilType {
+			ty, err := json.Marshal(a.Type)
+			if err != nil {
+				panic(err)
+			}
+			attr.Type = ty
+		}
+
+		identityAttributes = append(identityAttributes, attr)
+	}
+
+	return &proto.ResourceIdentitySchema{
+		Version:            schema.Version,
+		IdentityAttributes: identityAttributes,
 	}
 }

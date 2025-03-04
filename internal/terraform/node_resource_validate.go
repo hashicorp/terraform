@@ -322,10 +322,10 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 	// in the provider abstraction.
 	switch n.Config.Mode {
 	case addrs.ManagedResourceMode:
-		schema, _ := providerSchema.SchemaForResourceType(n.Config.Mode, n.Config.Type)
-		if schema == nil {
+		schema := providerSchema.SchemaForResourceType(n.Config.Mode, n.Config.Type)
+		if schema.Body == nil {
 			var suggestion string
-			if dSchema, _ := providerSchema.SchemaForResourceType(addrs.DataResourceMode, n.Config.Type); dSchema != nil {
+			if dSchema := providerSchema.SchemaForResourceType(addrs.DataResourceMode, n.Config.Type); dSchema.Body != nil {
 				suggestion = fmt.Sprintf("\n\nDid you intend to use the data source %q? If so, declare this using a \"data\" block instead of a \"resource\" block.", n.Config.Type)
 			} else if len(providerSchema.ResourceTypes) > 0 {
 				suggestions := make([]string, 0, len(providerSchema.ResourceTypes))
@@ -346,19 +346,19 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 			return diags
 		}
 
-		configVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema, nil, keyData)
+		configVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema.Body, nil, keyData)
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
 			return diags
 		}
 		diags = diags.Append(
-			validateResourceForbiddenEphemeralValues(ctx, configVal, schema).InConfigBody(n.Config.Config, n.Addr.String()),
+			validateResourceForbiddenEphemeralValues(ctx, configVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 		)
 
 		if n.Config.Managed != nil { // can be nil only in tests with poorly-configured mocks
 			for _, traversal := range n.Config.Managed.IgnoreChanges {
 				// validate the ignore_changes traversals apply.
-				moreDiags := schema.StaticValidateTraversal(traversal)
+				moreDiags := schema.Body.StaticValidateTraversal(traversal)
 				diags = diags.Append(moreDiags)
 
 				// ignore_changes cannot be used for Computed attributes,
@@ -369,7 +369,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 				if !diags.HasErrors() {
 					path, _ := traversalToPath(traversal)
 
-					attrSchema := schema.AttributeByPath(path)
+					attrSchema := schema.Body.AttributeByPath(path)
 
 					if attrSchema != nil && !attrSchema.Optional && attrSchema.Computed {
 						// ignore_changes uses absolute traversal syntax in config despite
@@ -400,10 +400,10 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
 
 	case addrs.DataResourceMode:
-		schema, _ := providerSchema.SchemaForResourceType(n.Config.Mode, n.Config.Type)
-		if schema == nil {
+		schema := providerSchema.SchemaForResourceType(n.Config.Mode, n.Config.Type)
+		if schema.Body == nil {
 			var suggestion string
-			if dSchema, _ := providerSchema.SchemaForResourceType(addrs.ManagedResourceMode, n.Config.Type); dSchema != nil {
+			if dSchema := providerSchema.SchemaForResourceType(addrs.ManagedResourceMode, n.Config.Type); dSchema.Body != nil {
 				suggestion = fmt.Sprintf("\n\nDid you intend to use the managed resource type %q? If so, declare this using a \"resource\" block instead of a \"data\" block.", n.Config.Type)
 			} else if len(providerSchema.DataSources) > 0 {
 				suggestions := make([]string, 0, len(providerSchema.DataSources))
@@ -424,13 +424,13 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 			return diags
 		}
 
-		configVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema, nil, keyData)
+		configVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema.Body, nil, keyData)
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
 			return diags
 		}
 		diags = diags.Append(
-			validateResourceForbiddenEphemeralValues(ctx, configVal, schema).InConfigBody(n.Config.Config, n.Addr.String()),
+			validateResourceForbiddenEphemeralValues(ctx, configVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 		)
 
 		// Use unmarked value for validate request
@@ -443,8 +443,8 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		resp := provider.ValidateDataResourceConfig(req)
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
 	case addrs.EphemeralResourceMode:
-		schema, _ := providerSchema.SchemaForResourceType(n.Config.Mode, n.Config.Type)
-		if schema == nil {
+		schema := providerSchema.SchemaForResourceType(n.Config.Mode, n.Config.Type)
+		if schema.Body == nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid ephemeral resource",
@@ -454,7 +454,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 			return diags
 		}
 
-		configVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema, nil, keyData)
+		configVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema.Body, nil, keyData)
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
 			return diags

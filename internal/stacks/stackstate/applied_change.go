@@ -12,7 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
@@ -61,7 +61,7 @@ type AppliedChangeResourceInstanceObject struct {
 	// Schema MUST be the same schema that was used to encode the dynamic
 	// values inside NewStateSrc. This can be left as nil if NewStateSrc
 	// is nil, which represents that the object has been deleted.
-	Schema *configschema.Block
+	Schema providers.Schema
 }
 
 var _ AppliedChange = (*AppliedChangeResourceInstanceObject)(nil)
@@ -147,8 +147,7 @@ func (ac *AppliedChangeResourceInstanceObject) protosForObject() ([]*stacks.Appl
 	// exclusively uses MessagePack encoding for dynamic
 	// values, and so we will need to use the ac.Schema to
 	// transcode the data.
-	ty := ac.Schema.ImpliedType()
-	obj, err := objSrc.Decode(ty)
+	obj, err := objSrc.Decode(ac.Schema)
 	if err != nil {
 		// It would be _very_ strange to get here because we should just
 		// be reversing the same encoding operation done earlier to
@@ -156,7 +155,7 @@ func (ac *AppliedChangeResourceInstanceObject) protosForObject() ([]*stacks.Appl
 		return nil, nil, fmt.Errorf("cannot decode new state for %s in preparation for saving it: %w", addr, err)
 	}
 
-	protoValue, err := stacks.ToDynamicValue(obj.Value, ty)
+	protoValue, err := stacks.ToDynamicValue(obj.Value, ac.Schema.Body.ImpliedType())
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot encode new state for %s in preparation for saving it: %w", addr, err)
 	}

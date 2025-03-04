@@ -71,8 +71,9 @@ type GRPCProvider struct {
 
 	// schema stores the schema for this provider. This is used to properly
 	// serialize the requests for schemas.
-	mu     sync.Mutex
-	schema providers.GetProviderSchemaResponse
+	mu            sync.Mutex
+	schema        providers.GetProviderSchemaResponse
+	identityTypes map[string]providers.IdentitySchema
 }
 
 func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
@@ -81,9 +82,6 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	defer p.mu.Unlock()
 
 	// check the global cache if we can
-	// FIXME: A global cache is inappropriate when Terraform Core is being
-	// used in a non-Terraform-CLI mode where we shouldn't assume that all
-	// calls share the same provider implementations.
 	if !p.Addr.IsZero() {
 		if resp, ok := providers.SchemaCache.Get(p.Addr); ok && resp.ServerCapabilities.GetProviderSchemaOptional {
 			logger.Trace("GRPCProvider: returning cached schema", p.Addr.String())
@@ -162,9 +160,6 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	}
 
 	// set the global cache if we can
-	// FIXME: A global cache is inappropriate when Terraform Core is being
-	// used in a non-Terraform-CLI mode where we shouldn't assume that all
-	// calls share the same provider implementations.
 	if !p.Addr.IsZero() {
 		providers.SchemaCache.Set(p.Addr, resp)
 	}
@@ -173,6 +168,56 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	// use GetProviderSchemaOptional
 	p.schema = resp
 
+	return resp
+}
+
+func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	// check the global cache if we can
+	if !p.Addr.IsZero() {
+		if resp, ok := providers.ResourceIdentitySchemasCache.Get(p.Addr); ok {
+			logger.Trace("GRPCProvider: returning cached resource identity schemas", p.Addr.String())
+			return resp
+		}
+	}
+	logger.Trace("GRPCProvider: GetResourceIdentitySchemas")
+
+	// If the local cache is non-zero, we know this instance has called
+	// GetResourceIdentitySchema at least once and we can return early.
+	if p.identityTypes != nil {
+		return providers.GetResourceIdentitySchemasResponse{
+			IdentityTypes: p.identityTypes,
+		}
+	}
+
+	var resp providers.GetResourceIdentitySchemasResponse
+
+	resp.IdentityTypes = make(map[string]providers.IdentitySchema)
+
+	protoResp, err := p.client.GetResourceIdentitySchemas(p.ctx, new(proto.GetResourceIdentitySchemas_Request))
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	if resp.Diagnostics.HasErrors() {
+		return resp
+	}
+
+	for name, res := range protoResp.IdentitySchemas {
+		resp.IdentityTypes[name] = convert.ProtoToResourceIdentitySchema(res)
+	}
+
+	// set the global cache if we can
+	if !p.Addr.IsZero() {
+		providers.ResourceIdentitySchemasCache.Set(p.Addr, resp)
+	}
+
+	p.identityTypes = resp.IdentityTypes
 	return resp
 }
 
@@ -329,6 +374,50 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 		return resp
 	}
 	resp.UpgradedState = state
+
+	return resp
+}
+
+func (p *GRPCProvider) UpgradeResourceIdentity(r providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
+	logger.Trace("GRPCProvider: UpgradeResourceIdentity")
+
+	schemas := p.GetResourceIdentitySchemas()
+	if schemas.Diagnostics.HasErrors() {
+		resp.Diagnostics = schemas.Diagnostics
+		return resp
+	}
+
+	resSchema, ok := schemas.IdentityTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown resource identity type %q", r.TypeName))
+		return resp
+	}
+
+	protoReq := &proto.UpgradeResourceIdentity_Request{
+		TypeName:    r.TypeName,
+		Version:     int64(r.Version),
+		RawIdentity: r.RawIdentityJSON,
+	}
+
+	protoResp, err := p.client.UpgradeResourceIdentity(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	ty := resSchema.Body.ImpliedType()
+	resp.UpgradedIdentity = cty.NullVal(ty)
+	if protoResp.UpgradedIdentity == nil {
+		return resp
+	}
+
+	identity, err := decodeDynamicValue(protoResp.UpgradedIdentity.IdentityData, ty)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+	resp.UpgradedIdentity = identity
 
 	return resp
 }

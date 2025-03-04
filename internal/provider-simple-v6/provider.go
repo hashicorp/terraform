@@ -56,7 +56,7 @@ func Provider() providers.Interface {
 				GetProviderSchemaOptional: true,
 			},
 			Functions: map[string]providers.FunctionDecl{
-				"noop": providers.FunctionDecl{
+				"noop": {
 					Parameters: []providers.FunctionParam{
 						{
 							Name:               "noop",
@@ -80,6 +80,25 @@ func (s simple) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return s.schema
 }
 
+func (s simple) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	return providers.GetResourceIdentitySchemasResponse{
+		IdentityTypes: map[string]providers.IdentitySchema{
+			"simple_resource": {
+				Version: 0,
+				Body: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+					Nesting: configschema.NestingSingle,
+				},
+			},
+		},
+	}
+}
+
 func (s simple) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 	return resp
 }
@@ -97,6 +116,15 @@ func (p simple) UpgradeResourceState(req providers.UpgradeResourceStateRequest) 
 	val, err := ctyjson.Unmarshal(req.RawStateJSON, ty)
 	resp.Diagnostics = resp.Diagnostics.Append(err)
 	resp.UpgradedState = val
+	return resp
+}
+
+func (p simple) UpgradeResourceIdentity(req providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
+	schema := p.GetResourceIdentitySchemas().IdentityTypes[req.TypeName].Body
+	ty := schema.ImpliedType()
+	val, err := ctyjson.Unmarshal(req.RawIdentityJSON, ty)
+	resp.Diagnostics = resp.Diagnostics.Append(err)
+	resp.UpgradedIdentity = val
 	return resp
 }
 
