@@ -23,21 +23,20 @@ import (
 )
 
 type Client struct {
-	// These Clients are only initialized if an Access Key isn't provided
+	environment        environments.Environment
+	storageAccountName string
+
+	// These are used for getting an accurate blob endpoint, or/and listing access key (if not specified).
 	storageAccountsClient *storageaccounts.StorageAccountsClient
+	accountDetail         *AccountDetails
 
 	// Caching
 	containersClient *containers.Client
 	blobsClient      *blobs.Client
 
-	environment        environments.Environment
-	storageAccountName string
-
-	accountDetail *AccountDetails
-
-	accessKey string
-	sasToken  string
-	// azureAdStorageAuth is only here if we're using AzureAD Authentication but is an Authorizer for Storage
+	// Only one of them shall be specified
+	accessKey          string
+	sasToken           string
 	azureAdStorageAuth auth.Authorizer
 }
 
@@ -45,31 +44,6 @@ func buildClient(ctx context.Context, config BackendConfig) (*Client, error) {
 	client := Client{
 		environment:        config.AuthConfig.Environment,
 		storageAccountName: config.StorageAccountName,
-	}
-
-	// if we have an Access Key - we don't need the other clients
-	if config.AccessKey != "" {
-		client.accessKey = config.AccessKey
-		return &client, nil
-	}
-
-	// likewise with a SAS token
-	if config.SasToken != "" {
-		sasToken := config.SasToken
-		if strings.TrimSpace(sasToken) == "" {
-			return nil, fmt.Errorf("sasToken cannot be empty")
-		}
-		client.sasToken = strings.TrimPrefix(sasToken, "?")
-
-		return &client, nil
-	}
-
-	if config.UseAzureADAuthentication {
-		var err error
-		client.azureAdStorageAuth, err = auth.NewAuthorizerFromCredentials(ctx, *config.AuthConfig, config.AuthConfig.Environment.Storage)
-		if err != nil {
-			return nil, fmt.Errorf("unable to build authorizer for Storage API: %+v", err)
-		}
 	}
 
 	resourceManagerAuth, err := auth.NewAuthorizerFromCredentials(ctx, *config.AuthConfig, config.AuthConfig.Environment.ResourceManager)
@@ -93,18 +67,42 @@ func buildClient(ctx context.Context, config BackendConfig) (*Client, error) {
 	}
 	client.configureClient(client.storageAccountsClient.Client, resourceManagerAuth)
 
-	// Populating the storage account detail
-	storageAccountId := commonids.NewStorageAccountID(config.SubscriptionID, config.ResourceGroupName, client.storageAccountName)
-	resp, err := client.storageAccountsClient.GetProperties(ctx, storageAccountId, storageaccounts.DefaultGetPropertiesOperationOptions())
-	if err != nil {
-		return nil, fmt.Errorf("retrieving %s: %+v", storageAccountId, err)
+	// Populating the storage account detail if both subscription id and resource group name are known.
+	// This is used to get the "most" accurate blob endpoint comparing to the naive version.
+	// NOTE: Additional management plane role (i.e. storageAccounts/read) required. If unwanted, leave resource group name unspecified.
+	if config.SubscriptionID != "" && config.ResourceGroupName != "" {
+		storageAccountId := commonids.NewStorageAccountID(config.SubscriptionID, config.ResourceGroupName, client.storageAccountName)
+		resp, err := client.storageAccountsClient.GetProperties(ctx, storageAccountId, storageaccounts.DefaultGetPropertiesOperationOptions())
+		if err != nil {
+			return nil, fmt.Errorf("retrieving %s: %+v", storageAccountId, err)
+		}
+		if resp.Model == nil {
+			return nil, fmt.Errorf("retrieving %s: model was nil", storageAccountId)
+		}
+		client.accountDetail, err = populateAccountDetails(storageAccountId, *resp.Model)
+		if err != nil {
+			return nil, fmt.Errorf("populating details for %s: %+v", storageAccountId, err)
+		}
 	}
-	if resp.Model == nil {
-		return nil, fmt.Errorf("retrieving %s: model was nil", storageAccountId)
+
+	if config.AccessKey != "" {
+		client.accessKey = config.AccessKey
 	}
-	client.accountDetail, err = populateAccountDetails(storageAccountId, *resp.Model)
-	if err != nil {
-		return nil, fmt.Errorf("populating details for %s: %+v", storageAccountId, err)
+
+	if config.SasToken != "" {
+		sasToken := config.SasToken
+		if strings.TrimSpace(sasToken) == "" {
+			return nil, fmt.Errorf("sasToken cannot be empty")
+		}
+		client.sasToken = strings.TrimPrefix(sasToken, "?")
+	}
+
+	if config.UseAzureADAuthentication {
+		var err error
+		client.azureAdStorageAuth, err = auth.NewAuthorizerFromCredentials(ctx, *config.AuthConfig, config.AuthConfig.Environment.Storage)
+		if err != nil {
+			return nil, fmt.Errorf("unable to build authorizer for Storage API: %+v", err)
+		}
 	}
 
 	return &client, nil
@@ -121,16 +119,29 @@ func (c *Client) getBlobClient(ctx context.Context) (bc *blobs.Client, err error
 		}
 	}()
 
-	if c.sasToken != "" {
+	var baseUri string
+	if c.accountDetail != nil {
+		// Use the "most" correct blob endpoint if possible
+		pBaseUri, err := c.accountDetail.DataPlaneEndpoint(EndpointTypeBlob)
+		if err != nil {
+			return nil, err
+		}
+		baseUri = *pBaseUri
+	} else {
+		baseUri, err = naiveStorageAccountBlobBaseURL(c.environment, c.storageAccountName)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	blobsClient, err := blobs.NewWithBaseUri(baseUri)
+	if err != nil {
+		return nil, fmt.Errorf("new blob client: %v", err)
+	}
+
+	switch {
+	case c.sasToken != "":
 		log.Printf("[DEBUG] Building the Blob Client from a SAS Token")
-		baseURL, err := naiveStorageAccountBlobBaseURL(c.environment, c.storageAccountName)
-		if err != nil {
-			return nil, fmt.Errorf("build storage account blob base URL: %v", err)
-		}
-		blobsClient, err := blobs.NewWithBaseUri(baseURL)
-		if err != nil {
-			return nil, fmt.Errorf("new blob client: %v", err)
-		}
 		c.configureClient(blobsClient.Client, nil)
 		blobsClient.Client.AppendRequestMiddleware(func(r *http.Request) (*http.Request, error) {
 			if r.URL.RawQuery == "" {
@@ -141,59 +152,35 @@ func (c *Client) getBlobClient(ctx context.Context) (bc *blobs.Client, err error
 			return r, nil
 		})
 		return blobsClient, nil
-	}
 
-	if c.accessKey != "" {
+	case c.accessKey != "":
 		log.Printf("[DEBUG] Building the Blob Client from an Access Key")
-		baseURL, err := naiveStorageAccountBlobBaseURL(c.environment, c.storageAccountName)
-		if err != nil {
-			return nil, fmt.Errorf("build storage account blob base URL: %v", err)
-		}
-		blobsClient, err := blobs.NewWithBaseUri(baseURL)
-		if err != nil {
-			return nil, fmt.Errorf("new blob client: %v", err)
-		}
-		c.configureClient(blobsClient.Client, nil)
-
 		authorizer, err := auth.NewSharedKeyAuthorizer(c.storageAccountName, c.accessKey, auth.SharedKey)
 		if err != nil {
 			return nil, fmt.Errorf("new shared key authorizer: %v", err)
 		}
 		c.configureClient(blobsClient.Client, authorizer)
-
 		return blobsClient, nil
-	}
 
-	// Neither shared access key nor sas token specified, then we have the storage account details populated.
-	// This detail can be used to get the "most" correct blob endpoint comparing to the naive construction.
-	baseUri, err := c.accountDetail.DataPlaneEndpoint(EndpointTypeBlob)
-	if err != nil {
-		return nil, err
-	}
-	blobsClient, err := blobs.NewWithBaseUri(*baseUri)
-	if err != nil {
-		return nil, fmt.Errorf("new blob client: %v", err)
-	}
-
-	if c.azureAdStorageAuth != nil {
+	case c.azureAdStorageAuth != nil:
 		log.Printf("[DEBUG] Building the Blob Client from AAD auth")
 		c.configureClient(blobsClient.Client, c.azureAdStorageAuth)
 		return blobsClient, nil
-	}
 
-	log.Printf("[DEBUG] Building the Blob Client from an Access Token (using user credentials)")
-	key, err := c.accountDetail.AccountKey(ctx, c.storageAccountsClient)
-	if err != nil {
-		return nil, fmt.Errorf("retrieving key for Storage Account %q: %s", c.storageAccountName, err)
+	default:
+		// Neither shared access key nor sas token specified, not using AAD auth either. Calling management plane API to get the key.
+		log.Printf("[DEBUG] Building the Blob Client from an Access Key (key is listed using client credentials)")
+		key, err := c.accountDetail.AccountKey(ctx, c.storageAccountsClient)
+		if err != nil {
+			return nil, fmt.Errorf("retrieving key for Storage Account %q: %s", c.storageAccountName, err)
+		}
+		authorizer, err := auth.NewSharedKeyAuthorizer(c.storageAccountName, *key, auth.SharedKey)
+		if err != nil {
+			return nil, fmt.Errorf("new shared key authorizer: %v", err)
+		}
+		c.configureClient(blobsClient.Client, authorizer)
+		return blobsClient, nil
 	}
-
-	authorizer, err := auth.NewSharedKeyAuthorizer(c.storageAccountName, *key, auth.SharedKey)
-	if err != nil {
-		return nil, fmt.Errorf("new shared key authorizer: %v", err)
-	}
-	c.configureClient(blobsClient.Client, authorizer)
-
-	return blobsClient, nil
 }
 
 func (c *Client) getContainersClient(ctx context.Context) (cc *containers.Client, err error) {
@@ -207,16 +194,29 @@ func (c *Client) getContainersClient(ctx context.Context) (cc *containers.Client
 		}
 	}()
 
-	if c.sasToken != "" {
+	var baseUri string
+	if c.accountDetail != nil {
+		// Use the "most" correct blob endpoint if possible
+		pBaseUri, err := c.accountDetail.DataPlaneEndpoint(EndpointTypeBlob)
+		if err != nil {
+			return nil, err
+		}
+		baseUri = *pBaseUri
+	} else {
+		baseUri, err = naiveStorageAccountBlobBaseURL(c.environment, c.storageAccountName)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	containersClient, err := containers.NewWithBaseUri(baseUri)
+	if err != nil {
+		return nil, fmt.Errorf("new container client: %v", err)
+	}
+
+	switch {
+	case c.sasToken != "":
 		log.Printf("[DEBUG] Building the Container Client from a SAS Token")
-		baseURL, err := naiveStorageAccountBlobBaseURL(c.environment, c.storageAccountName)
-		if err != nil {
-			return nil, fmt.Errorf("build storage account blob base URL: %v", err)
-		}
-		containersClient, err := containers.NewWithBaseUri(baseURL)
-		if err != nil {
-			return nil, fmt.Errorf("new container client: %v", err)
-		}
 		c.configureClient(containersClient.Client, nil)
 		containersClient.Client.AppendRequestMiddleware(func(r *http.Request) (*http.Request, error) {
 			if r.URL.RawQuery == "" {
@@ -227,59 +227,35 @@ func (c *Client) getContainersClient(ctx context.Context) (cc *containers.Client
 			return r, nil
 		})
 		return containersClient, nil
-	}
 
-	if c.accessKey != "" {
+	case c.accessKey != "":
 		log.Printf("[DEBUG] Building the Container Client from an Access Key")
-		baseURL, err := naiveStorageAccountBlobBaseURL(c.environment, c.storageAccountName)
-		if err != nil {
-			return nil, fmt.Errorf("build storage account blob base URL: %v", err)
-		}
-		containersClient, err := containers.NewWithBaseUri(baseURL)
-		if err != nil {
-			return nil, fmt.Errorf("new container client: %v", err)
-		}
-		c.configureClient(containersClient.Client, nil)
-
 		authorizer, err := auth.NewSharedKeyAuthorizer(c.storageAccountName, c.accessKey, auth.SharedKey)
 		if err != nil {
 			return nil, fmt.Errorf("new shared key authorizer: %v", err)
 		}
 		c.configureClient(containersClient.Client, authorizer)
-
 		return containersClient, nil
-	}
 
-	// Neither shared access key nor sas token specified, then we have the storage account details populated.
-	// This detail can be used to get the "most" correct blob endpoint comparing to the naive construction.
-	baseUri, err := c.accountDetail.DataPlaneEndpoint(EndpointTypeBlob)
-	if err != nil {
-		return nil, err
-	}
-	containersClient, err := containers.NewWithBaseUri(*baseUri)
-	if err != nil {
-		return nil, fmt.Errorf("new container client: %v", err)
-	}
-
-	if c.azureAdStorageAuth != nil {
+	case c.azureAdStorageAuth != nil:
 		log.Printf("[DEBUG] Building the Container Client from AAD auth")
 		c.configureClient(containersClient.Client, c.azureAdStorageAuth)
 		return containersClient, nil
-	}
 
-	log.Printf("[DEBUG] Building the Container Client from an Access Token (using user credentials)")
-	key, err := c.accountDetail.AccountKey(ctx, c.storageAccountsClient)
-	if err != nil {
-		return nil, fmt.Errorf("retrieving key for Storage Account %q: %s", c.storageAccountName, err)
+	default:
+		// Neither shared access key nor sas token specified, not using AAD auth either. Calling management plane API to get the key.
+		log.Printf("[DEBUG] Building the Container Client from an Access Key (key is listed using user credentials)")
+		key, err := c.accountDetail.AccountKey(ctx, c.storageAccountsClient)
+		if err != nil {
+			return nil, fmt.Errorf("retrieving key for Storage Account %q: %s", c.storageAccountName, err)
+		}
+		authorizer, err := auth.NewSharedKeyAuthorizer(c.storageAccountName, *key, auth.SharedKey)
+		if err != nil {
+			return nil, fmt.Errorf("new shared key authorizer: %v", err)
+		}
+		c.configureClient(containersClient.Client, authorizer)
+		return containersClient, nil
 	}
-
-	authorizer, err := auth.NewSharedKeyAuthorizer(c.storageAccountName, *key, auth.SharedKey)
-	if err != nil {
-		return nil, fmt.Errorf("new shared key authorizer: %v", err)
-	}
-	c.configureClient(containersClient.Client, authorizer)
-
-	return containersClient, nil
 }
 
 func (c *Client) configureClient(client client.BaseClient, authorizer auth.Authorizer) {
