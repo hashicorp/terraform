@@ -801,11 +801,9 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 			// If the run is using an alternate module under test, the source of
 			// that module is returned as the state key.
 			r.StateKey = r.Module.Source.String()
-		} else {
-			// Otherwise, an empty string is returned, and this denotes that the
-			// run is using the root module under test.
-			r.StateKey = ""
 		}
+		// Otherwise, we leave r.StateKey as an empty string. This denotes that the
+		// run is using the root module under test.
 	}
 
 	if attr, exists := content.Attributes["parallel"]; exists {
