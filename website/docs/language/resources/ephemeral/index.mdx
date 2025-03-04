@@ -41,7 +41,7 @@ Terraform's managed resources, defined by `resource` blocks, can include ephemer
 
 Use write-only arguments to securely pass temporary values to resources during a Terraform operation without worrying about Terraform persisting those values. For example, the `aws_db_instance` resource has a write-only `password_wo` argument that accepts a database password:
 
-<CodeBlockConfig highlight="11">
+<CodeBlockConfig highlight="11-13">
 
 ```hcl
 ephemeral "random_password" "db_password" {
@@ -74,11 +74,8 @@ resource "aws_db_instance" "example" {
 }
 ```
 
-In the above example, the ephemeral resource `aws_secretsmanager_secret_version` references an input argument that is initially unknown. As a result, Terraform defers its execution to the apply stage, ensuring that the resource is evaluated at the correct time. 
-This allows Terraform to first create the secret in AWS Secrets Manager using the ephemeral `random_password`, then retrieve it using the ephemeral `aws_secretsmanager_secret_version` resource, and finally write the password to the write-only `password_wo` argument of the `aws_db_instance` resource.
-
 </CodeBlockConfig>
 
-When Terraform creates the `aws_db_instance` resource, Terraform sends the `password_wo` argument to the `aws` provider. The `aws` provider then uses the `password_wo` value to configure the database instance, and then Terraform discards the password value without ever storing it. 
+When Terraform creates the `aws_db_instance` resource, Terraform sends the `password_wo` value to the `aws` provider. The `aws` provider then uses the `password_wo` value to create the database instance, and then Terraform discards the password value without ever storing it. 
 
-To learn more about using write-only arguments, refer to the [Use write-only arguments](/terraform/language/resources/ephemeral/write-only).
+To learn more about this example and using write-only arguments, refer to the [Use write-only arguments](/terraform/language/resources/ephemeral/write-only).
