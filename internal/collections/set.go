@@ -76,6 +76,15 @@ func (s Set[T]) Add(vs ...T) {
 	}
 }
 
+// AddAll inserts all the members of vs into the set.
+//
+// The behavior is the same as calling Add for each member of vs.
+func (s Set[T]) AddAll(vs Set[T]) {
+	for v := range vs.All() {
+		s.Add(v)
+	}
+}
+
 // Remove removes the given member from the set, or does nothing if no
 // equivalent value was present.
 func (s Set[T]) Remove(v T) {
