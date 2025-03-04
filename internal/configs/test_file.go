@@ -797,7 +797,7 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 	// If there's no user-supplied state_key value, set it based on config
 	// under test.
 	if r.StateKey == "" {
-		if r.ConfigUnderTest != nil {
+		if r.Module != nil {
 			// If the run is using an alternate module under test, the source of
 			// that module is returned as the state key.
 			r.StateKey = r.Module.Source.String()
