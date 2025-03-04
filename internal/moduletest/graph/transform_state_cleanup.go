@@ -26,7 +26,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 		if !ok {
 			continue
 		}
-		key := node.run.GetStateKey()
+		key := node.run.Config.StateKey
 		if _, exists := cleanupMap[key]; !exists {
 			cleanupMap[key] = &NodeStateCleanup{stateKey: key, opts: t.opts}
 			g.Add(cleanupMap[key])
@@ -59,7 +59,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	added := make(map[string]bool)
 	var prev dag.Vertex
 	for _, v := range slices.Backward(t.opts.File.Runs) {
-		key := v.GetStateKey()
+		key := v.Config.StateKey
 		if _, exists := added[key]; !exists {
 			node := cleanupMap[key]
 			if prev != nil {

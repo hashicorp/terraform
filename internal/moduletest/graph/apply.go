@@ -20,7 +20,7 @@ import (
 func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValues, waiter *operationWaiter) {
 	file, run := n.File(), n.run
 	config := run.ModuleConfig
-	key := n.run.GetStateKey()
+	key := n.run.Config.StateKey
 
 	// FilterVariablesToModule only returns warnings, so we don't check the
 	// returned diags for errors.

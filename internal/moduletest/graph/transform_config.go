@@ -46,7 +46,7 @@ func (t *TestConfigTransformer) Transform(g *terraform.Graph) error {
 		if !ok {
 			continue
 		}
-		key := node.run.GetStateKey()
+		key := node.run.Config.StateKey
 		if _, exists := statesMap[key]; !exists {
 			state := &TestFileState{
 				Run:   nil,
