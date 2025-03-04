@@ -485,11 +485,30 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 		return resp
 	}
 
+	var currentIdentity *proto6.ResourceIdentityData
+	if !r.CurrentIdentity.IsNull() {
+		currentIdentitySchema, ok := p.identityTypes[r.TypeName]
+		if !ok {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown identity type %s", r.TypeName))
+			return resp
+		}
+
+		mp, err := msgpack.Marshal(r.CurrentIdentity, currentIdentitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		currentIdentity.IdentityData = &proto6.DynamicValue{
+			Msgpack: mp,
+		}
+	}
+
 	protoReq := &proto6.ReadResource_Request{
 		TypeName:           r.TypeName,
 		CurrentState:       &proto6.DynamicValue{Msgpack: mp},
 		Private:            r.Private,
 		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
+		CurrentIdentity:    currentIdentity,
 	}
 
 	if metaSchema.Body != nil {
@@ -516,6 +535,18 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 	resp.NewState = state
 	resp.Private = protoResp.Private
 	resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
+
+	if protoResp.NewIdentity != nil && protoResp.NewIdentity.IdentityData != nil {
+		newIdentitySchema, ok := p.identityTypes[r.TypeName]
+		if !ok {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown identity type %q", r.TypeName))
+		}
+
+		resp.Identity, err = decodeDynamicValue(protoResp.NewIdentity.IdentityData, newIdentitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+		}
+	}
 
 	return resp
 }
@@ -587,6 +618,26 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		protoReq.ProviderMeta = &proto6.DynamicValue{Msgpack: metaMP}
 	}
 
+	if !r.PriorIdentity.IsNull() {
+		priorIdentitySchema, ok := p.identityTypes[r.TypeName]
+		if !ok {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("identity type not found for resource type %s", r.TypeName))
+			return resp
+		}
+
+		mp, err := msgpack.Marshal(r.PriorIdentity, priorIdentitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+
+		protoReq.PriorIdentity = &proto6.ResourceIdentityData{
+			IdentityData: &proto6.DynamicValue{
+				Msgpack: mp,
+			},
+		}
+	}
+
 	protoResp, err := p.client.PlanResourceChange(p.ctx, protoReq)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
@@ -610,6 +661,21 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	resp.LegacyTypeSystem = protoResp.LegacyTypeSystem
 
 	resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
+
+	if protoResp.PlannedIdentity != nil && protoResp.PlannedIdentity.IdentityData != nil {
+		plannedIdentitySchema, ok := p.identityTypes[r.TypeName]
+		if !ok {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown identity type %s", r.TypeName))
+			return resp
+		}
+
+		plannedIdentity, err := decodeDynamicValue(protoResp.PlannedIdentity.IdentityData, plannedIdentitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		resp.PlannedIdentity = plannedIdentity
+	}
 
 	return resp
 }
@@ -669,6 +735,22 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		protoReq.ProviderMeta = &proto6.DynamicValue{Msgpack: metaMP}
 	}
 
+	if !r.PlannedIdentity.IsNull() {
+		plannedIdentitySchema, ok := p.identityTypes[r.TypeName]
+		if !ok {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("identity type not found for resource type %s", r.TypeName))
+			return resp
+		}
+		plannedIdentityMP, err := msgpack.Marshal(r.PlannedIdentity, plannedIdentitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		protoReq.PlannedIdentity = &proto6.ResourceIdentityData{
+			IdentityData: &proto6.DynamicValue{Msgpack: plannedIdentityMP},
+		}
+	}
+
 	protoResp, err := p.client.ApplyResourceChange(p.ctx, protoReq)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
@@ -686,6 +768,20 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	resp.NewState = state
 
 	resp.LegacyTypeSystem = protoResp.LegacyTypeSystem
+
+	if protoResp.NewIdentity != nil && protoResp.NewIdentity.IdentityData != nil {
+		newIdentitySchema, ok := p.identityTypes[r.TypeName]
+		if !ok {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("identity type not found for resource type %s", r.TypeName))
+			return resp
+		}
+		newIdentity, err := decodeDynamicValue(protoResp.NewIdentity.IdentityData, newIdentitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		resp.NewIdentity = newIdentity
+	}
 
 	return resp
 }
@@ -713,6 +809,23 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
 
+	if !r.Identity.IsNull() {
+		identitySchema, ok := p.identityTypes[r.TypeName]
+		if !ok {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown identity type %s", r.TypeName))
+			return resp
+		}
+
+		identityMP, err := msgpack.Marshal(r.Identity, identitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		protoReq.Identity = &proto6.ResourceIdentityData{
+			IdentityData: &proto6.DynamicValue{Msgpack: identityMP},
+		}
+	}
+
 	for _, imported := range protoResp.ImportedResources {
 		resource := providers.ImportedResource{
 			TypeName: imported.TypeName,
@@ -731,6 +844,22 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 			return resp
 		}
 		resource.State = state
+
+		if imported.Identity != nil && imported.Identity.IdentityData != nil {
+			identitySchema, ok := p.identityTypes[r.TypeName]
+			if !ok {
+				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown identity type %s", r.TypeName))
+				return resp
+			}
+
+			identity, err := decodeDynamicValue(imported.Identity.IdentityData, identitySchema.Body.ImpliedType())
+			if err != nil {
+				resp.Diagnostics = resp.Diagnostics.Append(err)
+				return resp
+			}
+			resource.Identity = identity
+		}
+
 		resp.ImportedResources = append(resp.ImportedResources, resource)
 	}
 
@@ -740,6 +869,24 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 func (p *GRPCProvider) MoveResourceState(r providers.MoveResourceStateRequest) (resp providers.MoveResourceStateResponse) {
 	logger.Trace("GRPCProvider: MoveResourceState")
 
+	var sourceIdentity *proto6.ResourceIdentityData
+	if !r.SourceIdentity.IsNull() {
+		sourceIdentitySchema, ok := p.identityTypes[r.SourceTypeName]
+		if !ok {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("could not find resource identity schema for type %q", r.SourceTypeName))
+			return resp
+		}
+
+		mp, err := msgpack.Marshal(r.SourceIdentity, sourceIdentitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		sourceIdentity.IdentityData = &proto6.DynamicValue{
+			Msgpack: mp,
+		}
+	}
+
 	protoReq := &proto6.MoveResourceState_Request{
 		SourceProviderAddress: r.SourceProviderAddress,
 		SourceTypeName:        r.SourceTypeName,
@@ -748,6 +895,7 @@ func (p *GRPCProvider) MoveResourceState(r providers.MoveResourceStateRequest) (
 			Json: r.SourceStateJSON,
 		},
 		SourcePrivate:  r.SourcePrivate,
+		SourceIdentity: sourceIdentity,
 		TargetTypeName: r.TargetTypeName,
 	}
 
@@ -782,6 +930,19 @@ func (p *GRPCProvider) MoveResourceState(r providers.MoveResourceStateRequest) (
 	}
 
 	resp.TargetPrivate = protoResp.TargetPrivate
+
+	if protoResp.TargetIdentity != nil && protoResp.TargetIdentity.IdentityData != nil {
+		targetIdentitySchema, ok := p.identityTypes[protoReq.TargetTypeName]
+		if !ok {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown identity type %s", protoReq.TargetTypeName))
+			return resp
+		}
+		resp.TargetIdentity, err = decodeDynamicValue(protoResp.TargetIdentity.IdentityData, targetIdentitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+	}
 
 	return resp
 }

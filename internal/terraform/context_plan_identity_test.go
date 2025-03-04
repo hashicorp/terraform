@@ -173,7 +173,7 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 			ExpectedIdentity: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.StringVal("foo"),
 			}),
-			ExpectedError: fmt.Errorf("Provider produced different identity: Provider \"registry.terraform.io/hashicorp/aws\" planned an different identity for aws_instance.web during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
+			ExpectedError: fmt.Errorf("Provider produced different identity: Provider \"registry.terraform.io/hashicorp/aws\" planned an different identity for aws_instance.web. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
 		},
 		"identity with unknowns": {
 			IdentitySchema: providers.IdentitySchema{
@@ -191,7 +191,7 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 			IdentityData: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.UnknownVal(cty.String),
 			}),
-			ExpectedError: fmt.Errorf("Provider produced invalid identity: Provider \"registry.terraform.io/hashicorp/aws\" planned an identity with unknown values for aws_instance.web during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
+			ExpectedError: fmt.Errorf("Provider produced invalid identity: Provider \"registry.terraform.io/hashicorp/aws\" planned an identity with unknown values for aws_instance.web. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
 		},
 
 		"identity with marks": {
@@ -210,7 +210,7 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 			IdentityData: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.StringVal("marked value").Mark(marks.Sensitive),
 			}),
-			ExpectedError: fmt.Errorf("Provider produced invalid identity: Provider \"registry.terraform.io/hashicorp/aws\" planned an identity with marks for aws_instance.web during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
+			ExpectedError: fmt.Errorf("Provider produced invalid identity: Provider \"registry.terraform.io/hashicorp/aws\" planned an identity with marks for aws_instance.web. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -401,4 +401,198 @@ func TestContext2Plan_resource_identity_refresh_destroy_deposed(t *testing.T) {
 		t.Fatalf("wrong identity\nwant: %s\ngot: %s", expectedIdentity.GoString(), fromState.Identity.GoString())
 	}
 
+}
+
+func TestContext2Plan_resource_identity_plan(t *testing.T) {
+	for name, tc := range map[string]struct {
+		mode            plans.Mode
+		prevRunState    *states.State
+		requiresReplace []cty.Path
+
+		plannedIdentity  cty.Value
+		expectedIdentity cty.Value
+
+		expectDiagnostics tfdiags.Diagnostics
+	}{
+		"create": {
+			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
+			expectedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
+		},
+		"update": {
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_resource",
+						Name: "test",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:                states.ObjectReady,
+						AttrsJSON:             []byte(`{"id":"bar"}`),
+						IdentitySchemaVersion: 0,
+						IdentityJSON:          []byte(`{"id":"bar"}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+			}),
+			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("bar"),
+			}),
+			expectedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("bar"),
+			}),
+		},
+		"delete": {
+			mode: plans.DestroyMode,
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_resource",
+						Name: "test",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:                states.ObjectReady,
+						AttrsJSON:             []byte(`{"id":"bar"}`),
+						IdentitySchemaVersion: 0,
+						IdentityJSON:          []byte(`{"id":"bar"}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+			}),
+			plannedIdentity: cty.NilVal,
+			expectedIdentity: cty.NullVal(cty.Object(map[string]cty.Type{
+				"id": cty.String,
+			})),
+		},
+		"replace": {
+			mode: plans.DestroyMode,
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_resource",
+						Name: "test",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:                states.ObjectReady,
+						AttrsJSON:             []byte(`{"id":"foo"}`),
+						IdentitySchemaVersion: 0,
+						IdentityJSON:          []byte(`{"id":"foo"}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+			}),
+			requiresReplace: []cty.Path{cty.GetAttrPath("id")},
+			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("bar"),
+			}),
+			expectedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("bar"),
+			}),
+		},
+
+		"update - changing identity": {
+			prevRunState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_resource",
+						Name: "test",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:                states.ObjectReady,
+						AttrsJSON:             []byte(`{"id":"bar"}`),
+						IdentitySchemaVersion: 0,
+						IdentityJSON:          []byte(`{"id":"bar"}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+			}),
+			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
+
+			expectDiagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Error, "Provider produced different identity", "Provider \"registry.terraform.io/hashicorp/test\" planned an different identity for test_resource.test. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			m := testModuleInline(t, map[string]string{
+				"main.tf": `
+       resource "test_resource" "test" {
+       }
+       `,
+			})
+			p := testProvider("test")
+			p.GetResourceIdentitySchemasResponse = &providers.GetResourceIdentitySchemasResponse{
+				IdentityTypes: map[string]providers.IdentitySchema{
+					"test_resource": {
+						Version: 0,
+						Body: &configschema.Object{
+							Attributes: map[string]*configschema.Attribute{
+								"id": {
+									Type:     cty.String,
+									Required: true,
+								},
+							},
+							Nesting: configschema.NestingSingle,
+						},
+					},
+				},
+			}
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+			p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+				return providers.PlanResourceChangeResponse{
+					PlannedState:    req.ProposedNewState,
+					PlannedIdentity: tc.plannedIdentity,
+					RequiresReplace: tc.requiresReplace,
+				}
+			}
+
+			plan, diags := ctx.Plan(m, tc.prevRunState, &PlanOpts{Mode: plans.NormalMode})
+
+			if tc.expectDiagnostics != nil {
+				if diff := cmp.Diff(diags, tc.expectDiagnostics, tfdiags.DiagnosticComparer); diff != "" {
+					t.Fatalf("unexpected diagnostics difference: %s", diff)
+				}
+			} else {
+				assertNoDiagnostics(t, diags)
+
+				schema := p.GetProviderSchemaResponse.ResourceTypes["test_resource"]
+				schema.Identity = p.GetResourceIdentitySchemasResponse.IdentityTypes["test_resource"].Body
+
+				change, err := plan.Changes.Resources[0].Decode(schema)
+
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				if !tc.expectedIdentity.RawEquals(change.AfterIdentity) {
+					t.Fatalf("wrong identity\nwant: %s\ngot: %s", tc.expectedIdentity.GoString(), change.AfterIdentity.GoString())
+				}
+			}
+		})
+	}
 }

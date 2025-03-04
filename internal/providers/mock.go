@@ -194,6 +194,7 @@ func (m *Mock) ReadResource(request ReadResourceRequest) ReadResourceResponse {
 	// state. So we'll return what we have.
 	return ReadResourceResponse{
 		NewState: request.PriorState,
+		Identity: request.CurrentIdentity,
 	}
 }
 

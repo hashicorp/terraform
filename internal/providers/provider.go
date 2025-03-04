@@ -340,6 +340,9 @@ type ReadResourceRequest struct {
 
 	// ClientCapabilities contains information about the client's capabilities.
 	ClientCapabilities ClientCapabilities
+
+	// CurrentIdentity is the current identity data of the resource.
+	CurrentIdentity cty.Value
 }
 
 // DeferredReason is a string that describes why a resource was deferred.
@@ -430,6 +433,9 @@ type PlanResourceChangeRequest struct {
 
 	// ClientCapabilities contains information about the client's capabilities.
 	ClientCapabilities ClientCapabilities
+
+	// PriorIdentity is the current identity data of the resource.
+	PriorIdentity cty.Value
 }
 
 type PlanResourceChangeResponse struct {
@@ -459,6 +465,9 @@ type PlanResourceChangeResponse struct {
 	// Deferred if present signals that the provider was not able to fully
 	// complete this operation and a susequent run is required.
 	Deferred *Deferred
+
+	// PlannedIdentity is the planned identity data of the resource.
+	PlannedIdentity cty.Value
 }
 
 type ApplyResourceChangeRequest struct {
@@ -486,6 +495,9 @@ type ApplyResourceChangeRequest struct {
 	// each provider, and it should not be used without coordination with
 	// HashiCorp. It is considered experimental and subject to change.
 	ProviderMeta cty.Value
+
+	// PlannedIdentity is the planned identity data of the resource.
+	PlannedIdentity cty.Value
 }
 
 type ApplyResourceChangeResponse struct {
@@ -507,6 +519,9 @@ type ApplyResourceChangeResponse struct {
 	// otherwise fail due to this imprecise mapping. No other provider or SDK
 	// implementation is permitted to set this.
 	LegacyTypeSystem bool
+
+	// NewIdentity is the new identity data of the resource.
+	NewIdentity cty.Value
 }
 
 type ImportResourceStateRequest struct {
@@ -519,6 +534,9 @@ type ImportResourceStateRequest struct {
 
 	// ClientCapabilities contains information about the client's capabilities.
 	ClientCapabilities ClientCapabilities
+
+	// Identity is the identity data of the resource.
+	Identity cty.Value
 }
 
 type ImportResourceStateResponse struct {
@@ -553,6 +571,9 @@ type ImportedResource struct {
 	// Private is an opaque blob that will be stored in state along with the
 	// resource. It is intended only for interpretation by the provider itself.
 	Private []byte
+
+	// Identity is the identity data of the resource.
+	Identity cty.Value
 }
 
 type MoveResourceStateRequest struct {
@@ -580,6 +601,9 @@ type MoveResourceStateRequest struct {
 	// TargetTypeName is the name of the resource type that the resource is
 	// being moved to.
 	TargetTypeName string
+
+	// SourceIdentity is the identity data of the resource that is being moved.
+	SourceIdentity cty.Value
 }
 
 type MoveResourceStateResponse struct {
@@ -593,6 +617,9 @@ type MoveResourceStateResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	// TargetIdentity is the identity data of the resource that is being moved.
+	TargetIdentity cty.Value
 }
 
 type ReadDataSourceRequest struct {

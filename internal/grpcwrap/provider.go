@@ -234,11 +234,25 @@ func (p *provider) ReadResource(_ context.Context, req *tfplugin5.ReadResource_R
 		return resp, nil
 	}
 
+	var currentIdentity cty.Value
+	if req.CurrentIdentity != nil && req.CurrentIdentity.IdentityData != nil {
+		identitySchema, ok := p.identitySchemas.IdentityTypes[req.TypeName]
+		if !ok {
+			return resp, fmt.Errorf("identity schema not found for type %s", req.TypeName)
+		}
+		currentIdentity, err = decodeDynamicValue(req.CurrentIdentity.IdentityData, identitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+	}
+
 	readResp := p.provider.ReadResource(providers.ReadResourceRequest{
-		TypeName:     req.TypeName,
-		PriorState:   stateVal,
-		Private:      req.Private,
-		ProviderMeta: metaVal,
+		TypeName:        req.TypeName,
+		PriorState:      stateVal,
+		Private:         req.Private,
+		ProviderMeta:    metaVal,
+		CurrentIdentity: currentIdentity,
 	})
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, readResp.Diagnostics)
 	if readResp.Diagnostics.HasErrors() {
@@ -253,6 +267,21 @@ func (p *provider) ReadResource(_ context.Context, req *tfplugin5.ReadResource_R
 	}
 	resp.NewState = dv
 
+	if !readResp.Identity.IsNull() {
+		identitySchema, ok := p.identitySchemas.IdentityTypes[req.TypeName]
+		if !ok {
+			return resp, fmt.Errorf("identity schema not found for type %s", req.TypeName)
+		}
+
+		identity, err := encodeDynamicValue(readResp.Identity, identitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+		resp.NewIdentity = &tfplugin5.ResourceIdentityData{
+			IdentityData: identity,
+		}
+	}
 	return resp, nil
 }
 
@@ -285,6 +314,20 @@ func (p *provider) PlanResourceChange(_ context.Context, req *tfplugin5.PlanReso
 		return resp, nil
 	}
 
+	var priorIdentity cty.Value
+	if req.PriorIdentity != nil && req.PriorIdentity.IdentityData != nil {
+		priorIdentitySchema, ok := p.identitySchemas.IdentityTypes[req.TypeName]
+		if !ok {
+			return resp, fmt.Errorf("identity schema not found for type %s", req.TypeName)
+		}
+
+		priorIdentity, err = decodeDynamicValue(req.PriorIdentity.IdentityData, priorIdentitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+	}
+
 	planResp := p.provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 		TypeName:         req.TypeName,
 		PriorState:       priorStateVal,
@@ -292,6 +335,7 @@ func (p *provider) PlanResourceChange(_ context.Context, req *tfplugin5.PlanReso
 		Config:           configVal,
 		PriorPrivate:     req.PriorPrivate,
 		ProviderMeta:     metaVal,
+		PriorIdentity:    priorIdentity,
 	})
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, planResp.Diagnostics)
 	if planResp.Diagnostics.HasErrors() {
@@ -308,6 +352,23 @@ func (p *provider) PlanResourceChange(_ context.Context, req *tfplugin5.PlanReso
 
 	for _, path := range planResp.RequiresReplace {
 		resp.RequiresReplace = append(resp.RequiresReplace, convert.PathToAttributePath(path))
+	}
+
+	if !planResp.PlannedIdentity.IsNull() {
+		plannedIdentitySchema, ok := p.identitySchemas.IdentityTypes[req.TypeName]
+		if !ok {
+			return resp, fmt.Errorf("identity schema not found for type %s", req.TypeName)
+		}
+
+		plannedIdentity, err := encodeDynamicValue(planResp.PlannedIdentity, plannedIdentitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+
+		resp.PlannedIdentity = &tfplugin5.ResourceIdentityData{
+			IdentityData: plannedIdentity,
+		}
 	}
 
 	return resp, nil
@@ -342,13 +403,28 @@ func (p *provider) ApplyResourceChange(_ context.Context, req *tfplugin5.ApplyRe
 		return resp, nil
 	}
 
+	var plannedIdentity cty.Value
+	if req.PlannedIdentity != nil && req.PlannedIdentity.IdentityData != nil {
+		plannedIdentitySchema, ok := p.identitySchemas.IdentityTypes[req.TypeName]
+		if !ok {
+			return resp, fmt.Errorf("identity schema not found for type %s", req.TypeName)
+		}
+
+		plannedIdentity, err = decodeDynamicValue(req.PlannedIdentity.IdentityData, plannedIdentitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+	}
+
 	applyResp := p.provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
-		TypeName:       req.TypeName,
-		PriorState:     priorStateVal,
-		PlannedState:   plannedStateVal,
-		Config:         configVal,
-		PlannedPrivate: req.PlannedPrivate,
-		ProviderMeta:   metaVal,
+		TypeName:        req.TypeName,
+		PriorState:      priorStateVal,
+		PlannedState:    plannedStateVal,
+		Config:          configVal,
+		PlannedPrivate:  req.PlannedPrivate,
+		ProviderMeta:    metaVal,
+		PlannedIdentity: plannedIdentity,
 	})
 
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, applyResp.Diagnostics)
@@ -363,15 +439,46 @@ func (p *provider) ApplyResourceChange(_ context.Context, req *tfplugin5.ApplyRe
 		return resp, nil
 	}
 
+	if !applyResp.NewIdentity.IsNull() {
+		newIdentitySchema, ok := p.identitySchemas.IdentityTypes[req.TypeName]
+		if !ok {
+			return resp, fmt.Errorf("identity schema not found for type %s", req.TypeName)
+		}
+
+		newIdentity, err := encodeDynamicValue(applyResp.NewIdentity, newIdentitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+		resp.NewIdentity = &tfplugin5.ResourceIdentityData{
+			IdentityData: newIdentity,
+		}
+	}
+
 	return resp, nil
 }
 
 func (p *provider) ImportResourceState(_ context.Context, req *tfplugin5.ImportResourceState_Request) (*tfplugin5.ImportResourceState_Response, error) {
 	resp := &tfplugin5.ImportResourceState_Response{}
+	var identity cty.Value
+	var err error
+	if req.Identity != nil && req.Identity.IdentityData != nil {
+		identitySchema, ok := p.identitySchemas.IdentityTypes[req.TypeName]
+		if !ok {
+			return resp, fmt.Errorf("identity schema not found for type %s", req.TypeName)
+		}
+
+		identity, err = decodeDynamicValue(req.Identity.IdentityData, identitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+	}
 
 	importResp := p.provider.ImportResourceState(providers.ImportResourceStateRequest{
 		TypeName: req.TypeName,
 		ID:       req.Id,
+		Identity: identity,
 	})
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, importResp.Diagnostics)
 
@@ -383,11 +490,28 @@ func (p *provider) ImportResourceState(_ context.Context, req *tfplugin5.ImportR
 			continue
 		}
 
-		resp.ImportedResources = append(resp.ImportedResources, &tfplugin5.ImportResourceState_ImportedResource{
+		resource := &tfplugin5.ImportResourceState_ImportedResource{
 			TypeName: res.TypeName,
 			State:    state,
 			Private:  res.Private,
-		})
+		}
+
+		if !res.Identity.IsNull() {
+			identitySchema, ok := p.identitySchemas.IdentityTypes[res.TypeName]
+			if !ok {
+				return nil, fmt.Errorf("identity schema not found for type %s", res.TypeName)
+			}
+			identity, err := encodeDynamicValue(res.Identity, identitySchema.Body.ImpliedType())
+			if err != nil {
+				resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+				continue
+			}
+			resource.Identity = &tfplugin5.ResourceIdentityData{
+				IdentityData: identity,
+			}
+		}
+
+		resp.ImportedResources = append(resp.ImportedResources, resource)
 	}
 
 	return resp, nil
@@ -396,12 +520,28 @@ func (p *provider) ImportResourceState(_ context.Context, req *tfplugin5.ImportR
 func (p *provider) MoveResourceState(_ context.Context, request *tfplugin5.MoveResourceState_Request) (*tfplugin5.MoveResourceState_Response, error) {
 	resp := &tfplugin5.MoveResourceState_Response{}
 
+	var sourceIdentity cty.Value
+	var err error
+	if request.SourceIdentity != nil && request.SourceIdentity.IdentityData != nil {
+		sourceIdentitySchema, ok := p.identitySchemas.IdentityTypes[request.SourceTypeName]
+		if !ok {
+			return resp, fmt.Errorf("identity schema not found for type %s", request.SourceTypeName)
+		}
+
+		sourceIdentity, err = decodeDynamicValue(request.SourceIdentity.IdentityData, sourceIdentitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+	}
+
 	moveResp := p.provider.MoveResourceState(providers.MoveResourceStateRequest{
 		SourceProviderAddress: request.SourceProviderAddress,
 		SourceTypeName:        request.SourceTypeName,
 		SourceSchemaVersion:   request.SourceSchemaVersion,
 		SourceStateJSON:       request.SourceState.Json,
 		SourcePrivate:         request.SourcePrivate,
+		SourceIdentity:        sourceIdentity,
 		TargetTypeName:        request.TargetTypeName,
 	})
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, moveResp.Diagnostics)
@@ -417,6 +557,22 @@ func (p *provider) MoveResourceState(_ context.Context, request *tfplugin5.MoveR
 	}
 	resp.TargetState = targetState
 	resp.TargetPrivate = moveResp.TargetPrivate
+
+	if !moveResp.TargetIdentity.IsNull() {
+		targetIdentitySchema, ok := p.identitySchemas.IdentityTypes[request.TargetTypeName]
+		if !ok {
+			return resp, fmt.Errorf("identity schema not found for type %s", request.TargetTypeName)
+		}
+		targetIdentity, err := encodeDynamicValue(moveResp.TargetIdentity, targetIdentitySchema.Body.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+		resp.TargetIdentity = &tfplugin5.ResourceIdentityData{
+			IdentityData: targetIdentity,
+		}
+	}
+
 	return resp, nil
 }
 

@@ -318,6 +318,11 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		if deferred == nil {
 			diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
 		}
+
+		if instanceRefreshState != nil && !instanceRefreshState.Identity.IsNull() {
+			diags = diags.Append(n.validateIdentity(priorInstanceRefreshState, instanceRefreshState.Identity, false))
+		}
+
 		if diags.HasErrors() {
 			return diags
 		}
