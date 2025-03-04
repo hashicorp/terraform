@@ -20,8 +20,8 @@ type mockProvider struct {
 func (provider *mockProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
-			"foo": {Block: &configschema.Block{}},
-			"bar": {Block: &configschema.Block{}},
+			"foo": {Body: &configschema.Block{}},
+			"bar": {Body: &configschema.Block{}},
 		},
 		ServerCapabilities: providers.ServerCapabilities{
 			MoveResourceState: provider.moveResourceState,

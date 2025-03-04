@@ -171,11 +171,11 @@ func TestPlanning_DestroyMode(t *testing.T) {
 				return &providerTesting.MockProvider{
 					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 						Provider: providers.Schema{
-							Block: &configschema.Block{},
+							Body: &configschema.Block{},
 						},
 						ResourceTypes: map[string]providers.Schema{
 							"test": {
-								Block: resourceTypeSchema,
+								Body: resourceTypeSchema,
 							},
 						},
 						ServerCapabilities: providers.ServerCapabilities{
@@ -358,7 +358,7 @@ func TestPlanning_RequiredComponents(t *testing.T) {
 				return &providerTesting.MockProvider{
 					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 						Provider: providers.Schema{
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"in": {
 										Type:     cty.Map(cty.String),
@@ -545,11 +545,11 @@ func TestPlanning_DeferredChangesPropagation(t *testing.T) {
 				return &providerTesting.MockProvider{
 					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 						Provider: providers.Schema{
-							Block: &configschema.Block{},
+							Body: &configschema.Block{},
 						},
 						ResourceTypes: map[string]providers.Schema{
 							"test": {
-								Block: &configschema.Block{},
+								Body: &configschema.Block{},
 							},
 						},
 					},
@@ -635,7 +635,7 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					DataSources: map[string]providers.Schema{
 						"test": {
-							Block: &configschema.Block{},
+							Body: &configschema.Block{},
 						},
 					},
 				},

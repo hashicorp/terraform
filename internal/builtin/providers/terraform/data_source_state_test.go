@@ -19,7 +19,7 @@ import (
 )
 
 func TestResource(t *testing.T) {
-	if err := dataSourceRemoteStateGetSchema().Block.InternalValidate(); err != nil {
+	if err := dataSourceRemoteStateGetSchema().Body.InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }
@@ -290,7 +290,7 @@ func TestState_basic(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			schema := dataSourceRemoteStateGetSchema().Block
+			schema := dataSourceRemoteStateGetSchema().Body
 			config, err := schema.CoerceValue(test.Config)
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
@@ -335,7 +335,7 @@ func TestState_validation(t *testing.T) {
 		overrideBackendFactories = nil
 	}()
 
-	schema := dataSourceRemoteStateGetSchema().Block
+	schema := dataSourceRemoteStateGetSchema().Body
 	config, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
 		"backend": cty.StringVal("failsconfigure"),
 		"config":  cty.EmptyObjectVal,

@@ -22,7 +22,7 @@ import (
 var (
 	ProviderSchema = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"data_prefix":     {Type: cty.String, Optional: true},
 					"resource_prefix": {Type: cty.String, Optional: true},
@@ -31,7 +31,7 @@ var (
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_resource": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":                   {Type: cty.String, Optional: true, Computed: true},
 						"value":                {Type: cty.String, Optional: true},
@@ -45,7 +45,7 @@ var (
 		},
 		DataSources: map[string]providers.Schema{
 			"test_data_source": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":    {Type: cty.String, Required: true},
 						"value": {Type: cty.String, Computed: true},
@@ -65,7 +65,7 @@ var (
 		},
 		EphemeralResourceTypes: map[string]providers.Schema{
 			"test_ephemeral_resource": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"value": {
 							Type:     cty.String,
