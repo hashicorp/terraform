@@ -1065,8 +1065,9 @@ func (n *NodeAbstractResourceInstance) plan(
 	// for write-only attributes (the only place where ephemeral values are allowed).
 	// This is verified in objchange.AssertPlanValid already.
 	unmarkedPlannedNewVal := plannedNewVal
-	_, nonEphemeralMarks := marks.PathsWithMark(unmarkedPaths, marks.Ephemeral)
-	plannedNewVal = plannedNewVal.MarkWithPaths(nonEphemeralMarks)
+	unmarkedPaths = marks.RemoveAll(unmarkedPaths, marks.Ephemeral)
+
+	plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 	if sensitivePaths := schema.SensitivePaths(plannedNewVal, nil); len(sensitivePaths) != 0 {
 		plannedNewVal = marks.MarkPaths(plannedNewVal, marks.Sensitive, sensitivePaths)
 	}
@@ -1152,8 +1153,8 @@ func (n *NodeAbstractResourceInstance) plan(
 		plannedNewVal = resp.PlannedState
 		plannedPrivate = resp.PlannedPrivate
 
-		if len(nonEphemeralMarks) > 0 {
-			plannedNewVal = plannedNewVal.MarkWithPaths(nonEphemeralMarks)
+		if len(unmarkedPaths) > 0 {
+			plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 		}
 
 		for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {

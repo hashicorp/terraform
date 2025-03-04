@@ -565,6 +565,24 @@ resource "ephem_write_only" "test" {
 			expectValidateEphemeralResourceConfigCalled: true,
 			expectCloseEphemeralResourceCalled:          true,
 		},
+		"write_only_sensitive_and_ephem": {
+			module: map[string]string{
+				"main.tf": `
+variable "in" {
+  sensitive = true
+  ephemeral = true
+}
+resource "ephem_write_only" "test" {
+    write_only = var.in
+}
+`,
+			},
+			inputs: InputValues{
+				"in": &InputValue{
+					Value: cty.StringVal("test"),
+				},
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			m := testModuleInline(t, tc.module)
