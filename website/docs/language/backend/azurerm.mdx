@@ -126,7 +126,7 @@ terraform {
 
 You can use an App Registration (Service Principal) or a User Assigned Managed Identity to configure federated credentials. You must supply the Client ID of the principal.
 
-With Azure DevOps, the ID Token endpoint environment variables are automatically found, but you need to supply the service connection ID. If we are using the `AzureCLI` or `AzurePowerShell` tasks, that is automatically set for us in the `AZURESUBSCRIPTION_SERVICE_CONNECTION_ID` environment variable.
+With Azure DevOps, the ID Token endpoint environment variables are automatically found, but you need to supply the service connection ID. If you are using the `AzureCLI` or `AzurePowerShell` tasks, the service connection ID is automatically set to the  `AZURESUBSCRIPTION_SERVICE_CONNECTION_ID` environment variable.
 
 *Connect to Storage Account with Access Key*
 
