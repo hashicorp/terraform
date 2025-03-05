@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: 'lang/funcs/transpose: Avoid crash due to map with null values'
-time: 2025-03-03T12:57:22.400359Z
-custom:
-    Issue: "36611"

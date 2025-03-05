@@ -1,4 +1,18 @@
-## 1.11.1 (Unreleased)
+## 1.11.1 (March 5, 2025)
+
+
+BUG FIXES:
+
+* Temporarily revert updated Windows symlink handling until we can account for known existing configurations using non-symlink junctions. ([#36575](https://github.com/hashicorp/terraform/issues/36575))
+
+* `terraform test`: Fix crash when a run block attempts to cleanup after a non-applyable plan. ([#36582](https://github.com/hashicorp/terraform/issues/36582))
+
+* Updated dependency golang.org/x/oauth2 from v0.23.0 => v0.27.0 to integrate latest changes (fix for CVE-2025-22868) ([#36584](https://github.com/hashicorp/terraform/issues/36584))
+
+* lang/funcs/transpose: Avoid crash due to map with null values ([#36611](https://github.com/hashicorp/terraform/issues/36611))
+
+* Combining ephemeral and sensitive marks could fail when serializing planned changes ([#36619](https://github.com/hashicorp/terraform/issues/36619))
+
 
 ## 1.11.0 (February 27, 2025)
 
@@ -45,6 +59,8 @@ BUG FIXES:
 * backends: Fix crash when interrupting during interactive prompt for values ([#36448](https://github.com/hashicorp/terraform/issues/36448))
 
 * Fixes hanging behavior seen when applying a saved plan with -auto-approve using the cloud backend ([#36453](https://github.com/hashicorp/terraform/issues/36453))
+
+
 ## Previous Releases
 
 For information on prior major and minor releases, refer to their changelogs:
