@@ -234,7 +234,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 				// function isn't doing anything as there is no configuration
 				// to validate.
 
-				impliedType := providerSchema.ResourceTypes[addr.Resource.Resource.Type].Block.ImpliedType()
+				impliedType := providerSchema.ResourceTypes[addr.Resource.Resource.Type].Body.ImpliedType()
 				ctx.Deferrals().ReportResourceInstanceDeferred(addr, providers.DeferredReasonResourceConfigUnknown, &plans.ResourceInstanceChange{
 					Addr:         addr,
 					PrevRunAddr:  addr,

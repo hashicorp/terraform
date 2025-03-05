@@ -188,12 +188,17 @@ func (h *UiHook) stillRunning(state uiResourceState) {
 			idSuffix = fmt.Sprintf("%s=%s, ", state.IDKey, truncateId(state.IDValue, maxIdLen))
 		}
 
+		elapsed := time.Now().Round(time.Second).Sub(state.Start)
+		minutes := int(elapsed.Seconds()) / 60
+		seconds := int(elapsed.Seconds()) % 60
+
 		h.println(fmt.Sprintf(
-			h.view.colorize.Color("[reset][bold]%s: %s [%s%s elapsed][reset]"),
+			h.view.colorize.Color("[reset][bold]%s: %s [%s%02dm%02ds elapsed][reset]"),
 			state.Address,
 			msg,
 			idSuffix,
-			time.Now().Round(time.Second).Sub(state.Start),
+			minutes,
+			seconds,
 		))
 	}
 }
