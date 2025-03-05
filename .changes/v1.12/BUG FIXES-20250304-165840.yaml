@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: bump aws-sdk-go-base/v2 from v2.0.0-beta.58 to v2.0.0-beta.62
-time: 2025-03-04T16:58:40.599519-06:00
-custom:
-    Issue: "36624"
