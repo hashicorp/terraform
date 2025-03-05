@@ -201,6 +201,7 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 	}
 
 	unmarkedConfigVal, _ := configVal.UnmarkDeep()
+	log.Printf("[TRACE] Validating partially expanded config for %q", n.addr)
 	validateResp := provider.ValidateResourceConfig(
 		providers.ValidateResourceConfigRequest{
 			TypeName: n.addr.Resource().Type,

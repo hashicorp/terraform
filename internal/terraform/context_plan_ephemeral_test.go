@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"fmt"
+	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -63,6 +64,11 @@ module "child" {
 					Severity: hcl.DiagError,
 					Summary:  "Ephemeral value not allowed",
 					Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "child", "main.tf"),
+						Start:    hcl.Pos{Line: 3, Column: 13, Byte: 30},
+						End:      hcl.Pos{Line: 3, Column: 31, Byte: 48},
+					},
 				})
 			},
 		},
@@ -109,6 +115,11 @@ resource "test_object" "test" {
 					Severity: hcl.DiagError,
 					Summary:  "Invalid use of ephemeral value",
 					Detail:   `Ephemeral values are not valid for "test_string", because it is not a write-only attribute and must be persisted to state.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 6, Column: 17, Byte: 88},
+						End:      hcl.Pos{Line: 6, Column: 52, Byte: 123},
+					},
 				})
 			},
 		},
@@ -164,13 +175,17 @@ resource "test_object" "test" {
 					Severity: hcl.DiagError,
 					Summary:  "Invalid for_each argument",
 					Detail:   `The given "for_each" value is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify a resource's instance keys.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 4, Column: 14, Byte: 83},
+						End:      hcl.Pos{Line: 4, Column: 55, Byte: 124},
+					},
 				})
 			},
 		},
 
 		"resource expansion - count": {
 			module: map[string]string{
-
 				"main.tf": `
 ephemeral "ephem_resource" "data" {}
 resource "test_object" "test" {
@@ -184,6 +199,11 @@ resource "test_object" "test" {
 					Severity: hcl.DiagError,
 					Summary:  "Invalid count argument",
 					Detail:   `The given "count" is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify the number of resource instances.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 4, Column: 11, Byte: 80},
+						End:      hcl.Pos{Line: 4, Column: 53, Byte: 122},
+					},
 				})
 			},
 		},
@@ -210,6 +230,11 @@ module "child" {
 					Severity: hcl.DiagError,
 					Summary:  "Invalid for_each argument",
 					Detail:   `The given "for_each" value is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify a resource's instance keys.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 5, Column: 16, Byte: 71},
+						End:      hcl.Pos{Line: 5, Column: 57, Byte: 112},
+					},
 				})
 			},
 		},
@@ -234,6 +259,11 @@ module "child" {
 					Severity: hcl.DiagError,
 					Summary:  "Invalid count argument",
 					Detail:   `The given "count" is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify the number of resource instances.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 4, Column: 13, Byte: 67},
+						End:      hcl.Pos{Line: 4, Column: 55, Byte: 109},
+					},
 				})
 			},
 		},
@@ -261,6 +291,11 @@ resource "test_object" "test" {
 						Severity: hcl.DiagError,
 						Summary:  "Invalid for_each argument",
 						Detail:   `The given "for_each" value is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify a resource's instance keys.`,
+						Subject: &hcl.Range{
+							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+							Start:    hcl.Pos{Line: 11, Column: 16, Byte: 207},
+							End:      hcl.Pos{Line: 11, Column: 57, Byte: 248},
+						},
 					},
 				)
 			},
@@ -288,6 +323,11 @@ module "child" {
 					Severity: hcl.DiagError,
 					Summary:  "Ephemeral value not allowed",
 					Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "child", "main.tf"),
+						Start:    hcl.Pos{Line: 6, Column: 13, Byte: 132},
+						End:      hcl.Pos{Line: 6, Column: 64, Byte: 183},
+					},
 				})
 			},
 		},
@@ -322,6 +362,11 @@ module "child" {
 					Severity: hcl.DiagError,
 					Summary:  "Ephemeral value not allowed",
 					Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "child", "main.tf"),
+						Start:    hcl.Pos{Line: 14, Column: 13, Byte: 245},
+						End:      hcl.Pos{Line: 14, Column: 78, Byte: 310},
+					},
 				})
 			},
 		},
@@ -378,17 +423,32 @@ check "check_using_ephemeral_value" {
 					Severity: hcl.DiagWarning,
 					Summary:  "Check block assertion failed",
 					Detail:   "Fine to persist",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 6, Column: 17, Byte: 104},
+						End:      hcl.Pos{Line: 6, Column: 60, Byte: 147},
+					},
 				})
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  "Check block assertion failed",
 					Detail:   "This check failed, but has an invalid error message as described in the other accompanying messages.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 17, Byte: 217},
+						End:      hcl.Pos{Line: 10, Column: 60, Byte: 260},
+					},
 				})
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  "Error message refers to ephemeral values",
 					Detail: "The error expression used to explain this condition refers to ephemeral values, so Terraform will not display the resulting message." +
 						"\n\nYou can correct this by removing references to ephemeral values, or by using the ephemeralasnull() function on the references to not reveal ephemeral data.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 11, Column: 21, Byte: 281},
+						End:      hcl.Pos{Line: 11, Column: 83, Byte: 343},
+					},
 				})
 				return diags
 			},
@@ -451,14 +511,29 @@ module "child" {
 					Severity: hcl.DiagError,
 					Summary:  "Ephemeral value not allowed",
 					Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "child", "main.tf"),
+						Start:    hcl.Pos{Line: 15, Column: 13, Byte: 376},
+						End:      hcl.Pos{Line: 15, Column: 33, Byte: 396},
+					},
 				}, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Ephemeral value not allowed",
 					Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "child", "main.tf"),
+						Start:    hcl.Pos{Line: 18, Column: 13, Byte: 435},
+						End:      hcl.Pos{Line: 18, Column: 31, Byte: 453},
+					},
 				}, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Ephemeral value not allowed",
 					Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "child", "main.tf"),
+						Start:    hcl.Pos{Line: 21, Column: 13, Byte: 491},
+						End:      hcl.Pos{Line: 21, Column: 30, Byte: 508},
+					},
 				})
 			},
 		},
@@ -483,6 +558,11 @@ ephemeral "ephem_resource" "data" {
 					Severity: hcl.DiagError,
 					Summary:  "Resource precondition failed",
 					Detail:   "value should not be 2",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 8, Column: 19, Byte: 116},
+						End:      hcl.Pos{Line: 8, Column: 40, Byte: 137},
+					},
 				})
 			},
 		},
@@ -507,6 +587,11 @@ ephemeral "ephem_resource" "data" {
 					Severity: hcl.DiagError,
 					Summary:  "Resource postcondition failed",
 					Detail:   `value should be "pass"`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 8, Column: 19, Byte: 117},
+						End:      hcl.Pos{Line: 8, Column: 39, Byte: 137},
+					},
 				})
 			},
 		},
@@ -541,12 +626,22 @@ output "out" {
 					Detail: fmt.Sprintf(`The error message included a sensitive value, so it will not be displayed.
 
 This was checked by the validation rule at %s.`, m.Module.Variables["ephem"].Validations[0].DeclRange.String()),
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 17, Byte: 17},
+					},
 				}).Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Error message refers to ephemeral values",
 					Detail: `The error expression used to explain this condition refers to ephemeral values. Terraform will not display the resulting message.
 
 You can correct this by removing references to ephemeral values, or by carefully using the ephemeralasnull() function if the expression will not reveal the ephemeral data.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 8, Column: 21, Byte: 142},
+						End:      hcl.Pos{Line: 8, Column: 76, Byte: 197},
+					},
 				})
 			},
 		},
