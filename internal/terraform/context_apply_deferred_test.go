@@ -1048,71 +1048,71 @@ resource "test" "c" {
 			// In this stage, we're testing that targeting test.a[0] will still
 			// prompt the plan to include the deferral of the unknown
 			// test.a[*] instances.
-			// {
-			// 	inputs: map[string]cty.Value{
-			// 		"resource_count": cty.UnknownVal(cty.Number),
-			// 	},
-			// 	buildOpts: func(opts *PlanOpts) {
-			// 		opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.a[0]"), mustResourceInstanceAddr("test.b")}
-			// 	},
-			// 	wantPlanned: map[string]cty.Value{
-			// 		"<unknown>": cty.ObjectVal(map[string]cty.Value{
-			// 			"name": cty.UnknownVal(cty.String).Refine().
-			// 				StringPrefixFull("a:").
-			// 				NotNull().
-			// 				NewValue(),
-			// 			"upstream_names": cty.NullVal(cty.Set(cty.String)),
-			// 			"output":         cty.UnknownVal(cty.String),
-			// 		}),
-			// 		"b": cty.ObjectVal(map[string]cty.Value{
-			// 			"name":           cty.StringVal("b"),
-			// 			"upstream_names": cty.NullVal(cty.Set(cty.String)),
-			// 			"output":         cty.UnknownVal(cty.String),
-			// 		}),
-			// 	},
-			// 	wantActions: map[string]plans.Action{
-			// 		"test.b": plans.Create,
-			// 	},
-			// 	wantDeferred: map[string]ExpectedDeferred{
-			// 		"test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
-			// 		"test.c":    {Reason: providers.DeferredReasonExcluded},
-			// 	},
-			// 	allowWarnings: true,
-			// },
-			// // This stage is the same as above, except we're targeting the
-			// // non-instanced test.a. This should still make the unknown
-			// // test.a[*] instances appear in the plan as deferrals.
-			// {
-			// 	inputs: map[string]cty.Value{
-			// 		"resource_count": cty.UnknownVal(cty.Number),
-			// 	},
-			// 	buildOpts: func(opts *PlanOpts) {
-			// 		opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.a"), mustResourceInstanceAddr("test.b")}
-			// 	},
-			// 	wantPlanned: map[string]cty.Value{
-			// 		"<unknown>": cty.ObjectVal(map[string]cty.Value{
-			// 			"name": cty.UnknownVal(cty.String).Refine().
-			// 				StringPrefixFull("a:").
-			// 				NotNull().
-			// 				NewValue(),
-			// 			"upstream_names": cty.NullVal(cty.Set(cty.String)),
-			// 			"output":         cty.UnknownVal(cty.String),
-			// 		}),
-			// 		"b": cty.ObjectVal(map[string]cty.Value{
-			// 			"name":           cty.StringVal("b"),
-			// 			"upstream_names": cty.NullVal(cty.Set(cty.String)),
-			// 			"output":         cty.UnknownVal(cty.String),
-			// 		}),
-			// 	},
-			// 	wantActions: map[string]plans.Action{
-			// 		"test.b": plans.Create,
-			// 	},
-			// 	wantDeferred: map[string]ExpectedDeferred{
-			// 		"test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
-			// 		"test.c":    {Reason: providers.DeferredReasonExcluded},
-			// 	},
-			// 	allowWarnings: true,
-			// },
+			{
+				inputs: map[string]cty.Value{
+					"resource_count": cty.UnknownVal(cty.Number),
+				},
+				buildOpts: func(opts *PlanOpts) {
+					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.a[0]"), mustResourceInstanceAddr("test.b")}
+				},
+				wantPlanned: map[string]cty.Value{
+					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.UnknownVal(cty.String).Refine().
+							StringPrefixFull("a:").
+							NotNull().
+							NewValue(),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.b": plans.Create,
+				},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+					"test.c":    {Reason: providers.DeferredReasonExcluded},
+				},
+				allowWarnings: true,
+			},
+			// This stage is the same as above, except we're targeting the
+			// non-instanced test.a. This should still make the unknown
+			// test.a[*] instances appear in the plan as deferrals.
+			{
+				inputs: map[string]cty.Value{
+					"resource_count": cty.UnknownVal(cty.Number),
+				},
+				buildOpts: func(opts *PlanOpts) {
+					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.a"), mustResourceInstanceAddr("test.b")}
+				},
+				wantPlanned: map[string]cty.Value{
+					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.UnknownVal(cty.String).Refine().
+							StringPrefixFull("a:").
+							NotNull().
+							NewValue(),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.b": plans.Create,
+				},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+					"test.c":    {Reason: providers.DeferredReasonExcluded},
+				},
+				allowWarnings: true,
+			},
 			// Finally, we don't target test.a at all. So we shouldn't see it
 			// anywhere in planning or deferrals.
 			{
@@ -3747,9 +3747,6 @@ func TestContext2Apply_deferredActions(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		if name != "target_deferred_resource" {
-			continue
-		}
 		t.Run(name, func(t *testing.T) {
 			if test.skip {
 				t.SkipNow()
@@ -3810,7 +3807,7 @@ func TestContext2Apply_deferredActions(t *testing.T) {
 						var diags tfdiags.Diagnostics
 
 						// Validate is run by default for any plan from the CLI
-						// diags = diags.Append(ctx.Validate(cfg, &ValidateOpts{}))
+						diags = diags.Append(ctx.Validate(cfg, &ValidateOpts{}))
 						// Plan won't proceed if validate failed
 						if !diags.HasErrors() {
 							p, pDiags := ctx.Plan(cfg, state, opts)

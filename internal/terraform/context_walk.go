@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
@@ -204,7 +203,5 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		Forget:                  opts.Forget,
 		excluded:                opts.Excluded,
 		targets:                 opts.Targets,
-		targetedNodes:           dag.Set{},
-		excludedNodes:           dag.Set{},
 	}
 }

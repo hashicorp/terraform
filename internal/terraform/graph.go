@@ -220,10 +220,17 @@ func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targets []addrs.Target
 			log.Printf("[TRACE] vertex %q: does not belong to any module instance", dag.VertexName(v))
 		}
 
-		// If the node is one that can be excluded, and it is not allowed,
-		// then we should mark it as excluded.
-		if ev, ok := v.(interface{ SetExcluded(bool) }); ok && !filter.Allowed(v) {
-			ev.SetExcluded(!filter.Allowed(v))
+		// When working with embedded objects (e.g NodeAbstractResourceInstance in NodePlannableResourceInstance),
+		// the filter may contain the outer type (NodePlannableResourceInstance) but the current method might
+		// be called on the inner embedded type (NodeAbstractResourceInstance). In this scenario,
+		// filter.Allowed(v) would fail because the filter doesn't recognize the inner type directly.
+		//
+		// Therefore, we need to explicitly check if the node can be excluded, and if it's not allowed
+		// by the filter, mark it as excluded
+		if !filter.Allowed(v) {
+			if ev, ok := v.(interface{ SetExcluded(bool) }); ok {
+				ev.SetExcluded(true)
+			}
 		}
 
 		// If the node is exec-able, then execute it.

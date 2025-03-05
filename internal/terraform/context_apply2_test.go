@@ -930,7 +930,7 @@ func TestContext2Apply_excludeDependsOnDeferred(t *testing.T) {
 	})
 
 	p := testProvider("test")
-	p.GetProviderSchemaResponse.ResourceTypes["test_instance"].Block.Attributes["test_string"] = &configschema.Attribute{
+	p.GetProviderSchemaResponse.ResourceTypes["test_instance"].Body.Attributes["test_string"] = &configschema.Attribute{
 		Type:     cty.String,
 		Optional: true,
 	}

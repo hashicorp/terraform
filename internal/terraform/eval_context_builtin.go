@@ -70,7 +70,8 @@ type BuiltinEvalContext struct {
 	// DeferralsValue is the object returned by [BuiltinEvalContext.Deferrals].
 	DeferralsValue *deferring.Deferred
 
-	// TargetedNodes is a set of nodes that are targeted by the current operation.
+	// FilterValue is an object that holds a set of includes and excludes
+	// for filtering resources.
 	FilterValue *dag.Filter
 
 	// forget if set to true will cause the plan to forget all resources. This is
