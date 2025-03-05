@@ -317,6 +317,11 @@ func TestTest_Runs(t *testing.T) {
 			expectedErr: []string{"Test assertion failed", "resource renamed without moved block"},
 			code:        1,
 		},
+		"unapplyable-plan": {
+			expectedOut: []string{"0 passed, 1 failed."},
+			expectedErr: []string{"Cannot apply non-applyable plan"},
+			code:        1,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
