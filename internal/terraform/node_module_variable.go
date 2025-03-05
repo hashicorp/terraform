@@ -266,11 +266,6 @@ func (n *nodeModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNod
 // validation, and we will not have any expansion module instance
 // repetition data.
 func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bool) (cty.Value, error) {
-	if n.excluded {
-		// we cannot do any module variable evaluation because the expression
-		// might reference resources that were excluded
-		return cty.DynamicVal, nil
-	}
 	var diags tfdiags.Diagnostics
 	var givenVal cty.Value
 	var errSourceRange tfdiags.SourceRange

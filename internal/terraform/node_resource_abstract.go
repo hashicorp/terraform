@@ -442,7 +442,11 @@ func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.Ab
 	// If this is false then the codepaths that handle unknown values below
 	// become unreachable, because the evaluate functions will reject unknown
 	// values as an error.
-	allowUnknown := ctx.Deferrals().DeferralAllowed() || n.excluded
+	allowUnknown := ctx.Deferrals().DeferralAllowed()
+
+	// We also allow unknowns when the expandable resource is excluded.
+	// TODO(sams): Better comment here.
+	allowUnknown = allowUnknown || n.excluded
 
 	switch {
 	case n.Config != nil && n.Config.Count != nil:

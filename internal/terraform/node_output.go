@@ -390,10 +390,6 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 		return
 	}
 
-	if n.excluded {
-		ctx = ctx.withScope(evalContextReadOnly{Addr: n.Addr.Module})
-	}
-
 	changes := ctx.Changes() // may be nil, if we're not working on a changeset
 
 	val := cty.UnknownVal(cty.DynamicPseudoType)

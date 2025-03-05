@@ -347,6 +347,7 @@ The -target option is not for routine use, and is provided only for exceptional 
 			plan.VariableMarks = varMarks
 		}
 		plan.TargetAddrs = opts.Targets
+		plan.ExcludedAddrs = opts.Excluded
 	} else if !diags.HasErrors() {
 		panic("nil plan but no errors")
 	}

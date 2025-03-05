@@ -260,6 +260,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
+	// If the non-importing resource is excluded, we don't need to write the state.
 	if deferred == nil && ctx.Filter().Allowed(n) {
 		// We'll save a snapshot of what we just read from the state into the
 		// prevRunState before we do anything else, since this will capture the

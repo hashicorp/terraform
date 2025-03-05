@@ -51,9 +51,6 @@ func (n *nodeExpandApplyableResource) Name() string {
 }
 
 func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
-	if n.excluded {
-		return nil, nil
-	}
 	if n.Addr.Resource.Mode == addrs.EphemeralResourceMode {
 		return n.dynamicExpandEphemeral(ctx)
 	}

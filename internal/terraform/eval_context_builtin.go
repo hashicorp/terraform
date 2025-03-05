@@ -466,22 +466,6 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source 
 			evalScope.SetActiveExperiments(mc.Module.ActiveExperiments)
 		}
 		return evalScope
-	case evalContextReadOnly:
-		data := &evaluationPlaceholderData{
-			evaluationData: &evaluationData{
-				Evaluator: ctx.Evaluator,
-				Module:    scope.Addr.Module(),
-			},
-			ModulePath:     scope.Addr.PartialModule(),
-			CountAvailable: keyData.CountIndex != cty.NilVal,
-			EachAvailable:  keyData.EachKey != cty.NilVal,
-			Operation:      ctx.Evaluator.Operation,
-		}
-		evalScope := ctx.Evaluator.Scope(data, self, source, ctx.evaluationExternalFunctions())
-		if mc := ctx.Evaluator.Config.Descendant(scope.Addr.Module()); mc != nil {
-			evalScope.SetActiveExperiments(mc.Module.ActiveExperiments)
-		}
-		return evalScope
 	default:
 		// This method is valid only for module-scoped EvalContext objects.
 		panic("no evaluation scope available: not in module context")
