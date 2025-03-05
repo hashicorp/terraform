@@ -220,19 +220,10 @@ func (n *nodeExpandPlannableResource) expandKnownModule(globalCtx EvalContext, r
 
 	moduleCtx := evalContextForModuleInstance(globalCtx, resAddr.Module)
 
-	moreDiags := n.expandDynamic(moduleCtx, resAddr)
+	moreDiags := n.recordResourceData(moduleCtx, resAddr)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return nil, nil, nil, diags
-	}
-
-	// If the resource is excluded, we should not record any resource data to the state.
-	if !globalCtx.Excludes(n) {
-		moreDiags := n.recordResourceData(moduleCtx, resAddr)
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
-			return nil, nil, nil, diags
-		}
 	}
 
 	expander := moduleCtx.InstanceExpander()

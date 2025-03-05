@@ -5,7 +5,6 @@ package terraform
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
 
@@ -171,24 +170,6 @@ func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfd
 	// Acquire a lock on the semaphore
 	w.Context.parallelSem.Acquire()
 	defer w.Context.parallelSem.Release()
-	targets := ctx.Targets(n)
-	excludes := ctx.Excludes(n)
-	switch n := n.(type) {
-	// always execute these nodes
-	case *NodeRootVariable, *nodeExpandModule, *nodePlannablePartialExpandedResource:
-		return n.Execute(ctx, w.Operation)
-	}
-
-	exclude := !targets || excludes
-	if exclude {
-		if ev, ok := n.(GraphNodeExcludable); ok {
-			return ev.simpleValidate(ctx, w.Operation)
-		} else {
-			log.Printf("[TRACE] vertex %q: not targeted, skipping", dag.VertexName(n))
-			return nil
-		}
-	}
-
 	return n.Execute(ctx, w.Operation)
 }
 

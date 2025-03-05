@@ -46,6 +46,8 @@ type nodeExpandOutput struct {
 	Overrides *mocking.Overrides
 
 	Dependencies []addrs.ConfigResource
+
+	Excluded
 }
 
 var (
@@ -124,6 +126,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 				node = &NodeDestroyableOutput{
 					Addr:     absAddr,
 					Planning: n.Planning,
+					Excluded: Excluded{excluded: n.excluded},
 				}
 
 			default:
@@ -136,6 +139,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 					Planning:     n.Planning,
 					Override:     n.getOverrideValue(absAddr.Module),
 					Dependencies: n.Dependencies,
+					Excluded:     Excluded{excluded: n.excluded},
 				}
 			}
 
@@ -283,6 +287,8 @@ type NodeApplyableOutput struct {
 	// Dependencies is the full set of resources that are referenced by this
 	// output.
 	Dependencies []addrs.ConfigResource
+
+	Excluded
 }
 
 var (
@@ -600,6 +606,7 @@ func (n *nodeOutputInPartialModule) Execute(ctx EvalContext, op walkOperation) t
 type NodeDestroyableOutput struct {
 	Addr     addrs.AbsOutputValue
 	Planning bool
+	Excluded
 }
 
 var (
@@ -680,6 +687,9 @@ func (n *NodeDestroyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.Dot
 }
 
 func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states.SyncState, changes *plans.ChangesSync, deferred *deferring.Deferred, val cty.Value) {
+	if n.excluded {
+		return
+	}
 	if changes != nil && n.Planning {
 		// if this is a root module, try to get a before value from the state for
 		// the diff

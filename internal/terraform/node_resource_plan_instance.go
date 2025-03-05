@@ -260,7 +260,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	if deferred == nil {
+	if deferred == nil && !ctx.Excludes(n) {
 		// We'll save a snapshot of what we just read from the state into the
 		// prevRunState before we do anything else, since this will capture the
 		// result of any schema upgrading that readResourceInstanceState just did,
@@ -294,7 +294,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Refresh, maybe
 	// The import process handles its own refresh
-	if !n.skipRefresh && !importing {
+	// We dont want to do this for excluded stuff
+	excluded := n.excluded
+	if !n.skipRefresh && !importing && !n.excluded {
 		var refreshDiags tfdiags.Diagnostics
 		instanceRefreshState, refreshDeferred, refreshDiags = n.refresh(ctx, states.NotDeposed, instanceRefreshState, ctx.Deferrals().DeferralAllowed())
 		diags = diags.Append(refreshDiags)
@@ -323,7 +325,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	if n.skipRefresh && !importing && updatedCBD {
+	if n.skipRefresh && !importing && !excluded && updatedCBD {
 		// CreateBeforeDestroy must be set correctly in the state which is used
 		// to create the apply graph, so if we did not refresh the state make
 		// sure we still update any changes to CreateBeforeDestroy.
@@ -401,6 +403,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			// refresh or planning stage. We'll report the deferral and
 			// store what we could produce in the deferral tracker.
 			deferrals.ReportResourceInstanceDeferred(addr, deferred.Reason, change)
+		} else if excluded {
+			deferrals.ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonExcluded, change)
 		} else if !deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies) {
 			// We intentionally write the change before the subsequent checks, because
 			// all of the checks below this point are for problems caused by the
@@ -476,6 +480,21 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			deferrals.ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
 		}
 	} else {
+		// TODO: Test this case
+		if excluded {
+			ctx.Deferrals().ReportResourceInstanceDeferred(addr, providers.DeferredReasonExcluded, &plans.ResourceInstanceChange{
+				Addr:         n.Addr,
+				PrevRunAddr:  n.Addr,
+				ProviderAddr: n.ResolvedProvider,
+				Change: plans.Change{
+					Action: plans.Read,
+					// No state to read
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.NullVal(cty.DynamicPseudoType),
+				},
+			})
+			return diags
+		}
 		// In refresh-only mode we need to evaluate the for-each expression in
 		// order to supply the value to the pre- and post-condition check
 		// blocks. This has the unfortunate edge case of a refresh-only plan

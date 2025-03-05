@@ -56,21 +56,11 @@ func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	}
 
 	var diags tfdiags.Diagnostics
-	// expansion not needed if the resource is excluded.
-	// The actual expansion of this resource is done in the
-	// plan stage anyway, and all we do here is apply the
-	// module instances.
-	if ctx.Excludes(n) {
-		return nil, diags
-	}
 
 	expander := ctx.InstanceExpander()
 	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
 	for _, module := range moduleInstances {
 		moduleCtx := evalContextForModuleInstance(ctx, module)
-		if diags = n.expandDynamic(moduleCtx, n.Addr.Resource.Absolute(module)); diags.HasErrors() {
-			return nil, diags
-		}
 		diags = diags.Append(n.recordResourceData(moduleCtx, n.Addr.Resource.Absolute(module)))
 	}
 

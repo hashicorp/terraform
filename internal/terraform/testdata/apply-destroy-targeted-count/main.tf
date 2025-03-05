@@ -3,5 +3,6 @@ resource "aws_instance" "foo" {
 }
 
 resource "aws_instance" "bar" {
-  foo = ["${aws_instance.foo.*.id}"]
+  for_each = { for idx, instance in aws_instance.foo : idx => instance }
+  foo = "${each.value.id}"
 }

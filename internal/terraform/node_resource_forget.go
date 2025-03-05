@@ -77,7 +77,7 @@ func (n *NodeForgetResourceInstance) Execute(ctx EvalContext, op walkOperation) 
 	}
 
 	// Exit early if state is already null
-	if state == nil || state.Value.IsNull() {
+	if state == nil || state.Value.IsNull() || n.excluded {
 		return diags
 	}
 

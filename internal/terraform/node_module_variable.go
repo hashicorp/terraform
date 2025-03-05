@@ -33,6 +33,8 @@ type nodeExpandModuleVariable struct {
 	// DestroyApply must be set to true when planning or applying a destroy
 	// operation, and false otherwise.
 	DestroyApply bool
+
+	Excluded
 }
 
 var (
@@ -184,6 +186,8 @@ type nodeModuleVariable struct {
 	// DestroyApply must be set to true when applying a destroy operation and
 	// false otherwise.
 	DestroyApply bool
+
+	Excluded
 }
 
 // Ensure that we are implementing all of the interfaces we think we are
@@ -262,6 +266,10 @@ func (n *nodeModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNod
 // validation, and we will not have any expansion module instance
 // repetition data.
 func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bool) (cty.Value, error) {
+	if n.excluded {
+		val, diags := partiallyValidateModuleVariable(ctx, n.Expr)
+		return val, diags.ErrWithWarnings()
+	}
 	var diags tfdiags.Diagnostics
 	var givenVal cty.Value
 	var errSourceRange tfdiags.SourceRange
@@ -338,6 +346,14 @@ func (n *nodeModuleVariableInPartialModule) Path() addrs.PartialExpandedModule {
 }
 
 func (n *nodeModuleVariableInPartialModule) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+
+	namedVals := ctx.NamedValues()
+	val, diags := partiallyValidateModuleVariable(ctx, n.Expr)
+	namedVals.SetInputVariablePlaceholder(n.Addr, val)
+	return diags
+}
+
+func partiallyValidateModuleVariable(ctx EvalContext, expr hcl.Expression) (cty.Value, tfdiags.Diagnostics) {
 	// Our job here is to make sure that the input variable definition is
 	// valid for all instances of this input variable across all of the possible
 	// module instances under our partially-expanded prefix, and to record
@@ -347,8 +363,6 @@ func (n *nodeModuleVariableInPartialModule) Execute(ctx EvalContext, op walkOper
 	// but we should try to do better when possible to give operators earlier
 	// feedback about any problems they would definitely encounter on a
 	// subsequent plan where the input variables get evaluated concretely.
-
-	namedVals := ctx.NamedValues()
 
 	// TODO: Ideally we should vary the placeholder we use here based
 	// on how the module call repetition was configured, but we don't
@@ -362,8 +376,6 @@ func (n *nodeModuleVariableInPartialModule) Execute(ctx EvalContext, op walkOper
 	// while n.Addr describes an object in the child module (where the
 	// variable declaration appeared).
 	scope := ctx.EvaluationScope(nil, nil, moduleInstanceRepetitionData)
-	val, diags := scope.EvalExpr(n.Expr, cty.DynamicPseudoType)
-
-	namedVals.SetInputVariablePlaceholder(n.Addr, val)
-	return diags
+	val, diags := scope.EvalExpr(expr, cty.DynamicPseudoType)
+	return val, diags
 }

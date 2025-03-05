@@ -87,6 +87,8 @@ type NodeAbstractResource struct {
 	generateConfigPath string
 
 	forceCreateBeforeDestroy bool
+
+	Excluded
 }
 
 var (
@@ -162,6 +164,11 @@ func (n *NodeAbstractResource) CreateBeforeDestroy() bool {
 func (n *NodeAbstractResource) ModifyCreateBeforeDestroy(v bool) error {
 	n.forceCreateBeforeDestroy = v
 	return nil
+}
+
+func (n *NodeAbstractResource) SetExcluded(v bool) {
+	n.excluded = v
+	return
 }
 
 // GraphNodeReferencer
@@ -469,17 +476,64 @@ func (n *NodeAbstractResource) expandDynamic(ctx EvalContext, addr addrs.AbsReso
 // various locations. This currently includes adding resource expansion info to
 // the instance expander, and recording the provider used in the state.
 func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.AbsResource) (diags tfdiags.Diagnostics) {
+
+	// We'll record our expansion decision in the shared "expander" object
+	// so that later operations (i.e. DynamicExpand and expression evaluation)
+	// can refer to it. Since this node represents the abstract module, we need
+	// to expand the module here to create all resources.
+	expander := ctx.InstanceExpander()
+
+	// Allowing unknown values in count and for_each is a top-level plan option.
+	//
+	// If this is false then the codepaths that handle unknown values below
+	// become unreachable, because the evaluate functions will reject unknown
+	// values as an error.
+	allowUnknown := ctx.Deferrals().DeferralAllowed() || n.excluded
+
+	switch {
+	case n.Config != nil && n.Config.Count != nil:
+		count, countDiags := evaluateCountExpression(n.Config.Count, ctx, allowUnknown)
+		diags = diags.Append(countDiags)
+		if countDiags.HasErrors() {
+			return diags
+		}
+
+		if count >= 0 {
+			expander.SetResourceCount(addr.Module, n.Addr.Resource, count)
+		} else {
+			// -1 represents "unknown"
+			expander.SetResourceCountUnknown(addr.Module, n.Addr.Resource)
+		}
+
+	case n.Config != nil && n.Config.ForEach != nil:
+		forEach, known, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx, allowUnknown)
+		diags = diags.Append(forEachDiags)
+		if forEachDiags.HasErrors() {
+			return diags
+		}
+
+		// This method takes care of all of the business logic of updating this
+		// while ensuring that any existing instances are preserved, etc.
+		if known {
+			expander.SetResourceForEach(addr.Module, n.Addr.Resource, forEach)
+		} else {
+			expander.SetResourceForEachUnknown(addr.Module, n.Addr.Resource)
+		}
+
+	default:
+		expander.SetResourceSingle(addr.Module, n.Addr.Resource)
+	}
+
 	if addr.Resource.Mode == addrs.EphemeralResourceMode {
 		// ephemeral resources are not included in the state
 		return diags
 	}
 
-	if ctx.Excludes(n) {
-		return diags
+	// No state recording is needed if we're excluded
+	if n.excluded {
+		state := ctx.State()
+		state.SetResourceProvider(addr, n.ResolvedProvider)
 	}
-
-	state := ctx.State()
-	state.SetResourceProvider(addr, n.ResolvedProvider)
 
 	return diags
 }

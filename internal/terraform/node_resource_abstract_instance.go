@@ -358,96 +358,6 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 	return nil
 }
 
-// If the resource instance is excluded, we only want to do some basic
-// schema checks and then defer the change.
-func (n *NodeAbstractResourceInstance) simpleValidate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	addr := n.ResourceInstanceAddr()
-	var diags tfdiags.Diagnostics
-	resource := n.Addr.Resource.Resource
-
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		// The provider may not be available if it depends on other nodes.
-		// We have to decide if we want that to be an error. For now, we'll
-		// just ignore the error since this is a validation step.
-		// TODO: Probably monkeypatch the provider so that we can continue with some validation.
-		return diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "Provider not available",
-			Detail:   fmt.Sprintf("Could not fully validate excluded %s due to missing provider: %s", addr, err),
-		})
-	}
-
-	schema, _ := providerSchema.SchemaForResourceAddr(resource)
-	if schema == nil {
-		// Should be caught during validation, so we don't bother with a pretty error here
-		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", resource.Type))
-		return diags
-	}
-
-	currentState, diags := n.readResourceInstanceState(ctx, addr)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	priorVal := cty.NullVal(schema.ImpliedType())
-	var priorPrivate []byte
-	var changes *plans.ResourceInstanceChange
-	switch op {
-	case walkDestroy:
-		// If there is no state or our attributes object is null then we're already
-		// destroyed.
-		if currentState == nil || currentState.Value.IsNull() {
-			// We still need to generate a NoOp change, because that allows
-			// outside consumers of the plan to distinguish between us affirming
-			// that we checked something and concluded no changes were needed
-			// vs. that something being entirely excluded e.g. due to -target.
-			noop := &plans.ResourceInstanceChange{
-				Addr:        n.Addr,
-				PrevRunAddr: n.prevRunAddr(ctx),
-				// DeposedKey:  deposedKey, //TODO
-				Change: plans.Change{
-					Action: plans.NoOp,
-					Before: cty.NullVal(cty.DynamicPseudoType),
-					After:  cty.NullVal(cty.DynamicPseudoType),
-				},
-				ProviderAddr: n.ResolvedProvider,
-			}
-			changes = noop
-		}
-	default:
-		if currentState != nil && currentState.Status != states.ObjectTainted {
-			priorVal = currentState.Value
-			priorPrivate = currentState.Private
-		}
-		changes = &plans.ResourceInstanceChange{
-			Addr:         n.Addr,
-			PrevRunAddr:  n.prevRunAddr(ctx),
-			Private:      priorPrivate,
-			ProviderAddr: n.ResolvedProvider,
-			Change: plans.Change{
-				Before:          priorVal,
-				After:           cty.UnknownVal(priorVal.Type()),
-				GeneratedConfig: n.generatedConfigHCL,
-			},
-		}
-	}
-
-	reason := providers.DeferredReasonExcluded
-	switch addr.Resource.Resource.Mode {
-	case addrs.ManagedResourceMode:
-		ctx.Deferrals().ReportResourceInstanceDeferred(addr, reason, changes)
-	case addrs.DataResourceMode:
-		changes.Action = plans.Read
-		ctx.Deferrals().ReportDataSourceInstanceDeferred(addr, reason, changes)
-	case addrs.EphemeralResourceMode:
-		ctx.Deferrals().ReportEphemeralResourceInstanceDeferred(addr, reason)
-	default:
-		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
-	}
-	return diags
-}
-
 // planDestroy returns a plain destroy diff.
 func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, *providers.Deferred, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
@@ -499,7 +409,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 	// operation.
 	nullVal := cty.NullVal(unmarkedPriorVal.Type())
 
-	provider, _, err := getProvider(ctx, n.ResolvedProvider)
+	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return plan, deferred, diags.Append(err)
 	}
@@ -518,6 +428,29 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		// provider.
 		resp = providers.PlanResourceChangeResponse{
 			PlannedState: nullVal,
+		}
+	} else if n.excluded {
+		resource := n.ResourceAddr().Resource
+		schema, _ := providerSchema.SchemaForResourceAddr(resource)
+		if schema == nil {
+			// Should be caught during validation, so we don't bother with a pretty error here
+			diags = diags.Append(fmt.Errorf("provider does not support resource type %q", resource.Type))
+			return plan, deferred, diags
+		}
+		val, diags := mocking.PlanComputedValuesForResource(nullVal, nil, schema)
+		if diags.HasErrors() {
+			// All the potential errors we get back from this function are
+			// related to the user badly defining mocks. We should never hit
+			// this as we are just using the default behaviour.
+			panic(diags.Err())
+		}
+
+		deferred = &providers.Deferred{
+			Reason: providers.DeferredReasonExcluded,
+		}
+		resp = providers.PlanResourceChangeResponse{
+			PlannedState: val,
+			Deferred:     deferred,
 		}
 	} else {
 		// Allow the provider to check the destroy plan, and insert any
@@ -1021,6 +954,25 @@ func (n *NodeAbstractResourceInstance) plan(
 				PlannedState: proposedNewVal,
 			}
 		}
+	} else if n.excluded {
+		// If the resource is excluded, we will use
+		// PlanComputedValuesForResource to populate the computed values with
+		// unknown values. This isn't the original use case for the mocking
+		// library, but it is doing exactly what we need it to do.
+		val, diags := mocking.PlanComputedValuesForResource(proposedNewVal, nil, schema)
+		if diags.HasErrors() {
+			// All the potential errors we get back from this function are
+			// related to the user badly defining mocks. We should never hit
+			// this as we are just using the default behaviour.
+			panic(diags.Err())
+		}
+
+		resp = providers.PlanResourceChangeResponse{
+			PlannedState: val,
+			Deferred: &providers.Deferred{
+				Reason: providers.DeferredReasonExcluded,
+			},
+		}
 	} else {
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 			TypeName:           n.Addr.Resource.Resource.Type,
@@ -1209,6 +1161,10 @@ func (n *NodeAbstractResourceInstance) plan(
 				PlannedState: override,
 				Diagnostics:  overrideDiags,
 			}
+		} else if n.excluded {
+			resp = providers.PlanResourceChangeResponse{
+				PlannedState: proposedNewVal,
+			}
 		} else {
 			resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 				TypeName:           n.Addr.Resource.Resource.Type,
@@ -1303,6 +1259,12 @@ func (n *NodeAbstractResourceInstance) plan(
 	// entire set, and are not saved on the individual elements.
 	if action == plans.NoOp && !valueMarksEqual(plannedNewVal, priorVal) {
 		action = plans.Update
+	}
+
+	// if excluded, action is no-op
+	if n.excluded {
+		action = plans.NoOp
+		actionReason = plans.ResourceInstanceChangeNoReason
 	}
 
 	// As a special case, if we have a previous diff (presumably from the plan

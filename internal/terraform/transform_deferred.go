@@ -53,6 +53,19 @@ func (t *DeferredTransformer) Transform(g *Graph) error {
 			ChangeSrc:                    change.ChangeSrc,
 		}
 
+		if change.DeferredReason == providers.DeferredReasonExcluded {
+			// Now we want to find the expansion node that would be applied for
+			// this resource, and tell it that it is performing a partial
+			// expansion.
+			for _, v := range g.Vertices() {
+				if n, ok := v.(*nodeExpandApplyableResource); ok {
+					if node.ResourceAddr().Equal(n.Addr) {
+						n.SetExcluded(true)
+					}
+				}
+			}
+		}
+
 		// Create a special node for partial instances, that handles the
 		// addresses a little differently.
 		if change.DeferredReason == providers.DeferredReasonInstanceCountUnknown {

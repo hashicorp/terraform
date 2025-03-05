@@ -95,6 +95,7 @@ func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagno
 type NodeLocal struct {
 	Addr   addrs.AbsLocalValue
 	Config *configs.Local
+	Excluded
 }
 
 var (

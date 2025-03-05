@@ -82,6 +82,7 @@ func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targets []addrs.Target
 	// If we are performing inverse targeting (exclusion),
 	// we build an exclusion list of nodes that are either directly
 	// excluded or have ancestors that are excluded.
+	included := make(map[dag.Vertex]struct{})
 	excludeAddrs := walker.ExcludedAddrs()
 	if excludeAddrs.Size() > 0 {
 		for _, node := range g.Vertices() {
@@ -118,6 +119,8 @@ func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targets []addrs.Target
 		for _, node := range g.Vertices() {
 			if !ctx.Targets(node) {
 				ctx.AddExclude(node)
+			} else {
+				included[node] = struct{}{}
 			}
 		}
 	}
@@ -219,6 +222,10 @@ func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targets []addrs.Target
 			log.Printf("[TRACE] vertex %q: does not belong to any module instance", dag.VertexName(v))
 		}
 
+		if ev, ok := v.(interface{ SetExcluded(bool) }); ok && !ctx.Targets(v) {
+			ev.SetExcluded(true)
+		}
+
 		// If the node is exec-able, then execute it.
 		if ev, ok := v.(GraphNodeExecutable); ok {
 			diags = diags.Append(walker.Execute(vertexCtx, ev))
@@ -267,6 +274,7 @@ func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targets []addrs.Target
 				if ctx.Excludes(v) {
 					for _, node := range g.Vertices() {
 						ctx.AddExclude(node)
+						vertexCtx.AddExclude(node)
 					}
 				}
 

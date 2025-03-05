@@ -363,9 +363,10 @@ func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, moduleInsta
 	expandedInstances := addrs.MakeSet[addrs.Checkable]()
 	for _, module := range moduleInstances {
 		resAddr := n.Addr.Resource.Absolute(module)
-		instances, err := n.expandResourceInstances(ctx, resAddr, imports, &g)
-		diags = diags.Append(err)
-		for _, instance := range instances {
+		var empty addrs.Map[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]]
+		resources, _, maybeOrphans, moreDiags := n.expandKnownModule(ctx, resAddr, imports, empty, &g)
+		diags = diags.Append(moreDiags)
+		for _, instance := range resources.Union(maybeOrphans) {
 			expandedInstances.Add(instance)
 		}
 	}
@@ -411,9 +412,6 @@ func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalCont
 	// writeResourceState is responsible for informing the expander of what
 	// repetition mode this resource has, which allows expander.ExpandResource
 	// to work below.
-	if diags = n.expandDynamic(moduleCtx, resAddr); diags.HasErrors() {
-		return nil, diags
-	}
 	moreDiags := n.recordResourceData(moduleCtx, resAddr)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

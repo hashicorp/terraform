@@ -22,6 +22,7 @@ type nodeExpandModule struct {
 	Addr       addrs.Module
 	Config     *configs.Module
 	ModuleCall *configs.ModuleCall
+	Excluded
 }
 
 var (
