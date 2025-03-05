@@ -67,7 +67,8 @@ type NodeAbstractResource struct {
 	ProvisionerSchemas map[string]*configschema.Block
 
 	// Set from GraphNodeTargetable
-	targets []addrs.Targetable
+	targets  []addrs.Targetable
+	excludes []addrs.Targetable
 
 	// Set from AttachDataResourceDependsOn
 	dependsOn []addrs.ConfigResource
@@ -379,12 +380,17 @@ func (n *NodeAbstractResource) ResourceAddr() addrs.ConfigResource {
 }
 
 // GraphNodeTargetable
-func (n *NodeAbstractResource) SetTargets(targets []addrs.Targetable) {
+func (n *NodeAbstractResource) SetTargets(targets []addrs.Targetable, excludes []addrs.Targetable) {
 	n.targets = targets
+	n.excludes = excludes
 }
 
 func (n *NodeAbstractResource) Targets() []addrs.Targetable {
 	return n.targets
+}
+
+func (n *NodeAbstractResource) Excludes() []addrs.Targetable {
+	return n.excludes
 }
 
 // graphNodeAttachDataResourceDependsOn
@@ -418,58 +424,6 @@ func (n *NodeAbstractResource) DotNode(name string, opts *dag.DotOpts) *dag.DotN
 			"shape": "box",
 		},
 	}
-}
-
-// expandDynamic adds resource expansion info to the instance expander
-func (n *NodeAbstractResource) expandDynamic(ctx EvalContext, addr addrs.AbsResource) (diags tfdiags.Diagnostics) {
-	// We'll record our expansion decision in the shared "expander" object
-	// so that later operations (i.e. DynamicExpand and expression evaluation)
-	// can refer to it. Since this node represents the abstract module, we need
-	// to expand the module here to create all resources.
-	expander := ctx.InstanceExpander()
-
-	// Allowing unknown values in count and for_each is a top-level plan option.
-	//
-	// If this is false then the codepaths that handle unknown values below
-	// become unreachable, because the evaluate functions will reject unknown
-	// values as an error.
-	allowUnknown := ctx.Deferrals().DeferralAllowed()
-
-	switch {
-	case n.Config != nil && n.Config.Count != nil:
-		count, countDiags := evaluateCountExpression(n.Config.Count, ctx, allowUnknown)
-		diags = diags.Append(countDiags)
-		if countDiags.HasErrors() {
-			return diags
-		}
-
-		if count >= 0 {
-			expander.SetResourceCount(addr.Module, n.Addr.Resource, count)
-		} else {
-			// -1 represents "unknown"
-			expander.SetResourceCountUnknown(addr.Module, n.Addr.Resource)
-		}
-
-	case n.Config != nil && n.Config.ForEach != nil:
-		forEach, known, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx, allowUnknown)
-		diags = diags.Append(forEachDiags)
-		if forEachDiags.HasErrors() {
-			return diags
-		}
-
-		// This method takes care of all of the business logic of updating this
-		// while ensuring that any existing instances are preserved, etc.
-		if known {
-			expander.SetResourceForEach(addr.Module, n.Addr.Resource, forEach)
-		} else {
-			expander.SetResourceForEachUnknown(addr.Module, n.Addr.Resource)
-		}
-
-	default:
-		expander.SetResourceSingle(addr.Module, n.Addr.Resource)
-	}
-
-	return diags
 }
 
 // recordResourceData records some metadata for the resource as a whole in
@@ -529,11 +483,8 @@ func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.Ab
 		return diags
 	}
 
-	// No state recording is needed if we're excluded
-	if n.excluded {
-		state := ctx.State()
-		state.SetResourceProvider(addr, n.ResolvedProvider)
-	}
+	state := ctx.State()
+	state.SetResourceProvider(addr, n.ResolvedProvider)
 
 	return diags
 }

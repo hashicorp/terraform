@@ -433,18 +433,6 @@ func (ctx *MockEvalContext) ClientCapabilities() providers.ClientCapabilities {
 	}
 }
 
-func (ctx *MockEvalContext) Targets(node dag.Vertex) bool {
-	return false
-}
-
-func (ctx *MockEvalContext) Excludes(node dag.Vertex) bool {
-	return false
-}
-
-func (ctx *MockEvalContext) AddTarget(node dag.Vertex) {
-
-}
-
-func (ctx *MockEvalContext) AddExclude(node dag.Vertex) {
-
+func (ctx *MockEvalContext) Filter() *dag.Filter {
+	return dag.NewFilter()
 }

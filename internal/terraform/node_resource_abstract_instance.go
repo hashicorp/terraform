@@ -954,6 +954,8 @@ func (n *NodeAbstractResourceInstance) plan(
 				PlannedState: proposedNewVal,
 			}
 		}
+		// We have to use n.excluded instead of the filter, because this is an inherited
+		// method, and the filter may have been set on the child node instead of the parent.
 	} else if n.excluded {
 		// If the resource is excluded, we will use
 		// PlanComputedValuesForResource to populate the computed values with

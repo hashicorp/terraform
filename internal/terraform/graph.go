@@ -82,29 +82,29 @@ func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targets []addrs.Target
 	// If we are performing inverse targeting (exclusion),
 	// we build an exclusion list of nodes that are either directly
 	// excluded or have ancestors that are excluded.
-	included := make(map[dag.Vertex]struct{})
 	excludeAddrs := walker.ExcludedAddrs()
+	filter := ctx.Filter()
 	if excludeAddrs.Size() > 0 {
 		for _, node := range g.Vertices() {
 			// If the node is already excluded, we don't need to do anything
-			if ctx.Excludes(node) {
+			if filter.Matches(node, dag.ExplicitlyExcluded) {
 				continue
 			}
 
 			// If the node or any of its ancestors are in the exclusion list,
 			// we should mark it as excluded in the context.
 			if isExcluded(g, node, excludeAddrs) {
-				ctx.AddExclude(node)
+				filter.Exclude(node)
 				continue
 			}
 		}
 	}
 
-	// we want to build a list of targetable nodes that are not in the exclusion list.
 	if len(targets) == 0 {
+		// we want to build a list of targetable nodes that are not in the exclusion list.
 		for _, node := range g.Vertices() {
-			if !ctx.Excludes(node) {
-				ctx.AddTarget(node)
+			if !filter.Matches(node, dag.ExplicitlyExcluded) {
+				filter.Include(node)
 			}
 		}
 	} else {
@@ -112,15 +112,13 @@ func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targets []addrs.Target
 		// and add the targeted nodes to the context.
 		targetedNodes := selectTargetedNodes(g, targets)
 		for _, node := range targetedNodes {
-			ctx.AddTarget(node)
+			filter.Include(node)
 		}
 
-		// any node left in the graph that is not targeted is excluded.
+		// any node left in the graph that is not targeted is exclude.
 		for _, node := range g.Vertices() {
-			if !ctx.Targets(node) {
-				ctx.AddExclude(node)
-			} else {
-				included[node] = struct{}{}
+			if !filter.Matches(node, dag.Allowed) {
+				filter.Exclude(node)
 			}
 		}
 	}
@@ -222,8 +220,10 @@ func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targets []addrs.Target
 			log.Printf("[TRACE] vertex %q: does not belong to any module instance", dag.VertexName(v))
 		}
 
-		if ev, ok := v.(interface{ SetExcluded(bool) }); ok && !ctx.Targets(v) {
-			ev.SetExcluded(true)
+		// If the node is one that can be excluded, and it is not allowed,
+		// then we should mark it as excluded.
+		if ev, ok := v.(interface{ SetExcluded(bool) }); ok && !filter.Allowed(v) {
+			ev.SetExcluded(!filter.Allowed(v))
 		}
 
 		// If the node is exec-able, then execute it.
@@ -271,16 +271,17 @@ func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targets []addrs.Target
 				log.Printf("[TRACE] vertex %q: entering dynamic subgraph", dag.VertexName(v))
 				// If the dynamic node is excluded, we should exclude all of the
 				// nodes in the subgraph.
-				if ctx.Excludes(v) {
+				if filter.Matches(v, dag.ExplicitlyExcluded) {
 					for _, node := range g.Vertices() {
-						ctx.AddExclude(node)
-						vertexCtx.AddExclude(node)
+						filter.Exclude(node)
 					}
 				}
 
 				// If the dynamic node was directly targeted with a target value,
 				// but the target value is a more specific target inside
 				// the dynamic node, we want to filter that specific target.
+				// For example, when the target is "resource.foo[0]", but the
+				// dynamic node represents the config resource "resource.foo".
 				var directTargets []addrs.Targetable
 				if n, ok := v.(GraphNodeTargetable); ok {
 					directTargets = n.Targets()

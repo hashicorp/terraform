@@ -18,3 +18,7 @@ type Excluded struct {
 func (n *Excluded) SetExcluded(excluded bool) {
 	n.excluded = excluded
 }
+
+func (n *Excluded) IsExcluded() bool {
+	return n.excluded
+}

@@ -260,7 +260,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	if deferred == nil && !ctx.Excludes(n) {
+	if deferred == nil && ctx.Filter().Allowed(n) {
 		// We'll save a snapshot of what we just read from the state into the
 		// prevRunState before we do anything else, since this will capture the
 		// result of any schema upgrading that readResourceInstanceState just did,

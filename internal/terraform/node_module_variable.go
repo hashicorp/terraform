@@ -267,8 +267,9 @@ func (n *nodeModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNod
 // repetition data.
 func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bool) (cty.Value, error) {
 	if n.excluded {
-		val, diags := partiallyValidateModuleVariable(ctx, n.Expr)
-		return val, diags.ErrWithWarnings()
+		// we cannot do any module variable evaluation because the expression
+		// might reference resources that were excluded
+		return cty.DynamicVal, nil
 	}
 	var diags tfdiags.Diagnostics
 	var givenVal cty.Value

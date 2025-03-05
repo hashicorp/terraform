@@ -218,10 +218,7 @@ type EvalContext interface {
 	// only allowed in the context of a destroy plan.
 	Forget() bool
 
-	Targets(node dag.Vertex) bool
-	Excludes(node dag.Vertex) bool
-	AddTarget(node dag.Vertex)
-	AddExclude(node dag.Vertex)
+	Filter() *dag.Filter
 }
 
 func evalContextForModuleInstance(baseCtx EvalContext, addr addrs.ModuleInstance) EvalContext {

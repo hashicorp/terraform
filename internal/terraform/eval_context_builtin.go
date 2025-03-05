@@ -71,9 +71,7 @@ type BuiltinEvalContext struct {
 	DeferralsValue *deferring.Deferred
 
 	// TargetedNodes is a set of nodes that are targeted by the current operation.
-	TargetedNodes dag.Set
-	ExcludedNodes dag.Set
-	refsLock      *sync.Mutex
+	FilterValue *dag.Filter
 
 	// forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
@@ -468,6 +466,22 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source 
 			evalScope.SetActiveExperiments(mc.Module.ActiveExperiments)
 		}
 		return evalScope
+	case evalContextReadOnly:
+		data := &evaluationPlaceholderData{
+			evaluationData: &evaluationData{
+				Evaluator: ctx.Evaluator,
+				Module:    scope.Addr.Module(),
+			},
+			ModulePath:     scope.Addr.PartialModule(),
+			CountAvailable: keyData.CountIndex != cty.NilVal,
+			EachAvailable:  keyData.EachKey != cty.NilVal,
+			Operation:      ctx.Evaluator.Operation,
+		}
+		evalScope := ctx.Evaluator.Scope(data, self, source, ctx.evaluationExternalFunctions())
+		if mc := ctx.Evaluator.Config.Descendant(scope.Addr.Module()); mc != nil {
+			evalScope.SetActiveExperiments(mc.Module.ActiveExperiments)
+		}
+		return evalScope
 	default:
 		// This method is valid only for module-scoped EvalContext objects.
 		panic("no evaluation scope available: not in module context")
@@ -627,26 +641,6 @@ func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities
 	}
 }
 
-func (ctx *BuiltinEvalContext) Targets(node dag.Vertex) bool {
-	ctx.refsLock.Lock()
-	defer ctx.refsLock.Unlock()
-	return ctx.TargetedNodes.Include(node)
-}
-
-func (ctx *BuiltinEvalContext) Excludes(node dag.Vertex) bool {
-	ctx.refsLock.Lock()
-	defer ctx.refsLock.Unlock()
-	return ctx.ExcludedNodes.Include(node)
-}
-
-func (ctx *BuiltinEvalContext) AddTarget(node dag.Vertex) {
-	ctx.refsLock.Lock()
-	defer ctx.refsLock.Unlock()
-	ctx.TargetedNodes.Add(node)
-}
-
-func (ctx *BuiltinEvalContext) AddExclude(node dag.Vertex) {
-	ctx.refsLock.Lock()
-	defer ctx.refsLock.Unlock()
-	ctx.ExcludedNodes.Add(node)
+func (ctx *BuiltinEvalContext) Filter() *dag.Filter {
+	return ctx.FilterValue
 }

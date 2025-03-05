@@ -51,6 +51,9 @@ func (n *nodeExpandApplyableResource) Name() string {
 }
 
 func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
+	if n.excluded {
+		return nil, nil
+	}
 	if n.Addr.Resource.Mode == addrs.EphemeralResourceMode {
 		return n.dynamicExpandEphemeral(ctx)
 	}
@@ -98,9 +101,6 @@ func (n *nodeExpandApplyableResource) expandEphemeralResourceInstances(globalCtx
 	// writeResourceState is responsible for informing the expander of what
 	// repetition mode this resource has, which allows expander.ExpandResource
 	// to work below.
-	if diags = n.expandDynamic(moduleCtx, resAddr); diags.HasErrors() {
-		return diags
-	}
 	moreDiags := n.recordResourceData(moduleCtx, resAddr)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

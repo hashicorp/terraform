@@ -59,6 +59,7 @@ type ContextGraphWalker struct {
 	// graph to only include the resources that are targeted.
 	excluded addrs.Set[addrs.Targetable]
 	targets  addrs.Set[addrs.Targetable]
+	filter   *dag.Filter
 
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
@@ -123,6 +124,13 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		PlanTimestamp:      w.PlanTimestamp,
 	}
 
+	for _, n := range w.targetedNodes {
+		w.filter.Include(n)
+	}
+	for _, n := range w.excludedNodes {
+		w.filter.Exclude(n)
+	}
+
 	ctx := &BuiltinEvalContext{
 		StopContext:             w.StopContext,
 		Hooks:                   w.Context.hooks,
@@ -149,9 +157,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Evaluator:               evaluator,
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
-		TargetedNodes:           w.targetedNodes,
-		ExcludedNodes:           w.excludedNodes,
-		refsLock:                &w.refLock,
+		FilterValue:             w.filter,
 	}
 
 	return ctx
@@ -164,6 +170,7 @@ func (w *ContextGraphWalker) init() {
 	w.providerSchemas = make(map[string]providers.ProviderSchema)
 	w.provisionerCache = make(map[string]provisioners.Interface)
 	w.provisionerSchemas = make(map[string]*configschema.Block)
+	w.filter = dag.NewFilter()
 }
 
 func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfdiags.Diagnostics {

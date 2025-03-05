@@ -35,6 +35,7 @@ type nodePlannablePartialExpandedResource struct {
 	resolvedProvider  addrs.AbsProviderConfig
 	skipPlanChanges   bool
 	preDestroyRefresh bool
+	Excluded
 }
 
 var (
@@ -223,16 +224,44 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 	// still find out if any of the known values are somehow invalid and
 	// learn a subset of the "computed" attribute values to save as part
 	// of our placeholder value for downstream checks.
-	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
-		TypeName:         n.addr.Resource().Type,
-		Config:           unmarkedConfigVal,
-		PriorState:       priorVal,
-		ProposedNewState: proposedNewVal,
-		// TODO: Should we send "ProviderMeta" here? We don't have the
-		// necessary data for that wired through here right now, but
-		// we might need to do that before stabilizing support for unknown
-		// resource instance expansion.
-	})
+	var resp providers.PlanResourceChangeResponse
+	excl := n.excluded
+	excl2 := !ctx.Filter().Allowed(n)
+	if excl != excl2 {
+		fmt.Println("excl", excl, excl2)
+	}
+	if n.excluded {
+		// If the resource is excluded, we will use
+		// PlanComputedValuesForResource to populate the computed values with
+		// unknown values. This isn't the original use case for the mocking
+		// library, but it is doing exactly what we need it to do.
+		// val, diags := mocking.PlanComputedValuesForResource(proposedNewVal, nil, schema)
+		// if diags.HasErrors() {
+		// 	// All the potential errors we get back from this function are
+		// 	// related to the user badly defining mocks. We should never hit
+		// 	// this as we are just using the default behaviour.
+		// 	panic(diags.Err())
+		// }
+
+		// resp = providers.PlanResourceChangeResponse{
+		// 	PlannedState: val,
+		// 	Deferred: &providers.Deferred{
+		// 		Reason: providers.DeferredReasonExcluded,
+		// 	},
+		// }
+		return &change, diags
+	} else {
+		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
+			TypeName:         n.addr.Resource().Type,
+			Config:           unmarkedConfigVal,
+			PriorState:       priorVal,
+			ProposedNewState: proposedNewVal,
+			// TODO: Should we send "ProviderMeta" here? We don't have the
+			// necessary data for that wired through here right now, but
+			// we might need to do that before stabilizing support for unknown
+			// resource instance expansion.
+		})
+	}
 	diags = diags.Append(resp.Diagnostics.InConfigBody(n.config.Config, n.addr.String()))
 	if diags.HasErrors() {
 		return &change, diags

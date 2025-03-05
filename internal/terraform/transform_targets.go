@@ -16,8 +16,9 @@ import (
 // provided will contain every target provided, and each implementing graph
 // node must filter this list to targets considered relevant.
 type GraphNodeTargetable interface {
-	SetTargets([]addrs.Targetable)
+	SetTargets(targets []addrs.Targetable, exclude []addrs.Targetable)
 	Targets() []addrs.Targetable
+	Excludes() []addrs.Targetable
 }
 
 // TargetsTransformer is a GraphTransformer that, when the user specifies a
@@ -59,7 +60,7 @@ func selectTargetedNodes(g *Graph, _addrs []addrs.Targetable) dag.Set {
 			// that need to dynamically expand. Note that this only occurs for nodes
 			// that are already directly targeted.
 			if tn, ok := v.(GraphNodeTargetable); ok {
-				tn.SetTargets(_addrs)
+				tn.SetTargets(_addrs, nil)
 			}
 
 			for _, d := range g.Ancestors(v) {

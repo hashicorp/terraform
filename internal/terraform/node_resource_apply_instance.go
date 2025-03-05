@@ -95,6 +95,10 @@ func (n *NodeApplyableResourceInstance) AttachDependencies(deps []addrs.ConfigRe
 func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
+	if n.excluded {
+		return nil
+	}
+
 	if n.Config == nil {
 		// If there is no config, and there is no change, then we have nothing
 		// to do and the change was left in the plan for informational

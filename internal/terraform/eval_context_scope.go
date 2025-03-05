@@ -85,6 +85,27 @@ func (s evalContextPartialExpandedModule) UniqueKey() collections.UniqueKey[eval
 	}
 }
 
+// evalContextReadOnly is an [evalContextScope] associated with
+// an unbounded set of possible module instances that share a common known
+// address prefix.
+type evalContextReadOnly struct {
+	Addr addrs.ModuleInstance
+}
+
+func (s evalContextReadOnly) evalContextScopeModule() addrs.Module {
+	return s.Addr.Module()
+}
+
+func (s evalContextReadOnly) String() string {
+	return s.Addr.String()
+}
+
+func (s evalContextReadOnly) UniqueKey() collections.UniqueKey[evalContextScope] {
+	return evalContextScopeUniqueKey{
+		k: s.Addr.UniqueKey(),
+	}
+}
+
 type evalContextScopeUniqueKey struct {
 	k addrs.UniqueKey
 }
