@@ -224,7 +224,7 @@ func TestMarshalProvider(t *testing.T) {
 func testProvider() providers.ProviderSchema {
 	return providers.ProviderSchema{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"region": {Type: cty.String, Required: true},
 				},
@@ -233,7 +233,7 @@ func testProvider() providers.ProviderSchema {
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Version: 42,
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":  {Type: cty.String, Optional: true, Computed: true},
 						"ami": {Type: cty.String, Optional: true},
@@ -265,7 +265,7 @@ func testProvider() providers.ProviderSchema {
 		DataSources: map[string]providers.Schema{
 			"test_data_source": {
 				Version: 3,
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":  {Type: cty.String, Optional: true, Computed: true},
 						"ami": {Type: cty.String, Optional: true},
@@ -286,7 +286,7 @@ func testProvider() providers.ProviderSchema {
 		},
 		EphemeralResourceTypes: map[string]providers.Schema{
 			"test_eph_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":  {Type: cty.String, Optional: true, Computed: true},
 						"ami": {Type: cty.String, Optional: true},

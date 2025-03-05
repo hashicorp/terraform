@@ -29,7 +29,7 @@ func TestProviderInstanceCheckProviderArgs(t *testing.T) {
 		mockProvider := &testing_provider.MockProvider{
 			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 				Provider: providers.Schema{
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"test": {
 								Type:     cty.String,
@@ -304,7 +304,7 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 		mockProvider := &testing_provider.MockProvider{
 			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 				Provider: providers.Schema{
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"test": {
 								Type:     cty.String,

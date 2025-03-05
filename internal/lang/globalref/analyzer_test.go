@@ -91,12 +91,12 @@ func testAnalyzer(t *testing.T, fixtureName string) *Analyzer {
 		addrs.MustParseProviderSourceString("hashicorp/test"): {
 			ResourceTypes: map[string]providers.Schema{
 				"test_thing": {
-					Block: resourceTypeSchema,
+					Body: resourceTypeSchema,
 				},
 			},
 			DataSources: map[string]providers.Schema{
 				"test_thing": {
-					Block: resourceTypeSchema,
+					Body: resourceTypeSchema,
 				},
 			},
 		},

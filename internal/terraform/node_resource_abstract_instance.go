@@ -1066,8 +1066,9 @@ func (n *NodeAbstractResourceInstance) plan(
 	// for write-only attributes (the only place where ephemeral values are allowed).
 	// This is verified in objchange.AssertPlanValid already.
 	unmarkedPlannedNewVal := plannedNewVal
-	_, nonEphemeralMarks := marks.PathsWithMark(unmarkedPaths, marks.Ephemeral)
-	plannedNewVal = plannedNewVal.MarkWithPaths(nonEphemeralMarks)
+	unmarkedPaths = marks.RemoveAll(unmarkedPaths, marks.Ephemeral)
+
+	plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 	if sensitivePaths := schema.SensitivePaths(plannedNewVal, nil); len(sensitivePaths) != 0 {
 		plannedNewVal = marks.MarkPaths(plannedNewVal, marks.Sensitive, sensitivePaths)
 	}
@@ -1153,8 +1154,8 @@ func (n *NodeAbstractResourceInstance) plan(
 		plannedNewVal = resp.PlannedState
 		plannedPrivate = resp.PlannedPrivate
 
-		if len(nonEphemeralMarks) > 0 {
-			plannedNewVal = plannedNewVal.MarkWithPaths(nonEphemeralMarks)
+		if len(unmarkedPaths) > 0 {
+			plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 		}
 
 		for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
@@ -1692,7 +1693,7 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 	if n.ProviderMetas != nil {
 		if m, ok := n.ProviderMetas[n.ResolvedProvider.Provider]; ok && m != nil {
 			// if the provider doesn't support this feature, throw an error
-			if providerSchema.ProviderMeta.Block == nil {
+			if providerSchema.ProviderMeta.Body == nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ResolvedProvider.Provider.String()),
@@ -1701,7 +1702,7 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 				})
 			} else {
 				var configDiags tfdiags.Diagnostics
-				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta.Block, nil, EvalDataForNoInstanceKey)
+				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta.Body, nil, EvalDataForNoInstanceKey)
 				diags = diags.Append(configDiags)
 			}
 		}

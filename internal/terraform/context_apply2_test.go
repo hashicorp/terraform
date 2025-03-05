@@ -1246,13 +1246,13 @@ output "out" {
 
 	testProvider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{Block: simpleTestSchema()},
+			Provider: providers.Schema{Body: simpleTestSchema()},
 			ResourceTypes: map[string]providers.Schema{
-				"test_object": providers.Schema{Block: simpleTestSchema()},
+				"test_object": providers.Schema{Body: simpleTestSchema()},
 			},
 			DataSources: map[string]providers.Schema{
 				"test_object": providers.Schema{
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"test_string": {
 								Type:     cty.String,
@@ -1285,7 +1285,7 @@ output "out" {
 	otherProvider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"output": {
 							Type:     cty.List(cty.String),
@@ -1303,7 +1303,7 @@ output "out" {
 				},
 			},
 			ResourceTypes: map[string]providers.Schema{
-				"other_object": providers.Schema{Block: simpleTestSchema()},
+				"other_object": providers.Schema{Body: simpleTestSchema()},
 			},
 		},
 	}
@@ -1744,7 +1744,7 @@ resource "test_object" "y" {
 
 	p := simpleMockProvider()
 	// make sure we can compute the attr
-	testString := p.GetProviderSchemaResponse.ResourceTypes["test_object"].Block.Attributes["test_string"]
+	testString := p.GetProviderSchemaResponse.ResourceTypes["test_object"].Body.Attributes["test_string"]
 	testString.Computed = true
 	testString.Optional = false
 
@@ -2472,7 +2472,7 @@ resource "test_object" "foo" {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"test_object": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"value": {
 								Type:     cty.String,
@@ -2488,7 +2488,7 @@ resource "test_object" "foo" {
 			},
 			DataSources: map[string]providers.Schema{
 				"test_object": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"output": {
 								Type:     cty.String,
@@ -2606,7 +2606,7 @@ resource "test_object" "foo" {
 	testProvider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"required": {
 							Type:     cty.String,
@@ -2617,7 +2617,7 @@ resource "test_object" "foo" {
 			},
 			ResourceTypes: map[string]providers.Schema{
 				"test_object": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"value": {
 								Type:     cty.String,
@@ -2633,7 +2633,7 @@ resource "test_object" "foo" {
 			},
 			DataSources: map[string]providers.Schema{
 				"test_object": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"output": {
 								Type:     cty.String,
@@ -2830,7 +2830,7 @@ func TestContext2Apply_destroy_and_forget(t *testing.T) {
             resource "test_object" "a" {
                 test_string = "foo"
             }
-            
+
             resource "test_object" "b" {
                 test_string = "foo"
             }
@@ -2876,7 +2876,7 @@ func TestContext2Apply_destroy_and_forget(t *testing.T) {
     		}
     		resource "test_object" "a" {
               for_each = local.items
-      
+
     		  test_string = each.value
             }
             `,
@@ -2982,7 +2982,7 @@ func TestContext2Apply_destroy_and_forget_single_resource(t *testing.T) {
 		"main.tf": `
             removed {
               from = test_object.a
-            
+
               lifecycle {
                 destroy = false
               }
@@ -3267,7 +3267,7 @@ func TestContext2Apply_applyingFlag(t *testing.T) {
 	p := new(testing_provider.MockProvider)
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"applying": {
 						Type:     cty.Bool,
@@ -3278,7 +3278,7 @@ func TestContext2Apply_applyingFlag(t *testing.T) {
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_thing": {
-				Block: &configschema.Block{},
+				Body: &configschema.Block{},
 			},
 		},
 	}
@@ -3449,7 +3449,7 @@ resource "test_object" "obj" {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_object": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"output": {
 							Type:     cty.String,
@@ -3600,7 +3600,7 @@ resource "test_object" "c" {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_object": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {
 							Type:     cty.String,
@@ -3677,7 +3677,7 @@ resource "test_object" "c" {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_object": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {
 							Type:     cty.String,
@@ -3778,10 +3778,10 @@ resource "test_object" "x" {
 
 	p := &testing_provider.MockProvider{}
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-		Provider: providers.Schema{Block: simpleTestSchema()},
+		Provider: providers.Schema{Body: simpleTestSchema()},
 		ResourceTypes: map[string]providers.Schema{
 			"test_object": providers.Schema{
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"test_string": {
 							Type:     cty.String,
@@ -3841,10 +3841,10 @@ resource "test_object" "x" {
 
 	p := &testing_provider.MockProvider{}
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-		Provider: providers.Schema{Block: simpleTestSchema()},
+		Provider: providers.Schema{Body: simpleTestSchema()},
 		ResourceTypes: map[string]providers.Schema{
 			"test_object": providers.Schema{
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"test_string": {
 							Type:     cty.String,
