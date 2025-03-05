@@ -46,62 +46,67 @@ func buildClient(ctx context.Context, config BackendConfig) (*Client, error) {
 		storageAccountName: config.StorageAccountName,
 	}
 
-	resourceManagerAuth, err := auth.NewAuthorizerFromCredentials(ctx, *config.AuthConfig, config.AuthConfig.Environment.ResourceManager)
-	if err != nil {
-		return nil, fmt.Errorf("unable to build authorizer for Resource Manager API: %+v", err)
-	}
-
-	// When using Azure CLI to auth, the user can leave the "subscription_id" unspecified. In this case the subscription id is inferred from
-	// the Azure CLI default subscription.
-	if config.SubscriptionID == "" {
-		if cachedAuth, ok := resourceManagerAuth.(*auth.CachedAuthorizer); ok {
-			if cliAuth, ok := cachedAuth.Source.(*auth.AzureCliAuthorizer); ok && cliAuth.DefaultSubscriptionID != "" {
-				config.SubscriptionID = cliAuth.DefaultSubscriptionID
-			}
-		}
-	}
-
-	client.storageAccountsClient, err = storageaccounts.NewStorageAccountsClientWithBaseURI(config.AuthConfig.Environment.ResourceManager)
-	if err != nil {
-		return nil, fmt.Errorf("building Storage Accounts client: %+v", err)
-	}
-	client.configureClient(client.storageAccountsClient.Client, resourceManagerAuth)
-
-	// Populating the storage account detail if both subscription id and resource group name are known.
-	// This is used to get the "most" accurate blob endpoint comparing to the naive version.
-	// NOTE: Additional management plane role (i.e. storageAccounts/read) required. If unwanted, leave resource group name unspecified.
-	if config.SubscriptionID != "" && config.ResourceGroupName != "" {
-		storageAccountId := commonids.NewStorageAccountID(config.SubscriptionID, config.ResourceGroupName, client.storageAccountName)
-		resp, err := client.storageAccountsClient.GetProperties(ctx, storageAccountId, storageaccounts.DefaultGetPropertiesOperationOptions())
-		if err != nil {
-			return nil, fmt.Errorf("retrieving %s: %+v", storageAccountId, err)
-		}
-		if resp.Model == nil {
-			return nil, fmt.Errorf("retrieving %s: model was nil", storageAccountId)
-		}
-		client.accountDetail, err = populateAccountDetails(storageAccountId, *resp.Model)
-		if err != nil {
-			return nil, fmt.Errorf("populating details for %s: %+v", storageAccountId, err)
-		}
-	}
-
-	if config.AccessKey != "" {
+	// ARM authN is required only when no access key, sas token or storage AAD auth is used, which is then required to list the access key.
+	// Besides, ARM authN *can* be used for SA opt-in the Azure DNS zone endpoint.
+	var armAuthRequired bool
+	switch {
+	case config.AccessKey != "":
 		client.accessKey = config.AccessKey
-	}
-
-	if config.SasToken != "" {
+	case config.SasToken != "":
 		sasToken := config.SasToken
 		if strings.TrimSpace(sasToken) == "" {
 			return nil, fmt.Errorf("sasToken cannot be empty")
 		}
 		client.sasToken = strings.TrimPrefix(sasToken, "?")
-	}
-
-	if config.UseAzureADAuthentication {
+	case config.UseAzureADAuthentication:
 		var err error
 		client.azureAdStorageAuth, err = auth.NewAuthorizerFromCredentials(ctx, *config.AuthConfig, config.AuthConfig.Environment.Storage)
 		if err != nil {
 			return nil, fmt.Errorf("unable to build authorizer for Storage API: %+v", err)
+		}
+	default:
+		armAuthRequired = true
+	}
+
+	resourceManagerAuth, err := auth.NewAuthorizerFromCredentials(ctx, *config.AuthConfig, config.AuthConfig.Environment.ResourceManager)
+	if err != nil {
+		if armAuthRequired {
+			return nil, fmt.Errorf("unable to build authorizer for Resource Manager API: %+v", err)
+		}
+	} else {
+		// When using Azure CLI to auth, the user can leave the "subscription_id" unspecified. In this case the subscription id is inferred from
+		// the Azure CLI default subscription.
+		if config.SubscriptionID == "" {
+			if cachedAuth, ok := resourceManagerAuth.(*auth.CachedAuthorizer); ok {
+				if cliAuth, ok := cachedAuth.Source.(*auth.AzureCliAuthorizer); ok && cliAuth.DefaultSubscriptionID != "" {
+					config.SubscriptionID = cliAuth.DefaultSubscriptionID
+				}
+			}
+		}
+
+		// Setup the SA client.
+		client.storageAccountsClient, err = storageaccounts.NewStorageAccountsClientWithBaseURI(config.AuthConfig.Environment.ResourceManager)
+		if err != nil {
+			return nil, fmt.Errorf("building Storage Accounts client: %+v", err)
+		}
+		client.configureClient(client.storageAccountsClient.Client, resourceManagerAuth)
+
+		// Populating the storage account detail if both subscription id and resource group name are known.
+		// This is used to get the "most" accurate blob endpoint comparing to the naive version.
+		// NOTE: Additional management plane role (i.e. storageAccounts/read) required. If unwanted, leave resource group name unspecified.
+		if config.SubscriptionID != "" && config.ResourceGroupName != "" {
+			storageAccountId := commonids.NewStorageAccountID(config.SubscriptionID, config.ResourceGroupName, client.storageAccountName)
+			resp, err := client.storageAccountsClient.GetProperties(ctx, storageAccountId, storageaccounts.DefaultGetPropertiesOperationOptions())
+			if err != nil {
+				return nil, fmt.Errorf("retrieving %s: %+v", storageAccountId, err)
+			}
+			if resp.Model == nil {
+				return nil, fmt.Errorf("retrieving %s: model was nil", storageAccountId)
+			}
+			client.accountDetail, err = populateAccountDetails(storageAccountId, *resp.Model)
+			if err != nil {
+				return nil, fmt.Errorf("populating details for %s: %+v", storageAccountId, err)
+			}
 		}
 	}
 
