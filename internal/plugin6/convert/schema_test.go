@@ -627,19 +627,17 @@ func TestConvertProtoSchemaBlocks(t *testing.T) {
 
 func TestProtoToResourceIdentitySchema(t *testing.T) {
 	tests := map[string]struct {
-		Block *proto.ResourceIdentitySchema
-		Want  *configschema.Object
+		Attributes []*proto.ResourceIdentitySchema_IdentityAttribute
+		Want       *configschema.Object
 	}{
 		"simple": {
-			&proto.ResourceIdentitySchema{
-				IdentityAttributes: []*proto.ResourceIdentitySchema_IdentityAttribute{
-					{
-						Name:              "id",
-						Type:              []byte(`"string"`),
-						RequiredForImport: true,
-						OptionalForImport: false,
-						Description:       "Something",
-					},
+			[]*proto.ResourceIdentitySchema_IdentityAttribute{
+				{
+					Name:              "id",
+					Type:              []byte(`"string"`),
+					RequiredForImport: true,
+					OptionalForImport: false,
+					Description:       "Something",
 				},
 			},
 			&configschema.Object{
@@ -657,9 +655,9 @@ func TestProtoToResourceIdentitySchema(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			converted := ProtoToResourceIdentitySchema(tc.Block)
-			if !cmp.Equal(converted.Body, tc.Want, typeComparer, valueComparer, equateEmpty) {
-				t.Fatal(cmp.Diff(converted.Body, tc.Want, typeComparer, valueComparer, equateEmpty))
+			converted := ProtoToIdentitySchema(tc.Attributes)
+			if !cmp.Equal(converted, tc.Want, typeComparer, valueComparer, equateEmpty) {
+				t.Fatal(cmp.Diff(converted, tc.Want, typeComparer, valueComparer, equateEmpty))
 			}
 		})
 	}

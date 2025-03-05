@@ -608,11 +608,11 @@ func (p *provider6) GetResourceIdentitySchemas(_ context.Context, req *tfplugin6
 
 func (p *provider6) UpgradeResourceIdentity(_ context.Context, req *tfplugin6.UpgradeResourceIdentity_Request) (*tfplugin6.UpgradeResourceIdentity_Response, error) {
 	resp := &tfplugin6.UpgradeResourceIdentity_Response{}
-	resourceIdentitySchema, ok := p.identitySchemas.IdentityTypes[req.TypeName]
+	resource, ok := p.schema.ResourceTypes[req.TypeName]
 	if !ok {
 		return nil, fmt.Errorf("resource identity schema not found for type %q", req.TypeName)
 	}
-	ty := resourceIdentitySchema.Body.ImpliedType()
+	ty := resource.Identity.ImpliedType()
 
 	upgradeResp := p.provider.UpgradeResourceIdentity(providers.UpgradeResourceIdentityRequest{
 		TypeName:        req.TypeName,
