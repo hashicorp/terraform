@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: '`terraform test`: Fix crash when a run block attempts to cleanup after a non-applyable plan.'
-time: 2025-02-26T14:09:31.83904+01:00
-custom:
-    Issue: "36582"
