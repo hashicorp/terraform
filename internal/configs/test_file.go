@@ -336,10 +336,10 @@ type TestRunOptions struct {
 type RunBlockBackend struct {
 	Backend *Backend
 
-	// RunName is the name of the run block containing the backend block for this Backend
-	// This is usually used in diagnostics to help avoid duplicate backends for a given internal
-	// state file.
-	RunName string
+	// Run is the TestRun containing the backend block for this Backend
+	// This is used in diagnostics to help avoid duplicate backends for a given internal
+	// state file or duplicated use of the same backend for multiple internal states.
+	Run *TestRun
 }
 
 func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
@@ -396,7 +396,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Multiple backend blocks for internal state file",
-						Detail:   fmt.Sprintf("The run %q already uses an internal state file that's loaded by a backend in the run %q. Please ensure that a backend block is only in the first apply run block for a given internal state file.", run.Name, rb.RunName),
+						Detail:   fmt.Sprintf("The run %q already uses an internal state file that's loaded by a backend in the run %q. Please ensure that a backend block is only in the first apply run block for a given internal state file.", run.Name, rb.Run.Name),
 						Subject:  block.DefRange.Ptr(),
 					})
 					continue
@@ -430,7 +430,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 				// Record the backend block in the test file, under the related state key
 				tf.BackendConfigs[run.StateKey] = RunBlockBackend{
 					Backend: run.Backend,
-					RunName: run.Name,
+					Run:     run,
 				}
 			}
 		case "variables":

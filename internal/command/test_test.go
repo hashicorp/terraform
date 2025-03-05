@@ -2573,32 +2573,32 @@ Failure! 0 passed, 1 failed.
 func TestTest_ReusedBackendConfiguration(t *testing.T) {
 
 	testCases := map[string]struct {
-		dirName        string
-		expectErrRegex string
+		dirName   string
+		expectErr string
 	}{
 		"validation detects when backend config is reused by runs using different user-supplied state key value": {
 			dirName: "reused-backend-config",
-			expectErrRegex: `
+			expectErr: `
 Error: Repeat use of the same backend block
 
-  on main.tftest.hcl line \d+, in run "test_(1|2)":
-  \d+:   backend "local" {
+  on main.tftest.hcl line 12, in run "test_2":
+  12:   backend "local" {
 
-The run "test_(1|2)" contains a backend configuration that's already been used in
-run "test_(1|2)". Sharing the same backend configuration between separate runs
+The run "test_2" contains a backend configuration that's already been used in
+run "test_1". Sharing the same backend configuration between separate runs
 will result in conflicting state updates.
 `,
 		},
 		"validation detects when backend config is reused by runs using different implicit state key (corresponding to root and a child module) ": {
 			dirName: "reused-backend-config-child-modules",
-			expectErrRegex: `
+			expectErr: `
 Error: Repeat use of the same backend block
 
-  on main.tftest.hcl line \d+, in run "test_(1|2)":
-  \d+:   backend "local" {
+  on main.tftest.hcl line 19, in run "test_2":
+  19:   backend "local" {
 
-The run "test_(1|2)" contains a backend configuration that's already been used in
-run "test_(1|2)". Sharing the same backend configuration between separate runs
+The run "test_2" contains a backend configuration that's already been used in
+run "test_1". Sharing the same backend configuration between separate runs
 will result in conflicting state updates.
 `,
 		},
@@ -2656,12 +2656,8 @@ will result in conflicting state updates.
 				t.Errorf("expected status code 1 but got %d", code)
 			}
 
-			expectErrRegex := regexp.MustCompile(tc.expectErrRegex)
-			if !expectErrRegex.MatchString(output.All()) {
-				// t.Errorf("output didn't match the expected regex:\regex:\n%s\nactual:\n%s", tc.expectErrRegex, output.All())
-				if diff := cmp.Diff(output.All(), tc.expectErrRegex); len(diff) > 0 {
-					t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectErrRegex, output.All(), diff)
-				}
+			if diff := cmp.Diff(output.All(), tc.expectErr); len(diff) > 0 {
+				t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectErr, output.All(), diff)
 			}
 
 			if provider.ResourceCount() > 0 {
