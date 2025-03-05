@@ -71,7 +71,7 @@
     ]
   },
   {
-    "title": "Resources",
+    "title": "Create and manage resources",
     "routes": [
       { "title": "Overview", "path": "resources" },
       { "title": "Resource Blocks", "path": "resources/syntax" },
