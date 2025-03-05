@@ -364,8 +364,8 @@ module "child" {
 					Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "child", "main.tf"),
-						Start:    hcl.Pos{Line: 14, Column: 13, Byte: 249},
-						End:      hcl.Pos{Line: 14, Column: 78, Byte: 314},
+						Start:    hcl.Pos{Line: 14, Column: 13, Byte: 245},
+						End:      hcl.Pos{Line: 14, Column: 78, Byte: 310},
 					},
 				})
 			},
@@ -639,8 +639,8 @@ This was checked by the validation rule at %s.`, m.Module.Variables["ephem"].Val
 You can correct this by removing references to ephemeral values, or by carefully using the ephemeralasnull() function if the expression will not reveal the ephemeral data.`,
 					Subject: &hcl.Range{
 						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-						Start:    hcl.Pos{Line: 8, Column: 21, Byte: 144},
-						End:      hcl.Pos{Line: 8, Column: 76, Byte: 199},
+						Start:    hcl.Pos{Line: 8, Column: 21, Byte: 142},
+						End:      hcl.Pos{Line: 8, Column: 76, Byte: 197},
 					},
 				})
 			},
