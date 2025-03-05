@@ -216,6 +216,29 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			p := testProvider("aws")
 			m := testModule(t, "refresh-basic")
+			p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+				ResourceTypes: map[string]*configschema.Block{
+					"aws_instance": {
+						Attributes: map[string]*configschema.Attribute{
+							"id": {
+								Type:     cty.String,
+								Computed: true,
+							},
+							"foo": {
+								Type:     cty.String,
+								Optional: true,
+								Computed: true,
+							},
+						},
+					},
+				},
+				IdentityTypes: map[string]*configschema.Object{
+					"aws_instance": tc.IdentitySchema.Body,
+				},
+				IdentityTypeSchemaVersions: map[string]uint64{
+					"aws_instance": uint64(tc.IdentitySchema.Version),
+				},
+			})
 
 			state := states.NewState()
 			root := state.EnsureModule(addrs.RootModuleInstance)
@@ -244,12 +267,6 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			p.GetResourceIdentitySchemasResponse = &providers.GetResourceIdentitySchemasResponse{
-				IdentityTypes: map[string]providers.IdentitySchema{
-					"aws_instance": tc.IdentitySchema,
-				},
-			}
-			schema.Identity = p.GetResourceIdentitySchemasResponse.IdentityTypes["aws_instance"].Body
 			p.ReadResourceResponse = &providers.ReadResourceResponse{
 				NewState: readState,
 				Identity: tc.IdentityData,
@@ -277,10 +294,6 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 
 			if !p.ReadResourceCalled {
 				t.Fatal("ReadResource should be called")
-			}
-
-			if !p.GetResourceIdentitySchemasCalled {
-				t.Fatal("GetResourceIdentitySchemas should be called")
 			}
 
 			if tc.ExpectUpgradeResourceIdentityCalled && !p.UpgradeResourceIdentityCalled {
@@ -314,6 +327,37 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 func TestContext2Plan_resource_identity_refresh_destroy_deposed(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"foo": {
+						Type:     cty.String,
+						Optional: true,
+						Computed: true,
+					},
+				},
+			},
+		},
+		IdentityTypes: map[string]*configschema.Object{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+		IdentityTypeSchemaVersions: map[string]uint64{
+			"aws_instance": 0,
+		},
+	})
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -342,23 +386,6 @@ func TestContext2Plan_resource_identity_refresh_destroy_deposed(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p.GetResourceIdentitySchemasResponse = &providers.GetResourceIdentitySchemasResponse{
-		IdentityTypes: map[string]providers.IdentitySchema{
-			"aws_instance": {
-				Version: 0,
-				Body: &configschema.Object{
-					Attributes: map[string]*configschema.Attribute{
-						"id": {
-							Type:     cty.String,
-							Required: true,
-						},
-					},
-					Nesting: configschema.NestingSingle,
-				},
-			},
-		},
-	}
-	schema.Identity = p.GetResourceIdentitySchemasResponse.IdentityTypes["aws_instance"].Body
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: readState,
 		Identity: cty.ObjectVal(map[string]cty.Value{
@@ -374,10 +401,6 @@ func TestContext2Plan_resource_identity_refresh_destroy_deposed(t *testing.T) {
 
 	if !p.ReadResourceCalled {
 		t.Fatal("ReadResource should be called")
-	}
-
-	if !p.GetResourceIdentitySchemasCalled {
-		t.Fatal("GetResourceIdentitySchemas should be called")
 	}
 
 	mod := s.PriorState.RootModule()

@@ -124,6 +124,8 @@ type providerSchema struct {
 	ResourceTypes              map[string]*configschema.Block
 	ResourceTypeSchemaVersions map[string]uint64
 	DataSources                map[string]*configschema.Block
+	IdentityTypes              map[string]*configschema.Object
+	IdentityTypeSchemaVersions map[string]uint64
 }
 
 // getProviderSchemaResponseFromProviderSchema is a test helper to convert a
@@ -137,10 +139,18 @@ func getProviderSchemaResponseFromProviderSchema(providerSchema *providerSchema)
 	}
 
 	for name, schema := range providerSchema.ResourceTypes {
-		resp.ResourceTypes[name] = providers.Schema{
+		ps := providers.Schema{
 			Body:    schema,
 			Version: int64(providerSchema.ResourceTypeSchemaVersions[name]),
 		}
+
+		id, ok := providerSchema.IdentityTypes[name]
+		if ok {
+			ps.Identity = id
+			ps.IdentityVersion = int64(providerSchema.IdentityTypeSchemaVersions[name])
+		}
+
+		resp.ResourceTypes[name] = ps
 	}
 
 	for name, schema := range providerSchema.DataSources {
