@@ -35,6 +35,13 @@ func mockProviderClient(t *testing.T) *mockproto.MockProviderClient {
 		gomock.Any(),
 	).Return(providerProtoSchema(), nil)
 
+	// GetResourceIdentitySchemas is called as part of GetSchema
+	client.EXPECT().GetResourceIdentitySchemas(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(providerResourceIdentitySchemas(), nil)
+
 	return client
 }
 
@@ -110,6 +117,22 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 		},
 		ServerCapabilities: &proto.ServerCapabilities{
 			GetProviderSchemaOptional: true,
+		},
+	}
+}
+
+func providerResourceIdentitySchemas() *proto.GetResourceIdentitySchemas_Response {
+	return &proto.GetResourceIdentitySchemas_Response{
+		IdentitySchemas: map[string]*proto.ResourceIdentitySchema{
+			"resource": {
+				Version: 1,
+				IdentityAttributes: []*proto.ResourceIdentitySchema_IdentityAttribute{
+					{
+						Name:              "attr",
+						RequiredForImport: true,
+					},
+				},
+			},
 		},
 	}
 }
