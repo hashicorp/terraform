@@ -137,6 +137,30 @@ func (cp *Plugins) ProviderSchema(addr addrs.Provider) (providers.ProviderSchema
 		if r.Version < 0 {
 			return resp, fmt.Errorf("provider %s has invalid negative schema version for managed resource type %q, which is a bug in the provider", addr, t)
 		}
+
+		// Validate resource identity schema if the resource has one
+		if r.Identity != nil {
+			if err := r.Identity.InternalValidate(); err != nil {
+				return resp, fmt.Errorf("provider %s has invalid identity schema for managed resource type %q, which is a bug in the provider: %q", addr, t, err)
+			}
+			if r.IdentityVersion < 0 {
+				return resp, fmt.Errorf("provider %s has invalid negative identity schema version for managed resource type %q, which is a bug in the provider", addr, t)
+			}
+
+			for attrName, attrTy := range r.Identity.ImpliedType().AttributeTypes() {
+				if attrTy.MapElementType() != nil {
+					return resp, fmt.Errorf("provider %s has invalid schema for managed resource type %q, attribute %q is a map, which is not allowed in identity schemas", addr, t, attrName)
+				}
+
+				if attrTy.SetElementType() != nil {
+					return resp, fmt.Errorf("provider %s has invalid schema for managed resource type %q, attribute %q is a set, which is not allowed in identity schemas", addr, t, attrName)
+				}
+
+				if attrTy.IsObjectType() {
+					return resp, fmt.Errorf("provider %s has invalid schema for managed resource type %q, attribute %q is an object, which is not allowed in identity schemas", addr, t, attrName)
+				}
+			}
+		}
 	}
 
 	for t, d := range resp.DataSources {
@@ -179,61 +203,6 @@ func (cp *Plugins) ProviderSchema(addr addrs.Provider) (providers.ProviderSchema
 			}
 			if prevIdx, exists := seenParams[p.Name]; exists {
 				return resp, fmt.Errorf("provider %s function %q reuses name %q for both parameter %d and its variadic parameter", addr, n, p.Name, prevIdx)
-			}
-		}
-	}
-
-	return resp, nil
-}
-
-func (cp *Plugins) ResourceIdentitySchemas(addr addrs.Provider) (providers.ResourceIdentitySchemas, error) {
-	// Check the global schema cache first.
-	// This cache is only written by the provider client, and transparently
-	// used by GetProviderSchema, but we check it here because at this point we
-	// may be able to avoid spinning up the provider instance at all.
-	// We skip this if we have preloaded schemas because that suggests that
-	// our caller is not Terraform CLI and therefore it's probably inappropriate
-	// to assume that provider schemas are unique process-wide.
-	schemas, ok := providers.ResourceIdentitySchemasCache.Get(addr)
-	if ok {
-		log.Printf("[TRACE] terraform.contextPlugins: Resource identity schemas for provider %q is in the global cache", addr)
-		return schemas, nil
-	}
-
-	log.Printf("[TRACE] terraform.contextPlugins: Initializing provider %q to read its resource identity schemas", addr)
-	provider, err := cp.NewProviderInstance(addr)
-	if err != nil {
-		// A provider might have provided preloaded resource schemas but is missing the identity schemas.
-		// We will return an empty set of schemas in this case.
-		log.Printf("[TRACE] failed to instantiate provider %q to obtain resource identity schemas: %s", addr, err)
-		return providers.ResourceIdentitySchemas{}, nil
-	}
-	defer provider.Close()
-
-	resp := provider.GetResourceIdentitySchemas()
-	if resp.Diagnostics.HasErrors() {
-		return resp, fmt.Errorf("failed to retrieve resource identity schemas from provider %q: %s", addr, resp.Diagnostics.Err())
-	}
-
-	for t, r := range resp.IdentityTypes {
-		if err := r.Body.InternalValidate(); err != nil {
-			return resp, fmt.Errorf("provider %s has invalid identity schema for managed resource type %q, which is a bug in the provider: %q", addr, t, err)
-		}
-		if r.Version < 0 {
-			return resp, fmt.Errorf("provider %s has invalid negative identity schema version for managed resource type %q, which is a bug in the provider", addr, t)
-		}
-
-		for attrName, attrTy := range r.Body.ImpliedType().AttributeTypes() {
-			if attrTy.MapElementType() != nil {
-				return resp, fmt.Errorf("provider %s has invalid schema for managed resource type %q, attribute %q is a map, which is not allowed in identity schemas", addr, t, attrName)
-			}
-
-			if attrTy.SetElementType() != nil {
-				return resp, fmt.Errorf("provider %s has invalid schema for managed resource type %q, attribute %q is a set, which is not allowed in identity schemas", addr, t, attrName)
-			}
-
-			if attrTy.IsObjectType() {
-				return resp, fmt.Errorf("provider %s has invalid schema for managed resource type %q, attribute %q is an object, which is not allowed in identity schemas", addr, t, attrName)
 			}
 		}
 	}

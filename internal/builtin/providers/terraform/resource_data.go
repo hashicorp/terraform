@@ -25,6 +25,7 @@ func dataStoreResourceSchema() providers.Schema {
 				"id":               {Type: cty.String, Computed: true},
 			},
 		},
+		Identity: dataStoreResourceIdentitySchema().Body,
 	}
 }
 

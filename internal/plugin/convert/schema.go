@@ -90,11 +90,18 @@ func protoSchemaNestedBlock(name string, b *configschema.NestedBlock) *proto.Sch
 }
 
 // ProtoToProviderSchema takes a proto.Schema and converts it to a providers.Schema.
-func ProtoToProviderSchema(s *proto.Schema) providers.Schema {
-	return providers.Schema{
+func ProtoToProviderSchema(s *proto.Schema, id *proto.ResourceIdentitySchema) providers.Schema {
+	schema := providers.Schema{
 		Version: s.Version,
 		Body:    ProtoToConfigSchema(s.Block),
 	}
+
+	if id != nil {
+		schema.IdentityVersion = id.Version
+		schema.Identity = ProtoToIdentitySchema(id.IdentityAttributes)
+	}
+
+	return schema
 }
 
 // ProtoToConfigSchema takes the GetSchcema_Block from a grpc response and converts it
@@ -189,16 +196,13 @@ func sortedKeys(m interface{}) []string {
 	return keys
 }
 
-func ProtoToResourceIdentitySchema(s *proto.ResourceIdentitySchema) providers.IdentitySchema {
-	schema := providers.IdentitySchema{
-		Version: s.Version,
-		Body: &configschema.Object{
-			Attributes: make(map[string]*configschema.Attribute),
-			Nesting:    configschema.NestingSingle,
-		},
+func ProtoToIdentitySchema(attributes []*proto.ResourceIdentitySchema_IdentityAttribute) *configschema.Object {
+	obj := &configschema.Object{
+		Attributes: make(map[string]*configschema.Attribute),
+		Nesting:    configschema.NestingSingle,
 	}
 
-	for _, a := range s.IdentityAttributes {
+	for _, a := range attributes {
 		attr := &configschema.Attribute{
 			Description: a.Description,
 			Required:    a.RequiredForImport,
@@ -211,10 +215,10 @@ func ProtoToResourceIdentitySchema(s *proto.ResourceIdentitySchema) providers.Id
 			}
 		}
 
-		schema.Body.Attributes[a.Name] = attr
+		obj.Attributes[a.Name] = attr
 	}
 
-	return schema
+	return obj
 }
 
 func ResourceIdentitySchemaToProto(b providers.IdentitySchema) *proto.ResourceIdentitySchema {

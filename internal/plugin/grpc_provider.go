@@ -71,9 +71,8 @@ type GRPCProvider struct {
 
 	// schema stores the schema for this provider. This is used to properly
 	// serialize the requests for schemas.
-	mu            sync.Mutex
-	schema        providers.GetProviderSchemaResponse
-	identityTypes map[string]providers.IdentitySchema
+	mu     sync.Mutex
+	schema providers.GetProviderSchemaResponse
 }
 
 func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
@@ -127,23 +126,33 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		return resp
 	}
 
-	resp.Provider = convert.ProtoToProviderSchema(protoResp.Provider)
+	identResp, err := p.client.GetResourceIdentitySchemas(p.ctx, new(proto.GetResourceIdentitySchemas_Request))
+	if err != nil {
+		logger.Debug("Error getting resource identity schemas")
+		// Create an empty map for identity schemas
+		identResp = &proto.GetResourceIdentitySchemas_Response{
+			IdentitySchemas: map[string]*proto.ResourceIdentitySchema{},
+		}
+	}
+
+	resp.Provider = convert.ProtoToProviderSchema(protoResp.Provider, nil)
 	if protoResp.ProviderMeta == nil {
 		logger.Debug("No provider meta schema returned")
 	} else {
-		resp.ProviderMeta = convert.ProtoToProviderSchema(protoResp.ProviderMeta)
+		resp.ProviderMeta = convert.ProtoToProviderSchema(protoResp.ProviderMeta, nil)
 	}
 
 	for name, res := range protoResp.ResourceSchemas {
-		resp.ResourceTypes[name] = convert.ProtoToProviderSchema(res)
+		id := identResp.IdentitySchemas[name] // We're fine if the id is not found
+		resp.ResourceTypes[name] = convert.ProtoToProviderSchema(res, id)
 	}
 
 	for name, data := range protoResp.DataSourceSchemas {
-		resp.DataSources[name] = convert.ProtoToProviderSchema(data)
+		resp.DataSources[name] = convert.ProtoToProviderSchema(data, nil)
 	}
 
 	for name, ephem := range protoResp.EphemeralResourceSchemas {
-		resp.EphemeralResourceTypes[name] = convert.ProtoToProviderSchema(ephem)
+		resp.EphemeralResourceTypes[name] = convert.ProtoToProviderSchema(ephem, nil)
 	}
 
 	if decls, err := convert.FunctionDeclsFromProto(protoResp.Functions); err == nil {
@@ -175,23 +184,6 @@ func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentit
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// check the global cache if we can
-	if !p.Addr.IsZero() {
-		if resp, ok := providers.ResourceIdentitySchemasCache.Get(p.Addr); ok {
-			logger.Trace("GRPCProvider: returning cached resource identity schemas", p.Addr.String())
-			return resp
-		}
-	}
-	logger.Trace("GRPCProvider: GetResourceIdentitySchemas")
-
-	// If the local cache is non-zero, we know this instance has called
-	// GetResourceIdentitySchema at least once and we can return early.
-	if p.identityTypes != nil {
-		return providers.GetResourceIdentitySchemasResponse{
-			IdentityTypes: p.identityTypes,
-		}
-	}
-
 	var resp providers.GetResourceIdentitySchemasResponse
 
 	resp.IdentityTypes = make(map[string]providers.IdentitySchema)
@@ -209,15 +201,12 @@ func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentit
 	}
 
 	for name, res := range protoResp.IdentitySchemas {
-		resp.IdentityTypes[name] = convert.ProtoToResourceIdentitySchema(res)
+		resp.IdentityTypes[name] = providers.IdentitySchema{
+			Version: res.Version,
+			Body:    convert.ProtoToIdentitySchema(res.IdentityAttributes),
+		}
 	}
 
-	// set the global cache if we can
-	if !p.Addr.IsZero() {
-		providers.ResourceIdentitySchemasCache.Set(p.Addr, resp)
-	}
-
-	p.identityTypes = resp.IdentityTypes
 	return resp
 }
 
@@ -381,13 +370,13 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 func (p *GRPCProvider) UpgradeResourceIdentity(r providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
 	logger.Trace("GRPCProvider: UpgradeResourceIdentity")
 
-	schemas := p.GetResourceIdentitySchemas()
-	if schemas.Diagnostics.HasErrors() {
-		resp.Diagnostics = schemas.Diagnostics
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
 		return resp
 	}
 
-	resSchema, ok := schemas.IdentityTypes[r.TypeName]
+	resSchema, ok := schema.ResourceTypes[r.TypeName]
 	if !ok {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown resource identity type %q", r.TypeName))
 		return resp
@@ -406,7 +395,7 @@ func (p *GRPCProvider) UpgradeResourceIdentity(r providers.UpgradeResourceIdenti
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	ty := resSchema.Body.ImpliedType()
+	ty := resSchema.Identity.ImpliedType()
 	resp.UpgradedIdentity = cty.NullVal(ty)
 	if protoResp.UpgradedIdentity == nil {
 		return resp

@@ -146,7 +146,7 @@ func (m *Mock) UpgradeResourceIdentity(request UpgradeResourceIdentityRequest) (
 	// We can't do this from a mocked provider, so we just return whatever identity
 	// is in the request back unchanged.
 
-	schema := m.GetResourceIdentitySchemas()
+	schema := m.GetProviderSchema()
 	response.Diagnostics = response.Diagnostics.Append(schema.Diagnostics)
 	if schema.Diagnostics.HasErrors() {
 		// We couldn't retrieve the schema for some reason, so the mock
@@ -154,14 +154,14 @@ func (m *Mock) UpgradeResourceIdentity(request UpgradeResourceIdentityRequest) (
 		return response
 	}
 
-	resource, exists := schema.IdentityTypes[request.TypeName]
+	resource, exists := schema.ResourceTypes[request.TypeName]
 	if !exists {
 		// This means something has gone wrong much earlier, we should have
 		// failed a validation somewhere if a resource type doesn't exist.
 		panic(fmt.Errorf("failed to retrieve identity schema for resource %s", request.TypeName))
 	}
 
-	schemaType := resource.Body.ImpliedType()
+	schemaType := resource.Identity.ImpliedType()
 	value, err := ctyjson.Unmarshal(request.RawIdentityJSON, schemaType)
 
 	if err != nil {

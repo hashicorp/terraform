@@ -16,6 +16,9 @@ type Interface interface {
 	// GetSchema returns the complete schema for the provider.
 	GetProviderSchema() GetProviderSchemaResponse
 
+	// GetResourceIdentitySchemas returns the identity schemas for all managed resources
+	// for the provider. Usually you don't need to call this method directly as GetProviderSchema
+	// will merge the identity schemas into the provider schema.
 	GetResourceIdentitySchemas() GetResourceIdentitySchemasResponse
 
 	// ValidateProviderConfig allows the provider to validate the configuration.
