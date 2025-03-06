@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -57,6 +58,11 @@ type TestFile struct {
 	// If empty, tests should use the default providers for the module under
 	// test.
 	Providers map[string]*Provider
+
+	// BackendConfigs is a map of state keys to structs that contain backend configuration.
+	// This should be used to set the state for a given state key at the start
+	// of a test command.
+	BackendConfigs map[string]RunBlockBackend
 
 	// Overrides contains any specific overrides that should be applied for this
 	// test outside any mock providers.
@@ -155,6 +161,8 @@ type TestRun struct {
 	// This, in combination with the state key, will determine if the test run
 	// will be executed in parallel with other test runs.
 	Parallel bool
+
+	Backend *Backend
 
 	NameDeclRange      hcl.Range
 	VariablesDeclRange hcl.Range
@@ -324,11 +332,22 @@ type TestRunOptions struct {
 	DeclRange hcl.Range
 }
 
+// RunBlockBackend records a backend block and which run block it was parsed from
+type RunBlockBackend struct {
+	Backend *Backend
+
+	// Run is the TestRun containing the backend block for this Backend
+	// This is used in diagnostics to help avoid duplicate backends for a given internal
+	// state file or duplicated use of the same backend for multiple internal states.
+	Run *TestRun
+}
+
 func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	tf := &TestFile{
-		Providers: make(map[string]*Provider),
-		Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
+		Providers:      make(map[string]*Provider),
+		BackendConfigs: make(map[string]RunBlockBackend),
+		Overrides:      addrs.MakeMap[addrs.Targetable, *Override](),
 	}
 
 	// we need to retrieve the file config block first, because the run blocks
@@ -370,6 +389,50 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 			}
 			runBlockNames[run.Name] = run.DeclRange
 
+			if run.Backend != nil {
+
+				if rb, exists := tf.BackendConfigs[run.StateKey]; exists {
+					// We've encountered >1 backend blocks for a given internal state
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Multiple backend blocks for internal state file",
+						Detail:   fmt.Sprintf("The run %q already uses an internal state file that's loaded by a backend in the run %q. Please ensure that a backend block is only in the first apply run block for a given internal state file.", run.Name, rb.Run.Name),
+						Subject:  block.DefRange.Ptr(),
+					})
+					continue
+				}
+
+				// Check if we have already encountered an apply command for this internal state.
+				if len(tf.Runs) > 1 {
+					var previousApplyRun *TestRun
+					lastIndex := len(tf.Runs) - 1 // avoid comparing the current run block to itself
+					for _, val := range tf.Runs[0:lastIndex] {
+						if val.StateKey != run.StateKey {
+							continue
+						}
+
+						if val.Command == ApplyTestCommand {
+							previousApplyRun = val
+							break
+						}
+					}
+					if previousApplyRun != nil {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid backend block",
+							Detail:   fmt.Sprintf("The run %q cannot load in state using a backend block, because internal state has already been created by an apply command in run %q. Backend blocks can only be present in the first apply command for a given internal state.", run.Name, previousApplyRun.Name),
+							Subject:  block.DefRange.Ptr(),
+						})
+						continue
+					}
+				}
+
+				// Record the backend block in the test file, under the related state key
+				tf.BackendConfigs[run.StateKey] = RunBlockBackend{
+					Backend: run.Backend,
+					Run:     run,
+				}
+			}
 		case "variables":
 			if tf.Variables != nil {
 				diags = append(diags, &hcl.Diagnostic{
@@ -539,6 +602,7 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 		})
 	}
 
+	var backendRange *hcl.Range // Stored for validation once all blocks/attrs processed
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "assert":
@@ -648,6 +712,35 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 				}
 				r.Overrides.Put(subject, override)
 			}
+		case "backend":
+			backend, backedDiags := decodeBackendBlock(block)
+			diags = append(diags, backedDiags...)
+
+			if backend.Type == "remote" {
+				// Enhanced backends are not in use
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Only state storage backends can be used in a run",
+					Detail:   fmt.Sprintf("The \"remote\" backend type cannot be used in the backend block in run %q at %s.", r.Name, block.DefRange),
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue
+			}
+
+			if r.Backend != nil {
+				// We've already encountered a backend for this run block
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Multiple backend blocks within a run",
+					Detail:   fmt.Sprintf("A backend block has already been defined inside the run %q at %s.", r.Name, backendRange),
+					Subject:  backendRange.Ptr(),
+				})
+				continue
+			}
+			r.Backend = backend
+
+			// More backend validation is done later, once all blocks/attrs processed.
+			backendRange = &block.DefRange
 		}
 	}
 
@@ -701,10 +794,32 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.StateKey)
 		diags = append(diags, rawDiags...)
 	}
+	// If there's no user-supplied state_key value, set it based on config
+	// under test.
+	if r.StateKey == "" {
+		if r.Module != nil {
+			// If the run is using an alternate module under test, the source of
+			// that module is returned as the state key.
+			r.StateKey = r.Module.Source.String()
+		}
+		// Otherwise, we leave r.StateKey as an empty string. This denotes that the
+		// run is using the root module under test.
+	}
 
 	if attr, exists := content.Attributes["parallel"]; exists {
 		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Parallel)
 		diags = append(diags, rawDiags...)
+	}
+
+	if r.Command != ApplyTestCommand && r.Backend != nil {
+		// Backend blocks must be used in the first _apply_ run block for a given internal state file.
+		// So, they cannot be present in a plan run block
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid backend block",
+			Detail:   "A backend block can only be used in the first apply run block for a given internal state file. It cannot be included in a block to run a plan command.",
+			Subject:  backendRange.Ptr(),
+		})
 	}
 
 	return &r, diags
@@ -938,6 +1053,10 @@ var testRunBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Type: "override_module",
+		},
+		{
+			Type:       "backend",
+			LabelNames: []string{"name"},
 		},
 	},
 }

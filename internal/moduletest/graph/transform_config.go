@@ -45,7 +45,7 @@ func (t *TestStateTransformer) Transform(g *terraform.Graph) error {
 	rootConfigNode := t.addRootConfigNode(g, statesMap)
 
 	for node := range dag.SelectSeq(g.VerticesSeq(), &NodeTestRun{}) {
-		key := node.run.GetStateKey()
+		key := node.run.Config.StateKey
 		if _, exists := statesMap[key]; !exists {
 			state := &TestFileState{
 				File:  t.File,

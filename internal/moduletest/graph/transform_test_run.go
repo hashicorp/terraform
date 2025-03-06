@@ -127,7 +127,7 @@ func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*No
 func (t *TestRunTransformer) connectSameStateRuns(g *terraform.Graph, nodes []*NodeTestRun) {
 	stateRuns := make(map[string][]*NodeTestRun)
 	for _, node := range nodes {
-		key := node.run.GetStateKey()
+		key := node.run.Config.StateKey
 		stateRuns[key] = append(stateRuns[key], node)
 	}
 	for _, runs := range stateRuns {

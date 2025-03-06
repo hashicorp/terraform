@@ -109,7 +109,7 @@ func (n *NodeTestRun) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 func (n *NodeTestRun) execute(ctx *EvalContext, waiter *operationWaiter) {
 	file, run := n.File(), n.run
 	ctx.Renderer().Run(run, file, moduletest.Starting, 0)
-	if run.Config.ConfigUnderTest != nil && run.GetStateKey() == moduletest.MainStateIdentifier {
+	if run.Config.ConfigUnderTest != nil && run.Config.StateKey == moduletest.MainStateIdentifier {
 		// This is bad, and should not happen because the state key is derived from the custom module source.
 		panic(fmt.Sprintf("TestFileRunner: custom module %s has the same key as main state", file.Name))
 	}
