@@ -50,13 +50,13 @@ func deprecatedAssumeRoleSchema() *schema.Schema {
 					Type:        schema.TypeString,
 					Required:    true,
 					Description: "The ARN of a RAM role to assume prior to making API calls.",
-					DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_ARN", ""),
+					DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ALICLOUD_ASSUME_ROLE_ARN", "ALIBABA_CLOUD_ROLE_ARN"}, ""),
 				},
 				"session_name": {
 					Type:        schema.TypeString,
 					Optional:    true,
 					Description: "The session name to use when assuming the role.",
-					DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_SESSION_NAME", ""),
+					DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ALICLOUD_ASSUME_ROLE_SESSION_NAME", "ALIBABA_CLOUD_ROLE_SESSION_NAME"}, ""),
 				},
 				"policy": {
 					Type:        schema.TypeString,
@@ -95,27 +95,27 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Alibaba Cloud Access Key ID",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ACCESS_KEY", os.Getenv("ALICLOUD_ACCESS_KEY_ID")),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ALICLOUD_ACCESS_KEY", "ALIBABA_CLOUD_ACCESS_KEY_ID", "ALICLOUD_ACCESS_KEY_ID"}, ""),
 			},
 
 			"secret_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Alibaba Cloud Access Secret Key",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_SECRET_KEY", os.Getenv("ALICLOUD_ACCESS_KEY_SECRET")),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ALICLOUD_SECRET_KEY", "ALIBABA_CLOUD_ACCESS_KEY_SECRET", "ALICLOUD_ACCESS_KEY_SECRET"}, ""),
 			},
 
 			"security_token": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Alibaba Cloud Security Token",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_SECURITY_TOKEN", ""),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ALICLOUD_SECURITY_TOKEN", "ALIBABA_CLOUD_SECURITY_TOKEN"}, ""),
 			},
 
 			"ecs_role_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ECS_ROLE_NAME", os.Getenv("ALICLOUD_ECS_ROLE_NAME")),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ALICLOUD_ECS_ROLE_NAME", "ALIBABA_CLOUD_ECS_METADATA"}, ""),
 				Description: "The RAM Role Name attached on a ECS instance for API operations. You can retrieve this from the 'Access Control' section of the Alibaba Cloud console.",
 			},
 
@@ -123,25 +123,25 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The region of the OSS bucket.",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_REGION", os.Getenv("ALICLOUD_DEFAULT_REGION")),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ALICLOUD_REGION", "ALIBABA_CLOUD_REGION", "ALICLOUD_DEFAULT_REGION"}, ""),
 			},
 			"sts_endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A custom endpoint for the STS API",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_STS_ENDPOINT", ""),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ALICLOUD_STS_ENDPOINT", "ALIBABA_CLOUD_STS_ENDPOINT"}, ""),
 			},
 			"tablestore_endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A custom endpoint for the TableStore API",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_TABLESTORE_ENDPOINT", ""),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ALICLOUD_TABLESTORE_ENDPOINT", "ALIBABA_CLOUD_TABLESTORE_ENDPOINT"}, ""),
 			},
 			"endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A custom endpoint for the OSS API",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_OSS_ENDPOINT", os.Getenv("OSS_ENDPOINT")),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ALICLOUD_OSS_ENDPOINT", "ALIBABA_CLOUD_OSS_ENDPOINT", "OSS_ENDPOINT"}, ""),
 			},
 
 			"bucket": {
@@ -217,27 +217,27 @@ func New() backend.Backend {
 			"shared_credentials_file": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_SHARED_CREDENTIALS_FILE", ""),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ALICLOUD_SHARED_CREDENTIALS_FILE", "ALIBABA_CLOUD_CREDENTIALS_FILE"}, ""),
 				Description: "This is the path to the shared credentials file. If this is not set and a profile is specified, `~/.aliyun/config.json` will be used.",
 			},
 			"profile": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "This is the Alibaba Cloud profile name as set in the shared credentials file. It can also be sourced from the `ALICLOUD_PROFILE` environment variable.",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_PROFILE", ""),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ALICLOUD_PROFILE", "ALIBABA_CLOUD_PROFILE"}, ""),
 			},
 			"assume_role": deprecatedAssumeRoleSchema(),
 			"assume_role_role_arn": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The ARN of a RAM role to assume prior to making API calls.",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_ARN", ""),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ALICLOUD_ASSUME_ROLE_ARN", "ALIBABA_CLOUD_ROLE_ARN"}, ""),
 			},
 			"assume_role_session_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The session name to use when assuming the role.",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_SESSION_NAME", ""),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ALICLOUD_ASSUME_ROLE_SESSION_NAME", "ALIBABA_CLOUD_ROLE_SESSION_NAME"}, ""),
 			},
 			"assume_role_policy": {
 				Type:        schema.TypeString,
@@ -301,24 +301,26 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.serverSideEncryption = d.Get("encrypt").(bool)
 	b.acl = d.Get("acl").(string)
 
-	var getBackendConfig = func(str string, key string) string {
-		if str == "" {
-			value, err := getConfigFromProfile(d, key)
-			if err == nil && value != nil {
-				str = value.(string)
+	var getBackendConfig = func(schemaKey string, profileKey string) string {
+		if schemaKey != "" {
+			if v, ok := d.GetOk(schemaKey); ok && v != nil && v.(string) != "" {
+				return v.(string)
 			}
 		}
-		return str
+		if v, err := getConfigFromProfile(d, profileKey); err == nil && v != nil {
+			return v.(string)
+		}
+		return ""
 	}
 
-	accessKey := getBackendConfig(d.Get("access_key").(string), "access_key_id")
-	secretKey := getBackendConfig(d.Get("secret_key").(string), "access_key_secret")
-	securityToken := getBackendConfig(d.Get("security_token").(string), "sts_token")
-	region := getBackendConfig(d.Get("region").(string), "region_id")
+	accessKey := getBackendConfig("access_key", "access_key_id")
+	secretKey := getBackendConfig("secret_key", "access_key_secret")
+	region := getBackendConfig("region", "region_id")
+	securityToken := getBackendConfig("security_token", "sts_token")
 
 	stsEndpoint := d.Get("sts_endpoint").(string)
 	endpoint := d.Get("endpoint").(string)
-	schma := "https"
+	protocol := "https"
 
 	roleArn := getBackendConfig("", "ram_role_arn")
 	sessionName := getBackendConfig("", "ram_session_name")
@@ -370,7 +372,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	if accessKey == "" {
-		ecsRoleName := getBackendConfig(d.Get("ecs_role_name").(string), "ram_role_name")
+		ecsRoleName := getBackendConfig("ecs_role_name", "ram_role_name")
 		subAccessKeyId, subAccessKeySecret, subSecurityToken, err := getAuthCredentialByEcsRoleName(ecsRoleName)
 		if err != nil {
 			return err
@@ -403,7 +405,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		}
 	}
 	if !strings.HasPrefix(endpoint, "http") {
-		endpoint = fmt.Sprintf("%s://%s", schma, endpoint)
+		endpoint = fmt.Sprintf("%s://%s", protocol, endpoint)
 	}
 	log.Printf("[DEBUG] Instantiate OSS client using endpoint: %#v", endpoint)
 	var options []oss.ClientOption
@@ -423,7 +425,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	otsInstanceName := d.Get("tablestore_instance_name").(string)
 	if otsEndpoint != "" {
 		if !strings.HasPrefix(otsEndpoint, "http") {
-			otsEndpoint = fmt.Sprintf("%s://%s", schma, otsEndpoint)
+			otsEndpoint = fmt.Sprintf("%s://%s", protocol, otsEndpoint)
 		}
 		b.otsEndpoint = otsEndpoint
 		if otsInstanceName == "" {
@@ -563,9 +565,13 @@ func getConfigFromProfile(d *schema.ResourceData, ProfileKey string) (interface{
 		}
 		current := d.Get("profile").(string)
 		// Set CredsFilename, expanding home directory
-		profilePath, err := homedir.Expand(d.Get("shared_credentials_file").(string))
-		if err != nil {
-			return nil, err
+		var profilePath string
+		if v, ok := d.GetOk("shared_credentials_file"); ok {
+			path, err := homedir.Expand(v.(string))
+			if err != nil {
+				return nil, err
+			}
+			profilePath = path
 		}
 		if profilePath == "" {
 			profilePath = fmt.Sprintf("%s/.aliyun/config.json", os.Getenv("HOME"))
@@ -574,7 +580,7 @@ func getConfigFromProfile(d *schema.ResourceData, ProfileKey string) (interface{
 			}
 		}
 		providerConfig = make(map[string]interface{})
-		_, err = os.Stat(profilePath)
+		_, err := os.Stat(profilePath)
 		if !os.IsNotExist(err) {
 			data, err := ioutil.ReadFile(profilePath)
 			if err != nil {

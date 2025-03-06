@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'backend/oss: Supports more standard environment variables to keep same with provider setting'
+time: 2025-03-03T17:18:38.679213+08:00
+custom:
+    Issue: "36581"
