@@ -180,6 +180,7 @@ func (os *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 		decodeValueCache:      os.decodeValueCache,
 		IdentityJSON:          identityJSON,
 		IdentitySchemaVersion: os.IdentitySchemaVersion,
+		decodeIdentityCache:   os.decodeIdentityCache,
 	}
 }
 

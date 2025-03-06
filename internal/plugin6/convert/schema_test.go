@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/providers"
 	proto "github.com/hashicorp/terraform/internal/tfplugin6"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -658,6 +659,55 @@ func TestProtoToResourceIdentitySchema(t *testing.T) {
 			converted := ProtoToIdentitySchema(tc.Attributes)
 			if !cmp.Equal(converted, tc.Want, typeComparer, valueComparer, equateEmpty) {
 				t.Fatal(cmp.Diff(converted, tc.Want, typeComparer, valueComparer, equateEmpty))
+			}
+		})
+	}
+}
+
+func TestResourceIdentitySchemaToProto(t *testing.T) {
+	tests := map[string]struct {
+		Want   *proto.ResourceIdentitySchema
+		Schema providers.IdentitySchema
+	}{
+		"attributes": {
+			&proto.ResourceIdentitySchema{
+				Version: 1,
+				IdentityAttributes: []*proto.ResourceIdentitySchema_IdentityAttribute{
+					{
+						Name:              "optional",
+						Type:              []byte(`"string"`),
+						OptionalForImport: true,
+					},
+					{
+						Name:              "required",
+						Type:              []byte(`"number"`),
+						RequiredForImport: true,
+					},
+				},
+			},
+			providers.IdentitySchema{
+				Version: 1,
+				Body: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"optional": {
+							Type:     cty.String,
+							Optional: true,
+						},
+						"required": {
+							Type:     cty.Number,
+							Required: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			converted := ResourceIdentitySchemaToProto(tc.Schema)
+			if !cmp.Equal(converted, tc.Want, typeComparer, equateEmpty, ignoreUnexported) {
+				t.Fatal(cmp.Diff(converted, tc.Want, typeComparer, equateEmpty, ignoreUnexported))
 			}
 		})
 	}
