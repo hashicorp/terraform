@@ -136,6 +136,7 @@ func providerResourceIdentitySchemas() *proto.GetResourceIdentitySchemas_Respons
 				IdentityAttributes: []*proto.ResourceIdentitySchema_IdentityAttribute{
 					{
 						Name:              "attr",
+						Type:              []byte(`"string"`),
 						RequiredForImport: true,
 					},
 				},
@@ -224,6 +225,50 @@ func TestGRPCProvider_GetSchema_ResponseErrorDiagnostic(t *testing.T) {
 	resp := p.GetProviderSchema()
 
 	checkDiagsHasError(t, resp.Diagnostics)
+}
+
+func TestGRPCProvider_GetSchema_IdentityError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mockproto.NewMockProviderClient(ctrl)
+
+	client.EXPECT().GetProviderSchema(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(providerProtoSchema(), nil)
+
+	client.EXPECT().GetResourceIdentitySchemas(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.GetResourceIdentitySchemas_Response{}, fmt.Errorf("test error"))
+
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	resp := p.GetProviderSchema()
+
+	checkDiags(t, resp.Diagnostics)
+}
+
+func TestGRPCProvider_GetResourceIdentitySchemas(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mockproto.NewMockProviderClient(ctrl)
+
+	client.EXPECT().GetResourceIdentitySchemas(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(providerResourceIdentitySchemas(), nil)
+
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	resp := p.GetResourceIdentitySchemas()
+
+	checkDiags(t, resp.Diagnostics)
 }
 
 func TestGRPCProvider_PrepareProviderConfig(t *testing.T) {
@@ -339,6 +384,39 @@ func TestGRPCProvider_UpgradeResourceStateJSON(t *testing.T) {
 
 	if !cmp.Equal(expected, resp.UpgradedState, typeComparer, valueComparer, equateEmpty) {
 		t.Fatal(cmp.Diff(expected, resp.UpgradedState, typeComparer, valueComparer, equateEmpty))
+	}
+}
+
+func TestGRPCProvider_UpgradeResourceIdentity(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	client.EXPECT().UpgradeResourceIdentity(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.UpgradeResourceIdentity_Response{
+		UpgradedIdentity: &proto.ResourceIdentityData{
+			IdentityData: &proto.DynamicValue{
+				Json: []byte(`{"attr":"bar"}`),
+			},
+		},
+	}, nil)
+
+	resp := p.UpgradeResourceIdentity(providers.UpgradeResourceIdentityRequest{
+		TypeName:        "resource",
+		Version:         0,
+		RawIdentityJSON: []byte(`{"old_attr":"bar"}`),
+	})
+	checkDiags(t, resp.Diagnostics)
+
+	expected := cty.ObjectVal(map[string]cty.Value{
+		"attr": cty.StringVal("bar"),
+	})
+
+	if !cmp.Equal(expected, resp.UpgradedIdentity, typeComparer, valueComparer, equateEmpty) {
+		t.Fatal(cmp.Diff(expected, resp.UpgradedIdentity, typeComparer, valueComparer, equateEmpty))
 	}
 }
 

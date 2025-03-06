@@ -43,8 +43,8 @@ type ContextOpts struct {
 	Providers    map[addrs.Provider]providers.Factory
 	Provisioners map[string]provisioners.Factory
 
-	// PreloadedProviderSchemas and PreloadedResourceIdentitySchemas are optional maps of provider
-	// schemas that were already loaded from providers by the caller. This is intended
+	// PreloadedProviderSchemas is an optional map of provider schemas that
+	// were already loaded from providers by the caller. This is intended
 	// to avoid redundant re-fetching of schemas when the caller has already
 	// loaded them for some other reason.
 	//
@@ -58,7 +58,7 @@ type ContextOpts struct {
 	//
 	// Callers must not access (read or write) the given map once it has
 	// been passed to Terraform Core using this field.
-	PreloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema // TODO check how they are loaded
+	PreloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema
 
 	UIInput UIInput
 }
