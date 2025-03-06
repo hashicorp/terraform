@@ -49,6 +49,13 @@ func New() backend.Backend {
 				Description: "The blob key to use in the Storage Container.",
 			},
 
+			"lookup_blob_endpoint": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_DNS_ZONE_ENDPOINT", false),
+				Description: "Whether to look up the storage account blob endpoint, instead of composing the endpoint in a fixed pattern. This is necessary when the storage account uses the Azure DNS zone endpoint.",
+			},
+
 			"snapshot": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -247,6 +254,7 @@ type BackendConfig struct {
 	SubscriptionID           string
 	ResourceGroupName        string
 	StorageAccountName       string
+	LookupBlobEndpoint       bool
 	AccessKey                string
 	SasToken                 string
 	UseAzureADAuthentication bool
@@ -348,14 +356,20 @@ func (b *Backend) configure(ctx context.Context) error {
 		SubscriptionID:           data.Get("subscription_id").(string),
 		ResourceGroupName:        data.Get("resource_group_name").(string),
 		StorageAccountName:       data.Get("storage_account_name").(string),
+		LookupBlobEndpoint:       data.Get("lookup_blob_endpoint").(bool),
 		AccessKey:                data.Get("access_key").(string),
 		SasToken:                 data.Get("sas_token").(string),
 		UseAzureADAuthentication: data.Get("use_azuread_auth").(bool),
 	}
 
-	propertiesNeededToLookupAccessKeySpecified := backendConfig.AccessKey == "" && backendConfig.SasToken == "" && backendConfig.ResourceGroupName == ""
-	if propertiesNeededToLookupAccessKeySpecified && !backendConfig.UseAzureADAuthentication {
-		return fmt.Errorf("either an Access Key / SAS Token or the Resource Group for the Storage Account must be specified - or Azure AD Authentication must be enabled")
+	needToLookupAccessKey := backendConfig.AccessKey == "" && backendConfig.SasToken == "" && !backendConfig.UseAzureADAuthentication
+	if backendConfig.ResourceGroupName == "" {
+		if needToLookupAccessKey {
+			return fmt.Errorf("One of `access_key`, `sas_token`, `use_azuread_auth` and `resource_group_name` must be specifieid")
+		}
+		if backendConfig.LookupBlobEndpoint {
+			return fmt.Errorf("`resource_group_name` is required when `lookup_blob_endpoint` is set")
+		}
 	}
 
 	client, err := buildClient(ctx, backendConfig)
