@@ -535,6 +535,9 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 	if m.testingOverrides != nil {
 		opts.Providers = m.testingOverrides.Providers
 		opts.Provisioners = m.testingOverrides.Provisioners
+		// NOTE: Alternative approach to create backend instances in tests
+		// could be to have backend factories in opts, similar to the
+		// provider factories set here.
 	} else {
 		var providerFactories map[addrs.Provider]providers.Factory
 		providerFactories, err = m.providerFactories()
