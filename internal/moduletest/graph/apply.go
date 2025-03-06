@@ -116,6 +116,7 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	// most recently updated the tracked state as the cleanup
 	// configuration.
 	ctx.SetFileState(key, &TestFileState{
+		File:  file,
 		Run:   run,
 		State: updated,
 	})

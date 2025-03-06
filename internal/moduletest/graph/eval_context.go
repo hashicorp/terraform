@@ -61,6 +61,10 @@ type EvalContext struct {
 	FileStates map[string]*TestFileState
 	stateLock  sync.Mutex
 
+	// This is a manifest that is used to keep track of the state files created
+	// during the test runs.
+	manifest *TestManifest
+
 	// cancelContext and stopContext can be used to terminate the evaluation of the
 	// test suite when a cancellation or stop signal is received.
 	// cancelFunc and stopFunc are the corresponding functions to call to signal
@@ -79,6 +83,7 @@ type EvalContextOpts struct {
 	Render    views.Test
 	CancelCtx context.Context
 	StopCtx   context.Context
+	Manifest  *TestManifest
 }
 
 // NewEvalContext constructs a new graph evaluation context for use in
@@ -102,6 +107,7 @@ func NewEvalContext(opts *EvalContextOpts) *EvalContext {
 		stopFunc:        stop,
 		verbose:         opts.Verbose,
 		renderer:        opts.Render,
+		manifest:        opts.Manifest,
 	}
 }
 
@@ -361,6 +367,7 @@ func (ec *EvalContext) SetFileState(key string, state *TestFileState) {
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
 	ec.FileStates[key] = &TestFileState{
+		File:  state.File,
 		Run:   state.Run,
 		State: state.State,
 	}
@@ -370,6 +377,17 @@ func (ec *EvalContext) GetFileState(key string) *TestFileState {
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
 	return ec.FileStates[key]
+}
+
+func (ec *EvalContext) WriteFileState(key string, state *TestFileState) error {
+	ec.SetFileState(key, state)
+	if state.State.Empty() {
+		// Nothing to do!
+		return nil
+	}
+	ec.stateLock.Lock()
+	defer ec.stateLock.Unlock()
+	return ec.manifest.writeState(key, state)
 }
 
 // evaluationData augments an underlying lang.Data -- presumably resulting

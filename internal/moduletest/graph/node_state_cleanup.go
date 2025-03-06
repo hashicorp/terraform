@@ -31,6 +31,9 @@ func (n *NodeStateCleanup) Name() string {
 }
 
 // Execute destroys the resources created in the state file.
+// This function should never return error diagnostics, as that would
+// prevent further cleanup from happening. Instead, the diagnostics
+// will be rendered directly.
 func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	file := n.opts.File
@@ -73,8 +76,9 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name)))
 		file.UpdateStatus(moduletest.Error)
+		diags = diags.Append(evalCtx.WriteFileState(n.stateKey, state))
 		evalCtx.Renderer().DestroySummary(diags, nil, file, state.State)
-		return diags
+		return nil
 	}
 	TransformConfigForRun(evalCtx, state.Run, file)
 
@@ -92,12 +96,14 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	}
 
 	if !updated.Empty() {
-		// Then we failed to adequately clean up the state, so mark success
-		// as false.
+		// Then we failed to adequately clean up the state, so mark as errored.
 		file.UpdateStatus(moduletest.Error)
 	}
 	evalCtx.Renderer().DestroySummary(diags, state.Run, file, updated)
-	return diags
+	state.State = updated
+
+	diags = diags.Append(evalCtx.WriteFileState(n.stateKey, state))
+	return nil
 }
 
 func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waiter *operationWaiter) (*states.State, tfdiags.Diagnostics) {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -46,7 +47,7 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 	}
 	steps := []terraform.GraphTransformer{
 		&TestRunTransformer{opts},
-		&TestConfigTransformer{File: b.File},
+		&TestStateTransformer{File: b.File},
 		&TestStateCleanupTransformer{opts},
 		terraform.DynamicTransformer(validateRunConfigs),
 		&TestProvidersTransformer{},
@@ -58,13 +59,11 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 }
 
 func validateRunConfigs(g *terraform.Graph) error {
-	for _, v := range g.Vertices() {
-		if node, ok := v.(*NodeTestRun); ok {
-			diags := node.run.Config.Validate(node.run.ModuleConfig)
-			node.run.Diagnostics = node.run.Diagnostics.Append(diags)
-			if diags.HasErrors() {
-				node.run.Status = moduletest.Error
-			}
+	for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
+		diags := node.run.Config.Validate(node.run.ModuleConfig)
+		node.run.Diagnostics = node.run.Diagnostics.Append(diags)
+		if diags.HasErrors() {
+			node.run.Status = moduletest.Error
 		}
 	}
 	return nil

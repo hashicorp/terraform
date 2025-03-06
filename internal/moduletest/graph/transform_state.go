@@ -5,6 +5,7 @@ package graph
 
 import (
 	"fmt"
+	"maps"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -23,32 +24,32 @@ type GraphNodeExecutable interface {
 // TestFileState is a helper struct that just maps a run block to the state that
 // was produced by the execution of that run block.
 type TestFileState struct {
+	File  *moduletest.File
 	Run   *moduletest.Run
 	State *states.State
 }
 
-// TestConfigTransformer is a GraphTransformer that adds all the test runs,
-// and the variables defined in each run block, to the graph.
-type TestConfigTransformer struct {
+// TestStateTransformer is a GraphTransformer that initializes the context with
+// all the states produced by the test file.
+type TestStateTransformer struct {
 	File *moduletest.File
 }
 
-func (t *TestConfigTransformer) Transform(g *terraform.Graph) error {
+func (t *TestStateTransformer) Transform(g *terraform.Graph) error {
 	// This map tracks the state of each run in the file. If multiple runs
 	// have the same state key, they will share the same state.
 	statesMap := make(map[string]*TestFileState)
 
-	// a root config node that will add the file states to the context
+	// Since the map is a pointer, we can add it to the root config node.
+	// The root config node will then add the file states to the context later
+	// when the graph is executed.
 	rootConfigNode := t.addRootConfigNode(g, statesMap)
 
-	for _, v := range g.Vertices() {
-		node, ok := v.(*NodeTestRun)
-		if !ok {
-			continue
-		}
+	for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
 		key := node.run.Config.StateKey
 		if _, exists := statesMap[key]; !exists {
 			state := &TestFileState{
+				File:  t.File,
 				Run:   nil,
 				State: states.NewState(),
 			}
@@ -63,7 +64,7 @@ func (t *TestConfigTransformer) Transform(g *terraform.Graph) error {
 	return nil
 }
 
-func (t *TestConfigTransformer) addRootConfigNode(g *terraform.Graph, statesMap map[string]*TestFileState) *dynamicNode {
+func (t *TestStateTransformer) addRootConfigNode(g *terraform.Graph, statesMap map[string]*TestFileState) *dynamicNode {
 	rootConfigNode := &dynamicNode{
 		eval: func(ctx *EvalContext) tfdiags.Diagnostics {
 			var diags tfdiags.Diagnostics
@@ -110,15 +111,11 @@ func TransformConfigForRun(ctx *EvalContext, run *moduletest.Run, file *modulete
 	//      its original state. This can be called by the surrounding test once
 	//      completed so future run blocks can safely execute.
 
-	// First, initialise `previous` and `next`. `previous` contains a backup of
-	// the providers from the original config. `next` contains the set of
-	// providers that will be used by the test. `next` starts with the set of
-	// providers from the original config.
-	previous := run.ModuleConfig.Module.ProviderConfigs
+	// First, initialise the providers which we are going to use for the test.
+	// It starts with the providers from the original module config, and then we'll
+	// overwrite them with the providers from the test file.
 	next := make(map[string]*configs.Provider)
-	for key, value := range previous {
-		next[key] = value
-	}
+	maps.Copy(next, run.ModuleConfig.Module.ProviderConfigs)
 
 	runOutputs := ctx.GetOutputs()
 

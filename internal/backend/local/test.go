@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"maps"
 	"path/filepath"
 	"sort"
 
@@ -105,13 +106,17 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	// while test files in the test directory have access to the union of
 	// GlobalVariables and GlobalTestVariables.
 	testDirectoryGlobalVariables := make(map[string]backendrun.UnparsedVariableValue)
-	for name, value := range runner.GlobalVariables {
-		testDirectoryGlobalVariables[name] = value
-	}
-	for name, value := range runner.GlobalTestVariables {
-		// We're okay to overwrite the global variables in case of name
-		// collisions, as the test directory variables should take precedence.
-		testDirectoryGlobalVariables[name] = value
+	maps.Copy(testDirectoryGlobalVariables, runner.GlobalVariables)
+	// We're okay to overwrite the global variables in case of name
+	// collisions, as the test directory variables should take precedence.
+	maps.Copy(testDirectoryGlobalVariables, runner.GlobalTestVariables)
+
+	// Generate a manifest that will be used to track the state files created
+	// during the test runs.
+	// TODO(sams): presence of a manifest should ensure that no tests are run
+	manifest, err := graph.BuildStateManifest(".", suite.Files)
+	if err != nil {
+		return moduletest.Error, diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to build state manifest", err.Error()))
 	}
 
 	suite.Status = moduletest.Pass
@@ -126,6 +131,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			StopCtx:   runner.StoppedCtx,
 			Verbose:   runner.Verbose,
 			Render:    runner.View,
+			Manifest:  manifest,
 		})
 
 		for _, run := range file.Runs {
@@ -144,9 +150,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		}
 
 		evalCtx.VariableCaches = hcltest.NewVariableCaches(func(vc *hcltest.VariableCaches) {
-			for name, value := range currentGlobalVariables {
-				vc.GlobalVariables[name] = value
-			}
+			maps.Copy(vc.GlobalVariables, currentGlobalVariables)
 			vc.FileVariables = file.Config.Variables
 		})
 		fileRunner := &TestFileRunner{
