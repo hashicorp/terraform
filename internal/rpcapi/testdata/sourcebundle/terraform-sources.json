@@ -12,6 +12,11 @@
       "meta": {}
     },
     {
+      "source": "git::https://example.com/baz.git",
+      "local": "baz",
+      "meta": {}
+    },
+    {
       "source": "git::https://example.com/import.git",
       "local": "import",
       "meta": {}
