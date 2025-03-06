@@ -5,7 +5,6 @@ package dag
 
 import (
 	"iter"
-	"reflect"
 	"slices"
 )
 
@@ -29,43 +28,31 @@ func (g *Graph) VerticesSeq() VertexSeq[Vertex] {
 	}
 }
 
-// SelectSeq filters a sequence based on whether elements implement a given interface,
-// or are the zero value of a given type. It returns a new sequence containing only
-// the elements that match the criteria.
-func SelectSeq[T Vertex, U Vertex](seq VertexSeq[T], ty U) VertexSeq[U] {
+// SelectSeq filters a sequence to include only elements that can be type-asserted to type U.
+// It returns a new sequence containing only the matching elements.
+// The yield function can return false to stop iteration early.
+func SelectSeq[T Vertex, U Vertex](seq VertexSeq[T], filter func(U)) VertexSeq[U] {
 	return func(yield func(U) bool) {
-		targetType := reflect.TypeFor[U]()
 		for v := range seq {
-			// Check if this item is of the type interface we're looking for
-			if targetType.Kind() == reflect.Interface {
-				if !reflect.TypeOf(v).Implements(targetType) {
-					continue
-				}
-			} else if reflect.TypeOf(v) != targetType {
-				// Check if this item is the zero value of the type we're looking for
+			// if the item is not of the type we're looking for, skip it
+			u, ok := any(v).(U)
+			if !ok {
 				continue
 			}
-			if !yield(any(v).(U)) {
+			if !yield(u) {
 				return
 			}
 		}
 	}
 }
 
-// ExcludeSeq filters a sequence based on whether elements implement a given interface,
-// or are the zero value of a given type. It returns a new sequence containing only
-// the elements that do not match the criteria.
-func ExcludeSeq[T Vertex, U Vertex](seq VertexSeq[T], ty U) VertexSeq[T] {
+// ExcludeSeq filters a sequence to exclude elements that can be type-asserted to type U.
+// It returns a new sequence containing only the non-matching elements.
+// The yield function can return false to stop iteration early.
+func ExcludeSeq[T Vertex, U Vertex](seq VertexSeq[T], filter func(U)) VertexSeq[T] {
 	return func(yield func(T) bool) {
-		targetType := reflect.TypeFor[U]()
 		for v := range seq {
-			// Skip if this item is of the type interface we're looking for
-			if targetType.Kind() == reflect.Interface {
-				if reflect.TypeOf(v).Implements(targetType) {
-					continue
-				}
-			} else if reflect.TypeOf(v) == targetType {
-				// Skip if this item is the zero value of the type we're looking for
+			if _, ok := any(v).(U); ok {
 				continue
 			}
 			if !yield(v) {
