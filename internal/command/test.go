@@ -130,21 +130,37 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	// Per file, ensure backends aren't reused
-	var duplicateBackendDiags tfdiags.Diagnostics
+	// Per file, ensure backends:
+	// * aren't reused
+	// * are valid types
+	var backendDiags tfdiags.Diagnostics
 	for _, tf := range config.Module.Tests {
 		bucketHashes := make(map[int]string)
 		// Use an ordered list of backends, so that errors are raised by 2nd+ time
 		// that a backend config is used in a file.
 		for _, bc := range orderBackendsByDeclarationLine(tf.BackendConfigs) {
 			f := backendInit.Backend(bc.Backend.Type)
+			if f == nil {
+				detail := fmt.Sprintf("There is no backend type named %q.", bc.Backend.Type)
+				if msg, removed := backendInit.RemovedBackends[bc.Backend.Type]; removed {
+					detail = msg
+				}
+				backendDiags = backendDiags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unsupported backend type",
+					Detail:   detail,
+					Subject:  &bc.Backend.TypeRange,
+				})
+				continue
+			}
+
 			b := f()
 			schema := b.ConfigSchema()
 			hash := bc.Backend.Hash(schema)
 
 			if runName, exists := bucketHashes[hash]; exists {
 				// This backend's been encountered before
-				duplicateBackendDiags = duplicateBackendDiags.Append(
+				backendDiags = backendDiags.Append(
 					&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Repeat use of the same backend block",
@@ -157,8 +173,8 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			bucketHashes[bc.Backend.Hash(schema)] = bc.Run.Name
 		}
 	}
-	diags = diags.Append(duplicateBackendDiags)
-	if duplicateBackendDiags.HasErrors() {
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
 		view.Diagnostics(nil, nil, diags)
 		return 1
 	}

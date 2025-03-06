@@ -2712,12 +2712,13 @@ Failure! 0 passed, 1 failed.
 	}
 }
 
-// TestTest_ReusedBackendConfiguration asserts that it's not valid to re-use the same backend config (i.e the same state file)
-// in parallel runs. This would result in multiple actions attempting to set state, potentially with different resource configurations.
+// TestTest_ValidateBackendConfiguration tests validation of how backends are declared in test files:
+// * it's not valid to re-use the same backend config (i.e the same state file)
+// * it's not valid to use a deprecated backend type
+// * it's not valid to use a non-existent backend type
 //
-// Note - this test is written to assert that diagnostics are returned about re-used backend blocks between run blocks, but it allows either
-// of the conflicting run blocks to cause the error to be raised. This is because run blocks without matching state keys aren't run in a
-// deterministic order.
+// Backend validaton performed in the command package is dependent on the internal/backend/init package,
+// which cannot be imported in configuration parsing packages without creating an import cycle.
 func TestTest_ReusedBackendConfiguration(t *testing.T) {
 
 	testCases := map[string]struct {
@@ -2748,6 +2749,28 @@ Error: Repeat use of the same backend block
 The run "test_2" contains a backend configuration that's already been used in
 run "test_1". Sharing the same backend configuration between separate runs
 will result in conflicting state updates.
+`,
+		},
+		"validation detects when a deprecated backend type is used": {
+			dirName: "removed-backend-type",
+			expectErr: `
+Error: Unsupported backend type
+
+  on main.tftest.hcl line 7, in run "test_removed_backend":
+   7:   backend "etcd" {
+
+The "etcd" backend is not supported in Terraform v1.3 or later.
+`,
+		},
+		"validation detects when a non-existent backend type": {
+			dirName: "non-existent-backend-type",
+			expectErr: `
+Error: Unsupported backend type
+
+  on main.tftest.hcl line 7, in run "test_invalid_backend":
+   7:   backend "foobar" {
+
+There is no backend type named "foobar".
 `,
 		},
 	}
