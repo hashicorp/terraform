@@ -30,6 +30,16 @@ type TestFileState struct {
 	File  *moduletest.File
 	Run   *moduletest.Run
 	State *states.State
+
+	backend runBackend
+}
+
+// runBackend connects the backend instance to the run that
+// contains it. This can be used to check whether a given run
+// should be able to update the remote state or not.
+type runBackend struct {
+	instance backend.Backend
+	run      *moduletest.Run
 }
 
 // TestStateTransformer is a GraphTransformer that initializes the context with
@@ -80,6 +90,10 @@ func (t *TestStateTransformer) Transform(g *terraform.Graph) error {
 				state = &TestFileState{
 					Run:   nil,
 					State: stmgr.State(),
+					backend: runBackend{
+						instance: be,
+						run:      node.run,
+					},
 				}
 			} else {
 				// Else, set an empty in-memory state for the state key

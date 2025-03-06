@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -17,6 +18,9 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+// testApply defines how to execute a run block representing an apply command
+//
+// See also: (n *NodeTestRun).testPlan
 func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValues, waiter *operationWaiter) {
 	file, run := n.File(), n.run
 	config := run.ModuleConfig
@@ -115,6 +119,34 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	// actually updated by this change. We want to use the run that
 	// most recently updated the tracked state as the cleanup
 	// configuration.
+	if state := ctx.GetFileState(key); state.backend.instance != nil {
+		if state.backend.run.Name == run.Name {
+			// We've just done an apply for the run that contains the backend block.
+			// This run block is allowed to update the remote state if any changes have occurred, e.g:
+			//   1) Test is being run for the first time, and state is being created in the backend
+			//   2) Config changes mean that long-lived resources need to be updated, and state updated too.
+			//   3) Drift may have occurred, and this step of the test corrects remote objects to resemble config.
+			b := state.backend.instance
+			stateMgr, err := b.StateMgr(backend.DefaultStateName) // We only allow use of the default workspace
+			if err != nil {
+				run.Diagnostics.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					fmt.Sprintf("Error updating state in run block %q's backend", state.backend.run.Name),
+					err.Error(),
+				))
+			}
+
+			err = stateMgr.WriteState(updated)
+			if err != nil {
+				run.Diagnostics.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					fmt.Sprintf("Error updating state in run block %q's backend", state.backend.run.Name),
+					err.Error(),
+				))
+			}
+
+		}
+	}
 	ctx.SetFileState(key, &TestFileState{
 		File:  file,
 		Run:   run,
