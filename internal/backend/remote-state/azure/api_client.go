@@ -26,9 +26,10 @@ type Client struct {
 	environment        environments.Environment
 	storageAccountName string
 
-	// These are used for getting an accurate blob endpoint, or/and listing access key (if not specified).
+	// Storage ARM client is used for looking up the blob endpoint, or/and listing access key (if not specified).
 	storageAccountsClient *storageaccounts.StorageAccountsClient
-	accountDetail         *AccountDetails
+	// This is only non-nil if the config has specified to lookup the blob endpoint
+	accountDetail *AccountDetails
 
 	// Caching
 	containersClient *containers.Client
@@ -46,8 +47,6 @@ func buildClient(ctx context.Context, config BackendConfig) (*Client, error) {
 		storageAccountName: config.StorageAccountName,
 	}
 
-	// ARM authN is required only when no access key, sas token or storage AAD auth is used, which is then required to list the access key.
-	// Besides, ARM authN *can* be used for SA opt-in the Azure DNS zone endpoint.
 	var armAuthRequired bool
 	switch {
 	case config.AccessKey != "":
@@ -65,15 +64,21 @@ func buildClient(ctx context.Context, config BackendConfig) (*Client, error) {
 			return nil, fmt.Errorf("unable to build authorizer for Storage API: %+v", err)
 		}
 	default:
+		// ARM authN is required only when no auth method is specified, which falls back to listing the access key via ARM API.
 		armAuthRequired = true
 	}
 
-	resourceManagerAuth, err := auth.NewAuthorizerFromCredentials(ctx, *config.AuthConfig, config.AuthConfig.Environment.ResourceManager)
-	if err != nil {
-		if armAuthRequired {
+	// Besides, ARM authN is required to lookup the blob endpoint.
+	if config.LookupBlobEndpoint {
+		armAuthRequired = true
+	}
+
+	if armAuthRequired {
+		resourceManagerAuth, err := auth.NewAuthorizerFromCredentials(ctx, *config.AuthConfig, config.AuthConfig.Environment.ResourceManager)
+		if err != nil {
 			return nil, fmt.Errorf("unable to build authorizer for Resource Manager API: %+v", err)
 		}
-	} else {
+
 		// When using Azure CLI to auth, the user can leave the "subscription_id" unspecified. In this case the subscription id is inferred from
 		// the Azure CLI default subscription.
 		if config.SubscriptionID == "" {
@@ -83,6 +88,9 @@ func buildClient(ctx context.Context, config BackendConfig) (*Client, error) {
 				}
 			}
 		}
+		if config.SubscriptionID == "" {
+			return nil, fmt.Errorf("subscription id not specified")
+		}
 
 		// Setup the SA client.
 		client.storageAccountsClient, err = storageaccounts.NewStorageAccountsClientWithBaseURI(config.AuthConfig.Environment.ResourceManager)
@@ -91,22 +99,18 @@ func buildClient(ctx context.Context, config BackendConfig) (*Client, error) {
 		}
 		client.configureClient(client.storageAccountsClient.Client, resourceManagerAuth)
 
-		// Populating the storage account detail if both subscription id and resource group name are known.
-		// This is used to get the "most" accurate blob endpoint comparing to the naive version.
-		// NOTE: Additional management plane role (i.e. storageAccounts/read) required. If unwanted, leave resource group name unspecified.
-		if config.SubscriptionID != "" && config.ResourceGroupName != "" {
-			storageAccountId := commonids.NewStorageAccountID(config.SubscriptionID, config.ResourceGroupName, client.storageAccountName)
-			resp, err := client.storageAccountsClient.GetProperties(ctx, storageAccountId, storageaccounts.DefaultGetPropertiesOperationOptions())
-			if err != nil {
-				return nil, fmt.Errorf("retrieving %s: %+v", storageAccountId, err)
-			}
-			if resp.Model == nil {
-				return nil, fmt.Errorf("retrieving %s: model was nil", storageAccountId)
-			}
-			client.accountDetail, err = populateAccountDetails(storageAccountId, *resp.Model)
-			if err != nil {
-				return nil, fmt.Errorf("populating details for %s: %+v", storageAccountId, err)
-			}
+		// Populating the storage account detail
+		storageAccountId := commonids.NewStorageAccountID(config.SubscriptionID, config.ResourceGroupName, client.storageAccountName)
+		resp, err := client.storageAccountsClient.GetProperties(ctx, storageAccountId, storageaccounts.DefaultGetPropertiesOperationOptions())
+		if err != nil {
+			return nil, fmt.Errorf("retrieving %s: %+v", storageAccountId, err)
+		}
+		if resp.Model == nil {
+			return nil, fmt.Errorf("retrieving %s: model was nil", storageAccountId)
+		}
+		client.accountDetail, err = populateAccountDetails(storageAccountId, *resp.Model)
+		if err != nil {
+			return nil, fmt.Errorf("populating details for %s: %+v", storageAccountId, err)
 		}
 	}
 
@@ -126,7 +130,7 @@ func (c *Client) getBlobClient(ctx context.Context) (bc *blobs.Client, err error
 
 	var baseUri string
 	if c.accountDetail != nil {
-		// Use the "most" correct blob endpoint if possible
+		// Use the actual blob endpoint if available
 		pBaseUri, err := c.accountDetail.DataPlaneEndpoint(EndpointTypeBlob)
 		if err != nil {
 			return nil, err
@@ -201,7 +205,7 @@ func (c *Client) getContainersClient(ctx context.Context) (cc *containers.Client
 
 	var baseUri string
 	if c.accountDetail != nil {
-		// Use the "most" correct blob endpoint if possible
+		// Use the actual blob endpoint if available
 		pBaseUri, err := c.accountDetail.DataPlaneEndpoint(EndpointTypeBlob)
 		if err != nil {
 			return nil, err
