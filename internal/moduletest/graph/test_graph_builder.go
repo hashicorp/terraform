@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
@@ -18,9 +19,10 @@ import (
 // a terraform test file. The file may contain multiple runs, and each run may have
 // dependencies on other runs.
 type TestGraphBuilder struct {
-	File        *moduletest.File
-	GlobalVars  map[string]backendrun.UnparsedVariableValue
-	ContextOpts *terraform.ContextOpts
+	File           *moduletest.File
+	GlobalVars     map[string]backendrun.UnparsedVariableValue
+	ContextOpts    *terraform.ContextOpts
+	BackendFactory func(string) backend.InitFn
 }
 
 type graphOptions struct {
@@ -47,7 +49,9 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 	}
 	steps := []terraform.GraphTransformer{
 		&TestRunTransformer{opts},
-		&TestStateTransformer{File: b.File},
+		// Could setting initial state based on backends be better-implemented as
+		// another transformer?
+		&TestStateTransformer{File: b.File, BackendFactory: b.BackendFactory},
 		&TestStateCleanupTransformer{opts},
 		terraform.DynamicTransformer(validateRunConfigs),
 		&TestProvidersTransformer{},

@@ -5,9 +5,12 @@ package graph
 
 import (
 	"fmt"
+	"log"
 	"maps"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
@@ -32,7 +35,8 @@ type TestFileState struct {
 // TestStateTransformer is a GraphTransformer that initializes the context with
 // all the states produced by the test file.
 type TestStateTransformer struct {
-	File *moduletest.File
+	File           *moduletest.File
+	BackendFactory func(string) backend.InitFn
 }
 
 func (t *TestStateTransformer) Transform(g *terraform.Graph) error {
@@ -48,11 +52,44 @@ func (t *TestStateTransformer) Transform(g *terraform.Graph) error {
 	for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
 		key := node.run.Config.StateKey
 		if _, exists := statesMap[key]; !exists {
-			state := &TestFileState{
-				File:  t.File,
-				Run:   nil,
-				State: states.NewState(),
+
+			var state *TestFileState
+
+			if bc, exists := t.File.Config.BackendConfigs[key]; exists {
+				// If the state for that state key should come from a backend,
+				// obtain and use that
+				if t.BackendFactory == nil {
+					return fmt.Errorf("error retrieving state for state key %q from backend: nil BackendFactory. This is a bug in Terraform and should be reported.", key)
+				}
+
+				f := t.BackendFactory(bc.Backend.Type)
+				if f == nil {
+					return fmt.Errorf("error retrieving state for state key %q from backend: No init function found for backend type %q. This is a bug in Terraform and should be reported.", key, bc.Backend.Type)
+				}
+				be, err := getBackendInstance(key, bc.Backend, f)
+				if err != nil {
+					return err
+				}
+
+				stmgr, err := be.StateMgr(backend.DefaultStateName) // We only allow use of the default workspace
+				if err != nil {
+					return fmt.Errorf("error retrieving state for state key %q from backend: error retrieving state manager: %w", key, err)
+				}
+
+				log.Printf("[TRACE] TestConfigTransformer.Transform: set initial state for state key %q using backend of type %T declared at %s", key, be, bc.Backend.DeclRange)
+				state = &TestFileState{
+					Run:   nil,
+					State: stmgr.State(),
+				}
+			} else {
+				// Else, set an empty in-memory state for the state key
+				log.Printf("[TRACE] TestConfigTransformer.Transform: set initial state for state key %q as empty state", key)
+				state = &TestFileState{
+					Run:   nil,
+					State: states.NewState(),
+				}
 			}
+
 			statesMap[key] = state
 		}
 
@@ -64,7 +101,39 @@ func (t *TestStateTransformer) Transform(g *terraform.Graph) error {
 	return nil
 }
 
-func (t *TestStateTransformer) addRootConfigNode(g *terraform.Graph, statesMap map[string]*TestFileState) *dynamicNode {
+// getBackendInstance uses the config for a given run block's backend block to create and return a configured
+// instance of that backend type.
+func getBackendInstance(stateKey string, config *configs.Backend, f backend.InitFn) (backend.Backend, error) {
+	b := f()
+	log.Printf("[TRACE] TestConfigTransformer.Transform: instantiated backend of type %T", b)
+
+	schema := b.ConfigSchema()
+	decSpec := schema.NoneRequired().DecoderSpec()
+	configVal, hclDiags := hcldec.Decode(config.Config, decSpec, nil)
+	if hclDiags.HasErrors() {
+		return nil, fmt.Errorf("error decoding backend configuration for state key %s : %v", stateKey, hclDiags.Errs())
+	}
+
+	if !configVal.IsWhollyKnown() {
+		return nil, fmt.Errorf("unknown values within backend definition for state key %s", stateKey)
+	}
+
+	newVal, validateDiags := b.PrepareConfig(configVal)
+	validateDiags = validateDiags.InConfigBody(config.Config, "")
+	if validateDiags.HasErrors() {
+		return nil, validateDiags.Err()
+	}
+
+	configureDiags := b.Configure(newVal)
+	configureDiags = configureDiags.InConfigBody(config.Config, "")
+	if validateDiags.HasErrors() {
+		return nil, configureDiags.Err()
+	}
+
+	return b, nil
+}
+
+func (t *TestConfigTransformer) addRootConfigNode(g *terraform.Graph, statesMap map[string]*TestFileState) *dynamicNode {
 	rootConfigNode := &dynamicNode{
 		eval: func(ctx *EvalContext) tfdiags.Diagnostics {
 			var diags tfdiags.Diagnostics
