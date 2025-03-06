@@ -2564,6 +2564,109 @@ Failure! 0 passed, 1 failed.
 	}
 }
 
+// TestTest_ReusedBackendConfiguration asserts that it's not valid to re-use the same backend config (i.e the same state file)
+// in parallel runs. This would result in multiple actions attempting to set state, potentially with different resource configurations.
+//
+// Note - this test is written to assert that diagnostics are returned about re-used backend blocks between run blocks, but it allows either
+// of the conflicting run blocks to cause the error to be raised. This is because run blocks without matching state keys aren't run in a
+// deterministic order.
+func TestTest_ReusedBackendConfiguration(t *testing.T) {
+
+	testCases := map[string]struct {
+		dirName   string
+		expectErr string
+	}{
+		"validation detects when backend config is reused by runs using different user-supplied state key value": {
+			dirName: "reused-backend-config",
+			expectErr: `
+Error: Repeat use of the same backend block
+
+  on main.tftest.hcl line 12, in run "test_2":
+  12:   backend "local" {
+
+The run "test_2" contains a backend configuration that's already been used in
+run "test_1". Sharing the same backend configuration between separate runs
+will result in conflicting state updates.
+`,
+		},
+		"validation detects when backend config is reused by runs using different implicit state key (corresponding to root and a child module) ": {
+			dirName: "reused-backend-config-child-modules",
+			expectErr: `
+Error: Repeat use of the same backend block
+
+  on main.tftest.hcl line 19, in run "test_2":
+  19:   backend "local" {
+
+The run "test_2" contains a backend configuration that's already been used in
+run "test_1". Sharing the same backend configuration between separate runs
+will result in conflicting state updates.
+`,
+		},
+	}
+
+	for tn, tc := range testCases {
+		t.Run(tn, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(path.Join("test", tc.dirName)), td)
+			defer testChdir(t, td)()
+
+			provider := testing_command.NewProvider(nil)
+
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"test": {"1.0.0"},
+			})
+			defer close()
+
+			streams, done := terminal.StreamsForTesting(t)
+			view := views.NewView(streams)
+			ui := new(cli.MockUi)
+
+			meta := Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				Ui:               ui,
+				View:             view,
+				Streams:          streams,
+				ProviderSource:   providerSource,
+			}
+
+			init := &InitCommand{
+				Meta: meta,
+			}
+
+			output := done(t)
+
+			if code := init.Run(nil); code != 0 {
+				t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+			}
+
+			// Reset the streams for the next command.
+			streams, done = terminal.StreamsForTesting(t)
+			meta.Streams = streams
+			meta.View = views.NewView(streams)
+
+			c := &TestCommand{
+				Meta: meta,
+			}
+
+			code := c.Run([]string{"-no-color"})
+			output = done(t)
+
+			// Assertions
+			if code != 1 {
+				t.Errorf("expected status code 1 but got %d", code)
+			}
+
+			if diff := cmp.Diff(output.All(), tc.expectErr); len(diff) > 0 {
+				t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectErr, output.All(), diff)
+			}
+
+			if provider.ResourceCount() > 0 {
+				t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+			}
+		})
+	}
+}
+
 func TestTest_RunBlocksInProviders(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "provider_runs")), td)
