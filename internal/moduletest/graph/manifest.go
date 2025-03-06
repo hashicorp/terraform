@@ -46,18 +46,24 @@ func BuildStateManifest(rootDir string, files map[string]*moduletest.File) (*Tes
 		return nil, err
 	}
 
+	ids := make(map[string]struct{})
 	for _, file := range files {
 		manifestFile := TestFile{States: make(map[string]TestState)}
 		keys := make([]string, 0, len(file.Runs))
 
 		// collect all state keys (implicit or explicit)
 		for _, run := range file.Runs {
-			keys = append(keys, run.GetStateKey())
+			keys = append(keys, run.Config.StateKey)
 		}
 
 		// create a state file path for each state key
 		for _, key := range keys {
-			path := filepath.Join(manifest.dataDir, fmt.Sprintf("%s.tfstate", manifest.generateID()))
+			id := manifest.generateID()
+			if _, exists := ids[id]; exists {
+				panic(fmt.Sprintf("duplicate generated state id %s", id))
+			}
+			ids[id] = struct{}{}
+			path := filepath.Join(manifest.dataDir, fmt.Sprintf("%s.tfstate", id))
 			manifestFile.States[key] = TestState{Path: path}
 		}
 		manifest.Files[file.Name] = manifestFile

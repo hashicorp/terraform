@@ -5,6 +5,7 @@ package graph
 
 import (
 	"fmt"
+	"maps"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -110,15 +111,11 @@ func TransformConfigForRun(ctx *EvalContext, run *moduletest.Run, file *modulete
 	//      its original state. This can be called by the surrounding test once
 	//      completed so future run blocks can safely execute.
 
-	// First, initialise `previous` and `next`. `previous` contains a backup of
-	// the providers from the original config. `next` contains the set of
-	// providers that will be used by the test. `next` starts with the set of
-	// providers from the original config.
-	previous := run.ModuleConfig.Module.ProviderConfigs
+	// First, initialise the providers which we are going to use for the test.
+	// It starts with the providers from the original module config, and then we'll
+	// overwrite them with the providers from the test file.
 	next := make(map[string]*configs.Provider)
-	for key, value := range previous {
-		next[key] = value
-	}
+	maps.Copy(next, run.ModuleConfig.Module.ProviderConfigs)
 
 	runOutputs := ctx.GetOutputs()
 

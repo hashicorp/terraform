@@ -113,6 +113,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 
 	// Generate a manifest that will be used to track the state files created
 	// during the test runs.
+	// TODO(sams): presence of a manifest should ensure that no tests are run
 	manifest, err := graph.BuildStateManifest(".", suite.Files)
 	if err != nil {
 		return moduletest.Error, diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to build state manifest", err.Error()))
