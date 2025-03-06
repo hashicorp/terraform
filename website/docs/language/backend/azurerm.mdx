@@ -678,6 +678,27 @@ terraform {
 }
 ```
 
+## terraform_remote_state Data Source
+
+To use the `terraform_remote_state` data source with the `azurerm` backend, you must use the exact same configuration as you would for the `backend` block in your configuration.
+
+For example to use [Direct Azure Active Directory authentication with OpenID Connect / Workload identity federation for GitHub](#direct-azure-active-directory-with-openid-connect--workload-identity-federation) you would use the following configuration:
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    use_oidc             = true                                    # Can also be set via `ARM_USE_OIDC` environment variable.
+    use_azuread_auth     = true                                    # Can also be set via `ARM_USE_AZUREAD` environment variable.
+    tenant_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
+    client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
+    storage_account_name = "abcd1234"                              # There is not environment variable support for this input.
+    container_name       = "tfstate"                               # There is not environment variable support for this input.
+    key                  = "prod.terraform.tfstate"                # There is not environment variable support for this input.
+  }
+}
+```
+
 ## Configuration Variables
 
 !> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/backend#credentials-and-sensitive-data) for details.
