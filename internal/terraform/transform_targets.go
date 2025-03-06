@@ -10,17 +10,6 @@ import (
 	"github.com/hashicorp/terraform/internal/dag"
 )
 
-// GraphNodeTargetable is an interface for graph nodes to implement when they
-// need to be told about incoming targets. This is useful for nodes that need
-// to respect targets as they dynamically expand. Note that the list of targets
-// provided will contain every target provided, and each implementing graph
-// node must filter this list to targets considered relevant.
-type GraphNodeTargetable interface {
-	SetTargets(targets []addrs.Targetable, exclude []addrs.Targetable)
-	Targets() []addrs.Targetable
-	Excludes() []addrs.Targetable
-}
-
 // TargetsTransformer is a GraphTransformer that, when the user specifies a
 // list of resources to target, limits the graph to only those resources and
 // their dependencies.
@@ -31,7 +20,7 @@ type TargetsTransformer struct {
 
 func (t *TargetsTransformer) Transform(g *Graph) error {
 	if len(t.Targets) > 0 {
-		targetedNodes := selectTargetedNodes(g, t.Targets)
+		_, targetedNodes := selectTargetedNodes(g, t.Targets)
 
 		for _, v := range g.Vertices() {
 			if !targetedNodes.Include(v) {
@@ -47,21 +36,16 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 // Returns a set of targeted nodes. A targeted node is either addressed
 // directly, address indirectly via its container, or it's a dependency of a
 // targeted node.
-func selectTargetedNodes(g *Graph, _addrs []addrs.Targetable) dag.Set {
+func selectTargetedNodes(g *Graph, targets []addrs.Targetable) (dag.Set, dag.Set) {
+	directNodes := make(dag.Set)
 	targetedNodes := make(dag.Set)
 
 	vertices := g.Vertices()
-	set := addrs.MakeSet(_addrs...)
+	set := addrs.MakeSet(targets...)
 	for _, v := range vertices {
 		if nodeIsTarget(v, set) {
 			targetedNodes.Add(v)
-
-			// We inform nodes that ask about the list of targets - helps for nodes
-			// that need to dynamically expand. Note that this only occurs for nodes
-			// that are already directly targeted.
-			if tn, ok := v.(GraphNodeTargetable); ok {
-				tn.SetTargets(_addrs, nil)
-			}
+			directNodes.Add(v)
 
 			for _, d := range g.Ancestors(v) {
 				targetedNodes.Add(d)
@@ -118,7 +102,7 @@ func selectTargetedNodes(g *Graph, _addrs []addrs.Targetable) dag.Set {
 		}
 	}
 
-	return targetedNodes
+	return directNodes, targetedNodes
 }
 
 func nodeIsTarget(v dag.Vertex, targets addrs.Set[addrs.Targetable]) bool {

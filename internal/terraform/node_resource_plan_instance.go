@@ -295,9 +295,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Refresh, maybe
 	// The import process handles its own refresh
-	// We dont want to do this for excluded stuff
-	excluded := n.excluded
-	if !n.skipRefresh && !importing && !n.excluded {
+	// No refresh for excluded resources too, so that we don't write the state
+	excluded := n.IsExcluded()
+	if !n.skipRefresh && !importing && !excluded {
 		var refreshDiags tfdiags.Diagnostics
 		instanceRefreshState, refreshDeferred, refreshDiags = n.refresh(ctx, states.NotDeposed, instanceRefreshState, ctx.Deferrals().DeferralAllowed())
 		diags = diags.Append(refreshDiags)
@@ -326,7 +326,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	if n.skipRefresh && !importing && !excluded && updatedCBD {
+	if n.skipRefresh && !importing && updatedCBD {
 		// CreateBeforeDestroy must be set correctly in the state which is used
 		// to create the apply graph, so if we did not refresh the state make
 		// sure we still update any changes to CreateBeforeDestroy.
@@ -404,8 +404,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			// refresh or planning stage. We'll report the deferral and
 			// store what we could produce in the deferral tracker.
 			deferrals.ReportResourceInstanceDeferred(addr, deferred.Reason, change)
-		} else if excluded {
-			deferrals.ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonExcluded, change)
 		} else if !deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies) {
 			// We intentionally write the change before the subsequent checks, because
 			// all of the checks below this point are for problems caused by the

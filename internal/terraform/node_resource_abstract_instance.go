@@ -285,6 +285,10 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateDeposed(ctx Eva
 // one of the two wrappers to be explicit about which of the instance's
 // objects you are intending to write.
 func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalContext, deposedKey states.DeposedKey, obj *states.ResourceInstanceObject, targetState phaseState) error {
+	// Excluded resources are never written to state
+	if n.IsExcluded() {
+		return nil
+	}
 	absAddr := n.Addr
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
@@ -429,7 +433,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		resp = providers.PlanResourceChangeResponse{
 			PlannedState: nullVal,
 		}
-	} else if n.excluded {
+	} else if n.IsExcluded() {
 		resource := n.ResourceAddr().Resource
 		schema, _ := providerSchema.SchemaForResourceAddr(resource)
 		if schema == nil {
@@ -437,21 +441,8 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			diags = diags.Append(fmt.Errorf("provider does not support resource type %q", resource.Type))
 			return plan, deferred, diags
 		}
-		val, diags := mocking.PlanComputedValuesForResource(nullVal, nil, schema)
-		if diags.HasErrors() {
-			// All the potential errors we get back from this function are
-			// related to the user badly defining mocks. We should never hit
-			// this as we are just using the default behaviour.
-			panic(diags.Err())
-		}
-
-		deferred = &providers.Deferred{
-			Reason: providers.DeferredReasonExcluded,
-		}
-		resp = providers.PlanResourceChangeResponse{
-			PlannedState: val,
-			Deferred:     deferred,
-		}
+		resp = n.planComputedValuesForResource(nullVal, schema)
+		deferred = resp.Deferred
 	} else {
 		// Allow the provider to check the destroy plan, and insert any
 		// necessary private data.
@@ -954,27 +945,8 @@ func (n *NodeAbstractResourceInstance) plan(
 				PlannedState: proposedNewVal,
 			}
 		}
-		// We have to use n.excluded instead of the filter, because this is an inherited
-		// method, and the filter may have been set on the child node instead of the parent.
-	} else if n.excluded {
-		// If the resource is excluded, we will use
-		// PlanComputedValuesForResource to populate the computed values with
-		// unknown values. This isn't the original use case for the mocking
-		// library, but it is doing exactly what we need it to do.
-		val, diags := mocking.PlanComputedValuesForResource(proposedNewVal, nil, schema)
-		if diags.HasErrors() {
-			// All the potential errors we get back from this function are
-			// related to the user badly defining mocks. We should never hit
-			// this as we are just using the default behaviour.
-			panic(diags.Err())
-		}
-
-		resp = providers.PlanResourceChangeResponse{
-			PlannedState: val,
-			Deferred: &providers.Deferred{
-				Reason: providers.DeferredReasonExcluded,
-			},
-		}
+	} else if n.IsExcluded() {
+		resp = n.planComputedValuesForResource(proposedNewVal, schema)
 	} else {
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 			TypeName:           n.Addr.Resource.Resource.Type,
@@ -1128,6 +1100,13 @@ func (n *NodeAbstractResourceInstance) plan(
 	woPathSet := cty.NewPathSet(writeOnlyPaths...)
 	action, actionReason := getAction(n.Addr, unmarkedPriorVal, unmarkedPlannedNewVal, createBeforeDestroy, woPathSet, forceReplace, reqRep)
 
+	// if the resource is excluded, we don't want to do anything further with it
+	if n.IsExcluded() {
+		action = plans.NoOp
+		actionReason = plans.ResourceInstanceChangeNoReason
+		deferred = &providers.Deferred{Reason: providers.DeferredReasonExcluded}
+	}
+
 	if action.IsReplace() {
 		// In this strange situation we want to produce a change object that
 		// shows our real prior object but has a _new_ object that is built
@@ -1163,10 +1142,6 @@ func (n *NodeAbstractResourceInstance) plan(
 			resp = providers.PlanResourceChangeResponse{
 				PlannedState: override,
 				Diagnostics:  overrideDiags,
-			}
-		} else if n.excluded {
-			resp = providers.PlanResourceChangeResponse{
-				PlannedState: proposedNewVal,
 			}
 		} else {
 			resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
@@ -1262,12 +1237,6 @@ func (n *NodeAbstractResourceInstance) plan(
 	// entire set, and are not saved on the individual elements.
 	if action == plans.NoOp && !valueMarksEqual(plannedNewVal, priorVal) {
 		action = plans.Update
-	}
-
-	// if excluded, action is no-op
-	if n.excluded {
-		action = plans.NoOp
-		actionReason = plans.ResourceInstanceChangeNoReason
 	}
 
 	// As a special case, if we have a previous diff (presumably from the plan

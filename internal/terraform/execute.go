@@ -11,6 +11,11 @@ type GraphNodeExecutable interface {
 	Execute(EvalContext, walkOperation) tfdiags.Diagnostics
 }
 
+type GraphNodeExcludeable interface {
+	SetExcluded(bool)
+	IsExcluded() bool
+}
+
 type Excluded struct {
 	excluded bool
 }

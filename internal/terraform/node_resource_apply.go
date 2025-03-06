@@ -25,7 +25,6 @@ var (
 	_ GraphNodeConfigResource       = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*nodeExpandApplyableResource)(nil)
 	_ graphNodeExpandsInstances     = (*nodeExpandApplyableResource)(nil)
-	_ GraphNodeTargetable           = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeDynamicExpandable    = (*nodeExpandApplyableResource)(nil)
 )
 
@@ -142,9 +141,6 @@ func (n *nodeExpandApplyableResource) ephemeralResourceInstanceSubgraph(addr add
 			Addr:          n.ResourceAddr(),
 			InstanceAddrs: instanceAddrs,
 		},
-
-		// Targeting
-		// &TargetsTransformer{Targets: n.Targets},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},

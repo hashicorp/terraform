@@ -60,7 +60,6 @@ var (
 	_ GraphNodeConfigResource       = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeAttachDependencies   = (*nodeExpandPlannableResource)(nil)
-	_ GraphNodeTargetable           = (*nodeExpandPlannableResource)(nil)
 	_ graphNodeExpandsInstances     = (*nodeExpandPlannableResource)(nil)
 )
 

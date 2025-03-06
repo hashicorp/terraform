@@ -687,7 +687,9 @@ func (n *NodeDestroyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.Dot
 }
 
 func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states.SyncState, changes *plans.ChangesSync, deferred *deferring.Deferred, val cty.Value) {
-	if n.excluded {
+	// If the output is excluded, we don't want to save the value in the state
+	// or in the changeset.
+	if n.IsExcluded() {
 		return
 	}
 	if changes != nil && n.Planning {

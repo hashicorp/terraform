@@ -12,8 +12,11 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // ConcreteResourceNodeFunc is a callback type used to convert an
@@ -66,10 +69,6 @@ type NodeAbstractResource struct {
 
 	ProvisionerSchemas map[string]*configschema.Block
 
-	// Set from GraphNodeTargetable
-	targets  []addrs.Targetable
-	excludes []addrs.Targetable
-
 	// Set from AttachDataResourceDependsOn
 	dependsOn []addrs.ConfigResource
 
@@ -103,7 +102,6 @@ var (
 	_ GraphNodeAttachResourceSchema        = (*NodeAbstractResource)(nil)
 	_ GraphNodeAttachProvisionerSchema     = (*NodeAbstractResource)(nil)
 	_ GraphNodeAttachProviderMetaConfigs   = (*NodeAbstractResource)(nil)
-	_ GraphNodeTargetable                  = (*NodeAbstractResource)(nil)
 	_ graphNodeAttachDataResourceDependsOn = (*NodeAbstractResource)(nil)
 	_ dag.GraphNodeDotter                  = (*NodeAbstractResource)(nil)
 	_ GraphNodeDestroyerCBD                = (*NodeAbstractResource)(nil)
@@ -130,7 +128,6 @@ var (
 	_ GraphNodeAttachResourceSchema      = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeAttachProvisionerSchema   = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeAttachProviderMetaConfigs = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeTargetable                = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeOverridable               = (*NodeAbstractResourceInstance)(nil)
 	_ dag.GraphNodeDotter                = (*NodeAbstractResourceInstance)(nil)
 )
@@ -165,11 +162,6 @@ func (n *NodeAbstractResource) CreateBeforeDestroy() bool {
 func (n *NodeAbstractResource) ModifyCreateBeforeDestroy(v bool) error {
 	n.forceCreateBeforeDestroy = v
 	return nil
-}
-
-func (n *NodeAbstractResource) SetExcluded(v bool) {
-	n.excluded = v
-	return
 }
 
 // GraphNodeReferencer
@@ -379,20 +371,6 @@ func (n *NodeAbstractResource) ResourceAddr() addrs.ConfigResource {
 	return n.Addr
 }
 
-// GraphNodeTargetable
-func (n *NodeAbstractResource) SetTargets(targets []addrs.Targetable, excludes []addrs.Targetable) {
-	n.targets = targets
-	n.excludes = excludes
-}
-
-func (n *NodeAbstractResource) Targets() []addrs.Targetable {
-	return n.targets
-}
-
-func (n *NodeAbstractResource) Excludes() []addrs.Targetable {
-	return n.excludes
-}
-
 // graphNodeAttachDataResourceDependsOn
 func (n *NodeAbstractResource) AttachDataResourceDependsOn(deps []addrs.ConfigResource) {
 	n.dependsOn = deps
@@ -446,7 +424,7 @@ func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.Ab
 
 	// We also allow unknowns when the expandable resource is excluded.
 	// TODO(sams): Better comment here.
-	allowUnknown = allowUnknown || n.excluded
+	allowUnknown = allowUnknown || n.IsExcluded()
 
 	switch {
 	case n.Config != nil && n.Config.Count != nil:
@@ -583,6 +561,27 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 	}
 
 	return obj, diags
+}
+
+// planComputedValuesForResource is to populate the computed values with
+// unknown values. This isn't the original use case for the mocking
+// library, but it is doing exactly what we need it to do.
+func (n *NodeAbstractResource) planComputedValuesForResource(original cty.Value, schema *configschema.Block) providers.PlanResourceChangeResponse {
+	val, diags := mocking.PlanComputedValuesForResource(original, nil, schema)
+	if diags.HasErrors() {
+		// All the potential errors we get back from this function are
+		// related to the user badly defining mocks. We should never hit
+		// this as we are just using the default behaviour.
+		panic(diags.Err())
+	}
+
+	deferred := &providers.Deferred{
+		Reason: providers.DeferredReasonExcluded,
+	}
+	return providers.PlanResourceChangeResponse{
+		PlannedState: val,
+		Deferred:     deferred,
+	}
 }
 
 // graphNodesAreResourceInstancesInDifferentInstancesOfSameModule is an
