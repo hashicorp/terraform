@@ -123,6 +123,9 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 	// values as an error.
 	allowUnknown := globalCtx.Deferrals().DeferralAllowed()
 
+	// We also allow unknowns when the expandable module is excluded.
+	allowUnknown = allowUnknown || n.IsExcluded()
+
 	// nodeExpandModule itself does not have visibility into how its ancestors
 	// were expanded, so we use the expander here to provide all possible paths
 	// to our module, and register module instances with each of them.
@@ -144,6 +147,7 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 			}
 
 		case n.ModuleCall.ForEach != nil:
+			// Same problem as above probably applies
 			forEach, known, feDiags := evaluateForEachExpression(n.ModuleCall.ForEach, moduleCtx, allowUnknown)
 			diags = diags.Append(feDiags)
 			if diags.HasErrors() {
