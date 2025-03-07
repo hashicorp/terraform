@@ -52,9 +52,9 @@ The following inputs are always required for this method:
 
 - `use_azuread_auth` - Set to `true` to use Azure Active Directory authentication to the storage account data plane. This can also be set via the `ARM_USE_AZUREAD` environment variable.
 - `tenant_id` - The tenant ID of the Azure Active Directory principal is required to authenticate to the storage account data plane. If using Azure CLI, this can be inferred from the CLI session. This can also be set via the `ARM_TENANT_ID` environment variable.
-- `storage_account_name` - The name of the storage account is required to read / update the data plane.
-- `container_name` - The name of the container within the storage account is required to read / update the data plane.
-- `key` - The name of the blob key within the container is required to read / update the data plane.
+- `storage_account_name` - The name of the storage account where the state file blob resides in.
+- `container_name` - The name of the storage account container where the state file blob resides in.
+- `key` - The name of the blob within the storage account container that the state file will be stored in.
 
 ### Optional Inputs
 
@@ -245,9 +245,9 @@ This method is retained for backwards compatibility, but we do not recommend it 
 The following inputs are always required for this method:
 
 - `access_key` - The Access Key of the storage account is required to authenticate to the storage account data plane. This can also be set via the `ARM_ACCESS_KEY` environment variable.
-- `storage_account_name` - The name of the storage account is required to read from the management plane and read / update the data plane.
-- `container_name` - The name of the container within the storage account is required to read / update the data plane.
-- `key` - The name of the blob key within the container is required to read / update the data plane.
+- `storage_account_name` - The name of the storage account where the state file blob resides in.
+- `container_name` - The name of the storage account container where the state file blob resides in.
+- `key` - The name of the blob within the storage account container that the state file will be stored in.
 
 ### Storage Account Required Role Assignments
 
@@ -281,9 +281,9 @@ This method is retained for backwards compatibility, but we do not recommend it 
 The following inputs are always required for this method:
 
 - `sas_token` - The SAS Token for the storage account container or blob is required to authenticate to the storage account data plane. This can also be set via the `ARM_SAS_TOKEN` environment variable.
-- `storage_account_name` - The name of the storage account is required to read from the management plane and read / update the data plane.
-- `container_name` - The name of the container within the storage account is required to read / update the data plane.
-- `key` - The name of the blob key within the container is required to read / update the data plane.
+- `storage_account_name` - The name of the storage account where the state file blob resides in.
+- `container_name` - The name of the storage account container where the state file blob resides in.
+- `key` - The name of the blob within the storage account container that the state file will be stored in.
 
 ### Storage Account Required Permissions
 
@@ -319,9 +319,9 @@ The following inputs are always required for this method:
 - `tenant_id` - The tenant ID of the Azure Active Directory principal is required to authenticate to the storage account management and data plane. If using Azure CLI, this can be inferred from the CLI session. This can also be set via the `ARM_TENANT_ID` environment variable.
 - `subscription_id` - The subscription ID of the storage account is required to query the management plane. If using Azure CLI, this can be inferred from the CLI session. This can also be set via the `ARM_SUBSCRIPTION_ID` environment variable.
 - `resource_group_name` - The resource group name of the storage account is required to query the management plane.
-- `storage_account_name` - The name of the storage account is required to read from the management plane and read / update the data plane.
-- `container_name` - The name of the container within the storage account is required to read / update the data plane.
-- `key` - The name of the blob key within the container is required to read / update the data plane.
+- `storage_account_name` - The name of the storage account where the state file blob resides in.
+- `container_name` - The name of the storage account container where the state file blob resides in.
+- `key` - The name of the blob within the storage account container that the state file will be stored in.
 
 ### Optional Inputs
 
