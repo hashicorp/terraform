@@ -440,6 +440,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			PriorPrivate:       currentState.Private,
 			ProviderMeta:       metaConfigVal,
 			ClientCapabilities: ctx.ClientCapabilities(),
+			PriorIdentity:      currentState.Identity,
 		})
 		deferred = resp.Deferred
 
@@ -447,6 +448,12 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		// emit any error level diagnostics, we should emit an error.
 		if resp.Deferred != nil && !deferralAllowed && !resp.Diagnostics.HasErrors() {
 			diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
+		}
+
+		if !resp.PlannedIdentity.IsNull() {
+			// Destroying is an operation where we allow identity changes.
+			diags = diags.Append(n.validateIdentityKnown(resp.PlannedIdentity))
+			diags = diags.Append(n.validateIdentity(resp.PlannedIdentity))
 		}
 
 		// We may not have a config for all destroys, but we want to reference
@@ -480,9 +487,11 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		PrevRunAddr: n.prevRunAddr(ctx),
 		DeposedKey:  deposedKey,
 		Change: plans.Change{
-			Action: plans.Delete,
-			Before: currentState.Value,
-			After:  nullVal,
+			Action:         plans.Delete,
+			Before:         currentState.Value,
+			BeforeIdentity: currentState.Identity,
+			After:          nullVal,
+			AfterIdentity:  resp.PlannedIdentity,
 		},
 		Private:      resp.PlannedPrivate,
 		ProviderAddr: n.ResolvedProvider,
@@ -639,6 +648,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 			Private:            state.Private,
 			ProviderMeta:       metaConfigVal,
 			ClientCapabilities: ctx.ClientCapabilities(),
+			CurrentIdentity:    state.Identity,
 		})
 
 		// If we don't support deferrals, but the provider reports a deferral and does not
@@ -647,6 +657,11 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 			diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
 		}
 
+		if !resp.Identity.IsNull() {
+			diags = diags.Append(n.validateIdentityKnown(resp.Identity))
+			diags = diags.Append(n.validateIdentity(resp.Identity))
+			diags = diags.Append(n.validateIdentityDidNotChange(state, resp.Identity))
+		}
 		if resp.Deferred != nil {
 			deferred = resp.Deferred
 		}
@@ -711,8 +726,6 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 	if writeOnlyDiags.HasErrors() {
 		return state, deferred, diags
 	}
-
-	diags = diags.Append(n.validateIdentity(state, resp.Identity, false))
 	if diags.HasErrors() {
 		return state, deferred, diags
 	}
@@ -844,10 +857,12 @@ func (n *NodeAbstractResourceInstance) plan(
 	var priorVal cty.Value
 	var priorValTainted cty.Value
 	var priorPrivate []byte
+	var priorIdentity cty.Value
 	if currentState != nil {
 		if currentState.Status != states.ObjectTainted {
 			priorVal = currentState.Value
 			priorPrivate = currentState.Private
+			priorIdentity = currentState.Identity
 		} else {
 			// If the prior state is tainted then we'll proceed below like
 			// we're creating an entirely new object, but then turn it into
@@ -947,6 +962,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			PriorPrivate:       priorPrivate,
 			ProviderMeta:       metaConfigVal,
 			ClientCapabilities: ctx.ClientCapabilities(),
+			PriorIdentity:      priorIdentity,
 		})
 		// If we don't support deferrals, but the provider reports a deferral and does not
 		// emit any error level diagnostics, we should emit an error.
@@ -966,6 +982,7 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	plannedNewVal := resp.PlannedState
 	plannedPrivate := resp.PlannedPrivate
+	plannedIdentity := resp.PlannedIdentity
 
 	// These checks are only relevant if the provider is not deferring the
 	// change.
@@ -1091,6 +1108,21 @@ func (n *NodeAbstractResourceInstance) plan(
 	woPathSet := cty.NewPathSet(writeOnlyPaths...)
 	action, actionReason := getAction(n.Addr, unmarkedPriorVal, unmarkedPlannedNewVal, createBeforeDestroy, woPathSet, forceReplace, reqRep)
 
+	if !plannedIdentity.IsNull() {
+		if !action.IsReplace() && action != plans.Create {
+			diags = diags.Append(n.validateIdentityKnown(plannedIdentity))
+			// If the identity is not known we can not validate it did not change
+			if !diags.HasErrors() {
+				diags = diags.Append(n.validateIdentityDidNotChange(currentState, plannedIdentity))
+			}
+		}
+
+		diags = diags.Append(n.validateIdentity(plannedIdentity))
+	}
+	if diags.HasErrors() {
+		return nil, nil, deferred, keyData, diags
+	}
+
 	if action.IsReplace() {
 		// In this strange situation we want to produce a change object that
 		// shows our real prior object but has a _new_ object that is built
@@ -1136,12 +1168,18 @@ func (n *NodeAbstractResourceInstance) plan(
 				PriorPrivate:       plannedPrivate,
 				ProviderMeta:       metaConfigVal,
 				ClientCapabilities: ctx.ClientCapabilities(),
+				PriorIdentity:      plannedIdentity,
 			})
 
 			// If we don't support deferrals, but the provider reports a deferral and does not
 			// emit any error level diagnostics, we should emit an error.
 			if resp.Deferred != nil && !deferralAllowed && !resp.Diagnostics.HasErrors() {
 				diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
+			}
+
+			if !resp.PlannedIdentity.IsNull() {
+				// On replace the identity is allowed to change and be unknown.
+				diags = diags.Append(n.validateIdentity(resp.PlannedIdentity))
 			}
 		}
 		// We need to tread carefully here, since if there are any warnings
@@ -1160,6 +1198,7 @@ func (n *NodeAbstractResourceInstance) plan(
 
 		plannedNewVal = resp.PlannedState
 		plannedPrivate = resp.PlannedPrivate
+		plannedIdentity = resp.PlannedIdentity
 
 		if len(unmarkedPaths) > 0 {
 			plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
@@ -1253,12 +1292,14 @@ func (n *NodeAbstractResourceInstance) plan(
 		Private:      plannedPrivate,
 		ProviderAddr: n.ResolvedProvider,
 		Change: plans.Change{
-			Action: action,
-			Before: priorVal,
+			Action:         action,
+			Before:         priorVal,
+			BeforeIdentity: priorIdentity,
 			// Pass the marked planned value through in our change
 			// to propogate through evaluation.
 			// Marks will be removed when encoding.
 			After:           plannedNewVal,
+			AfterIdentity:   plannedIdentity,
 			GeneratedConfig: n.generatedConfigHCL,
 		},
 		ActionReason:    actionReason,
@@ -1273,9 +1314,10 @@ func (n *NodeAbstractResourceInstance) plan(
 		// must _also_ record the returned change in the active plan,
 		// which the expression evaluator will use in preference to this
 		// incomplete value recorded in the state.
-		Status:  states.ObjectPlanned,
-		Value:   plannedNewVal,
-		Private: plannedPrivate,
+		Status:   states.ObjectPlanned,
+		Value:    plannedNewVal,
+		Private:  plannedPrivate,
+		Identity: resp.PlannedIdentity,
 	}
 
 	return plan, state, deferred, keyData, diags
@@ -2583,13 +2625,22 @@ func (n *NodeAbstractResourceInstance) apply(
 		}
 	} else {
 		resp = provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
-			TypeName:       n.Addr.Resource.Resource.Type,
-			PriorState:     unmarkedBefore,
-			Config:         unmarkedConfigVal,
-			PlannedState:   unmarkedAfter,
-			PlannedPrivate: change.Private,
-			ProviderMeta:   metaConfigVal,
+			TypeName:        n.Addr.Resource.Resource.Type,
+			PriorState:      unmarkedBefore,
+			Config:          unmarkedConfigVal,
+			PlannedState:    unmarkedAfter,
+			PlannedPrivate:  change.Private,
+			ProviderMeta:    metaConfigVal,
+			PlannedIdentity: change.AfterIdentity,
 		})
+
+		if !resp.NewIdentity.IsNull() {
+			diags = diags.Append(n.validateIdentityKnown(resp.NewIdentity))
+			diags = diags.Append(n.validateIdentity(resp.NewIdentity))
+			if !change.Action.IsReplace() {
+				diags = diags.Append(n.validateIdentityDidNotChange(state, resp.NewIdentity))
+			}
+		}
 	}
 	applyDiags := resp.Diagnostics
 	if applyConfig != nil {
@@ -2825,6 +2876,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			Value:               newVal,
 			Private:             resp.Private,
 			CreateBeforeDestroy: createBeforeDestroy,
+			Identity:            resp.NewIdentity,
 		}
 		return newState, diags
 
@@ -2838,39 +2890,43 @@ func (n *NodeAbstractResourceInstance) prevRunAddr(ctx EvalContext) addrs.AbsRes
 	return resourceInstancePrevRunAddr(ctx, n.Addr)
 }
 
-func (n *NodeAbstractResourceInstance) validateIdentity(state *states.ResourceInstanceObject, newIdentity cty.Value, isAllowedToChange bool) (diags tfdiags.Diagnostics) {
-
-	// Identities can not contain unknown values
+func (n *NodeAbstractResourceInstance) validateIdentityKnown(newIdentity cty.Value) (diags tfdiags.Diagnostics) {
 	if !newIdentity.IsWhollyKnown() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Provider produced invalid identity",
 			fmt.Sprintf(
-				"Provider %q planned an identity with unknown values for %s during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				"Provider %q returned an identity with unknown values for %s. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
 				n.ResolvedProvider.Provider, n.Addr,
 			),
 		))
 	}
 
-	// Identities can not contain marks
+	return diags
+}
+
+func (n *NodeAbstractResourceInstance) validateIdentityDidNotChange(state *states.ResourceInstanceObject, newIdentity cty.Value) (diags tfdiags.Diagnostics) {
+	if state != nil && !state.Identity.IsNull() && state.Identity.Equals(newIdentity).False() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced different identity",
+			fmt.Sprintf(
+				"Provider %q returned a different identity for %s than the previously stored one. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.Provider, n.Addr,
+			),
+		))
+	}
+
+	return diags
+}
+
+func (n *NodeAbstractResourceInstance) validateIdentity(newIdentity cty.Value) (diags tfdiags.Diagnostics) {
 	if _, marks := newIdentity.UnmarkDeep(); len(marks) > 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Provider produced invalid identity",
 			fmt.Sprintf(
-				"Provider %q planned an identity with marks for %s during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider.Provider, n.Addr,
-			),
-		))
-	}
-
-	// Identities can not change (except if they are re-created or initially recorded)
-	if !isAllowedToChange && !state.Identity.IsNull() && state.Identity.Equals(newIdentity).False() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider produced different identity",
-			fmt.Sprintf(
-				"Provider %q planned an different identity for %s during refresh. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				"Provider %q returned an identity with marks for %s. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
 				n.ResolvedProvider.Provider, n.Addr,
 			),
 		))

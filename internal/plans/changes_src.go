@@ -122,7 +122,7 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 			return nil, fmt.Errorf("ChangesSrc.Decode: missing schema for %s", rcs.Addr)
 		}
 
-		rc, err := rcs.Decode(schema.Body.ImpliedType())
+		rc, err := rcs.Decode(schema)
 		if err != nil {
 			return nil, err
 		}
@@ -232,8 +232,8 @@ func (rcs *ResourceInstanceChangeSrc) ObjectAddr() addrs.AbsResourceInstanceObje
 // Decode unmarshals the raw representation of the instance object being
 // changed. Pass the implied type of the corresponding resource type schema
 // for correct operation.
-func (rcs *ResourceInstanceChangeSrc) Decode(ty cty.Type) (*ResourceInstanceChange, error) {
-	change, err := rcs.ChangeSrc.Decode(ty)
+func (rcs *ResourceInstanceChangeSrc) Decode(schema providers.Schema) (*ResourceInstanceChange, error) {
+	change, err := rcs.ChangeSrc.Decode(&schema)
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +309,7 @@ type OutputChangeSrc struct {
 // Decode unmarshals the raw representation of the output value being
 // changed.
 func (ocs *OutputChangeSrc) Decode() (*OutputChange, error) {
-	change, err := ocs.ChangeSrc.Decode(cty.DynamicPseudoType)
+	change, err := ocs.ChangeSrc.Decode(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -380,6 +380,11 @@ type ChangeSrc struct {
 	// storage.
 	Before, After DynamicValue
 
+	// BeforeIdentity and AfterIdentity correspond to the fields of the same name in Change,
+	// but have not yet been decoded from the serialized value used for
+	// storage.
+	BeforeIdentity, AfterIdentity DynamicValue
+
 	// BeforeSensitivePaths and AfterSensitivePaths are the paths for any
 	// values in Before or After (respectively) that are considered to be
 	// sensitive. The sensitive marks are removed from the in-memory values
@@ -409,15 +414,31 @@ type ChangeSrc struct {
 // Where a ChangeSrc is embedded in some other struct, it's generally better
 // to call the corresponding Decode method of that struct rather than working
 // directly with its embedded Change.
-func (cs *ChangeSrc) Decode(ty cty.Type) (*Change, error) {
+func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
 	var err error
+
+	ty := cty.DynamicPseudoType
+	identityType := cty.DynamicPseudoType
+	if schema != nil {
+		ty = schema.Body.ImpliedType()
+		identityType = schema.Identity.ImpliedType()
+	}
+
 	before := cty.NullVal(ty)
+	beforeIdentity := cty.NullVal(identityType)
 	after := cty.NullVal(ty)
+	afterIdentity := cty.NullVal(identityType)
 
 	if len(cs.Before) > 0 {
 		before, err = cs.Before.Decode(ty)
 		if err != nil {
 			return nil, fmt.Errorf("error decoding 'before' value: %s", err)
+		}
+	}
+	if len(cs.BeforeIdentity) > 0 {
+		beforeIdentity, err = cs.BeforeIdentity.Decode(identityType)
+		if err != nil {
+			return nil, fmt.Errorf("error decoding 'beforeIdentity' value: %s", err)
 		}
 	}
 	if len(cs.After) > 0 {
@@ -426,11 +447,19 @@ func (cs *ChangeSrc) Decode(ty cty.Type) (*Change, error) {
 			return nil, fmt.Errorf("error decoding 'after' value: %s", err)
 		}
 	}
+	if len(cs.AfterIdentity) > 0 {
+		afterIdentity, err = cs.AfterIdentity.Decode(identityType)
+		if err != nil {
+			return nil, fmt.Errorf("error decoding 'afterIdentity' value: %s", err)
+		}
+	}
 
 	return &Change{
 		Action:          cs.Action,
 		Before:          marks.MarkPaths(before, marks.Sensitive, cs.BeforeSensitivePaths),
+		BeforeIdentity:  beforeIdentity,
 		After:           marks.MarkPaths(after, marks.Sensitive, cs.AfterSensitivePaths),
+		AfterIdentity:   afterIdentity,
 		Importing:       cs.Importing.Decode(),
 		GeneratedConfig: cs.GeneratedConfig,
 	}, nil

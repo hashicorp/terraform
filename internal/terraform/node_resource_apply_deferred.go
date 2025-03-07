@@ -29,7 +29,12 @@ type nodeApplyableDeferredInstance struct {
 
 func (n *nodeApplyableDeferredInstance) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	change, err := n.ChangeSrc.Decode(n.Schema.ImpliedType())
+	if n.Schema == nil {
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode", "Terraform failed to decode a deferred change due to the schema not being present. This is a bug in Terraform; please report it!"))
+		return diags
+	}
+
+	change, err := n.ChangeSrc.Decode(*n.Schema)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode ", fmt.Sprintf("Terraform failed to decode a deferred change: %v\n\nThis is a bug in Terraform; please report it!", err)))
 	}
@@ -55,7 +60,12 @@ type nodeApplyableDeferredPartialInstance struct {
 
 func (n *nodeApplyableDeferredPartialInstance) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	change, err := n.ChangeSrc.Decode(n.Schema.ImpliedType())
+	if n.Schema == nil {
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode", "Terraform failed to decode a deferred change due to the schema not being present. This is a bug in Terraform; please report it!"))
+		return diags
+	}
+
+	change, err := n.ChangeSrc.Decode(*n.Schema)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode ", fmt.Sprintf("Terraform failed to decode a deferred change: %v\n\nThis is a bug in Terraform; please report it!", err)))
 	}
