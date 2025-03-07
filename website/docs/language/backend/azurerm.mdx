@@ -312,7 +312,7 @@ terraform {
 
 This method requires a valid Azure Active Directory principal and is a fallback for when Azure Active Directory authentication cannot be used on the storage account data plane.
 
-This method queries the management plane to get the storage account Access Key and then uses that Access Key to authenticate to the storage account data plane. As such it required elevated permissions on the storage account.
+This method queries the management plane to get the storage account Access Key and then uses that Access Key to authenticate to the storage account data plane. As such it requires elevated permissions on the storage account.
 
 This method is retained for backwards compatibility, but we do not recommend it for new workloads.
 
@@ -328,6 +328,8 @@ The following inputs are always required for this method:
 - `key` - The name of the blob within the storage account container that the state file will be stored in.
 
 ### Optional Inputs
+
+These optional inputs apply when [looking up the data plane URI](#data-plane-uri) from the management plane. They are not required when the data plane URI can be inferred from the `storage_account_name` and `container_name`.
 
 - `lookup_blob_endpoint` - Set to `true` to lookup the storage account data plane URI from the management plane. This is required if you are using the 'Azure DNS zone endpoints' feature. Defaults to `false`. This value can also be sourced from the `ARM_USE_DNS_ZONE_ENDPOINT` environment variable.
 
