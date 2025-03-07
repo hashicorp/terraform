@@ -841,10 +841,20 @@ resource "test_resource" "c" {
 		for name, attrs := range wantResourceAttrs {
 			addr := mustResourceInstanceAddr(fmt.Sprintf("test_resource.%s", name))
 			r := state.ResourceInstance(addr)
-			rd, err := r.Current.Decode(cty.Object(map[string]cty.Type{
-				"value":  cty.String,
-				"output": cty.String,
-			}))
+			schema := providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"value": {
+							Type: cty.String,
+						},
+						"output": {
+							Type: cty.String,
+						},
+					},
+				},
+				Version: 0,
+			}
+			rd, err := r.Current.Decode(schema)
 			if err != nil {
 				t.Fatalf("error decoding test_resource.a: %s", err)
 			}
@@ -902,10 +912,20 @@ resource "test_resource" "c" {
 		for name, attrs := range wantResourceAttrs {
 			addr := mustResourceInstanceAddr(fmt.Sprintf("test_resource.%s", name))
 			r := state.ResourceInstance(addr)
-			rd, err := r.Current.Decode(cty.Object(map[string]cty.Type{
-				"value":  cty.String,
-				"output": cty.String,
-			}))
+			schema := providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"value": {
+							Type: cty.String,
+						},
+						"output": {
+							Type: cty.String,
+						},
+					},
+				},
+				Version: 0,
+			}
+			rd, err := r.Current.Decode(schema)
 			if err != nil {
 				t.Fatalf("error decoding test_resource.a: %s", err)
 			}

@@ -43,8 +43,8 @@ func TestContext2Refresh(t *testing.T) {
 		},
 	})
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
-	ty := schema.ImpliedType()
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"]
+	ty := schema.Body.ImpliedType()
 	readState, err := hcl2shim.HCL2ValueFromFlatmap(map[string]string{"id": "foo", "foo": "baz"}, ty)
 	if err != nil {
 		t.Fatal(err)
@@ -64,12 +64,12 @@ func TestContext2Refresh(t *testing.T) {
 	}
 
 	mod := s.RootModule()
-	fromState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.Decode(ty)
+	fromState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.Decode(schema)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	newState, err := schema.CoerceValue(fromState.Value)
+	newState, err := schema.Body.CoerceValue(fromState.Value)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,9 +130,7 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 		},
 	})
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["test_instance"].Body
-	ty := schema.ImpliedType()
-
+	schema := p.GetProviderSchemaResponse.ResourceTypes["test_instance"]
 	s, diags := ctx.Refresh(m, startingState, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
@@ -143,7 +141,7 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 	}
 
 	mod := s.RootModule()
-	newState, err := mod.Resources["test_instance.foo"].Instances[addrs.NoKey].Current.Decode(ty)
+	newState, err := mod.Resources["test_instance.foo"].Instances[addrs.NoKey].Current.Decode(schema)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -807,10 +805,8 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 		},
 	})
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body
-	ty := schema.ImpliedType()
-
-	readStateVal, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"]
+	readStateVal, err := schema.Body.CoerceValue(cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("foo"),
 	}))
 	if err != nil {
@@ -831,7 +827,7 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 	}
 
 	mod := s.RootModule()
-	newState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.Decode(ty)
+	newState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.Decode(schema)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -889,11 +885,13 @@ func TestContext2Refresh_dataCount(t *testing.T) {
 func TestContext2Refresh_dataState(t *testing.T) {
 	m := testModule(t, "refresh-data-resource-basic")
 	state := states.NewState()
-	schema := &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"inputs": {
-				Type:     cty.Map(cty.String),
-				Optional: true,
+	schema := providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"inputs": {
+					Type:     cty.Map(cty.String),
+					Optional: true,
+				},
 			},
 		},
 	}
@@ -902,7 +900,7 @@ func TestContext2Refresh_dataState(t *testing.T) {
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{},
 		DataSources: map[string]*configschema.Block{
-			"null_data_source": schema,
+			"null_data_source": schema.Body,
 		},
 	})
 
@@ -934,7 +932,7 @@ func TestContext2Refresh_dataState(t *testing.T) {
 
 	mod := s.RootModule()
 
-	newState, err := mod.Resources["data.null_data_source.testing"].Instances[addrs.NoKey].Current.Decode(schema.ImpliedType())
+	newState, err := mod.Resources["data.null_data_source.testing"].Instances[addrs.NoKey].Current.Decode(schema)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1065,22 +1063,24 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 func TestContext2Refresh_vars(t *testing.T) {
 	p := testProvider("aws")
 
-	schema := &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"ami": {
-				Type:     cty.String,
-				Optional: true,
-			},
-			"id": {
-				Type:     cty.String,
-				Computed: true,
+	schema := providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"ami": {
+					Type:     cty.String,
+					Optional: true,
+				},
+				"id": {
+					Type:     cty.String,
+					Computed: true,
+				},
 			},
 		},
 	}
 
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider:      &configschema.Block{},
-		ResourceTypes: map[string]*configschema.Block{"aws_instance": schema},
+		ResourceTypes: map[string]*configschema.Block{"aws_instance": schema.Body},
 	})
 
 	m := testModule(t, "refresh-vars")
@@ -1094,7 +1094,7 @@ func TestContext2Refresh_vars(t *testing.T) {
 		},
 	})
 
-	readStateVal, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+	readStateVal, err := schema.Body.CoerceValue(cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("foo"),
 	}))
 	if err != nil {
@@ -1122,7 +1122,7 @@ func TestContext2Refresh_vars(t *testing.T) {
 
 	mod := s.RootModule()
 
-	newState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.Decode(schema.ImpliedType())
+	newState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.Decode(schema)
 	if err != nil {
 		t.Fatal(err)
 	}
