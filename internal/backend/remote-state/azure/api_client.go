@@ -64,11 +64,11 @@ func buildClient(ctx context.Context, config BackendConfig) (*Client, error) {
 			return nil, fmt.Errorf("unable to build authorizer for Storage API: %+v", err)
 		}
 	default:
-		// ARM authN is required only when no auth method is specified, which falls back to listing the access key via ARM API.
+		// AAD authentication (ARM scope) is required only when no auth method is specified, which falls back to listing the access key via ARM API.
 		armAuthRequired = true
 	}
 
-	// Besides, ARM authN is required to lookup the blob endpoint.
+	// If `config.LookupBlobEndpoint` is true, we need to authenticate with ARM to lookup the blob endpoint
 	if config.LookupBlobEndpoint {
 		armAuthRequired = true
 	}
@@ -177,7 +177,7 @@ func (c *Client) getBlobClient(ctx context.Context) (bc *blobs.Client, err error
 		return blobsClient, nil
 
 	default:
-		// Neither shared access key nor sas token specified, not using AAD auth either. Calling management plane API to get the key.
+		// Neither shared access key, sas token, or AAD Auth were specified so we have to call the management plane API to get the key.
 		log.Printf("[DEBUG] Building the Blob Client from an Access Key (key is listed using client credentials)")
 		key, err := c.accountDetail.AccountKey(ctx, c.storageAccountsClient)
 		if err != nil {
@@ -252,7 +252,7 @@ func (c *Client) getContainersClient(ctx context.Context) (cc *containers.Client
 		return containersClient, nil
 
 	default:
-		// Neither shared access key nor sas token specified, not using AAD auth either. Calling management plane API to get the key.
+		// Neither shared access key, sas token, or AAD Auth were specified so we have to call the management plane API to get the key.
 		log.Printf("[DEBUG] Building the Container Client from an Access Key (key is listed using user credentials)")
 		key, err := c.accountDetail.AccountKey(ctx, c.storageAccountsClient)
 		if err != nil {

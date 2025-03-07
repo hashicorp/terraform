@@ -53,7 +53,7 @@ func New() backend.Backend {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_DNS_ZONE_ENDPOINT", false),
-				Description: "Whether to look up the storage account blob endpoint, instead of composing the endpoint in a fixed pattern. This is necessary when the storage account uses the Azure DNS zone endpoint.",
+				Description: "Whether to look up the storage account blob endpoint. This is necessary when the storage account uses the Azure DNS zone endpoint.",
 			},
 
 			"snapshot": {
