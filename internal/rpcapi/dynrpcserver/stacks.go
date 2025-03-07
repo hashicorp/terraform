@@ -70,6 +70,14 @@ func (s *Stacks) InspectExpressionResult(a0 context.Context, a1 *stacks.InspectE
 	return impl.InspectExpressionResult(a0, a1)
 }
 
+func (s *Stacks) ListResourceIdentities(a0 context.Context, a1 *stacks.ListResourceIdentities_Request) (*stacks.ListResourceIdentities_Response, error) {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return nil, err
+	}
+	return impl.ListResourceIdentities(a0, a1)
+}
+
 func (s *Stacks) OpenPlan(a0 stacks.Stacks_OpenPlanServer) error {
 	impl, err := s.realRPCServer()
 	if err != nil {
