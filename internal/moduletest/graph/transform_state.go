@@ -147,7 +147,7 @@ func getBackendInstance(stateKey string, config *configs.Backend, f backend.Init
 	return b, nil
 }
 
-func (t *TestConfigTransformer) addRootConfigNode(g *terraform.Graph, statesMap map[string]*TestFileState) *dynamicNode {
+func (t *TestStateTransformer) addRootConfigNode(g *terraform.Graph, statesMap map[string]*TestFileState) *dynamicNode {
 	rootConfigNode := &dynamicNode{
 		eval: func(ctx *EvalContext) tfdiags.Diagnostics {
 			var diags tfdiags.Diagnostics
