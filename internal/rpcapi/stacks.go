@@ -11,6 +11,8 @@ import (
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"go.opentelemetry.io/otel/attribute"
 	otelCodes "go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -764,6 +766,127 @@ func (s *stacksServer) OpenStackInspector(ctx context.Context, req *stacks.OpenS
 		StackInspectorHandle: hnd.ForProtobuf(),
 		// There are currently no situations that return diagnostics, but
 		// we reserve the right to add some later.
+	}, nil
+}
+
+func (s *stacksServer) ListResourceIdentities(ctx context.Context, req *stacks.ListResourceIdentities_Request) (*stacks.ListResourceIdentities_Response, error) {
+	hnd := handle[*stackstate.State](req.StateHandle)
+	stackState := s.handles.StackState(hnd)
+	if stackState == nil {
+		return nil, status.Error(codes.InvalidArgument, "the given stack state handle is invalid")
+	}
+
+	depsHnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
+	var deps *depsfile.Locks
+	if !depsHnd.IsNil() {
+		deps = s.handles.DependencyLocks(depsHnd)
+		if deps == nil {
+			return nil, status.Error(codes.InvalidArgument, "the given dependency locks handle is invalid")
+		}
+	} else {
+		deps = depsfile.NewLocks()
+	}
+	providerCacheHnd := handle[*providercache.Dir](req.ProviderCacheHandle)
+	var providerCache *providercache.Dir
+	if !providerCacheHnd.IsNil() {
+		providerCache = s.handles.ProviderPluginCache(providerCacheHnd)
+		if providerCache == nil {
+			return nil, status.Error(codes.InvalidArgument, "the given provider cache handle is invalid")
+		}
+	}
+	// NOTE: providerCache can be nil if no handle was provided, in which
+	// case the call can only use built-in providers. All code below
+	// must avoid panicking when providerCache is nil, but is allowed to
+	// return an InvalidArgument error in that case.
+	// (providerFactoriesForLocks explicitly supports a nil providerCache)
+	providerFactories, err := providerFactoriesForLocks(deps, providerCache)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+	}
+
+	type CacheResult struct {
+		Schema map[string]providers.IdentitySchema
+		Error  error
+	}
+
+	cachedIdentitySchemas := make(map[addrs.Provider]CacheResult)
+	getIdentitySchemaForResource := func(ri *addrs.AbsResourceInstanceObject) (map[string]providers.IdentitySchema, error) {
+		providerAddrs := addrs.ImpliedProviderForUnqualifiedType(ri.ResourceInstance.Resource.Resource.ImpliedProvider())
+
+		if schema, ok := cachedIdentitySchemas[providerAddrs]; ok {
+			return schema.Schema, schema.Error
+		}
+
+		providerFn, ok := providerFactories[providerAddrs]
+		if !ok {
+			err := status.Errorf(codes.InvalidArgument, "provider %s is not available", providerAddrs)
+			cachedIdentitySchemas[providerAddrs] = CacheResult{Error: err}
+			return nil, err
+		}
+		provider, err := providerFn()
+
+		if err != nil {
+			err := status.Errorf(codes.InvalidArgument, "provider %s failed to initialize: %s", providerAddrs, err)
+			cachedIdentitySchemas[providerAddrs] = CacheResult{Error: err}
+			return nil, err
+		}
+
+		schemas := provider.GetResourceIdentitySchemas()
+		if schemas.Diagnostics.HasErrors() {
+			err := status.Errorf(codes.InvalidArgument, "provider %s failed to get resource identity schemas: %s", providerAddrs, schemas.Diagnostics)
+			cachedIdentitySchemas[providerAddrs] = CacheResult{Error: err}
+			return nil, err
+		}
+		cachedIdentitySchemas[providerAddrs] = CacheResult{Schema: schemas.IdentityTypes}
+
+		return schemas.IdentityTypes, nil
+	}
+
+	resourceIdentities := make([]*stacks.ListResourceIdentities_Resource, 0)
+
+	for ci := range stackState.AllComponentInstances().All() {
+		componentIdentities := stackState.IdentitiesForComponent(ci)
+		for ri, src := range componentIdentities {
+			// We skip resources without identity JSON
+			if len(src.IdentityJSON) == 0 {
+				continue
+			}
+
+			identitySchema, err := getIdentitySchemaForResource(ri)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "failed to get identity schema for resource %s: %s", ri, err)
+			}
+
+			resourceType := ri.ResourceInstance.Resource.Resource.Type
+			x, ok := identitySchema[resourceType]
+			if !ok {
+				return nil, status.Errorf(codes.InvalidArgument, "resource %s could not be found in the identity schema", ri)
+			}
+			if src.IdentitySchemaVersion != uint64(x.Version) {
+				return nil, status.Errorf(codes.InvalidArgument, "resource %s has an invalid identity schema version, please update the provider or refresh the state", ri)
+			}
+			ty := identitySchema[resourceType].Body.ImpliedType()
+
+			identity, err := ctyjson.Unmarshal(src.IdentityJSON, ty)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "failed to unmarshal identity JSON for resource %s: %s", ri, err)
+			}
+
+			identityRaw, err := plans.NewDynamicValue(identity, ty)
+
+			stacksIdentityRaw := stacks.NewDynamicValue(identityRaw, []cty.Path{})
+
+			resourceIdentities = append(resourceIdentities, &stacks.ListResourceIdentities_Resource{
+				ComponentAddr:         ci.Item.Component.String(),
+				ComponentInstanceAddr: ci.Item.String(),
+				ResourceInstanceAddr:  ri.String(),
+				ResourceIdentity:      stacksIdentityRaw,
+			})
+		}
+	}
+
+	return &stacks.ListResourceIdentities_Response{
+		Resource: resourceIdentities,
 	}, nil
 }
 
