@@ -108,7 +108,7 @@ type Interface interface {
 // should only be used when handling a value for that method. The handling of
 // of schemas in any other context should always use ProviderSchema, so that
 // the in-memory representation can be more easily changed separately from the
-// RCP protocol.
+// RPC protocol.
 type GetProviderSchemaResponse struct {
 	// Provider is the schema for the provider itself.
 	Provider Schema
@@ -137,11 +137,11 @@ type GetProviderSchemaResponse struct {
 	ServerCapabilities ServerCapabilities
 }
 
-// GetResourceIdentitySchemasResponse is the return type for GetProviderSchema, and
-// should only be used when handling a value for that method. The handling of
-// of schemas in any other context should always use ProviderSchema, so that
+// GetResourceIdentitySchemasResponse is the return type for GetResourceIdentitySchemas,
+// and should only be used when handling a value for that method. The handling of
+// of schemas in any other context should always use ResourceIdentitySchemas, so that
 // the in-memory representation can be more easily changed separately from the
-// RCP protocol.
+// RPC protocol.
 type GetResourceIdentitySchemasResponse struct {
 	// IdentityTypes map the resource type name to that type's identity schema.
 	IdentityTypes map[string]IdentitySchema
@@ -540,7 +540,7 @@ type ImportResourceStateResponse struct {
 }
 
 // ImportedResource represents an object being imported into Terraform with the
-// help of a provider. An ImportedObject is a RemoteObject that has been read
+// help of a provider. An ImportedResource is a RemoteObject that has been read
 // by the provider's import handler but hasn't yet been committed to state.
 type ImportedResource struct {
 	// TypeName is the name of the resource type associated with the

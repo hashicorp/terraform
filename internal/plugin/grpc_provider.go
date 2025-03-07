@@ -181,9 +181,6 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 }
 
 func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
 	var resp providers.GetResourceIdentitySchemasResponse
 
 	resp.IdentityTypes = make(map[string]providers.IdentitySchema)

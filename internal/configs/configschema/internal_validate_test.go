@@ -352,6 +352,15 @@ func TestObjectInternalValidate(t *testing.T) {
 			},
 			[]string{},
 		},
+		"nil": {
+			&Object{
+				Attributes: map[string]*Attribute{
+					"foo": nil,
+				},
+				Nesting: NestingSingle,
+			},
+			[]string{"foo: attribute schema is nil"},
+		},
 		"attribute with no flags set": {
 			&Object{
 				Attributes: map[string]*Attribute{
