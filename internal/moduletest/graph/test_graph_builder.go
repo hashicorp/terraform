@@ -47,7 +47,9 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 	}
 	steps := []terraform.GraphTransformer{
 		&TestRunTransformer{opts},
-		&TestStateTransformer{File: b.File},
+		// Could setting initial state based on backends be better-implemented as
+		// another transformer?
+		&TestStateTransformer{File: b.File, BackendFactory: opts.ContextOpts.Backends},
 		&TestStateCleanupTransformer{opts},
 		terraform.DynamicTransformer(validateRunConfigs),
 		&TestProvidersTransformer{},
