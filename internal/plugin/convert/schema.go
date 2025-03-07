@@ -209,10 +209,8 @@ func ProtoToIdentitySchema(attributes []*proto.ResourceIdentitySchema_IdentityAt
 			Optional:    a.OptionalForImport,
 		}
 
-		if a.Type != nil {
-			if err := json.Unmarshal(a.Type, &attr.Type); err != nil {
-				panic(err)
-			}
+		if err := json.Unmarshal(a.Type, &attr.Type); err != nil {
+			panic(err)
 		}
 
 		obj.Attributes[a.Name] = attr

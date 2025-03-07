@@ -58,7 +58,7 @@ type ResourceInstanceObject struct {
 }
 
 // NewResourceInstanceObjectFromIR converts the receiving
-// ImportedObject into a ResourceInstanceObject that has status ObjectReady.
+// ImportedResource into a ResourceInstanceObject that has status ObjectReady.
 //
 // The returned object does not know its own resource type, so the caller must
 // retain the ResourceType value from the source object if this information is

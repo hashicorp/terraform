@@ -575,7 +575,8 @@ func (p *provider) UpgradeResourceIdentity(_ context.Context, req *tfplugin5.Upg
 
 	dv, err := encodeDynamicValue(upgradeResp.UpgradedIdentity, ty)
 	if err != nil {
-		return nil, err
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
 	}
 	resp.UpgradedIdentity = &tfplugin5.ResourceIdentityData{
 		IdentityData: dv,

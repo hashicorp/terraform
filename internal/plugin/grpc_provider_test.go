@@ -381,35 +381,80 @@ func TestGRPCProvider_UpgradeResourceStateJSON(t *testing.T) {
 }
 
 func TestGRPCProvider_UpgradeResourceIdentity(t *testing.T) {
-	client := mockProviderClient(t)
-	p := &GRPCProvider{
-		client: client,
+	testCases := []struct {
+		desc          string
+		response      *proto.UpgradeResourceIdentity_Response
+		expectError   bool
+		expectedValue cty.Value
+	}{
+		{
+			"successful upgrade",
+			&proto.UpgradeResourceIdentity_Response{
+				UpgradedIdentity: &proto.ResourceIdentityData{
+					IdentityData: &proto.DynamicValue{
+						Json: []byte(`{"attr":"bar"}`),
+					},
+				},
+			},
+			false,
+			cty.ObjectVal(map[string]cty.Value{"attr": cty.StringVal("bar")}),
+		},
+		{
+			"response with error diagnostic",
+			&proto.UpgradeResourceIdentity_Response{
+				Diagnostics: []*proto.Diagnostic{
+					{
+						Severity: proto.Diagnostic_ERROR,
+						Summary:  "test error",
+						Detail:   "test error detail",
+					},
+				},
+			},
+			true,
+			cty.NilVal,
+		},
+		{
+			"schema mismatch",
+			&proto.UpgradeResourceIdentity_Response{
+				UpgradedIdentity: &proto.ResourceIdentityData{
+					IdentityData: &proto.DynamicValue{
+						Json: []byte(`{"attr_new":"bar"}`),
+					},
+				},
+			},
+			true,
+			cty.NilVal,
+		},
 	}
 
-	client.EXPECT().UpgradeResourceIdentity(
-		gomock.Any(),
-		gomock.Any(),
-	).Return(&proto.UpgradeResourceIdentity_Response{
-		UpgradedIdentity: &proto.ResourceIdentityData{
-			IdentityData: &proto.DynamicValue{
-				Json: []byte(`{"attr":"bar"}`),
-			},
-		},
-	}, nil)
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			client := mockProviderClient(t)
+			p := &GRPCProvider{
+				client: client,
+			}
 
-	resp := p.UpgradeResourceIdentity(providers.UpgradeResourceIdentityRequest{
-		TypeName:        "resource",
-		Version:         0,
-		RawIdentityJSON: []byte(`{"old_attr":"bar"}`),
-	})
-	checkDiags(t, resp.Diagnostics)
+			client.EXPECT().UpgradeResourceIdentity(
+				gomock.Any(),
+				gomock.Any(),
+			).Return(tc.response, nil)
 
-	expected := cty.ObjectVal(map[string]cty.Value{
-		"attr": cty.StringVal("bar"),
-	})
+			resp := p.UpgradeResourceIdentity(providers.UpgradeResourceIdentityRequest{
+				TypeName:        "resource",
+				Version:         0,
+				RawIdentityJSON: []byte(`{"old_attr":"bar"}`),
+			})
 
-	if !cmp.Equal(expected, resp.UpgradedIdentity, typeComparer, valueComparer, equateEmpty) {
-		t.Fatal(cmp.Diff(expected, resp.UpgradedIdentity, typeComparer, valueComparer, equateEmpty))
+			if tc.expectError {
+				checkDiagsHasError(t, resp.Diagnostics)
+			} else {
+				checkDiags(t, resp.Diagnostics)
+
+				if !cmp.Equal(tc.expectedValue, resp.UpgradedIdentity, typeComparer, valueComparer, equateEmpty) {
+					t.Fatal(cmp.Diff(tc.expectedValue, resp.UpgradedIdentity, typeComparer, valueComparer, equateEmpty))
+				}
+			}
+		})
 	}
 }
 
