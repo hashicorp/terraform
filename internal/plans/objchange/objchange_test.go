@@ -954,7 +954,7 @@ func TestProposedNew(t *testing.T) {
 					}),
 					"c": cty.ObjectVal(map[string]cty.Value{
 						"bar": cty.StringVal("bosh"),
-						"baz": cty.NullVal(cty.List(cty.String)),
+						"baz": cty.NullVal(cty.DynamicPseudoType),
 					}),
 				}),
 				"bloop": cty.ObjectVal(map[string]cty.Value{
@@ -1920,7 +1920,7 @@ func TestProposedNew(t *testing.T) {
 							Attributes: map[string]*configschema.Attribute{
 								"map": {
 									NestedType: &configschema.Object{
-										Nesting: configschema.NestingList,
+										Nesting: configschema.NestingMap,
 										Attributes: map[string]*configschema.Attribute{
 											"foo": {
 												Type: cty.String,
@@ -1942,7 +1942,7 @@ func TestProposedNew(t *testing.T) {
 					})),
 				}),
 				"map": cty.Map(cty.Object(map[string]cty.Type{
-					"list": cty.List(cty.Object(map[string]cty.Type{
+					"map": cty.List(cty.Object(map[string]cty.Type{
 						"foo": cty.String,
 					})),
 				})),
@@ -1960,11 +1960,11 @@ func TestProposedNew(t *testing.T) {
 				}),
 				"map": cty.MapVal(map[string]cty.Value{
 					"one": cty.ObjectVal(map[string]cty.Value{
-						"list": cty.ListVal([]cty.Value{
-							cty.ObjectVal(map[string]cty.Value{
+						"map": cty.MapVal(map[string]cty.Value{
+							"one": cty.ObjectVal(map[string]cty.Value{
 								"foo": cty.StringVal("a"),
 							}),
-							cty.ObjectVal(map[string]cty.Value{
+							"two": cty.ObjectVal(map[string]cty.Value{
 								"foo": cty.StringVal("b"),
 							}),
 						}),
@@ -1984,11 +1984,11 @@ func TestProposedNew(t *testing.T) {
 				}),
 				"map": cty.MapVal(map[string]cty.Value{
 					"one": cty.ObjectVal(map[string]cty.Value{
-						"list": cty.ListVal([]cty.Value{
-							cty.ObjectVal(map[string]cty.Value{
+						"map": cty.MapVal(map[string]cty.Value{
+							"one": cty.ObjectVal(map[string]cty.Value{
 								"foo": cty.StringVal("a"),
 							}),
-							cty.ObjectVal(map[string]cty.Value{
+							"two": cty.ObjectVal(map[string]cty.Value{
 								"foo": cty.StringVal("b"),
 							}),
 						}),
