@@ -64,22 +64,6 @@ func ComputedValuesForDataSource(original cty.Value, with *MockedData, schema *c
 	return populateComputedValues(original, *with, schema, isNull)
 }
 
-// PopulateUnknownAndNullValues accepts a target value, and populates its null
-// and computed values with unknown values. This is useful for values that are
-// not yet evaluated, but may now be used for further processing. E.g in case
-// of an excluded resource.
-func PopulateUnknownAndNullValues(original cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
-	with := MockedData{
-		Value:             cty.NilVal,
-		ComputedAsUnknown: true,
-		AcceptDynamic:     true,
-	}
-	isNullOrUnknown := func(target cty.Value) bool {
-		return target.IsNull() || !target.IsKnown()
-	}
-	return populateComputedValues(original, with, schema, isNullOrUnknown)
-}
-
 type processValue func(value cty.Value) bool
 
 type generateValue func(attribute *configschema.Attribute, with cty.Value, path cty.Path) (cty.Value, tfdiags.Diagnostics)
@@ -142,7 +126,7 @@ func populateComputedValues(target cty.Value, with MockedData, schema *configsch
 		}
 
 		// Now, we check if we should be replacing this value with something.
-		if (attribute.Computed || with.AcceptDynamic) && processValue(target) {
+		if attribute.Computed && processValue(target) {
 
 			// Get the value we should be replacing target with.
 			data, dataDiags := with.getMockedDataForPath(path)
@@ -205,7 +189,6 @@ type MockedData struct {
 	Value             cty.Value
 	Range             hcl.Range
 	ComputedAsUnknown bool // If true, computed values are replaced with unknown, otherwise they are replaced with overridden or generated values.
-	AcceptDynamic     bool // If true, dynamic values are accepted, otherwise they are replaced with overridden or generated values.
 }
 
 // NewMockedData creates a new MockedData struct with the given value and range.

@@ -49,7 +49,7 @@ func TestNodeApplyableProviderExecute(t *testing.T) {
 	n := &NodeApplyableProvider{&NodeAbstractProvider{
 		Addr:   providerAddr,
 		Config: config,
-	}, Excluded{}}
+	}}
 
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	ctx.installSimpleEval()
@@ -96,7 +96,7 @@ func TestNodeApplyableProviderExecute_unknownImport(t *testing.T) {
 	n := &NodeApplyableProvider{&NodeAbstractProvider{
 		Addr:   providerAddr,
 		Config: config,
-	}, Excluded{}}
+	}}
 
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	ctx.installSimpleEval()
@@ -131,7 +131,7 @@ func TestNodeApplyableProviderExecute_unknownApply(t *testing.T) {
 	n := &NodeApplyableProvider{&NodeAbstractProvider{
 		Addr:   providerAddr,
 		Config: config,
-	}, Excluded{}}
+	}}
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	ctx.installSimpleEval()
 
@@ -168,7 +168,7 @@ func TestNodeApplyableProviderExecute_sensitive(t *testing.T) {
 	n := &NodeApplyableProvider{&NodeAbstractProvider{
 		Addr:   providerAddr,
 		Config: config,
-	}, Excluded{}}
+	}}
 
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	ctx.installSimpleEval()
@@ -205,7 +205,7 @@ func TestNodeApplyableProviderExecute_sensitiveValidate(t *testing.T) {
 	n := &NodeApplyableProvider{&NodeAbstractProvider{
 		Addr:   providerAddr,
 		Config: config,
-	}, Excluded{}}
+	}}
 
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	ctx.installSimpleEval()
@@ -247,7 +247,7 @@ func TestNodeApplyableProviderExecute_emptyValidate(t *testing.T) {
 	n := &NodeApplyableProvider{&NodeAbstractProvider{
 		Addr:   providerAddr,
 		Config: config,
-	}, Excluded{}}
+	}}
 
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	ctx.installSimpleEval()

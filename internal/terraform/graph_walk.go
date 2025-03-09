@@ -15,6 +15,7 @@ type GraphWalker interface {
 	enterScope(evalContextScope) EvalContext
 	exitScope(evalContextScope)
 	Execute(EvalContext, GraphNodeExecutable) tfdiags.Diagnostics
+	Validate(EvalContext, GraphNodeValidate) tfdiags.Diagnostics
 	TargetAddrs() addrs.Set[addrs.Targetable]
 	ExcludedAddrs() addrs.Set[addrs.Targetable]
 }
@@ -28,5 +29,6 @@ func (NullGraphWalker) EvalContext() EvalContext                                
 func (NullGraphWalker) enterScope(evalContextScope) EvalContext                      { return new(MockEvalContext) }
 func (NullGraphWalker) exitScope(evalContextScope)                                   {}
 func (NullGraphWalker) Execute(EvalContext, GraphNodeExecutable) tfdiags.Diagnostics { return nil }
+func (NullGraphWalker) Validate(EvalContext, GraphNodeValidate) tfdiags.Diagnostics  { return nil }
 func (NullGraphWalker) TargetAddrs() addrs.Set[addrs.Targetable]                     { return nil }
 func (NullGraphWalker) ExcludedAddrs() addrs.Set[addrs.Targetable]                   { return nil }

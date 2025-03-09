@@ -141,6 +141,12 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 	}
 }
 
+func (n *NodeDestroyResourceInstance) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	return (&NodeValidatableResource{
+		NodeAbstractResource: &n.NodeAbstractResource,
+	}).Execute(ctx, op)
+}
+
 func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 

@@ -129,6 +129,12 @@ func (n *nodePlannablePartialExpandedResource) Execute(ctx EvalContext, op walkO
 	return diags
 }
 
+func (n *nodePlannablePartialExpandedResource) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	return (&NodeValidatableResource{
+		NodeAbstractResource: NewNodeAbstractResource(n.addr.UnknownResourceInstance().ConfigResource()),
+	}).Execute(ctx, op)
+}
+
 // Logic here mirrors (*NodePlannableResourceInstance).managedResourceExecute.
 func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalContext) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics

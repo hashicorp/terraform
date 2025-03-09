@@ -86,3 +86,9 @@ func (n *NodeForgetResourceInstance) Execute(ctx EvalContext, op walkOperation) 
 	diags = diags.Append(updateStateHook(ctx))
 	return diags
 }
+
+func (n *NodeForgetResourceInstance) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	return (&NodeValidatableResource{
+		NodeAbstractResource: &n.NodeAbstractResource,
+	}).Execute(ctx, op)
+}

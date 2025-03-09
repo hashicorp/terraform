@@ -168,6 +168,10 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 
 }
 
+func (n *nodeExpandModule) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	return (&nodeValidateModule{*n}).Execute(ctx, op)
+}
+
 // nodeCloseModule represents an expanded module during apply, and is visited
 // after all other module instance nodes. This node will depend on all module
 // instance resource and outputs, and anything depending on the module should

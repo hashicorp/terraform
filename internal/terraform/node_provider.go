@@ -18,7 +18,6 @@ import (
 // NodeApplyableProvider represents a provider during an apply.
 type NodeApplyableProvider struct {
 	*NodeAbstractProvider
-	Excluded
 }
 
 var (

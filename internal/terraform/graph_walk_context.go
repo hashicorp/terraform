@@ -169,6 +169,12 @@ func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfd
 	return n.Execute(ctx, w.Operation)
 }
 
+func (w *ContextGraphWalker) Validate(ctx EvalContext, n GraphNodeValidate) tfdiags.Diagnostics {
+	// No need to acquire a lock on the semaphore here, as validation
+	// is offline.
+	return n.Validate(ctx, w.Operation)
+}
+
 func (w *ContextGraphWalker) TargetAddrs() addrs.Set[addrs.Targetable] {
 	return w.targets
 }

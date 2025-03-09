@@ -186,8 +186,6 @@ type nodeModuleVariable struct {
 	// DestroyApply must be set to true when applying a destroy operation and
 	// false otherwise.
 	DestroyApply bool
-
-	Excluded
 }
 
 // Ensure that we are implementing all of the interfaces we think we are
@@ -245,6 +243,20 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 	// Custom validation rules are handled by a separate graph node of type
 	// nodeVariableValidation, added by variableValidationTransformer.
 
+	return diags
+}
+
+func (n *nodeModuleVariable) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	val, err := n.evalModuleVariable(ctx, false)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// Set values for arguments of a child module call, for later retrieval
+	// during expression evaluation.
+	ctx.NamedValues().SetInputVariableValue(n.Addr, val)
 	return diags
 }
 

@@ -49,6 +49,11 @@ func (n *nodeExpandApplyableResource) Name() string {
 	return n.NodeAbstractResource.Name() + " (expand)"
 }
 
+// Path implements graphNodeEvalContextScope.
+func (n *nodeExpandApplyableResource) Path() evalContextScope {
+	return evalContextModuleInstance{Addr: n.Addr.Module.UnkeyedInstanceShim()}
+}
+
 func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	if n.Addr.Resource.Mode == addrs.EphemeralResourceMode {
 		return n.dynamicExpandEphemeral(ctx)
@@ -64,6 +69,12 @@ func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	}
 
 	return nil, diags
+}
+
+func (n *nodeExpandApplyableResource) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	return (&NodeValidatableResource{
+		NodeAbstractResource: n.NodeAbstractResource,
+	}).Execute(ctx, op)
 }
 
 // We need to expand the ephemeral resources mostly the same as we do during
