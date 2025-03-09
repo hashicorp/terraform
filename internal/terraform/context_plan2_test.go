@@ -6352,3 +6352,109 @@ resource "test_object" "a" {
 		t.Fatalf("resource before value not refreshed in plan: %#v\n", change.Before)
 	}
 }
+
+func TestContext2Plan_dataResourceNestedUnknown(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "create" {
+}
+
+data "test_data_source" "foo" {
+  nested_map = {
+    "key1" : {
+      required_attr = test_resource.create.id
+    }
+  }
+  nested_obj = {
+    required_attr = test_resource.create.id
+  }
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			"test_data_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"nested_map": &configschema.Attribute{
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingMap,
+							Attributes: map[string]*configschema.Attribute{
+								"required_attr": {
+									Type:     cty.String,
+									Required: true,
+								},
+								"computed_attr": {
+									Type:     cty.String,
+									Computed: true,
+								},
+							},
+						},
+					},
+					"nested_obj": &configschema.Attribute{
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"required_attr": {
+									Type:     cty.String,
+									Required: true,
+								},
+								"computed_attr": {
+									Type:     cty.String,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	dataSchemaType := p.GetProviderSchemaResponse.DataSources["test_data_source"].Body.ImpliedType()
+	after, err := plan.Changes.ResourceInstance(mustResourceInstanceAddr("data.test_data_source.foo")).After.Decode(dataSchemaType)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// any computed attributes within configured objects should be unknown
+	expected := cty.ObjectVal(map[string]cty.Value{
+		"nested_map": cty.MapVal(map[string]cty.Value{
+			"key1": cty.ObjectVal(map[string]cty.Value{
+				"required_attr": cty.UnknownVal(cty.String),
+				"computed_attr": cty.UnknownVal(cty.String),
+			}),
+		}),
+		"nested_obj": cty.ObjectVal(map[string]cty.Value{
+			"required_attr": cty.UnknownVal(cty.String),
+			"computed_attr": cty.UnknownVal(cty.String),
+		}),
+	})
+
+	if !after.RawEquals(expected) {
+		t.Fatalf("\nexpected plan: %#v\n  actual plan: %#v\n", expected, after)
+
+	}
+}
