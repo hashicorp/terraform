@@ -21,13 +21,16 @@ The Terraform language uses the following types for its values:
   numbers like `15` and fractional values like `6.283185`.
 * `bool`: a boolean value, either `true` or `false`. `bool` values can be used in conditional
   logic.
-* `list` (or `tuple`): a sequence of values, like
-  `["us-west-1a", "us-west-1c"]`. Elements in a list or tuple are identified by
-  consecutive whole numbers, starting with zero.
+* `list` (or `tuple`): a sequence of values, like `["us-west-1a", "us-west-1c"]`. Identify elements in a list with consecutive whole numbers, starting with zero.
+* `set`: a collection of unique values that do not have any secondary identifiers or ordering.
 * `map` (or `object`): a group of values identified by named labels, like
   `{name = "Mabel", age = 52}`.
 
-Strings, numbers, and bools are sometimes called _primitive types._ Lists/tuples and maps/objects are sometimes called _complex types,_ _structural types,_ or _collection types._
+Strings, numbers, and bools are sometimes called _primitive types._
+Lists/tuples and maps/objects are sometimes called _complex types,_ _structural
+types,_ or _collection types._ See
+[Type Constraints](/terraform/language/expressions/type-constraints) for a more detailed
+description of complex types.
 
 Finally, there is one special value that has _no_ type:
 
@@ -76,6 +79,41 @@ comma-separated sequence of values, like `["a", 15, true]`.
 List literals can be split into multiple lines for readability, but always
 require a comma between values. A comma after the final value is allowed,
 but not required. Values in a list can be arbitrary expressions.
+
+Lists and tuples each have different constraints on the types they allow. For more information on the types that each allows, refer to [tuples](/terraform/language/expressions/type-constraints#tuple) and [lists](/terraform/language/expressions/type-constraints#list).
+
+### Sets
+
+Terraform does not support directly accessing elements of a set by index because sets are unordered collections. To access elements in a set by index, first convert the set to a list.
+
+
+1. Define a set. The following example specifies a set name `example_set`:
+
+    ```hcl
+    variable "example_set" {
+      type    = set(string)
+      default = ["foo", "bar"]
+    }
+    ```
+
+1. Use the `tolist` function to convert the set to a list. The following example stores the converted list as a local variable called `example_list`: 
+
+    ```hcl
+    locals {
+      example_list = tolist(var.example_set)
+    }
+    ```
+
+1. You can then reference an element in the list:
+
+    ```hcl
+    output "first_element" {
+      value = local.example_list[0]
+    }
+    output "second_element" {
+      value = local.example_list[1]
+    }
+    ```
 
 ### Maps/Objects
 

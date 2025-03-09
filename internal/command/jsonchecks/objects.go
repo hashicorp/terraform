@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonchecks
 
 import (
@@ -45,6 +48,28 @@ func makeStaticObjectAddr(addr addrs.ConfigCheckable) staticObjectAddr {
 		if !addr.Module.IsRoot() {
 			ret["module"] = addr.Module.String()
 		}
+	case addrs.ConfigCheck:
+		if kind := addr.CheckableKind(); kind != addrs.CheckableCheck {
+			// Something has gone very wrong
+			panic(fmt.Sprintf("%T has CheckableKind %s", addr, kind))
+		}
+
+		ret["kind"] = "check"
+		ret["name"] = addr.Check.Name
+		if !addr.Module.IsRoot() {
+			ret["module"] = addr.Module.String()
+		}
+	case addrs.ConfigInputVariable:
+		if kind := addr.CheckableKind(); kind != addrs.CheckableInputVariable {
+			// Something has gone very wrong
+			panic(fmt.Sprintf("%T has CheckableKind %s", addr, kind))
+		}
+
+		ret["kind"] = "var"
+		ret["name"] = addr.Variable.Name
+		if !addr.Module.IsRoot() {
+			ret["module"] = addr.Module.String()
+		}
 	default:
 		panic(fmt.Sprintf("unsupported ConfigCheckable implementation %T", addr))
 	}
@@ -68,6 +93,14 @@ func makeDynamicObjectAddr(addr addrs.Checkable) dynamicObjectAddr {
 			ret["instance_key"] = addr.Resource.Key
 		}
 	case addrs.AbsOutputValue:
+		if !addr.Module.IsRoot() {
+			ret["module"] = addr.Module.String()
+		}
+	case addrs.AbsCheck:
+		if !addr.Module.IsRoot() {
+			ret["module"] = addr.Module.String()
+		}
+	case addrs.AbsInputVariableInstance:
 		if !addr.Module.IsRoot() {
 			ret["module"] = addr.Module.String()
 		}

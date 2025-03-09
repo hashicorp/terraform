@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package experiments
 
 // Experiment represents a particular experiment, which can be activated
@@ -14,19 +17,27 @@ type Experiment string
 // identifier so that it can be specified in configuration.
 const (
 	VariableValidation             = Experiment("variable_validation")
+	VariableValidationCrossRef     = Experiment("variable_validation_crossref")
 	ModuleVariableOptionalAttrs    = Experiment("module_variable_optional_attrs")
 	SuppressProviderSensitiveAttrs = Experiment("provider_sensitive_attrs")
+	TemplateStringFunc             = Experiment("template_string_func")
 	ConfigDrivenMove               = Experiment("config_driven_move")
 	PreconditionsPostconditions    = Experiment("preconditions_postconditions")
+	EphemeralValues                = Experiment("ephemeral_values")
+	UnknownInstances               = Experiment("unknown_instances")
 )
 
 func init() {
 	// Each experiment constant defined above must be registered here as either
 	// a current or a concluded experiment.
+	registerConcludedExperiment(UnknownInstances, "Unknown instances are being rolled into a larger feature for deferring unready resources and modules.")
 	registerConcludedExperiment(VariableValidation, "Custom variable validation can now be used by default, without enabling an experiment.")
+	registerConcludedExperiment(VariableValidationCrossRef, "Input variable validation rules may now refer to other objects in the same module without enabling any experiment.")
 	registerConcludedExperiment(SuppressProviderSensitiveAttrs, "Provider-defined sensitive attributes are now redacted by default, without enabling an experiment.")
+	registerConcludedExperiment(TemplateStringFunc, "The templatestring function can now be used without enabling an experiment.")
 	registerConcludedExperiment(ConfigDrivenMove, "Declarations of moved resource instances using \"moved\" blocks can now be used by default, without enabling an experiment.")
 	registerConcludedExperiment(PreconditionsPostconditions, "Condition blocks can now be used by default, without enabling an experiment.")
+	registerConcludedExperiment(EphemeralValues, "Ephemeral values can now be used by default, without enabling an experiment.")
 	registerConcludedExperiment(ModuleVariableOptionalAttrs, "The final feature corresponding to this experiment differs from the experimental form and is available in the Terraform language from Terraform v1.3.0 onwards.")
 }
 

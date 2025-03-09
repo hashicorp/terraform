@@ -76,6 +76,7 @@ resource "aws_instance" "example" {
 A block has a _type_ (`resource` in this example). Each block type defines
 how many _labels_ must follow the type keyword. The `resource` block type
 expects two labels, which are `aws_instance` and `example` in the example above.
+The `aws_instance` label is specific to the AWS provider. It specifies the `resource` type that Terraform provisions when you apply the configuration. The second label is an arbitrary name that you can add to the particular instance of the resource. You can create multiple instances of the same block type and differentiate them by giving each instance a unique name. In this example, the Terraform configuration author assigned the `example` label to this instance of the `aws_instance` resource. 
 A particular block type may have any number of required labels, or it may
 require none as with the nested `network_interface` block type.
 

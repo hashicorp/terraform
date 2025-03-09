@@ -10,11 +10,11 @@ Terraform will perform the following actions:
 -/+ resource "tfcoremock_set" "set" {
         id  = "F40F2AB4-100C-4AE8-BFD0-BF332A158415"
       ~ set = [
-          + { # forces replacement
-              + id = "07F887E2-FDFF-4B2E-9BFB-B6AA4A05EDB9"
-            },
           - { # forces replacement
               - id = "56C7E07F-B9DF-4799-AF62-E703D1167A51" -> null
+            },
+          + { # forces replacement
+              + id = "07F887E2-FDFF-4B2E-9BFB-B6AA4A05EDB9"
             },
             # (2 unchanged elements hidden)
         ]

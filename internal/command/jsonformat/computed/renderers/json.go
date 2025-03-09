@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package renderers
 
 import (
@@ -24,6 +27,12 @@ func RendererJsonOpts() jsondiff.JsonOpts {
 		},
 		Array: func(elements []computed.Diff, action plans.Action) computed.Diff {
 			return computed.NewDiff(List(elements), action, false)
+		},
+		Unknown: func(diff computed.Diff, action plans.Action) computed.Diff {
+			return computed.NewDiff(Unknown(diff), action, false)
+		},
+		Sensitive: func(diff computed.Diff, beforeSensitive bool, afterSensitive bool, action plans.Action) computed.Diff {
+			return computed.NewDiff(Sensitive(diff, beforeSensitive, afterSensitive), action, false)
 		},
 		TypeChange: func(before, after computed.Diff, action plans.Action) computed.Diff {
 			return computed.NewDiff(TypeChange(before, after), action, false)

@@ -1,40 +1,30 @@
 ---
-page_title: 'Command: providers schema'
+page_title: terraform providers schema command 
 description: >-
-  The `terraform providers schema` command prints detailed schemas for the
-  providers used
-
-  in the current configuration.
+  The `terraform providers schema` command prints detailed schemas for the providers declared in the configuration.
 ---
 
-# Command: terraform providers schema
+# `terraform providers schema` command
 
-The `terraform providers schema` command is used to print detailed schemas for the providers used in the current configuration.
-
--> `terraform providers schema` requires **Terraform v0.12 or later**.
+The `terraform providers schema` command print detailed schemas for the providers used in the current configuration.
 
 ## Usage
 
-Usage: `terraform providers schema [options]`
+```
+$ terraform providers schema [options]
+```
 
 The following flags are available:
 
-- `-json` - Displays the schemas in a machine-readable, JSON format.
+- `-json` - Displays the schemas in a machine-readable JSON format. The `-json` flag is required. 
 
-Please note that, at this time, the `-json` flag is a _required_ option. In future releases, this command will be extended to allow for additional options.
+  The output includes a `format_version` key, which has a default value of `"1.0"`. The semantics of this version are:
 
-The output includes a `format_version` key, which as of Terraform 1.1.0 has
-value `"1.0"`. The semantics of this version are:
-
-- We will increment the minor version, e.g. `"1.1"`, for backward-compatible
-  changes or additions. Ignore any object properties with unrecognized names to
+  - Versions between `1.0` and `2.0` are backward-compatible. You should ignore any object properties with unrecognized names to
   remain forward-compatible with future minor versions.
-- We will increment the major version, e.g. `"2.0"`, for changes that are not
-  backward-compatible. Reject any input which reports an unsupported major
+  - Major versions are not backward-compatible to older versions. You should reject any input that reports an unsupported major
   version.
-
-We will introduce new major versions only within the bounds of
-[the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
+  - Refer to [Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises) for additional information about version support.
 
 ## Format Summary
 
@@ -45,8 +35,10 @@ To avoid excessive repetition, we've split the complete format into several disc
 The JSON output format consists of the following objects and sub-objects:
 
 - [Providers Schema Representation](#providers-schema-representation) - the top-level object returned by `terraform providers schema -json`
-- [Schema Representation](#schema-representation) - a sub-object of providers, resources, and data sources that describes their schema
+- [Schema Representation](#schema-representation) - a sub-object of providers, resources, and data sources that describes their schema, along with function signatures
 - [Block Representation](#block-representation) - a sub-object of schemas that describes attributes and nested blocks
+- [Function Representation](#function-representation) - a sub-object of functions that describes parameters, the return, and additional documentation
+- [Parameter Representation](#parameter-representation) - a sub-object of function signatures that describes their type and additional documentation
 
 ## Providers Schema Representation
 
@@ -71,6 +63,17 @@ The JSON output format consists of the following objects and sub-objects:
       // data source's schema
       "data_source_schemas": {
         "example_datasource_name": <schema-representation>,
+      },
+
+      // "ephemeral_resource_schemas" map the resource type name to the
+      // resource's schema
+      "ephemeral_resource_schemas": {
+        "example_resource_name": <schema-representation>,
+      },
+
+      // "functions" map the provider function name to the function definition
+      "functions": {
+        "example_function": <function-representation>
       }
     },
     "example_provider_two": { … }
@@ -137,15 +140,74 @@ A block representation contains "attributes" and "block_types" (which represent 
       // 	list
       // 	set
       // 	map
-    "nesting_mode": "list",
-    "block": <block-representation>,
+      "nesting_mode": "list",
+      "block": <block-representation>,
 
-    // "min_items" and "max_items" set lower and upper
-    // limits on the number of child blocks allowed for
-    // the list and set modes. These are
-    // omitted for other modes.
-    "min_items": 1,
-    "max_items": 3
+      // "min_items" and "max_items" set lower and upper
+      // limits on the number of child blocks allowed for
+      // the list and set modes. These are
+      // omitted for other modes.
+      "min_items": 1,
+      "max_items": 3
+    }
   }
+}
+```
+
+## Function Representation
+
+A function representation describes the definition of a function.
+
+```javascript
+{
+  // "summary" is a shortened English-language description of
+  // the purpose of the function in Markdown.
+  "summary": "string",
+
+  // "description" is a longer English-language description of
+  // the purpose and usage of the function in Markdown.
+  "description": "string",
+
+  // "deprecation_message" when present signals that the function is deprecated
+  // and the message contains practitioner-facing actions for the deprecation.
+  "deprecation_message": "string",
+
+  // "return_type" is a representation of a type specification
+  // that the function returns.
+  "return_type": "string",
+
+  // "parameters" is an optional list of the positional parameters
+  // that the function accepts.
+  "parameters": [
+    <parameter-representation>,
+    // ...
+  ],
+
+  // "variadic_parameter" is an optional representation of the
+  // additional arguments that the function accepts after those
+  // matching with the fixed parameters.
+  "variadic_parameter": <parameter-representation>
+}
+```
+
+## Parameter Representation
+
+A parameter representation describes a parameter to a function.
+
+```javascript
+{
+  // "name" is the internal name of the parameter
+  "name": "string",
+
+  // "description" is an optional English-language description of
+  // the purpose and usage of the parameter in Markdown.
+  "description": "string",
+
+  // "is_nullable" is true if null is acceptable value for the argument
+  "is_nullable": bool,
+
+  // "type" is a representation of a type specification
+  // that the parameter's value must conform to.
+  "type": "string"
 }
 ```

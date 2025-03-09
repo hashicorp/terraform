@@ -1,0 +1,686 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+// Terraform Plugin RPC protocol version 5.7
+//
+// This file defines version 5.7 of the RPC protocol. To implement a plugin
+// against this protocol, copy this definition into your own codebase and
+// use protoc to generate stubs for your target language.
+//
+// This file will not be updated. Any minor versions of protocol 5 to follow
+// should copy this file and modify the copy while maintaing backwards
+// compatibility. Breaking changes, if any are required, will come
+// in a subsequent major version with its own separate proto definition.
+//
+// Note that only the proto files included in a release tag of Terraform are
+// official protocol releases. Proto files taken from other commits may include
+// incomplete changes or features that did not make it into a final release.
+// In all reasonable cases, plugin developers should take the proto file from
+// the tag of the most recent release of Terraform, and not from the main
+// branch or any other development branch.
+//
+syntax = "proto3";
+option go_package = "github.com/hashicorp/terraform/internal/tfplugin5";
+
+import "google/protobuf/timestamp.proto";
+
+package tfplugin5;
+
+// DynamicValue is an opaque encoding of terraform data, with the field name
+// indicating the encoding scheme used.
+message DynamicValue {
+    bytes msgpack = 1;
+    bytes json = 2;
+}
+
+message Diagnostic {
+    enum Severity {
+        INVALID = 0;
+        ERROR = 1;
+        WARNING = 2;
+    }
+    Severity severity = 1;
+    string summary = 2;
+    string detail = 3;
+    AttributePath attribute = 4;
+}
+
+message FunctionError {
+    string text = 1;
+    // The optional function_argument records the index position of the
+    // argument which caused the error.
+    optional int64 function_argument = 2;
+}
+
+message AttributePath {
+    message Step {
+        oneof selector {
+            // Set "attribute_name" to represent looking up an attribute
+            // in the current object value.
+            string attribute_name = 1;
+            // Set "element_key_*" to represent looking up an element in
+            // an indexable collection type.
+            string element_key_string = 2;
+            int64 element_key_int = 3;
+        }
+    }
+    repeated Step steps = 1;
+}
+
+message Stop {
+    message Request {
+    }
+    message Response {
+        string Error = 1;
+    }
+}
+
+// RawState holds the stored state for a resource to be upgraded by the
+// provider. It can be in one of two formats, the current json encoded format
+// in bytes, or the legacy flatmap format as a map of strings.
+message RawState {
+    bytes json = 1;
+    map<string, string> flatmap = 2;
+}
+
+enum StringKind {
+    PLAIN = 0;
+    MARKDOWN = 1;
+}
+
+// Schema is the configuration schema for a Resource, Provider, or Provisioner.
+message Schema {
+    message Block {
+        int64 version = 1;
+        repeated Attribute attributes = 2;
+        repeated NestedBlock block_types = 3;
+        string description = 4;
+        StringKind description_kind = 5;
+        bool deprecated = 6;
+    }
+
+    message Attribute {
+        string name = 1;
+        bytes type = 2;
+        string description = 3;
+        bool required = 4;
+        bool optional = 5;
+        bool computed = 6;
+        bool sensitive = 7;
+        StringKind description_kind = 8;
+        bool deprecated = 9;
+    }
+
+    message NestedBlock {
+        enum NestingMode {
+            INVALID = 0;
+            SINGLE = 1;
+            LIST = 2;
+            SET = 3;
+            MAP = 4;
+            GROUP = 5;
+        }
+
+        string type_name = 1;
+        Block block = 2;
+        NestingMode nesting = 3;
+        int64 min_items = 4;
+        int64 max_items = 5;
+    }
+
+    // The version of the schema.
+    // Schemas are versioned, so that providers can upgrade a saved resource
+    // state when the schema is changed.
+    int64 version = 1;
+
+    // Block is the top level configuration block for this schema.
+    Block block = 2;
+}
+
+// ServerCapabilities allows providers to communicate extra information
+// regarding supported protocol features. This is used to indicate
+// availability of certain forward-compatible changes which may be optional
+// in a major protocol version, but cannot be tested for directly.
+message ServerCapabilities {
+    // The plan_destroy capability signals that a provider expects a call
+    // to PlanResourceChange when a resource is going to be destroyed.
+    bool plan_destroy = 1;
+
+    // The get_provider_schema_optional capability indicates that this
+    // provider does not require calling GetProviderSchema to operate
+    // normally, and the caller can used a cached copy of the provider's
+    // schema.
+    bool get_provider_schema_optional = 2;
+
+    // The move_resource_state capability signals that a provider supports the
+    // MoveResourceState RPC.
+    bool move_resource_state = 3;
+}
+
+// ClientCapabilities allows Terraform to publish information regarding
+// supported protocol features. This is used to indicate availability of
+// certain forward-compatible changes which may be optional in a major
+// protocol version, but cannot be tested for directly.
+message ClientCapabilities {
+    // The deferral_allowed capability signals that the client is able to
+    // handle deferred responses from the provider.
+    bool deferral_allowed = 1;
+}
+
+message Function {
+    // parameters is the ordered list of positional function parameters.
+    repeated Parameter parameters = 1;
+
+    // variadic_parameter is an optional final parameter which accepts
+    // zero or more argument values, in which Terraform will send an
+    // ordered list of the parameter type.
+    Parameter variadic_parameter = 2;
+
+    // Return is the function return parameter.
+    Return return = 3;
+
+    // summary is the human-readable shortened documentation for the function.
+    string summary = 4;
+
+    // description is human-readable documentation for the function.
+    string description = 5;
+
+    // description_kind is the formatting of the description.
+    StringKind description_kind = 6;
+
+    // deprecation_message is human-readable documentation if the
+    // function is deprecated.
+    string deprecation_message = 7;
+
+    message Parameter {
+        // name is the human-readable display name for the parameter.
+        string name = 1;
+
+        // type is the type constraint for the parameter.
+        bytes type = 2;
+
+        // allow_null_value when enabled denotes that a null argument value can
+        // be passed to the provider. When disabled, Terraform returns an error
+        // if the argument value is null.
+        bool allow_null_value = 3;
+
+        // allow_unknown_values when enabled denotes that only wholly known
+        // argument values will be passed to the provider. When disabled,
+        // Terraform skips the function call entirely and assumes an unknown
+        // value result from the function.
+        bool allow_unknown_values = 4;
+
+        // description is human-readable documentation for the parameter.
+        string description = 5;
+
+        // description_kind is the formatting of the description.
+        StringKind description_kind = 6;
+    }
+
+    message Return {
+        // type is the type constraint for the function result.
+        bytes type = 1;
+    }
+}
+
+// Deferred is a message that indicates that change is deferred for a reason.
+message Deferred {
+    // Reason is the reason for deferring the change.
+  enum Reason {
+    // UNKNOWN is the default value, and should not be used.
+    UNKNOWN = 0;
+    // RESOURCE_CONFIG_UNKNOWN is used when the config is partially unknown and the real
+    // values need to be known before the change can be planned.
+    RESOURCE_CONFIG_UNKNOWN = 1;
+    // PROVIDER_CONFIG_UNKNOWN is used when parts of the provider configuration
+    // are unknown, e.g. the provider configuration is only known after the apply is done.
+    PROVIDER_CONFIG_UNKNOWN = 2;
+    // ABSENT_PREREQ is used when a hard dependency has not been satisfied.
+    ABSENT_PREREQ = 3;
+  }
+
+  // reason is the reason for deferring the change.
+  Reason reason = 1;
+}
+
+
+service Provider {
+    //////// Information about what a provider supports/expects
+
+    // GetMetadata returns upfront information about server capabilities and
+    // supported resource types without requiring the server to instantiate all
+    // schema information, which may be memory intensive. This RPC is optional,
+    // where clients may receive an unimplemented RPC error. Clients should
+    // ignore the error and call the GetSchema RPC as a fallback.
+    rpc GetMetadata(GetMetadata.Request) returns (GetMetadata.Response);
+
+    // GetSchema returns schema information for the provider, data resources,
+    // and managed resources.
+    rpc GetSchema(GetProviderSchema.Request) returns (GetProviderSchema.Response);
+    rpc PrepareProviderConfig(PrepareProviderConfig.Request) returns (PrepareProviderConfig.Response);
+    rpc ValidateResourceTypeConfig(ValidateResourceTypeConfig.Request) returns (ValidateResourceTypeConfig.Response);
+    rpc ValidateDataSourceConfig(ValidateDataSourceConfig.Request) returns (ValidateDataSourceConfig.Response);
+    rpc UpgradeResourceState(UpgradeResourceState.Request) returns (UpgradeResourceState.Response);
+
+    //////// One-time initialization, called before other functions below
+    rpc Configure(Configure.Request) returns (Configure.Response);
+
+    //////// Managed Resource Lifecycle
+    rpc ReadResource(ReadResource.Request) returns (ReadResource.Response);
+    rpc PlanResourceChange(PlanResourceChange.Request) returns (PlanResourceChange.Response);
+    rpc ApplyResourceChange(ApplyResourceChange.Request) returns (ApplyResourceChange.Response);
+    rpc ImportResourceState(ImportResourceState.Request) returns (ImportResourceState.Response);
+    rpc MoveResourceState(MoveResourceState.Request) returns (MoveResourceState.Response);
+    rpc ReadDataSource(ReadDataSource.Request) returns (ReadDataSource.Response);
+
+    //////// Ephemeral Resource Lifecycle
+    rpc ValidateEphemeralResourceConfig(ValidateEphemeralResourceConfig.Request) returns (ValidateEphemeralResourceConfig.Response);
+    rpc OpenEphemeralResource(OpenEphemeralResource.Request) returns (OpenEphemeralResource.Response);
+    rpc RenewEphemeralResource(RenewEphemeralResource.Request) returns (RenewEphemeralResource.Response);
+    rpc CloseEphemeralResource(CloseEphemeralResource.Request) returns (CloseEphemeralResource.Response);
+
+    // GetFunctions returns the definitions of all functions.
+    rpc GetFunctions(GetFunctions.Request) returns (GetFunctions.Response);
+
+    //////// Provider-contributed Functions
+    rpc CallFunction(CallFunction.Request) returns (CallFunction.Response);
+
+    //////// Graceful Shutdown
+    rpc Stop(Stop.Request) returns (Stop.Response);
+}
+
+message GetMetadata {
+    message Request {
+    }
+
+    message Response {
+        ServerCapabilities server_capabilities = 1;
+        repeated Diagnostic diagnostics = 2;
+        repeated DataSourceMetadata data_sources = 3;
+        repeated ResourceMetadata resources = 4;
+        // functions returns metadata for any functions.
+        repeated FunctionMetadata functions = 5;
+        repeated EphemeralMetadata ephemeral_resources = 6;
+    }
+
+    message EphemeralMetadata {
+        string type_name = 1;
+    }
+
+    message FunctionMetadata {
+        // name is the function name.
+        string name = 1;
+    }
+
+    message DataSourceMetadata {
+        string type_name = 1;
+    }
+
+    message ResourceMetadata {
+        string type_name = 1;
+    }
+}
+
+message GetProviderSchema {
+    message Request {
+    }
+    message Response {
+        Schema provider = 1;
+        map<string, Schema> resource_schemas = 2;
+        map<string, Schema> data_source_schemas = 3;
+        map<string, Function> functions = 7;
+        map<string, Schema> ephemeral_resource_schemas = 8;
+        repeated Diagnostic diagnostics = 4;
+        Schema provider_meta = 5;
+        ServerCapabilities server_capabilities = 6;
+    }
+}
+
+message PrepareProviderConfig {
+    message Request {
+        DynamicValue config = 1;
+    }
+    message Response {
+        DynamicValue prepared_config = 1;
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message UpgradeResourceState {
+    // Request is the message that is sent to the provider during the
+    // UpgradeResourceState RPC.
+    //
+    // This message intentionally does not include configuration data as any
+    // configuration-based or configuration-conditional changes should occur
+    // during the PlanResourceChange RPC. Additionally, the configuration is
+    // not guaranteed to exist (in the case of resource destruction), be wholly
+    // known, nor match the given prior state, which could lead to unexpected
+    // provider behaviors for practitioners.
+    message Request {
+        string type_name = 1;
+
+        // version is the schema_version number recorded in the state file
+        int64 version = 2;
+
+        // raw_state is the raw states as stored for the resource.  Core does
+        // not have access to the schema of prior_version, so it's the
+        // provider's responsibility to interpret this value using the
+        // appropriate older schema. The raw_state will be the json encoded
+        // state, or a legacy flat-mapped format.
+        RawState raw_state = 3;
+    }
+    message Response {
+        // new_state is a msgpack-encoded data structure that, when interpreted with
+        // the _current_ schema for this resource type, is functionally equivalent to
+        // that which was given in prior_state_raw.
+        DynamicValue upgraded_state = 1;
+
+        // diagnostics describes any errors encountered during migration that could not
+        // be safely resolved, and warnings about any possibly-risky assumptions made
+        // in the upgrade process.
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message ValidateResourceTypeConfig {
+    message Request {
+        string type_name = 1;
+        DynamicValue config = 2;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message ValidateDataSourceConfig {
+    message Request {
+        string type_name = 1;
+        DynamicValue config = 2;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message ValidateEphemeralResourceConfig {
+    message Request {
+        string type_name = 1;
+        DynamicValue config = 2;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message Configure {
+    message Request {
+        string terraform_version = 1;
+        DynamicValue config = 2;
+        ClientCapabilities client_capabilities = 3;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message ReadResource {
+    // Request is the message that is sent to the provider during the
+    // ReadResource RPC.
+    //
+    // This message intentionally does not include configuration data as any
+    // configuration-based or configuration-conditional changes should occur
+    // during the PlanResourceChange RPC. Additionally, the configuration is
+    // not guaranteed to be wholly known nor match the given prior state, which
+    // could lead to unexpected provider behaviors for practitioners.
+    message Request {
+        string type_name = 1;
+        DynamicValue current_state = 2;
+        bytes private = 3;
+        DynamicValue provider_meta = 4;
+        ClientCapabilities client_capabilities = 5;
+    }
+    message Response {
+        DynamicValue new_state = 1;
+        repeated Diagnostic diagnostics = 2;
+        bytes private = 3;
+        // deferred is set if the provider is deferring the change. If set the caller
+        // needs to handle the deferral.
+        Deferred deferred = 4;
+    }
+}
+
+message PlanResourceChange {
+    message Request {
+        string type_name = 1;
+        DynamicValue prior_state = 2;
+        DynamicValue proposed_new_state = 3;
+        DynamicValue config = 4;
+        bytes prior_private = 5;
+        DynamicValue provider_meta = 6;
+        ClientCapabilities client_capabilities = 7;
+    }
+
+    message Response {
+        DynamicValue planned_state = 1;
+        repeated AttributePath requires_replace = 2;
+        bytes planned_private = 3;
+        repeated Diagnostic diagnostics = 4;
+
+
+        // This may be set only by the helper/schema "SDK" in the main Terraform
+        // repository, to request that Terraform Core >=0.12 permit additional
+        // inconsistencies that can result from the legacy SDK type system
+        // and its imprecise mapping to the >=0.12 type system.
+        // The change in behavior implied by this flag makes sense only for the
+        // specific details of the legacy SDK type system, and are not a general
+        // mechanism to avoid proper type handling in providers.
+        //
+        //     ====              DO NOT USE THIS              ====
+        //     ==== THIS MUST BE LEFT UNSET IN ALL OTHER SDKS ====
+        //     ====              DO NOT USE THIS              ====
+        bool legacy_type_system = 5;
+
+        // deferred is set if the provider is deferring the change. If set the caller
+        // needs to handle the deferral.
+        Deferred deferred = 6;
+    }
+}
+
+message ApplyResourceChange {
+    message Request {
+        string type_name = 1;
+        DynamicValue prior_state = 2;
+        DynamicValue planned_state = 3;
+        DynamicValue config = 4;
+        bytes planned_private = 5;
+        DynamicValue provider_meta = 6;
+    }
+    message Response {
+        DynamicValue new_state = 1;
+        bytes private = 2;
+        repeated Diagnostic diagnostics = 3;
+
+        // This may be set only by the helper/schema "SDK" in the main Terraform
+        // repository, to request that Terraform Core >=0.12 permit additional
+        // inconsistencies that can result from the legacy SDK type system
+        // and its imprecise mapping to the >=0.12 type system.
+        // The change in behavior implied by this flag makes sense only for the
+        // specific details of the legacy SDK type system, and are not a general
+        // mechanism to avoid proper type handling in providers.
+        //
+        //     ====              DO NOT USE THIS              ====
+        //     ==== THIS MUST BE LEFT UNSET IN ALL OTHER SDKS ====
+        //     ====              DO NOT USE THIS              ====
+        bool legacy_type_system = 4;
+    }
+}
+
+message ImportResourceState {
+    message Request {
+        string type_name = 1;
+        string id = 2;
+        ClientCapabilities client_capabilities = 3;
+    }
+
+    message ImportedResource {
+        string type_name = 1;
+        DynamicValue state = 2;
+        bytes private = 3;
+    }
+
+    message Response {
+        repeated ImportedResource imported_resources = 1;
+        repeated Diagnostic diagnostics = 2;
+        // deferred is set if the provider is deferring the change. If set the caller
+        // needs to handle the deferral.
+        Deferred deferred = 3;
+    }
+}
+
+message MoveResourceState {
+    message Request {
+        // The address of the provider the resource is being moved from.
+        string source_provider_address = 1;
+
+        // The resource type that the resource is being moved from.
+        string source_type_name = 2;
+
+        // The schema version of the resource type that the resource is being
+        // moved from.
+        int64 source_schema_version = 3;
+
+        // The raw state of the resource being moved. Only the json field is
+        // populated, as there should be no legacy providers using the flatmap
+        // format that support newly introduced RPCs.
+        RawState source_state = 4;
+
+        // The resource type that the resource is being moved to.
+        string target_type_name = 5;
+
+        // The private state of the resource being moved.
+        bytes source_private = 6;
+    }
+
+    message Response {
+        // The state of the resource after it has been moved.
+        DynamicValue target_state = 1;
+
+        // Any diagnostics that occurred during the move.
+        repeated Diagnostic diagnostics = 2;
+
+        // The private state of the resource after it has been moved.
+        bytes target_private = 3;
+    }
+}
+
+message ReadDataSource {
+    message Request {
+        string type_name = 1;
+        DynamicValue config = 2;
+        DynamicValue provider_meta = 3;
+        ClientCapabilities client_capabilities = 4;
+    }
+    message Response {
+        DynamicValue state = 1;
+        repeated Diagnostic diagnostics = 2;
+        // deferred is set if the provider is deferring the change. If set the caller
+        // needs to handle the deferral.
+        Deferred deferred = 3;
+    }
+}
+
+service Provisioner {
+    rpc GetSchema(GetProvisionerSchema.Request) returns (GetProvisionerSchema.Response);
+    rpc ValidateProvisionerConfig(ValidateProvisionerConfig.Request) returns (ValidateProvisionerConfig.Response);
+    rpc ProvisionResource(ProvisionResource.Request) returns (stream ProvisionResource.Response);
+    rpc Stop(Stop.Request) returns (Stop.Response);
+}
+
+message GetProvisionerSchema {
+    message Request {
+    }
+    message Response {
+        Schema provisioner = 1;
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message ValidateProvisionerConfig {
+    message Request {
+        DynamicValue config = 1;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message ProvisionResource {
+    message Request {
+        DynamicValue config = 1;
+        DynamicValue connection = 2;
+    }
+    message Response {
+        string output  = 1;
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message OpenEphemeralResource {
+    message Request {
+        string type_name = 1;
+        DynamicValue config = 2;
+        ClientCapabilities client_capabilities = 3;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+        optional google.protobuf.Timestamp renew_at = 2;
+        DynamicValue result = 3;
+        optional bytes private = 4;
+        Deferred deferred = 5;
+    }
+}
+
+message RenewEphemeralResource {
+    message Request {
+        string type_name = 1;
+        optional bytes private = 2;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+        optional google.protobuf.Timestamp renew_at = 2;
+        optional bytes private = 3;
+    }
+}
+
+message CloseEphemeralResource {
+    message Request {
+        string type_name = 1;
+        optional bytes private = 2;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message GetFunctions {
+    message Request {}
+
+    message Response {
+        // functions is a mapping of function names to definitions.
+        map<string, Function> functions = 1;
+
+        // diagnostics is any warnings or errors.
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message CallFunction {
+    message Request {
+        string name = 1;
+        repeated DynamicValue arguments = 2;
+    }
+    message Response {
+        DynamicValue result = 1;
+        FunctionError error = 2;
+    }
+}

@@ -1,13 +1,13 @@
 ---
-page_title: 'Command: state replace-provider'
+page_title: terraform state replace-provider command reference
 description: >-
   The `terraform state replace-provider` command replaces the provider for
   resources in the Terraform state.
 ---
 
-# Command: state replace-provider
+# `terraform state replace-provider` command
 
-The `terraform state replace-provider` command is used to replace the provider
+The `terraform state replace-provider` command replaces the provider
 for resources in a [Terraform state](/terraform/language/state).
 
 ## Usage
@@ -32,15 +32,15 @@ This command also accepts the following options:
 
 - `-lock-timeout=0s` - Duration to retry a state lock.
 
-For configurations using the [Terraform Cloud CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/settings/backends/remote)
+For configurations using the [HCP Terraform CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/backend/remote)
 only, `terraform state replace-provider`
 also accepts the option
 [`-ignore-remote-version`](/terraform/cli/cloud/command-line-arguments#ignore-remote-version).
 
 For configurations using
-[the `local` state](/terraform/language/settings/backends/local) only,
+[the `local` state](/terraform/language/backend/local) only,
 `terraform state replace-provider` also accepts the legacy options
-[`-state`, `-state-out`, and `-backup`](/terraform/language/settings/backends/local#command-line-arguments).
+[`-state`, `-state-out`, and `-backup`](/terraform/language/backend/local#command-line-arguments).
 
 ## Example
 

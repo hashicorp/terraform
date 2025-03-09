@@ -1,6 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package funcs
 
-import "github.com/zclconf/go-cty/cty/function"
+import (
+	"github.com/zclconf/go-cty/cty/function"
+)
 
 type descriptionEntry struct {
 	// Description is a description for the function.
@@ -157,6 +162,10 @@ var DescriptionList = map[string]descriptionEntry{
 		Description:      "`endswith` takes two values: a string to check and a suffix string. The function returns true if the first string ends with that exact suffix.",
 		ParamDescription: []string{"", ""},
 	},
+	"ephemeralasnull": {
+		Description:      "`ephemeralasnull` takes a value of any type and returns a similar value of the same type with any ephemeral values replaced with non-ephemeral null values and all non-ephemeral values preserved.",
+		ParamDescription: []string{""},
+	},
 	"file": {
 		Description:      "`file` reads the contents of a file at the given path and returns them as a string.",
 		ParamDescription: []string{""},
@@ -227,6 +236,10 @@ var DescriptionList = map[string]descriptionEntry{
 	"index": {
 		Description:      "`index` finds the element index for a given value in a list.",
 		ParamDescription: []string{"", ""},
+	},
+	"issensitive": {
+		Description:      "`issensitive` takes a value and returns a boolean indicating if the value is sensitive.",
+		ParamDescription: []string{""},
 	},
 	"join": {
 		Description: "`join` produces a string by concatenating together all elements of a given list of strings with the given delimiter.",
@@ -338,7 +351,7 @@ var DescriptionList = map[string]descriptionEntry{
 		ParamDescription: []string{"", ""},
 	},
 	"sensitive": {
-		Description:      "`sensitive` takes any value and returns a copy of it marked so that Terraform will treat it as sensitive, with the same meaning and behavior as for [sensitive input variables](/language/values/variables#suppressing-values-in-cli-output).",
+		Description:      "`sensitive` takes any value and returns a copy of it marked so that Terraform will treat it as sensitive, with the same meaning and behavior as for [sensitive input variables](/terraform/language/values/variables#suppressing-values-in-cli-output).",
 		ParamDescription: []string{""},
 	},
 	"setintersection": {
@@ -391,6 +404,10 @@ var DescriptionList = map[string]descriptionEntry{
 		Description:      "`startswith` takes two values: a string to check and a prefix string. The function returns true if the string begins with that exact prefix.",
 		ParamDescription: []string{"", ""},
 	},
+	"strcontains": {
+		Description:      "`strcontains` takes two values: a string to check and an expected substring. The function returns true if the string has the substring contained within it.",
+		ParamDescription: []string{"", ""},
+	},
 	"strrev": {
 		Description:      "`strrev` reverses the characters in a string. Note that the characters are treated as _Unicode characters_ (in technical terms, Unicode [grapheme cluster boundaries](https://unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries) are respected).",
 		ParamDescription: []string{""},
@@ -406,6 +423,13 @@ var DescriptionList = map[string]descriptionEntry{
 	"templatefile": {
 		Description:      "`templatefile` reads the file at the given path and renders its content as a template using a supplied set of template variables.",
 		ParamDescription: []string{"", ""},
+	},
+	"templatestring": {
+		Description: "`templatestring` takes a string from elsewhere in the module and renders its content as a template using a supplied set of template variables.",
+		ParamDescription: []string{
+			"A simple reference to a string value containing the template source code.",
+			"Object of variables to expose in the template scope.",
+		},
 	},
 	"textdecodebase64": {
 		Description:      "`textdecodebase64` function decodes a string that was previously Base64-encoded, and then interprets the result as characters in a specified character encoding.",
@@ -425,6 +449,10 @@ var DescriptionList = map[string]descriptionEntry{
 	},
 	"timestamp": {
 		Description:      "`timestamp` returns a UTC timestamp string in [RFC 3339](https://tools.ietf.org/html/rfc3339) format.",
+		ParamDescription: []string{},
+	},
+	"plantimestamp": {
+		Description:      "`plantimestamp` returns a UTC timestamp string in [RFC 3339](https://tools.ietf.org/html/rfc3339) format, fixed to a constant time representing the time of the plan.",
 		ParamDescription: []string{},
 	},
 	"title": {

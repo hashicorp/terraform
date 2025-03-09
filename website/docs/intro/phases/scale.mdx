@@ -1,0 +1,40 @@
+---
+page_title: Scale Terraform
+description: Define boundaries of infrastructure ownership across your team with Terraform.
+---
+
+# Scale Terraform
+
+As Terraform usage expands across your organization, you will need to decide how to define boundaries of infrastructure ownership.
+
+You will also need to decide on a cloud deployment strategy based on your organization's practices and needs. Possible approaches include using a single account in a single cloud provider, a hybrid or multi-cloud approach, or to divide up resources across accounts by environment.  Regardless of your implementation, Terraform lets you manage your infrastructure with a consistent workflow.
+
+## Adopt modules across your organization
+
+We recommend using modules early in your Terraform adoption process to support consistent infrastructure configuration. As your Terraform usage scales, a central module registry helps teams find and use your modules rather than rewriting the same code.
+
+Terraform supports [multiple module distribution options](/terraform/language/modules/sources), but we recommend that you use a native Terraform module registry such as HCP Terraform or Terraform Enterprise. These both use the [module registry protocol](/terraform/internals/module-registry-protocol), which is the Terraform-specific protocol to discover metadata about modules available for installation and to locate the distribution package for a selected module.
+
+If you cannot use a native module registry, there are other source options such as [Git repositories](/terraform/language/modules/sources#generic-git-repository) or [AWS S3](/terraform/language/modules/sources#s3-bucket).
+
+Modules also help teams establish infrastructure configuration standards. For example, you can write a module to create a database used by your application that includes all of the defaults that your architecture requires. The module can define the database size, type, and handle all of the required networking. This ensures that module consumers provision infrastructure in line with your organization standards and requirements. 
+
+Since modules define their own inputs, you can decide which parameters are configurable by the user. For example, you might want to allow them to change the size of the cluster, but not let them change the engine type. 
+
+Read the [recommended patterns for creating modules](/terraform/tutorials/modules/pattern-module-creation). 
+
+## Divide infrastructure responsibility
+
+It is common for different teams to focus on different parts of your organization's infrastructure. For example, the networking team may manage the VPCs, while the application team only needs to know where to deploy their application and focuses on configuring servers and databases. In this scenario, there is a division of responsibilities but the application team still needs to access data about the networking resources for their own configuration. 
+
+Terraform lets you [reference data about other resources](/terraform/language/state/remote#delegation-and-teamwork) in your configuration without having to manage them in the same state file, allowing you to maintain distinct areas of ownership and infrastructure decoupling. You can use data sources to query a provider for more data about a particular resource, or reference output values from another state file using the remote state data source. HCP Terraform lets you explicitly grant access to your workspace state file to only the workspaces that need it, reducing access to potentially sensitive data. You can also use the [tfe_outputs](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs) data source to access the outputs of another HCP Terraform workspace.
+
+## Consider multiple IaaS accounts
+
+Many Terraform users start by deploying to a single account in their cloud provider. This makes sense when you are managing only a few resources. As your Terraform adoption matures, managing thousands of resources across several cloud providers can become very complex, slow, and hard to secure. One strategy is to split your managed resources into multiple accounts in a way that makes sense to your organization. For example, you may want an account per deployment environment, such as one for development and one for production.
+
+## Next steps
+
+As your teams grow, a common operational challenge is deciding how to enforce your organization's standards and practices. Using codified, automated policy enforcement with Sentinel or OPA ensures consistent application of your standards. 
+
+[Learn how to govern your organization's best practices](/terraform/intro/phases/govern).

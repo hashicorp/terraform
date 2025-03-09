@@ -1,18 +1,16 @@
 ---
-page_title: 'Command: login'
+page_title: terraform login command reference
 description: >-
-  The terraform login command can be used to automatically obtain and save an
-  API token for Terraform Cloud, Terraform Enterprise, or any other host that
+  The `terraform login` command obtains an API token for HCP Terraform, Terraform Enterprise, or other host that
   offers Terraform services.
 ---
 
-# Command: login
+# `terraform login` command
 
-The `terraform login` command can be used to automatically obtain and save an
-API token for Terraform Cloud, Terraform Enterprise, or any other host that offers Terraform services.
+The `terraform login` command obtains an API token for HCP Terraform, Terraform Enterprise, or other host that
+  offers Terraform services.
 
--> **Note:** This command is suitable only for use in interactive scenarios
-where it is possible to launch a web browser on the same host where Terraform
+You can only use this command in interactive scenarios because the command launches a web browser on the same host where Terraform
 is running. If you are running Terraform in an unattended automation scenario,
 you can
 [configure credentials manually in the CLI configuration](/terraform/cli/config/config-file#credentials).
@@ -22,7 +20,7 @@ you can
 Usage: `terraform login [hostname]`
 
 If you don't provide an explicit hostname, Terraform will assume you want to
-log in to Terraform Cloud at `app.terraform.io`.
+log in to HCP Terraform at `app.terraform.io`.
 
 ## Credentials Storage
 
@@ -32,14 +30,14 @@ local CLI configuration file called `credentials.tfrc.json`. When you run
 the API token and give you a chance to cancel if the current configuration is
 not as desired.
 
-If you don't wish to store your API token in the default location, you can
+If you do not wish to store your API token in the default location, you can
 optionally configure a
-[credentials helper program](/terraform/cli/config/config-file#credentials-helpers) which knows
+[credentials helper program](/terraform/cli/config/config-file#credentials-helpers) that knows
 how to store and later retrieve credentials in some other system, such as
 your organization's existing secrets management system.
 
 ## Login Server Support
 
 The `terraform login` command works with any server supporting the
-[login protocol](/terraform/internals/login-protocol), including Terraform Cloud
+[login protocol](/terraform/internals/login-protocol), including HCP Terraform
 and Terraform Enterprise.

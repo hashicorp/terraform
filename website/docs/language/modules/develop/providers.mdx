@@ -1,5 +1,7 @@
 ---
 page_title: Providers Within Modules - Configuration Language
+description: >-
+  Use providers within Terraform modules. Learn about version constraints, aliases, implicit inheritance, and passing providers to Terraform modules.
 ---
 
 # Providers Within Modules
@@ -15,7 +17,7 @@ Terraform, are global to an entire Terraform configuration and can be shared
 across module boundaries. Provider configurations can be defined only in a
 root Terraform module.
 
-Providers can be passed down to descendent modules in two ways: either
+Providers can be passed down to descendant modules in two ways: either
 _implicitly_ through inheritance, or _explicitly_ via the `providers` argument
 within a `module` block. These two options are discussed in more detail in the
 following sections.
@@ -332,7 +334,7 @@ provider "aws" {
 
 provider "google" {
   alias       = "usw1"
-  credentials = "${file("account.json")}"
+  credentials = file("account.json")
   project     = "my-project-id"
   region      = "us-west1"
   zone        = "us-west1-a"
@@ -340,7 +342,7 @@ provider "google" {
 
 provider "google" {
   alias       = "usw2"
-  credentials = "${file("account.json")}"
+  credentials = file("account.json")
   project     = "my-project-id"
   region      = "us-west2"
   zone        = "us-west2-a"
@@ -350,7 +352,7 @@ module "bucket_w1" {
   source    = "./publish_bucket"
   providers = {
     aws.src    = aws.usw1
-    google.src = google.usw2
+    google.src = google.usw1
   }
 }
 

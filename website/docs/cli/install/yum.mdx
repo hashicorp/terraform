@@ -1,11 +1,10 @@
 ---
-page_title: 'Yum Packages for Red Hat Enterprise Linux, Fedora, and Amazon Linux'
+page_title: Install Terraform using yum packages for Linux distributions
 description: >-
-  The HashiCorp Yum repositories contain distribution-specific Terraform
-  packages for Red Hat Enterprise Linux, Fedora, and Amazon Linux systems.
+  Learn how to install Terraform using HashiCorp yum packages for Red Hat Enterprise Linux (RHEL), Fedora, CentOS, and Amazon Linux systems.
 ---
 
-# Yum/DNF Packages for RHEL, CentOS, and Fedora
+# Install Terraform Using Yum Packages for Linux Distributions
 
 The primary distribution packages for Terraform are `.zip` archives containing
 single executable files that you can extract anywhere on your system. However,
@@ -47,7 +46,7 @@ If you are using a DNF-based distribution, add the repository using
 
 ```bash
 sudo dnf install -y dnf-plugins-core
-sudo dnf config-manager --add-repo https://rpm.releases.hashicorp.com/$release/hashicorp.repo
+sudo dnf config-manager addrepo --from-repofile=https://rpm.releases.hashicorp.com/$release/hashicorp.repo
 ```
 
 In both cases, the Terraform package name is `terraform`. For example:

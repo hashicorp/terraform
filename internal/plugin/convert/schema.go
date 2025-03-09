@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package convert
 
 import (
@@ -31,6 +34,7 @@ func ConfigSchemaToProto(b *configschema.Block) *proto.Schema_Block {
 			Required:        a.Required,
 			Sensitive:       a.Sensitive,
 			Deprecated:      a.Deprecated,
+			WriteOnly:       a.WriteOnly,
 		}
 
 		ty, err := json.Marshal(a.Type)
@@ -89,7 +93,7 @@ func protoSchemaNestedBlock(name string, b *configschema.NestedBlock) *proto.Sch
 func ProtoToProviderSchema(s *proto.Schema) providers.Schema {
 	return providers.Schema{
 		Version: s.Version,
-		Block:   ProtoToConfigSchema(s.Block),
+		Body:    ProtoToConfigSchema(s.Block),
 	}
 }
 
@@ -114,6 +118,7 @@ func ProtoToConfigSchema(b *proto.Schema_Block) *configschema.Block {
 			Computed:        a.Computed,
 			Sensitive:       a.Sensitive,
 			Deprecated:      a.Deprecated,
+			WriteOnly:       a.WriteOnly,
 		}
 
 		if err := json.Unmarshal(a.Type, &attr.Type); err != nil {

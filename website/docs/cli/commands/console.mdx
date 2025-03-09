@@ -1,13 +1,13 @@
 ---
-page_title: 'Command: console'
+page_title: terraform console command reference
 description: >-
-  The terraform console command provides an interactive console for evaluating
+  The `terraform console` command opens an interactive console for evaluating
   expressions.
 ---
 
-# Command: console
+# `terraform console` command
 
-The `terraform console` command provides an interactive console for
+The `terraform console` command opens an interactive console for
 evaluating [expressions](/terraform/language/expressions).
 
 ## Usage
@@ -25,9 +25,9 @@ To close the console, enter the `exit` command or press Control-C
 or Control-D.
 
 For configurations using
-[the `local` backend](/terraform/language/settings/backends/local) only,
+[the `local` backend](/terraform/language/backend/local) only,
 `terraform console` accepts the legacy command line option
-[`-state`](/terraform/language/settings/backends/local#command-line-arguments).
+[`-state`](/terraform/language/backend/local#command-line-arguments).
 
 ## Scripting
 
@@ -51,6 +51,31 @@ tolist([
 If [remote state](/terraform/language/state/remote) is used by the current backend,
 Terraform will read the state for the current workspace from the backend
 before evaluating any expressions.
+
+## Evaluation against a Plan
+
+By default, `terraform console` evaluates expressions against the current
+Terraform state, and so the results are typically very limited for resource
+instances that haven't yet been created by applying a plan.
+
+You can use the `-plan` option to instead generate an execution plan first,
+as if running `terraform plan`, and then evaluate against the _planned_ state
+to describe the values Terraform expects will be correct after the plan is
+applied. This typically causes a longer delay before the console prompt
+appears, but in return there will be a more complete set of values available in
+the expression scope.
+
+For well-behaved configurations the planning phase should not make any
+modifications to real remote objects, but it _is_ possible to write a
+configuration that can take significant actions while planning. For example, a
+configuration which uses the `hashicorp/external` provider's
+[`external` data source](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external)
+is likely to run the configured external command during the plan phase, which
+means it would be run by `terraform console -plan` too.
+
+We don't recommend that you write configurations that make changes during the
+plan phase. If you do write such a configuration despite that recommendation,
+take care when using the console in plan mode against that configuration.
 
 ## Examples
 

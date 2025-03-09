@@ -1,11 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configschema
 
 import (
 	"testing"
 
 	"github.com/zclconf/go-cty/cty"
-
-	multierror "github.com/hashicorp/go-multierror"
 )
 
 func TestBlockInternalValidate(t *testing.T) {
@@ -264,11 +265,50 @@ func TestBlockInternalValidate(t *testing.T) {
 			},
 			[]string{"bad: block schema is nil"},
 		},
+		"nested set block with write-only attribute": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"bad": {
+						Nesting: NestingSet,
+						Block: Block{
+							Attributes: map[string]*Attribute{
+								"wo": {
+									Type:      cty.String,
+									Optional:  true,
+									WriteOnly: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			[]string{"bad: NestingSet blocks may not contain WriteOnly attributes"},
+		},
+		"nested set attributes with write-only attribute": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"bad": {
+						NestedType: &Object{
+							Attributes: map[string]*Attribute{
+								"wo": {
+									Type:      cty.String,
+									Optional:  true,
+									WriteOnly: true,
+								},
+							},
+							Nesting: NestingSet,
+						},
+						Optional: true,
+					},
+				},
+			},
+			[]string{"bad: NestingSet attributes may not contain WriteOnly attributes"},
+		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			errs := multierrorErrors(test.Block.InternalValidate())
+			errs := joinedErrors(test.Block.InternalValidate())
 			if got, want := len(errs), len(test.Errs); got != want {
 				t.Errorf("wrong number of errors %d; want %d", got, want)
 				for _, err := range errs {
@@ -287,16 +327,19 @@ func TestBlockInternalValidate(t *testing.T) {
 	}
 }
 
-func multierrorErrors(err error) []error {
-	// A function like this should really be part of the multierror package...
-
+func joinedErrors(err error) []error {
 	if err == nil {
 		return nil
 	}
+	// This interface is implemented by the result of errors.Join when
+	// multiple errors are present.
+	type Unwrapper interface {
+		Unwrap() []error
+	}
 
 	switch terr := err.(type) {
-	case *multierror.Error:
-		return terr.Errors
+	case Unwrapper:
+		return terr.Unwrap()
 	default:
 		return []error{err}
 	}

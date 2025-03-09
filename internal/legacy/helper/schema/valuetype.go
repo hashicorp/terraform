@@ -1,6 +1,9 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package schema
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=ValueType valuetype.go
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=ValueType valuetype.go
 
 // ValueType is an enum of the type that can be represented by a schema.
 type ValueType int

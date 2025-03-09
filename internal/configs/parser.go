@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configs
 
 import (
@@ -117,4 +120,11 @@ func (p *Parser) ForceFileSource(filename string, src []byte) {
 // method.
 func (p *Parser) AllowLanguageExperiments(allowed bool) {
 	p.allowExperiments = allowed
+}
+
+// AllowsLanguageExperiments returns the value most recently passed to
+// [Parser.AllowLanguageExperiments], or false if that method has not been
+// called on this object.
+func (p *Parser) AllowsLanguageExperiments() bool {
+	return p.allowExperiments
 }

@@ -1,17 +1,27 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package states
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 
 func TestResourceInstanceObject_encode(t *testing.T) {
 	value := cty.ObjectVal(map[string]cty.Value{
 		"foo": cty.True,
+		"obj": cty.ObjectVal(map[string]cty.Value{
+			"sensitive": cty.StringVal("secret").Mark(marks.Sensitive),
+		}),
+		"sensitive_a": cty.StringVal("secret").Mark(marks.Sensitive),
+		"sensitive_b": cty.StringVal("secret").Mark(marks.Sensitive),
 	})
 	// The in-memory order of resource dependencies is random, since they're an
 	// unordered set.
@@ -79,5 +89,37 @@ func TestResourceInstanceObject_encode(t *testing.T) {
 		if diff := cmp.Diff(encoded[i].Dependencies, encoded[i+1].Dependencies); diff != "" {
 			t.Errorf("identical dependencies got encoded in different orders:\n%s", diff)
 		}
+	}
+
+	// sensitive paths must also be consistent got comparison
+	for i := 0; i < len(encoded)-1; i++ {
+		a, b := fmt.Sprintf("%#v", encoded[i].AttrSensitivePaths), fmt.Sprintf("%#v", encoded[i+1].AttrSensitivePaths)
+		if diff := cmp.Diff(a, b); diff != "" {
+			t.Errorf("sensitive paths got encoded in different orders:\n%s", diff)
+		}
+	}
+}
+
+func TestResourceInstanceObject_encodeInvalidMarks(t *testing.T) {
+	value := cty.ObjectVal(map[string]cty.Value{
+		// State only supports a subset of marks that we know how to persist
+		// between plan/apply rounds. All values with other marks must be
+		// replaced with unmarked placeholders before attempting to store the
+		// value in the state.
+		"foo": cty.True.Mark("unsupported"),
+	})
+
+	obj := &ResourceInstanceObject{
+		Value:  value,
+		Status: ObjectReady,
+	}
+	_, err := obj.Encode(value.Type(), 0)
+	if err == nil {
+		t.Fatalf("unexpected success; want error")
+	}
+	got := err.Error()
+	want := `.foo: cannot serialize value marked as cty.NewValueMarks("unsupported") for inclusion in a state snapshot (this is a bug in Terraform)`
+	if got != want {
+		t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
 	}
 }

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package funcs
 
 import (
@@ -21,7 +24,8 @@ var LogFunc = function.New(&function.Spec{
 			Type: cty.Number,
 		},
 	},
-	Type: function.StaticReturnType(cty.Number),
+	Type:         function.StaticReturnType(cty.Number),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		var num float64
 		if err := gocty.FromCtyValue(args[0], &num); err != nil {
@@ -49,7 +53,8 @@ var PowFunc = function.New(&function.Spec{
 			Type: cty.Number,
 		},
 	},
-	Type: function.StaticReturnType(cty.Number),
+	Type:         function.StaticReturnType(cty.Number),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		var num float64
 		if err := gocty.FromCtyValue(args[0], &num); err != nil {
@@ -74,7 +79,8 @@ var SignumFunc = function.New(&function.Spec{
 			Type: cty.Number,
 		},
 	},
-	Type: function.StaticReturnType(cty.Number),
+	Type:         function.StaticReturnType(cty.Number),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		var num int
 		if err := gocty.FromCtyValue(args[0], &num); err != nil {
@@ -95,14 +101,16 @@ var SignumFunc = function.New(&function.Spec{
 var ParseIntFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
-			Name:        "number",
-			Type:        cty.DynamicPseudoType,
-			AllowMarked: true,
+			Name:         "number",
+			Type:         cty.DynamicPseudoType,
+			AllowMarked:  true,
+			AllowUnknown: true,
 		},
 		{
-			Name:        "base",
-			Type:        cty.Number,
-			AllowMarked: true,
+			Name:         "base",
+			Type:         cty.Number,
+			AllowMarked:  true,
+			AllowUnknown: true,
 		},
 	},
 
@@ -112,6 +120,7 @@ var ParseIntFunc = function.New(&function.Spec{
 		}
 		return cty.Number, nil
 	},
+	RefineResult: refineNotNull,
 
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		var numstr string
@@ -119,11 +128,16 @@ var ParseIntFunc = function.New(&function.Spec{
 		var err error
 
 		numArg, numMarks := args[0].Unmark()
+		baseArg, baseMarks := args[1].Unmark()
+
+		if !numArg.IsKnown() || !baseArg.IsKnown() {
+			return cty.UnknownVal(retType).WithMarks(numMarks, baseMarks), nil
+		}
+
 		if err = gocty.FromCtyValue(numArg, &numstr); err != nil {
 			return cty.UnknownVal(cty.String), function.NewArgError(0, err)
 		}
 
-		baseArg, baseMarks := args[1].Unmark()
 		if err = gocty.FromCtyValue(baseArg, &base); err != nil {
 			return cty.UnknownVal(cty.Number), function.NewArgError(1, err)
 		}

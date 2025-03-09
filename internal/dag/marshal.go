@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package dag
 
 import (
@@ -141,7 +144,7 @@ func newMarshalGraph(name string, g *Graph) *marshalGraph {
 
 	sort.Sort(edges(mg.Edges))
 
-	for _, c := range (&AcyclicGraph{*g}).Cycles() {
+	for _, c := range (&AcyclicGraph{Graph: *g}).Cycles() {
 		var cycle []*marshalVertex
 		for _, v := range c {
 			mv := newMarshalVertex(v)

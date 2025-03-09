@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -5,11 +8,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestContextImport_basic(t *testing.T) {
@@ -35,10 +40,10 @@ func TestContextImport_basic(t *testing.T) {
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
-				Addr: addrs.RootModuleInstance.ResourceInstance(
+				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -86,10 +91,10 @@ resource "aws_instance" "foo" {
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
-				Addr: addrs.RootModuleInstance.ResourceInstance(
+				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.IntKey(0),
 				),
-				ID: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -147,10 +152,10 @@ func TestContextImport_collision(t *testing.T) {
 	state, diags := ctx.Import(m, state, &ImportOpts{
 		Targets: []*ImportTarget{
 			{
-				Addr: addrs.RootModuleInstance.ResourceInstance(
+				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -191,10 +196,10 @@ func TestContextImport_missingType(t *testing.T) {
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
-				Addr: addrs.RootModuleInstance.ResourceInstance(
+				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -242,10 +247,10 @@ func TestContextImport_moduleProvider(t *testing.T) {
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
-				Addr: addrs.RootModuleInstance.ResourceInstance(
+				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -297,10 +302,10 @@ func TestContextImport_providerModule(t *testing.T) {
 	_, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
-				Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).ResourceInstance(
+				LegacyAddr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -353,10 +358,10 @@ func TestContextImport_providerConfig(t *testing.T) {
 			state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 				Targets: []*ImportTarget{
 					{
-						Addr: addrs.RootModuleInstance.ResourceInstance(
+						LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 							addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 						),
-						ID: "bar",
+						IDString: "bar",
 					},
 				},
 				SetVariables: InputValues{
@@ -413,10 +418,10 @@ func TestContextImport_providerConfigResources(t *testing.T) {
 	_, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
-				Addr: addrs.RootModuleInstance.ResourceInstance(
+				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -484,10 +489,10 @@ data "aws_data_source" "bar" {
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
-				Addr: addrs.RootModuleInstance.ResourceInstance(
+				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -535,10 +540,10 @@ func TestContextImport_refreshNil(t *testing.T) {
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
-				Addr: addrs.RootModuleInstance.ResourceInstance(
+				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -576,10 +581,10 @@ func TestContextImport_module(t *testing.T) {
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
-				Addr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).ResourceInstance(
+				LegacyAddr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -617,10 +622,10 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
-				Addr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).Child("nested", addrs.NoKey).ResourceInstance(
+				LegacyAddr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).Child("nested", addrs.NoKey).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "baz",
+				IDString: "baz",
 			},
 		},
 	})
@@ -658,10 +663,10 @@ func TestContextImport_moduleDiff(t *testing.T) {
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
-				Addr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).ResourceInstance(
+				LegacyAddr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "baz",
+				IDString: "baz",
 			},
 		},
 	})
@@ -680,7 +685,7 @@ func TestContextImport_multiState(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {Type: cty.String, Optional: true},
@@ -726,10 +731,10 @@ func TestContextImport_multiState(t *testing.T) {
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
-				Addr: addrs.RootModuleInstance.ResourceInstance(
+				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -748,7 +753,7 @@ func TestContextImport_multiStateSame(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {Type: cty.String, Optional: true},
@@ -800,10 +805,10 @@ func TestContextImport_multiStateSame(t *testing.T) {
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
-				Addr: addrs.RootModuleInstance.ResourceInstance(
+				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -857,7 +862,7 @@ resource "test_resource" "unused" {
 `,
 	})
 
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {Type: cty.String, Optional: true},
@@ -894,10 +899,10 @@ resource "test_resource" "unused" {
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
-				Addr: addrs.RootModuleInstance.ResourceInstance(
+				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "test_resource", "test", addrs.NoKey,
 				),
-				ID: "test",
+				IDString: "test",
 			},
 		},
 	})
@@ -934,7 +939,7 @@ resource "test_resource" "test" {
 }
 `})
 
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_resource": {
 				Attributes: map[string]*configschema.Attribute{
@@ -964,10 +969,10 @@ resource "test_resource" "test" {
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
-				Addr: addrs.RootModuleInstance.ResourceInstance(
+				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "test_resource", "test", addrs.NoKey,
 				),
-				ID: "test",
+				IDString: "test",
 			},
 		},
 	})
@@ -985,7 +990,98 @@ resource "test_resource" "test" {
 	}
 }
 
+func TestContextImport_33572(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "issue-33572")
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+		Targets: []*ImportTarget{
+			{
+				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				IDString: "bar",
+			},
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testImportStrWithDataSource)
+	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
+		t.Fatalf("wrong final state\ngot:\n%s\nwant:\n%s\ndiff:\n%s", actual, expected, diff)
+	}
+}
+
+// Missing import target should produce an error
+func TestContextImport_missingModuleImport(t *testing.T) {
+	p := testProvider("test")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  xs = toset(["foo"])
+}
+
+module "a" {
+  for_each = local.xs
+  source   = "./a"
+}
+
+import {
+	to = module.WRONG.test_resource.x
+	id = "id"
+}
+`,
+		"a/main.tf": `
+resource "test_resource" "x" {
+  value = "z"
+}
+`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if !diags.HasErrors() {
+		t.Fatal("expected missing import target error")
+	}
+	if !strings.Contains(diags.Err().Error(), "Configuration for import target does not exist") {
+		t.Fatalf("incorrect error for missing import target: %s\n", diags.Err())
+	}
+}
+
 const testImportStr = `
+aws_instance.foo:
+  ID = foo
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+`
+
+const testImportStrWithDataSource = `
+data.aws_data_source.bar:
+  ID = baz
+  provider = provider["registry.terraform.io/hashicorp/aws"]
 aws_instance.foo:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]

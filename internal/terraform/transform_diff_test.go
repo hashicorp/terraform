@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -35,7 +38,7 @@ func TestDiffTransformer(t *testing.T) {
 	}
 
 	tf := &DiffTransformer{
-		Changes: &plans.Changes{
+		Changes: &plans.ChangesSrc{
 			Resources: []*plans.ResourceInstanceChangeSrc{
 				{
 					Addr: addrs.Resource{
@@ -110,7 +113,7 @@ resource "aws_instance" "foo" {
 
 	tf := &DiffTransformer{
 		Config: m,
-		Changes: &plans.Changes{
+		Changes: &plans.ChangesSrc{
 			Resources: []*plans.ResourceInstanceChangeSrc{
 				{
 					Addr: addrs.Resource{

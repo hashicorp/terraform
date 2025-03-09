@@ -1,10 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
@@ -62,19 +65,9 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	// Attempt to load the plan file, if specified
-	planFile, diags := c.LoadPlanFile(args.PlanPath)
+	planFile, loadPlanFileDiags := c.LoadPlanFile(args.PlanPath)
+	diags = diags.Append(loadPlanFileDiags)
 	if diags.HasErrors() {
-		view.Diagnostics(diags)
-		return 1
-	}
-
-	// Check for invalid combination of plan file and variable overrides
-	if planFile != nil && !args.Vars.Empty() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Can't set variables when applying a saved plan",
-			"The -var and -var-file options cannot be used when applying a saved plan file, because a saved plan includes the variable values that were set when it was created.",
-		))
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -104,6 +97,10 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	// Build the operation request
 	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, planFile, args.Operation, args.AutoApprove)
 	diags = diags.Append(opDiags)
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
 
 	// Collect variable value and add them to the operation request
 	diags = diags.Append(c.GatherVariables(opReq, args.Vars))
@@ -125,7 +122,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	if op.Result != backend.OperationSuccess {
+	if op.Result != backendrun.OperationSuccess {
 		return op.Result.ExitStatus()
 	}
 
@@ -134,7 +131,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	if rb, isRemoteBackend := be.(BackendWithRemoteTerraformVersion); !isRemoteBackend || rb.IsLocalOperations() {
 		view.ResourceCount(args.State.StateOutPath)
 		if !c.Destroy && op.State != nil {
-			view.Outputs(op.State.RootModule().OutputValues)
+			view.Outputs(op.State.RootOutputValues)
 		}
 	}
 
@@ -147,8 +144,8 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	return 0
 }
 
-func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.Reader, tfdiags.Diagnostics) {
-	var planFile *planfile.Reader
+func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.WrappedPlanFile, tfdiags.Diagnostics) {
+	var planFile *planfile.WrappedPlanFile
 	var diags tfdiags.Diagnostics
 
 	// Try to load plan if path is specified
@@ -191,7 +188,7 @@ func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.Reader, tfdiags.Diag
 	return planFile, diags
 }
 
-func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments.State, viewType arguments.ViewType) (backend.Enhanced, tfdiags.Diagnostics) {
+func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *arguments.State, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// FIXME: we need to apply the state arguments to the meta object here
@@ -201,21 +198,10 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments
 	c.Meta.applyStateArguments(args)
 
 	// Load the backend
-	var be backend.Enhanced
+	var be backendrun.OperationsBackend
 	var beDiags tfdiags.Diagnostics
-	if planFile == nil {
-		backendConfig, configDiags := c.loadBackendConfig(".")
-		diags = diags.Append(configDiags)
-		if configDiags.HasErrors() {
-			return nil, diags
-		}
-
-		be, beDiags = c.Backend(&BackendOpts{
-			Config:   backendConfig,
-			ViewType: viewType,
-		})
-	} else {
-		plan, err := planFile.ReadPlan()
+	if lp, ok := planFile.Local(); ok {
+		plan, err := lp.ReadPlan()
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -233,7 +219,19 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments
 			))
 			return nil, diags
 		}
-		be, beDiags = c.BackendForPlan(plan.Backend)
+		be, beDiags = c.BackendForLocalPlan(plan.Backend)
+	} else {
+		// Both new plans and saved cloud plans load their backend from config.
+		backendConfig, configDiags := c.loadBackendConfig(".")
+		diags = diags.Append(configDiags)
+		if configDiags.HasErrors() {
+			return nil, diags
+		}
+
+		be, beDiags = c.Backend(&BackendOpts{
+			Config:   backendConfig,
+			ViewType: viewType,
+		})
 	}
 
 	diags = diags.Append(beDiags)
@@ -244,19 +242,24 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments
 }
 
 func (c *ApplyCommand) OperationRequest(
-	be backend.Enhanced,
+	be backendrun.OperationsBackend,
 	view views.Apply,
 	viewType arguments.ViewType,
-	planFile *planfile.Reader,
+	planFile *planfile.WrappedPlanFile,
 	args *arguments.Operation,
 	autoApprove bool,
-) (*backend.Operation, tfdiags.Diagnostics) {
+) (*backendrun.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Applying changes with dev overrides in effect could make it impossible
 	// to switch back to a release version if the schema isn't compatible,
 	// so we'll warn about it.
-	diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
+	b, isRemoteBackend := be.(BackendWithRemoteTerraformVersion)
+	if isRemoteBackend && !b.IsLocalOperations() {
+		diags = diags.Append(c.providerDevOverrideRuntimeWarningsRemoteExecution())
+	} else {
+		diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
+	}
 
 	// Build the operation
 	opReq := c.Operation(be, viewType)
@@ -268,8 +271,23 @@ func (c *ApplyCommand) OperationRequest(
 	opReq.PlanRefresh = args.Refresh
 	opReq.Targets = args.Targets
 	opReq.ForceReplace = args.ForceReplace
-	opReq.Type = backend.OperationTypeApply
+	opReq.Type = backendrun.OperationTypeApply
 	opReq.View = view.Operation()
+	opReq.StatePersistInterval = c.Meta.StatePersistInterval()
+
+	// EXPERIMENTAL: maybe enable deferred actions
+	if c.AllowExperimentalFeatures {
+		opReq.DeferralAllowed = args.DeferralAllowed
+	} else if args.DeferralAllowed {
+		// Belated flag parse error, since we don't know about experiments
+		// support at actual parse time.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to parse command-line flags",
+			"The -allow-deferral flag is only valid in experimental builds of Terraform.",
+		))
+		return nil, diags
+	}
 
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()
@@ -281,7 +299,7 @@ func (c *ApplyCommand) OperationRequest(
 	return opReq, diags
 }
 
-func (c *ApplyCommand) GatherVariables(opReq *backend.Operation, args *arguments.Vars) tfdiags.Diagnostics {
+func (c *ApplyCommand) GatherVariables(opReq *backendrun.Operation, args *arguments.Vars) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// FIXME the arguments package currently trivially gathers variable related
@@ -292,12 +310,12 @@ func (c *ApplyCommand) GatherVariables(opReq *backend.Operation, args *arguments
 	// package directly, removing this shim layer.
 
 	varArgs := args.All()
-	items := make([]rawFlag, len(varArgs))
+	items := make([]arguments.FlagNameValue, len(varArgs))
 	for i := range varArgs {
 		items[i].Name = varArgs[i].Name
 		items[i].Value = varArgs[i].Value
 	}
-	c.Meta.variableArgs = rawFlags{items: &items}
+	c.Meta.variableArgs = arguments.FlagNameValueSlice{Items: &items}
 	opReq.Variables, diags = c.collectVariableValues()
 
 	return diags
@@ -367,6 +385,15 @@ Options:
   -state-out=path        Path to write state to that is different than
                          "-state". This can be used to preserve the old
                          state.
+                         
+  -var 'foo=bar'         Set a value for one of the input variables in the root
+                         module of the configuration. Use this option more than
+                         once to set more than one variable.
+
+  -var-file=filename     Load variable values from the given file, in addition
+                         to the default files terraform.tfvars and *.auto.tfvars.
+                         Use this option more than once to include more than one
+                         variables file.
 
   If you don't provide a saved plan file then this command will also accept
   all of the plan-customization options accepted by the terraform plan command.

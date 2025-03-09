@@ -85,7 +85,7 @@ Refer to [Custom Condition Checks](/terraform/language/expressions/custom-condit
 
 ## Optional Arguments
 
-`output` blocks can optionally include `description`, `sensitive`, and `depends_on` arguments, which are described in the following sections.
+`output` blocks can optionally include `description`, `sensitive`, `ephemeral`, and `depends_on` arguments, which are described in the following sections.
 
 <a id="description"></a>
 
@@ -107,6 +107,38 @@ purpose of the output and what kind of value is expected. This description
 string might be included in documentation about the module, and so it should be
 written from the perspective of the user of the module rather than its
 maintainer. For commentary for module maintainers, use comments.
+
+<a id="ephemeral"></a>
+
+### `ephemeral` — Avoid storing values in state or plan files
+
+-> **Note**: Ephemeral outputs are available in Terraform v1.10 and later.
+
+You can mark `output` values as `ephemeral` in child modules to pass ephemeral values between modules while avoiding persisting those values to state or plan files. This is useful for managing credentials, tokens, or other temporary resources you do not want to store in Terraform state files.
+
+You can mark an `output` in a child module as ephemeral by setting the `ephemeral` attribute to `true`:
+
+```hcl
+# modules/db/main.tf
+
+output "secret_id" {
+  value       = aws_secretsmanager_secret.secret_id
+  description = "Temporary secret ID for accessing database in AWS."
+  ephemeral   = true
+}
+```
+
+Terraform has access to the value of `output` blocks during plan and apply operations. At the end of a plan or apply operation, Terraform does not persist the value of any ephemeral outputs.
+
+You can only reference ephemeral outputs in specific contexts or Terraform throws an error. The following are valid contexts for referencing ephemeral outputs:
+
+* In a [write-only argument](/terraform/language/resources/ephemeral/write-only)
+* In another child module's ephemeral `output` block
+* In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)
+* In [ephemeral resources](/terraform/language/resources/ephemeral)
+
+Note that you cannot set an `output` value as `ephemeral` in the root module.
+
 
 <a id="sensitive"></a>
 
@@ -168,16 +200,10 @@ Changes to Outputs:
   + out = (sensitive value)
 ```
 
--> **Note:** In Terraform versions prior to Terraform 0.14, setting an output
-value in the root module as sensitive would prevent Terraform from showing its
-value in the list of outputs at the end of `terraform apply`. However, the
-value could still display in the CLI output for other reasons, like if the
-value is referenced in an expression for a resource argument.
-
 Terraform will still record sensitive values in the [state](/terraform/language/state),
 and so anyone who can access the state data will have access to the sensitive
 values in cleartext. For more information, see
-[_Sensitive Data in State_](/terraform/language/state/sensitive-data).
+[Sensitive Data in State](/terraform/language/state/sensitive-data).
 
 <a id="depends_on"></a>
 

@@ -1,9 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonformat
 
 import (
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/plans"
 )
@@ -42,31 +46,47 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 		}
 
 		schema := plan.getSchema(drift)
+		change := structured.FromJsonChange(drift.Change, relevantAttrs)
 		diffs.drift = append(diffs.drift, diff{
 			change: drift,
-			diff:   differ.FromJsonChange(drift.Change, relevantAttrs).ComputeDiffForBlock(schema.Block),
+			diff:   differ.ComputeDiffForBlock(change, schema.Block),
 		})
 	}
 
 	for _, change := range plan.ResourceChanges {
 		schema := plan.getSchema(change)
+		structuredChange := structured.FromJsonChange(change.Change, attribute_path.AlwaysMatcher())
 		diffs.changes = append(diffs.changes, diff{
 			change: change,
-			diff:   differ.FromJsonChange(change.Change, attribute_path.AlwaysMatcher()).ComputeDiffForBlock(schema.Block),
+			diff:   differ.ComputeDiffForBlock(structuredChange, schema.Block),
+		})
+	}
+
+	for _, change := range plan.DeferredChanges {
+		schema := plan.getSchema(change.ResourceChange)
+		structuredChange := structured.FromJsonChange(change.ResourceChange.Change, attribute_path.AlwaysMatcher())
+		diffs.deferred = append(diffs.deferred, deferredDiff{
+			reason: change.Reason,
+			diff: diff{
+				change: change.ResourceChange,
+				diff:   differ.ComputeDiffForBlock(structuredChange, schema.Block),
+			},
 		})
 	}
 
 	for key, output := range plan.OutputChanges {
-		diffs.outputs[key] = differ.FromJsonChange(output, attribute_path.AlwaysMatcher()).ComputeDiffForOutput()
+		change := structured.FromJsonChange(output, attribute_path.AlwaysMatcher())
+		diffs.outputs[key] = differ.ComputeDiffForOutput(change)
 	}
 
 	return diffs
 }
 
 type diffs struct {
-	drift   []diff
-	changes []diff
-	outputs map[string]computed.Diff
+	drift    []diff
+	changes  []diff
+	deferred []deferredDiff
+	outputs  map[string]computed.Diff
 }
 
 func (d diffs) Empty() bool {
@@ -92,4 +112,13 @@ type diff struct {
 
 func (d diff) Moved() bool {
 	return len(d.change.PreviousAddress) > 0 && d.change.PreviousAddress != d.change.Address
+}
+
+func (d diff) Importing() bool {
+	return d.change.Change.Importing != nil
+}
+
+type deferredDiff struct {
+	diff   diff
+	reason string
 }

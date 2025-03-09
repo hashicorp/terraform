@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package funcs
 
 import (
@@ -6,11 +9,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/function/stdlib"
+
+	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 )
 
 func TestFile(t *testing.T) {
@@ -22,6 +27,11 @@ func TestFile(t *testing.T) {
 		{
 			cty.StringVal("testdata/hello.txt"),
 			cty.StringVal("Hello World"),
+			``,
+		},
+		{
+			cty.UnknownVal(cty.String).Mark(marks.Sensitive),
+			cty.UnknownVal(cty.String).RefineNotNull().Mark(marks.Sensitive),
 			``,
 		},
 		{
@@ -146,7 +156,13 @@ func TestTemplateFile(t *testing.T) {
 			cty.StringVal("testdata/recursive.tmpl"),
 			cty.MapValEmpty(cty.String),
 			cty.NilVal,
-			`testdata/recursive.tmpl:1,3-16: Error in function call; Call to function "templatefile" failed: cannot recursively call templatefile from inside templatefile call.`,
+			`testdata/recursive.tmpl:1,3-16: Error in function call; Call to function "templatefile" failed: cannot recursively call templatefile from inside another template function.`,
+		},
+		{
+			cty.StringVal("testdata/recursive_namespaced.tmpl"),
+			cty.MapValEmpty(cty.String),
+			cty.NilVal,
+			`testdata/recursive_namespaced.tmpl:1,3-22: Error in function call; Call to function "core::templatefile" failed: cannot recursively call templatefile from inside another template function.`,
 		},
 		{
 			cty.StringVal("testdata/list.tmpl"),
@@ -176,14 +192,68 @@ func TestTemplateFile(t *testing.T) {
 			cty.True, // since this template contains only an interpolation, its true value shines through
 			``,
 		},
+		{
+			// If the template filename is sensitive then we also treat the
+			// rendered result as sensitive, because the rendered result
+			// is likely to imply which filename was used.
+			// (Sensitive filenames seem pretty unlikely, but if they do
+			// crop up then we should handle them consistently with our
+			// usual sensitivity rules.)
+			cty.StringVal("testdata/hello.txt").Mark(marks.Sensitive),
+			cty.EmptyObjectVal,
+			cty.StringVal("Hello World").Mark(marks.Sensitive),
+			``,
+		},
+		{
+			cty.StringVal("testdata/list.tmpl").Mark("path"),
+			cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b").Mark("var"),
+					cty.StringVal("c"),
+				}).Mark("vars"),
+			}),
+			cty.StringVal("- a\n- b\n- c\n").Mark("path").Mark("var").Mark("vars"),
+			``,
+		},
+		{
+			cty.StringVal("testdata/list.tmpl").Mark("path"),
+			cty.UnknownVal(cty.Map(cty.String)),
+			cty.DynamicVal.Mark("path"),
+			``,
+		},
+		{
+			cty.StringVal("testdata/list.tmpl").Mark("path"),
+			cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.UnknownVal(cty.String).Mark("var"),
+					cty.StringVal("c"),
+				}),
+			}),
+			cty.UnknownVal(cty.String).RefineNotNull().Mark("path").Mark("var"),
+			``,
+		},
+		{
+			cty.UnknownVal(cty.String).Mark("path"),
+			cty.ObjectVal(map[string]cty.Value{
+				"key": cty.StringVal("value").Mark("var"),
+			}),
+			cty.DynamicVal.Mark("path").Mark("var"),
+			``,
+		},
 	}
 
-	templateFileFn := MakeTemplateFileFunc(".", func() map[string]function.Function {
-		return map[string]function.Function{
-			"join":         stdlib.JoinFunc,
-			"templatefile": MakeFileFunc(".", false), // just a placeholder, since templatefile itself overrides this
-		}
-	})
+	funcs := map[string]function.Function{
+		"join":       stdlib.JoinFunc,
+		"core::join": stdlib.JoinFunc,
+	}
+	funcsFunc := func() (funcTable map[string]function.Function, fsFuncs collections.Set[string], templateFuncs collections.Set[string]) {
+		return funcs, collections.NewSetCmp[string](), collections.NewSetCmp[string]("templatefile")
+	}
+	templateFileFn := MakeTemplateFileFunc(".", funcsFunc)
+	funcs["templatefile"] = templateFileFn
+	funcs["core::templatefile"] = templateFileFn
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("TemplateFile(%#v, %#v)", test.Path, test.Vars), func(t *testing.T) {
@@ -249,6 +319,11 @@ func TestFileExists(t *testing.T) {
 			cty.StringVal("testdata/unreadable/foobar").Mark(marks.Sensitive),
 			cty.BoolVal(false),
 			`failed to stat (sensitive value)`,
+		},
+		{
+			cty.UnknownVal(cty.String).Mark(marks.Sensitive),
+			cty.UnknownVal(cty.Bool).RefineNotNull().Mark(marks.Sensitive),
+			``,
 		},
 	}
 
@@ -480,6 +555,18 @@ func TestFileSet(t *testing.T) {
 				cty.StringVal("hello.tmpl"),
 				cty.StringVal("hello.txt"),
 			}),
+			``,
+		},
+		{
+			cty.StringVal("testdata"),
+			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.Set(cty.String)).RefineNotNull(),
+			``,
+		},
+		{
+			cty.StringVal("testdata"),
+			cty.UnknownVal(cty.String).Mark(marks.Sensitive),
+			cty.UnknownVal(cty.Set(cty.String)).RefineNotNull().Mark(marks.Sensitive),
 			``,
 		},
 	}

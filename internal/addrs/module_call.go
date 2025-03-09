@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package addrs
 
 import (
@@ -54,6 +57,23 @@ type AbsModuleCall struct {
 
 func (c AbsModuleCall) absMoveableSigil() {
 	// AbsModuleCall is "moveable".
+}
+
+// StaticModule returns the static module path for the receiver.
+//
+// In other words, it effectively discards all of the dynamic instance keys
+// along the path to this call, while retaining the static module names.
+//
+// Given a representation of module.a["foo"].module.b, this would return
+// the [Module]-based representation of module.a.module.b, discarding the
+// first step's dynamic instance key "foo".
+func (c AbsModuleCall) StaticModule() Module {
+	ret := make(Module, len(c.Module), len(c.Module)+1)
+	for i, step := range c.Module {
+		ret[i] = step.Name
+	}
+	ret = append(ret, c.Call.Name)
+	return ret
 }
 
 func (c AbsModuleCall) String() string {
@@ -189,4 +209,29 @@ func (co ModuleCallInstanceOutput) uniqueKeySigil() {}
 func (co ModuleCallInstanceOutput) AbsOutputValue(caller ModuleInstance) AbsOutputValue {
 	moduleAddr := co.Call.ModuleInstance(caller)
 	return moduleAddr.OutputValue(co.Name)
+}
+
+type AbsModuleCallOutput struct {
+	Call AbsModuleCall
+	Name string
+}
+
+func (c AbsModuleCall) Output(name string) AbsModuleCallOutput {
+	return AbsModuleCallOutput{
+		Call: c,
+		Name: name,
+	}
+}
+
+func (m AbsModuleCallOutput) ConfigOutputValue() ConfigOutputValue {
+	return ConfigOutputValue{
+		Module: m.Call.StaticModule(),
+		OutputValue: OutputValue{
+			Name: m.Name,
+		},
+	}
+}
+
+func (co AbsModuleCallOutput) String() string {
+	return fmt.Sprintf("%s.%s", co.Call.String(), co.Name)
 }

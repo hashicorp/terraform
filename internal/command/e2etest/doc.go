@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package e2etest contains a set of tests that run against a real Terraform
 // binary, compiled on the fly at the start of the test run.
 //

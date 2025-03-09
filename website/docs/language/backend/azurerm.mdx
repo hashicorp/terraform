@@ -1,0 +1,613 @@
+---
+page_title: 'Backend Type: azurerm'
+description: Terraform can store state remotely in Azure Blob Storage.
+---
+
+# azurerm
+
+Stores the state as a Blob with the given Key within the Blob Container within [the Blob Storage Account](https://docs.microsoft.com/en-us/azure/storage/common/storage-introduction).
+
+This backend supports state locking and consistency checking with Azure Blob Storage native capabilities.
+
+~> Terraform 1.1 and 1.2 supported a feature-flag to allow enabling/disabling the use of Microsoft Graph (and MSAL) rather than Azure Active Directory Graph (and ADAL) - however this flag has since been removed in Terraform 1.3. Microsoft Graph (and MSAL) are now enabled by default and Azure Active Directory Graph (and ADAL) can no longer be used.
+
+## Authentication
+
+The `azurerm` backend supports 3 methods of authenticating to the storage account:
+
+- Access Key (default)
+- Azure Active Directory
+- SAS Token
+
+The *Access Key* method can be used directly, by specifying the access key, or in combination with an Azure AD principal (e.g. user, service principal or managed identity). To use an Access Key directly you must generate one for your state file blob and specify it in the backend configuration. If neither an access key or client ID is specified, Terraform will attempt to use Azure CLI. In both cases where no access key is given, Terraform will attempt to retrieve the access key for the storage account, using the authenticated Azure AD principal.
+
+The *Azure Active Directory* method can only be used in combination with an Azure AD principal. To use the Azure Active Directory method you must set the `use_azuread_auth` variable to `true` in your backend configuration. This will cause the backend to use the Access Token of the Azure AD principal to authenticate to the state file blob, instead of authenticating using a shared access key.
+
+The *SAS Token* method can only be used directly. You must generate a SAS Token for your state file blob and pass it to the backend config.
+
+The `azurerm` backend supports the following authentication scenarios to connect to the storage account, based on the configuration variables provided:
+
+| Authentication Method | Storage Account Authentication Type | Minimum Required Configuration† |
+|-----|---|---|
+| User Principal via Azure CLI | Access Key | N/A |
+| User Principal via Azure CLI | Azure AD | `use_azuread_auth = true` |
+| Service Principal or User Assigned Managed Identity via OIDC (Workload identity federation) | Access Key | `use_oidc = true` |
+| Service Principal or User Assigned Managed Identity via OIDC (Workload identity federation) | Azure AD | `use_azuread_auth = true`, `use_oidc = true` |
+| Managed Identity Principal | Access Key | `use_msi = true` |
+| Managed Identity Principal | Azure AD | `use_azuread_auth = true`, `use_msi = true` |
+| Service Principal via Client Secret | Access Key | `client_secret = "..."` |
+| Service Principal via Client Secret | Azure AD | `use_azuread_auth = true`, `client_secret = "..."` |
+| Service Principal via Client Certificate | Access Key | `client_certificate_path = "..."` |
+| Service Principal via Client Certificate | Azure AD | `client_certificate_path = "...`, `use_azuread_auth = true` |
+| Access Key direct | Access Key | `access_key = "..."` |
+| SAS Token direct | SAS Token | `sas_token = "..."` |
+
+† There are sometimes more options needed for successful authentication. The variable shown is the one that triggers the backend to use a given authentication scenario. You can see examples of each option below.
+
+-> Sensitive values should not be hardcoded into your configuration, and should instead be specified using environment variables or partial configuration flags in the `init` command of Terraform CLI.
+
+## Example Backend Configurations
+
+### Backend: Azure AD User via Azure CLI
+
+This method is not suitable for automation since it only supports a User Principal. To check which tenant and subscription you are pointed to, run `az account show`.
+
+*Connect to Storage Account with Access Key*
+
+```hcl
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "StorageAccount-ResourceGroup"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "abcd1234"                      # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "tfstate"                       # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "prod.terraform.tfstate"        # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+  }
+}
+```
+
+*Connect to Storage Account with Azure Active Directory authentication*
+
+```hcl
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "StorageAccount-ResourceGroup"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "abcd1234"                      # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "tfstate"                       # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "prod.terraform.tfstate"        # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    use_azuread_auth     = true                            # Can also be set via `ARM_USE_AZUREAD` environment variable.
+  }
+}
+```
+
+### Backend: Azure AD Service Principal or User Assigned Managed Identity via OIDC (Workload Identity Federation)
+
+You can use an App Registration (Service Principal) or a User Assigned Managed Identity to configure federated credentials. You must supply the Client ID of the principal.
+
+*Connect to Storage Account with Access Key*
+
+```hcl
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "StorageAccount-ResourceGroup"          # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "abcd1234"                              # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "tfstate"                               # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "prod.terraform.tfstate"                # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    use_oidc             = true                                    # Can also be set via `ARM_USE_OIDC` environment variable.
+    client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
+    subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
+    tenant_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
+  }
+}
+```
+
+*Connect to Storage Account with Azure Active Directory authentication*
+
+```hcl
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "StorageAccount-ResourceGroup"          # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "abcd1234"                              # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "tfstate"                               # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "prod.terraform.tfstate"                # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    use_oidc             = true                                    # Can also be set via `ARM_USE_OIDC` environment variable.
+    client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
+    subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
+    tenant_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
+    use_azuread_auth     = true                                    # Can also be set via `ARM_USE_AZUREAD` environment variable.
+  }
+}
+```
+
+### Backend: Azure AD Managed Identity Principal
+
+You can use a User Assigned Managed Identity as well as a System Assigned Managed Identity on your agent / runner compute environment. However the backend does not currently support specifying the Client ID of the User Assigned Managed Identity, so you can only supply one per compute instance.
+
+*Connect to Storage Account with Access Key*
+
+```hcl
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "StorageAccount-ResourceGroup"          # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "abcd1234"                              # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "tfstate"                               # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "prod.terraform.tfstate"                # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    use_msi              = true                                    # Can also be set via `ARM_USE_MSI` environment variable.
+    client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
+    subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
+    tenant_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
+  }
+}
+```
+
+*Connect to Storage Account with Azure Active Directory authentication*
+
+```hcl
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "StorageAccount-ResourceGroup"          # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "abcd1234"                              # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "tfstate"                               # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "prod.terraform.tfstate"                # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    use_msi              = true                                    # Can also be set via `ARM_USE_MSI` environment variable.
+    client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
+    subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
+    tenant_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
+    use_azuread_auth     = true                                    # Can also be set via `ARM_USE_AZUREAD` environment variable.
+  }
+}
+```
+
+### Backend: Azure AD Service Principal via Client Secret
+
+~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
+
+*Connect to Storage Account with Access Key*
+
+```hcl
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "StorageAccount-ResourceGroup"          # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "abcd1234"                              # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "tfstate"                               # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "prod.terraform.tfstate"                # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
+    client_secret        = "************************************"  # Can also be set via `ARM_CLIENT_SECRET` environment variable.
+    subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
+    tenant_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
+  }
+}
+```
+
+*Connect to Storage Account with Azure Active Directory authentication*
+
+```hcl
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "StorageAccount-ResourceGroup"          # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "abcd1234"                              # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "tfstate"                               # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "prod.terraform.tfstate"                # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
+    client_secret        = "************************************"  # Can also be set via `ARM_CLIENT_SECRET` environment variable.
+    subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
+    tenant_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
+    use_azuread_auth     = true                                    # Can also be set via `ARM_USE_AZUREAD` environment variable.
+  }
+}
+```
+
+### Backend: Azure AD Service Principal via Client Certificate
+
+~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
+
+*Connect to Storage Account with Access Key*
+
+```hcl
+terraform {
+  backend "azurerm" {
+    resource_group_name         = "StorageAccount-ResourceGroup"          # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name        = "abcd1234"                              # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name              = "tfstate"                               # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                         = "prod.terraform.tfstate"                # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    client_id                   = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
+    client_certificate_path     = "/path/to/bundle.pfx"                   # Can also be set via `ARM_CLIENT_CERTIFICATE_PATH` environment variable.
+    client_certificate_password = "************************************"  # Can also be set via `ARM_CLIENT_CERTIFICATE_PASSWORD` environment variable.
+    subscription_id             = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
+    tenant_id                   = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
+  }
+}
+```
+
+*Connect to Storage Account with Azure Active Directory authentication*
+
+```hcl
+terraform {
+  backend "azurerm" {
+    resource_group_name         = "StorageAccount-ResourceGroup"          # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name        = "abcd1234"                              # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name              = "tfstate"                               # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                         = "prod.terraform.tfstate"                # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    client_id                   = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
+    client_certificate_path     = "/path/to/bundle.pfx"                   # Can also be set via `ARM_CLIENT_CERTIFICATE_PATH` environment variable.
+    client_certificate_password = "************************************"  # Can also be set via `ARM_CLIENT_CERTIFICATE_PASSWORD` environment variable.
+    subscription_id             = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
+    tenant_id                   = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
+    use_azuread_auth            = true                                    # Can also be set via `ARM_USE_AZUREAD` environment variable.
+  }
+}
+```
+
+### Backend: Access Key Direct
+
+~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
+
+```hcl
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "StorageAccount-ResourceGroup"             # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "abcd1234"                                 # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "tfstate"                                  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "prod.terraform.tfstate"                   # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    access_key           = "abcdefghijklmnopqrstuvwxyz0123456789..."  # Can also be set via `ARM_ACCESS_KEY` environment variable.
+  }
+}
+```
+
+### Backend: SAS Token
+
+~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
+
+```hcl
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "StorageAccount-ResourceGroup"             # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "abcd1234"                                 # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "tfstate"                                  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "prod.terraform.tfstate"                   # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    sas_token            = "abcdefghijklmnopqrstuvwxyz0123456789..."  # Can also be set via `ARM_SAS_TOKEN` environment variable.
+  }
+}
+```
+
+## Example Data Source Configurations
+
+### Data Source: Azure AD User Principal via Azure CLI
+
+This method is not suitable for automation since it only supports a User Principal. To check which tenant and subscription you are pointed to, run `az account show`.
+
+*Connect to Storage Account with Access Key*
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    resource_group_name  = "StorageAccount-ResourceGroup"
+    storage_account_name = "terraform123abc"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+  }
+}
+```
+
+*Connect to Storage Account with Azure Active Directory authentication*
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    resource_group_name  = "StorageAccount-ResourceGroup"
+    storage_account_name = "terraform123abc"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+    use_azuread_auth     = true                            # Can also be set via `ARM_USE_AZUREAD` environment variable.
+  }
+}
+```
+
+### Data Source: Azure AD Service Principal or User Assigned Managed Identity via OIDC (Workload Identity Federation)
+
+You can use an App Registration (Service Principal) or a User Assigned Managed Identity to configure federated credentials. You must supply the Client ID of the principal.
+
+*Connect to Storage Account with Access Key*
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    resource_group_name  = "StorageAccount-ResourceGroup"
+    storage_account_name = "terraform123abc"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+    use_oidc             = true                                    # Can also be set via `ARM_USE_OIDC` environment variable.
+    client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
+    subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
+    tenant_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
+  }
+}
+```
+
+*Connect to Storage Account with Azure Active Directory authentication*
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    resource_group_name  = "StorageAccount-ResourceGroup"
+    storage_account_name = "terraform123abc"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+    use_oidc             = true                                    # Can also be set via `ARM_USE_OIDC` environment variable.
+    client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
+    subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
+    tenant_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
+    use_azuread_auth     = true                                    # Can also be set via `ARM_USE_AZUREAD` environment variable.
+  }
+}
+```
+
+### Data Source: Azure AD Managed Identity Principal
+
+You can use a User Assigned Managed Identity as well as a System Assigned Managed Identity on your agent / runner compute environment. However the backend does not currently support specifying the Client ID of the User Assigned Managed Identity, so you can only supply one per compute instance.
+
+*Connect to Storage Account with Access Key*
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    resource_group_name  = "StorageAccount-ResourceGroup"
+    storage_account_name = "terraform123abc"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+    use_msi              = true                                    # Can also be set via `ARM_USE_MSI` environment variable.
+    subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
+    tenant_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
+  }
+}
+```
+
+*Connect to Storage Account with Azure Active Directory authentication*
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    resource_group_name  = "StorageAccount-ResourceGroup"
+    storage_account_name = "terraform123abc"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+    use_msi              = true                                    # Can also be set via `ARM_USE_MSI` environment variable.
+    subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
+    tenant_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
+    use_azuread_auth     = true                                    # Can also be set via `ARM_USE_AZUREAD` environment variable.
+  }
+}
+```
+
+### Data Source: Azure AD Service Principal via Client Secret
+
+~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
+
+*Connect to Storage Account with Access Key*
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    resource_group_name  = "StorageAccount-ResourceGroup"
+    storage_account_name = "terraform123abc"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+    client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
+    client_secret        = "************************************"  # Can also be set via `ARM_CLIENT_SECRET` environment variable.
+    subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
+    tenant_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
+  }
+}
+```
+
+*Connect to Storage Account with Azure Active Directory authentication*
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    resource_group_name  = "StorageAccount-ResourceGroup"
+    storage_account_name = "terraform123abc"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+    client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
+    client_secret        = "************************************"  # Can also be set via `ARM_CLIENT_SECRET` environment variable.
+    subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
+    tenant_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
+    use_azuread_auth     = true                                    # Can also be set via `ARM_USE_AZUREAD` environment variable.
+  }
+}
+```
+
+### Data Source: Azure AD Service Principal via Client Certificate
+
+~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
+
+*Connect to Storage Account with Access Key*
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    resource_group_name         = "StorageAccount-ResourceGroup"
+    storage_account_name        = "terraform123abc"
+    container_name              = "tfstate"
+    key                         = "prod.terraform.tfstate"
+    client_id                   = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
+    client_certificate_path     = "/path/to/bundle.pfx"                   # Can also be set via `ARM_CLIENT_CERTIFICATE_PATH` environment variable.
+    client_certificate_password = "************************************"  # Can also be set via `ARM_CLIENT_CERTIFICATE_PASSWORD` environment variable.
+    subscription_id             = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
+    tenant_id                   = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
+  }
+}
+```
+
+*Connect to Storage Account with Azure Active Directory authentication*
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    resource_group_name         = "StorageAccount-ResourceGroup"
+    storage_account_name        = "terraform123abc"
+    container_name              = "tfstate"
+    key                         = "prod.terraform.tfstate"
+    client_id                   = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
+    client_certificate_path     = "/path/to/bundle.pfx"                   # Can also be set via `ARM_CLIENT_CERTIFICATE_PATH` environment variable.
+    client_certificate_password = "************************************"  # Can also be set via `ARM_CLIENT_CERTIFICATE_PASSWORD` environment variable.
+    subscription_id             = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
+    tenant_id                   = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
+    use_azuread_auth            = true                                    # Can also be set via `ARM_USE_AZUREAD` environment variable.
+  }
+}
+```
+
+### Data Source: Access Key Direct
+
+~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    resource_group_name  = "StorageAccount-ResourceGroup"
+    storage_account_name = "terraform123abc"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+    access_key           = "abcdefghijklmnopqrstuvwxyz0123456789..."  # Can also be set via `ARM_ACCESS_KEY` environment variable.
+  }
+}
+```
+
+### Data Source: SAS Token
+
+~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    resource_group_name  = "StorageAccount-ResourceGroup"
+    storage_account_name = "terraform123abc"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+    sas_token            = "abcdefghijklmnopqrstuvwxyz0123456789..."  # Can also be set via `ARM_SAS_TOKEN` environment variable.
+  }
+}
+```
+
+## Configuration Variables
+
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/backend#credentials-and-sensitive-data) for details.
+
+The following configuration options are supported:
+
+* `storage_account_name` - (Required) The Name of [the Storage Account](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account).
+
+* `container_name` - (Required) The Name of [the Storage Container](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_container) within the Storage Account.
+
+* `key` - (Required) The name of the Blob used to retrieve/store Terraform's State file inside the Storage Container.
+
+* `environment` - (Optional) The Azure Environment which should be used. This can also be sourced from the `ARM_ENVIRONMENT` environment variable. Possible values are `public`, `china`  and `usgovernment`. Defaults to `public`.
+
+* `metadata_host` - (Optional) The Hostname of the Azure Metadata Service (for example `management.azure.com`), used to obtain the Cloud Environment when using a Custom Azure Environment. This can also be sourced from the `ARM_METADATA_HOSTNAME` Environment Variable.
+
+* `snapshot` - (Optional) Should the Blob used to store the Terraform Statefile be snapshotted before use? Defaults to `false`. This value can also be sourced from the `ARM_SNAPSHOT` environment variable.
+
+* `use_cli` - (Optional) Should Azure CLI be used for authentication? Defaults to `false`. This value can also be sourced from the `ARM_USE_CLI` environment variable.
+
+***
+
+When authenticating using a Managed Identity (MSI) - the following fields are also supported:
+
+* `resource_group_name` - (Required) The Name of the Resource Group in which the Storage Account exists.
+
+* `msi_endpoint` - (Optional) The path to a custom Managed Service Identity endpoint which is automatically determined if not specified. This can also be sourced from the `ARM_MSI_ENDPOINT` environment variable.
+
+* `subscription_id` - (Optional) The Subscription ID in which the Storage Account exists. This can also be sourced from the `ARM_SUBSCRIPTION_ID` environment variable.
+
+* `tenant_id` - (Optional) The Tenant ID in which the Subscription exists. This can also be sourced from the `ARM_TENANT_ID` environment variable.
+
+* `use_msi` - (Optional) Should Managed Service Identity authentication be used? This can also be sourced from the `ARM_USE_MSI` environment variable.
+
+***
+
+When authenticating using a Service Principal with OpenID Connect (OIDC / Workload Identity Federation) - the following fields are also supported:
+
+* `ado_pipeline_service_connection_id` - (Optional) The Azure DevOps Pipeline Service Connection ID. This can also be sourced from the `ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID` or `ARM_OIDC_AZURE_SERVICE_CONNECTION_ID` Environment Variables. The provider will look for values in this order and use the first it finds configured.
+
+* `oidc_request_url` - (Optional) The URL for the OIDC provider from which to request an ID token. This can also be sourced from the `ARM_OIDC_REQUEST_URL`, `ACTIONS_ID_TOKEN_REQUEST_URL` or `SYSTEM_OIDCREQUESTURI` Environment Variables. The provider will look for values in this order and use the first it finds configured.
+
+* `oidc_request_token` - (Optional) The bearer token for the request to the OIDC provider. This can also be sourced from the `ARM_OIDC_REQUEST_TOKEN`, `ACTIONS_ID_TOKEN_REQUEST_TOKEN` or `SYSTEM_ACCESSTOKEN` Environment Variables. The provider will look for values in this order and use the first it finds configured.
+
+* `oidc_token` - (Optional) The ID token when authenticating using OpenID Connect (OIDC). This can also be sourced from the `ARM_OIDC_TOKEN` environment variable.
+
+* `oidc_token_file_path` - (Optional) The path to a file containing an ID token when authenticating using OpenID Connect (OIDC). This can also be sourced from the `ARM_OIDC_TOKEN_FILE_PATH` environment variable.
+
+* `use_oidc` - (Optional) Should OIDC authentication be used? This can also be sourced from the `ARM_USE_OIDC` environment variable.
+
+* `use_aks_workload_identity` (Optional) Should Azure AKS Workload Identity be used for Authentication? This can also be sourced from the `ARM_USE_AKS_WORKLOAD_IDENTITY` environment variable.
+
+***
+
+When authenticating using a SAS Token associated with the Storage Account - the following fields are also supported:
+
+* `sas_token` - (Optional) The SAS Token used to access the Blob Storage Account. This can also be sourced from the `ARM_SAS_TOKEN` environment variable.
+
+***
+
+When authenticating using the Storage Account's Access Key - the following fields are also supported:
+
+* `access_key` - (Optional) The Access Key used to access the Blob Storage Account. This can also be sourced from the `ARM_ACCESS_KEY` environment variable.
+
+***
+
+When authenticating using an Azure AD Service Principal, you have the option to use Azure Active Directory authentication for the storage account (rather than by an Access Key or SAS Token) - the following fields are also supported:
+
+* `use_azuread_auth` - (Optional) Whether Azure Active Directory Authentication should be used to access the Blob Storage Account. This can also be sourced from the `ARM_USE_AZUREAD` environment variable.
+
+-> **Note:** When using Azure Active Directory Authentication, you must ensure the `Storage Blob Data Owner` or `Container Blob Data Owner` roles are assigned to your Storage Account.
+
+***
+
+When authenticating using a Service Principal with a Client Certificate - the following fields are also supported:
+
+* `resource_group_name` - (Required) The Name of the Resource Group in which the Storage Account exists.
+
+* `client_id` - (Optional) The Client ID of the Service Principal. This can also be sourced from the `ARM_CLIENT_ID` environment variable.
+
+* `client_id_file_path` (Optional) The path to a file containing the Client ID which should be used. This can also be sourced from the `ARM_CLIENT_ID_FILE_PATH` Environment Variable.
+
+* `client_certificate_password` - (Optional) The password associated with the Client Certificate specified in `client_certificate_path`. This can also be sourced from the `ARM_CLIENT_CERTIFICATE_PASSWORD` environment variable.
+
+* `client_certificate_path` - (Optional) The path to the PFX file used as the Client Certificate when authenticating as a Service Principal. This can also be sourced from the `ARM_CLIENT_CERTIFICATE_PATH` environment variable.
+
+* `client_certificate` - (Optional) Base64 encoded PKCS#12 certificate bundle to use when authenticating as a Service Principal using a Client Certificate. This can also be sourced from the `ARM_CLIENT_CERTIFICATE` environment variable.
+
+* `subscription_id` - (Optional) The Subscription ID in which the Storage Account exists. This can also be sourced from the `ARM_SUBSCRIPTION_ID` environment variable.
+
+* `tenant_id` - (Optional) The Tenant ID in which the Subscription exists. This can also be sourced from the `ARM_TENANT_ID` environment variable.
+
+***
+
+When authenticating using a Service Principal with a Client Secret - the following fields are also supported:
+
+* `resource_group_name` - (Required) The Name of the Resource Group in which the Storage Account exists.
+
+* `client_id` - (Optional) The Client ID of the Service Principal. This can also be sourced from the `ARM_CLIENT_ID` environment variable.
+
+* `client_id_file_path` (Optional) The path to a file containing the Client ID which should be used. This can also be sourced from the `ARM_CLIENT_ID_FILE_PATH` Environment Variable.
+
+* `client_secret` - (Optional) The Client Secret of the Service Principal. This can also be sourced from the `ARM_CLIENT_SECRET` environment variable.
+
+* `client_secret_file_path` - (Optional) The path to a file containing the Client Secret which should be used. This can also be sourced from the `ARM_CLIENT_SECRET_FILE_PATH` Environment Variable.
+
+* `subscription_id` - (Optional) The Subscription ID in which the Storage Account exists. This can also be sourced from the `ARM_SUBSCRIPTION_ID` environment variable.
+
+* `tenant_id` - (Optional) The Tenant ID in which the Subscription exists. This can also be sourced from the `ARM_TENANT_ID` environment variable.

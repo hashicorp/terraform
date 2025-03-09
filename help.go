@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package main
 
 import (
@@ -7,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 // helpFunc is a cli.HelpFunc that can be used to output the help CLI instructions for Terraform.

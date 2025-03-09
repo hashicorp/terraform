@@ -1,0 +1,58 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+package terraform1.setup;
+
+service Setup {
+  // Clients must call Handshake before any other function of any other
+  // service, to complete the capability negotiation step that may
+  // then affect the behaviors of subsequent operations.
+  //
+  // This function can be called only once per RPC server.
+  rpc Handshake(Handshake.Request) returns (Handshake.Response);
+
+  // At any time after handshaking, clients may call Stop to initiate a
+  // graceful shutdown of the server.
+  rpc Stop(Stop.Request) returns (Stop.Response);
+}
+
+message Handshake {
+  message Request {
+    ClientCapabilities capabilities = 1;
+    Config config = 2;
+  }
+  message Response {
+    ServerCapabilities capabilities = 2;
+  }
+}
+
+message Stop {
+  message Request {
+  }
+  message Response {
+  }
+}
+
+message Config {
+  map<string, HostCredential> credentials = 1;
+}
+
+message HostCredential {
+  string token = 1;
+}
+
+// The capabilities that the client wishes to advertise to the server during
+// handshake.
+message ClientCapabilities {
+  // There are not yet any negotiatable capabilities.
+}
+
+// The capabilities that the server wishes to advertise to the client during
+// handshake. Fields in this message can also be used to acknowledge and
+// confirm support for client capabilities advertised in ClientCapabilities,
+// in situations where the client must vary its behavior based on the server's
+// level of support.
+message ServerCapabilities {
+  // There are not yet any negotiatable capabilities.
+}

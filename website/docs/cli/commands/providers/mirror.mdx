@@ -1,12 +1,12 @@
 ---
-page_title: 'Command: providers mirror'
+page_title: terraform providers mirror command reference
 description: |-
   The `terraform providers mirror` command downloads the providers required
   for the current configuration and copies them into a directory in the local
   filesystem.
 ---
 
-# Command: terraform providers mirror
+# `terraform providers mirror` command 
 
 The `terraform providers mirror` command downloads the providers required
 for the current configuration and copies them into a directory in the local
@@ -54,6 +54,10 @@ This command supports the following additional option:
   Target platform names consist of an operating system and a CPU
   architecture. For example, `linux_amd64` selects the Linux operating system
   running on an AMD64 or x86_64 CPU.
+
+* `-lock-file=false` - Ignore the provider lock file when fetching providers.
+By default the mirror command will use the version info in the lock file if the
+configuration directory has been previously initialized.
 
 You can run `terraform providers mirror` again on an existing mirror directory
 to update it with new packages. For example, you can add packages for a new

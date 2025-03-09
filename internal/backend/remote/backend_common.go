@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package remote
 
 import (
@@ -12,7 +15,8 @@ import (
 	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
-	"github.com/hashicorp/terraform/internal/backend"
+
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -43,7 +47,7 @@ func backoff(min, max float64, iter int) time.Duration {
 	return time.Duration(backoff) * time.Millisecond
 }
 
-func (b *Remote) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Operation, opType string, r *tfe.Run, w *tfe.Workspace) (*tfe.Run, error) {
+func (b *Remote) waitForRun(stopCtx, cancelCtx context.Context, op *backendrun.Operation, opType string, r *tfe.Run, w *tfe.Workspace) (*tfe.Run, error) {
 	started := time.Now()
 	updated := started
 	for i := 0; ; i++ {
@@ -132,7 +136,7 @@ func (b *Remote) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Oper
 						case tfe.RunApplied, tfe.RunCanceled, tfe.RunDiscarded, tfe.RunErrored:
 							continue
 						case tfe.RunPlanned:
-							if op.Type == backend.OperationTypePlan {
+							if op.Type == backendrun.OperationTypePlan {
 								continue
 							}
 						}
@@ -216,7 +220,7 @@ func (b *Remote) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Oper
 // individual variable values are invalid. That's okay because we only use this
 // result to hint the user to set variables a different way. It's always the
 // remote system's responsibility to do final validation of the input.
-func (b *Remote) hasExplicitVariableValues(op *backend.Operation) bool {
+func (b *Remote) hasExplicitVariableValues(op *backendrun.Operation) bool {
 	// Load the configuration using the caller-provided configuration loader.
 	config, _, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.ConfigDir)
 	if configDiags.HasErrors() {
@@ -231,7 +235,7 @@ func (b *Remote) hasExplicitVariableValues(op *backend.Operation) bool {
 	// goal here is just to make a best effort count of how many variable
 	// values are coming from -var or -var-file CLI arguments so that we can
 	// hint the user that those are not supported for remote operations.
-	variables, _ := backend.ParseVariableValues(op.Variables, config.Module.Variables)
+	variables, _ := backendrun.ParseVariableValues(op.Variables, config.Module.Variables)
 
 	// Check for explicitly-defined (-var and -var-file) variables, which the
 	// remote backend does not support. All other source types are okay,
@@ -247,7 +251,7 @@ func (b *Remote) hasExplicitVariableValues(op *backend.Operation) bool {
 	return false
 }
 
-func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
+func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backendrun.Operation, r *tfe.Run) error {
 	if r.CostEstimate == nil {
 		return nil
 	}
@@ -303,7 +307,7 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("Resources: %d of %d estimated", ce.MatchedResourcesCount, ce.ResourcesCount)))
 				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("           $%s/mo %s$%s", ce.ProposedMonthlyCost, sign, deltaRepr)))
 
-				if len(r.PolicyChecks) == 0 && r.HasChanges && op.Type == backend.OperationTypeApply {
+				if len(r.PolicyChecks) == 0 && r.HasChanges && op.Type == backendrun.OperationTypeApply {
 					b.CLI.Output("\n------------------------------------------------------------------------")
 				}
 			}
@@ -335,14 +339,14 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 			b.CLI.Output("\n------------------------------------------------------------------------")
 			return nil
 		case tfe.CostEstimateCanceled:
-			return fmt.Errorf(msgPrefix + " canceled.")
+			return fmt.Errorf("%s canceled.", msgPrefix)
 		default:
 			return fmt.Errorf("Unknown or unexpected cost estimate state: %s", ce.Status)
 		}
 	}
 }
 
-func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
+func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backendrun.Operation, r *tfe.Run) error {
 	if b.CLI != nil {
 		b.CLI.Output("\n------------------------------------------------------------------------\n")
 	}
@@ -407,25 +411,25 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 
 		switch pc.Status {
 		case tfe.PolicyPasses:
-			if (r.HasChanges && op.Type == backend.OperationTypeApply || i < len(r.PolicyChecks)-1) && b.CLI != nil {
+			if (r.HasChanges && op.Type == backendrun.OperationTypeApply || i < len(r.PolicyChecks)-1) && b.CLI != nil {
 				b.CLI.Output("\n------------------------------------------------------------------------")
 			}
 			continue
 		case tfe.PolicyErrored:
-			return fmt.Errorf(msgPrefix + " errored.")
+			return fmt.Errorf("%s errored.", msgPrefix)
 		case tfe.PolicyHardFailed:
-			return fmt.Errorf(msgPrefix + " hard failed.")
+			return fmt.Errorf("%s hard failed.", msgPrefix)
 		case tfe.PolicySoftFailed:
-			runUrl := fmt.Sprintf(runHeader, b.hostname, b.organization, op.Workspace, r.ID)
+			runURL := fmt.Sprintf(runHeaderErr, b.hostname, b.organization, op.Workspace, r.ID)
 
-			if op.Type == backend.OperationTypePlan || op.UIOut == nil || op.UIIn == nil ||
+			if op.Type == backendrun.OperationTypePlan || op.UIOut == nil || op.UIIn == nil ||
 				!pc.Actions.IsOverridable || !pc.Permissions.CanOverride {
-				return fmt.Errorf(msgPrefix + " soft failed.\n" + runUrl)
+				return fmt.Errorf("%s soft failed.\n%s", msgPrefix, runURL)
 			}
 
 			if op.AutoApprove {
 				if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
-					return generalError(fmt.Sprintf("Failed to override policy check.\n%s", runUrl), err)
+					return generalError(fmt.Sprintf("Failed to override policy check.\n%s", runURL), err)
 				}
 			} else {
 				opts := &terraform.InputOpts{
@@ -435,17 +439,16 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 				}
 				err = b.confirm(stopCtx, op, opts, r, "override")
 				if err != nil && err != errRunOverridden {
-					return fmt.Errorf(
-						fmt.Sprintf("Failed to override: %s\n%s\n", err.Error(), runUrl),
-					)
+					return fmt.Errorf("Failed to override: %w\n%s\n", err, runURL)
 				}
 
 				if err != errRunOverridden {
 					if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
-						return generalError(fmt.Sprintf("Failed to override policy check.\n%s", runUrl), err)
+						return generalError(fmt.Sprintf("Failed to override policy check.\n%s", runURL), err)
 					}
 				} else {
-					b.CLI.Output(fmt.Sprintf("The run needs to be manually overridden or discarded.\n%s\n", runUrl))
+					runURL := fmt.Sprintf(runHeader, b.hostname, b.organization, op.Workspace, r.ID)
+					b.CLI.Output(fmt.Sprintf("The run needs to be manually overridden or discarded.\n%s\n", runURL))
 				}
 			}
 
@@ -460,7 +463,7 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 	return nil
 }
 
-func (b *Remote) confirm(stopCtx context.Context, op *backend.Operation, opts *terraform.InputOpts, r *tfe.Run, keyword string) error {
+func (b *Remote) confirm(stopCtx context.Context, op *backendrun.Operation, opts *terraform.InputOpts, r *tfe.Run, keyword string) error {
 	doneCtx, cancel := context.WithCancel(stopCtx)
 	result := make(chan error, 2)
 

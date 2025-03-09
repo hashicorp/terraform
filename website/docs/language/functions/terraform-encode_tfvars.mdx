@@ -1,0 +1,72 @@
+---
+page_title: provider::terraform::encode_tfvars - Functions - Configuration Language
+description: >-
+  The encode_tfvars function produces a string representation of an object
+  using the same syntax as for ".tfvars" files used in Terraform CLI.
+---
+
+# `provider::terraform::encode_tfvars` Function
+
+-> **Note:** This function is supported only in Terraform v1.8 and later.
+
+`provider::terraform::encode_tfvars` is a rarely-needed function which takes
+an object value and produces a string containing a description of that object
+using the same syntax as Terraform CLI would expect in a
+[`.tfvars` file](/terraform/language/values/variables#variable-definitions-tfvars-files).
+
+In most cases it's better to pass data between Terraform configurations using
+[Data Sources](/terraform/language/data-sources),
+instead of writing generated `.tfvars` files to disk. Use this function only as
+a last resort.
+
+To use this function, your module must declare a dependency on the built-in
+`terraform` provider, which contains this function:
+
+```hcl
+terraform {
+  required_providers {
+    terraform = {
+      source = "terraform.io/builtin/terraform"
+    }
+  }
+}
+```
+
+Elsewhere in your module you can then call this function:
+
+```hcl
+provider::terraform::encode_tfvars({
+  example = "Hello!"
+})
+```
+
+The call above would produce the following result:
+
+```hcl
+example = "Hello!"
+```
+
+Due to Terraform's requirements for the `.tfvars` format, all of the attributes
+of the given object must be valid Terraform variable names, as would be
+accepted in an
+[input variable declaration](/terraform/language/values/variables#declaring-an-input-variable).
+
+The `.tfvars` format is specific to Terraform and so we do not recommend using
+it as a general serialization format.
+Use [`jsonencode`](/terraform/language/functions/jsonencode) or
+[`yamlencode`](/terraform/language/functions/yamlencode) instead to produce
+formats that are supported by other software.
+
+~> **Warning:** The exact syntax used to encode certain values may change
+in future versions of Terraform to follow idiomatic style. Avoid using the
+results of this function in any context where such changes might be disruptive
+when upgrading Terraform in future.
+
+## Related Functions
+
+* [`decode_tfvars`](/terraform/language/functions/terraform-decode_tfvars)
+  performs the opposite operation: parsing `.tfvars` content to obtain
+  the variable values declared inside.
+* [`encode_expr`](/terraform/language/functions/terraform-encode_expr)
+  encodes a single value as a plain expression, without the `.tfvars`
+  container around it.

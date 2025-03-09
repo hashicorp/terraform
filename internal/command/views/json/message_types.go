@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package json
 
 type MessageType string
@@ -25,4 +28,22 @@ const (
 	MessageProvisionErrored  MessageType = "provision_errored"
 	MessageRefreshStart      MessageType = "refresh_start"
 	MessageRefreshComplete   MessageType = "refresh_complete"
+
+	// Ephemeral operation messages
+	MessageEphemeralOpStart    MessageType = "ephemeral_op_start"
+	MessageEphemeralOpProgress MessageType = "ephemeral_op_progress"
+	MessageEphemeralOpComplete MessageType = "ephemeral_op_complete"
+	MessageEphemeralOpErrored  MessageType = "ephemeral_op_errored"
+
+	// Test messages
+	MessageTestAbstract  MessageType = "test_abstract"
+	MessageTestFile      MessageType = "test_file"
+	MessageTestRun       MessageType = "test_run"
+	MessageTestPlan      MessageType = "test_plan"
+	MessageTestState     MessageType = "test_state"
+	MessageTestSummary   MessageType = "test_summary"
+	MessageTestCleanup   MessageType = "test_cleanup"
+	MessageTestInterrupt MessageType = "test_interrupt"
+	MessageTestStatus    MessageType = "test_status"
+	MessageTestRetry     MessageType = "test_retry"
 )

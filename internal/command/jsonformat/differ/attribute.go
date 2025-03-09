@@ -1,50 +1,82 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package differ
 
 import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
+	"github.com/hashicorp/terraform/internal/plans"
+
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 )
 
-func (change Change) ComputeDiffForAttribute(attribute *jsonprovider.Attribute) computed.Diff {
+func ComputeDiffForAttribute(change structured.Change, attribute *jsonprovider.Attribute) computed.Diff {
 	if attribute.AttributeNestedType != nil {
-		return change.computeDiffForNestedAttribute(attribute.AttributeNestedType)
+		return computeDiffForNestedAttribute(change, attribute.AttributeNestedType)
 	}
-	return change.ComputeDiffForType(unmarshalAttribute(attribute))
+
+	return ComputeDiffForType(change, unmarshalAttribute(attribute))
 }
 
-func (change Change) computeDiffForNestedAttribute(nested *jsonprovider.NestedType) computed.Diff {
-	if sensitive, ok := change.checkForSensitiveNestedAttribute(nested); ok {
+func computeDiffForNestedAttribute(change structured.Change, nested *jsonprovider.NestedType) computed.Diff {
+	if sensitive, ok := checkForSensitiveNestedAttribute(change, nested); ok {
 		return sensitive
 	}
 
-	if computed, ok := change.checkForUnknownNestedAttribute(nested); ok {
+	if computed, ok := checkForUnknownNestedAttribute(change, nested); ok {
 		return computed
 	}
 
 	switch NestingMode(nested.NestingMode) {
 	case nestingModeSingle, nestingModeGroup:
-		return change.computeAttributeDiffAsNestedObject(nested.Attributes)
+		return computeAttributeDiffAsNestedObject(change, nested.Attributes)
 	case nestingModeMap:
-		return change.computeAttributeDiffAsNestedMap(nested.Attributes)
+		return computeAttributeDiffAsNestedMap(change, nested.Attributes)
 	case nestingModeList:
-		return change.computeAttributeDiffAsNestedList(nested.Attributes)
+		return computeAttributeDiffAsNestedList(change, nested.Attributes)
 	case nestingModeSet:
-		return change.computeAttributeDiffAsNestedSet(nested.Attributes)
+		return computeAttributeDiffAsNestedSet(change, nested.Attributes)
 	default:
 		panic("unrecognized nesting mode: " + nested.NestingMode)
 	}
 }
 
-func (change Change) ComputeDiffForType(ctype cty.Type) computed.Diff {
-	if sensitive, ok := change.checkForSensitiveType(ctype); ok {
+func computeDiffForWriteOnlyAttribute(change structured.Change, blockAction plans.Action) computed.Diff {
+	renderer := renderers.WriteOnly(change.IsBeforeSensitive() || change.IsAfterSensitive())
+	replacePathMatches := change.ReplacePaths.Matches()
+	// Write-only diffs should always copy the behavior of the block they are in, except for updates
+	// since we don't want them to be always highlighted.
+	if blockAction == plans.Update {
+		return computed.NewDiff(renderer, plans.NoOp, replacePathMatches)
+	}
+	return computed.NewDiff(renderer, blockAction, replacePathMatches)
+
+}
+
+func ComputeDiffForType(change structured.Change, ctype cty.Type) computed.Diff {
+	if !change.NonLegacySchema {
+		// Empty strings in blocks should be considered null, because the legacy
+		// SDK can't always differentiate between null and empty strings and may
+		// return either.
+		if before, ok := change.Before.(string); ok && len(before) == 0 {
+			change.Before = nil
+		}
+		if after, ok := change.After.(string); ok && len(after) == 0 {
+			change.After = nil
+		}
+	}
+
+	if sensitive, ok := checkForSensitiveType(change, ctype); ok {
 		return sensitive
 	}
 
-	if computed, ok := change.checkForUnknownType(ctype); ok {
+	if computed, ok := checkForUnknownType(change, ctype); ok {
 		return computed
 	}
 
@@ -56,19 +88,19 @@ func (change Change) ComputeDiffForType(ctype cty.Type) computed.Diff {
 		// function computeChangeForDynamicValues(), but external callers will
 		// only be in this situation when processing outputs so this function
 		// is named for their benefit.
-		return change.ComputeDiffForOutput()
+		return ComputeDiffForOutput(change)
 	case ctype.IsPrimitiveType():
-		return change.computeAttributeDiffAsPrimitive(ctype)
+		return computeAttributeDiffAsPrimitive(change, ctype)
 	case ctype.IsObjectType():
-		return change.computeAttributeDiffAsObject(ctype.AttributeTypes())
+		return computeAttributeDiffAsObject(change, ctype.AttributeTypes())
 	case ctype.IsMapType():
-		return change.computeAttributeDiffAsMap(ctype.ElementType())
+		return computeAttributeDiffAsMap(change, ctype.ElementType())
 	case ctype.IsListType():
-		return change.computeAttributeDiffAsList(ctype.ElementType())
+		return computeAttributeDiffAsList(change, ctype.ElementType())
 	case ctype.IsTupleType():
-		return change.computeAttributeDiffAsTuple(ctype.TupleElementTypes())
+		return computeAttributeDiffAsTuple(change, ctype.TupleElementTypes())
 	case ctype.IsSetType():
-		return change.computeAttributeDiffAsSet(ctype.ElementType())
+		return computeAttributeDiffAsSet(change, ctype.ElementType())
 	default:
 		panic("unrecognized type: " + ctype.FriendlyName())
 	}

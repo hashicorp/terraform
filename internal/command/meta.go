@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -14,13 +17,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/cli"
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
@@ -30,7 +34,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
@@ -128,6 +131,15 @@ type Meta struct {
 	// web browser.
 	BrowserLauncher webbrowser.Launcher
 
+	// A context.Context provided by the caller -- typically "package main" --
+	// which might be carrying telemetry-related metadata and so should be
+	// used when creating downstream traces, etc.
+	//
+	// This isn't guaranteed to be set, so use [Meta.CommandContext] to
+	// safely create a context for the entire execution of a command, which
+	// will be connected to this parent context if it's present.
+	CallerContext context.Context
+
 	// When this channel is closed, the command will be cancelled.
 	ShutdownCh <-chan struct{}
 
@@ -189,10 +201,10 @@ type Meta struct {
 	configLoader *configload.Loader
 
 	// backendState is the currently active backend state
-	backendState *legacy.BackendState
+	backendState *workdir.BackendState
 
 	// Variables for the context (private)
-	variableArgs rawFlags
+	variableArgs arguments.FlagNameValueSlice
 	input        bool
 
 	// Targets for this context (private)
@@ -390,12 +402,23 @@ func (m *Meta) StdinPiped() bool {
 // InterruptibleContext returns a context.Context that will be cancelled
 // if the process is interrupted by a platform-specific interrupt signal.
 //
+// The typical way to use this is to pass the result of [Meta.CommandContext]
+// as the base context, but that's appropriate only if the interruptible
+// context is being created directly inside the "Run" method of a particular
+// command, to create a context representing the entire remaining runtime of
+// that command:
+//
 // As usual with cancelable contexts, the caller must always call the given
 // cancel function once all operations are complete in order to make sure
 // that the context resources will still be freed even if there is no
 // interruption.
-func (m *Meta) InterruptibleContext() (context.Context, context.CancelFunc) {
-	base := context.Background()
+//
+//	// This example is only for when using this function very early in
+//	// the "Run" method of a Command implementation. If you already have
+//	// an active context, pass that in as base instead.
+//	ctx, done := c.InterruptibleContext(c.CommandContext())
+//	defer done()
+func (m *Meta) InterruptibleContext(base context.Context) (context.Context, context.CancelFunc) {
 	if m.ShutdownCh == nil {
 		// If we're running in a unit testing context without a shutdown
 		// channel populated then we'll return an uncancelable channel.
@@ -414,6 +437,27 @@ func (m *Meta) InterruptibleContext() (context.Context, context.CancelFunc) {
 	return ctx, cancel
 }
 
+// CommandContext returns the "root context" to use in the main Run function
+// of a command.
+//
+// This method is just a substitute for passing a context directly to the
+// "Run" method of a command, which we can't do because that API is owned by
+// hashicorp/cli rather than by Terraform. Use this only in situations
+// comparable to the context having been passed in as an argument to Run.
+//
+// If the caller (e.g. "package main") provided a context when it instantiated
+// the Meta then the returned context will inherit all of its values, deadlines,
+// etc. If the caller did not provide a context then the result is an inert
+// background context ready to be passed to other functions.
+func (m *Meta) CommandContext() context.Context {
+	if m.CallerContext == nil {
+		return context.Background()
+	}
+	// We just return the caller context directly for now, since we don't
+	// have anything to add to it.
+	return m.CallerContext
+}
+
 // RunOperation executes the given operation on the given backend, blocking
 // until that operation completes or is interrupted, and then returns
 // the RunningOperation object representing the completed or
@@ -423,7 +467,7 @@ func (m *Meta) InterruptibleContext() (context.Context, context.CancelFunc) {
 // If the operation runs to completion then no error is returned even if the
 // operation itself is unsuccessful. Use the "Result" field of the
 // returned operation object to recognize operation-level failure.
-func (m *Meta) RunOperation(b backend.Enhanced, opReq *backend.Operation) (*backend.RunningOperation, error) {
+func (m *Meta) RunOperation(b backendrun.OperationsBackend, opReq *backendrun.Operation) (*backendrun.RunningOperation, error) {
 	if opReq.View == nil {
 		panic("RunOperation called with nil View")
 	}
@@ -535,11 +579,11 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 	f := m.defaultFlagSet(n)
 
 	f.BoolVar(&m.input, "input", true, "input")
-	f.Var((*FlagStringSlice)(&m.targetFlags), "target", "resource to target")
+	f.Var((*arguments.FlagStringSlice)(&m.targetFlags), "target", "resource to target")
 	f.BoolVar(&m.compactWarnings, "compact-warnings", false, "use compact warnings")
 
-	if m.variableArgs.items == nil {
-		m.variableArgs = newRawFlags("-var")
+	if m.variableArgs.Items == nil {
+		m.variableArgs = arguments.NewFlagNameValueSlice("-var")
 	}
 	varValues := m.variableArgs.Alias("-var")
 	varFiles := m.variableArgs.Alias("-var-file")
@@ -690,6 +734,28 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 			m.Ui.Output(msg)
 		}
 	}
+}
+
+const (
+	// StatePersistIntervalEnvVar is the environment variable that can be set
+	// to control the interval at which Terraform persists state. The interval
+	// itself defaults to 20 seconds.
+	StatePersistIntervalEnvVar = "TF_STATE_PERSIST_INTERVAL"
+)
+
+// StatePersistInterval returns the configured interval that Terraform should
+// persist statefiles to the desired backend. Backends may choose to override
+// the default value.
+func (m *Meta) StatePersistInterval() int {
+	if val, ok := os.LookupEnv(StatePersistIntervalEnvVar); ok {
+		if interval, err := strconv.Atoi(val); err == nil && interval > DefaultStatePersistInterval {
+			// The user-specified interval must be greater than the default minimum
+			return interval
+		} else if err != nil {
+			log.Printf("[ERROR] Can't parse state persist interval %q of environment variable %q", val, StatePersistIntervalEnvVar)
+		}
+	}
+	return DefaultStatePersistInterval
 }
 
 // WorkspaceNameEnvVar is the name of the environment variable that can be used

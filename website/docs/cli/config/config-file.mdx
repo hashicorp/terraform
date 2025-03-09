@@ -1,15 +1,19 @@
 ---
-page_title: CLI Configuration
+page_title: Create a Terraform CLI configuration file
 description: >-
-  Learn to use the CLI configuration file to customize your CLI settings,
-  including credentials, plugin caching, provider installation methods, etc.
+  Learn how to create a `.terraformrc` or `terraform.rc` file to define Terraform CLI settings, including credentials, plugin caching, and provider installation.
 ---
 
-# CLI Configuration File (`.terraformrc` or `terraform.rc`)
+# Create a Terraform CLI configuration file
+
+This topic describes how create a configuration file to customize the behavior of the Terraform CLI.
+
+## Introduction
 
 The CLI configuration file configures per-user settings for CLI behaviors,
 which apply across all Terraform working directories. This is separate from
-[your infrastructure configuration](/terraform/language).
+[your infrastructure configuration](/terraform/language). 
+You can define custom configurations in file with the `.terraformrc` extention a file named `terraform.rc`.
 
 ## Locations
 
@@ -50,12 +54,12 @@ disable_checkpoint = true
 
 The following settings can be set in the CLI configuration file:
 
-* `credentials` - configures credentials for use with Terraform Cloud or
+* `credentials` - configures credentials for use with HCP Terraform or
   Terraform Enterprise. See [Credentials](#credentials) below for more
   information.
 
 * `credentials_helper` - configures an external helper program for the storage
-  and retrieval of credentials for Terraform Cloud or Terraform Enterprise.
+  and retrieval of credentials for HCP Terraform or Terraform Enterprise.
   See [Credentials Helpers](#credentials-helpers) below for more information.
 
 * `disable_checkpoint` — when set to `true`, disables
@@ -76,7 +80,7 @@ The following settings can be set in the CLI configuration file:
 
 ## Credentials
 
-[Terraform Cloud](https://cloud.hashicorp.com/products/terraform) provides a number of remote network
+[HCP Terraform](https://cloud.hashicorp.com/products/terraform) provides a number of remote network
 services for use with Terraform, and
 [Terraform Enterprise](/terraform/enterprise) allows hosting those
 services inside your own infrastructure. For example, these systems offer both
@@ -98,11 +102,11 @@ not, you can manually write `credentials` blocks.
 
 You can have multiple `credentials` blocks if you regularly use services from
 multiple hosts. Many users will configure only one, for either
-Terraform Cloud (at `app.terraform.io`) or for their organization's own
+HCP Terraform (at `app.terraform.io`) or for their organization's own
 Terraform Enterprise host. Each `credentials` block contains a `token` argument
 giving the API token to use for that host.
 
-~> **Important:** If you are using Terraform Cloud or Terraform Enterprise,
+~> **Important:** If you are using HCP Terraform or Terraform Enterprise,
 the token provided must be either a
 [user token](/terraform/cloud-docs/users-teams-organizations/users#api-tokens)
 or a
@@ -112,7 +116,7 @@ organization tokens cannot be used for command-line Terraform actions.
 -> **Note:** The credentials hostname must match the hostname in your module
 sources and/or backend configuration. If your Terraform Enterprise instance
 is available at multiple hostnames, use only one of them consistently.
-Terraform Cloud responds to API calls at both its current hostname
+HCP Terraform responds to API calls at both its current hostname
 `app.terraform.io`, and its historical hostname `atlas.hashicorp.com`.
 
 ### Environment Variable Credentials

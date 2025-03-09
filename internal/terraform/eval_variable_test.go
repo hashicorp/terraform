@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -6,11 +9,15 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -1104,12 +1111,14 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 		given    cty.Value
 		wantErr  []string
 		wantWarn []string
+		status   checks.Status
 	}{
 		// Valid variable validation declaration, assigned value which passes
 		// the condition generates no diagnostics.
 		{
 			varName: "valid",
 			given:   cty.StringVal("foo"),
+			status:  checks.StatusPass,
 		},
 		// Assigning a value which fails the condition generates an error
 		// message with the expression successfully evaluated.
@@ -1120,6 +1129,7 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 				"Invalid value for variable",
 				"Valid template string bar",
 			},
+			status: checks.StatusFail,
 		},
 		// Invalid variable validation declaration due to an unparseable
 		// template string. Assigning a value which passes the condition
@@ -1131,6 +1141,7 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 				"Validation error message expression is invalid",
 				"Missing expression; Expected the start of an expression, but found the end of the file.",
 			},
+			status: checks.StatusPass,
 		},
 		// Assigning a value which fails the condition generates an error
 		// message including the configured string interpreted as a literal
@@ -1146,6 +1157,7 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 				"Validation error message expression is invalid",
 				"Missing expression; Expected the start of an expression, but found the end of the file.",
 			},
+			status: checks.StatusFail,
 		},
 	}
 
@@ -1163,17 +1175,25 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 
 			// We need a minimal scope to allow basic functions to be passed to
 			// the HCL scope
-			ctx.EvaluationScopeScope = &lang.Scope{}
-			ctx.GetVariableValueFunc = func(addr addrs.AbsInputVariableInstance) cty.Value {
-				if got, want := addr.String(), varAddr.String(); got != want {
-					t.Errorf("incorrect argument to GetVariableValue: got %s, want %s", got, want)
-				}
-				return test.given
+			ctx.EvaluationScopeScope = &lang.Scope{
+				Data: &fakeEvaluationData{
+					inputVariables: map[addrs.InputVariable]cty.Value{
+						varAddr.Variable: test.given,
+					},
+				},
 			}
+			ctx.NamedValuesState = namedvals.NewState()
+			ctx.NamedValuesState.SetInputVariableValue(varAddr, test.given)
+			ctx.ChecksState = checks.NewState(cfg)
+			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
 
 			gotDiags := evalVariableValidations(
-				varAddr, varCfg, nil, ctx,
+				varAddr, ctx, varCfg.Validations, varCfg.DeclRange, false,
 			)
+
+			if ctx.ChecksState.ObjectCheckStatus(varAddr) != test.status {
+				t.Errorf("expected check result %s but instead %s", test.status, ctx.ChecksState.ObjectCheckStatus(varAddr))
+			}
 
 			if len(test.wantErr) == 0 && len(test.wantWarn) == 0 {
 				if len(gotDiags) > 0 {
@@ -1255,12 +1275,14 @@ variable "bar" {
 		varName string
 		given   cty.Value
 		wantErr []string
+		status  checks.Status
 	}{
 		// Validations pass on a sensitive variable with an error message which
 		// would generate a sensitive value
 		{
 			varName: "foo",
 			given:   cty.StringVal("boop"),
+			status:  checks.StatusPass,
 		},
 		// Assigning a value which fails the condition generates a sensitive
 		// error message, which is elided and generates another error
@@ -1272,12 +1294,14 @@ variable "bar" {
 				"The error message included a sensitive value, so it will not be displayed.",
 				"Error message refers to sensitive values",
 			},
+			status: checks.StatusFail,
 		},
 		// Validations pass on a sensitive variable with a correctly defined
 		// error message
 		{
 			varName: "bar",
 			given:   cty.StringVal("boop"),
+			status:  checks.StatusPass,
 		},
 		// Assigning a value which fails the condition generates a nonsensitive
 		// error message, which is displayed
@@ -1288,6 +1312,7 @@ variable "bar" {
 				"Invalid value for variable",
 				"Bar must be 4 characters, not 3.",
 			},
+			status: checks.StatusFail,
 		},
 	}
 
@@ -1305,21 +1330,29 @@ variable "bar" {
 
 			// We need a minimal scope to allow basic functions to be passed to
 			// the HCL scope
-			ctx.EvaluationScopeScope = &lang.Scope{}
-			ctx.GetVariableValueFunc = func(addr addrs.AbsInputVariableInstance) cty.Value {
-				if got, want := addr.String(), varAddr.String(); got != want {
-					t.Errorf("incorrect argument to GetVariableValue: got %s, want %s", got, want)
-				}
-				if varCfg.Sensitive {
-					return test.given.Mark(marks.Sensitive)
-				} else {
-					return test.given
-				}
+			varVal := test.given
+			if varCfg.Sensitive {
+				varVal = varVal.Mark(marks.Sensitive)
 			}
+			ctx.EvaluationScopeScope = &lang.Scope{
+				Data: &fakeEvaluationData{
+					inputVariables: map[addrs.InputVariable]cty.Value{
+						varAddr.Variable: varVal,
+					},
+				},
+			}
+			ctx.NamedValuesState = namedvals.NewState()
+			ctx.NamedValuesState.SetInputVariableValue(varAddr, varVal)
+			ctx.ChecksState = checks.NewState(cfg)
+			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
 
 			gotDiags := evalVariableValidations(
-				varAddr, varCfg, nil, ctx,
+				varAddr, ctx, varCfg.Validations, varCfg.DeclRange, false,
 			)
+
+			if ctx.ChecksState.ObjectCheckStatus(varAddr) != test.status {
+				t.Errorf("expected check result %s but instead %s", test.status, ctx.ChecksState.ObjectCheckStatus(varAddr))
+			}
 
 			if len(test.wantErr) == 0 {
 				if len(gotDiags) > 0 {
@@ -1342,4 +1375,58 @@ variable "bar" {
 			}
 		})
 	}
+}
+
+func TestEvalVariableValidation_unknownErrorMessage(t *testing.T) {
+	t.Run("known condition, unknown error_message", func(t *testing.T) {
+		rule := &configs.CheckRule{
+			Condition:    hcltest.MockExprLiteral(cty.False),
+			ErrorMessage: hcltest.MockExprLiteral(cty.UnknownVal(cty.String)),
+		}
+		hclCtx := &hcl.EvalContext{}
+		varAddr := addrs.AbsInputVariableInstance{
+			Module:   addrs.RootModuleInstance,
+			Variable: addrs.InputVariable{Name: "foo"},
+		}
+
+		// this should not produce any error when validationWalk is true
+		result, diags := evalVariableValidation(rule, hclCtx, hcl.Range{}, varAddr, 0, true)
+		if got, want := result.Status, checks.StatusUnknown; got != want {
+			t.Errorf("wrong result.Status\ngot:  %s\nwant: %s", got, want)
+		}
+		if diags.HasErrors() {
+			t.Fatal(diags.ErrWithWarnings())
+		}
+
+		// any other time this should result in an error
+		result, diags = evalVariableValidation(rule, hclCtx, hcl.Range{}, varAddr, 0, false)
+		if got, want := result.Status, checks.StatusError; got != want {
+			t.Errorf("wrong result.Status\ngot:  %s\nwant: %s", got, want)
+		}
+		if !diags.HasErrors() {
+			t.Fatalf("unexpected success; want error")
+		}
+		found := false
+		hasCorrectExtra := false
+		wantDesc := tfdiags.Description{
+			Summary: "Invalid error message",
+			Detail:  "Unsuitable value for error message: expression refers to values that won't be known until the apply phase.",
+		}
+		for _, diag := range diags {
+			gotDesc := diag.Description()
+			if diag.Severity() == tfdiags.Error && gotDesc.Summary == wantDesc.Summary && gotDesc.Detail == wantDesc.Detail {
+				found = true
+				hasCorrectExtra = tfdiags.DiagnosticCausedByUnknown(diag)
+				break
+			}
+		}
+		if !found {
+			t.Errorf("missing expected error diagnostic\nwant: %s: %s\ngot:  %s",
+				wantDesc.Summary, wantDesc.Detail,
+				diags.Err().Error(),
+			)
+		} else if !hasCorrectExtra {
+			t.Errorf("diagnostic is not marked as being 'caused by unknown'")
+		}
+	})
 }

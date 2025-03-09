@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 
 set -euo pipefail
 
@@ -50,7 +53,7 @@ for filename in "${target_files[@]}"; do
     continue
   fi
 
-  output=$(go run golang.org/x/tools/cmd/goimports -l "${filename}")
+  output=$(go tool golang.org/x/tools/cmd/goimports -l "${filename}")
   if [[ $? -ne 0 ]]; then
     echo >&2 goimports failed for "$filename"
     exit 1
@@ -70,7 +73,7 @@ if [[ "${#incorrect_files[@]}" -gt 1 ]]; then
 
     echo >&2 ' - ' "${filename}"
   done
-  echo >&2 'Use `go run golang.org/x/tools/cmd/goimports -w -l` on each of these files to update these files.'
+  echo >&2 'Use `go tool golang.org/x/tools/cmd/goimports -w -l` on each of these files to update these files.'
   exit 1
 fi
 

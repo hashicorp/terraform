@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -13,7 +17,7 @@ import (
 
 func dataStoreResourceSchema() providers.Schema {
 	return providers.Schema{
-		Block: &configschema.Block{
+		Body: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"input":            {Type: cty.DynamicPseudoType, Optional: true},
 				"output":           {Type: cty.DynamicPseudoType, Computed: true},
@@ -40,7 +44,7 @@ func validateDataStoreResourceConfig(req providers.ValidateResourceConfigRequest
 }
 
 func upgradeDataStoreResourceState(req providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
-	ty := dataStoreResourceSchema().Block.ImpliedType()
+	ty := dataStoreResourceSchema().Body.ImpliedType()
 	val, err := ctyjson.Unmarshal(req.RawStateJSON, ty)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
@@ -72,7 +76,7 @@ func planDataStoreResourceChange(req providers.PlanResourceChangeRequest) (resp 
 	case req.PriorState.IsNull():
 		// Create
 		// Set the id value to unknown.
-		planned["id"] = cty.UnknownVal(cty.String)
+		planned["id"] = cty.UnknownVal(cty.String).RefineNotNull()
 
 		// Output type must always match the input, even when it's null.
 		if input.IsNull() {
@@ -87,7 +91,7 @@ func planDataStoreResourceChange(req providers.PlanResourceChangeRequest) (resp 
 	case !req.PriorState.GetAttr("triggers_replace").RawEquals(trigger):
 		// trigger changed, so we need to replace the entire instance
 		resp.RequiresReplace = append(resp.RequiresReplace, cty.GetAttrPath("triggers_replace"))
-		planned["id"] = cty.UnknownVal(cty.String)
+		planned["id"] = cty.UnknownVal(cty.String).RefineNotNull()
 
 		// We need to check the input for the replacement instance to compute a
 		// new output.
@@ -156,7 +160,7 @@ func importDataStore(req providers.ImportResourceStateRequest) (resp providers.I
 	v := cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal(req.ID),
 	})
-	state, err := schema.Block.CoerceValue(v)
+	state, err := schema.Body.CoerceValue(v)
 	resp.Diagnostics = resp.Diagnostics.Append(err)
 
 	resp.ImportedResources = []providers.ImportedResource{
@@ -166,4 +170,85 @@ func importDataStore(req providers.ImportResourceStateRequest) (resp providers.I
 		},
 	}
 	return resp
+}
+
+// moveDataStoreResourceState enables moving from the official null_resource
+// managed resource to the terraform_data managed resource.
+func moveDataStoreResourceState(req providers.MoveResourceStateRequest) (resp providers.MoveResourceStateResponse) {
+	// Verify that the source provider is an official hashicorp/null provider,
+	// but ignore the hostname for mirrors.
+	if !strings.HasSuffix(req.SourceProviderAddress, "hashicorp/null") {
+		diag := tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unsupported source provider for move operation",
+			"Only moving from the official hashicorp/null provider to terraform_data is supported.",
+		)
+		resp.Diagnostics = resp.Diagnostics.Append(diag)
+
+		return resp
+	}
+
+	// Verify that the source resource type name is null_resource.
+	if req.SourceTypeName != "null_resource" {
+		diag := tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unsupported source resource type for move operation",
+			"Only moving from the null_resource managed resource to terraform_data is supported.",
+		)
+		resp.Diagnostics = resp.Diagnostics.Append(diag)
+
+		return resp
+	}
+
+	nullResourceSchemaType := nullResourceSchema().Body.ImpliedType()
+	nullResourceValue, err := ctyjson.Unmarshal(req.SourceStateJSON, nullResourceSchemaType)
+
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+
+		return resp
+	}
+
+	triggersReplace := nullResourceValue.GetAttr("triggers")
+
+	// PlanResourceChange uses RawEquals comparison, which will show a
+	// difference between cty.NullVal(cty.Map(cty.String)) and
+	// cty.NullVal(cty.DynamicPseudoType).
+	if triggersReplace.IsNull() {
+		triggersReplace = cty.NullVal(cty.DynamicPseudoType)
+	} else {
+		// PlanResourceChange uses RawEquals comparison, which will show a
+		// difference between cty.MapVal(...) and cty.ObjectVal(...). Given that
+		// triggers is typically configured using direct configuration syntax of
+		// {...}, which is a cty.ObjectVal, over a map typed variable or
+		// explicitly type converted map, this pragmatically chooses to convert
+		// the triggers value to cty.ObjectVal to prevent an immediate plan
+		// difference for the more typical case.
+		triggersReplace = cty.ObjectVal(triggersReplace.AsValueMap())
+	}
+
+	schema := dataStoreResourceSchema()
+	v := cty.ObjectVal(map[string]cty.Value{
+		"id":               nullResourceValue.GetAttr("id"),
+		"triggers_replace": triggersReplace,
+	})
+
+	state, err := schema.Body.CoerceValue(v)
+
+	// null_resource did not use private state, so it is unnecessary to move.
+	resp.Diagnostics = resp.Diagnostics.Append(err)
+	resp.TargetState = state
+
+	return resp
+}
+
+func nullResourceSchema() providers.Schema {
+	return providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"id":       {Type: cty.String, Computed: true},
+				"triggers": {Type: cty.Map(cty.String), Optional: true},
+			},
+		},
+	}
 }

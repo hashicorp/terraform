@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package differ
 
 import (
@@ -5,17 +8,18 @@ import (
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 )
 
-func (change Change) ComputeDiffForOutput() computed.Diff {
-	if sensitive, ok := change.checkForSensitiveType(cty.DynamicPseudoType); ok {
+func ComputeDiffForOutput(change structured.Change) computed.Diff {
+	if sensitive, ok := checkForSensitiveType(change, cty.DynamicPseudoType); ok {
 		return sensitive
 	}
 
-	if unknown, ok := change.checkForUnknownType(cty.DynamicPseudoType); ok {
+	if unknown, ok := checkForUnknownType(change, cty.DynamicPseudoType); ok {
 		return unknown
 	}
 
 	jsonOpts := renderers.RendererJsonOpts()
-	return jsonOpts.Transform(change.Before, change.After, change.BeforeExplicit, change.AfterExplicit, change.RelevantAttributes)
+	return jsonOpts.Transform(change)
 }

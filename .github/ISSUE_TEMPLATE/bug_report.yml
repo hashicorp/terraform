@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 name: Bug Report
 description: Let us know about an unexpected error, a crash, or an incorrect behavior.
 labels: ["bug", "new"]
@@ -12,7 +15,8 @@ body:
         For general usage questions, please see: https://www.terraform.io/community.html.
 
         ## If your issue relates to:
-        * **Terraform Cloud/Enterprise**: please email tf-cloud@hashicorp.support or [open a new request](https://support.hashicorp.com/hc/en-us/requests/new).
+        * **HCP Terraform or Terraform Enterprise**: please email tf-cloud@hashicorp.support or [open a new request](https://support.hashicorp.com/hc/en-us/requests/new).
+        * **Terraform Registry**: please email terraform-registry@hashicorp.com.
         * **AWS Terraform Provider**: Open an issue at [hashicorp/terraform-provider-aws](https://github.com/hashicorp/terraform-provider-aws/issues/new/choose).
         * **Azure Terraform Provider**: Open an issue at [hashicorp/terraform-provider-azurerm](https://github.com/hashicorp/terraform-provider-azurerm/issues/new/choose).
         * **Other Terraform Providers**: Please open an issue in the provider's own repository, which can be found by searching the [Terraform Registry](https://registry.terraform.io/browse/providers).
@@ -57,8 +61,11 @@ body:
     attributes:
       label: Debug Output
       description: Full debug output can be obtained by running Terraform with the environment variable `TF_LOG=trace`. Please create a GitHub Gist containing the debug output. Please do _not_ paste the debug output in the issue, since debug output is long. Debug output may contain sensitive information. Please review it before posting publicly.
-      placeholder: ...link to gist...
-      value:
+      placeholder:
+      value:  |
+        ```
+        ...debug output, or link to a gist...
+        ```
     validations:
       required: true
   - type: textarea
@@ -114,6 +121,17 @@ body:
           - #6017
         ```
       placeholder:
+      value:
+    validations:
+      required: false
+  - type: textarea
+    id: tf-genai
+    attributes:
+      label: Generative AI / LLM assisted development?
+      description: |
+        If you used a generative AI / LLM tool to assist in the development of your config, please let us know which tool you used here.
+        ex. ChatGPT 3.5 / CoPilot / AWS Q / etc. 
+      placeholder: LLM assistance tool?
       value:
     validations:
       required: false

@@ -21,3 +21,16 @@ resource "boop_whatever" "nope" {
 
 data "beep" "boop" {
 }
+
+ephemeral "beep" "boop" {
+  provider = boop
+}
+
+check "foo" {
+  data "boop_data" "boop_nested" {}
+
+  assert {
+    condition     = data.boop_data.boop_nested.id == null
+    error_message = "check failed"
+  }
+}

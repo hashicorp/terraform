@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package cloud
 
 import (
@@ -5,10 +8,14 @@ import (
 	"context"
 	"io/ioutil"
 	"testing"
+	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestState_impl(t *testing.T) {
@@ -30,10 +37,10 @@ func TestState_GetRootOutputValues(t *testing.T) {
 	b, bCleanup := testBackendWithOutputs(t)
 	defer bCleanup()
 
-	state := &State{tfeClient: b.client, organization: b.organization, workspace: &tfe.Workspace{
+	state := &State{tfeClient: b.client, organization: b.Organization, workspace: &tfe.Workspace{
 		ID: "ws-abcd",
 	}}
-	outputs, err := state.GetRootOutputValues()
+	outputs, err := state.GetRootOutputValues(context.Background())
 
 	if err != nil {
 		t.Fatalf("error returned from GetRootOutputValues: %s", err)
@@ -252,9 +259,9 @@ func TestDelete_SafeDelete(t *testing.T) {
 }
 
 func TestState_PersistState(t *testing.T) {
-	cloudState := testCloudState(t)
-
 	t.Run("Initial PersistState", func(t *testing.T) {
+		cloudState := testCloudState(t)
+
 		if cloudState.readState != nil {
 			t.Fatal("expected nil initial readState")
 		}
@@ -269,4 +276,149 @@ func TestState_PersistState(t *testing.T) {
 			t.Fatalf("expected initial state readSerial to be %d, got %d", expectedSerial, cloudState.readSerial)
 		}
 	})
+
+	t.Run("Snapshot Interval Backpressure Header", func(t *testing.T) {
+		// The "Create a State Version" API is allowed to return a special
+		// HTTP response header X-Terraform-Snapshot-Interval, in which case
+		// we should remember the number of seconds it specifies and delay
+		// creating any more intermediate state snapshots for that many seconds.
+
+		cloudState := testCloudState(t)
+
+		if cloudState.stateSnapshotInterval != 0 {
+			t.Error("state manager already has a nonzero snapshot interval")
+		}
+
+		if cloudState.enableIntermediateSnapshots {
+			t.Error("expected state manager to have disabled snapshots")
+		}
+
+		// For this test we'll use a real client talking to a fake server,
+		// since HTTP-level concerns like headers are out of scope for the
+		// mock client we typically use in other tests in this package, which
+		// aim to abstract away HTTP altogether.
+
+		// Didn't want to repeat myself here
+		for _, testCase := range []struct {
+			expectedInterval time.Duration
+			snapshotsEnabled bool
+		}{
+			{
+				expectedInterval: 300 * time.Second,
+				snapshotsEnabled: true,
+			},
+			{
+				expectedInterval: 0 * time.Second,
+				snapshotsEnabled: false,
+			},
+		} {
+			server := testServerWithSnapshotsEnabled(t, testCase.snapshotsEnabled)
+
+			defer server.Close()
+			cfg := &tfe.Config{
+				Address:  server.URL,
+				BasePath: "api",
+				Token:    "placeholder",
+			}
+			client, err := tfe.NewClient(cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			cloudState.tfeClient = client
+
+			err = cloudState.RefreshState()
+			if err != nil {
+				t.Fatal(err)
+			}
+			cloudState.WriteState(states.BuildState(func(s *states.SyncState) {
+				s.SetOutputValue(
+					addrs.OutputValue{Name: "boop"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("beep"), false,
+				)
+			}))
+
+			err = cloudState.PersistState(nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// The PersistState call above should have sent a request to the test
+			// server and got back the x-terraform-snapshot-interval header, whose
+			// value should therefore now be recorded in the relevant field.
+			if got := cloudState.stateSnapshotInterval; got != testCase.expectedInterval {
+				t.Errorf("wrong state snapshot interval after PersistState\ngot:  %s\nwant: %s", got, testCase.expectedInterval)
+			}
+
+			if got, want := cloudState.enableIntermediateSnapshots, testCase.snapshotsEnabled; got != want {
+				t.Errorf("expected disable intermediate snapshots to be\ngot: %t\nwant: %t", got, want)
+			}
+		}
+	})
+}
+
+func TestState_ShouldPersistIntermediateState(t *testing.T) {
+	cloudState := testCloudState(t)
+
+	testCases := []struct {
+		Enabled     bool
+		LastPersist time.Time
+		Interval    time.Duration
+		Expected    bool
+		Force       bool
+		Description string
+	}{
+		{
+			Interval:    20 * time.Second,
+			Enabled:     true,
+			Expected:    true,
+			Description: "Not persisted yet",
+		},
+		{
+			Interval:    20 * time.Second,
+			Enabled:     false,
+			Expected:    false,
+			Description: "Intermediate snapshots not enabled",
+		},
+		{
+			Interval:    20 * time.Second,
+			Enabled:     false,
+			Force:       true,
+			Expected:    true,
+			Description: "Force persist",
+		},
+		{
+			Interval:    20 * time.Second,
+			LastPersist: time.Now().Add(-15 * time.Second),
+			Enabled:     true,
+			Expected:    false,
+			Description: "Last persisted 15s ago",
+		},
+		{
+			Interval:    20 * time.Second,
+			LastPersist: time.Now().Add(-25 * time.Second),
+			Enabled:     true,
+			Expected:    true,
+			Description: "Last persisted 25s ago",
+		},
+		{
+			Interval:    5 * time.Second,
+			LastPersist: time.Now().Add(-15 * time.Second),
+			Enabled:     true,
+			Expected:    true,
+			Description: "Last persisted 15s ago, but interval is 5s",
+		},
+	}
+
+	for _, testCase := range testCases {
+		cloudState.enableIntermediateSnapshots = testCase.Enabled
+		cloudState.stateSnapshotInterval = testCase.Interval
+
+		actual := cloudState.ShouldPersistIntermediateState(&statemgr.IntermediateStatePersistInfo{
+			LastPersist:  testCase.LastPersist,
+			ForcePersist: testCase.Force,
+		})
+		if actual != testCase.Expected {
+			t.Errorf("%s: expected %v but got %v", testCase.Description, testCase.Expected, actual)
+		}
+	}
 }

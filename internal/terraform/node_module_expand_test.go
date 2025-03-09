@@ -1,19 +1,24 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2/hcltest"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestNodeExpandModuleExecute(t *testing.T) {
 	ctx := &MockEvalContext{
-		InstanceExpanderExpander: instances.NewExpander(),
+		InstanceExpanderExpander: instances.NewExpander(nil),
 	}
 	ctx.installSimpleEval()
 
@@ -39,7 +44,8 @@ func TestNodeCloseModuleExecute(t *testing.T) {
 		state := states.NewState()
 		state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
 		ctx := &MockEvalContext{
-			StateState: state.SyncWrapper(),
+			StateState:                  state.SyncWrapper(),
+			EphemeralResourcesResources: ephemeral.NewResources(),
 		}
 		node := nodeCloseModule{addrs.Module{"child"}}
 		diags := node.Execute(ctx, walkApply)
@@ -70,7 +76,8 @@ func TestNodeCloseModuleExecute(t *testing.T) {
 		state := states.NewState()
 		state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
 		ctx := &MockEvalContext{
-			StateState: state.SyncWrapper(),
+			StateState:                  state.SyncWrapper(),
+			EphemeralResourcesResources: ephemeral.NewResources(),
 		}
 		node := nodeCloseModule{addrs.Module{"child"}}
 
@@ -87,7 +94,7 @@ func TestNodeCloseModuleExecute(t *testing.T) {
 func TestNodeValidateModuleExecute(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		ctx := &MockEvalContext{
-			InstanceExpanderExpander: instances.NewExpander(),
+			InstanceExpanderExpander: instances.NewExpander(nil),
 		}
 		ctx.installSimpleEval()
 		node := nodeValidateModule{
@@ -107,7 +114,7 @@ func TestNodeValidateModuleExecute(t *testing.T) {
 
 	t.Run("invalid count", func(t *testing.T) {
 		ctx := &MockEvalContext{
-			InstanceExpanderExpander: instances.NewExpander(),
+			InstanceExpanderExpander: instances.NewExpander(nil),
 		}
 		ctx.installSimpleEval()
 		node := nodeValidateModule{

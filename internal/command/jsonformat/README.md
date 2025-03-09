@@ -113,7 +113,7 @@ value was set to null in a collection.
 
 *Quick note on the go-cty Value and Type objects:* The `Before` and `After` 
 fields are actually go-cty values, but we cannot convert them directly because 
-of the  Terraform Cloud redacted endpoint. The redacted endpoint turns sensitive
+of the HCP Terraform redacted endpoint. The redacted endpoint turns sensitive
 values into strings regardless of their types. Because of this, we cannot just 
 do a direct conversion using the ctyjson package. We would have to iterate 
 through the schema first, find the sensitive values and their mapped types, 

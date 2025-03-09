@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -11,7 +14,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -110,7 +113,7 @@ func (c *ImportCommand) Run(args []string) int {
 	// This is to reduce the risk that a typo in the resource address will
 	// import something that Terraform will want to immediately destroy on
 	// the next plan, and generally acts as a reassurance of user intent.
-	targetConfig := config.DescendentForInstance(addr.Module)
+	targetConfig := config.DescendantForInstance(addr.Module)
 	if targetConfig == nil {
 		modulePath := addr.Module.String()
 		diags = diags.Append(&hcl.Diagnostic{
@@ -175,7 +178,7 @@ func (c *ImportCommand) Run(args []string) int {
 	// operations, however that is the only current implementation. A
 	// "local.Local" backend also doesn't necessarily provide local state, as
 	// that may be delegated to a "remotestate.Backend".
-	local, ok := b.(backend.Local)
+	local, ok := b.(backendrun.Local)
 	if !ok {
 		c.Ui.Error(ErrUnsupportedLocalOp)
 		return 1
@@ -232,8 +235,8 @@ func (c *ImportCommand) Run(args []string) int {
 	newState, importDiags := lr.Core.Import(lr.Config, lr.InputState, &terraform.ImportOpts{
 		Targets: []*terraform.ImportTarget{
 			{
-				Addr: addr,
-				ID:   args[1],
+				LegacyAddr: addr,
+				IDString:   args[1],
 			},
 		},
 
@@ -293,14 +296,6 @@ Usage: terraform [global options] import [options] ADDR ID
   reference the documentation for the resource type you're importing to
   determine the ID syntax to use. It typically matches directly to the ID
   that the provider uses.
-
-  The current implementation of Terraform import can only import resources
-  into the state. It does not generate configuration. A future version of
-  Terraform will also generate configuration.
-
-  Because of this, prior to running terraform import it is necessary to write
-  a resource configuration block for the resource manually, to which the
-  imported object will be attached.
 
   This command will not modify your infrastructure, but it will make
   network requests to inspect parts of your infrastructure relevant to

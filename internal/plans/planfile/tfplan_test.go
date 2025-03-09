@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package planfile
 
 import (
@@ -9,9 +12,10 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -19,12 +23,17 @@ func TestTFPlanRoundTrip(t *testing.T) {
 	objTy := cty.Object(map[string]cty.Type{
 		"id": cty.String,
 	})
+	applyTimeVariables := collections.NewSetCmp[string]()
+	applyTimeVariables.Add("bar")
 
 	plan := &plans.Plan{
+		Applyable: true,
+		Complete:  true,
 		VariableValues: map[string]plans.DynamicValue{
 			"foo": mustNewDynamicValueStr("foo value"),
 		},
-		Changes: &plans.Changes{
+		ApplyTimeVariables: applyTimeVariables,
+		Changes: &plans.ChangesSrc{
 			Outputs: []*plans.OutputChangeSrc{
 				{
 					Addr: addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
@@ -84,11 +93,8 @@ func TestTFPlanRoundTrip(t *testing.T) {
 								cty.StringVal("honk"),
 							}),
 						}), objTy),
-						AfterValMarks: []cty.PathValueMarks{
-							{
-								Path:  cty.GetAttrPath("boop").IndexInt(1),
-								Marks: cty.NewValueMarks(marks.Sensitive),
-							},
+						AfterSensitivePaths: []cty.Path{
+							cty.GetAttrPath("boop").IndexInt(1),
 						},
 					},
 					RequiredReplace: cty.NewPathSet(
@@ -117,6 +123,33 @@ func TestTFPlanRoundTrip(t *testing.T) {
 						Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
 							"id": cty.StringVal("bar-baz-foo"),
 						}), objTy),
+					},
+				},
+				{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "importing",
+					}.Instance(addrs.IntKey(1)).Absolute(addrs.RootModuleInstance),
+					PrevRunAddr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "importing",
+					}.Instance(addrs.IntKey(1)).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.NoOp,
+						Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+							"id": cty.StringVal("testing"),
+						}), objTy),
+						After: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+							"id": cty.StringVal("testing"),
+						}), objTy),
+						Importing:       &plans.ImportingSrc{ID: "testing"},
+						GeneratedConfig: "resource \\\"test_thing\\\" \\\"importing\\\" {}",
 					},
 				},
 			},
@@ -152,11 +185,63 @@ func TestTFPlanRoundTrip(t *testing.T) {
 							cty.StringVal("bonk"),
 						}),
 					}), objTy),
-					AfterValMarks: []cty.PathValueMarks{
-						{
-							Path:  cty.GetAttrPath("boop").IndexInt(1),
-							Marks: cty.NewValueMarks(marks.Sensitive),
+					AfterSensitivePaths: []cty.Path{
+						cty.GetAttrPath("boop").IndexInt(1),
+					},
+				},
+			},
+		},
+		DeferredResources: []*plans.DeferredResourceInstanceChangeSrc{
+			{
+				DeferredReason: providers.DeferredReasonInstanceCountUnknown,
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "woot",
+					}.Instance(addrs.WildcardKey).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+						After: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+							"id": cty.UnknownVal(cty.String),
+							"boop": cty.ListVal([]cty.Value{
+								cty.StringVal("beep"),
+								cty.StringVal("bonk"),
+							}),
+						}), objTy),
+					},
+				},
+			},
+			{
+				DeferredReason: providers.DeferredReasonInstanceCountUnknown,
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "woot",
+					}.Instance(addrs.WildcardKey).Absolute(addrs.ModuleInstance{
+						addrs.ModuleInstanceStep{
+							Name:        "mod",
+							InstanceKey: addrs.WildcardKey,
 						},
+					}),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+						After: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+							"id": cty.UnknownVal(cty.String),
+							"boop": cty.ListVal([]cty.Value{
+								cty.StringVal("beep"),
+								cty.StringVal("bonk"),
+							}),
+						}), objTy),
 					},
 				},
 			},
@@ -191,6 +276,25 @@ func TestTFPlanRoundTrip(t *testing.T) {
 								&states.CheckResultObject{
 									Status:          checks.StatusFail,
 									FailureMessages: []string{"Oh no!"},
+								},
+							),
+						),
+					},
+				),
+				addrs.MakeMapElem[addrs.ConfigCheckable](
+					addrs.Check{
+						Name: "check",
+					}.InModule(addrs.RootModule),
+					&states.CheckResultAggregate{
+						Status: checks.StatusFail,
+						ObjectResults: addrs.MakeMap(
+							addrs.MakeMapElem[addrs.Checkable](
+								addrs.Check{
+									Name: "check",
+								}.Absolute(addrs.RootModuleInstance),
+								&states.CheckResultObject{
+									Status:          checks.StatusFail,
+									FailureMessages: []string{"check failed"},
 								},
 							),
 						),
@@ -278,7 +382,7 @@ func TestTFPlanRoundTripDestroy(t *testing.T) {
 	})
 
 	plan := &plans.Plan{
-		Changes: &plans.Changes{
+		Changes: &plans.ChangesSrc{
 			Outputs: []*plans.OutputChangeSrc{
 				{
 					Addr: addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),

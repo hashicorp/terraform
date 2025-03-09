@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'Fixes malformed Terraform version error when the remote backend reads a remote workspace that specifies a Terraform version constraint.'
+time: 2025-01-23T13:52:28.378207-08:00
+custom:
+    Issue: "36356"

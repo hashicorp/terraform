@@ -39,8 +39,11 @@ The following arguments are supported:
 
 * `command` - (Required) This is the command to execute. It can be provided
   as a relative path to the current working directory or as an absolute path.
-  It is evaluated in a shell, and can use environment variables or Terraform
-  variables.
+  The `command` is evaluated in a shell and can use environment variables for
+  variable substitution. We do not recommend using Terraform variables for variable
+  substitution because doing so can lead to shell injection vulnerabilities. Instead, you should pass Terraform variables to a command
+  through the `environment` parameter and use environment variable substitution
+  instead. Refer to the following OWASP article for additional information about injection flaws: [Code Injection](https://owasp.org/www-community/attacks/Code_Injection).
 
 * `working_dir` - (Optional) If provided, specifies the working directory where
   `command` will be executed. It can be provided as a relative path to the

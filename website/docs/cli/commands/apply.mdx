@@ -1,11 +1,10 @@
 ---
-page_title: 'Command: apply'
-description: >-
-  The terraform apply command executes the actions proposed in a Terraform plan
+page_title: terraform apply command reference
+description: The `terraform apply` command executes the actions proposed in a Terraform plan
   to create, update, or destroy infrastructure.
 ---
 
-# Command: apply
+# `terraform apply` command
 
 The `terraform apply` command executes the actions proposed in a Terraform
 plan.
@@ -15,8 +14,6 @@ plan.
 ## Usage
 
 Usage: `terraform apply [options] [plan file]`
-
-
 
 ### Automatic Plan Mode
 
@@ -41,17 +38,16 @@ decisions.
 
 Without a saved plan file, `terraform apply` supports all planning modes and planning options available for `terraform plan`.
 
--  **[Planning Modes](/terraform/cli/commands/plan#planning-modes):** These include `-destroy`, which creates a plan to destroy all remote objects, and `-refresh-only`, which creates a plan to update Terraform state and root module output values.
-- **[Planning Options](/terraform/cli/commands/plan#planning-options):** These include specifying which resource instances Terraform should replace, setting Terraform input variables, etc.
+- **[Planning Modes](/terraform/cli/commands/plan#planning-modes):** These include `-destroy`, which creates a plan to destroy all remote objects, and `-refresh-only`, which creates a plan to update Terraform state and root module output values.
+- **[Planning Options](/terraform/cli/commands/plan#planning-options):** These include specifying which resource instances Terraform should replace (`-replace`), setting Terraform input variables (`-var` and `-var-file`), etc.
 
 ### Apply Options
 
 The following options change how the apply command executes and reports on the apply operation.
 
-- `-auto-approve` - Skips interactive approval of plan before applying. This
-  option is ignored when you pass a previously-saved plan file, because
-  Terraform considers you passing the plan file as the approval and so
-  will never prompt in that case.
+- `-auto-approve` - Skips interactive approval of the plan before applying. Terraform ignores this
+  option when you pass a previously-saved plan file. This is because
+  Terraform interprets the act of passing the plan file as the approval.
 
 - `-compact-warnings` - Shows any warning messages in a compact form which
   includes only the summary messages, unless the warnings are accompanied by
@@ -86,7 +82,7 @@ The following options change how the apply command executes and reports on the a
   if you are running Terraform in a context where its output will be
   rendered by a system that cannot interpret terminal formatting.
 
-- `-parallelism=n` - Limit the number of concurrent operation as Terraform
+- `-parallelism=n` - Limit the number of concurrent operations as Terraform
   [walks the graph](/terraform/internals/graph#walking-the-graph). Defaults to
   10\.
 
@@ -95,9 +91,9 @@ The following options change how the apply command executes and reports on the a
 `terraform plan` - Customize how Terraform will create the plan. Only available when you run `terraform apply` without a saved plan file.
 
 For configurations using
-[the `local` backend](/terraform/language/settings/backends/local) only,
+[the `local` backend](/terraform/language/backend/local) only,
 `terraform apply` also accepts the legacy options
-[`-state`, `-state-out`, and `-backup`](/terraform/language/settings/backends/local#command-line-arguments).
+[`-state`, `-state-out`, and `-backup`](/terraform/language/backend/local#command-line-arguments).
 
 ## Passing a Different Configuration Directory
 

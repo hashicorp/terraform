@@ -1,22 +1,18 @@
 ---
-page_title: 'Command: state mv'
+page_title: terraform state mv command reference
 description: >-
-  The `terraform state mv` command changes bindings in Terraform state,
-  associating existing remote objects with new resource instances.
+  The `terraform state mv` command changes bindings in Terraform state so that existing remote objects bind to new resource instances.
 ---
 
-# Command: state mv
+# `terraform state mv` command
 
-The main function of [Terraform state](/terraform/language/state) is
-to track the bindings between resource instance addresses in your configuration
-and the remote objects they represent. Normally Terraform automatically
-updates the state in response to actions taken when applying a plan, such as
-removing a binding for an remote object that has now been deleted.
+The `terraform state mv` command changes bindings in Terraform state so that existing remote objects bind to new resource instances.
 
-You can use `terraform state mv` in the less common situation where you wish
+## Introduction
+
+Terraform automatically updates the state when you apply a plan, but you can use `terraform state mv` 
 to retain an existing remote object but track it as a different resource
-instance address in Terraform, such as if you have renamed a resource block
-or you have moved it into a different module in your configuration.
+instance address in Terraform. 
 
 ## Usage
 
@@ -66,22 +62,22 @@ This command also accepts the following options:
   returning an error. The duration syntax is a number followed by a time
   unit letter, such as "3s" for three seconds.
 
-For configurations using the [Terraform Cloud CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/settings/backends/remote)
+For configurations using the [HCP Terraform CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/backend/remote)
 only, `terraform state mv`
 also accepts the option
 [`-ignore-remote-version`](/terraform/cli/cloud/command-line-arguments#ignore-remote-version).
 
-The legacy options [`-backup` and `-backup-out`](/terraform/language/settings/backends/local#command-line-arguments)
+The legacy options [`-backup` and `-backup-out`](/terraform/language/backend/local#command-line-arguments)
 operate on a local state file only. Configurations using
-[the `remote` backend](/terraform/language/settings/backends/remote)
-must specify a local state file with the [`-state`](/terraform/language/settings/backends/local#command-line-arguments)
-option in order to use the [`-backup` and `-backup-out`](/terraform/language/settings/backends/local#command-line-arguments)
+[the `remote` backend](/terraform/language/backend/remote)
+must specify a local state file with the [`-state`](/terraform/language/backend/local#command-line-arguments)
+option in order to use the [`-backup` and `-backup-out`](/terraform/language/backend/local#command-line-arguments)
 options.
 
 For configurations using
-[the `local` state mv](/terraform/language/settings/backends/local) only,
+[the `local` state mv](/terraform/language/backend/local) only,
 `terraform state mv` also accepts the legacy options
-[`-state`, `-state-out`, `-backup`, and `-backup-out`](/terraform/language/settings/backends/local#command-line-arguments).
+[`-state`, `-state-out`, `-backup`, and `-backup-out`](/terraform/language/backend/local#command-line-arguments).
 
 ## Example: Rename a Resource
 

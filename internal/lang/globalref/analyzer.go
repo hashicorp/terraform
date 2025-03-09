@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package globalref
 
 import (
@@ -34,7 +37,7 @@ import (
 // the Analyzer contains caches derived from data in the configuration tree.
 type Analyzer struct {
 	cfg             *configs.Config
-	providerSchemas map[addrs.Provider]*providers.Schemas
+	providerSchemas map[addrs.Provider]providers.ProviderSchema
 }
 
 // NewAnalyzer constructs a new analyzer bound to the given configuration and
@@ -45,7 +48,7 @@ type Analyzer struct {
 // The given provider schemas must cover at least all of the providers used
 // in the given configuration. If not then analysis results will be silently
 // incomplete for any decision that requires checking schema.
-func NewAnalyzer(cfg *configs.Config, providerSchemas map[addrs.Provider]*providers.Schemas) *Analyzer {
+func NewAnalyzer(cfg *configs.Config, providerSchemas map[addrs.Provider]providers.ProviderSchema) *Analyzer {
 	if !cfg.Path.IsRoot() {
 		panic(fmt.Sprintf("constructing an Analyzer with non-root module %s", cfg.Path))
 	}
@@ -60,7 +63,7 @@ func NewAnalyzer(cfg *configs.Config, providerSchemas map[addrs.Provider]*provid
 // ModuleConfig retrieves a module configuration from the configuration the
 // analyzer belongs to, or nil if there is no module with the given address.
 func (a *Analyzer) ModuleConfig(addr addrs.ModuleInstance) *configs.Module {
-	modCfg := a.cfg.DescendentForInstance(addr)
+	modCfg := a.cfg.DescendantForInstance(addr)
 	if modCfg == nil {
 		return nil
 	}

@@ -1,31 +1,33 @@
 ---
-page_title: Authentication - Terraform CLI
+page_title: Get an API token for HCP Terraform or Terraform Enterprise  
 description: >-
-  Documentation about the login and logout commands that help automate getting
-  an API token for your Terraform Cloud account.
+  Use the `terraform login` and `terraform logout` commands get
+  an API token for your HCP Terraform or Terraform Enterprise account.
 ---
 
-# CLI Authentication
+# Get an API token for HCP Terraform and Terraform Enterprise
 
-> **Hands-on:** Try the [Authenticate the CLI with Terraform Cloud](/terraform/tutorials/cloud/cloud-login?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+This topic describes how to use the `terraform login` and `terraform logout` to authenticate with HCP Terraform and Terraform Enterprise.
 
-[Terraform Cloud](https://cloud.hashicorp.com/products/terraform) and
+> **Hands-on:** Try the [Authenticate the CLI with HCP Terraform](/terraform/tutorials/cloud/cloud-login?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+
+## Overview
+
+[HCP Terraform](https://cloud.hashicorp.com/products/terraform) and
 [Terraform Enterprise](/terraform/enterprise) are platforms that perform
 Terraform runs to provision infrastructure, offering a collaboration-focused
-environment that makes it easier for teams to use Terraform together. (For
-expediency, the content below refers to both products as "Terraform Cloud.")
+environment that makes it easier for teams to use Terraform together. 
 
-Terraform CLI integrates with Terraform Cloud in several ways — it can be a
-front-end for [CLI-driven runs](/terraform/cloud-docs/run/cli) in Terraform Cloud,
-and can also use Terraform Cloud as a state backend and a private module
-registry. All of these integrations require you to authenticate Terraform CLI
-with your Terraform Cloud account.
+You can integrate the Terraform CLI with HCP Terraform and Terraform Enterprise in the following ways: 
 
-The best way to handle CLI authentication is with the `login` and `logout`
-commands, which help automate the process of getting an API token for your
-Terraform Cloud user account.
+- Use the Terraform CLI as a front-end for [CLI-driven runs](/terraform/cloud-docs/run/cli) in HCP Terraform
+- Use HCP Terraform or Terraform Enterprise as a state backend and a private module registry. 
 
-For details, see:
+These integrations require you to authenticate the Terraform CLI
+with your HCP Terraform account.
 
-- [The `terraform login` command](/terraform/cli/commands/login)
-- [The `terraform logout` command](/terraform/cli/commands/logout)
+## Authentication
+
+Run the `terraform login` command to generate an API token for your HCP Terraform user account. Refer to the [`terraform login` command](/terraform/cli/commands/login) reference documentation for details.
+
+Run the `terraform logout` command to end your HCP Terraform or Terraform Enterprise session. Refer to the [`terraform logout` command](/terraform/cli/commands/logout) reference documentation for details.

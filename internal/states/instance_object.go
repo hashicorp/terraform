@@ -1,12 +1,18 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package states
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/format"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 )
 
 // ResourceInstanceObject is the local representation of a specific remote
@@ -49,7 +55,7 @@ type ResourceInstanceObject struct {
 // ObjectStatus represents the status of a RemoteObject.
 type ObjectStatus rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type ObjectStatus
+//go:generate go tool golang.org/x/tools/cmd/stringer -type ObjectStatus
 
 const (
 	// ObjectReady is an object status for an object that is ready to use.
@@ -92,7 +98,10 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	// If it contains marks, remove these marks before traversing the
 	// structure with UnknownAsNull, and save the PathValueMarks
 	// so we can save them in state.
-	val, pvm := o.Value.UnmarkDeepWithPaths()
+	val, sensitivePaths, err := unmarkValueForStorage(o.Value)
+	if err != nil {
+		return nil, err
+	}
 
 	// Our state serialization can't represent unknown values, so we convert
 	// them to nulls here. This is lossy, but nobody should be writing unknown
@@ -125,11 +134,13 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	return &ResourceInstanceObjectSrc{
 		SchemaVersion:       schemaVersion,
 		AttrsJSON:           src,
-		AttrSensitivePaths:  pvm,
+		AttrSensitivePaths:  sensitivePaths,
 		Private:             o.Private,
 		Status:              o.Status,
 		Dependencies:        dependencies,
 		CreateBeforeDestroy: o.CreateBeforeDestroy,
+		// The cached value must have all its marks since it bypasses decoding.
+		decodeValueCache: o.Value,
 	}, nil
 }
 
@@ -145,4 +156,32 @@ func (o *ResourceInstanceObject) AsTainted() *ResourceInstanceObject {
 	ret := o.DeepCopy()
 	ret.Status = ObjectTainted
 	return ret
+}
+
+// unmarkValueForStorage takes a value that possibly contains marked values
+// and returns an equal value without markings along with the separated mark
+// metadata that should be stored alongside the value in another field.
+//
+// This function only accepts the marks that are valid to store, and so will
+// return an error if other marks are present. Marks that this package doesn't
+// know how to store must be dealt with somehow by a caller -- presumably by
+// replacing each marked value with some sort of storage placeholder -- before
+// writing a value into the state.
+func unmarkValueForStorage(v cty.Value) (unmarkedV cty.Value, sensitivePaths []cty.Path, err error) {
+	val, pvms := v.UnmarkDeepWithPaths()
+	sensitivePaths, withOtherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
+	if len(withOtherMarks) != 0 {
+		return cty.NilVal, nil, fmt.Errorf(
+			"%s: cannot serialize value marked as %#v for inclusion in a state snapshot (this is a bug in Terraform)",
+			format.CtyPath(withOtherMarks[0].Path), withOtherMarks[0].Marks,
+		)
+	}
+
+	// sort the sensitive paths for consistency in comparison and serialization
+	sort.Slice(sensitivePaths, func(i, j int) bool {
+		// use our human-readable format of paths for comparison
+		return format.CtyPath(sensitivePaths[i]) < format.CtyPath(sensitivePaths[j])
+	})
+
+	return val, sensitivePaths, nil
 }

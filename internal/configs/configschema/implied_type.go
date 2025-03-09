@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configschema
 
 import (
@@ -33,7 +36,7 @@ func (b *Block) specType() cty.Type {
 }
 
 // ContainsSensitive returns true if any of the attributes of the receiving
-// block or any of its descendent blocks are marked as sensitive.
+// block or any of its descendant blocks are marked as sensitive.
 //
 // Blocks themselves cannot be sensitive as a whole -- sensitivity is a
 // per-attribute idea -- but sometimes we want to include a whole object
@@ -50,6 +53,29 @@ func (b *Block) ContainsSensitive() bool {
 	}
 	for _, blockS := range b.BlockTypes {
 		if blockS.ContainsSensitive() {
+			return true
+		}
+	}
+	return false
+}
+
+// ContainsWriteOnly returns true if any of the attributes of the receiving
+// block or any of its descendant blocks are considered write only
+// based on the declarations in the schema.
+//
+// Blocks themselves cannot be write only as a whole -- write only is a
+// per-attribute idea.
+func (b *Block) ContainsWriteOnly() bool {
+	for _, attrS := range b.Attributes {
+		if attrS.WriteOnly {
+			return true
+		}
+		if attrS.NestedType != nil && attrS.NestedType.ContainsWriteOnly() {
+			return true
+		}
+	}
+	for _, blockS := range b.BlockTypes {
+		if blockS.ContainsWriteOnly() {
 			return true
 		}
 	}
@@ -126,6 +152,20 @@ func (o *Object) ContainsSensitive() bool {
 			return true
 		}
 		if attrS.NestedType != nil && attrS.NestedType.ContainsSensitive() {
+			return true
+		}
+	}
+	return false
+}
+
+// ContainsWriteOnly returns true if any of the attributes of the receiving
+// Object are considered write only based on the declarations in the schema.
+func (o *Object) ContainsWriteOnly() bool {
+	for _, attrS := range o.Attributes {
+		if attrS.WriteOnly {
+			return true
+		}
+		if attrS.NestedType != nil && attrS.NestedType.ContainsWriteOnly() {
 			return true
 		}
 	}

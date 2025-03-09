@@ -15,11 +15,11 @@ Terraform at the same time.
 
 With _remote_ state, Terraform writes the state data to a remote data store,
 which can then be shared between all members of a team. Terraform supports
-storing state in [Terraform Cloud](https://www.hashicorp.com/products/terraform/),
+storing state in [HCP Terraform](https://www.hashicorp.com/products/terraform/),
 [HashiCorp Consul](https://www.consul.io/), Amazon S3, Azure Blob Storage, Google Cloud Storage, Alibaba Cloud OSS, and more.
 
-Remote state is implemented by a [backend](/terraform/language/settings/backends/configuration) or by
-Terraform Cloud, both of which you can configure in your configuration's root module.
+Remote state is implemented by a [backend](/terraform/language/backend) or by
+HCP Terraform, both of which you can configure in your configuration's root module.
 
 ## Delegation and Teamwork
 
@@ -55,7 +55,7 @@ For fully-featured remote backends, Terraform can also use
 [state locking](/terraform/language/state/locking) to prevent concurrent runs of
 Terraform against the same state.
 
-[Terraform Cloud by HashiCorp](https://www.hashicorp.com/products/terraform/)
+[HCP Terraform by HashiCorp](https://www.hashicorp.com/products/terraform/)
 is a commercial offering that supports an even stronger locking concept that
 can also detect attempts to create a new plan when an existing plan is already
 awaiting approval, by queuing Terraform operations in a central location.

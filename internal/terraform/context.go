@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -7,6 +10,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -14,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // InputMode defines what sort of input will be asked for when Input
@@ -38,6 +42,23 @@ type ContextOpts struct {
 	Parallelism  int
 	Providers    map[addrs.Provider]providers.Factory
 	Provisioners map[string]provisioners.Factory
+
+	// PreloadedProviderSchemas is an optional map of provider schemas that
+	// were already loaded from providers by the caller. This is intended
+	// to avoid redundant re-fetching of schemas when the caller has already
+	// loaded them for some other reason.
+	//
+	// The preloaded schemas do not need to be exhaustive. Terraform will
+	// use a preloaded schema if available, or will load a schema directly from
+	// a provider if no preloaded schema is available.
+	//
+	// The caller MUST ensure that the given schemas exactly match those that
+	// would be returned from a running provider of the given type or else the
+	// runtime behavior is likely to be erratic.
+	//
+	// Callers must not access (read or write) the given map once it has
+	// been passed to Terraform Core using this field.
+	PreloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema
 
 	UIInput UIInput
 }
@@ -74,9 +95,10 @@ type Context struct {
 
 	plugins *contextPlugins
 
-	hooks   []Hook
-	sh      *stopHook
-	uiInput UIInput
+	hooks     []Hook
+	sh        *stopHook
+	uiInput   UIInput
+	graphOpts *ContextGraphOpts
 
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
@@ -125,14 +147,15 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		par = 10
 	}
 
-	plugins := newContextPlugins(opts.Providers, opts.Provisioners)
+	plugins := newContextPlugins(opts.Providers, opts.Provisioners, opts.PreloadedProviderSchemas)
 
 	log.Printf("[TRACE] terraform.NewContext: complete")
 
 	return &Context{
-		hooks:   hooks,
-		meta:    opts.Meta,
-		uiInput: opts.UIInput,
+		hooks:     hooks,
+		meta:      opts.Meta,
+		uiInput:   opts.UIInput,
+		graphOpts: &ContextGraphOpts{},
 
 		plugins: plugins,
 
@@ -142,14 +165,12 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	}, diags
 }
 
-func (c *Context) Schemas(config *configs.Config, state *states.State) (*Schemas, tfdiags.Diagnostics) {
-	// TODO: This method gets called multiple times on the same context with
-	// the same inputs by different parts of Terraform that all need the
-	// schemas, and it's typically quite expensive because it has to spin up
-	// plugins to gather their schemas, so it'd be good to have some caching
-	// here to remember plugin schemas we already loaded since the plugin
-	// selections can't change during the life of a *Context object.
+func (c *Context) SetGraphOpts(opts *ContextGraphOpts) tfdiags.Diagnostics {
+	c.graphOpts = opts
+	return nil
+}
 
+func (c *Context) Schemas(config *configs.Config, state *states.State) (*Schemas, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	ret, err := loadSchemas(config, state, c.plugins)
@@ -165,8 +186,8 @@ func (c *Context) Schemas(config *configs.Config, state *states.State) (*Schemas
 }
 
 type ContextGraphOpts struct {
-	// If true, validates the graph structure (checks for cycles).
-	Validate bool
+	// If false, skip the graph structure validation.
+	SkipGraphValidation bool
 
 	// Legacy graphs only: won't prune the graph
 	Verbose bool
@@ -324,6 +345,51 @@ func (c *Context) watchStop(walker *ContextGraphWalker) (chan struct{}, <-chan s
 	return stop, wait
 }
 
+func (c *Context) checkStateDependencies(state *states.State) tfdiags.Diagnostics {
+	if state == nil {
+		// no state is fine, first time execution etc
+		return nil
+	}
+
+	var diags tfdiags.Diagnostics
+	for providerAddr := range state.ProviderRequirements() {
+		if !c.plugins.HasProvider(providerAddr) {
+			if c.plugins.HasPreloadedSchemaForProvider(providerAddr) {
+				// If the caller provided a preloaded schema for this provider
+				// then we'll take that as a hint that the caller is intending
+				// to handle some of these pre-validation tasks itself and
+				// so we'll just optimistically assume that the caller
+				// has arranged for this to work some other way, or will
+				// return its own version of this error before calling
+				// into here if not.
+				continue
+			}
+			if !providerAddr.IsBuiltIn() {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Missing required provider",
+					fmt.Sprintf(
+						"This state requires provider %s, but that provider isn't available. You may be able to install it automatically by running:\n  terraform init",
+						providerAddr,
+					),
+				))
+			} else {
+				// Built-in providers can never be installed by "terraform init",
+				// so no point in confusing the user by suggesting that.
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Missing required provider",
+					fmt.Sprintf(
+						"This state requires built-in provider %s, but that provider isn't available in this Terraform version.",
+						providerAddr,
+					),
+				))
+			}
+		}
+	}
+	return diags
+}
+
 // checkConfigDependencies checks whether the recieving context is able to
 // support the given configuration, returning error diagnostics if not.
 //
@@ -351,13 +417,23 @@ func (c *Context) checkConfigDependencies(config *configs.Config) tfdiags.Diagno
 	// We only check that we have a factory for each required provider, and
 	// assume the caller already assured that any separately-installed
 	// plugins are of a suitable version, match expected checksums, etc.
-	providerReqs, hclDiags := config.ProviderRequirements()
+	providerReqs, hclDiags := config.ProviderRequirementsConfigOnly()
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
 		return diags
 	}
 	for providerAddr := range providerReqs {
 		if !c.plugins.HasProvider(providerAddr) {
+			if c.plugins.HasPreloadedSchemaForProvider(providerAddr) {
+				// If the caller provided a preloaded schema for this provider
+				// then we'll take that as a hint that the caller is intending
+				// to handle some of these pre-validation tasks itself and
+				// so we'll just optimistically assume that the caller
+				// has arranged for this to work some other way, or will
+				// return its own version of this error before calling
+				// into here if not.
+				continue
+			}
 			if !providerAddr.IsBuiltIn() {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,

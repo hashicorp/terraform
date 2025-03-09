@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -15,6 +18,14 @@ type RootVariableTransformer struct {
 	Config *configs.Config
 
 	RawValues InputValues
+
+	// Planning must be set to true when building a planning graph, and must be
+	// false when building an apply graph.
+	Planning bool
+
+	// DestroyApply must be set to true when applying a destroy operation and
+	// false otherwise.
+	DestroyApply bool
 }
 
 func (t *RootVariableTransformer) Transform(g *Graph) error {
@@ -33,8 +44,10 @@ func (t *RootVariableTransformer) Transform(g *Graph) error {
 			Addr: addrs.InputVariable{
 				Name: v.Name,
 			},
-			Config:   v,
-			RawValue: t.RawValues[v.Name],
+			Config:       v,
+			RawValue:     t.RawValues[v.Name],
+			Planning:     t.Planning,
+			DestroyApply: t.DestroyApply,
 		}
 		g.Add(node)
 	}

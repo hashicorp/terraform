@@ -1,11 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
-	"log"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -15,98 +15,150 @@ import (
 // NodeApplyableResource nodes into their respective modules.
 type nodeExpandApplyableResource struct {
 	*NodeAbstractResource
+
+	PartialExpansions []addrs.PartialExpandedResource
 }
 
 var (
-	_ GraphNodeDynamicExpandable    = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeReferenceable        = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeReferencer           = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeConfigResource       = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*nodeExpandApplyableResource)(nil)
 	_ graphNodeExpandsInstances     = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeTargetable           = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeDynamicExpandable    = (*nodeExpandApplyableResource)(nil)
 )
 
 func (n *nodeExpandApplyableResource) expandsInstances() {
 }
 
 func (n *nodeExpandApplyableResource) References() []*addrs.Reference {
-	return (&NodeApplyableResource{NodeAbstractResource: n.NodeAbstractResource}).References()
+	refs := n.NodeAbstractResource.References()
+
+	// The expand node needs to connect to the individual resource instances it
+	// references, but cannot refer to it's own instances without causing
+	// cycles. It would be preferable to entirely disallow self references
+	// without the `self` identifier, but those were allowed in provisioners
+	// for compatibility with legacy configuration. We also can't always just
+	// filter them out for all resource node types, because the only method we
+	// have for catching certain invalid configurations are the cycles that
+	// result from these inter-instance references.
+	return filterSelfRefs(n.Addr.Resource, refs)
 }
 
 func (n *nodeExpandApplyableResource) Name() string {
 	return n.NodeAbstractResource.Name() + " (expand)"
 }
 
-func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
+func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
+	if n.Addr.Resource.Mode == addrs.EphemeralResourceMode {
+		return n.dynamicExpandEphemeral(ctx)
+	}
+
+	var diags tfdiags.Diagnostics
+	expander := ctx.InstanceExpander()
+	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
+	for _, module := range moduleInstances {
+		moduleCtx := evalContextForModuleInstance(ctx, module)
+		diags = diags.Append(n.recordResourceData(moduleCtx, n.Addr.Resource.Absolute(module)))
+	}
+
+	return nil, diags
+}
+
+// We need to expand the ephemeral resources mostly the same as we do during
+// planning. There a lot of options than happen during planning which aren't
+// applicable to apply however, and we have to make sure we don't re-register
+// checks which already recorded in the plan, so we create a pared down version
+// of the plan expansion here.
+func (n *nodeExpandApplyableResource) dynamicExpandEphemeral(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	var g Graph
 
 	expander := ctx.InstanceExpander()
-	moduleInstances := expander.ExpandModule(n.Addr.Module)
+	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
+
 	for _, module := range moduleInstances {
-		g.Add(&NodeApplyableResource{
-			NodeAbstractResource: n.NodeAbstractResource,
-			Addr:                 n.Addr.Resource.Absolute(module),
-		})
-	}
-	addRootNodeToGraph(&g)
-
-	return &g, nil
-}
-
-// NodeApplyableResource represents a resource that is "applyable":
-// it may need to have its record in the state adjusted to match configuration.
-//
-// Unlike in the plan walk, this resource node does not DynamicExpand. Instead,
-// it should be inserted into the same graph as any instances of the nodes
-// with dependency edges ensuring that the resource is evaluated before any
-// of its instances, which will turn ensure that the whole-resource record
-// in the state is suitably prepared to receive any updates to instances.
-type NodeApplyableResource struct {
-	*NodeAbstractResource
-
-	Addr addrs.AbsResource
-}
-
-var (
-	_ GraphNodeModuleInstance       = (*NodeApplyableResource)(nil)
-	_ GraphNodeConfigResource       = (*NodeApplyableResource)(nil)
-	_ GraphNodeExecutable           = (*NodeApplyableResource)(nil)
-	_ GraphNodeProviderConsumer     = (*NodeApplyableResource)(nil)
-	_ GraphNodeAttachResourceConfig = (*NodeApplyableResource)(nil)
-	_ GraphNodeReferencer           = (*NodeApplyableResource)(nil)
-)
-
-func (n *NodeApplyableResource) Path() addrs.ModuleInstance {
-	return n.Addr.Module
-}
-
-func (n *NodeApplyableResource) References() []*addrs.Reference {
-	if n.Config == nil {
-		log.Printf("[WARN] NodeApplyableResource %q: no configuration, so can't determine References", dag.VertexName(n))
-		return nil
+		resAddr := n.Addr.Resource.Absolute(module)
+		expDiags := n.expandEphemeralResourceInstances(ctx, resAddr, &g)
+		diags = diags.Append(expDiags)
 	}
 
-	var result []*addrs.Reference
-
-	// Since this node type only updates resource-level metadata, we only
-	// need to worry about the parts of the configuration that affect
-	// our "each mode": the count and for_each meta-arguments.
-	refs, _ := lang.ReferencesInExpr(n.Config.Count)
-	result = append(result, refs...)
-	refs, _ = lang.ReferencesInExpr(n.Config.ForEach)
-	result = append(result, refs...)
-
-	return result
+	return &g, diags
 }
 
-// GraphNodeExecutable
-func (n *NodeApplyableResource) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	if n.Config == nil {
-		// Nothing to do, then.
-		log.Printf("[TRACE] NodeApplyableResource: no configuration present for %s", n.Name())
-		return nil
+func (n *nodeExpandApplyableResource) expandEphemeralResourceInstances(globalCtx EvalContext, resAddr addrs.AbsResource, g *Graph) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// The rest of our work here needs to know which module instance it's
+	// working in, so that it can evaluate expressions in the appropriate scope.
+	moduleCtx := evalContextForModuleInstance(globalCtx, resAddr.Module)
+
+	// writeResourceState is responsible for informing the expander of what
+	// repetition mode this resource has, which allows expander.ExpandResource
+	// to work below.
+	moreDiags := n.recordResourceData(moduleCtx, resAddr)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return diags
 	}
 
-	return n.writeResourceState(ctx, n.Addr)
+	expander := moduleCtx.InstanceExpander()
+	instanceAddrs := expander.ExpandResource(resAddr)
+
+	instG, instDiags := n.ephemeralResourceInstanceSubgraph(resAddr, instanceAddrs)
+	if instDiags.HasErrors() {
+		diags = diags.Append(instDiags)
+		return diags
+	}
+	g.Subsume(&instG.AcyclicGraph.Graph)
+	return diags
+}
+
+func (n *nodeExpandApplyableResource) ephemeralResourceInstanceSubgraph(addr addrs.AbsResource, instanceAddrs []addrs.AbsResourceInstance) (*Graph, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	concreteEphemeral := func(a *NodeAbstractResourceInstance) dag.Vertex {
+		a.Config = n.Config
+		a.ResolvedProvider = n.ResolvedProvider
+		a.Schema = n.Schema
+		a.ProvisionerSchemas = n.ProvisionerSchemas
+		a.ProviderMetas = n.ProviderMetas
+		a.dependsOn = n.dependsOn
+
+		// we still need the Plannable resource instance
+		return &NodeApplyableResourceInstance{
+			NodeAbstractResourceInstance: a,
+		}
+	}
+
+	// Start creating the steps
+	steps := []GraphTransformer{
+		// Expand the count or for_each (if present)
+		&ResourceCountTransformer{
+			Concrete:      concreteEphemeral,
+			Schema:        n.Schema,
+			Addr:          n.ResourceAddr(),
+			InstanceAddrs: instanceAddrs,
+		},
+
+		// Targeting
+		&TargetsTransformer{Targets: n.Targets},
+
+		// Connect references so ordering is correct
+		&ReferenceTransformer{},
+
+		// Make sure there is a single root
+		&RootTransformer{},
+	}
+
+	// Build the graph
+	b := &BasicGraphBuilder{
+		Steps: steps,
+		Name:  "nodeExpandApplyEphemeralResource",
+	}
+	graph, graphDiags := b.Build(addr.Module)
+	diags = diags.Append(graphDiags)
+
+	return graph, diags
 }

@@ -1,8 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package remote
 
 import (
 	"bytes"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/backend"
@@ -10,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
 func TestRemoteClient_impl(t *testing.T) {
@@ -38,7 +43,48 @@ func TestRemoteClient_stateLock(t *testing.T) {
 	remote.TestRemoteLocks(t, s1.(*remote.State).Client, s2.(*remote.State).Client)
 }
 
-func TestRemoteClient_withRunID(t *testing.T) {
+func TestRemoteClient_Unlock_invalidID(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	s1, err := b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	err = s1.Unlock("no")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "does not match existing lock ID") {
+		t.Fatalf("expected erroor containing \"does not match existing lock ID\", got %v", err)
+	}
+}
+
+func TestRemoteClient_Unlock(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	s1, err := b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	id, err := s1.Lock(&statemgr.LockInfo{
+		ID: "test",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	err = s1.Unlock(id)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestRemoteClient_Put_withRunID(t *testing.T) {
 	// Set the TFE_RUN_ID environment variable before creating the client!
 	if err := os.Setenv("TFE_RUN_ID", cloud.GenerateID("run-")); err != nil {
 		t.Fatalf("error setting env var TFE_RUN_ID: %v", err)

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package repl
 
 import (
@@ -173,6 +176,10 @@ EOT_`,
 		{
 			cty.StringVal("a sensitive value").Mark(marks.Sensitive),
 			"(sensitive value)",
+		},
+		{
+			cty.StringVal("an ephemeral value").Mark(marks.Ephemeral),
+			"(ephemeral value)",
 		},
 	}
 

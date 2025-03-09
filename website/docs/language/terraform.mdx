@@ -1,0 +1,215 @@
+---
+page_title: Terraform block configuration reference
+description: >-
+  The `terraform` block allows you to configure Terraform behavior, including the Terraform version, backend, integration with HCP Terraform, and required providers.
+---
+
+# Terraform block reference
+
+This topic provides reference information about the `terraform` block. The `terraform` block allows you to configure Terraform behavior, including the Terraform version, backend, integration with HCP Terraform, and required providers.
+
+## Configuration model
+
+The following list outlines attribute hierarchy, data types, and requirements in the `terraform` block. Click on an attribute for details.
+
+- [`terraform`](#terraform)
+  - [`required_version`](#terraform-required_version): string 
+  - [`required_providers`](#terraform-required_providers): map
+  - [`provider_meta "<LABEL>"`](#terraform-provider_meta): map
+  - [`backend "<BACKEND_TYPE>"`](#terraform-backend): map
+  - [`cloud`](#terraform-cloud): map
+    - [`organization`](#terraform-cloud-organization): string | required when connecting to HCP Terraform
+    - [`workspaces`](#terraform-cloud-workspaces): map | required when connecting to HCP Terraform
+      - [`tags`](#terraform-cloud-workspaces): list of strings or map of strings
+      - [`name`](#terraform-cloud-workspaces): string
+      - [`project`](#terraform-cloud-workspaces): string
+    - [`hostname`](#terraform-cloud-workspaces): string | `app.terraform.io`
+    - [`token`](#terraform-cloud-token): string
+  - [`experiments`](#terraform-experiments): list of strings
+
+## Specification
+
+This section provides details about the fields you can configure in the `terraform` block. Specific providers and backends may support additional fields.
+
+### `terraform`
+
+Parent block that contains configurations that define Terraform behavior. You can only use constant values in the `terraform` block. Arguments in the `terraform` block cannot refer to named objects, such as resources and input variables. Additionally, you cannot use built-in Terraform language functions in the block.
+
+### `terraform{}.required_version`
+
+Specifies which version of the Terraform CLI is allowed to run the configuration. Refer to [Version constraints](/terraform/language/expressions/version-constraints) for details about the supported syntax for specifying version constraints.
+
+Use Terraform version constraints in a collaborative environment to ensure that everyone is using a specific Terraform version, or using at least a minimum Terraform version that has behavior expected by the configuration.
+
+Terraform prints an error and exits without taking actions when you use a version of Terraform that does not meet the version constraints to run the configuration.
+
+Modules associated with a configuration may also specify version constraints. You must use a Terraform version that satisfies all version constraints associated with the configuration, including constraints defined in modules, to perform operations. Refer to [Modules](/terraform/language/modules) for additional information about Terraform modules.
+
+The `required_version` configuration applies only to the version of Terraform CLI and not versions of provider plugins. Refer to [Provider Requirements](/terraform/language/providers/requirements) for additional information.
+
+- Data type: String
+- Default: Latest version of Terraform
+
+### `terraform{}.required_providers`
+
+Specifies all provider plugins required to create and manage resources specified in the configuration. Each local provider name maps to a source address and a version constraint. Refer to each Terraform provider’s documentation in the [public Terraform Registry](https://registry.terraform.io/browse/providers), or your private registry, for instructions on how to configure attributes in the `required_providers` block.
+
+- Data type: Map
+
+### `terraform{}.provider_meta "<LABEL>"`
+
+Specifies metadata fields that a provider may expect. Individual modules can populate the metadata fields independently of any provider configuration. Refer to [Provider Metadata](/terraform/internals/provider-meta) for additional information.
+
+- Data type: Map
+
+### `terraform{}.backend "<BACKEND_TYPE>"`
+
+Specifies a mechanism for storing Terraform state files. The `backend` block takes a backend type as an argument. Refer to [Backend Configuration](/terraform/language/backend) for details about configuring the `backend` block.
+
+You cannot configure a `backend` block when the configuration also contains a [`cloud` configuration](#terraform-cloud) for storing state data.
+
+- Data type: Map
+
+### `terraform{}.cloud`
+
+Specifies a set of attributes that allow the Terraform configuration to connect to either HCP Terraform or a Terraform Enterprise installation. HCP Terraform and Terraform Enterprise provide state storage, remote execution, and other benefits. Refer to the [HCP Terraform](/terraform/cloud-docs) and [Terraform Enterprise](/terraform/enterprise) documentation for additional information.
+
+You can only provide one `cloud` block per configuration.
+
+You cannot configure a `cloud` block when the configuration also contains a [`backend` configuration](#terraform-backend) for storing state data.
+
+The `cloud` block cannot refer to named values, such as input variables, locals, or data source attributes.
+
+- Data type: Map
+
+### `terraform{}.cloud{}.organization`
+
+Specifies the name of the organization you want to connect to. Instead of hardcoding the organization as a string, you can alternatively use the [`TF_CLOUD_ORGANIZATION`](#tf_cloud_organization) environment variable.
+
+- Data type: String
+- Required when connecting to HCP Terraform
+
+### `terraform{}.cloud{}.workspaces`
+
+Specifies metadata for matching workspaces in HCP Terraform. Terraform associates the configuration with workspaces managed in HCP Terraform that match the specified tags, name, or project. You can specify the following metadata in the `workspaces` block:
+
+| Attribute | Description | Data type |
+| --- | --- | --- |
+| `tags` | Specifies either a map of strings as key/value tags or a list of single-value, key-only tags. Terraform associates the configuration with workspaces that have all matching tags. New workspaces created from the working directory inherit the tags. You cannot set this attribute and the `name` attribute in the same configuration. Using a map type with both keys and values requires Terraform 1.10+. | Array of strings or Map of strings |
+| `name` | Specifies an HCP Terraform workspace name to associate the Terraform configuration with. You can only use the working directory with the workspace named in the configuration. You cannot manage the workspace from the Terraform CLI. You cannot set this attribute and the `tags` attribute in the same configuration. <p>Instead of hardcoding a single workspace as a string, you can alternatively use the [`TF_WORKSPACE`](#tf_workspace) environment variable. </p> | String |
+| `project` | Specifies the name of an HCP Terraform project. Terraform creates all workspaces that use this configuration in the project. Using the [`terraform workspace list` command](/terraform/cli/commands/workspace/list) in the working directory returns only workspaces in the specified project. <p>Instead of hardcoding the project as a string, you can alternatively use the [`TF_CLOUD_PROJECT`](#tf_cloud_project) environment variable.</p> | String |
+
+- Data type: Map
+- Required when connecting to HCP Terraform
+
+### `terraform{}.cloud{}.hostname`
+
+Specifies the hostname for a Terraform Enterprise deployment. Instead of hardcoding the hostname of the Terraform Enterprise deployment, you can alternatively use the [`TF_CLOUD_HOSTNAME`](#tf_cloud_hostname) environment variable.
+
+- Data type: String
+- Required when connecting to Terraform Enterprise
+- Default: `app.terraform.io`
+
+### `terraform{}.cloud{}.token`
+
+Specifies a token for authenticating with HCP Terraform. We recommend omitting the token from the configuration and either using the [`terraform login` command](/terraform/cli/commands/login) or manually configuring credentials in the [CLI configuration file](/terraform/cli/config/config-file#credentials) instead.
+
+- Data type: String
+
+### `terraform{}.experiments`
+
+Specifies a list of experimental feature names that you want to opt into. In releases where experimental features are available, you can enable them on a per-module basis.
+
+Experiments are subject to arbitrary changes in later releases and, depending on the outcome of the experiment, may change significantly before final release or may not be released in stable form at all. Breaking changes may appear in minor and patch releases. We do not recommend using experimental features in Terraform modules intended for production.
+
+Modules with experiments enabled generate a warning on every `terraform plan` or `terraform apply` operation. If you want to try experimental features in a shared module, we recommend enabling the experiment only in alpha or beta releases of the module.
+
+Refer to the [Terraform changelog](https://github.com/hashicorp/terraform/blob/main/CHANGELOG.md) for information about experiments and to monitor the release notes about experiment keywords that may be available.
+
+- Data type: List of strings
+
+## Environment variables for the `cloud` block
+
+You can use environment variables to configure one or more `cloud` block attributes. This is helpful when you want to use the same Terraform configuration in different HCP Terraform organizations and projects. Terraform only uses these variables if you do not define  corresponding attributes in your configuration. If you choose to configure the `cloud` block entirely through environment variables, you must still add an empty `cloud` block in your configuration file.
+
+<Warning>
+
+You can use environment variables to automate Terraform operations, which has specific security considerations. Refer to [Non-Interactive Workflows](/terraform/cloud-docs/run/cli#non-interactive-workflows) for details.
+
+</Warning>
+
+Use the following environment variables to configure the `cloud` block:
+
+- `TF_CLOUD_ORGANIZATION` - The name of the organization. Terraform reads this variable when `organization` is omitted from the `cloud` block`. If both are specified, the configuration takes precedence.
+
+- `TF_CLOUD_HOSTNAME` - The hostname of a Terraform Enterprise installation. Terraform reads this when `hostname` is omitted from the `cloud` block. If both are specified, the configuration takes precedence.
+
+- `TF_CLOUD_PROJECT` - The name of an HCP Terraform project. Terraform reads this when `workspaces.project` is omitted from the `cloud` block. If both are specified, the cloud block configuration takes precedence.
+
+- `TF_WORKSPACE` - The name of a single HCP Terraform workspace. Terraform reads this when `workspaces` is omitted from the `cloud` block. HCP Terraform will not create a new workspace from this variable; the workspace must exist in the specified organization. You can set `TF_WORKSPACE` if the `cloud` block uses tags. However, the value of `TF_WORKSPACE` must be included in the set of tags. This variable also selects the workspace in your local environment. Refer to [TF_WORKSPACE](/terraform/cli/config/environment-variables#tf_workspace) for details.
+
+## Examples
+
+The following examples demonstrate common configuration patterns for specific use cases.
+
+### Add a provider
+
+The following configuration requires the `aws` provider version 2.7.0 or later from the public Terraform registry:
+
+```hcl
+terraform {
+  required_providers {
+    aws = {
+      version = ">= 2.7.0"
+      source = "hashicorp/aws"
+    }
+  }
+}
+```
+
+### Connect to HCP Terraform
+
+In the following example, the configuration links the working directory to workspaces in the `example_corp` organization that contain the `layer=app` tag:
+
+```hcl
+terraform {
+  cloud {
+    organization = "example_corp"
+    workspaces {
+      tags = {
+        layer = "app"
+      }
+    }
+  }
+}
+```
+
+### Connect to Terraform Enterprise
+
+In the following example, the configuration links the working directory to workspaces in the `example_corp` organization that contain the `app` key-only tag. Key-only tags must be used with versions of Terraform Enterprise prior to v202411-1 or versions of Terraform prior to v1.10. The `hostname` field is required in the configuration unless you use the `TF_CLOUD_HOSTNAME` environment variable:
+
+```hcl
+terraform {
+  cloud {
+    organization = "example_corp"
+    hostname = "my.terraform-enterprise.host"
+    workspaces {
+      tags = ["app"]
+    }
+  }
+}
+```
+
+### Connect to Terraform Enterprise using environment variables
+
+In the following example, Terraform checks the `TF_CLOUD_ORGANIZATION` and `TF_CLOUD_HOSTNAME` environment variables and automatically populates the `organization` and `hostname` arguments. During initialization, the local Terraform CLI connects the working directory to Terraform Enterprise using those values. As a result, Terraform links the configuration to either HCP Terraform or Terraform Enterprise and allows teams to  reuse the configuration in different continuous integration pipelines:
+
+```hcl
+terraform {
+  cloud {
+    workspaces {
+      tags = ["app"]
+    }
+  }
+}
+```

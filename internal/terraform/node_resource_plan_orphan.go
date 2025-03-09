@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -6,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -21,6 +25,14 @@ type NodePlannableResourceInstanceOrphan struct {
 	// skipPlanChanges indicates we should skip trying to plan change actions
 	// for any instances.
 	skipPlanChanges bool
+
+	// forgetResources lists resources that should not be destroyed, only removed
+	// from state.
+	forgetResources []addrs.ConfigResource
+
+	// forgetModules lists modules that should not be destroyed, only removed
+	// from state.
+	forgetModules []addrs.Module
 }
 
 var (
@@ -98,27 +110,69 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		return diags
 	}
 
-	if !n.skipRefresh {
+	var forget bool
+	for _, ft := range n.forgetResources {
+		if ft.Equal(n.ResourceAddr()) {
+			forget = true
+		}
+	}
+	for _, fm := range n.forgetModules {
+		if fm.TargetContains(n.Addr) {
+			forget = true
+		}
+	}
+
+	if !n.skipRefresh && !forget {
 		// Refresh this instance even though it is going to be destroyed, in
 		// order to catch missing resources. If this is a normal plan,
 		// providers expect a Read request to remove missing resources from the
 		// plan before apply, and may not handle a missing resource during
 		// Delete correctly.  If this is a simple refresh, Terraform is
 		// expected to remove the missing resource from the state entirely
-		refreshedState, refreshDiags := n.refresh(ctx, states.NotDeposed, oldState)
+		refreshedState, refreshDeferred, refreshDiags := n.refresh(ctx, states.NotDeposed, oldState, ctx.Deferrals().DeferralAllowed())
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
 		}
 
-		diags = diags.Append(n.writeResourceInstanceState(ctx, refreshedState, refreshState))
-		if diags.HasErrors() {
-			return diags
-		}
-
-		// If we refreshed then our subsequent planning should be in terms of
-		// the new object, not the original object.
 		oldState = refreshedState
+
+		if refreshDeferred == nil {
+			// only update the state if we're not deferring the change
+			diags = diags.Append(n.writeResourceInstanceState(ctx, refreshedState, refreshState))
+			if diags.HasErrors() {
+				return diags
+			}
+		}
+	}
+
+	shouldDefer := ctx.Deferrals().ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies)
+
+	var change *plans.ResourceInstanceChange
+	var pDiags tfdiags.Diagnostics
+	var deferred *providers.Deferred
+	if forget {
+		change, pDiags = n.planForget(ctx, oldState, "")
+		diags = diags.Append(pDiags)
+	} else {
+		change, deferred, pDiags = n.planDestroy(ctx, oldState, "")
+		diags = diags.Append(pDiags)
+	}
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// We might be able to offer an approximate reason for why we are
+	// planning to delete this object. (This is best-effort; we might
+	// sometimes not have a reason.)
+	change.ActionReason = n.deleteActionReason(ctx)
+
+	if deferred != nil {
+		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, change)
+		return diags
+	} else if shouldDefer {
+		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
+		return diags
 	}
 
 	// If we're skipping planning, all we need to do is write the state. If the
@@ -129,26 +183,21 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		return diags.Append(n.writeResourceInstanceState(ctx, oldState, workingState))
 	}
 
-	var change *plans.ResourceInstanceChange
-	change, destroyPlanDiags := n.planDestroy(ctx, oldState, "")
-	diags = diags.Append(destroyPlanDiags)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	diags = diags.Append(n.checkPreventDestroy(change))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	// We might be able to offer an approximate reason for why we are
-	// planning to delete this object. (This is best-effort; we might
-	// sometimes not have a reason.)
-	change.ActionReason = n.deleteActionReason(ctx)
-
+	// We intentionally write the change before the subsequent checks, because
+	// all of the checks below this point are for problems caused by the
+	// context surrounding the change, rather than the change itself, and
+	// so it's helpful to still include the valid-in-isolation change as
+	// part of the plan as additional context in our error output.
 	diags = diags.Append(n.writeChange(ctx, change, ""))
 	if diags.HasErrors() {
 		return diags
+	}
+
+	if !forget {
+		diags = diags.Append(n.checkPreventDestroy(change))
+		if diags.HasErrors() {
+			return diags
+		}
 	}
 
 	return diags.Append(n.writeResourceInstanceState(ctx, nil, workingState))
@@ -245,7 +294,7 @@ func (n *NodePlannableResourceInstanceOrphan) deleteActionReason(ctx EvalContext
 		// First we'll check whether our containing module instance still
 		// exists, so we can talk about that differently in the reason.
 		declared := false
-		for _, inst := range expander.ExpandModule(n.Addr.Module.Module()) {
+		for _, inst := range expander.ExpandModule(n.Addr.Module.Module(), false) {
 			if n.Addr.Module.Equal(inst) {
 				declared = true
 				break

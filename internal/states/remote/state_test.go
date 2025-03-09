@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package remote
 
 import (
+	"context"
 	"log"
 	"sync"
 	"testing"
@@ -230,7 +234,10 @@ func TestStatePersist(t *testing.T) {
 			name: "add output to state",
 			mutationFunc: func(mgr *State) (*states.State, func()) {
 				s := mgr.State()
-				s.RootModule().SetOutputValue("foo", cty.StringVal("bar"), false)
+				s.SetOutputValue(
+					addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("bar"), false,
+				)
 				return s, func() {}
 			},
 			expectedRequests: []mockClientRequest{
@@ -258,7 +265,10 @@ func TestStatePersist(t *testing.T) {
 			name: "mutate state bar -> baz",
 			mutationFunc: func(mgr *State) (*states.State, func()) {
 				s := mgr.State()
-				s.RootModule().SetOutputValue("foo", cty.StringVal("baz"), false)
+				s.SetOutputValue(
+					addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("baz"), false,
+				)
 				return s, func() {}
 			},
 			expectedRequests: []mockClientRequest{
@@ -399,7 +409,7 @@ func TestState_GetRootOutputValues(t *testing.T) {
 		},
 	}
 
-	outputs, err := mgr.GetRootOutputValues()
+	outputs, err := mgr.GetRootOutputValues(context.Background())
 	if err != nil {
 		t.Errorf("Expected GetRootOutputValues to not return an error, but it returned %v", err)
 	}

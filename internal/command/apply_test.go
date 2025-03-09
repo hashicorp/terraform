@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -15,16 +18,18 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -289,6 +294,10 @@ func TestApply_parallelism(t *testing.T) {
 	// to proceed in unison.
 	beginCtx, begin := context.WithCancel(context.Background())
 
+	// This just makes go vet happy, in reality the function will never exit if
+	// begin() isn't called inside ApplyResourceChangeFn.
+	defer begin()
+
 	// Since our mock provider has its own mutex preventing concurrent calls
 	// to ApplyResourceChange, we need to use a number of separate providers
 	// here. They will all have the same mock implementation function assigned
@@ -296,10 +305,10 @@ func TestApply_parallelism(t *testing.T) {
 	providerFactories := map[addrs.Provider]providers.Factory{}
 	for i := 0; i < 10; i++ {
 		name := fmt.Sprintf("test%d", i)
-		provider := &terraform.MockProvider{}
+		provider := &testing_provider.MockProvider{}
 		provider.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
-				name + "_instance": {Block: &configschema.Block{}},
+				name + "_instance": {Body: &configschema.Block{}},
 			},
 		}
 		provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
@@ -484,7 +493,7 @@ func TestApply_error(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":    {Type: cty.String, Optional: true, Computed: true},
 						"ami":   {Type: cty.String, Optional: true},
@@ -815,7 +824,7 @@ func TestApply_plan_remoteState(t *testing.T) {
 			Type:   "http",
 			Config: backendConfigRaw,
 		},
-		Changes: plans.NewChanges(),
+		Changes: plans.NewChangesSrc(),
 	})
 
 	p := testProvider()
@@ -851,11 +860,12 @@ func TestApply_plan_remoteState(t *testing.T) {
 func TestApply_planWithVarFile(t *testing.T) {
 	varFileDir := testTempDir(t)
 	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
-	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	planPath := applyFixturePlanFile(t)
+	// The value of foo is the same as in the var file
+	planPath := applyFixturePlanFileWithVariableValue(t, "bar")
 	statePath := testTempFile(t)
 
 	cwd, err := os.Getwd()
@@ -868,6 +878,19 @@ func TestApply_planWithVarFile(t *testing.T) {
 	defer os.Chdir(cwd)
 
 	p := applyFixtureProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":    {Type: cty.String, Computed: true},
+						"value": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
+
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -896,7 +919,57 @@ func TestApply_planWithVarFile(t *testing.T) {
 	}
 }
 
-func TestApply_planVars(t *testing.T) {
+func TestApply_planWithVarFileChangingVariableValue(t *testing.T) {
+	varFileDir := testTempDir(t)
+	varFilePath := filepath.Join(varFileDir, "terraform-test.tfvars")
+	if err := os.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// The value of foo is different from the var file
+	planPath := applyFixturePlanFileWithVariableValue(t, "lorem ipsum")
+	statePath := testTempFile(t)
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(varFileDir); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	p := applyFixtureProvider()
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-state-out", statePath,
+		"-var-file", varFilePath,
+		planPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code == 0 {
+		t.Fatalf("expected to fail, but succeeded. \n\n%s", output.All())
+	}
+
+	expectedTitle := "Can't change variable when applying a saved plan"
+	if !strings.Contains(output.Stderr(), expectedTitle) {
+		t.Fatalf("Expected stderr to contain %q, got %q", expectedTitle, output.Stderr())
+	}
+}
+
+func TestApply_planUndeclaredVars(t *testing.T) {
+	// This test ensures that it isn't allowed to set undeclared input variables
+	// when applying from a saved plan file, since in that case the variable
+	// values come from the saved plan file.
+
 	planPath := applyFixturePlanFile(t)
 	statePath := testTempFile(t)
 
@@ -919,6 +992,475 @@ func TestApply_planVars(t *testing.T) {
 	if code == 0 {
 		t.Fatal("should've failed: ", output.Stdout())
 	}
+}
+
+func TestApply_planWithEnvVars(t *testing.T) {
+	_, snap := testModuleWithSnapshot(t, "apply-output-only")
+	plan := testPlan(t)
+
+	addr, diags := addrs.ParseAbsOutputValueStr("output.shadow")
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	shadowVal := mustNewDynamicValue("noot", cty.DynamicPseudoType)
+	plan.VariableValues = map[string]plans.DynamicValue{
+		"shadow": shadowVal,
+	}
+	plan.Changes.Outputs = append(plan.Changes.Outputs, &plans.OutputChangeSrc{
+		Addr: addr,
+		ChangeSrc: plans.ChangeSrc{
+			Action: plans.Create,
+			After:  shadowVal,
+		},
+	})
+	planPath := testPlanFileMatchState(
+		t,
+		snap,
+		states.NewState(),
+		plan,
+		statemgr.SnapshotMeta{},
+	)
+
+	statePath := testTempFile(t)
+
+	p := applyFixtureProvider()
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	t.Setenv("TF_VAR_shadow", "env")
+
+	args := []string{
+		"-state", statePath,
+		"-no-color",
+		planPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatal("unexpected failure: ", output.All())
+	}
+
+	expectedWarn := "Warning: Ignoring variable when applying a saved plan\n"
+	if !strings.Contains(output.Stdout(), expectedWarn) {
+		t.Fatalf("expected warning in output, given: %q", output.Stdout())
+	}
+}
+
+// A saved plan includes a list of "apply-time variables", i.e. ephemeral
+// input variables that were set during the plan, and must therefore be set
+// during apply. No other variables may be set during apply.
+//
+// Test that an apply supplying all apply-time variables succeeds, and then test
+// that supplying a declared ephemeral input variable that is *not* in the list
+// of apply-time variables fails.
+//
+// In the fixture used for this test foo is a required ephemeral variable, whereas bar is
+// an optional one.
+func TestApply_planVarsEphemeral_applyTime(t *testing.T) {
+	for name, tc := range map[string]func(*testing.T, *ApplyCommand, string, string, func(*testing.T) *terminal.TestOutput){
+		"with planfile only passing ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			args := []string{
+				"-state", statePath,
+				"-var", "foo=bar",
+				planPath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.All())
+			}
+		},
+
+		"with planfile passing non-ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			args := []string{
+				"-state", statePath,
+				"-var", "foo=bar",
+				"-var", "bar=bar",
+				planPath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code == 0 {
+				t.Fatal("should've failed: ", output.All())
+			}
+		},
+
+		"with planfile missing ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			args := []string{
+				"-state", statePath,
+				planPath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code == 0 {
+				t.Fatal("should've failed: ", output.All())
+			}
+		},
+
+		"with planfile passing ephemeral variable through vars file": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			const planVarFile = `
+foo = "bar"
+`
+
+			// Write a tfvars file with the variable
+			tfVarsPath := testVarsFile(t)
+			err := os.WriteFile(tfVarsPath, []byte(planVarFile), 0600)
+			if err != nil {
+				t.Fatalf("Could not write vars file %e", err)
+			}
+
+			args := []string{
+				"-state", statePath,
+				"-var-file", tfVarsPath,
+				planPath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.All())
+			}
+		},
+
+		"with planfile passing ephemeral variable through environment variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			t.Setenv("TF_VAR_foo", "bar")
+
+			args := []string{
+				"-state", statePath,
+				planPath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.All())
+			}
+		},
+
+		"with planfile passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			close := testInteractiveInput(t, []string{"bar"})
+			defer close()
+
+			args := []string{
+				"-state", statePath,
+				planPath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code == 0 {
+				// We don't support interactive inputs for apply-time variables
+				t.Fatal("should have failed: ", output.All())
+			}
+		},
+
+		"without planfile only passing ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			args := []string{
+				"-state", statePath,
+				"-var", "foo=bar",
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.All())
+			}
+		},
+
+		"without planfile passing non-ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			args := []string{
+				"-state", statePath,
+				"-var", "foo=bar",
+				"-var", "bar=bar",
+			}
+			code := c.Run(args)
+			output := done(t)
+
+			// For a combined plan & apply operation it's okay (and expected) to also be able to pass non-ephemeral variables
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.All())
+			}
+		},
+
+		"without planfile missing ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			args := []string{
+				"-state", statePath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code == 0 {
+				t.Fatal("should've failed: ", output.All())
+			}
+		},
+
+		"without planfile passing ephemeral variable through vars file": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			const planVarFile = `
+foo = "bar"
+`
+
+			// Write a tfvars file with the variable
+			tfVarsPath := testVarsFile(t)
+			err := os.WriteFile(tfVarsPath, []byte(planVarFile), 0600)
+			if err != nil {
+				t.Fatalf("Could not write vars file %e", err)
+			}
+
+			args := []string{
+				"-state", statePath,
+				"-var-file", tfVarsPath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.All())
+			}
+		},
+
+		"without planfile passing ephemeral variable through environment variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			t.Setenv("TF_VAR_foo", "bar")
+			t.Setenv("TF_VAR_unused", `{key:"val"}`)
+
+			args := []string{
+				"-state", statePath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.All())
+			}
+		},
+
+		"without planfile passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
+			close := testInteractiveInput(t, []string{"bar"})
+			defer close()
+
+			args := []string{
+				"-state", statePath,
+			}
+			code := c.Run(args)
+			output := done(t)
+			if code != 0 {
+				t.Fatal("should've succeeded: ", output.All())
+			}
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath("apply-ephemeral-variable"), td)
+			defer testChdir(t, td)()
+
+			_, snap := testModuleWithSnapshot(t, "apply-ephemeral-variable")
+			plannedVal := cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.UnknownVal(cty.String),
+				"ami": cty.StringVal("bar"),
+			})
+			priorValRaw, err := plans.NewDynamicValue(cty.NullVal(plannedVal.Type()), plannedVal.Type())
+			if err != nil {
+				t.Fatal(err)
+			}
+			plannedValRaw, err := plans.NewDynamicValue(plannedVal, plannedVal.Type())
+			if err != nil {
+				t.Fatal(err)
+			}
+			plan := testPlan(t)
+			plan.Changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+				Addr: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_instance",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				ProviderAddr: addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				},
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+					Before: priorValRaw,
+					After:  plannedValRaw,
+				},
+			})
+			applyTimeVariables := collections.NewSetCmp[string]()
+			applyTimeVariables.Add("foo")
+			plan.ApplyTimeVariables = applyTimeVariables
+
+			planPath := testPlanFileMatchState(
+				t,
+				snap,
+				states.NewState(),
+				plan,
+				statemgr.SnapshotMeta{},
+			)
+
+			statePath := testTempFile(t)
+
+			p := applyFixtureProvider()
+			view, done := testView(t)
+			c := &ApplyCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					View:             view,
+				},
+			}
+
+			tc(t, c, statePath, planPath, done)
+		})
+	}
+}
+
+// Variables can be passed to apply now for ephemeral usage, but we need to
+// ensure that the legacy handling of undeclared variables remains intact
+func TestApply_changedVars_applyTime(t *testing.T) {
+	t.Run("undeclared-config-var", func(t *testing.T) {
+		// an undeclared config variable is a warning, just like during plan
+		varFileDir := testTempDir(t)
+		varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
+		if err := os.WriteFile(varFilePath, []byte(`undeclared = true`), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		// The value of foo is not set
+		planPath := applyFixturePlanFile(t)
+		statePath := testTempFile(t)
+
+		cwd, err := os.Getwd()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if err := os.Chdir(varFileDir); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		defer os.Chdir(cwd)
+
+		p := applyFixtureProvider()
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-state-out", statePath,
+			planPath,
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("unexpected exit code %d:\n\n%s", code, output.All())
+		}
+
+		if !strings.Contains(output.All(), `Value for undeclared variable`) {
+			t.Fatalf("missing undeclared warning:\n%s", output.All())
+		}
+	})
+
+	t.Run("undeclared-cli-var", func(t *testing.T) {
+		// an undeclared cli variable is an error, just like during plan
+		planPath := applyFixturePlanFile(t)
+		statePath := testTempFile(t)
+
+		p := applyFixtureProvider()
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-var", "undeclared=true",
+			"-state-out", statePath,
+			planPath,
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 1 {
+			t.Fatalf("unexpected exit code %d:\n\n%s", code, output.All())
+		}
+
+		if !strings.Contains(output.Stderr(), `Value for undeclared variable`) {
+			t.Fatalf("missing undeclared warning:\n%s", output.All())
+		}
+	})
+
+	t.Run("changed-cli-var", func(t *testing.T) {
+		planPath := applyFixturePlanFileWithVariableValue(t, "orig")
+		statePath := testTempFile(t)
+
+		p := applyFixtureProvider()
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-var", "foo=new",
+			"-state-out", statePath,
+			planPath,
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 1 {
+			t.Fatalf("unexpected exit code %d:\n\n%s", code, output.All())
+		}
+
+		if !strings.Contains(output.Stderr(), `Can't change variable when applying a saved plan`) {
+			t.Fatalf("missing undeclared warning:\n%s", output.All())
+		}
+	})
+
+	t.Run("var-file-override-auto", func(t *testing.T) {
+		// for this one we're going to do a full plan to make sure the variables
+		// can be applied consistently. The plan specifies a var file, and
+		// during apply we don't want to override that with the default or auto
+		// var files.
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("apply-vars-auto"), td)
+		defer testChdir(t, td)()
+
+		p := planVarsFixtureProvider()
+		view, done := testView(t)
+		c := &PlanCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-var-file", "terraform-test.tfvars",
+			"-out", "planfile",
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("non-zero exit %d\n\n%s", code, output.Stderr())
+		}
+
+		view, done = testView(t)
+		apply := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               new(cli.MockUi),
+				View:             view,
+			},
+		}
+		args = []string{
+			"planfile",
+		}
+		code = apply.Run(args)
+		output = done(t)
+		if code != 0 {
+			t.Fatalf("non-zero exit %d\n\n%s", code, output.Stderr())
+		}
+	})
 }
 
 // we should be able to apply a plan file with no other file dependencies
@@ -1115,7 +1657,7 @@ func TestApply_shutdown(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"ami": {Type: cty.String, Optional: true},
 					},
@@ -1327,7 +1869,7 @@ func TestApply_vars(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"value": {Type: cty.String, Optional: true},
 					},
@@ -1389,7 +1931,7 @@ func TestApply_varFile(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"value": {Type: cty.String, Optional: true},
 					},
@@ -1432,7 +1974,7 @@ func TestApply_varFileDefault(t *testing.T) {
 	defer testChdir(t, td)()
 
 	varFilePath := filepath.Join(td, "terraform.tfvars")
-	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -1451,7 +1993,7 @@ func TestApply_varFileDefault(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"value": {Type: cty.String, Optional: true},
 					},
@@ -1512,7 +2054,7 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"value": {Type: cty.String, Optional: true},
 					},
@@ -1614,7 +2156,7 @@ func TestApply_backup(t *testing.T) {
 
 	actual := backupState.RootModule().Resources["test_instance.foo"]
 	expected := originalState.RootModule().Resources["test_instance.foo"]
-	if !cmp.Equal(actual, expected, cmpopts.EquateEmpty()) {
+	if !cmp.Equal(actual, expected, cmpopts.EquateEmpty(), cmpopts.IgnoreUnexported(states.ResourceInstanceObjectSrc{})) {
 		t.Fatalf(
 			"wrong aws_instance.foo state\n%s",
 			cmp.Diff(expected, actual, cmp.Transformer("bytesAsString", func(b []byte) string {
@@ -1811,7 +2353,7 @@ func TestApply_targeted(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {Type: cty.String, Computed: true},
 					},
@@ -1918,7 +2460,7 @@ func TestApply_replace(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {Type: cty.String, Computed: true},
 					},
@@ -2141,7 +2683,7 @@ func applyFixtureSchema() *providers.GetProviderSchemaResponse {
 	return &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":  {Type: cty.String, Optional: true, Computed: true},
 						"ami": {Type: cty.String, Optional: true},
@@ -2157,7 +2699,7 @@ func applyFixtureSchema() *providers.GetProviderSchemaResponse {
 // GetSchemaResponse, PlanResourceChangeFn, and ApplyResourceChangeFn populated,
 // with the plan/apply steps just passing through the data determined by
 // Terraform Core.
-func applyFixtureProvider() *terraform.MockProvider {
+func applyFixtureProvider() *testing_provider.MockProvider {
 	p := testProvider()
 	p.GetProviderSchemaResponse = applyFixtureSchema()
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
@@ -2198,7 +2740,7 @@ func applyFixturePlanFileMatchState(t *testing.T, stateMeta statemgr.SnapshotMet
 		t.Fatal(err)
 	}
 	plan := testPlan(t)
-	plan.Changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+	plan.Changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
 		Addr: addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: "test_instance",
@@ -2223,6 +2765,53 @@ func applyFixturePlanFileMatchState(t *testing.T, stateMeta statemgr.SnapshotMet
 	)
 }
 
+// applyFixturePlanFileWithVariableValue creates a plan file at a temporary location containing
+// a single change to create the test_instance.foo and a variable value that is included in the
+// "apply" test fixture, returning the location of that plan file.
+func applyFixturePlanFileWithVariableValue(t *testing.T, value string) string {
+	_, snap := testModuleWithSnapshot(t, "apply-vars")
+	plannedVal := cty.ObjectVal(map[string]cty.Value{
+		"id":    cty.UnknownVal(cty.String),
+		"value": cty.StringVal("bar"),
+	})
+	priorValRaw, err := plans.NewDynamicValue(cty.NullVal(plannedVal.Type()), plannedVal.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	plannedValRaw, err := plans.NewDynamicValue(plannedVal, plannedVal.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan := testPlan(t)
+	plan.Changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+		Addr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+		ProviderAddr: addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+		ChangeSrc: plans.ChangeSrc{
+			Action: plans.Create,
+			Before: priorValRaw,
+			After:  plannedValRaw,
+		},
+	})
+
+	plan.VariableValues = map[string]plans.DynamicValue{
+		"foo": mustNewDynamicValue(value, cty.DynamicPseudoType),
+	}
+	return testPlanFileMatchState(
+		t,
+		snap,
+		states.NewState(),
+		plan,
+		statemgr.SnapshotMeta{},
+	)
+}
+
 const applyVarFile = `
 foo = "bar"
 `
@@ -2230,3 +2819,12 @@ foo = "bar"
 const applyVarFileJSON = `
 { "foo": "bar" }
 `
+
+func mustNewDynamicValue(val string, ty cty.Type) plans.DynamicValue {
+	realVal := cty.StringVal(val)
+	ret, err := plans.NewDynamicValue(realVal, ty)
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}

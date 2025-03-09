@@ -34,6 +34,19 @@ for some connection settings, so that `connection` blocks could sometimes be
 omitted. This feature was removed in 0.12 in order to make Terraform's behavior
 more predictable.
 
+### Ephemeral values
+
+-> **Note**: Ephemeral values are available in Terraform v1.10 and later.
+
+The configuration for a `connection` block may use ephemeral values, such as
+[`ephemeral` resources](/terraform/language/resources/ephemeral), [`ephemeral`
+local values](/terraform/language/values/locals#ephemeral-values), [`ephemeral`
+variables](/terraform/language/values/variables#ephemeral), or [`ephemeral`
+output
+values](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files).
+
+Terraform will not store these values in your plan or state, or output them in
+logs.
 
 ### Example usage
 
@@ -46,8 +59,8 @@ provisioner "file" {
   connection {
     type     = "ssh"
     user     = "root"
-    password = "${var.root_password}"
-    host     = "${var.host}"
+    password = var.root_password
+    host     = var.host
   }
 }
 
@@ -59,8 +72,8 @@ provisioner "file" {
   connection {
     type     = "winrm"
     user     = "Administrator"
-    password = "${var.admin_password}"
-    host     = "${var.host}"
+    password = var.admin_password
+    host     = var.host
   }
 }
 ```
@@ -72,7 +85,7 @@ Expressions in `connection` blocks cannot refer to their parent resource by name
 
 ### Argument Reference
 
-The `connection` block supports the following argments. Some arguments are only supported by either the SSH or the WinRM connection type.
+The `connection` block supports the following arguments. Some arguments are only supported by either the SSH or the WinRM connection type.
 
 
 | Argument | Connection Type | Description | Default |
@@ -113,13 +126,13 @@ indirectly with a [bastion host](https://en.wikipedia.org/wiki/Bastion_host).
 | `bastion_private_key` | The contents of an SSH key file to use for the bastion host. These can be loaded from a file on disk using [the `file` function](/terraform/language/functions/file). | The value of the `private_key` field. |
 | `bastion_certificate` |  The contents of a signed CA Certificate. The certificate argument must be used in conjunction with a `bastion_private_key`. These can be loaded from a file on disk using the [the `file` function](/terraform/language/functions/file). |
 
-## Connection through a HTTP Proxy with SSH
+## Connection through HTTP and SOCKS5 proxies with SSH
 
-The `ssh` connection also supports the following fields to facilitate connections by SSH over HTTP proxy.
+The `ssh` connection also supports the following fields to facilitate connections by SSH over HTTP or SOCKS5 proxy.
 
 | Argument | Description | Default |
 |---------------|-------------|---------|
-| `proxy_scheme` | http or https | |
+| `proxy_scheme` | You can specify one of the following values: `http`, `https`, `socks5` | |
 | `proxy_host` | Setting this enables the SSH over HTTP connection. This host will be connected to first, and then the `host` or `bastion_host` connection will be made from there. | |
 | `proxy_port` | The port to use connect to the proxy host. | |
 | `proxy_user_name` | The username to use connect to the private proxy host. This argument should be specified only if authentication is required for the HTTP Proxy server. | |

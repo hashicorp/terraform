@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package funcs
 
 import (
@@ -9,6 +12,7 @@ import (
 	"encoding/asn1"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -24,8 +28,9 @@ import (
 )
 
 var UUIDFunc = function.New(&function.Spec{
-	Params: []function.Parameter{},
-	Type:   function.StaticReturnType(cty.String),
+	Params:       []function.Parameter{},
+	Type:         function.StaticReturnType(cty.String),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		result, err := uuid.GenerateUUID()
 		if err != nil {
@@ -46,7 +51,8 @@ var UUIDV5Func = function.New(&function.Spec{
 			Type: cty.String,
 		},
 	},
-	Type: function.StaticReturnType(cty.String),
+	Type:         function.StaticReturnType(cty.String),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		var namespace uuidv5.UUID
 		switch {
@@ -100,7 +106,8 @@ var BcryptFunc = function.New(&function.Spec{
 		Name: "cost",
 		Type: cty.Number,
 	},
-	Type: function.StaticReturnType(cty.String),
+	Type:         function.StaticReturnType(cty.String),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		defaultCost := 10
 
@@ -147,7 +154,8 @@ var RsaDecryptFunc = function.New(&function.Spec{
 			Type: cty.String,
 		},
 	},
-	Type: function.StaticReturnType(cty.String),
+	Type:         function.StaticReturnType(cty.String),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		s := args[0].AsString()
 		key := args[1].AsString()
@@ -168,7 +176,7 @@ var RsaDecryptFunc = function.New(&function.Spec{
 			default:
 				errStr = fmt.Sprintf("invalid private key: %s", e)
 			}
-			return cty.UnknownVal(cty.String), function.NewArgErrorf(1, errStr)
+			return cty.UnknownVal(cty.String), function.NewArgError(1, errors.New(errStr))
 		}
 		privateKey, ok := rawKey.(*rsa.PrivateKey)
 		if !ok {
@@ -222,7 +230,8 @@ func makeStringHashFunction(hf func() hash.Hash, enc func([]byte) string) functi
 				Type: cty.String,
 			},
 		},
-		Type: function.StaticReturnType(cty.String),
+		Type:         function.StaticReturnType(cty.String),
+		RefineResult: refineNotNull,
 		Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 			s := args[0].AsString()
 			h := hf()
@@ -241,7 +250,8 @@ func makeFileHashFunction(baseDir string, hf func() hash.Hash, enc func([]byte) 
 				Type: cty.String,
 			},
 		},
-		Type: function.StaticReturnType(cty.String),
+		Type:         function.StaticReturnType(cty.String),
+		RefineResult: refineNotNull,
 		Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 			path := args[0].AsString()
 			f, err := openFile(baseDir, path)

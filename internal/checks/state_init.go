@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package checks
 
 import (
@@ -30,6 +33,10 @@ func collectInitialStatuses(into addrs.Map[addrs.ConfigCheckable, *configCheckab
 		addr := rc.Addr().InModule(moduleAddr)
 		collectInitialStatusForResource(into, addr, rc)
 	}
+	for _, rc := range cfg.Module.EphemeralResources {
+		addr := rc.Addr().InModule(moduleAddr)
+		collectInitialStatusForResource(into, addr, rc)
+	}
 
 	for _, oc := range cfg.Module.Outputs {
 		addr := oc.Addr().InModule(moduleAddr)
@@ -42,8 +49,40 @@ func collectInitialStatuses(into addrs.Map[addrs.ConfigCheckable, *configCheckab
 
 		st := &configCheckableState{}
 
-		st.checkTypes = map[addrs.CheckType]int{
+		st.checkTypes = map[addrs.CheckRuleType]int{
 			addrs.OutputPrecondition: ct,
+		}
+
+		into.Put(addr, st)
+	}
+
+	for _, c := range cfg.Module.Checks {
+		addr := c.Addr().InModule(moduleAddr)
+
+		st := &configCheckableState{
+			checkTypes: map[addrs.CheckRuleType]int{
+				addrs.CheckAssertion: len(c.Asserts),
+			},
+		}
+
+		if c.DataResource != nil {
+			st.checkTypes[addrs.CheckDataResource] = 1
+		}
+
+		into.Put(addr, st)
+	}
+
+	for _, v := range cfg.Module.Variables {
+		addr := v.Addr().InModule(moduleAddr)
+
+		vs := len(v.Validations)
+		if vs == 0 {
+			continue
+		}
+
+		st := &configCheckableState{}
+		st.checkTypes = map[addrs.CheckRuleType]int{
+			addrs.InputValidation: vs,
 		}
 
 		into.Put(addr, st)
@@ -63,7 +102,7 @@ func collectInitialStatusForResource(into addrs.Map[addrs.ConfigCheckable, *conf
 	}
 
 	st := &configCheckableState{
-		checkTypes: make(map[addrs.CheckType]int),
+		checkTypes: make(map[addrs.CheckRuleType]int),
 	}
 
 	if ct := len(rc.Preconditions); ct > 0 {

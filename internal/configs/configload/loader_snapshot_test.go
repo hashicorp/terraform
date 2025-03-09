@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configload
 
 import (
@@ -42,7 +45,7 @@ func TestLoadConfigWithSnapshot(t *testing.T) {
 
 		problems := deep.Equal(wantModuleDirs, gotModuleDirs)
 		for _, problem := range problems {
-			t.Errorf(problem)
+			t.Error(problem)
 		}
 		if len(problems) > 0 {
 			return

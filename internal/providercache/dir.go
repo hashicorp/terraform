@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package providercache
 
 import (
@@ -70,6 +73,12 @@ func NewDirWithPlatform(baseDir string, platform getproviders.Platform) *Dir {
 // cache directory.
 func (d *Dir) BasePath() string {
 	return filepath.Clean(d.baseDir)
+}
+
+// WithPlatform creates a new dir with the provided platform based
+// on this dir
+func (d *Dir) WithPlatform(platform getproviders.Platform) *Dir {
+	return NewDirWithPlatform(d.baseDir, platform)
 }
 
 // AllAvailablePackages returns a description of all of the packages already

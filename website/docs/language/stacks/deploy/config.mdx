@@ -1,0 +1,115 @@
+---
+page_title: Define deployment configuration
+description: Learn how to write stack deployment configuration files to define how to deploy your stack’s infrastructure.
+---
+
+# Define deployment configuration
+
+In Stacks, deployments allow you to replicate infrastructure across multiple environments, regions, or accounts. Each deployment runs in its own isolated agent, ensuring that changes in one deployment do not affect others. 
+
+-> **Note**: HCP Terraform supports up to a maximum of 20 deployments. 
+
+Learn how to write deployment configuration files that allow you to specify the environments, regions, and other parameters that will vary across deployments, while keeping your stack’s configuration nonrepetitive and reusable.
+
+## Background
+
+The deployment configuration file (`tfdeploy.hcl`) defines how many times HCP Terraform should deploy a stack’s infrastructure. A stack must have at least one `deployment` block. Adding a new `deployment` block tells Terraform to redeploy a stack’s infrastructure with that `deployment` block’s input values.
+
+You can automatically manage plans for your deployments by defining orchestrate blocks to create orchestration rules for your stack deployments. For example, you can set up automatic approvals when a deployment meets specific criteria. Learn more about orchestrating deployments in [Set conditions for deployment plans](/terraform/language/stacks/deploy/conditions).
+
+## Write a deployment configuration file
+
+Deployment configuration files live at the top level of your repository and use the `.tfdeploy.hcl` file extension. We recommend naming your deployments file `deployments.tfdeploy.hcl`. In your deployment configuration file, create a new `deployment` block for each environment or region where you want to deploy your stack. 
+
+```hcl
+# deployments.tfdeploy.hcl
+
+deployment "production" {
+    inputs = {
+        aws_region     = "us-west-1"
+        instance_count = 2
+    }
+}
+```
+
+The `deployment` block accepts a map of `inputs` where you can specify any unique configurations that deployment may need. The `deployment` block does not accept any meta-arguments. 
+
+```hcl
+# deployments.tfdeploy.hcl
+
+deployment "production" {
+  inputs = {
+    aws_region     = "us-west-1"
+    instance_count = 2
+  }
+}
+
+deployment "staging" {
+  inputs = {
+    aws_region     = "us-west-1"
+    instance_count = 1
+  }
+}
+```
+
+You can also specify `identity_token` blocks and `orchestrate` blocks in a deployment configuration file. 
+
+## Deployment authentication 
+
+The `identity_token` block tells HCP Terraform to generate a JSON Web Token (JWT) for that deployment’s components to authenticate to providers using OIDC. For example, you can set up your deployment to authenticate with the AWS provider using a particular role ARN. 
+
+```hcl
+# deployments.tfdeploy.hcl
+
+identity_token "aws" {
+  audience = ["aws.workload.identity"]
+}
+
+deployment "staging" {
+  inputs = {
+    aws_region = "eu-west-1"
+    role_arn   = "arn:aws:iam::123456789101:role/my-oidc-role"
+    aws_token  = identity_token.aws.jwt
+  }
+}
+```
+
+That deployment generates a JWT token named `aws_token`, which is available to that deployment’s components and providers.
+
+```hcl
+# providers.tfstack.hcl
+
+provider "aws" "this" {
+  config {
+    region = var.aws_region
+    assume_role_with_web_identity {
+      role_arn           = var.aws_role
+      web_identity_token = var.aws_token
+    }
+  }
+}
+```
+
+For more details and examples of using the `identity_token` block, refer to [Authenticate a stack](/terraform/language/stacks/deploy/authenticate).
+
+## Automatically manage deployments
+
+The `orchestrate` block lets you codify your stack’s behavior by creating orchestration rules, enabling you to manage deployments at scale. For example, you could set an orchestration rule to automatically approve plans or apply operations that don’t contain any changes.
+
+```hcl
+# deployments.tfdeploy.hcl
+
+orchestrate "auto_approve" "no_pet_changes" {
+  check {
+    # Check that the pet component has no changes
+    condition = context.plan.component_changes["component.pet"].total == 0
+    reason    = "Changes proposed to pet component."
+  }
+}
+```
+
+For more information and examples of using the `orchestrate` block, refer to [Set conditions for deployment plans](/terraform/language/stacks/deploy/conditions).
+
+## Next steps
+
+Refer to the [Deployment file reference](/terraform/language/stacks/reference/tfdeploy) to learn more about the syntax of the blocks and attributes you can use in deployment configuration files. Refer to [Create a stack](/terraform/cloud-docs/stacks/create) to learn how to deploy your stack’s infrastructure with HCP Terraform.

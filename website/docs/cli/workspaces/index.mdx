@@ -1,13 +1,12 @@
 ---
-page_title: Managing Workspaces - Terraform CLI
+page_title: Manage workspaces
 description: >-
-  Commands to list, select, create, and output workspaces. Workspaces help
-  manage different groups of resources with one configuration.
+  Workspaces are separate instances of Terraform state data. Learn commands for managing workspaces.
 ---
 
-# Managing Workspaces
+# Manage Workspaces Overview
 
-Workspaces in the Terraform CLI refer to separate instances of [state data](/terraform/language/state) inside the same Terraform working directory. They are distinctly different from [workspaces in Terraform Cloud](/terraform/cloud-docs/workspaces), which each have their own Terraform configuration and function as separate working directories.
+Workspaces in the Terraform CLI refer to separate instances of [state data](/terraform/language/state) inside the same Terraform working directory. They are distinctly different from [workspaces in HCP Terraform](/terraform/cloud-docs/workspaces), which each have their own Terraform configuration and function as separate working directories.
 
 Terraform relies on state to associate resources with real-world objects. When you run the same configuration multiple times with separate state data, Terraform can manage multiple sets of non-overlapping resources.
 
@@ -48,7 +47,7 @@ development stages or different internal teams. In this case, the backend for ea
 
 ## Alternatives to Workspaces
 
-Instead of creating CLI workspaces, you can use one or more [re-usable modules](/terraform/language/modules/develop) to represent the common elements and then represent each instance as a separate configuration that instantiates those common elements in the context of a different [backend](/terraform/language/settings/backends/configuration). The root module of each configuration consists only of a backend configuration and a small number of `module` blocks with arguments describing any small differences between the deployments.
+Instead of creating CLI workspaces, you can use one or more [re-usable modules](/terraform/language/modules/develop) to represent the common elements and then represent each instance as a separate configuration that instantiates those common elements in the context of a different [backend](/terraform/language/backend). The root module of each configuration consists only of a backend configuration and a small number of `module` blocks with arguments describing any small differences between the deployments.
 
 When multiple configurations represent distinct system components rather than multiple deployments, you can pass data from one component to another using paired resources types and data sources.
 
@@ -61,16 +60,16 @@ When multiple configurations represent distinct system components rather than mu
 - If you store a Terraform state for one configuration in a remote backend that other configurations can access, then the other configurations can use [`terraform_remote_state`](/terraform/language/state/remote-state-data) to directly consume its root module outputs. This setup creates a tighter coupling between configurations, and the root configuration does not need to publish its results in a separate system.
 
 
-## Interactions with Terraform Cloud Workspaces
+## Interactions with HCP Terraform Workspaces
 
-Terraform Cloud organizes infrastructure using workspaces, but its workspaces
-act more like completely separate working directories. Each Terraform Cloud
+HCP Terraform organizes infrastructure using workspaces, but its workspaces
+act more like completely separate working directories. Each HCP Terraform
 workspace has its own Terraform configuration, set of variable values, state
 data, run history, and settings.
 
-When you [integrate Terraform CLI with Terraform Cloud](/terraform/cli/cloud), you can associate the current CLI working directory with one or more remote Terraform Cloud workspaces. Then, use the `terraform workspace` commands to select the remote workspace you want to use for each run.
+When you [integrate Terraform CLI with HCP Terraform](/terraform/cli/cloud), you can associate the current CLI working directory with one or more remote HCP Terraform workspaces. Then, use the `terraform workspace` commands to select the remote workspace you want to use for each run.
 
-Refer to [CLI-driven Runs](/terraform/cloud-docs/run/cli) in the Terraform Cloud documentation for more details.
+Refer to [CLI-driven Runs](/terraform/cloud-docs/run/cli) in the HCP Terraform documentation for more details.
 
 
 ## Workspace Internals
@@ -81,6 +80,6 @@ Workspaces are also meant to be a shared resource. They are not private, unless 
 
 For local state, Terraform stores the workspace states in a directory called `terraform.tfstate.d`. This directory should be treated similarly to local-only `terraform.tfstate`. Some teams commit these files to version control, but we recommend using a remote backend instead when there are multiple collaborators.
 
-For [remote state](/terraform/language/state/remote), the workspaces are stored directly in the configured [backend](/terraform/language/settings/backends/configuration). For example, if you use [Consul](/terraform/language/settings/backends/consul), the workspaces are stored by appending the workspace name to the state path. To ensure that workspace names are stored correctly and safely in all backends, the name must be valid to use in a URL path segment without escaping.
+For [remote state](/terraform/language/state/remote), the workspaces are stored directly in the configured [backend](/terraform/language/backend). For example, if you use [Consul](/terraform/language/backend/consul), the workspaces are stored by appending the workspace name to the state path. To ensure that workspace names are stored correctly and safely in all backends, the name must be valid to use in a URL path segment without escaping.
 
-Terraform stores the current workspace name locally in the ignored `.terraform` directory. This allows multiple team members to work on different workspaces concurrently. Workspace names are also attached to associated remote workspaces in Terraform Cloud. For more details about workspace names in Terraform Cloud, refer to the [CLI Integration (recommended)](/terraform/cli/cloud/settings#arguments) and [remote backend](/terraform/language/settings/backends/remote#workspaces) and  documentation.
+Terraform stores the current workspace name locally in the ignored `.terraform` directory. This allows multiple team members to work on different workspaces concurrently. Workspace names are also attached to associated remote workspaces in HCP Terraform. For more details about workspace names in HCP Terraform, refer to the [CLI Integration (recommended)](/terraform/cli/cloud/settings#arguments) and [remote backend](/terraform/language/backend/remote#workspaces) and  documentation.

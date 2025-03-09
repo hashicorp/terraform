@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package init contains the list of backends that can be initialized and
 // basic helper functions for initializing those backends.
 package init
@@ -10,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	backendRemote "github.com/hashicorp/terraform/internal/backend/remote"
 	backendAzure "github.com/hashicorp/terraform/internal/backend/remote-state/azure"
@@ -64,7 +68,7 @@ func Init(services *disco.Disco) {
 		"pg":         func() backend.Backend { return backendPg.New() },
 		"s3":         func() backend.Backend { return backendS3.New() },
 
-		// Terraform Cloud 'backend'
+		// HCP Terraform 'backend'
 		// This is an implementation detail only, used for the cloud package
 		"cloud": func() backend.Backend { return backendCloud.New(services) },
 	}
@@ -128,11 +132,11 @@ func deprecateBackend(b backend.Backend, message string) backend.Backend {
 	// entirely.  If something other than a basic backend.Backend needs to be
 	// deprecated, we can add that functionality to schema.Backend or the
 	// backend itself.
-	if _, ok := b.(backend.Enhanced); ok {
-		panic("cannot use DeprecateBackend on an Enhanced Backend")
+	if _, ok := b.(backendrun.OperationsBackend); ok {
+		panic("cannot use DeprecateBackend on a Backend that supports operations")
 	}
 
-	if _, ok := b.(backend.Local); ok {
+	if _, ok := b.(backendrun.Local); ok {
 		panic("cannot use DeprecateBackend on a Local Backend")
 	}
 

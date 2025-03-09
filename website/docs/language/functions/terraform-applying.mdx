@@ -1,0 +1,34 @@
+---
+page_title: terraform.applying reference - Functions - Configuration Language  
+description: |-  
+  The terraform.applying symbol enables you to determine if Terraform is currently running an apply operation.  
+---
+
+# The `terraform.applying` symbol
+
+-> **Note**: The `terraform.applying` symbol is available in Terraform v1.10 and later.
+
+You can use the `terraform.applying` symbol in your configuration to determine if Terraform is currently running an apply operation.
+
+Terraform automatically sets `terraform.applying` to `true` when you run an [apply](/terraform/cli/commands/apply) operation, and `false` during any other operation. The [planning mode](/terraform/cli/commands/plan#planning-modes) you run `terraform apply` in does not affect `terraform.applying`, meaning that even in destroy mode, `terraform.applying` is still `true`.
+
+A common example of where `terraform.applying` can be helpful is when you want to use different credentials if Terraform is either planning or applying.
+
+```hcl
+locals {
+  aws_read_role_arn  = "arn:aws:iam::XXXXX:role/terraform-read"
+  aws_write_role_arn = "arn:aws:iam::XXXXX:role/terraform-full"
+
+  # We only need read-only credentials to plan, so if Terraform is applying 
+  # we want to use our AWS role that allows us to write.
+  role_arn = terraform.applying ? local.aws_write_role_arn : local.aws_read_role_arn
+}
+```
+
+The `terraform.applying` symbol is an ephemeral value, meaning it is only available during Terraform operations and Terraform does not write this value to plan or state files. Additionally, you can only reference `terraform.applying` in ephemeral contexts:
+
+* In a [write-only argument](/terraform/language/resources/ephemeral/write-only)
+* In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)  
+* In [local values](/terraform/language/values/locals#ephemeral-values)  
+* In [ephemeral resources](/terraform/language/resources/ephemeral)  
+* In [ephemeral outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files)

@@ -25,7 +25,7 @@
     "path": "provider-registry-protocol"
   },
   {
-    "title": "Resource Graph",
+    "title": "Dependency Graph",
     "path": "graph"
   },
   {
@@ -50,8 +50,7 @@
   },
   {
     "title": "Machine Readable UI",
-    "path": "machine-readable-ui",
-    "hidden": true
+    "path": "machine-readable-ui"
   },
   {
     "title": "Archiving",

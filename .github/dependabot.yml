@@ -1,0 +1,33 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: daily
+    labels:
+      - dependencies
+      - go
+      - security
+    # Disable regular version updates and only use Dependabot for security updates
+    open-pull-requests-limit: 0
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies
+      - build
+      - security
+    reviewers:
+      - hashicorp/terraform-core
+    # only update HashiCorp actions, external actions managed by TSCCR
+    allow:
+      - dependency-name: hashicorp/*
+    groups:
+      github-actions-breaking:
+        update-types:
+          - major
+      github-actions-backward-compatible:
+        update-types:
+          - minor
+          - patch

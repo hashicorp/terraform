@@ -1,9 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package funcs
 
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"unicode/utf8"
@@ -14,6 +17,8 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
+
+	"github.com/hashicorp/terraform/internal/collections"
 )
 
 // MakeFileFunc constructs a function that takes a file path and returns the
@@ -23,14 +28,21 @@ func MakeFileFunc(baseDir string, encBase64 bool) function.Function {
 	return function.New(&function.Spec{
 		Params: []function.Parameter{
 			{
-				Name:        "path",
-				Type:        cty.String,
-				AllowMarked: true,
+				Name:         "path",
+				Type:         cty.String,
+				AllowMarked:  true,
+				AllowUnknown: true,
 			},
 		},
-		Type: function.StaticReturnType(cty.String),
+		Type:         function.StaticReturnType(cty.String),
+		RefineResult: refineNotNull,
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			pathArg, pathMarks := args[0].Unmark()
+
+			if !pathArg.IsKnown() {
+				return cty.UnknownVal(cty.String).WithMarks(pathMarks), nil
+			}
+
 			path := pathArg.AsString()
 			src, err := readFileBytes(baseDir, path, pathMarks)
 			if err != nil {
@@ -65,95 +77,41 @@ func MakeFileFunc(baseDir string, encBase64 bool) function.Function {
 // As a special exception, a referenced template file may not recursively call
 // the templatefile function, since that would risk the same file being
 // included into itself indefinitely.
-func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Function) function.Function {
-
-	params := []function.Parameter{
-		{
-			Name:        "path",
-			Type:        cty.String,
-			AllowMarked: true,
-		},
-		{
-			Name: "vars",
-			Type: cty.DynamicPseudoType,
-		},
-	}
-
-	loadTmpl := func(fn string, marks cty.ValueMarks) (hcl.Expression, error) {
+func MakeTemplateFileFunc(baseDir string, funcsCb func() (funcs map[string]function.Function, fsFuncs collections.Set[string], templateFuncs collections.Set[string])) function.Function {
+	loadTmpl := func(fn string, marks cty.ValueMarks) (hcl.Expression, cty.ValueMarks, error) {
 		// We re-use File here to ensure the same filename interpretation
 		// as it does, along with its other safety checks.
 		tmplVal, err := File(baseDir, cty.StringVal(fn).WithMarks(marks))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
+		tmplVal, marks = tmplVal.Unmark()
 		expr, diags := hclsyntax.ParseTemplate([]byte(tmplVal.AsString()), fn, hcl.Pos{Line: 1, Column: 1})
 		if diags.HasErrors() {
-			return nil, diags
+			return nil, nil, diags
 		}
 
-		return expr, nil
+		return expr, marks, nil
 	}
 
-	renderTmpl := func(expr hcl.Expression, varsVal cty.Value) (cty.Value, error) {
-		if varsTy := varsVal.Type(); !(varsTy.IsMapType() || varsTy.IsObjectType()) {
-			return cty.DynamicVal, function.NewArgErrorf(1, "invalid vars value: must be a map") // or an object, but we don't strongly distinguish these most of the time
-		}
-
-		ctx := &hcl.EvalContext{
-			Variables: varsVal.AsValueMap(),
-		}
-
-		// We require all of the variables to be valid HCL identifiers, because
-		// otherwise there would be no way to refer to them in the template
-		// anyway. Rejecting this here gives better feedback to the user
-		// than a syntax error somewhere in the template itself.
-		for n := range ctx.Variables {
-			if !hclsyntax.ValidIdentifier(n) {
-				// This error message intentionally doesn't describe _all_ of
-				// the different permutations that are technically valid as an
-				// HCL identifier, but rather focuses on what we might
-				// consider to be an "idiomatic" variable name.
-				return cty.DynamicVal, function.NewArgErrorf(1, "invalid template variable name %q: must start with a letter, followed by zero or more letters, digits, and underscores", n)
-			}
-		}
-
-		// We'll pre-check references in the template here so we can give a
-		// more specialized error message than HCL would by default, so it's
-		// clearer that this problem is coming from a templatefile call.
-		for _, traversal := range expr.Variables() {
-			root := traversal.RootName()
-			if _, ok := ctx.Variables[root]; !ok {
-				return cty.DynamicVal, function.NewArgErrorf(1, "vars map does not contain key %q, referenced at %s", root, traversal[0].SourceRange())
-			}
-		}
-
-		givenFuncs := funcsCb() // this callback indirection is to avoid chicken/egg problems
-		funcs := make(map[string]function.Function, len(givenFuncs))
-		for name, fn := range givenFuncs {
-			if name == "templatefile" {
-				// We stub this one out to prevent recursive calls.
-				funcs[name] = function.New(&function.Spec{
-					Params: params,
-					Type: func(args []cty.Value) (cty.Type, error) {
-						return cty.NilType, fmt.Errorf("cannot recursively call templatefile from inside templatefile call")
-					},
-				})
-				continue
-			}
-			funcs[name] = fn
-		}
-		ctx.Functions = funcs
-
-		val, diags := expr.Value(ctx)
-		if diags.HasErrors() {
-			return cty.DynamicVal, diags
-		}
-		return val, nil
-	}
+	renderTmpl := makeRenderTemplateFunc(funcsCb, true)
 
 	return function.New(&function.Spec{
-		Params: params,
+		Params: []function.Parameter{
+			{
+				Name:         "path",
+				Type:         cty.String,
+				AllowMarked:  true,
+				AllowUnknown: true,
+			},
+			{
+				Name:         "vars",
+				Type:         cty.DynamicPseudoType,
+				AllowMarked:  true,
+				AllowUnknown: true,
+			},
+		},
 		Type: func(args []cty.Value) (cty.Type, error) {
 			if !(args[0].IsKnown() && args[1].IsKnown()) {
 				return cty.DynamicPseudoType, nil
@@ -164,24 +122,32 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 			// return any type.
 
 			pathArg, pathMarks := args[0].Unmark()
-			expr, err := loadTmpl(pathArg.AsString(), pathMarks)
+			expr, _, err := loadTmpl(pathArg.AsString(), pathMarks)
 			if err != nil {
 				return cty.DynamicPseudoType, err
 			}
+			vars, _ := args[1].UnmarkDeep()
 
 			// This is safe even if args[1] contains unknowns because the HCL
 			// template renderer itself knows how to short-circuit those.
-			val, err := renderTmpl(expr, args[1])
+			val, err := renderTmpl(expr, vars)
 			return val.Type(), err
 		},
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			pathArg, pathMarks := args[0].Unmark()
-			expr, err := loadTmpl(pathArg.AsString(), pathMarks)
+
+			vars, varsMarks := args[1].UnmarkDeep()
+
+			if !pathArg.IsKnown() || !vars.IsKnown() {
+				return cty.UnknownVal(retType).WithMarks(pathMarks, varsMarks), nil
+			}
+
+			expr, tmplMarks, err := loadTmpl(pathArg.AsString(), pathMarks)
 			if err != nil {
 				return cty.DynamicVal, err
 			}
-			result, err := renderTmpl(expr, args[1])
-			return result.WithMarks(pathMarks), err
+			result, err := renderTmpl(expr, vars)
+			return result.WithMarks(tmplMarks, varsMarks), err
 		},
 	})
 
@@ -193,14 +159,21 @@ func MakeFileExistsFunc(baseDir string) function.Function {
 	return function.New(&function.Spec{
 		Params: []function.Parameter{
 			{
-				Name:        "path",
-				Type:        cty.String,
-				AllowMarked: true,
+				Name:         "path",
+				Type:         cty.String,
+				AllowMarked:  true,
+				AllowUnknown: true,
 			},
 		},
-		Type: function.StaticReturnType(cty.Bool),
+		Type:         function.StaticReturnType(cty.Bool),
+		RefineResult: refineNotNull,
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			pathArg, pathMarks := args[0].Unmark()
+
+			if !pathArg.IsKnown() {
+				return cty.UnknownVal(cty.Bool).WithMarks(pathMarks), nil
+			}
+
 			path := pathArg.AsString()
 			path, err := homedir.Expand(path)
 			if err != nil {
@@ -260,23 +233,30 @@ func MakeFileSetFunc(baseDir string) function.Function {
 	return function.New(&function.Spec{
 		Params: []function.Parameter{
 			{
-				Name:        "path",
-				Type:        cty.String,
-				AllowMarked: true,
+				Name:         "path",
+				Type:         cty.String,
+				AllowMarked:  true,
+				AllowUnknown: true,
 			},
 			{
-				Name:        "pattern",
-				Type:        cty.String,
-				AllowMarked: true,
+				Name:         "pattern",
+				Type:         cty.String,
+				AllowMarked:  true,
+				AllowUnknown: true,
 			},
 		},
-		Type: function.StaticReturnType(cty.Set(cty.String)),
+		Type:         function.StaticReturnType(cty.Set(cty.String)),
+		RefineResult: refineNotNull,
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			pathArg, pathMarks := args[0].Unmark()
-			path := pathArg.AsString()
 			patternArg, patternMarks := args[1].Unmark()
-			pattern := patternArg.AsString()
 
+			if !pathArg.IsKnown() || !patternArg.IsKnown() {
+				return cty.UnknownVal(retType).WithMarks(pathMarks, patternMarks), nil
+			}
+
+			path := pathArg.AsString()
+			pattern := patternArg.AsString()
 			marks := []cty.ValueMarks{pathMarks, patternMarks}
 
 			if !filepath.IsAbs(path) {
@@ -337,7 +317,8 @@ var BasenameFunc = function.New(&function.Spec{
 			Type: cty.String,
 		},
 	},
-	Type: function.StaticReturnType(cty.String),
+	Type:         function.StaticReturnType(cty.String),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		return cty.StringVal(filepath.Base(args[0].AsString())), nil
 	},
@@ -352,7 +333,8 @@ var DirnameFunc = function.New(&function.Spec{
 			Type: cty.String,
 		},
 	},
-	Type: function.StaticReturnType(cty.String),
+	Type:         function.StaticReturnType(cty.String),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		return cty.StringVal(filepath.Dir(args[0].AsString())), nil
 	},
@@ -366,7 +348,8 @@ var AbsPathFunc = function.New(&function.Spec{
 			Type: cty.String,
 		},
 	},
-	Type: function.StaticReturnType(cty.String),
+	Type:         function.StaticReturnType(cty.String),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		absPath, err := filepath.Abs(args[0].AsString())
 		return cty.StringVal(filepath.ToSlash(absPath)), err
@@ -381,7 +364,8 @@ var PathExpandFunc = function.New(&function.Spec{
 			Type: cty.String,
 		},
 	},
-	Type: function.StaticReturnType(cty.String),
+	Type:         function.StaticReturnType(cty.String),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 
 		homePath, err := homedir.Expand(args[0].AsString())
@@ -416,7 +400,7 @@ func readFileBytes(baseDir, path string, marks cty.ValueMarks) ([]byte, error) {
 	}
 	defer f.Close()
 
-	src, err := ioutil.ReadAll(f)
+	src, err := io.ReadAll(f)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}

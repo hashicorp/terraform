@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package addrs
 
 import (
@@ -6,8 +9,9 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Reference describes a reference to an address with source location
@@ -79,6 +83,67 @@ func ParseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 	return ref, diags
 }
 
+// ParseRefFromTestingScope adds check blocks and outputs into the available
+// references returned by ParseRef.
+//
+// The testing files and functionality have a slightly expanded referencing
+// scope and so should use this function to retrieve references.
+func ParseRefFromTestingScope(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
+	root := traversal.RootName()
+	rootRange := traversal[0].SourceRange()
+
+	var diags tfdiags.Diagnostics
+	var reference *Reference
+
+	switch root {
+	case "output":
+		name, rng, remain, outputDiags := parseSingleAttrRef(traversal)
+		reference = &Reference{
+			Subject:     OutputValue{Name: name},
+			SourceRange: tfdiags.SourceRangeFromHCL(rng),
+			Remaining:   remain,
+		}
+		diags = outputDiags
+	case "check":
+		name, rng, remain, checkDiags := parseSingleAttrRef(traversal)
+		reference = &Reference{
+			Subject:     Check{Name: name},
+			SourceRange: tfdiags.SourceRangeFromHCL(rng),
+			Remaining:   remain,
+		}
+		diags = checkDiags
+	case "run":
+		name, rng, remain, runDiags := parseSingleAttrRef(traversal)
+		reference = &Reference{
+			Subject:     Run{Name: name},
+			SourceRange: tfdiags.SourceRangeFromHCL(rng),
+			Remaining:   remain,
+		}
+		diags = runDiags
+	case "plan", "state":
+		// These names are all pre-emptively reserved in the hope of landing
+		// some version of referencing the plan and state files in test
+		// assertions.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reserved symbol name",
+			Detail:   fmt.Sprintf("The symbol name %q is reserved for use in a future Terraform version. If you are using a provider that already uses this as a resource type name, add the prefix \"resource.\" to force interpretation as a resource type name.", root),
+			Subject:  rootRange.Ptr(),
+		})
+		return nil, diags
+	}
+
+	if reference != nil {
+		if len(reference.Remaining) == 0 {
+			reference.Remaining = nil
+		}
+		return reference, diags
+	}
+
+	// If it's not an output or a check block, then just parse it as normal.
+	return ParseRef(traversal)
+}
+
 // ParseRefStr is a helper wrapper around ParseRef that takes a string
 // and parses it with the HCL native syntax traversal parser before
 // interpreting it.
@@ -104,6 +169,22 @@ func ParseRefStr(str string) (*Reference, tfdiags.Diagnostics) {
 	}
 
 	ref, targetDiags := ParseRef(traversal)
+	diags = diags.Append(targetDiags)
+	return ref, diags
+}
+
+// ParseRefStrFromTestingScope matches ParseRefStr except it supports the
+// references supported by ParseRefFromTestingScope.
+func ParseRefStrFromTestingScope(str string) (*Reference, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
+	diags = diags.Append(parseDiags)
+	if parseDiags.HasErrors() {
+		return nil, diags
+	}
+
+	ref, targetDiags := ParseRefFromTestingScope(traversal)
 	diags = diags.Append(targetDiags)
 	return ref, diags
 }
@@ -165,6 +246,19 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 		}
 		remain := traversal[1:] // trim off "resource" so we can use our shared resource reference parser
 		return parseResourceRef(ManagedResourceMode, rootRange, remain)
+
+	case "ephemeral":
+		if len(traversal) < 3 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   `The "ephemeral" object must be followed by two attribute names: the ephemeral resource type and the resource name.`,
+				Subject:  traversal.SourceRange().Ptr(),
+			})
+			return nil, diags
+		}
+		remain := traversal[1:] // trim off "ephemeral" so we can use our shared resource reference parser
+		return parseResourceRef(EphemeralResourceMode, rootRange, remain)
 
 	case "local":
 		name, rng, remain, diags := parseSingleAttrRef(traversal)
@@ -315,13 +409,40 @@ func parseResourceRef(mode ResourceMode, startRange hcl.Range, traversal hcl.Tra
 	case hcl.TraverseAttr:
 		typeName = tt.Name
 	default:
-		// If it isn't a TraverseRoot then it must be a "data" reference.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid reference",
-			Detail:   `The "data" object does not support this operation.`,
-			Subject:  traversal[0].SourceRange().Ptr(),
-		})
+		switch mode {
+		case ManagedResourceMode:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   `The "resource" object does not support this operation.`,
+				Subject:  traversal[0].SourceRange().Ptr(),
+			})
+		case DataResourceMode:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   `The "data" object does not support this operation.`,
+				Subject:  traversal[0].SourceRange().Ptr(),
+			})
+		case EphemeralResourceMode:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   `The "ephemeral" object does not support this operation.`,
+				Subject:  traversal[0].SourceRange().Ptr(),
+			})
+		default:
+			// Shouldn't get here because the above should be exhaustive for
+			// all of the resource modes. But we'll still return a
+			// minimally-passable error message so that the won't totally
+			// misbehave if we forget to update this in future.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   `The left operand does not support this operation.`,
+				Subject:  traversal[0].SourceRange().Ptr(),
+			})
+		}
 		return nil, diags
 	}
 
@@ -330,14 +451,16 @@ func parseResourceRef(mode ResourceMode, startRange hcl.Range, traversal hcl.Tra
 		var what string
 		switch mode {
 		case DataResourceMode:
-			what = "data source"
+			what = "a data source"
+		case EphemeralResourceMode:
+			what = "an ephemeral resource type"
 		default:
-			what = "resource type"
+			what = "a resource type"
 		}
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid reference",
-			Detail:   fmt.Sprintf(`A reference to a %s must be followed by at least one attribute access, specifying the resource name.`, what),
+			Detail:   fmt.Sprintf(`A reference to %s must be followed by at least one attribute access, specifying the resource name.`, what),
 			Subject:  traversal[1].SourceRange().Ptr(),
 		})
 		return nil, diags

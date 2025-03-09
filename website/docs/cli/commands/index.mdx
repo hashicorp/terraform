@@ -1,11 +1,16 @@
 ---
-page_title: Basic CLI Features
-description: An introduction to the terraform command and its available subcommands.
+page_title: Terraform CLI overview
+description: The Terrafrom CLI includes commands for provisioning infrastructure as code and managing the infrastructure lifecycle. Learn about Terraform CLI features.
 ---
 
-# Basic CLI Features
+# Terraform CLI Overview
+
+This topic provides an overview of the Terraform command line interface.
 
 > **Hands-on:** Try the [Terraform: Get Started](/terraform/tutorials/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials.
+
+
+## Introduction
 
 The command line interface to Terraform is the `terraform` command, which
 accepts a variety of subcommands such as `terraform init` or `terraform plan`.
@@ -13,7 +18,7 @@ accepts a variety of subcommands such as `terraform init` or `terraform plan`.
 We refer to the `terraform` command line tool as "Terraform CLI" elsewhere
 in the documentation. This terminology is often used to distinguish it from
 other components you might use in the Terraform product family, such as
-[Terraform Cloud](/terraform/cloud-docs) or
+[HCP Terraform](/terraform/cloud-docs) or
 the various [Terraform providers](/terraform/language/providers), which
 are developed and released separately from Terraform CLI.
 
@@ -44,6 +49,7 @@ All other commands:
   login         Obtain and save credentials for a remote host
   logout        Remove locally-stored credentials for a remote host
   metadata      Metadata related commands
+  modules       Show all declared modules in a working directory
   output        Show output values from your root module
   providers     Show the providers required for this configuration
   refresh       Update the state to match remote systems

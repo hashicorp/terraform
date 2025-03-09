@@ -6,7 +6,7 @@
 - Tutorials: [HashiCorp's Learn Platform](https://learn.hashicorp.com/terraform)
 - Certification Exam: [HashiCorp Certified: Terraform Associate](https://www.hashicorp.com/certification/#hashicorp-certified-terraform-associate)
 
-<img alt="Terraform" src="https://www.datocms-assets.com/2885/1629941242-logo-terraform-main.svg" width="600px">
+<img alt="Terraform" src="https://www.datocms-assets.com/2885/1731373310-terraform_white.svg" width="600px">
 
 Terraform is a tool for building, changing, and versioning infrastructure safely and efficiently. Terraform can manage existing and popular service providers as well as custom in-house solutions.
 
@@ -45,4 +45,4 @@ This repository contains only Terraform core, which includes the command line in
 
 ## License
 
-[Mozilla Public License v2.0](https://github.com/hashicorp/terraform/blob/main/LICENSE)
+[Business Source License 1.1](https://github.com/hashicorp/terraform/blob/main/LICENSE)

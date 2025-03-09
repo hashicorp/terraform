@@ -7,14 +7,14 @@ description: >-
 
 # The `terraform_remote_state` Data Source
 
-[backends]: /terraform/language/settings/backends/configuration
+[backends]: /terraform/language/backend
 
 The `terraform_remote_state` data source uses the latest state snapshot from a specified state backend to retrieve the root module output values
 from some other Terraform configuration.
 
 You can use the `terraform_remote_state` data source without requiring or configuring a provider. It is always available through a built-in provider with the [source address](/terraform/language/providers/requirements#source-addresses) `terraform.io/builtin/terraform`. That provider does not include any other resources or data sources.
 
-~> **Important:** We recommend using the [`tfe_outputs` data source](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs) in the [Terraform Cloud/Enterprise Provider](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs) to access remote state outputs in Terraform Cloud or Terraform Enterprise. The `tfe_outputs` data source is more secure because it does not require full access to workspace state to fetch outputs.
+~> **Important:** We recommend using the [`tfe_outputs` data source](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs) in the [HCP Terraform/Enterprise Provider](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs) to access remote state outputs in HCP Terraform or Terraform Enterprise. The `tfe_outputs` data source is more secure because it does not require full access to workspace state to fetch outputs.
 
 ## Alternative Ways to Share Data Between Configurations
 
@@ -42,7 +42,7 @@ limited to) the following:
 | Google Cloud DNS<br /><small>(for IP addresses and hostnames)</small>  | [`google_dns_record_set` resource type](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/dns_record_set)                           | Normal DNS lookups, or [the `dns` provider](https://registry.terraform.io/providers/hashicorp/dns/latest/docs)                                                                                                                                                       |
 | Google Cloud Storage                                                   | [`google_storage_bucket_object`  resource type](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/storage_bucket_object)            | [`google_storage_bucket_object` data source](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/storage_bucket_object) and [`http` data source](https://registry.terraform.io/providers/hashicorp/http/latest/docs/data-sources/http) |
 | HashiCorp Consul                                                       | [`consul_key_prefix` resource type](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/resources/key_prefix)                                   | [`consul_key_prefix` data source](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/data-sources/key_prefix)                                                                                                                                      |
-| HashiCorp Terraform Cloud                                              | Normal `outputs` terraform block                                                                                                                                 | [`tfe_outputs` data source](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs)                                                                                                                                                  |
+| HashiCorp HCP Terraform                                              | Normal `outputs` terraform block                                                                                                                                 | [`tfe_outputs` data source](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs)                                                                                                                                                  |
 | Kubernetes                                                             | [`kubernetes_config_map` resource type](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/config_map)                           | [`kubernetes_config_map` data source](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/data-sources/config_map)                                                                                                                              |
 | OCI Object Storage                                                     | [`oci_objectstorage_bucket` resource type](https://registry.terraform.io/providers/hashicorp/oci/latest/docs/resources/objectstorage_object)                     | [`oci_objectstorage_bucket` data source](https://registry.terraform.io/providers/hashicorp/oci/latest/docs/data-sources/objectstorage_object)                                                                                                                        |
 
@@ -153,7 +153,7 @@ The following arguments are supported:
 
   The `config` object can use any arguments that would be valid in the
   equivalent `terraform { backend "<TYPE>" { ... } }` block. See
-  [the documentation of your chosen backend](/terraform/language/settings/backends/configuration)
+  [the documentation of your chosen backend](/terraform/language/backend)
   for details.
 
   -> **Note:** If the backend configuration requires a nested block, specify

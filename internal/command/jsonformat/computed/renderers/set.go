@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package renderers
 
 import (
@@ -45,7 +48,7 @@ func (renderer setRenderer) RenderHuman(diff computed.Diff, indent int, opts com
 
 	elementOpts := opts.Clone()
 	elementOpts.OverrideNullSuffix = true
-	elementOpts.OverrideForcesReplacement = displayForcesReplacementInChildren
+	elementOpts.ForceForcesReplacement = displayForcesReplacementInChildren
 
 	unchangedElements := 0
 

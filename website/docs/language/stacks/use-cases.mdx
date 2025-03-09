@@ -1,0 +1,240 @@
+---
+page_title: Use cases
+description: Learn about example use cases to better understand how to use Stacks to manage your infrastructure lifecycle more effectively.
+---
+
+# Use Cases
+
+Stacks provide a way to define, organize, and reuse components and then deploy the infrastructure those components describe consistently across different deployments. 
+
+Stacks are ideal for the following situations:
+* Managing infrastructure with a common lifecycle, such as a microservices architecture where HCP Terraform needs to deploy multiple services together. 
+* Repeating infrastructure across different environments, regions, or accounts that require consistent and synchronized deployments.
+* Tightly orchestrating infrastructure changes across different environments. Stacks help you manage your dependencies and ensure Terraform creates resources in the correct order.
+
+Stacks can simplify the complexity of wrangling the infrastructure in these scenarios, ensuring that your configurations remains organized, maintainable, and scalable.
+
+## Manage deployment dependencies
+
+Stacks allow you to manage dependencies within complex infrastructure deployments automatically. If your infrastructure has interdependencies between components, HCP Terraform recognizes if a Stack component requires attributes that are not yet available and defers planning those changes until it can apply them.
+
+-> **Hands-on**: Go through our tutorial on [Managing Kubernetes workloads using Stacks](/terraform/tutorials/cloud/stacks-eks-deferred) for examples of Stacks that manage deployment dependencies.
+
+For example, when managing Kubernetes workloads that use custom resources, you cannot provision a custom resource definition (CRD) API and the resources that use those APIs in a single step. In these scenarios, HCP Terraform first needs to deploy your CRD and then deploy the resources that require your CRD in a second plan and apply. When you deploy this setup with HCP Terraform workspaces, you manage multiple workspaces to accomplish this workflow, which can get complicated.
+
+When you use a Stack, HCP Terraform recognizes the dependency between components, automatically deferring the component's plan and apply steps until it can complete them successfully. Learn more about how Stacks plan [deferred changes](/terraform/cloud-docs/stacks/deploy/plans#deferred-changes).
+
+## Deploy to multiple environments
+
+Managing infrastructure across multiple environments can be challenging, especially when you want to ensure that each environment remains consistent. For example, if you manage infrastructure for multiple environments, such as development, staging, and production. Each environment needs to be isolated, but they all mirror each other’s configuration.
+
+Stacks allow you to define deployments for each environment within a single configuration, making it easier to maintain uniformity and make updates across all your environments.
+
+```hcl
+# deployments.tfdeploy.hcl
+
+deployment "production" {
+    inputs = {
+        aws_region     = "us-west-1"
+        instance_count = 2
+        role_arn       = "<YOUR_ROLE_ARN>"
+        identity_token = identity_token.aws.jwt
+    }
+}
+
+deployment "development" {
+    inputs = {
+        aws_region     = "us-east-1"
+        instance_count = 2
+        role_arn       = "<YOUR_ROLE_ARN>"
+        identity_token = identity_token.aws.jwt
+    }
+}
+```
+
+Stacks also simplify adding and removing environments. You can add a `deployment` block to create a new environment using the same Stack configuration and infrastructure components.
+
+```hcl
+# deployments.tfdeploy.hcl
+
+deployment "production" {
+    inputs = {
+        aws_region     = "us-west-1"
+        instance_count = 2
+        role_arn       = "<YOUR_ROLE_ARN>"
+        identity_token = identity_token.aws.jwt
+    }
+}
+
+deployment "development" {
+    inputs = {
+        aws_region     = "us-east-1"
+        instance_count = 2
+        role_arn       = "<YOUR_ROLE_ARN>"
+        identity_token = identity_token.aws.jwt
+    }
+}
+
+deployment "staging" {
+    inputs = {
+        aws_region     = "us-east-1"
+        instance_count = 2
+        role_arn       = "<YOUR_ROLE_ARN>"
+        identity_token = identity_token.aws.jwt
+    }
+}
+```
+
+By default, HCP Terraform notices that you changed your configuration and will create a new plan for your new deployment.
+
+## Deploy across regions
+
+For global applications, deploying infrastructure across multiple cloud regions is often necessary to ensure low latency and high availability. Stacks enable you to manage cross-region deployments with a unified configuration, ensuring that HCP Terraform sets up each region consistently while allowing for region-specific customization. 
+
+For example, if you want to deploy the same environment to two different regions, you could set up your deployments to be region-specific.
+
+```hcl
+# deployments.tfdeploy.hcl
+
+identity_token "aws_west" {
+    audience = ["aws.workload.identity.west"]
+}
+
+identity_token "aws_east" {
+    audience = ["aws.workload.identity.east"]
+}
+
+deployment "us_dev_east" {
+    inputs = {
+        aws_region     = "us-east-1"
+        instance_count = 2
+        role_arn       = "<YOUR_ROLE_ARN>"
+        identity_token = identity_token.aws_east.jwt
+    }
+}
+
+deployment "us_dev_west" {
+    inputs = {
+        aws_region     = "us-west-1"
+        instance_count = 2
+        role_arn       = "<YOUR_ROLE_ARN>"
+        identity_token = identity_token.aws_west.jwt
+    }
+}
+```
+
+Stacks support using the [`for_each` meta argument](/terraform/language/meta-arguments/for_each) in both `provider` and `component` blocks. You can use this support to streamline infrastructure deployment in repeating regions. For example, you could set up a variable to expect a set of regions.
+
+```hcl
+# variables.tfstack.hcl
+
+# The regions variable is where we specify each region we want to deploy this 
+# Stack's infrastructure within. 
+variable "regions" {
+    type = set(string)
+}
+
+# The identity_token and role_arn are for configuring this Stack to
+# authenticate with AWS using OIDC.
+variable "identity_token" {
+    type      = string
+    ephemeral = true
+}
+
+variable "role_arn" {
+    type = string
+}
+```
+
+Then, set up your provider configuration to iterate through the `var.regions` variable to configure a version of that provider for each region.
+
+```hcl
+# providers.tfstack.hcl
+
+required_providers {
+    aws = {
+        source  = "hashicorp/aws"
+        version = "~> 5.7.0"
+    }
+
+    random = {
+        source  = "hashicorp/random"
+        version = "~> 3.5.1"
+    }
+}
+
+
+provider "aws" "configurations" {
+# This provider configuration iterates through and creates a configuration
+# for each region.
+    for_each = var.regions
+
+    config {
+        region = each.value
+
+        assume_role_with_web_identity {
+        role_arn           = var.role_arn
+        web_identity_token = var.identity_token
+        }
+    }
+}
+```
+
+Each of your Stack’s deployments uses a separate AWS provider configuration for each region you defined in the `regions` variable. This means that in your configuration, you refer to the AWS provider for the `us-east-1` region as `provider.aws.configurations["us-east-1"]`.
+
+You can keep Stack components dynamic by using the `for_each` meta-argument to deploy a `component`’s Terraform module in each region.
+
+```hcl
+# components.tfstack.hcl
+
+component "s3" {
+    for_each = var.regions
+
+    source = "./s3"
+
+    inputs = {
+        region = each.value
+    }
+
+    providers = {
+        aws    = provider.aws.configurations[each.value]
+        random = provider.random.this
+    }
+}
+```
+
+The components in this example use the `for_each` meta-argument to deploy their Terraform module in the region for the current deployment. Notice how the component configures the AWS provider to use the correct provider for the given region with `provider.aws.configurations[each.value]`.
+
+## Deploy across accounts
+
+Stacks can also be helpful when managing infrastructure across different cloud provider accounts, ensuring that each account's infrastructure is consistent but isolated.
+
+```hcl
+# deployments.tfdeploy.hcl
+
+identity_token "aws_prod" {
+    audience = ["aws.prod.workload.identity"]
+}
+
+identity_token "aws_dev" {
+     audience = ["aws.dev.workload.identity"]
+}
+
+deployment "development" {
+    inputs = {
+        aws_region     = "us-east-1"
+        role_arn       = "<development AWS account IAM role ARN>"
+        identity_token = identity_token.aws_dev.jwt
+    }
+}
+
+deployment "production" {
+    inputs = {
+        regions        = ["us-east-1", "us-west-1"]
+        role_arn       = "<production AWS account IAM role ARN>"
+        identity_token = identity_token.aws_prod.jwt
+    }
+}
+```
+
+Stacks enable you to define and deploy shared infrastructure components across different accounts, maintaining consistency while adhering to security and organizational boundaries.

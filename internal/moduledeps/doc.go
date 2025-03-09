@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package moduledeps contains types that can be used to describe the
 // providers required for all of the modules in a module tree.
 //

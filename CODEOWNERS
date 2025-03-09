@@ -1,27 +1,51 @@
 # Each line is a file pattern followed by one or more owners.
 # More on CODEOWNERS files: https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
 
+# The rules are evaluated in order, if a file matches multiple patterns, the last match "wins".
+# We want to have a default rule for all files
+* @hashicorp/terraform-core
+
+# Entries that are commented out have maintainers that are not in the
+# HashiCorp organization and so cannot be automatically added as reviewers.
+#
+# We retain those as documentation of who agreed to maintain, but they
+# cannot be used automatically by GitHub's pull request workflow and would
+# make GitHub consider this file invalid if not commented.
+
 # Remote-state backend                  # Maintainer
-/internal/backend/remote-state/artifactory       Unmaintained
-/internal/backend/remote-state/azure             @hashicorp/terraform-azure
-/internal/backend/remote-state/consul            @hashicorp/consul @remilapeyre
-/internal/backend/remote-state/cos               @likexian
-/internal/backend/remote-state/etcdv2            Unmaintained
-/internal/backend/remote-state/etcdv3            Unmaintained
-/internal/backend/remote-state/gcs               @hashicorp/terraform-google @hashicorp/terraform-ecosystem-strategic
+/internal/backend/remote-state/azure             @hashicorp/terraform-core @hashicorp/terraform-azure
+#/internal/backend/remote-state/consul           Unmaintained
+#/internal/backend/remote-state/cos              @likexian
+/internal/backend/remote-state/gcs               @hashicorp/terraform-core @hashicorp/tf-eco-hybrid-cloud
 /internal/backend/remote-state/http              @hashicorp/terraform-core
-/internal/backend/remote-state/manta             Unmaintained
-/internal/backend/remote-state/oss               @xiaozhu36
-/internal/backend/remote-state/pg                @remilapeyre
-/internal/backend/remote-state/s3                @hashicorp/terraform-aws
-/internal/backend/remote-state/swift             Unmaintained
-/internal/backend/remote-state/kubernetes        @jrhouston @alexsomesan
+#/internal/backend/remote-state/oss              @xiaozhu36
+#/internal/backend/remote-state/pg               @remilapeyre
+/internal/backend/remote-state/s3                @hashicorp/terraform-core @hashicorp/terraform-aws
+/internal/backend/remote-state/kubernetes        @hashicorp/terraform-core @hashicorp/tf-eco-hybrid-cloud
 
 # Provisioners
-builtin/provisioners/chef               Deprecated
 builtin/provisioners/file               @hashicorp/terraform-core
-builtin/provisioners/habitat            Deprecated
 builtin/provisioners/local-exec         @hashicorp/terraform-core
-builtin/provisioners/puppet             Deprecated
 builtin/provisioners/remote-exec        @hashicorp/terraform-core
-builtin/provisioners/salt-masterless    Deprecated
+
+# engineering and web presence get notified of, and can approve changes to web tooling, but not content at developer.hashicorp.com/terraform/docs
+
+/website/               @hashicorp/web-presence @hashicorp/terraform-core
+/website/data/
+/website/public/
+/website/content/
+
+# education and engineering get notified of, and can approve changes to web content at developer.hashicorp.com/terraform/docs
+
+/website/data/          @hashicorp/terraform-education @hashicorp/terraform-core
+/website/docs/          @hashicorp/terraform-education @hashicorp/terraform-core
+/website/img/           @hashicorp/terraform-education @hashicorp/terraform-core
+/website/README.md      @hashicorp/terraform-education @hashicorp/terraform-core
+/website/public/        @hashicorp/terraform-education @hashicorp/terraform-core
+/website/content/       @hashicorp/terraform-education @hashicorp/terraform-core
+
+# Backend maintainers also get co-ownership of their backend docs pages
+/website/docs/language/backend/azurerm.mdx         @hashicorp/terraform-education @hashicorp/terraform-core @hashicorp/terraform-azure
+/website/docs/language/backend/gcs.mdx             @hashicorp/terraform-education @hashicorp/terraform-core @hashicorp/tf-eco-hybrid-cloud
+/website/docs/language/backend/kubernetes.mdx      @hashicorp/terraform-education @hashicorp/terraform-core @hashicorp/tf-eco-hybrid-cloud
+/website/docs/language/backend/s3.mdx              @hashicorp/terraform-education @hashicorp/terraform-core @hashicorp/terraform-aws
