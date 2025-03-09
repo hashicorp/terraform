@@ -336,9 +336,13 @@ func proposedNewAttributes(attrs map[string]*configschema.Attribute, prior, conf
 	newAttrs := make(map[string]cty.Value, len(attrs))
 	for name, attr := range attrs {
 		var priorV cty.Value
-		if prior.IsNull() {
+
+		switch {
+		case prior.IsNull():
 			priorV = cty.NullVal(prior.Type().AttributeType(name))
-		} else {
+		case !prior.IsKnown():
+			priorV = cty.UnknownVal(prior.Type().AttributeType(name))
+		default:
 			priorV = prior.GetAttr(name)
 		}
 		configV := config.GetAttr(name)
