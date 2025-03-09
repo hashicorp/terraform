@@ -35,13 +35,13 @@ type nodePlannablePartialExpandedResource struct {
 	resolvedProvider  addrs.AbsProviderConfig
 	skipPlanChanges   bool
 	preDestroyRefresh bool
-	Excluded
 }
 
 var (
 	_ graphNodeEvalContextScope = (*nodePlannablePartialExpandedResource)(nil)
 	_ GraphNodeConfigResource   = (*nodePlannablePartialExpandedResource)(nil)
 	_ GraphNodeExecutable       = (*nodePlannablePartialExpandedResource)(nil)
+	_ GraphNodeValidatable      = (*nodePlannablePartialExpandedResource)(nil)
 )
 
 // Name implements [dag.NamedVertex].
@@ -232,22 +232,18 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 	// learn a subset of the "computed" attribute values to save as part
 	// of our placeholder value for downstream checks.
 	var resp providers.PlanResourceChangeResponse
-	if n.IsExcluded() {
-		// If the resource is excluded, we don't need to go further,
-		// so that we don't end up producing a plan with changes.
-		return &change, diags
-	} else {
-		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
-			TypeName:         n.addr.Resource().Type,
-			Config:           unmarkedConfigVal,
-			PriorState:       priorVal,
-			ProposedNewState: proposedNewVal,
-			// TODO: Should we send "ProviderMeta" here? We don't have the
-			// necessary data for that wired through here right now, but
-			// we might need to do that before stabilizing support for unknown
-			// resource instance expansion.
-		})
-	}
+
+	resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
+		TypeName:         n.addr.Resource().Type,
+		Config:           unmarkedConfigVal,
+		PriorState:       priorVal,
+		ProposedNewState: proposedNewVal,
+		// TODO: Should we send "ProviderMeta" here? We don't have the
+		// necessary data for that wired through here right now, but
+		// we might need to do that before stabilizing support for unknown
+		// resource instance expansion.
+	})
+
 	diags = diags.Append(resp.Diagnostics.InConfigBody(n.config.Config, n.addr.String()))
 	if diags.HasErrors() {
 		return &change, diags

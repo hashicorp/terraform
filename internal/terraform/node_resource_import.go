@@ -27,6 +27,7 @@ type graphNodeImportState struct {
 var (
 	_ GraphNodeModulePath        = (*graphNodeImportState)(nil)
 	_ GraphNodeExecutable        = (*graphNodeImportState)(nil)
+	_ GraphNodeValidatable       = (*graphNodeImportState)(nil)
 	_ GraphNodeProviderConsumer  = (*graphNodeImportState)(nil)
 	_ GraphNodeDynamicExpandable = (*graphNodeImportState)(nil)
 )
@@ -147,6 +148,25 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 	return diags
 }
 
+func (n *graphNodeImportState) Validate(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	// Reset our states
+	n.states = nil
+
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	schema, _ := providerSchema.SchemaForResourceType(n.Addr.Resource.Resource.Mode, n.Addr.Resource.Resource.Type)
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Resource.Type))
+		return diags
+	}
+	return diags
+}
+
 // GraphNodeDynamicExpandable impl.
 //
 // We use DynamicExpand as a way to generate the subgraph of refreshes
@@ -220,6 +240,15 @@ func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.D
 	return g, diags
 }
 
+// NoOpValidator is a no-op implementation of GraphNodeValidate
+// that can be embedded in other structs to satisfy the interface.
+type NoOpValidator struct{}
+
+// Validate implements GraphNodeValidate with no-op behavior
+func (v *NoOpValidator) Validate(_ EvalContext, _ walkOperation) tfdiags.Diagnostics {
+	return nil
+}
+
 // graphNodeImportStateSub is the sub-node of graphNodeImportState
 // and is part of the subgraph. This node is responsible for refreshing
 // and adding a resource to the state once it is imported.
@@ -227,11 +256,15 @@ type graphNodeImportStateSub struct {
 	TargetAddr       addrs.AbsResourceInstance
 	State            providers.ImportedResource
 	ResolvedProvider addrs.AbsProviderConfig
+
+	// TODO(sams): Validate import nodes?
+	NoOpValidator
 }
 
 var (
 	_ GraphNodeModuleInstance = (*graphNodeImportStateSub)(nil)
 	_ GraphNodeExecutable     = (*graphNodeImportStateSub)(nil)
+	_ GraphNodeValidatable    = (*graphNodeImportStateSub)(nil)
 )
 
 func (n *graphNodeImportStateSub) Name() string {

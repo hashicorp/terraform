@@ -22,11 +22,11 @@ type nodeExpandModule struct {
 	Addr       addrs.Module
 	Config     *configs.Module
 	ModuleCall *configs.ModuleCall
-	Excluded
 }
 
 var (
 	_ GraphNodeExecutable       = (*nodeExpandModule)(nil)
+	_ GraphNodeValidatable      = (*nodeExpandModule)(nil)
 	_ GraphNodeReferenceable    = (*nodeExpandModule)(nil)
 	_ GraphNodeReferencer       = (*nodeExpandModule)(nil)
 	_ GraphNodeReferenceOutside = (*nodeExpandModule)(nil)
@@ -122,9 +122,6 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 	// become unreachable, because the evaluate functions will reject unknown
 	// values as an error.
 	allowUnknown := globalCtx.Deferrals().DeferralAllowed()
-
-	// We also allow unknowns when the expandable module is excluded.
-	allowUnknown = allowUnknown || n.IsExcluded()
 
 	// nodeExpandModule itself does not have visibility into how its ancestors
 	// were expanded, so we use the expander here to provide all possible paths
@@ -267,6 +264,7 @@ type nodeValidateModule struct {
 }
 
 var _ GraphNodeExecutable = (*nodeValidateModule)(nil)
+var _ GraphNodeValidatable = (*nodeValidateModule)(nil)
 
 // GraphNodeEvalable
 func (n *nodeValidateModule) Execute(globalCtx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {

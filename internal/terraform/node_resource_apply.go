@@ -71,12 +71,6 @@ func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	return nil, diags
 }
 
-func (n *nodeExpandApplyableResource) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	return (&NodeValidatableResource{
-		NodeAbstractResource: n.NodeAbstractResource,
-	}).Execute(ctx, op)
-}
-
 // We need to expand the ephemeral resources mostly the same as we do during
 // planning. There a lot of options than happen during planning which aren't
 // applicable to apply however, and we have to make sure we don't re-register

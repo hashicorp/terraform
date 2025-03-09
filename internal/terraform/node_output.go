@@ -46,8 +46,6 @@ type nodeExpandOutput struct {
 	Overrides *mocking.Overrides
 
 	Dependencies []addrs.ConfigResource
-
-	Excluded
 }
 
 var (
@@ -122,20 +120,6 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 
 			var node dag.Vertex
 			switch {
-			case n.excluded:
-				// If the output is excluded, expand it only for validation
-				node = &nodeValidateOutput{
-					&NodeApplyableOutput{
-						Addr:         absAddr,
-						Config:       n.Config,
-						Change:       change,
-						RefreshOnly:  n.RefreshOnly,
-						DestroyApply: n.Destroying,
-						Planning:     n.Planning,
-						Override:     n.getOverrideValue(absAddr.Module),
-						Dependencies: n.Dependencies,
-					},
-				}
 			case module.IsRoot() && n.Destroying:
 				node = &NodeDestroyableOutput{
 					Addr:     absAddr,
@@ -307,6 +291,7 @@ var (
 	_ GraphNodeReferencer       = (*NodeApplyableOutput)(nil)
 	_ GraphNodeReferenceOutside = (*NodeApplyableOutput)(nil)
 	_ GraphNodeExecutable       = (*NodeApplyableOutput)(nil)
+	_ GraphNodeValidatable      = (*NodeApplyableOutput)(nil)
 	_ graphNodeTemporaryValue   = (*NodeApplyableOutput)(nil)
 	_ dag.GraphNodeDotter       = (*NodeApplyableOutput)(nil)
 )
@@ -756,6 +741,10 @@ func (n *nodeOutputInPartialModule) Execute(ctx EvalContext, op walkOperation) t
 
 	namedVals.SetOutputValuePlaceholder(n.Addr, val)
 	return diags
+}
+
+func (n *nodeOutputInPartialModule) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	return n.Execute(ctx, op)
 }
 
 // NodeDestroyableOutput represents an output that is "destroyable":

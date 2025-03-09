@@ -4,11 +4,18 @@
 package terraform
 
 import (
-	"log"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
 )
+
+// GraphNodeTargetable is an interface for graph nodes to implement when they
+// need to be told about incoming targets. This is useful for nodes that need
+// to respect targets as they dynamically expand. Note that the list of targets
+// provided will contain every target provided, and each implementing graph
+// node must filter this list to targets considered relevant.
+type GraphNodeTargetable interface {
+	SetTargets([]addrs.Targetable)
+}
 
 // TargetsTransformer is a GraphTransformer that, when the user specifies a
 // list of resources to target, limits the graph to only those resources and
@@ -19,16 +26,19 @@ type TargetsTransformer struct {
 }
 
 func (t *TargetsTransformer) Transform(g *Graph) error {
-	if len(t.Targets) > 0 {
-		_, targetedNodes := selectTargetedNodes(g, t.Targets)
+	// if len(t.Targets) > 0 {
+	// 	_, targetedNodes := selectTargetedNodes(g, t.Targets)
 
-		for _, v := range g.Vertices() {
-			if !targetedNodes.Include(v) {
-				log.Printf("[DEBUG] Removing %q, filtered by targeting.", dag.VertexName(v))
-				g.Remove(v)
-			}
-		}
-	}
+	// 	for _, v := range g.Vertices() {
+	// 		if !targetedNodes.Include(v) {
+	// 			if ex, ok := v.(GraphNodeExcludeable); ok {
+	// 				log.Printf("[DEBUG] Removing %q, filtered by targeting.", dag.VertexName(v))
+	// 				ex.SetExcluded(true)
+	// 			}
+	// 			// g.Remove(v)
+	// 		}
+	// 	}
+	// }
 
 	return nil
 }
@@ -46,6 +56,13 @@ func selectTargetedNodes(g *Graph, targets []addrs.Targetable) (dag.Set, dag.Set
 		if nodeIsTarget(v, set) {
 			targetedNodes.Add(v)
 			directNodes.Add(v)
+
+			// We inform nodes that ask about the list of targets - helps for nodes
+			// that need to dynamically expand. Note that this only occurs for nodes
+			// that are already directly targeted.
+			// if tn, ok := v.(GraphNodeTargetable); ok {
+			// 	tn.SetTargets(targets)
+			// }
 
 			for _, d := range g.Ancestors(v) {
 				targetedNodes.Add(d)

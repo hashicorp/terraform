@@ -84,8 +84,6 @@ type NodeAbstractResource struct {
 	generateConfigPath string
 
 	forceCreateBeforeDestroy bool
-
-	Excluded
 }
 
 var (
@@ -418,10 +416,6 @@ func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.Ab
 	// become unreachable, because the evaluate functions will reject unknown
 	// values as an error.
 	allowUnknown := ctx.Deferrals().DeferralAllowed()
-
-	// We also allow unknowns when the expandable resource is excluded.
-	// TODO(sams): Better comment here.
-	allowUnknown = allowUnknown || n.IsExcluded()
 
 	switch {
 	case n.Config != nil && n.Config.Count != nil:

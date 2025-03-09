@@ -7274,6 +7274,11 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 	// TODO: Future refactoring may enable us to remove the output from state in
 	// this case, and that would be Just Fine - this test can be modified to
 	// expect 0 outputs.
+	// UPDATE: We no longer have to remove nodes when targeting, thus
+	// no longer have to prune the output values from the destroy
+	// graph, and the resources that stay in the graph while not being targeted
+	//  would only end up being validated, not applied.
+	// In this case, the output values can be appropriately destroyed from state.
 	if len(state.RootOutputValues) != 0 {
 		t.Fatalf("expected 0 output, got: %#v", state.RootOutputValues)
 	}

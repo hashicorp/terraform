@@ -630,7 +630,8 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 
 		default:
 			// We should only end up here during the validate walk (or
-			// console/eval), since later walks should have at least partial
+			// console/eval or when the resource is excluded due to targeting),
+			// since later walks should have at least partial
 			// states populated for all resources in the configuration.
 			return cty.DynamicVal, diags
 		}

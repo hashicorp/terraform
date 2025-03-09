@@ -43,6 +43,10 @@ func (n *nodeApplyableDeferredInstance) Execute(ctx EvalContext, _ walkOperation
 	return diags
 }
 
+func (n *nodeApplyableDeferredInstance) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	return n.Execute(ctx, op)
+}
+
 // nodeApplyableDeferredPartialInstance is a node that represents a deferred
 // partial instance in the apply graph. This simply adds a method  to get the
 // partial address on top of the regular behaviour of
@@ -67,4 +71,8 @@ func (n *nodeApplyableDeferredPartialInstance) Execute(ctx EvalContext, _ walkOp
 		ctx.Deferrals().ReportDataSourceExpansionDeferred(n.PartialAddr, change)
 	}
 	return diags
+}
+
+func (n *nodeApplyableDeferredPartialInstance) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	return n.Execute(ctx, op)
 }

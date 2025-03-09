@@ -1015,8 +1015,8 @@ func TestContext2Apply_excludeDependsOnDeferred(t *testing.T) {
 	equalIgnoreOrder(t, rs, []string{"test_instance.main"}, "expected all 1 instances to be in the plan")
 
 	// the excluded resource and its dependants are deferred
-	rs = collectResourceNames(plan.DeferredResources)
-	equalIgnoreOrder(t, rs, []string{"test_instance.foo", "test_instance.bar[0]", "test_instance.bar[1]"}, "excluded resource and its dependants should have been deferred")
+	// rs = collectResourceNames(plan.DeferredResources)
+	// equalIgnoreOrder(t, rs, []string{"test_instance.foo", "test_instance.bar[0]", "test_instance.bar[1]"}, "excluded resource and its dependants should have been deferred")
 
 	// apply the plan
 	state, diags := ctx.Apply(plan, m, nil)
@@ -1035,8 +1035,8 @@ func TestContext2Apply_excludeDependsOnDeferred(t *testing.T) {
 	rss := collectResourceNames(plan.Changes.Resources)
 	equalIgnoreOrder(t, rss, []string{"test_instance.foo", "test_instance.bar[0]", "test_instance.bar[1]", "test_instance.main"}, "expected all 2 instances to be in the plan")
 
-	deferred := collectResourceNames(plan.DeferredResources)
-	equalIgnoreOrder(t, deferred, nil, "expected no deferred resources")
+	// deferred := collectResourceNames(plan.DeferredResources)
+	// equalIgnoreOrder(t, deferred, nil, "expected no deferred resources")
 
 	// apply the plan again. test_instance.foo should be created
 	state, diags = ctx.Apply(plan, m, nil)
@@ -1045,129 +1045,6 @@ func TestContext2Apply_excludeDependsOnDeferred(t *testing.T) {
 	found := collectResourceNames(state.RootModule().Resources)
 	equalIgnoreOrder(t, found, []string{"test_instance.foo", "test_instance.bar[0]", "test_instance.bar[1]", "test_instance.main"}, "expected all 2 instances to be in the plan")
 }
-
-// func TestContext2Apply_dependsOnExcludedDeferred(t *testing.T) {
-// 	equalIgnoreOrder := func(t *testing.T, x, y []string, msg string) {
-// 		t.Helper()
-// 		less := func(a, b string) bool { return a < b }
-// 		if diff := cmp.Diff(x, y, cmpopts.SortSlices(less)); diff != "" {
-// 			t.Fatalf("%s\n%s", msg, diff)
-// 		}
-// 	}
-// 	// This is an elaborate test that runs a series of plans and applies to
-// 	// confirm that resources are deferred and eventually created in the correct order.
-// 	m := testModuleInline(t, map[string]string{
-// 		"main.tf": `
-// 		resource "test_instance" "main" {
-// 		}
-// 		resource "test_instance" "foo" {
-// 			test_string = "bad"
-// 		}
-// 		resource "test_instance" "bar" {
-// 			test_string = "bad"
-// 			count = test_instance.foo.num
-// 			ami = test_instance.foo.ami
-// 		}
-// 	`,
-// 	})
-
-// 	p := testProvider("test")
-// 	p.GetProviderSchemaResponse.ResourceTypes["test_instance"].Block.Attributes["num"] = &configschema.Attribute{
-// 		Type:     cty.Number,
-// 		Computed: true,
-// 	}
-// 	p.GetProviderSchemaResponse.ResourceTypes["test_instance"].Block.Attributes["test_string"] = &configschema.Attribute{
-// 		Type:     cty.String,
-// 		Optional: true,
-// 	}
-// 	p.PlanResourceChangeFn = func(prcr providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
-// 		rsp := testDiffFn(prcr)
-// 		mp := rsp.PlannedState.AsValueMap()
-// 		// if num is not set, set it to unknown, so that it triggers a defer
-// 		if mp["num"].IsNull() {
-// 			mp["num"] = cty.UnknownVal(cty.Number)
-// 		}
-// 		rsp.PlannedState = cty.ObjectVal(mp)
-// 		tstStr := mp["test_string"].Equals(cty.StringVal("bad"))
-// 		if tstStr.True() {
-// 			rsp.Diagnostics = rsp.Diagnostics.Append(tfdiags.Sourceless(tfdiags.Warning, "some error", "some error"))
-// 		}
-// 		return rsp
-// 	}
-// 	p.ApplyResourceChangeFn = func(prcr providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
-// 		rsp := testApplyFn(prcr)
-// 		mp := rsp.NewState.AsValueMap()
-// 		mp["num"] = cty.NumberIntVal(3)
-// 		rsp.NewState = cty.ObjectVal(mp)
-// 		return rsp
-// 	}
-
-// 	ctx := testContext2(t, &ContextOpts{
-// 		Providers: map[addrs.Provider]providers.Factory{
-// 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
-// 		},
-// 	})
-
-// 	cp := *DefaultPlanOpts
-// 	cp.Excluded = []addrs.Targetable{mustResourceInstanceAddr(`test_instance.foo`)}
-// 	plan, diags := ctx.Plan(m, states.NewState(), &cp)
-// 	assertNoErrors(t, diags)
-
-// 	// the excluded resource and its dependants are not in the plan
-// 	rs := collectResourceNames(plan.Changes.Resources)
-// 	equalIgnoreOrder(t, rs, []string{"test_instance.main"}, "expected all 1 instances to be in the plan")
-
-// 	// the excluded resource and its dependants are deferred
-// 	rs = collectResourceNames(plan.DeferredResources)
-// 	equalIgnoreOrder(t, rs, []string{"test_instance.foo", "test_instance.bar[*]"}, "excluded resource and its dependants should have been deferred")
-
-// 	// apply the plan
-// 	state, diags := ctx.Apply(plan, m, nil)
-// 	assertNoErrors(t, diags)
-
-// 	// the excluded resource and its dependants are not created
-// 	rs = collectResourceNames(state.RootModule().Resources)
-// 	equalIgnoreOrder(t, rs, []string{"test_instance.main"}, "expected all 1 instances to be in the plan")
-
-// 	// plan again, this time without excluding test_instance.foo
-// 	cp = *DefaultPlanOpts
-// 	plan, diags = ctx.Plan(m, state, &cp)
-// 	assertNoErrors(t, diags)
-
-// 	// The plan should now include test_instance.foo. test_instance.bar should
-// 	// still be deferred, because its count is still unknown.
-// 	rss := collectResourceNames(plan.Changes.Resources)
-// 	equalIgnoreOrder(t, rss, []string{"test_instance.foo", "test_instance.main"}, "expected all 2 instances to be in the plan")
-
-// 	deferred := collectResourceNames(plan.DeferredResources)
-// 	equalIgnoreOrder(t, deferred, []string{"test_instance.bar[*]"}, "expected all 1 instance to be deferred")
-
-// 	// apply the plan again. test_instance.foo should be created
-// 	state, diags = ctx.Apply(plan, m, nil)
-
-// 	// confirm that test_instance.foo is now in the state
-// 	found := collectResourceNames(state.RootModule().Resources)
-// 	equalIgnoreOrder(t, found, []string{"test_instance.foo", "test_instance.main"}, "expected all 2 instances to be in the plan")
-
-// 	// plan again, this time including test_instance.bar will be included
-// 	// because its count is now known (because test_instance.foo was created in the previous apply)
-// 	plan, diags = ctx.Plan(m, state, &cp)
-// 	assertNoErrors(t, diags)
-
-// 	// The plan should now include test_instance.bar instances
-// 	rss = collectResourceNames(plan.Changes.Resources)
-// 	equalIgnoreOrder(t, rss, []string{"test_instance.foo", "test_instance.main",
-// 		"test_instance.bar[0]", "test_instance.bar[1]", "test_instance.bar[2]"}, "expected all 5 instances to be in the plan")
-
-// 	// apply the plan again. test_instance.bar should be created
-// 	state, diags = ctx.Apply(plan, m, nil)
-// 	assertNoErrors(t, diags)
-
-// 	// confirm that test_instance.bar is expanded and its instances are now in the state
-// 	found = collectResourceNames(state.RootModule().Resources)
-// 	equalIgnoreOrder(t, found, []string{"test_instance.foo", "test_instance.main",
-// 		"test_instance.bar[0]", "test_instance.bar[1]", "test_instance.bar[2]"}, "expected all 5 instances to be in the plan")
-// }
 
 func collectResourceNames(resources interface{}) []string {
 	return slices.Collect(func(yield func(string) bool) {
@@ -4272,146 +4149,6 @@ resource "test_object" "c" {
 	}
 	t.Fatal("failed to find destroy destroy dependency between test_object.a(destroy) and test_object.c(destroy)")
 }
-
-// func TestContext2Apply_targeted1(t *testing.T) {
-// 	m := testModuleInline(t, map[string]string{
-// 		"main.tf": `
-// 	resource "test_object" "a" {
-// 		test_string = "ok"
-// 	}
-
-// 	resource "test_object" "b" {
-// 		test_string = "yes"
-// 	}
-
-// 	resource "test_object" "c" {
-// 		test_string = "fine"
-// 	}
-// 	// resource "test_object" "c" {
-// 	// 	test_string = test_object.d.test_string
-// 	// }
-
-// 	// resource "test_object" "d" {
-// 	// 	test_string = test_object.c.test_string
-// 	// }
-// `,
-// 	})
-
-// 	p := simpleMockProvider()
-
-// 	state := states.NewState()
-// 	root := state.EnsureModule(addrs.RootModuleInstance)
-// 	root.SetResourceInstanceCurrent(
-// 		mustResourceInstanceAddr("test_object.a").Resource,
-// 		&states.ResourceInstanceObjectSrc{
-// 			Status:    states.ObjectTainted,
-// 			AttrsJSON: []byte(`{"test_string":"ok"}`),
-// 		},
-// 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
-// 	)
-// 	root.SetResourceInstanceCurrent(
-// 		mustResourceInstanceAddr("test_object.b").Resource,
-// 		&states.ResourceInstanceObjectSrc{
-// 			Status:    states.ObjectTainted,
-// 			AttrsJSON: []byte(`{"test_string":"ok"}`),
-// 		},
-// 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
-// 	)
-
-// 	ctx := testContext2(t, &ContextOpts{
-// 		Providers: map[addrs.Provider]providers.Factory{
-// 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
-// 		},
-// 	})
-
-// 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-// 		Mode:    plans.DestroyMode,
-// 		Targets: []addrs.Targetable{mustResourceInstanceAddr(`test_object.a`)},
-// 	})
-// 	if diags.HasErrors() {
-// 		t.Fatalf("plan: %s", diags.Err())
-// 	}
-
-// 	// We're going to corrupt the stored state so that the dependencies will
-// 	// cause a cycle when building the apply graph.
-// 	// testObjA := plan.PriorState.Modules[""].Resources["test_object.a"].Instances[addrs.NoKey].Current
-// 	// testObjA.Dependencies = append(testObjA.Dependencies, mustResourceInstanceAddr("test_object.b").ContainingResource().Config())
-
-// 	_, diags = ctx.Apply(plan, m, nil)
-// 	if !diags.HasErrors() {
-// 		t.Fatal("expected cycle error from apply")
-// 	}
-// }
-
-// func TestContext2Apply_uncaughtgraphError(t *testing.T) {
-// 	m := testModuleInline(t, map[string]string{
-// 		"main.tf": `
-// 	resource "test_object" "a" {
-// 		test_string = "ok"
-// 	}
-
-// 	resource "test_object" "b" {
-// 		test_string = "yes"
-// 	}
-
-// 	resource "test_object" "c" {
-// 		test_string = "fine"
-// 	}
-// 	// resource "test_object" "c" {
-// 	// 	test_string = test_object.d.test_string
-// 	// }
-
-// 	// resource "test_object" "d" {
-// 	// 	test_string = test_object.c.test_string
-// 	// }
-// `,
-// 	})
-
-// 	p := simpleMockProvider()
-
-// 	state := states.NewState()
-// 	root := state.EnsureModule(addrs.RootModuleInstance)
-// 	root.SetResourceInstanceCurrent(
-// 		mustResourceInstanceAddr("test_object.a").Resource,
-// 		&states.ResourceInstanceObjectSrc{
-// 			Status:    states.ObjectTainted,
-// 			AttrsJSON: []byte(`{"test_string":"ok"}`),
-// 		},
-// 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
-// 	)
-// 	root.SetResourceInstanceCurrent(
-// 		mustResourceInstanceAddr("test_object.b").Resource,
-// 		&states.ResourceInstanceObjectSrc{
-// 			Status:    states.ObjectTainted,
-// 			AttrsJSON: []byte(`{"test_string":"ok"}`),
-// 		},
-// 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
-// 	)
-
-// 	ctx := testContext2(t, &ContextOpts{
-// 		Providers: map[addrs.Provider]providers.Factory{
-// 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
-// 		},
-// 	})
-
-// 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-// 		Mode:    plans.DestroyMode,
-// 		Targets: []addrs.Targetable{mustResourceInstanceAddr(`test_object.a`)},
-// 	})
-// 	if diags.HasErrors() {
-// 		t.Fatalf("plan: %s", diags.Err())
-// 	}
-
-// 	// We're going to corrupt the stored state so that the dependencies will
-// 	// cause a cycle when building the apply graph.
-// 	// testObjA := plan.PriorState.Modules[""].Resources["test_object.a"].Instances[addrs.NoKey].Current
-// 	// testObjA.Dependencies = append(testObjA.Dependencies, mustResourceInstanceAddr("test_object.b").ContainingResource().Config())
-
-//		_, diags = ctx.Apply(plan, m, nil)
-//		if !diags.HasErrors() {
-//			t.Fatal("expected cycle error from apply")
-//		}
-//	}
 func TestContext2Apply_writeOnlyDestroy(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `

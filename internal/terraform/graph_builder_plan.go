@@ -261,6 +261,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// node due to dependency edges, to avoid graph cycles during apply.
 		&ForcedCBDTransformer{},
 
+		// Target
+		&TargetsTransformer{Targets: b.Targets},
+
 		// Close any ephemeral resource instances.
 		&ephemeralResourceCloseTransformer{skip: b.Operation == walkValidate},
 

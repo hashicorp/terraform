@@ -33,8 +33,6 @@ type nodeExpandModuleVariable struct {
 	// DestroyApply must be set to true when planning or applying a destroy
 	// operation, and false otherwise.
 	DestroyApply bool
-
-	Excluded
 }
 
 var (
@@ -193,6 +191,7 @@ type nodeModuleVariable struct {
 var (
 	_ GraphNodeModuleInstance = (*nodeModuleVariable)(nil)
 	_ GraphNodeExecutable     = (*nodeModuleVariable)(nil)
+	_ GraphNodeValidatable    = (*nodeModuleVariable)(nil)
 	_ graphNodeTemporaryValue = (*nodeModuleVariable)(nil)
 	_ dag.GraphNodeDotter     = (*nodeModuleVariable)(nil)
 )
@@ -359,6 +358,10 @@ func (n *nodeModuleVariableInPartialModule) Execute(ctx EvalContext, op walkOper
 	val, diags := partiallyValidateModuleVariable(ctx, n.Expr)
 	namedVals.SetInputVariablePlaceholder(n.Addr, val)
 	return diags
+}
+
+func (n *nodeModuleVariableInPartialModule) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	return n.Execute(ctx, op)
 }
 
 func partiallyValidateModuleVariable(ctx EvalContext, expr hcl.Expression) (cty.Value, tfdiags.Diagnostics) {

@@ -11,19 +11,8 @@ type GraphNodeExecutable interface {
 	Execute(EvalContext, walkOperation) tfdiags.Diagnostics
 }
 
-type GraphNodeExcludeable interface {
-	SetExcluded(bool)
-	IsExcluded() bool
-}
-
-type Excluded struct {
-	excluded bool
-}
-
-func (n *Excluded) SetExcluded(excluded bool) {
-	n.excluded = excluded
-}
-
-func (n *Excluded) IsExcluded() bool {
-	return n.excluded
+// GraphNodeValidatable is the interface that graph nodes must implement to
+// enable validation. Most executable nodes will also be validatable.
+type GraphNodeValidatable interface {
+	Validate(EvalContext, walkOperation) tfdiags.Diagnostics
 }

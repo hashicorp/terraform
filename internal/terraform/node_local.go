@@ -95,7 +95,6 @@ func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagno
 type NodeLocal struct {
 	Addr   addrs.AbsLocalValue
 	Config *configs.Local
-	Excluded
 }
 
 var (
@@ -103,6 +102,7 @@ var (
 	_ GraphNodeReferenceable  = (*NodeLocal)(nil)
 	_ GraphNodeReferencer     = (*NodeLocal)(nil)
 	_ GraphNodeExecutable     = (*NodeLocal)(nil)
+	_ GraphNodeValidatable    = (*NodeLocal)(nil)
 	_ graphNodeTemporaryValue = (*NodeLocal)(nil)
 	_ dag.GraphNodeDotter     = (*NodeLocal)(nil)
 )
@@ -146,6 +146,9 @@ func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Di
 	val, diags := evaluateLocalValue(n.Config, n.Addr.LocalValue, n.Addr.String(), ctx)
 	namedVals.SetLocalValue(n.Addr, val)
 	return diags
+}
+func (n *NodeLocal) Validate(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	return n.Execute(ctx, op)
 }
 
 // dag.GraphNodeDotter impl.

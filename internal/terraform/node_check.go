@@ -17,8 +17,9 @@ import (
 )
 
 var (
-	_ GraphNodeModulePath = (*nodeReportCheck)(nil)
-	_ GraphNodeExecutable = (*nodeReportCheck)(nil)
+	_ GraphNodeModulePath  = (*nodeReportCheck)(nil)
+	_ GraphNodeExecutable  = (*nodeReportCheck)(nil)
+	_ GraphNodeValidatable = (*nodeReportCheck)(nil)
 )
 
 // nodeReportCheck calls the ReportCheckableObjects function for our assertions
@@ -48,6 +49,10 @@ func (n *nodeReportCheck) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diag
 	}
 	ctx.Checks().ReportCheckableObjects(n.addr, instAddrs)
 	return nil
+}
+
+func (n *nodeReportCheck) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	return n.Execute(ctx, op)
 }
 
 func (n *nodeReportCheck) Name() string {
@@ -134,6 +139,7 @@ func (n *nodeExpandCheck) Name() string {
 var (
 	_ GraphNodeModuleInstance = (*nodeCheckAssert)(nil)
 	_ GraphNodeExecutable     = (*nodeCheckAssert)(nil)
+	_ GraphNodeValidatable    = (*nodeCheckAssert)(nil)
 )
 
 type nodeCheckAssert struct {
@@ -154,7 +160,7 @@ func (n *nodeCheckAssert) Path() addrs.ModuleInstance {
 	return n.addr.Module
 }
 
-func (n *nodeCheckAssert) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
+func (n *nodeCheckAssert) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 
 	// We only want to actually execute the checks during specific
 	// operations, such as plan and applies.
@@ -178,6 +184,10 @@ func (n *nodeCheckAssert) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diag
 
 	// Otherwise let's still validate the config and references and return
 	// diagnostics if references do not exist etc.
+	return n.Validate(ctx, op)
+}
+
+func (n *nodeCheckAssert) Validate(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	for ix, assert := range n.config.Asserts {
 		_, _, moreDiags := validateCheckRule(addrs.NewCheckRule(n.addr, addrs.CheckAssertion, ix), assert, ctx, EvalDataForNoInstanceKey)
@@ -191,7 +201,8 @@ func (n *nodeCheckAssert) Name() string {
 }
 
 var (
-	_ GraphNodeExecutable = (*nodeCheckStart)(nil)
+	_ GraphNodeExecutable  = (*nodeCheckStart)(nil)
+	_ GraphNodeValidatable = (*nodeCheckStart)(nil)
 )
 
 // We need to ensure that any nested data sources execute after all other
@@ -200,6 +211,12 @@ var (
 type nodeCheckStart struct{}
 
 func (n *nodeCheckStart) Execute(context EvalContext, operation walkOperation) tfdiags.Diagnostics {
+	// This node doesn't actually do anything, except simplify the underlying
+	// graph structure.
+	return nil
+}
+
+func (n *nodeCheckStart) Validate(context EvalContext, operation walkOperation) tfdiags.Diagnostics {
 	// This node doesn't actually do anything, except simplify the underlying
 	// graph structure.
 	return nil

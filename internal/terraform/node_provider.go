@@ -21,7 +21,8 @@ type NodeApplyableProvider struct {
 }
 
 var (
-	_ GraphNodeExecutable = (*NodeApplyableProvider)(nil)
+	_ GraphNodeExecutable  = (*NodeApplyableProvider)(nil)
+	_ GraphNodeValidatable = (*NodeApplyableProvider)(nil)
 )
 
 // GraphNodeExecutable
@@ -49,6 +50,22 @@ func (n *NodeApplyableProvider) Execute(ctx EvalContext, op walkOperation) (diag
 		return diags.Append(n.ConfigureProvider(ctx, provider, true))
 	}
 	return diags
+}
+
+func (n *NodeApplyableProvider) Validate(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	_, err := ctx.InitProvider(n.Addr, n.Config)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	provider, _, err := getProvider(ctx, n.Addr)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	return n.ValidateProvider(ctx, provider)
 }
 
 func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider providers.Interface) (diags tfdiags.Diagnostics) {
@@ -198,7 +215,8 @@ type nodeExternalProvider struct {
 }
 
 var (
-	_ GraphNodeExecutable = (*nodeExternalProvider)(nil)
+	_ GraphNodeExecutable  = (*nodeExternalProvider)(nil)
+	_ GraphNodeValidatable = (*nodeExternalProvider)(nil)
 )
 
 // Execute implements GraphNodeExecutable.
@@ -221,6 +239,9 @@ func (n *nodeExternalProvider) Execute(ctx EvalContext, op walkOperation) tfdiag
 	}
 
 	return diags
+}
+func (n *nodeExternalProvider) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	return n.Execute(ctx, op)
 }
 
 const providerConfigErr = `Provider %q requires explicit configuration. Add a provider block to the root module and configure the provider's required arguments as described in the provider documentation.

@@ -34,7 +34,7 @@ func (g *Graph) DirectedGraph() dag.Grapher {
 // Walk walks the graph with the given walker for callbacks. The graph
 // will be walked with full parallelism, so the walker should expect
 // to be called in concurrently.
-func (g *Graph) Walk(walker GraphWalker) tfdiags.Diagnostics {
+func (g *Graph) Walk(walker *ContextGraphWalker) tfdiags.Diagnostics {
 	ctx := walker.EvalContext()
 	return g.walk(ctx, walker, true)
 }
@@ -91,7 +91,7 @@ func (g *Graph) setContains(node dag.Vertex, targets addrs.Set[addrs.Targetable]
 //
 // When exclusion is applied, any node that is explicitly excluded or has an excluded
 // ancestor will be excluded from the traversal.
-func (g *Graph) applyTargeting(ctx EvalContext, walker GraphWalker, targeted bool) (directlyTargetedNodes dag.Set) {
+func (g *Graph) applyTargeting(ctx EvalContext, walker *ContextGraphWalker, targeted bool) (directlyTargetedNodes dag.Set) {
 	filter := ctx.Filter()
 
 	// Exclude any node that is either directly excluded or has an excluded ancestor
@@ -155,8 +155,9 @@ func (g *Graph) applyTargeting(ctx EvalContext, walker GraphWalker, targeted boo
 	return directlyTargetedNodes
 }
 
-func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targeted bool) tfdiags.Diagnostics {
+func (g *Graph) walk(ctx EvalContext, walker *ContextGraphWalker, targeted bool) tfdiags.Diagnostics {
 	directTargets := g.applyTargeting(ctx, walker, targeted)
+	filter := ctx.Filter()
 
 	// The callbacks for enter/exiting a graph
 	// Walk the graph.
@@ -255,26 +256,21 @@ func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targeted bool) tfdiags
 			log.Printf("[TRACE] vertex %q: does not belong to any module instance", dag.VertexName(v))
 		}
 
-		// When working with embedded objects (e.g NodeAbstractResourceInstance in NodePlannableResourceInstance),
-		// the filter may contain the outer type (NodePlannableResourceInstance) but the current method might
-		// be called on the inner embedded type (NodeAbstractResourceInstance). In this scenario,
-		// filter.Allowed(v) would fail because the filter doesn't recognize the inner type directly.
-		//
-		// Therefore, we need to explicitly check if the node can be excluded, and if it's not allowed
-		// by the filter, mark it as excluded
-		filter := ctx.Filter()
-		if !filter.Allowed(v) {
-			if ev, ok := v.(GraphNodeExcludeable); ok {
-				ev.SetExcluded(true)
-			}
+		// Excluded nodes can be skipped for validation or expansion during apply,
+		//  as the plan phase should have already validated them.
+		if !filter.Allowed(v) && walker.Operation == walkApply {
+			log.Printf("[TRACE] vertex %q: excluded from dynamic expansion", dag.VertexName(v))
+			return
 		}
 
-		// If the node is exec-able, then execute it.
-		if ev, ok := v.(GraphNodeExecutable); ok {
+		if ev, ok := v.(GraphNodeValidatable); ok && !filter.Allowed(v) {
+			diags = diags.Append(walker.Validate(vertexCtx, ev))
+			return
+		} else if ev, ok := v.(GraphNodeExecutable); ok {
 			diags = diags.Append(walker.Execute(vertexCtx, ev))
-			if diags.HasErrors() {
-				return
-			}
+		}
+		if diags.HasErrors() {
+			return
 		}
 
 		// If the node is dynamically expanded, then expand it
@@ -312,9 +308,9 @@ func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targeted bool) tfdiags
 
 				// Walk the subgraph
 				log.Printf("[TRACE] vertex %q: entering dynamic subgraph", dag.VertexName(v))
-				// If the dynamic node is excluded, we should exclude all of the
+				// If the dynamic node is excluded (implicit or explicit), we should exclude all of the
 				// nodes in its subgraph.
-				if filter.Matches(v, dag.ExplicitlyExcluded) {
+				if !filter.Matches(v, dag.Allowed) {
 					for _, node := range g.Vertices() {
 						filter.Exclude(node)
 					}
@@ -327,7 +323,7 @@ func (g *Graph) walk(ctx EvalContext, walker GraphWalker, targeted bool) tfdiags
 				// dynamic node represents the config resource "resource.foo".
 				targeted := directTargets.Include(v)
 
-				subDiags := g.walk(ctx, walker, targeted)
+				subDiags := g.walk(vertexCtx, walker, targeted)
 				diags = diags.Append(subDiags)
 				if subDiags.HasErrors() {
 					var errs []string

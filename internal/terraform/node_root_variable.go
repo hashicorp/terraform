@@ -39,6 +39,8 @@ type NodeRootVariable struct {
 var (
 	_ GraphNodeModuleInstance = (*NodeRootVariable)(nil)
 	_ GraphNodeReferenceable  = (*NodeRootVariable)(nil)
+	_ GraphNodeExecutable     = (*NodeRootVariable)(nil)
+	_ GraphNodeValidatable    = (*NodeRootVariable)(nil)
 )
 
 func (n *NodeRootVariable) Name() string {
@@ -118,6 +120,10 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 	// nodeVariableValidation, added by variableValidationTransformer.
 
 	return diags
+}
+
+func (n *NodeRootVariable) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	return n.Execute(ctx, op)
 }
 
 // dag.GraphNodeDotter impl.

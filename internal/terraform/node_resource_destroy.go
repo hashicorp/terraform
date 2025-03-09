@@ -31,6 +31,7 @@ var (
 	_ GraphNodeReferenceable       = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeReferencer          = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeExecutable          = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeValidatable         = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeProviderConsumer    = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeProvisionerConsumer = (*NodeDestroyResourceInstance)(nil)
 )
