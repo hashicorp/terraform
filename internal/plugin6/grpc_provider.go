@@ -382,9 +382,11 @@ func (p *GRPCProvider) UpgradeResourceIdentity(r providers.UpgradeResourceIdenti
 	}
 
 	protoReq := &proto6.UpgradeResourceIdentity_Request{
-		TypeName:    r.TypeName,
-		Version:     int64(r.Version),
-		RawIdentity: r.RawIdentityJSON,
+		TypeName: r.TypeName,
+		Version:  int64(r.Version),
+		RawIdentity: &proto6.RawState{
+			Json: r.RawIdentityJSON,
+		},
 	}
 
 	protoResp, err := p.client.UpgradeResourceIdentity(p.ctx, protoReq)

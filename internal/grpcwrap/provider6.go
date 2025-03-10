@@ -617,7 +617,7 @@ func (p *provider6) UpgradeResourceIdentity(_ context.Context, req *tfplugin6.Up
 	upgradeResp := p.provider.UpgradeResourceIdentity(providers.UpgradeResourceIdentityRequest{
 		TypeName:        req.TypeName,
 		Version:         req.Version,
-		RawIdentityJSON: req.RawIdentity,
+		RawIdentityJSON: req.RawIdentity.Json,
 	})
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, upgradeResp.Diagnostics)
 
