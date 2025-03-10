@@ -561,7 +561,7 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 // unknown values. This isn't the original use case for the mocking
 // library, but it is doing exactly what we need it to do.
 func (n *NodeAbstractResource) planComputedValuesForResource(original cty.Value, schema *configschema.Block) providers.PlanResourceChangeResponse {
-	val, diags := mocking.PlanComputedValuesForResource(original, nil, schema)
+	val, diags := mocking.PopulateUnknownAndNullValues(original, schema)
 	if diags.HasErrors() {
 		// All the potential errors we get back from this function are
 		// related to the user badly defining mocks. We should never hit
