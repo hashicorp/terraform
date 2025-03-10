@@ -476,7 +476,7 @@ message UpgradeResourceIdentity {
         // not have access to the identity schema of prior_version, so it's the
         // provider's responsibility to interpret this value using the
         // appropriate older schema. The raw_identity will be json encoded.
-        bytes raw_identity = 3;
+        RawState raw_identity = 3;
     }
 
     message Response {
