@@ -677,7 +677,14 @@ message MoveResourceState {
         // The private state of the resource being moved.
         bytes source_private = 6;
 
-        ResourceIdentityData source_identity = 7;
+        // The raw identity of the resource being moved. Only the json field is
+        // populated, as there should be no legacy providers using the flatmap
+        // format that support newly introduced RPCs.
+        RawState source_identity = 7;
+
+        // The identity schema version of the resource type that the resource
+        // is being moved from.
+        int64 source_identity_schema_version = 8;
     }
 
     message Response {
