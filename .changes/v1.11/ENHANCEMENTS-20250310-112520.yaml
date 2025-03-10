@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Update azurerm backend documentation for changes introduced in 1.11 and also resolve incorrect docs around required inputs.
+time: 2025-03-10T11:25:20.000+00:00
+custom:
+    Issue: "36641"
