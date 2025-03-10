@@ -9,8 +9,8 @@ run "this_updates_state" {
   }
 
   assert {
-    condition     = test_resource.a.output == "value-from-run-that-controls-backend"
-    error_message = "test_resource.a.output value should match the input var"
+    condition     = test_resource.a.value == "value-from-run-that-controls-backend"
+    error_message = "test_resource.a.value value should match the input var"
   }
 }
 
@@ -24,7 +24,7 @@ run "this_does_not_update_state" {
   }
 
   assert {
-    condition     = test_resource.b.output == "this-value-should-not-enter-state"
-    error_message = "test_resource.b should be provisioned, and have an output value that matches the input var"
+    condition     = test_resource.b.0.value == "this-value-should-not-enter-state"
+    error_message = "test_resource.b should be provisioned, and have a `value` value that matches the input var"
   }
 }
