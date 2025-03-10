@@ -142,7 +142,8 @@ func (o *ResourceInstanceObject) Encode(schema providers.Schema) (*ResourceInsta
 	}
 
 	var idJSON []byte
-	if !o.Identity.IsNull() && schema.Identity != nil {
+	// If the Identity is known and not null we can marshal it.
+	if !o.Identity.IsNull() && o.Identity.IsWhollyKnown() && schema.Identity != nil {
 		idJSON, err = ctyjson.Marshal(o.Identity, schema.Identity.ImpliedType())
 		if err != nil {
 			return nil, err

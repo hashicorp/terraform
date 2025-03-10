@@ -271,7 +271,9 @@ func TestPlanning_DestroyMode(t *testing.T) {
 
 	if planSrc := aPlan.Changes.ResourceInstance(aResourceInstAddr.Item); planSrc != nil {
 		rAddr := aResourceInstAddr
-		plan, err := planSrc.Decode(resourceTypeSchema.ImpliedType())
+		plan, err := planSrc.Decode(providers.Schema{
+			Body: resourceTypeSchema,
+		})
 		if err != nil {
 			t.Fatalf("can't decode change for %s: %s", rAddr, err)
 		}
@@ -295,7 +297,9 @@ func TestPlanning_DestroyMode(t *testing.T) {
 
 	if planSrc := bPlan.Changes.ResourceInstance(bResourceInstAddr.Item); planSrc != nil {
 		rAddr := bResourceInstAddr
-		plan, err := planSrc.Decode(resourceTypeSchema.ImpliedType())
+		plan, err := planSrc.Decode(providers.Schema{
+			Body: resourceTypeSchema,
+		})
 		if err != nil {
 			t.Fatalf("can't decode change for %s: %s", rAddr, err)
 		}
