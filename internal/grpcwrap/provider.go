@@ -63,7 +63,7 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 
 	for typ, res := range p.schema.ResourceTypes {
 		resp.ResourceSchemas[typ] = &tfplugin5.Schema{
-			Version: int64(res.Version),
+			Version: res.Version,
 			Block:   convert.ConfigSchemaToProto(res.Body),
 		}
 	}
