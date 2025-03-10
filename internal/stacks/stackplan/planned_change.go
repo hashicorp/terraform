@@ -363,7 +363,7 @@ type PlannedChangeResourceInstancePlanned struct {
 	// Schema MUST be the same schema that was used to encode the dynamic
 	// values inside ChangeSrc and PriorStateSrc.
 	//
-	// Can be nil if and only if ChangeSrc and PriorStateSrc are both nil
+	// Can be empty if and only if ChangeSrc and PriorStateSrc are both nil
 	// themselves.
 	Schema providers.Schema
 }

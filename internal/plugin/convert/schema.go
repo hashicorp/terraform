@@ -90,6 +90,7 @@ func protoSchemaNestedBlock(name string, b *configschema.NestedBlock) *proto.Sch
 }
 
 // ProtoToProviderSchema takes a proto.Schema and converts it to a providers.Schema.
+// It takes an optional resource identity schema for resources that support identity.
 func ProtoToProviderSchema(s *proto.Schema, id *proto.ResourceIdentitySchema) providers.Schema {
 	schema := providers.Schema{
 		Version: s.Version,

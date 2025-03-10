@@ -78,11 +78,14 @@ type ResourceInstanceObjectSrc struct {
 }
 
 // Decode unmarshals the raw representation of the object attributes. Pass the
-// implied type of the corresponding resource type schema for correct operation.
+// schema of the corresponding resource type for correct operation.
 //
 // Before calling Decode, the caller must check that the SchemaVersion field
 // exactly equals the version number of the schema whose implied type is being
 // passed, or else the result is undefined.
+//
+// If the object has an identity, the schema must also contain a resource
+// identity schema for the identity to be decoded.
 //
 // The returned object may share internal references with the receiver and
 // so the caller must not mutate the receiver any further once once this

@@ -59,7 +59,7 @@ type AppliedChangeResourceInstanceObject struct {
 	PreviousResourceInstanceObjectAddr *stackaddrs.AbsResourceInstanceObject
 
 	// Schema MUST be the same schema that was used to encode the dynamic
-	// values inside NewStateSrc. This can be left as nil if NewStateSrc
+	// values inside NewStateSrc. This can be left as empty if NewStateSrc
 	// is nil, which represents that the object has been deleted.
 	Schema providers.Schema
 }

@@ -228,12 +228,8 @@ func (cp *Plugins) ProviderConfigSchema(providerAddr addrs.Provider) (*configsch
 // for the resource type of the given resource mode in that provider.
 //
 // ResourceTypeSchema will return an error if the provider schema lookup
-// fails, but will return nil if the provider schema lookup succeeds but then
-// the provider doesn't have a resource of the requested type.
-//
-// Managed resource types have versioned schemas, so the second return value
-// is the current schema version number for the requested resource. The version
-// is irrelevant for other resource modes.
+// fails, but will return an empty schema if the provider schema lookup
+// succeeds but then the provider doesn't have a resource of the requested type.
 func (cp *Plugins) ResourceTypeSchema(providerAddr addrs.Provider, resourceMode addrs.ResourceMode, resourceType string) (providers.Schema, error) {
 	providerSchema, err := cp.ProviderSchema(providerAddr)
 	if err != nil {

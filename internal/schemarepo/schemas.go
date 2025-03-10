@@ -32,8 +32,8 @@ func (ss *Schemas) ProviderConfig(provider addrs.Provider) *configschema.Block {
 }
 
 // ResourceTypeConfig returns the schema for the configuration of a given
-// resource type belonging to a given provider type, or nil of no such
-// schema is available.
+// resource type belonging to a given provider type, or an empty schema
+// if no such schema is available.
 //
 // In many cases the provider type is inferrable from the resource type name,
 // but this is not always true because users can override the provider for

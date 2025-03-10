@@ -13,7 +13,7 @@ import (
 type ProviderSchema = GetProviderSchemaResponse
 
 // SchemaForResourceType attempts to find a schema for the given mode and type.
-// Returns nil if no such schema is available.
+// Returns an empty schema if none is available.
 func (ss ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeName string) (schema Schema) {
 	switch mode {
 	case addrs.ManagedResourceMode:
@@ -29,7 +29,7 @@ func (ss ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeName
 }
 
 // SchemaForResourceAddr attempts to find a schema for the mode and type from
-// the given resource address. Returns nil if no such schema is available.
+// the given resource address. Returns an empty schema if none is available.
 func (ss ProviderSchema) SchemaForResourceAddr(addr addrs.Resource) (schema Schema) {
 	return ss.SchemaForResourceType(addr.Mode, addr.Type)
 }

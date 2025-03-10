@@ -103,16 +103,15 @@ const (
 	ObjectPlanned ObjectStatus = 'P'
 )
 
-// Encode marshals the value within the receiver to produce a
+// Encode marshals values within the receiver to produce a
 // ResourceInstanceObjectSrc ready to be written to a state file.
 //
-// The given type must be the implied type of the resource type schema, and
-// the given value must conform to it. It is important to pass the schema
-// type and not the object's own type so that dynamically-typed attributes
-// will be stored correctly. The caller must also provide the version number
-// of the schema that the given type was derived from, which will be recorded
-// in the source object so it can be used to detect when schema migration is
-// required on read.
+// The schema must contain the resource type body, and the given value must
+// conform its implied type. The schema must also contain the version number
+// of the schema, which will be recorded in the source object so it can be
+// used to detect when schema migration is required on read.
+// The schema may also contain an resource identity schema and version number,
+// which will be used to encode the resource identity.
 //
 // The returned object may share internal references with the receiver and
 // so the caller must not mutate the receiver any further once once this
