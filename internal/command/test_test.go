@@ -2886,13 +2886,13 @@ func TestTest_UseOfBackends(t *testing.T) {
 
 	testCases := map[string]struct {
 		dirName        string
-		localStatePath string
+		localStateFile string
 		priorState     *states.State
 		expectedState  string
 	}{
 		"When there is no starting state, state is created by the run containing the backend block": {
 			dirName:        "valid-use-local-backend",
-			localStatePath: "terraform.tfstate",
+			localStateFile: "terraform.tfstate",
 			priorState:     nil,
 			expectedState: `test_resource.a:
   ID = 12345
@@ -2902,7 +2902,7 @@ func TestTest_UseOfBackends(t *testing.T) {
 		},
 		"When there is pre-existing state, the state is updated by the run containing the backend block": {
 			dirName:        "valid-use-local-backend",
-			localStatePath: "terraform.tfstate",
+			localStateFile: "terraform.tfstate",
 			priorState: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					addrs.Resource{
@@ -2934,6 +2934,7 @@ func TestTest_UseOfBackends(t *testing.T) {
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(path.Join("test", tc.dirName)), td)
 			defer testChdir(t, td)()
+			localStatePath := filepath.Join(td, tc.localStateFile)
 
 			provider := testing_command.NewProvider(nil)
 
@@ -2956,9 +2957,9 @@ func TestTest_UseOfBackends(t *testing.T) {
 
 			// SET & ASSERT PRIOR STATE
 			if tc.priorState != nil {
-				setLocalState(t, tc.localStatePath, tc.priorState)
+				setLocalState(t, localStatePath, tc.priorState)
 
-				actualState := retrieveLocalState(t, tc.localStatePath)
+				actualState := retrieveLocalState(t, localStatePath)
 				if diff := cmp.Diff(actualState, tc.priorState.String()); len(diff) > 0 {
 					t.Errorf("prior state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", "", actualState, diff)
 				}
@@ -2996,7 +2997,7 @@ func TestTest_UseOfBackends(t *testing.T) {
 				t.Fatalf("unexpected error output:\n%s", stdErr)
 			}
 
-			actualState := retrieveLocalState(t, tc.localStatePath)
+			actualState := retrieveLocalState(t, localStatePath)
 			if diff := cmp.Diff(actualState, tc.expectedState); len(diff) > 0 {
 				t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", "", actualState, diff)
 			}
