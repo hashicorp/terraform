@@ -2892,7 +2892,7 @@ func TestTest_UseOfBackends(t *testing.T) {
 	}{
 		"When there is no starting state, state is created by the run containing the backend block": {
 			dirName:        "valid-use-local-backend",
-			localStatePath: "./terraform.tfstate",
+			localStatePath: "terraform.tfstate",
 			priorState:     nil,
 			expectedState: `test_resource.a:
   ID = 12345
@@ -2902,7 +2902,7 @@ func TestTest_UseOfBackends(t *testing.T) {
 		},
 		"When there is pre-existing state, the state is updated by the run containing the backend block": {
 			dirName:        "valid-use-local-backend",
-			localStatePath: "./terraform.tfstate",
+			localStatePath: "terraform.tfstate",
 			priorState: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					addrs.Resource{
