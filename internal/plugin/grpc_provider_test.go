@@ -16,6 +16,8 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	mockproto "github.com/hashicorp/terraform/internal/plugin/mock_proto"
@@ -254,6 +256,25 @@ func TestGRPCProvider_GetResourceIdentitySchemas(t *testing.T) {
 		gomock.Any(),
 		gomock.Any(),
 	).Return(providerResourceIdentitySchemas(), nil)
+
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	resp := p.GetResourceIdentitySchemas()
+
+	checkDiags(t, resp.Diagnostics)
+}
+
+func TestGRPCProvider_GetResourceIdentitySchemas_Unimplemented(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mockproto.NewMockProviderClient(ctrl)
+
+	client.EXPECT().GetResourceIdentitySchemas(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.GetResourceIdentitySchemas_Response{}, status.Error(codes.Unimplemented, "test error"))
 
 	p := &GRPCProvider{
 		client: client,

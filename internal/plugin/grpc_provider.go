@@ -16,6 +16,8 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -187,6 +189,11 @@ func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentit
 
 	protoResp, err := p.client.GetResourceIdentitySchemas(p.ctx, new(proto.GetResourceIdentitySchemas_Request))
 	if err != nil {
+		if status.Code(err) == codes.Unimplemented {
+			// We expect no error here if older providers don't implement this method
+			return resp
+		}
+
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 		return resp
 	}
