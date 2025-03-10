@@ -388,7 +388,6 @@ enum DeferredReason {
     PROVIDER_CONFIG_UNKNOWN = 3;
     ABSENT_PREREQ = 4;
     DEFERRED_PREREQ = 5;
-    EXCLUDED = 6;
 }
 
 // Deferred contains all the metadata about a the deferral of a resource
