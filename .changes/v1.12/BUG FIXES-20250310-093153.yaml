@@ -1,5 +1,5 @@
 kind: BUG FIXES
-body: Return error when the template's single interpolation results in null value
+body: Return error when the templatestring function contains only a single interpolation that evaluates to a null value
 time: 2025-03-10T09:31:53.479704+01:00
 custom:
     Issue: "36652"
