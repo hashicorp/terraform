@@ -26,15 +26,19 @@ type TargetsTransformer struct {
 }
 
 func (t *TargetsTransformer) Transform(g *Graph) error {
-	if len(t.Targets) > 0 {
-		_, targetedNodes := selectTargetedNodes(g, addrs.MakeSet(t.Targets...))
+	// if len(t.Targets) > 0 {
+	// 	_, targetedNodes := selectTargetedNodes(g, t.Targets)
 
-		for _, v := range g.Vertices() {
-			if !targetedNodes.Include(v) {
-				g.Remove(v)
-			}
-		}
-	}
+	// 	for _, v := range g.Vertices() {
+	// 		if !targetedNodes.Include(v) {
+	// 			if ex, ok := v.(GraphNodeExcludeable); ok {
+	// 				log.Printf("[DEBUG] Removing %q, filtered by targeting.", dag.VertexName(v))
+	// 				ex.SetExcluded(true)
+	// 			}
+	// 			// g.Remove(v)
+	// 		}
+	// 	}
+	// }
 
 	return nil
 }
@@ -42,15 +46,23 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 // Returns a set of targeted nodes. A targeted node is either addressed
 // directly, address indirectly via its container, or it's a dependency of a
 // targeted node.
-func selectTargetedNodes(g *Graph, targets addrs.Set[addrs.Targetable]) (dag.Set, dag.Set) {
+func selectTargetedNodes(g *Graph, targets []addrs.Targetable) (dag.Set, dag.Set) {
 	directNodes := make(dag.Set)
 	targetedNodes := make(dag.Set)
 
 	vertices := g.Vertices()
+	set := addrs.MakeSet(targets...)
 	for _, v := range vertices {
-		if nodeIsTarget(v, targets) {
+		if nodeIsTarget(v, set) {
 			targetedNodes.Add(v)
 			directNodes.Add(v)
+
+			// We inform nodes that ask about the list of targets - helps for nodes
+			// that need to dynamically expand. Note that this only occurs for nodes
+			// that are already directly targeted.
+			// if tn, ok := v.(GraphNodeTargetable); ok {
+			// 	tn.SetTargets(targets)
+			// }
 
 			for _, d := range g.Ancestors(v) {
 				targetedNodes.Add(d)

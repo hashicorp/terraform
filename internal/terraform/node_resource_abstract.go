@@ -12,8 +12,11 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // ConcreteResourceNodeFunc is a callback type used to convert an
@@ -552,6 +555,27 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 	}
 
 	return obj, diags
+}
+
+// planComputedValuesForResource is to populate the computed values with
+// unknown values. This isn't the original use case for the mocking
+// library, but it is doing exactly what we need it to do.
+func (n *NodeAbstractResource) planComputedValuesForResource(original cty.Value, schema *configschema.Block) providers.PlanResourceChangeResponse {
+	val, diags := mocking.PlanComputedValuesForResource(original, nil, schema)
+	if diags.HasErrors() {
+		// All the potential errors we get back from this function are
+		// related to the user badly defining mocks. We should never hit
+		// this as we are just using the default behaviour.
+		panic(diags.Err())
+	}
+
+	deferred := &providers.Deferred{
+		Reason: providers.DeferredReasonExcluded,
+	}
+	return providers.PlanResourceChangeResponse{
+		PlannedState: val,
+		Deferred:     deferred,
+	}
 }
 
 // graphNodesAreResourceInstancesInDifferentInstancesOfSameModule is an

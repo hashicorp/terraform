@@ -39,6 +39,78 @@ func (g *Graph) Walk(walker *ContextGraphWalker) tfdiags.Diagnostics {
 	return g.walk(ctx, walker, true)
 }
 
+// applyTargeting processes the targeting rules for the graph, handling both inclusion
+// and exclusion logic. It returns the set of directly targeted nodes when targeting is enabled.
+//
+// When targeting is enabled, only nodes that are explicitly targeted or that are ancestors
+// of targeted nodes will be included in the traversal.
+//
+// When exclusion is applied, any node that is explicitly excluded or has an excluded
+// ancestor will be excluded from the traversal.
+func (g *Graph) applyTargeting(ctx EvalContext, walker *ContextGraphWalker, targeted bool) (directlyTargetedNodes dag.Set) {
+	filter := ctx.Filter()
+
+	// Exclude any node that is either directly excluded or has an excluded ancestor
+	if excludeAddrs := walker.ExcludedAddrs(); excludeAddrs.Size() > 0 {
+		for _, node := range g.Vertices() {
+			// Skip nodes that are already marked as excluded
+			if filter.Matches(node, dag.ExplicitlyExcluded) {
+				continue
+			}
+
+			// Check if this node should be excluded based on itself or its ancestors
+			if g.setContains(node, excludeAddrs) {
+				filter.Exclude(node)
+			}
+		}
+	}
+
+	// No graph nodes directly targeted. Includes all nodes that are not explicitly excluded.
+	if !targeted {
+		for _, node := range g.Vertices() {
+			if !filter.Matches(node, dag.ExplicitlyExcluded) {
+				filter.Include(node)
+			}
+		}
+		return nil
+	}
+
+	// Get and sort target addresses for deterministic behavior
+	less := func(i, j addrs.Targetable) bool {
+		return i.String() < j.String()
+	}
+	targets := walker.TargetAddrs().Sorted(less)
+
+	// If we have targeting enabled but no specific targets,
+	// include everything not excluded (same as !targeted case)
+	if len(targets) == 0 {
+		for _, node := range g.Vertices() {
+			if !filter.Matches(node, dag.ExplicitlyExcluded) {
+				filter.Include(node)
+			}
+		}
+		return nil
+	}
+
+	// Process targeted nodes
+	var allTargetedNodes dag.Set
+	directlyTargetedNodes, allTargetedNodes = selectTargetedNodes(g, targets)
+
+	// Include all nodes that are either directly targeted or ancestors of targeted nodes
+	for _, node := range allTargetedNodes {
+		filter.Include(node)
+	}
+
+	// Exclude everything else
+	for _, node := range g.Vertices() {
+		if !filter.Matches(node, dag.Allowed) {
+			filter.Exclude(node)
+		}
+	}
+
+	return directlyTargetedNodes
+}
+
 func (g *Graph) walk(ctx EvalContext, walker *ContextGraphWalker, targeted bool) tfdiags.Diagnostics {
 
 	selector := ctx.GraphFilter()
@@ -152,11 +224,12 @@ func (g *Graph) walk(ctx EvalContext, walker *ContextGraphWalker, targeted bool)
 		//  as the plan phase should have already validated them.
 		excluded := !selector.NodeAllowed(v)
 		if excluded && walker.Operation == walkApply {
+		if !filter.Allowed(v) && walker.Operation == walkApply {
 			log.Printf("[TRACE] vertex %q: excluded from dynamic expansion", dag.VertexName(v))
 			return
 		}
 
-		if ev, ok := v.(GraphNodeValidatable); ok && excluded {
+		if ev, ok := v.(GraphNodeValidatable); ok && !filter.Allowed(v) {
 			diags = diags.Append(walker.Validate(vertexCtx, ev))
 			return
 		} else if ev, ok := v.(GraphNodeExecutable); ok {
@@ -204,6 +277,7 @@ func (g *Graph) walk(ctx EvalContext, walker *ContextGraphWalker, targeted bool)
 				// If the dynamic node is excluded, we should exclude all of the
 				// nodes in its subgraph.
 				if selector.Matches(v, NodeExcluded) {
+				if !filter.Matches(v, dag.Allowed) {
 					for _, node := range g.Vertices() {
 						selector.Exclude(node)
 					}

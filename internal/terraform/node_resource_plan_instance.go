@@ -85,10 +85,6 @@ func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 	}
 }
 
-func (n *NodePlannableResourceInstance) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	return (&NodeValidatableResource{&n.NodeAbstractResource}).Validate(ctx, op)
-}
-
 func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 	config := n.Config
 	addr := n.ResourceInstanceAddr()
@@ -265,7 +261,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	if deferred == nil {
+	// If the non-importing resource is excluded, we don't need to write the state.
+	if deferred == nil && ctx.Filter().Allowed(n) {
 		// We'll save a snapshot of what we just read from the state into the
 		// prevRunState before we do anything else, since this will capture the
 		// result of any schema upgrading that readResourceInstanceState just did,
@@ -300,7 +297,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// Refresh, maybe
 	// The import process handles its own refresh
 	// No refresh for excluded resources too, so that we don't write the state
-	if !n.skipRefresh && !importing {
+	excluded := n.IsExcluded()
+	if !n.skipRefresh && !importing && !excluded {
 		var refreshDiags tfdiags.Diagnostics
 		instanceRefreshState, refreshDeferred, refreshDiags = n.refresh(ctx, states.NotDeposed, instanceRefreshState, ctx.Deferrals().DeferralAllowed())
 		diags = diags.Append(refreshDiags)
@@ -482,6 +480,21 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			deferrals.ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
 		}
 	} else {
+		// TODO: Test this case
+		if excluded {
+			ctx.Deferrals().ReportResourceInstanceDeferred(addr, providers.DeferredReasonExcluded, &plans.ResourceInstanceChange{
+				Addr:         n.Addr,
+				PrevRunAddr:  n.Addr,
+				ProviderAddr: n.ResolvedProvider,
+				Change: plans.Change{
+					Action: plans.Read,
+					// No state to read
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.NullVal(cty.DynamicPseudoType),
+				},
+			})
+			return diags
+		}
 		// In refresh-only mode we need to evaluate the for-each expression in
 		// order to supply the value to the pre- and post-condition check
 		// blocks. This has the unfortunate edge case of a refresh-only plan

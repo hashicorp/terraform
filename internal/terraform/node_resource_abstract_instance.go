@@ -285,6 +285,10 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateDeposed(ctx Eva
 // one of the two wrappers to be explicit about which of the instance's
 // objects you are intending to write.
 func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalContext, deposedKey states.DeposedKey, obj *states.ResourceInstanceObject, targetState phaseState) error {
+	// Excluded resources are never written to state
+	if n.IsExcluded() {
+		return nil
+	}
 	absAddr := n.Addr
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
@@ -409,7 +413,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 	// operation.
 	nullVal := cty.NullVal(unmarkedPriorVal.Type())
 
-	provider, _, err := getProvider(ctx, n.ResolvedProvider)
+	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return plan, deferred, diags.Append(err)
 	}
@@ -429,6 +433,16 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		resp = providers.PlanResourceChangeResponse{
 			PlannedState: nullVal,
 		}
+	} else if n.IsExcluded() {
+		resource := n.ResourceAddr().Resource
+		schema, _ := providerSchema.SchemaForResourceAddr(resource)
+		if schema == nil {
+			// Should be caught during validation, so we don't bother with a pretty error here
+			diags = diags.Append(fmt.Errorf("provider does not support resource type %q", resource.Type))
+			return plan, deferred, diags
+		}
+		resp = n.planComputedValuesForResource(nullVal, schema)
+		deferred = resp.Deferred
 	} else {
 		// Allow the provider to check the destroy plan, and insert any
 		// necessary private data.
@@ -931,6 +945,8 @@ func (n *NodeAbstractResourceInstance) plan(
 				PlannedState: proposedNewVal,
 			}
 		}
+	} else if n.IsExcluded() {
+		resp = n.planComputedValuesForResource(proposedNewVal, schema)
 	} else {
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 			TypeName:           n.Addr.Resource.Resource.Type,
@@ -1083,6 +1099,13 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	woPathSet := cty.NewPathSet(writeOnlyPaths...)
 	action, actionReason := getAction(n.Addr, unmarkedPriorVal, unmarkedPlannedNewVal, createBeforeDestroy, woPathSet, forceReplace, reqRep)
+
+	// if the resource is excluded, we don't want to do anything further with it
+	if n.IsExcluded() {
+		action = plans.NoOp
+		actionReason = plans.ResourceInstanceChangeNoReason
+		deferred = &providers.Deferred{Reason: providers.DeferredReasonExcluded}
+	}
 
 	if action.IsReplace() {
 		// In this strange situation we want to produce a change object that

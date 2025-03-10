@@ -124,6 +124,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 				node = &NodeDestroyableOutput{
 					Addr:     absAddr,
 					Planning: n.Planning,
+					Excluded: Excluded{excluded: n.excluded},
 				}
 
 			default:
@@ -136,6 +137,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 					Planning:     n.Planning,
 					Override:     n.getOverrideValue(absAddr.Module),
 					Dependencies: n.Dependencies,
+					Excluded:     Excluded{excluded: n.excluded},
 				}
 			}
 
@@ -283,6 +285,8 @@ type NodeApplyableOutput struct {
 	// Dependencies is the full set of resources that are referenced by this
 	// output.
 	Dependencies []addrs.ConfigResource
+
+	Excluded
 }
 
 var (
@@ -541,153 +545,6 @@ func (n *NodeApplyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.DotNo
 	}
 }
 
-func (n *NodeApplyableOutput) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	return (&nodeValidateOutput{n}).Validate(ctx, op)
-}
-
-type nodeValidateOutput struct {
-	*NodeApplyableOutput
-}
-
-func (n *nodeValidateOutput) Validate(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	val := cty.UnknownVal(cty.DynamicPseudoType)
-	changeRecorded := n.Change != nil
-	// we we have a change recorded, we don't need to re-evaluate if the value
-	// was known
-	if changeRecorded {
-		val = n.Change.After
-	}
-
-	if n.Addr.Module.IsRoot() && n.Config.Ephemeral {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Ephemeral output not allowed",
-			Detail:   "Ephemeral outputs are not allowed in context of a root module",
-			Subject:  n.Config.DeclRange.Ptr(),
-		})
-		return
-	}
-
-	// Checks are not evaluated during a destroy. The checks may fail, may not
-	// be valid, or may not have been registered at all.
-	// We also don't evaluate checks for overridden outputs. This is because
-	// any references within the checks will likely not have been created.
-	if !n.DestroyApply && n.Override == cty.NilVal {
-		checkRuleSeverity := tfdiags.Error
-		if n.RefreshOnly {
-			checkRuleSeverity = tfdiags.Warning
-		}
-		checkDiags := evalCheckRules(
-			addrs.OutputPrecondition,
-			n.Config.Preconditions,
-			ctx, n.Addr, EvalDataForNoInstanceKey,
-			checkRuleSeverity,
-		)
-		diags = diags.Append(checkDiags)
-		if diags.HasErrors() {
-			return diags // failed preconditions prevent further evaluation
-		}
-	}
-
-	// If there was no change recorded, or the recorded change was not wholly
-	// known, then we need to re-evaluate the output
-	if !changeRecorded || !val.IsWhollyKnown() {
-
-		// First, we check if we have an overridden value. If we do, then we
-		// use that and we don't try and evaluate the underlying expression.
-		val = n.Override
-		if val == cty.NilVal {
-			// This has to run before we have a state lock, since evaluation also
-			// reads the state
-			var evalDiags tfdiags.Diagnostics
-			val, evalDiags = ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
-			diags = diags.Append(evalDiags)
-
-			// We'll handle errors below, after we have loaded the module.
-			// Outputs don't have a separate mode for validation, so validate
-			// depends_on expressions here too
-			diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
-
-			// For root module outputs in particular, an output value must be
-			// statically declared as sensitive in order to dynamically return
-			// a sensitive result, to help avoid accidental exposure in the state
-			// of a sensitive value that the user doesn't want to include there.
-			if n.Addr.Module.IsRoot() {
-				if !n.Config.Sensitive && marks.Contains(val, marks.Sensitive) {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Output refers to sensitive values",
-						Detail: `To reduce the risk of accidentally exporting sensitive data that was intended to be only internal, Terraform requires that any root module output containing sensitive data be explicitly marked as sensitive, to confirm your intent.
-
-If you do intend to export this data, annotate the output value as sensitive by adding the following argument:
-    sensitive = true`,
-						Subject: n.Config.DeclRange.Ptr(),
-					})
-				}
-			}
-		}
-	}
-
-	// handling the interpolation error
-	if diags.HasErrors() {
-		if flagWarnOutputErrors {
-			log.Printf("[ERROR] Output interpolation %q failed: %s", n.Addr, diags.Err())
-			// if we're continuing, make sure the output is included, and
-			// marked as unknown. If the evaluator was able to find a type
-			// for the value in spite of the error then we'll use it.
-			// n.setValue(ctx.NamedValues(), state, changes, ctx.Deferrals(), cty.UnknownVal(val.Type()))
-
-			// Keep existing warnings, while converting errors to warnings.
-			// This is not meant to be the normal path, so there no need to
-			// make the errors pretty.
-			var warnings tfdiags.Diagnostics
-			for _, d := range diags {
-				switch d.Severity() {
-				case tfdiags.Warning:
-					warnings = warnings.Append(d)
-				case tfdiags.Error:
-					desc := d.Description()
-					warnings = warnings.Append(tfdiags.SimpleWarning(fmt.Sprintf("%s:%s", desc.Summary, desc.Detail)))
-				}
-			}
-
-			return warnings
-		}
-		return diags
-	}
-
-	// The checks below this point are intentionally not opted out by
-	// "flagWarnOutputErrors", because they relate to features that were added
-	// more recently than the historical change to treat invalid output values
-	// as errors rather than warnings.
-	if n.Config.Ephemeral && !marks.Has(val, marks.Ephemeral) {
-		// An ephemeral output value must always be ephemeral
-		// This is to prevent accidental persistence upstream
-		// from here.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Value not allowed in ephemeral output",
-			Detail:   "This output value is declared as returning an ephemeral value, so it can only be set to an ephemeral value.",
-			Subject:  n.Config.Expr.Range().Ptr(),
-		})
-		return diags
-	} else if !n.Config.Ephemeral && marks.Contains(val, marks.Ephemeral) {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Ephemeral value not allowed",
-			Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
-			Subject:  n.Config.Expr.Range().Ptr(),
-		})
-		return diags
-	}
-
-	// Set the value in the named values, but don't update the state.
-	// This is because we're only validating the output, but modules outside
-	// of the current module may depend on this output.
-	ctx.NamedValues().SetOutputValue(n.Addr, val)
-	return diags
-}
-
 // nodeOutputInPartialModule represents an infinite set of possible output value
 // instances beneath a partially-expanded module instance prefix.
 //
@@ -752,6 +609,7 @@ func (n *nodeOutputInPartialModule) Validate(ctx EvalContext, op walkOperation) 
 type NodeDestroyableOutput struct {
 	Addr     addrs.AbsOutputValue
 	Planning bool
+	Excluded
 }
 
 var (
@@ -832,6 +690,11 @@ func (n *NodeDestroyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.Dot
 }
 
 func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states.SyncState, changes *plans.ChangesSync, deferred *deferring.Deferred, val cty.Value) {
+	// If the output is excluded, we don't want to save the value in the state
+	// or in the changeset.
+	if n.IsExcluded() {
+		return
+	}
 	if changes != nil && n.Planning {
 		// if this is a root module, try to get a before value from the state for
 		// the diff

@@ -144,7 +144,6 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 			}
 
 		case n.ModuleCall.ForEach != nil:
-			// Same problem as above probably applies
 			forEach, known, feDiags := evaluateForEachExpression(n.ModuleCall.ForEach, moduleCtx, allowUnknown)
 			diags = diags.Append(feDiags)
 			if diags.HasErrors() {
@@ -163,10 +162,6 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 
 	return diags
 
-}
-
-func (n *nodeExpandModule) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	return (&nodeValidateModule{*n}).Execute(ctx, op)
 }
 
 // nodeCloseModule represents an expanded module during apply, and is visited
@@ -264,7 +259,6 @@ type nodeValidateModule struct {
 }
 
 var _ GraphNodeExecutable = (*nodeValidateModule)(nil)
-var _ GraphNodeValidatable = (*nodeValidateModule)(nil)
 
 // GraphNodeEvalable
 func (n *nodeValidateModule) Execute(globalCtx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {

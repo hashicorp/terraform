@@ -207,8 +207,8 @@ test_thing.b (expand)
 	}
 }
 
-// Test now void because we add every resource to the graph, and instead
-// targeting is done when walking the graph.
+// Test now void because we walk everything in the graph, and instead
+// target at a higher level.
 // func TestPlanGraphBuilder_targetModule(t *testing.T) {
 // 	b := &PlanGraphBuilder{
 // 		Config:  testModule(t, "graph-builder-plan-target-module-provider"),

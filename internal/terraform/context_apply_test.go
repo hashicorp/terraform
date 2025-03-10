@@ -7274,77 +7274,8 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 	// TODO: Future refactoring may enable us to remove the output from state in
 	// this case, and that would be Just Fine - this test can be modified to
 	// expect 0 outputs.
-	if len(state.RootOutputValues) != 1 {
-		t.Fatalf("expected 1 output, got: %#v", state.RootOutputValues)
-	}
-
-	// the module instance should remain
-	mod = state.Module(addrs.RootModuleInstance.Child("child", addrs.NoKey))
-	if len(mod.Resources) != 1 {
-		t.Fatalf("expected 1 resources, got: %#v", mod.Resources)
-	}
-}
-
-func TestContext2Apply_targetedExclude(t *testing.T) {
-	m := testModule(t, "destroy-targeted")
-	p := testProvider("aws")
-	p.PlanResourceChangeFn = testDiffFn
-
-	state := states.NewState()
-	root := state.EnsureModule(addrs.RootModuleInstance)
-	root.SetResourceInstanceCurrent(
-		mustResourceInstanceAddr("aws_instance.a").Resource,
-		&states.ResourceInstanceObjectSrc{
-			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"bar"}`),
-		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
-	)
-	state.SetOutputValue(
-		addrs.OutputValue{Name: "out"}.Absolute(addrs.RootModuleInstance),
-		cty.StringVal("bar"), false,
-	)
-
-	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
-	child.SetResourceInstanceCurrent(
-		mustResourceInstanceAddr("aws_instance.b").Resource,
-		&states.ResourceInstanceObjectSrc{
-			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"i-bcd345"}`),
-		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
-	)
-
-	ctx := testContext2(t, &ContextOpts{
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-		},
-	})
-
-	if diags := ctx.Validate(m, nil); diags.HasErrors() {
-		t.Fatalf("validate errors: %s", diags.Err())
-	}
-
-	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode: plans.DestroyMode,
-		Excluded: []addrs.Targetable{
-			addrs.RootModuleInstance.Child("child", addrs.NoKey),
-		},
-	})
-	assertNoErrors(t, diags)
-
-	state, diags = ctx.Apply(plan, m, nil)
-	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
-
-	mod := state.RootModule()
-	if len(mod.Resources) != 0 {
-		t.Fatalf("expected 0 resources, got: %#v", mod.Resources)
-	}
-
-	// Compared to target flag, we don't have to remove nodes when excluding,
-	// thus no longer have to prune the output values from the destroy
+	// UPDATE: We no longer have to remove nodes when targeting, thus
+	// no longer have to prune the output values from the destroy
 	// graph, and the resources that stay in the graph while not being targeted
 	//  would only end up being validated, not applied.
 	// In this case, the output values can be appropriately destroyed from state.

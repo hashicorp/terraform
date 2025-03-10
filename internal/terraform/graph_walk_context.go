@@ -58,8 +58,7 @@ type ContextGraphWalker struct {
 	// graph to only include the resources that are targeted.
 	excluded addrs.Set[addrs.Targetable]
 	targets  addrs.Set[addrs.Targetable]
-
-	filter *graphFilter
+	filter   *graphFilter
 
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.

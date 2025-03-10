@@ -77,10 +77,6 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 	return diags
 }
 
-func (n *NodeValidatableResource) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	return n.Execute(ctx, op)
-}
-
 // validateProvisioner validates the configuration of a provisioner belonging to
 // a resource. The provisioner config is expected to contain the merged
 // connection configurations.

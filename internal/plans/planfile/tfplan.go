@@ -143,6 +143,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			return nil, fmt.Errorf("plan contains invalid target address %q: %s", target, diags.Err())
 		}
 		plan.TargetAddrs = append(plan.TargetAddrs, target.Subject)
+		// TODO: Add ExcludeAddrs to planfile?
 	}
 
 	for _, rawReplaceAddr := range rawPlan.ForceReplaceAddrs {
@@ -486,6 +487,8 @@ func DeferredReasonFromProto(reason planproto.DeferredReason) (providers.Deferre
 		return providers.DeferredReasonAbsentPrereq, nil
 	case planproto.DeferredReason_DEFERRED_PREREQ:
 		return providers.DeferredReasonDeferredPrereq, nil
+	case planproto.DeferredReason_EXCLUDED:
+		return providers.DeferredReasonExcluded, nil
 	default:
 		return providers.DeferredReasonInvalid, fmt.Errorf("invalid deferred reason %s", reason)
 	}
@@ -958,6 +961,8 @@ func DeferredReasonToProto(reason providers.DeferredReason) (planproto.DeferredR
 		return planproto.DeferredReason_ABSENT_PREREQ, nil
 	case providers.DeferredReasonDeferredPrereq:
 		return planproto.DeferredReason_DEFERRED_PREREQ, nil
+	case providers.DeferredReasonExcluded:
+		return planproto.DeferredReason_EXCLUDED, nil
 	default:
 		return planproto.DeferredReason_INVALID, fmt.Errorf("invalid deferred reason %s", reason)
 	}

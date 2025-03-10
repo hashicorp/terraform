@@ -62,13 +62,6 @@ func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOp
 	}
 }
 
-func (n *NodePlanDestroyableResourceInstance) Validate(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	// Do nothing. We already validated this during the normal planning phase.
-	// It may be referencing things that have been pruned, and trying to validate
-	// it would fail.
-	return
-}
-
 func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
