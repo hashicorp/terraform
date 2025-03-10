@@ -118,6 +118,14 @@ func (s *Stacks) ValidateStackConfiguration(a0 context.Context, a1 *stacks.Valid
 	return impl.ValidateStackConfiguration(a0, a1)
 }
 
+func (s *Stacks) ListResourceIdentities(a0 context.Context, a1 *stacks.ListResourceIdentities_Request) (*stacks.ListResourceIdentities_Response, error) {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return nil, err
+	}
+	return impl.ListResourceIdentities(a0, a1)
+}
+
 func (s *Stacks) ActivateRPCServer(impl stacks.StacksServer) {
 	s.mu.Lock()
 	s.impl = impl
