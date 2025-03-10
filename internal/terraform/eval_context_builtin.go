@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -72,7 +71,7 @@ type BuiltinEvalContext struct {
 
 	// FilterValue is an object that holds a set of includes and excludes
 	// for filtering resources.
-	FilterValue *dag.Filter
+	FilterValue *graphFilter
 
 	// forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
@@ -626,6 +625,6 @@ func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities
 	}
 }
 
-func (ctx *BuiltinEvalContext) Filter() *dag.Filter {
+func (ctx *BuiltinEvalContext) GraphFilter() *graphFilter {
 	return ctx.FilterValue
 }

@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
@@ -59,7 +58,7 @@ type ContextGraphWalker struct {
 	// graph to only include the resources that are targeted.
 	excluded addrs.Set[addrs.Targetable]
 	targets  addrs.Set[addrs.Targetable]
-	filter   *dag.Filter
+	filter   *graphFilter
 
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
@@ -159,7 +158,7 @@ func (w *ContextGraphWalker) init() {
 	w.providerSchemas = make(map[string]providers.ProviderSchema)
 	w.provisionerCache = make(map[string]provisioners.Interface)
 	w.provisionerSchemas = make(map[string]*configschema.Block)
-	w.filter = dag.NewFilter()
+	w.filter = newFilter()
 }
 
 func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfdiags.Diagnostics {

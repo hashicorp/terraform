@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -433,6 +432,6 @@ func (ctx *MockEvalContext) ClientCapabilities() providers.ClientCapabilities {
 	}
 }
 
-func (ctx *MockEvalContext) Filter() *dag.Filter {
-	return dag.NewFilter()
+func (ctx *MockEvalContext) GraphFilter() *graphFilter {
+	return newFilter()
 }

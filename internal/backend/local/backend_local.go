@@ -205,7 +205,7 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 		SetVariables:       variables,
 		SkipRefresh:        op.Type != backendrun.OperationTypeRefresh && !op.PlanRefresh,
 		GenerateConfigPath: op.GenerateConfigOut,
-		DeferralAllowed:    op.DeferralAllowed || len(op.Excluded) > 0 || len(op.Targets) > 0,
+		DeferralAllowed:    op.DeferralAllowed,
 	}
 	run.PlanOpts = planOpts
 

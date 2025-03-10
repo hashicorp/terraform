@@ -149,10 +149,9 @@ func NewDeferred(enabled bool) *Deferred {
 func (d *Deferred) GetDeferredChanges() []*plans.DeferredResourceInstanceChange {
 	var changes []*plans.DeferredResourceInstanceChange
 
-	// TODO: Dont just ignore the deferralAllowed flag, what are the implications of this?
-	// if !d.deferralAllowed {
-	// 	return changes
-	// }
+	if !d.deferralAllowed {
+		return changes
+	}
 
 	for _, configMapElem := range d.resourceInstancesDeferred.Elems {
 		for _, changeElem := range configMapElem.Value.Elems {
