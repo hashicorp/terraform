@@ -130,10 +130,15 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 
 	identResp, err := p.client.GetResourceIdentitySchemas(p.ctx, new(proto6.GetResourceIdentitySchemas_Request))
 	if err != nil {
-		logger.Debug("Error getting resource identity schemas")
-		// Create an empty map for identity schemas
-		identResp = &proto6.GetResourceIdentitySchemas_Response{
-			IdentitySchemas: map[string]*proto6.ResourceIdentitySchema{},
+		if status.Code(err) == codes.Unimplemented {
+			// We don't treat this as an error if older providers don't implement this method,
+			// so we create an empty map for identity schemas
+			identResp = &proto6.GetResourceIdentitySchemas_Response{
+				IdentitySchemas: map[string]*proto6.ResourceIdentitySchema{},
+			}
+		} else {
+			resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+			return resp
 		}
 	}
 
