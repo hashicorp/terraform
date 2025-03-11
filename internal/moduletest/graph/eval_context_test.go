@@ -88,7 +88,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"value": {
 										Type:     cty.String,
@@ -157,7 +157,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"value": {
 										Type:     cty.String,
@@ -213,7 +213,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"value": {
 										Type:     cty.String,
@@ -280,7 +280,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"value": {
 										Type:     cty.String,
@@ -459,7 +459,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"value": {
 										Type:     cty.String,
@@ -538,7 +538,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"value": {
 										Type:     cty.String,
@@ -607,7 +607,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
-							Block: &configschema.Block{
+							Body: &configschema.Block{
 								Attributes: map[string]*configschema.Attribute{
 									"value": {
 										Type:     cty.String,

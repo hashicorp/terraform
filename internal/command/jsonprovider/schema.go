@@ -15,12 +15,12 @@ type Schema struct {
 // marshalSchema is a convenience wrapper around mashalBlock. Schema version
 // should be set by the caller.
 func marshalSchema(schema providers.Schema) *Schema {
-	if schema.Block == nil {
+	if schema.Body == nil {
 		return &Schema{}
 	}
 
 	var ret Schema
-	ret.Block = marshalBlock(schema.Block)
+	ret.Block = marshalBlock(schema.Body)
 	ret.Version = uint64(schema.Version)
 
 	return &ret

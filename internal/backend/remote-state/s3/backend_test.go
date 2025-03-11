@@ -1935,9 +1935,7 @@ func TestBackendConfig_Proxy(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			if diff := cmp.Diff(diags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
-				t.Errorf("unexpected diagnostics difference: %s", diff)
-			}
+			tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectedDiags)
 
 			client := b.awsConfig.HTTPClient
 			bClient, ok := client.(*awshttp.BuildableClient)

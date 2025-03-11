@@ -45,10 +45,10 @@ resource "test_object" "a" {
 
 	p := simpleMockProvider()
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-		Provider: providers.Schema{Block: simpleTestSchema()},
+		Provider: providers.Schema{Body: simpleTestSchema()},
 		ResourceTypes: map[string]providers.Schema{
 			"test_object": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"arg": {Type: cty.String, Optional: true},
 					},
@@ -427,11 +427,11 @@ func TestContext2Plan_resourceChecksInExpandedModule(t *testing.T) {
 	p := testProvider("test")
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{},
+			Body: &configschema.Block{},
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test": {
-				Block: &configschema.Block{},
+				Body: &configschema.Block{},
 			},
 		},
 	}
@@ -551,11 +551,11 @@ func TestContext2Plan_dataResourceChecksManagedResourceChange(t *testing.T) {
 	p := testProvider("test")
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{},
+			Body: &configschema.Block{},
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_resource": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {
 							Type:     cty.String,
@@ -571,7 +571,7 @@ func TestContext2Plan_dataResourceChecksManagedResourceChange(t *testing.T) {
 		},
 		DataSources: map[string]providers.Schema{
 			"test_data_source": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {
 							Type:     cty.String,
@@ -750,11 +750,11 @@ func TestContext2Plan_managedResourceChecksOtherManagedResourceChange(t *testing
 	p := testProvider("test")
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{},
+			Body: &configschema.Block{},
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_resource": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {
 							Type:     cty.String,
@@ -770,7 +770,7 @@ func TestContext2Plan_managedResourceChecksOtherManagedResourceChange(t *testing
 		},
 		DataSources: map[string]providers.Schema{
 			"test_data_source": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {
 							Type:     cty.String,
@@ -919,10 +919,10 @@ resource "test_object" "a" {
 
 	p := simpleMockProvider()
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-		Provider: providers.Schema{Block: simpleTestSchema()},
+		Provider: providers.Schema{Body: simpleTestSchema()},
 		ResourceTypes: map[string]providers.Schema{
 			"test_object": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"arg": {Type: cty.String, Optional: true},
 					},
@@ -1045,10 +1045,10 @@ resource "test_object" "a" {
 
 	p := simpleMockProvider()
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-		Provider: providers.Schema{Block: simpleTestSchema()},
+		Provider: providers.Schema{Body: simpleTestSchema()},
 		ResourceTypes: map[string]providers.Schema{
 			"test_object": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"arg": {Type: cty.String, Optional: true},
 					},
@@ -1798,7 +1798,7 @@ func TestContext2Plan_crossResourceMoveBasic(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_object_one": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"value": {
 							Type:     cty.String,
@@ -1808,7 +1808,7 @@ func TestContext2Plan_crossResourceMoveBasic(t *testing.T) {
 				},
 			},
 			"test_object_two": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"value": {
 							Type:     cty.String,
@@ -1896,7 +1896,7 @@ func TestContext2Plan_crossProviderMove(t *testing.T) {
 	one.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"one_object": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"value": {
 							Type:     cty.String,
@@ -1912,7 +1912,7 @@ func TestContext2Plan_crossProviderMove(t *testing.T) {
 	two.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"two_object": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"value": {
 							Type:     cty.String,
@@ -1999,7 +1999,7 @@ func TestContext2Plan_crossResourceMoveMissingConfig(t *testing.T) {
 		Provider: providers.Schema{},
 		ResourceTypes: map[string]providers.Schema{
 			"test_object_one": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"value": {
 							Type:     cty.String,
@@ -2009,7 +2009,7 @@ func TestContext2Plan_crossResourceMoveMissingConfig(t *testing.T) {
 				},
 			},
 			"test_object_two": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"value": {
 							Type:     cty.String,
@@ -2218,10 +2218,10 @@ func TestContext2Plan_refreshOnlyMode(t *testing.T) {
 
 	p := simpleMockProvider()
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-		Provider: providers.Schema{Block: simpleTestSchema()},
+		Provider: providers.Schema{Body: simpleTestSchema()},
 		ResourceTypes: map[string]providers.Schema{
 			"test_object": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"arg": {Type: cty.String, Optional: true},
 					},
@@ -2355,10 +2355,10 @@ func TestContext2Plan_refreshOnlyMode_deposed(t *testing.T) {
 
 	p := simpleMockProvider()
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-		Provider: providers.Schema{Block: simpleTestSchema()},
+		Provider: providers.Schema{Body: simpleTestSchema()},
 		ResourceTypes: map[string]providers.Schema{
 			"test_object": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"arg": {Type: cty.String, Optional: true},
 					},
@@ -2496,10 +2496,10 @@ func TestContext2Plan_refreshOnlyMode_orphan(t *testing.T) {
 
 	p := simpleMockProvider()
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-		Provider: providers.Schema{Block: simpleTestSchema()},
+		Provider: providers.Schema{Body: simpleTestSchema()},
 		ResourceTypes: map[string]providers.Schema{
 			"test_object": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"arg": {Type: cty.String, Optional: true},
 					},
@@ -4277,7 +4277,7 @@ resource "test_object" "b" {
 	testProvider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"in": {
 							Type:     cty.String,
@@ -4288,7 +4288,7 @@ resource "test_object" "b" {
 			},
 			ResourceTypes: map[string]providers.Schema{
 				"test_object": providers.Schema{
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"in": {
 								Type:     cty.String,
@@ -4524,7 +4524,7 @@ resource "test_object" "a" {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"test_object": providers.Schema{
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"map": {
 								Type:     cty.Map(cty.String),
@@ -4592,7 +4592,7 @@ func TestContext2Plan_externalProvidersWithState(t *testing.T) {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"foo": {
-					Block: &configschema.Block{},
+					Body: &configschema.Block{},
 				},
 			},
 		},
@@ -4677,7 +4677,7 @@ func TestContext2Plan_externalProviders(t *testing.T) {
 	fooProvider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						// We have a required argument here just so that the
 						// plan will fail if the runtime erroneously tries
@@ -4697,7 +4697,7 @@ func TestContext2Plan_externalProviders(t *testing.T) {
 			},
 			ResourceTypes: map[string]providers.Schema{
 				"foo": {
-					Block: &configschema.Block{},
+					Body: &configschema.Block{},
 				},
 			},
 		},
@@ -4711,7 +4711,7 @@ func TestContext2Plan_externalProviders(t *testing.T) {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"bar": {
-					Block: &configschema.Block{},
+					Body: &configschema.Block{},
 				},
 			},
 		},
@@ -4726,7 +4726,7 @@ func TestContext2Plan_externalProviders(t *testing.T) {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"baz": {
-					Block: &configschema.Block{},
+					Body: &configschema.Block{},
 				},
 			},
 		},
@@ -4826,7 +4826,7 @@ func TestContext2Apply_externalDependencyDeferred(t *testing.T) {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"test": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"name": {
 								Type:     cty.String,
@@ -5776,7 +5776,7 @@ resource "test_object" "obj" {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_object": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"value": {
 							Type:      cty.String,
@@ -5836,7 +5836,7 @@ resource "test_object" "obj" {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_object": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"value": {
 							Type:      cty.String,
@@ -5931,7 +5931,7 @@ resource "test_object" "obj" {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_object": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"value": {
 							Type:      cty.String,
@@ -6343,12 +6343,118 @@ resource "test_object" "a" {
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	assertNoErrors(t, diags)
 
-	resourceType := p.GetProviderSchemaResponse.ResourceTypes["test_object"].Block.ImpliedType()
+	resourceType := p.GetProviderSchemaResponse.ResourceTypes["test_object"].Body.ImpliedType()
 	change, err := plan.Changes.ResourceInstance(mustResourceInstanceAddr(`test_object.a["old"]`)).Decode(resourceType)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if change.Before.GetAttr("test_string").AsString() != "new" {
 		t.Fatalf("resource before value not refreshed in plan: %#v\n", change.Before)
+	}
+}
+
+func TestContext2Plan_dataResourceNestedUnknown(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "create" {
+}
+
+data "test_data_source" "foo" {
+  nested_map = {
+    "key1" : {
+      required_attr = test_resource.create.id
+    }
+  }
+  nested_obj = {
+    required_attr = test_resource.create.id
+  }
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			"test_data_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"nested_map": &configschema.Attribute{
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingMap,
+							Attributes: map[string]*configschema.Attribute{
+								"required_attr": {
+									Type:     cty.String,
+									Required: true,
+								},
+								"computed_attr": {
+									Type:     cty.String,
+									Computed: true,
+								},
+							},
+						},
+					},
+					"nested_obj": &configschema.Attribute{
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"required_attr": {
+									Type:     cty.String,
+									Required: true,
+								},
+								"computed_attr": {
+									Type:     cty.String,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	dataSchemaType := p.GetProviderSchemaResponse.DataSources["test_data_source"].Body.ImpliedType()
+	after, err := plan.Changes.ResourceInstance(mustResourceInstanceAddr("data.test_data_source.foo")).After.Decode(dataSchemaType)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// any computed attributes within configured objects should be unknown
+	expected := cty.ObjectVal(map[string]cty.Value{
+		"nested_map": cty.MapVal(map[string]cty.Value{
+			"key1": cty.ObjectVal(map[string]cty.Value{
+				"required_attr": cty.UnknownVal(cty.String),
+				"computed_attr": cty.UnknownVal(cty.String),
+			}),
+		}),
+		"nested_obj": cty.ObjectVal(map[string]cty.Value{
+			"required_attr": cty.UnknownVal(cty.String),
+			"computed_attr": cty.UnknownVal(cty.String),
+		}),
+	})
+
+	if !after.RawEquals(expected) {
+		t.Fatalf("\nexpected plan: %#v\n  actual plan: %#v\n", expected, after)
+
 	}
 }

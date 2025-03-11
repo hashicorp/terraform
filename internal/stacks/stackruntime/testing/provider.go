@@ -92,7 +92,7 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 		MockProvider: &testing_provider.MockProvider{
 			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 				Provider: providers.Schema{
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							// if the configuration sets require_auth then it
 							// must also provide the correct value for
@@ -127,21 +127,21 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 				},
 				ResourceTypes: map[string]providers.Schema{
 					"testing_resource": {
-						Block: TestingResourceSchema,
+						Body: TestingResourceSchema,
 					},
 					"testing_deferred_resource": {
-						Block: DeferredResourceSchema,
+						Body: DeferredResourceSchema,
 					},
 					"testing_failed_resource": {
-						Block: FailedResourceSchema,
+						Body: FailedResourceSchema,
 					},
 					"testing_blocked_resource": {
-						Block: BlockedResourceSchema,
+						Body: BlockedResourceSchema,
 					},
 				},
 				DataSources: map[string]providers.Schema{
 					"testing_data_source": {
-						Block: TestingDataSourceSchema,
+						Body: TestingDataSourceSchema,
 					},
 				},
 				Functions: map[string]providers.FunctionDecl{

@@ -135,7 +135,7 @@ func (cp *Plugins) ProviderSchema(addr addrs.Provider) (providers.ProviderSchema
 	}
 
 	for t, r := range resp.ResourceTypes {
-		if err := r.Block.InternalValidate(); err != nil {
+		if err := r.Body.InternalValidate(); err != nil {
 			return resp, fmt.Errorf("provider %s has invalid schema for managed resource type %q, which is a bug in the provider: %q", addr, t, err)
 		}
 		if r.Version < 0 {
@@ -144,7 +144,7 @@ func (cp *Plugins) ProviderSchema(addr addrs.Provider) (providers.ProviderSchema
 	}
 
 	for t, d := range resp.DataSources {
-		if err := d.Block.InternalValidate(); err != nil {
+		if err := d.Body.InternalValidate(); err != nil {
 			return resp, fmt.Errorf("provider %s has invalid schema for data resource type %q, which is a bug in the provider: %q", addr, t, err)
 		}
 		if d.Version < 0 {
@@ -155,7 +155,7 @@ func (cp *Plugins) ProviderSchema(addr addrs.Provider) (providers.ProviderSchema
 	}
 
 	for t, r := range resp.EphemeralResourceTypes {
-		if err := r.Block.InternalValidate(); err != nil {
+		if err := r.Body.InternalValidate(); err != nil {
 			return resp, fmt.Errorf("provider %s has invalid schema for ephemeral resource type %q, which is a bug in the provider: %q", addr, t, err)
 		}
 	}
@@ -200,7 +200,7 @@ func (cp *Plugins) ProviderConfigSchema(providerAddr addrs.Provider) (*configsch
 		return nil, err
 	}
 
-	return providerSchema.Provider.Block, nil
+	return providerSchema.Provider.Body, nil
 }
 
 // ResourceTypeSchema is a helper wrapper around ProviderSchema which first

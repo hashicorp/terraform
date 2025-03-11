@@ -137,9 +137,9 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 	<-uiState.done
 
 	expectedOutput := `test_instance.foo: Modifying... [id=test]
-test_instance.foo: Still modifying... [id=test, 1s elapsed]
-test_instance.foo: Still modifying... [id=test, 2s elapsed]
-test_instance.foo: Still modifying... [id=test, 3s elapsed]
+test_instance.foo: Still modifying... [id=test, 00m01s elapsed]
+test_instance.foo: Still modifying... [id=test, 00m02s elapsed]
+test_instance.foo: Still modifying... [id=test, 00m03s elapsed]
 `
 	result := done(t)
 	output := result.Stdout()
@@ -637,8 +637,8 @@ func TestUiHookEphemeralOp_progress(t *testing.T) {
 
 	// we do not test for equality because time.Sleep can take longer than declared time
 	wantPrefix := `ephemeral.test_instance.foo: Opening...
-ephemeral.test_instance.foo: Still opening... [1s elapsed]
-ephemeral.test_instance.foo: Still opening... [2s elapsed]`
+ephemeral.test_instance.foo: Still opening... [00m01s elapsed]
+ephemeral.test_instance.foo: Still opening... [00m02s elapsed]`
 	if !strings.HasPrefix(stdout, wantPrefix) {
 		t.Fatalf("unexpected prefix\n got: %q\nwant: %q", stdout, wantPrefix)
 	}

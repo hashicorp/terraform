@@ -273,6 +273,28 @@ func TestTemplateString(t *testing.T) {
 		want         cty.Value
 		wantErr      string
 	}{
+		{ // a single string interpolation that evaluates to null should fail
+			`template`,
+			map[string]cty.Value{
+				"template": cty.StringVal(`${test}`),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"test": cty.NullVal(cty.String),
+			}),
+			cty.NilVal,
+			`<templatestring argument>:1,1-8: Template result is null; The result of the template is null, which is not a valid result for a templatestring call.`,
+		},
+		{ // a single string interpolation that evaluates to unknown should not fail
+			`template`,
+			map[string]cty.Value{
+				"template": cty.StringVal(`${test}`),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"test": cty.UnknownVal(cty.String),
+			}),
+			cty.UnknownVal(cty.String).RefineNotNull(),
+			``,
+		},
 		{
 			`template`,
 			map[string]cty.Value{
