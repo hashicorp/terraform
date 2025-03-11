@@ -817,7 +817,7 @@ message StackChangeProgress {
 
 message ListResourceIdentities {
   message Request {
-   	int64 state_handle = 1;
+    int64 state_handle = 1;
     int64 dependency_locks_handle = 2;
     int64 provider_cache_handle = 3;
   }
