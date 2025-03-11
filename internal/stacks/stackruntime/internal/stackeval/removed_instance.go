@@ -37,7 +37,7 @@ var (
 
 type RemovedInstance struct {
 	call     *Removed
-	key      addrs.InstanceKey
+	from     stackaddrs.AbsComponentInstance
 	deferred bool
 
 	main *Main
@@ -47,10 +47,10 @@ type RemovedInstance struct {
 	moduleTreePlan promising.Once[withDiagnostics[*plans.Plan]]
 }
 
-func newRemovedInstance(call *Removed, key addrs.InstanceKey, repetition instances.RepetitionData, deferred bool) *RemovedInstance {
+func newRemovedInstance(call *Removed, from stackaddrs.AbsComponentInstance, repetition instances.RepetitionData, deferred bool) *RemovedInstance {
 	return &RemovedInstance{
 		call:       call,
-		key:        key,
+		from:       from,
 		deferred:   deferred,
 		main:       call.main,
 		repetition: repetition,
@@ -63,15 +63,7 @@ func (r *RemovedInstance) reportNamedPromises(cb func(id promising.PromiseID, na
 }
 
 func (r *RemovedInstance) Addr() stackaddrs.AbsComponentInstance {
-	callAddr := r.call.Addr()
-	stackAddr := callAddr.Stack
-	return stackaddrs.AbsComponentInstance{
-		Stack: stackAddr,
-		Item: stackaddrs.ComponentInstance{
-			Component: callAddr.Item,
-			Key:       r.key,
-		},
-	}
+	return r.from
 }
 
 func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
@@ -82,7 +74,7 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 		if component != nil {
 			insts, unknown := component.Instances(ctx, PlanPhase)
 			if !unknown {
-				if _, exists := insts[r.key]; exists {
+				if _, exists := insts[r.Addr().Item.Key]; exists {
 					// The instance we're planning to remove is also targeted
 					// by a component block. We won't remove it, and we'll
 					// report a diagnostic to that effect.
