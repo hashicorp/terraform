@@ -35,6 +35,8 @@ func getResource(name string) resource {
 		return &failedResource{}
 	case "testing_blocked_resource":
 		return &blockedResource{}
+	case "testing_resource_with_identity":
+		return &testingResourceWithIdentity{}
 	default:
 		panic("unknown resource: " + name)
 	}
@@ -45,6 +47,7 @@ var (
 	_ resource = (*deferredResource)(nil)
 	_ resource = (*failedResource)(nil)
 	_ resource = (*blockedResource)(nil)
+	_ resource = (*testingResourceWithIdentity)(nil)
 )
 
 // testingResource is a simple resource that can be managed by the mock provider
@@ -308,6 +311,66 @@ func (b *blockedResource) Apply(request providers.ApplyResourceChangeRequest, st
 		}
 	}
 	response.NewState = value
+
+	if replace {
+		store.Delete(request.PriorState.GetAttr("id").AsString())
+	}
+	store.Set(response.NewState.GetAttr("id").AsString(), response.NewState)
+	return
+}
+
+// testingResourceWithIdentity is the same as testingResource but it returns an identity.
+type testingResourceWithIdentity struct{}
+
+func (t *testingResourceWithIdentity) Read(request providers.ReadResourceRequest, store *ResourceStore) (response providers.ReadResourceResponse) {
+	id := request.PriorState.GetAttr("id").AsString()
+	var exists bool
+	response.NewState, exists = store.Get(id)
+	if !exists {
+		response.NewState = cty.NullVal(TestingResourceSchema.Body.ImpliedType())
+		response.Identity = cty.UnknownVal(TestingResourceWithIdentitySchema.Identity.ImpliedType())
+	} else {
+		response.Identity = cty.StringVal("id:" + id)
+	}
+	return
+}
+
+func (t *testingResourceWithIdentity) Plan(request providers.PlanResourceChangeRequest, store *ResourceStore) (response providers.PlanResourceChangeResponse) {
+	if request.ProposedNewState.IsNull() {
+		response.PlannedState = request.ProposedNewState
+		return
+	}
+
+	response.PlannedState = planEnsureId(request.ProposedNewState)
+	response.PlannedIdentity = cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("id:" + response.PlannedState.GetAttr("id").AsString()),
+	})
+	replace, err := validateId(response.PlannedState, request.PriorState, store)
+	if err != nil {
+		response.Diagnostics = append(response.Diagnostics, tfdiags.Sourceless(tfdiags.Error, "testingResourceWithIdentity error", err.Error()))
+		return
+	}
+	if replace {
+		response.RequiresReplace = []cty.Path{cty.GetAttrPath("id")}
+	}
+	return
+}
+
+func (t *testingResourceWithIdentity) Apply(request providers.ApplyResourceChangeRequest, store *ResourceStore) (response providers.ApplyResourceChangeResponse) {
+	if request.PlannedState.IsNull() {
+		store.Delete(request.PriorState.GetAttr("id").AsString())
+		response.NewState = request.PlannedState
+		return
+	}
+
+	value := applyEnsureId(request.PlannedState)
+	replace, err := validateId(value, request.PriorState, store)
+	if err != nil {
+		response.Diagnostics = append(response.Diagnostics, tfdiags.Sourceless(tfdiags.Error, "testingResourceWithIdentity error", err.Error()))
+		return
+	}
+	response.NewState = value
+	response.NewIdentity = request.PlannedIdentity
 
 	if replace {
 		store.Delete(request.PriorState.GetAttr("id").AsString())

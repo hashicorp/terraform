@@ -67,6 +67,21 @@ var (
 			},
 		},
 	}
+
+	TestingResourceWithIdentitySchema = providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"id":    {Type: cty.String, Optional: true, Computed: true},
+				"value": {Type: cty.String, Optional: true},
+			},
+		},
+		Identity: &configschema.Object{
+			Attributes: map[string]*configschema.Attribute{
+				"id": {Type: cty.String, Required: true},
+			},
+			Nesting: configschema.NestingSingle,
+		},
+	}
 )
 
 // MockProvider wraps the standard MockProvider with a simple in-memory
@@ -147,6 +162,10 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 					},
 					"testing_blocked_resource": {
 						Body: BlockedResourceSchema.Body,
+					},
+					"testing_resource_with_identity": {
+						Body:     TestingResourceSchema.Body,
+						Identity: TestingResourceWithIdentitySchema.Identity,
 					},
 				},
 				DataSources: map[string]providers.Schema{
