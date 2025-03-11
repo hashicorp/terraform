@@ -802,11 +802,6 @@ func (s *stacksServer) ListResourceIdentities(ctx context.Context, req *stacks.L
 		return nil, status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
 	}
 
-	type CacheResult struct {
-		Schema map[string]providers.IdentitySchema
-		Error  error
-	}
-
 	identitySchemas := make(map[addrs.Provider]map[string]providers.IdentitySchema)
 	for name, factory := range providerFactories {
 		provider, err := factory()
