@@ -33,6 +33,10 @@ func (o *offlineProvider) GetProviderSchema() providers.GetProviderSchemaRespons
 	return o.unconfiguredClient.GetProviderSchema()
 }
 
+func (o *offlineProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	return o.unconfiguredClient.GetResourceIdentitySchemas()
+}
+
 func (o *offlineProvider) ValidateProviderConfig(request providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
@@ -95,6 +99,19 @@ func (o *offlineProvider) UpgradeResourceState(request providers.UpgradeResource
 		nil, // nil attribute path means the overall configuration block
 	))
 	return providers.UpgradeResourceStateResponse{
+		Diagnostics: diags,
+	}
+}
+
+func (o *offlineProvider) UpgradeResourceIdentity(request providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called UpgradeResourceIdentity on an unconfigured provider",
+		"Cannot upgrade the state of this resource because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.UpgradeResourceIdentityResponse{
 		Diagnostics: diags,
 	}
 }

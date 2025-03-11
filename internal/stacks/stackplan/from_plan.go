@@ -12,9 +12,9 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -36,7 +36,7 @@ type PlanProducer interface {
 	RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent]
 
 	// ResourceSchema returns the schema for a resource type from a provider.
-	ResourceSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, resourceType string) (*configschema.Block, error)
+	ResourceSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, resourceType string) (providers.Schema, error)
 }
 
 func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, refreshPlan *plans.Plan, action plans.Action, producer PlanProducer) ([]PlannedChange, tfdiags.Diagnostics) {

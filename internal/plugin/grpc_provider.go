@@ -16,6 +16,8 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -81,9 +83,6 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	defer p.mu.Unlock()
 
 	// check the global cache if we can
-	// FIXME: A global cache is inappropriate when Terraform Core is being
-	// used in a non-Terraform-CLI mode where we shouldn't assume that all
-	// calls share the same provider implementations.
 	if !p.Addr.IsZero() {
 		if resp, ok := providers.SchemaCache.Get(p.Addr); ok && resp.ServerCapabilities.GetProviderSchemaOptional {
 			logger.Trace("GRPCProvider: returning cached schema", p.Addr.String())
@@ -129,23 +128,38 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		return resp
 	}
 
-	resp.Provider = convert.ProtoToProviderSchema(protoResp.Provider)
+	identResp, err := p.client.GetResourceIdentitySchemas(p.ctx, new(proto.GetResourceIdentitySchemas_Request))
+	if err != nil {
+		if status.Code(err) == codes.Unimplemented {
+			// We don't treat this as an error if older providers don't implement this method,
+			// so we create an empty map for identity schemas
+			identResp = &proto.GetResourceIdentitySchemas_Response{
+				IdentitySchemas: map[string]*proto.ResourceIdentitySchema{},
+			}
+		} else {
+			resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+			return resp
+		}
+	}
+
+	resp.Provider = convert.ProtoToProviderSchema(protoResp.Provider, nil)
 	if protoResp.ProviderMeta == nil {
 		logger.Debug("No provider meta schema returned")
 	} else {
-		resp.ProviderMeta = convert.ProtoToProviderSchema(protoResp.ProviderMeta)
+		resp.ProviderMeta = convert.ProtoToProviderSchema(protoResp.ProviderMeta, nil)
 	}
 
 	for name, res := range protoResp.ResourceSchemas {
-		resp.ResourceTypes[name] = convert.ProtoToProviderSchema(res)
+		id := identResp.IdentitySchemas[name] // We're fine if the id is not found
+		resp.ResourceTypes[name] = convert.ProtoToProviderSchema(res, id)
 	}
 
 	for name, data := range protoResp.DataSourceSchemas {
-		resp.DataSources[name] = convert.ProtoToProviderSchema(data)
+		resp.DataSources[name] = convert.ProtoToProviderSchema(data, nil)
 	}
 
 	for name, ephem := range protoResp.EphemeralResourceSchemas {
-		resp.EphemeralResourceTypes[name] = convert.ProtoToProviderSchema(ephem)
+		resp.EphemeralResourceTypes[name] = convert.ProtoToProviderSchema(ephem, nil)
 	}
 
 	if decls, err := convert.FunctionDeclsFromProto(protoResp.Functions); err == nil {
@@ -162,9 +176,6 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	}
 
 	// set the global cache if we can
-	// FIXME: A global cache is inappropriate when Terraform Core is being
-	// used in a non-Terraform-CLI mode where we shouldn't assume that all
-	// calls share the same provider implementations.
 	if !p.Addr.IsZero() {
 		providers.SchemaCache.Set(p.Addr, resp)
 	}
@@ -172,6 +183,38 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	// always store this here in the client for providers that are not able to
 	// use GetProviderSchemaOptional
 	p.schema = resp
+
+	return resp
+}
+
+func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	var resp providers.GetResourceIdentitySchemasResponse
+
+	resp.IdentityTypes = make(map[string]providers.IdentitySchema)
+
+	protoResp, err := p.client.GetResourceIdentitySchemas(p.ctx, new(proto.GetResourceIdentitySchemas_Request))
+	if err != nil {
+		if status.Code(err) == codes.Unimplemented {
+			// We expect no error here if older providers don't implement this method
+			return resp
+		}
+
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	if resp.Diagnostics.HasErrors() {
+		return resp
+	}
+
+	for name, res := range protoResp.IdentitySchemas {
+		resp.IdentityTypes[name] = providers.IdentitySchema{
+			Version: res.Version,
+			Body:    convert.ProtoToIdentitySchema(res.IdentityAttributes),
+		}
+	}
 
 	return resp
 }
@@ -329,6 +372,52 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 		return resp
 	}
 	resp.UpgradedState = state
+
+	return resp
+}
+
+func (p *GRPCProvider) UpgradeResourceIdentity(r providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
+	logger.Trace("GRPCProvider: UpgradeResourceIdentity")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	resSchema, ok := schema.ResourceTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown resource identity type %q", r.TypeName))
+		return resp
+	}
+
+	protoReq := &proto.UpgradeResourceIdentity_Request{
+		TypeName: r.TypeName,
+		Version:  int64(r.Version),
+		RawIdentity: &proto.RawState{
+			Json: r.RawIdentityJSON,
+		},
+	}
+
+	protoResp, err := p.client.UpgradeResourceIdentity(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	ty := resSchema.Identity.ImpliedType()
+	resp.UpgradedIdentity = cty.NullVal(ty)
+	if protoResp.UpgradedIdentity == nil {
+		return resp
+	}
+
+	identity, err := decodeDynamicValue(protoResp.UpgradedIdentity.IdentityData, ty)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+	resp.UpgradedIdentity = identity
 
 	return resp
 }

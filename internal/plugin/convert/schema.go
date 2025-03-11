@@ -90,11 +90,19 @@ func protoSchemaNestedBlock(name string, b *configschema.NestedBlock) *proto.Sch
 }
 
 // ProtoToProviderSchema takes a proto.Schema and converts it to a providers.Schema.
-func ProtoToProviderSchema(s *proto.Schema) providers.Schema {
-	return providers.Schema{
+// It takes an optional resource identity schema for resources that support identity.
+func ProtoToProviderSchema(s *proto.Schema, id *proto.ResourceIdentitySchema) providers.Schema {
+	schema := providers.Schema{
 		Version: s.Version,
 		Body:    ProtoToConfigSchema(s.Block),
 	}
+
+	if id != nil {
+		schema.IdentityVersion = id.Version
+		schema.Identity = ProtoToIdentitySchema(id.IdentityAttributes)
+	}
+
+	return schema
 }
 
 // ProtoToConfigSchema takes the GetSchcema_Block from a grpc response and converts it
@@ -187,4 +195,55 @@ func sortedKeys(m interface{}) []string {
 
 	sort.Strings(keys)
 	return keys
+}
+
+func ProtoToIdentitySchema(attributes []*proto.ResourceIdentitySchema_IdentityAttribute) *configschema.Object {
+	obj := &configschema.Object{
+		Attributes: make(map[string]*configschema.Attribute),
+		Nesting:    configschema.NestingSingle,
+	}
+
+	for _, a := range attributes {
+		attr := &configschema.Attribute{
+			Description: a.Description,
+			Required:    a.RequiredForImport,
+			Optional:    a.OptionalForImport,
+		}
+
+		if err := json.Unmarshal(a.Type, &attr.Type); err != nil {
+			panic(err)
+		}
+
+		obj.Attributes[a.Name] = attr
+	}
+
+	return obj
+}
+
+func ResourceIdentitySchemaToProto(b providers.IdentitySchema) *proto.ResourceIdentitySchema {
+	attrs := []*proto.ResourceIdentitySchema_IdentityAttribute{}
+	for _, name := range sortedKeys(b.Body.Attributes) {
+		a := b.Body.Attributes[name]
+
+		attr := &proto.ResourceIdentitySchema_IdentityAttribute{
+			Name:              name,
+			Description:       a.Description,
+			RequiredForImport: a.Required,
+			OptionalForImport: a.Optional,
+		}
+
+		ty, err := json.Marshal(a.Type)
+		if err != nil {
+			panic(err)
+		}
+
+		attr.Type = ty
+
+		attrs = append(attrs, attr)
+	}
+
+	return &proto.ResourceIdentitySchema{
+		Version:            b.Version,
+		IdentityAttributes: attrs,
+	}
 }

@@ -273,9 +273,9 @@ func TestContext2Apply_unstable(t *testing.T) {
 		Type: "test_resource",
 		Name: "foo",
 	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
-	schema := p.GetProviderSchemaResponse.ResourceTypes["test_resource"].Body
+	schema := p.GetProviderSchemaResponse.ResourceTypes["test_resource"]
 	rds := plan.Changes.ResourceInstance(addr)
-	rd, err := rds.Decode(schema.ImpliedType())
+	rd, err := rds.Decode(schema.Body.ImpliedType())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -295,7 +295,7 @@ func TestContext2Apply_unstable(t *testing.T) {
 		t.Fatalf("wrong number of resources %d; want 1", len(mod.Resources))
 	}
 
-	rs, err := rss.Current.Decode(schema.ImpliedType())
+	rs, err := rss.Current.Decode(schema)
 	if err != nil {
 		t.Fatalf("decode error: %v", err)
 	}

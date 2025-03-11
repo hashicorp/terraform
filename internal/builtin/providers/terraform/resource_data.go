@@ -25,6 +25,23 @@ func dataStoreResourceSchema() providers.Schema {
 				"id":               {Type: cty.String, Computed: true},
 			},
 		},
+		Identity: dataStoreResourceIdentitySchema().Body,
+	}
+}
+
+func dataStoreResourceIdentitySchema() providers.IdentitySchema {
+	return providers.IdentitySchema{
+		Version: 0,
+		Body: &configschema.Object{
+			Attributes: map[string]*configschema.Attribute{
+				"id": {
+					Type:        cty.String,
+					Description: "The unique identifier for the data store.",
+					Required:    true,
+				},
+			},
+			Nesting: configschema.NestingSingle,
+		},
 	}
 }
 
@@ -52,6 +69,11 @@ func upgradeDataStoreResourceState(req providers.UpgradeResourceStateRequest) (r
 	}
 
 	resp.UpgradedState = val
+	return resp
+}
+
+func upgradeDataStoreResourceIdentity(providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("The builtin provider does not support provider upgrades since it has not changed the identity schema yet."))
 	return resp
 }
 
