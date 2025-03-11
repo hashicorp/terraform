@@ -863,7 +863,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			}
 
 			got, diags := prepareFinalInputVariableValue(
-				varAddr, rawVal, varCfg,
+				varAddr, rawVal, varCfg, false,
 			)
 
 			if test.wantErr != "" {
@@ -977,7 +977,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 					}
 
 					_, diags := prepareFinalInputVariableValue(
-						varAddr, rawVal, varCfg,
+						varAddr, rawVal, varCfg, false,
 					)
 					if !diags.HasErrors() {
 						t.Fatalf("unexpected success; want error")
@@ -995,7 +995,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 					}
 
 					_, diags := prepareFinalInputVariableValue(
-						varAddr, rawVal, varCfg,
+						varAddr, rawVal, varCfg, false,
 					)
 					if !diags.HasErrors() {
 						t.Fatalf("unexpected success; want error")
@@ -1046,7 +1046,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 					}
 
 					_, diags := prepareFinalInputVariableValue(
-						varAddr, rawVal, varCfg,
+						varAddr, rawVal, varCfg, false,
 					)
 					if !diags.HasErrors() {
 						t.Fatalf("unexpected success; want error")

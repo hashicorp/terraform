@@ -162,6 +162,7 @@ func (c *PlanCommand) OperationRequest(
 	opReq.GenerateConfigOut = generateConfigOut
 	opReq.Targets = args.Targets
 	opReq.Excluded = args.Excluded
+	opReq.Included = args.Included
 	opReq.ForceReplace = args.ForceReplace
 	opReq.Type = backendrun.OperationTypePlan
 	opReq.View = view.Operation()

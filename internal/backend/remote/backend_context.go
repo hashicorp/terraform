@@ -30,6 +30,7 @@ func (b *Remote) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, state
 			Mode:     op.PlanMode,
 			Targets:  op.Targets,
 			Excluded: op.Excluded,
+			Included: op.Included,
 		},
 	}
 

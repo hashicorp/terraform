@@ -69,6 +69,9 @@ type NodeAbstractResource struct {
 
 	ProvisionerSchemas map[string]*configschema.Block
 
+	// Set from GraphNodeTargetable
+	Targets []addrs.Targetable
+
 	// Set from AttachDataResourceDependsOn
 	dependsOn []addrs.ConfigResource
 
@@ -87,6 +90,8 @@ type NodeAbstractResource struct {
 	generateConfigPath string
 
 	forceCreateBeforeDestroy bool
+
+	Excluded
 }
 
 var (
@@ -100,6 +105,7 @@ var (
 	_ GraphNodeAttachResourceSchema        = (*NodeAbstractResource)(nil)
 	_ GraphNodeAttachProvisionerSchema     = (*NodeAbstractResource)(nil)
 	_ GraphNodeAttachProviderMetaConfigs   = (*NodeAbstractResource)(nil)
+	_ GraphNodeTargetable                  = (*NodeAbstractResource)(nil)
 	_ graphNodeAttachDataResourceDependsOn = (*NodeAbstractResource)(nil)
 	_ dag.GraphNodeDotter                  = (*NodeAbstractResource)(nil)
 	_ GraphNodeDestroyerCBD                = (*NodeAbstractResource)(nil)
@@ -126,6 +132,7 @@ var (
 	_ GraphNodeAttachResourceSchema      = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeAttachProvisionerSchema   = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeAttachProviderMetaConfigs = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeTargetable                = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeOverridable               = (*NodeAbstractResourceInstance)(nil)
 	_ dag.GraphNodeDotter                = (*NodeAbstractResourceInstance)(nil)
 )
@@ -369,6 +376,11 @@ func (n *NodeAbstractResource) ResourceAddr() addrs.ConfigResource {
 	return n.Addr
 }
 
+// GraphNodeTargetable
+func (n *NodeAbstractResource) SetTargets(targets []addrs.Targetable) {
+	n.Targets = targets
+}
+
 // graphNodeAttachDataResourceDependsOn
 func (n *NodeAbstractResource) AttachDataResourceDependsOn(deps []addrs.ConfigResource) {
 	n.dependsOn = deps
@@ -459,8 +471,11 @@ func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.Ab
 		return diags
 	}
 
-	state := ctx.State()
-	state.SetResourceProvider(addr, n.ResolvedProvider)
+	// Do this here?
+	if !n.IsExcluded() {
+		state := ctx.State()
+		state.SetResourceProvider(addr, n.ResolvedProvider)
+	}
 
 	return diags
 }

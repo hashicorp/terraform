@@ -223,6 +223,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			skip: b.Operation != walkDestroy,
 		},
 
+		// Target
+		&TargetsTransformer{Targets: b.Targets},
+
 		// Close any ephemeral resource instances.
 		&ephemeralResourceCloseTransformer{},
 

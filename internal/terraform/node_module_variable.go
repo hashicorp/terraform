@@ -193,7 +193,7 @@ type nodeModuleVariable struct {
 var (
 	_ GraphNodeModuleInstance = (*nodeModuleVariable)(nil)
 	_ GraphNodeExecutable     = (*nodeModuleVariable)(nil)
-	_ GraphNodeValidatable    = (*nodeModuleVariable)(nil)
+	//_ GraphNodeValidatable    = (*nodeModuleVariable)(nil)
 	_ graphNodeTemporaryValue = (*nodeModuleVariable)(nil)
 	_ dag.GraphNodeDotter     = (*nodeModuleVariable)(nil)
 )
@@ -309,7 +309,7 @@ func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bo
 		SourceRange: errSourceRange,
 	}
 
-	finalVal, moreDiags := prepareFinalInputVariableValue(n.Addr, rawVal, n.Config)
+	finalVal, moreDiags := prepareFinalInputVariableValue(n.Addr, rawVal, n.Config, n.IsExcluded())
 	diags = diags.Append(moreDiags)
 
 	return finalVal, diags.ErrWithWarnings()

@@ -65,7 +65,7 @@ var (
 	_ GraphNodeAttachResourceConfig = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeAttachResourceState  = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeExecutable           = (*NodePlannableResourceInstance)(nil)
-	_ GraphNodeValidatable          = (*NodePlannableResourceInstance)(nil)
+	//_ GraphNodeValidatable          = (*NodePlannableResourceInstance)(nil)
 )
 
 // GraphNodeEvalable
@@ -262,7 +262,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// If the non-importing resource is excluded, we don't need to write the state.
-	if deferred == nil && ctx.Filter().Allowed(n) {
+	if deferred == nil && ctx.GraphFilter().NodeAllowed(n) {
 		// We'll save a snapshot of what we just read from the state into the
 		// prevRunState before we do anything else, since this will capture the
 		// result of any schema upgrading that readResourceInstanceState just did,

@@ -16,3 +16,20 @@ type GraphNodeExecutable interface {
 type GraphNodeValidatable interface {
 	Validate(EvalContext, walkOperation) tfdiags.Diagnostics
 }
+
+type GraphNodeExcludable interface {
+	SetExcluded(bool)
+	IsExcluded() bool
+}
+
+type Excluded struct {
+	excluded bool
+}
+
+func (n *Excluded) SetExcluded(excluded bool) {
+	n.excluded = excluded
+}
+
+func (n *Excluded) IsExcluded() bool {
+	return n.excluded
+}

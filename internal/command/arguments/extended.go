@@ -69,6 +69,9 @@ type Operation struct {
 	// Excluded is a slice of Targetable addresses that should be excluded from the operation.
 	Excluded []addrs.Targetable
 
+	// Included is a slice of Targetable addresses that should be included in the operation.
+	Included []addrs.Targetable
+
 	// ForceReplace addresses cause Terraform to force a particular set of
 	// resource instances to generate "replace" actions in any plan where they
 	// would normally have generated "no-op" or "update" actions.
@@ -98,6 +101,7 @@ type Operation struct {
 	// the raw values in the process.
 	targetsRaw      []string
 	excludeRaw      []string
+	includeRaw      []string
 	forceReplaceRaw []string
 	destroyRaw      bool
 	refreshOnlyRaw  bool
@@ -105,7 +109,7 @@ type Operation struct {
 
 func parseTargets(raw []string) ([]addrs.Targetable, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	targets := make([]addrs.Targetable, len(raw))
+	targets := make([]addrs.Targetable, 0, len(raw))
 	for _, tr := range raw {
 		traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(tr), "", hcl.Pos{Line: 1, Column: 1})
 		if syntaxDiags.HasErrors() {
@@ -141,6 +145,7 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 
 	o.Targets, diags = parseTargets(o.targetsRaw)
 	o.Excluded, diags = parseTargets(o.excludeRaw)
+	o.Included, diags = parseTargets(o.includeRaw)
 
 	for _, raw := range o.forceReplaceRaw {
 		traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(raw), "", hcl.Pos{Line: 1, Column: 1})

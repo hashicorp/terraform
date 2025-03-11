@@ -271,6 +271,7 @@ func (c *ApplyCommand) OperationRequest(
 	opReq.PlanRefresh = args.Refresh
 	opReq.Targets = args.Targets
 	opReq.Excluded = args.Excluded
+	opReq.Included = args.Included
 	opReq.ForceReplace = args.ForceReplace
 	opReq.Type = backendrun.OperationTypeApply
 	opReq.View = view.Operation()

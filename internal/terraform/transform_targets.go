@@ -26,19 +26,15 @@ type TargetsTransformer struct {
 }
 
 func (t *TargetsTransformer) Transform(g *Graph) error {
-	// if len(t.Targets) > 0 {
-	// 	_, targetedNodes := selectTargetedNodes(g, t.Targets)
+	if len(t.Targets) > 0 {
+		_, targetedNodes := selectTargetedNodes(g, t.Targets)
 
-	// 	for _, v := range g.Vertices() {
-	// 		if !targetedNodes.Include(v) {
-	// 			if ex, ok := v.(GraphNodeExcludeable); ok {
-	// 				log.Printf("[DEBUG] Removing %q, filtered by targeting.", dag.VertexName(v))
-	// 				ex.SetExcluded(true)
-	// 			}
-	// 			// g.Remove(v)
-	// 		}
-	// 	}
-	// }
+		for _, v := range g.Vertices() {
+			if !targetedNodes.Include(v) {
+				g.Remove(v)
+			}
+		}
+	}
 
 	return nil
 }
@@ -60,9 +56,9 @@ func selectTargetedNodes(g *Graph, targets []addrs.Targetable) (dag.Set, dag.Set
 			// We inform nodes that ask about the list of targets - helps for nodes
 			// that need to dynamically expand. Note that this only occurs for nodes
 			// that are already directly targeted.
-			// if tn, ok := v.(GraphNodeTargetable); ok {
-			// 	tn.SetTargets(targets)
-			// }
+			if tn, ok := v.(GraphNodeTargetable); ok {
+				tn.SetTargets(targets)
+			}
 
 			for _, d := range g.Ancestors(v) {
 				targetedNodes.Add(d)

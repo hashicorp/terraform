@@ -25,8 +25,8 @@ type nodeExpandModule struct {
 }
 
 var (
-	_ GraphNodeExecutable       = (*nodeExpandModule)(nil)
-	_ GraphNodeValidatable      = (*nodeExpandModule)(nil)
+	_ GraphNodeExecutable = (*nodeExpandModule)(nil)
+	//_ GraphNodeValidatable      = (*nodeExpandModule)(nil)
 	_ GraphNodeReferenceable    = (*nodeExpandModule)(nil)
 	_ GraphNodeReferencer       = (*nodeExpandModule)(nil)
 	_ GraphNodeReferenceOutside = (*nodeExpandModule)(nil)

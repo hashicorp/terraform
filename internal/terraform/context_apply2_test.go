@@ -16,7 +16,6 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 
@@ -694,7 +693,7 @@ resource "test_object" "s" {
 	assertNoErrors(t, diags)
 }
 
-func TestContext2Apply_targetInstance(t *testing.T) {
+func TestContext2Apply_includeInstance(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 		resource "test_object" "a" {
@@ -715,7 +714,7 @@ func TestContext2Apply_targetInstance(t *testing.T) {
 
 	exc := mustResourceInstanceAddr(`test_object.a[0]`)
 	cp := *DefaultPlanOpts
-	cp.Targets = []addrs.Targetable{exc}
+	cp.Included = []addrs.Targetable{exc}
 	plan, diags := ctx.Plan(m, states.NewState(), &cp)
 	assertNoErrors(t, diags)
 
@@ -744,7 +743,7 @@ func TestContext2Apply_targetInstance(t *testing.T) {
 	}
 }
 
-func TestContext2Apply_targetExcludeInstance(t *testing.T) {
+func TestContext2Apply_excludeInstance(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 		resource "test_object" "a" {
@@ -797,7 +796,7 @@ func TestContext2Apply_targetExcludeInstance(t *testing.T) {
 	}
 }
 
-func TestContext2Apply_targetExcludeDeferred(t *testing.T) {
+func TestContext2Apply_excludeDeferred(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 		resource "test_object" "a" {
@@ -853,7 +852,7 @@ func TestContext2Apply_targetExcludeDeferred(t *testing.T) {
 	}
 }
 
-func TestContext2RefreshPlan_targetExcludeDeferred(t *testing.T) {
+func TestContext2RefreshPlan_excludeDeferred(t *testing.T) {
 	// TODO; Move to plan_test
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -909,13 +908,6 @@ func TestContext2RefreshPlan_targetExcludeDeferred(t *testing.T) {
 }
 
 func TestContext2Apply_excludeDependsOnDeferred(t *testing.T) {
-	equalIgnoreOrder := func(t *testing.T, x, y []string, msg string) {
-		t.Helper()
-		less := func(a, b string) bool { return a < b }
-		if diff := cmp.Diff(x, y, cmpopts.SortSlices(less)); diff != "" {
-			t.Fatalf("%s\n%s", msg, diff)
-		}
-	}
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 		resource "test_instance" "main" {
@@ -951,8 +943,8 @@ func TestContext2Apply_excludeDependsOnDeferred(t *testing.T) {
 	equalIgnoreOrder(t, rs, []string{"test_instance.main"}, "expected all 1 instances to be in the plan")
 
 	// the excluded resource and its dependants are deferred
-	// rs = collectResourceNames(plan.DeferredResources)
-	// equalIgnoreOrder(t, rs, []string{"test_instance.foo", "test_instance.bar[0]", "test_instance.bar[1]"}, "excluded resource and its dependants should have been deferred")
+	rs = collectResourceNames(plan.DeferredResources)
+	equalIgnoreOrder(t, rs, []string{"test_instance.foo", "test_instance.bar[0]", "test_instance.bar[1]"}, "excluded resource and its dependants should have been deferred")
 
 	// apply the plan
 	state, diags := ctx.Apply(plan, m, nil)
@@ -971,8 +963,8 @@ func TestContext2Apply_excludeDependsOnDeferred(t *testing.T) {
 	rss := collectResourceNames(plan.Changes.Resources)
 	equalIgnoreOrder(t, rss, []string{"test_instance.foo", "test_instance.bar[0]", "test_instance.bar[1]", "test_instance.main"}, "expected all 2 instances to be in the plan")
 
-	// deferred := collectResourceNames(plan.DeferredResources)
-	// equalIgnoreOrder(t, deferred, nil, "expected no deferred resources")
+	deferred := collectResourceNames(plan.DeferredResources)
+	equalIgnoreOrder(t, deferred, nil, "expected no deferred resources")
 
 	// apply the plan again. test_instance.foo should be created
 	state, diags = ctx.Apply(plan, m, nil)

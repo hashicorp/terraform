@@ -80,7 +80,7 @@ func (g *Graph) applyExclusions(filter *graphFilter, excludeAddrs addrs.Set[addr
 func (g *Graph) applyInclusions(filter *graphFilter, walker *ContextGraphWalker, targeted bool) dag.Set {
 	// We include all nodes if
 	// 1. No targets are specified
-	includeAll := walker.TargetAddrs().Size() == 0
+	includeAll := walker.included.Size() == 0
 	// 2. This graph is not targeted.
 	// This is relevant when we are walking a subgraph. If the dynamic node that generated the subgraph
 	// was targeted, we should apply the filter to the subgraph. Otherwise, we should include all nodes.
@@ -96,7 +96,9 @@ func (g *Graph) applyInclusions(filter *graphFilter, walker *ContextGraphWalker,
 	}
 
 	// Process targeted nodes
-	directTargets, allTargets := selectTargetedNodes(g, walker.TargetAddrs())
+	directTargets, allTargets := selectTargetedNodes(g, walker.included.Sorted(func(i, j addrs.Targetable) bool {
+		return i.String() < j.String()
+	}))
 
 	// Include all nodes that are either directly targeted or ancestors of targeted nodes
 	for _, node := range allTargets {
@@ -107,8 +109,6 @@ func (g *Graph) applyInclusions(filter *graphFilter, walker *ContextGraphWalker,
 	for _, node := range g.Vertices() {
 		if !filter.Matches(node, NodeIncluded) {
 			filter.Exclude(node)
-			// retain existing behavior of removing non-targeted nodes
-			g.Remove(node)
 		}
 	}
 

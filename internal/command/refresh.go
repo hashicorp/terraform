@@ -145,6 +145,7 @@ func (c *RefreshCommand) OperationRequest(be backendrun.OperationsBackend, view 
 	opReq.Hooks = view.Hooks()
 	opReq.Targets = args.Targets
 	opReq.Excluded = args.Excluded
+	opReq.Included = args.Included
 	opReq.Type = backendrun.OperationTypeRefresh
 	opReq.View = view.Operation()
 

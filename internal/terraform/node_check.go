@@ -17,9 +17,9 @@ import (
 )
 
 var (
-	_ GraphNodeModulePath  = (*nodeReportCheck)(nil)
-	_ GraphNodeExecutable  = (*nodeReportCheck)(nil)
-	_ GraphNodeValidatable = (*nodeReportCheck)(nil)
+	_ GraphNodeModulePath = (*nodeReportCheck)(nil)
+	_ GraphNodeExecutable = (*nodeReportCheck)(nil)
+	//_ GraphNodeValidatable = (*nodeReportCheck)(nil)
 )
 
 // nodeReportCheck calls the ReportCheckableObjects function for our assertions
@@ -139,7 +139,7 @@ func (n *nodeExpandCheck) Name() string {
 var (
 	_ GraphNodeModuleInstance = (*nodeCheckAssert)(nil)
 	_ GraphNodeExecutable     = (*nodeCheckAssert)(nil)
-	_ GraphNodeValidatable    = (*nodeCheckAssert)(nil)
+	//_ GraphNodeValidatable    = (*nodeCheckAssert)(nil)
 )
 
 type nodeCheckAssert struct {
@@ -201,8 +201,8 @@ func (n *nodeCheckAssert) Name() string {
 }
 
 var (
-	_ GraphNodeExecutable  = (*nodeCheckStart)(nil)
-	_ GraphNodeValidatable = (*nodeCheckStart)(nil)
+	_ GraphNodeExecutable = (*nodeCheckStart)(nil)
+	//_ GraphNodeValidatable = (*nodeCheckStart)(nil)
 )
 
 // We need to ensure that any nested data sources execute after all other

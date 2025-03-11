@@ -29,6 +29,7 @@ func (b *Cloud) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statem
 			Mode:     op.PlanMode,
 			Targets:  op.Targets,
 			Excluded: op.Excluded,
+			Included: op.Included,
 		},
 	}
 

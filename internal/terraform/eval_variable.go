@@ -21,7 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *InputValue, cfg *configs.Variable) (cty.Value, tfdiags.Diagnostics) {
+func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *InputValue, cfg *configs.Variable, allowUnknown bool) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	convertTy := cfg.ConstraintType
@@ -75,7 +75,13 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 	given := raw.Value
 	if given == cty.NilVal { // The variable wasn't set at all (even to null)
 		log.Printf("[TRACE] prepareFinalInputVariableValue: %s has no defined value", addr)
-		if cfg.Required() {
+		switch {
+		case allowUnknown && cfg.Required():
+			// We're in a situation where we're allowing unknown values, and
+			// the variable is required, so we'll just use an unknown value
+			// here.
+			given = cty.UnknownVal(cfg.Type)
+		case cfg.Required():
 			// NOTE: The CLI layer typically checks for itself whether all of
 			// the required _root_ module variables are set, which would
 			// mask this error with a more specific one that refers to the
@@ -91,9 +97,9 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 			// We'll return a placeholder unknown value to avoid producing
 			// redundant downstream errors.
 			return cty.UnknownVal(cfg.Type), diags
+		default:
+			given = defaultVal // must be set, because we checked above that the variable isn't required
 		}
-
-		given = defaultVal // must be set, because we checked above that the variable isn't required
 	}
 
 	// Apply defaults from the variable's type constraint to the converted value,

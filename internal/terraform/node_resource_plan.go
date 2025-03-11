@@ -492,6 +492,9 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 
 		// Attach the state
 		&AttachStateTransformer{State: state},
+		// Targeting
+		&TargetsTransformer{Targets: n.Targets},
+
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
 

@@ -34,13 +34,15 @@ type NodeRootVariable struct {
 	// DestroyApply must be set to true when applying a destroy operation and
 	// false otherwise.
 	DestroyApply bool
+
+	Excluded
 }
 
 var (
 	_ GraphNodeModuleInstance = (*NodeRootVariable)(nil)
 	_ GraphNodeReferenceable  = (*NodeRootVariable)(nil)
 	_ GraphNodeExecutable     = (*NodeRootVariable)(nil)
-	_ GraphNodeValidatable    = (*NodeRootVariable)(nil)
+	//_ GraphNodeValidatable    = (*NodeRootVariable)(nil)
 )
 
 func (n *NodeRootVariable) Name() string {
@@ -106,6 +108,7 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 		addr,
 		givenVal,
 		n.Config,
+		n.IsExcluded(),
 	)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

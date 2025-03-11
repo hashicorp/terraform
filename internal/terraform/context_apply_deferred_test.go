@@ -1075,7 +1075,6 @@ resource "test" "c" {
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
-					// "test.c":    {Reason: providers.DeferredReasonExcluded},
 				},
 				allowWarnings: true,
 			},
@@ -1109,7 +1108,6 @@ resource "test" "c" {
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
-					// "test.c":    {Reason: providers.DeferredReasonExcluded},
 				},
 				allowWarnings: true,
 			},
@@ -1132,10 +1130,7 @@ resource "test" "c" {
 				wantActions: map[string]plans.Action{
 					"test.b": plans.Create,
 				},
-				wantDeferred: map[string]ExpectedDeferred{
-					// "test.a[*]": {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
-					// "test.c":    {Reason: providers.DeferredReasonExcluded},
-				},
+				wantDeferred:  map[string]ExpectedDeferred{},
 				allowWarnings: true,
 			},
 		},

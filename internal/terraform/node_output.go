@@ -46,6 +46,8 @@ type nodeExpandOutput struct {
 	Overrides *mocking.Overrides
 
 	Dependencies []addrs.ConfigResource
+
+	Excluded
 }
 
 var (
@@ -124,7 +126,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 				node = &NodeDestroyableOutput{
 					Addr:     absAddr,
 					Planning: n.Planning,
-					Excluded: Excluded{excluded: n.excluded},
+					Excluded: n.Excluded,
 				}
 
 			default:
@@ -137,7 +139,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 					Planning:     n.Planning,
 					Override:     n.getOverrideValue(absAddr.Module),
 					Dependencies: n.Dependencies,
-					Excluded:     Excluded{excluded: n.excluded},
+					Excluded:     n.Excluded,
 				}
 			}
 
@@ -295,9 +297,9 @@ var (
 	_ GraphNodeReferencer       = (*NodeApplyableOutput)(nil)
 	_ GraphNodeReferenceOutside = (*NodeApplyableOutput)(nil)
 	_ GraphNodeExecutable       = (*NodeApplyableOutput)(nil)
-	_ GraphNodeValidatable      = (*NodeApplyableOutput)(nil)
-	_ graphNodeTemporaryValue   = (*NodeApplyableOutput)(nil)
-	_ dag.GraphNodeDotter       = (*NodeApplyableOutput)(nil)
+	//_ GraphNodeValidatable      = (*NodeApplyableOutput)(nil)
+	_ graphNodeTemporaryValue = (*NodeApplyableOutput)(nil)
+	_ dag.GraphNodeDotter     = (*NodeApplyableOutput)(nil)
 )
 
 func (n *NodeApplyableOutput) temporaryValue() bool {

@@ -34,8 +34,8 @@ var (
 	_ GraphNodeAttachResourceConfig = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeAttachResourceState  = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeExecutable           = (*NodePlanDestroyableResourceInstance)(nil)
-	_ GraphNodeValidatable          = (*NodePlanDestroyableResourceInstance)(nil)
-	_ GraphNodeProviderConsumer     = (*NodePlanDestroyableResourceInstance)(nil)
+	//_ GraphNodeValidatable          = (*NodePlanDestroyableResourceInstance)(nil)
+	_ GraphNodeProviderConsumer = (*NodePlanDestroyableResourceInstance)(nil)
 )
 
 func (n *NodePlanDestroyableResourceInstance) Name() string {

@@ -57,6 +57,7 @@ type ContextGraphWalker struct {
 	// These values are set from the command line and are used to filter the
 	// graph to only include the resources that are targeted.
 	excluded addrs.Set[addrs.Targetable]
+	included addrs.Set[addrs.Targetable]
 	targets  addrs.Set[addrs.Targetable]
 	filter   *graphFilter
 
@@ -177,12 +178,4 @@ func (w *ContextGraphWalker) Validate(ctx EvalContext, n GraphNodeValidatable) t
 		return nil
 	}
 	return n.Validate(ctx, w.Operation)
-}
-
-func (w *ContextGraphWalker) TargetAddrs() addrs.Set[addrs.Targetable] {
-	return w.targets
-}
-
-func (w *ContextGraphWalker) ExcludedAddrs() addrs.Set[addrs.Targetable] {
-	return w.excluded
 }

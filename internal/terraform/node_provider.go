@@ -22,8 +22,8 @@ type NodeApplyableProvider struct {
 }
 
 var (
-	_ GraphNodeExecutable  = (*NodeApplyableProvider)(nil)
-	_ GraphNodeValidatable = (*NodeApplyableProvider)(nil)
+	_ GraphNodeExecutable = (*NodeApplyableProvider)(nil)
+	//_ GraphNodeValidatable = (*NodeApplyableProvider)(nil)
 )
 
 // GraphNodeExecutable
@@ -216,8 +216,8 @@ type nodeExternalProvider struct {
 }
 
 var (
-	_ GraphNodeExecutable  = (*nodeExternalProvider)(nil)
-	_ GraphNodeValidatable = (*nodeExternalProvider)(nil)
+	_ GraphNodeExecutable = (*nodeExternalProvider)(nil)
+	//_ GraphNodeValidatable = (*nodeExternalProvider)(nil)
 )
 
 // Execute implements GraphNodeExecutable.

@@ -68,6 +68,7 @@ type PlanOpts struct {
 	Targets []addrs.Targetable
 
 	Excluded []addrs.Targetable
+	Included []addrs.Targetable
 
 	// ForceReplace is a set of resource instance addresses whose corresponding
 	// objects should be forced planned for replacement if the provider's
@@ -255,8 +256,10 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 	// user-friendly error messages if they are not all present, and so
 	// the error message from checkInputVariables should never be seen and
 	// includes language asking the user to report a bug.
-	varDiags := checkInputVariables(config.Module.Variables, opts.SetVariables)
-	diags = diags.Append(varDiags)
+	// These variables are validated during the plan walk, so we don't need to
+	// validate them here.
+	// varDiags := checkInputVariables(config.Module.Variables, opts.SetVariables)
+	// diags = diags.Append(varDiags)
 
 	if len(opts.Targets) > 0 {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -348,6 +351,7 @@ The -target option is not for routine use, and is provided only for exceptional 
 		}
 		plan.TargetAddrs = opts.Targets
 		plan.ExcludedAddrs = opts.Excluded
+		plan.IncludedAddrs = opts.Included
 	} else if !diags.HasErrors() {
 		panic("nil plan but no errors")
 	}
@@ -732,6 +736,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		ProviderFuncResults:        providerFuncResults,
 		Forget:                     opts.Forget,
 		Excluded:                   addrs.MakeSet(opts.Excluded...),
+		Included:                   addrs.MakeSet(opts.Included...),
 		Targets:                    addrs.MakeSet(opts.Targets...),
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)

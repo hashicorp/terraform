@@ -46,7 +46,8 @@ var _ GraphNodeModulePath = (*nodeVariableValidation)(nil)
 var _ GraphNodeReferenceable = (*nodeVariableValidation)(nil)
 var _ GraphNodeReferencer = (*nodeVariableValidation)(nil)
 var _ GraphNodeExecutable = (*nodeVariableValidation)(nil)
-var _ GraphNodeValidatable = (*nodeVariableValidation)(nil)
+
+// var _ GraphNodeValidatable = (*nodeVariableValidation)(nil)
 var _ graphNodeTemporaryValue = (*nodeVariableValidation)(nil)
 
 func (n *nodeVariableValidation) Name() string {
