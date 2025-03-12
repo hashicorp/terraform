@@ -5463,6 +5463,106 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 	}
 }
 
+func TestPlanWithResourceIdentities(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "resource-identity")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	changesCh := make(chan stackplan.PlannedChange, 8)
+	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	req := PlanRequest{
+		Config:             cfg,
+		ForcePlanTimestamp: &fakePlanTimestamp,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks: *lock,
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &req, &resp)
+	gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+
+	if len(diags) != 0 {
+		t.Errorf("unexpected diagnostics\n%s", diags.ErrWithWarnings().Error())
+	}
+
+	wantChanges := []stackplan.PlannedChange{
+		&stackplan.PlannedChangeApplyable{
+			Applyable: true,
+		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance,
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "self"},
+				},
+			),
+			Action:              plans.Create,
+			PlanApplyable:       true,
+			PlanComplete:        true,
+			PlannedCheckResults: &states.CheckResults{},
+			PlannedInputValues: map[string]plans.DynamicValue{
+				"name": mustPlanDynamicValueDynamicType(cty.StringVal("example")),
+			},
+			PlannedInputValueMarks: map[string][]cty.PathValueMarks{"name": nil},
+			PlannedOutputValues:    map[string]cty.Value{},
+			PlanTimestamp:          fakePlanTimestamp,
+		},
+		&stackplan.PlannedChangeResourceInstancePlanned{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource_with_identity.hello"),
+			ChangeSrc: &plans.ResourceInstanceChangeSrc{
+				Addr:         mustAbsResourceInstance("testing_resource_with_identity.hello"),
+				PrevRunAddr:  mustAbsResourceInstance("testing_resource_with_identity.hello"),
+				ProviderAddr: mustDefaultRootProvider("testing"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+					Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+					After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("example"),
+						"value": cty.NullVal(cty.String),
+					})),
+					AfterIdentity: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("id:example"),
+					})),
+				},
+			},
+			ProviderConfigAddr: mustDefaultRootProvider("testing"),
+			Schema:             stacks_testing_provider.TestingResourceWithIdentitySchema,
+		},
+		&stackplan.PlannedChangeHeader{
+			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
+		},
+	}
+	sort.SliceStable(gotChanges, func(i, j int) bool {
+		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
+	})
+
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
+	}
+}
+
 // collectPlanOutput consumes the two output channels emitting results from
 // a call to [Plan], and collects all of the data written to them before
 // returning once changesCh has been closed by the sender to indicate that
