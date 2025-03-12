@@ -57,7 +57,7 @@ func TestAccBackendAccessKeyBasic(t *testing.T) {
 	}
 	defer m.destroyTestResources(ctx)
 
-	clearEnv()
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": m.names.storageAccountName,
 		"container_name":       m.names.storageContainerName,
@@ -89,7 +89,7 @@ func TestAccBackendSASTokenBasic(t *testing.T) {
 		t.Fatalf("Error building SAS Token: %+v", err)
 	}
 
-	clearEnv()
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": m.names.storageAccountName,
 		"container_name":       m.names.storageContainerName,
@@ -106,6 +106,16 @@ func TestAccBackendGithubOIDCBasic(t *testing.T) {
 
 	testAccAzureBackendRunningInGitHubActions(t)
 
+	oidcRequestToken := os.Getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+	if oidcRequestToken == "" {
+		t.Fatalf("Missing ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+	}
+
+	oidcRequestURL := os.Getenv("ACTIONS_ID_TOKEN_REQUEST_URL")
+	if oidcRequestURL == "" {
+		t.Fatalf("Missing ACTIONS_ID_TOKEN_REQUEST_URL")
+	}
+
 	ctx := newCtx()
 	m := BuildTestMeta(t, ctx)
 
@@ -116,7 +126,7 @@ func TestAccBackendGithubOIDCBasic(t *testing.T) {
 	}
 	defer m.destroyTestResources(ctx)
 
-	clearEnv()
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"subscription_id":      m.subscriptionId,
 		"resource_group_name":  m.names.resourceGroup,
@@ -124,9 +134,60 @@ func TestAccBackendGithubOIDCBasic(t *testing.T) {
 		"container_name":       m.names.storageContainerName,
 		"key":                  m.names.storageKeyName,
 		"use_oidc":             true,
+		"oidc_request_token":   oidcRequestToken,
+		"oidc_request_url":     oidcRequestURL,
 		"tenant_id":            m.tenantId,
 		"client_id":            m.clientId,
 		"environment":          m.env.Name,
+	})).(*Backend)
+
+	backend.TestBackendStates(t, b)
+}
+
+func TestAccBackendADOPipelinesOIDCBasic(t *testing.T) {
+	t.Parallel()
+
+	testAccAzureBackendRunningInADOPipelines(t)
+
+	oidcRequestToken := os.Getenv("SYSTEM_ACCESSTOKEN")
+	if oidcRequestToken == "" {
+		t.Fatalf("Missing SYSTEM_ACCESSTOKEN")
+	}
+
+	oidcRequestURL := os.Getenv("SYSTEM_OIDCREQUESTURI")
+	if oidcRequestURL == "" {
+		t.Fatalf("Missing SYSTEM_OIDCREQUESTURI")
+	}
+
+	adoPipelineServiceConnectionId := os.Getenv("ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID")
+	if adoPipelineServiceConnectionId == "" {
+		t.Fatalf("Missing ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID")
+	}
+
+	ctx := newCtx()
+	m := BuildTestMeta(t, ctx)
+
+	err := m.buildTestResources(ctx)
+	if err != nil {
+		m.destroyTestResources(ctx)
+		t.Fatalf("Error creating Test Resources: %q", err)
+	}
+	defer m.destroyTestResources(ctx)
+
+	clearARMEnv()
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"subscription_id":                    m.subscriptionId,
+		"resource_group_name":                m.names.resourceGroup,
+		"storage_account_name":               m.names.storageAccountName,
+		"container_name":                     m.names.storageContainerName,
+		"key":                                m.names.storageKeyName,
+		"use_oidc":                           true,
+		"oidc_request_token":                 oidcRequestToken,
+		"oidc_request_url":                   oidcRequestURL,
+		"ado_pipeline_service_connection_id": adoPipelineServiceConnectionId,
+		"tenant_id":                          m.tenantId,
+		"client_id":                          m.clientId,
+		"environment":                        m.env.Name,
 	})).(*Backend)
 
 	backend.TestBackendStates(t, b)
@@ -147,7 +208,7 @@ func TestAccBackendAzureADAuthBasic(t *testing.T) {
 	}
 	defer m.destroyTestResources(ctx)
 
-	clearEnv()
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"subscription_id":      m.subscriptionId,
 		"resource_group_name":  m.names.resourceGroup,
@@ -179,7 +240,7 @@ func TestAccBackendManagedServiceIdentityBasic(t *testing.T) {
 	}
 	defer m.destroyTestResources(ctx)
 
-	clearEnv()
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"subscription_id":      m.subscriptionId,
 		"resource_group_name":  m.names.resourceGroup,
@@ -215,7 +276,7 @@ func TestAccBackendServicePrincipalClientCertificateBasic(t *testing.T) {
 	}
 	defer m.destroyTestResources(ctx)
 
-	clearEnv()
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"subscription_id":             m.subscriptionId,
 		"resource_group_name":         m.names.resourceGroup,
@@ -247,7 +308,7 @@ func TestAccBackendServicePrincipalClientSecretBasic(t *testing.T) {
 	}
 	defer m.destroyTestResources(ctx)
 
-	clearEnv()
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"subscription_id":      m.subscriptionId,
 		"resource_group_name":  m.names.resourceGroup,
@@ -278,7 +339,7 @@ func TestAccBackendAccessKeyLocked(t *testing.T) {
 	}
 	defer m.destroyTestResources(ctx)
 
-	clearEnv()
+	clearARMEnv()
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"storage_account_name": m.names.storageAccountName,
@@ -318,7 +379,7 @@ func TestAccBackendServicePrincipalLocked(t *testing.T) {
 	}
 	defer m.destroyTestResources(ctx)
 
-	clearEnv()
+	clearARMEnv()
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"subscription_id":      m.subscriptionId,
