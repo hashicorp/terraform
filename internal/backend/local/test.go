@@ -113,16 +113,28 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 
 	// Generate a manifest that will be used to track the state files created
 	// during the test runs.
-	// TODO(sams): presence of a manifest should ensure that no tests are run
-	manifest, err := graph.BuildStateManifest(".", suite.Files)
-	if err != nil {
-		return moduletest.Error, diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to build state manifest", err.Error()))
-	}
+	manifest, err := func() (*graph.TestManifest, tfdiags.Diagnostics) {
+		manifest, err := graph.BuildStateManifest(".", suite.Files)
+		if err != nil {
+			return manifest, diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to build state manifest", err.Error()))
+		}
 
-	if !manifest.Empty() {
-		return moduletest.Error, diags.Append(tfdiags.Sourceless(tfdiags.Error, "State manifest not empty", ``+
-			"The state manifest should be empty before running tests. This could be due to a previous test run not cleaning up after itself."+
-			"Please ensure that all state files are cleaned up before running tests."))
+		empty, err := manifest.Empty()
+		if err != nil {
+			return manifest, diags.Append(tfdiags.Sourceless(tfdiags.Error, "Error checking state manifest", err.Error()))
+		}
+		if !empty {
+			return manifest, diags.Append(tfdiags.Sourceless(tfdiags.Error, "State manifest not empty", ``+
+				"The state manifest should be empty before running tests. This could be due to a previous test run not cleaning up after itself."+
+				"Please ensure that all state files are cleaned up before running tests."))
+		}
+		return manifest, nil
+	}()
+
+	if err != nil {
+		suite.Status = moduletest.Error
+		runner.View.Conclusion(suite)
+		return moduletest.Error, diags
 	}
 
 	suite.Status = moduletest.Pass
