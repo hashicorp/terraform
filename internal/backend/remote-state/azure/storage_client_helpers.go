@@ -156,9 +156,7 @@ func populateAccountDetails(accountId commonids.StorageAccountId, account storag
 }
 
 // naiveStorageAccountBlobBaseURL naively construct the storage account blob endpoint URL instead of
-// learning from the storage account response.
-// This is only used for the cases that either access key or SAS token is explicitly specified, which
-// won't make any call to the ARM, but reach ahead to the data plane API directly.
+// learning from the storage account response. This can be incorrect if private dns zone is used.
 func naiveStorageAccountBlobBaseURL(e environments.Environment, accountName string) (string, error) {
 	pDomainSuffix, ok := e.Storage.DomainSuffix()
 	if !ok {
