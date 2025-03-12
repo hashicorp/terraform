@@ -51,6 +51,8 @@ service Stacks {
   // of a stack inspector handle.
   rpc InspectExpressionResult(InspectExpressionResult.Request)
       returns (InspectExpressionResult.Response);
+  // ListResourceIdentities lists the identities of all resources in a stack.
+  rpc ListResourceIdentities(ListResourceIdentities.Request) returns (ListResourceIdentities.Response);
 }
 
 message OpenStackConfiguration {
@@ -810,5 +812,27 @@ message StackChangeProgress {
   message ComponentInstances {
     string component_addr = 1;
     repeated string instance_addrs = 2;
+  }
+}
+
+message ListResourceIdentities {
+  message Request {
+    int64 state_handle = 1;
+    int64 dependency_locks_handle = 2;
+    int64 provider_cache_handle = 3;
+  }
+  message Response {
+	repeated Resource resource = 1;
+  }
+
+  message Resource {
+    string component_addr = 1;
+    string component_instance_addr = 2;
+    // Unique address of the resource instance within the given component
+    // instance. Each component instance has a separate namespace of
+    // resource instance addresses, so callers must take both fields together
+    // to produce a key that's unique throughout the entire plan.
+    string resource_instance_addr = 3;
+    DynamicValue resource_identity = 4;
   }
 }

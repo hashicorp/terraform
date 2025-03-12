@@ -30,3 +30,32 @@ removed {
     null = provider.null.a
   }
 }
+
+
+removed {
+  // This is invalid, you must reference the for_each somewhere in the
+  // from attribute if both are present.
+  from = component.b["something"]
+
+  for_each = ["a", "b"]
+
+  source = "./"
+
+  providers = {
+    null = provider.null.a
+  }
+}
+
+removed {
+  // This is invalid, you must reference the for_each somewhere in the
+  // from attribute if both are present.
+  from = component.c
+
+  for_each = ["a", "b"]
+
+  source = "./"
+
+  providers = {
+    null = provider.null.a
+  }
+}

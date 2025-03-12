@@ -692,6 +692,7 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 	// if a component is targeted.
 
 	var changes []stackplan.PlannedChange
+Instance:
 	for inst := range s.main.PlanPrevState().AllComponentInstances().All() {
 
 		// We track here whether this component instance has any associated
@@ -747,10 +748,13 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 				continue
 			}
 
-			if _, exists := insts[inst.Item.Key]; exists {
-				// This component is targeted by a removed block, so we won't
-				// add an error.
-				continue
+			for _, i := range insts {
+				// the instance key for a removed block doesn't always translate
+				// directly into the instance key in the address, so we have
+				// to check for the correct one.
+				if i.from.Item.Key == inst.Item.Key {
+					continue Instance
+				}
 			}
 		}
 

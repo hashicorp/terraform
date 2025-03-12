@@ -14,11 +14,11 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
@@ -37,7 +37,7 @@ var (
 
 type RemovedInstance struct {
 	call     *Removed
-	key      addrs.InstanceKey
+	from     stackaddrs.AbsComponentInstance
 	deferred bool
 
 	main *Main
@@ -47,10 +47,10 @@ type RemovedInstance struct {
 	moduleTreePlan promising.Once[withDiagnostics[*plans.Plan]]
 }
 
-func newRemovedInstance(call *Removed, key addrs.InstanceKey, repetition instances.RepetitionData, deferred bool) *RemovedInstance {
+func newRemovedInstance(call *Removed, from stackaddrs.AbsComponentInstance, repetition instances.RepetitionData, deferred bool) *RemovedInstance {
 	return &RemovedInstance{
 		call:       call,
-		key:        key,
+		from:       from,
 		deferred:   deferred,
 		main:       call.main,
 		repetition: repetition,
@@ -63,15 +63,7 @@ func (r *RemovedInstance) reportNamedPromises(cb func(id promising.PromiseID, na
 }
 
 func (r *RemovedInstance) Addr() stackaddrs.AbsComponentInstance {
-	callAddr := r.call.Addr()
-	stackAddr := callAddr.Stack
-	return stackaddrs.AbsComponentInstance{
-		Stack: stackAddr,
-		Item: stackaddrs.ComponentInstance{
-			Component: callAddr.Item,
-			Key:       r.key,
-		},
-	}
+	return r.from
 }
 
 func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
@@ -82,7 +74,7 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 		if component != nil {
 			insts, unknown := component.Instances(ctx, PlanPhase)
 			if !unknown {
-				if _, exists := insts[r.key]; exists {
+				if _, exists := insts[r.Addr().Item.Key]; exists {
 					// The instance we're planning to remove is also targeted
 					// by a component block. We won't remove it, and we'll
 					// report a diagnostic to that effect.
@@ -323,7 +315,7 @@ func (r *RemovedInstance) RequiredComponents(ctx context.Context) collections.Se
 }
 
 // ResourceSchema implements stackplan.PlanProducer.
-func (r *RemovedInstance) ResourceSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, typ string) (*configschema.Block, error) {
+func (r *RemovedInstance) ResourceSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, typ string) (providers.Schema, error) {
 	// This should not be able to fail with an error because we should
 	// be retrieving the same schema that was already used to encode
 	// the object we're working with. The error handling here is for
@@ -332,11 +324,11 @@ func (r *RemovedInstance) ResourceSchema(ctx context.Context, providerTypeAddr a
 	providerType := r.main.ProviderType(ctx, providerTypeAddr)
 	providerSchema, err := providerType.Schema(ctx)
 	if err != nil {
-		return nil, err
+		return providers.Schema{}, err
 	}
-	ret, _ := providerSchema.SchemaForResourceType(mode, typ)
-	if ret == nil {
-		return nil, fmt.Errorf("schema does not include %v %q", mode, typ)
+	ret := providerSchema.SchemaForResourceType(mode, typ)
+	if ret.Body == nil {
+		return providers.Schema{}, fmt.Errorf("schema does not include %v %q", mode, typ)
 	}
 	return ret, nil
 }

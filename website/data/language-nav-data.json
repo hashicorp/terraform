@@ -149,9 +149,8 @@
             "path": "resources/ephemeral/reference"
           },
           {
-            "title": "Use Write-only Arguments",
-            "path": "resources/ephemeral/write-only",
-            "hidden": "true"
+            "title": "Use write-only arguments",
+            "path": "resources/ephemeral/write-only"
           }
         ]
       }

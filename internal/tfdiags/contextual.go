@@ -205,6 +205,31 @@ func (d *attributeDiagnostic) ElaborateFromConfigBody(body hcl.Body, addr string
 	return &ret
 }
 
+func (d *attributeDiagnostic) Equals(otherDiag ComparableDiagnostic) bool {
+	od, ok := otherDiag.(*attributeDiagnostic)
+	if !ok {
+		return false
+	}
+	if d.severity != od.severity {
+		return false
+	}
+	if d.summary != od.summary {
+		return false
+	}
+	if d.detail != od.detail {
+		return false
+	}
+	if !d.attrPath.Equals(od.attrPath) {
+		return false
+	}
+
+	// address can differ between and after expansion
+	// even though it represents the same attribute
+	// so we avoid comparing it here
+
+	return sourceRangeEquals(d.subject, od.subject)
+}
+
 func traversePathSteps(traverse []cty.PathStep, body hcl.Body) hcl.Body {
 	for i := 0; i < len(traverse); i++ {
 		step := traverse[i]
@@ -385,4 +410,42 @@ func (d *wholeBodyDiagnostic) Source() Source {
 	return Source{
 		Subject: d.subject,
 	}
+}
+
+func (d *wholeBodyDiagnostic) Equals(otherDiag ComparableDiagnostic) bool {
+	od, ok := otherDiag.(*wholeBodyDiagnostic)
+	if !ok {
+		return false
+	}
+	if d.severity != od.severity {
+		return false
+	}
+	if d.summary != od.summary {
+		return false
+	}
+	if d.detail != od.detail {
+		return false
+	}
+
+	// address can differ between and after expansion
+	// even though it represents the same attribute
+	// so we avoid comparing it here
+
+	return sourceRangeEquals(d.subject, od.subject)
+}
+
+func sourceRangeEquals(l, r *SourceRange) bool {
+	if l == nil || r == nil {
+		return l == r
+	}
+	if l.Filename != r.Filename {
+		return false
+	}
+	if l.Start.Byte != r.Start.Byte {
+		return false
+	}
+	if l.End.Byte != r.End.Byte {
+		return false
+	}
+	return true
 }

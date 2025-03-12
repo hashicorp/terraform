@@ -767,6 +767,66 @@ func (s *stacksServer) OpenStackInspector(ctx context.Context, req *stacks.OpenS
 	}, nil
 }
 
+func (s *stacksServer) ListResourceIdentities(ctx context.Context, req *stacks.ListResourceIdentities_Request) (*stacks.ListResourceIdentities_Response, error) {
+	hnd := handle[*stackstate.State](req.StateHandle)
+	stackState := s.handles.StackState(hnd)
+	if stackState == nil {
+		return nil, status.Error(codes.InvalidArgument, "the given stack state handle is invalid")
+	}
+
+	depsHnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
+	var deps *depsfile.Locks
+	if !depsHnd.IsNil() {
+		deps = s.handles.DependencyLocks(depsHnd)
+		if deps == nil {
+			return nil, status.Error(codes.InvalidArgument, "the given dependency locks handle is invalid")
+		}
+	} else {
+		deps = depsfile.NewLocks()
+	}
+	providerCacheHnd := handle[*providercache.Dir](req.ProviderCacheHandle)
+	var providerCache *providercache.Dir
+	if !providerCacheHnd.IsNil() {
+		providerCache = s.handles.ProviderPluginCache(providerCacheHnd)
+		if providerCache == nil {
+			return nil, status.Error(codes.InvalidArgument, "the given provider cache handle is invalid")
+		}
+	}
+	// NOTE: providerCache can be nil if no handle was provided, in which
+	// case the call can only use built-in providers. All code below
+	// must avoid panicking when providerCache is nil, but is allowed to
+	// return an InvalidArgument error in that case.
+	// (providerFactoriesForLocks explicitly supports a nil providerCache)
+	providerFactories, err := providerFactoriesForLocks(deps, providerCache)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+	}
+
+	identitySchemas := make(map[addrs.Provider]map[string]providers.IdentitySchema)
+	for name, factory := range providerFactories {
+		provider, err := factory()
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "provider %s failed to initialize: %s", name, err)
+		}
+
+		schema := provider.GetResourceIdentitySchemas()
+		if len(schema.Diagnostics) > 0 {
+			return nil, status.Errorf(codes.InvalidArgument, "provider %s failed to retrieve schema: %s", name, schema.Diagnostics.Err())
+		} else {
+			identitySchemas[name] = schema.IdentityTypes
+		}
+	}
+
+	resourceIdentities, err := listResourceIdentities(stackState, identitySchemas)
+	if err != nil {
+		return nil, err
+	}
+
+	return &stacks.ListResourceIdentities_Response{
+		Resource: resourceIdentities,
+	}, nil
+}
+
 func (s *stacksServer) InspectExpressionResult(ctx context.Context, req *stacks.InspectExpressionResult_Request) (*stacks.InspectExpressionResult_Response, error) {
 	hnd := handle[*stacksInspector](req.StackInspectorHandle)
 	insp := s.handles.StackInspector(hnd)

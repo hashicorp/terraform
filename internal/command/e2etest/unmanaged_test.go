@@ -116,6 +116,7 @@ func (p *providerServer5) ApplyResourceChange(ctx context.Context, req *proto5.A
 	defer p.Unlock()
 
 	p.applyResourceChangeCalled = true
+
 	return p.ProviderServer.ApplyResourceChange(ctx, req)
 }
 

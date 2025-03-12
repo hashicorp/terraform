@@ -31,11 +31,10 @@ func (n *NodeStateCleanup) Name() string {
 }
 
 // Execute destroys the resources created in the state file.
-// This function should never return error diagnostics, as that would
+// This function should never return non-fatal error diagnostics, as that would
 // prevent further cleanup from happening. Instead, the diagnostics
 // will be rendered directly.
 func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
 	file := n.opts.File
 	state := evalCtx.GetFileState(n.stateKey)
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
@@ -43,7 +42,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	if evalCtx.Cancelled() {
 		// Don't try and clean anything up if the execution has been cancelled.
 		log.Printf("[DEBUG] TestStateManager: skipping state cleanup for %s due to cancellation", file.Name)
-		return diags
+		return nil
 	}
 
 	empty := true
@@ -62,7 +61,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		// The state can be empty for a run block that just executed a plan
 		// command, or a run block that only read data sources. We'll just
 		// skip empty run blocks.
-		return diags
+		return nil
 	}
 
 	if state.Run == nil {
@@ -74,10 +73,12 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		// above. If we do reach here, then something has gone badly wrong
 		// and we can't really recover from it.
 
-		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name)))
+		diags := tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name))}
 		file.UpdateStatus(moduletest.Error)
 		diags = diags.Append(evalCtx.WriteFileState(n.stateKey, state))
 		evalCtx.Renderer().DestroySummary(diags, nil, file, state.State)
+
+		// intentionally return nil to allow further cleanup
 		return nil
 	}
 	TransformConfigForRun(evalCtx, state.Run, file)
@@ -89,20 +90,19 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	var destroyDiags tfdiags.Diagnostics
 	cancelled := waiter.Run(func() {
 		updated, destroyDiags = n.destroy(evalCtx, runNode, waiter)
-		diags = diags.Append(destroyDiags)
 	})
 	if cancelled {
-		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
+		destroyDiags = destroyDiags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
 	}
 
 	if !updated.Empty() {
 		// Then we failed to adequately clean up the state, so mark as errored.
 		file.UpdateStatus(moduletest.Error)
 	}
-	evalCtx.Renderer().DestroySummary(diags, state.Run, file, updated)
+	evalCtx.Renderer().DestroySummary(destroyDiags, state.Run, file, updated)
 	state.State = updated
 
-	diags = diags.Append(evalCtx.WriteFileState(n.stateKey, state))
+	evalCtx.WriteFileState(n.stateKey, state)
 	return nil
 }
 

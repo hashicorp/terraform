@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -21,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -556,7 +556,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// We need to build an abs provider address, but we can use a default
 	// instance since we're only interested in the schema.
 	schema := d.getResourceSchema(addr, config.Provider)
-	if schema == nil {
+	if schema.Body == nil {
 		// This shouldn't happen, since validation before we get here should've
 		// taken care of it, but we'll show a reasonable error message anyway.
 		diags = diags.Append(&hcl.Diagnostic{
@@ -567,7 +567,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		})
 		return cty.DynamicVal, diags
 	}
-	ty := schema.ImpliedType()
+	ty := schema.Body.ImpliedType()
 
 	if addr.Mode == addrs.EphemeralResourceMode {
 		// FIXME: This does not yet work with deferrals, and it would be nice to
@@ -695,7 +695,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			continue
 		}
 
-		ios, err := is.Current.Decode(ty)
+		ios, err := is.Current.Decode(schema)
 		if err != nil {
 			// This shouldn't happen, since by the time we get here we
 			// should have upgraded the state data already.
@@ -896,13 +896,13 @@ func (d *evaluationStateData) getEphemeralResource(addr addrs.Resource, rng tfdi
 	}
 }
 
-func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.Provider) *configschema.Block {
-	schema, _, err := d.Evaluator.Plugins.ResourceTypeSchema(providerAddr, addr.Mode, addr.Type)
+func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.Provider) providers.Schema {
+	schema, err := d.Evaluator.Plugins.ResourceTypeSchema(providerAddr, addr.Mode, addr.Type)
 	if err != nil {
 		// We have plently other codepaths that will detect and report
 		// schema lookup errors before we'd reach this point, so we'll just
 		// treat a failure here the same as having no schema.
-		return nil
+		return providers.Schema{}
 	}
 	return schema
 }

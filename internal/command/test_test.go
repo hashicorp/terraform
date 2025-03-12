@@ -151,8 +151,9 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"simple_fail": {
 			expectedOut: []string{"0 passed, 1 failed."},
-			expectedErr: []string{"invalid value"},
-			code:        1,
+			expectedErr: []string{"invalid value", `│ - "bar"
+    │ + "zap"`},
+			code: 1,
 		},
 		"custom_condition_checks": {
 			expectedOut: []string{"0 passed, 1 failed."},
@@ -217,7 +218,7 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"destroy_fail": {
-			expectedOut:           []string{"2 passed, 0 failed."},
+			expectedOut:           []string{"3 passed, 0 failed."},
 			expectedErr:           []string{`Terraform left the following resources in state`},
 			code:                  1,
 			expectedResourceCount: 4,
@@ -306,8 +307,10 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"ephemeral_input_with_error": {
 			expectedOut: []string{"Error message refers to ephemeral values", "1 passed, 1 failed."},
-			expectedErr: []string{"Test assertion failed", "has an ephemeral value"},
-			code:        1,
+			expectedErr: []string{"Test assertion failed",
+				`│ - "(ephemeral value)"
+    │ + "bar"`},
+			code: 1,
 		},
 		"ephemeral_resource": {
 			expectedOut: []string{"0 passed, 1 failed."},
@@ -317,6 +320,11 @@ func TestTest_Runs(t *testing.T) {
 		"with_state_key": {
 			expectedOut: []string{"3 passed, 1 failed."},
 			expectedErr: []string{"Test assertion failed", "resource renamed without moved block"},
+			code:        1,
+		},
+		"unapplyable-plan": {
+			expectedOut: []string{"0 passed, 1 failed."},
+			expectedErr: []string{"Cannot apply non-applyable plan"},
 			code:        1,
 		},
 	}
@@ -483,10 +491,28 @@ func TestTest_DestroyFail(t *testing.T) {
 	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
 	view, done := testView(t)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		View:             view,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{Meta: meta}
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
+	}
 
 	interrupt := make(chan struct{})
 	provider.Interrupt = interrupt
+	view, done = testView(t)
 
 	c := &TestCommand{
 		Meta: Meta{
@@ -500,12 +526,13 @@ func TestTest_DestroyFail(t *testing.T) {
 	output := done(t)
 
 	cleanupMessage := `main.tftest.hcl... in progress
+  run "setup"... pass
   run "single"... pass
   run "double"... pass
 main.tftest.hcl... tearing down
 main.tftest.hcl... fail
 
-Failure! 2 passed, 0 failed.
+Failure! 3 passed, 0 failed.
 `
 
 	cleanupErr := `Terraform encountered an error destroying resources created while executing
@@ -549,8 +576,6 @@ main.tftest.hcl/single, and they need to be cleaned up manually:
 		t.Errorf("expected output to be %s\n\nbut got %s\n\n diff:%s\n", cleanupMessage, output.Stdout(), diff)
 	}
 
-	// This time the test command shouldn't have cleaned up the resource because
-	// the destroy failed.
 	if provider.ResourceCount() != 4 {
 		t.Errorf("should not have deleted all resources on completion but only has %v", provider.ResourceString())
 	}
@@ -602,6 +627,11 @@ main.tftest.hcl/single, and they need to be cleaned up manually:
 			state, err := stateGetter(state.Path)
 			if err != nil {
 				t.Fatalf("failed to get state: %s", err)
+			}
+
+			// If the state is nil, then the test cleaned up the state
+			if state == nil {
+				continue
 			}
 
 			var resources []string
@@ -974,6 +1004,495 @@ func TestTest_ProviderAlias(t *testing.T) {
 	if code != 0 {
 		printedOutput = true
 		t.Errorf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	if provider.ResourceCount() > 0 {
+		if !printedOutput {
+			t.Errorf("should have deleted all resources on completion but left %s\n\n%s", provider.ResourceString(), output.All())
+		} else {
+			t.Errorf("should have deleted all resources on completion but left %s", provider.ResourceString())
+		}
+	}
+}
+
+func TestTest_ComplexCondition(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "complex_condition")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.0.0"}})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	output := done(t)
+
+	if code := init.Run([]string{"-no-color"}); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	command := &TestCommand{
+		Meta: meta,
+	}
+
+	code := command.Run([]string{"-no-color"})
+	output = done(t)
+
+	printedOutput := false
+
+	if code != 1 {
+		printedOutput = true
+		t.Errorf("expected status code 1 but got %d: %s", code, output.All())
+	}
+
+	expectedOut := `main.tftest.hcl... in progress
+  run "validate_diff_types"... fail
+  run "validate_output"... fail
+  run "validate_complex_output"... fail
+  run "validate_complex_output_sensitive"... fail
+  run "validate_complex_output_pass"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 1 passed, 4 failed.
+`
+
+	expectedErr := `
+Error: Test assertion failed
+
+  on main.tftest.hcl line 37, in run "validate_diff_types":
+  37:     condition = var.tr1 == var.tr2 
+    ├────────────────
+    │ Warning: LHS and RHS values are of different types
+
+
+expected to fail
+
+Error: Test assertion failed
+
+  on main.tftest.hcl line 44, in run "validate_output":
+  44:     condition = output.foo == var.foo
+    ├────────────────
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │   {
+    │ -   "bar": "notbaz",
+    │ +   "bar": "baz",
+    │     "matches": "matches",
+    │ -   "qux": "quux",
+    │ -   "xuq": "xuq"
+    │ +   "qux": "qux",
+    │ +   "xuq": "nope"
+    │   }
+
+
+expected to fail due to different values
+
+Error: Test assertion failed
+
+  on main.tftest.hcl line 52, in run "validate_complex_output":
+  52:     condition = output.complex == var.bar
+    ├────────────────
+    │ Warning: LHS and RHS values are of different types
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │   {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │ -       "qux": "quux"
+    │ +       "qux": "qux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+
+
+expected to fail
+
+Error: Test assertion failed
+
+  on main.tftest.hcl line 60, in run "validate_complex_output_sensitive":
+  60:     condition = output.complex == output.complex_sensitive
+    ├────────────────
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │ - {
+    │ -   "root": [
+    │ -     {
+    │ -       "bar": [
+    │ -         1
+    │ -       ],
+    │ -       "qux": "quux"
+    │ -     },
+    │ -     {
+    │ -       "bar": [
+    │ -         2
+    │ -       ],
+    │ -       "qux": "quux"
+    │ -     }
+    │ -   ]
+    │ - }
+    │ + "(sensitive value)"
+
+
+expected to fail
+`
+	if diff := cmp.Diff(output.Stdout(), expectedOut); len(diff) > 0 {
+		t.Errorf("\nexpected: \n%s\ngot: %s\ndiff: %s", expectedOut, output.All(), diff)
+	}
+	if diff := cmp.Diff(output.Stderr(), expectedErr); len(diff) > 0 {
+		t.Errorf("\nexpected stderr: \n%s\ngot: %s\ndiff: %s", expectedErr, output.Stderr(), diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		if !printedOutput {
+			t.Errorf("should have deleted all resources on completion but left %s\n\n%s", provider.ResourceString(), output.All())
+		} else {
+			t.Errorf("should have deleted all resources on completion but left %s", provider.ResourceString())
+		}
+	}
+}
+
+func TestTest_ComplexConditionVerbose(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "complex_condition")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.0.0"}})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	output := done(t)
+
+	if code := init.Run([]string{"-no-color"}); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	command := &TestCommand{
+		Meta: meta,
+	}
+
+	code := command.Run([]string{"-no-color", "-verbose"})
+	output = done(t)
+
+	printedOutput := false
+
+	if code != 1 {
+		printedOutput = true
+		t.Errorf("expected status code 1 but got %d: %s", code, output.All())
+	}
+
+	expectedErr := `
+Error: Test assertion failed
+
+  on main.tftest.hcl line 37, in run "validate_diff_types":
+  37:     condition = var.tr1 == var.tr2 
+    ├────────────────
+    │ LHS:
+    │   {
+    │     "iops": null,
+    │     "size": 60
+    │   }
+    │ RHS:
+    │   {
+    │     "iops": null,
+    │     "size": 60
+    │   }
+    │ Warning: LHS and RHS values are of different types
+
+    │ var.tr1 is {
+    │     "iops": null,
+    │     "size": 60
+    │   }
+    │ var.tr2 is {
+    │     "iops": null,
+    │     "size": 60
+    │   }
+
+expected to fail
+
+Error: Test assertion failed
+
+  on main.tftest.hcl line 44, in run "validate_output":
+  44:     condition = output.foo == var.foo
+    ├────────────────
+    │ LHS:
+    │   {
+    │     "bar": "notbaz",
+    │     "matches": "matches",
+    │     "qux": "quux",
+    │     "xuq": "xuq"
+    │   }
+    │ RHS:
+    │   {
+    │     "bar": "baz",
+    │     "matches": "matches",
+    │     "qux": "qux",
+    │     "xuq": "nope"
+    │   }
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │   {
+    │ -   "bar": "notbaz",
+    │ +   "bar": "baz",
+    │     "matches": "matches",
+    │ -   "qux": "quux",
+    │ -   "xuq": "xuq"
+    │ +   "qux": "qux",
+    │ +   "xuq": "nope"
+    │   }
+
+    │ output.foo is {
+    │     "bar": "notbaz",
+    │     "matches": "matches",
+    │     "qux": "quux",
+    │     "xuq": "xuq"
+    │   }
+    │ var.foo is {
+    │     "bar": "baz",
+    │     "matches": "matches",
+    │     "qux": "qux",
+    │     "xuq": "nope"
+    │   }
+
+expected to fail due to different values
+
+Error: Test assertion failed
+
+  on main.tftest.hcl line 52, in run "validate_complex_output":
+  52:     condition = output.complex == var.bar
+    ├────────────────
+    │ LHS:
+    │   {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "quux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+    │ RHS:
+    │   {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "qux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+    │ Warning: LHS and RHS values are of different types
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │   {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │ -       "qux": "quux"
+    │ +       "qux": "qux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+
+    │ output.complex is {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "quux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+    │ var.bar is {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "qux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+
+expected to fail
+
+Error: Test assertion failed
+
+  on main.tftest.hcl line 60, in run "validate_complex_output_sensitive":
+  60:     condition = output.complex == output.complex_sensitive
+    ├────────────────
+    │ LHS:
+    │   {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "quux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+    │ RHS:
+    │   "(sensitive value)"
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │ - {
+    │ -   "root": [
+    │ -     {
+    │ -       "bar": [
+    │ -         1
+    │ -       ],
+    │ -       "qux": "quux"
+    │ -     },
+    │ -     {
+    │ -       "bar": [
+    │ -         2
+    │ -       ],
+    │ -       "qux": "quux"
+    │ -     }
+    │ -   ]
+    │ - }
+    │ + "(sensitive value)"
+
+    │ output.complex is {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "quux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+    │ output.complex_sensitive is "(sensitive value)"
+
+expected to fail
+`
+	outputs := []string{
+		"main.tftest.hcl... in progress",
+		"  run \"validate_diff_types\"... fail",
+		"  run \"validate_output\"... fail",
+		"  run \"validate_complex_output\"... fail",
+		"  run \"validate_complex_output_sensitive\"... fail",
+		"  run \"validate_complex_output_pass\"... pass",
+		"main.tftest.hcl... tearing down",
+		"main.tftest.hcl... fail",
+		"Failure! 1 passed, 4 failed.",
+	}
+	stdout := output.Stdout()
+	for _, expected := range outputs {
+		if !strings.Contains(stdout, expected) {
+			t.Errorf("output didn't contain expected output %q", expected)
+		}
+	}
+
+	if diff := cmp.Diff(output.Stderr(), expectedErr); len(diff) > 0 {
+		t.Errorf("\nexpected stderr: \n%s\ngot: %s\ndiff: %s", expectedErr, output.Stderr(), diff)
 	}
 
 	if provider.ResourceCount() > 0 {
@@ -2175,8 +2694,13 @@ Error: Test assertion failed
   on main.tftest.hcl line 8, in run "first":
    8:     condition     = test_resource.resource.value == output.null_output
     ├────────────────
-    │ output.null_output is null
-    │ test_resource.resource.value is "bar"
+    │ Warning: LHS and RHS values are of different types
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │ - "bar"
+    │ + null
+
 
 this is always going to fail
 `,
@@ -2358,8 +2882,8 @@ func TestTest_SensitiveInputValues(t *testing.T) {
 	code := c.Run([]string{"-no-color", "-verbose"})
 	output = done(t)
 
-	if code != 0 {
-		t.Errorf("expected status code 0 but got %d", code)
+	if code != 1 {
+		t.Errorf("expected status code 1 but got %d", code)
 	}
 
 	expected := `main.tftest.hcl... in progress
@@ -2385,16 +2909,71 @@ Outputs:
 
 password = (sensitive value)
 
-main.tftest.hcl... tearing down
-main.tftest.hcl... pass
+  run "test_failed"... fail
 
-Success! 2 passed, 0 failed.
+# test_resource.resource:
+resource "test_resource" "resource" {
+    destroy_fail = false
+    id           = "9ddca5a9"
+    value        = (sensitive value)
+}
+
+
+Outputs:
+
+password = (sensitive value)
+
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 2 passed, 1 failed.
 `
 
-	actual := output.All()
+	expectedErr := `
+Error: Test assertion failed
+
+  on main.tftest.hcl line 27, in run "test_failed":
+  27:     condition = var.complex == {
+  28:       foo = "bar"
+  29:       baz = test_resource.resource.id
+  30:     }
+    ├────────────────
+    │ LHS:
+    │   {
+    │     "baz": "(sensitive value)",
+    │     "foo": "bar"
+    │   }
+    │ RHS:
+    │   {
+    │     "baz": "9ddca5a9",
+    │     "foo": "bar"
+    │   }
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │   {
+    │ -   "baz": "(sensitive value)",
+    │ +   "baz": "9ddca5a9",
+    │     "foo": "bar"
+    │   }
+
+    │ test_resource.resource.id is "9ddca5a9"
+    │ var.complex is {
+    │     "baz": "(sensitive value)",
+    │     "foo": "bar"
+    │   }
+
+expected to fail
+`
+
+	actual := output.Stdout()
 
 	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
 		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+
+	if diff := cmp.Diff(output.Stderr(), expectedErr); len(diff) > 0 {
+		t.Errorf("stderr didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, output.Stderr(), diff)
 	}
 
 	if provider.ResourceCount() > 0 {
@@ -2635,7 +3214,6 @@ Success! 2 passed, 0 failed.
 }
 
 func TestTest_InvalidConfig(t *testing.T) {
-	t.Skip("TODO(dsa0x): Unable to reproduce this flakiness locally, skipping for now. Need to investigate or remove.")
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "invalid_config")), td)
 	defer testChdir(t, td)()
@@ -2684,9 +3262,14 @@ func TestTest_InvalidConfig(t *testing.T) {
 		t.Errorf("expected status code ! but got %d", code)
 	}
 
-	expected := `main.tftest.hcl... in progress
+	expectedOut := `main.tftest.hcl... in progress
   run "test"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
 
+Failure! 0 passed, 1 failed.
+`
+	expectedErr := `
 Error: Failed to load plugin schemas
 
 Error while loading schemas for plugin components: Failed to obtain provider
@@ -2695,16 +3278,16 @@ registry.terraform.io/hashicorp/test: failed to instantiate provider
 "registry.terraform.io/hashicorp/test" to obtain schema: fork/exec
 .terraform/providers/registry.terraform.io/hashicorp/test/1.0.0/%s/terraform-provider-test_1.0.0:
 permission denied..
-main.tftest.hcl... tearing down
-main.tftest.hcl... fail
-
-Failure! 0 passed, 1 failed.
 `
-	expected = fmt.Sprintf(expected, runtime.GOOS+"_"+runtime.GOARCH)
-	actual := output.All()
+	expectedErr = fmt.Sprintf(expectedErr, runtime.GOOS+"_"+runtime.GOARCH)
+	out := output.Stdout()
+	err := output.Stderr()
 
-	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
-		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	if diff := cmp.Diff(out, expectedOut); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, out, diff)
+	}
+	if diff := cmp.Diff(err, expectedErr); len(diff) > 0 {
+		t.Errorf("error didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, err, diff)
 	}
 
 	if provider.ResourceCount() > 0 {
@@ -3074,7 +3657,7 @@ func TestTest_JUnitOutput(t *testing.T) {
 			actualOut = timestampRegexp.ReplaceAll(actualOut, []byte("timestamp=\"TIMESTAMP_REDACTED\""))
 
 			if !bytes.Equal(actualOut, expectedOutput) {
-				t.Fatalf("wanted XML:\n%s\n got XML:\n%s\n", string(expectedOutput), string(actualOut))
+				t.Fatalf("wanted XML:\n%s\n got XML:\n%s\ndiff:%s\n", string(expectedOutput), string(actualOut), cmp.Diff(expectedOutput, actualOut))
 			}
 
 			if provider.ResourceCount() > 0 {
