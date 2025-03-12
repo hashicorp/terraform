@@ -119,6 +119,12 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		return moduletest.Error, diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to build state manifest", err.Error()))
 	}
 
+	if !manifest.Empty() {
+		return moduletest.Error, diags.Append(tfdiags.Sourceless(tfdiags.Error, "State manifest not empty", ``+
+			"The state manifest should be empty before running tests. This could be due to a previous test run not cleaning up after itself."+
+			"Please ensure that all state files are cleaned up before running tests."))
+	}
+
 	suite.Status = moduletest.Pass
 	for _, name := range files {
 		if runner.Cancelled {

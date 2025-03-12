@@ -99,6 +99,20 @@ func LoadManifest(dataDir string) (*TestManifest, error) {
 	return manifest, nil
 }
 
+func (m *TestManifest) Empty() bool {
+	if len(m.Files) == 0 {
+		return true
+	}
+
+	for _, file := range m.Files {
+		if len(file.States) != 0 {
+			return false
+		}
+	}
+
+	return true
+}
+
 // writeState writes a state to disk, with the path being the location in the manifest
 // where the state is expected to be stored for a given key.
 func (m *TestManifest) writeState(key string, state *TestFileState) error {
