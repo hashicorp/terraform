@@ -1,4 +1,22 @@
-## 1.11.2 (Unreleased)
+## 1.11.2 (March 12, 2025)
+
+
+ENHANCEMENTS:
+
+* Azure Backend supports ADO Pipelines OIDC token refresh by using the `oidc_request_url`, `oidc_request_token` and (the new) `ado_pipeline_service_connection_id`. ([#36458](https://github.com/hashicorp/terraform/issues/36458))
+
+
+BUG FIXES:
+
+* Return error when the templatestring function contains only a single interpolation that evaluates to a null value ([#36652](https://github.com/hashicorp/terraform/issues/36652))
+
+* Backend/azure: `subscription_id` be optional & skip *unnecessary* management plane API call in some setup ([#36595](https://github.com/hashicorp/terraform/issues/36595))
+
+
+NOTES:
+
+* Updated dependency github.com/hashicorp/aws-sdk-go-base/v2 to v2.0.0-beta.62 to support newly added AWS regions ([#36625](https://github.com/hashicorp/terraform/issues/36625))
+
 
 ## 1.11.1 (March 5, 2025)
 
@@ -61,6 +79,8 @@ BUG FIXES:
 * backends: Fix crash when interrupting during interactive prompt for values ([#36448](https://github.com/hashicorp/terraform/issues/36448))
 
 * Fixes hanging behavior seen when applying a saved plan with -auto-approve using the cloud backend ([#36453](https://github.com/hashicorp/terraform/issues/36453))
+
+
 ## Previous Releases
 
 For information on prior major and minor releases, refer to their changelogs:
