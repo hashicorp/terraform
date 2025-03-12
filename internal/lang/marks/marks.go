@@ -35,6 +35,19 @@ func Contains(val cty.Value, mark valueMark) bool {
 	return ret
 }
 
+func DeprecationMarks(val cty.Value) []Deprecated {
+	var marks []Deprecated
+	cty.Walk(val, func(_ cty.Path, v cty.Value) (bool, error) {
+		for mark := range v.Marks() {
+			if dep, ok := mark.(Deprecated); ok {
+				marks = append(marks, dep)
+			}
+		}
+		return true, nil
+	})
+	return marks
+}
+
 // Sensitive indicates that this value is marked as sensitive in the context of
 // Terraform.
 const Sensitive = valueMark("Sensitive")
@@ -51,3 +64,11 @@ const Ephemeral = valueMark("Ephemeral")
 // another value's type. This is part of the implementation of the console-only
 // `type` function.
 const TypeType = valueMark("TypeType")
+
+type Deprecated struct {
+	Message string
+}
+
+func (m Deprecated) GoString() string {
+	return "marks.deprecated"
+}

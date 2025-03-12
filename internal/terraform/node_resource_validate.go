@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/format"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -388,6 +389,10 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 				}
 			}
 		}
+
+		fmt.Printf("\n\t configVal --> %#v \n", configVal)
+		deprecationMarks := marks.DeprecationMarks(configVal)
+		fmt.Printf("\n\t deprecationMarks --> %#v \n", deprecationMarks)
 
 		// Use unmarked value for validate request
 		unmarkedConfigVal, _ := configVal.UnmarkDeep()

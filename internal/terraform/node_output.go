@@ -517,6 +517,13 @@ If you do intend to export this data, annotate the output value as sensitive by 
 		return diags
 	}
 
+	if n.Config.DeprecatedSet {
+		fmt.Printf("\n\t n.Config.Deprecated --> %#v \n", n.Config.Deprecated)
+		val = val.Mark(marks.Deprecated{
+			Message: n.Config.Deprecated,
+		})
+	}
+
 	n.setValue(ctx.NamedValues(), state, changes, ctx.Deferrals(), val)
 
 	// If we were able to evaluate a new value, we can update that in the

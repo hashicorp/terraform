@@ -345,12 +345,14 @@ type Output struct {
 	DependsOn   []hcl.Traversal
 	Sensitive   bool
 	Ephemeral   bool
+	Deprecated  string
 
 	Preconditions []*CheckRule
 
 	DescriptionSet bool
 	SensitiveSet   bool
 	EphemeralSet   bool
+	DeprecatedSet  bool
 
 	DeclRange hcl.Range
 }
@@ -406,6 +408,12 @@ func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostic
 		deps, depsDiags := DecodeDependsOn(attr)
 		diags = append(diags, depsDiags...)
 		o.DependsOn = append(o.DependsOn, deps...)
+	}
+
+	if attr, exists := content.Attributes["deprecated"]; exists {
+		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &o.Deprecated)
+		diags = append(diags, valDiags...)
+		o.DeprecatedSet = true
 	}
 
 	for _, block := range content.Blocks {
@@ -524,6 +532,9 @@ var outputBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "ephemeral",
+		},
+		{
+			Name: "deprecated",
 		},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
