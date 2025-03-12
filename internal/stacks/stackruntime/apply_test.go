@@ -809,7 +809,7 @@ func TestApply(t *testing.T) {
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"removed\"].testing_resource.data"),
 							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
 							NewStateSrc:                nil,
-							Schema:                     nil,
+							Schema:                     providers.Schema{},
 						},
 						&stackstate.AppliedChangeInputVariable{
 							Addr: mustStackInputVariable("input"),
