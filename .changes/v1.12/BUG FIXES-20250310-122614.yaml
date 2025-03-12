@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fixes unintended exit of CLI when using the remote backend and applying with post-plan tasks configured in HCP Terraform
+time: 2025-03-10T12:26:14.912809-04:00
+custom:
+  Issue: "36655"
