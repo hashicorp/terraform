@@ -505,6 +505,11 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				}
 				deposed.SensitiveValues = v
 
+				deposed.IdentityValues, err = marshalIdentityValues(riObj.Identity)
+				if err != nil {
+					return nil, fmt.Errorf("preparing identity values for %s: %w", current.Address, err)
+				}
+
 				if len(riObj.Dependencies) > 0 {
 					dependencies := make([]string, len(riObj.Dependencies))
 					for i, v := range riObj.Dependencies {
