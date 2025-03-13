@@ -650,6 +650,117 @@ main.tftest.hcl/single, and they need to be cleaned up manually:
 	}
 }
 
+func TestTest_LeftoverState(t *testing.T) {
+	tests := []struct {
+		name       string
+		state      string
+		expectCode int
+		expectOut  string
+	}{
+		{
+			name: "non-empty state file",
+			state: `{
+				"version": 4,
+				"terraform_version": "1.0.0",
+				"serial": 1,
+				"lineage": "b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1",
+				"outputs": {
+					"message": {
+						"value": "Hello, John",
+						"type": "string"
+					}
+				},
+				"resources": []
+			}`,
+			expectCode: 1,
+			expectOut:  "\nFailure! 0 passed, 0 failed.\n",
+		},
+		{
+			name: "empty state file",
+			state: `{
+				"version": 4,
+				"terraform_version": "1.0.0",
+				"serial": 1,
+				"lineage": "b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1",
+				"outputs": {},
+				"resources": []
+			}`,
+			expectCode: 0,
+			expectOut: `main.tftest.hcl... in progress
+  run "validate_test_resource"... pass
+  run "apply_test_resource"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
+
+Success! 2 passed, 0 failed.
+`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(path.Join("test", "plan_then_apply")), td)
+			defer testChdir(t, td)()
+
+			statePath := path.Join(td, ".terraform", "test", "main.tfstate")
+			manifestPath := path.Join(td, ".terraform/test", "manifest.json")
+			manifest := graph.TestManifest{
+				Version: 0,
+				Files: map[string]graph.TestFile{
+					"main.tftest.hcl": {States: map[string]graph.TestState{"single": {Path: statePath}}},
+				},
+			}
+
+			os.MkdirAll(filepath.Dir(statePath), 0755)
+			if err := os.WriteFile(statePath, []byte(tt.state), 0644); err != nil {
+				t.Fatalf("failed to write state file: %s", err)
+			}
+
+			manifestFile, err := os.Create(manifestPath)
+			if err != nil {
+				t.Fatalf("failed to create manifest.json: %s", err)
+			}
+			defer manifestFile.Close()
+
+			if err := json.NewEncoder(manifestFile).Encode(manifest); err != nil {
+				t.Fatalf("failed to write manifest.json: %s", err)
+			}
+
+			provider := testing_command.NewProvider(nil)
+			view, done := testView(t)
+
+			interrupt := make(chan struct{})
+			provider.Interrupt = interrupt
+
+			c := &TestCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(provider.Provider),
+					View:             view,
+					ShutdownCh:       interrupt,
+				},
+			}
+
+			code := c.Run([]string{"-no-color"})
+			output := done(t)
+
+			if code != tt.expectCode {
+				t.Errorf("expected status code %d but got %d:\n\n%s", tt.expectCode, code, output.All())
+			}
+
+			if diff := cmp.Diff(tt.expectOut, output.Stdout()); diff != "" {
+				t.Errorf("unexpected output: %s", diff)
+			}
+
+			if tt.expectCode == 1 {
+				if _, err := os.Stat(statePath); err != nil {
+					t.Fatalf("state file should still be present: %s", err)
+				}
+			}
+		})
+	}
+}
+
 func TestTest_SharedState_Order(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "shared_state")), td)
@@ -688,6 +799,7 @@ func TestTest_SharedState_Order(t *testing.T) {
 
 	c.Run(nil)
 	output := done(t).All()
+	fmt.Println(output)
 
 	// Split the log into lines
 	lines := strings.Split(output, "\n")

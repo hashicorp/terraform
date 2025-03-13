@@ -48,7 +48,10 @@ func BuildStateManifest(rootDir string, files map[string]*moduletest.File) (*Tes
 
 	ids := make(map[string]struct{})
 	for _, file := range files {
-		manifestFile := TestFile{States: make(map[string]TestState)}
+		manifestFile, exists := manifest.Files[file.Name]
+		if !exists {
+			manifestFile = TestFile{States: make(map[string]TestState)}
+		}
 		keys := make([]string, 0, len(file.Runs))
 
 		// collect all state keys (implicit or explicit)
@@ -97,6 +100,22 @@ func LoadManifest(dataDir string) (*TestManifest, error) {
 	}
 
 	return manifest, nil
+}
+
+func (m *TestManifest) Empty() (bool, error) {
+	for _, file := range m.Files {
+		for _, state := range file.States {
+			stateFile := statemgr.NewFilesystem(state.Path)
+			if err := stateFile.RefreshState(); err != nil {
+				return false, err
+			}
+			if !stateFile.State().Empty() {
+				return false, nil
+			}
+		}
+	}
+
+	return true, nil
 }
 
 // writeState writes a state to disk, with the path being the location in the manifest
