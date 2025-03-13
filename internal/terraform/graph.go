@@ -143,28 +143,12 @@ func (g *Graph) walk(ctx EvalContext, walker *ContextGraphWalker) tfdiags.Diagno
 			log.Printf("[TRACE] vertex %q: does not belong to any module instance", dag.VertexName(v))
 		}
 
-		// When working with embedded objects (e.g NodeAbstractResource in NodePlannableResourceInstance),
-		// the filter may include the outer type (NodePlannableResourceInstance) but the current method might
-		// be called on the inner embedded type (NodeAbstractResource). In this scenario,
-		// selector.NodeAllowed(v) would not return the correct result, as the outer type is not allowed.
-		//
-		// Therefore, we need to explicitly check if the node can be excluded, and if it's not allowed
-		// by the filter, mark it as excluded
-		// excluded := !selector.NodeAllowed(v)
-		// if excluded {
-		// 	ev, ok := v.(GraphNodeDeferrable)
-		// 	if ok {
-		// 		log.Printf("[TRACE] vertex %q: excluded from dynamic expansion", dag.VertexName(v))
-		// 		ev.SetDeferred(true)
-		// 	}
-
-		// }
-
+		// If the node is exec-able, then execute it.
 		if ev, ok := v.(GraphNodeExecutable); ok {
 			diags = diags.Append(walker.Execute(vertexCtx, ev))
-		}
-		if diags.HasErrors() {
-			return
+			if diags.HasErrors() {
+				return
+			}
 		}
 
 		// If the node is dynamically expanded, then expand it
@@ -202,7 +186,6 @@ func (g *Graph) walk(ctx EvalContext, walker *ContextGraphWalker) tfdiags.Diagno
 
 				// Walk the subgraph
 				log.Printf("[TRACE] vertex %q: entering dynamic subgraph", dag.VertexName(v))
-
 				subDiags := g.walk(vertexCtx, walker)
 				diags = diags.Append(subDiags)
 				if subDiags.HasErrors() {

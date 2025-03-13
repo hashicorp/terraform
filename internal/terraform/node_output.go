@@ -601,10 +601,6 @@ func (n *nodeOutputInPartialModule) Execute(ctx EvalContext, op walkOperation) t
 	return diags
 }
 
-func (n *nodeOutputInPartialModule) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	return n.Execute(ctx, op)
-}
-
 // NodeDestroyableOutput represents an output that is "destroyable":
 // its application will remove the output from the state.
 type NodeDestroyableOutput struct {

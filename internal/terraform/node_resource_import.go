@@ -147,25 +147,6 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 	return diags
 }
 
-func (n *graphNodeImportState) Validate(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	// Reset our states
-	n.states = nil
-
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	schema, _ := providerSchema.SchemaForResourceType(n.Addr.Resource.Resource.Mode, n.Addr.Resource.Resource.Type)
-	if schema == nil {
-		// Should be caught during validation, so we don't bother with a pretty error here
-		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Resource.Type))
-		return diags
-	}
-	return diags
-}
-
 // GraphNodeDynamicExpandable impl.
 //
 // We use DynamicExpand as a way to generate the subgraph of refreshes

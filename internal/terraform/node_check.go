@@ -50,10 +50,6 @@ func (n *nodeReportCheck) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diag
 	return nil
 }
 
-func (n *nodeReportCheck) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	return n.Execute(ctx, op)
-}
-
 func (n *nodeReportCheck) Name() string {
 	return n.addr.String() + " (report)"
 }
@@ -208,12 +204,6 @@ var (
 type nodeCheckStart struct{}
 
 func (n *nodeCheckStart) Execute(context EvalContext, operation walkOperation) tfdiags.Diagnostics {
-	// This node doesn't actually do anything, except simplify the underlying
-	// graph structure.
-	return nil
-}
-
-func (n *nodeCheckStart) Validate(context EvalContext, operation walkOperation) tfdiags.Diagnostics {
 	// This node doesn't actually do anything, except simplify the underlying
 	// graph structure.
 	return nil

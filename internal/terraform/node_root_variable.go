@@ -124,10 +124,6 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 	return diags
 }
 
-func (n *NodeRootVariable) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	return n.Execute(ctx, op)
-}
-
 // dag.GraphNodeDotter impl.
 func (n *NodeRootVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
 	return &dag.DotNode{

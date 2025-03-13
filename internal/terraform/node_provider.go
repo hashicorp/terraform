@@ -52,22 +52,6 @@ func (n *NodeApplyableProvider) Execute(ctx EvalContext, op walkOperation) (diag
 	return diags
 }
 
-func (n *NodeApplyableProvider) Validate(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	_, err := ctx.InitProvider(n.Addr, n.Config)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	provider, _, err := getProvider(ctx, n.Addr)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	return n.ValidateProvider(ctx, provider)
-}
-
 func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider providers.Interface) (diags tfdiags.Diagnostics) {
 
 	configBody := buildProviderConfig(ctx, n.Addr, n.ProviderConfig())

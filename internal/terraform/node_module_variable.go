@@ -350,10 +350,6 @@ func (n *nodeModuleVariableInPartialModule) Execute(ctx EvalContext, op walkOper
 	return diags
 }
 
-func (n *nodeModuleVariableInPartialModule) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	return n.Execute(ctx, op)
-}
-
 func partiallyValidateModuleVariable(ctx EvalContext, expr hcl.Expression) (cty.Value, tfdiags.Diagnostics) {
 	// Our job here is to make sure that the input variable definition is
 	// valid for all instances of this input variable across all of the possible

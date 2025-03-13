@@ -146,9 +146,6 @@ func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Di
 	namedVals.SetLocalValue(n.Addr, val)
 	return diags
 }
-func (n *NodeLocal) Validate(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	return n.Execute(ctx, op)
-}
 
 // dag.GraphNodeDotter impl.
 func (n *NodeLocal) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
