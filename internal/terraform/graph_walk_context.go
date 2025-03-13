@@ -59,7 +59,6 @@ type ContextGraphWalker struct {
 	deferred addrs.Set[addrs.Targetable]
 	included addrs.Set[addrs.Targetable]
 	targets  addrs.Set[addrs.Targetable]
-	filter   *graphFilter
 
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
@@ -146,7 +145,6 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Evaluator:               evaluator,
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
-		FilterValue:             w.filter,
 	}
 
 	return ctx
@@ -159,7 +157,6 @@ func (w *ContextGraphWalker) init() {
 	w.providerSchemas = make(map[string]providers.ProviderSchema)
 	w.provisionerCache = make(map[string]provisioners.Interface)
 	w.provisionerSchemas = make(map[string]*configschema.Block)
-	w.filter = newFilter()
 }
 
 func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfdiags.Diagnostics {

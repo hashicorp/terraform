@@ -431,7 +431,3 @@ func (ctx *MockEvalContext) ClientCapabilities() providers.ClientCapabilities {
 		WriteOnlyAttributesAllowed: true,
 	}
 }
-
-func (ctx *MockEvalContext) GraphFilter() *graphFilter {
-	return newFilter()
-}

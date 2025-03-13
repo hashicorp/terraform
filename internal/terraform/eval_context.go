@@ -216,8 +216,6 @@ type EvalContext interface {
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowed in the context of a destroy plan.
 	Forget() bool
-
-	GraphFilter() *graphFilter
 }
 
 func evalContextForModuleInstance(baseCtx EvalContext, addr addrs.ModuleInstance) EvalContext {

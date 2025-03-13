@@ -69,10 +69,6 @@ type BuiltinEvalContext struct {
 	// DeferralsValue is the object returned by [BuiltinEvalContext.Deferrals].
 	DeferralsValue *deferring.Deferred
 
-	// FilterValue is an object that holds a set of includes and excludes
-	// for filtering resources.
-	FilterValue *graphFilter
-
 	// forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
 	forget bool
@@ -624,8 +620,4 @@ func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities
 		DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
 		WriteOnlyAttributesAllowed: true,
 	}
-}
-
-func (ctx *BuiltinEvalContext) GraphFilter() *graphFilter {
-	return ctx.FilterValue
 }
