@@ -144,20 +144,18 @@ func walkDynamicObjectsInStack[Output any](
 
 				claimedInstances := collections.NewSet[stackaddrs.ComponentInstance]()
 				removed := stack.Removed(ctx, component.Addr().Item)
-				if removed != nil {
-					for _, block := range removed {
-						// In this case we don't care about the unknown. If the
-						// removed instances are unknown, then we'll mark
-						// everything as being part of the component block. So,
-						// even if insts comes back as unknown and hence empty,
-						// we still proceed as normal.
-						insts, _, _ := block.Instances(ctx, phase)
-						for key := range insts {
-							claimedInstances.Add(stackaddrs.ComponentInstance{
-								Component: component.Addr().Item,
-								Key:       key,
-							})
-						}
+				for _, block := range removed {
+					// In this case we don't care about the unknown. If the
+					// removed instances are unknown, then we'll mark
+					// everything as being part of the component block. So,
+					// even if insts comes back as unknown and hence empty,
+					// we still proceed as normal.
+					insts, _, _ := block.Instances(ctx, phase)
+					for key := range insts {
+						claimedInstances.Add(stackaddrs.ComponentInstance{
+							Component: component.Addr().Item,
+							Key:       key,
+						})
 					}
 				}
 
@@ -297,6 +295,7 @@ func walkDynamicObjectsInStack[Output any](
 					if componentInstances.Has(inst.Addr().Item) {
 						// this is an error, but it should have been raised
 						// elsewhere
+						continue
 					}
 					claimedInstances.Add(inst.Addr().Item)
 					mutex.Unlock()

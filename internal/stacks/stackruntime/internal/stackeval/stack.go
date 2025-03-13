@@ -764,24 +764,22 @@ Instance:
 			}
 		}
 
-		if removeds != nil {
-			for _, removed := range removeds {
-				insts, unknown, _ := removed.Instances(ctx, PlanPhase)
-				if unknown {
-					// We can't determine if the component is targeted or not. This
-					// is okay, as any changes to this component will be deferred
-					// anyway and a follow up plan will then detect the missing
-					// component if it exists.
-					continue Instance
-				}
+		for _, removed := range removeds {
+			insts, unknown, _ := removed.Instances(ctx, PlanPhase)
+			if unknown {
+				// We can't determine if the component is targeted or not. This
+				// is okay, as any changes to this component will be deferred
+				// anyway and a follow up plan will then detect the missing
+				// component if it exists.
+				continue Instance
+			}
 
-				for _, i := range insts {
-					// the instance key for a removed block doesn't always translate
-					// directly into the instance key in the address, so we have
-					// to check for the correct one.
-					if i.from.Item.Key == inst.Item.Key {
-						continue Instance
-					}
+			for _, i := range insts {
+				// the instance key for a removed block doesn't always translate
+				// directly into the instance key in the address, so we have
+				// to check for the correct one.
+				if i.from.Item.Key == inst.Item.Key {
+					continue Instance
 				}
 			}
 		}
