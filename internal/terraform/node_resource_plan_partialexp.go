@@ -41,7 +41,6 @@ var (
 	_ graphNodeEvalContextScope = (*nodePlannablePartialExpandedResource)(nil)
 	_ GraphNodeConfigResource   = (*nodePlannablePartialExpandedResource)(nil)
 	_ GraphNodeExecutable       = (*nodePlannablePartialExpandedResource)(nil)
-	//_ GraphNodeValidatable      = (*nodePlannablePartialExpandedResource)(nil)
 )
 
 // Name implements [dag.NamedVertex].

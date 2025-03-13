@@ -33,6 +33,8 @@ type nodeExpandModuleVariable struct {
 	// DestroyApply must be set to true when planning or applying a destroy
 	// operation, and false otherwise.
 	DestroyApply bool
+
+	Deferred
 }
 
 var (
@@ -78,6 +80,7 @@ func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, tfdia
 			Expr:           n.Expr,
 			ModuleInstance: module,
 			DestroyApply:   n.DestroyApply,
+			Deferred:       n.Deferred,
 		}
 		g.Add(o)
 	}, func(pem addrs.PartialExpandedModule) {
@@ -193,7 +196,6 @@ type nodeModuleVariable struct {
 var (
 	_ GraphNodeModuleInstance = (*nodeModuleVariable)(nil)
 	_ GraphNodeExecutable     = (*nodeModuleVariable)(nil)
-	//_ GraphNodeValidatable    = (*nodeModuleVariable)(nil)
 	_ graphNodeTemporaryValue = (*nodeModuleVariable)(nil)
 	_ dag.GraphNodeDotter     = (*nodeModuleVariable)(nil)
 )

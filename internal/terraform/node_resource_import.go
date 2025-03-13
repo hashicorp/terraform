@@ -25,9 +25,8 @@ type graphNodeImportState struct {
 }
 
 var (
-	_ GraphNodeModulePath = (*graphNodeImportState)(nil)
-	_ GraphNodeExecutable = (*graphNodeImportState)(nil)
-	//_ GraphNodeValidatable       = (*graphNodeImportState)(nil)
+	_ GraphNodeModulePath        = (*graphNodeImportState)(nil)
+	_ GraphNodeExecutable        = (*graphNodeImportState)(nil)
 	_ GraphNodeProviderConsumer  = (*graphNodeImportState)(nil)
 	_ GraphNodeDynamicExpandable = (*graphNodeImportState)(nil)
 )
@@ -264,7 +263,6 @@ type graphNodeImportStateSub struct {
 var (
 	_ GraphNodeModuleInstance = (*graphNodeImportStateSub)(nil)
 	_ GraphNodeExecutable     = (*graphNodeImportStateSub)(nil)
-	//_ GraphNodeValidatable    = (*graphNodeImportStateSub)(nil)
 )
 
 func (n *graphNodeImportStateSub) Name() string {

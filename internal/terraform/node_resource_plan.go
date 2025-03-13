@@ -547,6 +547,7 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 		a.Dependencies = n.dependencies
 		a.preDestroyRefresh = n.preDestroyRefresh
 		a.generateConfigPath = n.generateConfigPath
+		a.Deferred = n.Deferred
 
 		m = &NodePlannableResourceInstance{
 			NodeAbstractResourceInstance: a,

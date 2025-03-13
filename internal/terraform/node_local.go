@@ -102,7 +102,6 @@ var (
 	_ GraphNodeReferenceable  = (*NodeLocal)(nil)
 	_ GraphNodeReferencer     = (*NodeLocal)(nil)
 	_ GraphNodeExecutable     = (*NodeLocal)(nil)
-	//_ GraphNodeValidatable    = (*NodeLocal)(nil)
 	_ graphNodeTemporaryValue = (*NodeLocal)(nil)
 	_ dag.GraphNodeDotter     = (*NodeLocal)(nil)
 )

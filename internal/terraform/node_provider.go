@@ -23,7 +23,6 @@ type NodeApplyableProvider struct {
 
 var (
 	_ GraphNodeExecutable = (*NodeApplyableProvider)(nil)
-	//_ GraphNodeValidatable = (*NodeApplyableProvider)(nil)
 )
 
 // GraphNodeExecutable
@@ -217,7 +216,6 @@ type nodeExternalProvider struct {
 
 var (
 	_ GraphNodeExecutable = (*nodeExternalProvider)(nil)
-	//_ GraphNodeValidatable = (*nodeExternalProvider)(nil)
 )
 
 // Execute implements GraphNodeExecutable.
@@ -240,9 +238,6 @@ func (n *nodeExternalProvider) Execute(ctx EvalContext, op walkOperation) tfdiag
 	}
 
 	return diags
-}
-func (n *nodeExternalProvider) Validate(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	return n.Execute(ctx, op)
 }
 
 const providerConfigErr = `Provider %q requires explicit configuration. Add a provider block to the root module and configure the provider's required arguments as described in the provider documentation.

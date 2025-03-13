@@ -692,56 +692,6 @@ resource "test_object" "s" {
 	assertNoErrors(t, diags)
 }
 
-func TestContext2Apply_includeInstance(t *testing.T) {
-	m := testModuleInline(t, map[string]string{
-		"main.tf": `
-		resource "test_object" "a" {
-			count = 2
-		}
-		resource "test_object" "s" {
-		}
-		`,
-	})
-
-	p := simpleMockProvider()
-
-	ctx := testContext2(t, &ContextOpts{
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
-		},
-	})
-
-	exc := mustResourceInstanceAddr(`test_object.a[0]`)
-	cp := *DefaultPlanOpts
-	cp.Included = []addrs.Targetable{exc}
-	plan, diags := ctx.Plan(m, states.NewState(), &cp)
-	assertNoErrors(t, diags)
-
-	// confirm that the target resource is the only one in the plan
-	for _, ch := range plan.Changes.Resources {
-		if !ch.Addr.Equal(exc) {
-			t.Fatalf("unexpected change for %s", ch.Addr)
-		}
-	}
-
-	state, diags := ctx.Apply(plan, m, nil)
-	assertNoErrors(t, diags)
-
-	// confirm that the target resource is created
-	foundResource := false
-	for _, ch := range state.RootModule().Resources {
-		if ch.Addr.Resource.Equal(exc.Resource.Resource) {
-			if _, ok := ch.Instances[addrs.IntKey(0)]; ok {
-				foundResource = true
-			}
-		}
-	}
-
-	if !foundResource || len(state.RootModule().Resources) != 1 {
-		t.Fatalf("expected only resource %s to be present", exc)
-	}
-}
-
 func TestContext2Apply_graphError(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `

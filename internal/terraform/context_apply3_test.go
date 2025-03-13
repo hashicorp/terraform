@@ -268,6 +268,89 @@ aws_instance.bar:
 `)
 }
 
+func TestContext2Apply_deferInstanceForEach(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+		resource "aws_instance" "pre_foo" {
+			count = 2
+			foo = "${count.index}"
+		}
+
+		resource "aws_instance" "foo" {
+			for_each = {
+				for k, v in aws_instance.pre_foo : k => v.id
+			}
+			foo = each.value
+		}
+
+		resource "aws_instance" "bar" {
+			foo = "bar"
+		}
+
+		// should be deferred
+		resource "aws_instance" "baz" {
+			foo = "${aws_instance.foo["0"].foo}"
+		}
+
+		// should be deferred
+		resource "aws_instance" "noz" {
+			foo = "${aws_instance.foo["1"].foo}"
+		}
+`})
+
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		Defer: []addrs.Targetable{
+			addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
+			),
+		},
+	})
+	assertNoErrors(t, diags)
+	rs := collectResourceNames(plan.Changes.Resources)
+	equalIgnoreOrder(t, rs, []string{"aws_instance.bar", "aws_instance.pre_foo[0]", "aws_instance.pre_foo[1]"}, "unexpected resources in plan")
+
+	rs = collectResourceNames(plan.DeferredResources)
+	equalIgnoreOrder(t, rs, []string{"aws_instance.foo[\"0\"]", "aws_instance.foo[\"1\"]", "aws_instance.baz", "aws_instance.noz"}, "excluded resources should have been deferred")
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	mod := state.RootModule()
+	if len(state.AllResourceInstanceObjectAddrs()) != 3 {
+		t.Fatalf("expected 3 resources, got: %#v", mod.Resources)
+	}
+
+	checkStateString(t, state, `
+aws_instance.bar:
+  ID = foo
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  foo = bar
+  type = aws_instance
+aws_instance.pre_foo.0:
+  ID = foo
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  foo = 0
+  type = aws_instance
+aws_instance.pre_foo.1:
+  ID = foo
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  foo = 1
+  type = aws_instance
+`)
+}
+
 func TestContext2Apply_deferNestedModule(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -489,6 +572,129 @@ aws_instance.bar:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
   foo = static
+  type = aws_instance
+	`)
+}
+
+func TestContext2Apply_deferResourceWithExternalVariable(t *testing.T) {
+	t.Skip(`This test is currently failing because required root variables
+		cannot be bypassed by deferring the resource. At the time that the
+		variable is evaluated, it is not aware that it is only dependent on
+		deferred resources. This is a limitation of the current implementation.
+	`)
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+		variable "external_var" {}
+
+		resource "aws_instance" "foo" {
+			foo = var.external_var
+		}
+
+		resource "aws_instance" "bar" {
+			foo = "bar"
+		}
+`})
+
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		Defer: []addrs.Targetable{
+			addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
+			),
+		},
+	})
+	assertNoErrors(t, diags)
+	rs := collectResourceNames(plan.Changes.Resources)
+	equalIgnoreOrder(t, rs, []string{"aws_instance.bar"}, "expected all 1 instances to be in the plan")
+
+	rs = collectResourceNames(plan.DeferredResources)
+	equalIgnoreOrder(t, rs, []string{"aws_instance.foo"}, "excluded resources should have been deferred")
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	mod := state.RootModule()
+	if len(mod.Resources) != 1 {
+		t.Fatalf("expected 1 resource, got: %#v", mod.Resources)
+	}
+
+	checkStateString(t, state, `
+aws_instance.bar:
+  ID = foo
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  foo = bar
+  type = aws_instance
+	`)
+}
+
+func TestContext2Apply_deferDependsOn(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "aws_instance" "foo" {
+				foo = "foo"
+			}
+
+			resource "aws_instance" "bar" {
+				foo = "bar"
+				depends_on = [aws_instance.foo]
+			}
+
+			resource "aws_instance" "baz" {
+				foo = "baz"
+			}
+		`,
+	})
+
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		Defer: []addrs.Targetable{
+			addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
+			),
+		},
+	})
+	assertNoErrors(t, diags)
+	rs := collectResourceNames(plan.Changes.Resources)
+	equalIgnoreOrder(t, rs, []string{"aws_instance.baz"}, "unexpected resources in plan")
+
+	rs = collectResourceNames(plan.DeferredResources)
+	equalIgnoreOrder(t, rs, []string{"aws_instance.foo", "aws_instance.bar"}, "expected resources to be deferred")
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	mod := state.RootModule()
+	if len(mod.Resources) != 1 {
+		t.Fatalf("expected 1 resource, got: %#v", mod.Resources)
+	}
+
+	checkStateString(t, state, `
+aws_instance.baz:
+  ID = foo
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  foo = baz
   type = aws_instance
 	`)
 }

@@ -42,7 +42,6 @@ var (
 	_ GraphNodeModuleInstance = (*NodeRootVariable)(nil)
 	_ GraphNodeReferenceable  = (*NodeRootVariable)(nil)
 	_ GraphNodeExecutable     = (*NodeRootVariable)(nil)
-	//_ GraphNodeValidatable    = (*NodeRootVariable)(nil)
 )
 
 func (n *NodeRootVariable) Name() string {

@@ -297,9 +297,8 @@ var (
 	_ GraphNodeReferencer       = (*NodeApplyableOutput)(nil)
 	_ GraphNodeReferenceOutside = (*NodeApplyableOutput)(nil)
 	_ GraphNodeExecutable       = (*NodeApplyableOutput)(nil)
-	//_ GraphNodeValidatable      = (*NodeApplyableOutput)(nil)
-	_ graphNodeTemporaryValue = (*NodeApplyableOutput)(nil)
-	_ dag.GraphNodeDotter     = (*NodeApplyableOutput)(nil)
+	_ graphNodeTemporaryValue   = (*NodeApplyableOutput)(nil)
+	_ dag.GraphNodeDotter       = (*NodeApplyableOutput)(nil)
 )
 
 func (n *NodeApplyableOutput) temporaryValue() bool {

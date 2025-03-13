@@ -256,10 +256,13 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 	// user-friendly error messages if they are not all present, and so
 	// the error message from checkInputVariables should never be seen and
 	// includes language asking the user to report a bug.
-	// These variables are validated during the plan walk, so we don't need to
-	// validate them here.
-	// varDiags := checkInputVariables(config.Module.Variables, opts.SetVariables)
-	// diags = diags.Append(varDiags)
+	// (TODO(sams)) I think these variables are validated during the plan walk,
+	// so perhaps we don't need to validate them here, so that deferred resources
+	// that reference variables that are not yet known can be planned.
+	if len(opts.Defer) == 0 {
+		varDiags := checkInputVariables(config.Module.Variables, opts.SetVariables)
+		diags = diags.Append(varDiags)
+	}
 
 	if len(opts.Targets) > 0 {
 		diags = diags.Append(tfdiags.Sourceless(

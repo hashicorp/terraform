@@ -39,78 +39,6 @@ func (g *Graph) Walk(walker *ContextGraphWalker) tfdiags.Diagnostics {
 	return g.walk(ctx, walker)
 }
 
-// applyTargeting processes the targeting rules for the graph, handling both inclusion
-// and exclusion logic. It returns the set of directly targeted nodes when targeting is enabled.
-//
-// When targeting is enabled, only nodes that are explicitly targeted or that are ancestors
-// of targeted nodes will be included in the traversal.
-//
-// When exclusion is applied, any node that is explicitly excluded or has an excluded
-// ancestor will be excluded from the traversal.
-func (g *Graph) applyTargeting(ctx EvalContext, walker *ContextGraphWalker, targeted bool) (directlyTargetedNodes dag.Set) {
-	filter := ctx.GraphFilter()
-
-	// Exclude any node that is either directly excluded or has an excluded ancestor
-	if excludeAddrs := walker.deferred; excludeAddrs.Size() > 0 {
-		for _, node := range g.Vertices() {
-			// Skip nodes that are already marked as excluded
-			if filter.Matches(node, NodeExcluded) {
-				continue
-			}
-
-			// Check if this node should be excluded based on itself or its ancestors
-			if g.setContains(node, excludeAddrs) {
-				filter.Exclude(node)
-			}
-		}
-	}
-
-	// No graph nodes directly targeted. Includes all nodes that are not explicitly excluded.
-	if !targeted {
-		for _, node := range g.Vertices() {
-			if !filter.Matches(node, NodeExcluded) {
-				filter.Include(node)
-			}
-		}
-		return nil
-	}
-
-	// Get and sort target addresses for deterministic behavior
-	less := func(i, j addrs.Targetable) bool {
-		return i.String() < j.String()
-	}
-	targets := walker.included.Sorted(less)
-
-	// If we have targeting enabled but no specific targets,
-	// include everything not excluded (same as !targeted case)
-	if len(targets) == 0 {
-		for _, node := range g.Vertices() {
-			if !filter.Matches(node, NodeExcluded) {
-				filter.Include(node)
-			}
-		}
-		return nil
-	}
-
-	// Process targeted nodes
-	var allTargetedNodes dag.Set
-	directlyTargetedNodes, allTargetedNodes = selectTargetedNodes(g, targets)
-
-	// Include all nodes that are either directly targeted or ancestors of targeted nodes
-	for _, node := range allTargetedNodes {
-		filter.Include(node)
-	}
-
-	// Exclude everything else
-	for _, node := range g.Vertices() {
-		if !filter.Matches(node, NodeIncluded) {
-			filter.Exclude(node)
-		}
-	}
-
-	return directlyTargetedNodes
-}
-
 func (g *Graph) walk(ctx EvalContext, walker *ContextGraphWalker) tfdiags.Diagnostics {
 	// The callbacks for enter/exiting a graph
 	// Walk the graph.
@@ -118,7 +46,12 @@ func (g *Graph) walk(ctx EvalContext, walker *ContextGraphWalker) tfdiags.Diagno
 		// the walkFn is called asynchronously, and needs to be recovered
 		// separately in the case of a panic.
 		defer logging.PanicHandler()
-		g.deferTargets(ctx, walker.deferred)
+		_, ok := v.(GraphNodeDeferrable)
+		if ok && walker.deferred.Size() > 0 {
+			// TODO(sams) Probably should not be doing this for every walk, or at least
+			// should be doing it in a more efficient way.
+			g.deferTargets(ctx, walker.deferred)
+		}
 
 		log.Printf("[TRACE] vertex %q: starting visit (%T)", dag.VertexName(v), v)
 

@@ -66,7 +66,6 @@ var (
 	_ GraphNodeAttachResourceConfig = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeAttachResourceState  = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeExecutable           = (*NodePlannableResourceInstance)(nil)
-	//_ GraphNodeValidatable          = (*NodePlannableResourceInstance)(nil)
 )
 
 // GraphNodeEvalable

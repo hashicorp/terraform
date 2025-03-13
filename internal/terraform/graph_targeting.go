@@ -77,6 +77,7 @@ func (g *Graph) deferTargets(ctx EvalContext, deferredAddrs addrs.Set[addrs.Targ
 		if gd, ok := node.(GD); ok {
 			if ctx.Deferrals().DependenciesDeferred(gd.GetDependencies()) {
 				node.SetDeferred(true)
+				continue
 			}
 		}
 	}
