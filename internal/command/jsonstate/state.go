@@ -442,6 +442,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				}
 				current.SensitiveValues = v
 
+				current.IdentitySchemaVersion = ri.Current.IdentitySchemaVersion
 				current.IdentityValues, err = marshalIdentityValues(riObj.Identity)
 				if err != nil {
 					return nil, fmt.Errorf("preparing identity values for %s: %w", current.Address, err)
