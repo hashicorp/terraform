@@ -22,11 +22,12 @@ type nodeExpandModule struct {
 	Addr       addrs.Module
 	Config     *configs.Module
 	ModuleCall *configs.ModuleCall
+
+	Deferred
 }
 
 var (
-	_ GraphNodeExecutable = (*nodeExpandModule)(nil)
-	//_ GraphNodeValidatable      = (*nodeExpandModule)(nil)
+	_ GraphNodeExecutable       = (*nodeExpandModule)(nil)
 	_ GraphNodeReferenceable    = (*nodeExpandModule)(nil)
 	_ GraphNodeReferencer       = (*nodeExpandModule)(nil)
 	_ GraphNodeReferenceOutside = (*nodeExpandModule)(nil)

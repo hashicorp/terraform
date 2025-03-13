@@ -56,7 +56,7 @@ type ContextGraphWalker struct {
 
 	// These values are set from the command line and are used to filter the
 	// graph to only include the resources that are targeted.
-	excluded addrs.Set[addrs.Targetable]
+	deferred addrs.Set[addrs.Targetable]
 	included addrs.Set[addrs.Targetable]
 	targets  addrs.Set[addrs.Targetable]
 	filter   *graphFilter
@@ -167,15 +167,4 @@ func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfd
 	w.Context.parallelSem.Acquire()
 	defer w.Context.parallelSem.Release()
 	return n.Execute(ctx, w.Operation)
-}
-
-func (w *ContextGraphWalker) Validate(ctx EvalContext, n GraphNodeValidatable) tfdiags.Diagnostics {
-	// No need to acquire a lock on the semaphore here, as validation
-	// is offline.
-	// This is a no-op for apply operations, as the plan phase already
-	// validated the nodes.
-	if w.Operation == walkApply {
-		return nil
-	}
-	return n.Validate(ctx, w.Operation)
 }

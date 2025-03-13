@@ -91,7 +91,7 @@ type NodeAbstractResource struct {
 
 	forceCreateBeforeDestroy bool
 
-	Excluded
+	Deferred
 }
 
 var (
@@ -472,7 +472,7 @@ func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.Ab
 	}
 
 	// Do this here?
-	if !n.IsExcluded() {
+	if !n.IsUserDeferred() {
 		state := ctx.State()
 		state.SetResourceProvider(addr, n.ResolvedProvider)
 	}

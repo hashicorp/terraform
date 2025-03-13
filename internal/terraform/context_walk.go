@@ -204,7 +204,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		PlanTimestamp:           opts.PlanTimeTimestamp,
 		providerFuncResults:     opts.ProviderFuncResults,
 		Forget:                  opts.Forget,
-		excluded:                opts.Excluded,
+		deferred:                opts.Excluded,
 		included:                opts.Included,
 		targets:                 opts.Targets,
 	}

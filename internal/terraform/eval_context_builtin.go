@@ -436,6 +436,7 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source 
 			ModulePath:      scope.Addr,
 			InstanceKeyData: keyData,
 			Operation:       ctx.Evaluator.Operation,
+			DeferralAllowed: scope.deferralAllowed(),
 		}
 		evalScope := ctx.Evaluator.Scope(data, self, source, ctx.evaluationExternalFunctions())
 

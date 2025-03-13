@@ -37,6 +37,10 @@ type evalContextScope interface {
 	// this method will panic for that scope.
 	evalContextScopeModule() addrs.Module
 
+	// When true, this evaluation context allows fetching resources that are
+	// deferred, and may not be in the state
+	deferralAllowed() bool
+
 	String() string
 }
 
@@ -47,11 +51,16 @@ var evalContextGlobal evalContextScope
 // evalContextModuleInstance is an [evalContextScope] associated with a
 // fully-expanded single module instance.
 type evalContextModuleInstance struct {
-	Addr addrs.ModuleInstance
+	Addr            addrs.ModuleInstance
+	DeferralAllowed bool
 }
 
 func (s evalContextModuleInstance) evalContextScopeModule() addrs.Module {
 	return s.Addr.Module()
+}
+
+func (s evalContextModuleInstance) deferralAllowed() bool {
+	return s.DeferralAllowed
 }
 
 func (s evalContextModuleInstance) String() string {
@@ -73,6 +82,10 @@ type evalContextPartialExpandedModule struct {
 
 func (s evalContextPartialExpandedModule) evalContextScopeModule() addrs.Module {
 	return s.Addr.Module()
+}
+
+func (s evalContextPartialExpandedModule) deferralAllowed() bool {
+	return true
 }
 
 func (s evalContextPartialExpandedModule) String() string {

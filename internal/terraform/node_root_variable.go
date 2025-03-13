@@ -35,7 +35,7 @@ type NodeRootVariable struct {
 	// false otherwise.
 	DestroyApply bool
 
-	Excluded
+	Deferred
 }
 
 var (
@@ -108,7 +108,7 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 		addr,
 		givenVal,
 		n.Config,
-		n.IsExcluded(),
+		n.IsUserDeferred(),
 	)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

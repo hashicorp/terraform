@@ -286,7 +286,7 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateDeposed(ctx Eva
 // objects you are intending to write.
 func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalContext, deposedKey states.DeposedKey, obj *states.ResourceInstanceObject, targetState phaseState) error {
 	// Excluded resources are never written to state
-	if n.IsExcluded() {
+	if n.IsUserDeferred() {
 		return nil
 	}
 	absAddr := n.Addr
@@ -433,7 +433,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		resp = providers.PlanResourceChangeResponse{
 			PlannedState: nullVal,
 		}
-	} else if n.IsExcluded() {
+	} else if n.IsUserDeferred() {
 		resource := n.ResourceAddr().Resource
 		schema, _ := providerSchema.SchemaForResourceAddr(resource)
 		if schema == nil {
@@ -833,6 +833,8 @@ func (n *NodeAbstractResourceInstance) plan(
 		return plannedChange, currentState.DeepCopy(), deferred, keyData, diags
 	}
 
+	// enter a scope that can deal with deferrred resources
+	ctx = ctx.withScope(evalContextModuleInstance{Addr: n.Addr.Module, DeferralAllowed: n.IsUserDeferred()})
 	origConfigVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
 	diags = diags.Append(
@@ -945,7 +947,7 @@ func (n *NodeAbstractResourceInstance) plan(
 				PlannedState: proposedNewVal,
 			}
 		}
-	} else if n.IsExcluded() {
+	} else if n.IsUserDeferred() {
 		resp = n.planComputedValuesForResource(proposedNewVal, schema)
 	} else {
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
@@ -1101,7 +1103,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	action, actionReason := getAction(n.Addr, unmarkedPriorVal, unmarkedPlannedNewVal, createBeforeDestroy, woPathSet, forceReplace, reqRep)
 
 	// if the resource is excluded, we don't want to do anything further with it
-	if n.IsExcluded() {
+	if n.IsUserDeferred() {
 		action = plans.NoOp
 		actionReason = plans.ResourceInstanceChangeNoReason
 		deferred = &providers.Deferred{Reason: providers.DeferredReasonExcluded}

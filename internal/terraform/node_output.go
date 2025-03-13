@@ -47,7 +47,7 @@ type nodeExpandOutput struct {
 
 	Dependencies []addrs.ConfigResource
 
-	Excluded
+	Deferred
 }
 
 var (
@@ -126,7 +126,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 				node = &NodeDestroyableOutput{
 					Addr:     absAddr,
 					Planning: n.Planning,
-					Excluded: n.Excluded,
+					Deferred: n.Deferred,
 				}
 
 			default:
@@ -139,7 +139,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 					Planning:     n.Planning,
 					Override:     n.getOverrideValue(absAddr.Module),
 					Dependencies: n.Dependencies,
-					Excluded:     n.Excluded,
+					Deferred:     n.Deferred,
 				}
 			}
 
@@ -288,7 +288,7 @@ type NodeApplyableOutput struct {
 	// output.
 	Dependencies []addrs.ConfigResource
 
-	Excluded
+	Deferred
 }
 
 var (
@@ -611,7 +611,7 @@ func (n *nodeOutputInPartialModule) Validate(ctx EvalContext, op walkOperation) 
 type NodeDestroyableOutput struct {
 	Addr     addrs.AbsOutputValue
 	Planning bool
-	Excluded
+	Deferred
 }
 
 var (
@@ -694,9 +694,9 @@ func (n *NodeDestroyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.Dot
 func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states.SyncState, changes *plans.ChangesSync, deferred *deferring.Deferred, val cty.Value) {
 	// If the output is excluded, we don't want to save the value in the state
 	// or in the changeset.
-	if n.IsExcluded() {
-		return
-	}
+	// if n.IsUserDeferred() {
+	// 	return
+	// }
 	if changes != nil && n.Planning {
 		// if this is a root module, try to get a before value from the state for
 		// the diff

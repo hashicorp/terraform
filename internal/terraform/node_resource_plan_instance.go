@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"slices"
 	"sort"
 
 	"github.com/hashicorp/hcl/v2"
@@ -262,7 +263,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// If the non-importing resource is excluded, we don't need to write the state.
-	if deferred == nil && ctx.GraphFilter().NodeAllowed(n) {
+	if deferred == nil && !n.IsUserDeferred() {
 		// We'll save a snapshot of what we just read from the state into the
 		// prevRunState before we do anything else, since this will capture the
 		// result of any schema upgrading that readResourceInstanceState just did,
@@ -297,7 +298,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// Refresh, maybe
 	// The import process handles its own refresh
 	// No refresh for excluded resources too, so that we don't write the state
-	excluded := n.IsExcluded()
+	excluded := n.IsUserDeferred()
 	if !n.skipRefresh && !importing && !excluded {
 		var refreshDiags tfdiags.Diagnostics
 		instanceRefreshState, refreshDeferred, refreshDiags = n.refresh(ctx, states.NotDeposed, instanceRefreshState, ctx.Deferrals().DeferralAllowed())
@@ -402,7 +403,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		deferrals := ctx.Deferrals()
 		if deferred != nil {
 			// Then this resource has been deferred either during the import,
-			// refresh or planning stage. We'll report the deferral and
+			// refresh or planning stage, or because the user requested it.
+			// We'll report the deferral and
 			// store what we could produce in the deferral tracker.
 			deferrals.ReportResourceInstanceDeferred(addr, deferred.Reason, change)
 		} else if !deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies) {
@@ -953,4 +955,8 @@ func depsEqual(a, b []addrs.ConfigResource) bool {
 		}
 	}
 	return true
+}
+
+func (n *NodePlannableResourceInstance) GetDependencies() []addrs.ConfigResource {
+	return slices.Concat(n.Dependencies, n.dependsOn)
 }

@@ -185,7 +185,7 @@ type nodeModuleVariable struct {
 	// false otherwise.
 	DestroyApply bool
 
-	Excluded
+	Deferred
 }
 
 // Ensure that we are implementing all of the interfaces we think we are
@@ -309,7 +309,7 @@ func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bo
 		SourceRange: errSourceRange,
 	}
 
-	finalVal, moreDiags := prepareFinalInputVariableValue(n.Addr, rawVal, n.Config, n.IsExcluded())
+	finalVal, moreDiags := prepareFinalInputVariableValue(n.Addr, rawVal, n.Config, n.IsUserDeferred())
 	diags = diags.Append(moreDiags)
 
 	return finalVal, diags.ErrWithWarnings()

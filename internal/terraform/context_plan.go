@@ -67,7 +67,7 @@ type PlanOpts struct {
 	// warnings as part of the planning result.
 	Targets []addrs.Targetable
 
-	Excluded []addrs.Targetable
+	Defer    []addrs.Targetable
 	Included []addrs.Targetable
 
 	// ForceReplace is a set of resource instance addresses whose corresponding
@@ -350,7 +350,7 @@ The -target option is not for routine use, and is provided only for exceptional 
 			plan.VariableMarks = varMarks
 		}
 		plan.TargetAddrs = opts.Targets
-		plan.ExcludedAddrs = opts.Excluded
+		plan.ExcludedAddrs = opts.Defer
 		plan.IncludedAddrs = opts.Included
 	} else if !diags.HasErrors() {
 		panic("nil plan but no errors")
@@ -735,7 +735,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		PlanTimeTimestamp:          timestamp,
 		ProviderFuncResults:        providerFuncResults,
 		Forget:                     opts.Forget,
-		Excluded:                   addrs.MakeSet(opts.Excluded...),
+		Excluded:                   addrs.MakeSet(opts.Defer...),
 		Included:                   addrs.MakeSet(opts.Included...),
 		Targets:                    addrs.MakeSet(opts.Targets...),
 	})

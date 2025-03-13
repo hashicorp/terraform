@@ -6,6 +6,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -60,6 +61,7 @@ var (
 	_ GraphNodeConfigResource       = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeAttachDependencies   = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeTargetable           = (*nodeExpandPlannableResource)(nil)
 	_ graphNodeExpandsInstances     = (*nodeExpandPlannableResource)(nil)
 )
 
@@ -362,10 +364,9 @@ func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, moduleInsta
 	expandedInstances := addrs.MakeSet[addrs.Checkable]()
 	for _, module := range moduleInstances {
 		resAddr := n.Addr.Resource.Absolute(module)
-		var empty addrs.Map[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]]
-		resources, _, maybeOrphans, moreDiags := n.expandKnownModule(ctx, resAddr, imports, empty, &g)
-		diags = diags.Append(moreDiags)
-		for _, instance := range resources.Union(maybeOrphans) {
+		instances, err := n.expandResourceInstances(ctx, resAddr, imports, &g)
+		diags = diags.Append(err)
+		for _, instance := range instances {
 			expandedInstances.Add(instance)
 		}
 	}
@@ -492,6 +493,7 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 
 		// Attach the state
 		&AttachStateTransformer{State: state},
+
 		// Targeting
 		&TargetsTransformer{Targets: n.Targets},
 
@@ -649,4 +651,12 @@ func (n *nodeExpandPlannableResource) validForceReplaceTargets(instanceAddrs []a
 	}
 
 	return diags
+}
+
+type GD interface {
+	GetDependencies() []addrs.ConfigResource
+}
+
+func (n *nodeExpandPlannableResource) GetDependencies() []addrs.ConfigResource {
+	return slices.Concat(n.dependencies, n.dependsOn)
 }

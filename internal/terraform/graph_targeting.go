@@ -17,6 +17,8 @@ func getTargetable(node dag.Vertex) addrs.Targetable {
 		return n.ResourceInstanceAddr()
 	case GraphNodeConfigResource:
 		return n.ResourceAddr()
+	case GraphNodeModulePath:
+		return n.ModulePath()
 	default:
 		return nil
 	}
@@ -52,25 +54,31 @@ func (g *Graph) setContains(node dag.Vertex, targets addrs.Set[addrs.Targetable]
 	return false
 }
 
-// applyExclusions processes the exclusion rules for the graph.
+// deferTargets processes the exclusion rules for the graph.
 // It excludes any nodes that match the exclusion addresses or have excluded ancestors.
-func (g *Graph) applyExclusions(filter *graphFilter, excludeAddrs addrs.Set[addrs.Targetable]) dag.Set {
+func (g *Graph) deferTargets(ctx EvalContext, deferredAddrs addrs.Set[addrs.Targetable]) dag.Set {
 	// Note: If the node is a dynamic node, but the exclusion is for a more specific target,
 	// the dynamic node will not be excluded, and that target will be excluded during
 	// the dynamic expansion subgraph walk.
 	for _, node := range g.Vertices() {
-		// Skip nodes that are already marked as excluded
-		if filter.Matches(node, NodeExcluded) {
+		// Skip nodes that are not deferrable
+		node, ok := node.(GraphNodeDeferrable)
+		if !ok {
 			continue
 		}
 
-		// Check if this node should be excluded based on itself or its ancestors
-		if g.setContains(node, excludeAddrs) {
-			filter.Exclude(node)
+		// Check if this node should be deferred based on itself or its ancestors
+		if g.setContains(node, deferredAddrs) {
+			node.SetDeferred(true)
 			continue
 		}
 
-		filter.Include(node)
+		// Check if this node should be deferred based on its dependencies
+		if gd, ok := node.(GD); ok {
+			if ctx.Deferrals().DependenciesDeferred(gd.GetDependencies()) {
+				node.SetDeferred(true)
+			}
+		}
 	}
 	return nil
 }
