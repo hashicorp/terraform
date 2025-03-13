@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"log"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
 )
@@ -27,10 +29,14 @@ type TargetsTransformer struct {
 
 func (t *TargetsTransformer) Transform(g *Graph) error {
 	if len(t.Targets) > 0 {
-		_, targetedNodes := selectTargetedNodes(g, t.Targets)
+		targetedNodes, err := t.selectTargetedNodes(g, t.Targets)
+		if err != nil {
+			return err
+		}
 
 		for _, v := range g.Vertices() {
 			if !targetedNodes.Include(v) {
+				log.Printf("[DEBUG] Removing %q, filtered by targeting.", dag.VertexName(v))
 				g.Remove(v)
 			}
 		}
@@ -42,22 +48,20 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 // Returns a set of targeted nodes. A targeted node is either addressed
 // directly, address indirectly via its container, or it's a dependency of a
 // targeted node.
-func selectTargetedNodes(g *Graph, targets []addrs.Targetable) (dag.Set, dag.Set) {
-	directNodes := make(dag.Set)
+func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targetable) (dag.Set, error) {
 	targetedNodes := make(dag.Set)
 
 	vertices := g.Vertices()
-	set := addrs.MakeSet(targets...)
+
 	for _, v := range vertices {
-		if nodeIsTarget(v, set) {
+		if t.nodeIsTarget(v, addrs) {
 			targetedNodes.Add(v)
-			directNodes.Add(v)
 
 			// We inform nodes that ask about the list of targets - helps for nodes
 			// that need to dynamically expand. Note that this only occurs for nodes
 			// that are already directly targeted.
 			if tn, ok := v.(GraphNodeTargetable); ok {
-				tn.SetTargets(targets)
+				tn.SetTargets(addrs)
 			}
 
 			for _, d := range g.Ancestors(v) {
@@ -115,10 +119,10 @@ func selectTargetedNodes(g *Graph, targets []addrs.Targetable) (dag.Set, dag.Set
 		}
 	}
 
-	return directNodes, targetedNodes
+	return targetedNodes, nil
 }
 
-func nodeIsTarget(v dag.Vertex, targets addrs.Set[addrs.Targetable]) bool {
+func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetable) bool {
 	var vertexAddr addrs.Targetable
 	switch r := v.(type) {
 	case *nodeApplyableDeferredPartialInstance:

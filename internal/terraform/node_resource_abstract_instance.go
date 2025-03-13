@@ -285,7 +285,7 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateDeposed(ctx Eva
 // one of the two wrappers to be explicit about which of the instance's
 // objects you are intending to write.
 func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalContext, deposedKey states.DeposedKey, obj *states.ResourceInstanceObject, targetState phaseState) error {
-	// Excluded resources are never written to state
+	// User-deferred resources are never written to state
 	if n.IsUserDeferred() {
 		return nil
 	}

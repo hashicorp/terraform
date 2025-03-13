@@ -261,8 +261,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	// If the non-importing resource is excluded, we don't need to write the state.
-	if deferred == nil && !n.IsUserDeferred() {
+	if deferred == nil {
 		// We'll save a snapshot of what we just read from the state into the
 		// prevRunState before we do anything else, since this will capture the
 		// result of any schema upgrading that readResourceInstanceState just did,
@@ -296,9 +295,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Refresh, maybe
 	// The import process handles its own refresh
-	// No refresh for excluded resources too, so that we don't write the state
-	excluded := n.IsUserDeferred()
-	if !n.skipRefresh && !importing && !excluded {
+	if !n.skipRefresh && !importing {
 		var refreshDiags tfdiags.Diagnostics
 		instanceRefreshState, refreshDeferred, refreshDiags = n.refresh(ctx, states.NotDeposed, instanceRefreshState, ctx.Deferrals().DeferralAllowed())
 		diags = diags.Append(refreshDiags)
@@ -481,8 +478,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			deferrals.ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
 		}
 	} else {
-		// TODO: Test this case
-		if excluded {
+		// TODO(sams): Check if this case is even possible.
+		if n.IsUserDeferred() {
 			ctx.Deferrals().ReportResourceInstanceDeferred(addr, providers.DeferredReasonExcluded, &plans.ResourceInstanceChange{
 				Addr:         n.Addr,
 				PrevRunAddr:  n.Addr,

@@ -68,7 +68,7 @@ type Plan struct {
 	DriftedResources  []*ResourceInstanceChangeSrc
 	DeferredResources []*DeferredResourceInstanceChangeSrc
 	TargetAddrs       []addrs.Targetable
-	ExcludedAddrs     []addrs.Targetable
+	DeferredAddrs     []addrs.Targetable
 	IncludedAddrs     []addrs.Targetable
 	ForceReplaceAddrs []addrs.AbsResourceInstance
 	Backend           Backend

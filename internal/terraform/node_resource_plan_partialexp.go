@@ -224,9 +224,7 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 	// still find out if any of the known values are somehow invalid and
 	// learn a subset of the "computed" attribute values to save as part
 	// of our placeholder value for downstream checks.
-	var resp providers.PlanResourceChangeResponse
-
-	resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
+	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 		TypeName:         n.addr.Resource().Type,
 		Config:           unmarkedConfigVal,
 		PriorState:       priorVal,
@@ -236,7 +234,6 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 		// we might need to do that before stabilizing support for unknown
 		// resource instance expansion.
 	})
-
 	diags = diags.Append(resp.Diagnostics.InConfigBody(n.config.Config, n.addr.String()))
 	if diags.HasErrors() {
 		return &change, diags

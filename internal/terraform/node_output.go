@@ -687,11 +687,6 @@ func (n *NodeDestroyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.Dot
 }
 
 func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states.SyncState, changes *plans.ChangesSync, deferred *deferring.Deferred, val cty.Value) {
-	// If the output is excluded, we don't want to save the value in the state
-	// or in the changeset.
-	// if n.IsUserDeferred() {
-	// 	return
-	// }
 	if changes != nil && n.Planning {
 		// if this is a root module, try to get a before value from the state for
 		// the diff

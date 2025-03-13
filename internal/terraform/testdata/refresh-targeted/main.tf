@@ -4,5 +4,5 @@ resource "aws_instance" "me" {
   vpc_id = "${aws_vpc.metoo.id}"
 }
 resource "aws_elb" "meneither" {
-  instances = toset([for instance in aws_instance.me : instance])
+  instances = ["${aws_instance.me.*.id}"]
 }

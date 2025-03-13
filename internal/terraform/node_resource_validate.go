@@ -48,11 +48,6 @@ func (n *NodeValidatableResource) Path() addrs.ModuleInstance {
 
 // GraphNodeEvalable
 func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	// The plan phase would have validated the resource, so we can skip
-	// validation during apply.
-	if op == walkApply {
-		return diags
-	}
 	// this is done first since there may not be config if we are generating it
 	diags = diags.Append(n.validateImportTargets(ctx))
 

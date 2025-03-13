@@ -220,15 +220,6 @@ func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.D
 	return g, diags
 }
 
-// NoOpValidator is a no-op implementation of GraphNodeValidate
-// that can be embedded in other structs to satisfy the interface.
-type NoOpValidator struct{}
-
-// Validate implements GraphNodeValidate with no-op behavior
-func (v *NoOpValidator) Validate(_ EvalContext, _ walkOperation) tfdiags.Diagnostics {
-	return nil
-}
-
 // graphNodeImportStateSub is the sub-node of graphNodeImportState
 // and is part of the subgraph. This node is responsible for refreshing
 // and adding a resource to the state once it is imported.
@@ -236,9 +227,6 @@ type graphNodeImportStateSub struct {
 	TargetAddr       addrs.AbsResourceInstance
 	State            providers.ImportedResource
 	ResolvedProvider addrs.AbsProviderConfig
-
-	// TODO(sams): Validate import nodes?
-	NoOpValidator
 }
 
 var (

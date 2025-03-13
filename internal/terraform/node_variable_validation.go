@@ -46,7 +46,6 @@ var _ GraphNodeModulePath = (*nodeVariableValidation)(nil)
 var _ GraphNodeReferenceable = (*nodeVariableValidation)(nil)
 var _ GraphNodeReferencer = (*nodeVariableValidation)(nil)
 var _ GraphNodeExecutable = (*nodeVariableValidation)(nil)
-
 var _ graphNodeTemporaryValue = (*nodeVariableValidation)(nil)
 
 func (n *nodeVariableValidation) Name() string {
@@ -134,9 +133,4 @@ func (n *nodeVariableValidation) Execute(globalCtx EvalContext, op walkOperation
 	}
 
 	return diags
-}
-
-func (n *nodeVariableValidation) Validate(globalCtx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	n.validateWalk = true
-	return n.Execute(globalCtx, op)
 }

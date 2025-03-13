@@ -190,7 +190,7 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 
 		DeferralAllowed: true,
 		Targets:         addrs.MakeSet(plan.TargetAddrs...),
-		Excluded:        addrs.MakeSet(plan.ExcludedAddrs...),
+		Excluded:        addrs.MakeSet(plan.DeferredAddrs...),
 		Included:        addrs.MakeSet(plan.IncludedAddrs...),
 
 		// We need to propagate the check results from the plan phase,

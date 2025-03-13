@@ -8,6 +8,12 @@ import (
 	"github.com/hashicorp/terraform/internal/dag"
 )
 
+// GraphNodeDepender is an interface that can be implemented by graph nodes
+// that have dependencies.
+type GraphNodeDepender interface {
+	GetDependencies() []addrs.ConfigResource
+}
+
 // getTargetable extracts the targetable address from a node. The order
 // of the checks is important, as the GraphNodeResourceInstance takes precedence
 // over the GraphNodeConfigResource.
@@ -74,7 +80,7 @@ func (g *Graph) deferTargets(ctx EvalContext, deferredAddrs addrs.Set[addrs.Targ
 		}
 
 		// Check if this node should be deferred based on its dependencies
-		if gd, ok := node.(GD); ok {
+		if gd, ok := node.(GraphNodeDepender); ok {
 			if ctx.Deferrals().DependenciesDeferred(gd.GetDependencies()) {
 				node.SetDeferred(true)
 				continue

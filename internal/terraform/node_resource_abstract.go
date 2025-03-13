@@ -471,7 +471,7 @@ func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.Ab
 		return diags
 	}
 
-	// Do this here?
+	// TODO(sams): Do this here?
 	if !n.IsUserDeferred() {
 		state := ctx.State()
 		state.SetResourceProvider(addr, n.ResolvedProvider)

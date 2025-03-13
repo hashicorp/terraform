@@ -654,10 +654,6 @@ func (n *nodeExpandPlannableResource) validForceReplaceTargets(instanceAddrs []a
 	return diags
 }
 
-type GD interface {
-	GetDependencies() []addrs.ConfigResource
-}
-
 func (n *nodeExpandPlannableResource) GetDependencies() []addrs.ConfigResource {
 	return slices.Concat(n.dependencies, n.dependsOn)
 }

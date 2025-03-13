@@ -258,7 +258,7 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 	// includes language asking the user to report a bug.
 	// (TODO(sams)) I think these variables are validated during the plan walk,
 	// so perhaps we don't need to validate them here, so that deferred resources
-	// that reference variables that are not yet known can be planned.
+	// can reference variables that are not yet known can be planned.
 	if len(opts.Defer) == 0 {
 		varDiags := checkInputVariables(config.Module.Variables, opts.SetVariables)
 		diags = diags.Append(varDiags)
@@ -353,7 +353,7 @@ The -target option is not for routine use, and is provided only for exceptional 
 			plan.VariableMarks = varMarks
 		}
 		plan.TargetAddrs = opts.Targets
-		plan.ExcludedAddrs = opts.Defer
+		plan.DeferredAddrs = opts.Defer
 		plan.IncludedAddrs = opts.Included
 	} else if !diags.HasErrors() {
 		panic("nil plan but no errors")
