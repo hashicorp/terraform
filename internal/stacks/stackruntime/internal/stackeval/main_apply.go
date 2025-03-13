@@ -100,27 +100,30 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 						var inst ApplyableComponentInstance
 
 						if removed != nil {
-							if insts, unknown, _ := removed.Instances(ctx, ApplyPhase); unknown {
-								// It might be that either the removed block
-								// or component block was deferred but the
-								// other one had proper changes. We'll note
-								// this in the logs but just skip processing
-								// it.
-								log.Printf("[TRACE]: %s has planned changes, but was unknown. Check further messages to find out if this was an error.", addr)
-							} else {
-								for _, i := range insts {
-									if i.from.Item.Key == addr.Item.Key {
-										inst = i
-										break
+						Blocks:
+							for _, block := range removed {
+								if insts, unknown, _ := block.Instances(ctx, ApplyPhase); unknown {
+									// It might be that either the removed block
+									// or component block was deferred but the
+									// other one had proper changes. We'll note
+									// this in the logs but just skip processing
+									// it.
+									log.Printf("[TRACE]: %s has planned changes, but was unknown. Check further messages to find out if this was an error.", addr)
+								} else {
+									for _, i := range insts {
+										if i.from.Item.Key == addr.Item.Key {
+											inst = i
+											break Blocks
+										}
 									}
 								}
-								if inst == nil {
-									// Again, this might be okay if the component
-									// block was deferred but the removed block had
-									// proper changes (or vice versa). We'll note
-									// this in the logs but just skip processing it.
-									log.Printf("[TRACE]: %s has planned changes, but does not seem to be declared. Check further messages to find out if this was an error.", addr)
-								}
+							}
+							if inst == nil {
+								// Again, this might be okay if the component
+								// block was deferred but the removed block had
+								// proper changes (or vice versa). We'll note
+								// this in the logs but just skip processing it.
+								log.Printf("[TRACE]: %s has planned changes, but does not seem to be declared. Check further messages to find out if this was an error.", addr)
 							}
 						}
 
@@ -241,7 +244,12 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 									span.AddEvent("awaiting predecessor", trace.WithAttributes(
 										attribute.String("component_addr", waitComponentAddr.String()),
 									))
-									success := removed.ApplySuccessful(ctx)
+									success := true
+									for _, block := range removed {
+										if !block.ApplySuccessful(ctx) {
+											success = false
+										}
+									}
 									if !success {
 										// If anything we're waiting on does not succeed then we can't proceed without
 										// violating the dependency invariants.

@@ -104,6 +104,7 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 		providerClients := configuredProviderClients(ctx, r.main, known, unknown, PlanPhase)
 
 		deferred := r.deferred
+	Dependents:
 		for depAddr := range r.PlanPrevDependents(ctx).All() {
 			depStack := r.main.Stack(ctx, depAddr.Stack, PlanPhase)
 			if depStack == nil {
@@ -112,14 +113,16 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 				// doesn't exist so it's fine.
 				break
 			}
-			depComponent, depRemoved := depStack.ApplyableComponents(ctx, depAddr.Item)
+			depComponent, depRemoveds := depStack.ApplyableComponents(ctx, depAddr.Item)
 			if depComponent != nil && !depComponent.PlanIsComplete(ctx) {
 				deferred = true
 				break
 			}
-			if depRemoved != nil && !depRemoved.PlanIsComplete(ctx) {
-				deferred = true
-				break
+			for _, depRemoved := range depRemoveds {
+				if !depRemoved.PlanIsComplete(ctx) {
+					deferred = true
+					break Dependents
+				}
 			}
 		}
 

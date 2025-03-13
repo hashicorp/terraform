@@ -228,18 +228,42 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 
 	// Currently Components are the only thing that can be removed
 	for name, rc := range cfgNode.Stack.Removed {
-		cProto := &stacks.FindStackConfigurationComponents_Removed{
-			SourceAddr:    rc.FinalSourceAddr.String(),
-			ComponentAddr: stackaddrs.Config(stackAddr, stackaddrs.Component{Name: rc.FromComponent.Name}).String(),
-			Destroy:       rc.Destroy,
+		var blocks []*stacks.FindStackConfigurationComponents_Removed_Block
+		for _, rc := range rc {
+			cProto := &stacks.FindStackConfigurationComponents_Removed_Block{
+				SourceAddr:    rc.FinalSourceAddr.String(),
+				ComponentAddr: stackaddrs.Config(stackAddr, stackaddrs.Component{Name: rc.FromComponent.Name}).String(),
+				Destroy:       rc.Destroy,
+			}
+			switch {
+			case rc.ForEach != nil:
+				cProto.Instances = stacks.FindStackConfigurationComponents_FOR_EACH
+			default:
+				cProto.Instances = stacks.FindStackConfigurationComponents_SINGLE
+			}
+			blocks = append(blocks, cProto)
 		}
-		switch {
-		case rc.ForEach != nil:
-			cProto.Instances = stacks.FindStackConfigurationComponents_FOR_EACH
-		default:
-			cProto.Instances = stacks.FindStackConfigurationComponents_SINGLE
+		ret.Removed[name] = &stacks.FindStackConfigurationComponents_Removed{
+			// in order to ensure as much backwards and forwards compatibility
+			// as possible, we're going to set the deprecated single fields
+			// with the first run block
+
+			SourceAddr: rc[0].FinalSourceAddr.String(),
+			Instances: func() stacks.FindStackConfigurationComponents_Instances {
+				switch {
+				case rc[0].ForEach != nil:
+					return stacks.FindStackConfigurationComponents_FOR_EACH
+				default:
+					return stacks.FindStackConfigurationComponents_SINGLE
+				}
+			}(),
+			ComponentAddr: stackaddrs.Config(stackAddr, stackaddrs.Component{Name: rc[0].FromComponent.Name}).String(),
+			Destroy:       rc[0].Destroy,
+
+			// We return all the values here:
+
+			Blocks: blocks,
 		}
-		ret.Removed[name] = cProto
 	}
 
 	return ret

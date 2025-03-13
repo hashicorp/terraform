@@ -116,10 +116,18 @@ message FindStackConfigurationComponents {
     string component_addr = 3;
   }
   message Removed {
-    string source_addr = 1;
-    Instances instances = 2;
-    string component_addr = 3;
-    bool destroy = 4;
+    string source_addr = 1 [deprecated = true];
+    Instances instances = 2 [deprecated = true];
+    string component_addr = 3 [deprecated = true];
+    bool destroy = 4 [deprecated = true];
+
+    message Block {
+      string source_addr = 1;
+      Instances instances = 2;
+      string component_addr = 3;
+      bool destroy = 4;
+    }
+    repeated Block blocks = 5;
   }
   message InputVariable {
     bool optional = 1;

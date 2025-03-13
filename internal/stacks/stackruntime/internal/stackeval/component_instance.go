@@ -258,6 +258,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					// should be reversed. Unfortunately, we can't compute that
 					// easily so instead we'll use the dependents computed at the
 					// last apply operation.
+				Dependents:
 					for depAddr := range c.PlanPrevDependents(ctx).All() {
 						depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
 						if depStack == nil {
@@ -266,14 +267,16 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 							// doesn't exist so it's fine.
 							continue
 						}
-						depComponent, depRemoved := depStack.ApplyableComponents(ctx, depAddr.Item)
+						depComponent, depRemoveds := depStack.ApplyableComponents(ctx, depAddr.Item)
 						if depComponent != nil && !depComponent.PlanIsComplete(ctx) {
 							opts.ExternalDependencyDeferred = true
 							break
 						}
-						if depRemoved != nil && !depRemoved.PlanIsComplete(ctx) {
-							opts.ExternalDependencyDeferred = true
-							break
+						for _, depRemoved := range depRemoveds {
+							if !depRemoved.PlanIsComplete(ctx) {
+								opts.ExternalDependencyDeferred = true
+								break Dependents
+							}
 						}
 					}
 				}

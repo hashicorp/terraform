@@ -30,17 +30,19 @@ var (
 type Removed struct {
 	addr stackaddrs.AbsComponent
 
-	main *Main
+	config *RemovedConfig
+	main   *Main
 
 	forEachValue    perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
 	instances       perEvalPhase[promising.Once[withDiagnostics[instancesResult[*RemovedInstance]]]]
 	unknownInstance perEvalPhase[promising.Once[*RemovedInstance]]
 }
 
-func newRemoved(main *Main, addr stackaddrs.AbsComponent) *Removed {
+func newRemoved(main *Main, addr stackaddrs.AbsComponent, config *RemovedConfig) *Removed {
 	return &Removed{
-		addr: addr,
-		main: main,
+		addr:   addr,
+		main:   main,
+		config: config,
 	}
 }
 
@@ -74,12 +76,7 @@ func (r *Removed) Stack(ctx context.Context) *Stack {
 }
 
 func (r *Removed) Config(ctx context.Context) *RemovedConfig {
-	configAddr := stackaddrs.ConfigForAbs(r.Addr())
-	stackConfig := r.main.StackConfig(ctx, configAddr.Stack)
-	if stackConfig == nil {
-		return nil
-	}
-	return stackConfig.Removed(ctx, configAddr.Item)
+	return r.config
 }
 
 func (r *Removed) ForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
