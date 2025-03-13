@@ -420,6 +420,12 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 				current.SchemaVersion = ri.Current.SchemaVersion
 
+				if schema.IdentityVersion != int64(ri.Current.IdentitySchemaVersion) {
+					return nil, fmt.Errorf("identity schema version %d for %s in state does not match version %d from the provider", ri.Current.IdentitySchemaVersion, resAddr, schema.IdentityVersion)
+				}
+
+				current.IdentitySchemaVersion = ri.Current.IdentitySchemaVersion
+
 				if schema.Body == nil {
 					return nil, fmt.Errorf("no schema found for %s (in provider %s)", resAddr.String(), r.ProviderConfig.Provider)
 				}
@@ -442,7 +448,6 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				}
 				current.SensitiveValues = v
 
-				current.IdentitySchemaVersion = ri.Current.IdentitySchemaVersion
 				current.IdentityValues, err = marshalIdentityValues(riObj.Identity)
 				if err != nil {
 					return nil, fmt.Errorf("preparing identity values for %s: %w", current.Address, err)
