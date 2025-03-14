@@ -560,7 +560,7 @@ The following configuration options are supported:
 
 * `oidc_token_file_path` - (Optional) The path to a file containing an ID token when authenticating using OpenID Connect. This is only required for advanced scenarios or third party integrations. This can also be sourced from the `ARM_OIDC_TOKEN_FILE_PATH` environment variable.
 
-* `use_aks_workload_identity` (Optional) Should Azure AKS Workload Identity be used for Authentication? This is only required for advanced scenarios or third party integrations. This can also be sourced from the `ARM_USE_AKS_WORKLOAD_IDENTITY` environment variable.
+* `use_aks_workload_identity` (Optional) Set to `true` to use Azure AKS Workload Identity for authentication. This is only required for advanced scenarios or third party integrations. This can also be sourced from the `ARM_USE_AKS_WORKLOAD_IDENTITY` environment variable.
 
 * `use_msi` - (Optional) Set to `true` to use a Compute Attached Managed Service Identity for authentication to the storage account management and data planes. This can also be sourced from the `ARM_USE_MSI` environment variable.
 
