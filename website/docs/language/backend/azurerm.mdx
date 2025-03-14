@@ -528,7 +528,7 @@ The following configuration options are supported:
 
 * `metadata_host` - (Optional) The Hostname of the Azure Metadata Service (for example `management.azure.com`), used to obtain the Cloud Environment when using a Custom Azure Environment. This can also be sourced from the `ARM_METADATA_HOSTNAME` Environment Variable.
 
-* `lookup_blob_endpoint` - (Optional) Should the Storage Account Data Plane URI be looked up from the Management Plane? Defaults to `false`. This value can also be sourced from the `ARM_USE_DNS_ZONE_ENDPOINT` environment variable.
+* `lookup_blob_endpoint` - (Optional) Set to `true` to look up the Storage Account Data Plane URI from the Management Plane. Defaults to `false`. This value can also be sourced from the `ARM_USE_DNS_ZONE_ENDPOINT` environment variable.
 
 * `snapshot` - (Optional) Set to `true` to snapshot the Blob used to store the Terraform state file before use. Defaults to `false`. This value can also be sourced from the `ARM_SNAPSHOT` environment variable.
 
