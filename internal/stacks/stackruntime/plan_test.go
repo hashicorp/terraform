@@ -1186,10 +1186,10 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 			t.Fatal(err)
 		}
 		req := PlanRequest{
-			Config: cfg,
 			InputValues: map[stackaddrs.InputVariable]stackeval.ExternalInputValue{
 				// Intentionally not set for this subtest.
 			},
+			Config:             cfg,
 			ForcePlanTimestamp: &fakePlanTimestamp,
 		}
 		resp := PlanResponse{
