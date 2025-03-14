@@ -69,6 +69,14 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	if failOrErr {
 		// Even though the apply operation failed, the graph may have done
 		// partial updates and the returned state should reflect this.
+
+		// Update persisted state, if present, and only if the current run block 'owns' the backend block.
+		oldStateFile := ctx.GetFileState(key)
+		if oldStateFile.backend.instance != nil && oldStateFile.backend.run.Name == run.Name {
+			n.saveStateToBackend(oldStateFile.backend.instance, updated)
+		}
+
+		// Update internal state
 		ctx.SetFileState(key, &TestFileState{
 			Run:   run,
 			State: updated,
@@ -115,43 +123,53 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 	// our prior run outputs so future run blocks can access it.
 	ctx.SetOutput(run, outputVals)
 
+	// Update persisted state, if present, and only if the current run block 'owns' the backend block.
+	oldStateFile := ctx.GetFileState(key)
+	if oldStateFile.backend.instance != nil && oldStateFile.backend.run.Name == run.Name {
+		n.saveStateToBackend(oldStateFile.backend.instance, updated)
+	}
+
 	// Only update the most recent run and state if the state was
 	// actually updated by this change. We want to use the run that
 	// most recently updated the tracked state as the cleanup
 	// configuration.
-	if state := ctx.GetFileState(key); state.backend.instance != nil {
-		if state.backend.run.Name == run.Name {
-			// We've just done an apply for the run that contains the backend block.
-			// This run block is allowed to update the remote state if any changes have occurred, e.g:
-			//   1) Test is being run for the first time, and state is being created in the backend
-			//   2) Config changes mean that long-lived resources need to be updated, and state updated too.
-			//   3) Drift may have occurred, and this step of the test corrects remote objects to resemble config.
-			b := state.backend.instance
-			stateMgr, err := b.StateMgr(backend.DefaultStateName) // We only allow use of the default workspace
-			if err != nil {
-				run.Diagnostics.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					fmt.Sprintf("Error updating state in run block %q's backend", state.backend.run.Name),
-					err.Error(),
-				))
-			}
-
-			err = stateMgr.WriteState(updated)
-			if err != nil {
-				run.Diagnostics.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					fmt.Sprintf("Error updating state in run block %q's backend", state.backend.run.Name),
-					err.Error(),
-				))
-			}
-
-		}
-	}
 	ctx.SetFileState(key, &TestFileState{
 		File:  file,
 		Run:   run,
 		State: updated,
 	})
+}
+
+// saveStateToBackend assumes that the calling code has checked that the recent apply operation
+// corrseponds to the run that controls the associated backend block. Only that run block should
+// be allowed to update persisted state.
+//
+// That run block is allowed to update the remote state if any changes have occurred, e.g:
+//  1. Test is being run for the first time, and state is being created in the backend
+//  2. Config changes mean that long-lived resources need to be updated, and state updated too.
+//  3. Drift may have occurred, and this step of the test corrects remote objects to resemble config.
+func (n *NodeTestRun) saveStateToBackend(b backend.Backend, updated *states.State) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	stateMgr, err := b.StateMgr(backend.DefaultStateName) // We only allow use of the default workspace
+	if err != nil {
+		return diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			fmt.Sprintf("Error updating state in run block %q's backend", n.run.Name),
+			err.Error(),
+		))
+	}
+
+	err = stateMgr.WriteState(updated)
+	if err != nil {
+		return diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			fmt.Sprintf("Error updating state in run block %q's backend", n.run.Name),
+			err.Error(),
+		))
+	}
+
+	return diags
 }
 
 func (n *NodeTestRun) apply(tfCtx *terraform.Context, plan *plans.Plan, progress moduletest.Progress, variables terraform.InputValues, waiter *operationWaiter) (*lang.Scope, *states.State, tfdiags.Diagnostics) {

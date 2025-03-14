@@ -11,6 +11,10 @@ variable "provision_second_resource" {
   default = false
 }
 
+output "supplied_input_value" {
+  value = var.input
+}
+
 # This resource is 'long-lived' in tests; it should always be provisioned
 # and is kept in state.
 resource "test_resource" "a" {
