@@ -363,14 +363,25 @@ func diagsForEphemeralResources(refs []*addrs.Reference) (diags tfdiags.Diagnost
 	return diags
 }
 
-func (ec *EvalContext) SetFileState(key string, state *TestFileState) {
+// UpdateStateFile updates the internal state file for a given state_key value.
+// The TestFileState argument is used to update only the exported fields in the
+// preexisting TestFileState value. Unexported fields' values are preserved
+// from when they are first set while building the test graph.
+//
+// If there isn't a state file for the given state_key then UpdateStateFile will use
+// the TestFileState argument to set its value.
+func (ec *EvalContext) UpdateStateFile(key string, state *TestFileState) {
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
-	ec.FileStates[key] = &TestFileState{
-		File:  state.File,
-		Run:   state.Run,
-		State: state.State,
+	oldState, exists := ec.FileStates[key]
+
+	if !exists {
+		ec.FileStates[key] = state
 	}
+
+	oldState.File = state.File
+	oldState.Run = state.Run
+	oldState.State = state.State
 }
 
 func (ec *EvalContext) GetFileState(key string) *TestFileState {
@@ -380,7 +391,7 @@ func (ec *EvalContext) GetFileState(key string) *TestFileState {
 }
 
 func (ec *EvalContext) WriteFileState(key string, state *TestFileState) error {
-	ec.SetFileState(key, state)
+	ec.UpdateStateFile(key, state)
 	if state.State.Empty() {
 		// Nothing to do!
 		return nil
