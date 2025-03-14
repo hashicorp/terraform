@@ -331,7 +331,7 @@ The following configuration options are always required for this method:
 
 ### Optional Inputs
 
-These optional inputs apply when [looking up the data plane URI](#data-plane-uri) from the management plane. They are not required when the data plane URI can be inferred from the `storage_account_name` and `container_name`.
+These optional configuration options apply when [looking up the data plane URI](#data-plane-uri) from the management plane. They are not required when the data plane URI can be inferred from the `storage_account_name` and `container_name`.
 
 - `lookup_blob_endpoint` - Set to `true` to lookup the storage account data plane URI from the management plane. This is required if you are using the 'Azure DNS zone endpoints' feature. Defaults to `false`. This value can also be sourced from the `ARM_USE_DNS_ZONE_ENDPOINT` environment variable.
 
