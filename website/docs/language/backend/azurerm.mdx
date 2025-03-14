@@ -251,7 +251,7 @@ Terraform retains this method for backwards compatibility, we do not recommend i
 The following configuration options are always required for this method:
 
 - `access_key` - The Access Key of the storage account is required to authenticate to the storage account data plane. This can also be set via the `ARM_ACCESS_KEY` environment variable.
-- `storage_account_name` - The name of the storage account where the state file blob resides in.
+- `storage_account_name` - The name of the storage account to write the state file blob to.
 - `container_name` - The name of the storage account container to write the state file blob to.
 - `key` - The name of the blob within the storage account container to write the state file to.
 
