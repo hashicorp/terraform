@@ -15,7 +15,7 @@ This backend supports state locking and consistency checking with Azure Blob Sto
 
 The `azurerm` backend needs to authenticate to the storage account data plane in order to manipulate the state file blob in the storage account container. In order to do that, it needs to authenticate and to know the data plane URI for the storage account.
 
-At a high level, the `azurerm` backend has 5 methods it can use to authenticate to the storage account data plane:
+The `azurerm` backend supports 5 methods to authenticate to the storage account data plane:
 
 - [Azure Active Directory](#azure-active-directory) **(Recommended)**
 - [SAS Token](#sas-token) *(Not recommended for new workloads)*
