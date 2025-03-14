@@ -551,7 +551,7 @@ func (oc *OutputChange) Encode() (*OutputChangeSrc, error) {
 // The fields in here are subject to change, so downstream consumers should be
 // prepared for backwards compatibility in case the contents changes.
 type Importing struct {
-	ID cty.Value
+	Target cty.Value
 }
 
 // Encode converts the Importing object into a form suitable for serialization
@@ -560,9 +560,15 @@ func (i *Importing) Encode() *ImportingSrc {
 	if i == nil {
 		return nil
 	}
-	if i.ID.IsKnown() {
-		return &ImportingSrc{
-			ID: i.ID.AsString(),
+	if i.Target.IsKnown() {
+		if i.Target.Type().IsObjectType() {
+			return &ImportingSrc{
+				Identity: i.Target,
+			}
+		} else {
+			return &ImportingSrc{
+				ID: i.Target.AsString(),
+			}
 		}
 	}
 	return &ImportingSrc{
