@@ -113,7 +113,9 @@ type Resource struct {
 
 	// The version of the resource identity schema the "identity" property
 	// conforms to.
-	IdentitySchemaVersion uint64 `json:"identity_schema_version,omitempty"`
+	// It's a pointer, because it should be optional, but also 0 is a valid
+	// schema version.
+	IdentitySchemaVersion *uint64 `json:"identity_schema_version,omitempty"`
 
 	// The JSON representation of the resource identity, whose structure
 	// depends on the resource identity schema.
@@ -420,15 +422,19 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 				current.SchemaVersion = ri.Current.SchemaVersion
 
-				if schema.IdentityVersion != int64(ri.Current.IdentitySchemaVersion) {
-					return nil, fmt.Errorf("identity schema version %d for %s in state does not match version %d from the provider", ri.Current.IdentitySchemaVersion, resAddr, schema.IdentityVersion)
-				}
-
-				current.IdentitySchemaVersion = ri.Current.IdentitySchemaVersion
-
 				if schema.Body == nil {
 					return nil, fmt.Errorf("no schema found for %s (in provider %s)", resAddr.String(), r.ProviderConfig.Provider)
 				}
+
+				// Check if we have an identity in the state
+				if ri.Current.IdentityJSON != nil {
+					if schema.IdentityVersion != int64(ri.Current.IdentitySchemaVersion) {
+						return nil, fmt.Errorf("identity schema version %d for %s in state does not match version %d from the provider", ri.Current.IdentitySchemaVersion, resAddr, schema.IdentityVersion)
+					}
+
+					current.IdentitySchemaVersion = &ri.Current.IdentitySchemaVersion
+				}
+
 				riObj, err := ri.Current.Decode(schema)
 				if err != nil {
 					return nil, err

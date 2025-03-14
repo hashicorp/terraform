@@ -20,6 +20,10 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
+func ptrOf[T any](v T) *T {
+	return &v
+}
+
 func TestMarshalOutputs(t *testing.T) {
 	tests := []struct {
 		Outputs map[string]*states.OutputValue
@@ -664,9 +668,40 @@ func TestMarshalResources(t *testing.T) {
 						"name":    json.RawMessage(`"bar"`),
 						"foozles": json.RawMessage(`"sensuzles"`),
 					},
+					IdentitySchemaVersion: ptrOf[uint64](0),
 				},
 			},
 			false,
+		},
+		"single resource wrong identity schema": {
+			map[string]*states.Resource{
+				"test_identity.baz": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_identity",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.NoKey: {
+							Current: &states.ResourceInstanceObjectSrc{
+								Status:                states.ObjectReady,
+								AttrsJSON:             []byte(`{"woozles":"confuzles","foozles":"sensuzles","name":"bar"}`),
+								IdentitySchemaVersion: 1,
+								IdentityJSON:          []byte(`{"foozles":"sensuzles","name":"bar"}`),
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			testSchemas(),
+			nil,
+			true,
 		},
 	}
 
