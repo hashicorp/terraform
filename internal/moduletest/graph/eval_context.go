@@ -379,9 +379,13 @@ func (ec *EvalContext) UpdateStateFile(key string, state *TestFileState) {
 		ec.FileStates[key] = state
 	}
 
-	oldState.File = state.File
-	oldState.Run = state.Run
-	oldState.State = state.State
+	ec.FileStates[key] = &TestFileState{
+		File:  state.File,
+		Run:   state.Run,
+		State: state.State,
+
+		backend: oldState.backend,
+	}
 }
 
 func (ec *EvalContext) GetFileState(key string) *TestFileState {
