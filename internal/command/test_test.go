@@ -2961,7 +2961,7 @@ func TestTest_UseOfBackends(t *testing.T) {
 
 				actualState := retrieveLocalState(t, localStatePath)
 				if diff := cmp.Diff(actualState, tc.priorState.String()); len(diff) > 0 {
-					t.Errorf("prior state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", "", actualState, diff)
+					t.Errorf("prior state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
 				}
 			}
 
