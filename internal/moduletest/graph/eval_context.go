@@ -202,9 +202,9 @@ func (ec *EvalContext) EvaluateRun(run *moduletest.Run, resultScope *lang.Scope,
 		hclCtx, moreDiags := scope.EvalContext(refs)
 		ruleDiags = ruleDiags.Append(moreDiags)
 		if moreDiags.HasErrors() {
-			// if we can't evaluate the context properly, we can't evaulate the rule
+			// if we can't evaluate the context properly, we can't evaluate the rule
 			// we add the diagnostics to the main diags and continue to the next rule
-			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, could not evalaute the context, so cannot evaluate it", i, run.Addr())
+			log.Printf("[TRACE] EvalContext.Evaluate: check rule %d for %s is invalid, could not evaluate the context, so cannot evaluate it", i, run.Addr())
 			status = status.Merge(moduletest.Error)
 			diags = diags.Append(ruleDiags)
 			continue

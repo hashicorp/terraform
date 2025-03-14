@@ -30,7 +30,7 @@ import (
 type TestSuiteRunner struct {
 	Config *configs.Config
 
-	// BackendFactory is used to enable initialising multiple backend types,
+	// BackendFactory is used to enable initializing multiple backend types,
 	// depending on which backends are used in a test suite.
 	//
 	// Note: This is currently necessary because the source of the init functions,
@@ -145,7 +145,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		})
 
 		for _, run := range file.Runs {
-			// Pre-initialise the prior outputs, so we can easily tell between
+			// Pre-initialize the prior outputs, so we can easily tell between
 			// a run block that doesn't exist and a run block that hasn't been
 			// executed yet.
 			// (moduletest.EvalContext treats cty.NilVal as "not visited yet")

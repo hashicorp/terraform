@@ -141,7 +141,7 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 }
 
 // saveStateToBackend assumes that the calling code has checked that the recent apply operation
-// corrseponds to the run that controls the associated backend block. Only that run block should
+// corresponds to the run that controls the associated backend block. Only that run block should
 // be allowed to update persisted state.
 //
 // That run block is allowed to update the remote state if any changes have occurred, e.g:

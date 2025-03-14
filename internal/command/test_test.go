@@ -2718,7 +2718,7 @@ Failure! 0 passed, 1 failed.
 // * it's not valid to use a deprecated backend type
 // * it's not valid to use a non-existent backend type
 //
-// Backend validaton performed in the command package is dependent on the internal/backend/init package,
+// Backend validation performed in the command package is dependent on the internal/backend/init package,
 // which cannot be imported in configuration parsing packages without creating an import cycle.
 func TestTest_ReusedBackendConfiguration(t *testing.T) {
 
