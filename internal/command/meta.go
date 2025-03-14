@@ -25,7 +25,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
-	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
@@ -529,7 +528,6 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 
 	opts.UIInput = m.UIInput()
 	opts.Parallelism = m.parallelism
-	opts.Backends = backendInit.Backend
 
 	// If testingOverrides are set, we'll skip the plugin discovery process
 	// and just work with what we've been given, thus allowing the tests

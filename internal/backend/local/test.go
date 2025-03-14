@@ -13,6 +13,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -28,6 +29,15 @@ import (
 
 type TestSuiteRunner struct {
 	Config *configs.Config
+
+	// BackendFactory is used to enable initialising multiple backend types,
+	// depending on which backends are used in a test suite.
+	//
+	// Note: This is currently necessary because the source of the init functions,
+	// the backend/init package, experiences import cycles if used in other test-related
+	// packages. We set this field on a TestSuiteRunner when making runners in the
+	// command package, which is the main place where backend/init has previously been used.
+	BackendFactory func(string) backend.InitFn
 
 	TestingDirectory string
 
@@ -270,9 +280,10 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 
 	// Build the graph for the file.
 	b := graph.TestGraphBuilder{
-		File:        file,
-		GlobalVars:  runner.EvalContext.VariableCaches.GlobalVariables,
-		ContextOpts: runner.Suite.Opts,
+		File:           file,
+		GlobalVars:     runner.EvalContext.VariableCaches.GlobalVariables,
+		ContextOpts:    runner.Suite.Opts,
+		BackendFactory: runner.Suite.BackendFactory,
 	}
 	g, diags := b.Build()
 	file.Diagnostics = file.Diagnostics.Append(diags)

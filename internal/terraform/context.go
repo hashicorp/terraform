@@ -13,7 +13,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -43,7 +42,6 @@ type ContextOpts struct {
 	Parallelism  int
 	Providers    map[addrs.Provider]providers.Factory
 	Provisioners map[string]provisioners.Factory
-	Backends     func(string) backend.InitFn
 
 	// PreloadedProviderSchemas is an optional map of provider schemas that
 	// were already loaded from providers by the caller. This is intended
