@@ -429,7 +429,11 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				// Check if we have an identity in the state
 				if ri.Current.IdentityJSON != nil {
 					if schema.IdentityVersion != int64(ri.Current.IdentitySchemaVersion) {
-						return nil, fmt.Errorf("identity schema version %d for %s in state does not match version %d from the provider", ri.Current.IdentitySchemaVersion, resAddr, schema.IdentityVersion)
+						return nil, fmt.Errorf("resource identity schema version %d for %s in state does not match version %d from the provider", ri.Current.IdentitySchemaVersion, resAddr, schema.IdentityVersion)
+					}
+
+					if schema.Identity == nil {
+						return nil, fmt.Errorf("no resource identity schema found for %s (in provider %s)", resAddr.String(), r.ProviderConfig.Provider)
 					}
 
 					current.IdentitySchemaVersion = &ri.Current.IdentitySchemaVersion

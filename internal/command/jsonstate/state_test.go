@@ -624,9 +624,9 @@ func TestMarshalResources(t *testing.T) {
 			},
 			false,
 		},
-		"single resource_with_identity": {
+		"single resource with identity": {
 			map[string]*states.Resource{
-				"test_identity.baz": {
+				"test_identity.bar": {
 					Addr: addrs.AbsResource{
 						Resource: addrs.Resource{
 							Mode: addrs.ManagedResourceMode,
@@ -675,7 +675,7 @@ func TestMarshalResources(t *testing.T) {
 		},
 		"single resource wrong identity schema": {
 			map[string]*states.Resource{
-				"test_identity.baz": {
+				"test_identity.bar": {
 					Addr: addrs.AbsResource{
 						Resource: addrs.Resource{
 							Mode: addrs.ManagedResourceMode,
@@ -689,6 +689,36 @@ func TestMarshalResources(t *testing.T) {
 								Status:                states.ObjectReady,
 								AttrsJSON:             []byte(`{"woozles":"confuzles","foozles":"sensuzles","name":"bar"}`),
 								IdentitySchemaVersion: 1,
+								IdentityJSON:          []byte(`{"foozles":"sensuzles","name":"bar"}`),
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			testSchemas(),
+			nil,
+			true,
+		},
+		"single resource missing identity schema": {
+			map[string]*states.Resource{
+				"test_thing.bar": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.NoKey: {
+							Current: &states.ResourceInstanceObjectSrc{
+								Status:                states.ObjectReady,
+								AttrsJSON:             []byte(`{"woozles":"confuzles","foozles":"sensuzles"}`),
+								IdentitySchemaVersion: 0,
 								IdentityJSON:          []byte(`{"foozles":"sensuzles","name":"bar"}`),
 							},
 						},
