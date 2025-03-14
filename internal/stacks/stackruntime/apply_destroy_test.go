@@ -1121,7 +1121,7 @@ func TestApplyDestroy(t *testing.T) {
 							PlanApplyable:      false,
 							PlannedInputValues: make(map[string]plans.DynamicValue),
 							PlannedOutputValues: map[string]cty.Value{
-								"value": cty.DynamicVal,
+								"value": cty.UnknownVal(cty.String),
 							},
 							PlannedCheckResults: &states.CheckResults{},
 							PlanTimestamp:       fakePlanTimestamp,
@@ -1256,7 +1256,7 @@ func TestApplyDestroy(t *testing.T) {
 							PlanApplyable:      true,
 							RequiredComponents: collections.NewSet(mustAbsComponent("component.two")),
 							PlannedOutputValues: map[string]cty.Value{
-								"value": cty.DynamicVal,
+								"value": cty.StringVal("foo"),
 							},
 							PlanTimestamp: fakePlanTimestamp,
 						},
@@ -1268,7 +1268,7 @@ func TestApplyDestroy(t *testing.T) {
 							PlanApplyable:      true,
 							RequiredComponents: collections.NewSet(mustAbsComponent("component.one")),
 							PlannedOutputValues: map[string]cty.Value{
-								"value": cty.DynamicVal,
+								"value": cty.StringVal("foo"),
 							},
 							PlanTimestamp: fakePlanTimestamp,
 						},
@@ -1314,6 +1314,129 @@ func TestApplyDestroy(t *testing.T) {
 						},
 						&stackstate.AppliedChangeInputVariable{
 							Addr: mustStackInputVariable("value"),
+						},
+					},
+				},
+			},
+		},
+		"destroy-partial-state-with-module": {
+			path: "with-module",
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.self")).
+					AddInputVariable("id", cty.StringVal("self")).
+					AddInputVariable("input", cty.StringVal("self"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self.testing_resource.outside")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "self",
+							"value": "self",
+						}),
+						Status: states.ObjectReady,
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("self", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("self"),
+					"value": cty.StringVal("self"),
+				})).
+				Build(),
+			cycles: []TestCycle{
+				{
+					planMode: plans.DestroyMode,
+					planInputs: map[string]cty.Value{
+						"id":    cty.StringVal("self"),
+						"input": cty.StringVal("self"),
+					},
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:          mustAbsComponentInstance("component.self"),
+							Action:        plans.Delete,
+							Mode:          plans.DestroyMode,
+							PlanApplyable: true,
+							PlanComplete:  true,
+							PlannedInputValues: map[string]plans.DynamicValue{
+								"create": mustPlanDynamicValueDynamicType(cty.True),
+								"id":     mustPlanDynamicValueDynamicType(cty.StringVal("self")),
+								"input":  mustPlanDynamicValueDynamicType(cty.StringVal("self")),
+							},
+							PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+								"create": nil,
+								"id":     nil,
+								"input":  nil,
+							},
+							PlannedOutputValues: make(map[string]cty.Value),
+							PlannedCheckResults: new(states.CheckResults),
+							PlanTimestamp:       fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.outside"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("testing_resource.outside"),
+								PrevRunAddr:  mustAbsResourceInstance("testing_resource.outside"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Delete,
+									Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":    cty.StringVal("self"),
+										"value": cty.StringVal("self"),
+									})),
+									After: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+										"id":    cty.String,
+										"value": cty.String,
+									}))),
+								},
+							},
+							PriorStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":    "self",
+									"value": "self",
+								}),
+								Status:       states.ObjectReady,
+								Dependencies: make([]addrs.ConfigResource, 0),
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeRootInputValue{
+							Addr:          mustStackInputVariable("id"),
+							Action:        plans.Create,
+							Before:        cty.NullVal(cty.DynamicPseudoType),
+							After:         cty.StringVal("self"),
+							DeleteOnApply: true,
+						},
+						&stackplan.PlannedChangeRootInputValue{
+							Addr:          mustStackInputVariable("input"),
+							Action:        plans.Create,
+							Before:        cty.NullVal(cty.DynamicPseudoType),
+							After:         cty.StringVal("self"),
+							DeleteOnApply: true,
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.self"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.outside"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr: mustStackInputVariable("id"),
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr: mustStackInputVariable("input"),
 						},
 					},
 				},
@@ -1379,7 +1502,7 @@ func TestApplyDestroy(t *testing.T) {
 							PlanComplete:       true,
 							PlannedInputValues: make(map[string]plans.DynamicValue),
 							PlannedOutputValues: map[string]cty.Value{
-								"deleted_id": cty.DynamicVal,
+								"deleted_id": cty.UnknownVal(cty.String),
 							},
 							PlannedCheckResults: &states.CheckResults{},
 							PlanTimestamp:       fakePlanTimestamp,
