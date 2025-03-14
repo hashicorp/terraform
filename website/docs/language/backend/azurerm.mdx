@@ -530,7 +530,7 @@ The following configuration options are supported:
 
 * `lookup_blob_endpoint` - (Optional) Should the Storage Account Data Plane URI be looked up from the Management Plane? Defaults to `false`. This value can also be sourced from the `ARM_USE_DNS_ZONE_ENDPOINT` environment variable.
 
-* `snapshot` - (Optional) Should the Blob used to store the Terraform Statefile be snapshotted before use? Defaults to `false`. This value can also be sourced from the `ARM_SNAPSHOT` environment variable.
+* `snapshot` - (Optional) Set to `true` to snapshot the Blob used to store the Terraform state file before use. Defaults to `false`. This value can also be sourced from the `ARM_SNAPSHOT` environment variable.
 
 * `tenant_id` - (Optional) The Tenant ID of the principal. This can also be sourced from the `ARM_TENANT_ID` environment variable.
 
