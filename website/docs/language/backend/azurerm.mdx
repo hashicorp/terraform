@@ -562,7 +562,7 @@ The following configuration options are supported:
 
 * `use_aks_workload_identity` (Optional) Should Azure AKS Workload Identity be used for Authentication? This is only required for advanced scenarios or third party integrations. This can also be sourced from the `ARM_USE_AKS_WORKLOAD_IDENTITY` environment variable.
 
-* `use_msi` - (Optional) Should a Compute Attached Managed Service Identity be used for authentication to the storage account management and data planes? This can also be sourced from the `ARM_USE_MSI` environment variable.
+* `use_msi` - (Optional) Set to `true` to use a Compute Attached Managed Service Identity for authentication to the storage account management and data planes. This can also be sourced from the `ARM_USE_MSI` environment variable.
 
 * `msi_endpoint` - (Optional) The path to a custom Managed Service Identity endpoint which is automatically determined if not specified. This can also be sourced from the `ARM_MSI_ENDPOINT` environment variable.
 
