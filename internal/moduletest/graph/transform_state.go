@@ -59,15 +59,24 @@ func (t *TestStateTransformer) Transform(g *terraform.Graph) error {
 	// when the graph is executed.
 	rootConfigNode := t.addRootConfigNode(g, statesMap)
 
+	// We filter for all the NodeTestRun nodes in the test graph.
+	// Then we iterate through them. Whenever we identify a state key that
+	// hasn't had an internal state set for it yet, we create it.
 	for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
 		key := node.run.Config.StateKey
 		if _, exists := statesMap[key]; !exists {
 
 			var state *TestFileState
 
-			if bc, exists := t.File.Config.BackendConfigs[key]; exists {
-				// If the state for that state key should come from a backend,
-				// obtain and use that
+			bc, stateUsesBackend := t.File.Config.BackendConfigs[key]
+
+			switch {
+			case stateUsesBackend && bc.Run.Name == node.run.Name:
+				// This state key has an associated backend, and we're processing
+				// the node for the run block that controls the backend via a
+				// "backend" block.
+				//
+				// We proceed and set the state using that backend.
 				if t.BackendFactory == nil {
 					return fmt.Errorf("error retrieving state for state key %q from backend: nil BackendFactory. This is a bug in Terraform and should be reported.", key)
 				}
@@ -92,11 +101,21 @@ func (t *TestStateTransformer) Transform(g *terraform.Graph) error {
 					State: stmgr.State(),
 					backend: runBackend{
 						instance: be,
-						run:      node.run,
+						run:      node.run, // This is the run containing the backend block
 					},
 				}
-			} else {
-				// Else, set an empty in-memory state for the state key
+
+			case stateUsesBackend && bc.Run.Name != node.run.Name:
+				// This state key has an associated backend, but we're processing
+				// a run block that doesn't include a "backend" block.
+				//
+				// In this case, do nothing and continue to the next node.
+				// The state for this state key will be set when the for loop processes
+				// the run block that controls the given backend via a "backend" block.
+				continue
+
+			case !stateUsesBackend:
+				// We set an empty in-memory state for the state key if no backend is used.
 				log.Printf("[TRACE] TestConfigTransformer.Transform: set initial state for state key %q as empty state", key)
 				state = &TestFileState{
 					Run:   nil,
