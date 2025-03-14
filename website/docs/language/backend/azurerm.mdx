@@ -40,7 +40,9 @@ These types can be supplied via inputs or via a pre-authenticated Azure CLI. We 
 
 ### Data Plane URI
 
-In [most cases](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview#standard-endpoints) this can simply be inferred from the `storage_account_name` and `container_name`. But if you are using the ['Azure DNS zone endpoints' feature](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview#azure-dns-zone-endpoints-preview) the backend will need to lookup the data plane URI from the management plane. This requires the setting the `lookup_blob_endpoint` configuration option to `true` and the `Reader` role assignment on the storage account.
+In most cases, you can infer the data plane URI from the `storage_account_name` and `container_name`.  Refer to the [storage account overview documentation](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview#standard-endpoints) for more information on the standard endpoints.
+
+If you are using the ['Azure DNS zone endpoints' feature](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview#azure-dns-zone-endpoints-preview), the backend will need to lookup the data plane URI from the management plane. This requires that you set the `lookup_blob_endpoint` configuration option to `true` and the `Reader` role assignment on the storage account.
 
 ## Azure Active Directory
 
