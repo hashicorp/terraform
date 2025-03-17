@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/terraform/internal/moduletest/graph"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terminal"
 )
 
@@ -3412,7 +3413,7 @@ permission denied..
 // * it's not valid to use a deprecated backend type
 // * it's not valid to use a non-existent backend type
 //
-// Backend validaton performed in the command package is dependent on the internal/backend/init package,
+// Backend validation performed in the command package is dependent on the internal/backend/init package,
 // which cannot be imported in configuration parsing packages without creating an import cycle.
 func TestTest_ReusedBackendConfiguration(t *testing.T) {
 
@@ -3531,6 +3532,273 @@ There is no backend type named "foobar".
 			}
 		})
 	}
+}
+
+func TestTest_UseOfBackends_happyPath(t *testing.T) {
+
+	testCases := map[string]struct {
+		dirName           string
+		localStateFile    string
+		priorState        *states.State
+		expectedState     string
+		forceApplyFailure func(providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse
+	}{
+		"When there is no starting state, state is created by the run containing the backend block": {
+			dirName:        "valid-use-local-backend",
+			localStateFile: "terraform.tfstate",
+			priorState:     nil,
+			expectedState: `test_resource.a:
+  ID = 12345
+  provider = provider["registry.terraform.io/hashicorp/test"]
+  destroy_fail = false
+  value = value-from-run-that-controls-backend
+
+Outputs:
+
+supplied_input_value = value-from-run-that-controls-backend`,
+		},
+		"When there is pre-existing state, the state is updated by the run containing the backend block": {
+			dirName:        "valid-use-local-backend",
+			localStateFile: "terraform.tfstate",
+			// the priorState doesn't include the output, and has an outdated value field on the test_resource
+			priorState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_resource",
+						Name: "a",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"id":"12345","value":"outdated-value-from-prior-test-run"}`),
+						Status:    states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+			}),
+			expectedState: `test_resource.a:
+  ID = 12345
+  provider = provider["registry.terraform.io/hashicorp/test"]
+  destroy_fail = false
+  value = value-from-run-that-controls-backend
+
+Outputs:
+
+supplied_input_value = value-from-run-that-controls-backend`,
+		},
+	}
+
+	for tn, tc := range testCases {
+		t.Run(tn, func(t *testing.T) {
+			// SETUP
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(path.Join("test", tc.dirName)), td)
+			defer testChdir(t, td)()
+			localStatePath := filepath.Join(td, tc.localStateFile)
+
+			provider := testing_command.NewProvider(nil)
+
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"test": {"1.0.0"},
+			})
+			defer close()
+
+			streams, done := terminal.StreamsForTesting(t)
+			view := views.NewView(streams)
+			ui := new(cli.MockUi)
+
+			meta := Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				Ui:               ui,
+				View:             view,
+				Streams:          streams,
+				ProviderSource:   providerSource,
+			}
+
+			// SET & ASSERT PRIOR STATE
+			if tc.priorState != nil {
+				setLocalState(t, localStatePath, tc.priorState)
+
+				actualState := retrieveLocalState(t, localStatePath)
+				if diff := cmp.Diff(actualState, tc.priorState.String()); len(diff) > 0 {
+					t.Errorf("prior state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
+				}
+			}
+
+			// INIT
+			init := &InitCommand{
+				Meta: meta,
+			}
+
+			output := done(t)
+			if code := init.Run(nil); code != 0 {
+				t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+			}
+
+			// TEST
+			// Reset the streams for the next command.
+			streams, done = terminal.StreamsForTesting(t)
+			meta.Streams = streams
+			meta.View = views.NewView(streams)
+
+			c := &TestCommand{
+				Meta: meta,
+			}
+
+			code := c.Run([]string{"-no-color"})
+			output = done(t)
+
+			// ASSERTIONS
+			if code != 0 {
+				t.Errorf("expected status code 0 but got %d", code)
+			}
+			stdErr := output.Stderr()
+			if len(stdErr) > 0 {
+				t.Fatalf("unexpected error output:\n%s", stdErr)
+			}
+
+			actualState := retrieveLocalState(t, localStatePath)
+			if diff := cmp.Diff(actualState, tc.expectedState); len(diff) > 0 {
+				t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
+			}
+
+			// TODO - In future this will not be correct- deletion should not include things contained in the state file.
+			if provider.ResourceCount() > 0 {
+				t.Fatalf("should have deleted all resources on completion but left %v", provider.ResourceString())
+			}
+		})
+	}
+
+}
+
+func TestTest_UseOfBackends_unhappyPath(t *testing.T) {
+
+	testCases := map[string]struct {
+		dirName           string
+		localStateFile    string
+		priorState        *states.State
+		expectedState     string
+		forceApplyFailure func(providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse
+	}{
+		"If a test run fails, partial state will be persisted to the backend": {
+			dirName:        "valid-use-local-backend",
+			localStateFile: "terraform.tfstate",
+			// the priorState doesn't include the output, and has an outdated value field on the test_resource
+			priorState: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_resource",
+						Name: "a",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"id":"12345","value":"outdated-value-from-prior-test-run"}`),
+						Status:    states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				)
+			}),
+			// When there is a failure to apply changes to the test_resource, the resulting state only includes the output
+			// and lacks any information about the test_resource
+			expectedState: `Outputs:
+
+supplied_input_value = value-from-run-that-controls-backend`,
+			forceApplyFailure: func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+				resp := providers.ApplyResourceChangeResponse{}
+				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("forced error"))
+				return resp
+			},
+		},
+	}
+
+	for tn, tc := range testCases {
+		t.Run(tn, func(t *testing.T) {
+			// SETUP
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(path.Join("test", tc.dirName)), td)
+			defer testChdir(t, td)()
+			localStatePath := filepath.Join(td, tc.localStateFile)
+
+			provider := testing_command.NewProvider(nil)
+			if tc.forceApplyFailure != nil {
+				provider.Provider.ApplyResourceChangeFn = tc.forceApplyFailure
+			}
+
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"test": {"1.0.0"},
+			})
+			defer close()
+
+			streams, done := terminal.StreamsForTesting(t)
+			view := views.NewView(streams)
+			ui := new(cli.MockUi)
+
+			meta := Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				Ui:               ui,
+				View:             view,
+				Streams:          streams,
+				ProviderSource:   providerSource,
+			}
+
+			// SET & ASSERT PRIOR STATE
+			if tc.priorState != nil {
+				setLocalState(t, localStatePath, tc.priorState)
+
+				actualState := retrieveLocalState(t, localStatePath)
+				if diff := cmp.Diff(actualState, tc.priorState.String()); len(diff) > 0 {
+					t.Errorf("prior state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
+				}
+			}
+
+			// INIT
+			init := &InitCommand{
+				Meta: meta,
+			}
+
+			output := done(t)
+			if code := init.Run(nil); code != 0 {
+				t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+			}
+
+			// TEST
+			// Reset the streams for the next command.
+			streams, done = terminal.StreamsForTesting(t)
+			meta.Streams = streams
+			meta.View = views.NewView(streams)
+
+			c := &TestCommand{
+				Meta: meta,
+			}
+
+			code := c.Run([]string{"-no-color"})
+			output = done(t)
+
+			// ASSERTIONS
+			if code != 1 {
+				t.Errorf("expected status code 1 but got %d", code)
+			}
+			stdErr := output.Stderr()
+			if len(stdErr) == 0 {
+				t.Fatal("expected error output but got none")
+			}
+
+			actualState := retrieveLocalState(t, localStatePath)
+			if diff := cmp.Diff(actualState, tc.expectedState); len(diff) > 0 {
+				t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
+			}
+
+			if provider.ResourceCount() > 0 {
+				t.Fatalf("should have deleted all resources on completion but left %v", provider.ResourceString())
+			}
+		})
+	}
+
 }
 
 func TestTest_RunBlocksInProviders(t *testing.T) {
@@ -3776,5 +4044,48 @@ func TestTest_JUnitOutput(t *testing.T) {
 				t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
 			}
 		})
+	}
+}
+
+// retrieveLocalState reads a local state file made by this test and returns a string
+// representation to assert against.
+func retrieveLocalState(t *testing.T, stateFilePath string) string {
+	t.Helper()
+	_, err := os.Stat(stateFilePath)
+	if os.IsNotExist(err) {
+		t.Fatalf("the test file should have produced a local state file at %s in the temp directory, but the file wasn't found", stateFilePath)
+	}
+	file, err := os.OpenFile(stateFilePath, os.O_RDONLY, 0644)
+	if err != nil {
+		t.Fatalf("unexpected error when opening the local state file: %s", err)
+	}
+	state, err := statefile.Read(file)
+	file.Close()
+	if err != nil {
+		t.Fatalf("unexpected error when reading the local state file: %s", err)
+	}
+
+	return state.State.String()
+}
+
+// setLocalState creates a new local state file using inputs from the test case.
+// This allows us to test how backends in `test` behave when there is prior state
+// from a previous test run.
+func setLocalState(t *testing.T, stateFilePath string, priorState *states.State) {
+	t.Helper()
+	f, err := os.OpenFile(stateFilePath, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		t.Fatalf("failed to create temporary state file %s: %s", stateFilePath, err)
+	}
+	defer f.Close()
+
+	sf := &statefile.File{
+		Serial:  0,
+		Lineage: "fake-for-testing",
+		State:   priorState,
+	}
+	err = statefile.Write(sf, f)
+	if err != nil {
+		t.Fatalf("failed to write to temporary state file %s: %s", stateFilePath, err)
 	}
 }

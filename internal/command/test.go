@@ -260,7 +260,8 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		}
 	} else {
 		localRunner := &local.TestSuiteRunner{
-			Config: config,
+			BackendFactory: backendInit.Backend,
+			Config:         config,
 			// The GlobalVariables are loaded from the
 			// main configuration directory
 			// The GlobalTestVariables are loaded from the
