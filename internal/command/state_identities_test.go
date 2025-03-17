@@ -28,6 +28,7 @@ func TestStateIdentities(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		"-json",
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -69,12 +70,13 @@ func TestStateIdentitiesWithNoIdentityInfo(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		"-json",
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	// Test that outputs were displayed
+	// Test that an empty output is displayed with no error
 	expected := `{}`
 	actual := ui.OutputWriter.String()
 
@@ -107,6 +109,7 @@ func TestStateIdentitiesFilterByID(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		"-json",
 		"-id", "foo",
 	}
 	if code := c.Run(args); code != 0 {
@@ -148,6 +151,7 @@ func TestStateIdentitiesWithNonExistentID(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		"-json",
 		"-id", "baz",
 	}
 	if code := c.Run(args); code != 0 {
@@ -160,6 +164,28 @@ func TestStateIdentitiesWithNonExistentID(t *testing.T) {
 		if actual != "{}\n" {
 			t.Fatalf("Expected an empty output but got: %q", actual)
 		}
+	}
+}
+
+func TestStateIdentitiesWithNoJsonFlag(t *testing.T) {
+	state := testState()
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := cli.NewMockUi()
+	c := &StateIdentitiesCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+	}
+	// Should return an error because the -json flag is required
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("expected error: \n%s", ui.OutputWriter.String())
 	}
 }
 
@@ -178,7 +204,7 @@ func TestStateIdentities_backendDefaultState(t *testing.T) {
 		},
 	}
 
-	args := []string{}
+	args := []string{"-json"}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
@@ -229,7 +255,7 @@ func TestStateIdentities_backendOverrideState(t *testing.T) {
 	}
 
 	// Run the command with a custom state file
-	args := []string{"-state=custom.tfstate"}
+	args := []string{"-state=custom.tfstate", "-json"}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d", code)
 	}
@@ -292,7 +318,7 @@ func TestStateIdentities_modules(t *testing.T) {
 	}
 
 	t.Run("list resources in module and submodules", func(t *testing.T) {
-		args := []string{"module.nest"}
+		args := []string{"-json", "module.nest"}
 		if code := c.Run(args); code != 0 {
 			t.Fatalf("bad: %d", code)
 		}
@@ -327,7 +353,7 @@ func TestStateIdentities_modules(t *testing.T) {
 	t.Run("submodule has resources only", func(t *testing.T) {
 		// now get the state for a module that has no resources, only another nested module
 		ui.OutputWriter.Reset()
-		args := []string{"module.nonexist"}
+		args := []string{"-json", "module.nonexist"}
 		if code := c.Run(args); code != 0 {
 			t.Fatalf("bad: %d", code)
 		}
@@ -356,9 +382,9 @@ func TestStateIdentities_modules(t *testing.T) {
 	t.Run("expanded module", func(t *testing.T) {
 		// finally get the state for a module with an index
 		ui.OutputWriter.Reset()
-		args := []string{"module.count"}
+		args := []string{"-json", "module.count"}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: %d", code)
+			t.Fatalf("bad: %d: %s", code, ui.ErrorWriter.String())
 		}
 		expected := `{
 			"module.count[0].test_instance.count": {
@@ -389,9 +415,9 @@ func TestStateIdentities_modules(t *testing.T) {
 	t.Run("completely nonexistent module", func(t *testing.T) {
 		// finally get the state for a module with an index
 		ui.OutputWriter.Reset()
-		args := []string{"module.notevenalittlebit"}
+		args := []string{"-json", "module.notevenalittlebit"}
 		if code := c.Run(args); code != 1 {
-			t.Fatalf("bad: %d", code)
+			t.Fatalf("bad: %d: %s", code, ui.OutputWriter.String())
 		}
 	})
 

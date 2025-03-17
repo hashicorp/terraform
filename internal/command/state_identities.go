@@ -24,14 +24,23 @@ type StateIdentitiesCommand struct {
 func (c *StateIdentitiesCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	var statePath string
+	var jsonOutput bool
 	cmdFlags := c.Meta.defaultFlagSet("state identities")
 	cmdFlags.StringVar(&statePath, "state", "", "path")
+	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
 	lookupId := cmdFlags.String("id", "", "Restrict output to paths with a resource having the specified ID.")
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return cli.RunResultHelp
 	}
 	args = cmdFlags.Args()
+
+	if !jsonOutput {
+		c.Ui.Error(
+			"The `terraform state identities` command requires the `-json` flag.\n")
+		cmdFlags.Usage()
+		return 1
+	}
 
 	if statePath != "" {
 		c.Meta.statePath = statePath
@@ -81,14 +90,12 @@ func (c *StateIdentitiesCommand) Run(args []string) int {
 		return 1
 	}
 
-	output := make(map[string]interface{})
+	output := make(map[string]any)
 	for _, addr := range addrs {
-		if is := state.ResourceInstance(addr); is != nil {
+		// If the resource exists but identity is nil, skip it, as it is not required to be present
+		if is := state.ResourceInstance(addr); is != nil && is.Current.IdentityJSON != nil {
 			if *lookupId == "" || *lookupId == states.LegacyInstanceObjectID(is.Current) {
-				var rawIdentity map[string]interface{}
-				if is.Current.IdentityJSON == nil {
-					continue
-				}
+				var rawIdentity map[string]any
 				if err := json.Unmarshal(is.Current.IdentityJSON, &rawIdentity); err != nil {
 					c.Ui.Error(fmt.Sprintf("Failed to unmarshal identity JSON: %s", err))
 					return 1
@@ -112,12 +119,12 @@ func (c *StateIdentitiesCommand) Run(args []string) int {
 
 func (c *StateIdentitiesCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] state identities [options] [address...]
+Usage: terraform [global options] state identities [options] -json [address...]
 
-  List the identities of resources in the Terraform state.
+  List the json format of the identities of resources in the Terraform state.
 
-  This command lists the identities of resource instances in the Terraform state. The address
-  argument can be used to filter the instances by resource or module. If
+  This command lists the identities of resource instances in the Terraform state in json format.
+  The address argument can be used to filter the instances by resource or module. If
   no pattern is given, identities for all resource instances are listed.
 
   The addresses must either be module addresses or absolute resource
