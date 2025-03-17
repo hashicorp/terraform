@@ -54,6 +54,44 @@ func TestStateIdentities(t *testing.T) {
 	}
 }
 
+func TestStateIdentitiesWithNoIdentityInfo(t *testing.T) {
+	state := testState()
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := cli.NewMockUi()
+	c := &StateIdentitiesCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test that outputs were displayed
+	expected := `{}`
+	actual := ui.OutputWriter.String()
+
+	// Normalize JSON strings
+	var expectedJSON, actualJSON map[string]interface{}
+	if err := json.Unmarshal([]byte(expected), &expectedJSON); err != nil {
+		t.Fatalf("Failed to unmarshal expected JSON: %s", err)
+	}
+	if err := json.Unmarshal([]byte(actual), &actualJSON); err != nil {
+		t.Fatalf("Failed to unmarshal actual JSON: %s", err)
+	}
+
+	if !reflect.DeepEqual(expectedJSON, actualJSON) {
+		t.Fatalf("Expected:\n%q\n\nTo equal: %q", expected, actual)
+	}
+}
+
 func TestStateIdentitiesFilterByID(t *testing.T) {
 	state := testStateWithIdentity()
 	statePath := testStateFile(t, state)

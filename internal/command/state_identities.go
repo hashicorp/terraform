@@ -86,6 +86,9 @@ func (c *StateIdentitiesCommand) Run(args []string) int {
 		if is := state.ResourceInstance(addr); is != nil {
 			if *lookupId == "" || *lookupId == states.LegacyInstanceObjectID(is.Current) {
 				var rawIdentity map[string]interface{}
+				if is.Current.IdentityJSON == nil {
+					continue
+				}
 				if err := json.Unmarshal(is.Current.IdentityJSON, &rawIdentity); err != nil {
 					c.Ui.Error(fmt.Sprintf("Failed to unmarshal identity JSON: %s", err))
 					return 1
