@@ -78,7 +78,7 @@ resource "aws_db_instance" "example" {
 
 During a Terraform operation, the provider uses the `password_wo` value to create the database instance, and then Terraform discards that value without storing it in the plan or state file. 
 
-Note that the way this is written, the `password_wo` value is lost after Terraform generates unless we capture it in another resource or output. For an example of generating, storing, retrieving, and using an ephemeral password as a write-only argument, refer to the [expanded examples below](#examples). 
+Note that Terraform does not store the generated value for `password_wo`, but you can capture it in another resource or output. For an example of generating, storing, retrieving, and using an ephemeral password as a write-only argument, refer to the [Examples](#examples).
 
 ## Update write-only arguments with versions
 
