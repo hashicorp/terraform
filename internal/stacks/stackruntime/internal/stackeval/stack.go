@@ -49,7 +49,7 @@ type Stack struct {
 	stackCalls     map[stackaddrs.StackCall]*StackCall
 	outputValues   map[stackaddrs.OutputValue]*OutputValue
 	components     map[stackaddrs.Component]*Component
-	removed        map[stackaddrs.Component]*Removed
+	removed        map[stackaddrs.Component][]*Removed
 	providers      map[stackaddrs.ProviderConfigRef]*Provider
 }
 
@@ -322,7 +322,7 @@ func (s *Stack) Component(ctx context.Context, addr stackaddrs.Component) *Compo
 	return s.Components(ctx)[addr]
 }
 
-func (s *Stack) Removeds(ctx context.Context) map[stackaddrs.Component]*Removed {
+func (s *Stack) Removeds(ctx context.Context) map[stackaddrs.Component][]*Removed {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -330,26 +330,28 @@ func (s *Stack) Removeds(ctx context.Context) map[stackaddrs.Component]*Removed 
 		return s.removed
 	}
 
-	decls := s.ConfigDeclarations(ctx)
-	ret := make(map[stackaddrs.Component]*Removed, len(decls.Removed))
-	for _, r := range decls.Removed {
-		absAddr := stackaddrs.AbsComponent{
-			Stack: s.Addr(),
-			Item:  r.FromComponent,
+	decls := s.StackConfig(ctx).Removeds(ctx)
+	ret := make(map[stackaddrs.Component][]*Removed, len(decls))
+	for _, blocks := range decls {
+		for _, r := range blocks {
+			absAddr := stackaddrs.AbsComponent{
+				Stack: s.Addr(),
+				Item:  r.config.FromComponent,
+			}
+			ret[absAddr.Item] = append(ret[absAddr.Item], newRemoved(s.main, absAddr, r))
 		}
-		ret[absAddr.Item] = newRemoved(s.main, absAddr)
 	}
 	s.removed = ret
 	return ret
 }
 
-func (s *Stack) Removed(ctx context.Context, addr stackaddrs.Component) *Removed {
+func (s *Stack) Removed(ctx context.Context, addr stackaddrs.Component) []*Removed {
 	return s.Removeds(ctx)[addr]
 }
 
 // ApplyableComponents returns the combination of removed blocks and declared
 // components for a given component address.
-func (s *Stack) ApplyableComponents(ctx context.Context, addr stackaddrs.Component) (*Component, *Removed) {
+func (s *Stack) ApplyableComponents(ctx context.Context, addr stackaddrs.Component) (*Component, []*Removed) {
 	return s.Component(ctx, addr), s.Removed(ctx, addr)
 }
 
@@ -675,12 +677,36 @@ func (s *Stack) resolveExpressionReference(
 // just inert containers; the plan walk driver must also explore everything
 // nested inside the stack and plan those separately.
 func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
-	if !s.IsRoot() {
-		// Nothing to do for non-root stacks
-		return nil, nil
+	var diags tfdiags.Diagnostics
+
+	// We're going to validate that all the removed blocks in this stack resolve
+	// to unique instance addresses.
+	for _, blocks := range s.Removeds(ctx) {
+		seen := make(map[addrs.InstanceKey]*RemovedInstance)
+		for _, block := range blocks {
+			insts, unknown, _ := block.Instances(ctx, PlanPhase)
+			if unknown {
+				continue
+			}
+
+			for _, inst := range insts {
+				if existing, exists := seen[inst.from.Item.Key]; exists {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid `from` attribute",
+						Detail:   fmt.Sprintf("The `from` attribute resolved to resource instance %s, which is already claimed by another removed block at %s.", inst.from, existing.call.config.config.DeclRange.ToHCL()),
+						Subject:  inst.call.config.config.DeclRange.ToHCL().Ptr(),
+					})
+				}
+				seen[inst.from.Item.Key] = inst
+			}
+		}
 	}
 
-	var diags tfdiags.Diagnostics
+	if !s.IsRoot() {
+		// Nothing more to do for non-root stacks
+		return nil, diags
+	}
 
 	// We want to check that all of the components we have in state are
 	// targeted by something (either a component or a removed block) in
@@ -720,7 +746,7 @@ Instance:
 			continue
 		}
 
-		component, removed := stack.ApplyableComponents(ctx, inst.Item.Component)
+		component, removeds := stack.ApplyableComponents(ctx, inst.Item.Component)
 		if component != nil {
 			insts, unknown := component.Instances(ctx, PlanPhase)
 			if unknown {
@@ -738,14 +764,14 @@ Instance:
 			}
 		}
 
-		if removed != nil {
+		for _, removed := range removeds {
 			insts, unknown, _ := removed.Instances(ctx, PlanPhase)
 			if unknown {
 				// We can't determine if the component is targeted or not. This
 				// is okay, as any changes to this component will be deferred
 				// anyway and a follow up plan will then detect the missing
 				// component if it exists.
-				continue
+				continue Instance
 			}
 
 			for _, i := range insts {
