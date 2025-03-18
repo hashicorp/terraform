@@ -259,8 +259,9 @@ func (c *ComponentConfig) ExprReferenceValue(ctx context.Context, phase EvalPhas
 	// phase, so this is sufficient for all phases. (See [Component] for how
 	// component results get calculated during the plan and apply phases.)
 
-	// Validating this component after it was found in a reference here, so
-	// that we can detect cycles between components.
+	// By calling `checkValid` on ourself here, we will cause a cycle error to be exposed if we ended
+	// up within this function while executing c.checkValid initially. This just makes sure that there
+	// are no cycles between components.
 	c.checkValid(ctx, phase)
 	return cty.DynamicVal
 }

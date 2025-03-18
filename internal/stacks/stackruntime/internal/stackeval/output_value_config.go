@@ -88,41 +88,43 @@ func (ov *OutputValueConfig) ValueTypeConstraint(ctx context.Context) cty.Type {
 func (ov *OutputValueConfig) ValidateValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return withCtyDynamicValPlaceholder(doOnceWithDiags(
 		ctx, ov.validatedValue.For(phase), ov.main,
-		ov.validateValueInner,
+		ov.validateValueInner(phase),
 	))
 }
 
 // validateValueInner is the real implementation of ValidateValue, which runs
 // in the background only once per instance of [OutputValueConfig] and then
 // provides the result for all ValidateValue callers simultaneously.
-func (ov *OutputValueConfig) validateValueInner(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
+func (ov *OutputValueConfig) validateValueInner(phase EvalPhase) func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+	return func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+		var diags tfdiags.Diagnostics
 
-	result, moreDiags := EvalExprAndEvalContext(ctx, ov.config.Value, ValidatePhase, ov.StackConfig(ctx))
-	v := result.Value
-	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
-		v = ov.markResultValue(cty.UnknownVal(ov.ValueTypeConstraint(ctx)))
+		result, moreDiags := EvalExprAndEvalContext(ctx, ov.config.Value, phase, ov.StackConfig(ctx))
+		v := result.Value
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			v = ov.markResultValue(cty.UnknownVal(ov.ValueTypeConstraint(ctx)))
+		}
+
+		var err error
+		v, err = convert.Convert(v, ov.config.Type.Constraint)
+		if err != nil {
+			v = cty.UnknownVal(ov.ValueTypeConstraint(ctx))
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid result for output value",
+				Detail: fmt.Sprintf(
+					"The result value does not match the declared type constraint: %s.",
+					tfdiags.FormatError(err),
+				),
+				Subject:     ov.config.Value.Range().Ptr(),
+				Expression:  result.Expression,
+				EvalContext: result.EvalContext,
+			})
+		}
+
+		return ov.markResultValue(v), diags
 	}
-
-	var err error
-	v, err = convert.Convert(v, ov.config.Type.Constraint)
-	if err != nil {
-		v = cty.UnknownVal(ov.ValueTypeConstraint(ctx))
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid result for output value",
-			Detail: fmt.Sprintf(
-				"The result value does not match the declared type constraint: %s.",
-				tfdiags.FormatError(err),
-			),
-			Subject:     ov.config.Value.Range().Ptr(),
-			Expression:  result.Expression,
-			EvalContext: result.EvalContext,
-		})
-	}
-
-	return ov.markResultValue(v), diags
 }
 
 func (ov *OutputValueConfig) markResultValue(v cty.Value) cty.Value {
