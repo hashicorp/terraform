@@ -247,7 +247,7 @@ func (m *migration) providerDependencies(expr hcl.Expression, current stackaddrs
 				continue // skip this provider if we can't get the schema
 			}
 
-			spec := provider.GetProviderSchema().Provider.Block.DecoderSpec()
+			spec := provider.GetProviderSchema().Provider.Body.DecoderSpec()
 			traversals := hcldec.Variables(config.Config, spec)
 			for _, traversal := range traversals {
 				dss, moreDiags := m.componentDependenciesFromTraversal(traversal, current, components)

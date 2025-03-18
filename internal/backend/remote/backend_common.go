@@ -47,6 +47,33 @@ func backoff(min, max float64, iter int) time.Duration {
 	return time.Duration(backoff) * time.Millisecond
 }
 
+func (b *Remote) waitForPostPlanTasks(stopCtx, cancelCtx context.Context, r *tfe.Run) error {
+	taskStages := make(taskStages)
+	result, err := b.client.Runs.ReadWithOptions(stopCtx, r.ID, &tfe.RunReadOptions{
+		Include: []tfe.RunIncludeOpt{tfe.RunTaskStages},
+	})
+	if err == nil {
+		for _, t := range result.TaskStages {
+			if t != nil {
+				taskStages[t.Stage] = t
+			}
+		}
+	} else {
+		// This error would be expected for older versions of TFE that do not allow
+		// fetching task_stages.
+		if !strings.HasSuffix(err.Error(), "Invalid include parameter") {
+			generalError("Failed to retrieve run", err)
+		}
+	}
+
+	if stage, ok := taskStages[tfe.PostPlan]; ok {
+		if err := b.waitTaskStage(stopCtx, cancelCtx, r, stage.ID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (b *Remote) waitForRun(stopCtx, cancelCtx context.Context, op *backendrun.Operation, opType string, r *tfe.Run, w *tfe.Workspace) (*tfe.Run, error) {
 	started := time.Now()
 	updated := started

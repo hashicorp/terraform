@@ -67,10 +67,10 @@ func (p *ProviderConfig) ProviderArgsDecoderSpec(ctx context.Context) (hcldec.Sp
 	if err != nil {
 		return nil, err
 	}
-	if schema.Provider.Block == nil {
+	if schema.Provider.Body == nil {
 		return hcldec.ObjectSpec{}, nil
 	}
-	return schema.Provider.Block.DecoderSpec(), nil
+	return schema.Provider.Body.DecoderSpec(), nil
 }
 
 // ProviderArgs returns an object value representing an approximation of all

@@ -70,3 +70,27 @@ func marshalAttribute(attr *configschema.Attribute) *Attribute {
 
 	return ret
 }
+
+type IdentityAttribute struct {
+	IdentityType      json.RawMessage `json:"type,omitempty"`
+	Description       string          `json:"description,omitempty"`
+	RequiredForImport bool            `json:"required_for_import,omitempty"`
+	OptionalForImport bool            `json:"optional_for_import,omitempty"`
+}
+
+func marshalIdentityAttribute(attr *configschema.Attribute) *IdentityAttribute {
+	ret := &IdentityAttribute{
+		Description:       attr.Description,
+		RequiredForImport: attr.Required,
+		OptionalForImport: attr.Optional,
+	}
+
+	// we're not concerned about errors because at this point the schema has
+	// already been checked and re-checked.
+	if attr.Type != cty.NilType {
+		attrTy, _ := attr.Type.MarshalJSON()
+		ret.IdentityType = attrTy
+	}
+
+	return ret
+}

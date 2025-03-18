@@ -28,6 +28,7 @@ type Provider struct {
 	DataSourceSchemas        map[string]*Schema                         `json:"data_source_schemas,omitempty"`
 	EphemeralResourceSchemas map[string]*Schema                         `json:"ephemeral_resource_schemas,omitempty"`
 	Functions                map[string]*jsonfunction.FunctionSignature `json:"functions,omitempty"`
+	ResourceIdentitySchemas  map[string]*IdentitySchema                 `json:"resource_identity_schemas,omitempty"`
 }
 
 func newProviders() *Providers {
@@ -64,5 +65,6 @@ func marshalProvider(tps providers.ProviderSchema) *Provider {
 		DataSourceSchemas:        marshalSchemas(tps.DataSources),
 		EphemeralResourceSchemas: marshalSchemas(tps.EphemeralResourceTypes),
 		Functions:                jsonfunction.MarshalProviderFunctions(tps.Functions),
+		ResourceIdentitySchemas:  marshalIdentitySchemas(tps.ResourceTypes),
 	}
 }

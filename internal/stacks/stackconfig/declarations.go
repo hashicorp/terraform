@@ -47,7 +47,7 @@ type Declarations struct {
 
 	// Removed are the list of components that have been removed from the
 	// configuration.
-	Removed map[string]*Removed
+	Removed map[string][]*Removed
 }
 
 func makeDeclarations() Declarations {
@@ -58,7 +58,7 @@ func makeDeclarations() Declarations {
 		LocalValues:     make(map[string]*LocalValue),
 		OutputValues:    make(map[string]*OutputValue),
 		ProviderConfigs: make(map[addrs.LocalProviderConfig]*ProviderConfig),
-		Removed:         make(map[string]*Removed),
+		Removed:         make(map[string][]*Removed),
 	}
 }
 
@@ -82,24 +82,28 @@ func (d *Declarations) addComponent(decl *Component) tfdiags.Diagnostics {
 		return diags
 	}
 
-	if removed, exists := d.Removed[name]; exists && removed.FromIndex == nil {
-		// If a component has been removed, we should not also find it in the
-		// configuration.
-		//
-		// If the removed block has an index, then it's possible that only a
-		// specific instance was removed and not the whole thing. This is okay
-		// at this point, and will be validated more later. See the addRemoved
-		// method for more information.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Component exists for removed block",
-			Detail: fmt.Sprintf(
-				"A removed block for component %q was declared without an index, but a component block with the same name was declared at %s.\n\nA removed block without an index indicates that the component and all instances were removed from the configuration, and this is not the case.",
-				name, decl.DeclRange.ToHCL(),
-			),
-			Subject: removed.DeclRange.ToHCL().Ptr(),
-		})
-		return diags
+	if blocks, exists := d.Removed[name]; exists {
+		for _, removed := range blocks {
+			if removed.FromIndex == nil {
+				// If a component has been removed, we should not also find it
+				// in the configuration.
+				//
+				// If the removed block has an index, then it's possible that
+				// only a specific instance was removed and not the whole thing.
+				// This is okay at this point, and will be validated more later.
+				// See the addRemoved method for more information.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Component exists for removed block",
+					Detail: fmt.Sprintf(
+						"A removed block for component %q was declared without an index, but a component block with the same name was declared at %s.\n\nA removed block without an index indicates that the component and all instances were removed from the configuration, and this is not the case.",
+						name, decl.DeclRange.ToHCL(),
+					),
+					Subject: removed.DeclRange.ToHCL().Ptr(),
+				})
+				return diags
+			}
+		}
 	}
 
 	d.Components[name] = decl
@@ -255,21 +259,6 @@ func (d *Declarations) addRemoved(decl *Removed) tfdiags.Diagnostics {
 	}
 	name := decl.FromComponent.Name
 
-	// We're going to make sure that all the removed blocks that share the same
-	// FromComponent are consistent.
-	if existing, exists := d.Removed[name]; exists {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Duplicate removed block",
-			Detail: fmt.Sprintf(
-				"A removed block for component %q was already declared at %s.",
-				name, existing.DeclRange.ToHCL(),
-			),
-			Subject: decl.DeclRange.ToHCL().Ptr(),
-		})
-		return diags
-	}
-
 	if decl.FromIndex == nil {
 		// If the removed block does not have an index, then we shouldn't also
 		// have a component block with the same name. A removed block without
@@ -295,7 +284,7 @@ func (d *Declarations) addRemoved(decl *Removed) tfdiags.Diagnostics {
 		}
 	}
 
-	d.Removed[name] = decl
+	d.Removed[name] = append(d.Removed[name], decl)
 	return diags
 }
 
@@ -334,10 +323,12 @@ func (d *Declarations) merge(other *Declarations) tfdiags.Diagnostics {
 			d.addProviderConfig(decl),
 		)
 	}
-	for _, decl := range other.Removed {
-		diags = diags.Append(
-			d.addRemoved(decl),
-		)
+	for _, blocks := range other.Removed {
+		for _, decl := range blocks {
+			diags = diags.Append(
+				d.addRemoved(decl),
+			)
+		}
 	}
 
 	return diags

@@ -164,6 +164,30 @@ func (s *State) InputsForComponent(addr stackaddrs.AbsComponentInstance) map[add
 	return cs.inputVariables
 }
 
+type IdentitySrc struct {
+	IdentitySchemaVersion uint64
+	IdentityJSON          []byte
+}
+
+// IdentitiesForComponent returns the identity values for the given component
+// instance, or nil if no such component instance is tracked in the state.
+func (s *State) IdentitiesForComponent(addr stackaddrs.AbsComponentInstance) map[*addrs.AbsResourceInstanceObject]IdentitySrc {
+	cs := s.componentInstanceState(addr)
+	if cs == nil {
+		return nil
+	}
+
+	res := make(map[*addrs.AbsResourceInstanceObject]IdentitySrc)
+	for _, rio := range cs.resourceInstanceObjects.Elements() {
+		res[&rio.Key] = IdentitySrc{
+			IdentitySchemaVersion: rio.Value.src.IdentitySchemaVersion,
+			IdentityJSON:          rio.Value.src.IdentityJSON,
+		}
+	}
+
+	return res
+}
+
 // ComponentInstanceResourceInstanceObjects returns a set of addresses for
 // all of the resource instance objects belonging to the component instance
 // with the given address.

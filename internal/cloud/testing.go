@@ -378,7 +378,7 @@ func testLocalBackend(t *testing.T, cloud *Cloud) backendrun.OperationsBackend {
 	p := backendLocal.TestLocalProvider(t, b, "null", providers.ProviderSchema{
 		ResourceTypes: map[string]providers.Schema{
 			"null_resource": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {Type: cty.String, Computed: true},
 					},

@@ -32,6 +32,9 @@ type MockProvider struct {
 	GetProviderSchemaCalled   bool
 	GetProviderSchemaResponse *providers.GetProviderSchemaResponse
 
+	GetResourceIdentitySchemasCalled   bool
+	GetResourceIdentitySchemasResponse *providers.GetResourceIdentitySchemasResponse
+
 	ValidateProviderConfigCalled   bool
 	ValidateProviderConfigResponse *providers.ValidateProviderConfigResponse
 	ValidateProviderConfigRequest  providers.ValidateProviderConfigRequest
@@ -54,6 +57,12 @@ type MockProvider struct {
 	UpgradeResourceStateResponse *providers.UpgradeResourceStateResponse
 	UpgradeResourceStateRequest  providers.UpgradeResourceStateRequest
 	UpgradeResourceStateFn       func(providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse
+
+	UpgradeResourceIdentityCalled   bool
+	UpgradeResourceIdentityTypeName string
+	UpgradeResourceIdentityResponse *providers.UpgradeResourceIdentityResponse
+	UpgradeResourceIdentityRequest  providers.UpgradeResourceIdentityRequest
+	UpgradeResourceIdentityFn       func(providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse
 
 	ConfigureProviderCalled   bool
 	ConfigureProviderResponse *providers.ConfigureProviderResponse
@@ -142,6 +151,24 @@ func (p *MockProvider) getProviderSchema() providers.GetProviderSchemaResponse {
 	}
 }
 
+func (p *MockProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	p.Lock()
+	defer p.Unlock()
+	p.GetResourceIdentitySchemasCalled = true
+
+	return p.getResourceIdentitySchemas()
+}
+
+func (p *MockProvider) getResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	if p.GetResourceIdentitySchemasResponse != nil {
+		return *p.GetResourceIdentitySchemasResponse
+	}
+
+	return providers.GetResourceIdentitySchemasResponse{
+		IdentityTypes: map[string]providers.IdentitySchema{},
+	}
+}
+
 func (p *MockProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 	p.Lock()
 	defer p.Unlock()
@@ -175,7 +202,7 @@ func (p *MockProvider) ValidateResourceConfig(r providers.ValidateResourceConfig
 		return resp
 	}
 
-	_, err := msgpack.Marshal(r.Config, resourceSchema.Block.ImpliedType())
+	_, err := msgpack.Marshal(r.Config, resourceSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -205,7 +232,7 @@ func (p *MockProvider) ValidateDataResourceConfig(r providers.ValidateDataResour
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
 		return resp
 	}
-	_, err := msgpack.Marshal(r.Config, dataSchema.Block.ImpliedType())
+	_, err := msgpack.Marshal(r.Config, dataSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -235,7 +262,7 @@ func (p *MockProvider) ValidateEphemeralResourceConfig(r providers.ValidateEphem
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
 		return resp
 	}
-	_, err := msgpack.Marshal(r.Config, dataSchema.Block.ImpliedType())
+	_, err := msgpack.Marshal(r.Config, dataSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -272,7 +299,7 @@ func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 		return resp
 	}
 
-	schemaType := schema.Block.ImpliedType()
+	schemaType := schema.Body.ImpliedType()
 
 	p.UpgradeResourceStateCalled = true
 	p.UpgradeResourceStateRequest = r
@@ -302,6 +329,45 @@ func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 		}
 		resp.UpgradedState = v
 	}
+
+	return resp
+}
+
+func (p *MockProvider) UpgradeResourceIdentity(r providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before UpgradeResourceIdentity %q", r.TypeName))
+		return resp
+	}
+	p.UpgradeResourceIdentityCalled = true
+	p.UpgradeResourceIdentityRequest = r
+
+	if p.UpgradeResourceIdentityFn != nil {
+		return p.UpgradeResourceIdentityFn(r)
+	}
+
+	if p.UpgradeResourceIdentityResponse != nil {
+		return *p.UpgradeResourceIdentityResponse
+	}
+
+	schema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]
+
+	if !ok || schema.Identity == nil {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no identity schema found for %q", r.TypeName))
+		return resp
+	}
+
+	identityType := schema.Identity.ImpliedType()
+
+	v, err := ctyjson.Unmarshal(r.RawIdentityJSON, identityType)
+
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+	resp.UpgradedIdentity = v
 
 	return resp
 }
@@ -365,11 +431,15 @@ func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 			return resp
 		}
 
-		newState, err := schema.Block.CoerceValue(resp.NewState)
+		newState, err := schema.Body.CoerceValue(resp.NewState)
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 		}
 		resp.NewState = newState
+		if resp.Identity.IsNull() {
+			resp.Identity = r.CurrentIdentity
+		}
+
 		return resp
 	}
 
@@ -384,7 +454,7 @@ func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 				return v, nil
 			}
 
-			attrSchema := schema.Block.AttributeByPath(path)
+			attrSchema := schema.Body.AttributeByPath(path)
 			if attrSchema == nil {
 				// this is an intermediate path which does not represent an attribute
 				return v, nil
@@ -405,6 +475,7 @@ func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 		resp.NewState = r.PriorState
 	}
 
+	resp.Identity = r.CurrentIdentity
 	resp.Private = r.Private
 	return resp
 }
@@ -451,7 +522,7 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 			return v, nil
 		}
 
-		attrSchema := schema.Block.AttributeByPath(path)
+		attrSchema := schema.Body.AttributeByPath(path)
 		if attrSchema == nil {
 			// this is an intermediate path which does not represent an attribute
 			return v, nil
@@ -522,6 +593,7 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	// if the value is nil, we return that directly to correspond to a delete
 	if r.PlannedState.IsNull() {
 		resp.NewState = r.PlannedState
+		resp.NewIdentity = r.PlannedIdentity
 		return resp
 	}
 
@@ -551,6 +623,7 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 
 	resp.NewState = val
 	resp.Private = r.PlannedPrivate
+	resp.NewIdentity = r.PlannedIdentity
 
 	return resp
 }
@@ -586,7 +659,7 @@ func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateReques
 			}
 
 			var err error
-			res.State, err = schema.Block.CoerceValue(res.State)
+			res.State, err = schema.Body.CoerceValue(res.State)
 			if err != nil {
 				resp.Diagnostics = resp.Diagnostics.Append(err)
 				return resp

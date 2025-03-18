@@ -90,8 +90,8 @@ func (m *migration) migrateResources(resources map[string]string, modules map[st
 			continue
 		}
 
-		schema, _ := provider.GetProviderSchema().SchemaForResourceType(resource.Addr.Resource.Mode, resource.Addr.Resource.Type)
-		if schema == nil {
+		schema := provider.GetProviderSchema().SchemaForResourceType(resource.Addr.Resource.Mode, resource.Addr.Resource.Type)
+		if schema.Body == nil {
 			m.emitDiags(diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Resource type not found",

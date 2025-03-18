@@ -16,6 +16,8 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -81,9 +83,6 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	defer p.mu.Unlock()
 
 	// check the global cache if we can
-	// FIXME: A global cache is inappropriate when Terraform Core is being
-	// used in a non-Terraform-CLI mode where we shouldn't assume that all
-	// calls share the same provider implementations.
 	if !p.Addr.IsZero() {
 		if resp, ok := providers.SchemaCache.Get(p.Addr); ok && resp.ServerCapabilities.GetProviderSchemaOptional {
 			logger.Trace("GRPCProvider: returning cached schema", p.Addr.String())
@@ -93,7 +92,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 
 	// If the local cache is non-zero, we know this instance has called
 	// GetProviderSchema at least once and we can return early.
-	if p.schema.Provider.Block != nil {
+	if p.schema.Provider.Body != nil {
 		return p.schema
 	}
 
@@ -129,23 +128,38 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		return resp
 	}
 
-	resp.Provider = convert.ProtoToProviderSchema(protoResp.Provider)
+	identResp, err := p.client.GetResourceIdentitySchemas(p.ctx, new(proto.GetResourceIdentitySchemas_Request))
+	if err != nil {
+		if status.Code(err) == codes.Unimplemented {
+			// We don't treat this as an error if older providers don't implement this method,
+			// so we create an empty map for identity schemas
+			identResp = &proto.GetResourceIdentitySchemas_Response{
+				IdentitySchemas: map[string]*proto.ResourceIdentitySchema{},
+			}
+		} else {
+			resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+			return resp
+		}
+	}
+
+	resp.Provider = convert.ProtoToProviderSchema(protoResp.Provider, nil)
 	if protoResp.ProviderMeta == nil {
 		logger.Debug("No provider meta schema returned")
 	} else {
-		resp.ProviderMeta = convert.ProtoToProviderSchema(protoResp.ProviderMeta)
+		resp.ProviderMeta = convert.ProtoToProviderSchema(protoResp.ProviderMeta, nil)
 	}
 
 	for name, res := range protoResp.ResourceSchemas {
-		resp.ResourceTypes[name] = convert.ProtoToProviderSchema(res)
+		id := identResp.IdentitySchemas[name] // We're fine if the id is not found
+		resp.ResourceTypes[name] = convert.ProtoToProviderSchema(res, id)
 	}
 
 	for name, data := range protoResp.DataSourceSchemas {
-		resp.DataSources[name] = convert.ProtoToProviderSchema(data)
+		resp.DataSources[name] = convert.ProtoToProviderSchema(data, nil)
 	}
 
 	for name, ephem := range protoResp.EphemeralResourceSchemas {
-		resp.EphemeralResourceTypes[name] = convert.ProtoToProviderSchema(ephem)
+		resp.EphemeralResourceTypes[name] = convert.ProtoToProviderSchema(ephem, nil)
 	}
 
 	if decls, err := convert.FunctionDeclsFromProto(protoResp.Functions); err == nil {
@@ -162,9 +176,6 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	}
 
 	// set the global cache if we can
-	// FIXME: A global cache is inappropriate when Terraform Core is being
-	// used in a non-Terraform-CLI mode where we shouldn't assume that all
-	// calls share the same provider implementations.
 	if !p.Addr.IsZero() {
 		providers.SchemaCache.Set(p.Addr, resp)
 	}
@@ -172,6 +183,38 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	// always store this here in the client for providers that are not able to
 	// use GetProviderSchemaOptional
 	p.schema = resp
+
+	return resp
+}
+
+func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	var resp providers.GetResourceIdentitySchemasResponse
+
+	resp.IdentityTypes = make(map[string]providers.IdentitySchema)
+
+	protoResp, err := p.client.GetResourceIdentitySchemas(p.ctx, new(proto.GetResourceIdentitySchemas_Request))
+	if err != nil {
+		if status.Code(err) == codes.Unimplemented {
+			// We expect no error here if older providers don't implement this method
+			return resp
+		}
+
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	if resp.Diagnostics.HasErrors() {
+		return resp
+	}
+
+	for name, res := range protoResp.IdentitySchemas {
+		resp.IdentityTypes[name] = providers.IdentitySchema{
+			Version: res.Version,
+			Body:    convert.ProtoToIdentitySchema(res.IdentityAttributes),
+		}
+	}
 
 	return resp
 }
@@ -185,7 +228,7 @@ func (p *GRPCProvider) ValidateProviderConfig(r providers.ValidateProviderConfig
 		return resp
 	}
 
-	ty := schema.Provider.Block.ImpliedType()
+	ty := schema.Provider.Body.ImpliedType()
 
 	mp, err := msgpack.Marshal(r.Config, ty)
 	if err != nil {
@@ -229,7 +272,7 @@ func (p *GRPCProvider) ValidateResourceConfig(r providers.ValidateResourceConfig
 		return resp
 	}
 
-	mp, err := msgpack.Marshal(r.Config, resourceSchema.Block.ImpliedType())
+	mp, err := msgpack.Marshal(r.Config, resourceSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -266,7 +309,7 @@ func (p *GRPCProvider) ValidateDataResourceConfig(r providers.ValidateDataResour
 		return resp
 	}
 
-	mp, err := msgpack.Marshal(r.Config, dataSchema.Block.ImpliedType())
+	mp, err := msgpack.Marshal(r.Config, dataSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -317,7 +360,7 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	ty := resSchema.Block.ImpliedType()
+	ty := resSchema.Body.ImpliedType()
 	resp.UpgradedState = cty.NullVal(ty)
 	if protoResp.UpgradedState == nil {
 		return resp
@@ -329,6 +372,52 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 		return resp
 	}
 	resp.UpgradedState = state
+
+	return resp
+}
+
+func (p *GRPCProvider) UpgradeResourceIdentity(r providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
+	logger.Trace("GRPCProvider: UpgradeResourceIdentity")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	resSchema, ok := schema.ResourceTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown resource identity type %q", r.TypeName))
+		return resp
+	}
+
+	protoReq := &proto.UpgradeResourceIdentity_Request{
+		TypeName: r.TypeName,
+		Version:  int64(r.Version),
+		RawIdentity: &proto.RawState{
+			Json: r.RawIdentityJSON,
+		},
+	}
+
+	protoResp, err := p.client.UpgradeResourceIdentity(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	ty := resSchema.Identity.ImpliedType()
+	resp.UpgradedIdentity = cty.NullVal(ty)
+	if protoResp.UpgradedIdentity == nil {
+		return resp
+	}
+
+	identity, err := decodeDynamicValue(protoResp.UpgradedIdentity.IdentityData, ty)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+	resp.UpgradedIdentity = identity
 
 	return resp
 }
@@ -345,7 +434,7 @@ func (p *GRPCProvider) ConfigureProvider(r providers.ConfigureProviderRequest) (
 	var mp []byte
 
 	// we don't have anything to marshal if there's no config
-	mp, err := msgpack.Marshal(r.Config, schema.Provider.Block.ImpliedType())
+	mp, err := msgpack.Marshal(r.Config, schema.Provider.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -399,7 +488,7 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 
 	metaSchema := schema.ProviderMeta
 
-	mp, err := msgpack.Marshal(r.PriorState, resSchema.Block.ImpliedType())
+	mp, err := msgpack.Marshal(r.PriorState, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -412,13 +501,28 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
-	if metaSchema.Block != nil {
-		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Block.ImpliedType())
+	if metaSchema.Body != nil {
+		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Body.ImpliedType())
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 			return resp
 		}
 		protoReq.ProviderMeta = &proto.DynamicValue{Msgpack: metaMP}
+	}
+
+	if !r.CurrentIdentity.IsNull() {
+		if resSchema.Identity == nil {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("identity type not found for resource type %s", r.TypeName))
+			return resp
+		}
+		currentIdentityMP, err := msgpack.Marshal(r.CurrentIdentity, resSchema.Identity.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		protoReq.CurrentIdentity = &proto.ResourceIdentityData{
+			IdentityData: &proto.DynamicValue{Msgpack: currentIdentityMP},
+		}
 	}
 
 	protoResp, err := p.client.ReadResource(p.ctx, protoReq)
@@ -429,13 +533,25 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 	resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	state, err := decodeDynamicValue(protoResp.NewState, resSchema.Block.ImpliedType())
+	state, err := decodeDynamicValue(protoResp.NewState, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
 	resp.NewState = state
 	resp.Private = protoResp.Private
+
+	if protoResp.NewIdentity != nil && protoResp.NewIdentity.IdentityData != nil {
+
+		if resSchema.Identity == nil {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown identity type %q", r.TypeName))
+		}
+
+		resp.Identity, err = decodeDynamicValue(protoResp.NewIdentity.IdentityData, resSchema.Identity.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+		}
+	}
 
 	return resp
 }
@@ -466,19 +582,19 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		return resp
 	}
 
-	priorMP, err := msgpack.Marshal(r.PriorState, resSchema.Block.ImpliedType())
+	priorMP, err := msgpack.Marshal(r.PriorState, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
 
-	configMP, err := msgpack.Marshal(r.Config, resSchema.Block.ImpliedType())
+	configMP, err := msgpack.Marshal(r.Config, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
 
-	propMP, err := msgpack.Marshal(r.ProposedNewState, resSchema.Block.ImpliedType())
+	propMP, err := msgpack.Marshal(r.ProposedNewState, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -493,8 +609,8 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
-	if metaSchema.Block != nil {
-		metaTy := metaSchema.Block.ImpliedType()
+	if metaSchema.Body != nil {
+		metaTy := metaSchema.Body.ImpliedType()
 		metaVal := r.ProviderMeta
 		if metaVal == cty.NilVal {
 			metaVal = cty.NullVal(metaTy)
@@ -507,6 +623,21 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		protoReq.ProviderMeta = &proto.DynamicValue{Msgpack: metaMP}
 	}
 
+	if !r.PriorIdentity.IsNull() {
+		if resSchema.Identity == nil {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("identity type not found for resource type %q", r.TypeName))
+			return resp
+		}
+		priorIdentityMP, err := msgpack.Marshal(r.PriorIdentity, resSchema.Identity.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		protoReq.PriorIdentity = &proto.ResourceIdentityData{
+			IdentityData: &proto.DynamicValue{Msgpack: priorIdentityMP},
+		}
+	}
+
 	protoResp, err := p.client.PlanResourceChange(p.ctx, protoReq)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
@@ -514,7 +645,7 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	state, err := decodeDynamicValue(protoResp.PlannedState, resSchema.Block.ImpliedType())
+	state, err := decodeDynamicValue(protoResp.PlannedState, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -530,6 +661,19 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	resp.LegacyTypeSystem = protoResp.LegacyTypeSystem
 
 	resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
+
+	if protoResp.PlannedIdentity != nil && protoResp.PlannedIdentity.IdentityData != nil {
+		if resSchema.Identity == nil {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown identity type %s", r.TypeName))
+			return resp
+		}
+
+		resp.PlannedIdentity, err = decodeDynamicValue(protoResp.PlannedIdentity.IdentityData, resSchema.Identity.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+	}
 
 	return resp
 }
@@ -551,17 +695,17 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 
 	metaSchema := schema.ProviderMeta
 
-	priorMP, err := msgpack.Marshal(r.PriorState, resSchema.Block.ImpliedType())
+	priorMP, err := msgpack.Marshal(r.PriorState, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
-	plannedMP, err := msgpack.Marshal(r.PlannedState, resSchema.Block.ImpliedType())
+	plannedMP, err := msgpack.Marshal(r.PlannedState, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
-	configMP, err := msgpack.Marshal(r.Config, resSchema.Block.ImpliedType())
+	configMP, err := msgpack.Marshal(r.Config, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -575,8 +719,8 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		PlannedPrivate: r.PlannedPrivate,
 	}
 
-	if metaSchema.Block != nil {
-		metaTy := metaSchema.Block.ImpliedType()
+	if metaSchema.Body != nil {
+		metaTy := metaSchema.Body.ImpliedType()
 		metaVal := r.ProviderMeta
 		if metaVal == cty.NilVal {
 			metaVal = cty.NullVal(metaTy)
@@ -589,6 +733,21 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		protoReq.ProviderMeta = &proto.DynamicValue{Msgpack: metaMP}
 	}
 
+	if !r.PlannedIdentity.IsNull() {
+		if resSchema.Identity == nil {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("identity type not found for resource type %s", r.TypeName))
+			return resp
+		}
+		identityMP, err := msgpack.Marshal(r.PlannedIdentity, resSchema.Identity.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		protoReq.PlannedIdentity = &proto.ResourceIdentityData{
+			IdentityData: &proto.DynamicValue{Msgpack: identityMP},
+		}
+	}
+
 	protoResp, err := p.client.ApplyResourceChange(p.ctx, protoReq)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
@@ -598,7 +757,7 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 
 	resp.Private = protoResp.Private
 
-	state, err := decodeDynamicValue(protoResp.NewState, resSchema.Block.ImpliedType())
+	state, err := decodeDynamicValue(protoResp.NewState, resSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -606,6 +765,19 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	resp.NewState = state
 
 	resp.LegacyTypeSystem = protoResp.LegacyTypeSystem
+
+	if protoResp.NewIdentity != nil && protoResp.NewIdentity.IdentityData != nil {
+		if resSchema.Identity == nil {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("identity type not found for resource type %s", r.TypeName))
+			return resp
+		}
+		newIdentity, err := decodeDynamicValue(protoResp.NewIdentity.IdentityData, resSchema.Identity.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		resp.NewIdentity = newIdentity
+	}
 
 	return resp
 }
@@ -623,6 +795,26 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 		TypeName:           r.TypeName,
 		Id:                 r.ID,
 		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
+	}
+
+	if !r.Identity.IsNull() {
+		resSchema := schema.ResourceTypes[r.TypeName]
+		if resSchema.Identity == nil {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown identity type %q", r.TypeName))
+			return resp
+		}
+
+		mp, err := msgpack.Marshal(r.Identity, resSchema.Identity.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+
+		protoReq.Identity = &proto.ResourceIdentityData{
+			IdentityData: &proto.DynamicValue{
+				Msgpack: mp,
+			},
+		}
 	}
 
 	protoResp, err := p.client.ImportResourceState(p.ctx, protoReq)
@@ -645,12 +837,27 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 			continue
 		}
 
-		state, err := decodeDynamicValue(imported.State, resSchema.Block.ImpliedType())
+		state, err := decodeDynamicValue(imported.State, resSchema.Body.ImpliedType())
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 			return resp
 		}
 		resource.State = state
+
+		if imported.Identity != nil && imported.Identity.IdentityData != nil {
+			importedIdentitySchema, ok := schema.ResourceTypes[imported.TypeName]
+			if !ok {
+				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown resource type %q", imported.TypeName))
+				continue
+			}
+			importedIdentity, err := decodeDynamicValue(imported.Identity.IdentityData, importedIdentitySchema.Body.ImpliedType())
+			if err != nil {
+				resp.Diagnostics = resp.Diagnostics.Append(err)
+				return resp
+			}
+			resource.Identity = importedIdentity
+		}
+
 		resp.ImportedResources = append(resp.ImportedResources, resource)
 	}
 
@@ -671,6 +878,18 @@ func (p *GRPCProvider) MoveResourceState(r providers.MoveResourceStateRequest) (
 		TargetTypeName: r.TargetTypeName,
 	}
 
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	if len(r.SourceIdentity) > 0 {
+		protoReq.SourceIdentity = &proto.RawState{
+			Json: r.SourceIdentity,
+		}
+	}
+
 	protoResp, err := p.client.MoveResourceState(p.ctx, protoReq)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
@@ -678,12 +897,6 @@ func (p *GRPCProvider) MoveResourceState(r providers.MoveResourceStateRequest) (
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	if resp.Diagnostics.HasErrors() {
-		return resp
-	}
-
-	schema := p.GetProviderSchema()
-	if schema.Diagnostics.HasErrors() {
-		resp.Diagnostics = schema.Diagnostics
 		return resp
 	}
 
@@ -695,13 +908,27 @@ func (p *GRPCProvider) MoveResourceState(r providers.MoveResourceStateRequest) (
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown resource type %q; this is a bug in Terraform - please report it", r.TargetTypeName))
 		return resp
 	}
-	resp.TargetState, err = decodeDynamicValue(protoResp.TargetState, targetType.Block.ImpliedType())
+	resp.TargetState, err = decodeDynamicValue(protoResp.TargetState, targetType.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
 
 	resp.TargetPrivate = protoResp.TargetPrivate
+
+	if protoResp.TargetIdentity != nil && protoResp.TargetIdentity.IdentityData != nil {
+		targetResSchema := schema.ResourceTypes[r.TargetTypeName]
+
+		if targetResSchema.Identity == nil {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown identity type %s", r.TargetTypeName))
+			return resp
+		}
+		resp.TargetIdentity, err = decodeDynamicValue(protoResp.TargetIdentity.IdentityData, targetResSchema.Identity.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+	}
 
 	return resp
 }
@@ -722,7 +949,7 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 
 	metaSchema := schema.ProviderMeta
 
-	config, err := msgpack.Marshal(r.Config, dataSchema.Block.ImpliedType())
+	config, err := msgpack.Marshal(r.Config, dataSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -736,8 +963,8 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 		ClientCapabilities: clientCapabilitiesToProto(r.ClientCapabilities),
 	}
 
-	if metaSchema.Block != nil {
-		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Block.ImpliedType())
+	if metaSchema.Body != nil {
+		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Body.ImpliedType())
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 			return resp
@@ -752,7 +979,7 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	state, err := decodeDynamicValue(protoResp.State, dataSchema.Block.ImpliedType())
+	state, err := decodeDynamicValue(protoResp.State, dataSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -778,7 +1005,7 @@ func (p *GRPCProvider) ValidateEphemeralResourceConfig(r providers.ValidateEphem
 		return resp
 	}
 
-	mp, err := msgpack.Marshal(r.Config, ephemSchema.Block.ImpliedType())
+	mp, err := msgpack.Marshal(r.Config, ephemSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -813,7 +1040,7 @@ func (p *GRPCProvider) OpenEphemeralResource(r providers.OpenEphemeralResourceRe
 		return resp
 	}
 
-	config, err := msgpack.Marshal(r.Config, ephemSchema.Block.ImpliedType())
+	config, err := msgpack.Marshal(r.Config, ephemSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -834,7 +1061,7 @@ func (p *GRPCProvider) OpenEphemeralResource(r providers.OpenEphemeralResourceRe
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
-	state, err := decodeDynamicValue(protoResp.Result, ephemSchema.Block.ImpliedType())
+	state, err := decodeDynamicValue(protoResp.Result, ephemSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp

@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'Backend/azure: `subscription_id` be optional & skip *unnecessary* management plane API call in some setup'
+time: 2025-03-11T10:46:40.000000+11:00
+custom:
+    Issue: "36595"

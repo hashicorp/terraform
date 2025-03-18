@@ -38,7 +38,7 @@ resource "test_object" "test" {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			EphemeralResourceTypes: map[string]providers.Schema{
 				"ephem_resource": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"value": {
 								Type:     cty.String,
@@ -161,7 +161,7 @@ output "data" {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			EphemeralResourceTypes: map[string]providers.Schema{
 				"ephem_resource": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"value": {
 								Type:     cty.String,
@@ -313,7 +313,7 @@ resource "test_object" "test" {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			EphemeralResourceTypes: map[string]providers.Schema{
 				"ephem_resource": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"value": {
 								Type:     cty.String,
@@ -377,24 +377,26 @@ resource "ephem_write_only" "wo" {
 `,
 	})
 
+	schema := providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"normal": {
+					Type:     cty.String,
+					Required: true,
+				},
+				"write_only": {
+					Type:      cty.String,
+					WriteOnly: true,
+					Required:  true,
+				},
+			},
+		},
+		Version: 0,
+	}
 	ephem := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
-				"ephem_write_only": {
-					Block: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"normal": {
-								Type:     cty.String,
-								Required: true,
-							},
-							"write_only": {
-								Type:      cty.String,
-								WriteOnly: true,
-								Required:  true,
-							},
-						},
-					},
-				},
+				"ephem_write_only": schema,
 			},
 		},
 	}
@@ -457,10 +459,7 @@ resource "ephem_write_only" "wo" {
 		t.Fatalf("Resource instance not found")
 	}
 
-	attrs, err := resourceInstance.Current.Decode(cty.Object(map[string]cty.Type{
-		"normal":     cty.String,
-		"write_only": cty.String,
-	}))
+	attrs, err := resourceInstance.Current.Decode(schema)
 	if err != nil {
 		t.Fatalf("Failed to decode attributes: %v", err)
 	}
@@ -489,24 +488,25 @@ resource "ephem_write_only" "wo" {
 `,
 	})
 
+	schema := providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"normal": {
+					Type:     cty.String,
+					Required: true,
+				},
+				"write_only": {
+					Type:      cty.String,
+					WriteOnly: true,
+					Required:  true,
+				},
+			},
+		},
+	}
 	ephem := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
-				"ephem_write_only": {
-					Block: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"normal": {
-								Type:     cty.String,
-								Required: true,
-							},
-							"write_only": {
-								Type:      cty.String,
-								WriteOnly: true,
-								Required:  true,
-							},
-						},
-					},
-				},
+				"ephem_write_only": schema,
 			},
 		},
 	}
@@ -585,10 +585,7 @@ resource "ephem_write_only" "wo" {
 		t.Fatalf("Resource instance not found")
 	}
 
-	attrs, err := resourceInstance.Current.Decode(cty.Object(map[string]cty.Type{
-		"normal":     cty.String,
-		"write_only": cty.String,
-	}))
+	attrs, err := resourceInstance.Current.Decode(schema)
 	if err != nil {
 		t.Fatalf("Failed to decode attributes: %v", err)
 	}
@@ -617,24 +614,25 @@ resource "ephem_write_only" "wo" {
 `,
 	})
 
+	schema := providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"normal": {
+					Type:     cty.String,
+					Required: true,
+				},
+				"write_only": {
+					Type:      cty.String,
+					WriteOnly: true,
+					Required:  true,
+				},
+			},
+		},
+	}
 	ephem := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
-				"ephem_write_only": {
-					Block: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"normal": {
-								Type:     cty.String,
-								Required: true,
-							},
-							"write_only": {
-								Type:      cty.String,
-								WriteOnly: true,
-								Required:  true,
-							},
-						},
-					},
-				},
+				"ephem_write_only": schema,
 			},
 		},
 	}
@@ -724,10 +722,7 @@ resource "ephem_write_only" "wo" {
 		t.Fatalf("Resource instance not found")
 	}
 
-	attrs, err := resourceInstance.Current.Decode(cty.Object(map[string]cty.Type{
-		"normal":     cty.String,
-		"write_only": cty.String,
-	}))
+	attrs, err := resourceInstance.Current.Decode(schema)
 	if err != nil {
 		t.Fatalf("Failed to decode attributes: %v", err)
 	}
@@ -760,7 +755,7 @@ resource "ephem_write_only" "wo" {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"ephem_write_only": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"normal": {
 								Type:     cty.String,
@@ -840,7 +835,7 @@ resource "ephem_write_only" "wo" {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"ephem_write_only": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"normal": {
 								Type:     cty.String,
@@ -912,7 +907,7 @@ resource "ephem_write_only" "wo" {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"ephem_write_only": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"normal": {
 								Type:     cty.String,
