@@ -191,22 +191,24 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 		cmpn.FinalSourceAddr = effectiveSourceAddr
 	}
 
-	for _, rmvd := range stack.Removed {
-		effectiveSourceAddr, err := resolveFinalSourceAddr(sourceAddr, rmvd.SourceAddr, rmvd.VersionConstraints, sources)
-		if err != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid source address",
-				Detail: fmt.Sprintf(
-					"Cannot use %q as a source address here: %s.",
-					rmvd.SourceAddr, err,
-				),
-				Subject: rmvd.SourceAddrRange.ToHCL().Ptr(),
-			})
-			continue
-		}
+	for _, blocks := range stack.Removed {
+		for _, rmvd := range blocks {
+			effectiveSourceAddr, err := resolveFinalSourceAddr(sourceAddr, rmvd.SourceAddr, rmvd.VersionConstraints, sources)
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid source address",
+					Detail: fmt.Sprintf(
+						"Cannot use %q as a source address here: %s.",
+						rmvd.SourceAddr, err,
+					),
+					Subject: rmvd.SourceAddrRange.ToHCL().Ptr(),
+				})
+				continue
+			}
 
-		rmvd.FinalSourceAddr = effectiveSourceAddr
+			rmvd.FinalSourceAddr = effectiveSourceAddr
+		}
 	}
 
 	return ret, diags
