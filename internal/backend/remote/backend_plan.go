@@ -411,6 +411,15 @@ in order to capture the filesystem context the remote workspace expects:
 		return r, generalError("Failed to retrieve run", err)
 	}
 
+	// Wait for post plan tasks to complete before proceeding.
+	// Otherwise, in the case of an apply, if they are still running
+	// when we check for whether the run is confirmable the CLI will
+	// uncermoniously exit before the user has a chance to confirm, or for an auto-apply to take place.
+	err = b.waitForPostPlanTasks(stopCtx, cancelCtx, r)
+	if err != nil {
+		return r, err
+	}
+
 	// If the run is canceled or errored, we still continue to the
 	// cost-estimation and policy check phases to ensure we render any
 	// results available. In the case of a hard-failed policy check, the

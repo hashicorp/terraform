@@ -78,7 +78,7 @@ resource "aws_db_instance" "example" {
 
 During a Terraform operation, the provider uses the `password_wo` value to create the database instance, and then Terraform discards that value without storing it in the plan or state file. 
 
-Note that the way this is written, the `password_wo` value is lost after Terraform generates unless we capture it in another resource or output. For an example of generating, storing, retrieving, and using an ephemeral password as a write-only argument, refer to the [expanded example below](#example). 
+Note that Terraform does not store the generated value for `password_wo`, but you can capture it in another resource or output. For an example of generating, storing, retrieving, and using an ephemeral password as a write-only argument, refer to the [Examples](#examples).
 
 ## Update write-only arguments with versions
 
@@ -124,7 +124,11 @@ resource "aws_db_instance" "main" {
 When you increment the `password_wo_version` argument, Terraform notices that change in its plan and notifies the `aws` provider. The `aws` provider then uses the new `password_wo` value to update the `aws_db_instance` resource.
 
 
-## Example
+## Examples
+
+The following demonstrates how to use write-only arguments with different cloud providers.
+
+### Set and store an ephemeral password in AWS Secrets Manager
 
 You can use an `ephemeral` resource to generate a random password, store it in AWS Secrets Manager, and then retrieve it using another `ephemeral` resource. Finally, you can pass the password to the `password_wo` write-only argument of the `aws_db_instance` resource:
 
@@ -167,4 +171,80 @@ In the above example, the ephemeral resource `aws_secretsmanager_secret_version`
 
 Terraform first creates the secret in AWS Secrets Manager using the ephemeral `random_password`, then retrieve it using the ephemeral `aws_secretsmanager_secret_version` resource, and finally write the password to the write-only `password_wo` argument of the `aws_db_instance` resource.
 
+### Set and store an ephemeral password in Azure Key Vault
 
+You can use a write-only argument to store a password in Azure's Key Vault, then use that password to create a MySQL database in Azure. In the following example, Terraform generates an password using an `ephemeral` resource, stores that password in a `azurerm_key_vault_secret`, then retrieves it in the `azurerm_mysql_flexible_server` resource:
+
+```hcl
+provider "azurerm" {
+  features {}
+}
+
+ephemeral "random_password" "db_password" {
+  length           = 16
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
+locals {
+ db_password_version = 1
+}
+
+resource "azurerm_resource_group" "example" {
+  name     = "example-resource-group"
+  location = "westeurope"
+}
+
+data "azurerm_client_config" "current" {}
+
+resource "azurerm_key_vault" "example" {
+  name                       = "example-key-vault"
+  location                   = azurerm_resource_group.example.location
+  resource_group_name        = azurerm_resource_group.example.name
+  tenant_id                  = data.azurerm_client_config.current.tenant_id
+  sku_name                   = "standard"
+  soft_delete_retention_days = 7
+
+  access_policy {
+    tenant_id = data.azurerm_client_config.current.tenant_id
+    object_id = data.azurerm_client_config.current.object_id
+
+    key_permissions = [
+      "Get",
+    ]
+
+    secret_permissions = [
+      "Get",
+      "Delete",
+      "List",
+      "Purge",
+      "Recover",
+      "Set",
+    ]
+  }
+}
+
+resource "azurerm_key_vault_secret" "example" {
+  name             = "example-secret"
+  value_wo         = ephemeral.random_password.db_password.result
+  value_wo_version = local.db_password_version
+  key_vault_id     = azurerm_key_vault.example.id
+}
+
+ephemeral "azurerm_key_vault_secret" "db_password" {
+  name         = azurerm_key_vault_secret.example.name
+  key_vault_id = azurerm_key_vault.example.id
+}
+
+resource "azurerm_mysql_flexible_server" "example" {
+  name                 = "example-mysql-flexible-server"
+  resource_group_name  = azurerm_resource_group.example.name
+  location             = azurerm_resource_group.example.location
+  sku_name             = "B_Standard_B1s"
+
+  administrator_login               = "newuser"
+  administrator_password_wo         = ephemeral.azurerm_key_vault_secret.db_password.value
+  administrator_password_wo_version = local.db_password_version
+}
+```
+
+The above configuration stores your password in Azure's Key Vault and uses it to create a database in Azure without ever storing that password in a Terraform artifact.
