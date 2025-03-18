@@ -222,7 +222,7 @@ func TestPlan(t *testing.T) {
 						Action:        plans.Delete,
 						Mode:          plans.DestroyMode,
 						PlannedOutputValues: map[string]cty.Value{
-							"id": cty.NullVal(cty.DynamicPseudoType),
+							"id": cty.StringVal("foo"),
 						},
 						PlanTimestamp: fakePlanTimestamp,
 					},
@@ -1186,10 +1186,10 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 			t.Fatal(err)
 		}
 		req := PlanRequest{
-			Config:      cfg,
 			InputValues: map[stackaddrs.InputVariable]stackeval.ExternalInputValue{
 				// Intentionally not set for this subtest.
 			},
+			Config:             cfg,
 			ForcePlanTimestamp: &fakePlanTimestamp,
 		}
 		resp := PlanResponse{

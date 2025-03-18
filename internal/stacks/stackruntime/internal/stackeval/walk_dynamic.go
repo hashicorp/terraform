@@ -5,6 +5,7 @@ package stackeval
 
 import (
 	"context"
+	"sync"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -143,13 +144,13 @@ func walkDynamicObjectsInStack[Output any](
 
 				claimedInstances := collections.NewSet[stackaddrs.ComponentInstance]()
 				removed := stack.Removed(ctx, component.Addr().Item)
-				if removed != nil {
+				for _, block := range removed {
 					// In this case we don't care about the unknown. If the
-					// removed instances are unknown, then we'll mark everything
-					// as being part of the component block. So, even if insts
-					// comes back as unknown and hence empty, we still proceed
-					// as normal.
-					insts, _, _ := removed.Instances(ctx, phase)
+					// removed instances are unknown, then we'll mark
+					// everything as being part of the component block. So,
+					// even if insts comes back as unknown and hence empty,
+					// we still proceed as normal.
+					insts, _, _ := block.Instances(ctx, phase)
 					for key := range insts {
 						claimedInstances.Add(stackaddrs.ComponentInstance{
 							Component: component.Addr().Item,
@@ -194,68 +195,116 @@ func walkDynamicObjectsInStack[Output any](
 			}
 		})
 	}
-	for _, removed := range stack.Removeds(ctx) {
-		removed := removed
-		visit(ctx, walk, removed)
+	for addr, blocks := range stack.Removeds(ctx) {
 
-		walk.AsyncTask(ctx, func(ctx context.Context) {
-			insts, unknown, _ := removed.Instances(ctx, phase)
-			if unknown {
-				// If the instances claimed by this removed block are unknown,
-				// then we'll check all the known instances and mark any that
-				// are not claimed by an equivalent component block as being
-				// removed by this block but as deferred until the foreach is
-				// known.
+		// knownInstances are the instances that already exist either
+		// because they are in the state or the plan.
+		knownInstances := stack.KnownComponentInstances(addr, phase)
+		unknownComponentBlock := false
 
-				// knownInstances are the instances that already exist either
-				// because they are in the state or the plan.
-				knownInstances := stack.KnownComponentInstances(removed.Addr().Item, phase)
+		// keep track of all the instances that we have processed so far.
+		var mutex sync.Mutex
+		componentInstances := collections.NewSet[stackaddrs.ComponentInstance]()
+		claimedInstances := collections.NewSet[stackaddrs.ComponentInstance]()
 
-				claimedInstances := collections.NewSet[stackaddrs.ComponentInstance]()
-				component := stack.Component(ctx, removed.Addr().Item)
-				if component != nil {
-					insts, unknown := component.Instances(ctx, phase)
-					if unknown {
-						// So both the for_each for the removed block and the
-						// component block is unknown. In this case, we should
-						// have gathered everything as being "updated" from the
-						// component and we'll mark nothing as being removed.
+		for _, removed := range blocks {
+			removed := removed
+			visit(ctx, walk, removed)
+
+			walk.AsyncTask(ctx, func(ctx context.Context) {
+				insts, unknown, _ := removed.Instances(ctx, phase)
+				if unknown {
+					// If the instances claimed by this removed block are unknown,
+					// then we'll check all the known instances and mark any that
+					// are not claimed by an equivalent component block as being
+					// removed by this block but as deferred until the foreach is
+					// known.
+
+					mutex.Lock()
+					if componentInstances.Len() == 0 {
+						// then we'll gather the component instances. we do this
+						// once, enforced by the mutex and the check above.
+						component := stack.Component(ctx, removed.Addr().Item)
+						if component != nil {
+							insts, unknown := component.Instances(ctx, phase)
+							if unknown {
+								// So both the for_each for the removed block and the
+								// component block is unknown. In this case, we should
+								// have gathered everything as being "updated" from the
+								// component and we'll mark nothing as being removed.
+								unknownComponentBlock = true
+								mutex.Unlock()
+								return
+							}
+
+							for key := range insts {
+								componentInstances.Add(stackaddrs.ComponentInstance{
+									Component: removed.Addr().Item,
+									Key:       key,
+								})
+							}
+						}
+					}
+					mutex.Unlock()
+
+					if unknownComponentBlock {
+						// if both the component block and this block are
+						// unknown, then any instances will have been claimed
+						// by the component block so we do nothing.
 						return
 					}
 
-					for key := range insts {
-						claimedInstances.Add(stackaddrs.ComponentInstance{
-							Component: removed.Addr().Item,
-							Key:       key,
-						})
+					for inst := range knownInstances.All() {
+						mutex.Lock()
+						if componentInstances.Has(inst) {
+							// Then this instance is claimed by the component
+							// block.
+							continue
+						}
+						if claimedInstances.Has(inst) {
+							// Then another removed block has processed this
+							// instance, and we don't want another to try
+							// and claim it.
+							continue
+						}
+						claimedInstances.Add(inst)
+						mutex.Unlock()
+
+						// This instance is not claimed by the component block, so
+						// we'll mark it as being removed by the removed block.
+						inst := newRemovedInstance(removed, stackaddrs.AbsComponentInstance{
+							Stack: stack.addr,
+							Item:  inst,
+						}, instances.RepetitionData{
+							EachKey:   inst.Key.Value(),
+							EachValue: cty.UnknownVal(cty.DynamicPseudoType),
+						}, true)
+						visit(ctx, walk, inst)
 					}
+
+					return
 				}
 
-				for inst := range knownInstances.All() {
-					if claimedInstances.Has(inst) {
-						// Then this instance is claimed by the component block.
+				for _, inst := range insts {
+					mutex.Lock()
+					if claimedInstances.Has(inst.Addr().Item) {
+						// this is an error, but it should have been raised
+						// elsewhere
 						continue
 					}
+					if componentInstances.Has(inst.Addr().Item) {
+						// this is an error, but it should have been raised
+						// elsewhere
+						continue
+					}
+					claimedInstances.Add(inst.Addr().Item)
+					mutex.Unlock()
 
-					// This instance is not claimed by the component block, so
-					// we'll mark it as being removed by the removed block.
-					inst := newRemovedInstance(removed, stackaddrs.AbsComponentInstance{
-						Stack: stack.addr,
-						Item:  inst,
-					}, instances.RepetitionData{
-						EachKey:   inst.Key.Value(),
-						EachValue: cty.UnknownVal(cty.DynamicPseudoType),
-					}, true)
 					visit(ctx, walk, inst)
 				}
 
-				return
-			}
-
-			for _, inst := range insts {
-				visit(ctx, walk, inst)
-			}
-		})
+			})
+		}
 	}
 
 	// Now, we'll do the rest of the declarations in the stack. These are

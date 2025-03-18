@@ -322,6 +322,53 @@ func testState() *states.State {
 	}).DeepCopy()
 }
 
+func testStateWithIdentity() *states.State {
+	return states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				// The weird whitespace here is reflective of how this would
+				// get written out in a real state file, due to the indentation
+				// of all of the containing wrapping objects and arrays.
+				AttrsJSON:             []byte("{\n            \"id\": \"foo\"\n          }"),
+				Status:                states.ObjectReady,
+				Dependencies:          []addrs.ConfigResource{},
+				IdentitySchemaVersion: 0,
+				IdentityJSON:          []byte("{\n            \"id\": \"my-foo-id\"\n          }"),
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "bar",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON:             []byte("{\n            \"id\": \"bar\"\n          }"),
+				Status:                states.ObjectReady,
+				Dependencies:          []addrs.ConfigResource{},
+				IdentitySchemaVersion: 0,
+				IdentityJSON:          []byte("{\n            \"id\": \"my-bar-id\"\n          }"),
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+		// DeepCopy is used here to ensure our synthetic state matches exactly
+		// with a state that will have been copied during the command
+		// operation, and all fields have been copied correctly.
+	}).DeepCopy()
+}
+
 // writeStateForTesting is a helper that writes the given naked state to the
 // given writer, generating a stub *statefile.File wrapper which is then
 // immediately discarded.

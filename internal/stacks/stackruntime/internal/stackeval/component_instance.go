@@ -249,31 +249,28 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					return nil, diags
 				}
 
-				if !refresh.Complete {
-					// If the refresh was deferred, then we'll defer the destroy
-					// plan as well.
-					opts.ExternalDependencyDeferred = true
-				} else {
-					// If we're destroying this instance, then the dependencies
-					// should be reversed. Unfortunately, we can't compute that
-					// easily so instead we'll use the dependents computed at the
-					// last apply operation.
-					for depAddr := range c.PlanPrevDependents(ctx).All() {
-						depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
-						if depStack == nil {
-							// something weird has happened, but this means that
-							// whatever thing we're depending on being deleted first
-							// doesn't exist so it's fine.
-							continue
-						}
-						depComponent, depRemoved := depStack.ApplyableComponents(ctx, depAddr.Item)
-						if depComponent != nil && !depComponent.PlanIsComplete(ctx) {
+				// If we're destroying this instance, then the dependencies
+				// should be reversed. Unfortunately, we can't compute that
+				// easily so instead we'll use the dependents computed at the
+				// last apply operation.
+			Dependents:
+				for depAddr := range c.PlanPrevDependents(ctx).All() {
+					depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
+					if depStack == nil {
+						// something weird has happened, but this means that
+						// whatever thing we're depending on being deleted first
+						// doesn't exist so it's fine.
+						continue
+					}
+					depComponent, depRemoveds := depStack.ApplyableComponents(ctx, depAddr.Item)
+					if depComponent != nil && !depComponent.PlanIsComplete(ctx) {
+						opts.ExternalDependencyDeferred = true
+						break
+					}
+					for _, depRemoved := range depRemoveds {
+						if !depRemoved.PlanIsComplete(ctx) {
 							opts.ExternalDependencyDeferred = true
-							break
-						}
-						if depRemoved != nil && !depRemoved.PlanIsComplete(ctx) {
-							opts.ExternalDependencyDeferred = true
-							break
+							break Dependents
 						}
 					}
 				}
