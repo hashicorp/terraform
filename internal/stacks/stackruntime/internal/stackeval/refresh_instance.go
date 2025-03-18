@@ -69,7 +69,7 @@ func (r *RefreshInstance) Result(ctx context.Context) map[string]cty.Value {
 
 func (r *RefreshInstance) Plan(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
 	return doOnceWithDiags(ctx, &r.moduleTreePlan, r, func(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
-		opts, diags := r.component.PlanOpts(ctx, plans.RefreshOnlyMode, false)
+		opts, diags := r.component.PlanOpts(ctx, plans.NormalMode, false)
 		if opts == nil {
 			return nil, diags
 		}
