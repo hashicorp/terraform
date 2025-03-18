@@ -31,7 +31,7 @@ import (
 )
 
 func TestLocal_applyBasic(t *testing.T) {
-	b := TestLocal(t)
+	b, stateBackend := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
@@ -63,7 +63,7 @@ func TestLocal_applyBasic(t *testing.T) {
 		t.Fatal("apply should be called")
 	}
 
-	checkState(t, b.StateOutPath, `
+	checkState(t, stateBackend.StateOutPath, `
 test_instance.foo:
   ID = yes
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -75,7 +75,7 @@ test_instance.foo:
 	}
 }
 func TestLocal_applyCheck(t *testing.T) {
-	b := TestLocal(t)
+	b, _ := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
@@ -120,7 +120,7 @@ func TestLocal_applyCheck(t *testing.T) {
 }
 
 func TestLocal_applyEmptyDir(t *testing.T) {
-	b := TestLocal(t)
+	b, stateBackend := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", providers.ProviderSchema{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
@@ -141,7 +141,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 		t.Fatal("apply should not be called")
 	}
 
-	if _, err := os.Stat(b.StateOutPath); err == nil {
+	if _, err := os.Stat(stateBackend.StateOutPath); err == nil {
 		t.Fatal("should not exist")
 	}
 
@@ -154,7 +154,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 }
 
 func TestLocal_applyEmptyDirDestroy(t *testing.T) {
-	b := TestLocal(t)
+	b, stateBackend := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", providers.ProviderSchema{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{}
@@ -176,7 +176,7 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 		t.Fatal("apply should not be called")
 	}
 
-	checkState(t, b.StateOutPath, `<no state>`)
+	checkState(t, stateBackend.StateOutPath, `<no state>`)
 
 	if errOutput := done(t).Stderr(); errOutput != "" {
 		t.Fatalf("unexpected error output:\n%s", errOutput)
@@ -184,7 +184,7 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 }
 
 func TestLocal_applyError(t *testing.T) {
-	b := TestLocal(t)
+	b, stateBackend := TestLocal(t)
 
 	schema := providers.ProviderSchema{
 		ResourceTypes: map[string]providers.Schema{
@@ -238,7 +238,7 @@ func TestLocal_applyError(t *testing.T) {
 		t.Fatal("operation succeeded; want failure")
 	}
 
-	checkState(t, b.StateOutPath, `
+	checkState(t, stateBackend.StateOutPath, `
 test_instance.foo:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -254,7 +254,7 @@ test_instance.foo:
 }
 
 func TestLocal_applyBackendFail(t *testing.T) {
-	b := TestLocal(t)
+	b, _ := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
 
@@ -317,7 +317,7 @@ test_instance.foo: (tainted)
 }
 
 func TestLocal_applyRefreshFalse(t *testing.T) {
-	b := TestLocal(t)
+	b, _ := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState())
@@ -403,7 +403,7 @@ func applyFixtureSchema() providers.ProviderSchema {
 }
 
 func TestApply_applyCanceledAutoApprove(t *testing.T) {
-	b := TestLocal(t)
+	b, _ := TestLocal(t)
 
 	TestLocalProvider(t, b, "test", applyFixtureSchema())
 

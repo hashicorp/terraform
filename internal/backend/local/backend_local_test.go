@@ -32,7 +32,7 @@ import (
 
 func TestLocalRun(t *testing.T) {
 	configDir := "./testdata/empty"
-	b := TestLocal(t)
+	b, _ := TestLocal(t)
 
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
@@ -59,7 +59,7 @@ func TestLocalRun(t *testing.T) {
 
 func TestLocalRun_error(t *testing.T) {
 	configDir := "./testdata/invalid"
-	b := TestLocal(t)
+	b, _ := TestLocal(t)
 
 	// This backend will return an error when asked to RefreshState, which
 	// should then cause LocalRun to return with the state unlocked.
@@ -90,7 +90,7 @@ func TestLocalRun_error(t *testing.T) {
 
 func TestLocalRun_cloudPlan(t *testing.T) {
 	configDir := "./testdata/apply"
-	b := TestLocal(t)
+	b, _ := TestLocal(t)
 
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
@@ -125,22 +125,22 @@ func TestLocalRun_cloudPlan(t *testing.T) {
 
 func TestLocalRun_stalePlan(t *testing.T) {
 	configDir := "./testdata/apply"
-	b := TestLocal(t)
+	b, localState := TestLocal(t)
 
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	// Write an empty state file with serial 3
-	sf, err := os.Create(b.StatePath)
+	sf, err := os.Create(localState.StatePath)
 	if err != nil {
-		t.Fatalf("unexpected error creating state file %s: %s", b.StatePath, err)
+		t.Fatalf("unexpected error creating state file %s: %s", localState.StatePath, err)
 	}
 	if err := statefile.Write(statefile.New(states.NewState(), "boop", 3), sf); err != nil {
 		t.Fatalf("unexpected error writing state file: %s", err)
 	}
 
 	// Refresh the state
-	sm, err := b.StateMgr("")
+	sm, err := localState.StateMgr("")
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}

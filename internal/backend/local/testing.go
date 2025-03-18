@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	localState "github.com/hashicorp/terraform/internal/backend/local-state"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -19,26 +20,35 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
-// TestLocal returns a configured Local struct with temporary paths and
-// in-memory ContextOpts.
+// TestLocal returns
+// 1) A configured Local struct with in-memory ContextOpts.
+// 2) A local-state backend configured with with temporary paths
 //
 // No operations will be called on the returned value, so you can still set
 // public fields without any locks.
-func TestLocal(t *testing.T) *Local {
+func TestLocal(t *testing.T) (*Local, *localState.Local) {
 	t.Helper()
 	tempDir, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	local := New()
+	// Prepare the "local" type state backend
+	be := localState.Local{}
+	be.StatePath = filepath.Join(tempDir, "state.tfstate")
+	be.StateOutPath = filepath.Join(tempDir, "state.tfstate")
+	be.StateBackupPath = filepath.Join(tempDir, "state.tfstate.bak")
+	be.StateWorkspaceDir = filepath.Join(tempDir, "state.tfstate.d")
+
+	// Create the Local enhanced backend, using the state backend
+	local := NewWithBackend(&be)
 	local.StatePath = filepath.Join(tempDir, "state.tfstate")
 	local.StateOutPath = filepath.Join(tempDir, "state.tfstate")
 	local.StateBackupPath = filepath.Join(tempDir, "state.tfstate.bak")
 	local.StateWorkspaceDir = filepath.Join(tempDir, "state.tfstate.d")
 	local.ContextOpts = &terraform.ContextOpts{}
 
-	return local
+	return local, &be
 }
 
 // TestLocalProvider modifies the ContextOpts of the *Local parameter to

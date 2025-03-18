@@ -29,7 +29,7 @@ import (
 )
 
 func TestLocal_planBasic(t *testing.T) {
-	b := TestLocal(t)
+	b, _ := TestLocal(t)
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -58,7 +58,7 @@ func TestLocal_planBasic(t *testing.T) {
 }
 
 func TestLocal_planInAutomation(t *testing.T) {
-	b := TestLocal(t)
+	b, _ := TestLocal(t)
 	TestLocalProvider(t, b, "test", planFixtureSchema())
 
 	const msg = `You didn't use the -out option`
@@ -89,7 +89,7 @@ func TestLocal_planInAutomation(t *testing.T) {
 }
 
 func TestLocal_planNoConfig(t *testing.T) {
-	b := TestLocal(t)
+	b, _ := TestLocal(t)
 	TestLocalProvider(t, b, "test", providers.ProviderSchema{})
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/empty")
@@ -119,7 +119,7 @@ func TestLocal_planNoConfig(t *testing.T) {
 // This test validates the state lacking behavior when the inner call to
 // Context() fails
 func TestLocal_plan_context_error(t *testing.T) {
-	b := TestLocal(t)
+	b, _ := TestLocal(t)
 
 	// This is an intentionally-invalid value to make terraform.NewContext fail
 	// when b.Operation calls it.
@@ -159,8 +159,8 @@ func TestLocal_plan_context_error(t *testing.T) {
 }
 
 func TestLocal_planOutputsChanged(t *testing.T) {
-	b := TestLocal(t)
-	testStateFile(t, b.StatePath, states.BuildState(func(ss *states.SyncState) {
+	b, localState := TestLocal(t)
+	testStateFile(t, localState.StatePath, states.BuildState(func(ss *states.SyncState) {
 		ss.SetOutputValue(addrs.AbsOutputValue{
 			Module:      addrs.RootModuleInstance,
 			OutputValue: addrs.OutputValue{Name: "changed"},
@@ -198,7 +198,7 @@ func TestLocal_planOutputsChanged(t *testing.T) {
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
 	cfg := cty.ObjectVal(map[string]cty.Value{
-		"path": cty.StringVal(b.StatePath),
+		"path": cty.StringVal(localState.StatePath),
 	})
 	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
 	if err != nil {
@@ -240,8 +240,8 @@ state, without changing any real infrastructure.
 
 // Module outputs should not cause the plan to be rendered
 func TestLocal_planModuleOutputsChanged(t *testing.T) {
-	b := TestLocal(t)
-	testStateFile(t, b.StatePath, states.BuildState(func(ss *states.SyncState) {
+	b, localState := TestLocal(t)
+	testStateFile(t, localState.StatePath, states.BuildState(func(ss *states.SyncState) {
 		ss.SetOutputValue(addrs.AbsOutputValue{
 			Module:      addrs.RootModuleInstance.Child("mod", addrs.NoKey),
 			OutputValue: addrs.OutputValue{Name: "changed"},
@@ -255,7 +255,7 @@ func TestLocal_planModuleOutputsChanged(t *testing.T) {
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
 	cfg := cty.ObjectVal(map[string]cty.Value{
-		"path": cty.StringVal(b.StatePath),
+		"path": cty.StringVal(localState.StatePath),
 	})
 	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
 	if err != nil {
@@ -286,9 +286,9 @@ No changes. Your infrastructure matches the configuration.
 }
 
 func TestLocal_planTainted(t *testing.T) {
-	b := TestLocal(t)
+	b, localState := TestLocal(t)
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
-	testStateFile(t, b.StatePath, testPlanState_tainted())
+	testStateFile(t, localState.StatePath, testPlanState_tainted())
 	outDir := t.TempDir()
 	planPath := filepath.Join(outDir, "plan.tfplan")
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -296,7 +296,7 @@ func TestLocal_planTainted(t *testing.T) {
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
 	cfg := cty.ObjectVal(map[string]cty.Value{
-		"path": cty.StringVal(b.StatePath),
+		"path": cty.StringVal(localState.StatePath),
 	})
 	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
 	if err != nil {
@@ -342,9 +342,9 @@ Plan: 1 to add, 0 to change, 1 to destroy.`
 }
 
 func TestLocal_planDeposedOnly(t *testing.T) {
-	b := TestLocal(t)
+	b, localState := TestLocal(t)
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
-	testStateFile(t, b.StatePath, states.BuildState(func(ss *states.SyncState) {
+	testStateFile(t, localState.StatePath, states.BuildState(func(ss *states.SyncState) {
 		ss.SetResourceInstanceDeposed(
 			addrs.Resource{
 				Mode: addrs.ManagedResourceMode,
@@ -375,7 +375,7 @@ func TestLocal_planDeposedOnly(t *testing.T) {
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
 	cfg := cty.ObjectVal(map[string]cty.Value{
-		"path": cty.StringVal(b.StatePath),
+		"path": cty.StringVal(localState.StatePath),
 	})
 	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
 	if err != nil {
@@ -455,10 +455,10 @@ Plan: 1 to add, 0 to change, 1 to destroy.`
 }
 
 func TestLocal_planTainted_createBeforeDestroy(t *testing.T) {
-	b := TestLocal(t)
+	b, localState := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
-	testStateFile(t, b.StatePath, testPlanState_tainted())
+	testStateFile(t, localState.StatePath, testPlanState_tainted())
 	outDir := t.TempDir()
 	planPath := filepath.Join(outDir, "plan.tfplan")
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-cbd")
@@ -466,7 +466,7 @@ func TestLocal_planTainted_createBeforeDestroy(t *testing.T) {
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
 	cfg := cty.ObjectVal(map[string]cty.Value{
-		"path": cty.StringVal(b.StatePath),
+		"path": cty.StringVal(localState.StatePath),
 	})
 	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
 	if err != nil {
@@ -512,10 +512,10 @@ Plan: 1 to add, 0 to change, 1 to destroy.`
 }
 
 func TestLocal_planRefreshFalse(t *testing.T) {
-	b := TestLocal(t)
+	b, localState := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
-	testStateFile(t, b.StatePath, testPlanState())
+	testStateFile(t, localState.StatePath, testPlanState())
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
@@ -543,10 +543,10 @@ func TestLocal_planRefreshFalse(t *testing.T) {
 }
 
 func TestLocal_planDestroy(t *testing.T) {
-	b := TestLocal(t)
+	b, localState := TestLocal(t)
 
 	TestLocalProvider(t, b, "test", planFixtureSchema())
-	testStateFile(t, b.StatePath, testPlanState())
+	testStateFile(t, localState.StatePath, testPlanState())
 
 	outDir := t.TempDir()
 	planPath := filepath.Join(outDir, "plan.tfplan")
@@ -557,7 +557,7 @@ func TestLocal_planDestroy(t *testing.T) {
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
 	cfg := cty.ObjectVal(map[string]cty.Value{
-		"path": cty.StringVal(b.StatePath),
+		"path": cty.StringVal(localState.StatePath),
 	})
 	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
 	if err != nil {
@@ -595,10 +595,10 @@ func TestLocal_planDestroy(t *testing.T) {
 }
 
 func TestLocal_planDestroy_withDataSources(t *testing.T) {
-	b := TestLocal(t)
+	b, localState := TestLocal(t)
 
 	TestLocalProvider(t, b, "test", planFixtureSchema())
-	testStateFile(t, b.StatePath, testPlanState_withDataSource())
+	testStateFile(t, localState.StatePath, testPlanState_withDataSource())
 
 	outDir := t.TempDir()
 	planPath := filepath.Join(outDir, "plan.tfplan")
@@ -609,7 +609,7 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
 	cfg := cty.ObjectVal(map[string]cty.Value{
-		"path": cty.StringVal(b.StatePath),
+		"path": cty.StringVal(localState.StatePath),
 	})
 	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
 	if err != nil {
@@ -670,9 +670,9 @@ func getAddrs(resources []*plans.ResourceInstanceChangeSrc) []string {
 }
 
 func TestLocal_planOutPathNoChange(t *testing.T) {
-	b := TestLocal(t)
+	b, localState := TestLocal(t)
 	TestLocalProvider(t, b, "test", planFixtureSchema())
-	testStateFile(t, b.StatePath, testPlanState())
+	testStateFile(t, localState.StatePath, testPlanState())
 
 	outDir := t.TempDir()
 	planPath := filepath.Join(outDir, "plan.tfplan")
@@ -681,7 +681,7 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 	defer configCleanup()
 	op.PlanOutPath = planPath
 	cfg := cty.ObjectVal(map[string]cty.Value{
-		"path": cty.StringVal(b.StatePath),
+		"path": cty.StringVal(localState.StatePath),
 	})
 	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
 	if err != nil {
@@ -891,7 +891,7 @@ func planFixtureSchema() providers.ProviderSchema {
 }
 
 func TestLocal_invalidOptions(t *testing.T) {
-	b := TestLocal(t)
+	b, _ := TestLocal(t)
 	TestLocalProvider(t, b, "test", planFixtureSchema())
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")

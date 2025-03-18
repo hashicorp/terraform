@@ -26,10 +26,10 @@ import (
 )
 
 func TestLocal_refresh(t *testing.T) {
-	b := TestLocal(t)
+	b, localState := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
-	testStateFile(t, b.StatePath, testRefreshState())
+	testStateFile(t, localState.StatePath, testRefreshState())
 
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
@@ -50,7 +50,7 @@ func TestLocal_refresh(t *testing.T) {
 		t.Fatal("ReadResource should be called")
 	}
 
-	checkState(t, b.StateOutPath, `
+	checkState(t, localState.StateOutPath, `
 test_instance.foo:
   ID = yes
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -61,7 +61,7 @@ test_instance.foo:
 }
 
 func TestLocal_refreshInput(t *testing.T) {
-	b := TestLocal(t)
+	b, localState := TestLocal(t)
 
 	schema := providers.ProviderSchema{
 		Provider: providers.Schema{
@@ -85,7 +85,7 @@ func TestLocal_refreshInput(t *testing.T) {
 	}
 
 	p := TestLocalProvider(t, b, "test", schema)
-	testStateFile(t, b.StatePath, testRefreshState())
+	testStateFile(t, localState.StatePath, testRefreshState())
 
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
@@ -119,7 +119,7 @@ func TestLocal_refreshInput(t *testing.T) {
 		t.Fatal("ReadResource should be called")
 	}
 
-	checkState(t, b.StateOutPath, `
+	checkState(t, localState.StateOutPath, `
 test_instance.foo:
   ID = yes
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -127,9 +127,9 @@ test_instance.foo:
 }
 
 func TestLocal_refreshValidate(t *testing.T) {
-	b := TestLocal(t)
+	b, localState := TestLocal(t)
 	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
-	testStateFile(t, b.StatePath, testRefreshState())
+	testStateFile(t, localState.StatePath, testRefreshState())
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
@@ -148,7 +148,7 @@ func TestLocal_refreshValidate(t *testing.T) {
 	}
 	<-run.Done()
 
-	checkState(t, b.StateOutPath, `
+	checkState(t, localState.StateOutPath, `
 test_instance.foo:
   ID = yes
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -156,7 +156,7 @@ test_instance.foo:
 }
 
 func TestLocal_refreshValidateProviderConfigured(t *testing.T) {
-	b := TestLocal(t)
+	b, localState := TestLocal(t)
 
 	schema := providers.ProviderSchema{
 		Provider: providers.Schema{
@@ -179,7 +179,7 @@ func TestLocal_refreshValidateProviderConfigured(t *testing.T) {
 	}
 
 	p := TestLocalProvider(t, b, "test", schema)
-	testStateFile(t, b.StatePath, testRefreshState())
+	testStateFile(t, localState.StatePath, testRefreshState())
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
@@ -202,7 +202,7 @@ func TestLocal_refreshValidateProviderConfigured(t *testing.T) {
 		t.Fatal("Validate provider config should be called")
 	}
 
-	checkState(t, b.StateOutPath, `
+	checkState(t, localState.StateOutPath, `
 test_instance.foo:
   ID = yes
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -212,8 +212,8 @@ test_instance.foo:
 // This test validates the state lacking behavior when the inner call to
 // Context() fails
 func TestLocal_refresh_context_error(t *testing.T) {
-	b := TestLocal(t)
-	testStateFile(t, b.StatePath, testRefreshState())
+	b, localState := TestLocal(t)
+	testStateFile(t, localState.StatePath, testRefreshState())
 	op, configCleanup, done := testOperationRefresh(t, "./testdata/apply")
 	defer configCleanup()
 	defer done(t)
@@ -232,10 +232,10 @@ func TestLocal_refresh_context_error(t *testing.T) {
 }
 
 func TestLocal_refreshEmptyState(t *testing.T) {
-	b := TestLocal(t)
+	b, localState := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
-	testStateFile(t, b.StatePath, states.NewState())
+	testStateFile(t, localState.StatePath, states.NewState())
 
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
