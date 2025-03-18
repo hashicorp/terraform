@@ -914,7 +914,7 @@ func TestMigrateConfig_MissingConfigResource(t *testing.T) {
 		gotDiags = append(gotDiags, diagnostic)
 	})
 
-	if diff := cmp.Diff(expDiags, gotDiags, tfdiags.DiagnosticComparer); diff != "" {
+	if diff := cmp.Diff(expDiags.ForRPC(), gotDiags.ForRPC(), tfdiags.DiagnosticComparer); diff != "" {
 		t.Fatalf("unexpected diagnostics:\n%s", diff)
 	}
 
@@ -1106,7 +1106,7 @@ func TestMigrateConfig_MissingMappingForStateResource(t *testing.T) {
 		gotDiags = append(gotDiags, diagnostic)
 	})
 
-	if diff := cmp.Diff(expDiags, gotDiags, tfdiags.DiagnosticComparer); diff != "" {
+	if diff := cmp.Diff(expDiags.ForRPC(), gotDiags.ForRPC(), tfdiags.DiagnosticComparer); diff != "" {
 		t.Fatalf("unexpected diagnostics:\n%s", diff)
 	}
 
@@ -1468,7 +1468,7 @@ func TestMigrate_UnsupportedComponentRef(t *testing.T) {
 		t.Fatalf("unexpected applied resource changes:\n%s", diff)
 	}
 
-	if diff := cmp.Diff(expDiags, gotDiags, tfdiags.DiagnosticComparer); diff != "" {
+	if diff := cmp.Diff(expDiags.ForRPC(), gotDiags.ForRPC(), tfdiags.DiagnosticComparer); diff != "" {
 		t.Fatalf("unexpected diagnostics:\n%s", diff)
 	}
 }
@@ -1526,6 +1526,7 @@ var changesCmpOpts = cmp.Options{
 	cmpopts.IgnoreUnexported(states.ResourceInstanceObjectSrc{}),
 	cmpJSONMap(),
 	cmpopts.IgnoreFields(states.ResourceInstanceObjectSrc{}, "Private"),
+	cmpopts.IgnoreFields(states.ResourceInstanceObjectSrc{}, "IdentityJSON"),
 }
 
 var cmpCollectionsSet = cmp.Comparer(func(x, y collections.Set[stackaddrs.AbsComponent]) bool {

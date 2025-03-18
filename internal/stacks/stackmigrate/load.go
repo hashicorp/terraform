@@ -63,7 +63,9 @@ func (l *Loader) LoadState(configPath string) (*states.State, tfdiags.Diagnostic
 	// based on what we had from the `terraform init` command.
 	var backend backend.Backend
 	var backendConfig cty.Value
-	if backendState == nil { // local backend
+
+	// the absence of backend state file indicates a local backend
+	if backendState == nil {
 		backend = local.New()
 		backendConfig = cty.ObjectVal(map[string]cty.Value{
 			"path":          cty.StringVal(fmt.Sprintf("%s/%s", configPath, "terraform.tfstate")),
@@ -95,7 +97,8 @@ func (l *Loader) LoadState(configPath string) (*states.State, tfdiags.Diagnostic
 			return state, diags
 		}
 
-		// it's safe to ignore terraform version conflict between the local and remote environments.
+		// it's safe to ignore terraform version conflict between the local and remote environments,
+		// as we are only reading the state
 		if backendR, ok := backend.(*remote.Remote); ok {
 			backendR.IgnoreVersionConflict()
 		}
