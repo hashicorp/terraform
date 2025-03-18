@@ -258,6 +258,10 @@ func (c *ComponentConfig) ExprReferenceValue(ctx context.Context, phase EvalPhas
 	// We don't expose ComponentConfig in any scope outside of the validation
 	// phase, so this is sufficient for all phases. (See [Component] for how
 	// component results get calculated during the plan and apply phases.)
+
+	// Validating this component after it was found in a reference here, so
+	// that we can detect cycles between components.
+	c.checkValid(ctx, phase)
 	return cty.DynamicVal
 }
 
@@ -382,10 +386,20 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 		}))
 		return diags, nil
 	})
-	if err != nil {
-		// this is crazy, we never return an error from the inner function so
-		// this really shouldn't happen.
-		panic(fmt.Sprintf("unexpected error from validate.Do: %s", err))
+	switch err := err.(type) {
+	case promising.ErrSelfDependent:
+		// This is a case where the component is self-dependent, which is
+		// a cycle that we can't resolve. We'll report this as a diagnostic
+		// and then continue on to report any other diagnostics that we found.
+		// The promise reporter is main, so that we can get the names of all promises
+		// involved in the cycle.
+		diags = diags.Append(diagnosticsForPromisingTaskError(err, c.main))
+	default:
+		if err != nil {
+			// this is crazy, we never return an error from the inner function so
+			// this really shouldn't happen.
+			panic(fmt.Sprintf("unexpected error from validate.Do: %s", err))
+		}
 	}
 
 	return diags
