@@ -61,14 +61,15 @@ type CLIOpts struct {
 	Streams *terminal.Streams
 
 	// StatePath is the local path where state is read from.
-	//
+	// Derived from -state CLI opt
+	StatePath string
 	// StateOutPath is the local path where the state will be written.
 	// If this is empty, it will default to StatePath.
-	//
+	// Derived from -state-out CLI opt
+	StateOutPath string
 	// StateBackupPath is the local path where a backup file will be written.
 	// If this is empty, no backup will be taken.
-	StatePath       string
-	StateOutPath    string
+	// Derived from -backup CLI opt
 	StateBackupPath string
 
 	// ContextOpts are the base context options to set when initializing a
