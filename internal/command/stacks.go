@@ -68,12 +68,6 @@ var (
 	StacksPluginDataDir = "stacksplugin"
 )
 
-//type dependencies struct{}
-
-//type packages struct{}
-
-//type stacks struct{}
-
 func (c *StacksCommand) realRun(args []string, stdout, stderr io.Writer) int {
 	args = c.Meta.process(args)
 

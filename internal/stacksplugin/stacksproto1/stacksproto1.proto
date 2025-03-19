@@ -10,6 +10,9 @@ option go_package = "github.com/hashicorp/terraform/internal/stacksplugin/stacks
 // provided flags. It is the raw args from the HCP Terraform command.
 message CommandRequest {
   repeated string args = 1;
+  uint32 dependencies_server = 2;
+  uint32 packages_server = 3;
+  uint32 stacks_server = 4;
 }
 
 // CommandResponse contains the result of the command execution, including any

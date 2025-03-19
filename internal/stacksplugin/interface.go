@@ -132,5 +132,5 @@ type Stacks interface {
 // Stacks1 interface for Terraform plugin operations
 type Stacks1 interface {
 	// Execute runs a command with the provided arguments and returns the exit code
-	Execute(args []string, stdout, stderr io.Writer, dependencies Dependencies, packages Packages, stacks Stacks) int
+	Execute(args []string, stdout, stderr io.Writer) int
 }

@@ -11,7 +11,12 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/internal/stacksplugin"
+	"github.com/hashicorp/terraform/internal/stacksplugin/dynrpcserver"
 	"github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1"
+	dep "github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1/dependencies"
+	pack "github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1/packages"
+	stack "github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1/stacks"
+	"google.golang.org/grpc"
 )
 
 // GRPCCloudClient is the client interface for interacting with terraform-cloudplugin
@@ -27,8 +32,46 @@ var _ stacksplugin.Stacks1 = GRPCStacksClient{}
 // Execute sends the client Execute request and waits for the plugin to return
 // an exit code response before returning
 func (c GRPCStacksClient) Execute(args []string, stdout, stderr io.Writer) int {
+	dependenciesServer := dynrpcserver.NewDependenciesStub()
+	packagesServer := dynrpcserver.NewPackagesStub()
+	stacksServer := dynrpcserver.NewStacksStub()
+
+	var s *grpc.Server
+	dependenciesServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
+		s = grpc.NewServer(opts...)
+		dep.RegisterDependenciesServer(s, dependenciesServer)
+
+		return s
+	}
+
+	dependenciesBrokerID := c.broker.NextId()
+	go c.broker.AcceptAndServe(dependenciesBrokerID, dependenciesServerFunc)
+
+	packagesServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
+		s = grpc.NewServer(opts...)
+		pack.RegisterPackagesServer(s, packagesServer)
+
+		return s
+	}
+
+	packagesBrokerID := c.broker.NextId()
+	go c.broker.AcceptAndServe(packagesBrokerID, packagesServerFunc)
+
+	stacksServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
+		s = grpc.NewServer(opts...)
+		stack.RegisterStacksServer(s, stacksServer)
+
+		return s
+	}
+
+	stacksBrokerID := c.broker.NextId()
+	go c.broker.AcceptAndServe(stacksBrokerID, stacksServerFunc)
+
 	client, err := c.client.Execute(c.context, &stacksproto1.CommandRequest{
-		Args: args,
+		DependenciesServer: dependenciesBrokerID,
+		PackagesServer:     packagesBrokerID,
+		StacksServer:       stacksBrokerID,
+		Args:               args,
 	})
 
 	if err != nil {

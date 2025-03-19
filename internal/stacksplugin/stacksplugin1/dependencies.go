@@ -38,6 +38,8 @@ type dependenciesServer struct {
 	services *disco.Disco
 }
 
+//var _ stacksplugin.Dependencies = (*dependenciesServer)(nil) // Ensure dependenciesServer implements stacksplugin.Dependencies
+
 func newDependenciesServer(handles *handleTable, services *disco.Disco) *dependenciesServer {
 	return &dependenciesServer{
 		handles:  handles,

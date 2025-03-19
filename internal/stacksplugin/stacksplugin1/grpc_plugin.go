@@ -6,21 +6,11 @@ package stacksplugin1
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/rpc"
 
 	"github.com/hashicorp/go-plugin"
-	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform-svchost/auth"
-	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/internal/command/cliconfig"
-	pluginDiscovery "github.com/hashicorp/terraform/internal/plugin/discovery"
-	"github.com/hashicorp/terraform/internal/stacksplugin/dynrpcserver"
+	"github.com/hashicorp/terraform/internal/stacksplugin"
 	"github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1"
-	"github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1/dependencies"
-	"github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1/packages"
-	"github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1/setup"
-	"github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1/stacks"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -30,6 +20,14 @@ import (
 type GRPCStacksPlugin struct {
 	plugin.GRPCPlugin
 	Metadata metadata.MD
+	Impl     stacksplugin.Stacks1
+}
+
+type GRPCStacksServer struct {
+	// This is the real implementation
+	Impl stacksplugin.Stacks1
+
+	broker *plugin.GRPCBroker
 }
 
 // Server always returns an error; we're only implementing the GRPCPlugin
@@ -49,6 +47,7 @@ func (p *GRPCStacksPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBr
 	ctx = metadata.NewOutgoingContext(ctx, p.Metadata)
 	return &GRPCStacksClient{
 		client:  stacksproto1.NewCommandServiceClient(c),
+		broker:  broker,
 		context: ctx,
 	}, nil
 }
@@ -56,27 +55,26 @@ func (p *GRPCStacksPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBr
 // GRPCServer always returns an error; we're only implementing the client
 // interface, not the server.
 func (p *GRPCStacksPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
-
+	/**
+	stacksproto1.RegisterCommandServiceServer(s, &GRPCStacksServer{
+		Impl:   p.Impl,
+		broker: broker,
+	})
+	return nil
+	*/
 	return nil
 }
 
-func SetupStacksPluginServices() (dependenciesServer, stacksServer, packagesServer) {
-	handles := newHandleTable()
-	dependenciesServer := newDependenciesServer(handles)
-	packagesServer := newPackagesServer(handles)
-	stacksServer := newStacksServer(handles)
-	return dependenciesServer, stacksServer, packagesServer
-}
-
-func registerGRPCServices(s *grpc.Server, opts *serviceOpts) {
+/**
+func registerGRPCServices(s *grpc.Server) {
 	// We initially only register the setup server, because the registration
 	// of other services can vary depending on the capabilities negotiated
 	// during handshake.
-	server := newSetupServer(serverHandshake(s, opts))
+	server := newSetupServer(serverHandshake(s))
 	setup.RegisterSetupServer(s, server)
 }
 
-func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *setup.Handshake_Request, *stopper) (*setup.ServerCapabilities, error) {
+func serverHandshake(s *grpc.Server) func(context.Context, *setup.Handshake_Request, *stopper) (*setup.ServerCapabilities, error) {
 	dependenciesStub := dynrpcserver.NewDependenciesStub()
 	dependencies.RegisterDependenciesServer(s, dependenciesStub)
 	stacksStub := dynrpcserver.NewStacksStub()
@@ -159,3 +157,4 @@ func newServiceDisco(config *setup.Config) (*disco.Disco, error) {
 
 	return services, nil
 }
+**/

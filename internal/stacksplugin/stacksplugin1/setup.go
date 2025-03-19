@@ -31,16 +31,12 @@ type setupServer struct {
 	mu sync.Mutex
 }
 
-/**
-
-func SetupStacksPluginServices() (dependenciesServer, stacksServer, packagesServer) {
-	handles := newHandleTable()
-	dependenciesServer := newDependenciesServer(handles)
-	packagesServer := newPackagesServer(handles)
-	stacksServer := newStacksServer(handles)
-	return dependenciesServer, stacksServer, packagesServer
+func newSetupServer(initOthers func(context.Context, *setup.Handshake_Request, *stopper) (*setup.ServerCapabilities, error)) setup.SetupServer {
+	return &setupServer{
+		initOthers: initOthers,
+		stopper:    newStopper(),
+	}
 }
-*/
 
 func (s *setupServer) Handshake(ctx context.Context, req *setup.Handshake_Request) (*setup.Handshake_Response, error) {
 	s.mu.Lock()
