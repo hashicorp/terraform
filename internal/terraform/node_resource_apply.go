@@ -84,6 +84,8 @@ func (n *nodeExpandApplyableResource) dynamicExpandEphemeral(ctx EvalContext) (*
 		diags = diags.Append(expDiags)
 	}
 
+	addRootNodeToGraph(&g)
+
 	return &g, diags
 }
 
