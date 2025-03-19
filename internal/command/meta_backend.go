@@ -967,8 +967,14 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 		diags = diags.Append(localBDiags)
 		return nil, diags
 	}
+	var localBState backend.Backend
+	if val, ok := localB.(*backendLocal.Local); ok {
+		localBState = val.Backend
+	} else {
+		localBState = localB
+	}
 
-	workspaces, err := localB.Workspaces()
+	workspaces, err := localBState.Workspaces()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
 		return nil, diags
@@ -976,7 +982,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 
 	var localStates []statemgr.Full
 	for _, workspace := range workspaces {
-		localState, err := localB.StateMgr(workspace)
+		localState, err := localBState.StateMgr(workspace)
 		if err != nil {
 			diags = diags.Append(fmt.Errorf(errBackendLocalRead, err))
 			return nil, diags
@@ -1013,7 +1019,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 		err = m.backendMigrateState(&backendMigrateOpts{
 			SourceType:      "local",
 			DestinationType: c.Type,
-			Source:          localB,
+			Source:          localBState,
 			Destination:     b,
 			ViewType:        vt,
 		})
@@ -1445,6 +1451,12 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 			diags = diags.Append(err)
 			return nil, cty.NilVal, diags
 		}
+	}
+
+	if val, ok := b.(*backendLocal.Local); ok {
+		// Returned value is used to access state, so return the state backend
+		// inside the local operations backend
+		b = val.Backend
 	}
 
 	return b, configVal, diags
