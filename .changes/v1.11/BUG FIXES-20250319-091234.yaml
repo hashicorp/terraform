@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Modules with zero instances that contain ephemeral resources could produce an error during apply
+time: 2025-03-19T09:12:34.565564-04:00
+custom:
+    Issue: "36719"
