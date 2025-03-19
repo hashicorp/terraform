@@ -157,27 +157,21 @@ func (m *migration) search(resource addrs.AbsResource, resources map[string]stri
 	}
 
 	if resource.Module.IsRoot() {
-		// If there is no resource mapping, we check for a root module mapping
 		target, ok := resources[resource.Resource.String()]
 		if !ok {
 			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Resource not found", fmt.Sprintf("Resource %q not found in mapping.", resource.Resource.String())))
 			return ret, diags
 		}
 
-		if ok {
-			inst, diags := parseComponentInstance(target)
-			if diags.HasErrors() {
-				return ret, diags
-			}
-			ret.AbsResource = stackaddrs.AbsResource{
-				Component: inst,
-				Item:      resource,
-			}
-			return ret, diags
-		} else {
-			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Resource not found", fmt.Sprintf("Resource %q not found in mapping.", resource.Resource.String())))
+		inst, diags := parseComponentInstance(target)
+		if diags.HasErrors() {
 			return ret, diags
 		}
+		ret.AbsResource = stackaddrs.AbsResource{
+			Component: inst,
+			Item:      resource,
+		}
+		return ret, diags
 	}
 
 	// The resource is in a child module, so we need to find the component.
