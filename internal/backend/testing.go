@@ -4,7 +4,6 @@
 package backend
 
 import (
-	"os"
 	"reflect"
 	"sort"
 	"testing"
@@ -426,24 +425,4 @@ func testLocksInWorkspace(t *testing.T, b1, b2 Backend, testForceUnlock bool, wo
 		unlock()
 		t.Fatalf("could not unlock with the reported ID %q: %s", infoErr.Info.ID, err)
 	}
-}
-
-// testTmpDir changes into a tmp dir and change back automatically when the test
-// and all its subtests complete.
-func TestTmpDir(t *testing.T) {
-	tmp := t.TempDir()
-
-	old, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := os.Chdir(tmp); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Cleanup(func() {
-		// ignore errors and try to clean up
-		os.Chdir(old)
-	})
 }
