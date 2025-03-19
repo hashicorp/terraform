@@ -82,7 +82,7 @@ func ConfigComponentForAbsInstance(instAddr AbsComponentInstance) ConfigComponen
 }
 
 func ParseAbsComponentInstance(traversal hcl.Traversal) (AbsComponentInstance, tfdiags.Diagnostics) {
-	inst, remain, diags := parseAbsComponentInstance(traversal)
+	inst, remain, diags := ParseAbsComponentInstanceOnly(traversal)
 	if diags.HasErrors() {
 		return AbsComponentInstance{}, diags
 	}
@@ -135,11 +135,24 @@ func ParsePartialComponentInstanceStr(s string) (AbsComponentInstance, tfdiags.D
 	return ret, diags
 }
 
-func parseAbsComponentInstance(traversal hcl.Traversal) (AbsComponentInstance, hcl.Traversal, tfdiags.Diagnostics) {
+func ParseAbsComponentInstanceStrOnly(s string) (AbsComponentInstance, hcl.Traversal, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	traversal, hclDiags := hclsyntax.ParseTraversalPartial([]byte(s), "", hcl.InitialPos)
+	diags = diags.Append(hclDiags)
+	if diags.HasErrors() {
+		return AbsComponentInstance{}, traversal, diags
+	}
+
+	ret, rest, moreDiags := ParseAbsComponentInstanceOnly(traversal)
+	diags = diags.Append(moreDiags)
+	return ret, rest, diags
+}
+
+func ParseAbsComponentInstanceOnly(traversal hcl.Traversal) (AbsComponentInstance, hcl.Traversal, tfdiags.Diagnostics) {
 	if traversal.IsRelative() {
 		// This is always a caller bug: caller must only pass absolute
 		// traversals in here.
-		panic("parseAbsComponentInstance with relative traversal")
+		panic("ParseAbsComponentInstanceOnly with relative traversal")
 	}
 
 	stackInst, remain, diags := parseInStackInstancePrefix(traversal)
