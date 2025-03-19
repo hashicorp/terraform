@@ -76,24 +76,26 @@ func (v *LocalValueConfig) ExprReferenceValue(ctx context.Context, phase EvalPha
 func (v *LocalValueConfig) ValidateValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return withCtyDynamicValPlaceholder(doOnceWithDiags(
 		ctx, v.validatedValue.For(phase), v.main,
-		v.validateValueInner,
+		v.validateValueInner(phase),
 	))
 }
 
 // validateValueInner is the real implementation of ValidateValue, which runs
 // in the background only once per instance of [OutputValueConfig] and then
 // provides the result for all ValidateValue callers simultaneously.
-func (lv *LocalValueConfig) validateValueInner(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
+func (lv *LocalValueConfig) validateValueInner(phase EvalPhase) func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+	return func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+		var diags tfdiags.Diagnostics
 
-	result, moreDiags := EvalExprAndEvalContext(ctx, lv.config.Value, ValidatePhase, lv.StackConfig(ctx))
-	v := result.Value
-	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
-		v = cty.UnknownVal(cty.DynamicPseudoType)
+		result, moreDiags := EvalExprAndEvalContext(ctx, lv.config.Value, phase, lv.StackConfig(ctx))
+		v := result.Value
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			v = cty.UnknownVal(cty.DynamicPseudoType)
+		}
+
+		return v, diags
 	}
-
-	return v, diags
 }
 
 func (v *LocalValueConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
