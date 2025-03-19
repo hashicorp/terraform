@@ -7,11 +7,9 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -21,13 +19,6 @@ func TestLocal_impl(t *testing.T) {
 	var _ backendrun.OperationsBackend = New()
 	var _ backendrun.Local = New()
 	var _ backendrun.CLI = New()
-}
-
-func TestLocal_backend(t *testing.T) {
-	testTmpDir(t)
-	b := New()
-	backend.TestBackendStates(t, b)
-	backend.TestBackendStateLocks(t, b, b)
 }
 
 func checkState(t *testing.T, path, expected string) {
@@ -92,84 +83,6 @@ func TestLocal_StatePaths(t *testing.T) {
 
 }
 
-func TestLocal_addAndRemoveStates(t *testing.T) {
-	testTmpDir(t)
-	dflt := backend.DefaultStateName
-	expectedStates := []string{dflt}
-
-	b := New()
-	states, err := b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !reflect.DeepEqual(states, expectedStates) {
-		t.Fatalf("expected []string{%q}, got %q", dflt, states)
-	}
-
-	expectedA := "test_A"
-	if _, err := b.StateMgr(expectedA); err != nil {
-		t.Fatal(err)
-	}
-
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expectedStates = append(expectedStates, expectedA)
-	if !reflect.DeepEqual(states, expectedStates) {
-		t.Fatalf("expected %q, got %q", expectedStates, states)
-	}
-
-	expectedB := "test_B"
-	if _, err := b.StateMgr(expectedB); err != nil {
-		t.Fatal(err)
-	}
-
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expectedStates = append(expectedStates, expectedB)
-	if !reflect.DeepEqual(states, expectedStates) {
-		t.Fatalf("expected %q, got %q", expectedStates, states)
-	}
-
-	if err := b.DeleteWorkspace(expectedA, true); err != nil {
-		t.Fatal(err)
-	}
-
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expectedStates = []string{dflt, expectedB}
-	if !reflect.DeepEqual(states, expectedStates) {
-		t.Fatalf("expected %q, got %q", expectedStates, states)
-	}
-
-	if err := b.DeleteWorkspace(expectedB, true); err != nil {
-		t.Fatal(err)
-	}
-
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expectedStates = []string{dflt}
-	if !reflect.DeepEqual(states, expectedStates) {
-		t.Fatalf("expected %q, got %q", expectedStates, states)
-	}
-
-	if err := b.DeleteWorkspace(dflt, true); err == nil {
-		t.Fatal("expected error deleting default state")
-	}
-}
-
 // a local backend which returns sentinel errors for NamedState methods to
 // verify it's being called.
 type testDelegateBackend struct {
@@ -227,24 +140,4 @@ func TestLocal_multiStateBackend(t *testing.T) {
 	if err := b.DeleteWorkspace("test", true); err != errTestDelegateDeleteState {
 		t.Fatal("expected errTestDelegateDeleteState, got:", err)
 	}
-}
-
-// testTmpDir changes into a tmp dir and change back automatically when the test
-// and all its subtests complete.
-func testTmpDir(t *testing.T) {
-	tmp := t.TempDir()
-
-	old, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := os.Chdir(tmp); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Cleanup(func() {
-		// ignore errors and try to clean up
-		os.Chdir(old)
-	})
 }
