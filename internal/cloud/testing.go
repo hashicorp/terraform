@@ -372,7 +372,10 @@ func testUnconfiguredBackend(t *testing.T) (*Cloud, func()) {
 }
 
 func testLocalBackend(t *testing.T, cloud *Cloud) backendrun.OperationsBackend {
-	b := backendLocal.NewWithBackend(cloud)
+	if cloud == nil {
+		t.Fatal("nil cloud pointer")
+	}
+	b, _ := backendLocal.NewWithBackend(cloud)
 
 	// Add a test provider to the local backend.
 	p := backendLocal.TestLocalProvider(t, b, "null", providers.ProviderSchema{

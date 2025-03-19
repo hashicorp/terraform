@@ -368,7 +368,11 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	// Configure a local backend for when we need to run operations locally.
-	b.local = backendLocal.NewWithBackend(b)
+	b.local, err = backendLocal.NewWithBackend(b)
+	if err != nil {
+		diags = diags.Append(err)
+		return diags
+	}
 	b.forceLocal = b.forceLocal || !entitlements.Operations
 
 	// Enable retries for server errors as the backend is now fully configured.

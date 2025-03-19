@@ -41,7 +41,7 @@ func TestLocal(t *testing.T) (*Local, *localState.Local) {
 	be.StateWorkspaceDir = filepath.Join(tempDir, "state.tfstate.d")
 
 	// Create the Local enhanced backend, using the state backend
-	local := NewWithBackend(&be)
+	local, _ := NewWithBackend(&be)
 	local.StatePath = filepath.Join(tempDir, "state.tfstate")
 	local.StateOutPath = filepath.Join(tempDir, "state.tfstate")
 	local.StateBackupPath = filepath.Join(tempDir, "state.tfstate.bak")

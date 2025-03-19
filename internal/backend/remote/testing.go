@@ -180,7 +180,10 @@ func testBackend(t *testing.T, obj cty.Value) (*Remote, func()) {
 }
 
 func testLocalBackend(t *testing.T, remote *Remote) backendrun.OperationsBackend {
-	b := backendLocal.NewWithBackend(remote)
+	if remote == nil {
+		t.Fatal("nil remote pointer")
+	}
+	b, _ := backendLocal.NewWithBackend(remote)
 
 	// Add a test provider to the local backend.
 	p := backendLocal.TestLocalProvider(t, b, "null", providers.ProviderSchema{

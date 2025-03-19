@@ -179,7 +179,16 @@ func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags
 	}
 
 	// Build the local backend
-	local := backendLocal.NewWithBackend(b)
+	var local *backendLocal.Local
+	if b != nil {
+		local, err = backendLocal.NewWithBackend(b)
+		if err != nil {
+			diags = diags.Append(err)
+			return nil, diags
+		}
+	} else {
+		local = backendLocal.New()
+	}
 	if err := local.CLIInit(cliOpts); err != nil {
 		// Local backend isn't allowed to fail. It would be a bug.
 		panic(err)
@@ -369,8 +378,12 @@ func (m *Meta) BackendForLocalPlan(settings plans.Backend) (backendrun.Operation
 		return nil, diags
 	}
 	cliOpts.Validation = false // don't validate here in case config contains file(...) calls where the file doesn't exist
-	local := backendLocal.NewWithBackend(b)
-	if err := local.CLIInit(cliOpts); err != nil {
+	local, err := backendLocal.NewWithBackend(b)
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+	if err = local.CLIInit(cliOpts); err != nil {
 		// Local backend should never fail, so this is always a bug.
 		panic(err)
 	}
@@ -778,18 +791,21 @@ func (m *Meta) backendFromState(_ context.Context) (backend.Backend, tfdiags.Dia
 	if s == nil {
 		// no state, so return a local backend
 		log.Printf("[TRACE] Meta.Backend: backend has not previously been initialized in this working directory")
-		return backendLocal.New(), diags
+		local := backendLocal.New()
+		return local, diags
 	}
 	if s.Backend == nil {
 		// s.Backend is nil, so return a local backend
 		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized but has no backend (is using legacy remote state?)")
-		return backendLocal.New(), diags
+		local := backendLocal.New()
+		return local, diags
 	}
 	log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q backend", s.Backend.Type)
 
 	//backend init function
 	if s.Backend.Type == "" {
-		return backendLocal.New(), diags
+		local := backendLocal.New()
+		return local, diags
 	}
 	f := backendInit.Backend(s.Backend.Type)
 	if f == nil {

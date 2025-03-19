@@ -123,7 +123,7 @@ func (b *testDelegateBackend) DeleteWorkspace(name string, force bool) error {
 // verify that the MultiState methods are dispatched to the correct Backend.
 func TestLocal_multiStateBackend(t *testing.T) {
 	// assign a separate backend where we can read the state
-	b := NewWithBackend(&testDelegateBackend{
+	b, _ := NewWithBackend(&testDelegateBackend{
 		stateErr:  true,
 		statesErr: true,
 		deleteErr: true,

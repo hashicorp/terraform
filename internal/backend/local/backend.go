@@ -106,15 +106,23 @@ var _ backendrun.OperationsBackend = (*Local)(nil)
 // an instance of the local state backend is provided as default.
 func New() *Local {
 	backend := localState.New()
-	return NewWithBackend(backend)
+	b, err := NewWithBackend(backend)
+	if err != nil {
+		// We cannot return an error here
+		panic(fmt.Sprintf("error encountered in backendLocal.New. This is a bug in Terraform and should be reported. Error: %s", err))
+	}
+	return b
 }
 
 // NewWithBackend returns a new local backend initialized with a
 // dedicated backend for non-enhanced behavior.
-func NewWithBackend(backend backend.Backend) *Local {
+func NewWithBackend(backend backend.Backend) (*Local, error) {
+	if backend == nil {
+		return nil, fmt.Errorf("nil backend.Backend pointer received when creating a local backend. This is an error in Terraform and should be reported.")
+	}
 	return &Local{
 		Backend: backend,
-	}
+	}, nil
 }
 
 func (b *Local) ConfigSchema() *configschema.Block {
