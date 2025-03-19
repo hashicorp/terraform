@@ -163,7 +163,7 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 			// if we have a legacy addr, it was supplied on the commandline so
 			// there is nothing to expand
 			if !imp.LegacyAddr.Equal(addrs.AbsResourceInstance{}) {
-				knownImports.Put(imp.LegacyAddr, cty.StringVal(imp.IDString))
+				knownImports.Put(imp.LegacyAddr, cty.StringVal(imp.LegacyID))
 				return knownImports, unknownImports, diags
 			}
 
