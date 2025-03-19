@@ -142,6 +142,13 @@ provider "test" {
 
 resource "test_object" "test" {
 }
+
+# make sure ephemerals with zero instances are processed correctly too
+module "zero" {
+  count = 0
+  source = "./mod"
+  input = "test"
+}
 `,
 		"./mod/main.tf": `
 variable input {
@@ -154,6 +161,7 @@ output "data" {
   ephemeral = true
   value = ephemeral.ephem_resource.data.value
 }
+
 `,
 	})
 
