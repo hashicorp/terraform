@@ -1,7 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
-package rpcapi
+package stacksplugin1
 
 import (
 	"context"
@@ -11,25 +8,24 @@ import (
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
-	"go.opentelemetry.io/otel/attribute"
-	otelCodes "go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
+	"github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1/stacks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"go.opentelemetry.io/otel/attribute"
+	otelCodes "go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type stacksServer struct {
@@ -55,11 +51,10 @@ type stacksServer struct {
 
 var _ stacks.StacksServer = (*stacksServer)(nil)
 
-func newStacksServer(stopper *stopper, handles *handleTable, opts *serviceOpts) *stacksServer {
+func newStacksServer(stopper *stopper, handles *handleTable) *stacksServer {
 	return &stacksServer{
-		stopper:            stopper,
-		handles:            handles,
-		experimentsAllowed: opts.experimentsAllowed,
+		stopper: stopper,
+		handles: handles,
 	}
 }
 
@@ -458,7 +453,7 @@ Events:
 
 			syncEvts.Send(&stacks.PlanStackChanges_Event{
 				Event: &stacks.PlanStackChanges_Event_PlannedChange{
-					PlannedChange: nil, //protoChange,
+					PlannedChange: protoChange,
 				},
 			})
 
@@ -683,7 +678,7 @@ Events:
 
 			syncEvts.Send(&stacks.ApplyStackChanges_Event{
 				Event: &stacks.ApplyStackChanges_Event_AppliedChange{
-					AppliedChange: nil, //protoChange,
+					AppliedChange: protoChange,
 				},
 			})
 
@@ -927,11 +922,10 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 			// case, holding a zero provider would mean a bug in our event
 			// logging code rather than in core logic, so avoid exploding, but
 			// send a blank string to expose the error later.
-			//providerAddr := ""
+			providerAddr := ""
 			if !rihd.ProviderAddr.IsZero() {
-				//providerAddr = rihd.ProviderAddr.String()
+				providerAddr = rihd.ProviderAddr.String()
 			}
-			/**
 			send(&stacks.StackChangeProgress{
 				Event: &stacks.StackChangeProgress_ResourceInstanceStatus_{
 					ResourceInstanceStatus: &stacks.StackChangeProgress_ResourceInstanceStatus{
@@ -941,7 +935,6 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 					},
 				},
 			})
-			**/
 			return span
 		},
 
@@ -977,13 +970,13 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 				return span
 			}
 
-			//deferred := stackplan.EncodeDeferred(change.Reason)
+			deferred := stackplan.EncodeDeferred(change.Reason)
 
 			send(&stacks.StackChangeProgress{
 				Event: &stacks.StackChangeProgress_DeferredResourceInstancePlannedChange_{
 					DeferredResourceInstancePlannedChange: &stacks.StackChangeProgress_DeferredResourceInstancePlannedChange{
 						Change:   ripc,
-						Deferred: nil, //deferred,
+						Deferred: deferred,
 					},
 				},
 			})
@@ -1077,7 +1070,6 @@ func resourceInstancePlanned(ric *hooks.ResourceInstanceChange) (*stacks.StackCh
 }
 
 func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks.ComponentInstanceStatus) *stacks.StackChangeProgress {
-	/**
 	return &stacks.StackChangeProgress{
 		Event: &stacks.StackChangeProgress_ComponentInstanceStatus_{
 			ComponentInstanceStatus: &stacks.StackChangeProgress_ComponentInstanceStatus{
@@ -1089,8 +1081,6 @@ func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks
 			},
 		},
 	}
-	**/
-	return nil
 }
 
 // syncPlanStackChangesServer is a wrapper around a
