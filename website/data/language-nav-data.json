@@ -332,7 +332,7 @@
       }
     ]
   },
-  { "title": "Checks", "path": "checks" },
+
   {
       "title": "Import",
       "routes": [
@@ -1107,6 +1107,17 @@
   {
     "title": "v1.x Compatibility Promises",
     "path": "v1-compatibility-promises"
+  },
+  { "divider": true },
+  { "heading": "REFERENCE" },
+  {
+    "title": "Configuration blocks",
+    "routes": [
+      {
+        "title": "check",
+        "path": "block/check"
+      }
+    ]
   },
   { "divider": true },
   { "title": "Terraform Internals", "href": "/internals" }
