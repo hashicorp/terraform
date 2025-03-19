@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"path/filepath"
 	"sync"
 
@@ -379,28 +378,6 @@ func (b *Local) PathsConflictWith(other *Local) bool {
 		}
 	}
 	return false
-}
-
-// this only ensures that the named directory exists
-func (b *Local) createState(name string) error {
-	if name == backend.DefaultStateName {
-		return nil
-	}
-
-	stateDir := filepath.Join(b.stateWorkspaceDir(), name)
-	s, err := os.Stat(stateDir)
-	if err == nil && s.IsDir() {
-		// no need to check for os.IsNotExist, since that is covered by os.MkdirAll
-		// which will catch the other possible errors as well.
-		return nil
-	}
-
-	err = os.MkdirAll(stateDir, 0755)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // stateWorkspaceDir returns the directory where state environments are stored.
