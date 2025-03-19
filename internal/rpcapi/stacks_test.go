@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/terraform-svchost/disco"
@@ -23,7 +22,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/runtime/protoimpl"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
 
@@ -1209,11 +1207,19 @@ func TestStacksMigrateTerraformState(t *testing.T) {
 
 	wantChanges := []*stacks.AppliedChange_ChangeDescription{
 		{
+			Key: "RSRCcomponent.self,testing_deferred_resource.resource,cur",
 			Description: &stacks.AppliedChange_ChangeDescription_ResourceInstance{
 				ResourceInstance: &stacks.AppliedChange_ResourceInstance{
 					Addr: &stacks.ResourceInstanceObjectInStackAddr{
 						ComponentInstanceAddr: "component.self",
 						ResourceInstanceAddr:  "testing_deferred_resource.resource",
+					},
+					NewValue: &stacks.DynamicValue{
+						Msgpack: mustMsgpack(t, cty.ObjectVal(map[string]cty.Value{
+							"id":       cty.StringVal("hello"),
+							"value":    cty.StringVal("world"),
+							"deferred": cty.False,
+						}), cty.Object(map[string]cty.Type{"id": cty.String, "value": cty.String, "deferred": cty.Bool})),
 					},
 					ResourceMode: stacks.ResourceMode_MANAGED,
 					ResourceType: "testing_deferred_resource",
@@ -1222,6 +1228,7 @@ func TestStacksMigrateTerraformState(t *testing.T) {
 			},
 		},
 		{
+			Key: "CMPTcomponent.self",
 			Description: &stacks.AppliedChange_ChangeDescription_ComponentInstance{
 				ComponentInstance: &stacks.AppliedChange_ComponentInstance{
 					ComponentAddr:         "component.self",
@@ -1239,20 +1246,7 @@ func TestStacksMigrateTerraformState(t *testing.T) {
 	for i, evt := range gotEvents {
 		gotChanges[i] = evt.GetAppliedChange().Descriptions[0]
 	}
-
-	_cmpopts := []cmp.Option{cmpopts.IgnoreUnexported(
-		stacks.AppliedChange_ChangeDescription{},
-		stacks.AppliedChange_ResourceInstance{},
-		stacks.AppliedChange_ComponentInstance{},
-		stacks.AppliedChange_ChangeDescription_ResourceInstance{},
-		stacks.AppliedChange_ChangeDescription_ComponentInstance{},
-		stacks.ResourceInstanceObjectInStackAddr{},
-	),
-		cmpopts.IgnoreFields(stacks.AppliedChange_ChangeDescription{}, "Key"),
-		cmpopts.IgnoreFields(stacks.AppliedChange_ResourceInstance{}, "NewValue"),
-		cmpopts.IgnoreTypes(&stacks.DynamicValue{}, protoimpl.MessageState{}, protoimpl.UnknownFields{}),
-	}
-	if diff := cmp.Diff(wantChanges, gotChanges, _cmpopts...); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, protocmp.Transform()); diff != "" {
 		t.Fatalf("wrong changes\n%s", diff)
 	}
 }
