@@ -1,4 +1,4 @@
-## 1.12.0-alpha20250319 (March 19, 2025)
+## 1.12.0 (Unreleased)
 
 
 ENHANCEMENTS:
