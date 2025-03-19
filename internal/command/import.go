@@ -236,7 +236,7 @@ func (c *ImportCommand) Run(args []string) int {
 		Targets: []*terraform.ImportTarget{
 			{
 				LegacyAddr: addr,
-				IDString:   args[1],
+				LegacyID:   args[1],
 			},
 		},
 
