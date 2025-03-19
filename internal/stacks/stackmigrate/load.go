@@ -128,18 +128,21 @@ func (l *Loader) LoadState(configPath string) (*states.State, tfdiags.Diagnostic
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to lock state", fmt.Sprintf("The state is currently locked by another operation: %s. Please retry the migration later.", err)))
 		return state, diags
 	}
+	// Remember to unlock the state when we're done.
+	defer func() {
+		// Remember to unlock the state when we're done.
+		if err := stateManager.Unlock(id); err != nil {
+			// If we couldn't unlock the state, we'll warn about that but the
+			// migration can actually continue.
+			diags = diags.Append(tfdiags.Sourceless(tfdiags.Warning, "Failed to unlock state", fmt.Sprintf("The state was successfully loaded but could not be unlocked: %s. The migration can continue but the state many need to be unlocked manually.", err)))
+		}
+	}()
+
 	if err := stateManager.RefreshState(); err != nil {
 		diags = diags.Append(fmt.Errorf("error loading state: %s", err))
 		return state, diags
 	}
 	state = stateManager.State()
-
-	// Remember to unlock the state when we're done.
-	if err := stateManager.Unlock(id); err != nil {
-		// If we couldn't unlock the state, we'll warn about that but the
-		// migration can actually continue.
-		diags = diags.Append(tfdiags.Sourceless(tfdiags.Warning, "Failed to unlock state", fmt.Sprintf("The state was successfully loaded but could not be unlocked: %s. The migration can continue but the state many need to be unlocked manually.", err)))
-	}
 
 	return state, diags
 }

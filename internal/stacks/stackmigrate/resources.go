@@ -160,7 +160,8 @@ func (m *migration) search(resource addrs.AbsResource, resources map[string]stri
 		// If there is no resource mapping, we check for a root module mapping
 		target, ok := resources[resource.Resource.String()]
 		if !ok {
-			target, ok = modules[addrs.RootModule.String()]
+			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Resource not found", fmt.Sprintf("Resource %q not found in mapping.", resource.Resource.String())))
+			return ret, diags
 		}
 
 		if ok {

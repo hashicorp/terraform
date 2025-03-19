@@ -90,8 +90,10 @@ func TestMigrate_Module(t *testing.T) {
 		PreviousState: state,
 		Config:        cfg,
 	}
-	resources := map[string]string{}
-	modules := map[string]string{"": "self"}
+	resources := map[string]string{
+		"testing_resource.data": "self",
+	}
+	modules := map[string]string{}
 
 	applied := []stackstate.AppliedChange{}
 	expected := []stackstate.AppliedChange{
