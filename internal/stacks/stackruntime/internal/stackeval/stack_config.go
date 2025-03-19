@@ -13,6 +13,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -43,8 +44,15 @@ type StackConfig struct {
 	outputValues   map[stackaddrs.OutputValue]*OutputValueConfig
 	stackCalls     map[stackaddrs.StackCall]*StackCallConfig
 	components     map[stackaddrs.Component]*ComponentConfig
-	removed        map[stackaddrs.Component][]*RemovedConfig
 	providers      map[stackaddrs.ProviderConfig]*ProviderConfig
+
+	// The removed blocks are complicated because they don't map nicely to
+	// single addresses. They're initialised separately, with a dedicated
+	// mutex.
+	removed               sync.Mutex
+	externalRemovedBlocks collections.Map[stackaddrs.ConfigComponent, []*RemovedConfig]
+	childRemovedBlocks    collections.Map[stackaddrs.ConfigComponent, []*RemovedConfig]
+	localRemovedBlocks    map[stackaddrs.Component][]*RemovedConfig
 }
 
 var (
@@ -52,11 +60,12 @@ var (
 	_ namedPromiseReporter = (*StackConfig)(nil)
 )
 
-func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.ConfigNode) *StackConfig {
+func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.ConfigNode, externalRemovedBlocks collections.Map[stackaddrs.ConfigComponent, []*RemovedConfig]) *StackConfig {
 	return &StackConfig{
-		addr:   addr,
-		config: config,
-		main:   main,
+		addr:                  addr,
+		config:                config,
+		externalRemovedBlocks: externalRemovedBlocks,
+		main:                  main,
 
 		children:       make(map[stackaddrs.StackStep]*StackConfig, len(config.Children)),
 		inputVariables: make(map[stackaddrs.InputVariable]*InputVariableConfig, len(config.Stack.Declarations.InputVariables)),
@@ -64,7 +73,6 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.Confi
 		outputValues:   make(map[stackaddrs.OutputValue]*OutputValueConfig, len(config.Stack.Declarations.OutputValues)),
 		stackCalls:     make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
 		components:     make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
-		removed:        make(map[stackaddrs.Component][]*RemovedConfig, len(config.Stack.Declarations.Removed)),
 		providers:      make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(config.Stack.Declarations.ProviderConfigs)),
 	}
 }
@@ -115,8 +123,9 @@ func (s *StackConfig) ChildConfig(ctx context.Context, step stackaddrs.StackStep
 		if !ok {
 			return nil
 		}
+
 		childAddr := s.Addr().Child(step.Name)
-		s.children[step] = newStackConfig(s.main, childAddr, childNode)
+		s.children[step] = newStackConfig(s.main, childAddr, childNode, s.findChildRemovedBlocks(ctx, step))
 		ret = s.children[step]
 	}
 	return ret
@@ -426,41 +435,84 @@ func (s *StackConfig) Components(ctx context.Context) map[stackaddrs.Component]*
 	return ret
 }
 
+func (s *StackConfig) initialiseRemovedBlocks(ctx context.Context) {
+	s.removed.Lock()
+	defer s.removed.Unlock()
+
+	if s.localRemovedBlocks != nil {
+		// Then we'll assume we have initialised previously. We're using the
+		// localRemovedBlocks object being nil as a proxy for has this function
+		// been called before.
+		return
+	}
+
+	s.localRemovedBlocks = make(map[stackaddrs.Component][]*RemovedConfig)
+	s.childRemovedBlocks = collections.NewMap[stackaddrs.ConfigComponent, []*RemovedConfig]()
+	for addr, configs := range s.ConfigDeclarations(ctx).Removed.All() {
+		var blocks []*RemovedConfig
+		for _, config := range configs {
+			blocks = append(blocks, newRemovedConfig(s.main, s.addr, addr, config))
+		}
+
+		if addr.Stack.IsRoot() {
+			s.localRemovedBlocks[addr.Item] = blocks
+			continue
+		}
+
+		s.childRemovedBlocks.Put(addr, blocks)
+	}
+
+	for addr, blocks := range s.externalRemovedBlocks.All() {
+		if addr.Stack.IsRoot() {
+			s.localRemovedBlocks[addr.Item] = append(s.localRemovedBlocks[addr.Item], blocks...)
+			continue
+		}
+
+		s.childRemovedBlocks.Put(addr, append(s.childRemovedBlocks.Get(addr), blocks...))
+	}
+}
+
 // Removed returns a [RemovedConfig] representing the component call
 // declared within this stack config that matches the given address, or nil if
 // there is no such declaration.
-func (s *StackConfig) Removed(ctx context.Context, addr stackaddrs.Component) []*RemovedConfig {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (s *StackConfig) Removed(ctx context.Context, addr stackaddrs.ConfigComponent) []*RemovedConfig {
+	s.initialiseRemovedBlocks(ctx)
 
-	ret, ok := s.removed[addr]
-	if !ok {
-		cfgs, ok := s.config.Stack.Removed[addr.Name]
-		if !ok {
-			return nil
+	if addr.Stack.IsRoot() {
+		return s.localRemovedBlocks[addr.Item]
+	}
+
+	return s.childRemovedBlocks.Get(addr)
+}
+
+// findChildRemovedBlocks returns all the removed blocks that target components
+// in child Stacks of this component.
+func (s *StackConfig) findChildRemovedBlocks(ctx context.Context, stack stackaddrs.StackStep) collections.Map[stackaddrs.ConfigComponent, []*RemovedConfig] {
+	s.initialiseRemovedBlocks(ctx)
+	ret := collections.NewMap[stackaddrs.ConfigComponent, []*RemovedConfig]()
+	for addr, blocks := range s.childRemovedBlocks.All() {
+		if addr.Stack[0].Name == stack.Name {
+			ret.Put(stackaddrs.ConfigComponent{
+				Stack: addr.Stack[1:], // make it relative to the requested stack.
+				Item:  addr.Item,
+			}, blocks)
 		}
-		for _, cfg := range cfgs {
-			cfgAddr := stackaddrs.Config(s.Addr(), addr)
-			removed := newRemovedConfig(s.main, cfgAddr, cfg)
-			ret = append(ret, removed)
-		}
-		s.removed[addr] = ret
 	}
 	return ret
 }
 
-// Removeds returns a map of the objects representing all of the
-// removed calls declared inside this stack configuration.
-func (s *StackConfig) Removeds(ctx context.Context) map[stackaddrs.Component][]*RemovedConfig {
-	if len(s.config.Stack.Removed) == 0 {
-		return nil
-	}
-	ret := make(map[stackaddrs.Component][]*RemovedConfig, len(s.config.Stack.Removed))
-	for name := range s.config.Stack.Removed {
-		addr := stackaddrs.Component{Name: name}
-		ret[addr] = s.Removed(ctx, addr)
-	}
-	return ret
+// LocalRemovedBlocks returns all the removed blocks that target the specified
+// component.
+func (s *StackConfig) LocalRemovedBlocks(ctx context.Context, addr stackaddrs.Component) []*RemovedConfig {
+	s.initialiseRemovedBlocks(ctx)
+	return s.localRemovedBlocks[addr]
+}
+
+// AllLocalRemovedBlocks returns all the removed blocks that target components
+// within this stack.
+func (s *StackConfig) AllLocalRemovedBlocks(ctx context.Context) map[stackaddrs.Component][]*RemovedConfig {
+	s.initialiseRemovedBlocks(ctx)
+	return s.localRemovedBlocks
 }
 
 // ResolveExpressionReference implements ExpressionScope, providing the

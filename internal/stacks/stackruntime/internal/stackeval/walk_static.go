@@ -64,7 +64,7 @@ func walkStaticObjectsInStackConfig[Output any](
 		visit(ctx, walk, obj)
 	}
 
-	for _, objs := range stackConfig.Removeds(ctx) {
+	for _, objs := range stackConfig.AllLocalRemovedBlocks(ctx) {
 		for _, obj := range objs {
 			visit(ctx, walk, obj)
 		}

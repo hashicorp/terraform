@@ -30,7 +30,8 @@ var (
 )
 
 type RemovedConfig struct {
-	addr   stackaddrs.ConfigComponent
+	source stackaddrs.Stack           // stack the removed block is defined in
+	target stackaddrs.ConfigComponent // relative from source
 	config *stackconfig.Removed
 
 	main *Main
@@ -39,9 +40,10 @@ type RemovedConfig struct {
 	moduleTree promising.Once[withDiagnostics[*configs.Config]]
 }
 
-func newRemovedConfig(main *Main, addr stackaddrs.ConfigComponent, config *stackconfig.Removed) *RemovedConfig {
+func newRemovedConfig(main *Main, source stackaddrs.Stack, target stackaddrs.ConfigComponent, config *stackconfig.Removed) *RemovedConfig {
 	return &RemovedConfig{
-		addr:   addr,
+		source: source,
+		target: target,
 		config: config,
 		main:   main,
 	}
@@ -53,8 +55,12 @@ func (r *RemovedConfig) reportNamedPromises(cb func(id promising.PromiseID, name
 	cb(r.moduleTree.PromiseID(), r.tracingName()+" modules")
 }
 
-func (r *RemovedConfig) Addr() stackaddrs.ConfigComponent {
-	return r.addr
+// TargetComponentAbsolute implements ConfigComponentExpressionScope
+func (r *RemovedConfig) TargetComponentAbsolute() stackaddrs.ConfigComponent {
+	return stackaddrs.ConfigComponent{
+		Stack: append(r.source, r.target.Stack...),
+		Item:  r.target.Item,
+	}
 }
 
 // DeclRange implements ConfigComponentExpressionScope.
@@ -63,7 +69,7 @@ func (r *RemovedConfig) DeclRange(ctx context.Context) *hcl.Range {
 }
 
 func (r *RemovedConfig) StackConfig(ctx context.Context) *StackConfig {
-	return r.main.mustStackConfig(ctx, r.addr.Stack)
+	return r.main.mustStackConfig(ctx, r.source)
 }
 
 // ModuleTree implements ConfigComponentExpressionScope
@@ -141,7 +147,7 @@ func (r *RemovedConfig) CheckValid(ctx context.Context, phase EvalPhase) tfdiags
 			return diags, nil
 		}
 
-		providerSchemas, moreDiags, skipFurtherValidation := neededProviderSchemas(ctx, r.main, phase, r)
+		providerSchemas, moreDiags, skipFurtherValidation := neededProviderSchemas[stackaddrs.ConfigComponent](ctx, r.main, phase, r)
 		if skipFurtherValidation {
 			return diags.Append(moreDiags), nil
 		}
@@ -170,7 +176,7 @@ func (r *RemovedConfig) CheckValid(ctx context.Context, phase EvalPhase) tfdiags
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Cannot validate component",
-				Detail:   fmt.Sprintf("Cannot validate %s because its provider configuration assignments are invalid.", r.Addr()),
+				Detail:   fmt.Sprintf("Cannot validate removed block in %s because its provider configuration assignments are invalid.", r.source),
 				Subject:  r.DeclRange(ctx),
 			})
 			return diags, nil
@@ -221,7 +227,7 @@ func (r *RemovedConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
 
 // tracingName implements tracingNamer.
 func (r *RemovedConfig) tracingName() string {
-	return fmt.Sprintf("%s (removed)", r.Addr())
+	return fmt.Sprintf("%s -> %s (removed)", r.source, r.target)
 }
 
 // ResolveExpressionReference implements ExpressionScope.

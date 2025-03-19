@@ -28,7 +28,7 @@ import (
 type ConfigComponentExpressionScope[Addr any] interface {
 	ExpressionScope
 
-	Addr() Addr
+	TargetComponentAbsolute() Addr
 	ModuleTree(ctx context.Context) *configs.Config
 	DeclRange(ctx context.Context) *hcl.Range
 }
@@ -66,7 +66,7 @@ func EvalProviderTypes(ctx context.Context, stack *StackConfig, providers map[ad
 				Summary:  "Missing required provider configuration",
 				Detail: fmt.Sprintf(
 					"The root module for %s requires a provider configuration named %q for provider %q, which is not assigned in the block's \"providers\" argument.",
-					scope.Addr(), componentAddr.StringCompact(), typeAddr.ForDisplay(),
+					scope.TargetComponentAbsolute(), componentAddr.StringCompact(), typeAddr.ForDisplay(),
 				),
 				Subject: scope.DeclRange(ctx),
 			})
@@ -219,7 +219,7 @@ func EvalProviderValues(ctx context.Context, main *Main, providers map[addrs.Loc
 	//   store the additional information we need. Once this is fixed we can
 	//   come and tidy this up as well.
 
-	stackConfig := main.StackConfig(ctx, scope.Addr().Stack.ConfigAddr())
+	stackConfig := main.StackConfig(ctx, scope.TargetComponentAbsolute().Stack.ConfigAddr())
 	moduleTree := scope.ModuleTree(ctx)
 
 	// We'll search through the declConfigs to find any keys that match the
@@ -227,7 +227,7 @@ func EvalProviderValues(ctx context.Context, main *Main, providers map[addrs.Loc
 	// when compared to how we resolved the configProviders. But we don't have
 	// the information we need to do it the other way around.
 
-	previousProviders := main.PreviousProviderInstances(scope.Addr(), phase)
+	previousProviders := main.PreviousProviderInstances(scope.TargetComponentAbsolute(), phase)
 	for localProviderAddr, expr := range providers {
 		provider := moduleTree.ProviderForConfigAddr(localProviderAddr)
 
@@ -270,7 +270,7 @@ func EvalProviderValues(ctx context.Context, main *Main, providers map[addrs.Loc
 				Summary:  "Block requires undeclared provider",
 				Detail: fmt.Sprintf(
 					"The root module for %s has resources in state that require a configuration for provider %q, which isn't declared as a dependency of this stack configuration.\n\nDeclare this provider in the stack's required_providers block, and then assign a configuration for that provider in this block's \"providers\" argument.",
-					scope.Addr(), provider.ForDisplay(),
+					scope.TargetComponentAbsolute(), provider.ForDisplay(),
 				),
 				Subject: scope.DeclRange(ctx),
 			})
@@ -301,7 +301,7 @@ func EvalProviderValues(ctx context.Context, main *Main, providers map[addrs.Loc
 			Summary:  "Missing required provider configuration",
 			Detail: fmt.Sprintf(
 				"The root module for %s has resources in state that require a provider configuration named %q for provider %q, which is not assigned in the block's \"providers\" argument.",
-				scope.Addr(), localAddr.StringCompact(), previousProvider.Provider.ForDisplay(),
+				scope.TargetComponentAbsolute(), localAddr.StringCompact(), previousProvider.Provider.ForDisplay(),
 			),
 			Subject: scope.DeclRange(ctx),
 		})

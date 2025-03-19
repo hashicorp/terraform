@@ -55,6 +55,10 @@ func newComponentConfig(main *Main, addr stackaddrs.ConfigComponent, config *sta
 	}
 }
 
+func (c *ComponentConfig) TargetComponentAbsolute() stackaddrs.ConfigComponent {
+	return c.Addr()
+}
+
 func (c *ComponentConfig) Addr() stackaddrs.ConfigComponent {
 	return c.addr
 }
@@ -314,7 +318,7 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 			return diags, nil
 		}
 
-		providerSchemas, moreDiags, skipFurtherValidation := neededProviderSchemas(ctx, c.main, phase, c)
+		providerSchemas, moreDiags, skipFurtherValidation := neededProviderSchemas[stackaddrs.ConfigComponent](ctx, c.main, phase, c)
 		if skipFurtherValidation {
 			return diags.Append(moreDiags), nil
 		}

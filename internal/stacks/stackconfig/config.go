@@ -191,7 +191,7 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 		cmpn.FinalSourceAddr = effectiveSourceAddr
 	}
 
-	for _, blocks := range stack.Removed {
+	for _, blocks := range stack.Removed.All() {
 		for _, rmvd := range blocks {
 			effectiveSourceAddr, err := resolveFinalSourceAddr(sourceAddr, rmvd.SourceAddr, rmvd.VersionConstraints, sources)
 			if err != nil {

@@ -61,7 +61,7 @@ type Plannable interface {
 func PlanComponentInstance(ctx context.Context, main *Main, state *states.State, opts *terraform.PlanOpts, scope ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]) (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	addr := scope.Addr()
+	addr := scope.TargetComponentAbsolute()
 
 	h := hooksFromContext(ctx)
 	hookSingle(ctx, hooksFromContext(ctx).PendingComponentInstancePlan, addr)

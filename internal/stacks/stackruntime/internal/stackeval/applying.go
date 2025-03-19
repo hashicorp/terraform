@@ -114,7 +114,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 	// changed at all.
 	noOpResult := inst.PlaceholderApplyResultForSkippedApply(ctx, plan)
 
-	stackPlan := main.PlanBeingApplied().Components.Get(inst.Addr())
+	stackPlan := main.PlanBeingApplied().Components.Get(inst.TargetComponentAbsolute())
 
 	// We'll gather up our set of potentially-affected objects before we do
 	// anything else, because the modules runtime tends to mutate the objects
@@ -124,8 +124,8 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 	affectedResourceInstanceObjects := resourceInstanceObjectsAffectedByStackPlan(stackPlan)
 
 	h := hooksFromContext(ctx)
-	hookSingle(ctx, hooksFromContext(ctx).PendingComponentInstanceApply, inst.Addr())
-	seq, ctx := hookBegin(ctx, h.BeginComponentInstanceApply, h.ContextAttach, inst.Addr())
+	hookSingle(ctx, hooksFromContext(ctx).PendingComponentInstanceApply, inst.TargetComponentAbsolute())
+	seq, ctx := hookBegin(ctx, h.BeginComponentInstanceApply, h.ContextAttach, inst.TargetComponentAbsolute())
 
 	moduleTree := inst.ModuleTree(ctx)
 	if moduleTree == nil {
@@ -142,7 +142,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 			"Component configuration is invalid during apply",
 			fmt.Sprintf(
 				"Despite apparently successfully creating a plan earlier, %s seems to have an invalid configuration during the apply phase. This should not be possible, and suggests a bug in whatever subsystem is managing the plan and apply workflow.",
-				inst.Addr(),
+				inst.TargetComponentAbsolute(),
 			),
 		))
 		return noOpResult, diags
@@ -172,7 +172,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		ctx:   ctx,
 		seq:   seq,
 		hooks: hooksFromContext(ctx),
-		addr:  inst.Addr(),
+		addr:  inst.TargetComponentAbsolute(),
 	}
 	tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
 		Hooks: []terraform.Hook{
@@ -200,7 +200,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Cannot apply component plan",
-			Detail:   fmt.Sprintf("Cannot apply the plan for %s because the configured provider configuration assignments are invalid.", inst.Addr()),
+			Detail:   fmt.Sprintf("Cannot apply the plan for %s because the configured provider configuration assignments are invalid.", inst.TargetComponentAbsolute()),
 			Subject:  inst.DeclRange(ctx),
 		})
 		return nil, diags
@@ -240,7 +240,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 
 	if newState != nil {
 		cic := &hooks.ComponentInstanceChange{
-			Addr: inst.Addr(),
+			Addr: inst.TargetComponentAbsolute(),
 
 			// We'll increment these gradually as we visit each change below.
 			Add:    0,
@@ -308,9 +308,9 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 	}
 
 	if diags.HasErrors() {
-		hookMore(ctx, seq, h.ErrorComponentInstanceApply, inst.Addr())
+		hookMore(ctx, seq, h.ErrorComponentInstanceApply, inst.TargetComponentAbsolute())
 	} else {
-		hookMore(ctx, seq, h.EndComponentInstanceApply, inst.Addr())
+		hookMore(ctx, seq, h.EndComponentInstanceApply, inst.TargetComponentAbsolute())
 	}
 
 	if newState == nil {
