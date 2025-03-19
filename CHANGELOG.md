@@ -1,4 +1,4 @@
-## 1.12.0 (Unreleased)
+## 1.12.0-alpha20250319 (March 19, 2025)
 
 
 ENHANCEMENTS:
@@ -27,8 +27,6 @@ BUG FIXES:
 * Changes to the order of sensitive attributes in the state format would erroneously indicate a plan contained changes when there were none. ([#36465](https://github.com/hashicorp/terraform/issues/36465))
 
 * Avoid reporting duplicate attribute-associated diagnostics, such as "Available Write-only Attribute Alternative" ([#36579](https://github.com/hashicorp/terraform/issues/36579))
-
-* Fixes unintended exit of CLI when using the remote backend and applying with post-plan tasks configured in HCP Terraform ([#36655](https://github.com/hashicorp/terraform/issues/36655))
 
 
 UPGRADE NOTES:
