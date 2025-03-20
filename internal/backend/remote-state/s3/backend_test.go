@@ -2478,7 +2478,7 @@ func TestBackendConfigKmsKeyId(t *testing.T) {
 		"skip-validation": {
 			config: map[string]any{
 				"kms_key_id": "not-an-arn",
-				"skip_kms_key_id_validation" : True
+				"skip_kms_key_id_validation" : True,
 			},
 			expectedKeyId: "not-an-arn",
 		},
