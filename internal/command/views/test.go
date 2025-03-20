@@ -50,7 +50,7 @@ type Test interface {
 
 	// DestroySummary prints out the summary of the destroy step of each test
 	// file. If everything goes well, this should be empty.
-	DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State, allowNonEmpty bool)
+	DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State)
 
 	// Diagnostics prints out the provided diagnostics.
 	Diagnostics(run *moduletest.Run, file *moduletest.File, diags tfdiags.Diagnostics)
@@ -264,7 +264,7 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File, progress mod
 	}
 }
 
-func (t *TestHuman) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State, allowNonEmpty bool) {
+func (t *TestHuman) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State) {
 	identifier := file.Name
 	if run != nil {
 		identifier = fmt.Sprintf("%s/%s", identifier, run.Name)
@@ -275,7 +275,7 @@ func (t *TestHuman) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Ru
 	}
 	t.Diagnostics(run, file, diags)
 
-	if state.HasManagedResourceInstanceObjects() && !allowNonEmpty {
+	if state.HasManagedResourceInstanceObjects() && !run.Config.SkipCleanup {
 		// FIXME: This message says "resources" but this is actually a list
 		// of resource instance objects.
 		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform left the following resources in state after executing %s, and they need to be cleaned up manually:\n", identifier), t.view.errorColumns()))
@@ -601,8 +601,8 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 	t.Diagnostics(run, file, run.Diagnostics)
 }
 
-func (t *TestJSON) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State, allowNonEmpty bool) {
-	if state.HasManagedResourceInstanceObjects() && !allowNonEmpty {
+func (t *TestJSON) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State) {
+	if state.HasManagedResourceInstanceObjects() && !run.Config.SkipCleanup {
 		cleanup := json.TestFileCleanup{}
 		for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
 			cleanup.FailedResources = append(cleanup.FailedResources, json.TestFailedResource{

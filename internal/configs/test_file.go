@@ -168,7 +168,8 @@ type TestRun struct {
 	Backend *Backend
 
 	// SkipCleanup: Indicates if the test run should skip the cleanup phase.
-	SkipCleanup bool
+	SkipCleanup    bool
+	SkipCleanupSet bool
 
 	NameDeclRange      hcl.Range
 	VariablesDeclRange hcl.Range
@@ -582,7 +583,7 @@ func decodeFileConfigBlock(fileContent *hcl.BodyContent) (*TestFileConfig, hcl.D
 	}
 
 	if attr, exists := content.Attributes["skip_cleanup"]; exists {
-		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &ret.Parallel)
+		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &ret.SkipCleanup)
 		diags = append(diags, rawDiags...)
 	}
 
@@ -837,6 +838,7 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 	if attr, exists := content.Attributes["skip_cleanup"]; exists {
 		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.SkipCleanup)
 		diags = append(diags, rawDiags...)
+		r.SkipCleanupSet = true
 	}
 
 	return &r, diags
