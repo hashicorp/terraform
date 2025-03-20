@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Terraform fmt command accepts files with extensions```.tfbackend```.
+time: 2025-03-19T23:56:39.248161-03:00
+custom:
+    Issue: "36725"
