@@ -88,6 +88,7 @@ func (c *StacksCommand) realRun(args []string, stdout, stderr io.Writer) int {
 			1: {
 				"stacks": &stacksplugin1.GRPCStacksPlugin{
 					Metadata: c.pluginConfig.ToMetadata(),
+					Services: c.Meta.Services,
 				},
 			},
 		},

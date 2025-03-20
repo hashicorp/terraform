@@ -10,6 +10,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/stacksplugin"
 	"github.com/hashicorp/terraform/internal/stacksplugin/dynrpcserver"
 	"github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1"
@@ -21,9 +22,10 @@ import (
 
 // GRPCCloudClient is the client interface for interacting with terraform-cloudplugin
 type GRPCStacksClient struct {
-	client  stacksproto1.CommandServiceClient
-	broker  *plugin.GRPCBroker
-	context context.Context
+	client   stacksproto1.CommandServiceClient
+	broker   *plugin.GRPCBroker
+	services *disco.Disco
+	context  context.Context
 }
 
 // Proof that GRPCStacksClient fulfills the go-plugin interface
@@ -32,6 +34,8 @@ var _ stacksplugin.Stacks1 = GRPCStacksClient{}
 // Execute sends the client Execute request and waits for the plugin to return
 // an exit code response before returning
 func (c GRPCStacksClient) Execute(args []string, stdout, stderr io.Writer) int {
+	handles := newHandleTable()
+
 	dependenciesServer := dynrpcserver.NewDependenciesStub()
 	packagesServer := dynrpcserver.NewPackagesStub()
 	stacksServer := dynrpcserver.NewStacksStub()
@@ -40,6 +44,7 @@ func (c GRPCStacksClient) Execute(args []string, stdout, stderr io.Writer) int {
 	dependenciesServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
 		s = grpc.NewServer(opts...)
 		dep.RegisterDependenciesServer(s, dependenciesServer)
+		dependenciesServer.ActivateRPCServer(newDependenciesServer(handles, c.services))
 
 		return s
 	}
@@ -50,6 +55,7 @@ func (c GRPCStacksClient) Execute(args []string, stdout, stderr io.Writer) int {
 	packagesServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
 		s = grpc.NewServer(opts...)
 		pack.RegisterPackagesServer(s, packagesServer)
+		packagesServer.ActivateRPCServer(newPackagesServer(c.services))
 
 		return s
 	}
@@ -60,7 +66,7 @@ func (c GRPCStacksClient) Execute(args []string, stdout, stderr io.Writer) int {
 	stacksServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
 		s = grpc.NewServer(opts...)
 		stack.RegisterStacksServer(s, stacksServer)
-
+		stacksServer.ActivateRPCServer(newStacksServer(newStopper(), handles))
 		return s
 	}
 

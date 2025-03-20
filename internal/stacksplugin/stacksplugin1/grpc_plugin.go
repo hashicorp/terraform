@@ -9,6 +9,7 @@ import (
 	"net/rpc"
 
 	"github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/stacksplugin"
 	"github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1"
 	"google.golang.org/grpc"
@@ -21,6 +22,7 @@ type GRPCStacksPlugin struct {
 	plugin.GRPCPlugin
 	Metadata metadata.MD
 	Impl     stacksplugin.Stacks1
+	Services *disco.Disco
 }
 
 type GRPCStacksServer struct {
@@ -46,9 +48,10 @@ func (p *GRPCStacksPlugin) Client(*plugin.MuxBroker, *rpc.Client) (interface{}, 
 func (p *GRPCStacksPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
 	ctx = metadata.NewOutgoingContext(ctx, p.Metadata)
 	return &GRPCStacksClient{
-		client:  stacksproto1.NewCommandServiceClient(c),
-		broker:  broker,
-		context: ctx,
+		client:   stacksproto1.NewCommandServiceClient(c),
+		broker:   broker,
+		services: p.Services,
+		context:  ctx,
 	}, nil
 }
 
@@ -62,99 +65,5 @@ func (p *GRPCStacksPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server)
 	})
 	return nil
 	*/
-	return nil
+	return errors.ErrUnsupported
 }
-
-/**
-func registerGRPCServices(s *grpc.Server) {
-	// We initially only register the setup server, because the registration
-	// of other services can vary depending on the capabilities negotiated
-	// during handshake.
-	server := newSetupServer(serverHandshake(s))
-	setup.RegisterSetupServer(s, server)
-}
-
-func serverHandshake(s *grpc.Server) func(context.Context, *setup.Handshake_Request, *stopper) (*setup.ServerCapabilities, error) {
-	dependenciesStub := dynrpcserver.NewDependenciesStub()
-	dependencies.RegisterDependenciesServer(s, dependenciesStub)
-	stacksStub := dynrpcserver.NewStacksStub()
-	stacks.RegisterStacksServer(s, stacksStub)
-	packagesStub := dynrpcserver.NewPackagesStub()
-	packages.RegisterPackagesServer(s, packagesStub)
-
-	return func(ctx context.Context, request *setup.Handshake_Request, stopper *stopper) (*setup.ServerCapabilities, error) {
-		// All of our servers will share a common handles table so that objects
-		// can be passed from one service to another.
-		handles := newHandleTable()
-
-		// NOTE: This is intentionally not the same disco that "package main"
-		// instantiates for Terraform CLI, because the RPC API is
-		// architecturally independent from CLI despite being launched through
-		// it, and so it is not subject to any ambient CLI configuration files
-		// that might be in scope. If we later discover requirements for
-		// callers to customize the service discovery settings, consider
-		// adding new fields to terraform1.ClientCapabilities (even though
-		// this isn't strictly a "capability") so that the RPC caller has
-		// full control without needing to also tinker with the current user's
-		// CLI configuration.
-		services, err := newServiceDisco(request.GetConfig())
-		if err != nil {
-			return &setup.ServerCapabilities{}, err
-		}
-
-		// If handshaking is successful (which it currently always is, because
-		// we don't have any special capabilities to negotiate yet) then we
-		// will initialize all of the other services so the client can begin
-		// doing real work. In future the details of what we register here
-		// might vary based on the negotiated capabilities.
-		dependenciesStub.ActivateRPCServer(newDependenciesServer(handles, services))
-		stacksStub.ActivateRPCServer(newStacksServer(stopper, handles))
-		packagesStub.ActivateRPCServer(newPackagesServer(services))
-
-		// If the client requested any extra capabililties that we're going
-		// to honor then we should announce them in this result.
-		return &setup.ServerCapabilities{}, nil
-	}
-}
-
-// serviceOpts are options that could potentially apply to all of our
-// individual RPC services.
-//
-// This could potentially be embedded inside a service-specific options
-// structure, if needed.
-type serviceOpts struct {
-	experimentsAllowed bool
-}
-
-func newServiceDisco(config *setup.Config) (*disco.Disco, error) {
-	// First, we'll try and load any credentials that might have been available
-	// to the UI. It's perfectly fine if there are none so any errors we find
-	// are from malformed credentials rather than missing ones.
-
-	file, diags := cliconfig.LoadConfig()
-	if diags.HasErrors() {
-		return nil, fmt.Errorf("problem loading CLI configuration: %w", diags.ErrWithWarnings())
-	}
-
-	helperPlugins := pluginDiscovery.FindPlugins("credentials", cliconfig.GlobalPluginDirs())
-	src, err := file.CredentialsSource(helperPlugins)
-	if err != nil {
-		return nil, fmt.Errorf("problem creating credentials source: %w", err)
-	}
-	services := disco.NewWithCredentialsSource(src)
-
-	// Second, we'll side-load any credentials that might have been passed in.
-
-	credSrc := services.CredentialsSource()
-	if config != nil {
-		for host, cred := range config.GetCredentials() {
-			if err := credSrc.StoreForHost(svchost.Hostname(host), auth.HostCredentialsToken(cred.Token)); err != nil {
-				return nil, fmt.Errorf("problem storing credential for host %s with: %w", host, err)
-			}
-		}
-		services.SetCredentialsSource(credSrc)
-	}
-
-	return services, nil
-}
-**/

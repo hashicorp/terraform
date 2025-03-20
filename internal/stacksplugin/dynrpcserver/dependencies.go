@@ -13,7 +13,7 @@ import (
 
 type Dependencies struct {
 	dependencies.UnimplementedDependenciesServer
-	impl dependencies.DependenciesServer
+	impl dependencies.DependenciesServer // HEY MORNING MARK! Look into providing this when starting the server in grpc_plugin.go
 	mu   sync.RWMutex
 }
 
