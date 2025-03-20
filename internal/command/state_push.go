@@ -19,7 +19,8 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// StatePushCommand is a Command implementation that shows a single resource.
+// StatePushCommand is a Command implementation that allows
+// pushing a local state to a remote location.
 type StatePushCommand struct {
 	Meta
 	StateMeta

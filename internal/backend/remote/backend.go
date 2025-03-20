@@ -43,7 +43,7 @@ const (
 	genericHostname    = "localterraform.com"
 )
 
-// Remote is an implementation of EnhancedBackend that performs all
+// Remote is an implementation of backendrun.OperationsBackend that performs all
 // operations in a remote backend.
 type Remote struct {
 	// CLI and Colorize control the CLI output. If CLI is nil then no CLI
@@ -78,7 +78,7 @@ type Remote struct {
 	// services is used for service discovery
 	services *disco.Disco
 
-	// local, if non-nil, will be used for all enhanced behavior. This
+	// local, if non-nil, will be used for all OperationsBackend behavior. This
 	// allows local behavior with the remote backend functioning as remote
 	// state storage backend.
 	local backendrun.OperationsBackend
