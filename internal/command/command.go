@@ -45,7 +45,7 @@ const DefaultBackupExtension = ".backup"
 const DefaultParallelism = 10
 
 // ErrUnsupportedLocalOp is the common error message shown for operations
-// that require a backend.Local.
+// that require a backendrun.Local.
 const ErrUnsupportedLocalOp = `The configured backend doesn't support this operation.
 
 The "backend" in Terraform defines how Terraform operates. The default
