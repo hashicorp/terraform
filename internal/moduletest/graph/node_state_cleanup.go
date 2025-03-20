@@ -21,23 +21,34 @@ var (
 	_ GraphNodeExecutable = (*NodeStateCleanup)(nil)
 )
 
+// NodeStateCleanup is responsible for cleaning up the state of resources
+// defined in the state file. It uses the provided stateKey to identify the
+// specific state to clean up and opts for additional configuration options.
 type NodeStateCleanup struct {
 	stateKey string
 	opts     *graphOptions
+
+	// If applyOverride is provided, it will be applied to the state file to reach
+	// the final state, instead of running the destroy operation.
+	applyOverride *moduletest.Run
 }
 
 func (n *NodeStateCleanup) Name() string {
 	return fmt.Sprintf("cleanup.%s", n.stateKey)
 }
 
-// Execute destroys the resources created in the state file.
-// This function should never return non-fatal error diagnostics, as that would
-// prevent further cleanup from happening. Instead, the diagnostics
-// will be rendered directly.
+// Execute performs the cleanup of resources defined in the state file.
+// This function should never return non-fatal error diagnostics, as doing so
+// would prevent further cleanup of other states. Instead, any diagnostics
+// will be rendered directly to ensure the cleanup process continues.
 func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	file := n.opts.File
 	state := evalCtx.GetFileState(n.stateKey)
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
+	if n.applyOverride != nil {
+		state.Run = n.applyOverride
+	}
+	allowNonEmpty := n.applyOverride != nil
 
 	if evalCtx.Cancelled() {
 		// Don't try and clean anything up if the execution has been cancelled.
@@ -76,7 +87,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		diags := tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name))}
 		file.UpdateStatus(moduletest.Error)
 		diags = diags.Append(evalCtx.WriteFileState(n.stateKey, state))
-		evalCtx.Renderer().DestroySummary(diags, nil, file, state.State)
+		evalCtx.Renderer().DestroySummary(diags, nil, file, state.State, false)
 
 		// intentionally return nil to allow further cleanup
 		return nil
@@ -95,11 +106,11 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		destroyDiags = destroyDiags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
 	}
 
-	if !updated.Empty() {
+	if !updated.Empty() && !allowNonEmpty {
 		// Then we failed to adequately clean up the state, so mark as errored.
 		file.UpdateStatus(moduletest.Error)
 	}
-	evalCtx.Renderer().DestroySummary(destroyDiags, state.Run, file, updated)
+	evalCtx.Renderer().DestroySummary(destroyDiags, state.Run, file, updated, allowNonEmpty)
 	state.State = updated
 
 	evalCtx.WriteFileState(n.stateKey, state)
@@ -117,6 +128,7 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waite
 		// Nothing to do!
 		return state, nil
 	}
+	ctx.Renderer().Run(run, file, moduletest.TearDown, 0)
 
 	var diags tfdiags.Diagnostics
 	variables, variableDiags := runNode.GetVariables(ctx, false)
@@ -124,6 +136,13 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waite
 
 	if diags.HasErrors() {
 		return state, diags
+	}
+
+	// If the run block has an override, we don't need to run the destroy
+	// operation. We can just apply the override to the state file and return.
+	if n.applyOverride != nil {
+		runNode.testApply(ctx, variables, waiter)
+		return ctx.GetFileState(n.stateKey).State, nil
 	}
 
 	// During the destroy operation, we don't add warnings from this operation.
@@ -143,7 +162,6 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, runNode *NodeTestRun, waite
 	if ctxDiags.HasErrors() {
 		return state, diags
 	}
-	ctx.Renderer().Run(run, file, moduletest.TearDown, 0)
 
 	waiter.update(tfCtx, moduletest.TearDown, nil)
 	plan, planDiags := tfCtx.Plan(run.ModuleConfig, state, planOpts)
