@@ -72,7 +72,7 @@ func NewOperationWaiter(ctx *terraform.Context, evalCtx *EvalContext, n *NodeTes
 }
 
 // Run executes the given function in a goroutine and waits for it to finish.
-// If the function finishes, it returns false. If the function is cancelled or
+// If the function finishes successfully, it returns false. If the function is cancelled or
 // interrupted, it returns true.
 func (w *operationWaiter) Run(fn func()) bool {
 	runningCtx, doneRunning := context.WithCancel(context.Background())
