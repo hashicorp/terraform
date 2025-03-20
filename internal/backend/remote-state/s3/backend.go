@@ -215,6 +215,11 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Optional:    true,
 				Description: "Do not include checksum when uploading S3 Objects. Useful for some S3-Compatible APIs.",
 			},
+			"skip_kms_key_validation": {
+				Type:        cty.Bool,
+				Optional:    false,
+				Description: "Skips the KMS key validation. Defaults to False.",
+			},
 			"sse_customer_key": {
 				Type:        cty.String,
 				Optional:    true,
@@ -654,7 +659,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	)(obj, cty.Path{}, &diags)
 
 	attrPath = cty.GetAttrPath("kms_key_id")
-	if val := obj.GetAttr("kms_key_id"); !val.IsNull() {
+	if val := obj.GetAttr("kms_key_id"); !val.IsNull(); b.skip_kms_key_validation.isFalse() {
 		kmsKeyIDValidators := validateString{
 			Validators: []stringValidator{
 				validateStringKMSKey,
@@ -837,6 +842,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	b.ddbTable = stringAttr(obj, "dynamodb_table")
 	b.useLockFile = boolAttr(obj, "use_lockfile")
 	b.skipS3Checksum = boolAttr(obj, "skip_s3_checksum")
+	b.skip_kms_key_validation = boolAttr(obj, "skip_kms_key_validation")
 
 	if _, ok := stringAttrOk(obj, "kms_key_id"); ok {
 		if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
