@@ -398,7 +398,7 @@ func (m *Meta) backendCLIOpts() (*backendrun.CLIOpts, error) {
 	}, err
 }
 
-// Operation initializes a new backend.Operation struct.
+// Operation initializes a new backendrun.Operation struct.
 //
 // This prepares the operation. After calling this, the caller is expected
 // to modify fields of the operation such as Sequence to specify what will
