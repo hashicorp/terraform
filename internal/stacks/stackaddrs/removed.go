@@ -66,7 +66,7 @@ func (rf RemovedFrom) AbsComponentInstance(ctx *hcl.EvalContext, parent StackIns
 	var stackInstance StackInstance
 	for _, stack := range rf.Stack {
 		step, moreDiags := stack.StackInstanceStep(ctx)
-		diags = append(moreDiags)
+		diags = diags.Append(moreDiags)
 
 		stackInstance = append(stackInstance, step)
 	}
@@ -145,11 +145,10 @@ func ParseRemovedFrom(expr hcl.Expression) (RemovedFrom, tfdiags.Diagnostics) {
 
 		// we're going to parse the traversal in sets of 2-3 depending on
 		// the indices, so we'll check that now.
-		currentTraversal := current.Current
 		nextTraversal := current.Current
 
 		for len(nextTraversal) > 0 {
-
+			var currentTraversal hcl.Traversal
 			var indexExpr hcl.Expression
 
 			switch {
