@@ -315,7 +315,7 @@ func (v *unparsedVariableValue) ParseVariableValue(mode configs.VariableParsingM
 	}, tfdiags.Diagnostics{}
 }
 
-// testVariable returns a backend.UnparsedVariableValue used for testing.
+// testVariable returns a backendrun.UnparsedVariableValue used for testing.
 func testVariables(s terraform.ValueSourceType, vs ...string) map[string]backendrun.UnparsedVariableValue {
 	vars := make(map[string]backendrun.UnparsedVariableValue, len(vs))
 	for _, v := range vs {
