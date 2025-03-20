@@ -219,7 +219,7 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 			"skip_kms_key_id_validation": {
 				Type:        cty.Bool,
 				Optional:    false,
-				Description: "Skips the KMS key validation. Defaults to False.",
+				Description: "Skip the KMS key ID validation.",
 			},
 			"sse_customer_key": {
 				Type:        cty.String,
