@@ -2500,6 +2500,86 @@ func TestTest_SkipCleanup_JSON(t *testing.T) {
 	})
 }
 
+func TestTest_SkipCleanup_FileLevelFlag(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "skip_file_cleanup")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	output := done(t)
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output = done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	t.Run("skipped resources should not be deleted", func(t *testing.T) {
+
+		expected := `main.tftest.hcl... in progress
+  run "test"... pass
+  run "test_two"... pass
+  run "test_three"... pass
+  run "test_four"... pass
+  run "test_five"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
+
+Success! 5 passed, 0 failed.
+`
+
+		actual := output.All()
+		if !strings.Contains(actual, expected) {
+			t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s", expected, actual)
+		}
+
+		if provider.ResourceCount() != 1 {
+			t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+		}
+
+		val := provider.Store.Get(provider.ResourceString())
+
+		if val.GetAttr("value").AsString() != "test_five" {
+			t.Errorf("expected resource to have value 'test_five' but got %s", val.GetAttr("value").AsString())
+		}
+	})
+}
+
 func TestTest_OnlyExternalModules(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "only_modules")), td)

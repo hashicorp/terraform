@@ -976,7 +976,7 @@ main.tftest.hcl, and they need to be cleaned up manually:
 			streams, done := terminal.StreamsForTesting(t)
 			view := NewTest(arguments.ViewHuman, NewView(streams))
 
-			view.DestroySummary(tc.diags, tc.run, tc.file, tc.state, false)
+			view.DestroySummary(tc.diags, tc.run, tc.file, tc.state)
 
 			output := done(t)
 			actual, expected := output.Stdout(), tc.stdout
@@ -2218,7 +2218,7 @@ func TestTestJSON_DestroySummary(t *testing.T) {
 			streams, done := terminal.StreamsForTesting(t)
 			view := NewTest(arguments.ViewJSON, NewView(streams))
 
-			view.DestroySummary(tc.diags, tc.run, tc.file, tc.state, false)
+			view.DestroySummary(tc.diags, tc.run, tc.file, tc.state)
 			testJSONViewOutputEquals(t, done(t).All(), tc.want)
 		})
 	}

@@ -71,17 +71,16 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 		}
 
 		// Handle skip_cleanup attribute
-		if v.Config.SkipCleanup {
-			if node.applyOverride != nil { // the node already has an applyOverride from a later run
-				v.Diagnostics = v.Diagnostics.Append(tfdiags.Sourceless(
-					tfdiags.Warning,
-					"Multiple runs with skip_cleanup set",
-					fmt.Sprintf(`The run %q has skip_cleanup set to true, but shares state with a later run %q that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.`,
-						v.Config.Name, node.applyOverride.Config.Name),
-				))
-				continue
-			}
-
+		switch {
+		// the node already has an applyOverride from a later run
+		case v.Config.SkipCleanup && node.applyOverride != nil && v.Config.SkipCleanupSet:
+			v.Diagnostics = v.Diagnostics.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Multiple runs with skip_cleanup set",
+				fmt.Sprintf(`The run %q has skip_cleanup set to true, but shares state with a later run %q that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.`,
+					v.Config.Name, node.applyOverride.Config.Name),
+			))
+		case v.Config.SkipCleanup && node.applyOverride == nil:
 			node.applyOverride = v
 		}
 	}
