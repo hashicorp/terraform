@@ -273,11 +273,11 @@
   },
   {
     "title": "Moved block",
-    "path": "moved"
+    "href": "/terraform/language/block/moved"
   },
   {
     "title": "Terraform block",
-    "path": "terraform"
+    "href": "/terraform/language/block/terraform"
   },
   {
     "title": "Backend block",
@@ -332,7 +332,7 @@
       }
     ]
   },
-
+  { "title": "Checks", "path": "checks" },
   {
       "title": "Import",
       "routes": [
@@ -1114,8 +1114,12 @@
     "title": "Configuration blocks",
     "routes": [
       {
-        "title": "check",
-        "path": "block/check"
+      "title": "Moved block",
+      "path": "block/moved"
+      },
+      {
+        "title": "Terraform block",
+        "path": "block/terraform"
       }
     ]
   },
