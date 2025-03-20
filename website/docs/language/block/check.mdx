@@ -5,15 +5,15 @@ description: How to use the `check` block to validate infrastructure outside of 
 
 # `check` block
 
-The `check` block validates infrastructure outside the plan and apply lifecycle, allowing ongoing verification of your infrastructure.
+Use the `check` block to validate your infrastructure outside of the typical resource lifecycle.
 
-The `check` block executes as the last step of plan or apply operations after Terraform has planned or provisioned your infrastructure. When a `check` block's assertion fails, Terraform reports a warning and continues executing the current operation. 
+The `check` block executes as the last step of plan or apply operation, after Terraform has planned or provisioned your infrastructure. When a `check` block's assertion fails, Terraform reports a warning and continues executing the current operation. 
 
 ## Background
 
 Terraform evaluates `check` blocks locally whenever you plan or apply your configuration. In HCP Terraform, you can enable health checks on a workspace to automatically and continuously execute checks defined in that workspace's configuration. Refer to [Continuous validation](/terraform/cloud-docs/workspaces/health#continuous-validation) for details.
 
-The `check` block is one of the Terraform configuration language's validation rules. Other validation rules run during other stages of a Terraform operation, and can block operations if they fail. However, the `check` block is the only validation rule that does not block operations, instead Terraform produces a warning and lets that operation continue. For information on other validation rules, refer to [Validate your configuration](/terraform/language/expressions/custom-conditions).
+The `check` block is one of Terraform's validation rules for verifying your configuration. Other validation rules run during other stages of a Terraform operation, and can block operations if they fail. The `check` block is the only validation rule that does not block operations if it fails, instead Terraform reports a warning and continues executing the current operation. For information on other validation rules, refer to [Validate your configuration](/terraform/language/expressions/custom-conditions).
 
 <!-- TODO: Fix link once have Validate your configuration page -->
 
