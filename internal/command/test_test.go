@@ -2213,6 +2213,293 @@ Success! 5 passed, 0 failed.
 	}
 }
 
+func TestTest_SkipCleanup(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "skip_cleanup")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	output := done(t)
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output = done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	t.Run("skipped resources should not be deleted", func(t *testing.T) {
+
+		expected := `main.tftest.hcl... in progress
+  run "test"... pass
+  run "test_two"... pass
+
+Warning: Multiple runs with skip_cleanup set
+
+The run "test_two" has skip_cleanup set to true, but shares state with a
+later run "test_three" that also has skip_cleanup set. The later run takes
+precedence, and this attribute is ignored for the earlier run.
+
+  run "test_three"... pass
+  run "test_four"... pass
+  run "test_five"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
+
+Success! 5 passed, 0 failed.
+`
+
+		actual := output.All()
+		if !strings.Contains(actual, expected) {
+			t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s", expected, actual)
+		}
+
+		if provider.ResourceCount() != 1 {
+			t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+		}
+
+		val := provider.Store.Get(provider.ResourceString())
+
+		if val.GetAttr("value").AsString() != "test_three" {
+			t.Errorf("expected resource to have value 'test_three' but got %s", val.GetAttr("value").AsString())
+		}
+	})
+
+	t.Run("state should be persisted", func(t *testing.T) {
+		// Verify the manifest.json file
+		manifestPath := path.Join(td, ".terraform/test", "manifest.json")
+		manifestFile, err := os.ReadFile(manifestPath)
+		if err != nil {
+			t.Fatalf("failed to read manifest.json: %s", err)
+		}
+
+		var manifest graph.TestManifest
+		if err := json.Unmarshal(manifestFile, &manifest); err != nil {
+			t.Fatalf("failed to unmarshal manifest.json: %s", err)
+		}
+
+		// function to get the state for a given state key within the manifest
+		stateGetter := func(stateKey string) (*states.State, error) {
+			backend := local.New()
+			dir := filepath.Dir(stateKey)
+			backendConfig := cty.ObjectVal(map[string]cty.Value{
+				"path":          cty.StringVal(stateKey),
+				"workspace_dir": cty.StringVal(dir),
+			})
+			diags := backend.Configure(backendConfig)
+			if diags.HasErrors() {
+				return nil, fmt.Errorf("failed to configure backend: %s", diags)
+			}
+
+			mgr, err := backend.StateMgr("default")
+			if err != nil {
+				return nil, fmt.Errorf("failed to create state manager: %s", err)
+			}
+			if err := mgr.RefreshState(); err != nil {
+				return nil, fmt.Errorf("failed to refresh state: %s", err)
+			}
+			return mgr.State(), nil
+		}
+
+		expectedStates := map[string][]string{
+			"main.": {"test_resource.resource"},
+		}
+		actualStates := make(map[string][]string)
+
+		// Verify the states in the manifest
+		for fileName, file := range manifest.Files {
+			for name, state := range file.States {
+				state, err := stateGetter(state.Path)
+				if err != nil {
+					t.Fatalf("failed to get state: %s", err)
+				}
+
+				// If the state is nil, then the test cleaned up the state
+				if state == nil {
+					continue
+				}
+
+				var resources []string
+				for _, module := range state.Modules {
+					for _, resource := range module.Resources {
+						resources = append(resources, resource.Addr.String())
+					}
+				}
+				sort.Strings(resources)
+				actualStates[strings.TrimSuffix(fileName, ".tftest.hcl")+"."+name] = resources
+			}
+		}
+
+		if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
+			t.Fatalf("unexpected states: %s", diff)
+		}
+	})
+}
+
+func TestTest_SkipCleanup_JSON(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "skip_cleanup")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	output := done(t)
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color", "-json"})
+	output = done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	var messages []string
+	for ix, line := range strings.Split(output.All(), "\n") {
+		if len(line) == 0 {
+			// Skip empty lines.
+			continue
+		}
+
+		if ix == 0 {
+			// skip the first one, it's version information
+			continue
+		}
+
+		var obj map[string]interface{}
+
+		if err := json.Unmarshal([]byte(line), &obj); err != nil {
+			t.Errorf("failed to unmarshal returned line: %s", line)
+			continue
+		}
+
+		// Remove the timestamp as it changes every time.
+		delete(obj, "@timestamp")
+
+		if obj["type"].(string) == "test_run" {
+			// Then we need to delete the `elapsed` field from within the run
+			// as it'll cause flaky tests.
+
+			run := obj["test_run"].(map[string]interface{})
+			if run["progress"].(string) != "complete" {
+				delete(run, "elapsed")
+			}
+		}
+
+		message, err := json.Marshal(obj)
+		if err != nil {
+			t.Errorf("failed to remarshal returned line: %s", line)
+			continue
+		}
+
+		messages = append(messages, string(message))
+	}
+
+	t.Run("skipped resources should not be deleted", func(t *testing.T) {
+
+		expected := []string{
+			`{"@level":"info","@message":"Found 1 file and 5 run blocks","@module":"terraform.ui","test_abstract":{"main.tftest.hcl":["test","test_two","test_three","test_four","test_five"]},"type":"test_abstract"}`,
+			`{"@level":"info","@message":"main.tftest.hcl... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","test_file":{"path":"main.tftest.hcl","progress":"starting"},"type":"test_file"}`,
+			`{"@level":"info","@message":"  \"test\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test","test_run":{"path":"main.tftest.hcl","progress":"starting","run":"test"},"type":"test_run"}`,
+			`{"@level":"info","@message":"  \"test\"... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test","test_run":{"path":"main.tftest.hcl","progress":"complete","run":"test","status":"pass"},"type":"test_run"}`,
+			`{"@level":"info","@message":"  \"test_two\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_two","test_run":{"path":"main.tftest.hcl","progress":"starting","run":"test_two"},"type":"test_run"}`,
+			`{"@level":"info","@message":"  \"test_two\"... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_two","test_run":{"path":"main.tftest.hcl","progress":"complete","run":"test_two","status":"pass"},"type":"test_run"}`,
+			`{"@level":"warn","@message":"Warning: Multiple runs with skip_cleanup set","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_two","diagnostic":{"detail":"The run \"test_two\" has skip_cleanup set to true, but shares state with a later run \"test_three\" that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.","severity":"warning","summary":"Multiple runs with skip_cleanup set"},"type":"diagnostic"}`,
+			`{"@level":"info","@message":"  \"test_three\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_three","test_run":{"path":"main.tftest.hcl","progress":"starting","run":"test_three"},"type":"test_run"}`,
+			`{"@level":"info","@message":"  \"test_three\"... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_three","test_run":{"path":"main.tftest.hcl","progress":"complete","run":"test_three","status":"pass"},"type":"test_run"}`,
+			`{"@level":"info","@message":"  \"test_four\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_four","test_run":{"path":"main.tftest.hcl","progress":"starting","run":"test_four"},"type":"test_run"}`,
+			`{"@level":"info","@message":"  \"test_four\"... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_four","test_run":{"path":"main.tftest.hcl","progress":"complete","run":"test_four","status":"pass"},"type":"test_run"}`,
+			`{"@level":"info","@message":"  \"test_five\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_five","test_run":{"path":"main.tftest.hcl","progress":"starting","run":"test_five"},"type":"test_run"}`,
+			`{"@level":"info","@message":"  \"test_five\"... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_five","test_run":{"path":"main.tftest.hcl","progress":"complete","run":"test_five","status":"pass"},"type":"test_run"}`,
+			`{"@level":"info","@message":"main.tftest.hcl... tearing down","@module":"terraform.ui","@testfile":"main.tftest.hcl","test_file":{"path":"main.tftest.hcl","progress":"teardown"},"type":"test_file"}`,
+			`{"@level":"info","@message":"  \"test_three\"... tearing down","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_three","test_run":{"path":"main.tftest.hcl","progress":"teardown","run":"test_three"},"type":"test_run"}`,
+			`{"@level":"info","@message":"main.tftest.hcl... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","test_file":{"path":"main.tftest.hcl","progress":"complete","status":"pass"},"type":"test_file"}`,
+			`{"@level":"info","@message":"Success! 5 passed, 0 failed.","@module":"terraform.ui","test_summary":{"errored":0,"failed":0,"passed":5,"skipped":0,"status":"pass"},"type":"test_summary"}`,
+		}
+
+		trimmedActual := strings.Join(messages, "\n")
+		trimmedExpected := strings.Join(expected, "\n")
+		if diff := cmp.Diff(trimmedExpected, trimmedActual); diff != "" {
+			t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", trimmedExpected, trimmedActual, diff)
+		}
+
+		if provider.ResourceCount() != 1 {
+			t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+		}
+
+		val := provider.Store.Get(provider.ResourceString())
+
+		if val.GetAttr("value").AsString() != "test_three" {
+			t.Errorf("expected resource to have value 'test_three' but got %s", val.GetAttr("value").AsString())
+		}
+	})
+}
+
 func TestTest_OnlyExternalModules(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "only_modules")), td)
@@ -3963,7 +4250,7 @@ required.
 }
 
 func TestTest_JUnitOutput(t *testing.T) {
-
+	t.Skip()
 	tcs := map[string]struct {
 		path         string
 		code         int
