@@ -20,7 +20,6 @@ fmtcheck:
 importscheck:
 	"$(CURDIR)/scripts/goimportscheck.sh"
 
-
 staticcheck:
 	"$(CURDIR)/scripts/staticcheck.sh"
 
@@ -50,4 +49,4 @@ website/build-local:
 # under parallel conditions.
 .NOTPARALLEL:
 
-.PHONY: fmtcheck importscheck generate protobuf staticcheck syncdeps website website/local website/build-local
+.PHONY: fmtcheck importscheck generate protobuf staticcheck website website/local website/build-local
