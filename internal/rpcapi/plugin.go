@@ -35,14 +35,14 @@ func (p *corePlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, 
 }
 
 func (p *corePlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
-	generalOpts := &ServiceOpts{
-		ExperimentsAllowed: p.experimentsAllowed,
+	generalOpts := &serviceOpts{
+		experimentsAllowed: p.experimentsAllowed,
 	}
 	registerGRPCServices(s, generalOpts)
 	return nil
 }
 
-func registerGRPCServices(s *grpc.Server, opts *ServiceOpts) {
+func registerGRPCServices(s *grpc.Server, opts *serviceOpts) {
 	// We initially only register the setup server, because the registration
 	// of other services can vary depending on the capabilities negotiated
 	// during handshake.
@@ -50,7 +50,7 @@ func registerGRPCServices(s *grpc.Server, opts *ServiceOpts) {
 	setup.RegisterSetupServer(s, server)
 }
 
-func serverHandshake(s *grpc.Server, opts *ServiceOpts) func(context.Context, *setup.Handshake_Request, *stopper) (*setup.ServerCapabilities, error) {
+func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *setup.Handshake_Request, *stopper) (*setup.ServerCapabilities, error) {
 	dependenciesStub := dynrpcserver.NewDependenciesStub()
 	dependencies.RegisterDependenciesServer(s, dependenciesStub)
 	stacksStub := dynrpcserver.NewStacksStub()
@@ -98,8 +98,8 @@ func serverHandshake(s *grpc.Server, opts *ServiceOpts) func(context.Context, *s
 //
 // This could potentially be embedded inside a service-specific options
 // structure, if needed.
-type ServiceOpts struct {
-	ExperimentsAllowed bool
+type serviceOpts struct {
+	experimentsAllowed bool
 }
 
 func newServiceDisco(config *setup.Config) (*disco.Disco, error) {

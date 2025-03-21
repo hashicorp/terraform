@@ -66,8 +66,8 @@ func (c GRPCStacksClient) Execute(args []string, stdout, stderr io.Writer) int {
 	stacksServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
 		s = grpc.NewServer(opts...)
 		stacks.RegisterStacksServer(s, stacksServer)
-		stacksServer.ActivateRPCServer(newStacksServer(NewStopper(), handles, &ServiceOpts{
-			ExperimentsAllowed: true,
+		stacksServer.ActivateRPCServer(newStacksServer(newStopper(), handles, &serviceOpts{
+			experimentsAllowed: true,
 		}))
 		return s
 	}

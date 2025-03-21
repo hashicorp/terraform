@@ -23,7 +23,7 @@ type stopper struct {
 	mu sync.Mutex
 }
 
-func NewStopper() *stopper {
+func newStopper() *stopper {
 	return &stopper{
 		stops: make(map[stopChan]struct{}),
 	}

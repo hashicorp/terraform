@@ -37,7 +37,7 @@ type setupServer struct {
 func newSetupServer(initOthers func(context.Context, *setup.Handshake_Request, *stopper) (*setup.ServerCapabilities, error)) setup.SetupServer {
 	return &setupServer{
 		initOthers: initOthers,
-		stopper:    NewStopper(),
+		stopper:    newStopper(),
 	}
 }
 
