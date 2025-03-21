@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	localState "github.com/hashicorp/terraform/internal/backend/local-state"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -270,7 +271,8 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get current working directory")
 	}
-	err = os.Chdir(filepath.Dir(b.StatePath))
+	be := b.Backend.(*localState.Local)
+	err = os.Chdir(filepath.Dir(be.StatePath))
 	if err != nil {
 		t.Fatalf("failed to set temporary working directory")
 	}
@@ -320,7 +322,8 @@ func TestLocal_applyRefreshFalse(t *testing.T) {
 	b, _ := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
-	testStateFile(t, b.StatePath, testPlanState())
+	be := b.Backend.(*localState.Local)
+	testStateFile(t, be.StatePath, testPlanState())
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/plan")
 	defer configCleanup()
