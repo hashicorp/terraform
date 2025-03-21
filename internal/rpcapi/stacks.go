@@ -975,13 +975,13 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 				return span
 			}
 
-			//deferred := stackplan.EncodeDeferred(change.Reason)
+			deferred := stackplan.EncodeDeferred(change.Reason)
 
 			send(&stacks.StackChangeProgress{
 				Event: &stacks.StackChangeProgress_DeferredResourceInstancePlannedChange_{
 					DeferredResourceInstancePlannedChange: &stacks.StackChangeProgress_DeferredResourceInstancePlannedChange{
 						Change:   ripc,
-						Deferred: nil, //deferred,
+						Deferred: deferred,
 					},
 				},
 			})
@@ -1075,7 +1075,6 @@ func resourceInstancePlanned(ric *hooks.ResourceInstanceChange) (*stacks.StackCh
 }
 
 func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks.ComponentInstanceStatus) *stacks.StackChangeProgress {
-	/**
 	return &stacks.StackChangeProgress{
 		Event: &stacks.StackChangeProgress_ComponentInstanceStatus_{
 			ComponentInstanceStatus: &stacks.StackChangeProgress_ComponentInstanceStatus{
@@ -1087,8 +1086,6 @@ func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks
 			},
 		},
 	}
-	**/
-	return nil
 }
 
 // syncPlanStackChangesServer is a wrapper around a
