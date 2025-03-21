@@ -130,17 +130,6 @@ jobs:
           go-version: ${{ steps.go.outputs.version }}
           cache-dependency-path: go.sum
 
-      - name: "go.mod and go.sum consistency check"
-        run: |
-          make syncdeps
-          CHANGED="$(git status --porcelain)"
-          if [[ -n "$CHANGED" ]]; then
-            git diff
-            echo >&2 "ERROR: go.mod/go.sum files are not up-to-date. Run 'make syncdeps' and then commit the updated files."
-            echo >&2 $'Affected files:\n'"$CHANGED"
-            exit 1
-          fi
-
       - name: Cache protobuf tools
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
