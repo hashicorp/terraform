@@ -420,11 +420,11 @@ func (b *Cloud) AssertImportCompatible(config *configs.Config) error {
 		// Second, check the agent version is high enough.
 		agentEnv, isSet := os.LookupEnv("TFC_AGENT_VERSION")
 		if !isSet {
-			return fmt.Errorf("Error reading Terraform Cloud agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: TFC_AGENT_VERSION not present.")
+			return fmt.Errorf("Error reading HCP Terraform Agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: TFC_AGENT_VERSION not present.")
 		}
 		currentAgentVersion, err := version.NewVersion(agentEnv)
 		if err != nil {
-			return fmt.Errorf("Error parsing Terraform Cloud agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: %s", err)
+			return fmt.Errorf("Error parsing HCP Terraform Agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: %s", err)
 		}
 		desiredAgentVersion, _ := version.NewVersion("1.10")
 		if currentAgentVersion.LessThan(desiredAgentVersion) {
