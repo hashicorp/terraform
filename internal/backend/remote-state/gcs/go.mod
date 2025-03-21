@@ -8,7 +8,7 @@ require (
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/zclconf/go-cty v1.16.2
-	golang.org/x/oauth2 v0.23.0
+	golang.org/x/oauth2 v0.27.0
 	google.golang.org/api v0.126.0
 	google.golang.org/genproto v0.0.0-20230822172742-b8732ec3820d
 )
@@ -38,9 +38,9 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	golang.org/x/crypto v0.33.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
 	golang.org/x/mod v0.23.0 // indirect
-	golang.org/x/net v0.35.0 // indirect
+	golang.org/x/net v0.36.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect

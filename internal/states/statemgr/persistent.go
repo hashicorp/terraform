@@ -30,7 +30,7 @@ type Persistent interface {
 
 // OutputReader is the interface for managers that fetches output values from state
 // or another source. This is a refinement of fetching the entire state and digging
-// the output values from it because enhanced backends can apply special permissions
+// the output values from it because operations backends can apply special permissions
 // to differentiate reading the state and reading the outputs within the state.
 type OutputReader interface {
 	// GetRootOutputValues fetches the root module output values from state or another source

@@ -43,7 +43,7 @@ type StackConfig struct {
 	outputValues   map[stackaddrs.OutputValue]*OutputValueConfig
 	stackCalls     map[stackaddrs.StackCall]*StackCallConfig
 	components     map[stackaddrs.Component]*ComponentConfig
-	removed        map[stackaddrs.Component]*RemovedConfig
+	removed        map[stackaddrs.Component][]*RemovedConfig
 	providers      map[stackaddrs.ProviderConfig]*ProviderConfig
 }
 
@@ -64,7 +64,7 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.Confi
 		outputValues:   make(map[stackaddrs.OutputValue]*OutputValueConfig, len(config.Stack.Declarations.OutputValues)),
 		stackCalls:     make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
 		components:     make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
-		removed:        make(map[stackaddrs.Component]*RemovedConfig, len(config.Stack.Declarations.Removed)),
+		removed:        make(map[stackaddrs.Component][]*RemovedConfig, len(config.Stack.Declarations.Removed)),
 		providers:      make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(config.Stack.Declarations.ProviderConfigs)),
 	}
 }
@@ -429,18 +429,21 @@ func (s *StackConfig) Components(ctx context.Context) map[stackaddrs.Component]*
 // Removed returns a [RemovedConfig] representing the component call
 // declared within this stack config that matches the given address, or nil if
 // there is no such declaration.
-func (s *StackConfig) Removed(ctx context.Context, addr stackaddrs.Component) *RemovedConfig {
+func (s *StackConfig) Removed(ctx context.Context, addr stackaddrs.Component) []*RemovedConfig {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	ret, ok := s.removed[addr]
 	if !ok {
-		cfg, ok := s.config.Stack.Removed[addr.Name]
+		cfgs, ok := s.config.Stack.Removed[addr.Name]
 		if !ok {
 			return nil
 		}
-		cfgAddr := stackaddrs.Config(s.Addr(), addr)
-		ret = newRemovedConfig(s.main, cfgAddr, cfg)
+		for _, cfg := range cfgs {
+			cfgAddr := stackaddrs.Config(s.Addr(), addr)
+			removed := newRemovedConfig(s.main, cfgAddr, cfg)
+			ret = append(ret, removed)
+		}
 		s.removed[addr] = ret
 	}
 	return ret
@@ -448,11 +451,11 @@ func (s *StackConfig) Removed(ctx context.Context, addr stackaddrs.Component) *R
 
 // Removeds returns a map of the objects representing all of the
 // removed calls declared inside this stack configuration.
-func (s *StackConfig) Removeds(ctx context.Context) map[stackaddrs.Component]*RemovedConfig {
+func (s *StackConfig) Removeds(ctx context.Context) map[stackaddrs.Component][]*RemovedConfig {
 	if len(s.config.Stack.Removed) == 0 {
 		return nil
 	}
-	ret := make(map[stackaddrs.Component]*RemovedConfig, len(s.config.Stack.Removed))
+	ret := make(map[stackaddrs.Component][]*RemovedConfig, len(s.config.Stack.Removed))
 	for name := range s.config.Stack.Removed {
 		addr := stackaddrs.Component{Name: name}
 		ret[addr] = s.Removed(ctx, addr)

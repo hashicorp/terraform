@@ -5,7 +5,10 @@ package tfdiags
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -133,4 +136,38 @@ func TraversalStr(traversal hcl.Traversal) string {
 		}
 	}
 	return buf.String()
+}
+
+// FormatValueStr produces a JSON-compatible, human-readable representation of a
+// cty.Value that is suitable for display in the UI.
+//
+// The full representation of the value is produced, but with some redaction to
+// nodes within the value sensitive and ephemeral marks.
+// e.g {"a": "10", "b": "password"} => {"a": "10", "b": "(sensitive value)"}
+func FormatValueStr(val cty.Value) (string, error) {
+	var buf bytes.Buffer
+
+	val, err := cty.Transform(val, func(path cty.Path, val cty.Value) (cty.Value, error) {
+		// If a value is sensitive or ephemeral or unknown, we redact it, otherwise
+		// we return the value as is.
+		if val.HasMark(marks.Sensitive) || val.HasMark(marks.Ephemeral) || !val.IsKnown() {
+			return cty.StringVal(CompactValueStr(val)), nil
+		}
+		return val, nil
+	})
+	if err != nil {
+		return "", fmt.Errorf("unexpected error transforming value: %s", err)
+	}
+
+	jsonVal, err := ctyjson.Marshal(val, val.Type())
+	if err != nil {
+		return "", fmt.Errorf("unexpected error marshalling value: %s", err)
+	}
+
+	// indent the JSON output for better readability
+	if err := json.Indent(&buf, jsonVal, "", "  "); err != nil {
+		return "", fmt.Errorf("unexpected error formatting JSON: %s", err)
+	}
+
+	return buf.String(), nil
 }

@@ -39,6 +39,10 @@ func (u *unknownProvider) GetProviderSchema() providers.GetProviderSchemaRespons
 	return u.unconfiguredClient.GetProviderSchema()
 }
 
+func (u *unknownProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	return u.unconfiguredClient.GetResourceIdentitySchemas()
+}
+
 func (u *unknownProvider) ValidateProviderConfig(request providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
 	// This is offline functionality, so we can hand it off to the unconfigured
 	// client.
@@ -68,6 +72,12 @@ func (u *unknownProvider) UpgradeResourceState(request providers.UpgradeResource
 	// This is offline functionality, so we can hand it off to the unconfigured
 	// client.
 	return u.unconfiguredClient.UpgradeResourceState(request)
+}
+
+func (u *unknownProvider) UpgradeResourceIdentity(request providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse {
+	// This is offline functionality, so we can hand it off to the unconfigured
+	// client.
+	return u.unconfiguredClient.UpgradeResourceIdentity(request)
 }
 
 func (u *unknownProvider) ConfigureProvider(request providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
@@ -115,7 +125,7 @@ func (u *unknownProvider) PlanResourceChange(request providers.PlanResourceChang
 		// library, but it is doing exactly what we need it to do.
 
 		schema := u.GetProviderSchema().ResourceTypes[request.TypeName]
-		val, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, nil, schema.Block)
+		val, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, nil, schema.Body)
 		if diags.HasErrors() {
 			// All the potential errors we get back from this function are
 			// related to the user badly defining mocks. We should never hit
@@ -169,7 +179,7 @@ func (u *unknownProvider) ImportResourceState(request providers.ImportResourceSt
 			ImportedResources: []providers.ImportedResource{
 				{
 					TypeName: request.TypeName,
-					State:    cty.UnknownVal(schema.Block.ImpliedType()),
+					State:    cty.UnknownVal(schema.Body.ImpliedType()),
 				},
 			},
 			Deferred: &providers.Deferred{
@@ -213,7 +223,7 @@ func (u *unknownProvider) ReadDataSource(request providers.ReadDataSourceRequest
 		// library, but it is doing exactly what we need it to do.
 
 		schema := u.GetProviderSchema().DataSources[request.TypeName]
-		val, diags := mocking.PlanComputedValuesForResource(request.Config, nil, schema.Block)
+		val, diags := mocking.PlanComputedValuesForResource(request.Config, nil, schema.Body)
 		if diags.HasErrors() {
 			// All the potential errors we get back from this function are
 			// related to the user badly defining mocks. We should never hit

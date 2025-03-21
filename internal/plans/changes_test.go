@@ -7,37 +7,82 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/zclconf/go-cty/cty"
 )
 
 func TestChangeEncodeSensitive(t *testing.T) {
-	testVals := []cty.Value{
-		cty.ObjectVal(map[string]cty.Value{
-			"ding": cty.StringVal("dong").Mark(marks.Sensitive),
-		}),
-		cty.StringVal("bleep").Mark(marks.Sensitive),
-		cty.ListVal([]cty.Value{cty.UnknownVal(cty.String).Mark(marks.Sensitive)}),
+	testVals := []struct {
+		val    cty.Value
+		schema providers.Schema
+	}{
+		{
+			val: cty.ObjectVal(map[string]cty.Value{
+				"ding": cty.StringVal("dong").Mark(marks.Sensitive),
+			}),
+			schema: providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"ding": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+			},
+		},
+		{
+			val: cty.ObjectVal(map[string]cty.Value{
+				"ding": cty.StringVal("bleep").Mark(marks.Sensitive),
+			}),
+			schema: providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"ding": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+			},
+		},
+		{
+			val: cty.ObjectVal(map[string]cty.Value{
+				"ding": cty.ListVal([]cty.Value{cty.UnknownVal(cty.String).Mark(marks.Sensitive)}),
+			}),
+			schema: providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"ding": {
+							Type:     cty.List(cty.String),
+							Required: false,
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, v := range testVals {
 		t.Run(fmt.Sprintf("%#v", v), func(t *testing.T) {
 			change := Change{
-				Before: cty.NullVal(v.Type()),
-				After:  v,
+				Before: cty.NullVal(v.val.Type()),
+				After:  v.val,
 			}
 
-			encoded, err := change.Encode(v.Type())
+			encoded, err := change.Encode(&v.schema)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			decoded, err := encoded.Decode(v.Type())
+			decoded, err := encoded.Decode(&v.schema)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			if !v.RawEquals(decoded.After) {
+			if !v.val.RawEquals(decoded.After) {
 				t.Fatalf("%#v != %#v\n", decoded.After, v)
 			}
 		})

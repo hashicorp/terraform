@@ -7,7 +7,12 @@ Error: Test assertion failed
   on main.tftest.hcl line 7, in run "failing_assertion":
    7:     condition     = local.number < 0
     ├────────────────
-    │ local.number is 10
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │ - 10
+    │ + 0
+
 
 local variable 'number' has a value greater than zero, so assertion 2 will fail
 ]]></failure>

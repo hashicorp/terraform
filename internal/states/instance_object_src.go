@@ -4,12 +4,15 @@
 package states
 
 import (
+	"fmt"
+
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 // ResourceInstanceObjectSrc is a not-fully-decoded version of
@@ -40,6 +43,10 @@ type ResourceInstanceObjectSrc struct {
 	// schema version should be recorded in the SchemaVersion field.
 	AttrsJSON []byte
 
+	IdentitySchemaVersion uint64
+
+	IdentityJSON []byte
+
 	// AttrsFlat is a legacy form of attributes used in older state file
 	// formats, and in the new state format for objects that haven't yet been
 	// upgraded. This attribute is mutually exclusive with Attrs: for any
@@ -66,21 +73,27 @@ type ResourceInstanceObjectSrc struct {
 
 	// decodeValueCache stored the decoded value for repeated decodings.
 	decodeValueCache cty.Value
+	// decodeIdentityCache stored the decoded identity for repeated decodings.
+	decodeIdentityCache cty.Value
 }
 
 // Decode unmarshals the raw representation of the object attributes. Pass the
-// implied type of the corresponding resource type schema for correct operation.
+// schema of the corresponding resource type for correct operation.
 //
 // Before calling Decode, the caller must check that the SchemaVersion field
 // exactly equals the version number of the schema whose implied type is being
 // passed, or else the result is undefined.
 //
+// If the object has an identity, the schema must also contain a resource
+// identity schema for the identity to be decoded.
+//
 // The returned object may share internal references with the receiver and
 // so the caller must not mutate the receiver any further once once this
 // method is called.
-func (os *ResourceInstanceObjectSrc) Decode(ty cty.Type) (*ResourceInstanceObject, error) {
+func (os *ResourceInstanceObjectSrc) Decode(schema providers.Schema) (*ResourceInstanceObject, error) {
 	var val cty.Value
 	var err error
+	attrsTy := schema.Body.ImpliedType()
 
 	switch {
 	case os.decodeValueCache != cty.NilVal:
@@ -88,21 +101,32 @@ func (os *ResourceInstanceObjectSrc) Decode(ty cty.Type) (*ResourceInstanceObjec
 
 	case os.AttrsFlat != nil:
 		// Legacy mode. We'll do our best to unpick this from the flatmap.
-		val, err = hcl2shim.HCL2ValueFromFlatmap(os.AttrsFlat, ty)
+		val, err = hcl2shim.HCL2ValueFromFlatmap(os.AttrsFlat, attrsTy)
 		if err != nil {
 			return nil, err
 		}
 
 	default:
-		val, err = ctyjson.Unmarshal(os.AttrsJSON, ty)
+		val, err = ctyjson.Unmarshal(os.AttrsJSON, attrsTy)
 		val = marks.MarkPaths(val, marks.Sensitive, os.AttrSensitivePaths)
 		if err != nil {
 			return nil, err
 		}
 	}
 
+	var identity cty.Value
+	if os.decodeIdentityCache != cty.NilVal {
+		identity = os.decodeIdentityCache
+	} else if os.IdentityJSON != nil {
+		identity, err = ctyjson.Unmarshal(os.IdentityJSON, schema.Identity.ImpliedType())
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode identity: %s. This is most likely a bug in the Provider, providers must not change the identity schema without updating the identity schema version", err.Error())
+		}
+	}
+
 	return &ResourceInstanceObject{
 		Value:               val,
+		Identity:            identity,
 		Status:              os.Status,
 		Dependencies:        os.Dependencies,
 		Private:             os.Private,
@@ -129,5 +153,18 @@ func (os *ResourceInstanceObjectSrc) CompleteUpgrade(newAttrs cty.Value, newType
 
 	new.AttrsJSON = src
 	new.SchemaVersion = newSchemaVersion
+	return new, nil
+}
+
+func (os *ResourceInstanceObjectSrc) CompleteIdentityUpgrade(newAttrs cty.Value, schema providers.Schema) (*ResourceInstanceObjectSrc, error) {
+	new := os.DeepCopy()
+
+	src, err := ctyjson.Marshal(newAttrs, schema.Identity.ImpliedType())
+	if err != nil {
+		return nil, err
+	}
+
+	new.IdentityJSON = src
+	new.IdentitySchemaVersion = uint64(schema.IdentityVersion)
 	return new, nil
 }

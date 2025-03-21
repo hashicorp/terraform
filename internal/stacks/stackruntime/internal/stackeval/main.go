@@ -216,6 +216,17 @@ func (m *Main) Inspecting() bool {
 	return m.inspecting != nil
 }
 
+// ValidatingOpts returns the validation options to use during the validate phase,
+// or panics if this [Main] was not instantiated for validation.
+//
+// Do not modify anything reachable through the returned pointer.
+func (m *Main) ValidatingOpts() *ValidateOpts {
+	if !m.Validating() {
+		panic("stacks language runtime is not instantiated for validating")
+	}
+	return &m.validating.opts
+}
+
 // PlanningOpts returns the planning options to use during the planning phase,
 // or panics if this [Main] was not instantiated for planning.
 //
@@ -678,7 +689,7 @@ func (m *Main) PlanTimestamp() time.Time {
 func (m *Main) DependencyLocks(phase EvalPhase) *depsfile.Locks {
 	switch phase {
 	case ValidatePhase:
-		return &m.validating.opts.DependencyLocks
+		return &m.ValidatingOpts().DependencyLocks
 	case PlanPhase:
 		return &m.PlanningOpts().DependencyLocks
 	case ApplyPhase:

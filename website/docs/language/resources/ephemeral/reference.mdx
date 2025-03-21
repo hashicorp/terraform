@@ -1,9 +1,9 @@
 ---
-page_title: Ephemeral resource configuration reference
-description: Learn to define ephemeral resource blocks in Terraform configurations. Ephemeral resource blocks represent temporary resources that Terraform does not store in state.
+page_title: Ephemeral block configuration reference
+description: Learn to define ephemeral blocks in Terraform configurations to keep temporary and sensitive information out of Terraform state and plan files.
 ---
 
-# Ephemeral resource configuration reference
+# Ephemeral block configuration reference
 
 This topic provides reference information for the `ephemeral` block. 
 
@@ -16,6 +16,10 @@ Ephemeral resources are Terraform resources that are essentially temporary. Ephe
 ## Dependency graph
 
 Ephemeral resources form nodes in Terraform's dependency graph, which interact similarly as resources and data sources. For example, when a resource or data source depends on an attribute of an ephemeral resource, Terraform automatically provisions the ephemeral resource first.
+
+## Defer provisioning
+
+If an input argument of an ephemeral resource references a value that Terraform does not know yet, but can learn during or after a plan, Terraform defers executing that resource until the apply stage. Deferring execution lets Terraform ensure it has all of the information it needs to properly provision the ephemeral resource.
 
 ## Configuration model
 
@@ -47,7 +51,7 @@ You can only reference ephemeral resources in specific ephemeral contexts or
 Terraform throws an error. The following are valid contexts for referencing
 ephemeral resources:
 
-* In a [write-only argument](/terraform/language/resources/ephemeral#write-only-arguments)
+* In a [write-only argument](/terraform/language/resources/ephemeral/write-only)
 * In another ephemeral resource
 * In [local values](/terraform/language/values/locals#ephemeral-values)
 * In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)
@@ -75,7 +79,7 @@ an ephemeral resource. Since these credentials are managed by an ephemeral resou
 
 ```hcl
 ephemeral "aws_secretsmanager_secret_version" "db_master" {
-  secret_id = data.aws_db_instance.example.master_user_secret[0].secret_arn
+  secret_id = aws_secretsmanager_secret_version.db_password.secret_id
 }
 
 locals {
@@ -83,8 +87,8 @@ locals {
 }
 
 provider "postgresql" {
-  host     = data.aws_db_instance.example.address
-  port     = data.aws_db_instance.example.port
+  host     = aws_db_instance.example.address
+  port     = aws_db_instance.example.port
   username = local.credentials["username"]
   password = local.credentials["password"]
 }

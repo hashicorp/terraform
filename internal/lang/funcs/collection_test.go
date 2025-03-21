@@ -1833,6 +1833,37 @@ func TestTranspose(t *testing.T) {
 			}).WithMarks(cty.NewValueMarks("beep", "boop", "bloop")),
 			false,
 		},
+		{
+			cty.NullVal(cty.Map(cty.List(cty.String))),
+			cty.NilVal,
+			true,
+		},
+		{
+			cty.MapVal(map[string]cty.Value{
+				"test": cty.NullVal(cty.List(cty.String)),
+			}),
+			cty.NilVal,
+			true,
+		},
+		{
+			cty.MapVal(map[string]cty.Value{
+				"test": cty.ListVal([]cty.Value{cty.NullVal(cty.String)}),
+			}),
+			cty.NilVal,
+			true,
+		},
+		{
+			cty.UnknownVal(cty.Map(cty.List(cty.String))),
+			cty.UnknownVal(cty.Map(cty.List(cty.String))).RefineNotNull(),
+			false,
+		},
+		{
+			cty.MapVal(map[string]cty.Value{
+				"test": cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
+			}),
+			cty.UnknownVal(cty.Map(cty.List(cty.String))).RefineNotNull(),
+			false,
+		},
 	}
 
 	for _, test := range tests {

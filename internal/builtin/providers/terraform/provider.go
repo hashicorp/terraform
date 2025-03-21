@@ -77,6 +77,14 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return resp
 }
 
+func (p *Provider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	return providers.GetResourceIdentitySchemasResponse{
+		IdentityTypes: map[string]providers.IdentitySchema{
+			"terraform_data": dataStoreResourceIdentitySchema(),
+		},
+	}
+}
+
 // ValidateProviderConfig is used to validate the configuration values.
 func (p *Provider) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
 	// At this moment there is nothing to configure for the terraform provider,
@@ -148,6 +156,10 @@ func (p *Provider) Stop() error {
 // result is used for any further processing.
 func (p *Provider) UpgradeResourceState(req providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
 	return upgradeDataStoreResourceState(req)
+}
+
+func (p *Provider) UpgradeResourceIdentity(req providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse {
+	return upgradeDataStoreResourceIdentity(req)
 }
 
 // ReadResource refreshes a resource and returns its current state.

@@ -5,7 +5,6 @@ package providers
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 )
 
 // ProviderSchema is an overall container for all of the schemas for all
@@ -14,26 +13,25 @@ import (
 type ProviderSchema = GetProviderSchemaResponse
 
 // SchemaForResourceType attempts to find a schema for the given mode and type.
-// Returns nil if no such schema is available.
-func (ss ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeName string) (schema *configschema.Block, version uint64) {
+// Returns an empty schema if none is available.
+func (ss ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeName string) (schema Schema) {
 	switch mode {
 	case addrs.ManagedResourceMode:
-		res := ss.ResourceTypes[typeName]
-		return res.Block, uint64(res.Version)
+		return ss.ResourceTypes[typeName]
 	case addrs.DataResourceMode:
-		// Data resources don't have schema versions right now, since state is discarded for each refresh
-		return ss.DataSources[typeName].Block, 0
+		return ss.DataSources[typeName]
 	case addrs.EphemeralResourceMode:
-		// Ephemeral resources don't have schema versions because their objects never outlive a single phase
-		return ss.EphemeralResourceTypes[typeName].Block, 0
+		return ss.EphemeralResourceTypes[typeName]
 	default:
 		// Shouldn't happen, because the above cases are comprehensive.
-		return nil, 0
+		return Schema{}
 	}
 }
 
 // SchemaForResourceAddr attempts to find a schema for the mode and type from
-// the given resource address. Returns nil if no such schema is available.
-func (ss ProviderSchema) SchemaForResourceAddr(addr addrs.Resource) (schema *configschema.Block, version uint64) {
+// the given resource address. Returns an empty schema if none is available.
+func (ss ProviderSchema) SchemaForResourceAddr(addr addrs.Resource) (schema Schema) {
 	return ss.SchemaForResourceType(addr.Mode, addr.Type)
 }
+
+type ResourceIdentitySchemas = GetResourceIdentitySchemasResponse

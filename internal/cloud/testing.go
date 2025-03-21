@@ -378,7 +378,7 @@ func testLocalBackend(t *testing.T, cloud *Cloud) backendrun.OperationsBackend {
 	p := backendLocal.TestLocalProvider(t, b, "null", providers.ProviderSchema{
 		ResourceTypes: map[string]providers.Schema{
 			"null_resource": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {Type: cty.String, Computed: true},
 					},
@@ -617,7 +617,7 @@ func (v *unparsedVariableValue) ParseVariableValue(mode configs.VariableParsingM
 	}, tfdiags.Diagnostics{}
 }
 
-// testVariable returns a backend.UnparsedVariableValue used for testing.
+// testVariable returns a backendrun.UnparsedVariableValue used for testing.
 func testVariables(s terraform.ValueSourceType, vs ...string) map[string]backendrun.UnparsedVariableValue {
 	vars := make(map[string]backendrun.UnparsedVariableValue, len(vs))
 	for _, v := range vs {

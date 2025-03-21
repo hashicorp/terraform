@@ -10,9 +10,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/states"
@@ -25,7 +25,7 @@ type StateProducer interface {
 	Addr() stackaddrs.AbsComponentInstance
 
 	// ResourceSchema returns the schema for a resource type from a provider.
-	ResourceSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, resourceType string) (*configschema.Block, error)
+	ResourceSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, resourceType string) (providers.Schema, error)
 }
 
 func FromState(ctx context.Context, state *states.State, plan *stackplan.Component, applyTimeInputs cty.Value, affectedResources addrs.Set[addrs.AbsResourceInstanceObject], producer StateProducer) ([]AppliedChange, tfdiags.Diagnostics) {
@@ -37,7 +37,7 @@ func FromState(ctx context.Context, state *states.State, plan *stackplan.Compone
 	for _, rioAddr := range affectedResources {
 		os := state.ResourceInstanceObjectSrc(rioAddr)
 		var providerConfigAddr addrs.AbsProviderConfig
-		var schema *configschema.Block
+		var schema providers.Schema
 		if os != nil {
 			rAddr := rioAddr.ResourceInstance.ContainingResource()
 			rs := state.Resource(rAddr)

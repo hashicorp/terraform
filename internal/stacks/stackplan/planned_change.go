@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
@@ -364,9 +363,9 @@ type PlannedChangeResourceInstancePlanned struct {
 	// Schema MUST be the same schema that was used to encode the dynamic
 	// values inside ChangeSrc and PriorStateSrc.
 	//
-	// Can be nil if and only if ChangeSrc and PriorStateSrc are both nil
+	// Can be empty if and only if ChangeSrc and PriorStateSrc are both nil
 	// themselves.
-	Schema *configschema.Block
+	Schema providers.Schema
 }
 
 var _ PlannedChange = (*PlannedChangeResourceInstancePlanned)(nil)

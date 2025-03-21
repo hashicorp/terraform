@@ -4,6 +4,7 @@
 package rpcapi
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"go.opentelemetry.io/otel/attribute"
 	otelCodes "go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -22,13 +24,17 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackmigrate"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -36,6 +42,7 @@ type stacksServer struct {
 	stacks.UnimplementedStacksServer
 
 	stopper            *stopper
+	services           *disco.Disco
 	handles            *handleTable
 	experimentsAllowed bool
 
@@ -53,11 +60,16 @@ type stacksServer struct {
 	planTimestampOverride *time.Time
 }
 
-var _ stacks.StacksServer = (*stacksServer)(nil)
+var (
+	_ stacks.StacksServer = (*stacksServer)(nil)
 
-func newStacksServer(stopper *stopper, handles *handleTable, opts *serviceOpts) *stacksServer {
+	WorkspaceNameEnvVar = "TF_WORKSPACE"
+)
+
+func newStacksServer(stopper *stopper, handles *handleTable, services *disco.Disco, opts *serviceOpts) *stacksServer {
 	return &stacksServer{
 		stopper:            stopper,
+		services:           services,
 		handles:            handles,
 		experimentsAllowed: opts.experimentsAllowed,
 	}
@@ -228,18 +240,42 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 
 	// Currently Components are the only thing that can be removed
 	for name, rc := range cfgNode.Stack.Removed {
-		cProto := &stacks.FindStackConfigurationComponents_Removed{
-			SourceAddr:    rc.FinalSourceAddr.String(),
-			ComponentAddr: stackaddrs.Config(stackAddr, stackaddrs.Component{Name: rc.FromComponent.Name}).String(),
-			Destroy:       rc.Destroy,
+		var blocks []*stacks.FindStackConfigurationComponents_Removed_Block
+		for _, rc := range rc {
+			cProto := &stacks.FindStackConfigurationComponents_Removed_Block{
+				SourceAddr:    rc.FinalSourceAddr.String(),
+				ComponentAddr: stackaddrs.Config(stackAddr, stackaddrs.Component{Name: rc.FromComponent.Name}).String(),
+				Destroy:       rc.Destroy,
+			}
+			switch {
+			case rc.ForEach != nil:
+				cProto.Instances = stacks.FindStackConfigurationComponents_FOR_EACH
+			default:
+				cProto.Instances = stacks.FindStackConfigurationComponents_SINGLE
+			}
+			blocks = append(blocks, cProto)
 		}
-		switch {
-		case rc.ForEach != nil:
-			cProto.Instances = stacks.FindStackConfigurationComponents_FOR_EACH
-		default:
-			cProto.Instances = stacks.FindStackConfigurationComponents_SINGLE
+		ret.Removed[name] = &stacks.FindStackConfigurationComponents_Removed{
+			// in order to ensure as much backwards and forwards compatibility
+			// as possible, we're going to set the deprecated single fields
+			// with the first run block
+
+			SourceAddr: rc[0].FinalSourceAddr.String(),
+			Instances: func() stacks.FindStackConfigurationComponents_Instances {
+				switch {
+				case rc[0].ForEach != nil:
+					return stacks.FindStackConfigurationComponents_FOR_EACH
+				default:
+					return stacks.FindStackConfigurationComponents_SINGLE
+				}
+			}(),
+			ComponentAddr: stackaddrs.Config(stackAddr, stackaddrs.Component{Name: rc[0].FromComponent.Name}).String(),
+			Destroy:       rc[0].Destroy,
+
+			// We return all the values here:
+
+			Blocks: blocks,
 		}
-		ret.Removed[name] = cProto
 	}
 
 	return ret
@@ -767,6 +803,66 @@ func (s *stacksServer) OpenStackInspector(ctx context.Context, req *stacks.OpenS
 	}, nil
 }
 
+func (s *stacksServer) ListResourceIdentities(ctx context.Context, req *stacks.ListResourceIdentities_Request) (*stacks.ListResourceIdentities_Response, error) {
+	hnd := handle[*stackstate.State](req.StateHandle)
+	stackState := s.handles.StackState(hnd)
+	if stackState == nil {
+		return nil, status.Error(codes.InvalidArgument, "the given stack state handle is invalid")
+	}
+
+	depsHnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
+	var deps *depsfile.Locks
+	if !depsHnd.IsNil() {
+		deps = s.handles.DependencyLocks(depsHnd)
+		if deps == nil {
+			return nil, status.Error(codes.InvalidArgument, "the given dependency locks handle is invalid")
+		}
+	} else {
+		deps = depsfile.NewLocks()
+	}
+	providerCacheHnd := handle[*providercache.Dir](req.ProviderCacheHandle)
+	var providerCache *providercache.Dir
+	if !providerCacheHnd.IsNil() {
+		providerCache = s.handles.ProviderPluginCache(providerCacheHnd)
+		if providerCache == nil {
+			return nil, status.Error(codes.InvalidArgument, "the given provider cache handle is invalid")
+		}
+	}
+	// NOTE: providerCache can be nil if no handle was provided, in which
+	// case the call can only use built-in providers. All code below
+	// must avoid panicking when providerCache is nil, but is allowed to
+	// return an InvalidArgument error in that case.
+	// (providerFactoriesForLocks explicitly supports a nil providerCache)
+	providerFactories, err := providerFactoriesForLocks(deps, providerCache)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+	}
+
+	identitySchemas := make(map[addrs.Provider]map[string]providers.IdentitySchema)
+	for name, factory := range providerFactories {
+		provider, err := factory()
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "provider %s failed to initialize: %s", name, err)
+		}
+
+		schema := provider.GetResourceIdentitySchemas()
+		if len(schema.Diagnostics) > 0 {
+			return nil, status.Errorf(codes.InvalidArgument, "provider %s failed to retrieve schema: %s", name, schema.Diagnostics.Err())
+		} else {
+			identitySchemas[name] = schema.IdentityTypes
+		}
+	}
+
+	resourceIdentities, err := listResourceIdentities(stackState, identitySchemas)
+	if err != nil {
+		return nil, err
+	}
+
+	return &stacks.ListResourceIdentities_Response{
+		Resource: resourceIdentities,
+	}, nil
+}
+
 func (s *stacksServer) InspectExpressionResult(ctx context.Context, req *stacks.InspectExpressionResult_Request) (*stacks.InspectExpressionResult_Response, error) {
 	hnd := handle[*stacksInspector](req.StackInspectorHandle)
 	insp := s.handles.StackInspector(hnd)
@@ -774,6 +870,140 @@ func (s *stacksServer) InspectExpressionResult(ctx context.Context, req *stacks.
 		return nil, status.Error(codes.InvalidArgument, "the given stack inspector handle is invalid")
 	}
 	return insp.InspectExpressionResult(ctx, req)
+}
+
+func (s *stacksServer) OpenTerraformState(ctx context.Context, request *stacks.OpenTerraformState_Request) (*stacks.OpenTerraformState_Response, error) {
+	switch data := request.State.(type) {
+	case *stacks.OpenTerraformState_Request_ConfigPath:
+		// Load the state from the backend.
+		// This function should return an empty state even if the diags
+		// has errors. This makes it easier for the caller, as they should
+		// close the state handle regardless of the diags.
+		loader := stackmigrate.Loader{Discovery: s.services}
+		state, diags := loader.LoadState(data.ConfigPath)
+
+		hnd := s.handles.NewTerraformState(state)
+		return &stacks.OpenTerraformState_Response{
+			StateHandle: hnd.ForProtobuf(),
+			Diagnostics: diagnosticsToProto(diags),
+		}, nil
+
+	case *stacks.OpenTerraformState_Request_Raw:
+		// load the state from the raw data
+		file, err := statefile.Read(bytes.NewReader(data.Raw))
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid raw state data: %s", err)
+		}
+
+		hnd := s.handles.NewTerraformState(file.State)
+		return &stacks.OpenTerraformState_Response{
+			StateHandle: hnd.ForProtobuf(),
+		}, nil
+
+	default:
+		return nil, status.Error(codes.InvalidArgument, "invalid state source")
+	}
+}
+
+func (s *stacksServer) CloseTerraformState(ctx context.Context, request *stacks.CloseTerraformState_Request) (*stacks.CloseTerraformState_Response, error) {
+	hnd := handle[*states.State](request.StateHandle)
+	err := s.handles.CloseTerraformState(hnd)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	return new(stacks.CloseTerraformState_Response), nil
+}
+
+func (s *stacksServer) MigrateTerraformState(request *stacks.MigrateTerraformState_Request, server stacks.Stacks_MigrateTerraformStateServer) error {
+
+	previousStateHandle := handle[*states.State](request.StateHandle)
+	previousState := s.handles.TerraformState(previousStateHandle)
+	if previousState == nil {
+		return status.Error(codes.InvalidArgument, "the given state handle is invalid")
+	}
+
+	configHandle := handle[*stackconfig.Config](request.ConfigHandle)
+	config := s.handles.StackConfig(configHandle)
+	if config == nil {
+		return status.Error(codes.InvalidArgument, "the given config handle is invalid")
+	}
+
+	dependencyLocksHandle := handle[*depsfile.Locks](request.DependencyLocksHandle)
+	dependencyLocks := s.handles.DependencyLocks(dependencyLocksHandle)
+	if dependencyLocks == nil {
+		return status.Error(codes.InvalidArgument, "the given dependency locks handle is invalid")
+	}
+
+	var providerFactories map[addrs.Provider]providers.Factory
+	if s.providerCacheOverride != nil {
+		// This is only used in tests to side load providers without needing a
+		// real provider cache.
+		providerFactories = s.providerCacheOverride
+	} else {
+		providerCacheHandle := handle[*providercache.Dir](request.ProviderCacheHandle)
+		providerCache := s.handles.ProviderPluginCache(providerCacheHandle)
+		if providerCache == nil {
+			return status.Error(codes.InvalidArgument, "the given provider cache handle is invalid")
+		}
+
+		var err error
+		providerFactories, err = providerFactoriesForLocks(dependencyLocks, providerCache)
+		if err != nil {
+			return status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+		}
+	}
+
+	migrate := &stackmigrate.Migration{
+		Providers:     providerFactories,
+		PreviousState: previousState,
+		Config:        config,
+	}
+
+	emit := func(change stackstate.AppliedChange) {
+		proto, err := change.AppliedChangeProto()
+		if err != nil {
+			server.Send(&stacks.MigrateTerraformState_Event{
+				Result: &stacks.MigrateTerraformState_Event_Diagnostic{
+					Diagnostic: &terraform1.Diagnostic{
+						Severity: terraform1.Diagnostic_ERROR,
+						Summary:  "Failed to serialize change",
+						Detail:   fmt.Sprintf("Failed to serialize state change for recording in the migration plan: %s", err),
+					},
+				},
+			})
+			return
+		}
+
+		server.Send(&stacks.MigrateTerraformState_Event{
+			Result: &stacks.MigrateTerraformState_Event_AppliedChange{
+				AppliedChange: proto,
+			},
+		})
+	}
+
+	emitDiag := func(diagnostic tfdiags.Diagnostic) {
+		server.Send(&stacks.MigrateTerraformState_Event{
+			Result: &stacks.MigrateTerraformState_Event_Diagnostic{
+				Diagnostic: diagnosticToProto(diagnostic),
+			},
+		})
+	}
+
+	mapping := request.GetMapping()
+	if mapping == nil {
+		return status.Error(codes.InvalidArgument, "missing migration mapping")
+	}
+	switch mapping := mapping.(type) {
+	case *stacks.MigrateTerraformState_Request_Simple:
+		migrate.Migrate(
+			mapping.Simple.ResourceAddressMap,
+			mapping.Simple.ModuleAddressMap,
+			emit, emitDiag)
+	default:
+		return status.Error(codes.InvalidArgument, "unsupported migration mapping")
+	}
+
+	return nil
 }
 
 func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {

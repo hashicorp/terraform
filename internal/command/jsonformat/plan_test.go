@@ -7882,12 +7882,12 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 					src.ProviderAddr.Provider: {
 						ResourceTypes: map[string]providers.Schema{
 							src.Addr.Resource.Resource.Type: {
-								Block: tc.Schema,
+								Body: tc.Schema,
 							},
 						},
 						DataSources: map[string]providers.Schema{
 							src.Addr.Resource.Resource.Type: {
-								Block: tc.Schema,
+								Body: tc.Schema,
 							},
 						},
 					},
@@ -8226,7 +8226,7 @@ func TestResourceChange_deferredActions(t *testing.T) {
 					providerAddr.Provider: {
 						ResourceTypes: map[string]providers.Schema{
 							"test_instance": {
-								Block: blockSchema,
+								Body: blockSchema,
 							},
 						},
 					},
@@ -8234,7 +8234,9 @@ func TestResourceChange_deferredActions(t *testing.T) {
 			}
 			var changes []*plans.DeferredResourceInstanceChangeSrc
 			for _, change := range tc.changes {
-				changeSrc, err := change.Encode(blockSchema.ImpliedType())
+				changeSrc, err := change.Encode(providers.Schema{
+					Body: blockSchema,
+				})
 				if err != nil {
 					t.Fatalf("Failed to encode change: %s", err)
 				}
