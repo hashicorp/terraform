@@ -3783,7 +3783,7 @@ supplied_input_value = value-from-run-that-controls-backend`,
 			}
 
 			actualState := testStateRead(t, localStatePath)
-			if diff := cmp.Diff(actualState, tc.expectedState); len(diff) > 0 {
+			if diff := cmp.Diff(actualState.String(), tc.expectedState); len(diff) > 0 {
 				t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
 			}
 
