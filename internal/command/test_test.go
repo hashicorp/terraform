@@ -27,7 +27,6 @@ import (
 	"github.com/hashicorp/terraform/internal/moduletest/graph"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terminal"
 )
 
@@ -3538,15 +3537,13 @@ func TestTest_UseOfBackends_happyPath(t *testing.T) {
 
 	testCases := map[string]struct {
 		dirName           string
-		localStateFile    string
 		priorState        *states.State
 		expectedState     string
 		forceApplyFailure func(providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse
 	}{
 		"When there is no starting state, state is created by the run containing the backend block": {
-			dirName:        "valid-use-local-backend",
-			localStateFile: "terraform.tfstate",
-			priorState:     nil,
+			dirName:    "valid-use-local-backend",
+			priorState: nil,
 			expectedState: `test_resource.a:
   ID = 12345
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -3558,8 +3555,7 @@ Outputs:
 supplied_input_value = value-from-run-that-controls-backend`,
 		},
 		"When there is pre-existing state, the state is updated by the run containing the backend block": {
-			dirName:        "valid-use-local-backend",
-			localStateFile: "terraform.tfstate",
+			dirName: "valid-use-local-backend",
 			// the priorState doesn't include the output, and has an outdated value field on the test_resource
 			priorState: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
@@ -3596,7 +3592,7 @@ supplied_input_value = value-from-run-that-controls-backend`,
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(path.Join("test", tc.dirName)), td)
 			defer testChdir(t, td)()
-			localStatePath := filepath.Join(td, tc.localStateFile)
+			localStatePath := filepath.Join(td, DefaultStateFilename)
 
 			provider := testing_command.NewProvider(nil)
 
@@ -3619,10 +3615,10 @@ supplied_input_value = value-from-run-that-controls-backend`,
 
 			// SET & ASSERT PRIOR STATE
 			if tc.priorState != nil {
-				setLocalState(t, localStatePath, tc.priorState)
+				testStateFileDefault(t, tc.priorState)
 
-				actualState := retrieveLocalState(t, localStatePath)
-				if diff := cmp.Diff(actualState, tc.priorState.String()); len(diff) > 0 {
+				actualState := testStateRead(t, localStatePath)
+				if diff := cmp.Diff(actualState.String(), tc.priorState.String()); len(diff) > 0 {
 					t.Errorf("prior state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
 				}
 			}
@@ -3659,8 +3655,8 @@ supplied_input_value = value-from-run-that-controls-backend`,
 				t.Fatalf("unexpected error output:\n%s", stdErr)
 			}
 
-			actualState := retrieveLocalState(t, localStatePath)
-			if diff := cmp.Diff(actualState, tc.expectedState); len(diff) > 0 {
+			actualState := testStateRead(t, localStatePath)
+			if diff := cmp.Diff(actualState.String(), tc.expectedState); len(diff) > 0 {
 				t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
 			}
 
@@ -3677,14 +3673,12 @@ func TestTest_UseOfBackends_unhappyPath(t *testing.T) {
 
 	testCases := map[string]struct {
 		dirName           string
-		localStateFile    string
 		priorState        *states.State
 		expectedState     string
 		forceApplyFailure func(providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse
 	}{
 		"If a test run fails, partial state will be persisted to the backend": {
-			dirName:        "valid-use-local-backend",
-			localStateFile: "terraform.tfstate",
+			dirName: "valid-use-local-backend",
 			// the priorState doesn't include the output, and has an outdated value field on the test_resource
 			priorState: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
@@ -3722,7 +3716,7 @@ supplied_input_value = value-from-run-that-controls-backend`,
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(path.Join("test", tc.dirName)), td)
 			defer testChdir(t, td)()
-			localStatePath := filepath.Join(td, tc.localStateFile)
+			localStatePath := filepath.Join(td, DefaultStateFilename)
 
 			provider := testing_command.NewProvider(nil)
 			if tc.forceApplyFailure != nil {
@@ -3748,9 +3742,9 @@ supplied_input_value = value-from-run-that-controls-backend`,
 
 			// SET & ASSERT PRIOR STATE
 			if tc.priorState != nil {
-				setLocalState(t, localStatePath, tc.priorState)
+				testStateFileDefault(t, tc.priorState)
 
-				actualState := retrieveLocalState(t, localStatePath)
+				actualState := testStateRead(t, localStatePath)
 				if diff := cmp.Diff(actualState, tc.priorState.String()); len(diff) > 0 {
 					t.Errorf("prior state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
 				}
@@ -3788,7 +3782,7 @@ supplied_input_value = value-from-run-that-controls-backend`,
 				t.Fatal("expected error output but got none")
 			}
 
-			actualState := retrieveLocalState(t, localStatePath)
+			actualState := testStateRead(t, localStatePath)
 			if diff := cmp.Diff(actualState, tc.expectedState); len(diff) > 0 {
 				t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
 			}
@@ -4044,48 +4038,5 @@ func TestTest_JUnitOutput(t *testing.T) {
 				t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
 			}
 		})
-	}
-}
-
-// retrieveLocalState reads a local state file made by this test and returns a string
-// representation to assert against.
-func retrieveLocalState(t *testing.T, stateFilePath string) string {
-	t.Helper()
-	_, err := os.Stat(stateFilePath)
-	if os.IsNotExist(err) {
-		t.Fatalf("the test file should have produced a local state file at %s in the temp directory, but the file wasn't found", stateFilePath)
-	}
-	file, err := os.OpenFile(stateFilePath, os.O_RDONLY, 0644)
-	if err != nil {
-		t.Fatalf("unexpected error when opening the local state file: %s", err)
-	}
-	state, err := statefile.Read(file)
-	file.Close()
-	if err != nil {
-		t.Fatalf("unexpected error when reading the local state file: %s", err)
-	}
-
-	return state.State.String()
-}
-
-// setLocalState creates a new local state file using inputs from the test case.
-// This allows us to test how backends in `test` behave when there is prior state
-// from a previous test run.
-func setLocalState(t *testing.T, stateFilePath string, priorState *states.State) {
-	t.Helper()
-	f, err := os.OpenFile(stateFilePath, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, os.ModePerm)
-	if err != nil {
-		t.Fatalf("failed to create temporary state file %s: %s", stateFilePath, err)
-	}
-	defer f.Close()
-
-	sf := &statefile.File{
-		Serial:  0,
-		Lineage: "fake-for-testing",
-		State:   priorState,
-	}
-	err = statefile.Write(sf, f)
-	if err != nil {
-		t.Fatalf("failed to write to temporary state file %s: %s", stateFilePath, err)
 	}
 }
