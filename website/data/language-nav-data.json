@@ -157,6 +157,9 @@
     ]
   },
   { "title": "Data Sources", "path": "data-sources" },
+  { "title": "moved", "hidden": true, "path": "moved" },
+  { "title": "resource", "hidden": true, "path": "resource" },
+  { "title": "terraform", "hidden": true, "path": "terraform" },
   {
     "title": "Meta-Arguments",
     "hidden": true,
@@ -270,14 +273,6 @@
         ]
       }
     ]
-  },
-  {
-    "title": "Moved block",
-    "href": "/terraform/language/block/moved"
-  },
-  {
-    "title": "Terraform block",
-    "href": "/terraform/language/block/terraform"
   },
   {
     "title": "Backend block",
@@ -1114,6 +1109,7 @@
     "title": "Configuration blocks",
     "routes": [
       {
+
       "title": "Moved block",
       "path": "block/moved"
       },
