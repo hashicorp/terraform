@@ -3745,7 +3745,7 @@ supplied_input_value = value-from-run-that-controls-backend`,
 				testStateFileDefault(t, tc.priorState)
 
 				actualState := testStateRead(t, localStatePath)
-				if diff := cmp.Diff(actualState, tc.priorState.String()); len(diff) > 0 {
+				if diff := cmp.Diff(actualState.String(), tc.priorState.String()); len(diff) > 0 {
 					t.Errorf("prior state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
 				}
 			}
