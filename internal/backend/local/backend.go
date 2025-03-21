@@ -41,33 +41,6 @@ var (
 // locally. This is the "default" backend and implements normal Terraform
 // behavior as it is well known.
 type Local struct {
-	// The State* paths are set from the backend config, and may be left blank
-	// to use the defaults. If the actual paths for the local backend state are
-	// needed, use the StatePaths method.
-	//
-	// StatePath is the local path where state is read from.
-	//
-	// StateOutPath is the local path where the state will be written.
-	// If this is empty, it will default to StatePath.
-	//
-	// StateBackupPath is the local path where a backup file will be written.
-	// Set this to "-" to disable state backup.
-	//
-	// StateWorkspaceDir is the path to the folder containing data for
-	// non-default workspaces. This defaults to DefaultWorkspaceDir if not set.
-	StatePath         string
-	StateOutPath      string
-	StateBackupPath   string
-	StateWorkspaceDir string
-
-	// The OverrideState* paths are set based on per-operation CLI arguments
-	// and will override what'd be built from the State* fields if non-empty.
-	// While the interpretation of the State* fields depends on the active
-	// workspace, the OverrideState* fields are always used literally.
-	OverrideStatePath       string
-	OverrideStateOutPath    string
-	OverrideStateBackupPath string
-
 	// We only want to create a single instance of a local state, so store them
 	// here as they're loaded.
 	states map[string]statemgr.Full
