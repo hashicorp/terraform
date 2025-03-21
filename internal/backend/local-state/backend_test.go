@@ -6,6 +6,7 @@ package local_state
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -402,4 +403,118 @@ func testTmpDir(t *testing.T) string {
 	})
 
 	return tmp
+}
+
+func TestLocal_StatePaths(t *testing.T) {
+	b := New()
+
+	// Test the defaults
+	path, out, back := b.StatePaths("")
+
+	if path != DefaultStateFilename {
+		t.Fatalf("expected %q, got %q", DefaultStateFilename, path)
+	}
+
+	if out != DefaultStateFilename {
+		t.Fatalf("expected %q, got %q", DefaultStateFilename, out)
+	}
+
+	dfltBackup := DefaultStateFilename + DefaultBackupExtension
+	if back != dfltBackup {
+		t.Fatalf("expected %q, got %q", dfltBackup, back)
+	}
+
+	// check with env
+	testEnv := "test_env"
+	path, out, back = b.StatePaths(testEnv)
+
+	expectedPath := filepath.Join(DefaultWorkspaceDir, testEnv, DefaultStateFilename)
+	expectedOut := expectedPath
+	expectedBackup := expectedPath + DefaultBackupExtension
+
+	if path != expectedPath {
+		t.Fatalf("expected %q, got %q", expectedPath, path)
+	}
+
+	if out != expectedOut {
+		t.Fatalf("expected %q, got %q", expectedOut, out)
+	}
+
+	if back != expectedBackup {
+		t.Fatalf("expected %q, got %q", expectedBackup, back)
+	}
+
+}
+
+// TestLocal_PathsConflictWith_defaultWorkspaceOnly only covers comparison of
+// local state backends that have no non-default workspaces.
+func TestLocal_PathsConflictWith_defaultWorkspaceOnly(t *testing.T) {
+
+	comparedLocal := Local{
+		StatePath:       DefaultStateFilename,
+		StateOutPath:    DefaultStateFilename,
+		StateBackupPath: DefaultStateFilename + DefaultBackupExtension,
+	}
+
+	conflicts := true
+	doesNotConflict := false
+
+	cases := map[string]struct {
+		comparedTo *Local
+		want       bool
+	}{
+		"a local state backend will conflict when compared to itself": {
+			comparedTo: &comparedLocal,
+			want:       conflicts,
+		},
+		"matching values for state path result in a conflict": {
+			comparedTo: &Local{
+				StatePath:    DefaultStateFilename,  // conflicts
+				StateOutPath: "no/conflict.tfstate", // doesn't conflict
+			},
+			want: conflicts,
+		},
+		"matching values for state out path do NOT result in a conflict": {
+			comparedTo: &Local{
+				StatePath:    "no/conflict.tfstate",
+				StateOutPath: DefaultStateFilename,
+			},
+			want: doesNotConflict,
+		},
+		"a state path override is sufficient to stop conflict": {
+			// Conflicting state-out paths do not matter
+			comparedTo: &Local{
+				StatePath:         DefaultStateFilename,
+				StateOutPath:      DefaultStateFilename,
+				OverrideStatePath: "no-conflict.tfstate",
+			},
+			want: doesNotConflict,
+		},
+		"a state out path override is NOT sufficient to stop conflict": {
+			// This is because of conflicting state path values
+			comparedTo: &Local{
+				StatePath:            DefaultStateFilename,
+				StateOutPath:         DefaultStateFilename,
+				OverrideStateOutPath: "no-conflict.tfstate",
+			},
+			want: conflicts,
+		},
+		"matching backup paths does not get identified as conflict": {
+			comparedTo: &Local{
+				StatePath:       "no/conflict.tfstate",
+				StateOutPath:    "no/conflict.tfstate",
+				StateBackupPath: DefaultStateFilename + DefaultBackupExtension, // conflicts
+			},
+			want: doesNotConflict,
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			conflict := comparedLocal.PathsConflictWith(tc.comparedTo)
+			if conflict != tc.want {
+				t.Fatalf("expected PathsConflictWith to return %v, got: %v", tc.want, conflict)
+			}
+		})
+	}
 }

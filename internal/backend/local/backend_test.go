@@ -6,7 +6,6 @@ package local
 import (
 	"errors"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -40,47 +39,6 @@ func checkState(t *testing.T, path, expected string) {
 	if actual != expected {
 		t.Fatalf("state does not match! actual:\n%s\n\nexpected:\n%s", actual, expected)
 	}
-}
-
-func TestLocal_StatePaths(t *testing.T) {
-	b := New()
-
-	// Test the defaults
-	path, out, back := b.StatePaths("")
-
-	if path != DefaultStateFilename {
-		t.Fatalf("expected %q, got %q", DefaultStateFilename, path)
-	}
-
-	if out != DefaultStateFilename {
-		t.Fatalf("expected %q, got %q", DefaultStateFilename, out)
-	}
-
-	dfltBackup := DefaultStateFilename + DefaultBackupExtension
-	if back != dfltBackup {
-		t.Fatalf("expected %q, got %q", dfltBackup, back)
-	}
-
-	// check with env
-	testEnv := "test_env"
-	path, out, back = b.StatePaths(testEnv)
-
-	expectedPath := filepath.Join(DefaultWorkspaceDir, testEnv, DefaultStateFilename)
-	expectedOut := expectedPath
-	expectedBackup := expectedPath + DefaultBackupExtension
-
-	if path != expectedPath {
-		t.Fatalf("expected %q, got %q", expectedPath, path)
-	}
-
-	if out != expectedOut {
-		t.Fatalf("expected %q, got %q", expectedOut, out)
-	}
-
-	if back != expectedBackup {
-		t.Fatalf("expected %q, got %q", expectedBackup, back)
-	}
-
 }
 
 // a local backend which returns sentinel errors for NamedState methods to
