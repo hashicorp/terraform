@@ -42,7 +42,7 @@ type dependenciesServer struct {
 	services *disco.Disco
 }
 
-func NewDependenciesServer(handles *handleTable, services *disco.Disco) *dependenciesServer {
+func newDependenciesServer(handles *handleTable, services *disco.Disco) *dependenciesServer {
 	return &dependenciesServer{
 		handles:  handles,
 		services: services,

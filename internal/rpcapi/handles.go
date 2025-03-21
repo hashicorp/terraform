@@ -78,7 +78,7 @@ type handleTable struct {
 	mu sync.Mutex
 }
 
-func NewHandleTable() *handleTable {
+func newHandleTable() *handleTable {
 	return &handleTable{
 		handleObjs: make(map[int64]any),
 		handleDeps: make(map[int64]map[int64]struct{}),

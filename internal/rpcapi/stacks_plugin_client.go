@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package stacksplugin1
+package rpcapi
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/internal/rpcapi"
 	"github.com/hashicorp/terraform/internal/rpcapi/dynrpcserver"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/dependencies"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/packages"
@@ -35,7 +34,7 @@ var _ stacksplugin.Stacks1 = GRPCStacksClient{}
 // Execute sends the client Execute request and waits for the plugin to return
 // an exit code response before returning
 func (c GRPCStacksClient) Execute(args []string, stdout, stderr io.Writer) int {
-	handles := rpcapi.NewHandleTable()
+	handles := newHandleTable()
 
 	dependenciesServer := dynrpcserver.NewDependenciesStub()
 	packagesServer := dynrpcserver.NewPackagesStub()
@@ -45,7 +44,7 @@ func (c GRPCStacksClient) Execute(args []string, stdout, stderr io.Writer) int {
 	dependenciesServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
 		s = grpc.NewServer(opts...)
 		dependencies.RegisterDependenciesServer(s, dependenciesServer)
-		dependenciesServer.ActivateRPCServer(rpcapi.NewDependenciesServer(handles, c.Services))
+		dependenciesServer.ActivateRPCServer(newDependenciesServer(handles, c.Services))
 
 		return s
 	}
@@ -56,7 +55,7 @@ func (c GRPCStacksClient) Execute(args []string, stdout, stderr io.Writer) int {
 	packagesServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
 		s = grpc.NewServer(opts...)
 		packages.RegisterPackagesServer(s, packagesServer)
-		packagesServer.ActivateRPCServer(rpcapi.NewPackagesServer(c.Services))
+		packagesServer.ActivateRPCServer(newPackagesServer(c.Services))
 
 		return s
 	}
@@ -67,7 +66,7 @@ func (c GRPCStacksClient) Execute(args []string, stdout, stderr io.Writer) int {
 	stacksServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
 		s = grpc.NewServer(opts...)
 		stacks.RegisterStacksServer(s, stacksServer)
-		stacksServer.ActivateRPCServer(rpcapi.NewStacksServer(rpcapi.NewStopper(), handles, &rpcapi.ServiceOpts{
+		stacksServer.ActivateRPCServer(newStacksServer(NewStopper(), handles, &ServiceOpts{
 			ExperimentsAllowed: true,
 		}))
 		return s

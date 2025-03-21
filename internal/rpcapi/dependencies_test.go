@@ -29,8 +29,8 @@ import (
 func TestDependenciesOpenCloseSourceBundle(t *testing.T) {
 	ctx := context.Background()
 
-	handles := NewHandleTable()
-	depsServer := NewDependenciesServer(handles, disco.New())
+	handles := newHandleTable()
+	depsServer := newDependenciesServer(handles, disco.New())
 
 	openResp, err := depsServer.OpenSourceBundle(ctx, &dependencies.OpenSourceBundle_Request{
 		LocalPath: "testdata/sourcebundle",
@@ -72,8 +72,8 @@ func TestDependenciesOpenCloseSourceBundle(t *testing.T) {
 func TestDependencyLocks(t *testing.T) {
 	ctx := context.Background()
 
-	handles := NewHandleTable()
-	depsServer := NewDependenciesServer(handles, disco.New())
+	handles := newHandleTable()
+	depsServer := newDependenciesServer(handles, disco.New())
 
 	openSourcesResp, err := depsServer.OpenSourceBundle(ctx, &dependencies.OpenSourceBundle_Request{
 		LocalPath: "testdata/sourcebundle",
@@ -178,8 +178,8 @@ func TestDependencyLocks(t *testing.T) {
 func TestDependenciesProviderCache(t *testing.T) {
 	ctx := context.Background()
 
-	handles := NewHandleTable()
-	depsServer := NewDependenciesServer(handles, disco.New())
+	handles := newHandleTable()
+	depsServer := newDependenciesServer(handles, disco.New())
 
 	// This test involves a streaming RPC operation, so we'll need help from
 	// a real in-memory gRPC connection to exercise it concisely so that
@@ -320,8 +320,8 @@ func TestDependenciesProviderCache(t *testing.T) {
 func TestDependenciesProviderSchema(t *testing.T) {
 	ctx := context.Background()
 
-	handles := NewHandleTable()
-	depsServer := NewDependenciesServer(handles, disco.New())
+	handles := newHandleTable()
+	depsServer := newDependenciesServer(handles, disco.New())
 
 	providersResp, err := depsServer.GetBuiltInProviders(ctx, &dependencies.GetBuiltInProviders_Request{})
 	if err != nil {

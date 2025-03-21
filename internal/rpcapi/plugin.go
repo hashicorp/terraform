@@ -61,7 +61,7 @@ func serverHandshake(s *grpc.Server, opts *ServiceOpts) func(context.Context, *s
 	return func(ctx context.Context, request *setup.Handshake_Request, stopper *stopper) (*setup.ServerCapabilities, error) {
 		// All of our servers will share a common handles table so that objects
 		// can be passed from one service to another.
-		handles := NewHandleTable()
+		handles := newHandleTable()
 
 		// NOTE: This is intentionally not the same disco that "package main"
 		// instantiates for Terraform CLI, because the RPC API is
@@ -83,9 +83,9 @@ func serverHandshake(s *grpc.Server, opts *ServiceOpts) func(context.Context, *s
 		// will initialize all of the other services so the client can begin
 		// doing real work. In future the details of what we register here
 		// might vary based on the negotiated capabilities.
-		dependenciesStub.ActivateRPCServer(NewDependenciesServer(handles, services))
-		stacksStub.ActivateRPCServer(NewStacksServer(stopper, handles, opts))
-		packagesStub.ActivateRPCServer(NewPackagesServer(services))
+		dependenciesStub.ActivateRPCServer(newDependenciesServer(handles, services))
+		stacksStub.ActivateRPCServer(newStacksServer(stopper, handles, opts))
+		packagesStub.ActivateRPCServer(newPackagesServer(services))
 
 		// If the client requested any extra capabililties that we're going
 		// to honor then we should announce them in this result.

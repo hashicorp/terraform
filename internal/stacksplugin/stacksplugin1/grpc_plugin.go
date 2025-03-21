@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/internal/rpcapi"
 	"github.com/hashicorp/terraform/internal/stacksplugin"
 	"github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1"
 	"google.golang.org/grpc"
@@ -47,7 +48,7 @@ func (p *GRPCStacksPlugin) Client(*plugin.MuxBroker, *rpc.Client) (interface{}, 
 // GRPCClient returns a new GRPC client for interacting with the cloud plugin server.
 func (p *GRPCStacksPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
 	ctx = metadata.NewOutgoingContext(ctx, p.Metadata)
-	return &GRPCStacksClient{
+	return &rpcapi.GRPCStacksClient{
 		Client:   stacksproto1.NewCommandServiceClient(c),
 		Broker:   broker,
 		Services: p.Services,
@@ -58,12 +59,5 @@ func (p *GRPCStacksPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBr
 // GRPCServer always returns an error; we're only implementing the client
 // interface, not the server.
 func (p *GRPCStacksPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
-	/**
-	stacksproto1.RegisterCommandServiceServer(s, &GRPCStacksServer{
-		Impl:   p.Impl,
-		broker: broker,
-	})
-	return nil
-	*/
 	return errors.ErrUnsupported
 }
