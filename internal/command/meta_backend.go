@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
+	localState "github.com/hashicorp/terraform/internal/backend/local-state"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -1035,9 +1036,13 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 		erase := true
 		if newLocalB, ok := b.(*backendLocal.Local); ok {
 			if localB, ok := localB.(*backendLocal.Local); ok {
-				if newLocalB.PathsConflictWith(localB) {
-					erase = false
-					log.Printf("[TRACE] Meta.Backend: both old and new backends share the same local state paths, so not erasing old state")
+				newLocalBe, nlbOk := newLocalB.Backend.(*localState.Local)
+				localBe, lbOk := localB.Backend.(*localState.Local)
+				if nlbOk && lbOk {
+					if newLocalBe.PathsConflictWith(localBe) {
+						erase = false
+						log.Printf("[TRACE] Meta.Backend: both old and new backends share the same local state paths, so not erasing old state")
+					}
 				}
 			}
 		}

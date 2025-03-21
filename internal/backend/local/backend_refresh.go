@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	localState "github.com/hashicorp/terraform/internal/backend/local-state"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -25,9 +26,9 @@ func (b *Local) opRefresh(
 	var diags tfdiags.Diagnostics
 
 	// Check if our state exists if we're performing a refresh operation. We
-	// only do this if we're managing state with this backend.
-	if b.Backend == nil {
-		if _, err := os.Stat(b.StatePath); err != nil {
+	// only do this if we're managing state locally.
+	if be, ok := b.Backend.(*localState.Local); ok {
+		if _, err := os.Stat(be.StatePath); err != nil {
 			if os.IsNotExist(err) {
 				err = nil
 			}
@@ -36,7 +37,7 @@ func (b *Local) opRefresh(
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Cannot read state file",
-					fmt.Sprintf("Failed to read %s: %s", b.StatePath, err),
+					fmt.Sprintf("Failed to read %s: %s", be.StatePath, err),
 				))
 				op.ReportResult(runningOp, diags)
 				return
