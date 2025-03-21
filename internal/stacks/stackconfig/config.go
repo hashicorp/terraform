@@ -15,6 +15,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/typeexpr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -42,6 +43,26 @@ type Config struct {
 	// ProviderRefTypes tracks the cty capsule type that represents a
 	// reference for each provider type mentioned in the configuration.
 	ProviderRefTypes map[addrs.Provider]cty.Type
+}
+
+func (config *Config) Stack(stack stackaddrs.Stack) *Stack {
+	current := config.Root
+	for _, part := range stack {
+		var ok bool
+		current, ok = current.Children[part.Name]
+		if !ok {
+			return nil
+		}
+	}
+	return current.Stack
+}
+
+func (config *Config) Component(component stackaddrs.ConfigComponent) *Component {
+	stack := config.Stack(component.Stack)
+	if stack == nil || stack.Components == nil {
+		return nil
+	}
+	return stack.Components[component.Item.Name]
 }
 
 // ConfigNode represents a node in a tree of stacks that are to be planned and
@@ -191,22 +212,24 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 		cmpn.FinalSourceAddr = effectiveSourceAddr
 	}
 
-	for _, rmvd := range stack.Removed {
-		effectiveSourceAddr, err := resolveFinalSourceAddr(sourceAddr, rmvd.SourceAddr, rmvd.VersionConstraints, sources)
-		if err != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid source address",
-				Detail: fmt.Sprintf(
-					"Cannot use %q as a source address here: %s.",
-					rmvd.SourceAddr, err,
-				),
-				Subject: rmvd.SourceAddrRange.ToHCL().Ptr(),
-			})
-			continue
-		}
+	for _, blocks := range stack.Removed {
+		for _, rmvd := range blocks {
+			effectiveSourceAddr, err := resolveFinalSourceAddr(sourceAddr, rmvd.SourceAddr, rmvd.VersionConstraints, sources)
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid source address",
+					Detail: fmt.Sprintf(
+						"Cannot use %q as a source address here: %s.",
+						rmvd.SourceAddr, err,
+					),
+					Subject: rmvd.SourceAddrRange.ToHCL().Ptr(),
+				})
+				continue
+			}
 
-		rmvd.FinalSourceAddr = effectiveSourceAddr
+			rmvd.FinalSourceAddr = effectiveSourceAddr
+		}
 	}
 
 	return ret, diags

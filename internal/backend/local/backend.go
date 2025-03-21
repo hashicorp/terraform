@@ -32,7 +32,7 @@ const (
 	DefaultBackupExtension = ".backup"
 )
 
-// Local is an implementation of EnhancedBackend that performs all operations
+// Local is an implementation of backendrun.OperationsBackend that performs all operations
 // locally. This is the "default" backend and implements normal Terraform
 // behavior as it is well known.
 type Local struct {
@@ -79,9 +79,9 @@ type Local struct {
 	OpInput      bool
 	OpValidation bool
 
-	// Backend, if non-nil, will use this backend for non-enhanced behavior.
+	// Backend, if non-nil, will use this backend for non-operations behavior.
 	// This allows local behavior with remote state storage. It is a way to
-	// "upgrade" a non-enhanced backend to an enhanced backend with typical
+	// "upgrade" a non-operations backend to an operations backend with typical
 	// behavior.
 	//
 	// If this is nil, local performs normal state loading and storage.
@@ -100,7 +100,7 @@ func New() *Local {
 }
 
 // NewWithBackend returns a new local backend initialized with a
-// dedicated backend for non-enhanced behavior.
+// dedicated backend for non-operations/state-storage behavior.
 func NewWithBackend(backend backend.Backend) *Local {
 	return &Local{
 		Backend: backend,

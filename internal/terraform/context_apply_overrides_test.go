@@ -758,7 +758,7 @@ resource "test_instance" "resource" {
 var underlyingOverridesProvider = &testing_provider.MockProvider{
 	GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"value": {
 						Type:     cty.String,
@@ -769,7 +769,7 @@ var underlyingOverridesProvider = &testing_provider.MockProvider{
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {
 							Type:     cty.String,
@@ -785,7 +785,7 @@ var underlyingOverridesProvider = &testing_provider.MockProvider{
 		},
 		DataSources: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {
 							Type:     cty.String,

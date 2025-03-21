@@ -14,12 +14,12 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
@@ -249,31 +249,28 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					return nil, diags
 				}
 
-				if !refresh.Complete {
-					// If the refresh was deferred, then we'll defer the destroy
-					// plan as well.
-					opts.ExternalDependencyDeferred = true
-				} else {
-					// If we're destroying this instance, then the dependencies
-					// should be reversed. Unfortunately, we can't compute that
-					// easily so instead we'll use the dependents computed at the
-					// last apply operation.
-					for depAddr := range c.PlanPrevDependents(ctx).All() {
-						depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
-						if depStack == nil {
-							// something weird has happened, but this means that
-							// whatever thing we're depending on being deleted first
-							// doesn't exist so it's fine.
-							continue
-						}
-						depComponent, depRemoved := depStack.ApplyableComponents(ctx, depAddr.Item)
-						if depComponent != nil && !depComponent.PlanIsComplete(ctx) {
+				// If we're destroying this instance, then the dependencies
+				// should be reversed. Unfortunately, we can't compute that
+				// easily so instead we'll use the dependents computed at the
+				// last apply operation.
+			Dependents:
+				for depAddr := range c.PlanPrevDependents(ctx).All() {
+					depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
+					if depStack == nil {
+						// something weird has happened, but this means that
+						// whatever thing we're depending on being deleted first
+						// doesn't exist so it's fine.
+						continue
+					}
+					depComponent, depRemoveds := depStack.ApplyableComponents(ctx, depAddr.Item)
+					if depComponent != nil && !depComponent.PlanIsComplete(ctx) {
+						opts.ExternalDependencyDeferred = true
+						break
+					}
+					for _, depRemoved := range depRemoveds {
+						if !depRemoved.PlanIsComplete(ctx) {
 							opts.ExternalDependencyDeferred = true
-							break
-						}
-						if depRemoved != nil && !depRemoved.PlanIsComplete(ctx) {
-							opts.ExternalDependencyDeferred = true
-							break
+							break Dependents
 						}
 					}
 				}
@@ -734,7 +731,7 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 }
 
 // ResourceSchema implements stackplan.PlanProducer.
-func (c *ComponentInstance) ResourceSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, typ string) (*configschema.Block, error) {
+func (c *ComponentInstance) ResourceSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, typ string) (providers.Schema, error) {
 	// This should not be able to fail with an error because we should
 	// be retrieving the same schema that was already used to encode
 	// the object we're working with. The error handling here is for
@@ -743,11 +740,11 @@ func (c *ComponentInstance) ResourceSchema(ctx context.Context, providerTypeAddr
 	providerType := c.main.ProviderType(ctx, providerTypeAddr)
 	providerSchema, err := providerType.Schema(ctx)
 	if err != nil {
-		return nil, err
+		return providers.Schema{}, err
 	}
-	ret, _ := providerSchema.SchemaForResourceType(mode, typ)
-	if ret == nil {
-		return nil, fmt.Errorf("schema does not include %v %q", mode, typ)
+	ret := providerSchema.SchemaForResourceType(mode, typ)
+	if ret.Body == nil {
+		return providers.Schema{}, fmt.Errorf("schema does not include %v %q", mode, typ)
 	}
 	return ret, nil
 }

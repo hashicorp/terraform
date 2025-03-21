@@ -149,9 +149,8 @@
             "path": "resources/ephemeral/reference"
           },
           {
-            "title": "Use Write-only Arguments",
-            "path": "resources/ephemeral/write-only",
-            "hidden": "true"
+            "title": "Use write-only arguments",
+            "path": "resources/ephemeral/write-only"
           }
         ]
       }
@@ -1105,21 +1104,18 @@
     "path": "v1-compatibility-promises"
   },
   { "divider": true },
-  { "heading": "Reference" },
+  { "heading": "REFERENCE" },
   {
     "title": "Configuration blocks",
     "routes": [
       {
-        "title": "resource",
-        "href": "resource"
+
+      "title": "Moved block",
+      "path": "block/moved"
       },
       {
-        "title": "moved",
-        "href": "moved"
-      },
-      {
-        "title": "terraform",
-        "href": "terraform"
+        "title": "Terraform block",
+        "path": "block/terraform"
       }
     ]
   },

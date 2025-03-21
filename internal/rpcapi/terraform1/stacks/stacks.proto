@@ -51,6 +51,89 @@ service Stacks {
   // of a stack inspector handle.
   rpc InspectExpressionResult(InspectExpressionResult.Request)
       returns (InspectExpressionResult.Response);
+  // Open a previously-saved Terraform state, returning a handle that can be
+  // used with other operations. This is distinct from OpenState because it
+  // means core state rather than stack state.
+  rpc OpenTerraformState(OpenTerraformState.Request) returns (OpenTerraformState.Response);
+  // Close a previously-opened Terraform state using its handle.
+  rpc CloseTerraformState(CloseTerraformState.Request) returns (CloseTerraformState.Response);
+  // MigrateTerraformState migrates a Terraform state into Stacks state using
+  // a mapping of addresses.
+  rpc MigrateTerraformState(MigrateTerraformState.Request) returns (stream MigrateTerraformState.Event);
+  // ListResourceIdentities lists the identities of all resources in a stack.
+  rpc ListResourceIdentities(ListResourceIdentities.Request) returns (ListResourceIdentities.Response);
+}
+
+// OpenTerraformState opens a previously-saved Terraform state, returning a
+// handle that can be used with other operations. This is distinct from
+// OpenState because it means core state rather than stack state.
+message OpenTerraformState {
+  message Request {
+    oneof state {
+      // We can open a state based on configuration that has been initialized.
+      string config_path = 1;
+
+      // Or a state file based on raw bytes.
+      bytes raw = 2;
+    }
+  }
+  message Response {
+    int64 state_handle = 1;
+    repeated terraform1.Diagnostic diagnostics = 2;
+  }
+}
+
+// CloseTerraformState closes a previously-opened Terraform state using its
+// handle.
+message CloseTerraformState {
+  message Request {
+    int64 state_handle = 1;
+  }
+  message Response {
+  }
+}
+
+// MigrateTerraformState migrates a Terraform state into Stacks state using
+// a mapping of addresses.
+//
+// Only resources and modules from the root module should be specified. All
+// resources in nested modules maintain their nested structure within the new
+// components the base modules were moved into.
+message MigrateTerraformState {
+  message Request {
+    int64 state_handle = 1; // previously opened Terraform state
+    int64 config_handle = 2; // new stacks configuration
+    int64 dependency_locks_handle = 3;
+    int64 provider_cache_handle = 4;
+
+    // Mapping of terraform constructs to stack components.
+    message Mapping {
+      // resource_address_map maps resources in the root module to their new
+      // components. The keys are the addresses of the resources in the Terraform
+      // state, and the values are the names of the new components.
+      //
+      // eg. resource_type.resource_name -> component_name
+      map<string, string> resource_address_map = 1;
+      // module_address_map maps modules in the root module to their new
+      // components. The keys are the module names in the Terraform state, and
+      // the values are the names of the new components.
+      //
+      // eg. module_name -> component_name
+      map<string, string> module_address_map = 2;
+    }
+    
+    oneof mapping {
+      // simple is a simple mapping of Terraform addresses to stack components
+      Mapping simple = 5;
+    }
+
+  }
+  message Event {
+    oneof result {
+      terraform1.Diagnostic diagnostic = 1;
+      AppliedChange applied_change = 2;
+    }
+  }
 }
 
 message OpenStackConfiguration {
@@ -114,10 +197,18 @@ message FindStackConfigurationComponents {
     string component_addr = 3;
   }
   message Removed {
-    string source_addr = 1;
-    Instances instances = 2;
-    string component_addr = 3;
-    bool destroy = 4;
+    string source_addr = 1 [deprecated = true];
+    Instances instances = 2 [deprecated = true];
+    string component_addr = 3 [deprecated = true];
+    bool destroy = 4 [deprecated = true];
+
+    message Block {
+      string source_addr = 1;
+      Instances instances = 2;
+      string component_addr = 3;
+      bool destroy = 4;
+    }
+    repeated Block blocks = 5;
   }
   message InputVariable {
     bool optional = 1;
@@ -810,5 +901,27 @@ message StackChangeProgress {
   message ComponentInstances {
     string component_addr = 1;
     repeated string instance_addrs = 2;
+  }
+}
+
+message ListResourceIdentities {
+  message Request {
+    int64 state_handle = 1;
+    int64 dependency_locks_handle = 2;
+    int64 provider_cache_handle = 3;
+  }
+  message Response {
+	repeated Resource resource = 1;
+  }
+
+  message Resource {
+    string component_addr = 1;
+    string component_instance_addr = 2;
+    // Unique address of the resource instance within the given component
+    // instance. Each component instance has a separate namespace of
+    // resource instance addresses, so callers must take both fields together
+    // to produce a key that's unique throughout the entire plan.
+    string resource_instance_addr = 3;
+    DynamicValue resource_identity = 4;
   }
 }

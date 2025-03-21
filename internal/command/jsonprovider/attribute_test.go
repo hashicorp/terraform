@@ -46,3 +46,33 @@ func TestMarshalAttribute(t *testing.T) {
 		}
 	}
 }
+
+func TestMarshalIdentityAttribute(t *testing.T) {
+	tests := []struct {
+		Input *configschema.Attribute
+		Want  *IdentityAttribute
+	}{
+		{
+			&configschema.Attribute{Type: cty.String, Optional: true},
+			&IdentityAttribute{
+				IdentityType:      json.RawMessage(`"string"`),
+				OptionalForImport: true,
+			},
+		},
+		{ // collection types look a little odd.
+			&configschema.Attribute{Type: cty.List(cty.String), Required: true},
+			&IdentityAttribute{
+				IdentityType:      json.RawMessage(`["list","string"]`),
+				RequiredForImport: true,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		got := marshalIdentityAttribute(test.Input)
+		if !cmp.Equal(got, test.Want) {
+			t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, test.Want))
+		}
+	}
+
+}

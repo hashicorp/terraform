@@ -110,11 +110,25 @@ type Resource struct {
 
 	// Deposed is set if the resource is deposed in terraform state.
 	DeposedKey string `json:"deposed_key,omitempty"`
+
+	// The version of the resource identity schema the "identity" property
+	// conforms to.
+	// It's a pointer, because it should be optional, but also 0 is a valid
+	// schema version.
+	IdentitySchemaVersion *uint64 `json:"identity_schema_version,omitempty"`
+
+	// The JSON representation of the resource identity, whose structure
+	// depends on the resource identity schema.
+	IdentityValues IdentityValues `json:"identity,omitempty"`
 }
 
 // AttributeValues is the JSON representation of the attribute values of the
 // resource, whose structure depends on the resource type schema.
 type AttributeValues map[string]json.RawMessage
+
+// IdentityValues is the JSON representation of the identity values of the
+// resource, whose structure depends on the resource identity schema.
+type IdentityValues map[string]json.RawMessage
 
 func marshalAttributeValues(value cty.Value) (unmarkedVal cty.Value, marshalledVals AttributeValues, sensitivePaths []cty.Path, err error) {
 	// unmark our value to show all values
@@ -136,6 +150,21 @@ func marshalAttributeValues(value cty.Value) (unmarkedVal cty.Value, marshalledV
 		ret[k.AsString()] = json.RawMessage(vJSON)
 	}
 	return value, ret, sensitivePaths, nil
+}
+
+func marshalIdentityValues(value cty.Value) (IdentityValues, error) {
+	if value == cty.NilVal || value.IsNull() {
+		return nil, nil
+	}
+
+	ret := make(IdentityValues)
+	it := value.ElementIterator()
+	for it.Next() {
+		k, v := it.Element()
+		vJSON, _ := ctyjson.Marshal(v, v.Type())
+		ret[k.AsString()] = json.RawMessage(vJSON)
+	}
+	return ret, nil
 }
 
 // newState() returns a minimally-initialized state
@@ -379,7 +408,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				)
 			}
 
-			schema, version := schemas.ResourceTypeConfig(
+			schema := schemas.ResourceTypeConfig(
 				r.ProviderConfig.Provider,
 				resAddr.Mode,
 				resAddr.Type,
@@ -387,16 +416,30 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 			// It is possible that the only instance is deposed
 			if ri.Current != nil {
-				if version != ri.Current.SchemaVersion {
-					return nil, fmt.Errorf("schema version %d for %s in state does not match version %d from the provider", ri.Current.SchemaVersion, resAddr, version)
+				if schema.Version != int64(ri.Current.SchemaVersion) {
+					return nil, fmt.Errorf("schema version %d for %s in state does not match version %d from the provider", ri.Current.SchemaVersion, resAddr, schema.Version)
 				}
 
 				current.SchemaVersion = ri.Current.SchemaVersion
 
-				if schema == nil {
+				if schema.Body == nil {
 					return nil, fmt.Errorf("no schema found for %s (in provider %s)", resAddr.String(), r.ProviderConfig.Provider)
 				}
-				riObj, err := ri.Current.Decode(schema.ImpliedType())
+
+				// Check if we have an identity in the state
+				if ri.Current.IdentityJSON != nil {
+					if schema.IdentityVersion != int64(ri.Current.IdentitySchemaVersion) {
+						return nil, fmt.Errorf("resource identity schema version %d for %s in state does not match version %d from the provider", ri.Current.IdentitySchemaVersion, resAddr, schema.IdentityVersion)
+					}
+
+					if schema.Identity == nil {
+						return nil, fmt.Errorf("no resource identity schema found for %s (in provider %s)", resAddr.String(), r.ProviderConfig.Provider)
+					}
+
+					current.IdentitySchemaVersion = &ri.Current.IdentitySchemaVersion
+				}
+
+				riObj, err := ri.Current.Decode(schema)
 				if err != nil {
 					return nil, err
 				}
@@ -407,13 +450,18 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				if err != nil {
 					return nil, fmt.Errorf("preparing attribute values for %s: %w", current.Address, err)
 				}
-				sensitivePaths = append(sensitivePaths, schema.SensitivePaths(value, nil)...)
+				sensitivePaths = append(sensitivePaths, schema.Body.SensitivePaths(value, nil)...)
 				s := SensitiveAsBool(marks.MarkPaths(value, marks.Sensitive, sensitivePaths))
 				v, err := ctyjson.Marshal(s, s.Type())
 				if err != nil {
 					return nil, err
 				}
 				current.SensitiveValues = v
+
+				current.IdentityValues, err = marshalIdentityValues(riObj.Identity)
+				if err != nil {
+					return nil, fmt.Errorf("preparing identity values for %s: %w", current.Address, err)
+				}
 
 				if len(riObj.Dependencies) > 0 {
 					dependencies := make([]string, len(riObj.Dependencies))
@@ -448,7 +496,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 					Index:        current.Index,
 				}
 
-				riObj, err := rios.Decode(schema.ImpliedType())
+				riObj, err := rios.Decode(schema)
 				if err != nil {
 					return nil, err
 				}
@@ -459,13 +507,18 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				if err != nil {
 					return nil, fmt.Errorf("preparing attribute values for %s: %w", current.Address, err)
 				}
-				sensitivePaths = append(sensitivePaths, schema.SensitivePaths(value, nil)...)
+				sensitivePaths = append(sensitivePaths, schema.Body.SensitivePaths(value, nil)...)
 				s := SensitiveAsBool(marks.MarkPaths(value, marks.Sensitive, sensitivePaths))
 				v, err := ctyjson.Marshal(s, s.Type())
 				if err != nil {
 					return nil, err
 				}
 				deposed.SensitiveValues = v
+
+				deposed.IdentityValues, err = marshalIdentityValues(riObj.Identity)
+				if err != nil {
+					return nil, fmt.Errorf("preparing identity values for %s: %w", current.Address, err)
+				}
 
 				if len(riObj.Dependencies) > 0 {
 					dependencies := make([]string, len(riObj.Dependencies))

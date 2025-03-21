@@ -37,7 +37,8 @@ type Mock struct {
 	Provider Interface
 	Data     *configs.MockData
 
-	schema *GetProviderSchemaResponse
+	schema         *GetProviderSchemaResponse
+	identitySchema *GetResourceIdentitySchemasResponse
 }
 
 func (m *Mock) GetProviderSchema() GetProviderSchemaResponse {
@@ -54,7 +55,7 @@ func (m *Mock) GetProviderSchema() GetProviderSchemaResponse {
 		// that could be in use elsewhere.
 		schema.Provider = Schema{
 			Version: schema.Provider.Version,
-			Block:   nil, // Empty - we support no blocks or attributes in mock provider configurations.
+			Body:    nil, // Empty - we support no blocks or attributes in mock provider configurations.
 		}
 
 		// Note, we leave the resource and data source schemas as they are since
@@ -64,6 +65,16 @@ func (m *Mock) GetProviderSchema() GetProviderSchemaResponse {
 		m.schema = &schema
 	}
 	return *m.schema
+}
+
+func (m *Mock) GetResourceIdentitySchemas() GetResourceIdentitySchemasResponse {
+	if m.identitySchema == nil {
+		// Cache the schema, it's not changing.
+		schema := m.Provider.GetResourceIdentitySchemas()
+
+		m.identitySchema = &schema
+	}
+	return *m.identitySchema
 }
 
 func (m *Mock) ValidateProviderConfig(request ValidateProviderConfigRequest) (response ValidateProviderConfigResponse) {
@@ -107,7 +118,7 @@ func (m *Mock) UpgradeResourceState(request UpgradeResourceStateRequest) (respon
 		panic(fmt.Errorf("failed to retrieve schema for resource %s", request.TypeName))
 	}
 
-	schemaType := resource.Block.ImpliedType()
+	schemaType := resource.Body.ImpliedType()
 
 	var value cty.Value
 	var err error
@@ -131,6 +142,40 @@ func (m *Mock) UpgradeResourceState(request UpgradeResourceStateRequest) (respon
 	return response
 }
 
+func (m *Mock) UpgradeResourceIdentity(request UpgradeResourceIdentityRequest) (response UpgradeResourceIdentityResponse) {
+	// We can't do this from a mocked provider, so we just return whatever identity
+	// is in the request back unchanged.
+
+	schema := m.GetProviderSchema()
+	response.Diagnostics = response.Diagnostics.Append(schema.Diagnostics)
+	if schema.Diagnostics.HasErrors() {
+		// We couldn't retrieve the schema for some reason, so the mock
+		// provider can't really function.
+		return response
+	}
+
+	resource, exists := schema.ResourceTypes[request.TypeName]
+	if !exists {
+		// This means something has gone wrong much earlier, we should have
+		// failed a validation somewhere if a resource type doesn't exist.
+		panic(fmt.Errorf("failed to retrieve identity schema for resource %s", request.TypeName))
+	}
+
+	schemaType := resource.Identity.ImpliedType()
+	value, err := ctyjson.Unmarshal(request.RawIdentityJSON, schemaType)
+
+	if err != nil {
+		// Generally, we shouldn't get an error here. The mocked providers are
+		// only used in tests, and we can't use different versions of providers
+		// within/between tests so the types should always match up. As such,
+		// we're not gonna return a super detailed error here.
+		response.Diagnostics = response.Diagnostics.Append(err)
+		return response
+	}
+	response.UpgradedIdentity = value
+	return response
+}
+
 func (m *Mock) ConfigureProvider(request ConfigureProviderRequest) (response ConfigureProviderResponse) {
 	// Do nothing here, we don't have anything to configure within the mocked
 	// providers. We don't want to call the original providers from here as
@@ -149,6 +194,7 @@ func (m *Mock) ReadResource(request ReadResourceRequest) ReadResourceResponse {
 	// state. So we'll return what we have.
 	return ReadResourceResponse{
 		NewState: request.PriorState,
+		Identity: request.CurrentIdentity,
 	}
 }
 
@@ -193,7 +239,7 @@ func (m *Mock) PlanResourceChange(request PlanResourceChangeRequest) PlanResourc
 			replacement.ComputedAsUnknown = false
 		}
 
-		value, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, replacement, resource.Block)
+		value, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, replacement, resource.Body)
 		response.Diagnostics = response.Diagnostics.Append(diags)
 		response.PlannedState = value
 		response.PlannedPrivate = []byte("create")
@@ -239,16 +285,18 @@ func (m *Mock) ApplyResourceChange(request ApplyResourceChangeRequest) ApplyReso
 			replacement.Range = mockedResource.DefaultsRange
 		}
 
-		value, diags := mocking.ApplyComputedValuesForResource(request.PlannedState, replacement, resource.Block)
+		value, diags := mocking.ApplyComputedValuesForResource(request.PlannedState, replacement, resource.Body)
 		response.Diagnostics = response.Diagnostics.Append(diags)
 		response.NewState = value
+		response.NewIdentity = request.PlannedIdentity
 		return response
 
 	default:
 		// For update or destroy operations, we don't have to create any values
 		// so we'll just return the planned state directly.
 		return ApplyResourceChangeResponse{
-			NewState: request.PlannedState,
+			NewState:    request.PlannedState,
+			NewIdentity: request.PlannedIdentity,
 		}
 	}
 }
@@ -294,7 +342,7 @@ func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceRespo
 		mockedData.Range = mockedDataSource.DefaultsRange
 	}
 
-	value, diags := mocking.ComputedValuesForDataSource(request.Config, mockedData, datasource.Block)
+	value, diags := mocking.ComputedValuesForDataSource(request.Config, mockedData, datasource.Body)
 	response.Diagnostics = response.Diagnostics.Append(diags)
 	response.State = value
 	return response

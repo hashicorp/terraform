@@ -18,10 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-var (
-	failedTestSummary = "Test assertion failed"
-)
-
 // TestJUnitXMLFile produces a JUnit XML file at the conclusion of a test
 // run, summarizing the outcome of the test in a form that can then be
 // interpreted by tools which render JUnit XML result reports.
@@ -217,7 +213,7 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 				// When the test fails we only use error diags that originate from failing assertions
 				var failedAssertions tfdiags.Diagnostics
 				for _, d := range run.Diagnostics {
-					if d.Severity() == tfdiags.Error && d.Description().Summary == failedTestSummary {
+					if tfdiags.DiagnosticCausedByTestFailure(d) {
 						failedAssertions = failedAssertions.Append(d)
 					}
 				}
@@ -259,7 +255,7 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 
 					// Collect diags not due to failed assertions, both errors and warnings
 					for _, d := range run.Diagnostics {
-						if d.Description().Summary != failedTestSummary {
+						if !tfdiags.DiagnosticCausedByTestFailure(d) {
 							systemErrDiags = systemErrDiags.Append(d)
 						}
 					}

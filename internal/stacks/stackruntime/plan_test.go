@@ -222,7 +222,7 @@ func TestPlan(t *testing.T) {
 						Action:        plans.Delete,
 						Mode:          plans.DestroyMode,
 						PlannedOutputValues: map[string]cty.Value{
-							"id": cty.NullVal(cty.DynamicPseudoType),
+							"id": cty.StringVal("foo"),
 						},
 						PlanTimestamp: fakePlanTimestamp,
 					},
@@ -1081,12 +1081,24 @@ func TestPlanWithSingleResource(t *testing.T) {
 			// type from the real terraform.io/builtin/terraform provider
 			// maintained elsewhere in this codebase. If that schema changes
 			// in future then this should change to match it.
-			Schema: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"input":            {Type: cty.DynamicPseudoType, Optional: true},
-					"output":           {Type: cty.DynamicPseudoType, Computed: true},
-					"triggers_replace": {Type: cty.DynamicPseudoType, Optional: true},
-					"id":               {Type: cty.String, Computed: true},
+			Schema: providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"input":            {Type: cty.DynamicPseudoType, Optional: true},
+						"output":           {Type: cty.DynamicPseudoType, Computed: true},
+						"triggers_replace": {Type: cty.DynamicPseudoType, Optional: true},
+						"id":               {Type: cty.String, Computed: true},
+					},
+				},
+				Identity: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:        cty.String,
+							Description: "The unique identifier for the data store.",
+							Required:    true,
+						},
+					},
+					Nesting: configschema.NestingSingle,
 				},
 			},
 		},
@@ -1174,10 +1186,10 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 			t.Fatal(err)
 		}
 		req := PlanRequest{
-			Config:      cfg,
 			InputValues: map[stackaddrs.InputVariable]stackeval.ExternalInputValue{
 				// Intentionally not set for this subtest.
 			},
+			Config:             cfg,
 			ForcePlanTimestamp: &fakePlanTimestamp,
 		}
 		resp := PlanResponse{
@@ -1535,7 +1547,7 @@ func TestPlanWithProviderConfig(t *testing.T) {
 	providerAddr := addrs.MustParseProviderSourceString("example.com/test/test")
 	providerSchema := &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"name": {
 						Type:     cty.String,
@@ -1843,7 +1855,7 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 					After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 						"id":    cty.UnknownVal(cty.String),
 						"value": cty.StringVal("secret"),
-					}), stacks_testing_provider.TestingResourceSchema),
+					}), stacks_testing_provider.TestingResourceSchema.Body),
 					AfterSensitivePaths: []cty.Path{
 						cty.GetAttrPath("value"),
 					},
@@ -2006,7 +2018,7 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 					After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 						"id":    cty.UnknownVal(cty.String),
 						"value": cty.StringVal("secret"),
-					}), stacks_testing_provider.TestingResourceSchema),
+					}), stacks_testing_provider.TestingResourceSchema.Body),
 					AfterSensitivePaths: []cty.Path{
 						cty.GetAttrPath("value"),
 					},
@@ -2324,7 +2336,7 @@ func TestPlanWithCheckableObjects(t *testing.T) {
 					After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 						"id":    cty.StringVal("test"),
 						"value": cty.StringVal("bar"),
-					}), stacks_testing_provider.TestingResourceSchema),
+					}), stacks_testing_provider.TestingResourceSchema.Body),
 				},
 			},
 
@@ -2458,7 +2470,7 @@ func TestPlanWithDeferredResource(t *testing.T) {
 							"id":       cty.StringVal("62594ae3"),
 							"value":    cty.NullVal(cty.String),
 							"deferred": cty.BoolVal(true),
-						}), stacks_testing_provider.DeferredResourceSchema),
+						}), stacks_testing_provider.DeferredResourceSchema.Body),
 						AfterSensitivePaths: nil,
 					},
 				},
@@ -2623,7 +2635,7 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 							"id":    cty.UnknownVal(cty.String),
 							"value": cty.UnknownVal(cty.String),
-						}), stacks_testing_provider.TestingResourceSchema),
+						}), stacks_testing_provider.TestingResourceSchema.Body),
 						AfterSensitivePaths: nil,
 					},
 				},
@@ -2704,7 +2716,7 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 							"id":    cty.UnknownVal(cty.String),
 							"value": cty.UnknownVal(cty.String),
-						}), stacks_testing_provider.TestingResourceSchema),
+						}), stacks_testing_provider.TestingResourceSchema.Body),
 						AfterSensitivePaths: nil,
 					},
 				},
@@ -2865,7 +2877,7 @@ func TestPlanWithDeferredComponentReferences(t *testing.T) {
 						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 							"id":    cty.UnknownVal(cty.String),
 							"value": cty.UnknownVal(cty.String),
-						}), stacks_testing_provider.TestingResourceSchema),
+						}), stacks_testing_provider.TestingResourceSchema.Body),
 						AfterSensitivePaths: nil,
 					},
 				},
@@ -2950,7 +2962,7 @@ func TestPlanWithDeferredComponentReferences(t *testing.T) {
 					After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 						"id":    cty.UnknownVal(cty.String),
 						"value": cty.StringVal("known"),
-					}), stacks_testing_provider.TestingResourceSchema),
+					}), stacks_testing_provider.TestingResourceSchema.Body),
 				},
 				ProviderAddr: addrs.AbsProviderConfig{
 					Module:   addrs.RootModule,
@@ -3116,7 +3128,7 @@ func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 							"id":    cty.UnknownVal(cty.String),
 							"value": cty.UnknownVal(cty.String),
-						}), stacks_testing_provider.TestingResourceSchema),
+						}), stacks_testing_provider.TestingResourceSchema.Body),
 						AfterSensitivePaths: nil,
 					},
 				},
@@ -3266,7 +3278,7 @@ func TestPlanWithDeferredEmbeddedStackAndComponentForEach(t *testing.T) {
 						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 							"id":    cty.UnknownVal(cty.String),
 							"value": cty.UnknownVal(cty.String),
-						}), stacks_testing_provider.TestingResourceSchema),
+						}), stacks_testing_provider.TestingResourceSchema.Body),
 						AfterSensitivePaths: nil,
 					},
 				},
@@ -3465,7 +3477,7 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 							"id":    cty.UnknownVal(cty.String),
 							"value": cty.StringVal("primary"),
-						}), stacks_testing_provider.TestingResourceSchema),
+						}), stacks_testing_provider.TestingResourceSchema.Body),
 					},
 				},
 				Schema: stacks_testing_provider.TestingResourceSchema,
@@ -3537,7 +3549,7 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
 							"id":    cty.UnknownVal(cty.String),
 							"value": cty.StringVal("secondary"),
-						}), stacks_testing_provider.TestingResourceSchema),
+						}), stacks_testing_provider.TestingResourceSchema.Body),
 					},
 				},
 				Schema: stacks_testing_provider.TestingResourceSchema,
@@ -5448,6 +5460,106 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 				t.Errorf("wrong changes\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestPlanWithResourceIdentities(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "resource-identity")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	changesCh := make(chan stackplan.PlannedChange, 8)
+	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	req := PlanRequest{
+		Config:             cfg,
+		ForcePlanTimestamp: &fakePlanTimestamp,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks: *lock,
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &req, &resp)
+	gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+
+	if len(diags) != 0 {
+		t.Errorf("unexpected diagnostics\n%s", diags.ErrWithWarnings().Error())
+	}
+
+	wantChanges := []stackplan.PlannedChange{
+		&stackplan.PlannedChangeApplyable{
+			Applyable: true,
+		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance,
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "self"},
+				},
+			),
+			Action:              plans.Create,
+			PlanApplyable:       true,
+			PlanComplete:        true,
+			PlannedCheckResults: &states.CheckResults{},
+			PlannedInputValues: map[string]plans.DynamicValue{
+				"name": mustPlanDynamicValueDynamicType(cty.StringVal("example")),
+			},
+			PlannedInputValueMarks: map[string][]cty.PathValueMarks{"name": nil},
+			PlannedOutputValues:    map[string]cty.Value{},
+			PlanTimestamp:          fakePlanTimestamp,
+		},
+		&stackplan.PlannedChangeResourceInstancePlanned{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource_with_identity.hello"),
+			ChangeSrc: &plans.ResourceInstanceChangeSrc{
+				Addr:         mustAbsResourceInstance("testing_resource_with_identity.hello"),
+				PrevRunAddr:  mustAbsResourceInstance("testing_resource_with_identity.hello"),
+				ProviderAddr: mustDefaultRootProvider("testing"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+					Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+					After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("example"),
+						"value": cty.NullVal(cty.String),
+					})),
+					AfterIdentity: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("id:example"),
+					})),
+				},
+			},
+			ProviderConfigAddr: mustDefaultRootProvider("testing"),
+			Schema:             stacks_testing_provider.TestingResourceWithIdentitySchema,
+		},
+		&stackplan.PlannedChangeHeader{
+			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
+		},
+	}
+	sort.SliceStable(gotChanges, func(i, j int) bool {
+		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
+	})
+
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
 	}
 }
 

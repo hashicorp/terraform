@@ -234,7 +234,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 				// function isn't doing anything as there is no configuration
 				// to validate.
 
-				impliedType := providerSchema.ResourceTypes[addr.Resource.Resource.Type].Block.ImpliedType()
+				impliedType := providerSchema.ResourceTypes[addr.Resource.Resource.Type].Body.ImpliedType()
 				ctx.Deferrals().ReportResourceInstanceDeferred(addr, providers.DeferredReasonResourceConfigUnknown, &plans.ResourceInstanceChange{
 					Addr:         addr,
 					PrevRunAddr:  addr,
@@ -318,6 +318,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		if deferred == nil {
 			diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
 		}
+
 		if diags.HasErrors() {
 			return diags
 		}
@@ -587,8 +588,8 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		return nil, deferred, diags
 	}
 
-	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
+	if schema.Body == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", n.Addr))
 		return nil, deferred, diags
@@ -615,7 +616,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 
 		forEach, _, _ := evaluateForEachExpression(n.Config.ForEach, ctx, false)
 		keyData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
-		configVal, _, configDiags := ctx.EvaluateBlock(n.Config.Config, schema, nil, keyData)
+		configVal, _, configDiags := ctx.EvaluateBlock(n.Config.Config, schema.Body, nil, keyData)
 		if configDiags.HasErrors() {
 			// We have an overridden resource so we're definitely in a test and
 			// the users config is not valid. So give up and just report the
@@ -638,7 +639,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			Value:             n.override.Values,
 			Range:             n.override.Range,
 			ComputedAsUnknown: false,
-		}, schema)
+		}, schema.Body)
 		resp = providers.ImportResourceStateResponse{
 			ImportedResources: []providers.ImportedResource{
 				{
@@ -699,12 +700,12 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		// state we're going to import.
 		state := providers.ImportedResource{
 			TypeName: addr.Resource.Resource.Type,
-			State:    cty.NullVal(schema.ImpliedType()),
+			State:    cty.NullVal(schema.Body.ImpliedType()),
 		}
 
 		// We skip the read and further validation since we make up the state
 		// of the imported resource anyways.
-		return state.AsInstanceObject(), deferred, diags
+		return states.NewResourceInstanceObjectFromIR(state), deferred, diags
 	}
 
 	for _, obj := range imported {
@@ -735,7 +736,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			)
 		},
 		imported[0].State,
-		schema,
+		schema.Body,
 	)
 	diags = diags.Append(writeOnlyDiags)
 
@@ -743,7 +744,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		return nil, deferred, diags
 	}
 
-	importedState := imported[0].AsInstanceObject()
+	importedState := states.NewResourceInstanceObjectFromIR(imported[0])
 	if deferred == nil && importedState.Value.IsNull() {
 		// It's actually okay for a deferred import to have returned a null.
 		diags = diags.Append(tfdiags.Sourceless(
@@ -807,7 +808,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		// First we generate the contents of the resource block for use within
 		// the planning node. Then we wrap it in an enclosing resource block to
 		// pass into the plan for rendering.
-		generatedHCLAttributes, generatedDiags := n.generateHCLStringAttributes(n.Addr, instanceRefreshState, schema)
+		generatedHCLAttributes, generatedDiags := n.generateHCLStringAttributes(n.Addr, instanceRefreshState, schema.Body)
 		diags = diags.Append(generatedDiags)
 
 		n.generatedConfigHCL = genconfig.WrapResourceContents(n.Addr, generatedHCLAttributes)
