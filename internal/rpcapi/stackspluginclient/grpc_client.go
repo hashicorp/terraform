@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package stacksplugin1
+package stackspluginclient
 
 import (
 	"context"
@@ -11,21 +11,22 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/internal/rpcapi"
+	"github.com/hashicorp/terraform/internal/rpcapi/dynrpcserver"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/dependencies"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/packages"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacksplugin"
-	"github.com/hashicorp/terraform/internal/stacksplugin/dynrpcserver"
 	"github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1"
-	dep "github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1/dependencies"
-	pack "github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1/packages"
-	stack "github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1/stacks"
 	"google.golang.org/grpc"
 )
 
 // GRPCCloudClient is the client interface for interacting with terraform-cloudplugin
 type GRPCStacksClient struct {
-	client   stacksproto1.CommandServiceClient
-	broker   *plugin.GRPCBroker
-	services *disco.Disco
-	context  context.Context
+	Client   stacksproto1.CommandServiceClient
+	Broker   *plugin.GRPCBroker
+	Services *disco.Disco
+	Context  context.Context
 }
 
 // Proof that GRPCStacksClient fulfills the go-plugin interface
@@ -34,7 +35,7 @@ var _ stacksplugin.Stacks1 = GRPCStacksClient{}
 // Execute sends the client Execute request and waits for the plugin to return
 // an exit code response before returning
 func (c GRPCStacksClient) Execute(args []string, stdout, stderr io.Writer) int {
-	handles := newHandleTable()
+	handles := rpcapi.NewHandleTable()
 
 	dependenciesServer := dynrpcserver.NewDependenciesStub()
 	packagesServer := dynrpcserver.NewPackagesStub()
@@ -43,37 +44,39 @@ func (c GRPCStacksClient) Execute(args []string, stdout, stderr io.Writer) int {
 	var s *grpc.Server
 	dependenciesServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
 		s = grpc.NewServer(opts...)
-		dep.RegisterDependenciesServer(s, dependenciesServer)
-		dependenciesServer.ActivateRPCServer(newDependenciesServer(handles, c.services))
+		dependencies.RegisterDependenciesServer(s, dependenciesServer)
+		dependenciesServer.ActivateRPCServer(rpcapi.NewDependenciesServer(handles, c.Services))
 
 		return s
 	}
 
-	dependenciesBrokerID := c.broker.NextId()
-	go c.broker.AcceptAndServe(dependenciesBrokerID, dependenciesServerFunc)
+	dependenciesBrokerID := c.Broker.NextId()
+	go c.Broker.AcceptAndServe(dependenciesBrokerID, dependenciesServerFunc)
 
 	packagesServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
 		s = grpc.NewServer(opts...)
-		pack.RegisterPackagesServer(s, packagesServer)
-		packagesServer.ActivateRPCServer(newPackagesServer(c.services))
+		packages.RegisterPackagesServer(s, packagesServer)
+		packagesServer.ActivateRPCServer(rpcapi.NewPackagesServer(c.Services))
 
 		return s
 	}
 
-	packagesBrokerID := c.broker.NextId()
-	go c.broker.AcceptAndServe(packagesBrokerID, packagesServerFunc)
+	packagesBrokerID := c.Broker.NextId()
+	go c.Broker.AcceptAndServe(packagesBrokerID, packagesServerFunc)
 
 	stacksServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
 		s = grpc.NewServer(opts...)
-		stack.RegisterStacksServer(s, stacksServer)
-		stacksServer.ActivateRPCServer(newStacksServer(newStopper(), handles))
+		stacks.RegisterStacksServer(s, stacksServer)
+		stacksServer.ActivateRPCServer(rpcapi.NewStacksServer(rpcapi.NewStopper(), handles, &rpcapi.ServiceOpts{
+			ExperimentsAllowed: true,
+		}))
 		return s
 	}
 
-	stacksBrokerID := c.broker.NextId()
-	go c.broker.AcceptAndServe(stacksBrokerID, stacksServerFunc)
+	stacksBrokerID := c.Broker.NextId()
+	go c.Broker.AcceptAndServe(stacksBrokerID, stacksServerFunc)
 
-	client, err := c.client.Execute(c.context, &stacksproto1.CommandRequest{
+	client, err := c.Client.Execute(c.Context, &stacksproto1.CommandRequest{
 		DependenciesServer: dependenciesBrokerID,
 		PackagesServer:     packagesBrokerID,
 		StacksServer:       stacksBrokerID,

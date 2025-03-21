@@ -35,14 +35,14 @@ func (p *corePlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, 
 }
 
 func (p *corePlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
-	generalOpts := &serviceOpts{
-		experimentsAllowed: p.experimentsAllowed,
+	generalOpts := &ServiceOpts{
+		ExperimentsAllowed: p.experimentsAllowed,
 	}
 	registerGRPCServices(s, generalOpts)
 	return nil
 }
 
-func registerGRPCServices(s *grpc.Server, opts *serviceOpts) {
+func registerGRPCServices(s *grpc.Server, opts *ServiceOpts) {
 	// We initially only register the setup server, because the registration
 	// of other services can vary depending on the capabilities negotiated
 	// during handshake.
@@ -50,7 +50,7 @@ func registerGRPCServices(s *grpc.Server, opts *serviceOpts) {
 	setup.RegisterSetupServer(s, server)
 }
 
-func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *setup.Handshake_Request, *stopper) (*setup.ServerCapabilities, error) {
+func serverHandshake(s *grpc.Server, opts *ServiceOpts) func(context.Context, *setup.Handshake_Request, *stopper) (*setup.ServerCapabilities, error) {
 	dependenciesStub := dynrpcserver.NewDependenciesStub()
 	dependencies.RegisterDependenciesServer(s, dependenciesStub)
 	stacksStub := dynrpcserver.NewStacksStub()
@@ -61,7 +61,7 @@ func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *s
 	return func(ctx context.Context, request *setup.Handshake_Request, stopper *stopper) (*setup.ServerCapabilities, error) {
 		// All of our servers will share a common handles table so that objects
 		// can be passed from one service to another.
-		handles := newHandleTable()
+		handles := NewHandleTable()
 
 		// NOTE: This is intentionally not the same disco that "package main"
 		// instantiates for Terraform CLI, because the RPC API is
@@ -83,9 +83,9 @@ func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *s
 		// will initialize all of the other services so the client can begin
 		// doing real work. In future the details of what we register here
 		// might vary based on the negotiated capabilities.
-		dependenciesStub.ActivateRPCServer(newDependenciesServer(handles, services))
-		stacksStub.ActivateRPCServer(newStacksServer(stopper, handles, opts))
-		packagesStub.ActivateRPCServer(newPackagesServer(services))
+		dependenciesStub.ActivateRPCServer(NewDependenciesServer(handles, services))
+		stacksStub.ActivateRPCServer(NewStacksServer(stopper, handles, opts))
+		packagesStub.ActivateRPCServer(NewPackagesServer(services))
 
 		// If the client requested any extra capabililties that we're going
 		// to honor then we should announce them in this result.
@@ -93,13 +93,13 @@ func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *s
 	}
 }
 
-// serviceOpts are options that could potentially apply to all of our
+// ServiceOpts are options that could potentially apply to all of our
 // individual RPC services.
 //
 // This could potentially be embedded inside a service-specific options
 // structure, if needed.
-type serviceOpts struct {
-	experimentsAllowed bool
+type ServiceOpts struct {
+	ExperimentsAllowed bool
 }
 
 func newServiceDisco(config *setup.Config) (*disco.Disco, error) {

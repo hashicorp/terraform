@@ -42,8 +42,8 @@ import (
 func TestStacksOpenCloseStackConfiguration(t *testing.T) {
 	ctx := context.Background()
 
-	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+	handles := NewHandleTable()
+	stacksServer := NewStacksServer(NewStopper(), handles, &ServiceOpts{})
 
 	// In normal use a client would have previously opened a source bundle
 	// using Dependencies.OpenSourceBundle, so we'll simulate the effect
@@ -81,7 +81,7 @@ func TestStacksOpenCloseStackConfiguration(t *testing.T) {
 	// A hypothetical attempt to close the underlying source bundle while
 	// the stack configuration is active should fail.
 	{
-		depsServer := newDependenciesServer(handles, disco.New())
+		depsServer := NewDependenciesServer(handles, disco.New())
 
 		_, err := depsServer.CloseSourceBundle(ctx, &dependencies.CloseSourceBundle_Request{
 			SourceBundleHandle: sourcesHnd.ForProtobuf(),
@@ -110,7 +110,7 @@ func TestStacksOpenCloseStackConfiguration(t *testing.T) {
 
 	// Should be able to close the source bundle now too.
 	{
-		depsServer := newDependenciesServer(handles, disco.New())
+		depsServer := NewDependenciesServer(handles, disco.New())
 
 		_, err := depsServer.CloseSourceBundle(ctx, &dependencies.CloseSourceBundle_Request{
 			SourceBundleHandle: sourcesHnd.ForProtobuf(),
@@ -124,8 +124,8 @@ func TestStacksOpenCloseStackConfiguration(t *testing.T) {
 func TestStacksFindStackConfigurationComponents(t *testing.T) {
 	ctx := context.Background()
 
-	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+	handles := NewHandleTable()
+	stacksServer := NewStacksServer(NewStopper(), handles, &ServiceOpts{})
 
 	// In normal use a client would have previously opened a source bundle
 	// using Dependencies.OpenSourceBundle, so we'll simulate the effect
@@ -255,8 +255,8 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 func TestStacksOpenState(t *testing.T) {
 	ctx := context.Background()
 
-	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+	handles := NewHandleTable()
+	stacksServer := NewStacksServer(NewStopper(), handles, &ServiceOpts{})
 
 	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
 		stacks.RegisterStacksServer(srv, stacksServer)
@@ -320,8 +320,8 @@ func TestStacksOpenState(t *testing.T) {
 func TestStacksOpenPlan(t *testing.T) {
 	ctx := context.Background()
 
-	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+	handles := NewHandleTable()
+	stacksServer := NewStacksServer(NewStopper(), handles, &ServiceOpts{})
 
 	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
 		stacks.RegisterStacksServer(srv, stacksServer)
@@ -391,8 +391,8 @@ func TestStacksPlanStackChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+	handles := NewHandleTable()
+	stacksServer := NewStacksServer(NewStopper(), handles, &ServiceOpts{})
 	stacksServer.planTimestampOverride = &fakePlanTimestamp
 
 	fakeSourceBundle := &sourcebundle.Bundle{}
@@ -811,8 +811,8 @@ func TestStackChangeProgress(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := context.Background()
 
-			handles := newHandleTable()
-			stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+			handles := NewHandleTable()
+			stacksServer := NewStacksServer(NewStopper(), handles, &ServiceOpts{})
 
 			// For this test, we do actually want to use a "real" provider. We'll
 			// use the providerCacheOverride to side-load the testing provider.

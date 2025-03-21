@@ -5,37 +5,37 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime"
-	"github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1"
-	"github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1/stacks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	msgpack "github.com/zclconf/go-cty/cty/msgpack"
 )
 
-func diagnosticsToProto(diags tfdiags.Diagnostics) []*stacksproto1.Diagnostic {
+func diagnosticsToProto(diags tfdiags.Diagnostics) []*terraform1.Diagnostic {
 	if len(diags) == 0 {
 		return nil
 	}
 
-	ret := make([]*stacksproto1.Diagnostic, len(diags))
+	ret := make([]*terraform1.Diagnostic, len(diags))
 	for i, diag := range diags {
 		ret[i] = diagnosticToProto(diag)
 	}
 	return ret
 }
 
-func diagnosticToProto(diag tfdiags.Diagnostic) *stacksproto1.Diagnostic {
-	protoDiag := &stacksproto1.Diagnostic{}
+func diagnosticToProto(diag tfdiags.Diagnostic) *terraform1.Diagnostic {
+	protoDiag := &terraform1.Diagnostic{}
 
 	switch diag.Severity() {
 	case tfdiags.Error:
-		protoDiag.Severity = stacksproto1.Diagnostic_ERROR
+		protoDiag.Severity = terraform1.Diagnostic_ERROR
 	case tfdiags.Warning:
-		protoDiag.Severity = stacksproto1.Diagnostic_WARNING
+		protoDiag.Severity = terraform1.Diagnostic_WARNING
 	default:
-		protoDiag.Severity = stacksproto1.Diagnostic_INVALID
+		protoDiag.Severity = terraform1.Diagnostic_INVALID
 	}
 
 	desc := diag.Description()
@@ -53,8 +53,8 @@ func diagnosticToProto(diag tfdiags.Diagnostic) *stacksproto1.Diagnostic {
 	return protoDiag
 }
 
-func sourceRangeToProto(rng tfdiags.SourceRange) *stacksproto1.SourceRange {
-	return &stacksproto1.SourceRange{
+func sourceRangeToProto(rng tfdiags.SourceRange) *terraform1.SourceRange {
+	return &terraform1.SourceRange{
 		// RPC API operations use source address syntax for "filename" by
 		// convention, because the physical filesystem layout is an
 		// implementation detail.
@@ -65,7 +65,7 @@ func sourceRangeToProto(rng tfdiags.SourceRange) *stacksproto1.SourceRange {
 	}
 }
 
-func sourceRangeFromProto(protoRng *stacksproto1.SourceRange) tfdiags.SourceRange {
+func sourceRangeFromProto(protoRng *terraform1.SourceRange) tfdiags.SourceRange {
 	return tfdiags.SourceRange{
 		Filename: protoRng.SourceAddr,
 		Start:    sourcePosFromProto(protoRng.Start),
@@ -73,15 +73,15 @@ func sourceRangeFromProto(protoRng *stacksproto1.SourceRange) tfdiags.SourceRang
 	}
 }
 
-func sourcePosToProto(pos tfdiags.SourcePos) *stacksproto1.SourcePos {
-	return &stacksproto1.SourcePos{
+func sourcePosToProto(pos tfdiags.SourcePos) *terraform1.SourcePos {
+	return &terraform1.SourcePos{
 		Byte:   int64(pos.Byte),
 		Line:   int64(pos.Line),
 		Column: int64(pos.Column),
 	}
 }
 
-func sourcePosFromProto(protoPos *stacksproto1.SourcePos) tfdiags.SourcePos {
+func sourcePosFromProto(protoPos *terraform1.SourcePos) tfdiags.SourcePos {
 	return tfdiags.SourcePos{
 		Byte:   int(protoPos.Byte),
 		Line:   int(protoPos.Line),

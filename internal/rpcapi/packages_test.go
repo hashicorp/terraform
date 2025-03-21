@@ -23,7 +23,6 @@ import (
 )
 
 func TestPackagesServer_ProviderPackageVersions(t *testing.T) {
-
 	tcs := map[string]struct {
 		source           string
 		expectedVersions []string

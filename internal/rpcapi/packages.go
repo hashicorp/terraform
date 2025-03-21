@@ -23,7 +23,7 @@ import (
 
 var _ packages.PackagesServer = (*packagesServer)(nil)
 
-func newPackagesServer(services *disco.Disco) *packagesServer {
+func NewPackagesServer(services *disco.Disco) *packagesServer {
 	return &packagesServer{
 		services: services,
 

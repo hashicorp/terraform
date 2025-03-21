@@ -55,11 +55,11 @@ type stacksServer struct {
 
 var _ stacks.StacksServer = (*stacksServer)(nil)
 
-func newStacksServer(stopper *stopper, handles *handleTable, opts *serviceOpts) *stacksServer {
+func NewStacksServer(stopper *stopper, handles *handleTable, opts *ServiceOpts) *stacksServer {
 	return &stacksServer{
 		stopper:            stopper,
 		handles:            handles,
-		experimentsAllowed: opts.experimentsAllowed,
+		experimentsAllowed: opts.ExperimentsAllowed,
 	}
 }
 

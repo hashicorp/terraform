@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/internal/rpcapi/stackspluginclient"
 	"github.com/hashicorp/terraform/internal/stacksplugin"
 	"github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1"
 	"google.golang.org/grpc"
@@ -47,11 +48,11 @@ func (p *GRPCStacksPlugin) Client(*plugin.MuxBroker, *rpc.Client) (interface{}, 
 // GRPCClient returns a new GRPC client for interacting with the cloud plugin server.
 func (p *GRPCStacksPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
 	ctx = metadata.NewOutgoingContext(ctx, p.Metadata)
-	return &GRPCStacksClient{
-		client:   stacksproto1.NewCommandServiceClient(c),
-		broker:   broker,
-		services: p.Services,
-		context:  ctx,
+	return &stackspluginclient.GRPCStacksClient{
+		Client:   stacksproto1.NewCommandServiceClient(c),
+		Broker:   broker,
+		Services: p.Services,
+		Context:  ctx,
 	}, nil
 }
 
