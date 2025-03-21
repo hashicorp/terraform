@@ -458,7 +458,7 @@ Events:
 
 			syncEvts.Send(&stacks.PlanStackChanges_Event{
 				Event: &stacks.PlanStackChanges_Event_PlannedChange{
-					PlannedChange: nil, //protoChange,
+					PlannedChange: protoChange,
 				},
 			})
 
@@ -683,7 +683,7 @@ Events:
 
 			syncEvts.Send(&stacks.ApplyStackChanges_Event{
 				Event: &stacks.ApplyStackChanges_Event_AppliedChange{
-					AppliedChange: nil, //protoChange,
+					AppliedChange: protoChange,
 				},
 			})
 
@@ -927,11 +927,10 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 			// case, holding a zero provider would mean a bug in our event
 			// logging code rather than in core logic, so avoid exploding, but
 			// send a blank string to expose the error later.
-			//providerAddr := ""
+			providerAddr := ""
 			if !rihd.ProviderAddr.IsZero() {
-				//providerAddr = rihd.ProviderAddr.String()
+				providerAddr = rihd.ProviderAddr.String()
 			}
-			/**
 			send(&stacks.StackChangeProgress{
 				Event: &stacks.StackChangeProgress_ResourceInstanceStatus_{
 					ResourceInstanceStatus: &stacks.StackChangeProgress_ResourceInstanceStatus{
@@ -941,7 +940,6 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 					},
 				},
 			})
-			**/
 			return span
 		},
 

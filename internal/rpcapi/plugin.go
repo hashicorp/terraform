@@ -93,7 +93,7 @@ func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *s
 	}
 }
 
-// ServiceOpts are options that could potentially apply to all of our
+// serviceOpts are options that could potentially apply to all of our
 // individual RPC services.
 //
 // This could potentially be embedded inside a service-specific options
