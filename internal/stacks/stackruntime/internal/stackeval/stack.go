@@ -49,8 +49,15 @@ type Stack struct {
 	stackCalls     map[stackaddrs.StackCall]*StackCall
 	outputValues   map[stackaddrs.OutputValue]*OutputValue
 	components     map[stackaddrs.Component]*Component
-	removed        map[stackaddrs.Component][]*Removed
 	providers      map[stackaddrs.ProviderConfigRef]*Provider
+
+	// The removed blocks are complicated because they don't map nicely to
+	// single addresses. They're initialised separately, with a dedicated
+	// mutex.
+	removed               sync.Mutex
+	externalRemovedBlocks collections.Map[stackaddrs.ConfigComponent, []*Removed]
+	childRemovedBlocks    collections.Map[stackaddrs.ConfigComponent, []*Removed]
+	localRemovedBlocks    map[stackaddrs.Component][]*Removed
 }
 
 var (
@@ -58,10 +65,11 @@ var (
 	_ Plannable       = (*Stack)(nil)
 )
 
-func newStack(main *Main, addr stackaddrs.StackInstance) *Stack {
+func newStack(main *Main, addr stackaddrs.StackInstance, externalRemovedBlocks collections.Map[stackaddrs.ConfigComponent, []*Removed]) *Stack {
 	return &Stack{
-		addr: addr,
-		main: main,
+		addr:                  addr,
+		externalRemovedBlocks: externalRemovedBlocks,
+		main:                  main,
 	}
 }
 
@@ -109,7 +117,7 @@ func (s *Stack) ChildStackUnchecked(ctx context.Context, addr stackaddrs.StackIn
 		if s.childStacks == nil {
 			s.childStacks = make(map[stackaddrs.StackInstanceStep]*Stack)
 		}
-		s.childStacks[addr] = newStack(s.main, childAddr)
+		s.childStacks[addr] = newStack(s.main, childAddr, s.findChildRemovedBlocks(ctx, addr))
 	}
 
 	return s.childStacks[addr]
@@ -322,37 +330,83 @@ func (s *Stack) Component(ctx context.Context, addr stackaddrs.Component) *Compo
 	return s.Components(ctx)[addr]
 }
 
-func (s *Stack) Removeds(ctx context.Context) map[stackaddrs.Component][]*Removed {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+// initialiseRemovedBlocks initialises the removed blocks defined within this
+// stack and combines them with the external blocks provided by the parent
+// stack.
+//
+// This function should not be called outside of a Stack object, the mutex must
+// be locked before doing this.
+func (s *Stack) initialiseRemovedBlocks(ctx context.Context) {
+	s.removed.Lock()
+	defer s.removed.Unlock()
 
-	if s.removed != nil {
-		return s.removed
+	if s.localRemovedBlocks != nil {
+		// Then we'll assume we have initialised previously. We're using the
+		// localRemovedBlocks object being nil as a proxy for has this function
+		// been called before.
+		return
 	}
 
-	decls := s.StackConfig(ctx).Removeds(ctx)
-	ret := make(map[stackaddrs.Component][]*Removed, len(decls))
-	for _, blocks := range decls {
-		for _, r := range blocks {
-			absAddr := stackaddrs.AbsComponent{
-				Stack: s.Addr(),
-				Item:  r.config.FromComponent,
-			}
-			ret[absAddr.Item] = append(ret[absAddr.Item], newRemoved(s.main, absAddr, r))
+	s.localRemovedBlocks = make(map[stackaddrs.Component][]*Removed)
+	s.childRemovedBlocks = collections.NewMap[stackaddrs.ConfigComponent, []*Removed]()
+	for addr := range s.ConfigDeclarations(ctx).Removed.All() {
+		var blocks []*Removed
+		for _, config := range s.StackConfig(ctx).Removed(ctx, addr) {
+			blocks = append(blocks, newRemoved(s.main, s.addr, addr, config))
+		}
+
+		if addr.Stack.IsRoot() {
+			s.localRemovedBlocks[addr.Item] = blocks
+			continue
+		}
+
+		s.childRemovedBlocks.Put(addr, blocks)
+	}
+
+	for addr, blocks := range s.externalRemovedBlocks.All() {
+		if addr.Stack.IsRoot() {
+			s.localRemovedBlocks[addr.Item] = append(s.localRemovedBlocks[addr.Item], blocks...)
+			continue
+		}
+
+		s.childRemovedBlocks.Put(addr, append(s.childRemovedBlocks.Get(addr), blocks...))
+	}
+}
+
+// findChildRemovedBlocks returns all the removed blocks targeting child Stacks
+// of the current stack, keyed by the relevant stack step.
+func (s *Stack) findChildRemovedBlocks(ctx context.Context, stack stackaddrs.StackInstanceStep) collections.Map[stackaddrs.ConfigComponent, []*Removed] {
+	s.initialiseRemovedBlocks(ctx)
+	ret := collections.NewMap[stackaddrs.ConfigComponent, []*Removed]()
+	for addr, blocks := range s.childRemovedBlocks.All() {
+		if addr.Stack[0].Name == stack.Name {
+			ret.Put(stackaddrs.ConfigComponent{
+				Stack: addr.Stack[1:], // make it relative to the requested stack.
+				Item:  addr.Item,
+			}, blocks)
 		}
 	}
-	s.removed = ret
 	return ret
 }
 
-func (s *Stack) Removed(ctx context.Context, addr stackaddrs.Component) []*Removed {
-	return s.Removeds(ctx)[addr]
+// LocalRemovedBlocks returns all the removed blocks that target the specified
+// component.
+func (s *Stack) LocalRemovedBlocks(ctx context.Context, addr stackaddrs.Component) []*Removed {
+	s.initialiseRemovedBlocks(ctx)
+	return s.localRemovedBlocks[addr]
+}
+
+// AllLocalRemovedBlocks returns all the removed blocks that target components
+// within this stack.
+func (s *Stack) AllLocalRemovedBlocks(ctx context.Context) map[stackaddrs.Component][]*Removed {
+	s.initialiseRemovedBlocks(ctx)
+	return s.localRemovedBlocks
 }
 
 // ApplyableComponents returns the combination of removed blocks and declared
 // components for a given component address.
 func (s *Stack) ApplyableComponents(ctx context.Context, addr stackaddrs.Component) (*Component, []*Removed) {
-	return s.Component(ctx, addr), s.Removed(ctx, addr)
+	return s.Component(ctx, addr), s.LocalRemovedBlocks(ctx, addr)
 }
 
 // KnownComponentInstances returns a set of the component instances that belong
@@ -681,10 +735,10 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 
 	// We're going to validate that all the removed blocks in this stack resolve
 	// to unique instance addresses.
-	for _, blocks := range s.Removeds(ctx) {
+	for _, blocks := range s.AllLocalRemovedBlocks(ctx) {
 		seen := make(map[addrs.InstanceKey]*RemovedInstance)
 		for _, block := range blocks {
-			insts, unknown, _ := block.Instances(ctx, PlanPhase)
+			insts, unknown, _ := block.InstancesFor(ctx, s.addr, PlanPhase)
 			if unknown {
 				continue
 			}
@@ -765,7 +819,7 @@ Instance:
 		}
 
 		for _, removed := range removeds {
-			insts, unknown, _ := removed.Instances(ctx, PlanPhase)
+			insts, unknown, _ := removed.InstancesFor(ctx, inst.Stack, PlanPhase)
 			if unknown {
 				// We can't determine if the component is targeted or not. This
 				// is okay, as any changes to this component will be deferred

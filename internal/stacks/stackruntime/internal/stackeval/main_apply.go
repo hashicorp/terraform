@@ -102,7 +102,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 						if removed != nil {
 						Blocks:
 							for _, block := range removed {
-								if insts, unknown, _ := block.Instances(ctx, ApplyPhase); unknown {
+								if insts, unknown, _ := block.InstancesFor(ctx, addr.Stack, ApplyPhase); unknown {
 									// It might be that either the removed block
 									// or component block was deferred but the
 									// other one had proper changes. We'll note
@@ -240,7 +240,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 						}
 						for waitComponentAddr := range waitForRemoveds.All() {
 							if stack := main.Stack(ctx, waitComponentAddr.Stack, ApplyPhase); stack != nil {
-								if removed := stack.Removed(ctx, waitComponentAddr.Item); removed != nil {
+								if removed := stack.LocalRemovedBlocks(ctx, waitComponentAddr.Item); removed != nil {
 									span.AddEvent("awaiting predecessor", trace.WithAttributes(
 										attribute.String("component_addr", waitComponentAddr.String()),
 									))

@@ -54,6 +54,10 @@ type Hooks struct {
 	// expansion argument for a component, resulting in zero or more instances.
 	ComponentExpanded hooks.SingleFunc[*hooks.ComponentInstances]
 
+	// RemovedExpanded is called when a plan operation evaluates the expansion
+	// argument for a removed block.
+	RemovedExpanded hooks.SingleFunc[*hooks.RemovedInstances]
+
 	// PendingComponentInstancePlan is called at the start of the plan
 	// operation, before evaluating the component instance's inputs and
 	// providers.

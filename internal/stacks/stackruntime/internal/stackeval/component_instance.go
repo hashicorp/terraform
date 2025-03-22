@@ -58,6 +58,10 @@ func newComponentInstance(call *Component, key addrs.InstanceKey, repetition ins
 	return component
 }
 
+func (c *ComponentInstance) TargetComponentAbsolute() stackaddrs.AbsComponentInstance {
+	return c.Addr()
+}
+
 func (c *ComponentInstance) Addr() stackaddrs.AbsComponentInstance {
 	callAddr := c.call.Addr()
 	stackAddr := callAddr.Stack
