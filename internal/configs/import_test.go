@@ -67,6 +67,9 @@ func TestImportBlock_decode(t *testing.T) {
 	}
 
 	foo_str_expr := hcltest.MockExprLiteral(cty.StringVal("foo"))
+	id_obj_expr := hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("foo"),
+	}))
 	bar_expr := hcltest.MockExprTraversalSrc("test_instance.bar")
 
 	bar_index_expr := hcltest.MockExprTraversalSrc("test_instance.bar[\"one\"]")
@@ -150,7 +153,7 @@ func TestImportBlock_decode(t *testing.T) {
 			},
 			``,
 		},
-		"error: missing id argument": {
+		"error: missing id or identity argument": {
 			&hcl.Block{
 				Type: "import",
 				Body: hcltest.MockBody(&hcl.BodyContent{
@@ -167,16 +170,43 @@ func TestImportBlock_decode(t *testing.T) {
 				ToResource: mustAbsResourceInstanceAddr("test_instance.bar").ConfigResource(),
 				DeclRange:  blockRange,
 			},
-			"Missing required argument",
+			"Invalid import block",
+		},
+		"error: id and identity argument": {
+			&hcl.Block{
+				Type: "import",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"id": {
+							Name: "id",
+							Expr: foo_str_expr,
+						},
+						"identity": {
+							Name: "identity",
+							Expr: id_obj_expr,
+						},
+						"to": {
+							Name: "to",
+							Expr: bar_expr,
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			&Import{
+				ToResource: mustAbsResourceInstanceAddr("test_instance.bar").ConfigResource(),
+				DeclRange:  blockRange,
+			},
+			"Invalid import block",
 		},
 		"error: missing to argument": {
 			&hcl.Block{
 				Type: "import",
 				Body: hcltest.MockBody(&hcl.BodyContent{
 					Attributes: hcl.Attributes{
-						"to": {
-							Name: "to",
-							Expr: bar_expr,
+						"id": {
+							Name: "id",
+							Expr: foo_str_expr,
 						},
 					},
 				}),
