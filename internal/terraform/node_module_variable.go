@@ -50,8 +50,10 @@ func (n *nodeExpandModuleVariable) temporaryValue() bool {
 	return true
 }
 
+// TODO: can nodeExpandModuleVariable implement a validate?
 func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
+	var diags tfdiags.Diagnostics
 
 	// If this variable has preconditions, we need to report these checks now.
 	//
@@ -61,6 +63,17 @@ func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, tfdia
 	if n.Planning {
 		if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.Addr.InModule(n.Module)) {
 			checkableAddrs = addrs.MakeSet[addrs.Checkable]()
+		}
+	}
+
+	for _, ref := range n.References() {
+		if msg, ok := ctx.ReferencableDeprecationMessage(n.ModulePath(), ref.Subject); ok {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Usage of deprecated output",
+				Detail:   msg,
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
 		}
 	}
 
@@ -97,7 +110,7 @@ func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, tfdia
 		ctx.Checks().ReportCheckableObjects(n.Addr.InModule(n.Module), checkableAddrs)
 	}
 
-	return &g, nil
+	return &g, diags
 }
 
 func (n *nodeExpandModuleVariable) Name() string {
