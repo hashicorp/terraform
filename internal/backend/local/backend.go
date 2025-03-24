@@ -59,6 +59,13 @@ type Local struct {
 	// and will override what'd be built from the State* fields if non-empty.
 	// While the interpretation of the State* fields depends on the active
 	// workspace, the OverrideState* fields are always used literally.
+	//
+	// OverrideStatePath is set as a result of the -state flag
+	// OverrideStateOutPath is set as a result of the -state-out flag
+	// OverrideStateBackupPath is set as a result of the -state-backup flag
+	//
+	// Note: these flags are only accepted by some commands.
+	// Importantly, they are not accepted by `init`.
 	OverrideStatePath       string
 	OverrideStateOutPath    string
 	OverrideStateBackupPath string
