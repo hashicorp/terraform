@@ -140,29 +140,6 @@ $ git checkout -b add-load-balancer
 Switched to a new branch 'add-load-balancer'
 ```
 
-#### Best Practices for Team Collaboration
-
-When working in a team environment, following consistent conventions helps maintain clarity and organization:
-
-**Branch Naming Conventions:**
-- Use descriptive prefixes like `feature/`, `bugfix/`, or `hotfix/`
-- Include the issue or ticket number if applicable
-- Use kebab-case for readability
-Example: `feature/add-vpc-endpoints-123` or `bugfix/fix-s3-permissions`
-
-**Commit Message Guidelines:**
-- Write clear, descriptive commit messages that explain *what* and *why* (not *how*)
-- Use the imperative mood ("Add" not "Added")
-- Start with a short summary line (50 chars or less)
-- Include more detailed explanation after a blank line if needed
-Example:
-```sh
-$ git commit -m "Add VPC endpoints for S3 and DynamoDB
-
-This change improves security by keeping traffic within the AWS network
-and reduces data transfer costs. Relates to issue #123."
-```
-
 Running iterative plans is still useful as a feedback loop while authoring
 configuration, though having each team member's computer able to run them
 becomes more difficult with time. As the team and the infrastructure grows, so
@@ -243,7 +220,7 @@ week, for others, many times a day.
 While the above described workflows enable the safe, predictable, and
 reproducible creating or changing of infrastructure, there are multiple
 collaboration points that can be streamlined, especially as teams and
-organizations scale.  We designed HCP Terraform to support and enhance
+organizations scale. We designed HCP Terraform to support and enhance
 the core Terraform workflow for anyone collaborating on infrastructure, from
 small teams to large organizations. Let's look at how HCP Terraform makes
 for a better experience at each step.
@@ -266,7 +243,7 @@ terraform {
         layer = "networking"
         source = "cli"
       }
-      
+
       # For terraform versions below 1.10, you must specify key-only tags
       # using a list of strings. Example:
       # tags = ["networking", "source:cli"]
