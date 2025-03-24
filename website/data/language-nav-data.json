@@ -80,31 +80,6 @@
         "path": "resources/behavior"
       },
       {
-        "title": "Meta-Arguments",
-        "routes": [
-          {
-            "title": "<code>depends_on</code>",
-            "href": "/language/meta-arguments/depends_on"
-          },
-          {
-            "title": "<code>count</code>",
-            "href": "/language/meta-arguments/count"
-          },
-          {
-            "title": "<code>for_each</code>",
-            "href": "/language/meta-arguments/for_each"
-          },
-          {
-            "title": "<code>provider</code>",
-            "href": "/language/meta-arguments/resource-provider"
-          },
-          {
-            "title": "<code>lifecycle</code>",
-            "href": "/language/meta-arguments/lifecycle"
-          }
-        ]
-      },
-      {
         "title": "Provisioners",
         "routes": [
           {
@@ -158,37 +133,6 @@
   },
   { "title": "Data Sources", "path": "data-sources" },
   {
-    "title": "Meta-Arguments",
-    "hidden": true,
-    "routes": [
-      {
-        "title": "<code>count</code>",
-        "path": "meta-arguments/count"
-      },
-      {
-        "title": "<code>depends_on</code>",
-        "path": "meta-arguments/depends_on"
-      },
-      {
-        "title": "<code>for_each</code>",
-        "path": "meta-arguments/for_each"
-      },
-      {
-        "title": "<code>lifecycle</code>",
-        "path": "meta-arguments/lifecycle"
-      },
-      {
-        "title": "<code>providers</code>",
-        "path": "meta-arguments/module-providers"
-      },
-      {
-        "title": "<code>provider</code>",
-        "path": "meta-arguments/resource-provider"
-      }
-    ]
-  },
-
-  {
     "title": "Providers",
     "routes": [
       { "title": "Overview", "path": "providers" },
@@ -222,27 +166,6 @@
 
       { "title": "Module Blocks", "path": "modules/syntax" },
       { "title": "Module Sources", "path": "modules/sources" },
-      {
-        "title": "Meta-Arguments",
-        "routes": [
-          {
-            "title": "<code>providers</code>",
-            "href": "/language/meta-arguments/module-providers"
-          },
-          {
-            "title": "<code>depends_on</code>",
-            "href": "/language/meta-arguments/depends_on"
-          },
-          {
-            "title": "<code>count</code>",
-            "href": "/language/meta-arguments/count"
-          },
-          {
-            "title": "<code>for_each</code>",
-            "href": "/language/meta-arguments/for_each"
-          }
-        ]
-      },
       {
         "title": "Module Development",
         "routes": [
@@ -1116,6 +1039,35 @@
       {
         "title": "terraform",
         "path": "block/terraform"
+      }
+    ]
+  },
+  {
+    "title": "Meta-arguments",
+    "routes": [
+      {
+        "title": "<code>count</code>",
+        "path": "meta-arguments/count"
+      },
+      {
+        "title": "<code>depends_on</code>",
+        "path": "meta-arguments/depends_on"
+      },
+      {
+        "title": "<code>for_each</code>",
+        "path": "meta-arguments/for_each"
+      },
+      {
+        "title": "<code>lifecycle</code>",
+        "path": "meta-arguments/lifecycle"
+      },
+      {
+        "title": "<code>provider</code>",
+        "path": "meta-arguments/resource-provider"
+      },
+      {
+        "title": "<code>providers</code>",
+        "path": "meta-arguments/module-providers"
       }
     ]
   },
