@@ -140,6 +140,29 @@ $ git checkout -b add-load-balancer
 Switched to a new branch 'add-load-balancer'
 ```
 
+#### Best Practices for Team Collaboration
+
+When working in a team environment, following consistent conventions helps maintain clarity and organization:
+
+**Branch Naming Conventions:**
+- Use descriptive prefixes like `feature/`, `bugfix/`, or `hotfix/`
+- Include the issue or ticket number if applicable
+- Use kebab-case for readability
+Example: `feature/add-vpc-endpoints-123` or `bugfix/fix-s3-permissions`
+
+**Commit Message Guidelines:**
+- Write clear, descriptive commit messages that explain *what* and *why* (not *how*)
+- Use the imperative mood ("Add" not "Added")
+- Start with a short summary line (50 chars or less)
+- Include more detailed explanation after a blank line if needed
+Example:
+```sh
+$ git commit -m "Add VPC endpoints for S3 and DynamoDB
+
+This change improves security by keeping traffic within the AWS network
+and reduces data transfer costs. Relates to issue #123."
+```
+
 Running iterative plans is still useful as a feedback loop while authoring
 configuration, though having each team member's computer able to run them
 becomes more difficult with time. As the team and the infrastructure grows, so
