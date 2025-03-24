@@ -179,7 +179,10 @@ func walkDynamicObjectsInStack[Output any](
 					} else {
 						// Otherwise, the key is a known key and the instance
 						// actually does exist.
-						inst := newComponentInstance(component, inst.Key, instances.RepetitionData{
+						inst := newComponentInstance(component, stackaddrs.AbsComponentInstance{
+							Stack: stack.addr,
+							Item:  inst,
+						}, instances.RepetitionData{
 							EachKey:   inst.Key.Value(),
 							EachValue: cty.UnknownVal(cty.DynamicPseudoType),
 						}, true)

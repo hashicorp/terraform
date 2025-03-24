@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -33,7 +32,7 @@ import (
 // element of for_each for each [Provider].
 type ProviderInstance struct {
 	provider   *Provider
-	key        addrs.InstanceKey
+	addr       stackaddrs.AbsProviderConfigInstance
 	repetition instances.RepetitionData
 
 	main *Main
@@ -44,24 +43,17 @@ type ProviderInstance struct {
 
 var _ ExpressionScope = (*ProviderInstance)(nil)
 
-func newProviderInstance(provider *Provider, key addrs.InstanceKey, repetition instances.RepetitionData) *ProviderInstance {
+func newProviderInstance(provider *Provider, addr stackaddrs.AbsProviderConfigInstance, repetition instances.RepetitionData) *ProviderInstance {
 	return &ProviderInstance{
 		provider:   provider,
-		key:        key,
+		addr:       addr,
 		main:       provider.main,
 		repetition: repetition,
 	}
 }
 
 func (p *ProviderInstance) Addr() stackaddrs.AbsProviderConfigInstance {
-	providerAddr := p.provider.Addr()
-	return stackaddrs.AbsProviderConfigInstance{
-		Stack: providerAddr.Stack,
-		Item: stackaddrs.ProviderConfigInstance{
-			ProviderConfig: providerAddr.Item,
-			Key:            p.key,
-		},
-	}
+	return p.addr
 }
 
 func (p *ProviderInstance) RepetitionData() instances.RepetitionData {
@@ -87,7 +79,7 @@ func (p *ProviderInstance) ProviderArgs(ctx context.Context, phase EvalPhase) ct
 
 func (p *ProviderInstance) CheckProviderArgs(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
-		ctx, p.providerArgs.For(phase), p.main,
+		ctx, p.tracingName(), p.providerArgs.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
@@ -165,7 +157,7 @@ func (p *ProviderInstance) Client(ctx context.Context, phase EvalPhase) provider
 
 func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (providers.Interface, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
-		ctx, p.client.For(phase), p.main,
+		ctx, p.tracingName()+" plugin client", p.client.For(phase),
 		func(ctx context.Context) (providers.Interface, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
@@ -324,16 +316,4 @@ func (p *ProviderInstance) CheckApply(ctx context.Context) ([]stackstate.Applied
 // tracingName implements Plannable.
 func (p *ProviderInstance) tracingName() string {
 	return p.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (p *ProviderInstance) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	name := p.Addr().String()
-	clientName := name + " plugin client"
-	p.providerArgs.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(o.PromiseID(), name)
-	})
-	p.client.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[providers.Interface]]) {
-		cb(o.PromiseID(), clientName)
-	})
 }

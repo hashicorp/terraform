@@ -30,7 +30,7 @@ import (
 
 type ComponentInstance struct {
 	call     *Component
-	key      addrs.InstanceKey
+	addr     stackaddrs.AbsComponentInstance
 	deferred bool
 
 	main    *Main
@@ -46,10 +46,10 @@ var _ Plannable = (*ComponentInstance)(nil)
 var _ ExpressionScope = (*ComponentInstance)(nil)
 var _ ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance] = (*ComponentInstance)(nil)
 
-func newComponentInstance(call *Component, key addrs.InstanceKey, repetition instances.RepetitionData, deferred bool) *ComponentInstance {
+func newComponentInstance(call *Component, addr stackaddrs.AbsComponentInstance, repetition instances.RepetitionData, deferred bool) *ComponentInstance {
 	component := &ComponentInstance{
 		call:       call,
-		key:        key,
+		addr:       addr,
 		deferred:   deferred,
 		main:       call.main,
 		repetition: repetition,
@@ -63,15 +63,7 @@ func (c *ComponentInstance) TargetComponentAbsolute() stackaddrs.AbsComponentIns
 }
 
 func (c *ComponentInstance) Addr() stackaddrs.AbsComponentInstance {
-	callAddr := c.call.Addr()
-	stackAddr := callAddr.Stack
-	return stackaddrs.AbsComponentInstance{
-		Stack: stackAddr,
-		Item: stackaddrs.ComponentInstance{
-			Component: callAddr.Item,
-			Key:       c.key,
-		},
-	}
+	return c.addr
 }
 
 func (c *ComponentInstance) RepetitionData() instances.RepetitionData {
@@ -197,7 +189,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 	}
 
 	return doOnceWithDiags(
-		ctx, &c.moduleTreePlan, c.main,
+		ctx, c.tracingName()+" modules", &c.moduleTreePlan,
 		func(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
@@ -311,7 +303,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 
 			// The instance is also upstream deferred if the for_each value for
 			// this instance or any parent stacks is unknown.
-			if c.key == addrs.WildcardKey {
+			if c.addr.Item.Key == addrs.WildcardKey {
 				opts.ExternalDependencyDeferred = true
 			} else {
 				for _, step := range c.call.addr.Stack {
@@ -760,9 +752,4 @@ func (c *ComponentInstance) RequiredComponents(ctx context.Context) collections.
 
 func (c *ComponentInstance) tracingName() string {
 	return c.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (c *ComponentInstance) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	cb(c.moduleTreePlan.PromiseID(), c.Addr().String()+" plan")
 }

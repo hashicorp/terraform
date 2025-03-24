@@ -8,14 +8,15 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // OutputValueConfig represents an "output" block in a stack configuration.
@@ -29,7 +30,6 @@ type OutputValueConfig struct {
 }
 
 var _ Validatable = (*OutputValueConfig)(nil)
-var _ namedPromiseReporter = (*OutputValueConfig)(nil)
 
 func newOutputValueConfig(main *Main, addr stackaddrs.ConfigOutputValue, config *stackconfig.OutputValue) *OutputValueConfig {
 	if config == nil {
@@ -87,7 +87,7 @@ func (ov *OutputValueConfig) ValueTypeConstraint(ctx context.Context) cty.Type {
 // declared type constraint.
 func (ov *OutputValueConfig) ValidateValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return withCtyDynamicValPlaceholder(doOnceWithDiags(
-		ctx, ov.validatedValue.For(phase), ov.main,
+		ctx, ov.tracingName(), ov.validatedValue.For(phase),
 		ov.validateValueInner,
 	))
 }
@@ -151,16 +151,4 @@ func (ov *OutputValueConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
 // PlanChanges implements Plannable.
 func (ov *OutputValueConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	return nil, ov.checkValid(ctx, PlanPhase)
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (ov *OutputValueConfig) reportNamedPromises(report func(id promising.PromiseID, name string)) {
-	// We'll report all of our value promises with the same name, since
-	// promises from different eval phases should not interact with one
-	// another and so mentioning the phase will typically just make any
-	// error messages more confusing.
-	valueName := ov.addr.String() + " value"
-	ov.validatedValue.Each(func(ep EvalPhase, once *promising.Once[withDiagnostics[cty.Value]]) {
-		report(once.PromiseID(), valueName)
-	})
 }

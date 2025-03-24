@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/typeexpr"
@@ -945,29 +944,4 @@ func (s *Stack) tracingName() string {
 		return "root stack"
 	}
 	return addr.String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (s *Stack) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	for _, child := range s.childStacks {
-		child.reportNamedPromises(cb)
-	}
-	for _, child := range s.inputVariables {
-		child.reportNamedPromises(cb)
-	}
-	for _, child := range s.outputValues {
-		child.reportNamedPromises(cb)
-	}
-	for _, child := range s.stackCalls {
-		child.reportNamedPromises(cb)
-	}
-	for _, child := range s.components {
-		child.reportNamedPromises(cb)
-	}
-	for _, child := range s.providers {
-		child.reportNamedPromises(cb)
-	}
 }

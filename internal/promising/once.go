@@ -46,13 +46,13 @@ type Once[T any] struct {
 // and so all calls to Do will return [ErrUnresolved]. However, there is
 // no built-in facility to catch and recover from such panics since they occur
 // in a separate goroutine from all of the waiters.
-func (o *Once[T]) Do(ctx context.Context, f func(ctx context.Context) (T, error)) (T, error) {
+func (o *Once[T]) Do(ctx context.Context, name string, f func(ctx context.Context) (T, error)) (T, error) {
 	AssertContextInTask(ctx)
 	o.mu.Lock()
 	if o.get == nil {
 		// We seem to be the first call, so we'll get the asynchronous task
 		// running and then block on its result.
-		resolver, get := NewPromise[T](ctx)
+		resolver, get := NewPromise[T](ctx, name)
 		o.get = get
 		o.promiseID = resolver.PromiseID()
 		o.mu.Unlock()

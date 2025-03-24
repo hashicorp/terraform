@@ -48,27 +48,6 @@ func newRemoved(main *Main, source stackaddrs.StackInstance, target stackaddrs.C
 	}
 }
 
-// reportNamedPromises implements namedPromiseReporter.
-func (r *Removed) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	name := r.tracingName()
-	instsName := name + " instances"
-	forEachName := name + " for_each"
-	r.instances.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[instancesResult[*RemovedInstance]]]) {
-		cb(o.PromiseID(), instsName)
-	})
-	// FIXME: We should call reportNamedPromises on the individual
-	// ComponentInstance objects too, but promising.Once doesn't allow us
-	// to peek to see if the Once was already resolved without blocking on
-	// it, and we don't want to block on any promises in here.
-	// Without this, any promises belonging to the individual instances will
-	// not be named in a self-dependency error report, but since references
-	// to component instances are always indirect through the component this
-	// shouldn't be a big deal in most cases.
-	r.forEachValue.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(o.PromiseID(), forEachName)
-	})
-}
-
 func (r *Removed) Stack(ctx context.Context) *Stack {
 	return r.main.StackUnchecked(ctx, r.source)
 }
@@ -78,7 +57,7 @@ func (r *Removed) Config(ctx context.Context) *RemovedConfig {
 }
 
 func (r *Removed) ForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
-	return doOnceWithDiags(ctx, r.forEachValue.For(phase), r, func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+	return doOnceWithDiags(ctx, r.tracingName()+" for_each", r.forEachValue.For(phase), func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 		config := r.Config(ctx).config
 
 		switch {
@@ -111,7 +90,7 @@ func (r *Removed) InstancesFor(ctx context.Context, target stackaddrs.StackInsta
 }
 
 func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*RemovedInstance, bool, tfdiags.Diagnostics) {
-	result, diags := doOnceWithDiags(ctx, r.instances.For(phase), r.main, func(ctx context.Context) (instancesResult[*RemovedInstance], tfdiags.Diagnostics) {
+	result, diags := doOnceWithDiags(ctx, r.tracingName()+" instances", r.instances.For(phase), func(ctx context.Context) (instancesResult[*RemovedInstance], tfdiags.Diagnostics) {
 		forEachValue, diags := r.ForEachValue(ctx, phase)
 		if diags.HasErrors() {
 			return instancesResult[*RemovedInstance]{}, diags

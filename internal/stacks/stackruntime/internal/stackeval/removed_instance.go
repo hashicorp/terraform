@@ -57,11 +57,6 @@ func newRemovedInstance(call *Removed, from stackaddrs.AbsComponentInstance, rep
 	}
 }
 
-// reportNamedPromises implements namedPromiseReporter.
-func (r *RemovedInstance) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	cb(r.moduleTreePlan.PromiseID(), r.tracingName()+" plan")
-}
-
 func (r *RemovedInstance) Addr() stackaddrs.AbsComponentInstance {
 	return r.from
 }
@@ -71,7 +66,7 @@ func (r *RemovedInstance) TargetComponentAbsolute() stackaddrs.AbsComponentInsta
 }
 
 func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
-	return doOnceWithDiags(ctx, &r.moduleTreePlan, r.main, func(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
+	return doOnceWithDiags(ctx, r.tracingName()+" plan", &r.moduleTreePlan, func(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
 		var diags tfdiags.Diagnostics
 
 		known, unknown, moreDiags := EvalProviderValues(ctx, r.main, r.call.Config(ctx).config.ProviderConfigs, PlanPhase, r)

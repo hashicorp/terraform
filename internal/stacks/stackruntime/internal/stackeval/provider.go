@@ -109,7 +109,7 @@ func (p *Provider) ForEachValue(ctx context.Context, phase EvalPhase) cty.Value 
 // that we cannot know the for_each value.
 func (p *Provider) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	val, diags := doOnceWithDiags(
-		ctx, p.forEachValue.For(phase), p.main,
+		ctx, p.tracingName()+" for_each", p.forEachValue.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 			cfg := p.Declaration(ctx)
@@ -162,7 +162,7 @@ func (p *Provider) Instances(ctx context.Context, phase EvalPhase) (map[addrs.In
 
 func (p *Provider) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ProviderInstance, bool, tfdiags.Diagnostics) {
 	result, diags := doOnceWithDiags(
-		ctx, p.instances.For(phase), p.main,
+		ctx, p.tracingName()+" instances", p.instances.For(phase),
 		func(ctx context.Context) (instancesResult[*ProviderInstance], tfdiags.Diagnostics) {
 			forEachVal, diags := p.CheckForEachValue(ctx, phase)
 			if diags.HasErrors() {
@@ -170,7 +170,7 @@ func (p *Provider) CheckInstances(ctx context.Context, phase EvalPhase) (map[add
 			}
 
 			return instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ProviderInstance {
-				return newProviderInstance(p, ik, rd)
+				return newProviderInstance(p, stackaddrs.AbsProviderToInstance(p.addr, ik), rd)
 			}), diags
 		},
 	)
@@ -264,25 +264,4 @@ func (p *Provider) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, 
 // tracingName implements Plannable.
 func (p *Provider) tracingName() string {
 	return p.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (p *Provider) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	name := p.Addr().String()
-	forEachName := name + " for_each"
-	instsName := name + " instances"
-	p.forEachValue.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(o.PromiseID(), forEachName)
-	})
-	p.instances.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[instancesResult[*ProviderInstance]]]) {
-		cb(o.PromiseID(), instsName)
-	})
-	// FIXME: We should call reportNamedPromises on the individual
-	// ProviderInstance objects too, but promising.Once doesn't allow us
-	// to peek to see if the Once was already resolved without blocking on
-	// it, and we don't want to block on any promises in here.
-	// Without this, any promises belonging to the individual instances will
-	// not be named in a self-dependency error report, but since references
-	// to provider instances are always indirect through the provider this
-	// shouldn't be a big deal in most cases.
 }
