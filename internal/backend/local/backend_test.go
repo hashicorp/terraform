@@ -390,10 +390,11 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	}
 }
 
-func TestLocal_StatePaths(t *testing.T) {
-	b := New()
+func TestLocal_StatePaths_defaultWorkspace(t *testing.T) {
 
-	// Test the defaults
+	// Default paths are returned for the default workspace
+	// when nothing is set via config or overrides
+	b := New()
 	path, out, back := b.StatePaths("")
 
 	if path != DefaultStateFilename {
@@ -409,11 +410,60 @@ func TestLocal_StatePaths(t *testing.T) {
 		t.Fatalf("expected %q, got %q", dfltBackup, back)
 	}
 
-	// check with env
-	testEnv := "test_env"
-	path, out, back = b.StatePaths(testEnv)
+	// If `path` is set in the config, this impacts returned paths for the default workspace
+	b = New()
+	configPath := "new-path.tfstate"
+	b.StatePath = configPath    // equivalent of path = "new-path.tfstate" in config
+	b.StateOutPath = configPath // equivalent of path = "new-path.tfstate" in config
 
-	expectedPath := filepath.Join(DefaultWorkspaceDir, testEnv, DefaultStateFilename)
+	path, out, back = b.StatePaths("")
+
+	if path != configPath {
+		t.Fatalf("expected %q, got %q", configPath, path)
+	}
+
+	if out != configPath {
+		t.Fatalf("expected %q, got %q", configPath, out)
+	}
+
+	altBackup := configPath + DefaultBackupExtension
+	if back != altBackup {
+		t.Fatalf("expected %q, got %q", altBackup, back)
+	}
+
+	// If overrides are set, they override default values or those from config
+	b = New()
+	b.StatePath = configPath    // equivalent of path = "new-path.tfstate" in config
+	b.StateOutPath = configPath // equivalent of path = "new-path.tfstate" in config
+	override := "override.tfstate"
+	b.OverrideStatePath = override
+	b.OverrideStateOutPath = override
+	b.OverrideStateBackupPath = override
+
+	path, out, back = b.StatePaths("")
+
+	if path != override {
+		t.Fatalf("expected %q, got %q", override, path)
+	}
+
+	if out != override {
+		t.Fatalf("expected %q, got %q", override, out)
+	}
+
+	if back != override {
+		t.Fatalf("expected %q, got %q", override, back)
+	}
+}
+
+func TestLocal_StatePaths_nonDefaultWorkspace(t *testing.T) {
+
+	// Default paths are returned for a custom workspace
+	// when nothing is set via config or overrides
+	b := New()
+	workspace := "test_env"
+	path, out, back := b.StatePaths(workspace)
+
+	expectedPath := filepath.Join(DefaultWorkspaceDir, workspace, DefaultStateFilename)
 	expectedOut := expectedPath
 	expectedBackup := expectedPath + DefaultBackupExtension
 
@@ -429,6 +479,69 @@ func TestLocal_StatePaths(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expectedBackup, back)
 	}
 
+	// This is unaffected by a user setting the path attribute
+	b = New()
+	b.StatePath = "path-from-config.tfstate" // equivalent of setting path = "path-from-config.tfstate" in config
+	b.StateOutPath = "path-from-config.tfstate"
+
+	path, out, back = b.StatePaths(workspace)
+
+	if path != expectedPath {
+		t.Fatalf("expected %q, got %q", expectedPath, path)
+	}
+
+	if out != expectedOut {
+		t.Fatalf("expected %q, got %q", expectedOut, out)
+	}
+
+	if back != expectedBackup {
+		t.Fatalf("expected %q, got %q", expectedBackup, back)
+	}
+
+	// If a user set working_dir in config it affects returned values
+	b = New()
+	workingDir := "my/alternative/state/dir"
+	b.StateWorkspaceDir = workingDir // equivalent of setting working_dir = "my/alternative/state/dir" in config
+
+	path, out, back = b.StatePaths(workspace)
+
+	expectedPath = filepath.Join(workingDir, workspace, DefaultStateFilename)
+	expectedOut = filepath.Join(workingDir, workspace, DefaultStateFilename)
+	expectedBackup = filepath.Join(workingDir, workspace, DefaultStateFilename) + DefaultBackupExtension
+
+	if path != expectedPath {
+		t.Fatalf("expected %q, got %q", expectedPath, path)
+	}
+
+	if out != expectedOut {
+		t.Fatalf("expected %q, got %q", expectedOut, out)
+	}
+
+	if back != expectedBackup {
+		t.Fatalf("expected %q, got %q", expectedBackup, back)
+	}
+
+	// Overrides affect returned values regardless of config
+	b = New()
+	b.StateWorkspaceDir = workingDir // equivalent of setting working_dir = "my/alternative/state/dir" in config
+	override := "override.tfstate"
+	b.OverrideStatePath = override
+	b.OverrideStateOutPath = override
+	b.OverrideStateBackupPath = override
+
+	path, out, back = b.StatePaths(workspace)
+
+	if path != override {
+		t.Fatalf("expected %q, got %q", override, path)
+	}
+
+	if out != override {
+		t.Fatalf("expected %q, got %q", override, out)
+	}
+
+	if back != override {
+		t.Fatalf("expected %q, got %q", override, back)
+	}
 }
 
 // a local backend which returns errors for methods to
