@@ -120,11 +120,86 @@ Terraform enabling infrastructure as code.
 
 ## Working as a Team
 
-Once multiple people are collaborating on Terraform configuration, new steps
-must be added to each part of the core workflow to ensure everyone is working
-together smoothly. You'll see that many of these steps parallel the workflow
-changes we make when we work on application code as teams rather than as
-individuals.
+When working as a team, you should follow these best practices:
+
+1. **Branch Naming Conventions**:
+
+   - Use descriptive branch names that indicate the purpose of your changes
+   - Follow the pattern: `type/description`
+   - Examples:
+     - `feature/add-s3-bucket`
+     - `fix/ec2-instance-tagging`
+     - `docs/update-core-workflow`
+     - `refactor/terraform-state-backend`
+
+2. **Commit Message Guidelines**:
+
+   - Start with a type prefix: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`
+   - Keep the first line under 72 characters
+   - Use present tense ("add feature" not "added feature")
+   - Examples:
+     ```
+     feat: add S3 bucket with versioning enabled
+     fix: correct EC2 instance tagging logic
+     docs: update core workflow best practices
+     ```
+
+3. **Code Review Process**:
+
+   - Create pull requests with clear descriptions
+   - Include relevant context and testing steps
+   - Respond promptly to review comments
+   - Keep PRs focused and manageable in size
+
+4. **State Management**:
+
+   - Use remote state storage (e.g., S3, Azure Storage)
+   - Enable state locking to prevent concurrent modifications
+   - Implement state file encryption
+   - Regular state backups
+
+5. **Module Development**:
+
+   - Version your modules using semantic versioning
+   - Document module inputs and outputs
+   - Include examples in module documentation
+   - Test modules with different configurations
+
+6. **Security Best Practices**:
+
+   - Never commit sensitive data
+   - Use environment variables or secure secret management
+   - Implement least privilege access
+   - Regular security audits of infrastructure code
+
+7. **CI/CD Integration**:
+
+   - Automate testing and validation
+   - Implement automated security scanning
+   - Use automated deployment pipelines
+   - Regular dependency updates
+
+8. **Documentation Standards**:
+
+   - Keep documentation up to date
+   - Include architecture diagrams
+   - Document deployment procedures
+   - Maintain a changelog
+
+9. **Code Organization**:
+
+   - Use consistent directory structure
+   - Separate environments (dev, staging, prod)
+   - Implement reusable modules
+   - Maintain clear variable naming
+
+10. **Monitoring and Logging**:
+    - Implement comprehensive logging
+    - Set up monitoring and alerts
+    - Track resource usage
+    - Regular performance reviews
+
+These practices help maintain code quality, improve collaboration, and ensure infrastructure stability.
 
 ### Write
 
