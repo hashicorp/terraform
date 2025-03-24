@@ -114,6 +114,11 @@ var protocSteps = []protocStep{
 		"internal/cloudplugin/cloudproto1",
 		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "cloudproto1.proto"},
 	},
+	{
+		"stackscliproto1 (stacks-cli protocol version 1)",
+		"internal/stacks-cli-plugin/stackscliproto1",
+		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "stackscliproto1.proto"},
+	},
 }
 
 func main() {
