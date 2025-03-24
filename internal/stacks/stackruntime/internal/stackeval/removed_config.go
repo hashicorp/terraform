@@ -36,8 +36,8 @@ type RemovedConfig struct {
 
 	main *Main
 
-	validate   promising.Once[tfdiags.Diagnostics]
-	moduleTree promising.Once[withDiagnostics[*configs.Config]]
+	validate   perEvalPhase[promising.Once[tfdiags.Diagnostics]]
+	moduleTree promising.Once[withDiagnostics[*configs.Config]] // moduleTree is constant for every phase
 }
 
 func newRemovedConfig(main *Main, source stackaddrs.Stack, target stackaddrs.ConfigComponent, config *stackconfig.Removed) *RemovedConfig {
@@ -126,7 +126,7 @@ func (r *RemovedConfig) CheckModuleTree(ctx context.Context) (*configs.Config, t
 // CheckValid validates the module tree and provider configurations for the
 // component being removed.
 func (r *RemovedConfig) CheckValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
-	diags, err := r.validate.Do(ctx, r.tracingName(), func(ctx context.Context) (tfdiags.Diagnostics, error) {
+	diags, err := r.validate.For(phase).Do(ctx, r.tracingName(), func(ctx context.Context) (tfdiags.Diagnostics, error) {
 		var diags tfdiags.Diagnostics
 
 		moduleTree, moreDiags := r.CheckModuleTree(ctx)

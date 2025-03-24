@@ -38,7 +38,7 @@ type ComponentInstance struct {
 
 	repetition instances.RepetitionData
 
-	moduleTreePlan promising.Once[withDiagnostics[*plans.Plan]]
+	moduleTreePlan promising.Once[withDiagnostics[*plans.Plan]] // moduleTreePlan is only called during the plan phase
 }
 
 var _ Applyable = (*ComponentInstance)(nil)
