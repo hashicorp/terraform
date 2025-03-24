@@ -14,7 +14,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestLoaderLoadConfig_okay(t *testing.T) {
@@ -27,7 +26,7 @@ func TestLoaderLoadConfig_okay(t *testing.T) {
 	}
 
 	cfg, diags := loader.LoadConfig(fixtureDir)
-	tfdiags.AssertNoDiagnostics(t, diags)
+	assertNoDiagnostics(t, diags)
 	if cfg == nil {
 		t.Fatalf("config is nil; want non-nil")
 	}
