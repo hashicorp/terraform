@@ -89,27 +89,6 @@ func TestLocal_PrepareConfig(t *testing.T) {
 	}
 }
 
-func checkState(t *testing.T, path, expected string) {
-	t.Helper()
-	// Read the state
-	f, err := os.Open(path)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	state, err := statefile.Read(f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actual := state.State.String()
-	expected = strings.TrimSpace(expected)
-	if actual != expected {
-		t.Fatalf("state does not match! actual:\n%s\n\nexpected:\n%s", actual, expected)
-	}
-}
-
 func TestLocal_StatePaths(t *testing.T) {
 	b := New()
 
@@ -316,4 +295,25 @@ func testTmpDir(t *testing.T) string {
 	})
 
 	return tmp
+}
+
+func checkState(t *testing.T, path, expected string) {
+	t.Helper()
+	// Read the state
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := statefile.Read(f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := state.State.String()
+	expected = strings.TrimSpace(expected)
+	if actual != expected {
+		t.Fatalf("state does not match! actual:\n%s\n\nexpected:\n%s", actual, expected)
+	}
 }
