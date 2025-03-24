@@ -2415,7 +2415,7 @@ func TestContext2Plan_crossResourceMoveWithIdentity(t *testing.T) {
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.NormalMode,
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if string(expectedSourceIdentity) != string(sourceIdentity) {
 		t.Fatalf("unexpected source identity; expected %s, got %s", string(expectedSourceIdentity), string(sourceIdentity))
@@ -6820,7 +6820,7 @@ data "test_data_source" "foo" {
 	})
 
 	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
-	assertNoErrors(t, diags)
+	tfdiags.AssertNoErrors(t, diags)
 
 	dataSchemaType := p.GetProviderSchemaResponse.DataSources["test_data_source"].Body.ImpliedType()
 	after, err := plan.Changes.ResourceInstance(mustResourceInstanceAddr("data.test_data_source.foo")).After.Decode(dataSchemaType)

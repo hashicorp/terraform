@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestContext2Apply_identity(t *testing.T) {
@@ -165,10 +166,10 @@ func TestContext2Apply_identity(t *testing.T) {
 			}
 
 			plan, diags := ctx.Plan(m, tc.prevRunState, &PlanOpts{Mode: tc.mode})
-			assertNoDiagnostics(t, diags)
+			tfdiags.AssertNoDiagnostics(t, diags)
 
 			state, diags := ctx.Apply(plan, m, nil)
-			assertNoDiagnostics(t, diags)
+			tfdiags.AssertNoDiagnostics(t, diags)
 
 			if !tc.expectedIdentity.IsNull() {
 				schema := p.GetProviderSchemaResponse.ResourceTypes["test_resource"]
