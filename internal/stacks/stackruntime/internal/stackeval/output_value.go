@@ -113,7 +113,7 @@ func (v *OutputValue) ResultValue(ctx context.Context, phase EvalPhase) cty.Valu
 
 func (v *OutputValue) CheckResultValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return withCtyDynamicValPlaceholder(doOnceWithDiags(
-		ctx, v.resultValue.For(phase), v.main,
+		ctx, v.tracingName(), v.resultValue.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
@@ -329,12 +329,4 @@ func (v *OutputValue) CheckApply(ctx context.Context) ([]stackstate.AppliedChang
 
 func (v *OutputValue) tracingName() string {
 	return v.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (v *OutputValue) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	name := v.Addr().String()
-	v.resultValue.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(o.PromiseID(), name)
-	})
 }

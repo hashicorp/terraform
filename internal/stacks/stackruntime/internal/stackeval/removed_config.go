@@ -48,15 +48,10 @@ func newRemovedConfig(main *Main, addr stackaddrs.ConfigComponent, config *stack
 	}
 }
 
-// reportNamedPromises implements namedPromiseReporter.
-func (r *RemovedConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	cb(r.validate.PromiseID(), r.tracingName())
-	cb(r.moduleTree.PromiseID(), r.tracingName()+" modules")
-}
-
 func (r *RemovedConfig) Addr() stackaddrs.ConfigComponent {
 	return r.addr
 }
+
 
 // DeclRange implements ConfigComponentExpressionScope.
 func (r *RemovedConfig) DeclRange(ctx context.Context) *hcl.Range {
@@ -76,7 +71,7 @@ func (r *RemovedConfig) ModuleTree(ctx context.Context) *configs.Config {
 // CheckModuleTree loads and validates the module tree for the component that
 // is being removed.
 func (r *RemovedConfig) CheckModuleTree(ctx context.Context) (*configs.Config, tfdiags.Diagnostics) {
-	return doOnceWithDiags(ctx, &r.moduleTree, r.main, func(ctx context.Context) (*configs.Config, tfdiags.Diagnostics) {
+	return doOnceWithDiags(ctx, r.tracingName()+" modules", &r.moduleTree, func(ctx context.Context) (*configs.Config, tfdiags.Diagnostics) {
 		var diags tfdiags.Diagnostics
 
 		decl := r.config
@@ -127,7 +122,7 @@ func (r *RemovedConfig) CheckModuleTree(ctx context.Context) (*configs.Config, t
 // CheckValid validates the module tree and provider configurations for the
 // component being removed.
 func (r *RemovedConfig) CheckValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
-	diags, err := r.validate.Do(ctx, func(ctx context.Context) (tfdiags.Diagnostics, error) {
+	diags, err := r.validate.Do(ctx, r.tracingName(), func(ctx context.Context) (tfdiags.Diagnostics, error) {
 		var diags tfdiags.Diagnostics
 
 		moduleTree, moreDiags := r.CheckModuleTree(ctx)

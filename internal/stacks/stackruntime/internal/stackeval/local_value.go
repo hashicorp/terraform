@@ -74,7 +74,7 @@ func (v *LocalValue) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Di
 
 func (v *LocalValue) CheckValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return withCtyDynamicValPlaceholder(doOnceWithDiags(
-		ctx, v.value.For(phase), v.main,
+		ctx, v.tracingName(), v.value.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
