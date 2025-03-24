@@ -157,9 +157,7 @@
     ]
   },
   { "title": "Data Sources", "path": "data-sources" },
-  { "title": "moved", "hidden": true, "path": "moved" },
   { "title": "resource", "hidden": true, "path": "resource" },
-  { "title": "terraform", "hidden": true, "path": "terraform" },
   {
     "title": "Meta-Arguments",
     "hidden": true,

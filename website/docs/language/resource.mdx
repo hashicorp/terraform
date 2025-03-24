@@ -16,45 +16,91 @@ Add `resource` blocks to your Terraform configuration to describe one or more in
 
 The following outline lists the nested blocks and arguments you can define in the `resource` block. Click on an element for details.
 
-- [`resource "<TYPE>" "<LABEL>"`](#resource): block
-   - [`PROVIDER_ARGUMENTS`](#provider_arguments)
-   - [`count`](#count): number 
-   - [`depends_on`](#depends_on): list or references
-   - [`for_each`](#for_each): function
-      - [`tomap()`](#for_each): map of key-value pairs
-      - [`toset()`](#for_each): list of string values 
-   - [`provider`](#provider): reference
-   - [`lifecycle`](#lifecycle): block
-      - [`create_before_destroy`](#create_before_destroy): boolean
-      - [`prevent_destroy`](#prevent_destroy): boolean
-      - [`ignore_changes`](#ignore_changes): list of attribute names
-      - [`replace_triggered_by`](#replace_triggered_by): list of references
-      - [`precondition`](#precondition): block
-      - [`postcondition`](#postcondition): block
-   - [`provisioner "<TYPE>" "<LABEL>"`](#provisioner): block 
+- [`resource "<TYPE>" "<LABEL>"`](#resource) &nbsp; block
+   - [`PROVIDER_ARGUMENTS`](#provider_arguments) &nbsp; block | refer to your provider documentation
+   - [`count`](#count) &nbsp; number | mutually exclusive with `for_each`
+   - [`depends_on`](#depends_on) &nbsp; list of references
+   - [`for_each`](#for_each) &nbsp; function | mutually exclusive with `count`
+      - [`tomap()`](#for_each) &nbsp; map of key-value pairs
+      - [`toset()`](#for_each) &nbsp; list of string values 
+   - [`provider`](#provider) &nbsp; reference
+   - [`lifecycle`](#lifecycle) &nbsp; block
+      - [`create_before_destroy`](#create_before_destroy) &nbsp; boolean
+      - [`prevent_destroy`](#prevent_destroy) &nbsp; boolean
+      - [`ignore_changes`](#ignore_changes) &nbsp; list of attributes
+      - [`replace_triggered_by`](#replace_triggered_by) &nbsp; list of references
+      - [`precondition`](#precondition) &nbsp; block
+      - [`postcondition`](#postcondition) &nbsp; block
+   - [`connection`](#connection) &nbsp; block
+        - [`type`](#connection-arguments) &nbsp; string
+        - [`user`](#connection-arguments) &nbsp; string
+        - [`password`](#connection-arguments) &nbsp; string
+        - [`host`](#connection-arguments) &nbsp; string
+        - [`port`](#connection-arguments) &nbsp; string
+        - [`timeout`](#connection-arguments) &nbsp; string
+        - [`script_path`](#connection-arguments) &nbsp; string
+        - [`private_key`](#connection-arguments) &nbsp; string
+        - [`certificate`](#connection-arguments) &nbsp; string
+        - [`agent`](#connection-arguments) &nbsp; string
+        - [`agent_identity`](#connection-arguments) &nbsp; string
+        - [`host_key`](#connection-arguments) &nbsp; string
+        - [`target_platform`](#connection-arguments) &nbsp; string
+        - [`script_path`](#connection-arguments) &nbsp; string
+        - [`https`](#connection-arguments) &nbsp; string
+        - [`insecure`](#connection-arguments) &nbsp; string
+        - [`use_ntlm`](#connection-arguments) &nbsp; string
+        - [`cacert`](#connection-arguments) &nbsp; string
+        - [`bastion_host`](#connection-arguments) &nbsp; string
+        - [`bastion_host_key`](#connection-arguments) &nbsp; string
+        - [`bastion_port`](#connection-arguments) &nbsp; string
+        - [`bastion_user`](#connection-arguments) &nbsp; string
+        - [`bastion_password`](#connection-arguments) &nbsp; string
+        - [`bastion_private_key`](#connection-arguments) &nbsp; string
+        - [`bastion_certificate`](#connection-arguments) &nbsp; string
+        - [`proxy_scheme`](#connection-arguments) &nbsp; string
+        - [`proxy_port`](#connection-arguments) &nbsp; string
+        - [`proxy_user_name`](#connection-arguments) &nbsp; string
+        - [`proxy_user_password`](#connection-arguments) &nbsp; string
+   - [`provisioner "<TYPE>" "<LABEL>"`](#provisioner) &nbsp; block
+      - [`source`](#source) &nbsp; string
+      - [`destination`](#destination) &nbsp; string
+      - [`content`](#content) &nbsp; string      
+      - [`command`](#command) &nbsp; string
+      - [`working_dir`](#working_dir) &nbsp; string
+      - [`interpreter`](#interpreter) &nbsp; string
+      - [`environment`](#command) &nbsp; string
+      - [`when`](#when) &nbsp; keyword
+      - [`quiet`](#quiet) &nbsp; boolean
+      - [`inline`](#inline) &nbsp; list of strings
+      - [`script`](#script) &nbsp; string
+      - [`scripts`](#scripts) &nbsp; string
+      - [`on_failure`](#on_failure) &nbsp; keyword
+      - [`connection`](#connection) &nbsp; block
+
+
 
 ## Complete configuration
 
-When every argument, attribute, and nested block is defined, a `resource` block has the following form:
+All arguments are defined in the following `resource` block:
 
 ```hcl
 resource "<TYPE>" "<LABEL>" {
   <PROVIDER_ARGUMENTS>
-  count = <number>
-  depends_on = [ <resource.address.expression> ]
-  for_each = tomap({
+  count = <NUMBER>      # `for_each` and `count` are mutually exclusive 
+  depends_on = [ <RESOURCE.ADDRESS.EXPRESSION> ]
+  for_each = tomap({    # `for_each` and `count` are mutually exclusive 
     <KEY> = <VALUE>
   })
   for_each = toset([
     "<VALUE>", 
     "<VALUE>"
   ])
-  provider = <reference.to.alias>
+  provider = <REFERENCE.TO.ALIAS>
   lifecycle {
     create_before_destroy = <true || false>
     prevent_destroy = <true || false>
     ignore_changes = [ <ATTRIBUTE> ]
-    replace_triggered_by = [ <resource.address.expression> ]
+    replace_triggered_by = [ <RESOURCE.ADDRESS.EXPRESSION> ]
     precondition {
       condition = <EXPRESSION>
       error_message = "<STRING>"
@@ -64,27 +110,57 @@ resource "<TYPE>" "<LABEL>" {
       error_message = "<STRING>"
     }
   }
+  connection {
+    type = <"ssh" or "winrm">
+    host = <EXPRESSION>
+    <DEFAULT_CONNECTION_SETTINGS>
+  }
   provisioner "<TYPE>" "<LABEL>" {
-    <PROVISIONER_ARGUMENTS>
+    source = "<PATH>"
+    destination = "<PATH>"
+    content = "<CONTENT TO COPY TO `destination`>"
+    command = <COMMAND>
+    working_dir = "<PATH TO DIR WHERE TERRAFORM EXECUTES `command`>"
+    interpreter = [
+      "<PATH TO INTERPRETER EXECUTABLE>",
+      "<COMMAND> <ARGUMENTS>"
+    ]
+    environment {
+      "<KEY>" = "<VALUE>"
+    }
+    when = <TERRAFORM COMMAND>
+    quiet = <true || false>
+    inline = [ "<COMMAND>" ]
+    script = "<PATH>"
+    scripts = [
+      "<PATH>"
+    ]
+    on_failure = <continue || fail>
+    connection {
+      type = <"ssh" or "winrm">
+      host = <EXPRESSION>
+      <SPECIFIC_CONNECTION_SETTINGS>
+    }
   }
 }
 ```
 
-
 ## Specification
 
-This section provides details about the nested blocks and arguments you can configure in the `resource` block. Specific providers and backends may support additional fields.
+A `resource` block supports the following configuration. 
 
-### `resource`
+### `resource "<TYPE>" "<LABEL>"`
 
 The main `resource` block accepts the following attributes:
 
 - `TYPE`: Specifies the type of resource you can declare. The type depends on the provider you import. Refer to the documentation for your provider for details. You can also specify the `terraform_data` resource type to implement a standard resource lifecycle. Refer [Implement the standard resource lifecycle](linky-link) for additional information
 - `LABEL`: Specifies an arbitrary name for the resource that you can use to reference the resource from other configuration elements. Refer to [Resource naming](/terraform/language/style#resource-naming) in the style guide for label recommendations.
 
-### `PROVIDER_ARGUMENTS`
+### Provider arguments
 
 Add the arguments specific to the provider you want to use in your configuration to the [`resource`](#resource) block. Refer to the documentation for your provider for details.  
+
+#### Summary
 
 - Data type: Determined by provider
 - Default: None
@@ -92,13 +168,23 @@ Add the arguments specific to the provider you want to use in your configuration
 
 ### `count`
 
-Add the `count` argument to the [`resource`](#resource) block. The `count` argument provisions the specified number of identical resources. Use this argument to create a pool of distinct resource objects that have the same configuration. Refer to [Create multiple instances of a resource](#create-multiple-instances-of-a-resource) for an example.
+Add the `count` argument to the [`resource`](#resource) block. 
+
+```hcl
+resource {
+  count = <number>
+}
+```
+
+The `count` argument provisions the specified number of identical resources. Use this argument to create a pool of distinct resource objects that have the same configuration. 
 
 You cannot specify references to resource attributes, such as a unique ID generated by the cloud provider when it creates the object. Instead, specify a whole number value prior to creating the resource so that the provider can create the specified number of instances. 
 
 The `count` argument exposes a `count` object that you can reference elsewhere in the configuration to modify specific instances. You can reference instances using the `<TYPE>.<NAME>[INDEX]` format. For example, `aws_instance.server[0]` refers to the first instance of the `aws_instance` resource named `server`.  Refer to [Create and manage resources]() for additional information.
 
 The `count` argument is a meta-argument, which refers to arguments that you can use in modules, as well as in any type of resource. Refer to [Meta-arguments](/terraform/language/concepts/meta-arguments) for additional information.
+
+#### Summary
 
 - Data type: Number. 
 - Default: None. Terraform provisions a single instance by default.  
@@ -107,7 +193,15 @@ The `count` argument is a meta-argument, which refers to arguments that you can 
 
 ### `depends_on`
 
-Add the `depends_on` argument to the [`resource`](#resource) block. The `depends_on` argument specifies actions that Terraform must complete before performing operations associated with the resource. Use the `depends_on` argument when Terraform is unable to infer a dependency automatically but the resource depends on data in the other object's arguments. Refer to [Specify a dependency](#specify-a-dependency) for an example configuration.
+Add the `depends_on` argument to the [`resource`](#resource) block.
+
+```hcl
+resource {
+  depends_on = [ <reference> ]
+}
+```
+
+The `depends_on` argument specifies actions that Terraform must complete before performing operations associated with the resource. Use the `depends_on` argument when Terraform is unable to infer a dependency automatically but the resource depends on data in the other object's arguments. 
 
 You can specify a list of references to other resources or child modules in the same calling module. Arbitrary expressions are not allowed. This is because the value referenced in the `depends_on` argument must be available so that Terraform can determine resource relationships and can safely evaluate expressions.
 
@@ -118,6 +212,8 @@ We recommend always including a comment that explains why using `depends_on` is 
 
 The `depends_on` argument is a meta-argument argument. You can use meta-arguments in `module` blocks and in all `resource` blocks, regardless of resource type. Refer to [Meta-arguments](/terraform/language/concepts/meta-arguments) for additional information. 
 
+#### Summary
+
 - Data type: Reference. Refer to [References to Named Values](/terraform/reference/language/expressions/references) for syntax  
 - Default: None. Terraform follows the dependency graph to determine dependencies. Refer to [internals](/terraform/language/internals) for additional information. 
 - Child of: [`resource`](#resource).
@@ -125,7 +221,15 @@ The `depends_on` argument is a meta-argument argument. You can use meta-argument
 
 ### `for_each`
 
-Add the `for_each` argument to the [`resource`](#resource) block. The `for_each` argument provisions a set of similar resources without writing separate blocks of configuration. Refer to [Create multiple instances of a resource](#create-multiple-instances-of-a-resource) for an example configuration.
+Add the `for_each` argument to the [`resource`](#resource) block. 
+
+```hcl
+resource {
+  for_each = <function>
+}
+```
+
+The `for_each` argument provisions a set of similar resources without writing separate blocks of configuration. 
 
 You can specify the following values `for_each` argument:
 
@@ -151,6 +255,8 @@ Use the `<TYPE>.<NAME>[<KEY>]` format to reference an instance. For example, `az
 
 The `for_each` argument is a meta-argument. You can use meta-arguments in modules, as well as in any type of resource. Refer to [Meta-arguments](/terraform/language/concepts/meta-arguments) for additional information.
 
+#### Summary
+
 - Data type: Function or reference expression. 
 - Default: None. Terraform provisions a single instance by default.  
 - Child of: [`resource`](#resource)
@@ -158,13 +264,23 @@ The `for_each` argument is a meta-argument. You can use meta-arguments in module
 
 ### `provider`
 
-Add the `provider` argument to the [`resource`](#resource) block. The `provider` argument instructs Terraform to use an alternate provider configuration to provision the resource. Refer to [Select an alternate provider configuration](#select-an-alternate-provider-configuration) for an example.
+Add the `provider` argument to the [`resource`](#resource) block. 
+
+```hcl
+resource {
+  provider = <provider>.<alias>
+}
+```
+
+The `provider` argument instructs Terraform to use an alternate provider configuration to provision the resource. 
 
 By default, Terraform automatically selects a provider based on the resource type, but you can create multiple provider configurations and select a specific configuration for the resources in the configuration. 
 
 Use the `<PROVIDER>.<ALIAS>` format to reference a provider configuration in the `provider` argument. You must specify the `alias` argument in the `provider` block. Refer to [`provider` reference](/terraform/language/provider) for details.   
 
 The `provider` argument is a meta-argument, which refers to arguments that you can use in modules, as well as in any type of resource. Refer to [Meta-arguments](/terraform/language/concepts/meta-arguments) for additional information.
+
+#### Summary
 
 - Data type: Reference.
 - Default: None. Terraform automatically selects a provider based on the resource type by default. 
@@ -173,18 +289,30 @@ The `provider` argument is a meta-argument, which refers to arguments that you c
 
 ### `lifecycle`
 
-Add the `lifecycle` block to the [`resource`](#resource) block. The `lifecycle` block defines the resource's infrastructure lifecycle type. The infrastructure lifecycle refers to one or more operations that Terraform performs to manage the resource. You can specify the following types of lifecycles:
+Add the `lifecycle` block to the [`resource`](#resource) block. 
 
-- [`create_before_destroy`](#create_before_destroy): Terraform creates a replacement object before destroying the previous object.
-- [`prevent_destroy`](#prevent_destroy): Terraform rejects operations that destroy infrastructure objects associated with the resource and returns an error.
-- [`ignore_changes`](#ignore_changes): Terraform ignores changes to the resource configuration. As a result, the remote resource under management remains unchanged.
-- [`replace_triggered_by`](#replace-triggered_by): Terraform replaces the resource when any of the specified items change.
-- [`precondition`](#precondition): Specifies an existing condition that triggers a check on the resource. Refer to [Create checks](linky-ti-link) for additional information.
-- [`postcondition`](#postcondition): Specifies a condition that emerges after a Terraform operation that triggers a check on the resource. Refer to [Create checks](linky-ti-link) for additional information.
+```hcl
+resource {
+  lifecycle { 
+    <lifecycle>
+  }
+}
+```
+
+The `lifecycle` block defines the resource's infrastructure lifecycle type. The infrastructure lifecycle refers to one or more operations that Terraform performs to manage the resource. You can specify the following types of lifecycles:
+
+- [`create_before_destroy`](#create_before_destroy) &nbsp; Terraform creates a replacement object before destroying the previous object.
+- [`prevent_destroy`](#prevent_destroy) &nbsp; Terraform rejects operations that destroy infrastructure objects associated with the resource and returns an error.
+- [`ignore_changes`](#ignore_changes) &nbsp; Terraform ignores changes to the resource configuration. As a result, the remote resource under management remains unchanged.
+- [`replace_triggered_by`](#replace-triggered_by) &nbsp; Terraform replaces the resource when any of the specified items change.
+- [`precondition`](#precondition) &nbsp; Specifies an existing condition that triggers a check on the resource. Refer to [Create checks](linky-ti-link) for additional information.
+- [`postcondition`](#postcondition) &nbsp; Specifies a condition that emerges after a Terraform operation that triggers a check on the resource. Refer to [Create checks](linky-ti-link) for additional information.
 
 Configurations defined in the `lifecycle` block affect how Terraform constructs and traverses the dependency graph. You can only use literal values because Terraform processes the configurations before it is able to evaluate arbitrary expressions.
 
 The `lifecycle` block, and lifecycle types it specifies, is a meta-argument. You can add meta-arguments to modules and to any type of resource. Refer to [Meta-arguments](/terraform/language/concepts/meta-arguments) for additional information.  
+
+#### Summary
 
 - Data type: Block.
 - Default: Terraform applies the standard lifecycle. Refer to [Apply the standard resource lifecycle](#) for additional information.
@@ -192,7 +320,17 @@ The `lifecycle` block, and lifecycle types it specifies, is a meta-argument. You
 
 ### `create_before_destroy`
 
-Add the `create_before_destroy` argument to the [`lifecycle`](#lifecycle) block. The `create_before_destroy` argument creates a replacement resource before destroying the object it replaces. By default, Terraform destroys an object before creating a new instance to replace it. 
+Add the `create_before_destroy` argument to the [`lifecycle`](#lifecycle) block. 
+
+```hcl
+resource {
+  lifecycle { 
+    create_before_destroy = <boolean>
+  }
+}
+```
+
+The `create_before_destroy` argument creates a replacement resource before destroying the object it replaces. By default, Terraform destroys an object before creating a new instance to replace it. 
 
 Refer to the documentation for the resource type you are configuring before setting the `create_before_destroy` argument. The resource may have unique constraints, such as name requirements, that you must accommodate for the created and destroyed object to exist concurrently. Some resource types offer special options to append a random suffix onto each object name to  avoid collisions, for example. Terraform cannot automatically activate these types of features.
 
@@ -200,17 +338,31 @@ Terraform propagates and applies the `create_before_destroy` behavior to all res
 
 When `create_before_destroy` is set to `true`, a provisioner that would normally destroy the resource does not run. Refer to the GitHub issue titled ["on-destroy provisioners not being executed"](https://github.com/hashicorp/terraform/issues/13549) for details.
 
+#### Summary
+
 - Data type: Boolean
 - Default: None. By default, Terraform destroys an object before creating its replacement.
 - Child of: [`lifecycle`](#lifecycle) block.  
 
 ### `prevent_destroy`
 
-Add the `prevent_destroy` argument to the `lifecycle` block. The `prevent_destroy` argument rejects plans that would destroy the infrastructure object associated with the resource. Use this argument to prevent team members from accidentally replacing an object that is costly to reproduce, such as database instances.
+Add the `prevent_destroy` argument to the `lifecycle` block. 
+
+```hcl
+resource {
+  lifecycle { 
+    prevent_destroy = <boolean>
+  }
+}
+```
+
+The `prevent_destroy` argument rejects plans that would destroy the infrastructure object associated with the resource. Use this argument to prevent team members from accidentally replacing an object that is costly to reproduce, such as database instances.
 
 When the `prevent_destroy` arugment is set, you must either remove the resource from the configuration or change the `prevent_destroy` argument to `false` to destroy it. 
 
 Use this argument with caution because it makes some configuration changes impossible to apply and prevents you from using the `terraform destroy` command on the configuration.
+
+#### Summary
 
 - Data type: Boolean
 - Default: None.  
@@ -218,11 +370,23 @@ Use this argument with caution because it makes some configuration changes impos
 
 ### `ignore_changes`
 
-Add the `ignore_changes` argument to the [`lifecycle`](#lifecycle) block. The `ignore_changes` argument specifies a list of resource attributes for Terraform to ignore when planning updates to the remote object. Use this argument when the resource references data that may change but does not affect the resource after its creation. Refer to [Ignore attribute changes](#ignore-attribute-changes) for an example.
+Add the `ignore_changes` argument to the [`lifecycle`](#lifecycle) block. 
+
+```hcl
+resource {
+  lifecycle { 
+    ignore_changes = [ <attribute> ]
+  }
+}
+```
+
+The `ignore_changes` argument specifies a list of resource attributes for Terraform to ignore when planning updates to the remote object. Use this argument when the resource references data that may change but does not affect the resource after its creation. 
 
 Terraform logs the specified arguments corresponding to the remote resource attribute names when planning a `create` operation, but it ignores the arguments when planning an `update` operation. You can specify arguments as the relative attribute addresses in the resource. You can specify members of maps and lists using index notation, such as `tags["Name"]` and `list[0]`. 
 
 You can also specify the `all` instead of a list. The `all` keyword instructs Terraform to ignore all attributes. As a result, Terraform can create and destroy the remote object but it does not  propose updates to the object. 
+
+#### Summary
 
 - Data type: List of attributes.
 - Default: None. By default, Terraform detects any difference in the current settings of a real infrastructure object and plans to update the remote object to match the configuration.
@@ -231,7 +395,17 @@ You can also specify the `all` instead of a list. The `all` keyword instructs Te
 
 ### `replace_triggered_by`
 
-Add the `replace_triggered_by` argument to the [`lifecycle`](#lifecycle) block. The `replace_triggered_by` argument replaces the resource when any of the referenced items change. Refer to [Specify triggers that replace resources](#specify-triggers-that-replace-resources) for an example configuration.
+Add the `replace_triggered_by` argument to the [`lifecycle`](#lifecycle) block. 
+
+```hcl
+resource {
+  lifecycle { 
+    replace_triggered_by = [ <address.reference> ]
+  }
+}
+```
+
+The `replace_triggered_by` argument replaces the resource when any of the referenced items change.
 
 You can specify a list of expressions that reference managed resources, instances, or instance attributes. You can only reference managed resources in `replace_triggered_by` expressions. This lets you modify these expressions without forcing replacement.
 
@@ -245,6 +419,8 @@ The argument triggers a replacement resource under following conditions:
 
 Adding the `replace_triggered_by` argument to a resource that uses `count` or `for_each` lets you add the `count.index` or `each.key` resource address to the expression. Use this address segment to reference specific instances of other resources that are configured with the same `count` or collection.
 
+#### Summary
+
 - Data type: List of resource address references
 - Default: None.
 - Child of: [`lifecycle`](#lifecycle) block.
@@ -252,7 +428,20 @@ Adding the `replace_triggered_by` argument to a resource that uses `count` or `f
 
 ### `precondition`
 
-Add the `precondition` block to the [`lifecycle`](#lifecycle) block. The `precondition` block specifies a condition that must return `true` before Terrafom evaluates the objects associated with the resource. You can also specify an error message for Terraform to print when the condition returns `false`. Refer to [Apply custom conditions](#apply-custom-conditions) for an example configuration.
+Add the `precondition` block to the [`lifecycle`](#lifecycle) block. 
+
+```hcl
+resource {
+  lifecycle { 
+    precondition {
+      condition = <expression>
+      error_message = "<message>"
+    }
+  }
+}
+```
+
+The `precondition` block specifies a condition that must return `true` before Terrafom evaluates the objects associated with the resource. You can also specify an error message for Terraform to print when the condition returns `false`. 
 
 You can specify the following attributes in the `precondition` block:
 
@@ -271,6 +460,8 @@ Do not add `precondition` blocks to a `resource` block and a `data` block that r
 
 Refer to [Create custom conditions](link to usage page) for information about adding validations to your Terraform configuration.
 
+#### Summary
+
 - Data type: Block.
 - Default: None.
 - Child of: [`lifecycle`](#lifecycle) block
@@ -278,7 +469,20 @@ Refer to [Create custom conditions](link to usage page) for information about ad
 
 ### `postcondition`
 
-Add the `postcondition` block to the [`lifecycle`](#lifecycle) block. The `postcondition` block specifies a condition that must return `true` after Terrafom evaluates the objects associated with the resource. You can also specify an error message for Terraform to print to the console when the condition returns `false`. Refer to [Apply custom conditions](#apply-custom-conditions) for an example configuration.
+Add the `postcondition` block to the [`lifecycle`](#lifecycle) block. 
+
+```hcl
+resource {
+  lifecycle { 
+    postcondition {
+      condition = <expression>
+      error_message = "<message>"
+    }
+  }
+}
+```
+
+The `postcondition` block specifies a condition that must return `true` after Terrafom evaluates the objects associated with the resource. You can also specify an error message for Terraform to print to the console when the condition returns `false`. 
 
 You can specify the following attributes in the `precondition` block:
 
@@ -295,26 +499,495 @@ You can include a `postcondition` and [`precondition` block](#precondition) in t
 
 Do not add `postcondition` blocks to a `resource` block and a `data` block that represent the same object in the same configuration. Doing so can prevent Terraform from understanding that the data block result can be affected by changes in the resource block. 
 
+#### Summary
+
 - Data type: Block.
 - Default: None.
 - Child of: [`lifecycle`](#lifecycle) block
 - Exampe: [Apply custom conditions](#apply-custom-conditions)
 
+### `connection`
+
+Add the `connection` block to either the [`resource`](#resource) block or the [`provisioner`](#provisioner) block. 
+
+<Warning>
+
+We recommend using configuration tools or other means to perform actions on the local or remote machine instead of using the `provisioner` block. Refer to [Provisioners](/terraform/language/concepts/provisioners) for additional information.
+
+</Warning>
+
+When added to the `resource` block, the `connection` block sets default connection settings for all provisioners defined in the resource so that provisioners can to connect to the remote resource after Terraform provisions it. 
+
+```hcl
+resource {
+  # . . .
+  connection {
+    <settings for all provisioners in the resource>
+  }
+}
+```
+
+When added to `provisioner` block, the `connection` block defines connection settings specific to the provisioner so that it connect to the remote resource after Terraform provisions it.
+
+```hcl
+resource {
+  # . . .
+  provisioner {
+    # . . .
+    connection {
+      <settings for all provisioners in the resource>
+    }
+  }
+}
+```
+
+<Tip>
+
+You can provide multiple connections so that an initial provisioner can connect as the root user to set up user accounts and subsequent provisioners can connect as less-priviledged users to perform more specific operations.
+
+</Tip>
+
+Terraform does not validate SSH host keys by default. You can establish a separate mechanism for key distribution and explicitly set the `host_key` argument to verify against a specific key or signing CA.
+
+You can use ephemeral values for aguments in the `connection` block. Refer [Ephemerality in resources](/terraform/language/resources/ephemeral) for additional information.
+
+Expressions in `connection` blocks cannot refer to their parent resource by name. References create dependencies, and referring to a resource by name within its own block would create a dependency cycle. Instead, use the `self` object as part in expressions to refer to `connection` block's parent resource, including all of its attributes. For example, use `self.public_ip` to reference the `public_ip` attribute in an `aws_instance`. 
+
+<span id="connection-arguments"/>
+
+The following table describes the arguments you can use in the `connection` block:
+
+| Argument | Description | Data type | Connection | Default |
+|---------------|--------------|-------------|---------| --- | 
+| `type` | Specifies the type of connection for sending and receiving data from the remote resource. You can specify `ssh` or `winrm`. When set to `winrm`, provisioners implement Windows-specific behaviors, even when `target_platform` is set to `unix`, unless otherwise specified.| string |  | `ssh` |
+| `user` | Specifies the user to use for the connection. | string | `ssh`<p>`winrm`</p> | <p>`root` when `type` is `ssh`</p><p>`Administrator` when `type` is `winrm`</p> | 
+| `password` | Specifies the password to use for the connection. | string | `ssh`<p>`winrm`</p> | none |
+| `host` | Specifies the address of the resource to connect to. <p>This argument is required.</p> | string | `ssh`<p>`winrm`</p> | none |
+| `port` | Specifies the port number to connect to. | number | `ssh`<p>`winrm`</p> | <p>`22` when `type` is `ssh`</p><p>`5985` when `type` is `winrm`</p> |
+| `timeout` | Specifies how long to wait for the connection to become available. | string | `ssh`<p>`winrm`</p> | `"5m"` |
+| `script_path` | Specifies the path on the remote resource where Terraform copies scripts to. Refer to the [`provisioner` block reference](#provisioner) for additional information. Terraform copies scripts to a path that contains random numbers depending on the `target_platform` configuration. | string | `ssh`<p>`winrm`</p> | <p>`/tmp/terraform_%RAND%.sh` when `target_platform` is `unix`</p><p>`C:/windows/temp/`<br/>`terraform_%RAND%.cmd` when `target_platform` is `windows`</p> |
+| `private_key` | Specifies the contents of an SSH key to use for the connection. `private_key` takes precedence over `password` when both are provided. | <p>string</p><p>Use a [`file` function](/terraform/language/functions/file) to load keys from file.</p> | `ssh` | none |
+| `certificate` | Specifies the contents of a signed CA certificate. You must also configure a  `private_key` arugment. | <p>string</p><p>Use a [`file` function](/terraform/language/functions/file) to load certificates from file.</p> | `ssh` | none |
+| `agent` | Specifies an SSH agent for authentication. Set to `false` to disable using `ssh-agent` to authenticate. On Windows, the only supported SSH authentication agent is [Pageant](http://the.earth.li/\~sgtatham/putty/0.66/htmldoc/Chapter9.html#pageant). | string | `ssh` | `false` |
+| `agent_identity` | Specifies the preferred identity from the SSH agent to use for authentication. | string | `ssh` | none |
+| `host_key` | Specifies the public key from the remote host or the signing CA to verify the connection. | string | `ssh` | none |
+| `target_platform` | Specifies the target platform, which affects the default value for the `script_path` argument. You can specify either `windows` or `unix`. <p>`windows` sets the default `script_path` to `c:\windows\temp\terraform_%RAND%.cmd` if the default SSH shell on the remote resource is `cmd.exe`. Refer to the [Windows documentation](https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_server_configuration#configuring-the-default-shell-for-openssh-in-windows) for additional information. If the SSH default shell is PowerShell, set `script_path` to `"c:/windows/temp/terraform_%RAND%.ps1"`.</p><p>`unix` sets the default `script_path` to `/tmp/terraform_%RAND%.sh`. </p> | string | `ssh` |`unix` |
+| `https` | Set to `true` to connect using HTTPS instead of HTTP. | boolean | `winrm` | `false` |
+| `insecure` | Set to `true` to skip validating the HTTPS certificate chain. | boolean | `winrm` | `false` |
+| `use_ntlm` | Set to `true` to use NTLM authentication instead of basic authentication. Using NTLM removes the requirement for basic authentication to be enabled within the target guest. Refer to [Authentication for Remote Connections](https://docs.microsoft.com/en-us/windows/win32/winrm/authentication-for-remote-connections) in the Windows App Development documentation for more details. | boolean | `winrm` | `false` |
+| `cacert` | Specifies the CA certificate to validate against. | string | `winrm` | none |
+| `bastion_host` | Specifies the address of the bastion host. The provisioner connects to `bastion_host` before connecting to `host`. | string | `ssh` | none |
+| `bastion_host_key` | Specifies the public key from the remote host or the signing CA to verify the host connection. | string | `ssh` | none |
+| `bastion_port` | Specifies the port number to use for the bastion host connnection. | string | `ssh` | value of the `port` field|
+| `bastion_user`| Specifies the user name for connecting to the bastion host. | string | `ssh` | value of the `user` field |
+| `bastion_password` | Specifies the user password for connecting to the bastion host. | string | `ssh` | value of the `password` field |
+| `bastion_private_key` | Specifies the contents of an SSH key file to use for the bastion host. | <p>string</p><p>Use a [`file` function](/terraform/language/functions/file) to load keys from file.</p> | `ssh` | value of the `private_key` field |
+| `bastion_certificate` |  Specifies the contents of a signed CA certificate. You must also configure the `bastion_private_key` argument when providing the certificate for the bastion host. | <p>string</p><p>Use a [`file` function](/terraform/language/functions/file) to load certificates from file.</p> | `ssh` | value of the `certificate` field |
+| `proxy_scheme` | Specifies the connection protocol. You can specify one of the following values: <li>`http`</li><li>`https`</li><li> `socks5`</li> | string | `ssh` | none |
+| `proxy_host` | Specifies the address of the proxy host. The provisioner connects to the proxy host first. When `bastion_host` is configured, the provisioner connects to the bastion host next, otherwise the provisioner connects to host specified in the `host` argument.  | string | `ssh` | none |
+| `proxy_port` | Specifies the port number to use for the proxy host connnection. | number | `ssh` | none |
+| `proxy_user_name` | Specifies the user name for connecting to the proxy host. You should only configure this argument when the proxy server requires authentication. | string | `ssh` | none |
+| `proxy_user_password` | Specifies the user password for connecting to the proxy host. You should only configure this argument when the proxy server requires authentication. | string | `ssh` | none |
+
+#### Summary
+
+- Data type: Block.
+- Default: None.
+- Child of: [`resource`](#lifecycle) block or [`provisioner`](#provisioner) block.
+- Exampe: [Connect to remote resources](#connect-to-remote-resources)
+
 ### `provisioner`
 
-Add the `provisioner` block to the [`resource`](#resource) block. The `provisioner` block contains a set of attributes that let you model specific actions on the local or remote machine, such as preparing servers or other infrastructure objects for service. The `provisioner` argument has the following attributes:
+Add the `provisioner` block to the [`resource`](#resource) block. 
 
- `TYPE`: Specifies one of the following provisioner types:
-  - `file`: Copies files or directories form the machine where Terraform is running to the new resource.
+```hcl
+resource {
+  # . . .
+  provisioner "<TYPE>" "<LABEL>" {
+    <arguments> 
+  }
+}
+```
+
+The `provisioner` block contains a set of attributes that let you model specific actions on the local or remote machine, such as preparing servers or other infrastructure objects for service. 
+
+<Warning>
+
+We recommend using configuration tools or other means to perform actions on the local or remote machine instead of using the `provisioner` block. Refer to [Provisioners](/terraform/language/concepts/provisioners) for additional information.
+
+</Warning>
+
+The `provisioner` argument has the following attributes:
+
+- `TYPE`: Specifies the type of provisioner to use. You can declare the following provisioner types:   
+  - `file`: Copies files or directories form the machine where Terraform is running to the new resource. When the file provisioner communicates with a Windows system over SSH, you must configure OpenSSH to run the commands with `cmd.exe` and not PowerShell. PowerShell causes file parsing errors because it is incompatible with both Unix shells and the Windows command interpreter.
   - `local-exec`: Invokes an executable on the local machine after Terraform creates the resource.
   - `remote-exec`: Invokes an executable on the remote resource after Terraform creates the resource.  
 - `LABEL`: Optional attribute for adding a unique name. Refer to [Resource naming](/terraform/language/style#resource-naming) in the style guide for label recommendations.
 
-Refer to the [`provisioner` block reference]() for additional information.
+The type determines which arguments you can add to the block. All types can use the [`connection`](#connection) argument. The following table shows which arguments you can use for each type:
+
+| Provisioner type | Arguments |
+| --- | --- |
+| `file` | <li>[`source`](#source)</li><li>[`content`](#content)</li><li>[`destination`](#destination)</li> | 
+| `local-exec` | <li>[`command`](#command)</li><li>[`working_dir`](#working_dir)</li><li>[`interpreter`](#interpreter)</li><li>[`environment`](#command)</li><li>[`when`](#when)</li><li>[`quiet`](#quiet)</li> | 
+| `remote-exec` | <li>[`inline`](#inline)</li><li>[`script`](#script)</li><li>[`scripts`](#scripts)</li> |
+| All types | <li>[`connection`](#connection)</li><li>[`on_failure`](#on_failure)</li> |
+
+#### Summary
 
 - Data type: Block.
 - Default: None.
 - Child of: [`resource`](#resource) block.
+
+### `source`
+
+Add the `source` argument to the `provisioner "file"` block. 
+
+```hcl
+resource {
+  # . . .
+  provisioner "file" "<LABEL>" {
+    source = "<path>"
+  }
+}
+```
+
+The `source` specifies the location of a file or directory to copy to the location specified in the [`destination`](#destination) argument. 
+
+You can specify a string value that contains an expression. Do not use the `source` argument and the [`content`](#content) argument in the same `provisioner "file"` block. 
+
+When the `source` argument specifies a directory and the `type` argument in the [provisioner connection settings](#connection) is set to `ssh`, the corresponding directory specified in the `destination` argument must already exist. You can add a `provisioner "remote-exec"` block to your `resource` configuration to create the directory. If the directory does not already exist, Terraform creates it when the `type` argument in the [provisioner connection settings](#connection) is set to `winrm`.
+
+Adding a trailing slash to the `source` argument path instructs Terraform to copy the contents of the directory to the `destination` directory. For example, when `source = "/foo/"` and `destination = "/temp"`, Terraform uploads the contents of `/foo` directoy into `/tmp`. 
+
+Without a trailing slash, Terraform creates the directory under the directory specifed in the `destination`. For example, when `source = "/foo"` and `destination = "/temp"`, Terraform uploads the `/foo` directory to `/tmp/foo`. 
+
+#### Summary
+
+- Data type: String.
+- Default: None.
+- Child of: [`provisioner "file"`](#provisioner) block.
+- Example: [Copy content to new resources](#copy-content-to-new-resources).
+
+### `content`
+
+Add the `content` argument to the `provisioner "file"` block.
+
+```hcl
+resource {
+  # . . .
+  provisioner "file" "<LABEL>" {
+    content = "<content>"
+  }
+}
+```
+
+The `content` specifies content to copy directly to the location specified in the [`destination`](#destination) argument. 
+
+When `destination` points to a file, Terraform writes the value of the `content` argument to the file. When `destination` points to a directory, Terraform creates a file named `tf-file-content` inside the directory. We recommend setting the `destination` argument to a file when using `content` argument. Do not use the `content` argument and the [`source`](#source) argument in the same `provisioner "file"` block. 
+
+You can specify a string value that contains an expression. Do not use the `source` argument and the [`content`](#content) argument in the same `provisioner "file"` block. 
+
+#### Summary
+
+- Data type: String.
+- Default: None.
+- Child of: [`provisioner "file"`](#provisioner) block.
+- Example: [Copy content to new resources](#copy-content-to-new-resources).
+
+### `destination`
+
+Add the `destination` argument to the `provisioner "file"` block. 
+
+```hcl
+resource {
+  # . . .
+  provisioner "file" "<LABEL>" {
+    destination = "<path>"
+  }
+}
+```
+
+The `destination` argument specifies a path on the remote resource that Terraform copies content to. You can use either [`source`](#source) or [`content`](#content) argument to provide content to the `destination` path. 
+
+The remote system, not Terraform, evaluates the path you provide in the `destination` argument. As a result, valid values can vary depending on the operating system and remote access software running on the target.
+
+When the `type` argument in the [provisioner connection settings](#connection) is set to `ssh`, the provisioner passes the destination path as-is to the `scp` program on the remote host. By default, the OpenSSH `scp` implementation runs in the remote user's home directory. As a result, you can specify a relative path to upload into the home directory or an absolute path to upload to a different location. 
+
+The remote `scp` process runs with the access level of the user specified in the [provisioner connection settings](#connection), so permissions may prevent Terraform from writing directly to locations outside of the home directory.
+
+When the `type` argument in the [provisioner connection settings](#connection) is set to `winrm`, Terraform uses PowerShell to interprise the `destination` path. As a result, you must not to use meta-characters that PowerShell might interpret. You should specifically avoid including untrusted external input in your `destination` argument because doing so can let arbitrary PowerShell code execute on the remote system. 
+
+Terraform performs the following process over WinRM connections:
+
+1. Generates a temporary filename in the directory set in the remote system's `TEMP` environment variable. 
+1. Generates a sequence of `echo` commands to gradually append base64-encoded chunks of the source file to the temporary file.
+1. Uses an uploaded PowerShell script to read the temporary file, base64-decode, and write the raw result into the destination file.
+
+Modern Windows systems support running an OpenSSH server, so we strongly recommend choosing SSH over WinRM whereever possible.
+
+#### Summary
+
+- Data type: String.
+- Default: None.
+- Child of: [`provisioner "file"`](#provisioner) block.
+- Example: [Copy content to new resources](#copy-content-to-new-resources).
+
+
+### `command`
+
+Add the `command` argument to the `provisioner "local-exec"` block. 
+
+```hcl
+resource {
+  # . . .
+  provisioner "local-exec" "<LABEL>" {
+    command = "<path>"
+  }
+}
+```
+
+The `command` argument specifies a command for a local executable to run. You can specify an absolute path or a relative path to the current working directory. 
+
+Terraform evaluates the command in a local shell and can use environment variables for variable substitution. We do not recommend using Terraform variables for variable substitution because doing so can lead to shell injection vulnerabilities. Instead, you should pass Terraform variables to a command through the environment parameter and use environment variable substitution instead. Refer to the following OWASP article for additional information about injection flaws: [Code Injection](https://owasp.org/www-community/attacks/Code_Injection).
+
+#### Summary
+
+- Data type: String.
+- Default: None.
+- This argument is required in the `provisioner "local-exec"` block.
+- Child of: [`provisioner "local-exec"`](#provisioner) block.
+- Example: [Invoke executables](#invoke-executables).
+
+### `working_dir`
+
+Add the `working_dir` argument to the `provisioner "local-exec"` block. 
+
+```hcl
+resource {
+  # . . .
+  provisioner "local-exec" "<LABEL>" {
+    working_dir = "<path>"
+  }
+}
+```
+
+The `working_dir` block specifies the working directory where Terraform executes the command specified in the the [`command`](#command) argument. You can specify a relative path to the current working directory or an absolute path. The directory must already exist.
+
+#### Summary
+
+- Data type: String.
+- Default: None.
+- Child of: [`provisioner "local-exec"`](#provisioner) block.
+- Example: [Invoke executables](#invoke-executables).
+
+### `interpreter`
+
+Add the `interpreter` argument to the `provisioner "local-exec"` block. 
+
+```hcl
+resource {
+  # . . .
+  provisioner "local-exec" "<LABEL>" {
+    interpreter = [ "<path/to/interpreter>", "<command argument>" ]
+  }
+}
+```
+
+The `interpreter` block specifies a list of interpreter arguments for running the executable specified in the [`command`](#command) argument. 
+
+The first argument in the list is a path to the interpreter. You can specify a relative path to the current working directory or an absolute path. If you do not specify an interpreter, Terraform uses operating system defaults.
+
+#### Summary
+
+- Data type: List.
+- Default: None.
+- Child of: [`provisioner "local-exec"`](#provisioner) block.
+- Example: [Invoke executables](#invoke-executables).
+
+### `environment`
+
+Add the `environment` block to the `provisioner "local-exec"` block. 
+
+```hcl
+resource {
+  # . . .
+  provisioner "local-exec" "<LABEL>" {
+    environment {
+      <KEY> = <VALUE>
+    }
+    # . . .
+  }
+}
+```
+
+The `environment` block specifies a block of key value pairs that represent the environment for running the command specified in the [`command`](#command) argument.  
+
+#### Summary
+
+- Data type: Block.
+- Default: None.
+- Child of: [`provisioner "local-exec"`](#provisioner) block.
+- Example: [Invoke executables](#invoke-executables).
+
+### `when`
+
+Add the `when` argument to the `provisioner "local-exec"` block. 
+
+```hcl
+resource {
+  # . . .
+  provisioner "local-exec" "<LABEL>" {
+    when = <Terraform command>
+  }  
+}
+```
+
+The `when` argument specifies a Terraform command that triggers actions specified in the provisioner. When you run the Terraform command, Terraform executes the command specified in the [`command`](#command) argument. Refer to [Destroy-time provisioners](terraform/language/resources/provisioners/syntax#destroy-time-provisioners) for instructions on using the `when` argument.
+
+#### Summary
+
+- Data type: Terraform command.
+- Default: None.
+- Child of: [`provisioner "local-exec"`](#provisioner) block.
+- Example: [Invoke executables](#invoke-executables).
+
+### `quiet`
+
+Add the `quiet` argument to the `provisioner "local-exec"` block. 
+
+```hcl
+resource {
+  # . . .
+  provisioner "local-exec" "<LABEL>" {
+    quiet = <boolean>
+  }
+}
+```
+
+When set to `true`, Terraform does not print the command specified in the [`command`](#command) argument to `stdout`. Instead, Terraform prints `"Suppressed by quiet=true"`. Terraform still prints the output of the command 
+
+#### Summary
+
+- Data type: Boolean.
+- Default: None.
+- Child of: [`provisioner "local-exec"`](#provisioner) block.
+
+### `inline`
+
+Add the `inline` argument to the `provisioner "remote-exec"` block. 
+
+```hcl
+resource {
+  # . . .
+  provisioner "remote-exec" "<LABEL>" {
+    inline = [ <command string> ]
+  }
+}
+```
+
+The `inline` argument specifies a list of CLI strings to concatenate into a script and then run on the remote resource. Use this argument to run a configuration management tool, bootstrap into a cluster, and perform other tasks on the remote resource after provisioning the object. 
+
+You must also configure the [`connection` settings](#connection) to use the `inline` argument. 
+
+You cannot configure an `inline` argument and a [`script`](#script) or [`scripts`](#scripst) argument in the same `provisioner` block.
+
+By default, Terraform uses the remote resource's default shell, but you can specify a shell as the first command in the list. 
+
+<Tip>
+
+The [`on_failure`](#on_failure) argument only applies to the final command in the `inline` argument list. When `on_failure` is set to `fail`, Terraform allows commands that appear earlier in the list to fail and commands that appear later in the list to execute. You can specify `"set -o errexit"` as the first command to change this behavior.
+
+</Tip>
+
+#### Summary
+
+- Data type: List of command line strings.
+- Default: None.
+- Child of: [`provisioner "remote-exec"`](#provisioner) block.
+- Example: [Invoke executables](#invoke-executables).
+
+### `script`
+
+Add the `script` argument to the `provisioner "remote-exec"` block. 
+
+```hcl
+resource {
+  # . . .
+  provisioner "remote-exec" "<LABEL>" {
+    script = <path/to/script>
+  }
+}
+```
+
+The `script` argument specifies a relative or absolute path to a local script. Terraform copies the script to the the remote resource and then executes it. 
+
+You must also configure the [`connection` settings](#connection) to use the `script` argument. 
+
+You cannot configure a `script` argument and an [`inline`](#inline) or [`scripts`](#scripts) argument in the same `provisioner` block.
+
+
+#### Summary
+
+- Data type: String.
+- Default: None.
+- Child of: [`provisioner "remote-exec"`](#provisioner) block.
+- Example: [Invoke executables](#invoke-executables).
+
+### `scripts`
+
+Add the `scripts` argument to the `provisioner "remote-exec"` block. 
+
+```hcl
+resource {
+  # . . .
+  provisioner "remote-exec" "<LABEL>" {
+    scripts = [ <path/to/script> ]
+  }
+}
+```
+
+The `scripts` argument specifies a list of relative or absolute paths to local scripts. Terraform copies the scripts to the the remote resource and then executes them in the order that they appear in the argument. 
+
+You must also configure the [`connection` settings](#connection) to use the `scripts` argument. 
+
+You cannot configure a `scripts` argument and an [`inline`](#inline) or [`script`](#script) argument in the same `provisioner` block.
+
+
+#### Summary
+
+- Data type: String.
+- Default: None.
+- Child of: [`provisioner "remote-exec"`](#provisioner) block.
+- Example: [Invoke executables](#invoke-executables).
+
+### `on_failure`
+
+Add the `on_failure` argument to the [`provisioner`](#provisioner) block.
+
+```hcl
+resource {
+  # . . .
+  provisioner {
+    on_failure = <directive>
+  }
+}
+```
+
+The `on_failure` argument specifies a directive for Terraform to follow when a provisioner configuration fails. By default, Terraform prints an error and stops the operation. 
+
+You can specify the following directives:
+
+- `continue`: Terraform ignores the error and continues with the operation.
+- `fail`: Terraform prints an error and stops the operation. When the failing provisioner creates a resource, Terraform applies a `taint`.
+
+### Summary
+
+- Data type: String without quotation marks.
+- Default: `fail`.
+- Child of: All types of [`provisioner`](#provisioner) blocks.
+- Example: [Define provisioner failure behaviors](#define-provisioner-failure-behaviors).
 
 
 ## Examples
@@ -423,7 +1096,7 @@ resource "aws_iam_user" "deploy_user" {
 
 ### Specify a dependency
 
-This example contains several configurations to illustrate how to specify a dependency.
+This example contains several configurations to demonstrate how to specify a dependency.
 
 The following `resource` block partially defines an `aws_iam_role` resource. Refer to the [AWS provider documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) all configuration settings. 
 
@@ -521,7 +1194,7 @@ resource "aws_appautoscaling_target" "ecs_target" {
 
 ### Apply custom conditions
 
-The following example includes several configurations that illustrate how to define `precondition` and `postcondition` arguments in the `lifecycle` meta-argument. 
+The following configurations provide an example of how to define `precondition` and `postcondition` arguments in the `lifecycle` meta-argument. For additional instructions, refer to [Validate your configuration](/terraform/language/mitigate-risk/validate). 
 
 The following `data` block instructs Terraform to retrieve the ID of the `ami-abc123` AMI:
 
@@ -574,5 +1247,125 @@ data "aws_ebs_volume" "example" {
 }
 output "api_base_url" {
   value = "https://${aws_instance.example.private_dns}:8433/"
+}
+```
+
+### Copy content to new resources
+
+The following examples use `provisioner "file"` to copy artifacts from the machine where Terraform is running to the newly created resource.
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+
+  # Copies the myapp.conf file to /etc/myapp.conf
+  provisioner "file" {
+    source      = "conf/myapp.conf"
+    destination = "/etc/myapp.conf"
+  }
+
+  # Copies the string in content into /tmp/file.log
+  provisioner "file" {
+    content     = "ami used: ${self.ami}"
+    destination = "/tmp/file.log"
+  }
+
+  # Copies the configs.d folder to /etc/configs.d
+  provisioner "file" {
+    source      = "conf/configs.d"
+    destination = "/etc"
+  }
+
+  # Copies all files and folders in apps/app1 to D:/IIS/webapp1
+  provisioner "file" {
+    source      = "apps/app1/"
+    destination = "D:/IIS/webapp1"
+  }
+}
+```
+
+### Invoke executables
+
+You can configure provisioners to perform remote operations, such as executing scripts or running commands.
+
+In the following example, Terraform connects to the `web` instance using the `connection` settings so that the `remote-exec` provisioner can run the `puppet apply` and `consul join` commands on the resource: 
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+
+  connection {
+    type     = "ssh"
+    user     = "root"
+    password = var.root_password
+    host     = self.public_ip
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "puppet apply",
+      "consul join ${aws_instance.web.private_ip}",
+    ]
+  }
+}
+```
+
+In the following example, Terraform uploads a script file using and provides inline commands to run the script:
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+
+  provisioner "file" {
+    source      = "script.sh"
+    destination = "/tmp/script.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/script.sh",
+      "/tmp/script.sh args",
+    ]
+  }
+}
+```
+
+### Connect to remote resources
+
+The following example establishes connection that all provisioners in the `resource` block can use to run commands on the remote resource:
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+
+
+  connection {
+    type     = "ssh"
+    user     = "root"
+    password = var.root_password
+    host     = self.public_ip
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "puppet apply",
+      "consul join ${aws_instance.web.private_ip}",
+    ]
+  }
+}
+```
+
+### Define provisioner failure behaviors
+
+In the following example, Terraform runs the `echo` command on the local machine while creating the `web` resource. Terraform continues with the operation if the command fails:
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+
+  provisioner "local-exec" {
+    command    = "echo The server's IP address is ${self.private_ip}"
+    on_failure = continue
+  }
 }
 ```
