@@ -544,6 +544,75 @@ func TestLocal_StatePaths_nonDefaultWorkspace(t *testing.T) {
 	}
 }
 
+// Test logic that checks if two backends are going to conflict with which state
+// files they are managing.
+//
+// This test only covers comparison of local state backends that have no
+// non-default workspaces.
+func TestLocal_PathsConflictWith_defaultWorkspaceOnly(t *testing.T) {
+
+	// The base local backend that each test case is compared to
+	comparedLocal := Local{
+		StatePath:       DefaultStateFilename,
+		StateOutPath:    DefaultStateFilename,
+		StateBackupPath: DefaultStateFilename + DefaultBackupExtension,
+		// StateWorkspaceDir is not relevant in this test, as that only
+		// impacts non-default workspaces
+	}
+
+	conflicts := true
+	doesNotConflict := false
+
+	cases := map[string]struct {
+		comparedTo *Local
+		want       bool
+	}{
+		"a local state backend will conflict when compared to itself": {
+			comparedTo: &comparedLocal,
+			want:       conflicts,
+		},
+		"matching values for state path result in a conflict": {
+			comparedTo: &Local{
+				StatePath:    DefaultStateFilename, // conflicts
+				StateOutPath: "no/conflict.tfstate",
+			},
+			want: conflicts,
+		},
+		"a state path override is sufficient to stop conflict": {
+			comparedTo: &Local{
+				StatePath:         DefaultStateFilename, // would conflict if no override
+				StateOutPath:      DefaultStateFilename,
+				OverrideStatePath: "no-conflict.tfstate",
+			},
+			want: doesNotConflict,
+		},
+		"matching values for state out path does not get identified as conflict": {
+			comparedTo: &Local{
+				StatePath:    "no/conflict.tfstate",
+				StateOutPath: DefaultStateFilename, // matches but doesn't conflict
+			},
+			want: doesNotConflict,
+		},
+		"matching backup paths does not get identified as conflict": {
+			comparedTo: &Local{
+				StatePath:       "no/conflict.tfstate",
+				StateOutPath:    "no/conflict.tfstate",
+				StateBackupPath: DefaultStateFilename + DefaultBackupExtension, // matches but doesn't conflict
+			},
+			want: doesNotConflict,
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			conflict := comparedLocal.PathsConflictWith(tc.comparedTo)
+			if conflict != tc.want {
+				t.Fatalf("expected PathsConflictWith to return %v, got: %v", tc.want, conflict)
+			}
+		})
+	}
+}
+
 // a local backend which returns errors for methods to
 // verify it's being called.
 type testDelegateBackend struct {
