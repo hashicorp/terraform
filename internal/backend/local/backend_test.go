@@ -429,51 +429,66 @@ func TestLocal_StatePaths(t *testing.T) {
 
 }
 
-// a local backend which returns sentinel errors for NamedState methods to
+// a local backend which returns errors for methods to
 // verify it's being called.
 type testDelegateBackend struct {
 	*Local
-
-	// return a sentinel error on these calls
-	stateErr  bool
-	statesErr bool
-	deleteErr bool
 }
 
+var errTestDelegatePrepareConfig = errors.New("prepare config called")
+var errTestDelegateConfigure = errors.New("configure called")
 var errTestDelegateState = errors.New("state called")
 var errTestDelegateStates = errors.New("states called")
 var errTestDelegateDeleteState = errors.New("delete called")
 
-func (b *testDelegateBackend) StateMgr(name string) (statemgr.Full, error) {
-	if b.stateErr {
-		return nil, errTestDelegateState
-	}
-	s := statemgr.NewFilesystem("terraform.tfstate")
-	return s, nil
-}
-
-func (b *testDelegateBackend) Workspaces() ([]string, error) {
-	if b.statesErr {
-		return nil, errTestDelegateStates
-	}
-	return []string{"default"}, nil
-}
-
-func (b *testDelegateBackend) DeleteWorkspace(name string, force bool) error {
-	if b.deleteErr {
-		return errTestDelegateDeleteState
-	}
+func (b *testDelegateBackend) ConfigSchema() *configschema.Block {
 	return nil
 }
 
-// verify that the MultiState methods are dispatched to the correct Backend.
-func TestLocal_multiStateBackend(t *testing.T) {
+func (b *testDelegateBackend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	return cty.NilVal, diags.Append(errTestDelegatePrepareConfig)
+}
+
+func (b *testDelegateBackend) Configure(obj cty.Value) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	return diags.Append(errTestDelegateConfigure)
+}
+
+func (b *testDelegateBackend) StateMgr(name string) (statemgr.Full, error) {
+	return nil, errTestDelegateState
+}
+
+func (b *testDelegateBackend) Workspaces() ([]string, error) {
+	return nil, errTestDelegateStates
+}
+
+func (b *testDelegateBackend) DeleteWorkspace(name string, force bool) error {
+	return errTestDelegateDeleteState
+}
+
+// Verify that all backend.Backend methods are dispatched to the correct Backend when
+// the local backend created with a separate state storage backend.
+//
+// The Local struct type implements both backendrun.OperationsBackend and backend.Backend interfaces.
+// If the Local struct is not created with a separate state storage backend then it'll use its own
+// backend.Backend method implementations. If a separate state storage backend IS supplied, then
+// it should pass those method calls through to the separate backend.Backend.
+func TestLocal_callsMethodsOnStateBackend(t *testing.T) {
 	// assign a separate backend where we can read the state
-	b := NewWithBackend(&testDelegateBackend{
-		stateErr:  true,
-		statesErr: true,
-		deleteErr: true,
-	})
+	b := NewWithBackend(&testDelegateBackend{})
+
+	if schema := b.ConfigSchema(); schema != nil {
+		t.Fatal("expected a nil schema, got:", schema)
+	}
+
+	if _, diags := b.PrepareConfig(cty.NilVal); !diags.HasErrors() {
+		t.Fatal("expected errTestDelegatePrepareConfig error, got:", diags)
+	}
+
+	if diags := b.Configure(cty.NilVal); !diags.HasErrors() {
+		t.Fatal("expected errTestDelegateConfigure error, got:", diags)
+	}
 
 	if _, err := b.StateMgr("test"); err != errTestDelegateState {
 		t.Fatal("expected errTestDelegateState, got:", err)
