@@ -544,72 +544,59 @@ func TestLocal_StatePaths_nonDefaultWorkspace(t *testing.T) {
 	}
 }
 
-// Test logic that checks if two backends are going to conflict with which state
-// files they are managing.
-//
-// This test only covers comparison of local state backends that have no
-// non-default workspaces.
-func TestLocal_PathsConflictWith_defaultWorkspaceOnly(t *testing.T) {
-
-	// The base local backend that each test case is compared to
-	comparedLocal := Local{
-		StatePath:       DefaultStateFilename,
-		StateOutPath:    DefaultStateFilename,
-		StateBackupPath: DefaultStateFilename + DefaultBackupExtension,
-		// StateWorkspaceDir is not relevant in this test, as that only
-		// impacts non-default workspaces
-	}
-
-	conflicts := true
-	doesNotConflict := false
-
-	cases := map[string]struct {
-		comparedTo *Local
-		want       bool
-	}{
-		"a local state backend will conflict when compared to itself": {
-			comparedTo: &comparedLocal,
-			want:       conflicts,
-		},
-		"matching values for state path result in a conflict": {
-			comparedTo: &Local{
-				StatePath:    DefaultStateFilename, // conflicts
-				StateOutPath: "no/conflict.tfstate",
-			},
-			want: conflicts,
-		},
-		"a state path override is sufficient to stop conflict": {
-			comparedTo: &Local{
-				StatePath:         DefaultStateFilename, // would conflict if no override
-				StateOutPath:      DefaultStateFilename,
-				OverrideStatePath: "no-conflict.tfstate",
-			},
-			want: doesNotConflict,
-		},
-		"matching values for state out path does not get identified as conflict": {
-			comparedTo: &Local{
-				StatePath:    "no/conflict.tfstate",
-				StateOutPath: DefaultStateFilename, // matches but doesn't conflict
-			},
-			want: doesNotConflict,
-		},
-		"matching backup paths does not get identified as conflict": {
-			comparedTo: &Local{
-				StatePath:       "no/conflict.tfstate",
-				StateOutPath:    "no/conflict.tfstate",
-				StateBackupPath: DefaultStateFilename + DefaultBackupExtension, // matches but doesn't conflict
-			},
-			want: doesNotConflict,
+// TestLocal_PathsConflictWith does not include testing the effects of CLI commands -state, -state-out, and -state-backup
+// because PathsConflictWith is only used during state migrations, and the init command does not accept those flags.
+// Those flags would cause the local backend struct to have override fields set.
+func TestLocal_PathsConflictWith(t *testing.T) {
+	// Create a working directory with default and non-default workspace states
+	td := testTmpDir(t)
+	exampleState := states.NewState()
+	exampleState.RootOutputValues = map[string]*states.OutputValue{
+		"foobar": {
+			Value: cty.StringVal("foobar"),
 		},
 	}
+	foobar := "foobar"
+	originalBackend := New()
 
-	for tn, tc := range cases {
-		t.Run(tn, func(t *testing.T) {
-			conflict := comparedLocal.PathsConflictWith(tc.comparedTo)
-			if conflict != tc.want {
-				t.Fatalf("expected PathsConflictWith to return %v, got: %v", tc.want, conflict)
-			}
-		})
+	// Create a default workspace state file in a non-root directory
+	originalBackend.StatePath = "foobar/terraform.tfstate"
+	defaultStatePath := filepath.Join(td, originalBackend.StatePath)
+	stmgrDefault, _ := originalBackend.StateMgr("")
+	err := stmgrDefault.WriteState(exampleState)
+	if err != nil {
+		t.Fatalf("unexpected error returned from WriteState")
+	}
+	checkState(t, defaultStatePath, exampleState.String())
+
+	// Create a non-default workspace and state file there
+	stmgrFoobar, _ := originalBackend.StateMgr(foobar)
+	err = stmgrFoobar.WriteState(exampleState)
+	if err != nil {
+		t.Fatalf("unexpected error returned from WriteState")
+	}
+	foobarStatePath := filepath.Join(td, DefaultWorkspaceDir, foobar, DefaultStateFilename)
+	checkState(t, foobarStatePath, exampleState.String())
+
+	// Scenario where:
+	// * original backend has state for a 'foobar' workspace at terraform.tfstate.d/foobar/terraform.tfstate
+	// * new local backend is configured via `path` to store 'default' state at terraform.tfstate.d/foobar/terraform.tfstate
+	scenario1 := New()
+	scenario1.StatePath = foobarStatePath
+
+	if !originalBackend.PathsConflictWith(scenario1) {
+		t.Fatal("expected conflict but got none")
+	}
+
+	// Scenario where:
+	// * original backend has state for the default workspace at ./foobar/terrform.tfstate
+	// * local backend is configured to store non-default workspace state in the root dir
+	//     this means a foobar workspace would also store state at ./foobar/terrform.tfstate
+	scenario2 := New()
+	scenario2.StateWorkspaceDir = "."
+
+	if !originalBackend.PathsConflictWith(scenario2) {
+		t.Fatal("expected conflict but got none")
 	}
 }
 
