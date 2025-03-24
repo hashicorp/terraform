@@ -1,0 +1,5 @@
+type: enhancement
+component: docs
+description: Added best practices for team collaboration in core workflow documentation, including branch naming conventions and commit message guidelines.
+issues: []
+breaking: false
