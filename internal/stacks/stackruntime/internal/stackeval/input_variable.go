@@ -24,7 +24,8 @@ import (
 
 // InputVariable represents an input variable belonging to a [Stack].
 type InputVariable struct {
-	addr stackaddrs.AbsInputVariable
+	stack *Stack
+	addr  stackaddrs.AbsInputVariable
 
 	main *Main
 
@@ -34,10 +35,11 @@ type InputVariable struct {
 var _ Plannable = (*InputVariable)(nil)
 var _ Referenceable = (*InputVariable)(nil)
 
-func newInputVariable(main *Main, addr stackaddrs.AbsInputVariable) *InputVariable {
+func newInputVariable(main *Main, addr stackaddrs.AbsInputVariable, stack *Stack) *InputVariable {
 	return &InputVariable{
-		addr: addr,
-		main: main,
+		stack: stack,
+		addr:  addr,
+		main:  main,
 	}
 }
 
@@ -307,7 +309,7 @@ func (v *InputVariable) References(ctx context.Context) []stackaddrs.AbsReferenc
 		return nil
 	}
 	stackAddr := addr.Stack
-	parentStack := v.main.StackUnchecked(ctx, stackAddr.Parent())
+	parentStack := v.stack.parent
 	if parentStack == nil {
 		// Weird, but we'll tolerate it for robustness.
 		return nil

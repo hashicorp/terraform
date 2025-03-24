@@ -22,7 +22,8 @@ import (
 // StackCall represents a "stack" block in a stack configuration after
 // its containing stacks have been expanded into stack instances.
 type StackCall struct {
-	addr stackaddrs.AbsStackCall
+	stack *Stack
+	addr  stackaddrs.AbsStackCall
 
 	main *Main
 
@@ -34,10 +35,11 @@ type StackCall struct {
 var _ Plannable = (*StackCall)(nil)
 var _ Referenceable = (*StackCall)(nil)
 
-func newStackCall(main *Main, addr stackaddrs.AbsStackCall) *StackCall {
+func newStackCall(main *Main, addr stackaddrs.AbsStackCall, stack *Stack) *StackCall {
 	return &StackCall{
-		addr: addr,
-		main: main,
+		addr:  addr,
+		stack: stack,
+		main:  main,
 	}
 }
 
@@ -48,13 +50,6 @@ func (c *StackCall) Addr() stackaddrs.AbsStackCall {
 func (c *StackCall) Config(ctx context.Context) *StackCallConfig {
 	configAddr := stackaddrs.ConfigForAbs(c.addr)
 	return c.main.StackCallConfig(ctx, configAddr)
-}
-
-func (c *StackCall) Caller(ctx context.Context) *Stack {
-	callerAddr := c.Addr().Stack
-	// Unchecked because StackCall instances only get constructed from
-	// Stack objects, and so our address is derived from there.
-	return c.main.StackUnchecked(ctx, callerAddr)
 }
 
 func (c *StackCall) Declaration(ctx context.Context) *stackconfig.EmbeddedStack {
@@ -103,7 +98,7 @@ func (c *StackCall) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty
 			switch {
 
 			case cfg.ForEach != nil:
-				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.Caller(ctx), "stack")
+				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.stack, "stack")
 				diags = diags.Append(moreDiags)
 				if diags.HasErrors() {
 					return cty.DynamicVal, diags
@@ -160,7 +155,7 @@ func (c *StackCall) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 			}
 
 			return instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *StackCallInstance {
-				return newStackCallInstance(c, ik, rd)
+				return newStackCallInstance(c, ik, rd, c.stack.deferred)
 			}), diags
 		},
 	)
@@ -169,7 +164,7 @@ func (c *StackCall) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 
 func (c *StackCall) UnknownInstance(ctx context.Context, phase EvalPhase) *StackCallInstance {
 	inst, err := c.unknownInstance.For(phase).Do(ctx, c.tracingName()+" unknown instace", func(ctx context.Context) (*StackCallInstance, error) {
-		return newStackCallInstance(c, addrs.WildcardKey, instances.UnknownForEachRepetitionData(c.ForEachValue(ctx, phase).Type())), nil
+		return newStackCallInstance(c, addrs.WildcardKey, instances.UnknownForEachRepetitionData(c.ForEachValue(ctx, phase).Type()), true), nil
 	})
 	if err != nil {
 		// Since we never return an error from the function we pass to Do,
@@ -207,7 +202,7 @@ func (c *StackCall) ResultValue(ctx context.Context, phase EvalPhase) cty.Value 
 			if !ok {
 				panic(fmt.Sprintf("stack call with for_each has invalid instance key of type %T", instKey))
 			}
-			elems[string(k)] = inst.CalledStack(ctx).ResultValue(ctx, phase)
+			elems[string(k)] = inst.Stack(ctx, phase).ResultValue(ctx, phase)
 		}
 		if len(elems) == 0 {
 			return cty.MapValEmpty(childResultType)
@@ -230,7 +225,7 @@ func (c *StackCall) ResultValue(ctx context.Context, phase EvalPhase) cty.Value 
 			panic("single-instance stack call does not have an addrs.NoKey instance")
 		}
 
-		return inst.CalledStack(ctx).ResultValue(ctx, phase)
+		return inst.Stack(ctx, phase).ResultValue(ctx, phase)
 	}
 }
 

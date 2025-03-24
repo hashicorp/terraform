@@ -22,7 +22,8 @@ import (
 )
 
 type Component struct {
-	addr stackaddrs.AbsComponent
+	stack *Stack
+	addr  stackaddrs.AbsComponent
 
 	main *Main
 
@@ -35,10 +36,11 @@ var _ Plannable = (*Component)(nil)
 var _ Applyable = (*Component)(nil)
 var _ Referenceable = (*Component)(nil)
 
-func newComponent(main *Main, addr stackaddrs.AbsComponent) *Component {
+func newComponent(main *Main, addr stackaddrs.AbsComponent, stack *Stack) *Component {
 	return &Component{
-		addr: addr,
-		main: main,
+		stack: stack,
+		addr:  addr,
+		main:  main,
 	}
 }
 
@@ -61,13 +63,6 @@ func (c *Component) Declaration(ctx context.Context) *stackconfig.Component {
 		return nil
 	}
 	return cfg.Declaration(ctx)
-}
-
-func (c *Component) Stack(ctx context.Context) *Stack {
-	// Unchecked because we should've been constructed from the same stack
-	// object we're about to return, and so this should be valid unless
-	// the original construction was from an invalid object itself.
-	return c.main.StackUnchecked(ctx, c.Addr().Stack)
 }
 
 // ForEachValue returns the result of evaluating the "for_each" expression
@@ -112,7 +107,7 @@ func (c *Component) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty
 			switch {
 
 			case cfg.ForEach != nil:
-				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.Stack(ctx), "component")
+				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.stack, "component")
 				diags = diags.Append(moreDiags)
 				if diags.HasErrors() {
 					return cty.DynamicVal, diags
@@ -169,7 +164,7 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 			}
 
 			result := instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ComponentInstance {
-				return newComponentInstance(c, stackaddrs.AbsComponentToInstance(c.addr, ik), rd, false)
+				return newComponentInstance(c, stackaddrs.AbsComponentToInstance(c.addr, ik), rd, c.stack.deferred)
 			})
 
 			addrs := make([]stackaddrs.AbsComponentInstance, 0, len(result.insts))

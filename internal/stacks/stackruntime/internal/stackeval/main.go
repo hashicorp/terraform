@@ -297,7 +297,7 @@ func (m *Main) MainStack(ctx context.Context) *Stack {
 	defer m.mu.Unlock()
 
 	if m.mainStack == nil {
-		m.mainStack = newStack(m, stackaddrs.RootStackInstance, collections.NewMap[stackaddrs.ConfigComponent, []*Removed]())
+		m.mainStack = newStack(m, nil, stackaddrs.RootStackInstance, collections.NewMap[stackaddrs.ConfigComponent, []*Removed](), false)
 	}
 	return m.mainStack
 }
@@ -308,25 +308,6 @@ func (m *Main) StackConfig(ctx context.Context, addr stackaddrs.Stack) *StackCon
 	ret := m.MainStackConfig(ctx)
 	for _, step := range addr {
 		ret = ret.ChildConfig(ctx, step)
-		if ret == nil {
-			return nil
-		}
-	}
-	return ret
-}
-
-// StackUnchecked returns the [Stack] object representing the stack instance
-// with the given address, or nil if the address traverses through an embedded
-// stack call that doesn't exist at all.
-//
-// This function cannot check whether the instance keys in the path correspond
-// to instances actually declared by the configuration. If you need to check
-// that use [Main.Stack] instead, but consider the additional overhead that
-// extra checking implies.
-func (m *Main) StackUnchecked(ctx context.Context, addr stackaddrs.StackInstance) *Stack {
-	ret := m.MainStack(ctx)
-	for _, step := range addr {
-		ret = ret.ChildStackUnchecked(ctx, step)
 		if ret == nil {
 			return nil
 		}
@@ -355,7 +336,7 @@ func (m *Main) StackUnchecked(ctx context.Context, addr stackaddrs.StackInstance
 func (m *Main) Stack(ctx context.Context, addr stackaddrs.StackInstance, phase EvalPhase) *Stack {
 	ret := m.MainStack(ctx)
 	for _, step := range addr {
-		ret = ret.ChildStackChecked(ctx, step, phase)
+		ret = ret.ChildStack(ctx, step, phase)
 		if ret == nil {
 			return nil
 		}

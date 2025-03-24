@@ -118,6 +118,27 @@ func (s *State) ComponentInstances(addr stackaddrs.AbsComponent) collections.Set
 	return ret
 }
 
+func (s *State) StackInstances(addr stackaddrs.AbsStackCall) []stackaddrs.StackInstanceStep {
+	var ret []stackaddrs.StackInstanceStep
+	for key := range s.componentInstances.All() {
+		if len(key.Stack) == 0 {
+			continue
+		}
+
+		last := key.Stack[len(key.Stack)-1]
+		path := key.Stack[:len(key.Stack)-1]
+
+		if path.String() != addr.Stack.String() {
+			continue
+		}
+		if last.Name != addr.Item.Name {
+			continue
+		}
+		ret = append(ret, last)
+	}
+	return ret
+}
+
 func (s *State) componentInstanceState(addr stackaddrs.AbsComponentInstance) *componentInstanceState {
 	return s.componentInstances.Get(addr)
 }

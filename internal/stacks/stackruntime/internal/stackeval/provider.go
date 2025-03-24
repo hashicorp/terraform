@@ -21,6 +21,7 @@ import (
 
 // Provider represents a provider configuration in a particular stack config.
 type Provider struct {
+	stack  *Stack
 	addr   stackaddrs.AbsProviderConfig
 	config *stackconfig.ProviderConfig
 
@@ -30,8 +31,9 @@ type Provider struct {
 	instances    perEvalPhase[promising.Once[withDiagnostics[instancesResult[*ProviderInstance]]]]
 }
 
-func newProvider(main *Main, addr stackaddrs.AbsProviderConfig, config *stackconfig.ProviderConfig) *Provider {
+func newProvider(main *Main, addr stackaddrs.AbsProviderConfig, stack *Stack, config *stackconfig.ProviderConfig) *Provider {
 	return &Provider{
+		stack:  stack,
 		addr:   addr,
 		config: config,
 		main:   main,
@@ -57,13 +59,6 @@ func (p *Provider) Config(ctx context.Context) *ProviderConfig {
 
 func (p *Provider) ProviderType(ctx context.Context) *ProviderType {
 	return p.main.ProviderType(ctx, p.Addr().Item.Provider)
-}
-
-func (p *Provider) Stack(ctx context.Context) *Stack {
-	// Unchecked because we should've been constructed from the same stack
-	// object we're about to return, and so this should be valid unless
-	// the original construction was from an invalid object itself.
-	return p.main.StackUnchecked(ctx, p.Addr().Stack)
 }
 
 // InstRefValueType returns the type of any values that represent references to
@@ -117,7 +112,7 @@ func (p *Provider) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty.
 			switch {
 
 			case cfg.ForEach != nil:
-				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, p.Stack(ctx), "provider")
+				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, p.stack, "provider")
 				diags = diags.Append(moreDiags)
 				if diags.HasErrors() {
 					return cty.DynamicVal, diags

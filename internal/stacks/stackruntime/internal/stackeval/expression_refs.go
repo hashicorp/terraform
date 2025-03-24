@@ -133,6 +133,7 @@ func (m *Main) requiredComponentsForReferrer(ctx context.Context, obj Referrer, 
 		// do not have a direct reference to their internal components (it
 		// actually goes the other way).
 		if stackCallAddr, ok := targetAddr.Item.(stackaddrs.StackCall); ok {
+
 			// We're just adding all the components within the stack to the
 			// queue. We could be a bit clever if, for example, the reference
 			// is to an output of the stack call. We could only add the
@@ -140,11 +141,11 @@ func (m *Main) requiredComponentsForReferrer(ctx context.Context, obj Referrer, 
 			// now, in which the apply will wait for the whole stack to finish
 			// before moving on.
 			currentStack := m.Stack(ctx, targetAddr.Stack, phase)
-			for step, nextStack := range currentStack.childStacks {
-				if step.Name != stackCallAddr.Name {
-					// Then this child stack isn't from the current stack call.
-					continue
-				}
+			stackCall := currentStack.EmbeddedStackCall(ctx, stackCallAddr)
+
+			insts, _ := stackCall.Instances(ctx, PlanPhase)
+			for _, inst := range insts {
+				nextStack := inst.Stack(ctx, PlanPhase)
 
 				for _, component := range nextStack.Components(ctx) {
 					ref := stackaddrs.AbsReferenceable{

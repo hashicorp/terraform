@@ -28,8 +28,8 @@ var (
 )
 
 type Removed struct {
-	source stackaddrs.StackInstance   // the stack the removed block is defined in
-	target stackaddrs.ConfigComponent // relative to source
+	stack  *Stack
+	target stackaddrs.ConfigComponent // relative to stack
 
 	config *RemovedConfig
 	main   *Main
@@ -39,17 +39,13 @@ type Removed struct {
 	unknownInstance perEvalPhase[promising.Once[*RemovedInstance]]
 }
 
-func newRemoved(main *Main, source stackaddrs.StackInstance, target stackaddrs.ConfigComponent, config *RemovedConfig) *Removed {
+func newRemoved(main *Main, stack *Stack, target stackaddrs.ConfigComponent, config *RemovedConfig) *Removed {
 	return &Removed{
-		source: source,
+		stack:  stack,
 		target: target,
 		main:   main,
 		config: config,
 	}
-}
-
-func (r *Removed) Stack(ctx context.Context) *Stack {
-	return r.main.StackUnchecked(ctx, r.source)
 }
 
 func (r *Removed) Config(ctx context.Context) *RemovedConfig {
@@ -62,7 +58,7 @@ func (r *Removed) ForEachValue(ctx context.Context, phase EvalPhase) (cty.Value,
 
 		switch {
 		case config.ForEach != nil:
-			result, diags := evaluateForEachExpr(ctx, config.ForEach, phase, r.Stack(ctx), "removed")
+			result, diags := evaluateForEachExpr(ctx, config.ForEach, phase, r.stack, "removed")
 			if diags.HasErrors() {
 				return cty.DynamicVal, diags
 			}
@@ -107,13 +103,13 @@ func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.Ins
 				return nil
 			}
 
-			addr, moreDiags := from.AbsComponentInstance(evalContext, r.source)
+			addr, moreDiags := from.AbsComponentInstance(evalContext, r.stack.addr)
 			diags = diags.Append(moreDiags)
 			if moreDiags.HasErrors() {
 				return nil
 			}
 
-			return newRemovedInstance(r, addr, rd, false)
+			return newRemovedInstance(r, addr, rd, r.stack.deferred)
 		})
 
 		// Now, filter out any instances that are not known to the previous
@@ -182,7 +178,7 @@ func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.Ins
 
 		h := hooksFromContext(ctx)
 		hookSingle(ctx, h.RemovedExpanded, &hooks.RemovedInstances{
-			Source:        r.source,
+			Source:        r.stack.addr,
 			InstanceAddrs: knownAddrs,
 		})
 
@@ -236,7 +232,7 @@ func (r *Removed) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, t
 
 // tracingName implements Plannable.
 func (r *Removed) tracingName() string {
-	return fmt.Sprintf("%s -> %s (removed)", r.source, r.target)
+	return fmt.Sprintf("%s -> %s (removed)", r.stack.addr, r.target)
 }
 
 func (r *Removed) ApplySuccessful(ctx context.Context) bool {
@@ -273,8 +269,7 @@ type removedInstanceExpressionScope struct {
 }
 
 func (r *removedInstanceExpressionScope) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
-	stack := r.call.Stack(ctx)
-	return stack.resolveExpressionReference(ctx, ref, nil, r.rd)
+	return r.call.stack.resolveExpressionReference(ctx, ref, nil, r.rd)
 }
 
 func (r *removedInstanceExpressionScope) PlanTimestamp() time.Time {

@@ -30,19 +30,15 @@ import (
 // repetition arguments (if any) evaluated to determine how many instances
 // it has.
 type Stack struct {
-	addr stackaddrs.StackInstance
+	parent *Stack
+	addr   stackaddrs.StackInstance
 
-	main *Main
+	main     *Main
+	deferred bool
 
 	// The remaining fields memoize other objects we might create in response
 	// to method calls. Must lock "mu" before interacting with them.
-	mu sync.Mutex
-	// childStacks is a cache of all of the child stacks that have been
-	// requested, but this could include non-existant child stacks requested
-	// through ChildStackUnchecked, so should not be used directly by
-	// anything that needs to return only child stacks that actually exist;
-	// use ChildStackChecked if you need to be sure it's actually configured.
-	childStacks    map[stackaddrs.StackInstanceStep]*Stack
+	mu             sync.Mutex
 	inputVariables map[stackaddrs.InputVariable]*InputVariable
 	localValues    map[stackaddrs.LocalValue]*LocalValue
 	stackCalls     map[stackaddrs.StackCall]*StackCall
@@ -62,13 +58,16 @@ type Stack struct {
 var (
 	_ ExpressionScope = (*Stack)(nil)
 	_ Plannable       = (*Stack)(nil)
+	_ Applyable       = (*Stack)(nil)
 )
 
-func newStack(main *Main, addr stackaddrs.StackInstance, externalRemovedBlocks collections.Map[stackaddrs.ConfigComponent, []*Removed]) *Stack {
+func newStack(main *Main, parent *Stack, addr stackaddrs.StackInstance, externalRemovedBlocks collections.Map[stackaddrs.ConfigComponent, []*Removed], deferred bool) *Stack {
 	return &Stack{
+		parent:                parent,
 		addr:                  addr,
 		externalRemovedBlocks: externalRemovedBlocks,
 		main:                  main,
+		deferred:              deferred,
 	}
 }
 
@@ -80,90 +79,26 @@ func (s *Stack) IsRoot() bool {
 	return s.addr.IsRoot()
 }
 
-// ParentStack returns the object representing this stack's caller, or nil
-// if this is already the root stack.
-func (s *Stack) ParentStack(ctx context.Context) *Stack {
-	if s.IsRoot() {
-		return nil
-	}
-	parentAddr := s.Addr().Parent()
-	// Unchecked because if our own address is valid then the parent
-	// address must also be valid.
-	return s.main.StackUnchecked(ctx, parentAddr)
-}
-
-// ChildStackUnchecked returns an object representing a child of this stack, or
-// nil if the "name" part of the step doesn't correspond to a declared
-// embedded stack call.
-//
-// This method does not check whether the "key" part of the given step matches
-// one of the stack call's declared instance keys, so it should be used only
-// with known-good instance keys or the resulting object will fail
-// unpredictably. If you aren't sure whether the key you have is correct
-// then consider [Stack.ChildStackChecked], but note that it's more expensive
-// because it must block for the "for_each" expression to be fully resolved.
-func (s *Stack) ChildStackUnchecked(ctx context.Context, addr stackaddrs.StackInstanceStep) *Stack {
-	calls := s.EmbeddedStackCalls(ctx)
-	callAddr := stackaddrs.StackCall{Name: addr.Name}
-	if _, exists := calls[callAddr]; !exists {
-		return nil
-	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if _, exists := s.childStacks[addr]; !exists {
-		childAddr := s.Addr().Child(addr.Name, addr.Key)
-		if s.childStacks == nil {
-			s.childStacks = make(map[stackaddrs.StackInstanceStep]*Stack)
-		}
-		s.childStacks[addr] = newStack(s.main, childAddr, s.findChildRemovedBlocks(ctx, addr))
-	}
-
-	return s.childStacks[addr]
-}
-
-// ChildStackChecked returns an object representing a child of this stack,
+// ChildStack returns an object representing a child of this stack,
 // or nil if the step doesn't correspond to a declared instance of the
 // corresponding embedded stack call.
-//
-// This is a more correct but also more expensive variant of
-// [Stack.ChildStackUnchecked]. To perform the check it must force the relevant
-// child stack call to evaluate its for_each expression, if any, which might
-// in turn block on the resolution of other objects. The need to evaluate
-// for_each also means that callers must designate which evaluation phase
-// they intend to work in, since the set of instances might be known in one
-// phase but not another.
-//
-// If the stack call's for_each expression isn't yet ready to resolve such that
-// we cannot know which child instances are declared then ChildStackChecked
-// will optimistically assume that the child exists, but operations on that
-// optimistic result are likely to return unknown values or other indeterminate
-// results themselves.
-func (s *Stack) ChildStackChecked(ctx context.Context, addr stackaddrs.StackInstanceStep, phase EvalPhase) *Stack {
-	candidate := s.ChildStackUnchecked(ctx, addr)
-	if candidate == nil {
-		// Don't even need to check the instance key, then.
-		return nil
-	}
-
-	// If the "unchecked" function succeeded then we know the embedded stack
-	// call is present but we don't know if it has the given instance key.
+func (s *Stack) ChildStack(ctx context.Context, addr stackaddrs.StackInstanceStep, phase EvalPhase) *Stack {
 	calls := s.EmbeddedStackCalls(ctx)
 	callAddr := stackaddrs.StackCall{Name: addr.Name}
 	call := calls[callAddr]
 
 	instances, unknown := call.Instances(ctx, phase)
 	if unknown {
-		return candidate
+		return call.UnknownInstance(ctx, phase).Stack(ctx, phase)
 	}
 
 	if instances == nil {
 		return nil
 	}
-	if _, exists := instances[addr.Key]; !exists {
-		return nil
+	if inst, exists := instances[addr.Key]; exists {
+		return inst.Stack(ctx, phase)
 	}
-	return candidate
+	return nil
 }
 
 // StackConfig returns the [StackConfig] corresponding to this Stack, which
@@ -207,7 +142,7 @@ func (s *Stack) InputVariables(ctx context.Context) map[stackaddrs.InputVariable
 			Stack: s.Addr(),
 			Item:  stackaddrs.InputVariable{Name: c.Name},
 		}
-		ret[absAddr.Item] = newInputVariable(s.main, absAddr)
+		ret[absAddr.Item] = newInputVariable(s.main, absAddr, s)
 	}
 	s.inputVariables = ret
 	return ret
@@ -292,7 +227,7 @@ func (s *Stack) EmbeddedStackCalls(ctx context.Context) map[stackaddrs.StackCall
 			Stack: s.Addr(),
 			Item:  stackaddrs.StackCall{Name: c.Name},
 		}
-		ret[absAddr.Item] = newStackCall(s.main, absAddr)
+		ret[absAddr.Item] = newStackCall(s.main, absAddr, s)
 	}
 	s.stackCalls = ret
 	return ret
@@ -300,6 +235,25 @@ func (s *Stack) EmbeddedStackCalls(ctx context.Context) map[stackaddrs.StackCall
 
 func (s *Stack) EmbeddedStackCall(ctx context.Context, addr stackaddrs.StackCall) *StackCall {
 	return s.EmbeddedStackCalls(ctx)[addr]
+}
+
+func (s *Stack) KnownEmbeddedStacks(addr stackaddrs.StackCall, phase EvalPhase) []stackaddrs.StackInstanceStep {
+	switch phase {
+	case PlanPhase:
+		return s.main.PlanPrevState().StackInstances(stackaddrs.AbsStackCall{
+			Stack: s.Addr(),
+			Item:  addr,
+		})
+	case ApplyPhase:
+		return s.main.PlanBeingApplied().StackInstances(stackaddrs.AbsStackCall{
+			Stack: s.Addr(),
+			Item:  addr,
+		})
+	default:
+		// We're not executing with an existing state in the other phases, so
+		// we have no known instances.
+		return nil
+	}
 }
 
 func (s *Stack) Components(ctx context.Context) map[stackaddrs.Component]*Component {
@@ -319,7 +273,7 @@ func (s *Stack) Components(ctx context.Context) map[stackaddrs.Component]*Compon
 			Stack: s.Addr(),
 			Item:  stackaddrs.Component{Name: c.Name},
 		}
-		ret[absAddr.Item] = newComponent(s.main, absAddr)
+		ret[absAddr.Item] = newComponent(s.main, absAddr, s)
 	}
 	s.components = ret
 	return ret
@@ -351,7 +305,7 @@ func (s *Stack) initialiseRemovedBlocks(ctx context.Context) {
 	for addr := range s.ConfigDeclarations(ctx).Removed.All() {
 		var blocks []*Removed
 		for _, config := range s.StackConfig(ctx).Removed(ctx, addr) {
-			blocks = append(blocks, newRemoved(s.main, s.addr, addr, config))
+			blocks = append(blocks, newRemoved(s.main, s, addr, config))
 		}
 
 		if addr.Stack.IsRoot() {
@@ -467,7 +421,7 @@ func (s *Stack) ProviderByLocalAddr(ctx context.Context, localAddr stackaddrs.Pr
 		return nil
 	}
 
-	provider := newProvider(s.main, configAddr, decl)
+	provider := newProvider(s.main, configAddr, s, decl)
 	s.providers[localAddr] = provider
 	return provider
 }

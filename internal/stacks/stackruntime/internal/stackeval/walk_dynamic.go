@@ -70,11 +70,41 @@ func walkDynamicObjectsInStack[Output any](
 
 			// If unknown, then process the unknown instance and skip the rest.
 			if unknown {
-				inst := call.UnknownInstance(ctx, phase)
-				visit(ctx, walk, inst)
 
-				childStack := inst.CalledStack(ctx)
-				walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
+				knownInstances := stack.KnownEmbeddedStacks(call.Addr().Item, phase)
+				if len(knownInstances) == 0 {
+					// with no known instances, we'll just process the constant
+					// unknown instance
+					inst := call.UnknownInstance(ctx, phase)
+					visit(ctx, walk, inst)
+
+					childStack := inst.Stack(ctx, phase)
+					walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
+					return
+				}
+
+				// otherwise we have instances, so we'll process those with
+				// dedicated instances
+
+				for _, inst := range knownInstances {
+					if inst.Key == addrs.WildcardKey {
+						inst := call.UnknownInstance(ctx, phase)
+						visit(ctx, walk, inst)
+
+						childStack := inst.Stack(ctx, phase)
+						walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
+					} else {
+						inst := newStackCallInstance(call, inst.Key, instances.RepetitionData{
+							EachKey:   inst.Key.Value(),
+							EachValue: cty.UnknownVal(cty.DynamicPseudoType),
+						}, true)
+						visit(ctx, walk, inst)
+
+						childStack := inst.Stack(ctx, phase)
+						walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
+					}
+				}
+
 				return
 			}
 
@@ -82,7 +112,7 @@ func walkDynamicObjectsInStack[Output any](
 			for _, inst := range insts {
 				visit(ctx, walk, inst)
 
-				childStack := inst.CalledStack(ctx)
+				childStack := inst.Stack(ctx, phase)
 				walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
 			}
 		})

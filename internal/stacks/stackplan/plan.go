@@ -107,6 +107,27 @@ func (p *Plan) ComponentInstances(addr stackaddrs.AbsComponent) collections.Set[
 	return ret
 }
 
+func (p *Plan) StackInstances(addr stackaddrs.AbsStackCall) []stackaddrs.StackInstanceStep {
+	var ret []stackaddrs.StackInstanceStep
+	for key := range p.Components.All() {
+		if len(key.Stack) == 0 {
+			continue
+		}
+
+		last := key.Stack[len(key.Stack)-1]
+		path := key.Stack[:len(key.Stack)-1]
+
+		if path.String() != addr.Stack.String() {
+			continue
+		}
+		if last.Name != addr.Item.Name {
+			continue
+		}
+		ret = append(ret, last)
+	}
+	return ret
+}
+
 // RequiredProviderInstances returns a description of all of the provider
 // instance slots that are required to satisfy the resource instances
 // belonging to the given component instance.

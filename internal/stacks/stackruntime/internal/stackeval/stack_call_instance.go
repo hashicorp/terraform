@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
@@ -30,37 +31,33 @@ import (
 // are holding a valid [StackCallInstance] then you can call
 // [StackCallInstance.CalledStack] to get that stack.
 type StackCallInstance struct {
-	call *StackCall
-	key  addrs.InstanceKey
+	call     *StackCall
+	key      addrs.InstanceKey
+	deferred bool
 
 	main *Main
 
 	repetition instances.RepetitionData
+
+	stack perEvalPhase[promising.Once[*Stack]]
 }
 
 var _ ExpressionScope = (*StackCallInstance)(nil)
 var _ Plannable = (*StackCallInstance)(nil)
+var _ Applyable = (*StackCallInstance)(nil)
 
-func newStackCallInstance(call *StackCall, key addrs.InstanceKey, repetition instances.RepetitionData) *StackCallInstance {
+func newStackCallInstance(call *StackCall, key addrs.InstanceKey, repetition instances.RepetitionData, deferred bool) *StackCallInstance {
 	return &StackCallInstance{
 		call:       call,
 		key:        key,
 		main:       call.main,
 		repetition: repetition,
+		deferred:   deferred,
 	}
 }
 
 func (c *StackCallInstance) RepetitionData() instances.RepetitionData {
 	return c.repetition
-}
-
-// CallerStack returns the stack instance that contains the call that this
-// is an instance of.
-func (c *StackCallInstance) CallerStack(ctx context.Context) *Stack {
-	stackAddr := c.call.Addr().Stack
-	// "Unchecked" is safe because newStackCallInstance is only called
-	// based on the results of evaluating the call's for_each.
-	return c.main.StackUnchecked(ctx, stackAddr)
 }
 
 // Call returns the stack call that this is an instance of.
@@ -75,11 +72,18 @@ func (c *StackCallInstance) CalledStackAddr() stackaddrs.StackInstance {
 
 }
 
-// CalledStack returns the stack instance that this call is instantiating.
-func (c *StackCallInstance) CalledStack(ctx context.Context) *Stack {
-	// "Unchecked" is safe because newStackCallInstance is only called
-	// based on the results of evaluating the call's for_each.
-	return c.main.StackUnchecked(ctx, c.CalledStackAddr())
+func (c *StackCallInstance) Stack(ctx context.Context, phase EvalPhase) *Stack {
+	stack, err := c.stack.For(phase).Do(ctx, c.CalledStackAddr().String()+" create", func(ctx context.Context) (*Stack, error) {
+		stack := c.CalledStackAddr()
+		last := stack[len(stack)-1]
+		return newStack(c.main, c.call.stack, stack, c.call.stack.findChildRemovedBlocks(ctx, last), c.deferred), nil
+	})
+	if err != nil {
+		// we never return an error from within the once call, so this shouldn't
+		// happen
+		return nil
+	}
+	return stack
 }
 
 // InputVariableValues returns the [cty.Value] representing the input variable
@@ -114,7 +118,7 @@ func (c *StackCallInstance) InputVariableValues(ctx context.Context, phase EvalP
 // attributes of the result for their appearance in downstream expressions.
 func (c *StackCallInstance) CheckInputVariableValues(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	calledStack := c.CalledStack(ctx)
+	calledStack := c.Stack(ctx, phase)
 	wantTy, defs := calledStack.InputsType(ctx)
 	decl := c.call.Declaration(ctx)
 
@@ -220,8 +224,7 @@ func (c *StackCallInstance) CheckInputVariableValues(ctx context.Context, phase 
 // inside an embedded stack call block, evaluated in the context of a
 // particular instance of that call.
 func (c *StackCallInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
-	stack := c.CallerStack(ctx)
-	return stack.resolveExpressionReference(ctx, ref, nil, c.repetition)
+	return c.call.stack.resolveExpressionReference(ctx, ref, nil, c.repetition)
 }
 
 // ExternalFunctions implements ExpressionScope.

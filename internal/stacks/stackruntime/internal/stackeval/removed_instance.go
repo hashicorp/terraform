@@ -265,8 +265,7 @@ func (r *RemovedInstance) CheckApply(ctx context.Context) ([]stackstate.AppliedC
 
 // ResolveExpressionReference implements ExpressionScope.
 func (r *RemovedInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
-	stack := r.call.Stack(ctx)
-	return stack.resolveExpressionReference(ctx, ref, nil, r.repetition)
+	return r.call.stack.resolveExpressionReference(ctx, ref, nil, r.repetition)
 }
 
 // PlanTimestamp implements ExpressionScope.

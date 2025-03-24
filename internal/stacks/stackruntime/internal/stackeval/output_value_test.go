@@ -8,12 +8,13 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty-debug/ctydebug"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/zclconf/go-cty-debug/ctydebug"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestOutputValueResultValue(t *testing.T) {
@@ -329,7 +330,7 @@ func TestOutputValueEphemeralInChildStack(t *testing.T) {
 					Name: "child",
 					Key:  addrs.NoKey,
 				}
-				stack := rootStack.ChildStackChecked(ctx, childStackStep, ValidatePhase)
+				stack := rootStack.ChildStack(ctx, childStackStep, ValidatePhase)
 				output := stack.OutputValues(ctx)[outputAddr]
 				if output == nil {
 					t.Fatalf("missing %s", outputAddr)
