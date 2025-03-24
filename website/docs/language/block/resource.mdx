@@ -280,7 +280,7 @@ resource {
 
 By default, Terraform automatically selects a provider based on the resource type, but you can create multiple provider configurations and use a non-default configuration for specific resources. 
 
-Use the `<PROVIDER>.<ALIAS>` syntax to reference a provider configuration in the `provider` argument. Refer to [`provider` reference](/terraform/language/provider) for details.   
+Use the `<PROVIDER>.<ALIAS>` syntax to reference a provider configuration in the `provider` argument. Refer to [`provider` reference](/terraform/language/providers) for details.   
 
 The `provider` argument is a meta-argument, which is built into Terraform and controls the way that Terraform creates resources. Refer to [Meta-arguments](/terraform/language/concepts/meta-arguments) for additional information.
 
@@ -308,7 +308,7 @@ You can specify the following lifecycle rules to manage how Terraform performs o
 - [`create_before_destroy`](#create_before_destroy): Terraform creates a replacement resource before destroying the previous resource.
 - [`prevent_destroy`](#prevent_destroy): Terraform rejects operations to destroy the resource and returns an error.
 - [`ignore_changes`](#ignore_changes): Terraform ignores changes to the actual resource configuration. As a result, the remote resource under management remains unchanged.
-- [`replace_triggered_by`](#replace-triggered_by): Terraform replaces the resource when any of the referenced resources or attributes specified change.
+- [`replace_triggered_by`](#replace_triggered_by): Terraform replaces the resource when any of the referenced resources or attributes specified change.
 - [`precondition`](#precondition): Specifies a condition that Terraform evaluates before creating the resource. Refer to [Custom Conditions](/terraform/language/expressions/custom-conditions) for additional information.
 - [`postcondition`](#postcondition): Specifies a condition that Terraform evaluates after creating the resource. Refer to [Custom Conditions](/terraform/language/expressions/custom-conditions)](linky-ti-link) for additional information.
 
@@ -497,7 +497,7 @@ The `connection` block specifies settings that let provisioners connect to resou
 
 <Warning>
 
-We recommend using configuration tools or other means to perform actions on the local or remote machine instead of using the `provisioner` block. Refer to [Provisioners](/terraform/language/concepts/provisioners) for additional information.
+We recommend using configuration tools or other means to perform actions on the local or remote machine instead of using the `provisioner` block. Refer to [Provisioners](/terraform/language/manage-resource/run-command) for additional information.
 
 </Warning>
 
@@ -621,7 +621,6 @@ The type of provisioner determines which arguments you can add to the block. All
 
 - Data type: Block.
 - Default: None.
-- Child of: [`resource`](#resource) block.
 
 ### `source`
 
@@ -666,7 +665,7 @@ resource {
 
 When `destination` points to a file, Terraform writes the value of the `content` argument to the file. When `destination` points to a directory, Terraform creates a file named `tf-file-content` inside the directory. We recommend setting the `destination` argument to a file when using `content` argument. Do not use the `content` argument and the [`source`](#source) argument in the same `provisioner "file"` block. 
 
-You can specify a string value that contains an expression. You cannot use the `source` argument and the [`content`](#content) argument in the same `provisioner "file"` block. 
+You can specify a string value that contains an expression. You cannot use the [`source`](#source) argument and the `content` argument in the same `provisioner "file"` block. 
 
 #### Summary
 
@@ -809,7 +808,7 @@ resource {
 }
 ```
 
-When you run the Terraform command, Terraform executes the command specified in the [`command`](#command) argument. Refer to [Destroy-time provisioners](terraform/language/resources/provisioners/syntax#destroy-time-provisioners) for instructions on using the `when` argument.
+When you run the Terraform command, Terraform executes the command specified in the [`command`](#command) argument. Refer to [Control when provisioners perform tasks](/terraform/language/manage-resource/run-command#control-when-provisioners-perform-tasks) for instructions on using the `when` argument.
 
 #### Summary
 
@@ -854,7 +853,7 @@ Use this argument to run a configuration management tool, bootstrap into a clust
 
 You must also configure the [`connection` settings](#connection) to use the `inline` argument. 
 
-You cannot configure an `inline` argument and a [`script`](#script) or [`scripts`](#scripst) argument in the same `provisioner` block.
+You cannot configure an `inline` argument and a [`script`](#script) or [`scripts`](#scripts) argument in the same `provisioner` block.
 
 By default, Terraform uses the remote resource's default shell, but you can specify a shell as the first command in the list. 
 
