@@ -62,7 +62,6 @@ func (v *LocalValueConfig) StackConfig(ctx context.Context) *StackConfig {
 // ExprReferenceValue implements Referenceable
 func (v *LocalValueConfig) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
 	out, _ := v.ValidateValue(ctx, phase)
-
 	return out
 }
 
@@ -75,7 +74,7 @@ func (v *LocalValueConfig) ExprReferenceValue(ctx context.Context, phase EvalPha
 // declared type constraint.
 func (v *LocalValueConfig) ValidateValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return withCtyDynamicValPlaceholder(doOnceWithDiags(
-		ctx, v.tracingName(), v.validatedValue.For(phase), v.main,
+		ctx, v.tracingName(), v.validatedValue.For(phase),
 		v.validateValueInner(phase),
 	))
 }

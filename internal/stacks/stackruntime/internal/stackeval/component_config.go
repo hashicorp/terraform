@@ -40,8 +40,8 @@ type ComponentConfig struct {
 
 	main *Main
 
-	validate   promising.Once[tfdiags.Diagnostics]
-	moduleTree promising.Once[withDiagnostics[*configs.Config]]
+	validate   perEvalPhase[promising.Once[tfdiags.Diagnostics]]
+	moduleTree promising.Once[withDiagnostics[*configs.Config]] // moduleTree is constant across all phases
 }
 
 func newComponentConfig(main *Main, addr stackaddrs.ConfigComponent, config *stackconfig.Component) *ComponentConfig {
@@ -286,7 +286,7 @@ func (c *ComponentConfig) PlanTimestamp() time.Time {
 }
 
 func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
-	diags, err := c.validate.Do(ctx, c.tracingName(), func(ctx context.Context) (tfdiags.Diagnostics, error) {
+	diags, err := c.validate.For(phase).Do(ctx, c.tracingName(), func(ctx context.Context) (tfdiags.Diagnostics, error) {
 		var diags tfdiags.Diagnostics
 
 		moduleTree, moreDiags := c.CheckModuleTree(ctx)
