@@ -75,7 +75,7 @@ func AssertDiagnosticCount(t *testing.T, diags Diagnostics, want int) {
 	}
 }
 
-// tfdiags.AssertNoDiagnostics fails the test in progress (using t.Fatal) if the given
+// tfdiags.AssertNoDiagnostics fails the test in progress (using t.FailNow) if the given
 // diagnostics has any errors.
 func AssertNoErrors(t *testing.T, diags Diagnostics) {
 	t.Helper()
