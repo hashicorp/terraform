@@ -157,7 +157,6 @@
     ]
   },
   { "title": "Data Sources", "path": "data-sources" },
-  { "title": "resource", "hidden": true, "path": "resource" },
   {
     "title": "Meta-Arguments",
     "hidden": true,
@@ -1107,12 +1106,15 @@
     "title": "Configuration blocks",
     "routes": [
       {
-
-      "title": "Moved block",
-      "path": "block/moved"
+        "title": "resource",
+        "path": "block/resource"
       },
       {
-        "title": "Terraform block",
+        "title": "moved",
+        "path": "block/moved"
+      },
+      {
+        "title": "terraform",
         "path": "block/terraform"
       }
     ]
