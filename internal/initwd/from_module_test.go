@@ -108,9 +108,7 @@ func TestDirFromModule_registry(t *testing.T) {
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
 	config, loadDiags := loader.LoadConfig(".")
-	if tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags)) {
-		return
-	}
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
 		"":                     "in example",
@@ -190,9 +188,8 @@ func TestDirFromModule_submodules(t *testing.T) {
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
 	config, loadDiags := loader.LoadConfig(".")
-	if tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags)) {
-		return
-	}
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+
 	wantTraces := map[string]string{
 		"":                "in root module",
 		"child_a":         "in child_a module",
@@ -316,9 +313,8 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
 	config, loadDiags := loader.LoadConfig(".")
-	if tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags)) {
-		return
-	}
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+
 	wantTraces := map[string]string{
 		"":                "in root module",
 		"child_a":         "in child_a module",
