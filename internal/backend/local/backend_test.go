@@ -25,7 +25,7 @@ func TestLocal_impl(t *testing.T) {
 }
 
 func TestLocal_backend(t *testing.T) {
-	testTmpDir(t)
+	_ = testTmpDir(t)
 	b := New()
 	backend.TestBackendStates(t, b)
 	backend.TestBackendStateLocks(t, b, b)
@@ -33,7 +33,7 @@ func TestLocal_backend(t *testing.T) {
 
 func TestLocal_PrepareConfig(t *testing.T) {
 	// Setup
-	testTmpDir(t)
+	_ = testTmpDir(t)
 
 	b := New()
 
@@ -152,7 +152,7 @@ func TestLocal_StatePaths(t *testing.T) {
 }
 
 func TestLocal_addAndRemoveStates(t *testing.T) {
-	testTmpDir(t)
+	_ = testTmpDir(t)
 	dflt := backend.DefaultStateName
 	expectedStates := []string{dflt}
 
@@ -290,7 +290,7 @@ func TestLocal_multiStateBackend(t *testing.T) {
 
 // testTmpDir changes into a tmp dir and change back automatically when the test
 // and all its subtests complete.
-func testTmpDir(t *testing.T) {
+func testTmpDir(t *testing.T) string {
 	tmp := t.TempDir()
 
 	old, err := os.Getwd()
@@ -306,4 +306,6 @@ func testTmpDir(t *testing.T) {
 		// ignore errors and try to clean up
 		os.Chdir(old)
 	})
+
+	return tmp
 }
