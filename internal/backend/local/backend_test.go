@@ -204,6 +204,104 @@ func TestLocal_pathAttributeWrongExtension(t *testing.T) {
 	checkState(t, fullPath, s.String())
 }
 
+// The `workspace_dir` attribute should only affect where non-default workspaces'
+// state files are saved.
+//
+// The default workspace's name and location are unaffected by this attribute.
+func TestLocal_useOfWorkspaceDirAttribute(t *testing.T) {
+	// Setup
+	td := testTmpDir(t)
+
+	b := New()
+
+	// Configure local state-storage backend (skip call to PrepareConfig)
+	workspaceDir := "path/to/workspaces"
+	config := cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.NullVal(cty.String),
+		"workspace_dir": cty.StringVal(workspaceDir), // set
+	})
+	diags := b.Configure(config)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error returned from Configure")
+	}
+
+	// Writing to the default workspace's state creates a file.
+	// As path attribute was left null, the default location
+	// ./terraform.tfstate is used.
+	// Unaffected by the `workspace_dir` location.
+	workspace := backend.DefaultStateName
+	defaultStatePath := fmt.Sprintf("%s/terraform.tfstate", td)
+	stmgr, err := b.StateMgr(workspace)
+	if err != nil {
+		t.Fatalf("unexpected error returned from StateMgr")
+	}
+	s := states.NewState()
+	s.RootOutputValues = map[string]*states.OutputValue{
+		"foobar": {
+			Value: cty.StringVal("foobar"),
+		},
+	}
+	err = stmgr.WriteState(s)
+	if err != nil {
+		t.Fatalf("unexpected error returned from WriteState")
+	}
+	// Assert state
+	checkState(t, defaultStatePath, s.String())
+
+	// Writing to a non-default workspace's state creates a file
+	// that's affected by the `workspace_dir` location
+	workspace = "fizzbuzz"
+	fizzbuzzStatePath := fmt.Sprintf("%s/%s/%s/terraform.tfstate", td, workspaceDir, workspace)
+	stmgr, err = b.StateMgr(workspace)
+	if err != nil {
+		t.Fatalf("unexpected error returned from StateMgr")
+	}
+	err = stmgr.WriteState(s)
+	if err != nil {
+		t.Fatalf("unexpected error returned from WriteState")
+	}
+	// Assert state
+	checkState(t, fizzbuzzStatePath, s.String())
+}
+
+// When using the local state storage you cannot delete the default workspace's state
+func TestLocal_cannotDeleteDefaultState(t *testing.T) {
+	// Setup
+	_ = testTmpDir(t)
+	dflt := backend.DefaultStateName
+	expectedStates := []string{dflt}
+
+	b := New()
+
+	// Only default workspace exists initially.
+	states, err := b.Workspaces()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(states, expectedStates) {
+		t.Fatalf("expected []string{%q}, got %q", dflt, states)
+	}
+
+	// Attempt to delete default state - force=false
+	err = b.DeleteWorkspace(dflt, false)
+	if err == nil {
+		t.Fatal("expected error but there was none")
+	}
+	expectedErr := "cannot delete default state"
+	if err.Error() != expectedErr {
+		t.Fatalf("expected error %q, got: %q", expectedErr, err)
+	}
+
+	// Setting force=true doesn't change outcome
+	err = b.DeleteWorkspace(dflt, true)
+	if err == nil {
+		t.Fatal("expected error but there was none")
+	}
+	if err.Error() != expectedErr {
+		t.Fatalf("expected error %q, got: %q", expectedErr, err)
+	}
+}
+
 func TestLocal_StatePaths(t *testing.T) {
 	b := New()
 
