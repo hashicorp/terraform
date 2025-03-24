@@ -5,6 +5,7 @@ package local
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/zclconf/go-cty/cty"
@@ -87,6 +89,119 @@ func TestLocal_PrepareConfig(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error returned from PrepareConfig")
 	}
+}
+
+// The `path` attribute should only affect the default workspace's state
+// file location and name.
+//
+// Non-default workspaces' states names and locations are unaffected.
+func TestLocal_useOfPathAttribute(t *testing.T) {
+	// Setup
+	td := testTmpDir(t)
+
+	b := New()
+
+	// Configure local state-storage backend (skip call to PrepareConfig)
+	path := "path/to/foobar.tfstate"
+	config := cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.StringVal(path), // Set
+		"workspace_dir": cty.NullVal(cty.String),
+	})
+	diags := b.Configure(config)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error returned from Configure")
+	}
+
+	// State file at the `path` location doesn't exist yet
+	workspace := backend.DefaultStateName
+	stmgr, err := b.StateMgr(workspace)
+	if err != nil {
+		t.Fatalf("unexpected error returned from StateMgr")
+	}
+	defaultStatePath := fmt.Sprintf("%s/%s", td, path)
+	if _, err := os.Stat(defaultStatePath); !strings.Contains(err.Error(), "no such file or directory") {
+		if err != nil {
+			t.Fatalf("expected \"no such file or directory\" error when accessing file %q, got: %s", path, err)
+		}
+		t.Fatalf("expected the state file %q to not exist, but it did", path)
+	}
+
+	// Writing to the default workspace's state creates a file
+	// at the `path` location.
+	// Directories are created to enable the path.
+	s := states.NewState()
+	s.RootOutputValues = map[string]*states.OutputValue{
+		"foobar": {
+			Value: cty.StringVal("foobar"),
+		},
+	}
+	err = stmgr.WriteState(s)
+	if err != nil {
+		t.Fatalf("unexpected error returned from WriteState")
+	}
+	_, err = os.Stat(defaultStatePath)
+	if err != nil {
+		// The file should exist post-WriteState
+		t.Fatalf("unexpected error when getting stats on the state file %q", path)
+	}
+
+	// Writing to a non-default workspace's state creates a file
+	// that's unaffected by the `path` location
+	workspace = "fizzbuzz"
+	stmgr, err = b.StateMgr(workspace)
+	if err != nil {
+		t.Fatalf("unexpected error returned from StateMgr")
+	}
+	fizzbuzzStatePath := fmt.Sprintf("%s/terraform.tfstate.d/%s/terraform.tfstate", td, workspace)
+	err = stmgr.WriteState(s)
+	if err != nil {
+		t.Fatalf("unexpected error returned from WriteState")
+	}
+
+	// The file should exist post-WriteState
+	checkState(t, fizzbuzzStatePath, s.String())
+}
+
+// Using non-tfstate file extensions in the value of the `path` attribute
+// doesn't affect writing to state
+func TestLocal_pathAttributeWrongExtension(t *testing.T) {
+	// Setup
+	td := testTmpDir(t)
+
+	b := New()
+
+	// The path value doesn't have the expected .tfstate file extension
+	path := "foobar.docx"
+	fullPath := fmt.Sprintf("%s/%s", td, path)
+	config := cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.StringVal(path), // Set
+		"workspace_dir": cty.NullVal(cty.String),
+	})
+	diags := b.Configure(config)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error returned from Configure")
+	}
+
+	// Writing to the default workspace's state creates a file
+	workspace := backend.DefaultStateName
+	stmgr, err := b.StateMgr(workspace)
+	if err != nil {
+		t.Fatalf("unexpected error returned from StateMgr")
+	}
+	s := states.NewState()
+	s.RootOutputValues = map[string]*states.OutputValue{
+		"foobar": {
+			Value: cty.StringVal("foobar"),
+		},
+	}
+	err = stmgr.WriteState(s)
+	if err != nil {
+		t.Fatalf("unexpected error returned from WriteState")
+	}
+
+	// The file should exist post-WriteState, despite the odd file extension,
+	// be readable, and contain the correct state
+	checkState(t, fullPath, s.String())
 }
 
 func TestLocal_StatePaths(t *testing.T) {
