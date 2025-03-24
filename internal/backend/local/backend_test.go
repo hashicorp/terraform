@@ -152,11 +152,14 @@ func TestLocal_StatePaths(t *testing.T) {
 }
 
 func TestLocal_addAndRemoveStates(t *testing.T) {
+	// Setup
 	_ = testTmpDir(t)
 	dflt := backend.DefaultStateName
 	expectedStates := []string{dflt}
 
 	b := New()
+
+	// Only the default workspace exists initially.
 	states, err := b.Workspaces()
 	if err != nil {
 		t.Fatal(err)
@@ -166,6 +169,7 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 		t.Fatalf("expected []string{%q}, got %q", dflt, states)
 	}
 
+	// Calling StateMgr with a new workspace name creates that workspace's state file.
 	expectedA := "test_A"
 	if _, err := b.StateMgr(expectedA); err != nil {
 		t.Fatal(err)
@@ -181,6 +185,7 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expectedStates, states)
 	}
 
+	// Creating another workspace appends it to the list of present workspaces.
 	expectedB := "test_B"
 	if _, err := b.StateMgr(expectedB); err != nil {
 		t.Fatal(err)
@@ -196,6 +201,7 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expectedStates, states)
 	}
 
+	// Can delete a given workspace
 	if err := b.DeleteWorkspace(expectedA, true); err != nil {
 		t.Fatal(err)
 	}
@@ -210,6 +216,7 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expectedStates, states)
 	}
 
+	// Can delete another workspace
 	if err := b.DeleteWorkspace(expectedB, true); err != nil {
 		t.Fatal(err)
 	}
@@ -224,6 +231,7 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expectedStates, states)
 	}
 
+	// You cannot delete the default workspace
 	if err := b.DeleteWorkspace(dflt, true); err == nil {
 		t.Fatal("expected error deleting default state")
 	}
