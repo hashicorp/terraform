@@ -388,8 +388,14 @@ func (b *Local) opWait(
 	return
 }
 
-// StatePaths returns the StatePath, StateOutPath, and StateBackupPath as
-// configured from the CLI.
+// StatePaths returns the StatePath, StateOutPath, and StateBackupPath for a given workspace name.
+// This value is affected by:
+//
+// * Default versus non-default workspace.
+//
+// * Values from the configuration.
+//
+// * Values configured from the CLI.
 func (b *Local) StatePaths(name string) (stateIn, stateOut, backupOut string) {
 	statePath := b.OverrideStatePath
 	stateOutPath := b.OverrideStateOutPath
