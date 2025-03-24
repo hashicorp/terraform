@@ -302,47 +302,6 @@ func TestLocal_cannotDeleteDefaultState(t *testing.T) {
 	}
 }
 
-func TestLocal_StatePaths(t *testing.T) {
-	b := New()
-
-	// Test the defaults
-	path, out, back := b.StatePaths("")
-
-	if path != DefaultStateFilename {
-		t.Fatalf("expected %q, got %q", DefaultStateFilename, path)
-	}
-
-	if out != DefaultStateFilename {
-		t.Fatalf("expected %q, got %q", DefaultStateFilename, out)
-	}
-
-	dfltBackup := DefaultStateFilename + DefaultBackupExtension
-	if back != dfltBackup {
-		t.Fatalf("expected %q, got %q", dfltBackup, back)
-	}
-
-	// check with env
-	testEnv := "test_env"
-	path, out, back = b.StatePaths(testEnv)
-
-	expectedPath := filepath.Join(DefaultWorkspaceDir, testEnv, DefaultStateFilename)
-	expectedOut := expectedPath
-	expectedBackup := expectedPath + DefaultBackupExtension
-
-	if path != expectedPath {
-		t.Fatalf("expected %q, got %q", expectedPath, path)
-	}
-
-	if out != expectedOut {
-		t.Fatalf("expected %q, got %q", expectedOut, out)
-	}
-
-	if back != expectedBackup {
-		t.Fatalf("expected %q, got %q", expectedBackup, back)
-	}
-
-}
-
 func TestLocal_addAndRemoveStates(t *testing.T) {
 	// Setup
 	_ = testTmpDir(t)
@@ -427,6 +386,47 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	if err := b.DeleteWorkspace(dflt, true); err == nil {
 		t.Fatal("expected error deleting default state")
 	}
+}
+
+func TestLocal_StatePaths(t *testing.T) {
+	b := New()
+
+	// Test the defaults
+	path, out, back := b.StatePaths("")
+
+	if path != DefaultStateFilename {
+		t.Fatalf("expected %q, got %q", DefaultStateFilename, path)
+	}
+
+	if out != DefaultStateFilename {
+		t.Fatalf("expected %q, got %q", DefaultStateFilename, out)
+	}
+
+	dfltBackup := DefaultStateFilename + DefaultBackupExtension
+	if back != dfltBackup {
+		t.Fatalf("expected %q, got %q", dfltBackup, back)
+	}
+
+	// check with env
+	testEnv := "test_env"
+	path, out, back = b.StatePaths(testEnv)
+
+	expectedPath := filepath.Join(DefaultWorkspaceDir, testEnv, DefaultStateFilename)
+	expectedOut := expectedPath
+	expectedBackup := expectedPath + DefaultBackupExtension
+
+	if path != expectedPath {
+		t.Fatalf("expected %q, got %q", expectedPath, path)
+	}
+
+	if out != expectedOut {
+		t.Fatalf("expected %q, got %q", expectedOut, out)
+	}
+
+	if back != expectedBackup {
+		t.Fatalf("expected %q, got %q", expectedBackup, back)
+	}
+
 }
 
 // a local backend which returns sentinel errors for NamedState methods to
