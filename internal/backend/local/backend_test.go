@@ -5,6 +5,7 @@ package local
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -13,8 +14,12 @@ import (
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestLocal_impl(t *testing.T) {
@@ -24,30 +29,364 @@ func TestLocal_impl(t *testing.T) {
 }
 
 func TestLocal_backend(t *testing.T) {
-	testTmpDir(t)
+	_ = testTmpDir(t)
 	b := New()
 	backend.TestBackendStates(t, b)
 	backend.TestBackendStateLocks(t, b, b)
 }
 
-func checkState(t *testing.T, path, expected string) {
-	t.Helper()
-	// Read the state
-	f, err := os.Open(path)
-	if err != nil {
-		t.Fatalf("err: %s", err)
+func TestLocal_PrepareConfig(t *testing.T) {
+	// Setup
+	_ = testTmpDir(t)
+
+	b := New()
+
+	// PATH ATTR
+	// Empty string path attribute isn't valid
+	config := cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.StringVal(""),
+		"workspace_dir": cty.NullVal(cty.String),
+	})
+	_, diags := b.PrepareConfig(config)
+	if !diags.HasErrors() {
+		t.Fatalf("expected an error from PrepareConfig but got none")
+	}
+	expectedErr := `The "path" attribute value must not be empty`
+	if !strings.Contains(diags.Err().Error(), expectedErr) {
+		t.Fatalf("expected an error containing %q, got: %q", expectedErr, diags.Err())
 	}
 
-	state, err := statefile.Read(f)
-	f.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	// PrepareConfig doesn't enforce the path value has .tfstate extension
+	config = cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.StringVal("path/to/state/my-state.docx"),
+		"workspace_dir": cty.NullVal(cty.String),
+	})
+	_, diags = b.PrepareConfig(config)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error returned from PrepareConfig")
 	}
 
-	actual := state.State.String()
-	expected = strings.TrimSpace(expected)
-	if actual != expected {
-		t.Fatalf("state does not match! actual:\n%s\n\nexpected:\n%s", actual, expected)
+	// WORKSPACE_DIR ATTR
+	// Empty string workspace_dir attribute isn't valid
+	config = cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.NullVal(cty.String),
+		"workspace_dir": cty.StringVal(""),
+	})
+	_, diags = b.PrepareConfig(config)
+	if !diags.HasErrors() {
+		t.Fatalf("expected an error from PrepareConfig but got none")
+	}
+	expectedErr = `The "workspace_dir" attribute value must not be empty`
+	if !strings.Contains(diags.Err().Error(), expectedErr) {
+		t.Fatalf("expected an error containing %q, got: %q", expectedErr, diags.Err())
+	}
+
+	// Existence of directory isn't checked during PrepareConfig
+	// (Non-existent directories are created as a side-effect of WriteState)
+	config = cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.NullVal(cty.String),
+		"workspace_dir": cty.StringVal("this/does/not/exist"),
+	})
+	_, diags = b.PrepareConfig(config)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error returned from PrepareConfig")
+	}
+}
+
+// The `path` attribute should only affect the default workspace's state
+// file location and name.
+//
+// Non-default workspaces' states names and locations are unaffected.
+func TestLocal_useOfPathAttribute(t *testing.T) {
+	// Setup
+	td := testTmpDir(t)
+
+	b := New()
+
+	// Configure local state-storage backend (skip call to PrepareConfig)
+	path := "path/to/foobar.tfstate"
+	config := cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.StringVal(path), // Set
+		"workspace_dir": cty.NullVal(cty.String),
+	})
+	diags := b.Configure(config)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error returned from Configure")
+	}
+
+	// State file at the `path` location doesn't exist yet
+	workspace := backend.DefaultStateName
+	stmgr, err := b.StateMgr(workspace)
+	if err != nil {
+		t.Fatalf("unexpected error returned from StateMgr")
+	}
+	defaultStatePath := fmt.Sprintf("%s/%s", td, path)
+	if _, err := os.Stat(defaultStatePath); !strings.Contains(err.Error(), "no such file or directory") {
+		if err != nil {
+			t.Fatalf("expected \"no such file or directory\" error when accessing file %q, got: %s", path, err)
+		}
+		t.Fatalf("expected the state file %q to not exist, but it did", path)
+	}
+
+	// Writing to the default workspace's state creates a file
+	// at the `path` location.
+	// Directories are created to enable the path.
+	s := states.NewState()
+	s.RootOutputValues = map[string]*states.OutputValue{
+		"foobar": {
+			Value: cty.StringVal("foobar"),
+		},
+	}
+	err = stmgr.WriteState(s)
+	if err != nil {
+		t.Fatalf("unexpected error returned from WriteState")
+	}
+	_, err = os.Stat(defaultStatePath)
+	if err != nil {
+		// The file should exist post-WriteState
+		t.Fatalf("unexpected error when getting stats on the state file %q", path)
+	}
+
+	// Writing to a non-default workspace's state creates a file
+	// that's unaffected by the `path` location
+	workspace = "fizzbuzz"
+	stmgr, err = b.StateMgr(workspace)
+	if err != nil {
+		t.Fatalf("unexpected error returned from StateMgr")
+	}
+	fizzbuzzStatePath := fmt.Sprintf("%s/terraform.tfstate.d/%s/terraform.tfstate", td, workspace)
+	err = stmgr.WriteState(s)
+	if err != nil {
+		t.Fatalf("unexpected error returned from WriteState")
+	}
+
+	// The file should exist post-WriteState
+	checkState(t, fizzbuzzStatePath, s.String())
+}
+
+// Using non-tfstate file extensions in the value of the `path` attribute
+// doesn't affect writing to state
+func TestLocal_pathAttributeWrongExtension(t *testing.T) {
+	// Setup
+	td := testTmpDir(t)
+
+	b := New()
+
+	// The path value doesn't have the expected .tfstate file extension
+	path := "foobar.docx"
+	fullPath := fmt.Sprintf("%s/%s", td, path)
+	config := cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.StringVal(path), // Set
+		"workspace_dir": cty.NullVal(cty.String),
+	})
+	diags := b.Configure(config)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error returned from Configure")
+	}
+
+	// Writing to the default workspace's state creates a file
+	workspace := backend.DefaultStateName
+	stmgr, err := b.StateMgr(workspace)
+	if err != nil {
+		t.Fatalf("unexpected error returned from StateMgr")
+	}
+	s := states.NewState()
+	s.RootOutputValues = map[string]*states.OutputValue{
+		"foobar": {
+			Value: cty.StringVal("foobar"),
+		},
+	}
+	err = stmgr.WriteState(s)
+	if err != nil {
+		t.Fatalf("unexpected error returned from WriteState")
+	}
+
+	// The file should exist post-WriteState, despite the odd file extension,
+	// be readable, and contain the correct state
+	checkState(t, fullPath, s.String())
+}
+
+// The `workspace_dir` attribute should only affect where non-default workspaces'
+// state files are saved.
+//
+// The default workspace's name and location are unaffected by this attribute.
+func TestLocal_useOfWorkspaceDirAttribute(t *testing.T) {
+	// Setup
+	td := testTmpDir(t)
+
+	b := New()
+
+	// Configure local state-storage backend (skip call to PrepareConfig)
+	workspaceDir := "path/to/workspaces"
+	config := cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.NullVal(cty.String),
+		"workspace_dir": cty.StringVal(workspaceDir), // set
+	})
+	diags := b.Configure(config)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error returned from Configure")
+	}
+
+	// Writing to the default workspace's state creates a file.
+	// As path attribute was left null, the default location
+	// ./terraform.tfstate is used.
+	// Unaffected by the `workspace_dir` location.
+	workspace := backend.DefaultStateName
+	defaultStatePath := fmt.Sprintf("%s/terraform.tfstate", td)
+	stmgr, err := b.StateMgr(workspace)
+	if err != nil {
+		t.Fatalf("unexpected error returned from StateMgr")
+	}
+	s := states.NewState()
+	s.RootOutputValues = map[string]*states.OutputValue{
+		"foobar": {
+			Value: cty.StringVal("foobar"),
+		},
+	}
+	err = stmgr.WriteState(s)
+	if err != nil {
+		t.Fatalf("unexpected error returned from WriteState")
+	}
+	// Assert state
+	checkState(t, defaultStatePath, s.String())
+
+	// Writing to a non-default workspace's state creates a file
+	// that's affected by the `workspace_dir` location
+	workspace = "fizzbuzz"
+	fizzbuzzStatePath := fmt.Sprintf("%s/%s/%s/terraform.tfstate", td, workspaceDir, workspace)
+	stmgr, err = b.StateMgr(workspace)
+	if err != nil {
+		t.Fatalf("unexpected error returned from StateMgr")
+	}
+	err = stmgr.WriteState(s)
+	if err != nil {
+		t.Fatalf("unexpected error returned from WriteState")
+	}
+	// Assert state
+	checkState(t, fizzbuzzStatePath, s.String())
+}
+
+// When using the local state storage you cannot delete the default workspace's state
+func TestLocal_cannotDeleteDefaultState(t *testing.T) {
+	// Setup
+	_ = testTmpDir(t)
+	dflt := backend.DefaultStateName
+	expectedStates := []string{dflt}
+
+	b := New()
+
+	// Only default workspace exists initially.
+	states, err := b.Workspaces()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(states, expectedStates) {
+		t.Fatalf("expected []string{%q}, got %q", dflt, states)
+	}
+
+	// Attempt to delete default state - force=false
+	err = b.DeleteWorkspace(dflt, false)
+	if err == nil {
+		t.Fatal("expected error but there was none")
+	}
+	expectedErr := "cannot delete default state"
+	if err.Error() != expectedErr {
+		t.Fatalf("expected error %q, got: %q", expectedErr, err)
+	}
+
+	// Setting force=true doesn't change outcome
+	err = b.DeleteWorkspace(dflt, true)
+	if err == nil {
+		t.Fatal("expected error but there was none")
+	}
+	if err.Error() != expectedErr {
+		t.Fatalf("expected error %q, got: %q", expectedErr, err)
+	}
+}
+
+func TestLocal_addAndRemoveStates(t *testing.T) {
+	// Setup
+	_ = testTmpDir(t)
+	dflt := backend.DefaultStateName
+	expectedStates := []string{dflt}
+
+	b := New()
+
+	// Only the default workspace exists initially.
+	states, err := b.Workspaces()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(states, expectedStates) {
+		t.Fatalf("expected []string{%q}, got %q", dflt, states)
+	}
+
+	// Calling StateMgr with a new workspace name creates that workspace's state file.
+	expectedA := "test_A"
+	if _, err := b.StateMgr(expectedA); err != nil {
+		t.Fatal(err)
+	}
+
+	states, err = b.Workspaces()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedStates = append(expectedStates, expectedA)
+	if !reflect.DeepEqual(states, expectedStates) {
+		t.Fatalf("expected %q, got %q", expectedStates, states)
+	}
+
+	// Creating another workspace appends it to the list of present workspaces.
+	expectedB := "test_B"
+	if _, err := b.StateMgr(expectedB); err != nil {
+		t.Fatal(err)
+	}
+
+	states, err = b.Workspaces()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedStates = append(expectedStates, expectedB)
+	if !reflect.DeepEqual(states, expectedStates) {
+		t.Fatalf("expected %q, got %q", expectedStates, states)
+	}
+
+	// Can delete a given workspace
+	if err := b.DeleteWorkspace(expectedA, true); err != nil {
+		t.Fatal(err)
+	}
+
+	states, err = b.Workspaces()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedStates = []string{dflt, expectedB}
+	if !reflect.DeepEqual(states, expectedStates) {
+		t.Fatalf("expected %q, got %q", expectedStates, states)
+	}
+
+	// Can delete another workspace
+	if err := b.DeleteWorkspace(expectedB, true); err != nil {
+		t.Fatal(err)
+	}
+
+	states, err = b.Workspaces()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedStates = []string{dflt}
+	if !reflect.DeepEqual(states, expectedStates) {
+		t.Fatalf("expected %q, got %q", expectedStates, states)
+	}
+
+	// You cannot delete the default workspace
+	if err := b.DeleteWorkspace(dflt, true); err == nil {
+		t.Fatal("expected error deleting default state")
 	}
 }
 
@@ -92,129 +431,66 @@ func TestLocal_StatePaths(t *testing.T) {
 
 }
 
-func TestLocal_addAndRemoveStates(t *testing.T) {
-	testTmpDir(t)
-	dflt := backend.DefaultStateName
-	expectedStates := []string{dflt}
-
-	b := New()
-	states, err := b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !reflect.DeepEqual(states, expectedStates) {
-		t.Fatalf("expected []string{%q}, got %q", dflt, states)
-	}
-
-	expectedA := "test_A"
-	if _, err := b.StateMgr(expectedA); err != nil {
-		t.Fatal(err)
-	}
-
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expectedStates = append(expectedStates, expectedA)
-	if !reflect.DeepEqual(states, expectedStates) {
-		t.Fatalf("expected %q, got %q", expectedStates, states)
-	}
-
-	expectedB := "test_B"
-	if _, err := b.StateMgr(expectedB); err != nil {
-		t.Fatal(err)
-	}
-
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expectedStates = append(expectedStates, expectedB)
-	if !reflect.DeepEqual(states, expectedStates) {
-		t.Fatalf("expected %q, got %q", expectedStates, states)
-	}
-
-	if err := b.DeleteWorkspace(expectedA, true); err != nil {
-		t.Fatal(err)
-	}
-
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expectedStates = []string{dflt, expectedB}
-	if !reflect.DeepEqual(states, expectedStates) {
-		t.Fatalf("expected %q, got %q", expectedStates, states)
-	}
-
-	if err := b.DeleteWorkspace(expectedB, true); err != nil {
-		t.Fatal(err)
-	}
-
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expectedStates = []string{dflt}
-	if !reflect.DeepEqual(states, expectedStates) {
-		t.Fatalf("expected %q, got %q", expectedStates, states)
-	}
-
-	if err := b.DeleteWorkspace(dflt, true); err == nil {
-		t.Fatal("expected error deleting default state")
-	}
-}
-
-// a local backend which returns sentinel errors for NamedState methods to
+// a local backend which returns errors for methods to
 // verify it's being called.
 type testDelegateBackend struct {
 	*Local
-
-	// return a sentinel error on these calls
-	stateErr  bool
-	statesErr bool
-	deleteErr bool
 }
 
+var errTestDelegatePrepareConfig = errors.New("prepare config called")
+var errTestDelegateConfigure = errors.New("configure called")
 var errTestDelegateState = errors.New("state called")
 var errTestDelegateStates = errors.New("states called")
 var errTestDelegateDeleteState = errors.New("delete called")
 
-func (b *testDelegateBackend) StateMgr(name string) (statemgr.Full, error) {
-	if b.stateErr {
-		return nil, errTestDelegateState
-	}
-	s := statemgr.NewFilesystem("terraform.tfstate")
-	return s, nil
-}
-
-func (b *testDelegateBackend) Workspaces() ([]string, error) {
-	if b.statesErr {
-		return nil, errTestDelegateStates
-	}
-	return []string{"default"}, nil
-}
-
-func (b *testDelegateBackend) DeleteWorkspace(name string, force bool) error {
-	if b.deleteErr {
-		return errTestDelegateDeleteState
-	}
+func (b *testDelegateBackend) ConfigSchema() *configschema.Block {
 	return nil
 }
 
-// verify that the MultiState methods are dispatched to the correct Backend.
-func TestLocal_multiStateBackend(t *testing.T) {
+func (b *testDelegateBackend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	return cty.NilVal, diags.Append(errTestDelegatePrepareConfig)
+}
+
+func (b *testDelegateBackend) Configure(obj cty.Value) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	return diags.Append(errTestDelegateConfigure)
+}
+
+func (b *testDelegateBackend) StateMgr(name string) (statemgr.Full, error) {
+	return nil, errTestDelegateState
+}
+
+func (b *testDelegateBackend) Workspaces() ([]string, error) {
+	return nil, errTestDelegateStates
+}
+
+func (b *testDelegateBackend) DeleteWorkspace(name string, force bool) error {
+	return errTestDelegateDeleteState
+}
+
+// Verify that all backend.Backend methods are dispatched to the correct Backend when
+// the local backend created with a separate state storage backend.
+//
+// The Local struct type implements both backendrun.OperationsBackend and backend.Backend interfaces.
+// If the Local struct is not created with a separate state storage backend then it'll use its own
+// backend.Backend method implementations. If a separate state storage backend IS supplied, then
+// it should pass those method calls through to the separate backend.Backend.
+func TestLocal_callsMethodsOnStateBackend(t *testing.T) {
 	// assign a separate backend where we can read the state
-	b := NewWithBackend(&testDelegateBackend{
-		stateErr:  true,
-		statesErr: true,
-		deleteErr: true,
-	})
+	b := NewWithBackend(&testDelegateBackend{})
+
+	if schema := b.ConfigSchema(); schema != nil {
+		t.Fatal("expected a nil schema, got:", schema)
+	}
+
+	if _, diags := b.PrepareConfig(cty.NilVal); !diags.HasErrors() {
+		t.Fatal("expected errTestDelegatePrepareConfig error, got:", diags)
+	}
+
+	if diags := b.Configure(cty.NilVal); !diags.HasErrors() {
+		t.Fatal("expected errTestDelegateConfigure error, got:", diags)
+	}
 
 	if _, err := b.StateMgr("test"); err != errTestDelegateState {
 		t.Fatal("expected errTestDelegateState, got:", err)
@@ -231,7 +507,7 @@ func TestLocal_multiStateBackend(t *testing.T) {
 
 // testTmpDir changes into a tmp dir and change back automatically when the test
 // and all its subtests complete.
-func testTmpDir(t *testing.T) {
+func testTmpDir(t *testing.T) string {
 	tmp := t.TempDir()
 
 	old, err := os.Getwd()
@@ -247,4 +523,27 @@ func testTmpDir(t *testing.T) {
 		// ignore errors and try to clean up
 		os.Chdir(old)
 	})
+
+	return tmp
+}
+
+func checkState(t *testing.T, path, expected string) {
+	t.Helper()
+	// Read the state
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := statefile.Read(f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := state.State.String()
+	expected = strings.TrimSpace(expected)
+	if actual != expected {
+		t.Fatalf("state does not match! actual:\n%s\n\nexpected:\n%s", actual, expected)
+	}
 }
