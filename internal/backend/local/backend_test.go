@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestLocal_impl(t *testing.T) {
@@ -28,6 +29,64 @@ func TestLocal_backend(t *testing.T) {
 	b := New()
 	backend.TestBackendStates(t, b)
 	backend.TestBackendStateLocks(t, b, b)
+}
+
+func TestLocal_PrepareConfig(t *testing.T) {
+	// Setup
+	testTmpDir(t)
+
+	b := New()
+
+	// PATH ATTR
+	// Empty string path attribute isn't valid
+	config := cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.StringVal(""),
+		"workspace_dir": cty.NullVal(cty.String),
+	})
+	_, diags := b.PrepareConfig(config)
+	if !diags.HasErrors() {
+		t.Fatalf("expected an error from PrepareConfig but got none")
+	}
+	expectedErr := `The "path" attribute value must not be empty`
+	if !strings.Contains(diags.Err().Error(), expectedErr) {
+		t.Fatalf("expected an error containing %q, got: %q", expectedErr, diags.Err())
+	}
+
+	// PrepareConfig doesn't enforce the path value has .tfstate extension
+	config = cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.StringVal("path/to/state/my-state.docx"),
+		"workspace_dir": cty.NullVal(cty.String),
+	})
+	_, diags = b.PrepareConfig(config)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error returned from PrepareConfig")
+	}
+
+	// WORKSPACE_DIR ATTR
+	// Empty string workspace_dir attribute isn't valid
+	config = cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.NullVal(cty.String),
+		"workspace_dir": cty.StringVal(""),
+	})
+	_, diags = b.PrepareConfig(config)
+	if !diags.HasErrors() {
+		t.Fatalf("expected an error from PrepareConfig but got none")
+	}
+	expectedErr = `The "workspace_dir" attribute value must not be empty`
+	if !strings.Contains(diags.Err().Error(), expectedErr) {
+		t.Fatalf("expected an error containing %q, got: %q", expectedErr, diags.Err())
+	}
+
+	// Existence of directory isn't checked during PrepareConfig
+	// (Non-existent directories are created as a side-effect of WriteState)
+	config = cty.ObjectVal(map[string]cty.Value{
+		"path":          cty.NullVal(cty.String),
+		"workspace_dir": cty.StringVal("this/does/not/exist"),
+	})
+	_, diags = b.PrepareConfig(config)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error returned from PrepareConfig")
+	}
 }
 
 func checkState(t *testing.T, path, expected string) {
