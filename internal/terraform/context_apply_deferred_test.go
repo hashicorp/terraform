@@ -3813,9 +3813,9 @@ func TestContextApply_deferredActions(t *testing.T) {
 						if stage.wantDiagnostic == nil {
 							// We expect the correct planned changes and no diagnostics.
 							if stage.allowWarnings {
-								assertNoErrors(t, diags)
+								tfdiags.AssertNoErrors(t, diags)
 							} else {
-								assertNoDiagnostics(t, diags)
+								tfdiags.AssertNoDiagnostics(t, diags)
 							}
 						} else {
 							if !stage.wantDiagnostic(diags) {
@@ -3885,9 +3885,9 @@ func TestContextApply_deferredActions(t *testing.T) {
 
 						// We expect the correct applied changes and no diagnostics.
 						if stage.allowWarnings {
-							assertNoErrors(t, diags)
+							tfdiags.AssertNoErrors(t, diags)
 						} else {
-							assertNoDiagnostics(t, diags)
+							tfdiags.AssertNoDiagnostics(t, diags)
 						}
 						provider.appliedChanges.Test(t, stage.wantApplied)
 

@@ -790,7 +790,7 @@ resource "ephem_write_only" "test" {
 				// as it will fail.
 				return
 			} else {
-				assertNoDiagnostics(t, diags)
+				tfdiags.AssertNoDiagnostics(t, diags)
 			}
 
 			if tc.expectValidateEphemeralResourceConfigCalled {
@@ -808,7 +808,7 @@ resource "ephem_write_only" "test" {
 			if tc.expectPlanDiagnostics != nil {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectPlanDiagnostics(m))
 			} else {
-				assertNoDiagnostics(t, diags)
+				tfdiags.AssertNoDiagnostics(t, diags)
 			}
 
 			if tc.assertPlan != nil {
@@ -904,7 +904,7 @@ resource "sink_object" "empty" {
 	})
 
 	_, diags := ctx.Plan(m, nil, DefaultPlanOpts)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if ephem.OpenEphemeralResourceCalled {
 		t.Error("OpenEphemeralResourceCalled called when config was not known")
