@@ -115,7 +115,7 @@ operation, and is re-calculated each time a new plan is created.
 ## Data Resource Dependencies
 
 Data resources have the same dependency resolution behavior
-[as defined for managed resources](/terraform/language/resources/behavior#resource-dependencies).
+[as defined for managed resources](/terraform/language/resources#specify-resource-dependencies).
 Setting the `depends_on` meta-argument within `data` blocks defers reading of
 the data source until after all changes to the dependencies have been applied.
 
@@ -222,10 +222,7 @@ resource "aws_instance" "web" {
 
 ## Meta-Arguments
 
-As data sources are essentially a read only subset of resources, they also
-support the same [meta-arguments](/terraform/language/resources/syntax#meta-arguments) of resources
-with the exception of the
-[`lifecycle` configuration block](/terraform/language/meta-arguments/lifecycle).
+You can use all meta-arguments, except for the [`lifecycle` block](/terraform/language/meta-arguments/lifecycle), in your data source configuration. Meta-arguments are arguments built into Terraform that control how Terraform creates and manages resources. Refer to [Meta-arguments](/terraform/language/meta-arguments) for additional information.  
 
 ### Non-Default Provider Configurations
 
