@@ -29,10 +29,7 @@ var (
 	_ GraphNodeReferenceable    = (*nodeExpandModule)(nil)
 	_ GraphNodeReferencer       = (*nodeExpandModule)(nil)
 	_ GraphNodeReferenceOutside = (*nodeExpandModule)(nil)
-	_ graphNodeExpandsInstances = (*nodeExpandModule)(nil)
 )
-
-func (n *nodeExpandModule) expandsInstances() {}
 
 func (n *nodeExpandModule) Name() string {
 	return n.Addr.String() + " (expand)"
