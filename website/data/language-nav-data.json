@@ -74,11 +74,6 @@
     "title": "Create and manage resources",
     "routes": [
       { "title": "Overview", "path": "resources" },
-      { "title": "Resource Blocks", "path": "resources/syntax" },
-      {
-        "title": "Resource Behavior",
-        "path": "resources/behavior"
-      },
       {
         "title": "Provisioners",
         "routes": [
@@ -109,7 +104,7 @@
         ]
       },
       {
-        "title": "The <code>terraform_data</code> Resource Type",
+        "title": "Implement the standard resource lifecycle",
         "path": "resources/terraform-data"
       },
       {

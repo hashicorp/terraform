@@ -5,9 +5,11 @@ description: >-
   in a remote backend.
 ---
 
-# The `terraform_data` Managed Resource Type
+# Implement the standard resource lifecycle
 
-The `terraform_data` implements the standard resource lifecycle, but does not directly take any other actions. 
+Declare `terraform_data` type when writing your `resource` block configuration to implement the standard resource lifecycle. The `terraform_data` type does not directly perform any other actions.
+
+
 You can use the `terraform_data` resource without requiring or configuring a provider. It is always available through a built-in provider with the [source address](/terraform/language/providers/requirements#source-addresses) `terraform.io/builtin/terraform`.
 
 The `terraform_data` resource is useful for storing values which need to follow a manage resource lifecycle, and for triggering provisioners when there is no other logical managed resource in which to place them.
