@@ -41,10 +41,7 @@ var (
 	_ GraphNodeReferenceable     = (*nodeExpandModuleVariable)(nil)
 	_ GraphNodeReferencer        = (*nodeExpandModuleVariable)(nil)
 	_ graphNodeTemporaryValue    = (*nodeExpandModuleVariable)(nil)
-	_ graphNodeExpandsInstances  = (*nodeExpandModuleVariable)(nil)
 )
-
-func (n *nodeExpandModuleVariable) expandsInstances() {}
 
 func (n *nodeExpandModuleVariable) temporaryValue() bool {
 	return true
