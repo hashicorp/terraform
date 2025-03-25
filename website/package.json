@@ -8,7 +8,7 @@
   "devDependencies": {
     "@hashicorp/platform-cli": "^2.8.0",
     "@hashicorp/platform-content-conformance": "^0.0.12",
-    "next": "^14.2.7"
+    "next": "^14.2.25"
   },
   "engines": {
     "npm": ">=9.6.7",
