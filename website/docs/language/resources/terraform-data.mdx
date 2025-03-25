@@ -7,20 +7,21 @@ description: >-
 
 # Implement the standard resource lifecycle
 
-Declare `terraform_data` type when writing your `resource` block configuration to implement the standard resource lifecycle. The `terraform_data` type does not directly perform any other actions.
-
+Specifying the `terraform_data` as the resource type implements the standard resource lifecycle for the resource. The `terraform_data` type does not directly perform any other actions.
 
 You can use the `terraform_data` resource without requiring or configuring a provider. It is always available through a built-in provider with the [source address](/terraform/language/providers/requirements#source-addresses) `terraform.io/builtin/terraform`.
 
-The `terraform_data` resource is useful for storing values which need to follow a manage resource lifecycle, and for triggering provisioners when there is no other logical managed resource in which to place them.
+The `terraform_data` resource is useful for storing values which need to follow a managed resource lifecycle and for triggering provisioners when there is no other logical managed resource in which to place them.
 
+## Examples 
 
-## Example Usage (data for `replace_triggered_by`)
+The following examples demonstrate how to use the `terraform_data` resource in your configurations.
 
+### Provide data for `replace_triggered_by` argument
 
-[The `replace_triggered_by` lifecycle argument](/terraform/language/meta-arguments/lifecycle#replace_triggered_by) requires all of the given addresses to be for resources, because the decision to force replacement is based on the planned actions for all of the mentioned resources.
+The [`replace_triggered_by` lifecycle argument](/terraform/language/meta-arguments/lifecycle#replace_triggered_by) requires all of the given addresses to be for resources. This is because the decision to force replacement is based on the planned actions for all of the mentioned resources.
 
-Plain data values such as [Local Values](/terraform/language/values/locals) and [Input Variables](/terraform/language/values/variables) don't have any side-effects to plan against and so they aren't valid in `replace_triggered_by`. You can use `terraform_data`'s behavior of planning an action each time `input` changes to _indirectly_ use a plain value to trigger replacement.
+Plain data values, such as [local values](/terraform/language/values/locals) and [input variables](/terraform/language/values/variables), don't have any side-effects to plan against and so they aren't valid in `replace_triggered_by`. You can use `terraform_data`'s behavior of planning an action each time `input` changes to _indirectly_ use a plain value to trigger replacement.
 
 
 ```hcl
@@ -41,7 +42,9 @@ resource "example_database" "test" {
 }
 ```
 
-## Example Usage (`null_resource` replacement)
+### Replace `null_resource`
+
+In the following example, the `terraform_data` resource acts a container for arbitrary actions taken by a provisioner.
 
 ```hcl
 resource "aws_instance" "web" {
@@ -52,8 +55,7 @@ resource "aws_instance" "database" {
   # ...
 }
 
-# A use-case for terraform_data is as a do-nothing container
-# for arbitrary actions taken by a provisioner.
+
 resource "terraform_data" "bootstrap" {
   triggers_replace = [
     aws_instance.web.id,
@@ -65,7 +67,6 @@ resource "terraform_data" "bootstrap" {
   }
 }
 ```
-
 
 ## Argument Reference
 
