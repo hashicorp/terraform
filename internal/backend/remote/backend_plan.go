@@ -258,19 +258,24 @@ in order to capture the filesystem context the remote workspace expects:
 		}
 	}
 
+	log.Printf("[TRACE] backend/remote: starting configuration upload at %q", configDir)
 	err = b.client.ConfigurationVersions.Upload(stopCtx, cv.UploadURL, configDir)
 	if err != nil {
 		return nil, generalError("Failed to upload configuration files", err)
 	}
+	log.Printf("[TRACE] backend/remote: finished configuration upload")
 
 	uploaded := false
 	for i := 0; i < 60 && !uploaded; i++ {
 		select {
 		case <-stopCtx.Done():
+			log.Printf("[TRACE] backend/remote: deadline reached while waiting for configuration status")
 			return nil, context.Canceled
 		case <-cancelCtx.Done():
+			log.Printf("[TRACE] backend/remote: operation cancelled while waiting for configuration status")
 			return nil, context.Canceled
 		case <-time.After(planConfigurationVersionsPollInterval):
+			log.Printf("[TRACE] backend/remote: reading configuration status")
 			cv, err = b.client.ConfigurationVersions.Read(stopCtx, cv.ID)
 			if err != nil {
 				return nil, generalError("Failed to retrieve configuration version", err)
@@ -287,6 +292,7 @@ in order to capture the filesystem context the remote workspace expects:
 			"Failed to upload configuration files", errors.New("operation timed out"))
 	}
 
+	log.Printf("[TRACE] backend/remote: configuration uploaded and ready")
 	runOptions := tfe.RunCreateOptions{
 		ConfigurationVersion: cv,
 		Refresh:              tfe.Bool(op.PlanRefresh),
