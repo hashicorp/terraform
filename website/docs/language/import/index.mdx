@@ -131,7 +131,7 @@ Terraform only needs to import a given resource once. Attempting to import a res
 
 Before importing, you must add configuration for every resource you want Terraform to import. Otherwise, Terraform throws an error during planning, insisting you add resource configuration before it can successfully import. You can create resource configuration manually or [generate it using Terraform](/terraform/language/import/generating-configuration). 
 
-We recommend writing a `resource` block if you know what most of the [resource's arguments](/terraform/language/resources/syntax#resource-arguments) will be. For example, your configuration may already contain a similar resource whose configuration you can copy and modify.
+We recommend writing a `resource` block and defining known resource arguments. For example, your configuration may already contain a similar resource whose configuration you can copy and modify. Refer to the [`resource` block reference](/terraform/language/block/resource) for available arguments. 
 
 We recommend [generating configuration](/terraform/language/import/generating-configuration) when importing multiple resources or a single complex resource that you do not already have the configuration for.
 
