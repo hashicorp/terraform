@@ -46,13 +46,15 @@ If you are using a DNF-based distribution, add the repository using
 
 ```bash
 sudo dnf install -y dnf-plugins-core
-sudo dnf config-manager addrepo --from-repofile=https://rpm.releases.hashicorp.com/$release/hashicorp.repo
+sudo dnf config-manager  --add-repo https://rpm.releases.hashicorp.com/$release/hashicorp.repo
 ```
 
-In both cases, the Terraform package name is `terraform`. For example:
+In both cases, the Terraform package name is `terraform`. It will install the latest version if nothing is defined as argument. For example:
 
 ```bash
-yum install terraform
+sudo yum install terraform
+or
+sudo dnf install terraform 
 ```
 
 ## Supported Architectures
