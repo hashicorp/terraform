@@ -390,10 +390,11 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	}
 }
 
-func TestLocal_StatePaths(t *testing.T) {
-	b := New()
+func TestLocal_StatePaths_defaultWorkspace(t *testing.T) {
 
-	// Test the defaults
+	// Default paths are returned for the default workspace
+	// when nothing is set via config or overrides
+	b := New()
 	path, out, back := b.StatePaths("")
 
 	if path != DefaultStateFilename {
@@ -409,11 +410,60 @@ func TestLocal_StatePaths(t *testing.T) {
 		t.Fatalf("expected %q, got %q", dfltBackup, back)
 	}
 
-	// check with env
-	testEnv := "test_env"
-	path, out, back = b.StatePaths(testEnv)
+	// If `path` is set in the config, this impacts returned paths for the default workspace
+	b = New()
+	configPath := "new-path.tfstate"
+	b.StatePath = configPath    // equivalent of path = "new-path.tfstate" in config
+	b.StateOutPath = configPath // equivalent of path = "new-path.tfstate" in config
 
-	expectedPath := filepath.Join(DefaultWorkspaceDir, testEnv, DefaultStateFilename)
+	path, out, back = b.StatePaths("")
+
+	if path != configPath {
+		t.Fatalf("expected %q, got %q", configPath, path)
+	}
+
+	if out != configPath {
+		t.Fatalf("expected %q, got %q", configPath, out)
+	}
+
+	altBackup := configPath + DefaultBackupExtension
+	if back != altBackup {
+		t.Fatalf("expected %q, got %q", altBackup, back)
+	}
+
+	// If overrides are set, they override default values or those from config
+	b = New()
+	b.StatePath = configPath    // equivalent of path = "new-path.tfstate" in config
+	b.StateOutPath = configPath // equivalent of path = "new-path.tfstate" in config
+	override := "override.tfstate"
+	b.OverrideStatePath = override
+	b.OverrideStateOutPath = override
+	b.OverrideStateBackupPath = override
+
+	path, out, back = b.StatePaths("")
+
+	if path != override {
+		t.Fatalf("expected %q, got %q", override, path)
+	}
+
+	if out != override {
+		t.Fatalf("expected %q, got %q", override, out)
+	}
+
+	if back != override {
+		t.Fatalf("expected %q, got %q", override, back)
+	}
+}
+
+func TestLocal_StatePaths_nonDefaultWorkspace(t *testing.T) {
+
+	// Default paths are returned for a custom workspace
+	// when nothing is set via config or overrides
+	b := New()
+	workspace := "test_env"
+	path, out, back := b.StatePaths(workspace)
+
+	expectedPath := filepath.Join(DefaultWorkspaceDir, workspace, DefaultStateFilename)
 	expectedOut := expectedPath
 	expectedBackup := expectedPath + DefaultBackupExtension
 
@@ -429,6 +479,125 @@ func TestLocal_StatePaths(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expectedBackup, back)
 	}
 
+	// This is unaffected by a user setting the path attribute
+	b = New()
+	b.StatePath = "path-from-config.tfstate" // equivalent of setting path = "path-from-config.tfstate" in config
+	b.StateOutPath = "path-from-config.tfstate"
+
+	path, out, back = b.StatePaths(workspace)
+
+	if path != expectedPath {
+		t.Fatalf("expected %q, got %q", expectedPath, path)
+	}
+
+	if out != expectedOut {
+		t.Fatalf("expected %q, got %q", expectedOut, out)
+	}
+
+	if back != expectedBackup {
+		t.Fatalf("expected %q, got %q", expectedBackup, back)
+	}
+
+	// If a user set working_dir in config it affects returned values
+	b = New()
+	workingDir := "my/alternative/state/dir"
+	b.StateWorkspaceDir = workingDir // equivalent of setting working_dir = "my/alternative/state/dir" in config
+
+	path, out, back = b.StatePaths(workspace)
+
+	expectedPath = filepath.Join(workingDir, workspace, DefaultStateFilename)
+	expectedOut = filepath.Join(workingDir, workspace, DefaultStateFilename)
+	expectedBackup = filepath.Join(workingDir, workspace, DefaultStateFilename) + DefaultBackupExtension
+
+	if path != expectedPath {
+		t.Fatalf("expected %q, got %q", expectedPath, path)
+	}
+
+	if out != expectedOut {
+		t.Fatalf("expected %q, got %q", expectedOut, out)
+	}
+
+	if back != expectedBackup {
+		t.Fatalf("expected %q, got %q", expectedBackup, back)
+	}
+
+	// Overrides affect returned values regardless of config
+	b = New()
+	b.StateWorkspaceDir = workingDir // equivalent of setting working_dir = "my/alternative/state/dir" in config
+	override := "override.tfstate"
+	b.OverrideStatePath = override
+	b.OverrideStateOutPath = override
+	b.OverrideStateBackupPath = override
+
+	path, out, back = b.StatePaths(workspace)
+
+	if path != override {
+		t.Fatalf("expected %q, got %q", override, path)
+	}
+
+	if out != override {
+		t.Fatalf("expected %q, got %q", override, out)
+	}
+
+	if back != override {
+		t.Fatalf("expected %q, got %q", override, back)
+	}
+}
+
+// TestLocal_PathsConflictWith does not include testing the effects of CLI commands -state, -state-out, and -state-backup
+// because PathsConflictWith is only used during state migrations, and the init command does not accept those flags.
+// Those flags would cause the local backend struct to have override fields set.
+func TestLocal_PathsConflictWith(t *testing.T) {
+	// Create a working directory with default and non-default workspace states
+	td := testTmpDir(t)
+	exampleState := states.NewState()
+	exampleState.RootOutputValues = map[string]*states.OutputValue{
+		"foobar": {
+			Value: cty.StringVal("foobar"),
+		},
+	}
+	foobar := "foobar"
+	originalBackend := New()
+
+	// Create a default workspace state file in a non-root directory
+	originalBackend.StatePath = "foobar/terraform.tfstate"
+	defaultStatePath := filepath.Join(td, originalBackend.StatePath)
+	stmgrDefault, _ := originalBackend.StateMgr("")
+	err := stmgrDefault.WriteState(exampleState)
+	if err != nil {
+		t.Fatalf("unexpected error returned from WriteState")
+	}
+	checkState(t, defaultStatePath, exampleState.String())
+
+	// Create a non-default workspace and state file there
+	stmgrFoobar, _ := originalBackend.StateMgr(foobar)
+	err = stmgrFoobar.WriteState(exampleState)
+	if err != nil {
+		t.Fatalf("unexpected error returned from WriteState")
+	}
+	foobarStatePath := filepath.Join(td, DefaultWorkspaceDir, foobar, DefaultStateFilename)
+	checkState(t, foobarStatePath, exampleState.String())
+
+	// Scenario where:
+	// * original backend has state for a 'foobar' workspace at terraform.tfstate.d/foobar/terraform.tfstate
+	// * new local backend is configured via `path` to store 'default' state at terraform.tfstate.d/foobar/terraform.tfstate
+	scenario1 := New()
+	scenario1.StatePath = foobarStatePath
+
+	if !originalBackend.PathsConflictWith(scenario1) {
+		t.Fatal("expected conflict but got none")
+	}
+
+	// Scenario where:
+	// * original backend has state for the default workspace at ./foobar/terrform.tfstate
+	// * local backend is configured to store non-default workspace state in the root dir
+	//     this means a foobar workspace would also store state at ./foobar/terrform.tfstate
+	scenario2 := New()
+	scenario2.StateWorkspaceDir = "."
+
+	if !originalBackend.PathsConflictWith(scenario2) {
+		t.Fatal("expected conflict but got none")
+	}
 }
 
 // a local backend which returns errors for methods to
