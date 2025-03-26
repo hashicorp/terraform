@@ -46,28 +46,28 @@ func (c *Component) Addr() stackaddrs.AbsComponent {
 	return c.addr
 }
 
-func (c *Component) Config(ctx context.Context) *ComponentConfig {
+func (c *Component) Config() *ComponentConfig {
 	configAddr := stackaddrs.ConfigForAbs(c.Addr())
-	stackConfig := c.main.StackConfig(ctx, configAddr.Stack)
+	stackConfig := c.main.StackConfig(configAddr.Stack)
 	if stackConfig == nil {
 		return nil
 	}
-	return stackConfig.Component(ctx, configAddr.Item)
+	return stackConfig.Component(configAddr.Item)
 }
 
-func (c *Component) Declaration(ctx context.Context) *stackconfig.Component {
-	cfg := c.Config(ctx)
+func (c *Component) Declaration() *stackconfig.Component {
+	cfg := c.Config()
 	if cfg == nil {
 		return nil
 	}
-	return cfg.Declaration(ctx)
+	return cfg.Declaration()
 }
 
-func (c *Component) Stack(ctx context.Context) *Stack {
+func (c *Component) Stack() *Stack {
 	// Unchecked because we should've been constructed from the same stack
 	// object we're about to return, and so this should be valid unless
 	// the original construction was from an invalid object itself.
-	return c.main.StackUnchecked(ctx, c.Addr().Stack)
+	return c.main.StackUnchecked(c.Addr().Stack)
 }
 
 // ForEachValue returns the result of evaluating the "for_each" expression
@@ -107,12 +107,12 @@ func (c *Component) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty
 		ctx, c.tracingName()+" for_each", c.forEachValue.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
-			cfg := c.Declaration(ctx)
+			cfg := c.Declaration()
 
 			switch {
 
 			case cfg.ForEach != nil:
-				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.Stack(ctx), "component")
+				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.Stack(), "component")
 				diags = diags.Append(moreDiags)
 				if diags.HasErrors() {
 					return cty.DynamicVal, diags
@@ -202,7 +202,7 @@ func (c *Component) UnknownInstance(ctx context.Context, phase EvalPhase) *Compo
 }
 
 func (c *Component) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
-	decl := c.Declaration(ctx)
+	decl := c.Declaration()
 	insts, unknown := c.Instances(ctx, phase)
 
 	switch {
@@ -325,15 +325,15 @@ func (c *Component) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange,
 }
 
 // References implements Referrer
-func (c *Component) References(ctx context.Context) []stackaddrs.AbsReference {
-	cfg := c.Declaration(ctx)
+func (c *Component) References(context.Context) []stackaddrs.AbsReference {
+	cfg := c.Declaration()
 	var ret []stackaddrs.Reference
-	ret = append(ret, ReferencesInExpr(ctx, cfg.ForEach)...)
-	ret = append(ret, ReferencesInExpr(ctx, cfg.Inputs)...)
+	ret = append(ret, ReferencesInExpr(cfg.ForEach)...)
+	ret = append(ret, ReferencesInExpr(cfg.Inputs)...)
 	for _, expr := range cfg.ProviderConfigs {
-		ret = append(ret, ReferencesInExpr(ctx, expr)...)
+		ret = append(ret, ReferencesInExpr(expr)...)
 	}
-	ret = append(ret, referencesInTraversals(ctx, cfg.DependsOn)...)
+	ret = append(ret, referencesInTraversals(cfg.DependsOn)...)
 	return makeReferencesAbsolute(ret, c.Addr().Stack)
 }
 

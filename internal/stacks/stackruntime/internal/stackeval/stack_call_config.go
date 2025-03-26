@@ -56,18 +56,18 @@ func (s *StackCallConfig) tracingName() string {
 
 // CallerConfig returns the object representing the stack configuration that this
 // stack call was declared within.
-func (s *StackCallConfig) CallerConfig(ctx context.Context) *StackConfig {
-	return s.main.mustStackConfig(ctx, s.Addr().Stack)
+func (s *StackCallConfig) CallerConfig() *StackConfig {
+	return s.main.mustStackConfig(s.Addr().Stack)
 }
 
 // CalleeConfig returns the object representing the child stack configuration
 // that this stack call is referring to.
-func (s *StackCallConfig) CalleeConfig(ctx context.Context) *StackConfig {
-	return s.main.mustStackConfig(ctx, s.Addr().Stack.Child(s.addr.Item.Name))
+func (s *StackCallConfig) CalleeConfig() *StackConfig {
+	return s.main.mustStackConfig(s.Addr().Stack.Child(s.addr.Item.Name))
 }
 
 // Declaration returns the [stackconfig.EmbeddedStack] that declared this object.
-func (s *StackCallConfig) Declaration(ctx context.Context) *stackconfig.EmbeddedStack {
+func (s *StackCallConfig) Declaration() *stackconfig.EmbeddedStack {
 	return s.config
 }
 
@@ -75,14 +75,14 @@ func (s *StackCallConfig) Declaration(ctx context.Context) *stackconfig.Embedded
 //
 // If this call uses for_each then the result type is a map of object types.
 // If it has no repetition then it's just a naked object type.
-func (s *StackCallConfig) ResultType(ctx context.Context) cty.Type {
+func (s *StackCallConfig) ResultType() cty.Type {
 	// The result type of each of our instances is an object type constructed
 	// from all of the declared output values in the child stack.
-	calleeStack := s.CalleeConfig(ctx)
-	calleeOutputs := calleeStack.OutputValues(ctx)
+	calleeStack := s.CalleeConfig()
+	calleeOutputs := calleeStack.OutputValues()
 	atys := make(map[string]cty.Type, len(calleeOutputs))
 	for addr, ov := range calleeOutputs {
-		atys[addr.Name] = ov.ValueTypeConstraint(ctx)
+		atys[addr.Name] = ov.ValueTypeConstraint()
 	}
 	instTy := cty.Object(atys)
 
@@ -117,7 +117,7 @@ func (s *StackCallConfig) validateForEachValueInner(phase EvalPhase) func(contex
 			return cty.NilVal, diags
 		}
 
-		result, moreDiags := evaluateForEachExpr(ctx, s.config.ForEach, phase, s.CallerConfig(ctx), "stack")
+		result, moreDiags := evaluateForEachExpr(ctx, s.config.ForEach, phase, s.CallerConfig(), "stack")
 		diags = diags.Append(moreDiags)
 		return result.Value, diags
 	}
@@ -145,8 +145,8 @@ func (s *StackCallConfig) ValidateInputVariableValues(ctx context.Context, phase
 func (s *StackCallConfig) validateInputVariableValuesInner(phase EvalPhase) func(context.Context) (map[stackaddrs.InputVariable]cty.Value, tfdiags.Diagnostics) {
 	return func(ctx context.Context) (map[stackaddrs.InputVariable]cty.Value, tfdiags.Diagnostics) {
 		var diags tfdiags.Diagnostics
-		callee := s.CalleeConfig(ctx)
-		vars := callee.InputVariables(ctx)
+		callee := s.CalleeConfig()
+		vars := callee.InputVariables()
 
 		atys := make(map[string]cty.Type, len(vars))
 		var optional []string
@@ -155,7 +155,7 @@ func (s *StackCallConfig) validateInputVariableValuesInner(phase EvalPhase) func
 			aty := v.TypeConstraint()
 
 			atys[addr.Name] = aty
-			if def := v.DefaultValue(ctx); def != cty.NilVal {
+			if def := v.DefaultValue(); def != cty.NilVal {
 				optional = append(optional, addr.Name)
 				defs[addr.Name] = def
 			}
@@ -287,15 +287,15 @@ func (s *StackCallConfig) ValidateResultValue(ctx context.Context, phase EvalPha
 				// result just yet because we don't know yet how many instances
 				// there will be and what their keys will be. We'll just construct
 				// an unknown value of a suitable type instead.
-				return cty.UnknownVal(s.ResultType(ctx)), diags
+				return cty.UnknownVal(s.ResultType()), diags
 			default:
 				// No repetition at all, then. In this case we _can_ attempt to
 				// construct at least a partial result, because we already know
 				// there will be exactly one instance and can assume that
 				// the output value implementation will provide a suitable
 				// approximation of the final value.
-				calleeStack := s.CalleeConfig(ctx)
-				calleeOutputs := calleeStack.OutputValues(ctx)
+				calleeStack := s.CalleeConfig()
+				calleeOutputs := calleeStack.OutputValues()
 				attrs := make(map[string]cty.Value, len(calleeOutputs))
 				for addr, ov := range calleeOutputs {
 					attrs[addr.Name] = ov.Value(ctx, phase)
@@ -328,7 +328,7 @@ func (s *StackCallConfig) ResolveExpressionReference(ctx context.Context, ref st
 		repetition.EachValue = cty.DynamicVal
 	}
 	ret, diags := s.main.
-		mustStackConfig(ctx, s.Addr().Stack).
+		mustStackConfig(s.Addr().Stack).
 		resolveExpressionReference(ctx, ref, nil, repetition)
 
 	if _, ok := ret.(*ProviderConfig); ok {
@@ -347,7 +347,7 @@ func (s *StackCallConfig) ResolveExpressionReference(ctx context.Context, ref st
 
 // ExternalFunctions implements ExpressionScope.
 func (s *StackCallConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return s.main.ProviderFunctions(ctx, s.main.StackConfig(ctx, s.Addr().Stack))
+	return s.main.ProviderFunctions(ctx, s.main.StackConfig(s.Addr().Stack))
 }
 
 // PlanTimestamp implements ExpressionScope, providing the timestamp at which
@@ -364,7 +364,7 @@ func (s *StackCallConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 	diags = diags.Append(moreDiags)
 	_, moreDiags = s.ValidateResultValue(ctx, phase)
 	diags = diags.Append(moreDiags)
-	moreDiags = ValidateDependsOn(ctx, s.CallerConfig(ctx), s.config.DependsOn)
+	moreDiags = ValidateDependsOn(s.CallerConfig(), s.config.DependsOn)
 	diags = diags.Append(moreDiags)
 	return diags
 }

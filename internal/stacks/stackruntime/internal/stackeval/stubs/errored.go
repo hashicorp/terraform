@@ -23,7 +23,7 @@ func ErroredProvider() providers.Interface {
 }
 
 // ApplyResourceChange implements providers.Interface.
-func (p *erroredProvider) ApplyResourceChange(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+func (p *erroredProvider) ApplyResourceChange(providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -36,7 +36,7 @@ func (p *erroredProvider) ApplyResourceChange(req providers.ApplyResourceChangeR
 	}
 }
 
-func (p *erroredProvider) CallFunction(request providers.CallFunctionRequest) providers.CallFunctionResponse {
+func (p *erroredProvider) CallFunction(providers.CallFunctionRequest) providers.CallFunctionResponse {
 	return providers.CallFunctionResponse{
 		Err: fmt.Errorf("CallFunction shouldn't be called on an errored provider; this is a bug in Terraform - please report this error"),
 	}
@@ -48,7 +48,7 @@ func (p *erroredProvider) Close() error {
 }
 
 // ConfigureProvider implements providers.Interface.
-func (p *erroredProvider) ConfigureProvider(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+func (p *erroredProvider) ConfigureProvider(providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 	// This provider is used only in situations where ConfigureProvider on
 	// a real provider fails and the recipient was expecting a configured
 	// provider, so it doesn't make sense to configure it.
@@ -65,7 +65,7 @@ func (p *erroredProvider) GetResourceIdentitySchemas() providers.GetResourceIden
 }
 
 // ImportResourceState implements providers.Interface.
-func (p *erroredProvider) ImportResourceState(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+func (p *erroredProvider) ImportResourceState(providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -79,7 +79,7 @@ func (p *erroredProvider) ImportResourceState(req providers.ImportResourceStateR
 }
 
 // MoveResourceState implements providers.Interface.
-func (p *erroredProvider) MoveResourceState(req providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
+func (p *erroredProvider) MoveResourceState(providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -93,7 +93,7 @@ func (p *erroredProvider) MoveResourceState(req providers.MoveResourceStateReque
 }
 
 // PlanResourceChange implements providers.Interface.
-func (p *erroredProvider) PlanResourceChange(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+func (p *erroredProvider) PlanResourceChange(providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -107,7 +107,7 @@ func (p *erroredProvider) PlanResourceChange(req providers.PlanResourceChangeReq
 }
 
 // ReadDataSource implements providers.Interface.
-func (p *erroredProvider) ReadDataSource(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+func (p *erroredProvider) ReadDataSource(providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -168,7 +168,7 @@ func (p *erroredProvider) Stop() error {
 }
 
 // UpgradeResourceState implements providers.Interface.
-func (p *erroredProvider) UpgradeResourceState(req providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
+func (p *erroredProvider) UpgradeResourceState(providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
 	// Ideally we'd just skip this altogether and echo back what the caller
 	// provided, but the request is in a different serialization format than
 	// the response and so only the real provider can deal with this one.
@@ -184,7 +184,7 @@ func (p *erroredProvider) UpgradeResourceState(req providers.UpgradeResourceStat
 	}
 }
 
-func (p *erroredProvider) UpgradeResourceIdentity(req providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse {
+func (p *erroredProvider) UpgradeResourceIdentity(providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse {
 	// Ideally we'd just skip this altogether and echo back what the caller
 	// provided, but the request is in a different serialization format than
 	// the response and so only the real provider can deal with this one.
@@ -201,7 +201,7 @@ func (p *erroredProvider) UpgradeResourceIdentity(req providers.UpgradeResourceI
 }
 
 // ValidateDataResourceConfig implements providers.Interface.
-func (p *erroredProvider) ValidateDataResourceConfig(req providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
+func (p *erroredProvider) ValidateDataResourceConfig(providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
 	// We'll just optimistically assume the configuration is valid, so that
 	// we can progress to planning and return an error there instead.
 	return providers.ValidateDataResourceConfigResponse{
@@ -230,7 +230,7 @@ func (p *erroredProvider) ValidateEphemeralResourceConfig(providers.ValidateEphe
 }
 
 // ValidateResourceConfig implements providers.Interface.
-func (p *erroredProvider) ValidateResourceConfig(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
+func (p *erroredProvider) ValidateResourceConfig(providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 	// We'll just optimistically assume the configuration is valid, so that
 	// we can progress to reading and return an error there instead.
 	return providers.ValidateResourceConfigResponse{

@@ -60,12 +60,12 @@ func (p *ProviderInstance) RepetitionData() instances.RepetitionData {
 	return p.repetition
 }
 
-func (p *ProviderInstance) ProviderType(ctx context.Context) *ProviderType {
-	return p.main.ProviderType(ctx, p.Addr().Item.ProviderConfig.Provider)
+func (p *ProviderInstance) ProviderType() *ProviderType {
+	return p.main.ProviderType(p.Addr().Item.ProviderConfig.Provider)
 }
 
 func (p *ProviderInstance) ProviderArgsDecoderSpec(ctx context.Context) (hcldec.Spec, error) {
-	return p.provider.Config(ctx).ProviderArgsDecoderSpec(ctx)
+	return p.provider.Config().ProviderArgsDecoderSpec(ctx)
 }
 
 // ProviderArgs returns an object value representing the provider configuration
@@ -83,8 +83,8 @@ func (p *ProviderInstance) CheckProviderArgs(ctx context.Context, phase EvalPhas
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
-			providerType := p.ProviderType(ctx)
-			decl := p.provider.Declaration(ctx)
+			providerType := p.ProviderType()
+			decl := p.provider.Declaration()
 			spec, err := p.ProviderArgsDecoderSpec(ctx)
 			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{
@@ -173,8 +173,8 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 				panic("provider instance with unknown count index")
 			}
 
-			providerType := p.ProviderType(ctx)
-			decl := p.provider.Declaration(ctx)
+			providerType := p.ProviderType()
+			decl := p.provider.Declaration()
 
 			client, err := p.main.ProviderFactories().NewUnconfiguredClient(providerType.Addr())
 			if err != nil {
@@ -273,13 +273,13 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 // than the for_each argument inside a provider block, which get evaluated
 // once per provider instance.
 func (p *ProviderInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
-	stack := p.provider.Stack(ctx)
+	stack := p.provider.Stack()
 	return stack.resolveExpressionReference(ctx, ref, nil, p.repetition)
 }
 
 // ExternalFunctions implements ExpressionScope.
 func (p *ProviderInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return p.main.ProviderFunctions(ctx, p.main.StackConfig(ctx, p.Addr().Stack.ConfigAddr()))
+	return p.main.ProviderFunctions(ctx, p.main.StackConfig(p.Addr().Stack.ConfigAddr()))
 }
 
 // PlanTimestamp implements ExpressionScope, providing the timestamp at which

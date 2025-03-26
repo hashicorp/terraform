@@ -39,14 +39,14 @@ func (v *LocalValue) Addr() stackaddrs.AbsLocalValue {
 	return v.addr
 }
 
-func (v *LocalValue) Config(ctx context.Context) *LocalValueConfig {
+func (v *LocalValue) Config() *LocalValueConfig {
 	configAddr := stackaddrs.ConfigForAbs(v.Addr())
-	stackCfg := v.main.StackConfig(ctx, configAddr.Stack)
-	return stackCfg.LocalValue(ctx, configAddr.Item)
+	stackCfg := v.main.StackConfig(configAddr.Stack)
+	return stackCfg.LocalValue(configAddr.Item)
 }
 
-func (v *LocalValue) Declaration(ctx context.Context) *stackconfig.LocalValue {
-	return v.Config(ctx).Declaration()
+func (v *LocalValue) Declaration() *stackconfig.LocalValue {
+	return v.Config().Declaration()
 }
 
 func (v *LocalValue) Stack(ctx context.Context, phase EvalPhase) *Stack {
@@ -78,7 +78,7 @@ func (v *LocalValue) CheckValue(ctx context.Context, phase EvalPhase) (cty.Value
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
-			decl := v.Declaration(ctx)
+			decl := v.Declaration()
 			stack := v.Stack(ctx, phase)
 
 			if stack == nil {
@@ -102,10 +102,10 @@ func (v *LocalValue) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange
 }
 
 // References implements Referrer
-func (v *LocalValue) References(ctx context.Context) []stackaddrs.AbsReference {
-	cfg := v.Declaration(ctx)
+func (v *LocalValue) References(context.Context) []stackaddrs.AbsReference {
+	cfg := v.Declaration()
 	var ret []stackaddrs.Reference
-	ret = append(ret, ReferencesInExpr(ctx, cfg.Value)...)
+	ret = append(ret, ReferencesInExpr(cfg.Value)...)
 	return makeReferencesAbsolute(ret, v.Addr().Stack)
 }
 

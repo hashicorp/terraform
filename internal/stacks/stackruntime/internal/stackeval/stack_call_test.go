@@ -21,8 +21,8 @@ import (
 
 func TestStackCallCheckInstances(t *testing.T) {
 	getStackCall := func(ctx context.Context, main *Main) *StackCall {
-		mainStack := main.MainStack(ctx)
-		call := mainStack.EmbeddedStackCall(ctx, stackaddrs.StackCall{Name: "child"})
+		mainStack := main.MainStack()
+		call := mainStack.EmbeddedStackCall(stackaddrs.StackCall{Name: "child"})
 		if call == nil {
 			t.Fatal("stack.child does not exist, but it should exist")
 		}
@@ -231,8 +231,8 @@ func TestStackCallCheckInstances(t *testing.T) {
 
 func TestStackCallResultValue(t *testing.T) {
 	getStackCall := func(ctx context.Context, main *Main) *StackCall {
-		mainStack := main.MainStack(ctx)
-		call := mainStack.EmbeddedStackCall(ctx, stackaddrs.StackCall{Name: "child"})
+		mainStack := main.MainStack()
+		call := mainStack.EmbeddedStackCall(stackaddrs.StackCall{Name: "child"})
 		if call == nil {
 			t.Fatal("stack.child does not exist, but it should exist")
 		}
