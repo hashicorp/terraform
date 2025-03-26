@@ -168,7 +168,7 @@ func TestProviderInstanceCheckProviderArgs(t *testing.T) {
 		// We'll make sure the configuration really does omit the config
 		// block, in case someone modifies the fixture in future without
 		// realizing we're relying on that invariant here.
-		decl := inst.provider.Declaration()
+		decl := inst.provider.config.config
 		if decl.Config != nil {
 			t.Fatal("test fixture has a config block for the provider; should omit it")
 		}

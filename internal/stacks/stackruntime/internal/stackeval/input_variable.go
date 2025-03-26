@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -24,7 +23,9 @@ import (
 
 // InputVariable represents an input variable belonging to a [Stack].
 type InputVariable struct {
-	addr stackaddrs.AbsInputVariable
+	addr   stackaddrs.AbsInputVariable
+	stack  *Stack
+	config *InputVariableConfig
 
 	main *Main
 
@@ -34,25 +35,13 @@ type InputVariable struct {
 var _ Plannable = (*InputVariable)(nil)
 var _ Referenceable = (*InputVariable)(nil)
 
-func newInputVariable(main *Main, addr stackaddrs.AbsInputVariable) *InputVariable {
+func newInputVariable(main *Main, addr stackaddrs.AbsInputVariable, stack *Stack, config *InputVariableConfig) *InputVariable {
 	return &InputVariable{
-		addr: addr,
-		main: main,
+		addr:   addr,
+		stack:  stack,
+		config: config,
+		main:   main,
 	}
-}
-
-func (v *InputVariable) Addr() stackaddrs.AbsInputVariable {
-	return v.addr
-}
-
-func (v *InputVariable) Config() *InputVariableConfig {
-	configAddr := stackaddrs.ConfigForAbs(v.Addr())
-	stackCfg := v.main.StackConfig(configAddr.Stack)
-	return stackCfg.InputVariable(configAddr.Item)
-}
-
-func (v *InputVariable) Declaration() *stackconfig.InputVariable {
-	return v.Config().Declaration()
 }
 
 // DefinedByStackCallInstance returns the stack call which ought to provide
@@ -65,21 +54,13 @@ func (v *InputVariable) Declaration() *stackconfig.InputVariable {
 // that we don't yet know the number of instances of one of the stack calls
 // along the chain.
 func (v *InputVariable) DefinedByStackCallInstance(ctx context.Context, phase EvalPhase) *StackCallInstance {
-	declarerAddr := v.Addr().Stack
+	declarerAddr := v.addr.Stack
 	if declarerAddr.IsRoot() {
 		return nil
 	}
 
 	callAddr := declarerAddr.Call()
-	callerAddr := callAddr.Stack
-	callerStack := v.main.Stack(ctx, callerAddr, phase)
-	if callerStack == nil {
-		// Suggests that we are beneath a stack call whose instances
-		// aren't known yet.
-		return nil
-	}
-
-	callerCalls := callerStack.EmbeddedStackCalls()
+	callerCalls := v.stack.parent.EmbeddedStackCalls()
 	call := callerCalls[callAddr.Item]
 	if call == nil {
 		// Suggests that we're descended from a stack call that doesn't
@@ -112,15 +93,15 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
-			cfg := v.Config()
-			decl := v.Declaration()
+			cfg := v.config
+			decl := cfg.config
 
 			switch {
-			case v.Addr().Stack.IsRoot():
+			case v.addr.Stack.IsRoot():
 				var err error
 
 				wantTy := decl.Type.Constraint
-				extVal := v.main.RootVariableValue(v.Addr().Item, phase)
+				extVal := v.main.RootVariableValue(v.addr.Item, phase)
 
 				val := extVal.Value
 				if val.IsNull() {
@@ -131,7 +112,7 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
 							Summary:  "No value for required variable",
-							Detail:   fmt.Sprintf("The root input variable %q is not set, and has no default value.", v.Addr()),
+							Detail:   fmt.Sprintf("The root input variable %q is not set, and has no default value.", v.addr),
 							Subject:  cfg.config.DeclRange.ToHCL().Ptr(),
 						})
 						return cty.UnknownVal(wantTy), diags
@@ -156,7 +137,7 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 						Summary:  "Invalid value for root input variable",
 						Detail: fmt.Sprintf(
 							"Cannot use the given value for input variable %q: %s.",
-							v.Addr().Item.Name, err,
+							v.addr.Item.Name, err,
 						),
 					})
 					val = cfg.markValue(cty.UnknownVal(wantTy))
@@ -199,11 +180,11 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 					// something's gone wrong or we are descended from a stack
 					// call whose instances aren't known yet; we'll assume
 					// the latter and return a placeholder.
-					return cfg.markValue(cty.UnknownVal(v.Declaration().Type.Constraint)), diags
+					return cfg.markValue(cty.UnknownVal(v.config.config.Type.Constraint)), diags
 				}
 
 				allVals := definedByCallInst.InputVariableValues(ctx, phase)
-				val := allVals.GetAttr(v.Addr().Item.Name)
+				val := allVals.GetAttr(v.addr.Item.Name)
 
 				// TODO: check the value against any custom validation rules
 				// declared in the configuration.
@@ -240,15 +221,15 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 	// Embedded stack inputs will be recalculated during the apply phase
 	// because the values might be derived from component outputs that aren't
 	// known yet during planning.
-	if !v.Addr().Stack.IsRoot() {
+	if !v.addr.Stack.IsRoot() {
 		return nil, diags
 	}
 
 	destroy := v.main.PlanningOpts().PlanningMode == plans.DestroyMode
 
-	before := v.main.PlanPrevState().RootInputVariable(v.Addr().Item)
+	before := v.main.PlanPrevState().RootInputVariable(v.addr.Item)
 
-	decl := v.Declaration()
+	decl := v.config.config
 	after := v.Value(ctx, PlanPhase)
 	requiredOnApply := false
 	if decl.Ephemeral {
@@ -285,7 +266,7 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 
 	return []stackplan.PlannedChange{
 		&stackplan.PlannedChangeRootInputValue{
-			Addr:            v.Addr().Item,
+			Addr:            v.addr.Item,
 			Action:          action,
 			Before:          before,
 			After:           after,
@@ -299,21 +280,18 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 func (v *InputVariable) References(ctx context.Context) []stackaddrs.AbsReference {
 	// The references for an input variable actually come from the
 	// call that defines it, in the parent stack.
-	addr := v.Addr()
-	if addr.Stack.IsRoot() {
+	if v.addr.Stack.IsRoot() {
 		// Variables declared in the root module can't refer to anything,
 		// because they are defined outside of the stack configuration by
 		// our caller.
 		return nil
 	}
-	stackAddr := addr.Stack
-	parentStack := v.main.StackUnchecked(stackAddr.Parent())
-	if parentStack == nil {
+	if v.stack.parent == nil {
 		// Weird, but we'll tolerate it for robustness.
 		return nil
 	}
-	callAddr := stackAddr.Call()
-	call := parentStack.EmbeddedStackCall(callAddr.Item)
+	callAddr := v.addr.Stack.Call()
+	call := v.stack.parent.EmbeddedStackCall(callAddr.Item)
 	if call == nil {
 		// Weird, but we'll tolerate it for robustness.
 		return nil
@@ -323,7 +301,7 @@ func (v *InputVariable) References(ctx context.Context) []stackaddrs.AbsReferenc
 
 // CheckApply implements Applyable.
 func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
-	if !v.Addr().Stack.IsRoot() {
+	if !v.addr.Stack.IsRoot() {
 		return nil, v.checkValid(ctx, ApplyPhase)
 	}
 
@@ -332,7 +310,7 @@ func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedCha
 		return nil, diags
 	}
 
-	if v.main.PlanBeingApplied().DeletedInputVariables.Has(v.Addr().Item) {
+	if v.main.PlanBeingApplied().DeletedInputVariables.Has(v.addr.Item) {
 		// If the plan being applied has this variable as being deleted, then
 		// we won't handle it here. This is usually the case during a destroy
 		// only plan in which we wanted to both capture the value for an input
@@ -341,7 +319,7 @@ func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedCha
 		return nil, diags
 	}
 
-	decl := v.Declaration()
+	decl := v.config.config
 	value := v.Value(ctx, ApplyPhase)
 	if decl.Ephemeral {
 		value = cty.NullVal(value.Type())
@@ -349,14 +327,14 @@ func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedCha
 
 	return []stackstate.AppliedChange{
 		&stackstate.AppliedChangeInputVariable{
-			Addr:  v.Addr().Item,
+			Addr:  v.addr.Item,
 			Value: value,
 		},
 	}, diags
 }
 
 func (v *InputVariable) tracingName() string {
-	return v.Addr().String()
+	return v.addr.String()
 }
 
 // ExternalInputValue represents the value of an input variable provided

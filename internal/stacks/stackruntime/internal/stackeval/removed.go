@@ -31,6 +31,7 @@ type Removed struct {
 	addr stackaddrs.AbsComponent
 
 	config *RemovedConfig
+	stack  *Stack
 	main   *Main
 
 	forEachValue    perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
@@ -38,33 +39,22 @@ type Removed struct {
 	unknownInstance perEvalPhase[promising.Once[*RemovedInstance]]
 }
 
-func newRemoved(main *Main, addr stackaddrs.AbsComponent, config *RemovedConfig) *Removed {
+func newRemoved(main *Main, addr stackaddrs.AbsComponent, stack *Stack, config *RemovedConfig) *Removed {
 	return &Removed{
 		addr:   addr,
 		main:   main,
 		config: config,
+		stack:  stack,
 	}
-}
-
-func (r *Removed) Addr() stackaddrs.AbsComponent {
-	return r.addr
-}
-
-func (r *Removed) Stack() *Stack {
-	return r.main.StackUnchecked(r.addr.Stack)
-}
-
-func (r *Removed) Config() *RemovedConfig {
-	return r.config
 }
 
 func (r *Removed) ForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return doOnceWithDiags(ctx, r.tracingName()+" for_each", r.forEachValue.For(phase), func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
-		config := r.Config().config
+		config := r.config.config
 
 		switch {
 		case config.ForEach != nil:
-			result, diags := evaluateForEachExpr(ctx, config.ForEach, phase, r.Stack(), "removed")
+			result, diags := evaluateForEachExpr(ctx, config.ForEach, phase, r.stack, "removed")
 			if diags.HasErrors() {
 				return cty.DynamicVal, diags
 			}
@@ -87,7 +77,7 @@ func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.Ins
 		// First, evaluate the for_each value to get the set of instances the
 		// user has asked to be removed.
 		result := instancesMap(forEachValue, func(ik addrs.InstanceKey, rd instances.RepetitionData) *RemovedInstance {
-			expr := r.Config().config.FromIndex
+			expr := r.config.config.FromIndex
 			if expr == nil {
 				if ik != addrs.NoKey {
 					// error, but this shouldn't happen as we validate there is
@@ -179,7 +169,7 @@ func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.Ins
 
 		h := hooksFromContext(ctx)
 		hookSingle(ctx, h.ComponentExpanded, &hooks.ComponentInstances{
-			ComponentAddr: r.Addr(),
+			ComponentAddr: r.addr,
 			InstanceAddrs: knownAddrs,
 		})
 
@@ -233,7 +223,7 @@ func (r *Removed) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, t
 
 // tracingName implements Plannable.
 func (r *Removed) tracingName() string {
-	return r.Addr().String() + " (removed)"
+	return r.addr.String() + " (removed)"
 }
 
 func (r *Removed) ApplySuccessful(ctx context.Context) bool {
@@ -270,8 +260,7 @@ type removedInstanceExpressionScope struct {
 }
 
 func (r *removedInstanceExpressionScope) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
-	stack := r.call.Stack()
-	return stack.resolveExpressionReference(ctx, ref, nil, r.rd)
+	return r.call.stack.resolveExpressionReference(ctx, ref, nil, r.rd)
 }
 
 func (r *removedInstanceExpressionScope) PlanTimestamp() time.Time {
@@ -279,5 +268,5 @@ func (r *removedInstanceExpressionScope) PlanTimestamp() time.Time {
 }
 
 func (r *removedInstanceExpressionScope) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return r.call.main.ProviderFunctions(ctx, r.call.Config().StackConfig())
+	return r.call.main.ProviderFunctions(ctx, r.call.config.stack)
 }
