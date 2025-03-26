@@ -1,4 +1,12 @@
-## 1.11.3 (Unreleased)
+## 1.11.3 (March 26, 2025)
+
+
+BUG FIXES:
+
+* Fixes unintended exit of CLI when using the remote backend and applying with post-plan tasks configured in HCP Terraform ([#36686](https://github.com/hashicorp/terraform/issues/36686))
+
+* Modules with zero instances that contain ephemeral resources could produce an error during apply ([#36719](https://github.com/hashicorp/terraform/issues/36719))
+
 
 ## 1.11.2 (March 12, 2025)
 
@@ -81,6 +89,8 @@ BUG FIXES:
 * backends: Fix crash when interrupting during interactive prompt for values ([#36448](https://github.com/hashicorp/terraform/issues/36448))
 
 * Fixes hanging behavior seen when applying a saved plan with -auto-approve using the cloud backend ([#36453](https://github.com/hashicorp/terraform/issues/36453))
+
+
 ## Previous Releases
 
 For information on prior major and minor releases, refer to their changelogs:
