@@ -52,7 +52,6 @@ func (r *RemovedConfig) Addr() stackaddrs.ConfigComponent {
 	return r.addr
 }
 
-
 // DeclRange implements ConfigComponentExpressionScope.
 func (r *RemovedConfig) DeclRange(ctx context.Context) *hcl.Range {
 	return r.config.DeclRange.ToHCL().Ptr()
