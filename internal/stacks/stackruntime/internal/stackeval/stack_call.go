@@ -98,7 +98,7 @@ func (c *StackCall) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty
 		ctx, c.forEachValue.For(phase), c.main,
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
-			cfg := c.Declaration(ctx)
+			cfg := c.Declaration()
 
 			switch {
 
