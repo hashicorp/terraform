@@ -70,7 +70,7 @@ terraform {
 
 The `terraform` block supports the following configuration.
 
-### `terraform`
+### `terraform` block
 
 Parent block that contains configurations that define Terraform behavior. You can only use constant values in the `terraform` block. Arguments in the `terraform` block cannot refer to named objects, such as resources and input variables. Additionally, you cannot use built-in Terraform language functions in the block.
 
@@ -122,7 +122,7 @@ Each local provider name maps to a source address and a version constraint. Refe
 - Default: None.
 - Example:[Add a provider](#add-a-provider)
 
-### Provider
+### Provider-specific settings
 
 Specifies the name of the provider you want to require. Refer to [Provide Configuration](/terraform/language/providers/configuration) for instructions on how to configure providers.
 
