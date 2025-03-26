@@ -33,9 +33,6 @@ import (
 	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
-// execCommand is a variable for testing that allows us to mock exec.Command
-var execCommand = exec.Command
-
 const (
 	// DefaultShebang is added at the top of a SSH script file
 	DefaultShebang = "#!/bin/sh\n"
@@ -925,17 +922,8 @@ func ProxyCommandConnectFunc(proxyCommand, addr string) func() (net.Conn, error)
 	return func() (net.Conn, error) {
 		log.Printf("[DEBUG] Connecting to %s using proxy command: %s", addr, proxyCommand)
 
-		// Replace %h and %p in the proxy command with the host and port
-		host, port, err := net.SplitHostPort(addr)
-		if err != nil {
-			return nil, fmt.Errorf("Error parsing address: %s", err)
-		}
-
-		command := strings.Replace(proxyCommand, "%h", host, -1)
-		command = strings.Replace(command, "%p", port, -1)
-
 		// Split the command into command and args
-		cmdParts := strings.Fields(command)
+		cmdParts := strings.Fields(proxyCommand)
 		if len(cmdParts) == 0 {
 			return nil, fmt.Errorf("Invalid proxy command: %s", proxyCommand)
 		}
@@ -943,8 +931,11 @@ func ProxyCommandConnectFunc(proxyCommand, addr string) func() (net.Conn, error)
 		// Create a buffer to capture stderr
 		stderrBuf := new(bytes.Buffer)
 
-		// Create proxy command
-		cmd := execCommand(cmdParts[0], cmdParts[1:]...)
+		// Create context for command lifecycle management
+		ctx, cancel := context.WithCancel(context.Background())
+
+		// Create proxy command with context
+		cmd := exec.CommandContext(ctx, cmdParts[0], cmdParts[1:]...)
 		cmd.Stderr = stderrBuf
 
 		// Set up the command to run in its own process group
@@ -955,18 +946,20 @@ func ProxyCommandConnectFunc(proxyCommand, addr string) func() (net.Conn, error)
 		// Start the command with pipes
 		stdin, err := cmd.StdinPipe()
 		if err != nil {
+			cancel()
 			return nil, fmt.Errorf("Error creating stdin pipe for proxy command: %s", err)
 		}
 
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
 			stdin.Close()
+			cancel()
 			return nil, fmt.Errorf("Error creating stdout pipe for proxy command: %s", err)
 		}
 
 		if err := cmd.Start(); err != nil {
 			stdin.Close()
-			stdout.Close()
+			cancel()
 			return nil, fmt.Errorf("Error starting proxy command: %s", err)
 		}
 
@@ -976,6 +969,8 @@ func ProxyCommandConnectFunc(proxyCommand, addr string) func() (net.Conn, error)
 			stderr:     stderrBuf,
 			stdinPipe:  stdin,
 			stdoutPipe: stdout,
+			ctx:        ctx,
+			cancel:     cancel,
 		}
 
 		return conn, nil
@@ -989,21 +984,31 @@ type proxyCommandConn struct {
 	stdoutPipe io.ReadCloser
 	closed     bool
 	mutex      sync.Mutex
+	ctx        context.Context
+	cancel     context.CancelFunc
 }
 
 // Read reads data from the connection (the command's stdout)
 func (c *proxyCommandConn) Read(b []byte) (int, error) {
+	c.mutex.Lock()
 	if c.closed {
+		c.mutex.Unlock()
 		return 0, io.EOF
 	}
+	c.mutex.Unlock()
+
 	return c.stdoutPipe.Read(b)
 }
 
 // Write writes data to the connection (the command's stdin)
 func (c *proxyCommandConn) Write(b []byte) (int, error) {
+	c.mutex.Lock()
 	if c.closed {
+		c.mutex.Unlock()
 		return 0, io.ErrClosedPipe
 	}
+	c.mutex.Unlock()
+
 	return c.stdinPipe.Write(b)
 }
 
@@ -1017,39 +1022,12 @@ func (c *proxyCommandConn) Close() error {
 	c.closed = true
 
 	log.Print("[DEBUG] Closing proxy command connection")
-
-	// Close pipes and hangup
 	if err := c.stdinPipe.Close(); err != nil {
 		log.Printf("[ERROR] Error closing stdin pipe: %s", err)
 	}
-	if err := c.stdoutPipe.Close(); err != nil {
-		log.Printf("[ERROR] Error closing stdout pipe: %s", err)
-	}
 
-	// Send hangup the proxy command and any child processes
-	if c.cmd.Process != nil {
-		pgid, err := syscall.Getpgid(c.cmd.Process.Pid)
-		if err != nil {
-			log.Printf("[ERROR] Error getting process group ID: %s", err)
-			// Fall back to killing just the process if we can't get the process group
-			if err := c.cmd.Process.Signal(syscall.SIGHUP); err != nil {
-				log.Printf("[ERROR] Error sending SIGHUP to proxy command: %s", err)
-			}
-		} else {
-			// Kill the entire process group
-			if err := syscall.Kill(-pgid, syscall.SIGHUP); err != nil {
-				log.Printf("[ERROR] Error sending SIGHUP to process group: %s", err)
-			}
-		}
-
-		// Wait for the process to finish to avoid zombie processes
-		go func() {
-			if err := c.cmd.Wait(); err != nil {
-				// This is expected since we're killing the process
-				log.Printf("[DEBUG] Proxy command exited: %s", err)
-			}
-		}()
-	}
+	// Cancel the context to signal the command to terminate
+	c.cancel()
 
 	// If the command failed, log the stderr output
 	if c.stderr.Len() > 0 {

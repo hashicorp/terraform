@@ -195,7 +195,7 @@ func TestProvisioner_connInfoProxyCommand(t *testing.T) {
 		"host":          cty.StringVal("example.com"),
 		"port":          cty.StringVal("22"),
 		"timeout":       cty.StringVal("30s"),
-		"proxy_command": cty.StringVal("ssh -W %h:%p bastion-host.example.com"),
+		"proxy_command": cty.StringVal("ssh -W example.com:2222 bastion-host.example.com"),
 	})
 
 	conf, err := parseConnectionInfo(v)
@@ -207,7 +207,7 @@ func TestProvisioner_connInfoProxyCommand(t *testing.T) {
 		t.Fatalf("bad: %v", conf)
 	}
 
-	if conf.ProxyCommand != "ssh -W %h:%p bastion-host.example.com" {
+	if conf.ProxyCommand != "ssh -W example.com:2222 bastion-host.example.com" {
 		t.Fatalf("bad: %v", conf)
 	}
 }
@@ -263,7 +263,7 @@ func TestProvisioner_multipleConnectionMethods(t *testing.T) {
 		"private_key":   cty.StringVal("someprivatekeycontents"),
 		"host":          cty.StringVal("example.com"),
 		"port":          cty.StringVal("22"),
-		"proxy_command": cty.StringVal("ssh -W %h:%p bastion-host.example.com"),
+		"proxy_command": cty.StringVal("ssh -W example.com:2222 bastion-host.example.com"),
 		"proxy_host":    cty.StringVal("proxy.example.com"),
 		"bastion_host":  cty.StringVal("bastion.example.com"),
 	})
@@ -274,7 +274,7 @@ func TestProvisioner_multipleConnectionMethods(t *testing.T) {
 	}
 
 	// Verify all three connection methods are parsed correctly
-	if conf.ProxyCommand != "ssh -W %h:%p bastion-host.example.com" {
+	if conf.ProxyCommand != "ssh -W example.com:2222 bastion-host.example.com" {
 		t.Fatalf("bad proxy_command: %v", conf.ProxyCommand)
 	}
 	if conf.ProxyHost != "proxy.example.com" {
