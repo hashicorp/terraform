@@ -275,7 +275,7 @@ func walkDynamicObjectsInStack[Output any](
 
 						// This instance is not claimed by the component block, so
 						// we'll mark it as being removed by the removed block.
-						inst := newRemovedInstance(removed, stackaddrs.AbsComponentInstance{
+						inst := newRemovedComponentInstance(removed, stackaddrs.AbsComponentInstance{
 							Stack: stack.addr,
 							Item:  inst,
 						}, instances.RepetitionData{

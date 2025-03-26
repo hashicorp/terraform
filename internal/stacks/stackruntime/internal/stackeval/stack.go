@@ -42,7 +42,7 @@ type Stack struct {
 	stackCalls     map[stackaddrs.StackCall]*StackCall
 	outputValues   map[stackaddrs.OutputValue]*OutputValue
 	components     map[stackaddrs.Component]*Component
-	removed        map[stackaddrs.Component][]*Removed
+	removed        map[stackaddrs.Component][]*RemovedComponent
 	providers      map[stackaddrs.ProviderConfigRef]*Provider
 }
 
@@ -219,7 +219,7 @@ func (s *Stack) Component(addr stackaddrs.Component) *Component {
 	return s.Components()[addr]
 }
 
-func (s *Stack) Removeds() map[stackaddrs.Component][]*Removed {
+func (s *Stack) Removeds() map[stackaddrs.Component][]*RemovedComponent {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -228,27 +228,27 @@ func (s *Stack) Removeds() map[stackaddrs.Component][]*Removed {
 	}
 
 	decls := s.config.Removeds()
-	ret := make(map[stackaddrs.Component][]*Removed, len(decls))
+	ret := make(map[stackaddrs.Component][]*RemovedComponent, len(decls))
 	for _, blocks := range decls {
 		for _, r := range blocks {
 			absAddr := stackaddrs.AbsComponent{
 				Stack: s.addr,
 				Item:  r.config.FromComponent,
 			}
-			ret[absAddr.Item] = append(ret[absAddr.Item], newRemoved(s.main, absAddr, s, r))
+			ret[absAddr.Item] = append(ret[absAddr.Item], newRemovedComponent(s.main, absAddr, s, r))
 		}
 	}
 	s.removed = ret
 	return ret
 }
 
-func (s *Stack) Removed(addr stackaddrs.Component) []*Removed {
+func (s *Stack) Removed(addr stackaddrs.Component) []*RemovedComponent {
 	return s.Removeds()[addr]
 }
 
 // ApplyableComponents returns the combination of removed blocks and declared
 // components for a given component address.
-func (s *Stack) ApplyableComponents(addr stackaddrs.Component) (*Component, []*Removed) {
+func (s *Stack) ApplyableComponents(addr stackaddrs.Component) (*Component, []*RemovedComponent) {
 	return s.Component(addr), s.Removed(addr)
 }
 
@@ -566,7 +566,7 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 	// We're going to validate that all the removed blocks in this stack resolve
 	// to unique instance addresses.
 	for _, blocks := range s.Removeds() {
-		seen := make(map[addrs.InstanceKey]*RemovedInstance)
+		seen := make(map[addrs.InstanceKey]*RemovedComponentInstance)
 		for _, block := range blocks {
 			insts, unknown, _ := block.Instances(ctx, PlanPhase)
 			if unknown {

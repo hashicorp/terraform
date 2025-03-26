@@ -43,7 +43,7 @@ type StackConfig struct {
 	outputValues   map[stackaddrs.OutputValue]*OutputValueConfig
 	stackCalls     map[stackaddrs.StackCall]*StackCallConfig
 	components     map[stackaddrs.Component]*ComponentConfig
-	removed        map[stackaddrs.Component][]*RemovedConfig
+	removed        map[stackaddrs.Component][]*RemovedComponentConfig
 	providers      map[stackaddrs.ProviderConfig]*ProviderConfig
 }
 
@@ -64,7 +64,7 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, parent *StackConfig, conf
 		outputValues:   make(map[stackaddrs.OutputValue]*OutputValueConfig, len(config.Stack.Declarations.OutputValues)),
 		stackCalls:     make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
 		components:     make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
-		removed:        make(map[stackaddrs.Component][]*RemovedConfig, len(config.Stack.Declarations.Removed)),
+		removed:        make(map[stackaddrs.Component][]*RemovedComponentConfig, len(config.Stack.Declarations.Removed)),
 		providers:      make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(config.Stack.Declarations.ProviderConfigs)),
 	}
 }
@@ -392,10 +392,10 @@ func (s *StackConfig) Components() map[stackaddrs.Component]*ComponentConfig {
 	return ret
 }
 
-// Removed returns a [RemovedConfig] representing the component call
+// Removed returns a [RemovedComponentConfig] representing the component call
 // declared within this stack config that matches the given address, or nil if
 // there is no such declaration.
-func (s *StackConfig) Removed(addr stackaddrs.Component) []*RemovedConfig {
+func (s *StackConfig) Removed(addr stackaddrs.Component) []*RemovedComponentConfig {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -407,7 +407,7 @@ func (s *StackConfig) Removed(addr stackaddrs.Component) []*RemovedConfig {
 		}
 		for _, cfg := range cfgs {
 			cfgAddr := stackaddrs.Config(s.addr, addr)
-			removed := newRemovedConfig(s.main, cfgAddr, s, cfg)
+			removed := newRemovedComponentConfig(s.main, cfgAddr, s, cfg)
 			ret = append(ret, removed)
 		}
 		s.removed[addr] = ret
@@ -417,11 +417,11 @@ func (s *StackConfig) Removed(addr stackaddrs.Component) []*RemovedConfig {
 
 // Removeds returns a map of the objects representing all of the
 // removed calls declared inside this stack configuration.
-func (s *StackConfig) Removeds() map[stackaddrs.Component][]*RemovedConfig {
+func (s *StackConfig) Removeds() map[stackaddrs.Component][]*RemovedComponentConfig {
 	if len(s.config.Stack.Removed) == 0 {
 		return nil
 	}
-	ret := make(map[stackaddrs.Component][]*RemovedConfig, len(s.config.Stack.Removed))
+	ret := make(map[stackaddrs.Component][]*RemovedComponentConfig, len(s.config.Stack.Removed))
 	for name := range s.config.Stack.Removed {
 		addr := stackaddrs.Component{Name: name}
 		ret[addr] = s.Removed(addr)
