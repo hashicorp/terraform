@@ -6,9 +6,9 @@
     "path": "attr-as-blocks",
     "hidden": true
   },
-  { 
-    "title": "Style Guide", 
-    "path": "style" 
+  {
+    "title": "Style Guide",
+    "path": "style"
   },
   {
     "title": "Stacks",
@@ -334,6 +334,12 @@
   },
   { "title": "Checks", "path": "checks" },
   {
+      "title": "Mitigate risk",
+      "routes": [
+       { "title": "Validate your configuration", "path": "mitigate-risk/validate" }
+    ]
+  },
+  {
       "title": "Import",
       "routes": [
        { "title": "Overview", "path": "import" },
@@ -374,10 +380,6 @@
       {
         "title": "Dynamic Blocks",
         "path": "expressions/dynamic-blocks"
-      },
-      {
-        "title": "Custom Conditions",
-        "path": "expressions/custom-conditions"
       },
       {
         "title": "Type Constraints",
