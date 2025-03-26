@@ -379,11 +379,8 @@ Options:
   -parallelism=n         Limit the number of parallel resource operations.
                          Defaults to 10.
 
-  -replace=resource   Force replacement of a particular resource instance using
-                      its resource address. If the plan would've normally
-                      produced an update or no-op action for this instance,
-                      Terraform will plan to replace it instead. You can use
-                      this option multiple times to replace more than one object.
+  -replace=resource     Terraform will plan to replace this resource instance
+                        instead of doing an update or no-op action. 
 
   -state=path            Path to read and save state (unless state-out
                          is specified). Defaults to "terraform.tfstate".
