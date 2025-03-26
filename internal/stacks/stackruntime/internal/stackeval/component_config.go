@@ -40,8 +40,8 @@ type ComponentConfig struct {
 
 	main *Main
 
-	validate   promising.Once[tfdiags.Diagnostics]
-	moduleTree promising.Once[withDiagnostics[*configs.Config]]
+	validate   perEvalPhase[promising.Once[tfdiags.Diagnostics]]
+	moduleTree promising.Once[withDiagnostics[*configs.Config]] // moduleTree is constant across all phases
 }
 
 func newComponentConfig(main *Main, addr stackaddrs.ConfigComponent, config *stackconfig.Component) *ComponentConfig {
@@ -84,7 +84,7 @@ func (c *ComponentConfig) ModuleTree(ctx context.Context) *configs.Config {
 // this instead returns diagnostics and a nil configuration object.
 func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
-		ctx, &c.moduleTree, c.main,
+		ctx, c.tracingName()+" modules", &c.moduleTree,
 		func(ctx context.Context) (*configs.Config, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
@@ -286,7 +286,7 @@ func (c *ComponentConfig) PlanTimestamp() time.Time {
 }
 
 func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
-	diags, err := c.validate.Do(ctx, func(ctx context.Context) (tfdiags.Diagnostics, error) {
+	diags, err := c.validate.For(phase).Do(ctx, c.tracingName(), func(ctx context.Context) (tfdiags.Diagnostics, error) {
 		var diags tfdiags.Diagnostics
 
 		moduleTree, moreDiags := c.CheckModuleTree(ctx)
@@ -391,7 +391,7 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 		// and then continue on to report any other diagnostics that we found.
 		// The promise reporter is main, so that we can get the names of all promises
 		// involved in the cycle.
-		diags = diags.Append(diagnosticsForPromisingTaskError(err, c.main))
+		diags = diags.Append(diagnosticsForPromisingTaskError(err))
 	default:
 		if err != nil {
 			// this is crazy, we never return an error from the inner function so
@@ -415,10 +415,4 @@ func (c *ComponentConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedC
 
 func (c *ComponentConfig) tracingName() string {
 	return c.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (c *ComponentConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	cb(c.validate.PromiseID(), c.Addr().String())
-	cb(c.moduleTree.PromiseID(), c.Addr().String()+" modules")
 }

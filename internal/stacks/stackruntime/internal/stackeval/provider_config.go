@@ -33,7 +33,7 @@ type ProviderConfig struct {
 
 	main *Main
 
-	providerArgs promising.Once[withDiagnostics[cty.Value]]
+	providerArgs perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
 }
 
 func newProviderConfig(main *Main, addr stackaddrs.ConfigProviderConfig, config *stackconfig.ProviderConfig) *ProviderConfig {
@@ -103,7 +103,7 @@ func CheckProviderInLockfile(locks depsfile.Locks, providerType *ProviderType, d
 
 func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
-		ctx, &p.providerArgs, p.main,
+		ctx, p.tracingName(), p.providerArgs.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
@@ -267,9 +267,4 @@ func (p *ProviderConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedCh
 // tracingName implements Validatable.
 func (p *ProviderConfig) tracingName() string {
 	return p.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (p *ProviderConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	cb(p.providerArgs.PromiseID(), p.Addr().String())
 }
