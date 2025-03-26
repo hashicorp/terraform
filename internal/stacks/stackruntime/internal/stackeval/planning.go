@@ -109,7 +109,7 @@ func PlanComponentInstance(ctx context.Context, main *Main, state *states.State,
 		providerFactories[addr] = func() (providers.Interface, error) {
 			// Lazily fetch the unconfigured client for the provider
 			// as and when we need it.
-			provider, err := main.ProviderType(ctx, addr).UnconfiguredClient()
+			provider, err := main.ProviderType(addr).UnconfiguredClient()
 			if err != nil {
 				return nil, err
 			}

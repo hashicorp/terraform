@@ -23,8 +23,8 @@ import (
 func TestProviderCheckInstances(t *testing.T) {
 	getProvider := func(ctx context.Context, t *testing.T, main *Main) *Provider {
 		t.Helper()
-		mainStack := main.MainStack(ctx)
-		provider := mainStack.Provider(ctx, stackaddrs.ProviderConfig{
+		mainStack := main.MainStack()
+		provider := mainStack.Provider(stackaddrs.ProviderConfig{
 			Provider: addrs.MustParseProviderSourceString("terraform.io/builtin/foo"),
 			Name:     "bar",
 		})
@@ -233,8 +233,8 @@ func TestProviderExprReferenceValue(t *testing.T) {
 	providerRefType := providerInstanceRefType(providerTypeAddr)
 	getProvider := func(ctx context.Context, t *testing.T, main *Main) *Provider {
 		t.Helper()
-		mainStack := main.MainStack(ctx)
-		provider := mainStack.Provider(ctx, stackaddrs.ProviderConfig{
+		mainStack := main.MainStack()
+		provider := mainStack.Provider(stackaddrs.ProviderConfig{
 			Provider: providerTypeAddr,
 			Name:     "bar",
 		})

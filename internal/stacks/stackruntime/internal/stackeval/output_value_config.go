@@ -46,7 +46,7 @@ func (ov *OutputValueConfig) Addr() stackaddrs.ConfigOutputValue {
 	return ov.addr
 }
 
-func (ov *OutputValueConfig) Declaration(ctx context.Context) *stackconfig.OutputValue {
+func (ov *OutputValueConfig) Declaration() *stackconfig.OutputValue {
 	return ov.config
 }
 
@@ -56,9 +56,9 @@ func (ov *OutputValueConfig) tracingName() string {
 
 // StackConfig returns the object representing the stack configuration that
 // this output block belongs to.
-func (ov *OutputValueConfig) StackConfig(ctx context.Context) *StackConfig {
+func (ov *OutputValueConfig) StackConfig() *StackConfig {
 	stackConfigAddr := ov.Addr().Stack
-	return ov.main.StackConfig(ctx, stackConfigAddr)
+	return ov.main.StackConfig(stackConfigAddr)
 }
 
 // Value returns the result value for this output value that should be used
@@ -74,7 +74,7 @@ func (ov *OutputValueConfig) Value(ctx context.Context, phase EvalPhase) cty.Val
 
 // ValueTypeConstraint returns the type that the final result of this output
 // value is guaranteed to have.
-func (ov *OutputValueConfig) ValueTypeConstraint(ctx context.Context) cty.Type {
+func (ov *OutputValueConfig) ValueTypeConstraint() cty.Type {
 	return ov.config.Type.Constraint
 }
 
@@ -99,17 +99,17 @@ func (ov *OutputValueConfig) validateValueInner(phase EvalPhase) func(ctx contex
 	return func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 		var diags tfdiags.Diagnostics
 
-		result, moreDiags := EvalExprAndEvalContext(ctx, ov.config.Value, phase, ov.StackConfig(ctx))
+		result, moreDiags := EvalExprAndEvalContext(ctx, ov.config.Value, phase, ov.StackConfig())
 		v := result.Value
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
-			v = ov.markResultValue(cty.UnknownVal(ov.ValueTypeConstraint(ctx)))
+			v = ov.markResultValue(cty.UnknownVal(ov.ValueTypeConstraint()))
 		}
 
 		var err error
 		v, err = convert.Convert(v, ov.config.Type.Constraint)
 		if err != nil {
-			v = cty.UnknownVal(ov.ValueTypeConstraint(ctx))
+			v = cty.UnknownVal(ov.ValueTypeConstraint())
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid result for output value",

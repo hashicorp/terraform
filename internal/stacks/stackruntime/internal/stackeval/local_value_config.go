@@ -55,8 +55,8 @@ func (v *LocalValueConfig) Declaration() *stackconfig.LocalValue {
 
 // StackConfig returns the stack configuration that this input variable belongs
 // to.
-func (v *LocalValueConfig) StackConfig(ctx context.Context) *StackConfig {
-	return v.main.mustStackConfig(ctx, v.Addr().Stack)
+func (v *LocalValueConfig) StackConfig() *StackConfig {
+	return v.main.mustStackConfig(v.Addr().Stack)
 }
 
 // ExprReferenceValue implements Referenceable
@@ -87,7 +87,7 @@ func (lv *LocalValueConfig) validateValueInner(phase EvalPhase) func(ctx context
 	return func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 		var diags tfdiags.Diagnostics
 
-		result, moreDiags := EvalExprAndEvalContext(ctx, lv.config.Value, phase, lv.StackConfig(ctx))
+		result, moreDiags := EvalExprAndEvalContext(ctx, lv.config.Value, phase, lv.StackConfig())
 		v := result.Value
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {

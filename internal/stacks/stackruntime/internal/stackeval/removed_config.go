@@ -59,12 +59,12 @@ func (r *RemovedConfig) Addr() stackaddrs.ConfigComponent {
 }
 
 // DeclRange implements ConfigComponentExpressionScope.
-func (r *RemovedConfig) DeclRange(ctx context.Context) *hcl.Range {
+func (r *RemovedConfig) DeclRange() *hcl.Range {
 	return r.config.DeclRange.ToHCL().Ptr()
 }
 
-func (r *RemovedConfig) StackConfig(ctx context.Context) *StackConfig {
-	return r.main.mustStackConfig(ctx, r.addr.Stack)
+func (r *RemovedConfig) StackConfig() *StackConfig {
+	return r.main.mustStackConfig(r.addr.Stack)
 }
 
 // ModuleTree implements ConfigComponentExpressionScope
@@ -80,7 +80,7 @@ func (r *RemovedConfig) CheckModuleTree(ctx context.Context) (*configs.Config, t
 		var diags tfdiags.Diagnostics
 
 		decl := r.config
-		sources := r.main.SourceBundle(ctx)
+		sources := r.main.SourceBundle()
 
 		rootModuleSource := decl.FinalSourceAddr
 		if rootModuleSource == nil {
@@ -136,7 +136,7 @@ func (r *RemovedConfig) CheckValid(ctx context.Context, phase EvalPhase) tfdiags
 			return diags, nil
 		}
 
-		providers, moreDiags := EvalProviderTypes(ctx, r.StackConfig(ctx), r.config.ProviderConfigs, phase, r)
+		providers, moreDiags := EvalProviderTypes(ctx, r.StackConfig(), r.config.ProviderConfigs, phase, r)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
 			return diags, nil
@@ -166,13 +166,13 @@ func (r *RemovedConfig) CheckValid(ctx context.Context, phase EvalPhase) tfdiags
 			return diags, nil
 		}
 
-		providerClients, valid := unconfiguredProviderClients(ctx, r.main, providers)
+		providerClients, valid := unconfiguredProviderClients(r.main, providers)
 		if !valid {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Cannot validate component",
 				Detail:   fmt.Sprintf("Cannot validate %s because its provider configuration assignments are invalid.", r.Addr()),
-				Subject:  r.DeclRange(ctx),
+				Subject:  r.DeclRange(),
 			})
 			return diags, nil
 		}
@@ -233,7 +233,7 @@ func (r *RemovedConfig) ResolveExpressionReference(ctx context.Context, ref stac
 		repetition.EachKey = cty.UnknownVal(cty.String).RefineNotNull()
 		repetition.EachValue = cty.DynamicVal
 	}
-	return r.StackConfig(ctx).resolveExpressionReference(ctx, ref, nil, repetition)
+	return r.StackConfig().resolveExpressionReference(ctx, ref, nil, repetition)
 }
 
 // PlanTimestamp implements ExpressionScope.
@@ -243,5 +243,5 @@ func (r *RemovedConfig) PlanTimestamp() time.Time {
 
 // ExternalFunctions implements ExpressionScope.
 func (r *RemovedConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return r.main.ProviderFunctions(ctx, r.StackConfig(ctx))
+	return r.main.ProviderFunctions(ctx, r.StackConfig())
 }
