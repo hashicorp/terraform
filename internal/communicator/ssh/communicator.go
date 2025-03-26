@@ -20,7 +20,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/apparentlymart/go-shquot/shquot"
@@ -937,11 +936,6 @@ func ProxyCommandConnectFunc(proxyCommand, addr string) func() (net.Conn, error)
 		// Create proxy command with context
 		cmd := exec.CommandContext(ctx, cmdParts[0], cmdParts[1:]...)
 		cmd.Stderr = stderrBuf
-
-		// Set up the command to run in its own process group
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			Setpgid: true, // Create a new process group
-		}
 
 		// Start the command with pipes
 		stdin, err := cmd.StdinPipe()
