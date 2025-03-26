@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
-	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -48,8 +47,7 @@ type StackConfig struct {
 }
 
 var (
-	_ ExpressionScope      = (*StackConfig)(nil)
-	_ namedPromiseReporter = (*StackConfig)(nil)
+	_ ExpressionScope = (*StackConfig)(nil)
 )
 
 func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.ConfigNode) *StackConfig {
@@ -626,29 +624,4 @@ func (s *StackConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs
 // the current plan is being run.
 func (s *StackConfig) PlanTimestamp() time.Time {
 	return s.main.PlanTimestamp()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (s *StackConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	for _, child := range s.children {
-		child.reportNamedPromises(cb)
-	}
-	for _, child := range s.inputVariables {
-		child.reportNamedPromises(cb)
-	}
-	for _, child := range s.outputValues {
-		child.reportNamedPromises(cb)
-	}
-	for _, child := range s.stackCalls {
-		child.reportNamedPromises(cb)
-	}
-	for _, child := range s.components {
-		child.reportNamedPromises(cb)
-	}
-	for _, child := range s.providers {
-		child.reportNamedPromises(cb)
-	}
 }

@@ -108,7 +108,7 @@ func (v *InputVariable) Value(ctx context.Context, phase EvalPhase) cty.Value {
 
 func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
-		ctx, v.value.For(phase), v.main,
+		ctx, v.tracingName(), v.value.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
@@ -357,14 +357,6 @@ func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedCha
 
 func (v *InputVariable) tracingName() string {
 	return v.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (v *InputVariable) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	name := v.Addr().String()
-	v.value.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(o.PromiseID(), name)
-	})
 }
 
 // ExternalInputValue represents the value of an input variable provided

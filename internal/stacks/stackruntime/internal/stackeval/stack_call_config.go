@@ -37,7 +37,6 @@ type StackCallConfig struct {
 var _ Validatable = (*StackCallConfig)(nil)
 var _ Referenceable = (*StackCallConfig)(nil)
 var _ ExpressionScope = (*StackCallConfig)(nil)
-var _ namedPromiseReporter = (*StackCallConfig)(nil)
 
 func newStackCallConfig(main *Main, addr stackaddrs.ConfigStackCall, config *stackconfig.EmbeddedStack) *StackCallConfig {
 	return &StackCallConfig{
@@ -104,7 +103,7 @@ func (s *StackCallConfig) ResultType() cty.Type {
 // unknown value.
 func (s *StackCallConfig) ValidateForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return withCtyDynamicValPlaceholder(doOnceWithDiags(
-		ctx, s.forEachValue.For(phase), s.main,
+		ctx, s.tracingName()+" for_each", s.forEachValue.For(phase),
 		s.validateForEachValueInner(phase),
 	))
 }
@@ -138,7 +137,7 @@ func (s *StackCallConfig) validateForEachValueInner(phase EvalPhase) func(contex
 // variable declarations.
 func (s *StackCallConfig) ValidateInputVariableValues(ctx context.Context, phase EvalPhase) (map[stackaddrs.InputVariable]cty.Value, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
-		ctx, s.inputVariableValues.For(phase), s.main,
+		ctx, s.tracingName()+" inputs", s.inputVariableValues.For(phase),
 		s.validateInputVariableValuesInner(phase),
 	)
 }
@@ -274,7 +273,7 @@ func (s *StackCallConfig) ResultValue(ctx context.Context, phase EvalPhase) cty.
 // errors.
 func (s *StackCallConfig) ValidateResultValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return withCtyDynamicValPlaceholder(doOnceWithDiags(
-		ctx, s.resultValue.For(phase), s.main,
+		ctx, s.tracingName()+" collected outputs", s.resultValue.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
@@ -383,24 +382,4 @@ func (s *StackCallConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedC
 // ExprReferenceValue implements Referenceable.
 func (s *StackCallConfig) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
 	return s.ResultValue(ctx, phase)
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (s *StackCallConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	// We'll report the same names for each promise in a given category
-	// because promises from different phases should not typically interact
-	// with one another and so mentioning phase here will typically just
-	// make error messages more confusing.
-	forEachName := s.Addr().String() + " for_each"
-	s.forEachValue.Each(func(ep EvalPhase, once *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(once.PromiseID(), forEachName)
-	})
-	inputsName := s.Addr().String() + " inputs"
-	s.inputVariableValues.Each(func(ep EvalPhase, once *promising.Once[withDiagnostics[map[stackaddrs.InputVariable]cty.Value]]) {
-		cb(once.PromiseID(), inputsName)
-	})
-	resultName := s.Addr().String() + " collected outputs"
-	s.resultValue.Each(func(ep EvalPhase, once *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(once.PromiseID(), resultName)
-	})
 }

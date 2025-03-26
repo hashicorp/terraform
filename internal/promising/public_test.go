@@ -33,7 +33,7 @@ func TestPromiseResolveSimple(t *testing.T) {
 
 	ctx := context.Background()
 	gotVal, err := promising.MainTask(ctx, func(ctx context.Context) (string, error) {
-		resolver, get := promising.NewPromise[string](ctx)
+		resolver, get := promising.NewPromise[string](ctx, "test")
 
 		promising.AsyncTask(
 			ctx, resolver,
@@ -56,7 +56,7 @@ func TestPromiseUnresolvedMainWithoutGet(t *testing.T) {
 	ctx := context.Background()
 	var promiseID promising.PromiseID
 	gotVal, err := promising.MainTask(ctx, func(ctx context.Context) (string, error) {
-		resolver, _ := promising.NewPromise[string](ctx)
+		resolver, _ := promising.NewPromise[string](ctx, "test")
 		promiseID = resolver.PromiseID()
 		// Call to PromiseResolver.Resolve intentionally omitted to cause error
 		// Also not calling the getter to prevent this from being classified as
@@ -81,7 +81,7 @@ func TestPromiseUnresolvedMainWithGet(t *testing.T) {
 	ctx := context.Background()
 	var promiseID promising.PromiseID
 	gotVal, gotErr := promising.MainTask(ctx, func(ctx context.Context) (string, error) {
-		resolver, get := promising.NewPromise[string](ctx)
+		resolver, get := promising.NewPromise[string](ctx, "test")
 		promiseID = resolver.PromiseID()
 		// Call to PromiseResolver.Resolve intentionally omitted to cause error
 		return get(ctx)
@@ -111,7 +111,7 @@ func TestPromiseUnresolvedAsync(t *testing.T) {
 	ctx := context.Background()
 	var promiseID promising.PromiseID
 	gotVal, err := promising.MainTask(ctx, func(ctx context.Context) (string, error) {
-		resolver, get := promising.NewPromise[string](ctx)
+		resolver, get := promising.NewPromise[string](ctx, "test")
 		promiseID = resolver.PromiseID()
 
 		promising.AsyncTask(
@@ -140,8 +140,8 @@ func TestPromiseSelfDependentSibling(t *testing.T) {
 	ctx := context.Background()
 	var err1, err2 error
 	promising.MainTask(ctx, func(ctx context.Context) (string, error) {
-		resolver1, get1 := promising.NewPromise[string](ctx)
-		resolver2, get2 := promising.NewPromise[string](ctx)
+		resolver1, get1 := promising.NewPromise[string](ctx, "test")
+		resolver2, get2 := promising.NewPromise[string](ctx, "test")
 
 		// The following is an intentional self-dependency, though its
 		// unpredictable which of the two tasks will actually detect the error,
@@ -196,8 +196,8 @@ func TestPromiseSelfDependentNested(t *testing.T) {
 	ctx := context.Background()
 	var err1, err2 error
 	promising.MainTask(ctx, func(ctx context.Context) (string, error) {
-		resolver1, get1 := promising.NewPromise[string](ctx)
-		resolver2, get2 := promising.NewPromise[string](ctx)
+		resolver1, get1 := promising.NewPromise[string](ctx, "test")
+		resolver2, get2 := promising.NewPromise[string](ctx, "test")
 		pair := promising.PromiseResolverPair[string, string]{A: resolver1, B: resolver2}
 
 		// The following is an intentional self-dependency. Both calls should

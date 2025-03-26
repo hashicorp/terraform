@@ -104,7 +104,7 @@ func (c *Component) ForEachValue(ctx context.Context, phase EvalPhase) cty.Value
 // that we cannot know the for_each value.
 func (c *Component) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	val, diags := doOnceWithDiags(
-		ctx, c.forEachValue.For(phase), c.main,
+		ctx, c.tracingName()+" for_each", c.forEachValue.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 			cfg := c.Declaration()
@@ -158,7 +158,7 @@ func (c *Component) Instances(ctx context.Context, phase EvalPhase) (map[addrs.I
 
 func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ComponentInstance, bool, tfdiags.Diagnostics) {
 	result, diags := doOnceWithDiags(
-		ctx, c.instances.For(phase), c.main,
+		ctx, c.tracingName()+" instances", c.instances.For(phase),
 		func(ctx context.Context) (instancesResult[*ComponentInstance], tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 			forEachVal, forEachValueDiags := c.CheckForEachValue(ctx, phase)
@@ -169,7 +169,7 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 			}
 
 			result := instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ComponentInstance {
-				return newComponentInstance(c, ik, rd, false)
+				return newComponentInstance(c, stackaddrs.AbsComponentToInstance(c.addr, ik), rd, false)
 			})
 
 			addrs := make([]stackaddrs.AbsComponentInstance, 0, len(result.insts))
@@ -190,8 +190,8 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 }
 
 func (c *Component) UnknownInstance(ctx context.Context, phase EvalPhase) *ComponentInstance {
-	inst, err := c.unknownInstance.For(phase).Do(ctx, func(ctx context.Context) (*ComponentInstance, error) {
-		return newComponentInstance(c, addrs.WildcardKey, instances.UnknownForEachRepetitionData(c.ForEachValue(ctx, phase).Type()), true), nil
+	inst, err := c.unknownInstance.For(phase).Do(ctx, c.tracingName()+" unknown instance", func(ctx context.Context) (*ComponentInstance, error) {
+		return newComponentInstance(c, stackaddrs.AbsComponentToInstance(c.addr, addrs.WildcardKey), instances.UnknownForEachRepetitionData(c.ForEachValue(ctx, phase).Type()), true), nil
 	})
 	if err != nil {
 		// Since we never return an error from the function we pass to Do,
@@ -373,25 +373,4 @@ func (c *Component) ApplySuccessful(ctx context.Context) bool {
 
 func (c *Component) tracingName() string {
 	return c.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (c *Component) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	name := c.Addr().String()
-	instsName := name + " instances"
-	forEachName := name + " for_each"
-	c.instances.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[instancesResult[*ComponentInstance]]]) {
-		cb(o.PromiseID(), instsName)
-	})
-	// FIXME: We should call reportNamedPromises on the individual
-	// ComponentInstance objects too, but promising.Once doesn't allow us
-	// to peek to see if the Once was already resolved without blocking on
-	// it, and we don't want to block on any promises in here.
-	// Without this, any promises belonging to the individual instances will
-	// not be named in a self-dependency error report, but since references
-	// to component instances are always indirect through the component this
-	// shouldn't be a big deal in most cases.
-	c.forEachValue.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(o.PromiseID(), forEachName)
-	})
 }

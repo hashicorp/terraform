@@ -95,7 +95,7 @@ func (c *StackCall) ForEachValue(ctx context.Context, phase EvalPhase) cty.Value
 // that we cannot know the for_each value.
 func (c *StackCall) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	val, diags := doOnceWithDiags(
-		ctx, c.forEachValue.For(phase), c.main,
+		ctx, c.tracingName()+" for_each", c.forEachValue.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 			cfg := c.Declaration()
@@ -149,7 +149,7 @@ func (c *StackCall) Instances(ctx context.Context, phase EvalPhase) (map[addrs.I
 
 func (c *StackCall) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*StackCallInstance, bool, tfdiags.Diagnostics) {
 	result, diags := doOnceWithDiags(
-		ctx, c.instances.For(phase), c.main,
+		ctx, c.tracingName()+" instances", c.instances.For(phase),
 		func(ctx context.Context) (instancesResult[*StackCallInstance], tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 			forEachVal, forEachValueDiags := c.CheckForEachValue(ctx, phase)
@@ -168,7 +168,7 @@ func (c *StackCall) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 }
 
 func (c *StackCall) UnknownInstance(ctx context.Context, phase EvalPhase) *StackCallInstance {
-	inst, err := c.unknownInstance.For(phase).Do(ctx, func(ctx context.Context) (*StackCallInstance, error) {
+	inst, err := c.unknownInstance.For(phase).Do(ctx, c.tracingName()+" unknown instace", func(ctx context.Context) (*StackCallInstance, error) {
 		return newStackCallInstance(c, addrs.WildcardKey, instances.UnknownForEachRepetitionData(c.ForEachValue(ctx, phase).Type())), nil
 	})
 	if err != nil {
@@ -283,25 +283,4 @@ func (c *StackCall) CheckApply(ctx context.Context) ([]stackstate.AppliedChange,
 
 func (c *StackCall) tracingName() string {
 	return c.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (c *StackCall) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	name := c.Addr().String()
-	instsName := name + " instances"
-	forEachName := name + " for_each"
-	c.instances.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[instancesResult[*StackCallInstance]]]) {
-		cb(o.PromiseID(), instsName)
-	})
-	// FIXME: We should call reportNamedPromises on the individual
-	// StackCallInstance objects too, but promising.Once doesn't allow us
-	// to peek to see if the Once was already resolved without blocking on
-	// it, and we don't want to block on any promises in here.
-	// Without this, any promises belonging to the individual instances will
-	// not be named in a self-dependency error report, but since references
-	// to stack call instances are always indirect through the stack call this
-	// shouldn't be a big deal in most cases.
-	c.forEachValue.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(o.PromiseID(), forEachName)
-	})
 }

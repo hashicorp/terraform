@@ -349,7 +349,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 	})
 	diags := withDiags.Diagnostics
 	main := withDiags.Result
-	diags = diags.Append(diagnosticsForPromisingTaskError(err, main))
+	diags = diags.Append(diagnosticsForPromisingTaskError(err))
 	if len(diags) > 0 {
 		outp.AnnounceDiagnostics(ctx, diags)
 	}

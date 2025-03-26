@@ -20,7 +20,6 @@ import (
 	remoteExecProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/remote-exec"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/lang"
-	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -87,8 +86,6 @@ type Main struct {
 	providerFunctionResults *providers.FunctionResults
 	cleanupFuncs            []func(context.Context) tfdiags.Diagnostics
 }
-
-var _ namedPromiseReporter = (*Main)(nil)
 
 type mainValidating struct {
 	opts ValidateOpts
@@ -623,21 +620,6 @@ func (m *Main) StackCallConfig(addr stackaddrs.ConfigStackCall) *StackCallConfig
 		return nil
 	}
 	return caller.StackCall(addr.Item)
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (m *Main) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.mainStackConfig != nil {
-		m.mainStackConfig.reportNamedPromises(cb)
-	}
-	if m.mainStack != nil {
-		m.mainStack.reportNamedPromises(cb)
-	}
-	for _, pty := range m.providerTypes {
-		pty.reportNamedPromises(cb)
-	}
 }
 
 // availableProvisioners returns the table of provisioner factories that should

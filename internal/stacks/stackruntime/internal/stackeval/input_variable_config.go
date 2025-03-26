@@ -9,14 +9,14 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/typeexpr"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+
 	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // InputVariableConfig represents a "variable" block in a stack configuration.
@@ -29,7 +29,6 @@ type InputVariableConfig struct {
 
 var _ Validatable = (*InputVariableConfig)(nil)
 var _ Referenceable = (*InputVariableConfig)(nil)
-var _ namedPromiseReporter = (*InputVariableConfig)(nil)
 
 func newInputVariableConfig(main *Main, addr stackaddrs.ConfigInputVariable, config *stackconfig.InputVariable) *InputVariableConfig {
 	if config == nil {
@@ -174,9 +173,4 @@ func (v *InputVariableConfig) Validate(context.Context) tfdiags.Diagnostics {
 // PlanChanges implements Plannable.
 func (v *InputVariableConfig) PlanChanges(context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	return nil, v.checkValid()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (s *InputVariableConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	// Nothing to report yet
 }
