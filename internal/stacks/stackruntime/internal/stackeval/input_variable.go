@@ -45,14 +45,14 @@ func (v *InputVariable) Addr() stackaddrs.AbsInputVariable {
 	return v.addr
 }
 
-func (v *InputVariable) Config(ctx context.Context) *InputVariableConfig {
+func (v *InputVariable) Config() *InputVariableConfig {
 	configAddr := stackaddrs.ConfigForAbs(v.Addr())
-	stackCfg := v.main.StackConfig(ctx, configAddr.Stack)
-	return stackCfg.InputVariable(ctx, configAddr.Item)
+	stackCfg := v.main.StackConfig(configAddr.Stack)
+	return stackCfg.InputVariable(configAddr.Item)
 }
 
-func (v *InputVariable) Declaration(ctx context.Context) *stackconfig.InputVariable {
-	return v.Config(ctx).Declaration()
+func (v *InputVariable) Declaration() *stackconfig.InputVariable {
+	return v.Config().Declaration()
 }
 
 // DefinedByStackCallInstance returns the stack call which ought to provide
@@ -79,7 +79,7 @@ func (v *InputVariable) DefinedByStackCallInstance(ctx context.Context, phase Ev
 		return nil
 	}
 
-	callerCalls := callerStack.EmbeddedStackCalls(ctx)
+	callerCalls := callerStack.EmbeddedStackCalls()
 	call := callerCalls[callAddr.Item]
 	if call == nil {
 		// Suggests that we're descended from a stack call that doesn't
@@ -108,25 +108,25 @@ func (v *InputVariable) Value(ctx context.Context, phase EvalPhase) cty.Value {
 
 func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
-		ctx, v.value.For(phase), v.main,
+		ctx, v.tracingName(), v.value.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
-			cfg := v.Config(ctx)
-			decl := v.Declaration(ctx)
+			cfg := v.Config()
+			decl := v.Declaration()
 
 			switch {
 			case v.Addr().Stack.IsRoot():
 				var err error
 
 				wantTy := decl.Type.Constraint
-				extVal := v.main.RootVariableValue(ctx, v.Addr().Item, phase)
+				extVal := v.main.RootVariableValue(v.Addr().Item, phase)
 
 				val := extVal.Value
 				if val.IsNull() {
 					// A null value is equivalent to an unspecified value, so
 					// we'll replace it with the variable's default value.
-					val = cfg.DefaultValue(ctx)
+					val = cfg.DefaultValue()
 					if val == cty.NilVal {
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
@@ -199,7 +199,7 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 					// something's gone wrong or we are descended from a stack
 					// call whose instances aren't known yet; we'll assume
 					// the latter and return a placeholder.
-					return cfg.markValue(cty.UnknownVal(v.Declaration(ctx).Type.Constraint)), diags
+					return cfg.markValue(cty.UnknownVal(v.Declaration().Type.Constraint)), diags
 				}
 
 				allVals := definedByCallInst.InputVariableValues(ctx, phase)
@@ -248,7 +248,7 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 
 	before := v.main.PlanPrevState().RootInputVariable(v.Addr().Item)
 
-	decl := v.Declaration(ctx)
+	decl := v.Declaration()
 	after := v.Value(ctx, PlanPhase)
 	requiredOnApply := false
 	if decl.Ephemeral {
@@ -307,13 +307,13 @@ func (v *InputVariable) References(ctx context.Context) []stackaddrs.AbsReferenc
 		return nil
 	}
 	stackAddr := addr.Stack
-	parentStack := v.main.StackUnchecked(ctx, stackAddr.Parent())
+	parentStack := v.main.StackUnchecked(stackAddr.Parent())
 	if parentStack == nil {
 		// Weird, but we'll tolerate it for robustness.
 		return nil
 	}
 	callAddr := stackAddr.Call()
-	call := parentStack.EmbeddedStackCall(ctx, callAddr.Item)
+	call := parentStack.EmbeddedStackCall(callAddr.Item)
 	if call == nil {
 		// Weird, but we'll tolerate it for robustness.
 		return nil
@@ -341,7 +341,7 @@ func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedCha
 		return nil, diags
 	}
 
-	decl := v.Declaration(ctx)
+	decl := v.Declaration()
 	value := v.Value(ctx, ApplyPhase)
 	if decl.Ephemeral {
 		value = cty.NullVal(value.Type())
@@ -357,14 +357,6 @@ func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedCha
 
 func (v *InputVariable) tracingName() string {
 	return v.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (v *InputVariable) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	name := v.Addr().String()
-	v.value.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(o.PromiseID(), name)
-	})
 }
 
 // ExternalInputValue represents the value of an input variable provided

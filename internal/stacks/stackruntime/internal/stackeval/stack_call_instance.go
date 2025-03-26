@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
@@ -57,15 +56,15 @@ func (c *StackCallInstance) RepetitionData() instances.RepetitionData {
 
 // CallerStack returns the stack instance that contains the call that this
 // is an instance of.
-func (c *StackCallInstance) CallerStack(ctx context.Context) *Stack {
+func (c *StackCallInstance) CallerStack() *Stack {
 	stackAddr := c.call.Addr().Stack
 	// "Unchecked" is safe because newStackCallInstance is only called
 	// based on the results of evaluating the call's for_each.
-	return c.main.StackUnchecked(ctx, stackAddr)
+	return c.main.StackUnchecked(stackAddr)
 }
 
 // Call returns the stack call that this is an instance of.
-func (c *StackCallInstance) Call(ctx context.Context) *StackCall {
+func (c *StackCallInstance) Call() *StackCall {
 	return c.call
 }
 
@@ -77,10 +76,10 @@ func (c *StackCallInstance) CalledStackAddr() stackaddrs.StackInstance {
 }
 
 // CalledStack returns the stack instance that this call is instantiating.
-func (c *StackCallInstance) CalledStack(ctx context.Context) *Stack {
+func (c *StackCallInstance) CalledStack() *Stack {
 	// "Unchecked" is safe because newStackCallInstance is only called
 	// based on the results of evaluating the call's for_each.
-	return c.main.StackUnchecked(ctx, c.CalledStackAddr())
+	return c.main.StackUnchecked(c.CalledStackAddr())
 }
 
 // InputVariableValues returns the [cty.Value] representing the input variable
@@ -115,9 +114,9 @@ func (c *StackCallInstance) InputVariableValues(ctx context.Context, phase EvalP
 // attributes of the result for their appearance in downstream expressions.
 func (c *StackCallInstance) CheckInputVariableValues(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	calledStack := c.CalledStack(ctx)
-	wantTy, defs := calledStack.InputsType(ctx)
-	decl := c.call.Declaration(ctx)
+	calledStack := c.CalledStack()
+	wantTy, defs := calledStack.InputsType()
+	decl := c.call.Declaration()
 
 	v := cty.EmptyObjectVal
 	expr := decl.Inputs
@@ -163,9 +162,9 @@ func (c *StackCallInstance) CheckInputVariableValues(ctx context.Context, phase 
 
 	if v.IsKnown() && !v.IsNull() {
 		var markDiags tfdiags.Diagnostics
-		for varAddr, variable := range calledStack.InputVariables(ctx) {
+		for varAddr, variable := range calledStack.InputVariables() {
 			varVal := v.GetAttr(varAddr.Name)
-			varDecl := variable.Declaration(ctx)
+			varDecl := variable.Declaration()
 
 			if !varDecl.Ephemeral {
 				// If the variable isn't declared as being ephemeral then we
@@ -221,13 +220,13 @@ func (c *StackCallInstance) CheckInputVariableValues(ctx context.Context, phase 
 // inside an embedded stack call block, evaluated in the context of a
 // particular instance of that call.
 func (c *StackCallInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
-	stack := c.CallerStack(ctx)
+	stack := c.CallerStack()
 	return stack.resolveExpressionReference(ctx, ref, nil, c.repetition)
 }
 
 // ExternalFunctions implements ExpressionScope.
 func (c *StackCallInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return c.main.ProviderFunctions(ctx, c.main.StackConfig(ctx, c.call.Addr().Stack.ConfigAddr()))
+	return c.main.ProviderFunctions(ctx, c.main.StackConfig(c.call.Addr().Stack.ConfigAddr()))
 }
 
 // PlanTimestamp implements ExpressionScope, providing the timestamp at which
@@ -266,9 +265,4 @@ func (c *StackCallInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 // tracingName implements Plannable.
 func (c *StackCallInstance) tracingName() string {
 	return fmt.Sprintf("%s call", c.CalledStackAddr())
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (c *StackCallInstance) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	// StackCallInstance does not currently own any promises
 }

@@ -508,6 +508,6 @@ type JustValue struct {
 var _ Referenceable = JustValue{}
 
 // ExprReferenceValue implements Referenceable.
-func (jv JustValue) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
+func (jv JustValue) ExprReferenceValue(context.Context, EvalPhase) cty.Value {
 	return jv.v
 }

@@ -50,15 +50,15 @@ func TestProviderConfig_CheckProviderArgs_EmptyConfig(t *testing.T) {
 	}
 	getProviderConfig := func(ctx context.Context, t *testing.T, main *Main) *ProviderConfig {
 		t.Helper()
-		mainStack := main.MainStack(ctx)
-		provider := mainStack.Provider(ctx, stackaddrs.ProviderConfig{
+		mainStack := main.MainStack()
+		provider := mainStack.Provider(stackaddrs.ProviderConfig{
 			Provider: providerTypeAddr,
 			Name:     "bar",
 		})
 		if provider == nil {
 			t.Fatal("no provider.foo.bar is available")
 		}
-		return provider.Config(ctx)
+		return provider.Config()
 	}
 
 	subtestInPromisingTask(t, "valid", func(ctx context.Context, t *testing.T) {
@@ -132,15 +132,15 @@ func TestProviderConfig_CheckProviderArgs(t *testing.T) {
 	}
 	getProviderConfig := func(ctx context.Context, t *testing.T, main *Main) *ProviderConfig {
 		t.Helper()
-		mainStack := main.MainStack(ctx)
-		provider := mainStack.Provider(ctx, stackaddrs.ProviderConfig{
+		mainStack := main.MainStack()
+		provider := mainStack.Provider(stackaddrs.ProviderConfig{
 			Provider: providerTypeAddr,
 			Name:     "bar",
 		})
 		if provider == nil {
 			t.Fatal("no provider.foo.bar is available")
 		}
-		return provider.Config(ctx)
+		return provider.Config()
 	}
 
 	subtestInPromisingTask(t, "valid", func(ctx context.Context, t *testing.T) {

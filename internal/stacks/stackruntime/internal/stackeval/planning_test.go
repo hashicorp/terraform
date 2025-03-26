@@ -506,7 +506,7 @@ func TestPlanning_RequiredComponents(t *testing.T) {
 					if stack == nil {
 						t.Fatalf("no declaration for %s", test.componentAddr.Stack)
 					}
-					component := stack.Component(ctx, test.componentAddr.Item)
+					component := stack.Component(test.componentAddr.Item)
 					if component == nil {
 						t.Fatalf("no declaration for %s", test.componentAddr)
 					}

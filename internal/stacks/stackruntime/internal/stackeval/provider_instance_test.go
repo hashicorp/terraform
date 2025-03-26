@@ -60,8 +60,8 @@ func TestProviderInstanceCheckProviderArgs(t *testing.T) {
 	}
 	getProviderInstance := func(ctx context.Context, t *testing.T, main *Main) *ProviderInstance {
 		t.Helper()
-		mainStack := main.MainStack(ctx)
-		provider := mainStack.Provider(ctx, stackaddrs.ProviderConfig{
+		mainStack := main.MainStack()
+		provider := mainStack.Provider(stackaddrs.ProviderConfig{
 			Provider: providerTypeAddr,
 			Name:     "bar",
 		})
@@ -168,7 +168,7 @@ func TestProviderInstanceCheckProviderArgs(t *testing.T) {
 		// We'll make sure the configuration really does omit the config
 		// block, in case someone modifies the fixture in future without
 		// realizing we're relying on that invariant here.
-		decl := inst.provider.Declaration(ctx)
+		decl := inst.provider.Declaration()
 		if decl.Config != nil {
 			t.Fatal("test fixture has a config block for the provider; should omit it")
 		}
@@ -334,8 +334,8 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 	}
 	getProviderInstance := func(ctx context.Context, t *testing.T, main *Main) *ProviderInstance {
 		t.Helper()
-		mainStack := main.MainStack(ctx)
-		provider := mainStack.Provider(ctx, stackaddrs.ProviderConfig{
+		mainStack := main.MainStack()
+		provider := mainStack.Provider(stackaddrs.ProviderConfig{
 			Provider: providerTypeAddr,
 			Name:     "bar",
 		})

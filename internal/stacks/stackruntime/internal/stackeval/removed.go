@@ -46,46 +46,25 @@ func newRemoved(main *Main, addr stackaddrs.AbsComponent, config *RemovedConfig)
 	}
 }
 
-// reportNamedPromises implements namedPromiseReporter.
-func (r *Removed) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	name := r.tracingName()
-	instsName := name + " instances"
-	forEachName := name + " for_each"
-	r.instances.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[instancesResult[*RemovedInstance]]]) {
-		cb(o.PromiseID(), instsName)
-	})
-	// FIXME: We should call reportNamedPromises on the individual
-	// ComponentInstance objects too, but promising.Once doesn't allow us
-	// to peek to see if the Once was already resolved without blocking on
-	// it, and we don't want to block on any promises in here.
-	// Without this, any promises belonging to the individual instances will
-	// not be named in a self-dependency error report, but since references
-	// to component instances are always indirect through the component this
-	// shouldn't be a big deal in most cases.
-	r.forEachValue.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(o.PromiseID(), forEachName)
-	})
-}
-
 func (r *Removed) Addr() stackaddrs.AbsComponent {
 	return r.addr
 }
 
-func (r *Removed) Stack(ctx context.Context) *Stack {
-	return r.main.StackUnchecked(ctx, r.addr.Stack)
+func (r *Removed) Stack() *Stack {
+	return r.main.StackUnchecked(r.addr.Stack)
 }
 
-func (r *Removed) Config(ctx context.Context) *RemovedConfig {
+func (r *Removed) Config() *RemovedConfig {
 	return r.config
 }
 
 func (r *Removed) ForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
-	return doOnceWithDiags(ctx, r.forEachValue.For(phase), r, func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
-		config := r.Config(ctx).config
+	return doOnceWithDiags(ctx, r.tracingName()+" for_each", r.forEachValue.For(phase), func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+		config := r.Config().config
 
 		switch {
 		case config.ForEach != nil:
-			result, diags := evaluateForEachExpr(ctx, config.ForEach, phase, r.Stack(ctx), "removed")
+			result, diags := evaluateForEachExpr(ctx, config.ForEach, phase, r.Stack(), "removed")
 			if diags.HasErrors() {
 				return cty.DynamicVal, diags
 			}
@@ -99,7 +78,7 @@ func (r *Removed) ForEachValue(ctx context.Context, phase EvalPhase) (cty.Value,
 }
 
 func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*RemovedInstance, bool, tfdiags.Diagnostics) {
-	result, diags := doOnceWithDiags(ctx, r.instances.For(phase), r.main, func(ctx context.Context) (instancesResult[*RemovedInstance], tfdiags.Diagnostics) {
+	result, diags := doOnceWithDiags(ctx, r.tracingName()+" instances", r.instances.For(phase), func(ctx context.Context) (instancesResult[*RemovedInstance], tfdiags.Diagnostics) {
 		forEachValue, diags := r.ForEachValue(ctx, phase)
 		if diags.HasErrors() {
 			return instancesResult[*RemovedInstance]{}, diags
@@ -108,7 +87,7 @@ func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.Ins
 		// First, evaluate the for_each value to get the set of instances the
 		// user has asked to be removed.
 		result := instancesMap(forEachValue, func(ik addrs.InstanceKey, rd instances.RepetitionData) *RemovedInstance {
-			expr := r.Config(ctx).config.FromIndex
+			expr := r.Config().config.FromIndex
 			if expr == nil {
 				if ik != addrs.NoKey {
 					// error, but this shouldn't happen as we validate there is
@@ -291,7 +270,7 @@ type removedInstanceExpressionScope struct {
 }
 
 func (r *removedInstanceExpressionScope) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
-	stack := r.call.Stack(ctx)
+	stack := r.call.Stack()
 	return stack.resolveExpressionReference(ctx, ref, nil, r.rd)
 }
 
@@ -300,5 +279,5 @@ func (r *removedInstanceExpressionScope) PlanTimestamp() time.Time {
 }
 
 func (r *removedInstanceExpressionScope) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return r.call.main.ProviderFunctions(ctx, r.call.Config(ctx).StackConfig(ctx))
+	return r.call.main.ProviderFunctions(ctx, r.call.Config().StackConfig())
 }

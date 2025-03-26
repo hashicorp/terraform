@@ -42,36 +42,36 @@ func (p *Provider) Addr() stackaddrs.AbsProviderConfig {
 	return p.addr
 }
 
-func (p *Provider) Declaration(ctx context.Context) *stackconfig.ProviderConfig {
+func (p *Provider) Declaration() *stackconfig.ProviderConfig {
 	return p.config
 }
 
-func (p *Provider) Config(ctx context.Context) *ProviderConfig {
+func (p *Provider) Config() *ProviderConfig {
 	configAddr := stackaddrs.ConfigForAbs(p.Addr())
-	stackConfig := p.main.StackConfig(ctx, configAddr.Stack)
+	stackConfig := p.main.StackConfig(configAddr.Stack)
 	if stackConfig == nil {
 		return nil
 	}
-	return stackConfig.Provider(ctx, configAddr.Item)
+	return stackConfig.Provider(configAddr.Item)
 }
 
-func (p *Provider) ProviderType(ctx context.Context) *ProviderType {
-	return p.main.ProviderType(ctx, p.Addr().Item.Provider)
+func (p *Provider) ProviderType() *ProviderType {
+	return p.main.ProviderType(p.Addr().Item.Provider)
 }
 
-func (p *Provider) Stack(ctx context.Context) *Stack {
+func (p *Provider) Stack() *Stack {
 	// Unchecked because we should've been constructed from the same stack
 	// object we're about to return, and so this should be valid unless
 	// the original construction was from an invalid object itself.
-	return p.main.StackUnchecked(ctx, p.Addr().Stack)
+	return p.main.StackUnchecked(p.Addr().Stack)
 }
 
 // InstRefValueType returns the type of any values that represent references to
 // instances of this provider configuration.
 //
 // All configurations for the same provider share the same type.
-func (p *Provider) InstRefValueType(ctx context.Context) cty.Type {
-	decl := p.Declaration(ctx)
+func (p *Provider) InstRefValueType() cty.Type {
+	decl := p.Declaration()
 	return providerInstanceRefType(decl.ProviderAddr)
 }
 
@@ -109,15 +109,15 @@ func (p *Provider) ForEachValue(ctx context.Context, phase EvalPhase) cty.Value 
 // that we cannot know the for_each value.
 func (p *Provider) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	val, diags := doOnceWithDiags(
-		ctx, p.forEachValue.For(phase), p.main,
+		ctx, p.tracingName()+" for_each", p.forEachValue.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
-			cfg := p.Declaration(ctx)
+			cfg := p.Declaration()
 
 			switch {
 
 			case cfg.ForEach != nil:
-				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, p.Stack(ctx), "provider")
+				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, p.Stack(), "provider")
 				diags = diags.Append(moreDiags)
 				if diags.HasErrors() {
 					return cty.DynamicVal, diags
@@ -162,7 +162,7 @@ func (p *Provider) Instances(ctx context.Context, phase EvalPhase) (map[addrs.In
 
 func (p *Provider) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ProviderInstance, bool, tfdiags.Diagnostics) {
 	result, diags := doOnceWithDiags(
-		ctx, p.instances.For(phase), p.main,
+		ctx, p.tracingName()+" instances", p.instances.For(phase),
 		func(ctx context.Context) (instancesResult[*ProviderInstance], tfdiags.Diagnostics) {
 			forEachVal, diags := p.CheckForEachValue(ctx, phase)
 			if diags.HasErrors() {
@@ -170,7 +170,7 @@ func (p *Provider) CheckInstances(ctx context.Context, phase EvalPhase) (map[add
 			}
 
 			return instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ProviderInstance {
-				return newProviderInstance(p, ik, rd)
+				return newProviderInstance(p, stackaddrs.AbsProviderToInstance(p.addr, ik), rd)
 			}), diags
 		},
 	)
@@ -180,9 +180,9 @@ func (p *Provider) CheckInstances(ctx context.Context, phase EvalPhase) (map[add
 // ExprReferenceValue implements Referenceable, returning a value containing
 // one or more values that act as references to instances of the provider.
 func (p *Provider) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
-	decl := p.Declaration(ctx)
+	decl := p.Declaration()
 	insts, unknown := p.Instances(ctx, phase)
-	refType := p.InstRefValueType(ctx)
+	refType := p.InstRefValueType()
 
 	switch {
 	case decl.ForEach != nil:
@@ -247,11 +247,11 @@ func (p *Provider) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, 
 
 // References implements Referrer
 func (p *Provider) References(ctx context.Context) []stackaddrs.AbsReference {
-	cfg := p.Declaration(ctx)
+	cfg := p.Declaration()
 	var ret []stackaddrs.Reference
-	ret = append(ret, ReferencesInExpr(ctx, cfg.ForEach)...)
-	if schema, err := p.ProviderType(ctx).Schema(ctx); err == nil {
-		ret = append(ret, ReferencesInBody(ctx, cfg.Config, schema.Provider.Body.DecoderSpec())...)
+	ret = append(ret, ReferencesInExpr(cfg.ForEach)...)
+	if schema, err := p.ProviderType().Schema(ctx); err == nil {
+		ret = append(ret, ReferencesInBody(cfg.Config, schema.Provider.Body.DecoderSpec())...)
 	}
 	return makeReferencesAbsolute(ret, p.Addr().Stack)
 }
@@ -264,25 +264,4 @@ func (p *Provider) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, 
 // tracingName implements Plannable.
 func (p *Provider) tracingName() string {
 	return p.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (p *Provider) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	name := p.Addr().String()
-	forEachName := name + " for_each"
-	instsName := name + " instances"
-	p.forEachValue.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(o.PromiseID(), forEachName)
-	})
-	p.instances.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[instancesResult[*ProviderInstance]]]) {
-		cb(o.PromiseID(), instsName)
-	})
-	// FIXME: We should call reportNamedPromises on the individual
-	// ProviderInstance objects too, but promising.Once doesn't allow us
-	// to peek to see if the Once was already resolved without blocking on
-	// it, and we don't want to block on any promises in here.
-	// Without this, any promises belonging to the individual instances will
-	// not be named in a self-dependency error report, but since references
-	// to provider instances are always indirect through the provider this
-	// shouldn't be a big deal in most cases.
 }

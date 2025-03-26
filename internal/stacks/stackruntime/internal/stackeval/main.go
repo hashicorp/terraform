@@ -20,7 +20,6 @@ import (
 	remoteExecProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/remote-exec"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/lang"
-	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -87,8 +86,6 @@ type Main struct {
 	providerFunctionResults *providers.FunctionResults
 	cleanupFuncs            []func(context.Context) tfdiags.Diagnostics
 }
-
-var _ namedPromiseReporter = (*Main)(nil)
 
 type mainValidating struct {
 	opts ValidateOpts
@@ -282,7 +279,7 @@ func (m *Main) InspectingState() *stackstate.State {
 // SourceBundle returns the source code bundle that the stack configuration
 // was originally loaded from and that should also contain the source code
 // for any modules that "component" blocks refer to.
-func (m *Main) SourceBundle(ctx context.Context) *sourcebundle.Bundle {
+func (m *Main) SourceBundle() *sourcebundle.Bundle {
 	return m.config.Sources
 }
 
@@ -293,7 +290,7 @@ func (m *Main) SourceBundle(ctx context.Context) *sourcebundle.Bundle {
 // always has exactly one "dynamic" instance, which you can access by
 // calling [Main.MainStack] instead. The static configuration object is used
 // for validation, but plan and apply both use the stack instance.
-func (m *Main) MainStackConfig(ctx context.Context) *StackConfig {
+func (m *Main) MainStackConfig() *StackConfig {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -305,7 +302,7 @@ func (m *Main) MainStackConfig(ctx context.Context) *StackConfig {
 
 // MainStack returns the [Stack] object representing the main stack, which
 // is the root of the configuration tree.
-func (m *Main) MainStack(ctx context.Context) *Stack {
+func (m *Main) MainStack() *Stack {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -317,10 +314,10 @@ func (m *Main) MainStack(ctx context.Context) *Stack {
 
 // StackConfig returns the [StackConfig] object representing the stack with
 // the given address, or nil if there is no such stack.
-func (m *Main) StackConfig(ctx context.Context, addr stackaddrs.Stack) *StackConfig {
-	ret := m.MainStackConfig(ctx)
+func (m *Main) StackConfig(addr stackaddrs.Stack) *StackConfig {
+	ret := m.MainStackConfig()
 	for _, step := range addr {
-		ret = ret.ChildConfig(ctx, step)
+		ret = ret.ChildConfig(step)
 		if ret == nil {
 			return nil
 		}
@@ -336,10 +333,10 @@ func (m *Main) StackConfig(ctx context.Context, addr stackaddrs.Stack) *StackCon
 // to instances actually declared by the configuration. If you need to check
 // that use [Main.Stack] instead, but consider the additional overhead that
 // extra checking implies.
-func (m *Main) StackUnchecked(ctx context.Context, addr stackaddrs.StackInstance) *Stack {
-	ret := m.MainStack(ctx)
+func (m *Main) StackUnchecked(addr stackaddrs.StackInstance) *Stack {
+	ret := m.MainStack()
 	for _, step := range addr {
-		ret = ret.ChildStackUnchecked(ctx, step)
+		ret = ret.ChildStackUnchecked(step)
 		if ret == nil {
 			return nil
 		}
@@ -366,7 +363,7 @@ func (m *Main) StackUnchecked(ctx context.Context, addr stackaddrs.StackInstance
 // a valid [Stack] previously returned (directly or indirectly) then you can
 // avoid the additional overhead by using [Main.StackUnchecked] instead.
 func (m *Main) Stack(ctx context.Context, addr stackaddrs.StackInstance, phase EvalPhase) *Stack {
-	ret := m.MainStack(ctx)
+	ret := m.MainStack()
 	for _, step := range addr {
 		ret = ret.ChildStackChecked(ctx, step, phase)
 		if ret == nil {
@@ -390,9 +387,9 @@ func (m *Main) ProviderFunctions(ctx context.Context, config *StackConfig) (lang
 	fns := make(map[string]map[string]function.Function, len(m.providerFactories))
 
 	for addr := range m.providerFactories {
-		provider := m.ProviderType(ctx, addr)
+		provider := m.ProviderType(addr)
 
-		local, ok := config.ProviderLocalName(ctx, addr)
+		local, ok := config.ProviderLocalName(addr)
 		if !ok {
 			log.Printf("[ERROR] Provider %s is not in the required providers block", addr)
 			// This also shouldn't happen, as every provider should be
@@ -437,7 +434,7 @@ func (m *Main) ProviderFunctions(ctx context.Context, config *StackConfig) (lang
 // This does not check whether the given provider type is available in the
 // current evaluation context, but attempting to create a client for a
 // provider that isn't available will return an error at startup time.
-func (m *Main) ProviderType(ctx context.Context, addr addrs.Provider) *ProviderType {
+func (m *Main) ProviderType(addr addrs.Provider) *ProviderType {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -476,7 +473,7 @@ func (m *Main) PreviousProviderInstances(addr stackaddrs.AbsComponentInstance, p
 // caller, if any. The caller of this function is responsible for replacing
 // missing values with defaults, and performing type conversion and and
 // validation.
-func (m *Main) RootVariableValue(ctx context.Context, addr stackaddrs.InputVariable, phase EvalPhase) ExternalInputValue {
+func (m *Main) RootVariableValue(addr stackaddrs.InputVariable, phase EvalPhase) ExternalInputValue {
 	switch phase {
 	case PlanPhase:
 		if !m.Planning() {
@@ -606,8 +603,8 @@ func (m *Main) DoCleanup(ctx context.Context) tfdiags.Diagnostics {
 // does not find a stack configuration object matching the given address,
 // for situations where the absense of a stack config represents a bug
 // somewhere in Terraform, rather than incorrect user input.
-func (m *Main) mustStackConfig(ctx context.Context, addr stackaddrs.Stack) *StackConfig {
-	ret := m.StackConfig(ctx, addr)
+func (m *Main) mustStackConfig(addr stackaddrs.Stack) *StackConfig {
+	ret := m.StackConfig(addr)
 	if ret == nil {
 		panic(fmt.Sprintf("no configuration for %s", addr))
 	}
@@ -617,27 +614,12 @@ func (m *Main) mustStackConfig(ctx context.Context, addr stackaddrs.Stack) *Stac
 // StackCallConfig returns the [StackCallConfig] object representing the
 // "stack" block in the configuration with the given address, or nil if there
 // is no such block.
-func (m *Main) StackCallConfig(ctx context.Context, addr stackaddrs.ConfigStackCall) *StackCallConfig {
-	caller := m.StackConfig(ctx, addr.Stack)
+func (m *Main) StackCallConfig(addr stackaddrs.ConfigStackCall) *StackCallConfig {
+	caller := m.StackConfig(addr.Stack)
 	if caller == nil {
 		return nil
 	}
-	return caller.StackCall(ctx, addr.Item)
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (m *Main) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.mainStackConfig != nil {
-		m.mainStackConfig.reportNamedPromises(cb)
-	}
-	if m.mainStack != nil {
-		m.mainStack.reportNamedPromises(cb)
-	}
-	for _, pty := range m.providerTypes {
-		pty.reportNamedPromises(cb)
-	}
+	return caller.StackCall(addr.Item)
 }
 
 // availableProvisioners returns the table of provisioner factories that should

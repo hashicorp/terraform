@@ -34,7 +34,7 @@ func walkStaticObjects[Output any](
 	main *Main,
 	visit func(ctx context.Context, walk *walkWithOutput[Output], obj StaticEvaler),
 ) {
-	walkStaticObjectsInStackConfig(ctx, walk, main.MainStackConfig(ctx), visit)
+	walkStaticObjectsInStackConfig(ctx, walk, main.MainStackConfig(), visit)
 }
 
 func walkStaticObjectsInStackConfig[Output any](
@@ -43,38 +43,38 @@ func walkStaticObjectsInStackConfig[Output any](
 	stackConfig *StackConfig,
 	visit func(ctx context.Context, walk *walkWithOutput[Output], obj StaticEvaler),
 ) {
-	for _, obj := range stackConfig.InputVariables(ctx) {
+	for _, obj := range stackConfig.InputVariables() {
 		visit(ctx, walk, obj)
 	}
 
-	for _, obj := range stackConfig.OutputValues(ctx) {
+	for _, obj := range stackConfig.OutputValues() {
 		visit(ctx, walk, obj)
 	}
 
 	// TODO: All of the other static object types
-	for _, obj := range stackConfig.LocalValues(ctx) {
+	for _, obj := range stackConfig.LocalValues() {
 		visit(ctx, walk, obj)
 	}
 
-	for _, obj := range stackConfig.Providers(ctx) {
+	for _, obj := range stackConfig.Providers() {
 		visit(ctx, walk, obj)
 	}
 
-	for _, obj := range stackConfig.Components(ctx) {
+	for _, obj := range stackConfig.Components() {
 		visit(ctx, walk, obj)
 	}
 
-	for _, objs := range stackConfig.Removeds(ctx) {
+	for _, objs := range stackConfig.Removeds() {
 		for _, obj := range objs {
 			visit(ctx, walk, obj)
 		}
 	}
 
-	for _, obj := range stackConfig.StackCalls(ctx) {
+	for _, obj := range stackConfig.StackCalls() {
 		visit(ctx, walk, obj)
 	}
 
-	for _, childCfg := range stackConfig.ChildConfigs(ctx) {
+	for _, childCfg := range stackConfig.ChildConfigs() {
 		walkStaticObjectsInStackConfig(ctx, walk, childCfg, visit)
 	}
 }
