@@ -102,7 +102,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 						if removed != nil {
 						Blocks:
 							for _, block := range removed {
-								if insts, unknown, _ := block.Instances(ctx, ApplyPhase); unknown {
+								if insts, unknown := block.InstancesFor(ctx, stack.addr, ApplyPhase); unknown {
 									// It might be that either the removed block
 									// or component block was deferred but the
 									// other one had proper changes. We'll note
@@ -246,7 +246,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 									))
 									success := true
 									for _, block := range removed {
-										if !block.ApplySuccessful(ctx) {
+										if !block.ApplySuccessful(ctx, stack.addr) {
 											success = false
 										}
 									}
