@@ -35,7 +35,7 @@ Show off your Terraform knowledge by passing a certification exam. Visit the [ce
 
 ## Developing Terraform
 
-This repository contains only Terraform core, which includes the command line interface and the main graph engine. Providers are implemented as plugins, and Terraform can automatically download providers that are published on [the Terraform Registry](https://registry.terraform.io). HashiCorp develops some providers, and others are developed by other organizations. For more information, see [Plugin development](https://developer.hashicorp.com/terraform/plugin).
+This repository contains only Terraform core, which includes the command line interface and the main graph engine. Providers are implemented as plugins, and Terraform can automatically download providers that are published on [the Terraform Registry](https://registry.terraform.io). HashiCorp develops some providers, and others are developed by other organizations. For more information, refer to [Plugin development](https://developer.hashicorp.com/terraform/plugin).
 
 - To learn more about compiling Terraform and contributing suggested changes, refer to [the contributing guide](.github/CONTRIBUTING.md).
 
