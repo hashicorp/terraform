@@ -7,13 +7,13 @@ description: How to use the `check` block to validate infrastructure outside of 
 
 Use the `check` block to validate your infrastructure outside of the typical resource lifecycle.
 
-The `check` block executes as the last step of plan or apply operation, after Terraform has planned or provisioned your infrastructure. When a `check` block's assertion fails, Terraform reports a warning and continues executing the current operation.
+Terraform executes the `check` block as the last step of plan or apply operation, after Terraform has planned or provisioned your infrastructure. When a `check` block's assertion fails, Terraform reports a warning and continues executing the current operation.
 
 ## Background
 
 Terraform evaluates `check` blocks locally whenever you plan or apply your configuration. In HCP Terraform, you can enable health checks on a workspace to automatically and continuously execute checks defined in that workspace's configuration. Refer to [Continuous validation](/terraform/cloud-docs/workspaces/health#continuous-validation) for details.
 
-The `check` block is one of Terraform's validation rules for verifying your configuration. Other validation rules run during other stages of a Terraform operation, and can block operations if they fail. The `check` block is the only validation rule that does not block operations if it fails, instead Terraform reports a warning and continues executing the current operation. For information on other validation rules, refer to [Validate your configuration](/terraform/language/expressions/custom-conditions).
+The `check` block is one of Terraform's validation rules for verifying your configuration. Checks contain assertions, which specify the condition that Terraform is verifying during that check. Other validation rules run during other stages of a Terraform operation, and can block operations if they fail. The `check` block is the only validation rule that does not block operations, if a `check` block's assertion fails, Terraform reports a warning and continues executing the current operation. For information on other validation rules, refer to [Validate your configuration](/terraform/language/expressions/custom-conditions).
 
 <!-- TODO: Fix link once have Validate your configuration page -->
 
@@ -22,13 +22,13 @@ The `check` block is one of Terraform's validation rules for verifying your conf
 The `check` block supports the following arguments:
 
 - [`check "<LABEL>"`](#check) &nbsp; block
- - [`assert`](#assert) &nbsp; block (required)
-   - [`condition`](#assert) &nbsp; expression
-   - [`error_message`](#assert) &nbsp; string
- - [`data "<TYPE>" "<LABEL>"`](#data) &nbsp; block
-   - [`PROVIDER_ARGUMENTS`](#provider_arguments) &nbsp; block | refer to your provider documentation
-   - [`depends_on`](#depends_on) &nbsp; list of references
-   - [`provider`](#provider) &nbsp; reference
+   - [`assert`](#assert) &nbsp; block (required)
+      - [`condition`](#assert) &nbsp; expression
+      - [`error_message`](#assert) &nbsp; string
+   - [`data "<TYPE>" "<LABEL>"`](#data) &nbsp; block
+      - [`PROVIDER_ARGUMENTS`](#provider_arguments) &nbsp; block | refer to your provider documentation
+     - [`depends_on`](#depends_on) &nbsp; list of references
+     - [`provider`](#provider) &nbsp; reference
 
 ## Complete configuration
 
@@ -55,14 +55,14 @@ A `check` block supports the following configuration.
 
 ### `check "<LABEL>"`
 
-While declaring a `check` block, you must add a unique label that starts with a letter or underscore and contains only letters, digits, underscores, and dashes.
+[Follow Terraform's resource naming rules](/terraform/language/style#resource-naming) when you declare a `check` block.
 
-You can define the following blocks on a `check` block. A `check` block's assertion(s) are the conditions the check verifies.
+You can define the following blocks on a `check` block. 
 
 | Argument | Description | Type | Required |
 | --- | --- | --- | --- |
-| `assert` | The validation condition to evaluate. A check block contains one or more assertions. | Block | Required |
-| `data` | One nested data source to use for validation. You can only reference this data source within its enclosing `check` block. | Block | Optional |
+| `assert` | The validation condition to evaluate. A `check` block contains one or more assertions. | Block | Required |
+| `data` | Specifies a data source to use for validation. You can only reference this data source within its parent `check` block. | Block | Optional |
 
 ### `assert`
 
@@ -77,7 +77,7 @@ check "unique_name" {
 }
 ```
 
-For a check to pass, each `assert` block's `condition` must evaluate to `true`. The `condition` arguments within an `assert` block can reference nested data sources within the enclosing `check` block and any variables, resources, data sources, or module outputs within the current module.
+For a check to pass, each `assert` block's `condition` must evaluate to `true`. The `condition` arguments within an `assert` block can reference [nested data sources](#data) within the parent `check` block and any variables, resources, data sources, or module outputs within the current module.
 
 The `assert` block supports the following arguments:
 
