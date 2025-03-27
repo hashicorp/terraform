@@ -3,20 +3,20 @@ module github.com/hashicorp/terraform/internal/backend/remote-state/gcs
 go 1.24.1
 
 require (
-	cloud.google.com/go/kms v1.15.0
+	cloud.google.com/go/kms v1.15.5
 	cloud.google.com/go/storage v1.30.1
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/zclconf/go-cty v1.16.2
 	golang.org/x/oauth2 v0.27.0
-	google.golang.org/api v0.126.0
-	google.golang.org/genproto v0.0.0-20230822172742-b8732ec3820d
+	google.golang.org/api v0.155.0
+	google.golang.org/genproto v0.0.0-20231211222908-989df2bf70f3
 )
 
 require (
-	cloud.google.com/go v0.110.7 // indirect
+	cloud.google.com/go v0.110.10 // indirect
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect
-	cloud.google.com/go/iam v1.1.1 // indirect
+	cloud.google.com/go/iam v1.1.5 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/apparentlymart/go-versions v1.0.2 // indirect
@@ -24,10 +24,10 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/s2a-go v0.1.4 // indirect
+	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
-	github.com/googleapis/gax-go/v2 v2.11.0 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
+	github.com/googleapis/gax-go/v2 v2.12.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-slug v0.16.3 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
