@@ -111,7 +111,7 @@ func (r *RemovedComponent) Instances(ctx context.Context, phase EvalPhase) (map[
 				return nil
 			}
 
-			return newRemovedComponentInstance(r, addr, rd, false)
+			return newRemovedComponentInstance(r, addr, rd, r.stack.deferred)
 		})
 
 		// Now, filter out any instances that are not known to the previous

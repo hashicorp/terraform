@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -182,8 +183,8 @@ Steps:
 		}
 		traversal = traversal[2:] // consume the first two steps that we already dealt with
 		if len(traversal) > 0 {
-			idxStep, ok := traversal[0].(hcl.TraverseIndex)
-			if ok {
+			switch idxStep := traversal[0].(type) {
+			case hcl.TraverseIndex:
 				var err error
 				addrStep.Key, err = addrs.ParseInstanceKey(idxStep.Key)
 				if err != nil {
@@ -196,6 +197,9 @@ Steps:
 					return nil, nil, diags
 				}
 				traversal = traversal[1:] // consume the step we just dealt with
+			case hcl.TraverseSplat:
+				addrStep.Key = addrs.WildcardKey
+				traversal = traversal[1:]
 			}
 		}
 		stackInst = append(stackInst, addrStep)

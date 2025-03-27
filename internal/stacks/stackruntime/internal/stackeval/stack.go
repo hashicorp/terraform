@@ -29,10 +29,11 @@ import (
 // repetition arguments (if any) evaluated to determine how many instances
 // it has.
 type Stack struct {
-	addr   stackaddrs.StackInstance
-	parent *Stack
-	config *StackConfig
-	main   *Main
+	addr     stackaddrs.StackInstance
+	parent   *Stack
+	config   *StackConfig
+	main     *Main
+	deferred bool
 
 	// externalRemovedComponents are the set of removed blocks that might
 	// target components within either this stack or a child of this stack.
@@ -56,11 +57,12 @@ var (
 	_ Applyable       = (*Stack)(nil)
 )
 
-func newStack(main *Main, addr stackaddrs.StackInstance, parent *Stack, config *StackConfig, removedComponents collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent]) *Stack {
+func newStack(main *Main, addr stackaddrs.StackInstance, parent *Stack, config *StackConfig, removedComponents collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent], deferred bool) *Stack {
 	return &Stack{
 		parent:                    parent,
 		config:                    config,
 		addr:                      addr,
+		deferred:                  deferred,
 		main:                      main,
 		externalRemovedComponents: removedComponents,
 	}
@@ -199,6 +201,25 @@ func (s *Stack) EmbeddedStackCalls() map[stackaddrs.StackCall]*StackCall {
 
 func (s *Stack) EmbeddedStackCall(addr stackaddrs.StackCall) *StackCall {
 	return s.EmbeddedStackCalls()[addr]
+}
+
+func (s *Stack) KnownEmbeddedStacks(addr stackaddrs.StackCall, phase EvalPhase) map[stackaddrs.StackInstanceStep]bool {
+	switch phase {
+	case PlanPhase:
+		return s.main.PlanPrevState().StackInstances(stackaddrs.AbsStackCall{
+			Stack: s.addr,
+			Item:  addr,
+		})
+	case ApplyPhase:
+		return s.main.PlanBeingApplied().StackInstances(stackaddrs.AbsStackCall{
+			Stack: s.addr,
+			Item:  addr,
+		})
+	default:
+		// We're not executing with an existing state in the other phases, so
+		// we have no known instances.
+		return nil
+	}
 }
 
 func (s *Stack) Components() map[stackaddrs.Component]*Component {
