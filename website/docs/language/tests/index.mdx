@@ -162,7 +162,7 @@ In the above example, the `first` and `second` `run` blocks implicitly have `par
 
 ### Assertions
 
-Terraform run block assertions are a way of [Validating your configuration](/terraform/language/mitigate-risk/validate), consisting of a [condition](/terraform/language/expressions/conditionals) and an [error message](/terraform/language/mitigate-risk/validate#error-messages).
+Terraform run block assertions are a way of [Validating your configuration](/terraform/language/mitigate-risk/validate). Each `run` block consist of a [condition](/terraform/language/expressions/conditionals) and an [error message](/terraform/language/mitigate-risk/validate#error-messages).
 
 At the conclusion of a Terraform test command execution, Terraform presents any failed assertions as part of a tests passed or failed status.
 
@@ -757,7 +757,7 @@ If you use a single setup module as an alternate module, and it executes first, 
 
 ## Expecting failures
 
-By default, if , including `check` block assertions, fail during the execution of a Terraform test file then the overall command reports the test as a failure.
+By default, if any [validation](/terraform/language/mitigate-risk/validate), including `check` block assertions, fails during the execution of a Terraform test file then the overall command reports the test as a failure.
 
 However, it is a common testing paradigm to want to test failure cases. Terraform supports the `expect_failures` attribute for this use case.
 

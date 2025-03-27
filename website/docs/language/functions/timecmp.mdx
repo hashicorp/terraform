@@ -43,8 +43,8 @@ both be strings conforming to this syntax.
 0
 ```
 
-`timecmp` can be particularly useful while writing validations that involve a specified timestamp being within a particular range
-Refer to [Validating your configuration](/terraform/language/mitigate-risk/validate) to learn more. For example,
+`timecmp` can be particularly useful while writing validations that involve a specified timestamp being within a particular range.
+Refer to [Validating your configuration](/terraform/language/mitigate-risk/validate) to learn more about validating your configuration. For example,
 the following resource postcondition would raise an error if a TLS certificate
 (or other expiring object) expires sooner than 30 days from the time of
 the "apply" step:
