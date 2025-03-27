@@ -219,7 +219,7 @@ func (s *Stack) Component(addr stackaddrs.Component) *Component {
 	return s.Components()[addr]
 }
 
-func (s *Stack) Removeds() map[stackaddrs.Component][]*RemovedComponent {
+func (s *Stack) RemovedComponents() map[stackaddrs.Component][]*RemovedComponent {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -227,7 +227,7 @@ func (s *Stack) Removeds() map[stackaddrs.Component][]*RemovedComponent {
 		return s.removed
 	}
 
-	decls := s.config.Removeds()
+	decls := s.config.RemovedComponents()
 	ret := make(map[stackaddrs.Component][]*RemovedComponent, len(decls))
 	for _, blocks := range decls {
 		for _, r := range blocks {
@@ -242,14 +242,14 @@ func (s *Stack) Removeds() map[stackaddrs.Component][]*RemovedComponent {
 	return ret
 }
 
-func (s *Stack) Removed(addr stackaddrs.Component) []*RemovedComponent {
-	return s.Removeds()[addr]
+func (s *Stack) RemovedComponent(addr stackaddrs.Component) []*RemovedComponent {
+	return s.RemovedComponents()[addr]
 }
 
 // ApplyableComponents returns the combination of removed blocks and declared
 // components for a given component address.
 func (s *Stack) ApplyableComponents(addr stackaddrs.Component) (*Component, []*RemovedComponent) {
-	return s.Component(addr), s.Removed(addr)
+	return s.Component(addr), s.RemovedComponent(addr)
 }
 
 // KnownComponentInstances returns a set of the component instances that belong
@@ -565,7 +565,7 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 
 	// We're going to validate that all the removed blocks in this stack resolve
 	// to unique instance addresses.
-	for _, blocks := range s.Removeds() {
+	for _, blocks := range s.RemovedComponents() {
 		seen := make(map[addrs.InstanceKey]*RemovedComponentInstance)
 		for _, block := range blocks {
 			insts, unknown, _ := block.Instances(ctx, PlanPhase)

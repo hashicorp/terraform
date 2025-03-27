@@ -392,10 +392,10 @@ func (s *StackConfig) Components() map[stackaddrs.Component]*ComponentConfig {
 	return ret
 }
 
-// Removed returns a [RemovedComponentConfig] representing the component call
-// declared within this stack config that matches the given address, or nil if
-// there is no such declaration.
-func (s *StackConfig) Removed(addr stackaddrs.Component) []*RemovedComponentConfig {
+// RemovedComponent returns a [RemovedComponentConfig] representing the
+// component call declared within this stack config that matches the given
+// address, or nil if there is no such declaration.
+func (s *StackConfig) RemovedComponent(addr stackaddrs.Component) []*RemovedComponentConfig {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -415,16 +415,16 @@ func (s *StackConfig) Removed(addr stackaddrs.Component) []*RemovedComponentConf
 	return ret
 }
 
-// Removeds returns a map of the objects representing all of the
+// RemovedComponents returns a map of the objects representing all of the
 // removed calls declared inside this stack configuration.
-func (s *StackConfig) Removeds() map[stackaddrs.Component][]*RemovedComponentConfig {
+func (s *StackConfig) RemovedComponents() map[stackaddrs.Component][]*RemovedComponentConfig {
 	if len(s.config.Stack.Removed) == 0 {
 		return nil
 	}
 	ret := make(map[stackaddrs.Component][]*RemovedComponentConfig, len(s.config.Stack.Removed))
 	for name := range s.config.Stack.Removed {
 		addr := stackaddrs.Component{Name: name}
-		ret[addr] = s.Removed(addr)
+		ret[addr] = s.RemovedComponent(addr)
 	}
 	return ret
 }
