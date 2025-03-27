@@ -8,8 +8,6 @@ description: >-
 
 Terraform has a few ways to validate your configuration, all of which let you document and enforce your configuration's requirements, help you prevent configuration errors and provide contextual error messages. Validate your configuration to improve your module consumer's troubleshooting, make your runs more predictable, and help your maintainers understand your configuration's intent.
 
-<>{/* TODO: add video */}</>
-
 ## Introduction
 
 Validation helps you verify that your Terraform configuration works as you intend. Using different types of validation you can:
@@ -29,7 +27,7 @@ For authors, adding validation to your configuration enforces your module's stan
 
 - Terraform v0.13.0 or later for [input variable validation](#input-variable-validation)
 - Terraform v1.2.0 or later for [preconditions and postconditions](#preconditions-and-postconditions)
-- Terraform v1.5.0 or later for [`check` blocks](#checks-with-assertions)
+- Terraform v1.5.0 or later for [`check` blocks](#checks)
 
 ## Choose a validation for your use case
 
@@ -112,7 +110,7 @@ output "instance_public_ip" {
 }
 ```
 
-If the `precondition` fails, Terraform throws an error with the `error_message` and stops the current operation. Refer to the [output configuration reference](TODO) for more details.
+If the `precondition` fails, Terraform throws an error with the `error_message` and stops the current operation. Refer to the [`output` block reference](/terraform/language/values/outputs) for more details.
 
 #### Postconditions
 
@@ -136,7 +134,7 @@ data "aws_ami" "example" {
 
 Unless the component has the `"nomad-server"` tag, the postcondition fails, which prevents using the incorrect AMI to provision a server. If the postcondition fails, Terraform throws an error with the `error_message` argument and stops the current operation.
 
-Adding postconditions can prevent cascading changes to other dependent resources. Refer to the [`resource` configuration reference](TODO) for more examples of using a `postcondition` block.
+Adding postconditions can prevent cascading changes to other dependent resources. Refer to the [`resource` configuration reference](/terraform/language/resources/syntax) for more examples of using a `postcondition` block.
 
 Postconditions can serve as static guardrails to enforce mandatory configuration aspects on your `data` and `resource` blocks. For verifying infrastructure dynamically against external or changing conditions, we recommend using the `check` blocks, which run as the final step of a Terraform operation after postconditions. Learn more about the [`check` block](#checks).
 
@@ -200,146 +198,16 @@ Terraform validates different aspects of your configuration as early as it can. 
 1. Terraform executes postconditions after planning and applying changes.
 1. Terraform executes checks at the end of plan and apply operations, and whenever health assessments run on a workspace in HCP Terraform.
 
-![Validation order diagram](/img/docs/validation-order-diagram.png)
+
+![Order of operations for when validations run](/public/img/validation-order-of-operations-dark.jpg#light-theme-only)
+
+![Order of operations for when validations run](img/docs/validation-order-of-operations-dark.jpg)
 
 The precise order that Terraform executes `check` blocks, preconditions, and postconditions can depend on whether Terraform knows a condition's value before or after applying your configuration. If the relevant value is available before an apply operation, then Terraform performs the validation during the planning phase. For example, if Terraform knows a resource's image ID during planning, it can execute any validations that rely on that ID.
 
 If Terraform only knows the value after applying, then Terraform delays checking that validation rule until the apply phase. For example, AWS assigns the root volume ID when it starts an EC2 instance, so Terraform cannot reference the root volume ID until the apply is complete.
 
 During the apply phase, a failed precondition prevents Terraform from implementing planned actions for the associated resource, data source, or output. A failed postcondition halts processing and prevents further downstream actions that rely on the resource or data source, but does not undo any actions Terraform has already taken.
-
-## Condition expressions
-
-Check assertions, input variable validation, preconditions, and postconditions all require a `condition` argument. This is a boolean expression that should return `true` if the intended assumption or guarantee is fulfilled or `false` if it does not.
-
-You can use any of Terraform's built-in functions or language operators
-in a condition as long as the expression is valid and returns a boolean result. The following language features are particularly useful when writing condition expressions.
-
-### Logical operator examples
-
-Use the logical operators `&&` (AND), `||` (OR), and `!` (NOT) to combine multiple conditions together.
-
-```hcl
-  condition = var.name != "" && lower(var.name) == var.name
-```
-
-You can also use arithmetic operators (e.g. `a + b`), equality operators (eg., `a == b`) and comparison operators (e.g., `a < b`). Refer to [Arithmetic and Logical Operators](/terraform/language/expressions/operators) for details.
-
-### `contains` Function
-
-Use the [`contains` function](/terraform/language/functions/contains) to test whether a given value is one of a set of predefined valid values.
-
-```hcl
-  condition = contains(["STAGE", "PROD"], var.environment)
-```
-
-### `length` Function
-
-Use the [`length` function](/terraform/language/functions/length) to test a collection's length and require a non-empty list or map.
-
-```hcl
-  condition = length(var.items) != 0
-```
-This is a better approach than directly comparing with another collection using `==` or `!=`. This is because the comparison operators can only return `true` if both operands have exactly the same type, which is often ambiguous for empty collections.
-
-### `for` Expressions
-
-Use [`for` expressions](/terraform/language/expressions/for) in conjunction with the functions `alltrue` and `anytrue` to test whether a condition holds for all or for any elements of a collection.
-
-```hcl
-  condition = alltrue([
-    for v in var.instances : contains(["t2.micro", "m3.medium"], v.type)
-  ])
-```
-
-### `can` Function
-
-Use the [`can` function](/terraform/language/functions/can) to concisely use the validity of an expression as a condition. It returns `true` if its given expression evaluates successfully and `false` if it returns any error, so you can use various other functions that typically return errors as a part of your condition expressions.
-
-For example, you can use `can` with `regex` to test if a string matches a particular pattern because `regex` returns an error when given a non-matching string.
-
-```hcl
-  condition = can(regex("^[a-z]+$", var.name))
-```
-
-You can also use `can` with the type conversion functions to test whether a value is convertible to a type or type constraint.
-
-```hcl
-  # This remote output value must have a value that can
-  # be used as a string, which includes strings themselves
-  # but also allows numbers and boolean values.
-  condition = can(tostring(data.terraform_remote_state.example.outputs["name"]))
-```
-
-```hcl
-  # This remote output value must be convertible to a list
-  # type of with element type.
-  condition = can(tolist(data.terraform_remote_state.example.outputs["items"]))
-```
-
-You can also use `can` with attribute access or index operators to test whether a collection or structural value has a particular element or index.
-
-```hcl
-  # var.example must have an attribute named "foo"
-  condition = can(var.example.foo)
-```
-
-```hcl
-  # var.example must be a sequence with at least one element
-  condition = can(var.example[0])
-  # (although it would typically be clearer to write this as a
-  # test like length(var.example) > 0 to better represent the
-  # intent of the condition.)
-```
-
-### `self` Object
-
-Use the `self` object in postcondition blocks to refer to attributes of the instance under evaluation.
-
-```hcl
-resource "aws_instance" "example" {
-  instance_type = "t2.micro"
-  ami           = "ami-abc123"
-
-  lifecycle {
-    postcondition {
-      condition     = self.instance_state == "running"
-      error_message = "EC2 instance must be running."
-    }
-  }
-}
-```
-
-### `each` and `count` Objects
-
-In blocks where [`for_each`](/terraform/language/meta-arguments/for_each) or [`count`](/terraform/language/meta-arguments/count)  are set, use `each` and `count` objects to refer to other resources that are expanded in a chain.
-
-```hcl
-variable "vpc_cidrs" {
-  type = set(string)
-}
-
-data "aws_vpc" "example" {
-  for_each = var.vpc_cidrs
-
-  filter {
-    name   = "cidr"
-    values = [each.key]
-  }
-}
-
-resource "aws_internet_gateway" "example" {
-  for_each = data.aws_vpc.example
-  vpc_id = each.value.id
-
-  lifecycle {
-    precondition {
-      condition     = data.aws_vpc.example[each.key].state == "available"
-      error_message = "VPC ${each.key} must be available."
-    }
-  }
-}
-```
 
 ## Error Messages
 
@@ -369,11 +237,12 @@ style similar to Terraform's own error messages. Terraform will show the
 message alongside the name of the resource that detected the problem and any
 external values included in the condition expression.
 
+## Conditions
+
+To learn more about the conditions you can use in validations, refer to [Conditional Expressions](/terraform/language/expressions/conditions).
+
 ## Next steps
 
-(WIP) Learn more about syntax of each validation rule:
-
-- [`check` configuration reference](TODO)
-- [`variable` configuration reference](TODO)
-- [`resource` configuration reference](TODO)
-- TODO: Test and policies
+Validating your configuration is the first step to mitigating risk in your infrastructure. You can further mitigate risk in your infrastructure lifecycle by:
+- [Adding tests](/terraform/language/tests) to let authors validate that module configuration updates do not introduce breaking changes. Learn more about [testing](/terraform/language/tests).
+- Using policies in HCP Terraform to validate that Terraform plans comply with your organization's security rules and best practices. Learn more about [policies](/terraform/cloud-docs/policies).
