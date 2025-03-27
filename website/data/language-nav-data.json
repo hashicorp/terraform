@@ -273,11 +273,11 @@
   },
   {
     "title": "Moved block",
-    "path": "moved"
+    "href": "/terraform/language/block/moved"
   },
   {
     "title": "Terraform block",
-    "path": "terraform"
+    "href": "/terraform/language/block/terraform"
   },
   {
     "title": "Backend block",
@@ -1107,6 +1107,21 @@
   {
     "title": "v1.x Compatibility Promises",
     "path": "v1-compatibility-promises"
+  },
+  { "divider": true },
+  { "heading": "REFERENCE" },
+  {
+    "title": "Configuration blocks",
+    "routes": [
+      {
+      "title": "Moved block",
+      "path": "block/moved"
+      },
+      {
+        "title": "Terraform block",
+        "path": "block/terraform"
+      }
+    ]
   },
   { "divider": true },
   { "title": "Terraform Internals", "href": "/internals" }
