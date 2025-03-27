@@ -13,6 +13,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -43,7 +44,7 @@ type StackConfig struct {
 	outputValues   map[stackaddrs.OutputValue]*OutputValueConfig
 	stackCalls     map[stackaddrs.StackCall]*StackCallConfig
 	components     map[stackaddrs.Component]*ComponentConfig
-	removed        map[stackaddrs.Component][]*RemovedComponentConfig
+	removed        collections.Map[stackaddrs.ConfigComponent, []*RemovedComponentConfig]
 	providers      map[stackaddrs.ProviderConfig]*ProviderConfig
 }
 
@@ -64,7 +65,7 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, parent *StackConfig, conf
 		outputValues:   make(map[stackaddrs.OutputValue]*OutputValueConfig, len(config.Stack.Declarations.OutputValues)),
 		stackCalls:     make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
 		components:     make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
-		removed:        make(map[stackaddrs.Component][]*RemovedComponentConfig, len(config.Stack.Declarations.Removed)),
+		removed:        collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponentConfig](),
 		providers:      make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(config.Stack.Declarations.ProviderConfigs)),
 	}
 }
@@ -395,36 +396,31 @@ func (s *StackConfig) Components() map[stackaddrs.Component]*ComponentConfig {
 // RemovedComponent returns a [RemovedComponentConfig] representing the
 // component call declared within this stack config that matches the given
 // address, or nil if there is no such declaration.
-func (s *StackConfig) RemovedComponent(addr stackaddrs.Component) []*RemovedComponentConfig {
+func (s *StackConfig) RemovedComponent(addr stackaddrs.ConfigComponent) []*RemovedComponentConfig {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ret, ok := s.removed[addr]
+	ret, ok := s.removed.GetOk(addr)
 	if !ok {
-		cfgs, ok := s.config.Stack.Removed[addr.Name]
-		if !ok {
-			return nil
-		}
-		for _, cfg := range cfgs {
-			cfgAddr := stackaddrs.Config(s.addr, addr)
+		for _, cfg := range s.config.Stack.Removed.Get(addr) {
+			cfgAddr := stackaddrs.ConfigComponent{
+				Stack: append(s.addr, addr.Stack...),
+				Item:  addr.Item,
+			}
 			removed := newRemovedComponentConfig(s.main, cfgAddr, s, cfg)
 			ret = append(ret, removed)
 		}
-		s.removed[addr] = ret
+		s.removed.Put(addr, ret)
 	}
 	return ret
 }
 
 // RemovedComponents returns a map of the objects representing all of the
 // removed calls declared inside this stack configuration.
-func (s *StackConfig) RemovedComponents() map[stackaddrs.Component][]*RemovedComponentConfig {
-	if len(s.config.Stack.Removed) == 0 {
-		return nil
-	}
-	ret := make(map[stackaddrs.Component][]*RemovedComponentConfig, len(s.config.Stack.Removed))
-	for name := range s.config.Stack.Removed {
-		addr := stackaddrs.Component{Name: name}
-		ret[addr] = s.RemovedComponent(addr)
+func (s *StackConfig) RemovedComponents() collections.Map[stackaddrs.ConfigComponent, []*RemovedComponentConfig] {
+	ret := collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponentConfig]()
+	for addr := range s.config.Stack.Removed.All() {
+		ret.Put(addr, s.RemovedComponent(addr))
 	}
 	return ret
 }
