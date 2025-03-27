@@ -1,9 +1,9 @@
 # Terraform
 
-- Website: https://www.terraform.io
+- Website: https://developer.hashicorp.com/terraform
 - Forums: [HashiCorp Discuss](https://discuss.hashicorp.com/c/terraform-core)
-- Documentation: [https://www.terraform.io/docs/](https://www.terraform.io/docs/)
-- Tutorials: [HashiCorp's Learn Platform](https://learn.hashicorp.com/terraform)
+- Documentation: [https://developer.hashicorp.com/terraform/docs](https://developer.hashicorp.com/terraform/docs)
+- Tutorials: [HashiCorp's Learn Platform](https://developer.hashicorp.com/terraform/tutorials)
 - Certification Exam: [HashiCorp Certified: Terraform Associate](https://www.hashicorp.com/certification/#hashicorp-certified-terraform-associate)
 
 <img alt="Terraform" src="https://www.datocms-assets.com/2885/1731373310-terraform_white.svg" width="600px">
@@ -24,10 +24,10 @@ For more information, refer to the [What is Terraform?](https://www.terraform.io
 
 ## Getting Started & Documentation
 
-Documentation is available on the [Terraform website](https://www.terraform.io):
+Documentation is available on the [Terraform website](https://developer.hashicorp.com/terraform):
 
-- [Introduction](https://www.terraform.io/intro)
-- [Documentation](https://www.terraform.io/docs)
+- [Introduction](https://developer.hashicorp.com/terraform/intro)
+- [Documentation](https://developer.hashicorp.com/terraform/docs)
 
 If you're new to Terraform and want to get started creating infrastructure, please check out our [Getting Started guides](https://learn.hashicorp.com/terraform#getting-started) on HashiCorp's learning platform. There are also [additional guides](https://learn.hashicorp.com/terraform#operations-and-development) to continue your learning.
 
