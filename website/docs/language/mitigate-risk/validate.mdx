@@ -199,9 +199,9 @@ Terraform validates different aspects of your configuration as early as it can. 
 1. Terraform executes checks at the end of plan and apply operations, and whenever health assessments run on a workspace in HCP Terraform.
 
 
-![Order of operations for when validations run](/public/img/validation-order-of-operations-dark.jpg#light-theme-only)
+![Order of operations for when validations run](/img/docs/validation-order-of-operations-dark.jpg#light-theme-only)
 
-![Order of operations for when validations run](img/docs/validation-order-of-operations-dark.jpg)
+![Order of operations for when validations run](/img/docs/validation-order-of-operations-dark.jpg#dark-theme-only)
 
 The precise order that Terraform executes `check` blocks, preconditions, and postconditions can depend on whether Terraform knows a condition's value before or after applying your configuration. If the relevant value is available before an apply operation, then Terraform performs the validation during the planning phase. For example, if Terraform knows a resource's image ID during planning, it can execute any validations that rely on that ID.
 
