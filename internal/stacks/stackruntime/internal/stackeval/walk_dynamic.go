@@ -43,7 +43,7 @@ func walkDynamicObjects[Output any](
 	phase EvalPhase,
 	visit func(ctx context.Context, walk *walkWithOutput[Output], obj DynamicEvaler),
 ) {
-	walkDynamicObjectsInStack(ctx, walk, main.MainStack(ctx), phase, visit)
+	walkDynamicObjectsInStack(ctx, walk, main.MainStack(), phase, visit)
 }
 
 func walkDynamicObjectsInStack[Output any](
@@ -57,7 +57,7 @@ func walkDynamicObjectsInStack[Output any](
 	// we can explore downstream stacks concurrently with this one. Each
 	// stack call can represent zero or more child stacks that we'll analyze
 	// by recursive calls to this function.
-	for _, call := range stack.EmbeddedStackCalls(ctx) {
+	for _, call := range stack.EmbeddedStackCalls() {
 		call := call // separate symbol per loop iteration
 
 		visit(ctx, walk, call)
@@ -73,7 +73,7 @@ func walkDynamicObjectsInStack[Output any](
 				inst := call.UnknownInstance(ctx, phase)
 				visit(ctx, walk, inst)
 
-				childStack := inst.CalledStack(ctx)
+				childStack := inst.CalledStack()
 				walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
 				return
 			}
@@ -82,7 +82,7 @@ func walkDynamicObjectsInStack[Output any](
 			for _, inst := range insts {
 				visit(ctx, walk, inst)
 
-				childStack := inst.CalledStack(ctx)
+				childStack := inst.CalledStack()
 				walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
 			}
 		})
@@ -108,7 +108,7 @@ func walkDynamicObjectsInStack[Output any](
 
 	// We also need to visit and check all of the other declarations in
 	// the current stack.
-	for _, component := range stack.Components(ctx) {
+	for _, component := range stack.Components() {
 		component := component // separate symbol per loop iteration
 		visit(ctx, walk, component)
 
@@ -143,7 +143,7 @@ func walkDynamicObjectsInStack[Output any](
 				}
 
 				claimedInstances := collections.NewSet[stackaddrs.ComponentInstance]()
-				removed := stack.Removed(ctx, component.Addr().Item)
+				removed := stack.Removed(component.Addr().Item)
 				for _, block := range removed {
 					// In this case we don't care about the unknown. If the
 					// removed instances are unknown, then we'll mark
@@ -179,7 +179,10 @@ func walkDynamicObjectsInStack[Output any](
 					} else {
 						// Otherwise, the key is a known key and the instance
 						// actually does exist.
-						inst := newComponentInstance(component, inst.Key, instances.RepetitionData{
+						inst := newComponentInstance(component, stackaddrs.AbsComponentInstance{
+							Stack: stack.addr,
+							Item:  inst,
+						}, instances.RepetitionData{
 							EachKey:   inst.Key.Value(),
 							EachValue: cty.UnknownVal(cty.DynamicPseudoType),
 						}, true)
@@ -195,7 +198,7 @@ func walkDynamicObjectsInStack[Output any](
 			}
 		})
 	}
-	for addr, blocks := range stack.Removeds(ctx) {
+	for addr, blocks := range stack.Removeds() {
 
 		// knownInstances are the instances that already exist either
 		// because they are in the state or the plan.
@@ -224,7 +227,7 @@ func walkDynamicObjectsInStack[Output any](
 					if componentInstances.Len() == 0 {
 						// then we'll gather the component instances. we do this
 						// once, enforced by the mutex and the check above.
-						component := stack.Component(ctx, removed.Addr().Item)
+						component := stack.Component(removed.Addr().Item)
 						if component != nil {
 							insts, unknown := component.Instances(ctx, phase)
 							if unknown {
@@ -310,7 +313,7 @@ func walkDynamicObjectsInStack[Output any](
 	// Now, we'll do the rest of the declarations in the stack. These are
 	// straightforward since we don't have to reconcile blocks that overlap.
 
-	for _, provider := range stack.Providers(ctx) {
+	for _, provider := range stack.Providers() {
 		provider := provider // separate symbol per loop iteration
 
 		visit(ctx, walk, provider)
@@ -331,11 +334,11 @@ func walkDynamicObjectsInStack[Output any](
 			}
 		})
 	}
-	for _, variable := range stack.InputVariables(ctx) {
+	for _, variable := range stack.InputVariables() {
 		visit(ctx, walk, variable)
 	}
 	// TODO: Local values
-	for _, output := range stack.OutputValues(ctx) {
+	for _, output := range stack.OutputValues() {
 		visit(ctx, walk, output)
 	}
 

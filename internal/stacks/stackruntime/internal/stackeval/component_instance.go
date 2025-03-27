@@ -30,7 +30,7 @@ import (
 
 type ComponentInstance struct {
 	call     *Component
-	key      addrs.InstanceKey
+	addr     stackaddrs.AbsComponentInstance
 	deferred bool
 
 	main    *Main
@@ -38,7 +38,7 @@ type ComponentInstance struct {
 
 	repetition instances.RepetitionData
 
-	moduleTreePlan promising.Once[withDiagnostics[*plans.Plan]]
+	moduleTreePlan promising.Once[withDiagnostics[*plans.Plan]] // moduleTreePlan is only called during the plan phase
 }
 
 var _ Applyable = (*ComponentInstance)(nil)
@@ -46,10 +46,10 @@ var _ Plannable = (*ComponentInstance)(nil)
 var _ ExpressionScope = (*ComponentInstance)(nil)
 var _ ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance] = (*ComponentInstance)(nil)
 
-func newComponentInstance(call *Component, key addrs.InstanceKey, repetition instances.RepetitionData, deferred bool) *ComponentInstance {
+func newComponentInstance(call *Component, addr stackaddrs.AbsComponentInstance, repetition instances.RepetitionData, deferred bool) *ComponentInstance {
 	component := &ComponentInstance{
 		call:       call,
-		key:        key,
+		addr:       addr,
 		deferred:   deferred,
 		main:       call.main,
 		repetition: repetition,
@@ -59,15 +59,7 @@ func newComponentInstance(call *Component, key addrs.InstanceKey, repetition ins
 }
 
 func (c *ComponentInstance) Addr() stackaddrs.AbsComponentInstance {
-	callAddr := c.call.Addr()
-	stackAddr := callAddr.Stack
-	return stackaddrs.AbsComponentInstance{
-		Stack: stackAddr,
-		Item: stackaddrs.ComponentInstance{
-			Component: callAddr.Item,
-			Key:       c.key,
-		},
-	}
+	return c.addr
 }
 
 func (c *ComponentInstance) RepetitionData() instances.RepetitionData {
@@ -80,9 +72,9 @@ func (c *ComponentInstance) InputVariableValues(ctx context.Context, phase EvalP
 }
 
 func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
-	config := c.call.Config(ctx)
+	config := c.call.Config()
 	wantTy, defs := config.InputsType(ctx)
-	decl := c.call.Declaration(ctx)
+	decl := c.call.Declaration()
 	varDecls := config.RootModuleVariableDecls(ctx)
 
 	if wantTy == cty.NilType {
@@ -123,7 +115,7 @@ func (c *ComponentInstance) inputValuesForModulesRuntime(ctx context.Context, ph
 	// defined as unknown values of their expected type constraints. To
 	// achieve that, we'll do our work with the configuration's object type
 	// constraint instead of with the value we've been given directly.
-	wantTy, _ := c.call.Config(ctx).InputsType(ctx)
+	wantTy, _ := c.call.Config().InputsType(ctx)
 	if wantTy == cty.NilType {
 		// The configuration is too invalid for us to know what type we're
 		// expecting, so we'll just bail.
@@ -147,14 +139,14 @@ func (c *ComponentInstance) inputValuesForModulesRuntime(ctx context.Context, ph
 }
 
 func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipRefresh bool) (*terraform.PlanOpts, tfdiags.Diagnostics) {
-	decl := c.call.Declaration(ctx)
+	decl := c.call.Declaration()
 
 	inputValues := c.inputValuesForModulesRuntime(ctx, PlanPhase)
 	if inputValues == nil {
 		return nil, nil
 	}
 
-	known, unknown, moreDiags := EvalProviderValues(ctx, c.main, c.call.Declaration(ctx).ProviderConfigs, PlanPhase, c)
+	known, unknown, moreDiags := EvalProviderValues(ctx, c.main, c.call.Declaration().ProviderConfigs, PlanPhase, c)
 	if moreDiags.HasErrors() {
 		// We won't actually add the diagnostics here, they should be
 		// exposed via a different return path.
@@ -193,7 +185,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 	}
 
 	return doOnceWithDiags(
-		ctx, &c.moduleTreePlan, c.main,
+		ctx, c.tracingName()+" modules", &c.moduleTreePlan,
 		func(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
@@ -254,7 +246,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				// easily so instead we'll use the dependents computed at the
 				// last apply operation.
 			Dependents:
-				for depAddr := range c.PlanPrevDependents(ctx).All() {
+				for depAddr := range c.PlanPrevDependents().All() {
 					depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
 					if depStack == nil {
 						// something weird has happened, but this means that
@@ -262,7 +254,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 						// doesn't exist so it's fine.
 						continue
 					}
-					depComponent, depRemoveds := depStack.ApplyableComponents(ctx, depAddr.Item)
+					depComponent, depRemoveds := depStack.ApplyableComponents(depAddr.Item)
 					if depComponent != nil && !depComponent.PlanIsComplete(ctx) {
 						opts.ExternalDependencyDeferred = true
 						break
@@ -294,7 +286,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					opts.ExternalDependencyDeferred = true // to be conservative
 					break
 				}
-				depComponent := depStack.Component(ctx, depAddr.Item)
+				depComponent := depStack.Component(depAddr.Item)
 				if depComponent == nil {
 					opts.ExternalDependencyDeferred = true // to be conservative
 					break
@@ -307,7 +299,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 
 			// The instance is also upstream deferred if the for_each value for
 			// this instance or any parent stacks is unknown.
-			if c.key == addrs.WildcardKey {
+			if c.addr.Item.Key == addrs.WildcardKey {
 				opts.ExternalDependencyDeferred = true
 			} else {
 				for _, step := range c.call.addr.Stack {
@@ -318,7 +310,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				}
 			}
 
-			plan, moreDiags := PlanComponentInstance(ctx, c.main, c.PlanPrevState(ctx), opts, c)
+			plan, moreDiags := PlanComponentInstance(ctx, c.main, c.PlanPrevState(), opts, c)
 			return plan, diags.Append(moreDiags)
 		},
 	)
@@ -354,7 +346,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 	// This is the result to return along with any errors that prevent us from
 	// even starting the modules runtime apply phase. It reports that nothing
 	// changed at all.
-	noOpResult := c.PlaceholderApplyResultForSkippedApply(ctx, plan)
+	noOpResult := c.PlaceholderApplyResultForSkippedApply(plan)
 
 	// We'll need to make some light modifications to the plan to include
 	// information we've learned in other parts of the apply walk that
@@ -404,13 +396,13 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		return noOpResult, diags
 	}
 
-	result, moreDiags := ApplyComponentPlan(ctx, c.main, &modifiedPlan, c.call.Declaration(ctx).ProviderConfigs, c)
+	result, moreDiags := ApplyComponentPlan(ctx, c.main, &modifiedPlan, c.call.Declaration().ProviderConfigs, c)
 	return result, diags.Append(moreDiags)
 }
 
 // PlanPrevState returns the previous state for this component instance during
 // the planning phase, or panics if called in any other phase.
-func (c *ComponentInstance) PlanPrevState(ctx context.Context) *states.State {
+func (c *ComponentInstance) PlanPrevState() *states.State {
 	// The following call will panic if we aren't in the plan phase.
 	stackState := c.main.PlanPrevState()
 	ret := stackState.ComponentInstanceStateForModulesRuntime(c.Addr())
@@ -421,11 +413,11 @@ func (c *ComponentInstance) PlanPrevState(ctx context.Context) *states.State {
 }
 
 // PlanPrevDependents returns the set of dependents based on the state.
-func (c *ComponentInstance) PlanPrevDependents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+func (c *ComponentInstance) PlanPrevDependents() collections.Set[stackaddrs.AbsComponent] {
 	return c.main.PlanPrevState().DependentsForComponent(c.Addr())
 }
 
-func (c *ComponentInstance) PlanPrevResult(ctx context.Context) map[addrs.OutputValue]cty.Value {
+func (c *ComponentInstance) PlanPrevResult() map[addrs.OutputValue]cty.Value {
 	return c.main.PlanPrevState().ResultsForComponent(c.Addr())
 }
 
@@ -468,7 +460,7 @@ func (c *ComponentInstance) CheckApplyResult(ctx context.Context) (*ComponentIns
 // decided that for itself and then choose between either calling
 // [ComponentInstance.ApplyModuleTreePlan] to apply as normal, or returning
 // the result of this function instead to explain that the apply was skipped.
-func (c *ComponentInstance) PlaceholderApplyResultForSkippedApply(ctx context.Context, plan *plans.Plan) *ComponentInstanceApplyResult {
+func (c *ComponentInstance) PlaceholderApplyResultForSkippedApply(plan *plans.Plan) *ComponentInstanceApplyResult {
 	// (We have this in here as a method just because it helps keep all of
 	// the logic for constructing [ComponentInstanceApplyResult] objects
 	// together in the same file, rather than having the caller synthesize
@@ -501,7 +493,7 @@ func (c *ComponentInstance) CheckApplyResultState(ctx context.Context) (*states.
 
 // InspectingState returns the state as captured in the snapshot provided when
 // instantiating [Main] for [InspectPhase] evaluation.
-func (c *ComponentInstance) InspectingState(ctx context.Context) *states.State {
+func (c *ComponentInstance) InspectingState() *states.State {
 	wholeState := c.main.InspectingState()
 	return wholeState.ComponentInstanceStateForModulesRuntime(c.Addr())
 }
@@ -557,7 +549,7 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 		case ApplyPhase:
 			state = c.ApplyResultState(ctx)
 		case InspectPhase:
-			state = c.InspectingState(ctx)
+			state = c.InspectingState()
 		default:
 			panic(fmt.Sprintf("unsupported evaluation phase %s", state)) // should not get here
 		}
@@ -604,7 +596,7 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 		// The status of the apply operation will have been recorded elsewhere
 		// so we don't need to worry about that here. This also ensures that
 		// nothing will actually attempt to apply the unknown values here.
-		config := c.call.Config(ctx).ModuleTree(ctx)
+		config := c.call.Config().ModuleTree(ctx)
 		for _, output := range config.Module.Outputs {
 			if _, ok := attrs[output.Name]; !ok {
 				attrs[output.Name] = cty.DynamicVal
@@ -621,13 +613,13 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 
 // ResolveExpressionReference implements ExpressionScope.
 func (c *ComponentInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
-	stack := c.call.Stack(ctx)
+	stack := c.call.Stack()
 	return stack.resolveExpressionReference(ctx, ref, nil, c.repetition)
 }
 
 // ExternalFunctions implements ExpressionScope.
 func (c *ComponentInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return c.main.ProviderFunctions(ctx, c.call.Config(ctx).StackConfig(ctx))
+	return c.main.ProviderFunctions(ctx, c.call.Config().StackConfig())
 }
 
 // PlanTimestamp implements ExpressionScope, providing the timestamp at which
@@ -638,12 +630,12 @@ func (c *ComponentInstance) PlanTimestamp() time.Time {
 
 // ModuleTree implements ConfigComponentExpressionScope.
 func (c *ComponentInstance) ModuleTree(ctx context.Context) *configs.Config {
-	return c.call.Config(ctx).ModuleTree(ctx)
+	return c.call.Config().ModuleTree(ctx)
 }
 
 // DeclRange implements ConfigComponentExpressionScope.
-func (c *ComponentInstance) DeclRange(ctx context.Context) *hcl.Range {
-	return c.call.Declaration(ctx).DeclRange.ToHCL().Ptr()
+func (c *ComponentInstance) DeclRange() *hcl.Range {
+	return c.call.Declaration().DeclRange.ToHCL().Ptr()
 }
 
 // PlanChanges implements Plannable by validating that all of the per-instance
@@ -656,7 +648,7 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 	_, moreDiags := c.CheckInputVariableValues(ctx, PlanPhase)
 	diags = diags.Append(moreDiags)
 
-	_, _, moreDiags = EvalProviderValues(ctx, c.main, c.call.Declaration(ctx).ProviderConfigs, PlanPhase, c)
+	_, _, moreDiags = EvalProviderValues(ctx, c.main, c.call.Declaration().ProviderConfigs, PlanPhase, c)
 	diags = diags.Append(moreDiags)
 
 	corePlan, moreDiags := c.CheckModuleTreePlan(ctx)
@@ -716,7 +708,7 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 		inputs = cty.EmptyObjectVal
 	}
 
-	_, _, moreDiags = EvalProviderValues(ctx, c.main, c.call.Declaration(ctx).ProviderConfigs, ApplyPhase, c)
+	_, _, moreDiags = EvalProviderValues(ctx, c.main, c.call.Declaration().ProviderConfigs, ApplyPhase, c)
 	diags = diags.Append(moreDiags)
 
 	applyResult, moreDiags := c.CheckApplyResult(ctx)
@@ -737,7 +729,7 @@ func (c *ComponentInstance) ResourceSchema(ctx context.Context, providerTypeAddr
 	// the object we're working with. The error handling here is for
 	// robustness but any error here suggests a bug in Terraform.
 
-	providerType := c.main.ProviderType(ctx, providerTypeAddr)
+	providerType := c.main.ProviderType(providerTypeAddr)
 	providerSchema, err := providerType.Schema(ctx)
 	if err != nil {
 		return providers.Schema{}, err
@@ -756,9 +748,4 @@ func (c *ComponentInstance) RequiredComponents(ctx context.Context) collections.
 
 func (c *ComponentInstance) tracingName() string {
 	return c.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (c *ComponentInstance) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	cb(c.moduleTreePlan.PromiseID(), c.Addr().String()+" plan")
 }

@@ -9,14 +9,14 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/typeexpr"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+
 	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // InputVariableConfig represents a "variable" block in a stack configuration.
@@ -29,7 +29,6 @@ type InputVariableConfig struct {
 
 var _ Validatable = (*InputVariableConfig)(nil)
 var _ Referenceable = (*InputVariableConfig)(nil)
-var _ namedPromiseReporter = (*InputVariableConfig)(nil)
 
 func newInputVariableConfig(main *Main, addr stackaddrs.ConfigInputVariable, config *stackconfig.InputVariable) *InputVariableConfig {
 	if config == nil {
@@ -69,8 +68,8 @@ func (v *InputVariableConfig) NestedDefaults() *typeexpr.Defaults {
 // unknown value of the correct type. Use
 // [InputVariableConfig.ValidateDefaultValue] instead if you are intending
 // to report configuration diagnostics to the user.
-func (v *InputVariableConfig) DefaultValue(ctx context.Context) cty.Value {
-	ret, _ := v.ValidateDefaultValue(ctx)
+func (v *InputVariableConfig) DefaultValue() cty.Value {
+	ret, _ := v.ValidateDefaultValue()
 	return ret
 }
 
@@ -80,7 +79,7 @@ func (v *InputVariableConfig) DefaultValue(ctx context.Context) cty.Value {
 //
 // If the returned diagnostics has errors then the returned value is a
 // placeholder unknown value of the correct type.
-func (v *InputVariableConfig) ValidateDefaultValue(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+func (v *InputVariableConfig) ValidateDefaultValue() (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	val := v.config.DefaultValue
 	if val == cty.NilVal {
@@ -107,22 +106,22 @@ func (v *InputVariableConfig) ValidateDefaultValue(ctx context.Context) (cty.Val
 
 // StackConfig returns the stack configuration that this input variable belongs
 // to.
-func (v *InputVariableConfig) StackConfig(ctx context.Context) *StackConfig {
-	return v.main.mustStackConfig(ctx, v.Addr().Stack)
+func (v *InputVariableConfig) StackConfig() *StackConfig {
+	return v.main.mustStackConfig(v.Addr().Stack)
 }
 
 // StackCallConfig returns the stack call that would be providing the value
 // for this input variable, or nil if this input variable belongs to the
 // main (root) stack and therefore its value would come from outside of
 // the configuration.
-func (v *InputVariableConfig) StackCallConfig(ctx context.Context) *StackCallConfig {
+func (v *InputVariableConfig) StackCallConfig() *StackCallConfig {
 	calleeAddr := v.Addr().Stack
 	if calleeAddr.IsRoot() {
 		return nil
 	}
 	callerAddr := calleeAddr.Parent()
-	caller := v.main.mustStackConfig(ctx, callerAddr)
-	return caller.StackCall(ctx, stackaddrs.StackCall{Name: calleeAddr[len(calleeAddr)-1].Name})
+	caller := v.main.mustStackConfig(callerAddr)
+	return caller.StackCall(stackaddrs.StackCall{Name: calleeAddr[len(calleeAddr)-1].Name})
 }
 
 // ExprReferenceValue implements Referenceable
@@ -135,7 +134,7 @@ func (v *InputVariableConfig) ExprReferenceValue(ctx context.Context, phase Eval
 	} else {
 		// Our apparent value is the value assigned in the definition object
 		// in the parent call.
-		call := v.StackCallConfig(ctx)
+		call := v.StackCallConfig()
 		val := call.InputVariableValues(ctx, phase)[v.Addr().Item]
 		if val == cty.NilVal {
 			val = cty.UnknownVal(v.TypeConstraint())
@@ -159,24 +158,19 @@ func (v *InputVariableConfig) markValue(val cty.Value) cty.Value {
 	return val
 }
 
-func (v *InputVariableConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
+func (v *InputVariableConfig) checkValid() tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	_, moreDiags := v.ValidateDefaultValue(ctx)
+	_, moreDiags := v.ValidateDefaultValue()
 	diags = diags.Append(moreDiags)
 	return diags
 }
 
 // Validate implements Validatable
-func (v *InputVariableConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
-	return v.checkValid(ctx, ValidatePhase)
+func (v *InputVariableConfig) Validate(context.Context) tfdiags.Diagnostics {
+	return v.checkValid()
 }
 
 // PlanChanges implements Plannable.
-func (v *InputVariableConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
-	return nil, v.checkValid(ctx, PlanPhase)
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (s *InputVariableConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	// Nothing to report yet
+func (v *InputVariableConfig) PlanChanges(context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+	return nil, v.checkValid()
 }

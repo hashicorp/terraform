@@ -9,6 +9,10 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty-debug/ctydebug"
+	"github.com/zclconf/go-cty/cty"
+	"google.golang.org/protobuf/encoding/prototext"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -16,9 +20,6 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
-	"github.com/zclconf/go-cty-debug/ctydebug"
-	"github.com/zclconf/go-cty/cty"
-	"google.golang.org/protobuf/encoding/prototext"
 )
 
 func TestInputVariableValue(t *testing.T) {
@@ -86,8 +87,8 @@ func TestInputVariableValue(t *testing.T) {
 
 			t.Run("root", func(t *testing.T) {
 				promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
-					mainStack := main.MainStack(ctx)
-					rootVar := mainStack.InputVariable(ctx, stackaddrs.InputVariable{Name: "name"})
+					mainStack := main.MainStack()
+					rootVar := mainStack.InputVariable(stackaddrs.InputVariable{Name: "name"})
 					got, diags := rootVar.CheckValue(ctx, InspectPhase)
 
 					if test.WantRootErr {
@@ -111,7 +112,7 @@ func TestInputVariableValue(t *testing.T) {
 				t.Run("child", func(t *testing.T) {
 					promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
 						childStack := main.Stack(ctx, childStackAddr, InspectPhase)
-						rootVar := childStack.InputVariable(ctx, stackaddrs.InputVariable{Name: "name"})
+						rootVar := childStack.InputVariable(stackaddrs.InputVariable{Name: "name"})
 						got, diags := rootVar.CheckValue(ctx, InspectPhase)
 						if diags.HasErrors() {
 							t.Errorf("unexpected errors\n%s", diags.Err().Error())
@@ -195,7 +196,7 @@ func TestInputVariableEphemeral(t *testing.T) {
 				if childStack == nil {
 					t.Fatalf("missing %s", childStackAddr)
 				}
-				childStackCall := main.MainStack(ctx).EmbeddedStackCall(ctx, childStackCallAddr)
+				childStackCall := main.MainStack().EmbeddedStackCall(childStackCallAddr)
 				if childStackCall == nil {
 					t.Fatalf("missing %s", childStackCallAddr)
 				}
@@ -221,7 +222,7 @@ func TestInputVariableEphemeral(t *testing.T) {
 					t.Errorf("wrong inputs for %s\n%s", childStackCallAddr, diff)
 				}
 
-				aVar := childStack.InputVariable(ctx, aVarAddr)
+				aVar := childStack.InputVariable(aVarAddr)
 				if aVar == nil {
 					t.Fatalf("missing %s", stackaddrs.Absolute(childStackAddr, aVarAddr))
 				}
@@ -328,8 +329,8 @@ func TestInputVariablePlanApply(t *testing.T) {
 						},
 					},
 				})
-				mainStack := main.MainStack(ctx)
-				rootVar := mainStack.InputVariable(ctx, stackaddrs.InputVariable{Name: "name"})
+				mainStack := main.MainStack()
+				rootVar := mainStack.InputVariable(stackaddrs.InputVariable{Name: "name"})
 				got, diags := rootVar.CheckValue(ctx, ApplyPhase)
 
 				if test.WantErr {
@@ -466,8 +467,8 @@ func TestInputVariablePlanChanges(t *testing.T) {
 					},
 				})
 
-				mainStack := main.MainStack(ctx)
-				rootVar := mainStack.InputVariable(ctx, stackaddrs.InputVariable{Name: "name"})
+				mainStack := main.MainStack()
+				rootVar := mainStack.InputVariable(stackaddrs.InputVariable{Name: "name"})
 				got, diags := rootVar.PlanChanges(ctx)
 				if diags.HasErrors() {
 					t.Errorf("unexpected errors\n%s", diags.Err().Error())

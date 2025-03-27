@@ -6,12 +6,13 @@ package stackeval
 import (
 	"context"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // LocalValueConfig represents a "locals" block in a stack configuration.
@@ -25,9 +26,8 @@ type LocalValueConfig struct {
 }
 
 var (
-	_ Validatable          = (*LocalValueConfig)(nil)
-	_ Referenceable        = (*LocalValueConfig)(nil)
-	_ namedPromiseReporter = (*LocalValueConfig)(nil)
+	_ Validatable   = (*LocalValueConfig)(nil)
+	_ Referenceable = (*LocalValueConfig)(nil)
 )
 
 func newLocalValueConfig(main *Main, addr stackaddrs.ConfigLocalValue, config *stackconfig.LocalValue) *LocalValueConfig {
@@ -55,14 +55,13 @@ func (v *LocalValueConfig) Declaration() *stackconfig.LocalValue {
 
 // StackConfig returns the stack configuration that this input variable belongs
 // to.
-func (v *LocalValueConfig) StackConfig(ctx context.Context) *StackConfig {
-	return v.main.mustStackConfig(ctx, v.Addr().Stack)
+func (v *LocalValueConfig) StackConfig() *StackConfig {
+	return v.main.mustStackConfig(v.Addr().Stack)
 }
 
 // ExprReferenceValue implements Referenceable
 func (v *LocalValueConfig) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
 	out, _ := v.ValidateValue(ctx, phase)
-
 	return out
 }
 
@@ -75,7 +74,7 @@ func (v *LocalValueConfig) ExprReferenceValue(ctx context.Context, phase EvalPha
 // declared type constraint.
 func (v *LocalValueConfig) ValidateValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return withCtyDynamicValPlaceholder(doOnceWithDiags(
-		ctx, v.validatedValue.For(phase), v.main,
+		ctx, v.tracingName(), v.validatedValue.For(phase),
 		v.validateValueInner(phase),
 	))
 }
@@ -83,18 +82,18 @@ func (v *LocalValueConfig) ValidateValue(ctx context.Context, phase EvalPhase) (
 // validateValueInner is the real implementation of ValidateValue, which runs
 // in the background only once per instance of [OutputValueConfig] and then
 // provides the result for all ValidateValue callers simultaneously.
-func (lv *LocalValueConfig) validateValueInner(phase EvalPhase) func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+func (v *LocalValueConfig) validateValueInner(phase EvalPhase) func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 	return func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 		var diags tfdiags.Diagnostics
 
-		result, moreDiags := EvalExprAndEvalContext(ctx, lv.config.Value, phase, lv.StackConfig(ctx))
-		v := result.Value
+		result, moreDiags := EvalExprAndEvalContext(ctx, v.config.Value, phase, v.StackConfig())
+		value := result.Value
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
-			v = cty.UnknownVal(cty.DynamicPseudoType)
+			value = cty.UnknownVal(cty.DynamicPseudoType)
 		}
 
-		return v, diags
+		return value, diags
 	}
 }
 
@@ -113,9 +112,4 @@ func (v *LocalValueConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
 // PlanChanges implements Plannable.
 func (v *LocalValueConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	return nil, v.checkValid(ctx, PlanPhase)
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (s *LocalValueConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	// Nothing to report yet
 }

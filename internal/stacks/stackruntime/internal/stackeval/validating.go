@@ -15,7 +15,7 @@ type ValidateOpts struct {
 	DependencyLocks   depsfile.Locks
 }
 
-// Validateable is implemented by objects that can participate in validation.
+// Validatable is implemented by objects that can participate in validation.
 type Validatable interface {
 	// Validate returns diagnostics for any part of the reciever which
 	// has an invalid configuration.
