@@ -31,8 +31,9 @@ import (
 // are holding a valid [StackCallInstance] then you can call
 // [StackCallInstance.CalledStack] to get that stack.
 type StackCallInstance struct {
-	call *StackCall
-	key  addrs.InstanceKey
+	call     *StackCall
+	key      addrs.InstanceKey
+	deferred bool
 
 	main *Main
 
@@ -45,10 +46,11 @@ type StackCallInstance struct {
 var _ ExpressionScope = (*StackCallInstance)(nil)
 var _ Plannable = (*StackCallInstance)(nil)
 
-func newStackCallInstance(call *StackCall, key addrs.InstanceKey, repetition instances.RepetitionData) *StackCallInstance {
+func newStackCallInstance(call *StackCall, key addrs.InstanceKey, repetition instances.RepetitionData, deferred bool) *StackCallInstance {
 	return &StackCallInstance{
 		call:       call,
 		key:        key,
+		deferred:   deferred,
 		main:       call.main,
 		repetition: repetition,
 	}
@@ -67,7 +69,7 @@ func (c *StackCallInstance) CalledStackAddr() stackaddrs.StackInstance {
 
 func (c *StackCallInstance) Stack(ctx context.Context, phase EvalPhase) *Stack {
 	stack, err := c.stack.For(phase).Do(ctx, c.tracingName(), func(ctx context.Context) (*Stack, error) {
-		return newStack(c.main, c.CalledStackAddr(), c.call.stack, c.call.config.TargetConfig(), c.call.GetExternalRemovedBlocks()), nil
+		return newStack(c.main, c.CalledStackAddr(), c.call.stack, c.call.config.TargetConfig(), c.call.GetExternalRemovedBlocks(), c.deferred), nil
 	})
 	if err != nil {
 		// we don't have cycles in here, and we don't return an error so this
