@@ -74,7 +74,7 @@ func (h *stopHook) PostImportState(id HookResourceIdentity, imported []providers
 	return h.hook()
 }
 
-func (h *stopHook) PrePlanImport(id HookResourceIdentity, importID string) (HookAction, error) {
+func (h *stopHook) PrePlanImport(id HookResourceIdentity, importTarget cty.Value) (HookAction, error) {
 	return h.hook()
 }
 

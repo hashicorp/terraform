@@ -300,7 +300,7 @@ func (h *MockHook) PostImportState(id HookResourceIdentity, imported []providers
 	return h.PostImportStateReturn, h.PostImportStateError
 }
 
-func (h *MockHook) PrePlanImport(id HookResourceIdentity, importID string) (HookAction, error) {
+func (h *MockHook) PrePlanImport(id HookResourceIdentity, importTarget cty.Value) (HookAction, error) {
 	h.PrePlanImportCalled = true
 	h.PrePlanImportAddr = id.Addr
 	return h.PrePlanImportReturn, h.PrePlanImportError

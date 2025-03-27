@@ -323,11 +323,19 @@ func (h *UiHook) PostImportState(id terraform.HookResourceIdentity, imported []p
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) PrePlanImport(id terraform.HookResourceIdentity, importID string) (terraform.HookAction, error) {
-	h.println(fmt.Sprintf(
-		h.view.colorize.Color("[reset][bold]%s: Preparing import... [id=%s]"),
-		id.Addr, importID,
-	))
+func (h *UiHook) PrePlanImport(id terraform.HookResourceIdentity, importTarget cty.Value) (terraform.HookAction, error) {
+	if importTarget.Type().IsObjectType() {
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: Preparing import... [identity=%s]"),
+			id.Addr, importTarget.GoString(), // TODO improve
+		))
+	} else {
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: Preparing import... [id=%s]"),
+			id.Addr, importTarget.AsString(),
+		))
+
+	}
 
 	return terraform.HookActionContinue, nil
 }
