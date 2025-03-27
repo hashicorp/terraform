@@ -20,7 +20,7 @@ their behaviors in a way comparable to the resource instance behaviors.
 
 This is developer-oriented documentation rather than user-oriented
 documentation. See
-[the main Terraform documentation](https://www.terraform.io/docs) for
+[the main Terraform documentation](https://developer.hashicorp.com/terraform/docs) for
 information on existing planning behaviors and other behaviors as viewed from
 an end-user perspective.
 

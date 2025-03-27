@@ -63,7 +63,7 @@ The key-value pairs representing nested block types have values based on
 The MessagePack serialization of an attribute value depends on the value of the
 `type` field of the corresponding `Schema.Attribute` message. The `type` field is
 a compact JSON serialization of a
-[Terraform type constraint](https://www.terraform.io/docs/configuration/types.html),
+[Terraform type constraint](https://developer.hashicorp.com/terraform/language/expressions/type-constraints),
 which consists either of a single
 string value (for primitive types) or a two-element array giving a type kind
 and a type argument.
@@ -212,7 +212,7 @@ The properties representing nested block types have property values based on
 The JSON serialization of an attribute value depends on the value of the `type`
 field of the corresponding `Schema.Attribute` message. The `type` field is
 a compact JSON serialization of a
-[Terraform type constraint](https://www.terraform.io/docs/configuration/types.html),
+[Terraform type constraint](https://developer.hashicorp.com/terraform/language/expressions/type-constraints),
 which consists either of a single
 string value (for primitive types) or a two-element array giving a type kind
 and a type argument.

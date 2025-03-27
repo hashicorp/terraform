@@ -903,7 +903,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	cfg := &awsbase.Config{
 		AccessKey:               stringAttr(obj, "access_key"),
 		APNInfo:                 stdUserAgentProducts(),
-		CallerDocumentationURL:  "https://www.terraform.io/docs/language/settings/backends/s3.html",
+		CallerDocumentationURL:  "https://developer.hashicorp.com/terraform/language/backend/s3",
 		CallerName:              "S3 Backend",
 		Logger:                  baselog,
 		MaxRetries:              intAttrDefault(obj, "max_retries", 5),
