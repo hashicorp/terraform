@@ -336,7 +336,7 @@
   {
       "title": "Mitigate risk",
       "routes": [
-       { "title": "Validate your configuration", "path": "mitigate/validate-config" }
+       { "title": "Validate your configuration", "path": "mitigate-risk/validate" }
     ]
   },
   {
