@@ -14,7 +14,7 @@ Terraform tests let authors validate that module configuration updates do not in
 
 By default, tests within Terraform create real infrastructure and can run assertions and validations against that infrastructure. This is analogous to integration testing because you are testing Terraform's core functionality by executing operations and validating the infrastructure Terraform creates.
 
-You can override the normal testing behavior by updating the `command` attribute within a [`run`](#run-blocks) block (examples below). By default, each `run` block executes with `command = apply` instructing Terraform to execute a complete `apply` operation against your configuration. Replacing the `command` value with `command = plan` instructs Terraform to _not_ create new infrastructure for this `run` block. This allows test authors to validate logical operations and custom conditions within their infrastructure in a process analogous to unit testing.
+You can override the normal testing behavior by updating the `command` attribute within a [`run`](#run-blocks) block (examples below). By default, each `run` block executes with `command = apply` instructing Terraform to execute a complete `apply` operation against your configuration. Replacing the `command` value with `command = plan` instructs Terraform to _not_ create new infrastructure for this `run` block. This allows test authors to validate logical operations and other conditions within their infrastructure in a process analogous to unit testing.
 
 Terraform v1.7.0 introduced the ability to mock data returned by the providers during a `terraform test` execution. This can be used to write more detailed and complete unit tests.
 
@@ -162,13 +162,13 @@ In the above example, the `first` and `second` `run` blocks implicitly have `par
 
 ### Assertions
 
-Terraform run block assertions are [Custom Conditions](/terraform/language/expressions/custom-conditions), consisting of a [condition](/terraform/language/expressions/custom-conditions#condition-expressions) and an [error message](/terraform/language/expressions/custom-conditions#error-messages).
+Terraform run block assertions are a way of [Validating your configuration](/terraform/language/mitigate-risk/validate), consisting of a [condition](/terraform/language/expressions/conditionals) and an [error message](/terraform/language/mitigate-risk/validate#error-messages).
 
 At the conclusion of a Terraform test command execution, Terraform presents any failed assertions as part of a tests passed or failed status.
 
 #### Assertion References
 
-Assertions within tests can reference any existing [named values](/terraform/language/expressions/references) that are available to other custom conditions within the main Terraform configuration.
+Assertions within tests can reference any existing [named values](/terraform/language/expressions/references) that are available within the main Terraform configuration.
 
 Additionally, test assertions can directly reference outputs from current and previous `run` blocks. Pulling from the [previous example](#example), this is a valid condition: `condition = output.bucket_name == "test_bucket"`.
 
@@ -757,13 +757,13 @@ If you use a single setup module as an alternate module, and it executes first, 
 
 ## Expecting failures
 
-By default, if any [Custom Conditions](/terraform/language/expressions/custom-conditions), including `check` block assertions, fail during the execution of a Terraform test file then the overall command reports the test as a failure.
+By default, if , including `check` block assertions, fail during the execution of a Terraform test file then the overall command reports the test as a failure.
 
 However, it is a common testing paradigm to want to test failure cases. Terraform supports the `expect_failures` attribute for this use case.
 
 In each `run` block the `expect_failures` attribute can provide a list of checkable objects (resources, data sources, check blocks, input variables, and outputs) that should fail their custom conditions. The test passes if the checkable objects you specify report an issue, and the test fails overall if they do not.
 
-You can still write assertions alongside an `expect_failures` block, but you should be mindful that all custom conditions, except check block assertions, halt the execution of Terraform. This still applies during test execution, so your assertions should only consider values that you are sure will be computed before the checkable object is due to fail. You can manage this using references, or the `depends_on` meta-argument within your main configuration.
+You can still write assertions alongside an `expect_failures` block, but you should be mindful that all ways of validating configuration, except `check` blocks, halt the execution of Terraform. This still applies during test execution, so your assertions should only consider values that you are sure will be computed before the checkable object is due to fail. You can manage this using references, or the `depends_on` meta-argument within your main configuration.
 
 This also means that, with the exception of `check` blocks, you can only reliably include a single checkable object. We support a list of checkable objects within the `expect_failures` attribute purely for `check` blocks.
 
@@ -984,7 +984,7 @@ run "same_state" {
 }
 
 run "site_eight" {
-  // This run block is entirely unrelated to the other run blocks, however, because `site_four`, 
+  // This run block is entirely unrelated to the other run blocks, however, because `site_four`,
   // which is one of its preceding runs has the `parallel` attribute set to `false`,
   // it cannot run until site_four is completed. It can be executed in parallel with `site_five` and `site_six`.
   state_key = "unique_7"
