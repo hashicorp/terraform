@@ -139,7 +139,7 @@ We recommend adding the `depends_on` argument if your nested data source depends
 
 For example, if you define a `check` that verifies that a website API returns `200`, that check fails the first time Terraform runs your configuration because your website's infrastructure does not exist yet. You can set the `depends_on` argument to a resource, such as the load balancer, to ensure Terraform only runs the `check` once the website is up. When running an operation, Terraform evaluates the `check`, warns `known after apply` until that crucial piece of your website is ready, and continues the operation.
 
-However, this strategy only works if your nested data source does not directly reference the resource it `depends_on`. Otherwise, anytime that resource changes, the `check` block warns `known after apply` until Terraform updates that resource, making your check potentially noisy and ineffective. Refer to the [example](#resource-dependency) for more details.
+However, this strategy only works when the `data` block does not directly reference the resource specified in the `depends_on` argument. Otherwise, anytime that resource changes, the `check` block warns `known after apply` until Terraform updates that resource, making your check potentially noisy and ineffective. Refer to the [example](#resource-dependency) for more details.
 
 The `depends_on` block is a meta-argument. Meta-arguments are built-in arguments that control how Terraform creates resources. Refer to [Meta-arguments](/terraform/language/meta-arguments/depends_on) for additional information.
 
