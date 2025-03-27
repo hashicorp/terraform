@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	fileProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/file"
 	remoteExecProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/remote-exec"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -309,7 +310,7 @@ func (m *Main) MainStack() *Stack {
 	defer m.mu.Unlock()
 
 	if m.mainStack == nil {
-		m.mainStack = newStack(m, stackaddrs.RootStackInstance, nil, config)
+		m.mainStack = newStack(m, stackaddrs.RootStackInstance, nil, config, collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponent]())
 	}
 	return m.mainStack
 }

@@ -260,7 +260,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 						break
 					}
 					for _, depRemoved := range depRemoveds {
-						if !depRemoved.PlanIsComplete(ctx) {
+						if !depRemoved.PlanIsComplete(ctx, depStack.addr) {
 							opts.ExternalDependencyDeferred = true
 							break Dependents
 						}

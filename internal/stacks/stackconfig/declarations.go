@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -47,7 +49,7 @@ type Declarations struct {
 
 	// Removed are the list of components that have been removed from the
 	// configuration.
-	Removed map[string][]*Removed
+	Removed collections.Map[stackaddrs.ConfigComponent, []*Removed]
 }
 
 func makeDeclarations() Declarations {
@@ -58,7 +60,7 @@ func makeDeclarations() Declarations {
 		LocalValues:     make(map[string]*LocalValue),
 		OutputValues:    make(map[string]*OutputValue),
 		ProviderConfigs: make(map[addrs.LocalProviderConfig]*ProviderConfig),
-		Removed:         make(map[string][]*Removed),
+		Removed:         collections.NewMap[stackaddrs.ConfigComponent, []*Removed](),
 	}
 }
 
@@ -82,9 +84,14 @@ func (d *Declarations) addComponent(decl *Component) tfdiags.Diagnostics {
 		return diags
 	}
 
-	if blocks, exists := d.Removed[name]; exists {
+	if blocks, exists := d.Removed.GetOk(stackaddrs.ConfigComponent{
+		Stack: nil,
+		Item: stackaddrs.Component{
+			Name: name,
+		},
+	}); exists {
 		for _, removed := range blocks {
-			if removed.FromIndex == nil {
+			if removed.From.Component.Index == nil {
 				// If a component has been removed, we should not also find it
 				// in the configuration.
 				//
@@ -257,9 +264,9 @@ func (d *Declarations) addRemoved(decl *Removed) tfdiags.Diagnostics {
 	if decl == nil {
 		return diags
 	}
-	name := decl.FromComponent.Name
+	addr := decl.From.ConfigComponent()
 
-	if decl.FromIndex == nil {
+	if decl.From.Component.Index == nil && len(decl.From.Stack) == 0 {
 		// If the removed block does not have an index, then we shouldn't also
 		// have a component block with the same name. A removed block without
 		// an index indicates that the component and all instances were removed
@@ -270,13 +277,13 @@ func (d *Declarations) addRemoved(decl *Removed) tfdiags.Diagnostics {
 		// a specific instance was removed and not the whole thing. During the
 		// validate and planning stages we will validate that the clashing
 		// component and removed blocks are not both pointing to the same index.
-		if component, exists := d.Components[name]; exists {
+		if component, exists := d.Components[decl.From.Component.Name]; exists {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Component exists for removed block",
 				Detail: fmt.Sprintf(
 					"A removed block for component %q was declared without an index, but a component block with the same name was declared at %s.\n\nA removed block without an index indicates that the component and all instances were removed from the configuration, and this is not the case.",
-					name, component.DeclRange.ToHCL(),
+					decl.From.Component.Name, component.DeclRange.ToHCL(),
 				),
 				Subject: decl.DeclRange.ToHCL().Ptr(),
 			})
@@ -284,7 +291,7 @@ func (d *Declarations) addRemoved(decl *Removed) tfdiags.Diagnostics {
 		}
 	}
 
-	d.Removed[name] = append(d.Removed[name], decl)
+	d.Removed.Put(addr, append(d.Removed.Get(addr), decl))
 	return diags
 }
 
@@ -323,7 +330,7 @@ func (d *Declarations) merge(other *Declarations) tfdiags.Diagnostics {
 			d.addProviderConfig(decl),
 		)
 	}
-	for _, blocks := range other.Removed {
+	for _, blocks := range other.Removed.All() {
 		for _, decl := range blocks {
 			diags = diags.Append(
 				d.addRemoved(decl),
