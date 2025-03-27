@@ -1270,6 +1270,13 @@ func (m *MockStateVersions) Create(ctx context.Context, workspaceID string, opti
 	return sv, nil
 }
 
+func (m *MockStateVersions) Upload(ctx context.Context, workspaceID string, options tfe.StateVersionUploadOptions) (*tfe.StateVersion, error) {
+	createOptions := options.StateVersionCreateOptions
+	createOptions.State = tfe.String(base64.StdEncoding.EncodeToString(options.RawState))
+
+	return m.Create(ctx, workspaceID, createOptions)
+}
+
 func (m *MockStateVersions) Read(ctx context.Context, svID string) (*tfe.StateVersion, error) {
 	return m.ReadWithOptions(ctx, svID, nil)
 }
