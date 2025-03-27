@@ -23,24 +23,24 @@ import (
 )
 
 var (
-	_ Plannable = (*Removed)(nil)
-	_ Applyable = (*Removed)(nil)
+	_ Plannable = (*RemovedComponent)(nil)
+	_ Applyable = (*RemovedComponent)(nil)
 )
 
-type Removed struct {
+type RemovedComponent struct {
 	addr stackaddrs.AbsComponent
 
-	config *RemovedConfig
+	config *RemovedComponentConfig
 	stack  *Stack
 	main   *Main
 
 	forEachValue    perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
-	instances       perEvalPhase[promising.Once[withDiagnostics[instancesResult[*RemovedInstance]]]]
-	unknownInstance perEvalPhase[promising.Once[*RemovedInstance]]
+	instances       perEvalPhase[promising.Once[withDiagnostics[instancesResult[*RemovedComponentInstance]]]]
+	unknownInstance perEvalPhase[promising.Once[*RemovedComponentInstance]]
 }
 
-func newRemoved(main *Main, addr stackaddrs.AbsComponent, stack *Stack, config *RemovedConfig) *Removed {
-	return &Removed{
+func newRemovedComponent(main *Main, addr stackaddrs.AbsComponent, stack *Stack, config *RemovedComponentConfig) *RemovedComponent {
+	return &RemovedComponent{
 		addr:   addr,
 		main:   main,
 		config: config,
@@ -48,7 +48,7 @@ func newRemoved(main *Main, addr stackaddrs.AbsComponent, stack *Stack, config *
 	}
 }
 
-func (r *Removed) ForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
+func (r *RemovedComponent) ForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return doOnceWithDiags(ctx, r.tracingName()+" for_each", r.forEachValue.For(phase), func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 		config := r.config.config
 
@@ -67,16 +67,16 @@ func (r *Removed) ForEachValue(ctx context.Context, phase EvalPhase) (cty.Value,
 	})
 }
 
-func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*RemovedInstance, bool, tfdiags.Diagnostics) {
-	result, diags := doOnceWithDiags(ctx, r.tracingName()+" instances", r.instances.For(phase), func(ctx context.Context) (instancesResult[*RemovedInstance], tfdiags.Diagnostics) {
+func (r *RemovedComponent) Instances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*RemovedComponentInstance, bool, tfdiags.Diagnostics) {
+	result, diags := doOnceWithDiags(ctx, r.tracingName()+" instances", r.instances.For(phase), func(ctx context.Context) (instancesResult[*RemovedComponentInstance], tfdiags.Diagnostics) {
 		forEachValue, diags := r.ForEachValue(ctx, phase)
 		if diags.HasErrors() {
-			return instancesResult[*RemovedInstance]{}, diags
+			return instancesResult[*RemovedComponentInstance]{}, diags
 		}
 
 		// First, evaluate the for_each value to get the set of instances the
 		// user has asked to be removed.
-		result := instancesMap(forEachValue, func(ik addrs.InstanceKey, rd instances.RepetitionData) *RemovedInstance {
+		result := instancesMap(forEachValue, func(ik addrs.InstanceKey, rd instances.RepetitionData) *RemovedComponentInstance {
 			expr := r.config.config.FromIndex
 			if expr == nil {
 				if ik != addrs.NoKey {
@@ -94,7 +94,7 @@ func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.Ins
 					},
 				}
 
-				return newRemovedInstance(r, from, rd, false)
+				return newRemovedComponentInstance(r, from, rd, false)
 			}
 
 			// Otherwise, we're going to parse the FromIndex expression now.
@@ -126,7 +126,7 @@ func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.Ins
 				},
 			}
 
-			return newRemovedInstance(r, from, rd, false)
+			return newRemovedComponentInstance(r, from, rd, false)
 		})
 
 		// Now, filter out any instances that are not known to the previous
@@ -136,7 +136,7 @@ func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.Ins
 		// This stops us emitting planned and applied changes for instances that
 		// do not exist.
 		knownAddrs := make([]stackaddrs.AbsComponentInstance, 0, len(result.insts))
-		knownInstances := make(map[addrs.InstanceKey]*RemovedInstance, len(result.insts))
+		knownInstances := make(map[addrs.InstanceKey]*RemovedComponentInstance, len(result.insts))
 		for key, ci := range result.insts {
 			if ci == nil {
 				// if ci is nil, then it means we couldn't process the address
@@ -178,7 +178,7 @@ func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.Ins
 	return result.insts, result.unknown, diags
 }
 
-func (r *Removed) PlanIsComplete(ctx context.Context) bool {
+func (r *RemovedComponent) PlanIsComplete(ctx context.Context) bool {
 	if !r.main.Planning() {
 		panic("PlanIsComplete used when not in the planning phase")
 	}
@@ -216,17 +216,17 @@ func (r *Removed) PlanIsComplete(ctx context.Context) bool {
 }
 
 // PlanChanges implements Plannable.
-func (r *Removed) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+func (r *RemovedComponent) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	_, _, diags := r.Instances(ctx, PlanPhase)
 	return nil, diags
 }
 
 // tracingName implements Plannable.
-func (r *Removed) tracingName() string {
+func (r *RemovedComponent) tracingName() string {
 	return r.addr.String() + " (removed)"
 }
 
-func (r *Removed) ApplySuccessful(ctx context.Context) bool {
+func (r *RemovedComponent) ApplySuccessful(ctx context.Context) bool {
 	if !r.main.Applying() {
 		panic("ApplySuccessful when not applying")
 	}
@@ -244,18 +244,18 @@ func (r *Removed) ApplySuccessful(ctx context.Context) bool {
 }
 
 // CheckApply implements Applyable.
-func (r *Removed) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
+func (r *RemovedComponent) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	_, _, diags := r.Instances(ctx, ApplyPhase)
 	return nil, diags
 }
 
 var _ ExpressionScope = (*removedInstanceExpressionScope)(nil)
 
-// removedInstanceExpressionScope is wrapper around the Removed expression
+// removedInstanceExpressionScope is wrapper around the RemovedComponent expression
 // scope that also includes repetition data for a specific instance of this
 // removed block.
 type removedInstanceExpressionScope struct {
-	call *Removed
+	call *RemovedComponent
 	rd   instances.RepetitionData
 }
 

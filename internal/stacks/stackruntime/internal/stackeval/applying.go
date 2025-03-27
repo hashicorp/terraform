@@ -76,7 +76,7 @@ type Applyable interface {
 
 // ApplyableComponentInstance is an interface that represents a single instance
 // of a component that can be applied. This is going to be a ComponentInstance
-// or a RemovedInstance.
+// or a RemovedComponentInstance.
 type ApplyableComponentInstance interface {
 	ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]
 
