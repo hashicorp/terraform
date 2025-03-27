@@ -1011,7 +1011,7 @@ const errTFCMigrateNotYetImplemented = `
 Migrating state from HCP Terraform or Terraform Enterprise to another backend is not 
 yet implemented.
 
-Please use the API to do this: https://www.terraform.io/docs/cloud/api/state-versions.html
+Please use the API to do this: https://developer.hashicorp.com/terraform/cloud-docs/api-docs/state-versions
 `
 
 const errInteractiveInputDisabled = `
@@ -1036,7 +1036,7 @@ workspaces are named uniquely across all configurations used within an organizat
 strategy to start with is <COMPONENT>-<ENVIRONMENT>-<REGION> (e.g. networking-prod-us-east, 
 networking-staging-us-east).
 
-For more information on workspace naming, see https://www.terraform.io/docs/cloud/workspaces/naming.html
+For more information on workspace naming, see https://developer.hashicorp.com/terraform/cloud-docs/workspaces/create
 
 When migrating existing workspaces from the backend %[1]q to %[2]s, 
 would you like to rename your workspaces? Enter 1 or 2.
