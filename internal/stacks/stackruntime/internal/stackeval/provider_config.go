@@ -33,7 +33,7 @@ type ProviderConfig struct {
 
 	main *Main
 
-	providerArgs promising.Once[withDiagnostics[cty.Value]]
+	providerArgs perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
 }
 
 func newProviderConfig(main *Main, addr stackaddrs.ConfigProviderConfig, config *stackconfig.ProviderConfig) *ProviderConfig {
@@ -48,21 +48,21 @@ func (p *ProviderConfig) Addr() stackaddrs.ConfigProviderConfig {
 	return p.addr
 }
 
-func (p *ProviderConfig) Declaration(ctx context.Context) *stackconfig.ProviderConfig {
+func (p *ProviderConfig) Declaration() *stackconfig.ProviderConfig {
 	return p.config
 }
 
-func (p *ProviderConfig) ProviderType(ctx context.Context) *ProviderType {
-	return p.main.ProviderType(ctx, p.Addr().Item.Provider)
+func (p *ProviderConfig) ProviderType() *ProviderType {
+	return p.main.ProviderType(p.Addr().Item.Provider)
 }
 
-func (p *ProviderConfig) InstRefValueType(ctx context.Context) cty.Type {
-	decl := p.Declaration(ctx)
+func (p *ProviderConfig) InstRefValueType() cty.Type {
+	decl := p.Declaration()
 	return providerInstanceRefType(decl.ProviderAddr)
 }
 
 func (p *ProviderConfig) ProviderArgsDecoderSpec(ctx context.Context) (hcldec.Spec, error) {
-	providerType := p.ProviderType(ctx)
+	providerType := p.ProviderType()
 	schema, err := providerType.Schema(ctx)
 	if err != nil {
 		return nil, err
@@ -103,12 +103,12 @@ func CheckProviderInLockfile(locks depsfile.Locks, providerType *ProviderType, d
 
 func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
-		ctx, &p.providerArgs, p.main,
+		ctx, p.tracingName(), p.providerArgs.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
-			providerType := p.ProviderType(ctx)
-			decl := p.Declaration(ctx)
+			providerType := p.ProviderType()
+			decl := p.Declaration()
 
 			depLocks := p.main.DependencyLocks(phase)
 			if depLocks != nil {
@@ -183,7 +183,7 @@ func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase)
 // into multiple instances.
 func (p *ProviderConfig) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	repetition := instances.RepetitionData{}
-	if p.Declaration(ctx).ForEach != nil {
+	if p.Declaration().ForEach != nil {
 		// We're producing an approximation across all eventual instances
 		// of this call, so we'll set each.key and each.value to unknown
 		// values.
@@ -191,7 +191,7 @@ func (p *ProviderConfig) ResolveExpressionReference(ctx context.Context, ref sta
 		repetition.EachValue = cty.DynamicVal
 	}
 	ret, diags := p.main.
-		mustStackConfig(ctx, p.Addr().Stack).
+		mustStackConfig(p.Addr().Stack).
 		resolveExpressionReference(ctx, ref, nil, repetition)
 
 	if _, ok := ret.(*ProviderConfig); ok {
@@ -210,7 +210,7 @@ func (p *ProviderConfig) ResolveExpressionReference(ctx context.Context, ref sta
 
 // ExternalFunctions implements ExpressionScope.
 func (p *ProviderConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return p.main.ProviderFunctions(ctx, p.main.StackConfig(ctx, p.Addr().Stack))
+	return p.main.ProviderFunctions(ctx, p.main.StackConfig(p.Addr().Stack))
 }
 
 // PlanTimestamp implements ExpressionScope, providing the timestamp at which
@@ -220,15 +220,15 @@ func (p *ProviderConfig) PlanTimestamp() time.Time {
 }
 
 // ExprReferenceValue implements Referenceable.
-func (p *ProviderConfig) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
+func (p *ProviderConfig) ExprReferenceValue(context.Context, EvalPhase) cty.Value {
 	// We don't say anything about the contents of a provider during the
 	// static evaluation phase. We still return the type of the provider so
 	// we can use it to verify type constraints, but we don't return any
 	// actual values.
 	if p.config.ForEach != nil {
-		return cty.UnknownVal(cty.Map(p.InstRefValueType(ctx)))
+		return cty.UnknownVal(cty.Map(p.InstRefValueType()))
 	}
-	return cty.UnknownVal(p.InstRefValueType(ctx))
+	return cty.UnknownVal(p.InstRefValueType())
 }
 
 var providerInstanceRefTypes = map[addrs.Provider]cty.Type{}
@@ -267,9 +267,4 @@ func (p *ProviderConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedCh
 // tracingName implements Validatable.
 func (p *ProviderConfig) tracingName() string {
 	return p.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (p *ProviderConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	cb(p.providerArgs.PromiseID(), p.Addr().String())
 }

@@ -57,20 +57,15 @@ func newRemovedInstance(call *Removed, from stackaddrs.AbsComponentInstance, rep
 	}
 }
 
-// reportNamedPromises implements namedPromiseReporter.
-func (r *RemovedInstance) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	cb(r.moduleTreePlan.PromiseID(), r.tracingName()+" plan")
-}
-
 func (r *RemovedInstance) Addr() stackaddrs.AbsComponentInstance {
 	return r.from
 }
 
 func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
-	return doOnceWithDiags(ctx, &r.moduleTreePlan, r.main, func(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
+	return doOnceWithDiags(ctx, r.tracingName()+" plan", &r.moduleTreePlan, func(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
 		var diags tfdiags.Diagnostics
 
-		component := r.main.Stack(ctx, r.Addr().Stack, PlanPhase).Component(ctx, r.Addr().Item.Component)
+		component := r.main.Stack(ctx, r.Addr().Stack, PlanPhase).Component(r.Addr().Item.Component)
 		if component != nil {
 			insts, unknown := component.Instances(ctx, PlanPhase)
 			if !unknown {
@@ -81,14 +76,14 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 					return nil, diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Cannot remove component instance",
-						Detail:   fmt.Sprintf("The component instance %s is targeted by a component block and cannot be removed. The relevant component is defined at %s.", r.Addr(), component.Declaration(ctx).DeclRange.ToHCL()),
-						Subject:  r.DeclRange(ctx),
+						Detail:   fmt.Sprintf("The component instance %s is targeted by a component block and cannot be removed. The relevant component is defined at %s.", r.Addr(), component.Declaration().DeclRange.ToHCL()),
+						Subject:  r.DeclRange(),
 					})
 				}
 			}
 		}
 
-		known, unknown, moreDiags := EvalProviderValues(ctx, r.main, r.call.Config(ctx).config.ProviderConfigs, PlanPhase, r)
+		known, unknown, moreDiags := EvalProviderValues(ctx, r.main, r.call.Config().config.ProviderConfigs, PlanPhase, r)
 		if moreDiags.HasErrors() {
 			// We won't actually add the diagnostics here, they should be
 			// exposed via a different return path.
@@ -96,7 +91,7 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 				Severity: hcl.DiagError,
 				Summary:  "Cannot plan component",
 				Detail:   fmt.Sprintf("Cannot generate a plan for %s because its provider configuration assignments are invalid.", r.Addr()),
-				Subject:  r.DeclRange(ctx),
+				Subject:  r.DeclRange(),
 			})
 			return nil, diags
 		}
@@ -105,7 +100,7 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 
 		deferred := r.deferred
 	Dependents:
-		for depAddr := range r.PlanPrevDependents(ctx).All() {
+		for depAddr := range r.PlanPrevDependents().All() {
 			depStack := r.main.Stack(ctx, depAddr.Stack, PlanPhase)
 			if depStack == nil {
 				// something weird has happened, but this means that
@@ -113,7 +108,7 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 				// doesn't exist so it's fine.
 				break
 			}
-			depComponent, depRemoveds := depStack.ApplyableComponents(ctx, depAddr.Item)
+			depComponent, depRemoveds := depStack.ApplyableComponents(depAddr.Item)
 			if depComponent != nil && !depComponent.PlanIsComplete(ctx) {
 				deferred = true
 				break
@@ -127,10 +122,10 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 		}
 
 		plantimestamp := r.main.PlanTimestamp()
-		forget := !r.call.Config(ctx).config.Destroy
+		forget := !r.call.Config().config.Destroy
 		opts := &terraform.PlanOpts{
 			Mode:                       plans.DestroyMode,
-			SetVariables:               r.PlanPrevInputs(ctx),
+			SetVariables:               r.PlanPrevInputs(),
 			ExternalProviders:          providerClients,
 			DeferralAllowed:            true,
 			ExternalDependencyDeferred: deferred,
@@ -140,14 +135,14 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 			ForcePlanTimestamp: &plantimestamp,
 		}
 
-		plan, moreDiags := PlanComponentInstance(ctx, r.main, r.PlanPrevState(ctx), opts, r)
+		plan, moreDiags := PlanComponentInstance(ctx, r.main, r.PlanPrevState(), opts, r)
 		return plan, diags.Append(moreDiags)
 	})
 }
 
 // PlanPrevState returns the previous state for this component instance during
 // the planning phase, or panics if called in any other phase.
-func (r *RemovedInstance) PlanPrevState(ctx context.Context) *states.State {
+func (r *RemovedInstance) PlanPrevState() *states.State {
 	// The following call will panic if we aren't in the plan phase.
 	stackState := r.main.PlanPrevState()
 	ret := stackState.ComponentInstanceStateForModulesRuntime(r.Addr())
@@ -158,11 +153,11 @@ func (r *RemovedInstance) PlanPrevState(ctx context.Context) *states.State {
 }
 
 // PlanPrevDependents returns the set of dependents based on the state.
-func (r *RemovedInstance) PlanPrevDependents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+func (r *RemovedInstance) PlanPrevDependents() collections.Set[stackaddrs.AbsComponent] {
 	return r.main.PlanPrevState().DependentsForComponent(r.Addr())
 }
 
-func (r *RemovedInstance) PlanPrevInputs(ctx context.Context) terraform.InputValues {
+func (r *RemovedInstance) PlanPrevInputs() terraform.InputValues {
 	variables := r.main.PlanPrevState().InputsForComponent(r.Addr())
 
 	inputs := make(terraform.InputValues, len(variables))
@@ -175,7 +170,7 @@ func (r *RemovedInstance) PlanPrevInputs(ctx context.Context) terraform.InputVal
 	return inputs
 }
 
-func (r *RemovedInstance) PlanCurrentInputs(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+func (r *RemovedInstance) PlanCurrentInputs() (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	plan := r.main.PlanBeingApplied().Components.Get(r.Addr())
@@ -208,7 +203,7 @@ func (r *RemovedInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans.P
 	// unknown variables. With that in mind, we can just the plan directly
 	// onto the shared function with no modifications.
 
-	return ApplyComponentPlan(ctx, r.main, plan, r.call.Config(ctx).config.ProviderConfigs, r)
+	return ApplyComponentPlan(ctx, r.main, plan, r.call.Config().config.ProviderConfigs, r)
 }
 
 func (r *RemovedInstance) ApplyResult(ctx context.Context) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
@@ -226,7 +221,7 @@ func (r *RemovedInstance) ApplyResult(ctx context.Context) (*ComponentInstanceAp
 	return applyResult, diags
 }
 
-func (r *RemovedInstance) PlaceholderApplyResultForSkippedApply(ctx context.Context, plan *plans.Plan) *ComponentInstanceApplyResult {
+func (r *RemovedInstance) PlaceholderApplyResultForSkippedApply(plan *plans.Plan) *ComponentInstanceApplyResult {
 	// (We have this in here as a method just because it helps keep all of
 	// the logic for constructing [ComponentInstanceApplyResult] objects
 	// together in the same file, rather than having the caller synthesize
@@ -241,7 +236,7 @@ func (r *RemovedInstance) PlaceholderApplyResultForSkippedApply(ctx context.Cont
 func (r *RemovedInstance) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	_, _, moreDiags := EvalProviderValues(ctx, r.main, r.call.Config(ctx).config.ProviderConfigs, PlanPhase, r)
+	_, _, moreDiags := EvalProviderValues(ctx, r.main, r.call.Config().config.ProviderConfigs, PlanPhase, r)
 	diags = diags.Append(moreDiags)
 
 	plan, moreDiags := r.ModuleTreePlan(ctx)
@@ -250,7 +245,7 @@ func (r *RemovedInstance) PlanChanges(ctx context.Context) ([]stackplan.PlannedC
 	var changes []stackplan.PlannedChange
 	if plan != nil {
 		var action plans.Action
-		if r.call.Config(ctx).config.Destroy {
+		if r.call.Config().config.Destroy {
 			action = plans.Delete
 		} else {
 			action = plans.Forget
@@ -265,10 +260,10 @@ func (r *RemovedInstance) PlanChanges(ctx context.Context) ([]stackplan.PlannedC
 func (r *RemovedInstance) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	_, _, moreDiags := EvalProviderValues(ctx, r.main, r.call.Config(ctx).config.ProviderConfigs, ApplyPhase, r)
+	_, _, moreDiags := EvalProviderValues(ctx, r.main, r.call.Config().config.ProviderConfigs, ApplyPhase, r)
 	diags = diags.Append(moreDiags)
 
-	inputs, moreDiags := r.PlanCurrentInputs(ctx)
+	inputs, moreDiags := r.PlanCurrentInputs()
 	diags = diags.Append(moreDiags)
 
 	result, moreDiags := r.ApplyResult(ctx)
@@ -284,7 +279,7 @@ func (r *RemovedInstance) CheckApply(ctx context.Context) ([]stackstate.AppliedC
 
 // ResolveExpressionReference implements ExpressionScope.
 func (r *RemovedInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
-	stack := r.call.Stack(ctx)
+	stack := r.call.Stack()
 	return stack.resolveExpressionReference(ctx, ref, nil, r.repetition)
 }
 
@@ -295,21 +290,21 @@ func (r *RemovedInstance) PlanTimestamp() time.Time {
 
 // ExternalFunctions implements ExpressionScope.
 func (r *RemovedInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return r.main.ProviderFunctions(ctx, r.call.Config(ctx).StackConfig(ctx))
+	return r.main.ProviderFunctions(ctx, r.call.Config().StackConfig())
 }
 
 // ModuleTree implements ConfigComponentExpressionScope.
 func (r *RemovedInstance) ModuleTree(ctx context.Context) *configs.Config {
-	return r.call.Config(ctx).ModuleTree(ctx)
+	return r.call.Config().ModuleTree(ctx)
 }
 
 // DeclRange implements ConfigComponentExpressionScope.
-func (r *RemovedInstance) DeclRange(ctx context.Context) *hcl.Range {
-	return r.call.Config(ctx).config.DeclRange.ToHCL().Ptr()
+func (r *RemovedInstance) DeclRange() *hcl.Range {
+	return r.call.Config().config.DeclRange.ToHCL().Ptr()
 }
 
 // RequiredComponents implements stackplan.PlanProducer.
-func (r *RemovedInstance) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+func (r *RemovedInstance) RequiredComponents(_ context.Context) collections.Set[stackaddrs.AbsComponent] {
 	// We return the dependencies from the state, based on the required
 	// components when this component was last applied. In reality, destroy
 	// operations require "dependents" to have been executed first but
@@ -324,7 +319,7 @@ func (r *RemovedInstance) ResourceSchema(ctx context.Context, providerTypeAddr a
 	// the object we're working with. The error handling here is for
 	// robustness but any error here suggests a bug in Terraform.
 
-	providerType := r.main.ProviderType(ctx, providerTypeAddr)
+	providerType := r.main.ProviderType(providerTypeAddr)
 	providerSchema, err := providerType.Schema(ctx)
 	if err != nil {
 		return providers.Schema{}, err

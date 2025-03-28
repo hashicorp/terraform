@@ -69,7 +69,7 @@ NOTE: If any part of this test fails, the problem might also be the cause of oth
 	})
 
 	ctx := context.Background()
-	mainStack := main.MainStack(ctx)
+	mainStack := main.MainStack()
 
 	t.Run("foo", func(t *testing.T) {
 		got, diags := EvalExpr(ctx, fooExpr, InspectPhase, mainStack)
@@ -83,7 +83,7 @@ NOTE: If any part of this test fails, the problem might also be the cause of oth
 
 		t.Run("without test-only globals enabled", func(t *testing.T) {
 			noGlobalsMain := NewForInspecting(fakeConfig, stackstate.NewState(), InspectOpts{})
-			mainStack := noGlobalsMain.MainStack(ctx)
+			mainStack := noGlobalsMain.MainStack()
 			got, diags := EvalExpr(ctx, fooExpr, InspectPhase, mainStack)
 			if !diags.HasErrors() {
 				t.Fatalf("unexpected success\ngot:  %#v\nwant: an error diagnostic", got)
