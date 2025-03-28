@@ -958,6 +958,12 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 	if output.Sensitive {
 		val = val.Mark(marks.Sensitive)
 	}
+	if config.DeprecatedSet {
+		val = val.Mark(marks.DeprecationMark{
+			Message: config.Deprecated,
+			// AttrPath: ,
+		})
+	}
 
 	return val, diags
 }
