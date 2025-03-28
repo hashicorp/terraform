@@ -47,8 +47,8 @@ The Terraform `test` command also executes any validations within your configura
 
 You can write many validations as test assertions, but there are specific use cases for both.
 
-Validations are executed during Terraform plan and apply operations, and the Terraform `test` command also runs validations while executing tests. Therefore, use validations to validate aspects of your configuration that should always be true and could impact the valid execution of your infrastructure.
+Terraform executes validations during plan and apply operations and when you run the `terraform test` command. Therefore, use validations to validate aspects of your configuration that should always be true and could impact the valid execution of your infrastructure.
 
 Module authors should note that validations are executed and exposed to module users, so if they fail, ensure the failure messages are understandable and actionable.
 
-In contrast, Terraform only executes tests when you run `terraform test`. Use tests to assert the correctness of any logical operations or specific behavior within your configuration. For example, you can test that Terraform creates conditional resources based on an input by setting the input controlling those resources to a certain value then verifying the resources Terraform creates.
+By contrast, Terraform only executes tests when you run `terraform test`. Use tests to assert the correctness of any logical operations or specific behavior within your configuration. For example, you can test that Terraform creates conditional resources based on an input by setting the input controlling those resources to a certain value then verifying the resources Terraform creates.

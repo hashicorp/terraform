@@ -45,7 +45,7 @@ You can create conditions that produce custom error messages for several types o
 
 Custom conditions can help capture assumptions, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
-Refer to [Validate your configuration(/terraform/language/mitigate-risk/validate#input-variable-validation) for details.
+Refer to [Validate your configuration](/terraform/language/mitigate-risk/validate#input-variable-validation) for details.
 
 ## Result Types
 
@@ -82,7 +82,7 @@ var.example ? tostring(12) : "hello"
 ## Examples
 
 You can use any of Terraform's built-in functions or language operators
-in a condition as long as the expression is valid and returns a boolean result. The following language features are particularly useful when writing condition expressions.
+in a condition as long as the expression is valid and returns a boolean result. The following examples demonstrate language features that can help you write condition expressions.
 
 ### Logical operator examples
 
@@ -92,7 +92,7 @@ Use the logical operators `&&` (AND), `||` (OR), and `!` (NOT) to combine multip
   condition = var.name != "" && lower(var.name) == var.name
 ```
 
-You can also use arithmetic operators (e.g. `a + b`), equality operators (eg., `a == b`) and comparison operators (e.g., `a < b`). Refer to [Arithmetic and Logical Operators](/terraform/language/expressions/operators) for details.
+You can also use arithmetic operators, for example `a + b`, equality operators, for example `a == b`, and comparison operators, for example `a < b`. Refer to [Arithmetic and Logical Operators](/terraform/language/expressions/operators) for details.
 
 ### `contains` Function
 
@@ -109,7 +109,8 @@ Use the [`length` function](/terraform/language/functions/length) to test a coll
 ```hcl
   condition = length(var.items) != 0
 ```
-This is a better approach than directly comparing with another collection using `==` or `!=`. This is because the comparison operators can only return `true` if both operands have exactly the same type, which is often ambiguous for empty collections.
+
+Using the `length` function is more suitable than using `==` or `!=` when both operands potentially have exactly the same type, which is often ambiguous for empty collections.
 
 ### `for` Expressions
 

@@ -162,7 +162,7 @@ In the above example, the `first` and `second` `run` blocks implicitly have `par
 
 ### Assertions
 
-Terraform run block assertions are a way of [Validating your configuration](/terraform/language/mitigate-risk/validate). Each `run` block consist of a [condition](/terraform/language/expressions/conditionals) and an [error message](/terraform/language/mitigate-risk/validate#error-messages).
+Assertion arguments in Terraform `run` blocks help your [validate your configuration](/terraform/language/mitigate-risk/validate). Each `run` block contains a [`condition` argument](/terraform/language/expressions/conditionals) and an [`error_message` argument](/terraform/language/mitigate-risk/validate#error-messages).
 
 At the conclusion of a Terraform test command execution, Terraform presents any failed assertions as part of a tests passed or failed status.
 
@@ -763,7 +763,7 @@ However, it is a common testing paradigm to want to test failure cases. Terrafor
 
 In each `run` block the `expect_failures` attribute can provide a list of checkable objects (resources, data sources, check blocks, input variables, and outputs) that should fail their custom conditions. The test passes if the checkable objects you specify report an issue, and the test fails overall if they do not.
 
-You can still write assertions alongside an `expect_failures` block, but you should be mindful that all ways of validating configuration, except `check` blocks, halt the execution of Terraform. This still applies during test execution, so your assertions should only consider values that you are sure will be computed before the checkable object is due to fail. You can manage this using references, or the `depends_on` meta-argument within your main configuration.
+You can use assertions alongside an `expect_failures` block, but consider that all validation features, except `check` blocks, halt Terraform execution on failure. This applies during test execution, so your assertions should only evaluate values that are certain to be computed before the checkable object is due to fail. You can manage this using references, or the `depends_on` meta-argument within your main configuration.
 
 This also means that, with the exception of `check` blocks, you can only reliably include a single checkable object. We support a list of checkable objects within the `expect_failures` attribute purely for `check` blocks.
 
@@ -1009,4 +1009,4 @@ Run D (parallel: true)
 Run E (parallel: true)
 ```
 
-Runs A and B execute simultaneously. Run C waits until both A and B are done before starting. Finally, runs D and E run in parallel, but only after C completes.
+Runs A and B execute simultaneously. Run C waits until both A and B are finished before starting. Finally, runs D and E run in parallel, but only after C completes.

@@ -16,7 +16,7 @@ strings using [RFC 3339](https://tools.ietf.org/html/rfc3339)
 "Date and Time format" syntax, and so `plantimestamp` returns a string
 in this format.
 
-The result of this function will change for every plan operation. You can use `plantimestamp` to validate time sensitive resources, such as TLS certificates,
+The result of this function changes during every plan operation. You can use `plantimestamp` to validate time sensitive resources, such as TLS certificates,
 while [Validating your configuration](/terraform/language/mitigate-risk/validate).
 
 There are circumstances, such as during a Terraform [Refresh-only](/terraform/cli/commands/plan#planning-modes) plan, where
