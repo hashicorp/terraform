@@ -93,7 +93,7 @@ resource "aws_instance" "example" {
 }
 ```
 
-The precondition detects if the caller accidentally selected an AMI for a different architecture, which may not be able to run the software this instance hosts. Terraform evaluates the precondition while it builds its plan, and if the precondition fails Terraform throws an error with the `error_message` argument and stops the current operation. Refer to the [resource configuration reference](TODO) for more examples of using a precondition block.
+The precondition detects if the caller accidentally selected an AMI for a different architecture, which may not be able to run the software this instance hosts. Terraform evaluates the precondition while it builds its plan, and if the precondition fails Terraform throws an error with the `error_message` argument and stops the current operation. Refer to the [resource configuration reference](/terraform/language/block/resource) for more examples of using a precondition block.
 
 An `output` block can also include a precondition to verify a module's output. You can use preconditions on outputs to prevent Terraform from saving an invalid value in your state, or to preserve a valid value from the previous apply.
 
