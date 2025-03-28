@@ -19,6 +19,7 @@ import (
 type LocalValueConfig struct {
 	addr   stackaddrs.ConfigLocalValue
 	config *stackconfig.LocalValue
+	stack  *StackConfig
 
 	main *Main
 
@@ -30,33 +31,20 @@ var (
 	_ Referenceable = (*LocalValueConfig)(nil)
 )
 
-func newLocalValueConfig(main *Main, addr stackaddrs.ConfigLocalValue, config *stackconfig.LocalValue) *LocalValueConfig {
+func newLocalValueConfig(main *Main, addr stackaddrs.ConfigLocalValue, stack *StackConfig, config *stackconfig.LocalValue) *LocalValueConfig {
 	if config == nil {
 		panic("newLocalValueConfig with nil configuration")
 	}
 	return &LocalValueConfig{
 		addr:   addr,
 		config: config,
+		stack:  stack,
 		main:   main,
 	}
 }
 
-func (v *LocalValueConfig) Addr() stackaddrs.ConfigLocalValue {
-	return v.addr
-}
-
 func (v *LocalValueConfig) tracingName() string {
-	return v.Addr().String()
-}
-
-func (v *LocalValueConfig) Declaration() *stackconfig.LocalValue {
-	return v.config
-}
-
-// StackConfig returns the stack configuration that this input variable belongs
-// to.
-func (v *LocalValueConfig) StackConfig() *StackConfig {
-	return v.main.mustStackConfig(v.Addr().Stack)
+	return v.addr.String()
 }
 
 // ExprReferenceValue implements Referenceable
@@ -86,7 +74,7 @@ func (v *LocalValueConfig) validateValueInner(phase EvalPhase) func(ctx context.
 	return func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 		var diags tfdiags.Diagnostics
 
-		result, moreDiags := EvalExprAndEvalContext(ctx, v.config.Value, phase, v.StackConfig())
+		result, moreDiags := EvalExprAndEvalContext(ctx, v.config.Value, phase, v.stack)
 		value := result.Value
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {

@@ -52,20 +52,16 @@ func newProviderInstance(provider *Provider, addr stackaddrs.AbsProviderConfigIn
 	}
 }
 
-func (p *ProviderInstance) Addr() stackaddrs.AbsProviderConfigInstance {
-	return p.addr
-}
-
 func (p *ProviderInstance) RepetitionData() instances.RepetitionData {
 	return p.repetition
 }
 
 func (p *ProviderInstance) ProviderType() *ProviderType {
-	return p.main.ProviderType(p.Addr().Item.ProviderConfig.Provider)
+	return p.main.ProviderType(p.addr.Item.ProviderConfig.Provider)
 }
 
 func (p *ProviderInstance) ProviderArgsDecoderSpec(ctx context.Context) (hcldec.Spec, error) {
-	return p.provider.Config().ProviderArgsDecoderSpec(ctx)
+	return p.provider.config.ProviderArgsDecoderSpec(ctx)
 }
 
 // ProviderArgs returns an object value representing the provider configuration
@@ -84,7 +80,7 @@ func (p *ProviderInstance) CheckProviderArgs(ctx context.Context, phase EvalPhas
 			var diags tfdiags.Diagnostics
 
 			providerType := p.ProviderType()
-			decl := p.provider.Declaration()
+			decl := p.provider.config.config
 			spec, err := p.ProviderArgsDecoderSpec(ctx)
 			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{
@@ -174,7 +170,7 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 			}
 
 			providerType := p.ProviderType()
-			decl := p.provider.Declaration()
+			decl := p.provider.config.config
 
 			client, err := p.main.ProviderFactories().NewUnconfiguredClient(providerType.Addr())
 			if err != nil {
@@ -183,7 +179,7 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 					Summary:  "Failed to start provider plugin",
 					Detail: fmt.Sprintf(
 						"Could not create an instance of %s for %s: %s.",
-						providerType.Addr(), p.Addr(), err,
+						providerType.Addr(), p.addr, err,
 					),
 					Subject: decl.DeclRange.ToHCL().Ptr(),
 				})
@@ -219,7 +215,7 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 						Summary:  "Failed to terminate provider plugin",
 						Detail: fmt.Sprintf(
 							"Error closing the instance of %s for %s: %s.",
-							providerType.Addr(), p.Addr(), err,
+							providerType.Addr(), p.addr, err,
 						),
 						Subject: decl.DeclRange.ToHCL().Ptr(),
 					})
@@ -273,13 +269,12 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 // than the for_each argument inside a provider block, which get evaluated
 // once per provider instance.
 func (p *ProviderInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
-	stack := p.provider.Stack()
-	return stack.resolveExpressionReference(ctx, ref, nil, p.repetition)
+	return p.provider.stack.resolveExpressionReference(ctx, ref, nil, p.repetition)
 }
 
 // ExternalFunctions implements ExpressionScope.
 func (p *ProviderInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return p.main.ProviderFunctions(ctx, p.main.StackConfig(p.Addr().Stack.ConfigAddr()))
+	return p.main.ProviderFunctions(ctx, p.provider.config.stack)
 }
 
 // PlanTimestamp implements ExpressionScope, providing the timestamp at which
@@ -315,5 +310,5 @@ func (p *ProviderInstance) CheckApply(ctx context.Context) ([]stackstate.Applied
 
 // tracingName implements Plannable.
 func (p *ProviderInstance) tracingName() string {
-	return p.Addr().String()
+	return p.addr.String()
 }

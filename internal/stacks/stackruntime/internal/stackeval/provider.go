@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -22,7 +21,8 @@ import (
 // Provider represents a provider configuration in a particular stack config.
 type Provider struct {
 	addr   stackaddrs.AbsProviderConfig
-	config *stackconfig.ProviderConfig
+	config *ProviderConfig
+	stack  *Stack
 
 	main *Main
 
@@ -30,40 +30,17 @@ type Provider struct {
 	instances    perEvalPhase[promising.Once[withDiagnostics[instancesResult[*ProviderInstance]]]]
 }
 
-func newProvider(main *Main, addr stackaddrs.AbsProviderConfig, config *stackconfig.ProviderConfig) *Provider {
+func newProvider(main *Main, addr stackaddrs.AbsProviderConfig, stack *Stack, config *ProviderConfig) *Provider {
 	return &Provider{
 		addr:   addr,
+		stack:  stack,
 		config: config,
 		main:   main,
 	}
 }
 
-func (p *Provider) Addr() stackaddrs.AbsProviderConfig {
-	return p.addr
-}
-
-func (p *Provider) Declaration() *stackconfig.ProviderConfig {
-	return p.config
-}
-
-func (p *Provider) Config() *ProviderConfig {
-	configAddr := stackaddrs.ConfigForAbs(p.Addr())
-	stackConfig := p.main.StackConfig(configAddr.Stack)
-	if stackConfig == nil {
-		return nil
-	}
-	return stackConfig.Provider(configAddr.Item)
-}
-
 func (p *Provider) ProviderType() *ProviderType {
-	return p.main.ProviderType(p.Addr().Item.Provider)
-}
-
-func (p *Provider) Stack() *Stack {
-	// Unchecked because we should've been constructed from the same stack
-	// object we're about to return, and so this should be valid unless
-	// the original construction was from an invalid object itself.
-	return p.main.StackUnchecked(p.Addr().Stack)
+	return p.main.ProviderType(p.addr.Item.Provider)
 }
 
 // InstRefValueType returns the type of any values that represent references to
@@ -71,7 +48,7 @@ func (p *Provider) Stack() *Stack {
 //
 // All configurations for the same provider share the same type.
 func (p *Provider) InstRefValueType() cty.Type {
-	decl := p.Declaration()
+	decl := p.config.config
 	return providerInstanceRefType(decl.ProviderAddr)
 }
 
@@ -112,12 +89,12 @@ func (p *Provider) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty.
 		ctx, p.tracingName()+" for_each", p.forEachValue.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
-			cfg := p.Declaration()
+			cfg := p.config.config
 
 			switch {
 
 			case cfg.ForEach != nil:
-				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, p.Stack(), "provider")
+				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, p.stack, "provider")
 				diags = diags.Append(moreDiags)
 				if diags.HasErrors() {
 					return cty.DynamicVal, diags
@@ -180,7 +157,7 @@ func (p *Provider) CheckInstances(ctx context.Context, phase EvalPhase) (map[add
 // ExprReferenceValue implements Referenceable, returning a value containing
 // one or more values that act as references to instances of the provider.
 func (p *Provider) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
-	decl := p.Declaration()
+	decl := p.config.config
 	insts, unknown := p.Instances(ctx, phase)
 	refType := p.InstRefValueType()
 
@@ -202,9 +179,9 @@ func (p *Provider) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.
 				panic(fmt.Sprintf("provider config with for_each has invalid instance key of type %T", instKey))
 			}
 			elems[string(k)] = cty.CapsuleVal(refType, &stackaddrs.AbsProviderConfigInstance{
-				Stack: p.Addr().Stack,
+				Stack: p.addr.Stack,
 				Item: stackaddrs.ProviderConfigInstance{
-					ProviderConfig: p.Addr().Item,
+					ProviderConfig: p.addr.Item,
 					Key:            instKey,
 				},
 			})
@@ -218,9 +195,9 @@ func (p *Provider) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.
 			return cty.UnknownVal(refType)
 		}
 		return cty.CapsuleVal(refType, &stackaddrs.AbsProviderConfigInstance{
-			Stack: p.Addr().Stack,
+			Stack: p.addr.Stack,
 			Item: stackaddrs.ProviderConfigInstance{
-				ProviderConfig: p.Addr().Item,
+				ProviderConfig: p.addr.Item,
 				Key:            addrs.NoKey,
 			},
 		})
@@ -247,13 +224,13 @@ func (p *Provider) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, 
 
 // References implements Referrer
 func (p *Provider) References(ctx context.Context) []stackaddrs.AbsReference {
-	cfg := p.Declaration()
+	cfg := p.config.config
 	var ret []stackaddrs.Reference
 	ret = append(ret, ReferencesInExpr(cfg.ForEach)...)
 	if schema, err := p.ProviderType().Schema(ctx); err == nil {
 		ret = append(ret, ReferencesInBody(cfg.Config, schema.Provider.Body.DecoderSpec())...)
 	}
-	return makeReferencesAbsolute(ret, p.Addr().Stack)
+	return makeReferencesAbsolute(ret, p.addr.Stack)
 }
 
 // CheckApply implements ApplyChecker.
@@ -263,5 +240,5 @@ func (p *Provider) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, 
 
 // tracingName implements Plannable.
 func (p *Provider) tracingName() string {
-	return p.Addr().String()
+	return p.addr.String()
 }

@@ -30,34 +30,28 @@ import (
 type ProviderConfig struct {
 	addr   stackaddrs.ConfigProviderConfig
 	config *stackconfig.ProviderConfig
+	stack  *StackConfig
 
 	main *Main
 
 	providerArgs perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
 }
 
-func newProviderConfig(main *Main, addr stackaddrs.ConfigProviderConfig, config *stackconfig.ProviderConfig) *ProviderConfig {
+func newProviderConfig(main *Main, addr stackaddrs.ConfigProviderConfig, stack *StackConfig, config *stackconfig.ProviderConfig) *ProviderConfig {
 	return &ProviderConfig{
 		addr:   addr,
 		config: config,
+		stack:  stack,
 		main:   main,
 	}
 }
 
-func (p *ProviderConfig) Addr() stackaddrs.ConfigProviderConfig {
-	return p.addr
-}
-
-func (p *ProviderConfig) Declaration() *stackconfig.ProviderConfig {
-	return p.config
-}
-
 func (p *ProviderConfig) ProviderType() *ProviderType {
-	return p.main.ProviderType(p.Addr().Item.Provider)
+	return p.main.ProviderType(p.addr.Item.Provider)
 }
 
 func (p *ProviderConfig) InstRefValueType() cty.Type {
-	decl := p.Declaration()
+	decl := p.config
 	return providerInstanceRefType(decl.ProviderAddr)
 }
 
@@ -108,7 +102,7 @@ func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase)
 			var diags tfdiags.Diagnostics
 
 			providerType := p.ProviderType()
-			decl := p.Declaration()
+			decl := p.config
 
 			depLocks := p.main.DependencyLocks(phase)
 			if depLocks != nil {
@@ -142,7 +136,7 @@ func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase)
 					Summary:  "Failed to initialize provider",
 					Detail: fmt.Sprintf(
 						"Error initializing %q to validate %s: %s.",
-						providerType.Addr(), p.Addr(), err,
+						providerType.Addr(), p.addr, err,
 					),
 					Subject: decl.DeclRange.ToHCL().Ptr(),
 				})
@@ -183,16 +177,14 @@ func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase)
 // into multiple instances.
 func (p *ProviderConfig) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	repetition := instances.RepetitionData{}
-	if p.Declaration().ForEach != nil {
+	if p.config.ForEach != nil {
 		// We're producing an approximation across all eventual instances
 		// of this call, so we'll set each.key and each.value to unknown
 		// values.
 		repetition.EachKey = cty.UnknownVal(cty.String).RefineNotNull()
 		repetition.EachValue = cty.DynamicVal
 	}
-	ret, diags := p.main.
-		mustStackConfig(p.Addr().Stack).
-		resolveExpressionReference(ctx, ref, nil, repetition)
+	ret, diags := p.stack.resolveExpressionReference(ctx, ref, nil, repetition)
 
 	if _, ok := ret.(*ProviderConfig); ok {
 		// We can't reference other providers from anywhere inside a provider
@@ -210,7 +202,7 @@ func (p *ProviderConfig) ResolveExpressionReference(ctx context.Context, ref sta
 
 // ExternalFunctions implements ExpressionScope.
 func (p *ProviderConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return p.main.ProviderFunctions(ctx, p.main.StackConfig(p.Addr().Stack))
+	return p.main.ProviderFunctions(ctx, p.stack)
 }
 
 // PlanTimestamp implements ExpressionScope, providing the timestamp at which
@@ -266,5 +258,5 @@ func (p *ProviderConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedCh
 
 // tracingName implements Validatable.
 func (p *ProviderConfig) tracingName() string {
-	return p.Addr().String()
+	return p.addr.String()
 }

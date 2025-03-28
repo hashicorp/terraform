@@ -73,7 +73,7 @@ func walkDynamicObjectsInStack[Output any](
 				inst := call.UnknownInstance(ctx, phase)
 				visit(ctx, walk, inst)
 
-				childStack := inst.CalledStack()
+				childStack := inst.Stack(ctx, phase)
 				walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
 				return
 			}
@@ -82,7 +82,7 @@ func walkDynamicObjectsInStack[Output any](
 			for _, inst := range insts {
 				visit(ctx, walk, inst)
 
-				childStack := inst.CalledStack()
+				childStack := inst.Stack(ctx, phase)
 				walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
 			}
 		})
@@ -126,7 +126,7 @@ func walkDynamicObjectsInStack[Output any](
 
 				// knownInstances are the instances that already exist either
 				// because they are in the state or the plan.
-				knownInstances := stack.KnownComponentInstances(component.Addr().Item, phase)
+				knownInstances := stack.KnownComponentInstances(component.addr.Item, phase)
 				if knownInstances.Len() == 0 {
 					// If we have no known instances, then we'll make up an
 					// unknown instance that will act as if it is being created
@@ -143,7 +143,7 @@ func walkDynamicObjectsInStack[Output any](
 				}
 
 				claimedInstances := collections.NewSet[stackaddrs.ComponentInstance]()
-				removed := stack.Removed(component.Addr().Item)
+				removed := stack.Removed(component.addr.Item)
 				for _, block := range removed {
 					// In this case we don't care about the unknown. If the
 					// removed instances are unknown, then we'll mark
@@ -153,7 +153,7 @@ func walkDynamicObjectsInStack[Output any](
 					insts, _, _ := block.Instances(ctx, phase)
 					for key := range insts {
 						claimedInstances.Add(stackaddrs.ComponentInstance{
-							Component: component.Addr().Item,
+							Component: component.addr.Item,
 							Key:       key,
 						})
 					}
@@ -227,7 +227,7 @@ func walkDynamicObjectsInStack[Output any](
 					if componentInstances.Len() == 0 {
 						// then we'll gather the component instances. we do this
 						// once, enforced by the mutex and the check above.
-						component := stack.Component(removed.Addr().Item)
+						component := stack.Component(removed.addr.Item)
 						if component != nil {
 							insts, unknown := component.Instances(ctx, phase)
 							if unknown {
@@ -242,7 +242,7 @@ func walkDynamicObjectsInStack[Output any](
 
 							for key := range insts {
 								componentInstances.Add(stackaddrs.ComponentInstance{
-									Component: removed.Addr().Item,
+									Component: removed.addr.Item,
 									Key:       key,
 								})
 							}

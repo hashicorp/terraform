@@ -33,6 +33,7 @@ var (
 type RemovedConfig struct {
 	addr   stackaddrs.ConfigComponent
 	config *stackconfig.Removed
+	stack  *StackConfig
 
 	main *Main
 
@@ -40,14 +41,16 @@ type RemovedConfig struct {
 	moduleTree promising.Once[withDiagnostics[*configs.Config]] // moduleTree is constant for every phase
 }
 
-func newRemovedConfig(main *Main, addr stackaddrs.ConfigComponent, config *stackconfig.Removed) *RemovedConfig {
+func newRemovedConfig(main *Main, addr stackaddrs.ConfigComponent, stack *StackConfig, config *stackconfig.Removed) *RemovedConfig {
 	return &RemovedConfig{
 		addr:   addr,
 		config: config,
+		stack:  stack,
 		main:   main,
 	}
 }
 
+// Addr implements ConfigComponentExpressionScope.
 func (r *RemovedConfig) Addr() stackaddrs.ConfigComponent {
 	return r.addr
 }
@@ -57,8 +60,9 @@ func (r *RemovedConfig) DeclRange() *hcl.Range {
 	return r.config.DeclRange.ToHCL().Ptr()
 }
 
+// StackConfig implements ConfigComponentExpressionScope
 func (r *RemovedConfig) StackConfig() *StackConfig {
-	return r.main.mustStackConfig(r.addr.Stack)
+	return r.stack
 }
 
 // ModuleTree implements ConfigComponentExpressionScope
@@ -130,7 +134,7 @@ func (r *RemovedConfig) CheckValid(ctx context.Context, phase EvalPhase) tfdiags
 			return diags, nil
 		}
 
-		providers, moreDiags := EvalProviderTypes(ctx, r.StackConfig(), r.config.ProviderConfigs, phase, r)
+		providers, moreDiags := EvalProviderTypes(ctx, r.stack, r.config.ProviderConfigs, phase, r)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
 			return diags, nil
@@ -227,7 +231,7 @@ func (r *RemovedConfig) ResolveExpressionReference(ctx context.Context, ref stac
 		repetition.EachKey = cty.UnknownVal(cty.String).RefineNotNull()
 		repetition.EachValue = cty.DynamicVal
 	}
-	return r.StackConfig().resolveExpressionReference(ctx, ref, nil, repetition)
+	return r.stack.resolveExpressionReference(ctx, ref, nil, repetition)
 }
 
 // PlanTimestamp implements ExpressionScope.
@@ -237,5 +241,5 @@ func (r *RemovedConfig) PlanTimestamp() time.Time {
 
 // ExternalFunctions implements ExpressionScope.
 func (r *RemovedConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return r.main.ProviderFunctions(ctx, r.StackConfig())
+	return r.main.ProviderFunctions(ctx, r.stack)
 }

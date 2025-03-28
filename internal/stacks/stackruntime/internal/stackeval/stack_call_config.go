@@ -26,6 +26,7 @@ import (
 type StackCallConfig struct {
 	addr   stackaddrs.ConfigStackCall
 	config *stackconfig.EmbeddedStack
+	stack  *StackConfig
 
 	main *Main
 
@@ -38,37 +39,23 @@ var _ Validatable = (*StackCallConfig)(nil)
 var _ Referenceable = (*StackCallConfig)(nil)
 var _ ExpressionScope = (*StackCallConfig)(nil)
 
-func newStackCallConfig(main *Main, addr stackaddrs.ConfigStackCall, config *stackconfig.EmbeddedStack) *StackCallConfig {
+func newStackCallConfig(main *Main, addr stackaddrs.ConfigStackCall, stack *StackConfig, config *stackconfig.EmbeddedStack) *StackCallConfig {
 	return &StackCallConfig{
 		addr:   addr,
 		config: config,
+		stack:  stack,
 		main:   main,
 	}
 }
 
-func (s *StackCallConfig) Addr() stackaddrs.ConfigStackCall {
-	return s.addr
-}
-
 func (s *StackCallConfig) tracingName() string {
-	return s.Addr().String()
+	return s.addr.String()
 }
 
-// CallerConfig returns the object representing the stack configuration that this
-// stack call was declared within.
-func (s *StackCallConfig) CallerConfig() *StackConfig {
-	return s.main.mustStackConfig(s.Addr().Stack)
-}
-
-// CalleeConfig returns the object representing the child stack configuration
+// TargetConfig returns the object representing the child stack configuration
 // that this stack call is referring to.
-func (s *StackCallConfig) CalleeConfig() *StackConfig {
-	return s.main.mustStackConfig(s.Addr().Stack.Child(s.addr.Item.Name))
-}
-
-// Declaration returns the [stackconfig.EmbeddedStack] that declared this object.
-func (s *StackCallConfig) Declaration() *stackconfig.EmbeddedStack {
-	return s.config
+func (s *StackCallConfig) TargetConfig() *StackConfig {
+	return s.stack.ChildConfig(stackaddrs.StackStep{Name: s.addr.Item.Name})
 }
 
 // ResultType returns the type of the overall result value for this call.
@@ -78,7 +65,7 @@ func (s *StackCallConfig) Declaration() *stackconfig.EmbeddedStack {
 func (s *StackCallConfig) ResultType() cty.Type {
 	// The result type of each of our instances is an object type constructed
 	// from all of the declared output values in the child stack.
-	calleeStack := s.CalleeConfig()
+	calleeStack := s.TargetConfig()
 	calleeOutputs := calleeStack.OutputValues()
 	atys := make(map[string]cty.Type, len(calleeOutputs))
 	for addr, ov := range calleeOutputs {
@@ -117,7 +104,7 @@ func (s *StackCallConfig) validateForEachValueInner(phase EvalPhase) func(contex
 			return cty.NilVal, diags
 		}
 
-		result, moreDiags := evaluateForEachExpr(ctx, s.config.ForEach, phase, s.CallerConfig(), "stack")
+		result, moreDiags := evaluateForEachExpr(ctx, s.config.ForEach, phase, s.stack, "stack")
 		diags = diags.Append(moreDiags)
 		return result.Value, diags
 	}
@@ -145,7 +132,7 @@ func (s *StackCallConfig) ValidateInputVariableValues(ctx context.Context, phase
 func (s *StackCallConfig) validateInputVariableValuesInner(phase EvalPhase) func(context.Context) (map[stackaddrs.InputVariable]cty.Value, tfdiags.Diagnostics) {
 	return func(ctx context.Context) (map[stackaddrs.InputVariable]cty.Value, tfdiags.Diagnostics) {
 		var diags tfdiags.Diagnostics
-		callee := s.CalleeConfig()
+		callee := s.TargetConfig()
 		vars := callee.InputVariables()
 
 		atys := make(map[string]cty.Type, len(vars))
@@ -294,7 +281,7 @@ func (s *StackCallConfig) ValidateResultValue(ctx context.Context, phase EvalPha
 				// there will be exactly one instance and can assume that
 				// the output value implementation will provide a suitable
 				// approximation of the final value.
-				calleeStack := s.CalleeConfig()
+				calleeStack := s.TargetConfig()
 				calleeOutputs := calleeStack.OutputValues()
 				attrs := make(map[string]cty.Value, len(calleeOutputs))
 				for addr, ov := range calleeOutputs {
@@ -327,9 +314,7 @@ func (s *StackCallConfig) ResolveExpressionReference(ctx context.Context, ref st
 		repetition.EachKey = cty.UnknownVal(cty.String).RefineNotNull()
 		repetition.EachValue = cty.DynamicVal
 	}
-	ret, diags := s.main.
-		mustStackConfig(s.Addr().Stack).
-		resolveExpressionReference(ctx, ref, nil, repetition)
+	ret, diags := s.stack.resolveExpressionReference(ctx, ref, nil, repetition)
 
 	if _, ok := ret.(*ProviderConfig); ok {
 		// We can't reference other providers from anywhere inside an embedded
@@ -347,7 +332,7 @@ func (s *StackCallConfig) ResolveExpressionReference(ctx context.Context, ref st
 
 // ExternalFunctions implements ExpressionScope.
 func (s *StackCallConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return s.main.ProviderFunctions(ctx, s.main.StackConfig(s.Addr().Stack))
+	return s.main.ProviderFunctions(ctx, s.stack)
 }
 
 // PlanTimestamp implements ExpressionScope, providing the timestamp at which
@@ -364,7 +349,7 @@ func (s *StackCallConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 	diags = diags.Append(moreDiags)
 	_, moreDiags = s.ValidateResultValue(ctx, phase)
 	diags = diags.Append(moreDiags)
-	moreDiags = ValidateDependsOn(s.CallerConfig(), s.config.DependsOn)
+	moreDiags = ValidateDependsOn(s.stack, s.config.DependsOn)
 	diags = diags.Append(moreDiags)
 	return diags
 }

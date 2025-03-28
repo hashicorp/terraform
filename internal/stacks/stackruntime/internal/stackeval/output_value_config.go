@@ -23,6 +23,7 @@ import (
 type OutputValueConfig struct {
 	addr   stackaddrs.ConfigOutputValue
 	config *stackconfig.OutputValue
+	stack  *StackConfig
 
 	main *Main
 
@@ -31,34 +32,20 @@ type OutputValueConfig struct {
 
 var _ Validatable = (*OutputValueConfig)(nil)
 
-func newOutputValueConfig(main *Main, addr stackaddrs.ConfigOutputValue, config *stackconfig.OutputValue) *OutputValueConfig {
+func newOutputValueConfig(main *Main, addr stackaddrs.ConfigOutputValue, stack *StackConfig, config *stackconfig.OutputValue) *OutputValueConfig {
 	if config == nil {
 		panic("newOutputValueConfig with nil configuration")
 	}
 	return &OutputValueConfig{
 		addr:   addr,
 		config: config,
+		stack:  stack,
 		main:   main,
 	}
 }
 
-func (ov *OutputValueConfig) Addr() stackaddrs.ConfigOutputValue {
-	return ov.addr
-}
-
-func (ov *OutputValueConfig) Declaration() *stackconfig.OutputValue {
-	return ov.config
-}
-
 func (ov *OutputValueConfig) tracingName() string {
-	return ov.Addr().String()
-}
-
-// StackConfig returns the object representing the stack configuration that
-// this output block belongs to.
-func (ov *OutputValueConfig) StackConfig() *StackConfig {
-	stackConfigAddr := ov.Addr().Stack
-	return ov.main.StackConfig(stackConfigAddr)
+	return ov.addr.String()
 }
 
 // Value returns the result value for this output value that should be used
@@ -99,7 +86,7 @@ func (ov *OutputValueConfig) validateValueInner(phase EvalPhase) func(ctx contex
 	return func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 		var diags tfdiags.Diagnostics
 
-		result, moreDiags := EvalExprAndEvalContext(ctx, ov.config.Value, phase, ov.StackConfig())
+		result, moreDiags := EvalExprAndEvalContext(ctx, ov.config.Value, phase, ov.stack)
 		v := result.Value
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
