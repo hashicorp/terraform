@@ -174,7 +174,8 @@ variable "image_id" {
   }
 }
 ```
-Refer to [Custom Condition Checks](/terraform/language/expressions/custom-conditions#input-variable-validation) for more details.
+
+Refer to [Validate your configuration](/terraform/language/mitigate-risk/validate#input-variable-validation) for more details.
 
 ### Exclude values from state
 
@@ -214,7 +215,7 @@ variable "password" {
 }
 
 locals {
-  # local.database_password is implicitly ephemeral because 
+  # local.database_password is implicitly ephemeral because
   # var.password is ephemeral.
   database_password = var.password
 }
