@@ -100,6 +100,18 @@ type Interface interface {
 	// CallFunction calls a provider-contributed function.
 	CallFunction(CallFunctionRequest) CallFunctionResponse
 
+	// TODO
+	// ValidateStorageConfig(ValidateStorageRequest) ValidateStorageResponse
+	// ConfigureStorage(ConfigureStorageRequest) ConfigureStorageResponse
+
+	// ReadState(ReadStateRequest, srv ProviderReadStateServer)
+	// WriteState(srv ProviderWriteStateServer)
+
+	// LockState(LockStateRequest) LockStateResponse
+	// UnlockState(UnlockStateRequest) UnlockStateResponse
+	// GetStates(GetStatesRequest) GetStatesResponse
+	// DeleteState(DeleteStateRequest) DeleteStateResponse
+
 	// Close shuts down the plugin process if applicable.
 	Close() error
 }
@@ -129,6 +141,10 @@ type GetProviderSchemaResponse struct {
 	// Functions maps from local function name (not including an namespace
 	// prefix) to the declaration of a function.
 	Functions map[string]FunctionDecl
+
+	// TODO
+	// Backends maps the backend type name to that type's schema.
+	// Backends map[string]Schema
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
