@@ -121,6 +121,46 @@ func (mr *MockProviderClientMockRecorder) ConfigureProvider(arg0, arg1 any, arg2
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigureProvider", reflect.TypeOf((*MockProviderClient)(nil).ConfigureProvider), varargs...)
 }
 
+// ConfigureStorage mocks base method.
+func (m *MockProviderClient) ConfigureStorage(arg0 context.Context, arg1 *tfplugin6.ConfigureStorage_Request, arg2 ...grpc.CallOption) (*tfplugin6.ConfigureStorage_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ConfigureStorage", varargs...)
+	ret0, _ := ret[0].(*tfplugin6.ConfigureStorage_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ConfigureStorage indicates an expected call of ConfigureStorage.
+func (mr *MockProviderClientMockRecorder) ConfigureStorage(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfigureStorage", reflect.TypeOf((*MockProviderClient)(nil).ConfigureStorage), varargs...)
+}
+
+// DeleteState mocks base method.
+func (m *MockProviderClient) DeleteState(arg0 context.Context, arg1 *tfplugin6.DeleteState_Request, arg2 ...grpc.CallOption) (*tfplugin6.DeleteState_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteState", varargs...)
+	ret0, _ := ret[0].(*tfplugin6.DeleteState_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteState indicates an expected call of DeleteState.
+func (mr *MockProviderClientMockRecorder) DeleteState(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteState", reflect.TypeOf((*MockProviderClient)(nil).DeleteState), varargs...)
+}
+
 // GetFunctions mocks base method.
 func (m *MockProviderClient) GetFunctions(arg0 context.Context, arg1 *tfplugin6.GetFunctions_Request, arg2 ...grpc.CallOption) (*tfplugin6.GetFunctions_Response, error) {
 	m.ctrl.T.Helper()
@@ -201,6 +241,26 @@ func (mr *MockProviderClientMockRecorder) GetResourceIdentitySchemas(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourceIdentitySchemas", reflect.TypeOf((*MockProviderClient)(nil).GetResourceIdentitySchemas), varargs...)
 }
 
+// GetStates mocks base method.
+func (m *MockProviderClient) GetStates(arg0 context.Context, arg1 *tfplugin6.GetStates_Request, arg2 ...grpc.CallOption) (*tfplugin6.GetStates_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetStates", varargs...)
+	ret0, _ := ret[0].(*tfplugin6.GetStates_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetStates indicates an expected call of GetStates.
+func (mr *MockProviderClientMockRecorder) GetStates(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStates", reflect.TypeOf((*MockProviderClient)(nil).GetStates), varargs...)
+}
+
 // ImportResourceState mocks base method.
 func (m *MockProviderClient) ImportResourceState(arg0 context.Context, arg1 *tfplugin6.ImportResourceState_Request, arg2 ...grpc.CallOption) (*tfplugin6.ImportResourceState_Response, error) {
 	m.ctrl.T.Helper()
@@ -219,6 +279,26 @@ func (mr *MockProviderClientMockRecorder) ImportResourceState(arg0, arg1 any, ar
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportResourceState", reflect.TypeOf((*MockProviderClient)(nil).ImportResourceState), varargs...)
+}
+
+// LockState mocks base method.
+func (m *MockProviderClient) LockState(arg0 context.Context, arg1 *tfplugin6.LockState_Request, arg2 ...grpc.CallOption) (*tfplugin6.LockState_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "LockState", varargs...)
+	ret0, _ := ret[0].(*tfplugin6.LockState_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LockState indicates an expected call of LockState.
+func (mr *MockProviderClientMockRecorder) LockState(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LockState", reflect.TypeOf((*MockProviderClient)(nil).LockState), varargs...)
 }
 
 // MoveResourceState mocks base method.
@@ -321,6 +401,26 @@ func (mr *MockProviderClientMockRecorder) ReadResource(arg0, arg1 any, arg2 ...a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadResource", reflect.TypeOf((*MockProviderClient)(nil).ReadResource), varargs...)
 }
 
+// ReadState mocks base method.
+func (m *MockProviderClient) ReadState(arg0 context.Context, arg1 *tfplugin6.ReadState_Request, arg2 ...grpc.CallOption) (tfplugin6.Provider_ReadStateClient, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ReadState", varargs...)
+	ret0, _ := ret[0].(tfplugin6.Provider_ReadStateClient)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReadState indicates an expected call of ReadState.
+func (mr *MockProviderClientMockRecorder) ReadState(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadState", reflect.TypeOf((*MockProviderClient)(nil).ReadState), varargs...)
+}
+
 // RenewEphemeralResource mocks base method.
 func (m *MockProviderClient) RenewEphemeralResource(arg0 context.Context, arg1 *tfplugin6.RenewEphemeralResource_Request, arg2 ...grpc.CallOption) (*tfplugin6.RenewEphemeralResource_Response, error) {
 	m.ctrl.T.Helper()
@@ -359,6 +459,26 @@ func (mr *MockProviderClientMockRecorder) StopProvider(arg0, arg1 any, arg2 ...a
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopProvider", reflect.TypeOf((*MockProviderClient)(nil).StopProvider), varargs...)
+}
+
+// UnlockState mocks base method.
+func (m *MockProviderClient) UnlockState(arg0 context.Context, arg1 *tfplugin6.UnlockState_Request, arg2 ...grpc.CallOption) (*tfplugin6.UnlockState_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "UnlockState", varargs...)
+	ret0, _ := ret[0].(*tfplugin6.UnlockState_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UnlockState indicates an expected call of UnlockState.
+func (mr *MockProviderClientMockRecorder) UnlockState(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnlockState", reflect.TypeOf((*MockProviderClient)(nil).UnlockState), varargs...)
 }
 
 // UpgradeResourceIdentity mocks base method.
@@ -479,4 +599,44 @@ func (mr *MockProviderClientMockRecorder) ValidateResourceConfig(arg0, arg1 any,
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateResourceConfig", reflect.TypeOf((*MockProviderClient)(nil).ValidateResourceConfig), varargs...)
+}
+
+// ValidateStorageConfig mocks base method.
+func (m *MockProviderClient) ValidateStorageConfig(arg0 context.Context, arg1 *tfplugin6.ValidateStorage_Request, arg2 ...grpc.CallOption) (*tfplugin6.ValidateStorage_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ValidateStorageConfig", varargs...)
+	ret0, _ := ret[0].(*tfplugin6.ValidateStorage_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ValidateStorageConfig indicates an expected call of ValidateStorageConfig.
+func (mr *MockProviderClientMockRecorder) ValidateStorageConfig(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateStorageConfig", reflect.TypeOf((*MockProviderClient)(nil).ValidateStorageConfig), varargs...)
+}
+
+// WriteState mocks base method.
+func (m *MockProviderClient) WriteState(arg0 context.Context, arg1 ...grpc.CallOption) (tfplugin6.Provider_WriteStateClient, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0}
+	for _, a := range arg1 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "WriteState", varargs...)
+	ret0, _ := ret[0].(tfplugin6.Provider_WriteStateClient)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WriteState indicates an expected call of WriteState.
+func (mr *MockProviderClientMockRecorder) WriteState(arg0 any, arg1 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0}, arg1...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteState", reflect.TypeOf((*MockProviderClient)(nil).WriteState), varargs...)
 }
