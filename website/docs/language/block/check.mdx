@@ -13,7 +13,9 @@ Terraform executes the `check` block as the last step of plan or apply operation
 
 Terraform evaluates `check` blocks locally whenever you plan or apply your configuration. In HCP Terraform, you can enable health checks on a workspace to automatically and continuously execute checks defined in that workspace's configuration. Refer to [Continuous validation](/terraform/cloud-docs/workspaces/health#continuous-validation) for details.
 
-The `check` block is one of Terraform's validation rules for verifying your configuration. Checks contain assertions, which specify the condition that Terraform is verifying during that check. Other validation rules run during other stages of a Terraform operation, and can block operations if they fail. The `check` block is the only validation rule that does not block operations, if a `check` block's assertion fails, Terraform reports a warning and continues executing the current operation. For information on other validation rules, refer to [Validate your configuration](/terraform/language/expressions/custom-conditions).
+The `check` block is one of the ways you can validate your configuration. Checks contain assertions, which specify the condition that Terraform is verifying during that check. Other validations run during other stages of a Terraform operation, and can block operations if they fail. The `check` block is the only validation that does not block operations, if a `check` block's assertion fails, Terraform reports a warning and continues executing the current operation.
+
+For information on all of the ways to validation configuration in Terraform, refer to [Validate your configuration](/terraform/language/mitigate-risk/validate#input-variable-validation).
 
 <!-- TODO: Fix link once have Validate your configuration page -->
 
@@ -57,7 +59,7 @@ A `check` block supports the following configuration.
 
 [Follow Terraform's resource naming rules](/terraform/language/style#resource-naming) when you declare a `check` block.
 
-You can define the following blocks on a `check` block. 
+You can define the following blocks on a `check` block.
 
 | Argument | Description | Type | Required |
 | --- | --- | --- | --- |
@@ -97,7 +99,7 @@ Refer to the [examples](#examples) to learn more about defining assertions withi
 
 ### `data "<TYPE>" "<LABEL>"`
 
-The `data` block fetches information that you can reference in expressions in the `assert` block's `condition` argument. 
+The `data` block fetches information that you can reference in expressions in the `assert` block's `condition` argument.
 
 ```hcl
 check "unique_name" {
@@ -220,7 +222,7 @@ check "service_validation" {
 
 ### Resource dependency
 
-In the following example, Terraform waits to run the check  until it creates the `aws_db_instance.main` database. Terraform prints `known after apply`, instead of printing false warnings, until it finishes creating the database: 
+In the following example, Terraform waits to run the check  until it creates the `aws_db_instance.main` database. Terraform prints `known after apply`, instead of printing false warnings, until it finishes creating the database:
 
 ```hcl
 check "database_connection" {
@@ -235,4 +237,3 @@ check "database_connection" {
  }
 }
 ```
-
