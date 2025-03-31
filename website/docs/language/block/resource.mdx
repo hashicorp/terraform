@@ -6,18 +6,14 @@ description: The `resource` block instructs Terraform to create an infrastructur
 
 # `resource` block
 
-The `resource` block defines a piece of infrastructure and specifies settings for Terraform to create it with. Refer to [Create and manage resources](/terraform/language/manage-resource) for additional information about resources in Terraform.
-
-## Introduction
-
-Add `resource` blocks to your Terraform configuration to describe one or more infrastructure objects, such as virtual networks, compute instances, or higher-level components such as DNS records. The arguments that an individual resource supports are determined by the provider. Refer to the provider documentation for more information about specific resource configuration. 
+The `resource` block defines a piece of infrastructure and specifies the settings for Terraform to create it with. The arguments that an individual resource supports are determined by the provider. Refer to the provider documentation for more information about specific resource configuration. Refer to [Create and manage resources](/terraform/language/resources) for additional information about resources in Terraform.
 
 ## Configuration model
 
 The `resource` block supports the following arguments. Click on an argument or block for details:
 
 - [`resource "<TYPE>" "<LABEL>"`](#resource) &nbsp; block
-   - [`PROVIDER_ARGUMENTS`](#provider_arguments) &nbsp; block | refer to your provider documentation
+   - [`PROVIDER_ARGUMENTS`](#provider-arguments) &nbsp; block | refer to your provider documentation
    - [`count`](#count) &nbsp; number | mutually exclusive with `for_each`
    - [`depends_on`](#depends_on) &nbsp; list of references
    - [`for_each`](#for_each) &nbsp; map or set of strings | mutually exclusive with `count`
@@ -78,8 +74,6 @@ The `resource` block supports the following arguments. Click on an argument or b
       - [`scripts`](#scripts) &nbsp; string
       - [`on_failure`](#on_failure) &nbsp; keyword
       - [`connection`](#connection) &nbsp; block
-
-
 
 ## Complete configuration
 
@@ -155,7 +149,7 @@ A `resource` block supports the following configuration.
 
 You must set the following arguments for every `resource` block: 
 
-- `TYPE`: Specifies the type of resource. This value is determined by the provider developer. Refer to provider documentation for details. The `terraform_data` resource type is the exception. You can use the `terraform_data` resource type to store values and trigger Terraform operations without creating actual infrastructure. 
+- `TYPE`: Specifies the type of resource. This value is determined by the provider developer. Refer to provider documentation for details. The `terraform_data` resource type is the exception. You can use the `terraform_data` resource type to store values and trigger Terraform operations without creating actual infrastructure. Refer to [Implement the standard resource lifecycle](/terraform/language/resources/terraform-data) for additional information.  
 - `LABEL`: Specifies a name for the resource. Terraform uses this label to track the resource in your state file. To reference the resource in your configuration, you must refer to it using `<TYPE>.<LABEL>` syntax. The label does not affect settings on the actual infrastructure resource. Refer to [References to Named Values](/terraform/language/expressions/references) in the expressions reference and to [Resource naming](/terraform/language/style#resource-naming) in the style guide for expression syntax and label recommendations.
 
 ### Provider-specific arguments
@@ -174,7 +168,9 @@ resource {
 
 The value must be a whole number. You can reference variables or local values and use expressions to compute the value, but the value must resolve to a whole number. 
 
-Setting the `count` argument exposes a `count` object within the same resource block. You can reference the object in the block to modify specific instances. To refer to an individual instance of a resource created using the `count` meta-argument, use the `<TYPE>.<NAME>[INDEX]` syntax. For example, `aws_instance.server[0]` refers to the first instance of the `aws_instance` resource named `server`. Refer to [Create and manage resources](/terraform/language/manage-resource/create) for additional information.
+In blocks where `count` is set, Terraform exposes an additional `count` object in expressions so you can modify the configuration of each instance. The `count` object has an `index` attribute, starting from `0`, that you can use to referrence each instance.
+
+To refer to an individual instance of a resource created using the `count` meta-argument, use the `<TYPE>.<NAME>[INDEX]` syntax. For example, `aws_instance.server[0]` refers to the first instance of the `aws_instance` resource named `server`. Refer to [Create and manage resources](/terraform/language/manage-resource/create) for additional information.
 
 <Tip>
 
@@ -197,7 +193,7 @@ The `depends_on` argument specifies an upstream resource that the resource depen
 
 ```hcl
 resource {
-  depends_on = [ <reference> ]
+  depends_on = [ <resource-reference> ]
 }
 ```
 
@@ -224,7 +220,10 @@ The `for_each` argument instructs Terraform to provision similar resources witho
 
 ```hcl
 resource {
-  for_each = <function>
+  for_each = [ "<VALUE>" ] 
+  for_each = {
+    "<KEY>" = "<VALUE>"
+  }
 }
 ```
 
@@ -280,7 +279,7 @@ resource {
 
 By default, Terraform automatically selects a provider based on the resource type, but you can create multiple provider configurations and use a non-default configuration for specific resources. 
 
-Use the `<PROVIDER>.<ALIAS>` syntax to reference a provider configuration in the `provider` argument. Refer to [`provider` reference](/terraform/language/providers) for details.   
+Use the `<PROVIDER>.<ALIAS>` syntax to reference a provider configuration in the `provider` argument. Refer to [Multiple Provider Configurations](/terraform/language/providers/configuration#alias-multiple-provider-configurations) for instructions on how to reference a specific provider configuration.   
 
 The `provider` argument is a meta-argument, which is built into Terraform and controls the way that Terraform creates resources. Refer to [Meta-arguments](/terraform/language/concepts/meta-arguments) for additional information.
 
@@ -308,9 +307,9 @@ You can specify the following lifecycle rules to manage how Terraform performs o
 - [`create_before_destroy`](#create_before_destroy): Terraform creates a replacement resource before destroying the previous resource.
 - [`prevent_destroy`](#prevent_destroy): Terraform rejects operations to destroy the resource and returns an error.
 - [`ignore_changes`](#ignore_changes): Terraform ignores changes to the actual resource configuration. As a result, the remote resource under management remains unchanged.
-- [`replace_triggered_by`](#replace_triggered_by): Terraform replaces the resource when any of the referenced resources or attributes specified change.
-- [`precondition`](#precondition): Specifies a condition that Terraform evaluates before creating the resource. Refer to [Custom Conditions](/terraform/language/expressions/custom-conditions) for additional information.
-- [`postcondition`](#postcondition): Specifies a condition that Terraform evaluates after creating the resource. Refer to [Custom Conditions](/terraform/language/expressions/custom-conditions)](linky-ti-link) for additional information.
+- [`replace_triggered_by`](#replace-triggered_by): Terraform replaces the resource when any of the referenced resources or attributes specified change.
+- [`precondition`](#precondition): Specifies a condition that Terraform evaluates before creating the resource. Refer to [Validate your configuration](/terraform/language/mitigate-risk/validate) for additional information.
+- [`postcondition`](#postcondition): Specifies a condition that Terraform evaluates after creating the resource. Refer to [Validate your configuration](/terraform/language/mitigate-risk/validate) for additional information.
 
 Configurations defined in the `lifecycle` block affect how Terraform constructs and traverses the dependency graph. You can only use literal values in the lifecycle block because Terraform processes them before it evaluates arbitrary expressions for a run.
 
@@ -342,6 +341,10 @@ Terraform propagates and applies the `create_before_destroy` behavior to all ups
 
 Setting`create_before_destroy` to `true` on a resource stops any configured destroy provisioners. Refer to the GitHub issue titled ["on-destroy provisioners not being executed"](https://github.com/hashicorp/terraform/issues/13549) for details.
 
+#### Summary
+
+- Data type: Boolean
+- Default: None. 
 
 ### `prevent_destroy`
 
@@ -357,7 +360,7 @@ resource {
 
 Use this argument to prevent team members from accidentally replacing critical infrastructure, such as database instances.
 
-When the `prevent_destroy` argument is set, you must either remove the resource from the configuration or set the argument to `false` to destroy it. We recommend careful consideration when using the `prevent_destroy` argument because it can introduce complexity when applying resource changes or destroying resources. 
+When the `prevent_destroy` argument is set, you must either remove the resource from the configuration or change the `prevent_destroy` argument to `false` to destroy it. Use this argument with caution. The `prevent_destroy` argument can make applying resource changes or destroying resources more complex.  
 
 #### Summary
 
@@ -437,10 +440,10 @@ resource {
 
 You can specify the following arguments in the `precondition` block:
 
-| Attribute | Description | Data type |
-| --- | --- | --- |
-| `condition` | Expression that must return `true` for Terraform to proceed with an operation. You can refer to any other object in the same configuration scope unless the reference creates a cyclic dependency. | Expression that can include references, strings, and operators. |
-| `error_message` | Message that Terraform prints to the console if the `condition` returns `false`. | String |
+| Attribute | Description | Data type | Required |
+| --- | --- | --- | --- | 
+| `condition` | Expression that must return `true` for Terraform to proceed with an operation. You can refer to any other object in the same configuration scope unless the reference creates a cyclic dependency. | Expression that can include references, strings, and operators. | Required |
+| `error_message` | Message that Terraform prints to the console if the `condition` returns `false`. | String | Required |
 
 Terraform evaluates `precondition` blocks before evaluating the resource's configuration arguments. The `precondition` can take precedence over argument evaluation errors.
 
@@ -448,7 +451,7 @@ Terraform evaluates precondition blocks after evaluating `count` and `for_each` 
 
 You can include a `precondition` and [`postcondition` block](#postcondition) in the same resource. Do not add `precondition` blocks to a `resource` block and a `data` block that represent the same object in the same configuration. Doing so can prevent Terraform from understanding that the data block result can be affected by changes in the resource block. 
 
-Refer to [Custom Conditions](/terraform/language/expressions/custom-conditions) for information about adding validations to your Terraform configuration.
+Refer to [Validate your configuration](/terraform/language/mitigate-risk/validate) for additional information.
 
 #### Summary
 
@@ -474,16 +477,16 @@ resource {
 
 You can specify the following attributes in the `postcondition` block:
 
-| Attribute | Description | Data type |
-| --- | --- | --- |
-| `condition` | Expression that must return `true` for Terraform to proceed with an operation. You can refer to any other object in the same configuration scope unless the reference creates a cyclic dependency. | Expression that can include references, strings, and operators. |
-| `error_message` | Message that Terraform prints to the console if the `condition` returns `false`. | String |
-
-Refer to [Custom Conditions](/terraform/language/expressions/custom-conditions) for information about adding validations to your Terraform configuration.
+| Attribute | Description | Data type | Required |
+| --- | --- | --- | --- |
+| `condition` | Expression that must return `true` for Terraform to proceed with an operation. You can refer to any other object in the same configuration scope unless the reference creates a cyclic dependency. | Expression that can include references, strings, and operators. | Required |
+| `error_message` | Message that Terraform prints to the console if the `condition` returns `false`. | String | Required |
 
 Terraform evaluates `postcondition` blocks after planning and applying changes to the resource. Postcondition failures prevent changes to other resources that depend on the failing resource.
 
 You can include a `postcondition` and [`precondition` block](#precondition) in the same resource. Do not add `postcondition` blocks to a `resource` block and a `data` block that represent the same object in the same configuration. Doing so can prevent Terraform from understanding that the data block result can be affected by changes in the resource block. 
+
+Refer to [Validate your configuration](/terraform/language/mitigate-risk/validate) for additional information.
 
 #### Summary
 
@@ -501,7 +504,7 @@ We recommend using configuration tools or other means to perform actions on the 
 
 </Warning>
 
-You can add the `connection` block to either the [`resource`](#resource) block or the [`provisioner`](#provisioner) block. When added to the `resource` block, the `connection` block sets default connection settings for all provisioners defined in the resource so that provisioners can to connect to the remote resource after Terraform provisions it. 
+You can add the `connection` block to either the [`resource`](#resource) block or the [`provisioner`](#provisioner) block. When added to the `resource` block, the `connection` block sets default connection settings for all provisioners defined in the resource so that provisioners can connect to the remote resource after Terraform provisions it. 
 
 ```hcl
 resource {
@@ -525,8 +528,6 @@ resource {
   }
 }
 ```
-
-
 
 Terraform does not validate SSH host keys by default. You can establish a separate mechanism for key distribution and explicitly set the `host_key` argument to verify against a specific key or signing CA.
 
