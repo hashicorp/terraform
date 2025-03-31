@@ -21,12 +21,12 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend/local"
 	testing_command "github.com/hashicorp/terraform/internal/command/testing"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/moduletest/graph"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
 )
 
@@ -486,6 +486,8 @@ func TestTest_Interrupt(t *testing.T) {
 }
 
 func TestTest_DestroyFail(t *testing.T) {
+	// Testing that when a cleanup fails, we leave behind state files of the failed
+	// resources, and that the test command fails with a non-zero exit code.
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "destroy_fail")), td)
 	defer testChdir(t, td)()
@@ -592,29 +594,6 @@ main.tftest.hcl/single, and they need to be cleaned up manually:
 		t.Fatalf("failed to unmarshal manifest.json: %s", err)
 	}
 
-	// function to get the state for a given state key within the manifest
-	stateGetter := func(stateKey string) (*states.State, error) {
-		backend := local.New()
-		dir := filepath.Dir(stateKey)
-		backendConfig := cty.ObjectVal(map[string]cty.Value{
-			"path":          cty.StringVal(stateKey),
-			"workspace_dir": cty.StringVal(dir),
-		})
-		diags := backend.Configure(backendConfig)
-		if diags.HasErrors() {
-			return nil, fmt.Errorf("failed to configure backend: %s", diags)
-		}
-
-		mgr, err := backend.StateMgr("default")
-		if err != nil {
-			return nil, fmt.Errorf("failed to create state manager: %s", err)
-		}
-		if err := mgr.RefreshState(); err != nil {
-			return nil, fmt.Errorf("failed to refresh state: %s", err)
-		}
-		return mgr.State(), nil
-	}
-
 	expectedStates := map[string][]string{
 		"main.":       {"test_resource.another", "test_resource.resource"},
 		"main.double": {"test_resource.another", "test_resource.resource"},
@@ -624,10 +603,11 @@ main.tftest.hcl/single, and they need to be cleaned up manually:
 	// Verify the states in the manifest
 	for fileName, file := range manifest.Files {
 		for name, state := range file.States {
-			state, err := stateGetter(state.Path)
-			if err != nil {
-				t.Fatalf("failed to get state: %s", err)
+			sm := statemgr.NewFilesystem(filepath.Join(td, state.Path))
+			if err := sm.RefreshState(); err != nil {
+				t.Fatalf("error when reading state file: %s", err)
 			}
+			state := sm.State()
 
 			// If the state is nil, then the test cleaned up the state
 			if state == nil {
@@ -2312,29 +2292,6 @@ Success! 5 passed, 0 failed.
 			t.Fatalf("failed to unmarshal manifest.json: %s", err)
 		}
 
-		// function to get the state for a given state key within the manifest
-		stateGetter := func(stateKey string) (*states.State, error) {
-			backend := local.New()
-			dir := filepath.Dir(stateKey)
-			backendConfig := cty.ObjectVal(map[string]cty.Value{
-				"path":          cty.StringVal(stateKey),
-				"workspace_dir": cty.StringVal(dir),
-			})
-			diags := backend.Configure(backendConfig)
-			if diags.HasErrors() {
-				return nil, fmt.Errorf("failed to configure backend: %s", diags)
-			}
-
-			mgr, err := backend.StateMgr("default")
-			if err != nil {
-				return nil, fmt.Errorf("failed to create state manager: %s", err)
-			}
-			if err := mgr.RefreshState(); err != nil {
-				return nil, fmt.Errorf("failed to refresh state: %s", err)
-			}
-			return mgr.State(), nil
-		}
-
 		expectedStates := map[string][]string{
 			"main.": {"test_resource.resource"},
 		}
@@ -2343,10 +2300,11 @@ Success! 5 passed, 0 failed.
 		// Verify the states in the manifest
 		for fileName, file := range manifest.Files {
 			for name, state := range file.States {
-				state, err := stateGetter(state.Path)
-				if err != nil {
-					t.Fatalf("failed to get state: %s", err)
+				sm := statemgr.NewFilesystem(filepath.Join(td, state.Path))
+				if err := sm.RefreshState(); err != nil {
+					t.Fatalf("error when reading state file: %s", err)
 				}
+				state := sm.State()
 
 				// If the state is nil, then the test cleaned up the state
 				if state == nil {
