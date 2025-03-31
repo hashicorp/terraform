@@ -2188,49 +2188,6 @@ import {
 	}
 }
 
-// https://github.com/hashicorp/terraform/issues/36672
-func TestContext2Apply_importSelfReference(t *testing.T) {
-	m := testModuleInline(t, map[string]string{
-		"main.tf": `
-			resource "test_resource" "a" {
-				count = 2
-			}
-
-			import {
-				# the block references the same resource it is importing into
-				for_each = { for _, v in test_resource.a : v => v }
-				to = test_resource.a[each.key]
-				id = concat("importable-", each.key)
-			}
-`,
-	})
-
-	p := testProvider("test")
-	ctx := testContext2(t, &ContextOpts{
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
-		},
-	})
-	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
-		Mode: plans.NormalMode,
-	})
-
-	if !diags.HasErrors() {
-		t.Fatalf("succeeded; want error")
-	}
-
-	found := false
-	for _, diag := range diags {
-		if diag.Severity() == tfdiags.Error && diag.Description().Summary == "Invalid import block" {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Fatalf("expected diag with summary 'Invalid import block', but got %s", diags.Err())
-	}
-}
-
 func TestContext2Apply_destroySkipsVariableValidations(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `

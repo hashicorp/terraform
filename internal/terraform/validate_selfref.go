@@ -95,6 +95,17 @@ func validateImportSelfRef(addr addrs.Resource, expr hcl.Expression) tfdiags.Dia
 	})
 }
 
+func validateImportForEachRef(addr addrs.Resource, expr hcl.Expression) tfdiags.Diagnostics {
+	return validateSelfRefFromExprInner(addr, expr, func(ref *addrs.Reference) *hcl.Diagnostic {
+		return &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid for_each argument",
+			Detail:   "The for_each expression cannot reference the resource being imported.",
+			Subject:  ref.SourceRange.ToHCL().Ptr(),
+		}
+	})
+}
+
 // validateSelfRefFromExprInner is a helper function that takes an address and
 // an expression and returns diagnostics for self-references in the expression.
 //

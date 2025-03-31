@@ -577,6 +577,11 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 		}
 
 		if imp.Config.ForEach != nil {
+			diags = diags.Append(validateImportForEachRef(n.Addr.Resource, imp.Config.ForEach))
+			if diags.HasErrors() {
+				return diags
+			}
+
 			forEachData, _, forEachDiags := newForEachEvaluator(imp.Config.ForEach, ctx, true).ImportValues()
 			diags = diags.Append(forEachDiags)
 			if forEachDiags.HasErrors() {

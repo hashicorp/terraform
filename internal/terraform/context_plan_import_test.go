@@ -1890,3 +1890,39 @@ output "foo" {
 		t.Errorf("should have reported the cycle to contain the target resource, but got %s", got)
 	}
 }
+
+// https://github.com/hashicorp/terraform/issues/36672
+func TestContext2Plan_importSelfReferenceInForEach(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_resource" "a" {
+				count = 2
+			}
+
+			import {
+				# the block references the same resource it is importing into
+				for_each = { for _, v in test_resource.a : v => v }
+				to = test_resource.a[each.key]
+				id = concat("importable-", each.key)
+			}
+`,
+	})
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	diags := ctx.Validate(m, &ValidateOpts{})
+
+	// We're expecting exactly one diag, which is the self-reference error.
+	if len(diags) != 1 {
+		t.Fatalf("expected one diag, got %d: %s", len(diags), diags.ErrWithWarnings())
+	}
+
+	got, want := diags.Err().Error(), "Invalid for_each argument: The for_each expression cannot reference the resource being imported."
+	if cmp.Diff(want, got) != "" {
+		t.Fatalf("unexpected error\n%s", cmp.Diff(want, got))
+	}
+}

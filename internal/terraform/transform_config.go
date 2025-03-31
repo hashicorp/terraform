@@ -90,7 +90,6 @@ func (t *ConfigTransformer) transform(g *Graph, config *configs.Config) error {
 func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) error {
 	path := config.Path
 	module := config.Module
-	var diags tfdiags.Diagnostics
 	log.Printf("[TRACE] ConfigTransformer: Starting for path: %v", path)
 
 	var allResources []*configs.Resource
@@ -172,21 +171,6 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 			importTargets: imports,
 		}
 
-		// If a resource is the target of an import block, the import block
-		// must not reference that resource, except in the "to" attribute.
-		for _, ref := range abstract.ImportReferences() {
-			if addr, ok := ref.Subject.(addrs.Resource); ok {
-				if addr.Equal(relAddr) {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid import block",
-						Detail:   "The import block can only reference the resource to be imported in the 'to' attribute.",
-						Subject:  ref.SourceRange.ToHCL().Ptr(),
-					})
-				}
-			}
-		}
-
 		var node dag.Vertex = abstract
 		if f := t.Concrete; f != nil {
 			node = f(abstract)
@@ -215,8 +199,7 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 
 		g.Add(node)
 	}
-
-	return diags.Err()
+	return nil
 }
 
 // validateImportTargets ensures that the import target module exists in the
