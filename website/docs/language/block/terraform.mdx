@@ -15,9 +15,9 @@ The `terraform` block supports the following arguments:
 - [`terraform`](#terraform)
   - [`required_version`](#required_version): &nbsp string 
   - [`required_providers`](#required_providers): &nbsp block
-    - [`<PROVIDER>`](#provider): &nbsp block
-      - [`version`](#provider): &nbsp string
-      - [`source`](#provider): &nbsp string
+    - [`<PROVIDER>`](#provider-specific-settings): &nbsp block
+      - [`version`](#provider-specific-settings): &nbsp string
+      - [`source`](#provider-specific-settings): &nbsp string
   - [`provider_meta "<LABEL>"`](#provider_meta): &nbsp block
   - [`backend "<BACKEND_TYPE>"`](#backend): &nbsp block | mutually exclusive with `cloud`
   - [`cloud`](#cloud): &nbsp block | mutually exclusive with `backend`
@@ -95,11 +95,8 @@ Modules associated with a configuration may also specify version constraints. Yo
 
 The `required_version` configuration applies only to the version of Terraform CLI and not versions of provider plugins. Refer to [Provider Requirements](/terraform/language/providers/requirements) for additional information.
 
-#### Summary
-
-- Data type: String.
-- Default: None.
-- Example:[Add a provider](#add-a-provider)
+- Data type: String
+- Default: Latest version of Terraform
 
 ### `required_providers`
 

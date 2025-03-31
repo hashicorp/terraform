@@ -188,6 +188,8 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 }
 
 func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	logger.Trace("GRPCProvider: GetResourceIdentitySchemas")
+
 	var resp providers.GetResourceIdentitySchemasResponse
 
 	resp.IdentityTypes = make(map[string]providers.IdentitySchema)

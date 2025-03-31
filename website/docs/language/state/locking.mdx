@@ -12,12 +12,12 @@ state for all operations that could write state. This prevents
 others from acquiring the lock and potentially corrupting your state.
 
 State locking happens automatically on all operations that could write
-state. You won't see any message that it is happening. If state locking fails,
-Terraform will not continue. You can disable state locking for most commands
-with the `-lock` flag but it is not recommended.
+state. You do not see any message that it happens. If state locking fails,
+Terraform does not continue. You can disable state locking for most commands
+with the `-lock=false` flag, but we do not recommend it.
 
-If acquiring the lock is taking longer than expected, Terraform will output
-a status message. If Terraform doesn't output a message, state locking is
+If acquiring the lock takes longer than expected, Terraform outputs
+a status message. If Terraform does not output a message, state locking is
 still occurring if your backend supports it.
 
 Not all backends support locking. The

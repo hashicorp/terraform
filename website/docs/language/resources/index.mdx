@@ -1,36 +1,62 @@
 ---
-page_title: Resources Overview - Configuration Language
-description: >-
-  Resources describe infrastructure objects in Terraform configurations. Find
-  documentation for resource syntax, behavior, and meta-arguments.
+page_title: Create and manage resources overview
+description: A `resource` block in Terraform creates and manages real infrastructure objects, such as virtual networks, compute instances, and DNS records. Learn about creating and managing resources in Terraform.
 ---
 
-# Resources
+# Create and manage resources overview
 
-> **Hands-on:** Try the [Terraform: Get Started](/terraform/tutorials/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials.
+This topic provides overview information about creating and managing resources in Terraform configuration. Each `resource` block manages one or more pieces of infrastructure. Resource types and their supported arguments are determined by the provider developer.
 
-_Resources_ are the most important element in the Terraform language.
-Each resource block describes one or more infrastructure objects, such
-as virtual networks, compute instances, or higher-level components such
-as DNS records.
+## Workflow
 
-- [Resource Blocks](/terraform/language/resources/syntax) documents
-  the syntax for declaring resources.
+The following outline describes tasks associated with defining resources in Terraform configuration. 
 
-- [Resource Behavior](/terraform/language/resources/behavior) explains in
-  more detail how Terraform handles resource declarations when applying a
-  configuration.
+### Select and configure providers
 
-- The Meta-Arguments section documents special arguments that can be used with
-  every resource type, including
-  [`depends_on`](/terraform/language/meta-arguments/depends_on),
-  [`count`](/terraform/language/meta-arguments/count),
-  [`for_each`](/terraform/language/meta-arguments/for_each),
-  [`provider`](/terraform/language/meta-arguments/resource-provider),
-  and [`lifecycle`](/terraform/language/meta-arguments/lifecycle).
+Before you can define a resource, you must select and configure providers. Providers are plugins for Terraform that encapsulate API calls for creating, updating, and destroying that provider's services and resources. Resources manage infrastructure objects, while data sources query the provider API for details about existing infrastructure. The types of resources and data sources you can use are determined by the provider. Refer to [Providers](/terraform/language/providers) for additional information. 
 
-- [Provisioners](/terraform/language/resources/provisioners/syntax)
-  documents configuring post-creation actions for a resource using the
-  `provisioner` and `connection` blocks. Since provisioners are non-declarative
-  and potentially unpredictable, we strongly recommend that you treat them as a
-  last resort.
+### Configure the resource
+
+Add a `resource` block to your Terraform configuration file and set the resource to the desired settings and behavior. Depending on whether or not the resource already exists and the changes you request, Terraform either creates a new resource or updates the existing resource. Refer to [Define a resource](/terraform/language/resources/create) for additional information.
+
+### Specify resource dependencies
+
+Terraform parallelizes resource creation, but some resources may depend on outputs from other upstream resources. If a resource definition references another resource in its arguments, Terraform identifies the implicit dependency and implements the changes in the appropriate order. 
+
+You can configure explicit dependencies using the [`depends_on` argument](/terraform/language/resource#depends_on). You can also use the [`replace_triggered_by` argument](/terraform/language/resource#replace_triggered_by) to force Terraform to replace a resource when the referenced resource or resource attribute changes.
+
+### Define post-creation operations
+
+You can define actions for Terraform to perform on the local or remote resource after creating it. We recommend starting a remote connection to the resource or using a configuration management software, but you can use arguments built-into Terraform called provisioners to run commands on resources when other options are not available. Refer to [Run commands on resources](/terraform/language/resources/run-commands) for additional information. 
+
+### Move and remove a resource  
+
+As your infrastructure evolves, you may need to change its address in state. You can add the [`moved` block](/terraform/language/block/moved) to your configuration to change the address of a resource. You can also remove a resource from your configuration and apply the change. Refer to [Remove a resource](/terraform/language/resources/remove) for instructions.  
+
+## How Terraform applies resource configurations
+
+After writing a Terraform configuration, you must apply it for Terraform to implement changes. Follow the [core Terraform workflow](/terraform/intro/core-workflow) to manage your infrastructure lifecycle. 
+
+When Terraform creates a new infrastructure object represented by a `resource` block, Terraform stores the identifier for the actual resource in the [state file](/terraform/language/state). Terraform tracks changes to the resource across operations in the state file, recording any changes, additions, and deletions. 
+
+When a `resource` block already has an associated infrastructure object in state, Terraform compares the actual configuration of the object with the arguments in the configuration. Terraform updates the object to match the configuration as necessary.
+
+By default, Terraform performs the following steps when you run the `terraform apply` command or start a Terraform run in HCP Terraform or Terraform Enterprise:
+
+- Creates resources defined in the configuration that do not yet exist in state.
+- Destroys resources that exist in state but are not in the configuration.
+- Performs non-destructive in-place updates for allowed settings changes.
+- Destroys and re-creates resources when its arguments have changed but cannot be updated in-place due to provider API limitations.
+
+Terraform performs these operations for all resource types, but you can configure arguments in the `resource` block to customize the behavior. Refer to the [`resource` block reference](/terraform/language/resource) for details.
+
+## Local-only resources
+
+Most resource types correspond to an infrastructure object type managed by a provider API, but some resources operate only within Terraform. Local-only resources calculate results and save them in the state for future use. For example, you can use local-only resources to
+[generate private keys](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/resources/private_key),
+[issue self-signed TLS certificates](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/resources/self_signed_cert),
+and [generate random IDs](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/id).
+
+Local-only resources do not manage real infrastructure objects, but they can be useful for connecting other resources together.
+
+Local-only resource data only exists within the Terraform state. When you run a Terraform operation that destroys local-only resources, Terraform removes the resources from state and discards its data.
