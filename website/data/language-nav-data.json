@@ -332,7 +332,7 @@
       }
     ]
   },
-  { "title": "Checks", "path": "checks" },
+  { "title": "Check block", "href": "/terraform/language/block/check" },
   {
       "title": "Mitigate risk",
       "routes": [
@@ -1115,6 +1115,10 @@
   {
     "title": "Configuration blocks",
     "routes": [
+      {
+      "title": "check",
+      "path": "block/check"
+      },
       {
       "title": "Moved block",
       "path": "block/moved"
