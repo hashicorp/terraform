@@ -1114,7 +1114,7 @@
     "title": "Configuration blocks",
     "routes": [
       {
-      "title": "Check block",
+      "title": "check",
       "path": "block/check"
       },
       {
