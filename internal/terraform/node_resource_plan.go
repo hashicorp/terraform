@@ -61,14 +61,10 @@ var (
 	_ GraphNodeAttachResourceConfig = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeAttachDependencies   = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeTargetable           = (*nodeExpandPlannableResource)(nil)
-	_ graphNodeExpandsInstances     = (*nodeExpandPlannableResource)(nil)
 )
 
 func (n *nodeExpandPlannableResource) Name() string {
 	return n.NodeAbstractResource.Name() + " (expand)"
-}
-
-func (n *nodeExpandPlannableResource) expandsInstances() {
 }
 
 // GraphNodeAttachDependencies

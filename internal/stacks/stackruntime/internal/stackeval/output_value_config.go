@@ -8,14 +8,15 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // OutputValueConfig represents an "output" block in a stack configuration.
@@ -29,7 +30,6 @@ type OutputValueConfig struct {
 }
 
 var _ Validatable = (*OutputValueConfig)(nil)
-var _ namedPromiseReporter = (*OutputValueConfig)(nil)
 
 func newOutputValueConfig(main *Main, addr stackaddrs.ConfigOutputValue, config *stackconfig.OutputValue) *OutputValueConfig {
 	if config == nil {
@@ -46,7 +46,7 @@ func (ov *OutputValueConfig) Addr() stackaddrs.ConfigOutputValue {
 	return ov.addr
 }
 
-func (ov *OutputValueConfig) Declaration(ctx context.Context) *stackconfig.OutputValue {
+func (ov *OutputValueConfig) Declaration() *stackconfig.OutputValue {
 	return ov.config
 }
 
@@ -56,9 +56,9 @@ func (ov *OutputValueConfig) tracingName() string {
 
 // StackConfig returns the object representing the stack configuration that
 // this output block belongs to.
-func (ov *OutputValueConfig) StackConfig(ctx context.Context) *StackConfig {
+func (ov *OutputValueConfig) StackConfig() *StackConfig {
 	stackConfigAddr := ov.Addr().Stack
-	return ov.main.StackConfig(ctx, stackConfigAddr)
+	return ov.main.StackConfig(stackConfigAddr)
 }
 
 // Value returns the result value for this output value that should be used
@@ -74,7 +74,7 @@ func (ov *OutputValueConfig) Value(ctx context.Context, phase EvalPhase) cty.Val
 
 // ValueTypeConstraint returns the type that the final result of this output
 // value is guaranteed to have.
-func (ov *OutputValueConfig) ValueTypeConstraint(ctx context.Context) cty.Type {
+func (ov *OutputValueConfig) ValueTypeConstraint() cty.Type {
 	return ov.config.Type.Constraint
 }
 
@@ -87,7 +87,7 @@ func (ov *OutputValueConfig) ValueTypeConstraint(ctx context.Context) cty.Type {
 // declared type constraint.
 func (ov *OutputValueConfig) ValidateValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return withCtyDynamicValPlaceholder(doOnceWithDiags(
-		ctx, ov.validatedValue.For(phase), ov.main,
+		ctx, ov.tracingName(), ov.validatedValue.For(phase),
 		ov.validateValueInner(phase),
 	))
 }
@@ -99,17 +99,17 @@ func (ov *OutputValueConfig) validateValueInner(phase EvalPhase) func(ctx contex
 	return func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 		var diags tfdiags.Diagnostics
 
-		result, moreDiags := EvalExprAndEvalContext(ctx, ov.config.Value, phase, ov.StackConfig(ctx))
+		result, moreDiags := EvalExprAndEvalContext(ctx, ov.config.Value, phase, ov.StackConfig())
 		v := result.Value
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
-			v = ov.markResultValue(cty.UnknownVal(ov.ValueTypeConstraint(ctx)))
+			v = ov.markResultValue(cty.UnknownVal(ov.ValueTypeConstraint()))
 		}
 
 		var err error
 		v, err = convert.Convert(v, ov.config.Type.Constraint)
 		if err != nil {
-			v = cty.UnknownVal(ov.ValueTypeConstraint(ctx))
+			v = cty.UnknownVal(ov.ValueTypeConstraint())
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid result for output value",
@@ -153,16 +153,4 @@ func (ov *OutputValueConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
 // PlanChanges implements Plannable.
 func (ov *OutputValueConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	return nil, ov.checkValid(ctx, PlanPhase)
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (ov *OutputValueConfig) reportNamedPromises(report func(id promising.PromiseID, name string)) {
-	// We'll report all of our value promises with the same name, since
-	// promises from different eval phases should not interact with one
-	// another and so mentioning the phase will typically just make any
-	// error messages more confusing.
-	valueName := ov.addr.String() + " value"
-	ov.validatedValue.Each(func(ep EvalPhase, once *promising.Once[withDiagnostics[cty.Value]]) {
-		report(once.PromiseID(), valueName)
-	})
 }

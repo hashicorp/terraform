@@ -91,7 +91,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 						log.Printf("[TRACE] stackeval: %s preparing to apply", addr)
 
 						stack := main.Stack(ctx, addr.Stack, ApplyPhase)
-						component, removed := stack.ApplyableComponents(ctx, addr.Item.Component)
+						component, removed := stack.ApplyableComponents(addr.Item.Component)
 
 						// A component change can be sourced from a removed
 						// block or a component block. We'll try to find the
@@ -214,7 +214,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 						}
 						for waitComponentAddr := range waitForComponents.All() {
 							if stack := main.Stack(ctx, waitComponentAddr.Stack, ApplyPhase); stack != nil {
-								if component := stack.Component(ctx, waitComponentAddr.Item); component != nil {
+								if component := stack.Component(waitComponentAddr.Item); component != nil {
 									span.AddEvent("awaiting predecessor", trace.WithAttributes(
 										attribute.String("component_addr", waitComponentAddr.String()),
 									))
@@ -230,7 +230,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 
 										// We'll return a stub result that reports that nothing was changed, since
 										// we're not going to run our apply phase at all.
-										return inst.PlaceholderApplyResultForSkippedApply(ctx, modulesRuntimePlan), nil
+										return inst.PlaceholderApplyResultForSkippedApply(modulesRuntimePlan), nil
 										// Since we're not calling inst.ApplyModuleTreePlan at all in this
 										// codepath, the stacks runtime will not emit any progress events for
 										// this component instance or any of the objects inside it.
@@ -240,7 +240,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 						}
 						for waitComponentAddr := range waitForRemoveds.All() {
 							if stack := main.Stack(ctx, waitComponentAddr.Stack, ApplyPhase); stack != nil {
-								if removed := stack.Removed(ctx, waitComponentAddr.Item); removed != nil {
+								if removed := stack.Removed(waitComponentAddr.Item); removed != nil {
 									span.AddEvent("awaiting predecessor", trace.WithAttributes(
 										attribute.String("component_addr", waitComponentAddr.String()),
 									))
@@ -261,7 +261,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 
 										// We'll return a stub result that reports that nothing was changed, since
 										// we're not going to run our apply phase at all.
-										return inst.PlaceholderApplyResultForSkippedApply(ctx, modulesRuntimePlan), nil
+										return inst.PlaceholderApplyResultForSkippedApply(modulesRuntimePlan), nil
 										// Since we're not calling inst.ApplyModuleTreePlan at all in this
 										// codepath, the stacks runtime will not emit any progress events for
 										// this component instance or any of the objects inside it.
@@ -349,7 +349,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 	})
 	diags := withDiags.Diagnostics
 	main := withDiags.Result
-	diags = diags.Append(diagnosticsForPromisingTaskError(err, main))
+	diags = diags.Append(diagnosticsForPromisingTaskError(err))
 	if len(diags) > 0 {
 		outp.AnnounceDiagnostics(ctx, diags)
 	}

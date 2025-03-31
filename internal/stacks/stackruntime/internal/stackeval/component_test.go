@@ -26,8 +26,8 @@ import (
 // those so there is _some_ coverage of that in here.
 func TestComponentCheckInstances(t *testing.T) {
 	getComponent := func(ctx context.Context, main *Main) *Component {
-		mainStack := main.MainStack(ctx)
-		component := mainStack.Component(ctx, stackaddrs.Component{Name: "foo"})
+		mainStack := main.MainStack()
+		component := mainStack.Component(stackaddrs.Component{Name: "foo"})
 		if component == nil {
 			t.Fatal("component.foo does not exist, but it should exist")
 		}
@@ -238,8 +238,8 @@ func TestComponentCheckInstances(t *testing.T) {
 
 func TestComponentResultValue(t *testing.T) {
 	getComponent := func(ctx context.Context, t *testing.T, main *Main) *Component {
-		mainStack := main.MainStack(ctx)
-		component := mainStack.Component(ctx, stackaddrs.Component{Name: "foo"})
+		mainStack := main.MainStack()
+		component := mainStack.Component(stackaddrs.Component{Name: "foo"})
 		if component == nil {
 			t.Fatal("component.foo does not exist, but it should exist")
 		}
