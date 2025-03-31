@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: replace-triggered-by must reference a valid resource or resource attribute
+time: 2025-03-31T17:06:07.04296+02:00
+custom:
+    Issue: "36740"
