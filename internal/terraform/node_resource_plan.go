@@ -188,7 +188,7 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 			if imp.Config.ID != nil {
 				importID, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, EvalDataForNoInstanceKey, allowUnknown)
 			} else if imp.Config.Identity != nil {
-				_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+				providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
 				if err != nil {
 					diags = diags.Append(err)
 					return knownImports, unknownImports, diags

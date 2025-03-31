@@ -209,7 +209,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// and a Refresh, and save the resulting state to instanceRefreshState.
 
 	if importing {
-		if n.importTarget.IsKnown() {
+		if n.importTarget.IsWhollyKnown() {
 			var importDiags tfdiags.Diagnostics
 			instanceRefreshState, deferred, importDiags = n.importState(ctx, addr, n.importTarget, provider, providerSchema)
 			diags = diags.Append(importDiags)

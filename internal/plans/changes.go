@@ -560,7 +560,7 @@ func (i *Importing) Encode() *ImportingSrc {
 	if i == nil {
 		return nil
 	}
-	if i.Target.IsKnown() {
+	if i.Target.IsWhollyKnown() {
 		if i.Target.Type().IsObjectType() {
 			return &ImportingSrc{
 				Identity: i.Target,

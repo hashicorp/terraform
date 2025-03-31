@@ -102,7 +102,7 @@ func evaluateImportIdentityExpression(expr hcl.Expression, identity *configschem
 			Subject:  expr.Range().Ptr(),
 		})
 	}
-	if !allowUnknown && !importIdentityVal.IsKnown() {
+	if !allowUnknown && !importIdentityVal.IsWhollyKnown() {
 		return cty.NilVal, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid import identity argument",
