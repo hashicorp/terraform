@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Import references should not be able to reference the import target
+time: 2025-03-31T15:08:02.156881+02:00
+custom:
+    Issue: "36672"
