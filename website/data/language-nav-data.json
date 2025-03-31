@@ -6,9 +6,9 @@
     "path": "attr-as-blocks",
     "hidden": true
   },
-  { 
-    "title": "Style Guide", 
-    "path": "style" 
+  {
+    "title": "Style Guide",
+    "path": "style"
   },
   {
     "title": "Stacks",
@@ -332,7 +332,7 @@
       }
     ]
   },
-  { "title": "Checks", "path": "checks" },
+  { "title": "Check block", "href": "/terraform/language/block/check" },
   {
       "title": "Import",
       "routes": [
@@ -1113,6 +1113,10 @@
   {
     "title": "Configuration blocks",
     "routes": [
+      {
+      "title": "check",
+      "path": "block/check"
+      },
       {
       "title": "Moved block",
       "path": "block/moved"
