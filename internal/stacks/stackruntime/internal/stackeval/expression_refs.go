@@ -140,35 +140,35 @@ func (m *Main) requiredComponentsForReferrer(ctx context.Context, obj Referrer, 
 			// now, in which the apply will wait for the whole stack to finish
 			// before moving on.
 			currentStack := m.Stack(ctx, targetAddr.Stack, phase)
-			for step, nextStack := range currentStack.childStacks {
-				if step.Name != stackCallAddr.Name {
-					// Then this child stack isn't from the current stack call.
-					continue
-				}
+			if currentStack != nil {
+				next := currentStack.EmbeddedStackCall(stackCallAddr)
+				instances, _ := next.Instances(ctx, phase)
+				for _, instance := range instances {
+					nextStack := instance.Stack(ctx, phase)
+					for _, component := range nextStack.Components() {
+						ref := stackaddrs.AbsReferenceable{
+							Stack: component.addr.Stack,
+							Item: stackaddrs.Component{
+								Name: component.addr.Item.Name,
+							},
+						}
+						if !queued.Has(ref) {
+							queue = append(queue, ref)
+							queued.Add(ref)
+						}
+					}
 
-				for _, component := range nextStack.Components() {
-					ref := stackaddrs.AbsReferenceable{
-						Stack: component.addr.Stack,
-						Item: stackaddrs.Component{
-							Name: component.addr.Item.Name,
-						},
-					}
-					if !queued.Has(ref) {
-						queue = append(queue, ref)
-						queued.Add(ref)
-					}
-				}
-
-				// We'll also include any other stack calls within the embedded
-				// stack.
-				for _, call := range nextStack.EmbeddedStackCalls() {
-					ref := stackaddrs.AbsReferenceable{
-						Stack: call.addr.Stack,
-						Item:  call.addr.Item,
-					}
-					if !queued.Has(ref) {
-						queue = append(queue, ref)
-						queued.Add(ref)
+					// We'll also include any other stack calls within the embedded
+					// stack.
+					for _, call := range nextStack.EmbeddedStackCalls() {
+						ref := stackaddrs.AbsReferenceable{
+							Stack: call.addr.Stack,
+							Item:  call.addr.Item,
+						}
+						if !queued.Has(ref) {
+							queue = append(queue, ref)
+							queued.Add(ref)
+						}
 					}
 				}
 			}

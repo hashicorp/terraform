@@ -22,6 +22,7 @@ import (
 // InputVariableConfig represents a "variable" block in a stack configuration.
 type InputVariableConfig struct {
 	addr   stackaddrs.ConfigInputVariable
+	stack  *StackConfig
 	config *stackconfig.InputVariable
 
 	main *Main
@@ -30,27 +31,20 @@ type InputVariableConfig struct {
 var _ Validatable = (*InputVariableConfig)(nil)
 var _ Referenceable = (*InputVariableConfig)(nil)
 
-func newInputVariableConfig(main *Main, addr stackaddrs.ConfigInputVariable, config *stackconfig.InputVariable) *InputVariableConfig {
+func newInputVariableConfig(main *Main, addr stackaddrs.ConfigInputVariable, stack *StackConfig, config *stackconfig.InputVariable) *InputVariableConfig {
 	if config == nil {
 		panic("newInputVariableConfig with nil configuration")
 	}
 	return &InputVariableConfig{
 		addr:   addr,
 		config: config,
+		stack:  stack,
 		main:   main,
 	}
 }
 
-func (v *InputVariableConfig) Addr() stackaddrs.ConfigInputVariable {
-	return v.addr
-}
-
 func (v *InputVariableConfig) tracingName() string {
-	return v.Addr().String()
-}
-
-func (v *InputVariableConfig) Declaration() *stackconfig.InputVariable {
-	return v.config
+	return v.addr.String()
 }
 
 func (v *InputVariableConfig) TypeConstraint() cty.Type {
@@ -104,29 +98,22 @@ func (v *InputVariableConfig) ValidateDefaultValue() (cty.Value, tfdiags.Diagnos
 	return val, diags
 }
 
-// StackConfig returns the stack configuration that this input variable belongs
-// to.
-func (v *InputVariableConfig) StackConfig() *StackConfig {
-	return v.main.mustStackConfig(v.Addr().Stack)
-}
-
 // StackCallConfig returns the stack call that would be providing the value
 // for this input variable, or nil if this input variable belongs to the
 // main (root) stack and therefore its value would come from outside of
 // the configuration.
 func (v *InputVariableConfig) StackCallConfig() *StackCallConfig {
-	calleeAddr := v.Addr().Stack
-	if calleeAddr.IsRoot() {
+	if v.stack.parent == nil {
 		return nil
 	}
-	callerAddr := calleeAddr.Parent()
-	caller := v.main.mustStackConfig(callerAddr)
-	return caller.StackCall(stackaddrs.StackCall{Name: calleeAddr[len(calleeAddr)-1].Name})
+	targetStack := v.addr.Stack
+	parentStack := v.stack.parent
+	return parentStack.StackCall(stackaddrs.StackCall{Name: targetStack[len(targetStack)-1].Name})
 }
 
 // ExprReferenceValue implements Referenceable
 func (v *InputVariableConfig) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
-	if v.Addr().Stack.IsRoot() {
+	if v.addr.Stack.IsRoot() {
 		// During validation the root input variable values are always unknown,
 		// because validation tests whether the configuration is valid for
 		// _any_ inputs, rather than for _specific_ inputs.
@@ -135,7 +122,7 @@ func (v *InputVariableConfig) ExprReferenceValue(ctx context.Context, phase Eval
 		// Our apparent value is the value assigned in the definition object
 		// in the parent call.
 		call := v.StackCallConfig()
-		val := call.InputVariableValues(ctx, phase)[v.Addr().Item]
+		val := call.InputVariableValues(ctx, phase)[v.addr.Item]
 		if val == cty.NilVal {
 			val = cty.UnknownVal(v.TypeConstraint())
 		}

@@ -28,15 +28,15 @@ import (
 )
 
 var (
-	_ Plannable                                                       = (*RemovedInstance)(nil)
-	_ Applyable                                                       = (*RemovedInstance)(nil)
-	_ ExpressionScope                                                 = (*RemovedInstance)(nil)
-	_ ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance] = (*RemovedInstance)(nil)
-	_ ApplyableComponentInstance                                      = (*RemovedInstance)(nil)
+	_ Plannable                                                       = (*RemovedComponentInstance)(nil)
+	_ Applyable                                                       = (*RemovedComponentInstance)(nil)
+	_ ExpressionScope                                                 = (*RemovedComponentInstance)(nil)
+	_ ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance] = (*RemovedComponentInstance)(nil)
+	_ ApplyableComponentInstance                                      = (*RemovedComponentInstance)(nil)
 )
 
-type RemovedInstance struct {
-	call     *Removed
+type RemovedComponentInstance struct {
+	call     *RemovedComponent
 	from     stackaddrs.AbsComponentInstance
 	deferred bool
 
@@ -47,8 +47,8 @@ type RemovedInstance struct {
 	moduleTreePlan promising.Once[withDiagnostics[*plans.Plan]]
 }
 
-func newRemovedInstance(call *Removed, from stackaddrs.AbsComponentInstance, repetition instances.RepetitionData, deferred bool) *RemovedInstance {
-	return &RemovedInstance{
+func newRemovedComponentInstance(call *RemovedComponent, from stackaddrs.AbsComponentInstance, repetition instances.RepetitionData, deferred bool) *RemovedComponentInstance {
+	return &RemovedComponentInstance{
 		call:       call,
 		from:       from,
 		deferred:   deferred,
@@ -57,15 +57,15 @@ func newRemovedInstance(call *Removed, from stackaddrs.AbsComponentInstance, rep
 	}
 }
 
-func (r *RemovedInstance) Addr() stackaddrs.AbsComponentInstance {
+func (r *RemovedComponentInstance) Addr() stackaddrs.AbsComponentInstance {
 	return r.from
 }
 
-func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
+func (r *RemovedComponentInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
 	return doOnceWithDiags(ctx, r.tracingName()+" plan", &r.moduleTreePlan, func(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
 		var diags tfdiags.Diagnostics
 
-		component := r.main.Stack(ctx, r.Addr().Stack, PlanPhase).Component(r.Addr().Item.Component)
+		component := r.call.stack.Component(r.Addr().Item.Component)
 		if component != nil {
 			insts, unknown := component.Instances(ctx, PlanPhase)
 			if !unknown {
@@ -76,14 +76,14 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 					return nil, diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Cannot remove component instance",
-						Detail:   fmt.Sprintf("The component instance %s is targeted by a component block and cannot be removed. The relevant component is defined at %s.", r.Addr(), component.Declaration().DeclRange.ToHCL()),
+						Detail:   fmt.Sprintf("The component instance %s is targeted by a component block and cannot be removed. The relevant component is defined at %s.", r.Addr(), component.config.config.DeclRange.ToHCL()),
 						Subject:  r.DeclRange(),
 					})
 				}
 			}
 		}
 
-		known, unknown, moreDiags := EvalProviderValues(ctx, r.main, r.call.Config().config.ProviderConfigs, PlanPhase, r)
+		known, unknown, moreDiags := EvalProviderValues(ctx, r.main, r.call.config.config.ProviderConfigs, PlanPhase, r)
 		if moreDiags.HasErrors() {
 			// We won't actually add the diagnostics here, they should be
 			// exposed via a different return path.
@@ -122,7 +122,7 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 		}
 
 		plantimestamp := r.main.PlanTimestamp()
-		forget := !r.call.Config().config.Destroy
+		forget := !r.call.config.config.Destroy
 		opts := &terraform.PlanOpts{
 			Mode:                       plans.DestroyMode,
 			SetVariables:               r.PlanPrevInputs(),
@@ -142,7 +142,7 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 
 // PlanPrevState returns the previous state for this component instance during
 // the planning phase, or panics if called in any other phase.
-func (r *RemovedInstance) PlanPrevState() *states.State {
+func (r *RemovedComponentInstance) PlanPrevState() *states.State {
 	// The following call will panic if we aren't in the plan phase.
 	stackState := r.main.PlanPrevState()
 	ret := stackState.ComponentInstanceStateForModulesRuntime(r.Addr())
@@ -153,11 +153,11 @@ func (r *RemovedInstance) PlanPrevState() *states.State {
 }
 
 // PlanPrevDependents returns the set of dependents based on the state.
-func (r *RemovedInstance) PlanPrevDependents() collections.Set[stackaddrs.AbsComponent] {
+func (r *RemovedComponentInstance) PlanPrevDependents() collections.Set[stackaddrs.AbsComponent] {
 	return r.main.PlanPrevState().DependentsForComponent(r.Addr())
 }
 
-func (r *RemovedInstance) PlanPrevInputs() terraform.InputValues {
+func (r *RemovedComponentInstance) PlanPrevInputs() terraform.InputValues {
 	variables := r.main.PlanPrevState().InputsForComponent(r.Addr())
 
 	inputs := make(terraform.InputValues, len(variables))
@@ -170,7 +170,7 @@ func (r *RemovedInstance) PlanPrevInputs() terraform.InputValues {
 	return inputs
 }
 
-func (r *RemovedInstance) PlanCurrentInputs() (cty.Value, tfdiags.Diagnostics) {
+func (r *RemovedComponentInstance) PlanCurrentInputs() (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	plan := r.main.PlanBeingApplied().Components.Get(r.Addr())
@@ -194,7 +194,7 @@ func (r *RemovedInstance) PlanCurrentInputs() (cty.Value, tfdiags.Diagnostics) {
 // ApplyModuleTreePlan implements ApplyableComponentInstance.
 //
 // See the equivalent function within ComponentInstance for more details.
-func (r *RemovedInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans.Plan) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
+func (r *RemovedComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans.Plan) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
 	if !r.main.Applying() {
 		panic("called ApplyModuleTreePlan with an evaluator not instantiated for applying")
 	}
@@ -203,10 +203,10 @@ func (r *RemovedInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans.P
 	// unknown variables. With that in mind, we can just the plan directly
 	// onto the shared function with no modifications.
 
-	return ApplyComponentPlan(ctx, r.main, plan, r.call.Config().config.ProviderConfigs, r)
+	return ApplyComponentPlan(ctx, r.main, plan, r.call.config.config.ProviderConfigs, r)
 }
 
-func (r *RemovedInstance) ApplyResult(ctx context.Context) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
+func (r *RemovedComponentInstance) ApplyResult(ctx context.Context) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	changes := r.main.ApplyChangeResults()
 	applyResult, moreDiags, err := changes.ComponentInstanceResult(ctx, r.Addr())
@@ -221,7 +221,7 @@ func (r *RemovedInstance) ApplyResult(ctx context.Context) (*ComponentInstanceAp
 	return applyResult, diags
 }
 
-func (r *RemovedInstance) PlaceholderApplyResultForSkippedApply(plan *plans.Plan) *ComponentInstanceApplyResult {
+func (r *RemovedComponentInstance) PlaceholderApplyResultForSkippedApply(plan *plans.Plan) *ComponentInstanceApplyResult {
 	// (We have this in here as a method just because it helps keep all of
 	// the logic for constructing [ComponentInstanceApplyResult] objects
 	// together in the same file, rather than having the caller synthesize
@@ -233,10 +233,10 @@ func (r *RemovedInstance) PlaceholderApplyResultForSkippedApply(plan *plans.Plan
 }
 
 // PlanChanges implements Plannable.
-func (r *RemovedInstance) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+func (r *RemovedComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	_, _, moreDiags := EvalProviderValues(ctx, r.main, r.call.Config().config.ProviderConfigs, PlanPhase, r)
+	_, _, moreDiags := EvalProviderValues(ctx, r.main, r.call.config.config.ProviderConfigs, PlanPhase, r)
 	diags = diags.Append(moreDiags)
 
 	plan, moreDiags := r.ModuleTreePlan(ctx)
@@ -245,7 +245,7 @@ func (r *RemovedInstance) PlanChanges(ctx context.Context) ([]stackplan.PlannedC
 	var changes []stackplan.PlannedChange
 	if plan != nil {
 		var action plans.Action
-		if r.call.Config().config.Destroy {
+		if r.call.config.config.Destroy {
 			action = plans.Delete
 		} else {
 			action = plans.Forget
@@ -257,10 +257,10 @@ func (r *RemovedInstance) PlanChanges(ctx context.Context) ([]stackplan.PlannedC
 }
 
 // CheckApply implements Applyable.
-func (r *RemovedInstance) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
+func (r *RemovedComponentInstance) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	_, _, moreDiags := EvalProviderValues(ctx, r.main, r.call.Config().config.ProviderConfigs, ApplyPhase, r)
+	_, _, moreDiags := EvalProviderValues(ctx, r.main, r.call.config.config.ProviderConfigs, ApplyPhase, r)
 	diags = diags.Append(moreDiags)
 
 	inputs, moreDiags := r.PlanCurrentInputs()
@@ -278,33 +278,37 @@ func (r *RemovedInstance) CheckApply(ctx context.Context) ([]stackstate.AppliedC
 }
 
 // ResolveExpressionReference implements ExpressionScope.
-func (r *RemovedInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
-	stack := r.call.Stack()
-	return stack.resolveExpressionReference(ctx, ref, nil, r.repetition)
+func (r *RemovedComponentInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
+	return r.call.stack.resolveExpressionReference(ctx, ref, nil, r.repetition)
 }
 
 // PlanTimestamp implements ExpressionScope.
-func (r *RemovedInstance) PlanTimestamp() time.Time {
+func (r *RemovedComponentInstance) PlanTimestamp() time.Time {
 	return r.main.PlanTimestamp()
 }
 
 // ExternalFunctions implements ExpressionScope.
-func (r *RemovedInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return r.main.ProviderFunctions(ctx, r.call.Config().StackConfig())
+func (r *RemovedComponentInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
+	return r.main.ProviderFunctions(ctx, r.call.config.stack)
 }
 
 // ModuleTree implements ConfigComponentExpressionScope.
-func (r *RemovedInstance) ModuleTree(ctx context.Context) *configs.Config {
-	return r.call.Config().ModuleTree(ctx)
+func (r *RemovedComponentInstance) ModuleTree(ctx context.Context) *configs.Config {
+	return r.call.config.ModuleTree(ctx)
 }
 
 // DeclRange implements ConfigComponentExpressionScope.
-func (r *RemovedInstance) DeclRange() *hcl.Range {
-	return r.call.Config().config.DeclRange.ToHCL().Ptr()
+func (r *RemovedComponentInstance) DeclRange() *hcl.Range {
+	return r.call.config.config.DeclRange.ToHCL().Ptr()
+}
+
+// StackConfig implements ConfigComponentExpressionScope
+func (r *RemovedComponentInstance) StackConfig() *StackConfig {
+	return r.call.stack.config
 }
 
 // RequiredComponents implements stackplan.PlanProducer.
-func (r *RemovedInstance) RequiredComponents(_ context.Context) collections.Set[stackaddrs.AbsComponent] {
+func (r *RemovedComponentInstance) RequiredComponents(_ context.Context) collections.Set[stackaddrs.AbsComponent] {
 	// We return the dependencies from the state, based on the required
 	// components when this component was last applied. In reality, destroy
 	// operations require "dependents" to have been executed first but
@@ -313,7 +317,7 @@ func (r *RemovedInstance) RequiredComponents(_ context.Context) collections.Set[
 }
 
 // ResourceSchema implements stackplan.PlanProducer.
-func (r *RemovedInstance) ResourceSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, typ string) (providers.Schema, error) {
+func (r *RemovedComponentInstance) ResourceSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, typ string) (providers.Schema, error) {
 	// This should not be able to fail with an error because we should
 	// be retrieving the same schema that was already used to encode
 	// the object we're working with. The error handling here is for
@@ -332,6 +336,6 @@ func (r *RemovedInstance) ResourceSchema(ctx context.Context, providerTypeAddr a
 }
 
 // tracingName implements Plannable.
-func (r *RemovedInstance) tracingName() string {
+func (r *RemovedComponentInstance) tracingName() string {
 	return r.Addr().String() + " (removed)"
 }

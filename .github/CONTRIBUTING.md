@@ -4,7 +4,7 @@
 
 This repository contains Terraform core, which includes the command line interface and the main graph engine. 
 
-Providers are implemented as plugins that each have their own repository linked from the [Terraform Registry index](https://registry.terraform.io/browse/providers). Instructions for developing each provider are usually in the associated README file. For more information, see [the provider development overview](https://www.terraform.io/docs/plugins/provider.html).
+Providers are implemented as plugins that each have their own repository linked from the [Terraform Registry index](https://registry.terraform.io/browse/providers). Instructions for developing each provider are usually in the associated README file. For more information, see [the provider development overview](https://developer.hashicorp.com/terraform/plugin).
 
 This document provides guidance on Terraform contribution recommended practices. It covers what we're looking for in order to help set expectations and help you get the most out of participation in this project. 
 
@@ -100,7 +100,7 @@ Provisioners are an area of concern in Terraform for a number of reasons. Chiefl
 
 There are two main types of provisioners in Terraform, the generic provisioners (`file`,`local-exec`, and `remote-exec`) and the tool-specific provisioners (`chef`, `habbitat`, `puppet` & `salt-masterless`). **The tool-specific provisioners [are deprecated](https://discuss.hashicorp.com/t/notice-terraform-to-begin-deprecation-of-vendor-tool-specific-provisioners-starting-in-terraform-0-13-4/13997).** In practice this means we will not be accepting PRs for these areas of the codebase. 
 
-From our [documentation](https://www.terraform.io/docs/provisioners/index.html):
+From our [documentation](https://developer.hashicorp.com/terraform/language/resources/provisioners/syntax):
 
 > ... they [...] add a considerable amount of complexity and uncertainty to Terraform usage.[...] we still recommend attempting to solve it [your problem] using other techniques first, and use provisioners only if there is no other option.
 
