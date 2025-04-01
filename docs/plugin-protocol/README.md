@@ -10,7 +10,7 @@ the SDK's API.
 ----
 
 **If you want to write a plugin for Terraform, please refer to
-[Extending Terraform](https://www.terraform.io/docs/extend/index.html) instead.**
+[Extending Terraform](https://developer.hashicorp.com/terraform/plugin) instead.**
 
 This documentation is for those who are developing _Terraform SDKs_, rather
 than those implementing plugins.

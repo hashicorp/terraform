@@ -4,7 +4,7 @@ This directory contains some documentation about the Terraform Core codebase,
 aimed at readers who are interested in making code contributions.
 
 If you're looking for information on _using_ Terraform, please instead refer
-to [the main Terraform CLI documentation](https://www.terraform.io/docs/cli/index.html).
+to [the main Terraform CLI documentation](https://developer.hashicorp.com/terraform/docs).
 
 ## Terraform Core Architecture Documents
 
@@ -25,8 +25,7 @@ to [the main Terraform CLI documentation](https://www.terraform.io/docs/cli/inde
   changes to those behaviors or if you are implementing a new Terraform plugin
   SDK and so wish to conform to them.
 
-  (If you are planning to write a new provider using the _official_ SDK then
-  please refer to [the Extend documentation](https://www.terraform.io/docs/extend/index.html)
+  (If you are planning to write a new provider, please refer to [the documentation](https://developer.hashicorp.com/terraform/plugin)
   instead; it presents similar information from the perspective of the SDK
   API, rather than the plugin wire protocol.)
 
