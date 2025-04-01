@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -22,7 +21,9 @@ import (
 // StackCall represents a "stack" block in a stack configuration after
 // its containing stacks have been expanded into stack instances.
 type StackCall struct {
-	addr stackaddrs.AbsStackCall
+	addr   stackaddrs.AbsStackCall
+	stack  *Stack
+	config *StackCallConfig
 
 	main *Main
 
@@ -34,31 +35,13 @@ type StackCall struct {
 var _ Plannable = (*StackCall)(nil)
 var _ Referenceable = (*StackCall)(nil)
 
-func newStackCall(main *Main, addr stackaddrs.AbsStackCall) *StackCall {
+func newStackCall(main *Main, addr stackaddrs.AbsStackCall, stack *Stack, config *StackCallConfig) *StackCall {
 	return &StackCall{
-		addr: addr,
-		main: main,
+		addr:   addr,
+		main:   main,
+		stack:  stack,
+		config: config,
 	}
-}
-
-func (c *StackCall) Addr() stackaddrs.AbsStackCall {
-	return c.addr
-}
-
-func (c *StackCall) Config() *StackCallConfig {
-	configAddr := stackaddrs.ConfigForAbs(c.addr)
-	return c.main.StackCallConfig(configAddr)
-}
-
-func (c *StackCall) Caller() *Stack {
-	callerAddr := c.Addr().Stack
-	// Unchecked because StackCall instances only get constructed from
-	// Stack objects, and so our address is derived from there.
-	return c.main.StackUnchecked(callerAddr)
-}
-
-func (c *StackCall) Declaration() *stackconfig.EmbeddedStack {
-	return c.Config().Declaration()
 }
 
 // ForEachValue returns the result of evaluating the "for_each" expression
@@ -98,12 +81,12 @@ func (c *StackCall) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty
 		ctx, c.tracingName()+" for_each", c.forEachValue.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
-			cfg := c.Declaration()
+			cfg := c.config.config
 
 			switch {
 
 			case cfg.ForEach != nil:
-				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.Caller(), "stack")
+				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.stack, "stack")
 				diags = diags.Append(moreDiags)
 				if diags.HasErrors() {
 					return cty.DynamicVal, diags
@@ -180,9 +163,9 @@ func (c *StackCall) UnknownInstance(ctx context.Context, phase EvalPhase) *Stack
 }
 
 func (c *StackCall) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
-	decl := c.Declaration()
+	decl := c.config.config
 	insts, unknown := c.Instances(ctx, phase)
-	childResultType := c.Config().CalleeConfig().ResultType()
+	childResultType := c.config.TargetConfig().ResultType()
 
 	switch {
 	case decl.ForEach != nil:
@@ -207,7 +190,7 @@ func (c *StackCall) ResultValue(ctx context.Context, phase EvalPhase) cty.Value 
 			if !ok {
 				panic(fmt.Sprintf("stack call with for_each has invalid instance key of type %T", instKey))
 			}
-			elems[string(k)] = inst.CalledStack().ResultValue(ctx, phase)
+			elems[string(k)] = inst.Stack(ctx, phase).ResultValue(ctx, phase)
 		}
 		if len(elems) == 0 {
 			return cty.MapValEmpty(childResultType)
@@ -230,7 +213,7 @@ func (c *StackCall) ResultValue(ctx context.Context, phase EvalPhase) cty.Value 
 			panic("single-instance stack call does not have an addrs.NoKey instance")
 		}
 
-		return inst.CalledStack().ResultValue(ctx, phase)
+		return inst.Stack(ctx, phase).ResultValue(ctx, phase)
 	}
 }
 
@@ -268,12 +251,12 @@ func (c *StackCall) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange,
 
 // References implements Referrer
 func (c *StackCall) References(context.Context) []stackaddrs.AbsReference {
-	cfg := c.Declaration()
+	cfg := c.config.config
 	var ret []stackaddrs.Reference
 	ret = append(ret, ReferencesInExpr(cfg.ForEach)...)
 	ret = append(ret, ReferencesInExpr(cfg.Inputs)...)
 	ret = append(ret, referencesInTraversals(cfg.DependsOn)...)
-	return makeReferencesAbsolute(ret, c.Addr().Stack)
+	return makeReferencesAbsolute(ret, c.addr.Stack)
 }
 
 // CheckApply implements Applyable.
@@ -282,5 +265,5 @@ func (c *StackCall) CheckApply(ctx context.Context) ([]stackstate.AppliedChange,
 }
 
 func (c *StackCall) tracingName() string {
-	return c.Addr().String()
+	return c.addr.String()
 }

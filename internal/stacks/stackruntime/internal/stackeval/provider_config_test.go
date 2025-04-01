@@ -58,7 +58,7 @@ func TestProviderConfig_CheckProviderArgs_EmptyConfig(t *testing.T) {
 		if provider == nil {
 			t.Fatal("no provider.foo.bar is available")
 		}
-		return provider.Config()
+		return provider.config
 	}
 
 	subtestInPromisingTask(t, "valid", func(ctx context.Context, t *testing.T) {
@@ -140,7 +140,7 @@ func TestProviderConfig_CheckProviderArgs(t *testing.T) {
 		if provider == nil {
 			t.Fatal("no provider.foo.bar is available")
 		}
-		return provider.Config()
+		return provider.config
 	}
 
 	subtestInPromisingTask(t, "valid", func(ctx context.Context, t *testing.T) {

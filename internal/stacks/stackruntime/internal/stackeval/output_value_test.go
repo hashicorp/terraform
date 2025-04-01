@@ -330,7 +330,7 @@ func TestOutputValueEphemeralInChildStack(t *testing.T) {
 					Name: "child",
 					Key:  addrs.NoKey,
 				}
-				stack := rootStack.ChildStackChecked(ctx, childStackStep, ValidatePhase)
+				stack := rootStack.ChildStack(ctx, childStackStep, ValidatePhase)
 				output := stack.OutputValues()[outputAddr]
 				if output == nil {
 					t.Fatalf("missing %s", outputAddr)
