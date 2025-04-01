@@ -736,6 +736,46 @@ func (p *provider) UpgradeResourceIdentity(_ context.Context, req *tfplugin5.Upg
 	return resp, nil
 }
 
+func (p *provider) ValidateStorageConfig(ctx context.Context, req *tfplugin5.ValidateStorage_Request) (*tfplugin5.ValidateStorage_Response, error) {
+	// TODO
+	return nil, nil
+}
+
+func (p *provider) ConfigureStorage(ctx context.Context, req *tfplugin5.ConfigureStorage_Request) (*tfplugin5.ConfigureStorage_Response, error) {
+	// TODO
+	return nil, nil
+}
+
+func (p *provider) ReadState(req *tfplugin5.ReadState_Request, srv tfplugin5.Provider_ReadStateServer) error {
+	// TODO
+	return nil
+}
+
+func (p *provider) WriteState(srv tfplugin5.Provider_WriteStateServer) error {
+	// TODO
+	return nil
+}
+
+func (p *provider) LockState(ctx context.Context, req *tfplugin5.LockState_Request) (*tfplugin5.LockState_Response, error) {
+	// TODO
+	return nil, nil
+}
+
+func (p *provider) UnlockState(ctx context.Context, req *tfplugin5.UnlockState_Request) (*tfplugin5.UnlockState_Response, error) {
+	// TODO
+	return nil, nil
+}
+
+func (p *provider) GetStates(ctx context.Context, req *tfplugin5.GetStates_Request) (*tfplugin5.GetStates_Response, error) {
+	// TODO
+	return nil, nil
+}
+
+func (p *provider) DeleteState(ctx context.Context, req *tfplugin5.DeleteState_Request) (*tfplugin5.DeleteState_Response, error) {
+	// TODO
+	return nil, nil
+}
+
 func (p *provider) Stop(context.Context, *tfplugin5.Stop_Request) (*tfplugin5.Stop_Response, error) {
 	resp := &tfplugin5.Stop_Response{}
 	err := p.provider.Stop()
