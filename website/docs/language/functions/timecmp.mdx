@@ -43,9 +43,8 @@ both be strings conforming to this syntax.
 0
 ```
 
-`timecmp` can be particularly useful in defining
-[custom condition checks](/terraform/language/expressions/custom-conditions) that
-involve a specified timestamp being within a particular range. For example,
+The `timecmp` function is suitable for validations that verify that a specified timestamp is within a particular range.
+Refer to [Validating your configuration](/terraform/language/test-and-validate/validate) to learn more about validating your configuration. For example,
 the following resource postcondition would raise an error if a TLS certificate
 (or other expiring object) expires sooner than 30 days from the time of
 the "apply" step:

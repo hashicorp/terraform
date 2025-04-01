@@ -63,7 +63,7 @@ In a parent module, outputs of child modules are available in expressions as
 value as `module.web_server.instance_ip_addr`.
 
 
-## Custom Condition Checks
+## Preconditions
 
 You can use `precondition` blocks to specify guarantees about output data. The following examples creates a precondition that checks whether the EC2 instance has an encrypted root volume.
 
@@ -79,9 +79,9 @@ output "api_base_url" {
 }
 ```
 
-Custom conditions can help capture assumptions, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
+Validating your configuration can help capture assumptions, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
-Refer to [Custom Condition Checks](/terraform/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
+Refer to [Validate your configuration](/terraform/language/test-and-validate/validate#preconditions-and-postconditions) for more details.
 
 ## Optional Arguments
 

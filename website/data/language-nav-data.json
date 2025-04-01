@@ -334,6 +334,12 @@
   },
   { "title": "Check block", "href": "/terraform/language/block/check" },
   {
+      "title": "Testing and Validation",
+      "routes": [
+       { "title": "Validate your configuration", "path": "test-and-validate/validate" }
+    ]
+  },
+  {
       "title": "Import",
       "routes": [
        { "title": "Overview", "path": "import" },
@@ -374,10 +380,6 @@
       {
         "title": "Dynamic Blocks",
         "path": "expressions/dynamic-blocks"
-      },
-      {
-        "title": "Custom Conditions",
-        "path": "expressions/custom-conditions"
       },
       {
         "title": "Type Constraints",
