@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: Bump golang.org/x/net from 0.37.0 to 0.38.0 (fixes CVE-2025-22872)
-time: 2025-03-30T12:24:31.008814+02:00
-custom:
-    Issue: "36800"
