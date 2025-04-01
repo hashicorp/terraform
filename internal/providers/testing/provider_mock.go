@@ -121,6 +121,11 @@ type MockProvider struct {
 	CallFunctionRequest  providers.CallFunctionRequest
 	CallFunctionFn       func(providers.CallFunctionRequest) providers.CallFunctionResponse
 
+	ValidateStorageConfigCalled   bool
+	ValidateStorageConfigResponse *providers.ValidateStorageConfigResponse
+	ValidateStorageConfigRequest  providers.ValidateStorageConfigRequest
+	ValidateStorageConfigFn       func(providers.ValidateStorageConfigRequest) providers.ValidateStorageConfigResponse
+
 	CloseCalled bool
 	CloseError  error
 }
@@ -790,6 +795,39 @@ func (p *MockProvider) CallFunction(r providers.CallFunctionRequest) providers.C
 	}
 
 	return p.CallFunctionResponse
+}
+
+func (p *MockProvider) ValidateStorageConfig(r providers.ValidateStorageConfigRequest) (resp providers.ValidateStorageConfigResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.ValidateStorageConfigCalled = true
+	p.ValidateStorageConfigRequest = r
+
+	// Marshall the value to replicate behavior by the GRPC protocol,
+	// and return any relevant errors
+	// TODO
+	// storageSchema, ok := p.getProviderSchema().StorageTypes[r.TypeName]
+	// if !ok {
+	// 	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
+	// 	return resp
+	// }
+
+	// _, err := msgpack.Marshal(r.Config, storageSchema.Body.ImpliedType())
+	// if err != nil {
+	// 	resp.Diagnostics = resp.Diagnostics.Append(err)
+	// 	return resp
+	// }
+
+	if p.ValidateStorageConfigFn != nil {
+		return p.ValidateStorageConfigFn(r)
+	}
+
+	if p.ValidateStorageConfigResponse != nil {
+		return *p.ValidateStorageConfigResponse
+	}
+
+	return resp
 }
 
 func (p *MockProvider) Close() error {

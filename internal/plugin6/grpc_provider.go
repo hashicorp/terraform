@@ -46,6 +46,8 @@ func (p *GRPCProviderPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Serve
 	return nil
 }
 
+var _ providers.Interface = &GRPCProvider{}
+
 // GRPCProvider handles the client, or core side of the plugin rpc connection.
 // The GRPCProvider methods are mostly a translation layer between the
 // terraform providers types and the grpc proto types, directly converting
@@ -1194,6 +1196,11 @@ func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp provi
 
 	resp.Result = resultVal
 	return resp
+}
+
+func (p *GRPCProvider) ValidateStorageConfig(r providers.ValidateStorageConfigRequest) providers.ValidateStorageConfigResponse {
+	// TODO
+	return providers.ValidateStorageConfigResponse{}
 }
 
 // closing the grpc connection is final, and terraform will call it at the end of every phase.

@@ -237,3 +237,9 @@ func (p *erroredProvider) ValidateResourceConfig(providers.ValidateResourceConfi
 		Diagnostics: nil,
 	}
 }
+
+func (p *erroredProvider) ValidateStorageConfig(req providers.ValidateStorageConfigRequest) providers.ValidateStorageConfigResponse {
+	return providers.ValidateStorageConfigResponse{
+		Diagnostics: nil,
+	}
+}

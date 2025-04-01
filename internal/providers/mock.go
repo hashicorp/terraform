@@ -406,6 +406,10 @@ func (m *Mock) CallFunction(request CallFunctionRequest) CallFunctionResponse {
 	return m.Provider.CallFunction(request)
 }
 
+func (m *Mock) ValidateStorageConfig(req ValidateStorageConfigRequest) ValidateStorageConfigResponse {
+	return m.Provider.ValidateStorageConfig(req)
+}
+
 func (m *Mock) Close() error {
 	return m.Provider.Close()
 }
