@@ -130,7 +130,7 @@ func providerResourceIdentitySchemas() *proto.GetResourceIdentitySchemas_Respons
 				Version: 1,
 				IdentityAttributes: []*proto.ResourceIdentitySchema_IdentityAttribute{
 					{
-						Name:              "attr",
+						Name:              "id_attr",
 						Type:              []byte(`"string"`),
 						RequiredForImport: true,
 					},
@@ -438,12 +438,12 @@ func TestGRPCProvider_UpgradeResourceIdentity(t *testing.T) {
 			&proto.UpgradeResourceIdentity_Response{
 				UpgradedIdentity: &proto.ResourceIdentityData{
 					IdentityData: &proto.DynamicValue{
-						Json: []byte(`{"attr":"bar"}`),
+						Json: []byte(`{"id_attr":"bar"}`),
 					},
 				},
 			},
 			false,
-			cty.ObjectVal(map[string]cty.Value{"attr": cty.StringVal("bar")}),
+			cty.ObjectVal(map[string]cty.Value{"id_attr": cty.StringVal("bar")}),
 		},
 		{
 			"response with error diagnostic",
@@ -936,6 +936,7 @@ func TestGRPCProvider_ImportResourceState(t *testing.T) {
 		t.Fatal(cmp.Diff(expectedResource, imported, typeComparer, valueComparer, equateEmpty))
 	}
 }
+
 func TestGRPCProvider_ImportResourceStateJSON(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
@@ -972,6 +973,56 @@ func TestGRPCProvider_ImportResourceStateJSON(t *testing.T) {
 			"attr": cty.StringVal("bar"),
 		}),
 		Private: expectedPrivate,
+	}
+
+	imported := resp.ImportedResources[0]
+	if !cmp.Equal(expectedResource, imported, typeComparer, valueComparer, equateEmpty) {
+		t.Fatal(cmp.Diff(expectedResource, imported, typeComparer, valueComparer, equateEmpty))
+	}
+}
+
+func TestGRPCProvider_ImportResourceState_Identity(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	client.EXPECT().ImportResourceState(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.ImportResourceState_Response{
+		ImportedResources: []*proto.ImportResourceState_ImportedResource{
+			{
+				TypeName: "resource",
+				State: &proto.DynamicValue{
+					Msgpack: []byte("\x81\xa4attr\xa3bar"),
+				},
+				Identity: &proto.ResourceIdentityData{
+					IdentityData: &proto.DynamicValue{
+						Msgpack: []byte("\x81\xa7id_attr\xa3foo"),
+					},
+				},
+			},
+		},
+	}, nil)
+
+	resp := p.ImportResourceState(providers.ImportResourceStateRequest{
+		TypeName: "resource",
+		Identity: cty.ObjectVal(map[string]cty.Value{
+			"id_attr": cty.StringVal("foo"),
+		}),
+	})
+
+	checkDiags(t, resp.Diagnostics)
+
+	expectedResource := providers.ImportedResource{
+		TypeName: "resource",
+		State: cty.ObjectVal(map[string]cty.Value{
+			"attr": cty.StringVal("bar"),
+		}),
+		Identity: cty.ObjectVal(map[string]cty.Value{
+			"id_attr": cty.StringVal("foo"),
+		}),
 	}
 
 	imported := resp.ImportedResources[0]
