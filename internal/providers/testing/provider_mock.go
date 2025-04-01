@@ -41,25 +41,21 @@ type MockProvider struct {
 	ValidateProviderConfigFn       func(providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse
 
 	ValidateResourceConfigCalled   bool
-	ValidateResourceConfigTypeName string
 	ValidateResourceConfigResponse *providers.ValidateResourceConfigResponse
 	ValidateResourceConfigRequest  providers.ValidateResourceConfigRequest
 	ValidateResourceConfigFn       func(providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse
 
 	ValidateDataResourceConfigCalled   bool
-	ValidateDataResourceConfigTypeName string
 	ValidateDataResourceConfigResponse *providers.ValidateDataResourceConfigResponse
 	ValidateDataResourceConfigRequest  providers.ValidateDataResourceConfigRequest
 	ValidateDataResourceConfigFn       func(providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse
 
 	UpgradeResourceStateCalled   bool
-	UpgradeResourceStateTypeName string
 	UpgradeResourceStateResponse *providers.UpgradeResourceStateResponse
 	UpgradeResourceStateRequest  providers.UpgradeResourceStateRequest
 	UpgradeResourceStateFn       func(providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse
 
 	UpgradeResourceIdentityCalled   bool
-	UpgradeResourceIdentityTypeName string
 	UpgradeResourceIdentityResponse *providers.UpgradeResourceIdentityResponse
 	UpgradeResourceIdentityRequest  providers.UpgradeResourceIdentityRequest
 	UpgradeResourceIdentityFn       func(providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse
