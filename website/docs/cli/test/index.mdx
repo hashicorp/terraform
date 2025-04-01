@@ -13,13 +13,13 @@ This topic provides an overview of the testing features in Terraform to help you
 
 Terraform provides the following types of testing capabilities:
 
-1. Configuration and infrastructure validation as part of your regular Terraform operations. Refer to [Validate your configuration](/terraform/language/mitigate-risk/validate) to learn more.
+1. Configuration and infrastructure validation as part of your regular Terraform operations. Refer to [Validate your configuration](/terraform/language/test-and-validate/validate) to learn more.
 1. Traditional unit and integration testing on your configuration. Refer to the [`terraform test` command](/terraform/cli/commands/test) documentation to learn more about this testing capability.
 
 ### Additional testing and validation features
 
-- [Input Variable Validation](/terraform/language/mitigate-risk/validate#input-variable-validation)
-- [Preconditions and postconditions](/terraform/language/mitigate-risk/validate#preconditions-and-postconditions)
+- [Input Variable Validation](/terraform/language/test-and-validate/validate#input-variable-validation)
+- [Preconditions and postconditions](/terraform/language/test-and-validate/validate#preconditions-and-postconditions)
 - [Checks](/terraform/language/block/check)
 
 ## How the `terraform test` command works
@@ -41,7 +41,7 @@ Terraform test files [have their own configuration syntax](/terraform/language/t
 
 Validations allow you to verify aspects of your configuration and infrastructure as it is applied and created. HCP Terraform also supports automated [continuous validation](/terraform/cloud-docs/workspaces/health#continuous-validation).
 
-The Terraform `test` command also executes any validations within your configuration as part of the tests it executes. Refer to [Validate your configuration](/terraform/language/mitigate-risk/validate) to learn more.
+The Terraform `test` command also executes any validations within your configuration as part of the tests it executes. Refer to [Validate your configuration](/terraform/language/test-and-validate/validate) to learn more.
 
 ## Tests versus validations
 

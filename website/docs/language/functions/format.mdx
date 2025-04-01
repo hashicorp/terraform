@@ -41,7 +41,7 @@ We can specify an argument position number
 "/path/file.tf"
 ```
 
-The formatting verb `%#v` accepts a value of any type and presents it using JSON encoding. This can be useful for describing the values given to a module in error messages while [validating your configuration](/terraform/language/mitigate-risk/validate#error-messages).
+The formatting verb `%#v` accepts a value of any type and presents it using JSON encoding. This can be useful for describing the values given to a module in error messages while [validating your configuration](/terraform/language/test-and-validate/validate#error-messages).
 
 ```
 > format("%#v", "hello")

@@ -334,9 +334,9 @@
   },
   { "title": "Check block", "href": "/terraform/language/block/check" },
   {
-      "title": "Mitigate risk",
+      "title": "Testing and Validation",
       "routes": [
-       { "title": "Validate your configuration", "path": "mitigate-risk/validate" }
+       { "title": "Validate your configuration", "path": "test-and-validate/validate" }
     ]
   },
   {

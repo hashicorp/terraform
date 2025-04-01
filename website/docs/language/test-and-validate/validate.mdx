@@ -40,7 +40,7 @@ Terraform offers several ways of validating configuration:
 * Postconditions verifies that Terraform produced your resources and data sources with the expected and desired settings.
 * Checks let you validate that your resources work as expected without blocking Terraform operations based on the check's result.
 
-Validating your configuration is flexible, and you can often use different kinds of validation to achieve the same result. When choosing a validation rule, consider whether or not you want the validation to block your operations, and during which phase of the Terraform workflow it should run.
+Validating your configuration is flexible, and you can often use different kinds of validation to achieve the same result. When choosing a way of validating, consider whether or not you want the validation to block your operations, and during which phase of the Terraform workflow it should run.
 
 ### Input variable validation
 
@@ -205,7 +205,7 @@ Terraform validates different aspects of your configuration as early as it can. 
 
 The precise order that Terraform executes `check` blocks, preconditions, and postconditions can depend on whether Terraform has information about a condition's value before or after applying your configuration. If the relevant value is available before an apply operation, then Terraform performs the validation during the planning phase. For example, if Terraform has access to a resource's image ID during planning, it can execute any validations that rely on that ID.
 
-If Terraform only knows the value after applying, then Terraform delays checking that validation rule until the apply phase. For example, AWS assigns the root volume ID when it starts an EC2 instance, so Terraform cannot reference the root volume ID until the apply is complete.
+If Terraform only knows the value after applying, then Terraform delays checking that validation until the apply phase. For example, AWS assigns the root volume ID when it starts an EC2 instance, so Terraform cannot reference the root volume ID until the apply is complete.
 
 During the apply phase, a failed precondition prevents Terraform from implementing planned actions for the associated resource, data source, or output. A failed postcondition halts processing and prevents further downstream actions that rely on the resource or data source, but does not undo any actions Terraform has already taken.
 
