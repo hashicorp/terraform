@@ -1208,6 +1208,46 @@ func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp provi
 	return resp
 }
 
+func (p *GRPCProvider) ConfigureStorage(r providers.ConfigureStorageRequest) (resp providers.ConfigureStorageResponse) {
+	logger.Trace("GRPCProvider: ConfigureStorage")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	beSchema, ok := schema.StateStores[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown storage type %q", r.TypeName))
+		return resp
+	}
+
+	var mp []byte
+
+	// we don't have anything to marshal if there's no config
+	mp, err := msgpack.Marshal(r.Config, beSchema.Body.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto.ConfigureStorage_Request{
+		TypeName: r.TypeName,
+		PreparedConfig: &proto.DynamicValue{
+			Msgpack: mp,
+		},
+	}
+
+	protoResp, err := p.client.ConfigureStorage(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	return resp
+}
+
 // closing the grpc connection is final, and terraform will call it at the end of every phase.
 func (p *GRPCProvider) Close() error {
 	logger.Trace("GRPCProvider: Close")

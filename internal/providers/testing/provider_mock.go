@@ -831,6 +831,11 @@ func (p *MockProvider) ValidateStorageConfig(r providers.ValidateStorageConfigRe
 	return resp
 }
 
+func (p *MockProvider) ConfigureStorage(req providers.ConfigureStorageRequest) providers.ConfigureStorageResponse {
+	// TODO
+	return providers.ConfigureStorageResponse{}
+}
+
 func (p *MockProvider) Close() error {
 	p.Lock()
 	defer p.Unlock()

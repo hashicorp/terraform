@@ -275,3 +275,9 @@ func (p *Provider) ValidateStorageConfig(req providers.ValidateStorageConfigRequ
 	resp.Diagnostics.Append(fmt.Errorf("unsupported storage type %q", req.TypeName))
 	return resp
 }
+
+func (p *Provider) ConfigureStorage(req providers.ConfigureStorageRequest) providers.ConfigureStorageResponse {
+	var resp providers.ConfigureStorageResponse
+	// TODO
+	return resp
+}

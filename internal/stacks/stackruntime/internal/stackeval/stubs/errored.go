@@ -243,3 +243,10 @@ func (p *erroredProvider) ValidateStorageConfig(req providers.ValidateStorageCon
 		Diagnostics: nil,
 	}
 }
+
+func (p *erroredProvider) ConfigureStorage(req providers.ConfigureStorageRequest) providers.ConfigureStorageResponse {
+	// TODO
+	return providers.ConfigureStorageResponse{
+		Diagnostics: nil,
+	}
+}

@@ -296,6 +296,12 @@ func (u *unknownProvider) ValidateStorageConfig(request providers.ValidateStorag
 	return u.unconfiguredClient.ValidateStorageConfig(request)
 }
 
+func (u *unknownProvider) ConfigureStorage(req providers.ConfigureStorageRequest) providers.ConfigureStorageResponse {
+
+	// TODO
+	panic("attempted to configure an unknown state store")
+}
+
 func (u *unknownProvider) Close() error {
 	// the underlying unconfiguredClient is managed elsewhere.
 	return nil

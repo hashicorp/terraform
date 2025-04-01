@@ -118,6 +118,10 @@ func (provider *mockProvider) ValidateStorageConfig(req providers.ValidateStorag
 	panic("not implemented in mock")
 }
 
+func (provider *mockProvider) ConfigureStorage(req providers.ConfigureStorageRequest) providers.ConfigureStorageResponse {
+	panic("not implemented in mock")
+}
+
 func (provider *mockProvider) Close() error {
 	return nil // do nothing
 }
