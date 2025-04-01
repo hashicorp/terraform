@@ -340,8 +340,10 @@ func (c *Config) Validate() tfdiags.Diagnostics {
 // new configuration with the two merged.
 func (c *Config) Merge(c2 *Config) *Config {
 	var result Config
-	result.Providers = maps.Clone(c.Providers)
-	result.Provisioners = maps.Clone(c.Provisioners)
+	result.Providers = make(map[string]string)
+	result.Provisioners = make(map[string]string)
+	maps.Copy(result.Providers, c.Providers)
+	maps.Copy(result.Provisioners, c.Provisioners)
 	for k, v := range c2.Providers {
 		if v1, ok := c.Providers[k]; ok {
 			log.Printf("[INFO] Local %s provider configuration '%s' overrides '%s'", k, v, v1)
@@ -375,7 +377,7 @@ func (c *Config) Merge(c2 *Config) *Config {
 	}
 
 	if (len(c.Credentials) + len(c2.Credentials)) > 0 {
-		result.Credentials = make(map[string]map[string]any)
+		result.Credentials = make(map[string]map[string]interface{})
 		maps.Copy(result.Credentials, c.Credentials)
 		// We just clobber an entry from the other file right now. Will
 		// improve on this later using the more-robust merging behavior

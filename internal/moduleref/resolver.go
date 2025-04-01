@@ -24,7 +24,8 @@ type Resolver struct {
 func NewResolver(internalManifest modsdir.Manifest) *Resolver {
 	// Since maps are pointers, create a copy of the internal manifest to
 	// prevent introducing side effects to the original
-	internalManifestCopy := maps.Clone(internalManifest)
+	internalManifestCopy := make(modsdir.Manifest, len(internalManifest))
+	maps.Copy(internalManifestCopy, internalManifest)
 
 	// Remove the root module entry from the internal manifest as it is
 	// never directly referenced.

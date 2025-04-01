@@ -110,5 +110,7 @@ func (s Set) List() []interface{} {
 
 // Copy returns a shallow copy of the set.
 func (s Set) Copy() Set {
-	return maps.Clone(s)
+	c := make(Set, len(s))
+	maps.Copy(c, s)
+	return c
 }

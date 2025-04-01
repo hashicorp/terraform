@@ -71,7 +71,9 @@ func (l *Locks) Provider(addr addrs.Provider) *ProviderLock {
 func (l *Locks) AllProviders() map[addrs.Provider]*ProviderLock {
 	// We return a copy of our internal map so that future calls to
 	// SetProvider won't modify the map we're returning, or vice-versa.
-	return maps.Clone(l.providers)
+	ret := make(map[addrs.Provider]*ProviderLock, len(l.providers))
+	maps.Copy(ret, l.providers)
+	return ret
 }
 
 // SetProvider creates a new lock or replaces the existing lock for the given

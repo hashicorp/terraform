@@ -314,7 +314,9 @@ func (ec *EvalContext) SetOutput(run *moduletest.Run, output cty.Value) {
 func (ec *EvalContext) GetOutputs() map[addrs.Run]cty.Value {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
-	return maps.Clone(ec.runOutputs)
+	outputCopy := make(map[addrs.Run]cty.Value, len(ec.runOutputs))
+	maps.Copy(outputCopy, ec.runOutputs)
+	return outputCopy
 }
 
 func (ec *EvalContext) GetCache(run *moduletest.Run) *hcltest.VariableCache {
