@@ -204,6 +204,12 @@ func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.
 	panic("CallFunction on provider that didn't declare any functions")
 }
 
+func (s simple) ValidateStorageConfig(req providers.ValidateStorageConfigRequest) providers.ValidateStorageConfigResponse {
+	// Our schema doesn't include any storages, so it should be impossible
+	// to get in here.
+	panic("ValidateStorageConfig on provider that didn't declare any storages")
+}
+
 func (s simple) Close() error {
 	return nil
 }

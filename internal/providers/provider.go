@@ -100,8 +100,8 @@ type Interface interface {
 	// CallFunction calls a provider-contributed function.
 	CallFunction(CallFunctionRequest) CallFunctionResponse
 
-	// TODO
-	// ValidateStorageConfig(ValidateStorageRequest) ValidateStorageResponse
+	// ValidateStorageConfig allows the provider to validate storage configuration values
+	ValidateStorageConfig(ValidateStorageConfigRequest) ValidateStorageConfigResponse
 	// ConfigureStorage(ConfigureStorageRequest) ConfigureStorageResponse
 
 	// ReadState(ReadStateRequest, srv ProviderReadStateServer)
@@ -702,4 +702,17 @@ type CallFunctionResponse struct {
 	// of function.ArgError from the go-cty package to specify a problem with a
 	// specific argument.
 	Err error
+}
+
+type ValidateStorageConfigRequest struct {
+	// TypeName is the name of the storage type to validate.
+	TypeName string
+
+	// Config is the configuration value to validate.
+	Config cty.Value
+}
+
+type ValidateStorageConfigResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
 }
