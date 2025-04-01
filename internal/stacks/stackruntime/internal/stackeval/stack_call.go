@@ -47,7 +47,7 @@ func newStackCall(main *Main, addr stackaddrs.AbsStackCall, stack *Stack, config
 
 // GetExternalRemovedBlocks fetches the removed blocks that target the stack
 // instances being created by this stack call.
-func (c *StackCall) GetExternalRemovedBlocks() collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent] {
+func (c *StackCall) GetExternalRemovedBlocks() (collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent], collections.Map[stackaddrs.Stack, []*RemovedStackCall]) {
 	return c.stack.Removed().ForStackCall(c.addr.Item)
 }
 
@@ -150,7 +150,7 @@ func (c *StackCall) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 			}
 
 			return instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *StackCallInstance {
-				return newStackCallInstance(c, ik, rd, c.stack.deferred)
+				return newStackCallInstance(c, ik, rd, c.stack.mode, c.stack.deferred)
 			}), diags
 		},
 	)
@@ -159,7 +159,7 @@ func (c *StackCall) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 
 func (c *StackCall) UnknownInstance(ctx context.Context, phase EvalPhase) *StackCallInstance {
 	inst, err := c.unknownInstance.For(phase).Do(ctx, c.tracingName()+" unknown instace", func(ctx context.Context) (*StackCallInstance, error) {
-		return newStackCallInstance(c, addrs.WildcardKey, instances.UnknownForEachRepetitionData(c.ForEachValue(ctx, phase).Type()), true), nil
+		return newStackCallInstance(c, addrs.WildcardKey, instances.UnknownForEachRepetitionData(c.ForEachValue(ctx, phase).Type()), c.stack.mode, true), nil
 	})
 	if err != nil {
 		// Since we never return an error from the function we pass to Do,

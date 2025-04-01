@@ -120,8 +120,8 @@ func (s *State) ComponentInstances(addr stackaddrs.AbsComponent) collections.Set
 
 // StackInstances returns the set of known stack instances for the given stack
 // call.
-func (s *State) StackInstances(call stackaddrs.AbsStackCall) map[stackaddrs.StackInstanceStep]bool {
-	ret := make(map[stackaddrs.StackInstanceStep]bool)
+func (s *State) StackInstances(call stackaddrs.AbsStackCall) collections.Set[stackaddrs.StackInstance] {
+	ret := collections.NewSet[stackaddrs.StackInstance]()
 	for key := range s.componentInstances.All() {
 		if len(key.Stack) == 0 {
 			continue
@@ -136,7 +136,7 @@ func (s *State) StackInstances(call stackaddrs.AbsStackCall) map[stackaddrs.Stac
 		if last.Name != call.Item.Name {
 			continue
 		}
-		ret[last] = true
+		ret.Add(key.Stack)
 	}
 	return ret
 }

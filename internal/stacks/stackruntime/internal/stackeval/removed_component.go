@@ -105,7 +105,7 @@ func (r *RemovedComponent) Instances(ctx context.Context, phase EvalPhase) (map[
 				return nil
 			}
 
-			addr, moreDiags := from.AbsComponentInstance(evalContext, r.stack.addr)
+			addr, moreDiags := from.TargetAbsComponentInstance(evalContext, r.stack.addr)
 			diags = diags.Append(moreDiags)
 			if moreDiags.HasErrors() {
 				return nil
