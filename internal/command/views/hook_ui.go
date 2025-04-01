@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // How long to wait between sending heartbeat/progress messages
@@ -327,7 +328,7 @@ func (h *UiHook) PrePlanImport(id terraform.HookResourceIdentity, importTarget c
 	if importTarget.Type().IsObjectType() {
 		h.println(fmt.Sprintf(
 			h.view.colorize.Color("[reset][bold]%s: Preparing import... [identity=%s]"),
-			id.Addr, importTarget.GoString(), // TODO improve
+			id.Addr, tfdiags.ObjectToString(importTarget),
 		))
 	} else {
 		h.println(fmt.Sprintf(

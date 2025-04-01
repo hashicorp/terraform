@@ -681,7 +681,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	var importValue string
 	if importTarget.Type().IsObjectType() {
 		importType = "Identity"
-		importValue = importTarget.GoString() // TODO improve
+		importValue = tfdiags.ObjectToString(importTarget)
 	} else {
 		importValue = importTarget.AsString()
 	}
