@@ -6,6 +6,8 @@ package genconfig
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 	"strings"
 
@@ -72,14 +74,7 @@ func writeConfigAttributes(addr addrs.AbsResourceInstance, buf *strings.Builder,
 	}
 
 	// Get a list of sorted attribute names so the output will be consistent between runs.
-	keys := make([]string, 0, len(attrs))
-	for k := range attrs {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for i := range keys {
-		name := keys[i]
+	for _, name := range slices.Sorted(maps.Keys(attrs)) {
 		attrS := attrs[name]
 		if attrS.NestedType != nil {
 			diags = diags.Append(writeConfigNestedTypeAttribute(addr, buf, name, attrS, indent))
@@ -233,14 +228,7 @@ func writeConfigBlocks(addr addrs.AbsResourceInstance, buf *strings.Builder, blo
 	}
 
 	// Get a list of sorted block names so the output will be consistent between runs.
-	names := make([]string, 0, len(blocks))
-	for k := range blocks {
-		names = append(names, k)
-	}
-	sort.Strings(names)
-
-	for i := range names {
-		name := names[i]
+	for _, name := range slices.Sorted(maps.Keys(blocks)) {
 		blockS := blocks[name]
 		diags = diags.Append(writeConfigNestedBlock(addr, buf, name, blockS, indent))
 	}

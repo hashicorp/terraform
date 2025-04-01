@@ -14,6 +14,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
+	"maps"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -312,11 +314,7 @@ func (ec *EvalContext) SetOutput(run *moduletest.Run, output cty.Value) {
 func (ec *EvalContext) GetOutputs() map[addrs.Run]cty.Value {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
-	outputCopy := make(map[addrs.Run]cty.Value, len(ec.runOutputs))
-	for k, v := range ec.runOutputs {
-		outputCopy[k] = v
-	}
-	return outputCopy
+	return maps.Clone(ec.runOutputs)
 }
 
 func (ec *EvalContext) GetCache(run *moduletest.Run) *hcltest.VariableCache {

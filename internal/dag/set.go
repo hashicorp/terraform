@@ -3,6 +3,8 @@
 
 package dag
 
+import "maps"
+
 // Set is a set data structure.
 type Set map[interface{}]interface{}
 
@@ -108,9 +110,5 @@ func (s Set) List() []interface{} {
 
 // Copy returns a shallow copy of the set.
 func (s Set) Copy() Set {
-	c := make(Set, len(s))
-	for k, v := range s {
-		c[k] = v
-	}
-	return c
+	return maps.Clone(s)
 }

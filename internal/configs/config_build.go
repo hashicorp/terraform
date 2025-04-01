@@ -5,8 +5,9 @@ package configs
 
 import (
 	"fmt"
+	"maps"
 	"path"
-	"sort"
+	"slices"
 	"strings"
 
 	version "github.com/hashicorp/go-version"
@@ -150,13 +151,7 @@ func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config,
 
 	// We'll sort the calls by their local names so that they'll appear in a
 	// predictable order in any logging that's produced during the walk.
-	callNames := make([]string, 0, len(calls))
-	for k := range calls {
-		callNames = append(callNames, k)
-	}
-	sort.Strings(callNames)
-
-	for _, callName := range callNames {
+	for _, callName := range slices.Sorted(maps.Keys(calls)) {
 		call := calls[callName]
 		path := make([]string, len(parent.Path)+1)
 		copy(path, parent.Path)

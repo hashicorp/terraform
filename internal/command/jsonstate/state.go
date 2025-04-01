@@ -6,6 +6,8 @@ package jsonstate
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 
 	"github.com/zclconf/go-cty/cty"
@@ -477,13 +479,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				ret = append(ret, current)
 			}
 
-			var sortedDeposedKeys []string
-			for k := range ri.Deposed {
-				sortedDeposedKeys = append(sortedDeposedKeys, string(k))
-			}
-			sort.Strings(sortedDeposedKeys)
-
-			for _, deposedKey := range sortedDeposedKeys {
+			for _, deposedKey := range slices.Sorted(maps.Keys(ri.Deposed)) {
 				rios := ri.Deposed[states.DeposedKey(deposedKey)]
 
 				// copy the base fields from the current instance
@@ -531,7 +527,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				if riObj.Status == states.ObjectTainted {
 					deposed.Tainted = true
 				}
-				deposed.DeposedKey = deposedKey
+				deposed.DeposedKey = string(deposedKey)
 				ret = append(ret, deposed)
 			}
 		}

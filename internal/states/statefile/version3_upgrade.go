@@ -13,6 +13,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
+	"maps"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/states"
@@ -318,9 +320,7 @@ func upgradeInstanceObjectV3ToV4(rsOld *resourceStateV2, isOld *instanceStateV2,
 	var attributes map[string]string
 	if isOld.Attributes != nil {
 		attributes = make(map[string]string, len(isOld.Attributes))
-		for k, v := range isOld.Attributes {
-			attributes[k] = v
-		}
+		maps.Copy(attributes, isOld.Attributes)
 	}
 	if isOld.ID != "" {
 		// As a special case, if we don't already have an "id" attribute and

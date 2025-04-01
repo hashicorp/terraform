@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"sort"
 
+	"maps"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 )
@@ -69,11 +71,7 @@ func (l *Locks) Provider(addr addrs.Provider) *ProviderLock {
 func (l *Locks) AllProviders() map[addrs.Provider]*ProviderLock {
 	// We return a copy of our internal map so that future calls to
 	// SetProvider won't modify the map we're returning, or vice-versa.
-	ret := make(map[addrs.Provider]*ProviderLock, len(l.providers))
-	for k, v := range l.providers {
-		ret[k] = v
-	}
-	return ret
+	return maps.Clone(l.providers)
 }
 
 // SetProvider creates a new lock or replaces the existing lock for the given
