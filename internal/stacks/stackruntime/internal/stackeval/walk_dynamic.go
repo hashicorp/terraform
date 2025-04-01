@@ -143,7 +143,7 @@ func walkDynamicObjectsInStack[Output any](
 				}
 
 				claimedInstances := collections.NewSet[stackaddrs.ComponentInstance]()
-				removed := stack.Removed(component.addr.Item)
+				removed := stack.RemovedComponent(component.addr.Item)
 				for _, block := range removed {
 					// In this case we don't care about the unknown. If the
 					// removed instances are unknown, then we'll mark
@@ -198,7 +198,7 @@ func walkDynamicObjectsInStack[Output any](
 			}
 		})
 	}
-	for addr, blocks := range stack.Removeds() {
+	for addr, blocks := range stack.RemovedComponents() {
 
 		// knownInstances are the instances that already exist either
 		// because they are in the state or the plan.
@@ -275,7 +275,7 @@ func walkDynamicObjectsInStack[Output any](
 
 						// This instance is not claimed by the component block, so
 						// we'll mark it as being removed by the removed block.
-						inst := newRemovedInstance(removed, stackaddrs.AbsComponentInstance{
+						inst := newRemovedComponentInstance(removed, stackaddrs.AbsComponentInstance{
 							Stack: stack.addr,
 							Item:  inst,
 						}, instances.RepetitionData{
