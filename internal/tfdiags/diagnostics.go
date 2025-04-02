@@ -107,8 +107,8 @@ func (diags Diagnostics) AppendWithoutDuplicates(newDiags ...Diagnostic) Diagnos
 		if !ok {
 			// append what we cannot compare
 			diags = diags.Append(newItem)
+			continue
 		}
-
 		if diags.ContainsDiagnostic(cd) {
 			continue
 		}
