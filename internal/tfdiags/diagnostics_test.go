@@ -733,6 +733,35 @@ func TestAppendWithoutDuplicates(t *testing.T) {
 				},
 			},
 		},
+		"hcl.Diagnostic no-location": {
+			// Extra can contain anything, and we don't know how to compare
+			// those values, so we can't dedupe them
+			func(diags Diagnostics) Diagnostics {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+				})
+				return diags
+			},
+			[]diagFlat{
+				{
+					Severity: Error,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+				},
+				{
+					Severity: Error,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+				},
+			},
+		},
 	}
 
 	for name, test := range tests {
@@ -756,9 +785,7 @@ func TestAppendWithoutDuplicates(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(got, test.Want) {
-				// t.Errorf("wrong result\ngot: %swant: %s", spew.Sdump(got), spew.Sdump(test.Want))
 				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
-
 			}
 		})
 	}
