@@ -242,9 +242,10 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 	for name, rc := range cfgNode.Stack.Removed.All() {
 		var blocks []*stacks.FindStackConfigurationComponents_Removed_Block
 		for _, rc := range rc {
+			relativeAddress := rc.From.ConfigComponent()
 			cProto := &stacks.FindStackConfigurationComponents_Removed_Block{
 				SourceAddr:    rc.FinalSourceAddr.String(),
-				ComponentAddr: stackaddrs.Config(stackAddr, stackaddrs.Component{Name: rc.From.ConfigComponent().String()}).String(),
+				ComponentAddr: stackaddrs.Config(append(stackAddr, relativeAddress.Stack...), relativeAddress.Item).String(),
 				Destroy:       rc.Destroy,
 			}
 			switch {
@@ -255,6 +256,7 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 			}
 			blocks = append(blocks, cProto)
 		}
+		relativeAddress := rc[0].From.ConfigComponent()
 		ret.Removed[name.String()] = &stacks.FindStackConfigurationComponents_Removed{
 			// in order to ensure as much backwards and forwards compatibility
 			// as possible, we're going to set the deprecated single fields
@@ -269,7 +271,7 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 					return stacks.FindStackConfigurationComponents_SINGLE
 				}
 			}(),
-			ComponentAddr: stackaddrs.Config(stackAddr, stackaddrs.Component{Name: rc[0].From.ConfigComponent().String()}).String(),
+			ComponentAddr: stackaddrs.Config(append(stackAddr, relativeAddress.Stack...), relativeAddress.Item).String(),
 			Destroy:       rc[0].Destroy,
 
 			// We return all the values here:

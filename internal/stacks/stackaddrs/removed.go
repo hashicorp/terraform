@@ -147,7 +147,7 @@ func ParseRemovedFrom(expr hcl.Expression) (RemovedFrom, tfdiags.Diagnostics) {
 			case len(nextTraversal) == 3:
 				if current.Index != nil {
 					// this is an error, the last traversal should be taking
-					// it's index from the outer value if it exists, and to
+					// its index from the outer value if it exists, and to be
 					// exactly three means something is invalid somewhere.
 					return RemovedFrom{}, diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
