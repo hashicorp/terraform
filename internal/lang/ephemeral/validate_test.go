@@ -6,8 +6,9 @@ package ephemeral
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 )
 
 func TestNonNullWriteOnlyPaths(t *testing.T) {
@@ -145,7 +146,7 @@ func TestNonNullWriteOnlyPaths(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			paths, err := nonNullWriteOnlyPaths(tc.val, tc.schema, nil)
+			paths, err := nonNullWriteOnlyPaths(tc.val, tc.schema)
 			if err != nil {
 				t.Fatal(err)
 			}
