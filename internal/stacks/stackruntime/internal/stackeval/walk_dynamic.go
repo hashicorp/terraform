@@ -68,12 +68,18 @@ func walkDynamicObjectsInStack[Output any](
 		walk.AsyncTask(ctx, func(ctx context.Context) {
 			insts, unknown := call.Instances(ctx, phase)
 
-			// If unknown, then process the unknown instance and skip the rest.
 			if unknown {
+
+				// If unknown, then we should check for any stacks that exist
+				// in the state and "claim" them. Basically, this means this
+				// value was known and created some stack instances previously
+				// then became unknown in the current operation and we want to
+
 				knownInstances := stack.KnownEmbeddedStacks(call.addr.Item, phase)
 				if len(knownInstances) == 0 {
 					// with no known instances, we'll just process the constant
-					// unknown instance
+					// unknown instance. This represents the idea that stacks
+					// could be created once the value becomes unknown.
 					inst := call.UnknownInstance(ctx, phase)
 					visit(ctx, walk, inst)
 
@@ -82,8 +88,9 @@ func walkDynamicObjectsInStack[Output any](
 					return
 				}
 
-				// otherwise we have instances, so we'll process those with
-				// dedicated instances
+				// otherwise we have known instances in the state, so we'll
+				// create some dynamic instances for them so the user doesn't
+				// worry they have just disappeared.
 
 				for inst := range knownInstances {
 					if inst.Key == addrs.WildcardKey {
