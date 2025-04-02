@@ -8,6 +8,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -134,7 +135,7 @@ func (u *unknownProvider) PlanResourceChange(request providers.PlanResourceChang
 		}
 
 		return providers.PlanResourceChangeResponse{
-			PlannedState: val,
+			PlannedState: ephemeral.StripWriteOnlyAttributes(val, schema.Body),
 			Deferred: &providers.Deferred{
 				Reason: providers.DeferredReasonProviderConfigUnknown,
 			},
@@ -232,7 +233,7 @@ func (u *unknownProvider) ReadDataSource(request providers.ReadDataSourceRequest
 		}
 
 		return providers.ReadDataSourceResponse{
-			State: val,
+			State: ephemeral.StripWriteOnlyAttributes(val, schema.Body),
 			Deferred: &providers.Deferred{
 				Reason: providers.DeferredReasonProviderConfigUnknown,
 			},
