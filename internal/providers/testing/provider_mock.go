@@ -126,6 +126,11 @@ type MockProvider struct {
 	ValidateStorageConfigRequest  providers.ValidateStorageConfigRequest
 	ValidateStorageConfigFn       func(providers.ValidateStorageConfigRequest) providers.ValidateStorageConfigResponse
 
+	ConfigureStorageCalled   bool
+	ConfigureStorageResponse *providers.ConfigureStorageResponse
+	ConfigureStorageRequest  providers.ConfigureStorageRequest
+	ConfigureStorageFn       func(providers.ConfigureStorageRequest) providers.ConfigureStorageResponse
+
 	CloseCalled bool
 	CloseError  error
 }
@@ -831,8 +836,21 @@ func (p *MockProvider) ValidateStorageConfig(r providers.ValidateStorageConfigRe
 	return resp
 }
 
-func (p *MockProvider) ConfigureStorage(req providers.ConfigureStorageRequest) providers.ConfigureStorageResponse {
-	// TODO
+func (p *MockProvider) ConfigureStorage(r providers.ConfigureStorageRequest) (resp providers.ConfigureStorageResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.ConfigureStorageCalled = true
+	p.ConfigureStorageRequest = r
+
+	if p.ConfigureStorageFn != nil {
+		return p.ConfigureStorageFn(r)
+	}
+
+	if p.ConfigureStorageResponse != nil {
+		return *p.ConfigureStorageResponse
+	}
+
 	return providers.ConfigureStorageResponse{}
 }
 

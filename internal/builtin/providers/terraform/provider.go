@@ -272,12 +272,12 @@ func (p *Provider) Close() error {
 
 func (p *Provider) ValidateStorageConfig(req providers.ValidateStorageConfigRequest) providers.ValidateStorageConfigResponse {
 	var resp providers.ValidateStorageConfigResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported storage type %q", req.TypeName))
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported storage type %q", req.TypeName))
 	return resp
 }
 
 func (p *Provider) ConfigureStorage(req providers.ConfigureStorageRequest) providers.ConfigureStorageResponse {
 	var resp providers.ConfigureStorageResponse
-	// TODO
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Error: unsupported storage type %s", req.TypeName))
 	return resp
 }

@@ -297,9 +297,16 @@ func (u *unknownProvider) ValidateStorageConfig(request providers.ValidateStorag
 }
 
 func (u *unknownProvider) ConfigureStorage(req providers.ConfigureStorageRequest) providers.ConfigureStorageResponse {
-
-	// TODO
-	panic("attempted to configure an unknown state store")
+	return providers.ConfigureStorageResponse{
+		Diagnostics: []tfdiags.Diagnostic{
+			tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Provider configuration is unknown",
+				"Cannot configure the state store because its associated provider configuration is unknown.",
+				nil, // nil attribute path means the overall configuration block
+			),
+		},
+	}
 }
 
 func (u *unknownProvider) Close() error {
