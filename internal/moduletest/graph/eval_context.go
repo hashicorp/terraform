@@ -14,6 +14,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
+	"maps"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -313,9 +315,7 @@ func (ec *EvalContext) GetOutputs() map[addrs.Run]cty.Value {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
 	outputCopy := make(map[addrs.Run]cty.Value, len(ec.runOutputs))
-	for k, v := range ec.runOutputs {
-		outputCopy[k] = v
-	}
+	maps.Copy(outputCopy, ec.runOutputs) // don't use clone here, so we can return a non-nil map
 	return outputCopy
 }
 

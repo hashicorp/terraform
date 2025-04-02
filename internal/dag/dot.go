@@ -6,6 +6,8 @@ package dag
 import (
 	"bytes"
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -97,13 +99,8 @@ func (v *marshalVertex) dot(g *marshalGraph, opts *DotOpts) []byte {
 			return []byte{}
 		}
 
-		newAttrs := make(map[string]string)
-		for k, v := range attrs {
-			newAttrs[k] = v
-		}
-		for k, v := range node.Attrs {
-			newAttrs[k] = v
-		}
+		newAttrs := maps.Clone(attrs)
+		maps.Copy(newAttrs, node.Attrs)
 
 		name = node.Name
 		attrs = newAttrs
@@ -218,13 +215,7 @@ func (g *marshalGraph) writeBody(opts *DotOpts, w *indentWriter) {
 	}
 
 	// sort these again to match the old output
-	dotEdgesList := make([]string, 0, len(dotEdges))
-	for _, v := range dotEdges {
-		dotEdgesList = append(dotEdgesList, v)
-	}
-	sort.Strings(dotEdgesList)
-
-	for _, e := range dotEdgesList {
+	for _, e := range slices.Sorted(maps.Values(dotEdges)) {
 		w.WriteString(e + "\n")
 	}
 
