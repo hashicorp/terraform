@@ -315,7 +315,7 @@ func (ec *EvalContext) GetOutputs() map[addrs.Run]cty.Value {
 	ec.outputsLock.Lock()
 	defer ec.outputsLock.Unlock()
 	outputCopy := make(map[addrs.Run]cty.Value, len(ec.runOutputs))
-	maps.Copy(outputCopy, ec.runOutputs)
+	maps.Copy(outputCopy, ec.runOutputs) // don't use clone here, so we can return a non-nil map
 	return outputCopy
 }
 

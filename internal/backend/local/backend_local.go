@@ -402,7 +402,7 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 	// variable's value.
 	sort.Strings(needed) // prompt in lexical order
 	ret := make(map[string]backendrun.UnparsedVariableValue, len(vcs))
-	maps.Copy(ret, existing)
+	maps.Copy(ret, existing) // don't use clone here, so we can have a non-nil map
 
 	for _, name := range needed {
 		vc := vcs[name]
@@ -468,7 +468,7 @@ func (b *Local) stubUnsetRequiredVariables(existing map[string]backendrun.Unpars
 
 	// If we get down here then there's at least one variable value to add.
 	ret := make(map[string]backendrun.UnparsedVariableValue, len(vcs))
-	maps.Copy(ret, existing)
+	maps.Copy(ret, existing) // don't use clone here, so we can return a non-nil map
 
 	for name, vc := range vcs {
 		if !vc.Required() {
