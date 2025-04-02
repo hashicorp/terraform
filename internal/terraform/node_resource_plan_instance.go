@@ -643,7 +643,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			ImportedResources: []providers.ImportedResource{
 				{
 					TypeName: addr.Resource.Resource.Type,
-					State:    ephemeral.StripWriteOnlyAttributes(override, schema.Body),
+					State:    ephemeral.StripWriteOnlyAttributes(override, schema),
 				},
 			},
 			Diagnostics: overrideDiags.InConfigBody(n.Config.Config, absAddr.String()),

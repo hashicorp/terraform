@@ -328,7 +328,7 @@ func (w *writeOnlyResource) Read(request providers.ReadResourceRequest, store *R
 	var exists bool
 	response.NewState, exists = store.Get(id)
 	if !exists {
-		response.NewState = cty.NullVal(WriteOnlyResourceSchema.Body.ImpliedType())
+		response.NewState = cty.NullVal(WriteOnlyResourceSchema.ImpliedType())
 	}
 	return
 }

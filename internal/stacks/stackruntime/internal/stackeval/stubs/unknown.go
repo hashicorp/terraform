@@ -125,7 +125,7 @@ func (u *unknownProvider) PlanResourceChange(request providers.PlanResourceChang
 		}
 
 		return providers.PlanResourceChangeResponse{
-			PlannedState: ephemeral.StripWriteOnlyAttributes(val, schema.Body),
+			PlannedState: ephemeral.StripWriteOnlyAttributes(val, schema.Block),
 			Deferred: &providers.Deferred{
 				Reason: providers.DeferredReasonProviderConfigUnknown,
 			},
@@ -223,7 +223,7 @@ func (u *unknownProvider) ReadDataSource(request providers.ReadDataSourceRequest
 		}
 
 		return providers.ReadDataSourceResponse{
-			State: ephemeral.StripWriteOnlyAttributes(val, schema.Body),
+			State: ephemeral.StripWriteOnlyAttributes(val, schema.Block),
 			Deferred: &providers.Deferred{
 				Reason: providers.DeferredReasonProviderConfigUnknown,
 			},

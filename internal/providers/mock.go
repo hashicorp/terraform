@@ -128,7 +128,7 @@ func (m *Mock) UpgradeResourceState(request UpgradeResourceStateRequest) (respon
 		response.Diagnostics = response.Diagnostics.Append(err)
 		return response
 	}
-	response.UpgradedState = ephemeral.StripWriteOnlyAttributes(value, resource.Body)
+	response.UpgradedState = ephemeral.StripWriteOnlyAttributes(value, resource.Block)
 	return response
 }
 
@@ -195,14 +195,14 @@ func (m *Mock) PlanResourceChange(request PlanResourceChangeRequest) PlanResourc
 
 		value, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, replacement, resource.Block)
 		response.Diagnostics = response.Diagnostics.Append(diags)
-		response.PlannedState = ephemeral.StripWriteOnlyAttributes(value, resource.Body)
+		response.PlannedState = ephemeral.StripWriteOnlyAttributes(value, resource.Block)
 		response.PlannedPrivate = []byte("create")
 		return response
 	}
 
 	// Otherwise, we're just doing a simple update and we don't need to populate
 	// any values for that.
-	response.PlannedState = ephemeral.StripWriteOnlyAttributes(request.ProposedNewState, resource.Body)
+	response.PlannedState = ephemeral.StripWriteOnlyAttributes(request.ProposedNewState, resource.Block)
 	response.PlannedPrivate = []byte("update")
 	return response
 }
@@ -295,7 +295,7 @@ func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceRespo
 
 	value, diags := mocking.ComputedValuesForDataSource(request.Config, mockedData, datasource.Block)
 	response.Diagnostics = response.Diagnostics.Append(diags)
-	response.State = ephemeral.StripWriteOnlyAttributes(value, datasource.Body)
+	response.State = ephemeral.StripWriteOnlyAttributes(value, datasource.Block)
 	return response
 }
 

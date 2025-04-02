@@ -155,7 +155,7 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 						Block: BlockedResourceSchema,
 					},
 					"testing_write_only_resource": {
-						Body: WriteOnlyResourceSchema.Body,
+						Block: WriteOnlyResourceSchema,
 					},
 				},
 				DataSources: map[string]providers.Schema{
@@ -163,7 +163,7 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 						Block: TestingDataSourceSchema,
 					},
 					"testing_write_only_data_source": {
-						Body: WriteOnlyDataSourceSchema.Body,
+						Block: WriteOnlyDataSourceSchema,
 					},
 				},
 				Functions: map[string]providers.FunctionDecl{
