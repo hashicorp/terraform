@@ -39,6 +39,7 @@ var (
 						"destroy_fail":         {Type: cty.Bool, Optional: true, Computed: true},
 						"create_wait_seconds":  {Type: cty.Number, Optional: true},
 						"destroy_wait_seconds": {Type: cty.Number, Optional: true},
+						"write_only":           {Type: cty.String, Optional: true, WriteOnly: true},
 					},
 				},
 			},
@@ -47,8 +48,9 @@ var (
 			"test_data_source": {
 				Block: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
-						"id":    {Type: cty.String, Required: true},
-						"value": {Type: cty.String, Computed: true},
+						"id":         {Type: cty.String, Required: true},
+						"value":      {Type: cty.String, Computed: true},
+						"write_only": {Type: cty.String, Optional: true, WriteOnly: true},
 
 						// We never actually reference these values from a data
 						// source, but we have tests that use the same cty.Value
@@ -233,9 +235,15 @@ func (provider *TestProvider) PlanResourceChange(request providers.PlanResourceC
 		resource = cty.ObjectVal(vals)
 	}
 
-	if destryFail := resource.GetAttr("destroy_fail"); !destryFail.IsKnown() || destryFail.IsNull() {
+	if destroyFail := resource.GetAttr("destroy_fail"); !destroyFail.IsKnown() || destroyFail.IsNull() {
 		vals := resource.AsValueMap()
 		vals["destroy_fail"] = cty.UnknownVal(cty.Bool)
+		resource = cty.ObjectVal(vals)
+	}
+
+	if writeOnly := resource.GetAttr("write_only"); !writeOnly.IsNull() {
+		vals := resource.AsValueMap()
+		vals["write_only"] = cty.NullVal(cty.String)
 		resource = cty.ObjectVal(vals)
 	}
 
@@ -333,6 +341,12 @@ func (provider *TestProvider) ReadDataSource(request providers.ReadDataSourceReq
 	resource := provider.Store.Get(provider.GetDataKey(id))
 	if resource == cty.NilVal {
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "not found", fmt.Sprintf("%s does not exist", id)))
+	}
+
+	if writeOnly := resource.GetAttr("write_only"); !writeOnly.IsNull() {
+		vals := resource.AsValueMap()
+		vals["write_only"] = cty.NullVal(cty.String)
+		resource = cty.ObjectVal(vals)
 	}
 
 	return providers.ReadDataSourceResponse{

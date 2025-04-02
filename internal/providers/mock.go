@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -127,7 +128,7 @@ func (m *Mock) UpgradeResourceState(request UpgradeResourceStateRequest) (respon
 		response.Diagnostics = response.Diagnostics.Append(err)
 		return response
 	}
-	response.UpgradedState = value
+	response.UpgradedState = ephemeral.StripWriteOnlyAttributes(value, resource.Body)
 	return response
 }
 
@@ -161,26 +162,25 @@ func (m *Mock) PlanResourceChange(request PlanResourceChangeRequest) PlanResourc
 		}
 	}
 
+	var response PlanResourceChangeResponse
+	schema := m.GetProviderSchema()
+	response.Diagnostics = response.Diagnostics.Append(schema.Diagnostics)
+	if schema.Diagnostics.HasErrors() {
+		// We couldn't retrieve the schema for some reason, so the mock
+		// provider can't really function.
+		return response
+	}
+
+	resource, exists := schema.ResourceTypes[request.TypeName]
+	if !exists {
+		// This means something has gone wrong much earlier, we should have
+		// failed a validation somewhere if a resource type doesn't exist.
+		panic(fmt.Errorf("failed to retrieve schema for resource %s", request.TypeName))
+	}
+
 	if request.PriorState.IsNull() {
 		// Then we are creating this resource - we need to populate the computed
 		// null fields with unknowns so Terraform will render them properly.
-
-		var response PlanResourceChangeResponse
-
-		schema := m.GetProviderSchema()
-		response.Diagnostics = response.Diagnostics.Append(schema.Diagnostics)
-		if schema.Diagnostics.HasErrors() {
-			// We couldn't retrieve the schema for some reason, so the mock
-			// provider can't really function.
-			return response
-		}
-
-		resource, exists := schema.ResourceTypes[request.TypeName]
-		if !exists {
-			// This means something has gone wrong much earlier, we should have
-			// failed a validation somewhere if a resource type doesn't exist.
-			panic(fmt.Errorf("failed to retrieve schema for resource %s", request.TypeName))
-		}
 
 		replacement := &mocking.MockedData{
 			Value:             cty.NilVal, // If we have no data then we use cty.NilVal.
@@ -195,17 +195,16 @@ func (m *Mock) PlanResourceChange(request PlanResourceChangeRequest) PlanResourc
 
 		value, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, replacement, resource.Block)
 		response.Diagnostics = response.Diagnostics.Append(diags)
-		response.PlannedState = value
+		response.PlannedState = ephemeral.StripWriteOnlyAttributes(value, resource.Body)
 		response.PlannedPrivate = []byte("create")
 		return response
 	}
 
 	// Otherwise, we're just doing a simple update and we don't need to populate
 	// any values for that.
-	return PlanResourceChangeResponse{
-		PlannedState:   request.ProposedNewState,
-		PlannedPrivate: []byte("update"),
-	}
+	response.PlannedState = ephemeral.StripWriteOnlyAttributes(request.ProposedNewState, resource.Body)
+	response.PlannedPrivate = []byte("update")
+	return response
 }
 
 func (m *Mock) ApplyResourceChange(request ApplyResourceChangeRequest) ApplyResourceChangeResponse {
@@ -296,7 +295,7 @@ func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceRespo
 
 	value, diags := mocking.ComputedValuesForDataSource(request.Config, mockedData, datasource.Block)
 	response.Diagnostics = response.Diagnostics.Append(diags)
-	response.State = value
+	response.State = ephemeral.StripWriteOnlyAttributes(value, datasource.Body)
 	return response
 }
 

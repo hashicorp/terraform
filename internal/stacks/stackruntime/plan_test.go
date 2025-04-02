@@ -242,6 +242,100 @@ func TestPlan(t *testing.T) {
 				},
 			},
 		},
+		"deferred-provider-with-write-only": {
+			path: "with-write-only-attribute",
+			cycle: TestCycle{
+				planInputs: map[string]cty.Value{
+					"providers": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				wantPlannedChanges: []stackplan.PlannedChange{
+					&stackplan.PlannedChangeApplyable{
+						Applyable: true,
+					},
+					&stackplan.PlannedChangeComponentInstance{
+						Addr:   mustAbsComponentInstance("component.main"),
+						Action: plans.Create,
+						PlannedInputValues: map[string]plans.DynamicValue{
+							"datasource_id":    mustPlanDynamicValueDynamicType(cty.StringVal("datasource")),
+							"resource_id":      mustPlanDynamicValueDynamicType(cty.StringVal("resource")),
+							"write_only_input": mustPlanDynamicValueDynamicType(cty.StringVal("secret")),
+						},
+						PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+							"datasource_id":    nil,
+							"resource_id":      nil,
+							"write_only_input": nil,
+						},
+						PlannedOutputValues: make(map[string]cty.Value),
+						PlannedCheckResults: &states.CheckResults{},
+						PlanTimestamp:       fakePlanTimestamp,
+					},
+					&stackplan.PlannedChangeDeferredResourceInstancePlanned{
+						ResourceInstancePlanned: stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.main.data.testing_write_only_data_source.data"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("data.testing_write_only_data_source.data"),
+								PrevRunAddr:  mustAbsResourceInstance("data.testing_write_only_data_source.data"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Read,
+									Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+									After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":         cty.StringVal("datasource"),
+										"value":      cty.UnknownVal(cty.String),
+										"write_only": cty.NullVal(cty.String),
+									})),
+									AfterSensitivePaths: []cty.Path{
+										cty.GetAttrPath("write_only"),
+									},
+								},
+								ActionReason: plans.ResourceInstanceReadBecauseDependencyPending,
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.WriteOnlyDataSourceSchema,
+						},
+						DeferredReason: providers.DeferredReasonProviderConfigUnknown,
+					},
+					&stackplan.PlannedChangeDeferredResourceInstancePlanned{
+						ResourceInstancePlanned: stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.main.testing_write_only_resource.data"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("testing_write_only_resource.data"),
+								PrevRunAddr:  mustAbsResourceInstance("testing_write_only_resource.data"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Create,
+									Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+									After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":         cty.StringVal("resource"),
+										"value":      cty.UnknownVal(cty.String),
+										"write_only": cty.NullVal(cty.String),
+									})),
+									AfterSensitivePaths: []cty.Path{
+										cty.GetAttrPath("write_only"),
+									},
+								},
+							},
+							PriorStateSrc:      nil,
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.WriteOnlyResourceSchema,
+						},
+						DeferredReason: providers.DeferredReasonProviderConfigUnknown,
+					},
+					&stackplan.PlannedChangeHeader{
+						TerraformVersion: version.SemVer,
+					},
+					&stackplan.PlannedChangePlannedTimestamp{
+						PlannedTimestamp: fakePlanTimestamp,
+					},
+					&stackplan.PlannedChangeRootInputValue{
+						Addr:   mustStackInputVariable("providers"),
+						Action: plans.Create,
+						Before: cty.NullVal(cty.DynamicPseudoType),
+						After:  cty.UnknownVal(cty.Set(cty.String)),
+					},
+				},
+			},
+		},
 		"deferred-provider-with-data-sources": {
 			path: path.Join("with-data-source", "deferred-provider-for-each"),
 			store: stacks_testing_provider.NewResourceStoreBuilder().
