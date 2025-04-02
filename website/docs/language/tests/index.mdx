@@ -1014,4 +1014,56 @@ Runs A and B execute simultaneously. Run C waits until both A and B are done bef
 
 ## Backends
 
-{/* TODO */}
+By default, Terraform tests start with an empty state and provisions all resources defined in the configuration.
+However, if a `backend` block is used in a test file then the test can start with a non-empty state file.
+This allows tests to reuse long-lived pieces of infrastructure and can be used to reduce the duration of tests
+that include resources that are slow to provision, such as Kubernetes clusters.
+
+A `backend` block can be added once in a test file, to the first run block that represents an `apply` operation:
+
+```hcl
+# parallel.tftest.hcl
+
+run "test_1" {
+  command = "plan"
+  # a backend block cannot be used here
+}
+
+run "test_2" {
+  # a backend can be used here as the command field
+  # defaults to "apply"
+
+  backend "local" {
+    # state is saved locally, in the specified location
+    path = "./custom/location/for/terraform.tfstate"
+  }
+}
+
+```
+
+The `backend` block here is like the pre-existing `backend` block that can be included in the `terraform` block.
+Any of the current backends can be used (from `local` storage, to storage in `s3`) and they are configured using
+a combination of the configuration in the `backend` block and values from your environment. See the pre-existing
+[backend documentation](https://developer.hashicorp.com/terraform/language/backend) for a list of available
+backends and how to configure them.
+
+-> **Note:** Pay attention to any environment variables that you use to configure backends during `plan` and `apply`
+operations; these will also be used during tests. You may need to change your environment depending on which workflow
+you are performing.
+
+### Some backend features are not available during tests
+
+Although backends are configured similarly in the `terraform` block and in `run` blocks, their behaviors are slightly
+different.
+
+Firstly, backends used in tests are initialized during the `test` command and are not initialized during an `init` command.
+Due to this, Terraform will not detect changes in how backends are configured in a test and will not prompt you about migrating
+state from one backend to another after the backend configuration has changed.
+
+Similarly, backend initialization during tests does not use [partial configuration](https://developer.hashicorp.com/terraform/language/backend#partial-configuration)
+CLI flags like `-backend-config`, as those are only compatible with the `init` command. Configuration of the backend is only
+through the backend block and any applicable environment variables.
+
+Finally, [workspaces](https://developer.hashicorp.com/terraform/language/state/workspaces) cannot be used with backends
+used in the context of a test. Any backend used in a test will default to using the `default` workspace, regardless of
+what workspaces exist and are used for `plan` and `apply` operations.
