@@ -85,8 +85,9 @@ func (d hclDiagnostic) Equals(otherDiag ComparableDiagnostic) bool {
 
 func hclRangeEquals(l, r *hcl.Range) bool {
 	if l == nil || r == nil {
-		return l == r
+		return false
 	}
+
 	if l.Filename != r.Filename {
 		return false
 	}
