@@ -1,4 +1,4 @@
-## 1.12.0 (Unreleased)
+## 1.12.0-beta1 (April 02, 2025)
 
 
 ENHANCEMENTS:
@@ -17,6 +17,8 @@ ENHANCEMENTS:
 
 * Improved elapsed time display in UI Hook to show minutes and seconds in `mm:ss` format. ([#36368](https://github.com/hashicorp/terraform/issues/36368))
 
+* Update legacy term used in error messages. (Terraform Cloud agent => HCP Terraform Agent) ([#36706](https://github.com/hashicorp/terraform/issues/36706))
+
 
 BUG FIXES:
 
@@ -28,18 +30,13 @@ BUG FIXES:
 
 * Avoid reporting duplicate attribute-associated diagnostics, such as "Available Write-only Attribute Alternative" ([#36579](https://github.com/hashicorp/terraform/issues/36579))
 
+* for_each expressions in import blocks should not be able to reference the import target ([#36801](https://github.com/hashicorp/terraform/issues/36801))
+
 
 UPGRADE NOTES:
 
 * On Linux, Terraform now requires Linux kernel version 3.2 or later; support for previous versions has been discontinued. ([#36478](https://github.com/hashicorp/terraform/issues/36478))
 
-
-EXPERIMENTS:
-
-Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
-
-- The new command `terraform rpcapi` exposes some Terraform Core functionality through an RPC interface compatible with [`go-plugin`](https://github.com/hashicorp/go-plugin). The exact RPC API exposed here is currently subject to change at any time, because it's here primarily as a vehicle to support the [Terraform Stacks](https://www.hashicorp.com/blog/terraform-stacks-explained) private preview and so will be broken if necessary to respond to feedback from private preview participants, or possibly for other reasons. Do not use this mechanism yet outside of Terraform Stacks private preview.
-- The experimental "deferred actions" feature, enabled by passing the `-allow-deferral` option to `terraform plan`, permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values and allows providers to react more flexibly to unknown values. This experiment is under active development, and so it's not yet useful to participate in this experiment
 
 ## Previous Releases
 
