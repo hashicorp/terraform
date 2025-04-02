@@ -149,6 +149,7 @@ func (p *MockProvider) getProviderSchema() providers.GetProviderSchemaResponse {
 		Provider:      providers.Schema{},
 		DataSources:   map[string]providers.Schema{},
 		ResourceTypes: map[string]providers.Schema{},
+		// TODO - any update needed here?
 	}
 }
 
