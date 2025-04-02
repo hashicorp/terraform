@@ -90,7 +90,7 @@ type Hook interface {
 
 	// PrePlanImport and PostPlanImport are called during a plan before and after planning to import
 	// a new resource using the configuration-driven import workflow.
-	PrePlanImport(id HookResourceIdentity, importID string) (HookAction, error)
+	PrePlanImport(id HookResourceIdentity, importTarget cty.Value) (HookAction, error)
 	PostPlanImport(id HookResourceIdentity, imported []providers.ImportedResource) (HookAction, error)
 
 	// PreApplyImport and PostApplyImport are called during an apply for each imported resource when
@@ -185,7 +185,7 @@ func (*NilHook) PostImportState(id HookResourceIdentity, imported []providers.Im
 	return HookActionContinue, nil
 }
 
-func (h *NilHook) PrePlanImport(id HookResourceIdentity, importID string) (HookAction, error) {
+func (h *NilHook) PrePlanImport(id HookResourceIdentity, importTarget cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 

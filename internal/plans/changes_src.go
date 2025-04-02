@@ -349,6 +349,9 @@ type ImportingSrc struct {
 	// ID is the original ID of the imported resource.
 	ID string
 
+	// Identity is the original identity of the imported resource.
+	Identity cty.Value
+
 	// Unknown is true if the ID was unknown when we tried to import it. This
 	// should only be true if the overall change is embedded within a deferred
 	// action.
@@ -361,12 +364,25 @@ func (is *ImportingSrc) Decode() *Importing {
 		return nil
 	}
 	if is.Unknown {
+		if is.Identity.IsNull() {
+			return &Importing{
+				Target: cty.UnknownVal(cty.String),
+			}
+		}
+
 		return &Importing{
-			ID: cty.UnknownVal(cty.String),
+			Target: cty.UnknownVal(cty.EmptyObject),
 		}
 	}
+
+	if is.Identity.IsNull() {
+		return &Importing{
+			Target: cty.StringVal(is.ID),
+		}
+	}
+
 	return &Importing{
-		ID: cty.StringVal(is.ID),
+		Target: is.Identity,
 	}
 }
 

@@ -163,7 +163,7 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 			// if we have a legacy addr, it was supplied on the commandline so
 			// there is nothing to expand
 			if !imp.LegacyAddr.Equal(addrs.AbsResourceInstance{}) {
-				knownImports.Put(imp.LegacyAddr, cty.StringVal(imp.IDString))
+				knownImports.Put(imp.LegacyAddr, cty.StringVal(imp.LegacyID))
 				return knownImports, unknownImports, diags
 			}
 
@@ -183,7 +183,24 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 
 			diags = diags.Append(validateImportTargetExpansion(n.Config, to, imp.Config.To))
 
-			importID, evalDiags := evaluateImportIdExpression(imp.Config.ID, ctx, EvalDataForNoInstanceKey, allowUnknown)
+			var importID cty.Value
+			var evalDiags tfdiags.Diagnostics
+			if imp.Config.ID != nil {
+				importID, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, EvalDataForNoInstanceKey, allowUnknown)
+			} else if imp.Config.Identity != nil {
+				providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
+				if err != nil {
+					diags = diags.Append(err)
+					return knownImports, unknownImports, diags
+				}
+				schema := providerSchema.SchemaForResourceAddr(to.Resource.Resource)
+
+				importID, evalDiags = evaluateImportIdentityExpression(imp.Config.Identity, schema.Identity, ctx, EvalDataForNoInstanceKey, allowUnknown)
+			} else {
+				// Should never happen
+				return knownImports, unknownImports, diags
+			}
+
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
 				return knownImports, unknownImports, diags
@@ -234,6 +251,7 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 		}
 
 		for _, keyData := range forEachData {
+			var evalDiags tfdiags.Diagnostics
 			res, evalDiags := evalImportToExpression(imp.Config.To, keyData)
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
@@ -242,7 +260,23 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 
 			diags = diags.Append(validateImportTargetExpansion(n.Config, res, imp.Config.To))
 
-			importID, evalDiags := evaluateImportIdExpression(imp.Config.ID, ctx, keyData, allowUnknown)
+			var importID cty.Value
+			if imp.Config.ID != nil {
+				importID, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, keyData, allowUnknown)
+			} else if imp.Config.Identity != nil {
+				providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
+				if err != nil {
+					diags = diags.Append(err)
+					return knownImports, unknownImports, diags
+				}
+				schema := providerSchema.SchemaForResourceAddr(res.Resource.Resource)
+
+				importID, evalDiags = evaluateImportIdentityExpression(imp.Config.Identity, schema.Identity, ctx, keyData, allowUnknown)
+			} else {
+				// Should never happen
+				return knownImports, unknownImports, diags
+			}
+
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
 				return knownImports, unknownImports, diags
