@@ -45,6 +45,7 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 		ResourceSchemas:          make(map[string]*tfplugin5.Schema),
 		DataSourceSchemas:        make(map[string]*tfplugin5.Schema),
 		EphemeralResourceSchemas: make(map[string]*tfplugin5.Schema),
+		StateStores:              make(map[string]*tfplugin5.Schema),
 	}
 
 	resp.Provider = &tfplugin5.Schema{
@@ -79,6 +80,7 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 			Block:   convert.ConfigSchemaToProto(dat.Body),
 		}
 	}
+	// TODO: Add state stores here
 	if decls, err := convert.FunctionDeclsToProto(p.schema.Functions); err == nil {
 		resp.Functions = decls
 	} else {
