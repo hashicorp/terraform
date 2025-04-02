@@ -112,7 +112,7 @@ func (t *TestRunTransformer) connectDependencies(g *terraform.Graph, nodes []*No
 		}
 
 		// Connect to all previous runs
-		for j := 0; j < i; j++ {
+		for j := range i {
 			g.Connect(dag.BasicEdge(node, nodes[j]))
 		}
 
