@@ -943,14 +943,14 @@ func (n *NodeAbstractResourceInstance) plan(
 				ComputedAsUnknown: !n.override.UseForPlan,
 			}, schema.Body)
 			resp = providers.PlanResourceChangeResponse{
-				PlannedState: override,
+				PlannedState: ephemeral.StripWriteOnlyAttributes(override, schema.Body),
 				Diagnostics:  overrideDiags,
 			}
 		} else {
 			// This is an update operation, and we don't actually have any
 			// computed values that need to be applied.
 			resp = providers.PlanResourceChangeResponse{
-				PlannedState: proposedNewVal,
+				PlannedState: ephemeral.StripWriteOnlyAttributes(proposedNewVal, schema.Body),
 			}
 		}
 	} else {
@@ -1156,7 +1156,7 @@ func (n *NodeAbstractResourceInstance) plan(
 				ComputedAsUnknown: !n.override.UseForPlan,
 			}, schema.Body)
 			resp = providers.PlanResourceChangeResponse{
-				PlannedState: override,
+				PlannedState: ephemeral.StripWriteOnlyAttributes(override, schema.Body),
 				Diagnostics:  overrideDiags,
 			}
 		} else {
@@ -1641,7 +1641,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 			ComputedAsUnknown: false,
 		}, schema.Body)
 		resp = providers.ReadDataSourceResponse{
-			State:       override,
+			State:       ephemeral.StripWriteOnlyAttributes(override, schema.Body),
 			Diagnostics: overrideDiags,
 		}
 	} else {

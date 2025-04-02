@@ -59,11 +59,31 @@ var (
 		},
 	}
 
+	WriteOnlyResourceSchema = providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"id":         {Type: cty.String, Optional: true, Computed: true},
+				"value":      {Type: cty.String, Optional: true},
+				"write_only": {Type: cty.String, WriteOnly: true, Optional: true},
+			},
+		},
+	}
+
 	TestingDataSourceSchema = providers.Schema{
 		Body: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"id":    {Type: cty.String, Required: true},
 				"value": {Type: cty.String, Computed: true},
+			},
+		},
+	}
+
+	WriteOnlyDataSourceSchema = providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"id":         {Type: cty.String, Required: true},
+				"value":      {Type: cty.String, Computed: true},
+				"write_only": {Type: cty.String, WriteOnly: true, Optional: true},
 			},
 		},
 	}
@@ -167,10 +187,16 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 						Body:     TestingResourceSchema.Body,
 						Identity: TestingResourceWithIdentitySchema.Identity,
 					},
+					"testing_write_only_resource": {
+						Body: WriteOnlyResourceSchema.Body,
+					},
 				},
 				DataSources: map[string]providers.Schema{
 					"testing_data_source": {
 						Body: TestingDataSourceSchema.Body,
+					},
+					"testing_write_only_data_source": {
+						Body: WriteOnlyDataSourceSchema.Body,
 					},
 				},
 				Functions: map[string]providers.FunctionDecl{
