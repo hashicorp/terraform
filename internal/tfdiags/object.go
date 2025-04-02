@@ -15,7 +15,7 @@ func ObjectToString(obj cty.Value) string {
 		return "<null>"
 	}
 
-	if !obj.IsKnown() {
+	if !obj.IsWhollyKnown() {
 		return "<unknown>"
 	}
 
