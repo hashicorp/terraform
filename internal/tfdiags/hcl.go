@@ -75,6 +75,11 @@ func (d hclDiagnostic) Equals(otherDiag ComparableDiagnostic) bool {
 		return false
 	}
 
+	// we can't compare extra values without knowing what they are
+	if d.ExtraInfo() != nil || od.ExtraInfo() != nil {
+		return false
+	}
+
 	return true
 }
 
