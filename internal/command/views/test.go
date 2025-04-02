@@ -276,7 +276,8 @@ func (t *TestHuman) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Ru
 	}
 	t.Diagnostics(run, file, diags)
 
-	if state.HasManagedResourceInstanceObjects() {
+	skipCleanup := run != nil && run.Config.SkipCleanup
+	if state.HasManagedResourceInstanceObjects() && !skipCleanup {
 		// FIXME: This message says "resources" but this is actually a list
 		// of resource instance objects.
 		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform left the following resources in state after executing %s, and they need to be cleaned up manually:\n", identifier), t.view.errorColumns()))
@@ -604,7 +605,8 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 }
 
 func (t *TestJSON) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State) {
-	if state.HasManagedResourceInstanceObjects() {
+	skipCleanup := run != nil && run.Config.SkipCleanup
+	if state.HasManagedResourceInstanceObjects() && !skipCleanup {
 		cleanup := json.TestFileCleanup{}
 		for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
 			cleanup.FailedResources = append(cleanup.FailedResources, json.TestFailedResource{

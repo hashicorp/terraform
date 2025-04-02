@@ -90,6 +90,9 @@ type TestFileConfig struct {
 	// Parallel: Indicates if test runs should be executed in parallel.
 	Parallel bool
 
+	// SkipCleanup: Indicates if the test runs should skip the cleanup phase.
+	SkipCleanup bool
+
 	DeclRange hcl.Range
 }
 
@@ -169,6 +172,10 @@ type TestRun struct {
 	// This, in combination with the state key, will determine if the test run
 	// will be executed in parallel with other test runs.
 	Parallel bool
+
+	// SkipCleanup: Indicates if the test run should skip the cleanup phase.
+	SkipCleanup    bool
+	SkipCleanupSet bool
 
 	NameDeclRange      hcl.Range
 	VariablesDeclRange hcl.Range
@@ -561,6 +568,11 @@ func decodeFileConfigBlock(fileContent *hcl.BodyContent) (*TestFileConfig, hcl.D
 		diags = append(diags, rawDiags...)
 	}
 
+	if attr, exists := content.Attributes["skip_cleanup"]; exists {
+		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &ret.SkipCleanup)
+		diags = append(diags, rawDiags...)
+	}
+
 	return ret, diags
 }
 
@@ -577,6 +589,7 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 		NameDeclRange: block.LabelRanges[0],
 		DeclRange:     block.DefRange,
 		Parallel:      file.Config != nil && file.Config.Parallel,
+		SkipCleanup:   file.Config != nil && file.Config.SkipCleanup,
 	}
 
 	if !hclsyntax.ValidIdentifier(r.Name) {
@@ -758,6 +771,12 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 	if attr, exists := content.Attributes["parallel"]; exists {
 		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Parallel)
 		diags = append(diags, rawDiags...)
+	}
+
+	if attr, exists := content.Attributes["skip_cleanup"]; exists {
+		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.SkipCleanup)
+		diags = append(diags, rawDiags...)
+		r.SkipCleanupSet = true
 	}
 
 	return &r, diags
@@ -963,6 +982,7 @@ var testFileSchema = &hcl.BodySchema{
 var testFileConfigBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
 		{Name: "parallel"},
+		{Name: "skip_cleanup"},
 	},
 }
 
@@ -973,6 +993,7 @@ var testRunBlockSchema = &hcl.BodySchema{
 		{Name: "expect_failures"},
 		{Name: "state_key"},
 		{Name: "parallel"},
+		{Name: "skip_cleanup"},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{

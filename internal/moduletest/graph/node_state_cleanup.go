@@ -23,9 +23,16 @@ var (
 	_ GraphNodeExecutable = (*NodeStateCleanup)(nil)
 )
 
+// NodeStateCleanup is responsible for cleaning up the state of resources
+// defined in the state file. It uses the provided stateKey to identify the
+// specific state to clean up and opts for additional configuration options.
 type NodeStateCleanup struct {
 	stateKey string
 	opts     *graphOptions
+
+	// If applyOverride is provided, it will be applied to the state file to reach
+	// the final state, instead of running the destroy operation.
+	applyOverride *moduletest.Run
 }
 
 func (n *NodeStateCleanup) Name() string {
@@ -33,13 +40,13 @@ func (n *NodeStateCleanup) Name() string {
 }
 
 // Execute destroys the resources created in the state file.
-// This function should never return non-fatal error diagnostics, as that would
-// prevent further cleanup from happening. Instead, the diagnostics
-// will be rendered directly.
 func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) {
 	file := n.opts.File
 	state := evalCtx.GetFileState(n.stateKey)
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
+	if n.applyOverride != nil {
+		state.Run = n.applyOverride
+	}
 
 	evalCtx.Renderer().Run(state.Run, file, moduletest.TearDown, 0)
 	if evalCtx.Cancelled() {
@@ -166,10 +173,7 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, file *configs.TestFile, run
 	state := fileState.State
 	log.Printf("[TRACE] TestFileRunner: called destroy for %s", run.Name)
 
-	if state.Empty() {
-		// Nothing to do!
-		return state, nil
-	}
+	ctx.Renderer().Run(run, file, moduletest.TearDown, 0)
 
 	variables, diags := GetVariables(ctx, run, module, false)
 	if diags.HasErrors() {
@@ -180,6 +184,13 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, file *configs.TestFile, run
 	// during the initial execution of the run block and we would not have
 	// executed the run block if there were any errors.
 	providers, mocks, _ := getProviders(ctx, file, run, module)
+
+	// If the run block has an override, we don't need to run the destroy
+	// operation. We can just apply the override to the state file and return.
+	if n.applyOverride != nil {
+		runNode.testApply(ctx, variables, waiter)
+		return ctx.GetFileState(n.stateKey).State, nil
+	}
 
 	// During the destroy operation, we don't add warnings from this operation.
 	// Anything that would have been reported here was already reported during
@@ -216,5 +227,11 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, file *configs.TestFile, run
 
 	_, updated, applyDiags := apply(tfCtx, run, module, plan, moduletest.TearDown, variables, providers, waiter)
 	diags = diags.Append(applyDiags)
+
+	if !updated.Empty() {
+		// Then we failed to adequately clean up the state, so mark as errored.
+		file.UpdateStatus(moduletest.Error)
+	}
+
 	return updated, diags
 }
