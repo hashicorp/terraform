@@ -4,8 +4,10 @@
 package states
 
 import (
+	"maps"
+	"slices"
+
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Taking deep copies of states is an important operation because state is
@@ -128,45 +130,15 @@ func (os *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 		return nil
 	}
 
-	var attrsFlat map[string]string
-	if os.AttrsFlat != nil {
-		attrsFlat = make(map[string]string, len(os.AttrsFlat))
-		for k, v := range os.AttrsFlat {
-			attrsFlat[k] = v
-		}
-	}
-
-	var attrsJSON []byte
-	if os.AttrsJSON != nil {
-		attrsJSON = make([]byte, len(os.AttrsJSON))
-		copy(attrsJSON, os.AttrsJSON)
-	}
-
-	var identityJSON []byte
-	if os.IdentityJSON != nil {
-		identityJSON = make([]byte, len(os.IdentityJSON))
-		copy(identityJSON, os.IdentityJSON)
-	}
-
-	var sensitiveAttrPaths []cty.Path
-	if os.AttrSensitivePaths != nil {
-		sensitiveAttrPaths = make([]cty.Path, len(os.AttrSensitivePaths))
-		copy(sensitiveAttrPaths, os.AttrSensitivePaths)
-	}
-
-	var private []byte
-	if os.Private != nil {
-		private = make([]byte, len(os.Private))
-		copy(private, os.Private)
-	}
+	attrsFlat := maps.Clone(os.AttrsFlat)
+	attrsJSON := slices.Clone(os.AttrsJSON)
+	identityJSON := slices.Clone(os.IdentityJSON)
+	sensitiveAttrPaths := slices.Clone(os.AttrSensitivePaths)
+	private := slices.Clone(os.Private)
 
 	// Some addrs.Referencable implementations are technically mutable, but
 	// we treat them as immutable by convention and so we don't deep-copy here.
-	var dependencies []addrs.ConfigResource
-	if os.Dependencies != nil {
-		dependencies = make([]addrs.ConfigResource, len(os.Dependencies))
-		copy(dependencies, os.Dependencies)
-	}
+	dependencies := slices.Clone(os.Dependencies)
 
 	return &ResourceInstanceObjectSrc{
 		Status:                os.Status,
@@ -197,22 +169,15 @@ func (o *ResourceInstanceObject) DeepCopy() *ResourceInstanceObject {
 		return nil
 	}
 
-	var private []byte
-	if o.Private != nil {
-		private = make([]byte, len(o.Private))
-		copy(private, o.Private)
-	}
+	private := slices.Clone(o.Private)
 
 	// Some addrs.Referenceable implementations are technically mutable, but
 	// we treat them as immutable by convention and so we don't deep-copy here.
-	var dependencies []addrs.ConfigResource
-	if o.Dependencies != nil {
-		dependencies = make([]addrs.ConfigResource, len(o.Dependencies))
-		copy(dependencies, o.Dependencies)
-	}
+	dependencies := slices.Clone(o.Dependencies)
 
 	return &ResourceInstanceObject{
 		Value:               o.Value,
+		Identity:            o.Identity,
 		Status:              o.Status,
 		Private:             private,
 		Dependencies:        dependencies,

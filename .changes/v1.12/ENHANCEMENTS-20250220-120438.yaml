@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: Produce detailed diagnostic objects when test run assertions fail
-time: 2025-02-20T12:04:38.005393+01:00
-custom:
-    Issue: "34428"

@@ -322,6 +322,18 @@ func TestTest_Runs(t *testing.T) {
 			expectedErr: []string{"Cannot apply non-applyable plan"},
 			code:        1,
 		},
+		"write-only-attributes": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
+		"write-only-attributes-mocked": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
+		"write-only-attributes-overridden": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -1618,6 +1630,7 @@ Terraform will perform the following actions:
       + destroy_fail = (known after apply)
       + id           = "constant_value"
       + value        = "bar"
+      + write_only   = (write-only attribute)
     }
 
 Plan: 1 to add, 0 to change, 0 to destroy.
@@ -1629,6 +1642,7 @@ resource "test_resource" "foo" {
     destroy_fail = false
     id           = "constant_value"
     value        = "bar"
+    write_only   = (write-only attribute)
 }
 
 main.tftest.hcl... tearing down
@@ -1951,6 +1965,7 @@ resource "test_resource" "module_resource" {
     destroy_fail = false
     id           = "df6h8as9"
     value        = "start"
+    write_only   = (write-only attribute)
 }
 
   run "initial_apply"... pass
@@ -1960,6 +1975,7 @@ resource "test_resource" "resource" {
     destroy_fail = false
     id           = "598318e0"
     value        = "start"
+    write_only   = (write-only attribute)
 }
 
   run "plan_second_example"... pass
@@ -1975,6 +1991,7 @@ Terraform will perform the following actions:
       + destroy_fail = (known after apply)
       + id           = "b6a1d8cb"
       + value        = "start"
+      + write_only   = (write-only attribute)
     }
 
 Plan: 1 to add, 0 to change, 0 to destroy.
@@ -1991,7 +2008,7 @@ Terraform will perform the following actions:
   ~ resource "test_resource" "resource" {
         id           = "598318e0"
       ~ value        = "start" -> "update"
-        # (1 unchanged attribute hidden)
+        # (2 unchanged attributes hidden)
     }
 
 Plan: 0 to add, 1 to change, 0 to destroy.
@@ -2008,7 +2025,7 @@ Terraform will perform the following actions:
   ~ resource "test_resource" "module_resource" {
         id           = "df6h8as9"
       ~ value        = "start" -> "update"
-        # (1 unchanged attribute hidden)
+        # (2 unchanged attributes hidden)
     }
 
 Plan: 0 to add, 1 to change, 0 to destroy.
@@ -2021,8 +2038,8 @@ Success! 5 passed, 0 failed.
 
 	actual := output.All()
 
-	if !strings.Contains(actual, expected) {
-		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s", expected, actual)
+	if diff := cmp.Diff(expected, actual); diff != "" {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
 	}
 
 	if provider.ResourceCount() > 0 {
@@ -2831,6 +2848,7 @@ resource "test_resource" "resource" {
     destroy_fail = false
     id           = "9ddca5a9"
     value        = (sensitive value)
+    write_only   = (write-only attribute)
 }
 
 
@@ -2845,6 +2863,7 @@ resource "test_resource" "resource" {
     destroy_fail = false
     id           = "9ddca5a9"
     value        = (sensitive value)
+    write_only   = (write-only attribute)
 }
 
 

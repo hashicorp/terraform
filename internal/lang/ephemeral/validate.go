@@ -6,15 +6,16 @@ package ephemeral
 import (
 	"fmt"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // ValidateWriteOnlyAttributes identifies all instances of write-only paths that contain non-null values
 // and returns a diagnostic for each instance
 func ValidateWriteOnlyAttributes(summary string, detail func(cty.Path) string, newVal cty.Value, schema *configschema.Block) (diags tfdiags.Diagnostics) {
-	writeOnlyPaths, err := nonNullWriteOnlyPaths(newVal, schema, nil)
+	writeOnlyPaths, err := nonNullWriteOnlyPaths(newVal, schema)
 	if err != nil {
 		return diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -36,7 +37,7 @@ func ValidateWriteOnlyAttributes(summary string, detail func(cty.Path) string, n
 
 // nonNullWriteOnlyPaths returns a list of paths to attributes that are write-only
 // and non-null in the given value.
-func nonNullWriteOnlyPaths(val cty.Value, schema *configschema.Block, p cty.Path) ([]cty.Path, error) {
+func nonNullWriteOnlyPaths(val cty.Value, schema *configschema.Block) ([]cty.Path, error) {
 	if schema == nil {
 		panic("nonNullWriteOnlyPaths called wih nil schema")
 	}

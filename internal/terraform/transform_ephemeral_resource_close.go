@@ -76,7 +76,7 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 			return len(up) == 0
 		})
 
-		for _, last := range lastReferences.List() {
+		for last := range lastReferences.List() {
 			g.Connect(dag.BasicEdge(closeNode, last))
 		}
 	}

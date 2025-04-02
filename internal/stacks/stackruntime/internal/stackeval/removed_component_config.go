@@ -24,15 +24,16 @@ import (
 )
 
 var (
-	_ Validatable                                                = (*RemovedConfig)(nil)
-	_ Plannable                                                  = (*RemovedConfig)(nil)
-	_ ExpressionScope                                            = (*RemovedConfig)(nil)
-	_ ConfigComponentExpressionScope[stackaddrs.ConfigComponent] = (*RemovedConfig)(nil)
+	_ Validatable                                                = (*RemovedComponentConfig)(nil)
+	_ Plannable                                                  = (*RemovedComponentConfig)(nil)
+	_ ExpressionScope                                            = (*RemovedComponentConfig)(nil)
+	_ ConfigComponentExpressionScope[stackaddrs.ConfigComponent] = (*RemovedComponentConfig)(nil)
 )
 
-type RemovedConfig struct {
+type RemovedComponentConfig struct {
 	addr   stackaddrs.ConfigComponent
 	config *stackconfig.Removed
+	stack  *StackConfig
 
 	main *Main
 
@@ -40,36 +41,39 @@ type RemovedConfig struct {
 	moduleTree promising.Once[withDiagnostics[*configs.Config]] // moduleTree is constant for every phase
 }
 
-func newRemovedConfig(main *Main, addr stackaddrs.ConfigComponent, config *stackconfig.Removed) *RemovedConfig {
-	return &RemovedConfig{
+func newRemovedComponentConfig(main *Main, addr stackaddrs.ConfigComponent, stack *StackConfig, config *stackconfig.Removed) *RemovedComponentConfig {
+	return &RemovedComponentConfig{
 		addr:   addr,
 		config: config,
+		stack:  stack,
 		main:   main,
 	}
 }
 
-func (r *RemovedConfig) Addr() stackaddrs.ConfigComponent {
+// Addr implements ConfigComponentExpressionScope.
+func (r *RemovedComponentConfig) Addr() stackaddrs.ConfigComponent {
 	return r.addr
 }
 
 // DeclRange implements ConfigComponentExpressionScope.
-func (r *RemovedConfig) DeclRange() *hcl.Range {
+func (r *RemovedComponentConfig) DeclRange() *hcl.Range {
 	return r.config.DeclRange.ToHCL().Ptr()
 }
 
-func (r *RemovedConfig) StackConfig() *StackConfig {
-	return r.main.mustStackConfig(r.addr.Stack)
+// StackConfig implements ConfigComponentExpressionScope
+func (r *RemovedComponentConfig) StackConfig() *StackConfig {
+	return r.stack
 }
 
 // ModuleTree implements ConfigComponentExpressionScope
-func (r *RemovedConfig) ModuleTree(ctx context.Context) *configs.Config {
+func (r *RemovedComponentConfig) ModuleTree(ctx context.Context) *configs.Config {
 	cfg, _ := r.CheckModuleTree(ctx)
 	return cfg
 }
 
 // CheckModuleTree loads and validates the module tree for the component that
 // is being removed.
-func (r *RemovedConfig) CheckModuleTree(ctx context.Context) (*configs.Config, tfdiags.Diagnostics) {
+func (r *RemovedComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config, tfdiags.Diagnostics) {
 	return doOnceWithDiags(ctx, r.tracingName()+" modules", &r.moduleTree, func(ctx context.Context) (*configs.Config, tfdiags.Diagnostics) {
 		var diags tfdiags.Diagnostics
 
@@ -120,7 +124,7 @@ func (r *RemovedConfig) CheckModuleTree(ctx context.Context) (*configs.Config, t
 
 // CheckValid validates the module tree and provider configurations for the
 // component being removed.
-func (r *RemovedConfig) CheckValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
+func (r *RemovedComponentConfig) CheckValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	diags, err := r.validate.For(phase).Do(ctx, r.tracingName(), func(ctx context.Context) (tfdiags.Diagnostics, error) {
 		var diags tfdiags.Diagnostics
 
@@ -130,7 +134,7 @@ func (r *RemovedConfig) CheckValid(ctx context.Context, phase EvalPhase) tfdiags
 			return diags, nil
 		}
 
-		providers, moreDiags := EvalProviderTypes(ctx, r.StackConfig(), r.config.ProviderConfigs, phase, r)
+		providers, moreDiags := EvalProviderTypes(ctx, r.stack, r.config.ProviderConfigs, phase, r)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
 			return diags, nil
@@ -205,37 +209,37 @@ func (r *RemovedConfig) CheckValid(ctx context.Context, phase EvalPhase) tfdiags
 }
 
 // PlanChanges implements Plannable.
-func (r *RemovedConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+func (r *RemovedComponentConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	return nil, r.CheckValid(ctx, PlanPhase)
 }
 
 // Validate implements Validatable.
-func (r *RemovedConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
+func (r *RemovedComponentConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
 	return r.CheckValid(ctx, ValidatePhase)
 }
 
 // tracingName implements tracingNamer.
-func (r *RemovedConfig) tracingName() string {
+func (r *RemovedComponentConfig) tracingName() string {
 	return fmt.Sprintf("%s (removed)", r.Addr())
 }
 
 // ResolveExpressionReference implements ExpressionScope.
-func (r *RemovedConfig) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
+func (r *RemovedComponentConfig) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	repetition := instances.RepetitionData{}
 	if r.config.ForEach != nil {
 		// For validation, we'll return unknown for the instance data.
 		repetition.EachKey = cty.UnknownVal(cty.String).RefineNotNull()
 		repetition.EachValue = cty.DynamicVal
 	}
-	return r.StackConfig().resolveExpressionReference(ctx, ref, nil, repetition)
+	return r.stack.resolveExpressionReference(ctx, ref, nil, repetition)
 }
 
 // PlanTimestamp implements ExpressionScope.
-func (r *RemovedConfig) PlanTimestamp() time.Time {
+func (r *RemovedComponentConfig) PlanTimestamp() time.Time {
 	return r.main.PlanTimestamp()
 }
 
 // ExternalFunctions implements ExpressionScope.
-func (r *RemovedConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return r.main.ProviderFunctions(ctx, r.StackConfig())
+func (r *RemovedComponentConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
+	return r.main.ProviderFunctions(ctx, r.stack)
 }

@@ -30,6 +30,7 @@ type StackConfig struct {
 	addr stackaddrs.Stack
 
 	config *stackconfig.ConfigNode
+	parent *StackConfig
 
 	main *Main
 
@@ -42,7 +43,7 @@ type StackConfig struct {
 	outputValues   map[stackaddrs.OutputValue]*OutputValueConfig
 	stackCalls     map[stackaddrs.StackCall]*StackCallConfig
 	components     map[stackaddrs.Component]*ComponentConfig
-	removed        map[stackaddrs.Component][]*RemovedConfig
+	removed        map[stackaddrs.Component][]*RemovedComponentConfig
 	providers      map[stackaddrs.ProviderConfig]*ProviderConfig
 }
 
@@ -50,9 +51,10 @@ var (
 	_ ExpressionScope = (*StackConfig)(nil)
 )
 
-func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.ConfigNode) *StackConfig {
+func newStackConfig(main *Main, addr stackaddrs.Stack, parent *StackConfig, config *stackconfig.ConfigNode) *StackConfig {
 	return &StackConfig{
 		addr:   addr,
+		parent: parent,
 		config: config,
 		main:   main,
 
@@ -62,43 +64,9 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.Confi
 		outputValues:   make(map[stackaddrs.OutputValue]*OutputValueConfig, len(config.Stack.Declarations.OutputValues)),
 		stackCalls:     make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
 		components:     make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
-		removed:        make(map[stackaddrs.Component][]*RemovedConfig, len(config.Stack.Declarations.Removed)),
+		removed:        make(map[stackaddrs.Component][]*RemovedComponentConfig, len(config.Stack.Declarations.Removed)),
 		providers:      make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(config.Stack.Declarations.ProviderConfigs)),
 	}
-}
-
-func (s *StackConfig) Addr() stackaddrs.Stack {
-	return s.addr
-}
-
-func (s *StackConfig) IsRoot() bool {
-	return s.addr.IsRoot()
-}
-
-// ParentAddr returns the address of the containing stack, or panics if called
-// on the root stack (since it has no parent).
-func (s *StackConfig) ParentAddr() stackaddrs.Stack {
-	return s.addr.Parent()
-}
-
-// ConfigDeclarations returns a pointer to the [stackconfig.Declarations]
-// object describing the configured declarations from this stack config's
-// configuration files.
-func (s *StackConfig) ConfigDeclarations() *stackconfig.Declarations {
-	return &s.config.Stack.Declarations
-}
-
-// ParentConfig returns the [StackConfig] object representing the configuration
-// of the containing stack, or nil if the receiver is the root stack in the
-// tree.
-func (s *StackConfig) ParentConfig() *StackConfig {
-	if s.IsRoot() {
-		return nil
-	}
-	// Each StackConfig is only responsible for looking after its direct
-	// children, so to navigate upwards we need to start back at the
-	// root and work our way through the tree again.
-	return s.main.StackConfig(s.ParentAddr())
 }
 
 // ChildConfig returns a [StackConfig] representing the embedded stack matching
@@ -113,8 +81,8 @@ func (s *StackConfig) ChildConfig(step stackaddrs.StackStep) *StackConfig {
 		if !ok {
 			return nil
 		}
-		childAddr := s.Addr().Child(step.Name)
-		s.children[step] = newStackConfig(s.main, childAddr, childNode)
+		childAddr := s.addr.Child(step.Name)
+		s.children[step] = newStackConfig(s.main, childAddr, s, childNode)
 		ret = s.children[step]
 	}
 	return ret
@@ -159,8 +127,8 @@ func (s *StackConfig) InputVariable(addr stackaddrs.InputVariable) *InputVariabl
 		if !ok {
 			return nil
 		}
-		cfgAddr := stackaddrs.Config(s.Addr(), addr)
-		ret = newInputVariableConfig(s.main, cfgAddr, cfg)
+		cfgAddr := stackaddrs.Config(s.addr, addr)
+		ret = newInputVariableConfig(s.main, cfgAddr, s, cfg)
 		s.inputVariables[addr] = ret
 	}
 	return ret
@@ -193,8 +161,8 @@ func (s *StackConfig) LocalValue(addr stackaddrs.LocalValue) *LocalValueConfig {
 		if !ok {
 			return nil
 		}
-		cfgAddr := stackaddrs.Config(s.Addr(), addr)
-		ret = newLocalValueConfig(s.main, cfgAddr, cfg)
+		cfgAddr := stackaddrs.Config(s.addr, addr)
+		ret = newLocalValueConfig(s.main, cfgAddr, s, cfg)
 		s.localValues[addr] = ret
 	}
 	return ret
@@ -213,8 +181,8 @@ func (s *StackConfig) OutputValue(addr stackaddrs.OutputValue) *OutputValueConfi
 		if !ok {
 			return nil
 		}
-		cfgAddr := stackaddrs.Config(s.Addr(), addr)
-		ret = newOutputValueConfig(s.main, cfgAddr, cfg)
+		cfgAddr := stackaddrs.Config(s.addr, addr)
+		ret = newOutputValueConfig(s.main, cfgAddr, s, cfg)
 		s.outputValues[addr] = ret
 	}
 	return ret
@@ -293,8 +261,8 @@ func (s *StackConfig) Provider(addr stackaddrs.ProviderConfig) *ProviderConfig {
 		if !ok {
 			return nil
 		}
-		cfgAddr := stackaddrs.Config(s.Addr(), addr)
-		ret = newProviderConfig(s.main, cfgAddr, cfg)
+		cfgAddr := stackaddrs.Config(s.addr, addr)
+		ret = newProviderConfig(s.main, cfgAddr, s, cfg)
 		s.providers[addr] = ret
 	}
 	return ret
@@ -329,8 +297,8 @@ func (s *StackConfig) ProviderByLocalAddr(localAddr stackaddrs.ProviderConfigRef
 		if !ok {
 			return nil
 		}
-		cfgAddr := stackaddrs.Config(s.Addr(), addr)
-		ret = newProviderConfig(s.main, cfgAddr, cfg)
+		cfgAddr := stackaddrs.Config(s.addr, addr)
+		ret = newProviderConfig(s.main, cfgAddr, s, cfg)
 		s.providers[addr] = ret
 	}
 	return ret
@@ -369,8 +337,8 @@ func (s *StackConfig) StackCall(addr stackaddrs.StackCall) *StackCallConfig {
 		if !ok {
 			return nil
 		}
-		cfgAddr := stackaddrs.Config(s.Addr(), addr)
-		ret = newStackCallConfig(s.main, cfgAddr, cfg)
+		cfgAddr := stackaddrs.Config(s.addr, addr)
+		ret = newStackCallConfig(s.main, cfgAddr, s, cfg)
 		s.stackCalls[addr] = ret
 	}
 	return ret
@@ -403,8 +371,8 @@ func (s *StackConfig) Component(addr stackaddrs.Component) *ComponentConfig {
 		if !ok {
 			return nil
 		}
-		cfgAddr := stackaddrs.Config(s.Addr(), addr)
-		ret = newComponentConfig(s.main, cfgAddr, cfg)
+		cfgAddr := stackaddrs.Config(s.addr, addr)
+		ret = newComponentConfig(s.main, cfgAddr, s, cfg)
 		s.components[addr] = ret
 	}
 	return ret
@@ -424,10 +392,10 @@ func (s *StackConfig) Components() map[stackaddrs.Component]*ComponentConfig {
 	return ret
 }
 
-// Removed returns a [RemovedConfig] representing the component call
-// declared within this stack config that matches the given address, or nil if
-// there is no such declaration.
-func (s *StackConfig) Removed(addr stackaddrs.Component) []*RemovedConfig {
+// RemovedComponent returns a [RemovedComponentConfig] representing the
+// component call declared within this stack config that matches the given
+// address, or nil if there is no such declaration.
+func (s *StackConfig) RemovedComponent(addr stackaddrs.Component) []*RemovedComponentConfig {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -438,8 +406,8 @@ func (s *StackConfig) Removed(addr stackaddrs.Component) []*RemovedConfig {
 			return nil
 		}
 		for _, cfg := range cfgs {
-			cfgAddr := stackaddrs.Config(s.Addr(), addr)
-			removed := newRemovedConfig(s.main, cfgAddr, cfg)
+			cfgAddr := stackaddrs.Config(s.addr, addr)
+			removed := newRemovedComponentConfig(s.main, cfgAddr, s, cfg)
 			ret = append(ret, removed)
 		}
 		s.removed[addr] = ret
@@ -447,16 +415,16 @@ func (s *StackConfig) Removed(addr stackaddrs.Component) []*RemovedConfig {
 	return ret
 }
 
-// Removeds returns a map of the objects representing all of the
+// RemovedComponents returns a map of the objects representing all of the
 // removed calls declared inside this stack configuration.
-func (s *StackConfig) Removeds() map[stackaddrs.Component][]*RemovedConfig {
+func (s *StackConfig) RemovedComponents() map[stackaddrs.Component][]*RemovedComponentConfig {
 	if len(s.config.Stack.Removed) == 0 {
 		return nil
 	}
-	ret := make(map[stackaddrs.Component][]*RemovedConfig, len(s.config.Stack.Removed))
+	ret := make(map[stackaddrs.Component][]*RemovedComponentConfig, len(s.config.Stack.Removed))
 	for name := range s.config.Stack.Removed {
 		addr := stackaddrs.Component{Name: name}
-		ret[addr] = s.Removed(addr)
+		ret[addr] = s.RemovedComponent(addr)
 	}
 	return ret
 }

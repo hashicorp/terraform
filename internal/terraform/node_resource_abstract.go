@@ -244,6 +244,8 @@ func (n *NodeAbstractResource) ImportReferences() []*addrs.Reference {
 
 		refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.ID)
 		result = append(result, refs...)
+		refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.Identity)
+		result = append(result, refs...)
 		refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.ForEach)
 		result = append(result, refs...)
 	}

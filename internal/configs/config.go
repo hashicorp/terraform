@@ -6,7 +6,10 @@ package configs
 import (
 	"fmt"
 	"log"
+	"maps"
+	"slices"
 	"sort"
+	"strings"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
@@ -135,13 +138,8 @@ func (c *Config) Depth() int {
 func (c *Config) DeepEach(cb func(c *Config)) {
 	cb(c)
 
-	names := make([]string, 0, len(c.Children))
-	for name := range c.Children {
-		names = append(names, name)
-	}
-
-	for _, name := range names {
-		c.Children[name].DeepEach(cb)
+	for _, ch := range c.Children {
+		ch.DeepEach(cb)
 	}
 }
 
@@ -826,12 +824,8 @@ func (c *Config) ProviderTypes() []addrs.Provider {
 	// Ignore diagnostics here because they relate to version constraints
 	reqs, _ := c.ProviderRequirements()
 
-	ret := make([]addrs.Provider, 0, len(reqs))
-	for k := range reqs {
-		ret = append(ret, k)
-	}
-	sort.Slice(ret, func(i, j int) bool {
-		return ret[i].String() < ret[j].String()
+	ret := slices.SortedFunc(maps.Keys(reqs), func(i, j addrs.Provider) int {
+		return strings.Compare(i.String(), j.String())
 	})
 	return ret
 }

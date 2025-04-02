@@ -29,6 +29,7 @@ type ConfigComponentExpressionScope[Addr any] interface {
 	ExpressionScope
 
 	Addr() Addr
+	StackConfig() *StackConfig
 	ModuleTree(ctx context.Context) *configs.Config
 	DeclRange() *hcl.Range
 }
@@ -219,7 +220,6 @@ func EvalProviderValues(ctx context.Context, main *Main, providers map[addrs.Loc
 	//   store the additional information we need. Once this is fixed we can
 	//   come and tidy this up as well.
 
-	stackConfig := main.StackConfig(scope.Addr().Stack.ConfigAddr())
 	moduleTree := scope.ModuleTree(ctx)
 
 	// We'll search through the declConfigs to find any keys that match the
@@ -262,7 +262,7 @@ func EvalProviderValues(ctx context.Context, main *Main, providers map[addrs.Loc
 			knownProviders[sourceAddr] = inst
 		}
 
-		if _, ok := stackConfig.ProviderLocalName(provider); !ok {
+		if _, ok := scope.StackConfig().ProviderLocalName(provider); !ok {
 			// Even though we have an entry for this provider in the declConfigs
 			// doesn't mean we have an entry for this in our required providers.
 			diags = diags.Append(&hcl.Diagnostic{
