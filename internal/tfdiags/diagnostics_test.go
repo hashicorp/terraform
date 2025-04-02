@@ -682,6 +682,57 @@ func TestAppendWithoutDuplicates(t *testing.T) {
 				},
 			},
 		},
+		"hcl.Diagnostic extra": {
+			// Extra can contain anything, and we don't know how to compare
+			// those values, so we can't dedupe them
+			func(diags Diagnostics) Diagnostics {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+					Extra:    42,
+					Subject: &hcl.Range{
+						Filename: "foo.tf",
+						Start:    hcl.Pos{Line: 1, Column: 10, Byte: 9},
+						End:      hcl.Pos{Line: 2, Column: 3, Byte: 25},
+					},
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+					Extra:    38,
+					Subject: &hcl.Range{
+						Filename: "foo.tf",
+						Start:    hcl.Pos{Line: 1, Column: 10, Byte: 9},
+						End:      hcl.Pos{Line: 2, Column: 3, Byte: 25},
+					},
+				})
+				return diags
+			},
+			[]diagFlat{
+				{
+					Severity: Error,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+					Subject: &SourceRange{
+						Filename: "foo.tf",
+						Start:    SourcePos{Line: 1, Column: 10, Byte: 9},
+						End:      SourcePos{Line: 2, Column: 3, Byte: 25},
+					},
+				},
+				{
+					Severity: Error,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+					Subject: &SourceRange{
+						Filename: "foo.tf",
+						Start:    SourcePos{Line: 1, Column: 10, Byte: 9},
+						End:      SourcePos{Line: 2, Column: 3, Byte: 25},
+					},
+				},
+			},
+		},
 	}
 
 	for name, test := range tests {
