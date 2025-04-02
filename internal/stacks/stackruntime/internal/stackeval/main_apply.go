@@ -14,6 +14,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -99,72 +100,53 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 
 						var inst ApplyableComponentInstance
 
-						if removed != nil {
-						Blocks:
-							for _, block := range removed {
-								if insts, unknown, _ := block.Instances(ctx, ApplyPhase); unknown {
-									// It might be that either the removed block
-									// or component block was deferred but the
-									// other one had proper changes. We'll note
-									// this in the logs but just skip processing
-									// it.
-									log.Printf("[TRACE]: %s has planned changes, but was unknown. Check further messages to find out if this was an error.", addr)
-								} else {
-									for _, i := range insts {
-										if i.from.Item.Key == addr.Item.Key {
-											inst = i
-											break Blocks
-										}
+						matchedUnknownBlock := false
+
+					Blocks:
+						for _, block := range removed {
+							if insts, unknown, _ := block.Instances(ctx, ApplyPhase); unknown {
+								matchedUnknownBlock = true
+							} else {
+								for _, i := range insts {
+									if i.from.Item.Key == addr.Item.Key {
+										inst = i
+										break Blocks
 									}
 								}
-							}
-							if inst == nil {
-								// Again, this might be okay if the component
-								// block was deferred but the removed block had
-								// proper changes (or vice versa). We'll note
-								// this in the logs but just skip processing it.
-								log.Printf("[TRACE]: %s has planned changes, but does not seem to be declared. Check further messages to find out if this was an error.", addr)
 							}
 						}
 
 						if component != nil {
 							if insts, unknown := component.Instances(ctx, ApplyPhase); unknown {
-								// It might be that either the removed block
-								// or component block was deferred but the
-								// other one had proper changes. We'll note
-								// this in the logs but just skip processing
-								// it.
-								log.Printf("[TRACE]: %s has planned changes, but was unknown. Check further messages to find out if this was an error.", addr)
+								matchedUnknownBlock = true
 							} else {
-								if i, ok := insts[addr.Item.Key]; !ok {
-									// Again, this might be okay if the component
-									// block was deferred but the removed block had
-									// proper changes (or vice versa). We'll note
-									// this in the logs but just skip processing it.
-									log.Printf("[TRACE]: %s has planned changes, but does not seem to be declared. Check further messages to find out if this was an error.", addr)
-								} else {
+								if i, ok := insts[addr.Item.Key]; ok {
 									if inst != nil {
-										// Problem! We have both a removed block and
-										// a component instance that point to the same
-										// address. This should not happen. The plan
-										// should have caught this and resulted in an
-										// unapplyable plan.
+										var diags tfdiags.Diagnostics
+										diags = diags.Append(tfdiags.Sourceless(
+											tfdiags.Error,
+											"Invalid component instance",
+											fmt.Sprintf("There was a plan for %s, which matched both removed and component blocks.", addr),
+										))
 										log.Printf("[ERROR] stackeval: %s has both a component and a removed block that point to the same address", addr)
 										span.SetStatus(codes.Error, "both component and removed block present")
-										return nil, nil
+										return nil, diags
 									}
 									inst = i
 								}
 							}
 						}
 
-						if inst == nil {
-							// Then we have a problem. We have a component
-							// that has planned changes but no instance to
-							// apply them to. This should not happen.
+						if inst == nil && !matchedUnknownBlock {
+							var diags tfdiags.Diagnostics
+							diags = diags.Append(tfdiags.Sourceless(
+								tfdiags.Error,
+								"Invalid component instance",
+								fmt.Sprintf("There was a plan for %s, which matched no known component instances.", addr),
+							))
 							log.Printf("[ERROR] stackeval: %s has planned changes, but no instance to apply them to", addr)
 							span.SetStatus(codes.Error, "no instance to apply changes to")
-							return nil, nil
+							return nil, diags
 						}
 
 						modulesRuntimePlan, err := componentInstPlan.ForModulesRuntime()
@@ -184,6 +166,34 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 							log.Printf("[ERROR] stackeval: %s has a plan inconsistent with its prior state: %s", addr, err)
 							span.SetStatus(codes.Error, "plan is inconsistent with prior state")
 							return nil, diags
+						}
+
+						if matchedUnknownBlock && inst == nil {
+							log.Printf("[TRACE] stackeval: %s matched an unknown block so returning prior state unchanged.", addr)
+							span.SetStatus(codes.Ok, "apply unknown")
+
+							for _, step := range addr.Stack {
+								if step.Key == addrs.WildcardKey {
+									// for instances that were unknown we don't
+									// emit any updates for them.
+									return nil, nil
+								}
+							}
+							if addr.Item.Key == addrs.WildcardKey {
+								// for instances that were unknown we don't
+								// emit any updates for them.
+								return nil, nil
+							}
+
+							// if we get here, then this was a concrete instance
+							// that was in state before the original plan, we
+							// do want to emit a "nothing changed" update for
+							// this instance.
+
+							return &ComponentInstanceApplyResult{
+								FinalState: modulesRuntimePlan.PrevRunState,
+								Complete:   false,
+							}, nil
 						}
 
 						var waitForComponents collections.Set[stackaddrs.AbsComponent]
