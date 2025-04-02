@@ -603,7 +603,7 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 				if imp.Config.ID != nil {
 					_, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, keyData, true)
 				} else if imp.Config.Identity != nil {
-					_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+					providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
 					if err != nil {
 						diags = diags.Append(err)
 						return diags
@@ -636,7 +636,7 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 			if imp.Config.ID != nil {
 				_, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, EvalDataForNoInstanceKey, true)
 			} else if imp.Config.Identity != nil {
-				_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+				providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
 				if err != nil {
 					diags = diags.Append(err)
 					return diags
