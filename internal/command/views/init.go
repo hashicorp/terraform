@@ -359,7 +359,7 @@ version control system if they represent changes you intended to make.`
 
 const partnerAndCommunityProvidersInfo = "\nPartner and community providers are signed by their developers.\n" +
 	"If you'd like to know more about provider signing, you can read about it here:\n" +
-	"https://www.terraform.io/docs/cli/plugins/signing.html"
+	"https://developer.hashicorp.com/terraform/cli/plugins/signing"
 
 const errInitConfigError = `
 [reset]Terraform encountered problems during initialisation, including problems
