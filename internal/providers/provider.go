@@ -142,9 +142,8 @@ type GetProviderSchemaResponse struct {
 	// prefix) to the declaration of a function.
 	Functions map[string]FunctionDecl
 
-	// TODO
 	// Backends maps the backend type name to that type's schema.
-	// Backends map[string]Schema
+	StateStores map[string]Schema
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
