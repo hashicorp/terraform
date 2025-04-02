@@ -17,6 +17,19 @@ func TestDiagnosticComparer(t *testing.T) {
 		Severity: hcl.DiagError,
 		Summary:  "error",
 		Detail:   "this is an error",
+		Subject: &hcl.Range{
+			Filename: "foobar.tf",
+			Start: hcl.Pos{
+				Line:   0,
+				Column: 0,
+				Byte:   0,
+			},
+			End: hcl.Pos{
+				Line:   1,
+				Column: 1,
+				Byte:   1,
+			},
+		},
 	}
 
 	cases := map[string]struct {
@@ -80,26 +93,6 @@ func TestDiagnosticComparer(t *testing.T) {
 				return AttributeValue(Error, "summary here", "detail here", cty.Path{})
 			}(),
 			expectDiff: true,
-		},
-		"reports that diagnostics match even if sources (Context) are different; ignored in simple comparison": {
-			diag1: hclDiagnostic{&baseError},
-			diag2: func() Diagnostic {
-				d := baseError
-				d.Context = &hcl.Range{
-					Filename: "foobar.tf",
-					Start: hcl.Pos{
-						Line:   0,
-						Column: 0,
-						Byte:   0,
-					},
-					End: hcl.Pos{
-						Line:   1,
-						Column: 1,
-						Byte:   1,
-					},
-				}
-				return hclDiagnostic{&d}
-			}(),
 		},
 	}
 
