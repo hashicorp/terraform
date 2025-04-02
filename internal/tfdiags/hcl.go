@@ -75,13 +75,19 @@ func (d hclDiagnostic) Equals(otherDiag ComparableDiagnostic) bool {
 		return false
 	}
 
+	// we can't compare extra values without knowing what they are
+	if d.ExtraInfo() != nil || od.ExtraInfo() != nil {
+		return false
+	}
+
 	return true
 }
 
 func hclRangeEquals(l, r *hcl.Range) bool {
 	if l == nil || r == nil {
-		return l == r
+		return false
 	}
+
 	if l.Filename != r.Filename {
 		return false
 	}
