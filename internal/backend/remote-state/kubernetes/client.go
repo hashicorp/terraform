@@ -353,10 +353,7 @@ func (c *RemoteClient) getLabels() map[string]string {
 		tfstateWorkspaceKey:    c.workspace,
 		managedByKey:           "terraform",
 	}
-
-	if len(c.labels) != 0 {
-		maps.Copy(l, c.labels)
-	}
+	maps.Copy(l, c.labels)
 
 	return l
 }

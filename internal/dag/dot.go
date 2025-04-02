@@ -99,8 +99,7 @@ func (v *marshalVertex) dot(g *marshalGraph, opts *DotOpts) []byte {
 			return []byte{}
 		}
 
-		newAttrs := make(map[string]string)
-		maps.Copy(newAttrs, attrs)
+		newAttrs := maps.Clone(attrs)
 		maps.Copy(newAttrs, node.Attrs)
 
 		name = node.Name

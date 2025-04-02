@@ -3,7 +3,10 @@
 
 package dag
 
-import "maps"
+import (
+	"iter"
+	"maps"
+)
 
 // Set is a set data structure.
 type Set map[interface{}]interface{}
@@ -94,23 +97,18 @@ func (s Set) Len() int {
 	return len(s)
 }
 
-// List returns the list of set elements.
-func (s Set) List() []interface{} {
-	if s == nil {
-		return nil
+// List returns the sequence of set elements.
+func (s Set) List() iter.Seq[any] {
+	return func(yield func(any) bool) {
+		for _, v := range s {
+			if !yield(v) {
+				return
+			}
+		}
 	}
-
-	r := make([]interface{}, 0, len(s))
-	for _, v := range s {
-		r = append(r, v)
-	}
-
-	return r
 }
 
 // Copy returns a shallow copy of the set.
 func (s Set) Copy() Set {
-	c := make(Set, len(s))
-	maps.Copy(c, s)
-	return c
+	return maps.Clone(s)
 }

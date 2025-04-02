@@ -317,11 +317,7 @@ func upgradeInstanceObjectV3ToV4(rsOld *resourceStateV2, isOld *instanceStateV2,
 		}
 	}
 
-	var attributes map[string]string
-	if isOld.Attributes != nil {
-		attributes = make(map[string]string, len(isOld.Attributes))
-		maps.Copy(attributes, isOld.Attributes)
-	}
+	attributes := maps.Clone(isOld.Attributes)
 	if isOld.ID != "" {
 		// As a special case, if we don't already have an "id" attribute and
 		// yet there's a non-empty first-class ID on the old object then we'll

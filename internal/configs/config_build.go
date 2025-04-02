@@ -153,9 +153,8 @@ func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config,
 	// predictable order in any logging that's produced during the walk.
 	for _, callName := range slices.Sorted(maps.Keys(calls)) {
 		call := calls[callName]
-		path := make([]string, len(parent.Path)+1)
-		copy(path, parent.Path)
-		path[len(path)-1] = call.Name
+		path := slices.Clone(parent.Path)
+		path = append(path, call.Name)
 
 		req := ModuleRequest{
 			Name:              call.Name,

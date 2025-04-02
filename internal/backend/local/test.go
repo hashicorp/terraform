@@ -136,9 +136,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		}
 
 		evalCtx.VariableCaches = hcltest.NewVariableCaches(func(vc *hcltest.VariableCaches) {
-			for name, value := range currentGlobalVariables {
-				vc.GlobalVariables[name] = value
-			}
+			maps.Copy(vc.GlobalVariables, currentGlobalVariables)
 			vc.FileVariables = file.Config.Variables
 		})
 		fileRunner := &TestFileRunner{

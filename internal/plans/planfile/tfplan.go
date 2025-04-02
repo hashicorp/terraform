@@ -6,6 +6,7 @@ package planfile
 import (
 	"fmt"
 	"io"
+	"slices"
 	"time"
 
 	"github.com/zclconf/go-cty/cty"
@@ -598,10 +599,7 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		rawPlan.Variables[name] = valueToTfplan(val)
 	}
 	if plan.ApplyTimeVariables.Len() != 0 {
-		rawPlan.ApplyTimeVariables = make([]string, 0, plan.ApplyTimeVariables.Len())
-		for name := range plan.ApplyTimeVariables.All() {
-			rawPlan.ApplyTimeVariables = append(rawPlan.ApplyTimeVariables, name)
-		}
+		rawPlan.ApplyTimeVariables = slices.Collect(plan.ApplyTimeVariables.All())
 	}
 
 	for _, hash := range plan.ProviderFunctionResults {
