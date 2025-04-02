@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'write-only attributes: internal providers should set write-only attributes to null'
+time: 2025-04-02T14:39:31.672249+02:00
+custom:
+    Issue: "36824"
