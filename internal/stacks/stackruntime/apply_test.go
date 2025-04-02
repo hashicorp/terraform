@@ -2079,6 +2079,57 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				},
 			},
 		},
+		"unknown-component": {
+			path: path.Join("with-single-input", "removed-component-instance"),
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.self[\"main\"]")).
+					AddInputVariable("id", cty.StringVal("main")).
+					AddInputVariable("input", cty.StringVal("main"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self[\"main\"].testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "main",
+							"value": "main",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("main", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("main"),
+					"value": cty.StringVal("main"),
+				})).
+				Build(),
+			cycles: []TestCycle{
+				{
+					planInputs: map[string]cty.Value{
+						"input":   cty.UnknownVal(cty.Set(cty.String)),
+						"removed": cty.SetValEmpty(cty.String),
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.self"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.self[\"main\"]"),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("id"):    cty.StringVal("main"),
+								mustInputVariable("input"): cty.StringVal("main"),
+							},
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("input"),
+							Value: cty.UnknownVal(cty.Set(cty.String)),
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("removed"),
+							Value: cty.SetValEmpty(cty.String),
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range tcs {

@@ -236,7 +236,7 @@ func (c *ImportCommand) Run(args []string) int {
 		Targets: []*terraform.ImportTarget{
 			{
 				LegacyAddr: addr,
-				IDString:   args[1],
+				LegacyID:   args[1],
 			},
 		},
 
@@ -341,7 +341,7 @@ func (c *ImportCommand) Synopsis() string {
 }
 
 const importCommandInvalidAddressReference = `For information on valid syntax, see:
-https://www.terraform.io/docs/cli/state/resource-addressing.html`
+https://developer.hashicorp.com/terraform/cli/state/resource-addressing`
 
 const importCommandMissingResourceFmt = `[reset][bold][red]Error:[reset][bold] resource address %q does not exist in the configuration.[reset]
 

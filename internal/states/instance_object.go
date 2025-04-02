@@ -69,9 +69,10 @@ type ResourceInstanceObject struct {
 // the receiver.
 func NewResourceInstanceObjectFromIR(ir providers.ImportedResource) *ResourceInstanceObject {
 	return &ResourceInstanceObject{
-		Status:  ObjectReady,
-		Value:   ir.State,
-		Private: ir.Private,
+		Status:   ObjectReady,
+		Value:    ir.State,
+		Private:  ir.Private,
+		Identity: ir.Identity,
 	}
 }
 
