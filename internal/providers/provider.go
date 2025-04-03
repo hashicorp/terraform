@@ -102,7 +102,9 @@ type Interface interface {
 
 	// ValidateStorageConfig allows the provider to validate storage configuration values
 	ValidateStorageConfig(ValidateStorageConfigRequest) ValidateStorageConfigResponse
-	// ConfigureStorage(ConfigureStorageRequest) ConfigureStorageResponse
+
+	// ConfigureStorage allows the configures and initializes a state store in the provider
+	ConfigureStorage(ConfigureStorageRequest) ConfigureStorageResponse
 
 	// ReadState(ReadStateRequest, srv ProviderReadStateServer)
 	// WriteState(srv ProviderWriteStateServer)
@@ -712,6 +714,23 @@ type ValidateStorageConfigRequest struct {
 }
 
 type ValidateStorageConfigResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type ConfigureStorageRequest struct {
+	// TypeName is the name of the storage type to configure.
+	TypeName string
+
+	// Config is the complete configuration value for the provider.
+	Config cty.Value
+
+	// ClientCapabilities may contain information about chunk size.
+	// TODO - is this needed?
+	ClientCapabilities ClientCapabilities
+}
+
+type ConfigureStorageResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }

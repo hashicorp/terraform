@@ -243,3 +243,16 @@ func (p *erroredProvider) ValidateStorageConfig(req providers.ValidateStorageCon
 		Diagnostics: nil,
 	}
 }
+
+func (p *erroredProvider) ConfigureStorage(req providers.ConfigureStorageRequest) providers.ConfigureStorageResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is invalid",
+		"Cannot configure this state store because its associated provider configuration is invalid.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ConfigureStorageResponse{
+		Diagnostics: diags,
+	}
+}

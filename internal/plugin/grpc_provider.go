@@ -103,7 +103,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	resp.ResourceTypes = make(map[string]providers.Schema)
 	resp.DataSources = make(map[string]providers.Schema)
 	resp.EphemeralResourceTypes = make(map[string]providers.Schema)
-	// TODO: resp.StateStores = make(map[string]providers.Schema)
+	resp.StateStores = make(map[string]providers.Schema)
 
 	// Some providers may generate quite large schemas, and the internal default
 	// grpc response size limit is 4MB. 64MB should cover most any use case, and
@@ -164,6 +164,11 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	for name, ephem := range protoResp.EphemeralResourceSchemas {
 		resp.EphemeralResourceTypes[name] = convert.ProtoToProviderSchema(ephem, nil)
 	}
+
+	// TODO - update provider schema response
+	// for name, store := range protoResp.StateStorageSchemas {
+	// 	resp.StateStorageTypes[name] = convert.ProtoToProviderSchema(store, nil)
+	// }
 
 	if decls, err := convert.FunctionDeclsFromProto(protoResp.Functions); err == nil {
 		resp.Functions = decls
@@ -1205,6 +1210,46 @@ func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp provi
 	}
 
 	resp.Result = resultVal
+	return resp
+}
+
+func (p *GRPCProvider) ConfigureStorage(r providers.ConfigureStorageRequest) (resp providers.ConfigureStorageResponse) {
+	logger.Trace("GRPCProvider: ConfigureStorage")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	beSchema, ok := schema.StateStores[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown storage type %q", r.TypeName))
+		return resp
+	}
+
+	var mp []byte
+
+	// we don't have anything to marshal if there's no config
+	mp, err := msgpack.Marshal(r.Config, beSchema.Body.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto.ConfigureStorage_Request{
+		TypeName: r.TypeName,
+		PreparedConfig: &proto.DynamicValue{
+			Msgpack: mp,
+		},
+	}
+
+	protoResp, err := p.client.ConfigureStorage(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	return resp
 }
 
