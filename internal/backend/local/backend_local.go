@@ -13,6 +13,8 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
+	"maps"
+
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
@@ -400,9 +402,8 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 	// variable's value.
 	sort.Strings(needed) // prompt in lexical order
 	ret := make(map[string]backendrun.UnparsedVariableValue, len(vcs))
-	for k, v := range existing {
-		ret[k] = v
-	}
+	maps.Copy(ret, existing) // don't use clone here, so we can have a non-nil map
+
 	for _, name := range needed {
 		vc := vcs[name]
 		query := fmt.Sprintf("var.%s", name)
@@ -467,9 +468,8 @@ func (b *Local) stubUnsetRequiredVariables(existing map[string]backendrun.Unpars
 
 	// If we get down here then there's at least one variable value to add.
 	ret := make(map[string]backendrun.UnparsedVariableValue, len(vcs))
-	for k, v := range existing {
-		ret[k] = v
-	}
+	maps.Copy(ret, existing) // don't use clone here, so we can return a non-nil map
+
 	for name, vc := range vcs {
 		if !vc.Required() {
 			continue

@@ -15,6 +15,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
+	"maps"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
@@ -442,10 +444,10 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	// traversal, but we also expose them under "resource" as an escaping
 	// technique if we add a reserved name in a future language edition which
 	// conflicts with someone's existing provider.
-	for k, v := range buildResourceObjects(managedResources) {
-		vals[k] = v
-	}
-	vals["resource"] = cty.ObjectVal(buildResourceObjects(managedResources))
+	builtManagedResources := buildResourceObjects(managedResources)
+	maps.Copy(vals, builtManagedResources)
+
+	vals["resource"] = cty.ObjectVal(builtManagedResources)
 	vals["ephemeral"] = cty.ObjectVal(buildResourceObjects(ephemeralResources))
 	vals["data"] = cty.ObjectVal(buildResourceObjects(dataResources))
 	vals["module"] = cty.ObjectVal(wholeModules)

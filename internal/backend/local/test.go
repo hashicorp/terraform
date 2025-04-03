@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
-	"sort"
+	"slices"
 
 	"github.com/zclconf/go-cty/cty"
+
+	"maps"
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/junit"
@@ -94,28 +96,18 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 
 	runner.View.Abstract(suite)
 
-	var files []string
-	for name := range suite.Files {
-		files = append(files, name)
-	}
-	sort.Strings(files) // execute the files in alphabetical order
-
 	// We have two sets of variables that are available to different test files.
 	// Test files in the root directory have access to the GlobalVariables only,
 	// while test files in the test directory have access to the union of
 	// GlobalVariables and GlobalTestVariables.
 	testDirectoryGlobalVariables := make(map[string]backendrun.UnparsedVariableValue)
-	for name, value := range runner.GlobalVariables {
-		testDirectoryGlobalVariables[name] = value
-	}
-	for name, value := range runner.GlobalTestVariables {
-		// We're okay to overwrite the global variables in case of name
-		// collisions, as the test directory variables should take precedence.
-		testDirectoryGlobalVariables[name] = value
-	}
+	maps.Copy(testDirectoryGlobalVariables, runner.GlobalVariables)
+	// We're okay to overwrite the global variables in case of name
+	// collisions, as the test directory variables should take precedence.
+	maps.Copy(testDirectoryGlobalVariables, runner.GlobalTestVariables)
 
 	suite.Status = moduletest.Pass
-	for _, name := range files {
+	for _, name := range slices.Sorted(maps.Keys(suite.Files)) {
 		if runner.Cancelled {
 			return suite.Status, diags
 		}
@@ -144,9 +136,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		}
 
 		evalCtx.VariableCaches = hcltest.NewVariableCaches(func(vc *hcltest.VariableCaches) {
-			for name, value := range currentGlobalVariables {
-				vc.GlobalVariables[name] = value
-			}
+			maps.Copy(vc.GlobalVariables, currentGlobalVariables)
 			vc.FileVariables = file.Config.Variables
 		})
 		fileRunner := &TestFileRunner{

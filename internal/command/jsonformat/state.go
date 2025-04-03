@@ -4,7 +4,8 @@
 package jsonformat
 
 import (
-	"sort"
+	"maps"
+	"slices"
 
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
@@ -88,13 +89,7 @@ func (state State) renderHumanStateOutputs(renderer Renderer, opts computed.Rend
 	if len(state.RootModuleOutputs) > 0 {
 		renderer.Streams.Printf("\n\nOutputs:\n\n")
 
-		var keys []string
-		for key := range state.RootModuleOutputs {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
-
-		for _, key := range keys {
+		for _, key := range slices.Sorted(maps.Keys(state.RootModuleOutputs)) {
 			output := state.RootModuleOutputs[key]
 			change := structured.FromJsonOutput(output)
 			ctype, err := ctyjson.UnmarshalType(output.Type)
