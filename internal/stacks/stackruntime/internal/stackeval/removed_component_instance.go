@@ -114,7 +114,7 @@ func (r *RemovedComponentInstance) ModuleTreePlan(ctx context.Context) (*plans.P
 				break
 			}
 			for _, depRemoved := range depRemoveds {
-				if !depRemoved.PlanIsComplete(ctx) {
+				if !depRemoved.PlanIsComplete(ctx, depStack.addr) {
 					deferred = true
 					break Dependents
 				}

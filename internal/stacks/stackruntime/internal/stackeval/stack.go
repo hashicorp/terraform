@@ -34,6 +34,10 @@ type Stack struct {
 	config *StackConfig
 	main   *Main
 
+	// externalRemovedComponents are the set of removed blocks that might
+	// target components within either this stack or a child of this stack.
+	externalRemovedComponents collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent]
+
 	// The remaining fields memoize other objects we might create in response
 	// to method calls. Must lock "mu" before interacting with them.
 	mu             sync.Mutex
@@ -42,7 +46,7 @@ type Stack struct {
 	stackCalls     map[stackaddrs.StackCall]*StackCall
 	outputValues   map[stackaddrs.OutputValue]*OutputValue
 	components     map[stackaddrs.Component]*Component
-	removed        map[stackaddrs.Component][]*RemovedComponent
+	removed        *Removed
 	providers      map[stackaddrs.ProviderConfigRef]*Provider
 }
 
@@ -52,12 +56,13 @@ var (
 	_ Applyable       = (*Stack)(nil)
 )
 
-func newStack(main *Main, addr stackaddrs.StackInstance, parent *Stack, config *StackConfig) *Stack {
+func newStack(main *Main, addr stackaddrs.StackInstance, parent *Stack, config *StackConfig, removedComponents collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent]) *Stack {
 	return &Stack{
-		parent: parent,
-		config: config,
-		addr:   addr,
-		main:   main,
+		parent:                    parent,
+		config:                    config,
+		addr:                      addr,
+		main:                      main,
+		externalRemovedComponents: removedComponents,
 	}
 }
 
@@ -66,6 +71,10 @@ func (s *Stack) ChildStack(ctx context.Context, addr stackaddrs.StackInstanceSte
 	calls := s.EmbeddedStackCalls()
 	callAddr := stackaddrs.StackCall{Name: addr.Name}
 	call := calls[callAddr]
+
+	if call == nil {
+		return nil
+	}
 
 	instances, unknown := call.Instances(ctx, phase)
 	if unknown {
@@ -219,7 +228,7 @@ func (s *Stack) Component(addr stackaddrs.Component) *Component {
 	return s.Components()[addr]
 }
 
-func (s *Stack) RemovedComponents() map[stackaddrs.Component][]*RemovedComponent {
+func (s *Stack) Removed() *Removed {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -227,23 +236,39 @@ func (s *Stack) RemovedComponents() map[stackaddrs.Component][]*RemovedComponent
 		return s.removed
 	}
 
-	decls := s.config.RemovedComponents()
-	ret := make(map[stackaddrs.Component][]*RemovedComponent, len(decls))
-	for _, blocks := range decls {
-		for _, r := range blocks {
-			absAddr := stackaddrs.AbsComponent{
-				Stack: s.addr,
-				Item:  r.config.FromComponent,
-			}
-			ret[absAddr.Item] = append(ret[absAddr.Item], newRemovedComponent(s.main, absAddr, s, r))
+	// otherwise we're going to initialise removed.
+
+	stackCallComponents := collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponent]()
+	localComponents := make(map[stackaddrs.Component][]*RemovedComponent)
+
+	for addr, configs := range s.config.RemovedComponents().All() {
+		blocks := make([]*RemovedComponent, 0, len(configs))
+		for _, config := range configs {
+			blocks = append(blocks, newRemovedComponent(s.main, addr, s, config))
 		}
+
+		if addr.Stack.IsRoot() {
+			localComponents[addr.Item] = blocks
+			continue
+		}
+
+		stackCallComponents.Put(addr, blocks)
 	}
-	s.removed = ret
-	return ret
+
+	for addr, configs := range s.externalRemovedComponents.All() {
+		if addr.Stack.IsRoot() {
+			localComponents[addr.Item] = append(localComponents[addr.Item], configs...)
+			continue
+		}
+		stackCallComponents.Put(addr, append(stackCallComponents.Get(addr), configs...))
+	}
+
+	s.removed = newRemoved(localComponents, stackCallComponents)
+	return s.removed
 }
 
 func (s *Stack) RemovedComponent(addr stackaddrs.Component) []*RemovedComponent {
-	return s.RemovedComponents()[addr]
+	return s.Removed().localComponents[addr]
 }
 
 // ApplyableComponents returns the combination of removed blocks and declared
@@ -565,10 +590,10 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 
 	// We're going to validate that all the removed blocks in this stack resolve
 	// to unique instance addresses.
-	for _, blocks := range s.RemovedComponents() {
+	for _, blocks := range s.Removed().localComponents {
 		seen := make(map[addrs.InstanceKey]*RemovedComponentInstance)
 		for _, block := range blocks {
-			insts, unknown, _ := block.Instances(ctx, PlanPhase)
+			insts, unknown := block.InstancesFor(ctx, s.addr, PlanPhase)
 			if unknown {
 				continue
 			}
@@ -649,7 +674,7 @@ Instance:
 		}
 
 		for _, removed := range removeds {
-			insts, unknown, _ := removed.Instances(ctx, PlanPhase)
+			insts, unknown := removed.InstancesFor(ctx, inst.Stack, PlanPhase)
 			if unknown {
 				// We can't determine if the component is targeted or not. This
 				// is okay, as any changes to this component will be deferred

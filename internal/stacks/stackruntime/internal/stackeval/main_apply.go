@@ -104,7 +104,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 
 					Blocks:
 						for _, block := range removed {
-							if insts, unknown, _ := block.Instances(ctx, ApplyPhase); unknown {
+							if insts, unknown := block.InstancesFor(ctx, stack.addr, ApplyPhase); unknown {
 								matchedUnknownBlock = true
 							} else {
 								for _, i := range insts {
@@ -256,7 +256,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 									))
 									success := true
 									for _, block := range removed {
-										if !block.ApplySuccessful(ctx) {
+										if !block.ApplySuccessful(ctx, stack.addr) {
 											success = false
 										}
 									}

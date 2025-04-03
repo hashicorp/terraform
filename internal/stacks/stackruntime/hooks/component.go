@@ -12,3 +12,9 @@ type ComponentInstances struct {
 	ComponentAddr stackaddrs.AbsComponent
 	InstanceAddrs []stackaddrs.AbsComponentInstance
 }
+
+// RemovedComponentInstances is the argument type for the RemovedComponentExpanded hook callback.
+type RemovedComponentInstances struct {
+	Source        stackaddrs.StackInstance
+	InstanceAddrs []stackaddrs.AbsComponentInstance
+}

@@ -198,7 +198,7 @@ func walkDynamicObjectsInStack[Output any](
 			}
 		})
 	}
-	for addr, blocks := range stack.RemovedComponents() {
+	for addr, blocks := range stack.Removed().localComponents {
 
 		// knownInstances are the instances that already exist either
 		// because they are in the state or the plan.
@@ -215,7 +215,7 @@ func walkDynamicObjectsInStack[Output any](
 			visit(ctx, walk, removed)
 
 			walk.AsyncTask(ctx, func(ctx context.Context) {
-				insts, unknown, _ := removed.Instances(ctx, phase)
+				insts, unknown := removed.InstancesFor(ctx, stack.addr, phase)
 				if unknown {
 					// If the instances claimed by this removed block are unknown,
 					// then we'll check all the known instances and mark any that
@@ -227,7 +227,7 @@ func walkDynamicObjectsInStack[Output any](
 					if componentInstances.Len() == 0 {
 						// then we'll gather the component instances. we do this
 						// once, enforced by the mutex and the check above.
-						component := stack.Component(removed.addr.Item)
+						component := stack.Component(removed.target.Item)
 						if component != nil {
 							insts, unknown := component.Instances(ctx, phase)
 							if unknown {
@@ -242,7 +242,7 @@ func walkDynamicObjectsInStack[Output any](
 
 							for key := range insts {
 								componentInstances.Add(stackaddrs.ComponentInstance{
-									Component: removed.addr.Item,
+									Component: removed.target.Item,
 									Key:       key,
 								})
 							}

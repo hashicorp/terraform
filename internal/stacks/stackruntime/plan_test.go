@@ -503,6 +503,48 @@ func TestPlan(t *testing.T) {
 				},
 			},
 		},
+		"removed embedded component duplicate": {
+			path: filepath.Join("with-single-input", "removed-component-from-stack-dynamic"),
+			cycle: TestCycle{
+				planInputs: map[string]cty.Value{
+					"for_each_input": cty.MapVal(map[string]cty.Value{
+						"foo": cty.StringVal("bar"),
+					}),
+					"simple_input": cty.MapVal(map[string]cty.Value{
+						"foo": cty.StringVal("bar"),
+					}),
+					"for_each_removed": cty.SetVal([]cty.Value{
+						cty.StringVal("foo"),
+					}),
+					"simple_removed": cty.SetVal([]cty.Value{
+						cty.StringVal("foo"),
+					}),
+				},
+				wantPlannedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Cannot remove component instance",
+						Detail:   "The component instance stack.for_each.component.self[\"foo\"] is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/for-each-component/for-each-component.tfstack.hcl:15,1-17.",
+						Subject: &hcl.Range{
+							Filename: "git::https://example.com/test.git//with-single-input/removed-component-from-stack-dynamic/removed-component-from-stack-dynamic.tfstack.hcl",
+							Start:    hcl.Pos{Line: 38, Column: 1, Byte: 505},
+							End:      hcl.Pos{Line: 38, Column: 8, Byte: 512},
+						},
+					})
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Cannot remove component instance",
+						Detail:   "The component instance stack.simple[\"foo\"].component.self is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/valid/valid.tfstack.hcl:19,1-17.",
+						Subject: &hcl.Range{
+							Filename: "git::https://example.com/test.git//with-single-input/removed-component-from-stack-dynamic/removed-component-from-stack-dynamic.tfstack.hcl",
+							Start:    hcl.Pos{Line: 60, Column: 1, Byte: 811},
+							End:      hcl.Pos{Line: 60, Column: 8, Byte: 818},
+						},
+					})
+					return diags
+				}),
+			},
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
