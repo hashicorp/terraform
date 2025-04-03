@@ -47,7 +47,7 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 		DataSourceSchemas:        make(map[string]*tfplugin6.Schema),
 		EphemeralResourceSchemas: make(map[string]*tfplugin6.Schema),
 		Functions:                make(map[string]*tfplugin6.Function),
-		StateStores:              make(map[string]*tfplugin6.Schema),
+		StateStoreSchemas:        make(map[string]*tfplugin6.Schema),
 	}
 
 	resp.Provider = &tfplugin6.Schema{
