@@ -61,7 +61,7 @@ var (
 	// the client. This is not a security verification.
 	StacksHandshake = plugin.HandshakeConfig{
 		MagicCookieKey:   "TF_STACKSPLUGIN_MAGIC_COOKIE",
-		MagicCookieValue: "721fca41431b780ff3ad2623838faaa178d74c65e1cfdfe19537c31656496bf9f82d6c6707f71d81c8eed0db9043f79e56ab4582d013bc08ead14f57961461dc",
+		MagicCookieValue: "3b6a4bafa8c66117c807d80f11793753e8db8076345babf3d57668dd85b95f64dd77b1277ab7967496e795595c8d9e70cc35fb4eba5fb466541cb925980ee930",
 		ProtocolVersion:  DefaultStacksPluginVersion,
 	}
 	// CloudPluginDataDir is the name of the directory within the data directory
