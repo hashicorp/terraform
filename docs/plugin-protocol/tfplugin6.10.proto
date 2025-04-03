@@ -430,6 +430,7 @@ message GetProviderSchema {
         map<string, Schema> data_source_schemas = 3;
         map<string, Function> functions = 7;
         map<string, Schema> ephemeral_resource_schemas = 8;
+        map<string, Schema> state_store_schemas = 9;
         repeated Diagnostic diagnostics = 4;
         Schema provider_meta = 5;
         ServerCapabilities server_capabilities = 6;
