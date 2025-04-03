@@ -68,14 +68,48 @@ func walkDynamicObjectsInStack[Output any](
 		walk.AsyncTask(ctx, func(ctx context.Context) {
 			insts, unknown := call.Instances(ctx, phase)
 
-			// If unknown, then process the unknown instance and skip the rest.
 			if unknown {
-				inst := call.UnknownInstance(ctx, phase)
-				visit(ctx, walk, inst)
 
-				childStack := inst.Stack(ctx, phase)
-				walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
-				return
+				// If unknown, then we should check for any stacks that exist
+				// in the state and "claim" them. Basically, this means this
+				// value was known and created some stack instances previously
+				// then became unknown in the current operation and we want to
+
+				knownInstances := stack.KnownEmbeddedStacks(call.addr.Item, phase)
+				if len(knownInstances) == 0 {
+					// with no known instances, we'll just process the constant
+					// unknown instance. This represents the idea that stacks
+					// could be created once the value becomes unknown.
+					inst := call.UnknownInstance(ctx, phase)
+					visit(ctx, walk, inst)
+
+					childStack := inst.Stack(ctx, phase)
+					walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
+					return
+				}
+
+				// otherwise we have known instances in the state, so we'll
+				// create some dynamic instances for them so the user doesn't
+				// worry they have just disappeared.
+
+				for inst := range knownInstances {
+					if inst.Key == addrs.WildcardKey {
+						inst := call.UnknownInstance(ctx, phase)
+						visit(ctx, walk, inst)
+
+						childStack := inst.Stack(ctx, phase)
+						walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
+					} else {
+						inst := newStackCallInstance(call, inst.Key, instances.RepetitionData{
+							EachKey:   inst.Key.Value(),
+							EachValue: cty.UnknownVal(cty.DynamicPseudoType),
+						}, true)
+						visit(ctx, walk, inst)
+
+						childStack := inst.Stack(ctx, phase)
+						walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
+					}
+				}
 			}
 
 			// Otherwise, process the instances and their child stacks.

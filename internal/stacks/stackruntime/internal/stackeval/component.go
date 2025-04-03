@@ -144,7 +144,7 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 			}
 
 			result := instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ComponentInstance {
-				return newComponentInstance(c, stackaddrs.AbsComponentToInstance(c.addr, ik), rd, false)
+				return newComponentInstance(c, stackaddrs.AbsComponentToInstance(c.addr, ik), rd, c.stack.deferred)
 			})
 
 			addrs := make([]stackaddrs.AbsComponentInstance, 0, len(result.insts))

@@ -310,7 +310,7 @@ func (m *Main) MainStack() *Stack {
 	defer m.mu.Unlock()
 
 	if m.mainStack == nil {
-		m.mainStack = newStack(m, stackaddrs.RootStackInstance, nil, config, collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponent]())
+		m.mainStack = newStack(m, stackaddrs.RootStackInstance, nil, config, collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponent](), false)
 	}
 	return m.mainStack
 }
