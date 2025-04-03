@@ -126,10 +126,7 @@ The `state_key` allows for fine-grained control over which internal state file T
 
 The `parallel` attribute lets you run multiple `run` blocks in parallel. By default, this attribute is set to `false`. When set to `true`, Terraform attempts to execute the `run` block in parallel with other `run` blocks that also have the `parallel` attribute set to `true` and are not dependent on each other.
 
-The `skip_cleanup` attribute controls whether changes made to the state file during this run are cleaned up afterward. When multiple `run` blocks that modify the same state file set this attribute, only the last `run` block with `skip_cleanup` set to `true` will take effect. This means the state file will reflect the state as of that last `run` block.
-
-**Notes:**
-- Any resources retained in the state due to this attribute will also be saved in the state file artifacts. Refer to the [Artifacts](#handling-leftover-state-artifacts) section for more information.
+The `skip_cleanup` attribute controls whether changes made to the state file during this run are cleaned up afterward. Refer to the [Skipping Cleanup](#skipping-cleanup) section for more information.
 
 ### Example usage
 
@@ -1019,7 +1016,13 @@ Run E (parallel: true)
 
 Runs A and B execute simultaneously. Run C waits until both A and B are done before starting. Finally, runs D and E run in parallel, but only after C completes.
 
+## Skipping Cleanup
+
+You can skip the cleanup process by setting the `skip_cleanup` attribute to `true` in the `test` or `run` block. This is useful for debugging or when you want to inspect the state files after a test run. 
+ When multiple `run` blocks that modify the same state file set this attribute, only the last `run` block with `skip_cleanup` set to `true` will take effect. This means the state file will reflect the state as of that last `run` block.
+ Any resources retained in the state due to this attribute will also be saved in the state file artifacts. Refer to the [Artifacts](#handling-leftover-state-artifacts) section for more information. This means that you have to cleanup the state before running any other tests.
+
 ## Handling Leftover State Artifacts
 
 During the execution of a test file, Terraform automatically cleans up any state files it generates. This cleanup involves destroying the created resources. However, if the cleanup process fails, Terraform generates a manifest file that references state files containing the remaining resources. The manifest file is located within the data directory of the terraform configuration (`.terraform/test/manifest.json`).
-These lingering resources can block future Terraform test operations and must be manually removed to proceed.
+These lingering resources will block future Terraform test operations and must be manually removed to proceed.
