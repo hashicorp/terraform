@@ -84,7 +84,7 @@ func (pt *ProviderType) UnconfiguredClient() (providers.Interface, error) {
 }
 
 func (pt *ProviderType) Schema(ctx context.Context) (providers.GetProviderSchemaResponse, error) {
-	return pt.schema.Do(ctx, func(ctx context.Context) (providers.GetProviderSchemaResponse, error) {
+	return pt.schema.Do(ctx, pt.Addr().String()+" schema", func(ctx context.Context) (providers.GetProviderSchemaResponse, error) {
 		client, err := pt.UnconfiguredClient()
 		if err != nil {
 			return providers.GetProviderSchemaResponse{}, fmt.Errorf("provider startup failed: %w", err)
@@ -96,9 +96,4 @@ func (pt *ProviderType) Schema(ctx context.Context) (providers.GetProviderSchema
 		}
 		return ret, nil
 	})
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (pt *ProviderType) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	cb(pt.schema.PromiseID(), pt.Addr().String()+" schema")
 }

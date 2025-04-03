@@ -577,6 +577,11 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 		}
 
 		if imp.Config.ForEach != nil {
+			diags = diags.Append(validateImportForEachRef(n.Addr.Resource, imp.Config.ForEach))
+			if diags.HasErrors() {
+				return diags
+			}
+
 			forEachData, _, forEachDiags := newForEachEvaluator(imp.Config.ForEach, ctx, true).ImportValues()
 			diags = diags.Append(forEachDiags)
 			if forEachDiags.HasErrors() {
@@ -584,6 +589,7 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 			}
 
 			for _, keyData := range forEachData {
+				var evalDiags tfdiags.Diagnostics
 				to, evalDiags := evalImportToExpression(imp.Config.To, keyData)
 				diags = diags.Append(evalDiags)
 				if diags.HasErrors() {
@@ -593,7 +599,20 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 				if diags.HasErrors() {
 					return diags
 				}
-				_, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, keyData, true)
+
+				if imp.Config.ID != nil {
+					_, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, keyData, true)
+				} else if imp.Config.Identity != nil {
+					providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
+					if err != nil {
+						diags = diags.Append(err)
+						return diags
+					}
+					schema := providerSchema.SchemaForResourceAddr(to.Resource.Resource)
+
+					_, evalDiags = evaluateImportIdentityExpression(imp.Config.Identity, schema.Identity, ctx, keyData, true)
+				}
+
 				diags = diags.Append(evalDiags)
 				if diags.HasErrors() {
 					return diags
@@ -613,7 +632,20 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 				return diags
 			}
 
-			_, evalDiags := evaluateImportIdExpression(imp.Config.ID, ctx, EvalDataForNoInstanceKey, true)
+			var evalDiags tfdiags.Diagnostics
+			if imp.Config.ID != nil {
+				_, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, EvalDataForNoInstanceKey, true)
+			} else if imp.Config.Identity != nil {
+				providerSchema, err := ctx.ProviderSchema(n.ResolvedProvider)
+				if err != nil {
+					diags = diags.Append(err)
+					return diags
+				}
+				schema := providerSchema.SchemaForResourceAddr(to.Resource.Resource)
+
+				_, evalDiags = evaluateImportIdentityExpression(imp.Config.Identity, schema.Identity, ctx, EvalDataForNoInstanceKey, true)
+			}
+
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
 				return diags

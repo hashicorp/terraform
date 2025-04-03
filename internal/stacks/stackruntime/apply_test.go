@@ -643,6 +643,226 @@ func TestApply(t *testing.T) {
 				},
 			},
 		},
+		"duplicate removed blocks": {
+			path: path.Join("with-single-input", "removed-component-duplicate"),
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.self[\"one\"]")).
+					AddInputVariable("id", cty.StringVal("one")).
+					AddInputVariable("input", cty.StringVal("one"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self[\"one\"].testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "one",
+							"value": "one",
+						}),
+					})).
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.self[\"two\"]")).
+					AddInputVariable("id", cty.StringVal("two")).
+					AddInputVariable("input", cty.StringVal("two"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self[\"two\"].testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "two",
+							"value": "two",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("one", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("one"),
+					"value": cty.StringVal("one"),
+				})).
+				AddResource("two", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("two"),
+					"value": cty.StringVal("two"),
+				})).
+				Build(),
+			cycles: []TestCycle{
+				{
+					planMode: plans.NormalMode,
+					planInputs: map[string]cty.Value{
+						"input": cty.SetValEmpty(cty.String),
+						"removed_one": cty.SetVal([]cty.Value{
+							cty.StringVal("one"),
+						}),
+						"removed_two": cty.SetVal([]cty.Value{
+							cty.StringVal("two"),
+						}),
+					},
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:          mustAbsComponentInstance("component.self[\"one\"]"),
+							PlanComplete:  true,
+							PlanApplyable: true,
+							Mode:          plans.DestroyMode,
+							Action:        plans.Delete,
+							PlannedInputValues: map[string]plans.DynamicValue{
+								"id":    mustPlanDynamicValueDynamicType(cty.StringVal("one")),
+								"input": mustPlanDynamicValueDynamicType(cty.StringVal("one")),
+							},
+							PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+								"input": nil,
+								"id":    nil,
+							},
+							PlannedOutputValues: make(map[string]cty.Value),
+							PlannedCheckResults: &states.CheckResults{},
+							PlanTimestamp:       fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"one\"].testing_resource.data"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:        mustAbsResourceInstance("testing_resource.data"),
+								PrevRunAddr: mustAbsResourceInstance("testing_resource.data"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Delete,
+									Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":    cty.StringVal("one"),
+										"value": cty.StringVal("one"),
+									})),
+									After: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+										"id":    cty.String,
+										"value": cty.String,
+									}))),
+								},
+								ProviderAddr: mustDefaultRootProvider("testing"),
+							},
+							PriorStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+									"id":    "one",
+									"value": "one",
+								}),
+								Dependencies: make([]addrs.ConfigResource, 0),
+								Status:       states.ObjectReady,
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:          mustAbsComponentInstance("component.self[\"two\"]"),
+							PlanComplete:  true,
+							PlanApplyable: true,
+							Mode:          plans.DestroyMode,
+							Action:        plans.Delete,
+							PlannedInputValues: map[string]plans.DynamicValue{
+								"id":    mustPlanDynamicValueDynamicType(cty.StringVal("two")),
+								"input": mustPlanDynamicValueDynamicType(cty.StringVal("two")),
+							},
+							PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+								"input": nil,
+								"id":    nil,
+							},
+							PlannedOutputValues: make(map[string]cty.Value),
+							PlannedCheckResults: &states.CheckResults{},
+							PlanTimestamp:       fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"two\"].testing_resource.data"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:        mustAbsResourceInstance("testing_resource.data"),
+								PrevRunAddr: mustAbsResourceInstance("testing_resource.data"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Delete,
+									Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":    cty.StringVal("two"),
+										"value": cty.StringVal("two"),
+									})),
+									After: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+										"id":    cty.String,
+										"value": cty.String,
+									}))),
+								},
+								ProviderAddr: mustDefaultRootProvider("testing"),
+							},
+							PriorStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+									"id":    "two",
+									"value": "two",
+								}),
+								Dependencies: make([]addrs.ConfigResource, 0),
+								Status:       states.ObjectReady,
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeRootInputValue{
+							Addr:   stackaddrs.InputVariable{Name: "input"},
+							Action: plans.Create,
+							Before: cty.NullVal(cty.DynamicPseudoType),
+							After:  cty.SetValEmpty(cty.String),
+						},
+						&stackplan.PlannedChangeRootInputValue{
+							Addr:   stackaddrs.InputVariable{Name: "removed_one"},
+							Action: plans.Create,
+							Before: cty.NullVal(cty.DynamicPseudoType),
+							After: cty.SetVal([]cty.Value{
+								cty.StringVal("one"),
+							}),
+						},
+						&stackplan.PlannedChangeRootInputValue{
+							Addr:   stackaddrs.InputVariable{Name: "removed_two"},
+							Action: plans.Create,
+							Before: cty.NullVal(cty.DynamicPseudoType),
+							After: cty.SetVal([]cty.Value{
+								cty.StringVal("two"),
+							}),
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.self"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.self[\"one\"]"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"one\"].testing_resource.data"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+							NewStateSrc:                nil,
+							Schema:                     providers.Schema{},
+						},
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.self"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.self[\"two\"]"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"two\"].testing_resource.data"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+							NewStateSrc:                nil,
+							Schema:                     providers.Schema{},
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("input"),
+							Value: cty.SetValEmpty(cty.String),
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr: mustStackInputVariable("removed_one"),
+							Value: cty.SetVal([]cty.Value{
+								cty.StringVal("one"),
+							}),
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr: mustStackInputVariable("removed_two"),
+							Value: cty.SetVal([]cty.Value{
+								cty.StringVal("two"),
+							}),
+						},
+					},
+				},
+			},
+		},
 		"removed component instance direct": {
 			path: filepath.Join("with-single-input", "removed-component-instance-direct"),
 			state: stackstate.NewStateBuilder().
@@ -821,7 +1041,195 @@ func TestApply(t *testing.T) {
 				},
 			},
 		},
-		"removed embedded component": {
+		"removed embedded dynamic component from stack": {
+			path: filepath.Join("with-single-input", "removed-component-from-stack-dynamic"),
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("stack.for_each.component.self[\"removed\"]")).
+					AddInputVariable("id", cty.StringVal("removed")).
+					AddInputVariable("input", cty.StringVal("removed"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("stack.for_each.component.self[\"removed\"].testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "removed",
+							"value": "removed",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("removed", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("removed"),
+					"value": cty.StringVal("removed"),
+				})).
+				Build(),
+			cycles: []TestCycle{
+				{
+					planInputs: map[string]cty.Value{
+						"for_each_input": cty.MapVal(map[string]cty.Value{
+							"added": cty.StringVal("added"),
+						}),
+						"for_each_removed": cty.SetVal([]cty.Value{
+							cty.StringVal("removed"),
+						}),
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("stack.for_each.component.self"),
+							ComponentInstanceAddr: mustAbsComponentInstance("stack.for_each.component.self[\"added\"]"),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("id"):    cty.StringVal("added"),
+								mustInputVariable("input"): cty.StringVal("added"),
+							},
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("stack.for_each.component.self[\"added\"].testing_resource.data"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+									"id":    "added",
+									"value": "added",
+								}),
+								Status:       states.ObjectReady,
+								Dependencies: make([]addrs.ConfigResource, 0),
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("stack.for_each.component.self[\"removed\"]"),
+							ComponentInstanceAddr: mustAbsComponentInstance("stack.for_each.component.self[\"removed\"]"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("stack.for_each.component.self[\"removed\"].testing_resource.data"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+							NewStateSrc:                nil,
+							Schema:                     providers.Schema{},
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr: mustStackInputVariable("for_each_input"),
+							Value: cty.MapVal(map[string]cty.Value{
+								"added": cty.StringVal("added"),
+							}),
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr: mustStackInputVariable("for_each_removed"),
+							Value: cty.SetVal([]cty.Value{
+								cty.StringVal("removed"),
+							}),
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("simple_input"),
+							Value: cty.MapValEmpty(cty.String),
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("simple_removed"),
+							Value: cty.SetValEmpty(cty.String),
+						},
+					},
+				},
+			},
+		},
+		"removed embedded component relative": {
+			path: filepath.Join("with-single-input", "removed-component-from-stack"),
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("stack.nested.component.self[\"foo\"]")).
+					AddInputVariable("id", cty.StringVal("removed")).
+					AddInputVariable("input", cty.StringVal("removed"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("stack.nested.component.self[\"foo\"].testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "removed",
+							"value": "removed",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("removed", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("removed"),
+					"value": cty.StringVal("removed"),
+				})).
+				Build(),
+			cycles: []TestCycle{
+				{
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:          mustAbsComponentInstance("stack.nested.component.self[\"foo\"]"),
+							PlanComplete:  true,
+							PlanApplyable: true,
+							Mode:          plans.DestroyMode,
+							Action:        plans.Delete,
+							PlannedInputValues: map[string]plans.DynamicValue{
+								"id":    mustPlanDynamicValueDynamicType(cty.StringVal("removed")),
+								"input": mustPlanDynamicValueDynamicType(cty.StringVal("removed")),
+							},
+							PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+								"input": nil,
+								"id":    nil,
+							},
+							PlannedOutputValues: make(map[string]cty.Value),
+							PlannedCheckResults: &states.CheckResults{},
+							PlanTimestamp:       fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("stack.nested.component.self[\"foo\"].testing_resource.data"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:        mustAbsResourceInstance("testing_resource.data"),
+								PrevRunAddr: mustAbsResourceInstance("testing_resource.data"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Delete,
+									Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":    cty.StringVal("removed"),
+										"value": cty.StringVal("removed"),
+									})),
+									After: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+										"id":    cty.String,
+										"value": cty.String,
+									}))),
+								},
+								ProviderAddr: mustDefaultRootProvider("testing"),
+							},
+							PriorStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+									"id":    "removed",
+									"value": "removed",
+								}),
+								Dependencies: make([]addrs.ConfigResource, 0),
+								Status:       states.ObjectReady,
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("stack.nested.component.self[\"foo\"]"),
+							ComponentInstanceAddr: mustAbsComponentInstance("stack.nested.component.self[\"foo\"]"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("stack.nested.component.self[\"foo\"].testing_resource.data"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+							NewStateSrc:                nil,
+							Schema:                     providers.Schema{},
+						},
+					},
+				},
+			},
+		},
+		"removed embedded component local": {
 			path: filepath.Join("with-single-input", "removed-embedded-component"),
 			state: stackstate.NewStateBuilder().
 				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("stack.a.component.self")).
@@ -1666,6 +2074,57 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 						&stackstate.AppliedChangeInputVariable{
 							Addr:  mustStackInputVariable("inputs"),
 							Value: cty.NilVal, // destroyed
+						},
+					},
+				},
+			},
+		},
+		"unknown-component": {
+			path: path.Join("with-single-input", "removed-component-instance"),
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.self[\"main\"]")).
+					AddInputVariable("id", cty.StringVal("main")).
+					AddInputVariable("input", cty.StringVal("main"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self[\"main\"].testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "main",
+							"value": "main",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("main", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("main"),
+					"value": cty.StringVal("main"),
+				})).
+				Build(),
+			cycles: []TestCycle{
+				{
+					planInputs: map[string]cty.Value{
+						"input":   cty.UnknownVal(cty.Set(cty.String)),
+						"removed": cty.SetValEmpty(cty.String),
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.self"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.self[\"main\"]"),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("id"):    cty.StringVal("main"),
+								mustInputVariable("input"): cty.StringVal("main"),
+							},
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("input"),
+							Value: cty.UnknownVal(cty.Set(cty.String)),
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("removed"),
+							Value: cty.SetValEmpty(cty.String),
 						},
 					},
 				},

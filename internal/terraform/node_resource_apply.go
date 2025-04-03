@@ -24,13 +24,9 @@ var (
 	_ GraphNodeReferencer           = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeConfigResource       = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*nodeExpandApplyableResource)(nil)
-	_ graphNodeExpandsInstances     = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeTargetable           = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeDynamicExpandable    = (*nodeExpandApplyableResource)(nil)
 )
-
-func (n *nodeExpandApplyableResource) expandsInstances() {
-}
 
 func (n *nodeExpandApplyableResource) References() []*addrs.Reference {
 	refs := n.NodeAbstractResource.References()
@@ -83,6 +79,8 @@ func (n *nodeExpandApplyableResource) dynamicExpandEphemeral(ctx EvalContext) (*
 		expDiags := n.expandEphemeralResourceInstances(ctx, resAddr, &g)
 		diags = diags.Append(expDiags)
 	}
+
+	addRootNodeToGraph(&g)
 
 	return &g, diags
 }

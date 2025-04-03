@@ -445,8 +445,22 @@ func TestValidate(t *testing.T) {
 					"Self-dependent items in configuration",
 					`The following items in your configuration form a circular dependency chain through their references:
   - stack.a collected outputs
-  - stack.a.output.a value
+  - stack.a.output.a
   - stack.a inputs
+
+Terraform uses references to decide a suitable order for performing operations, so configuration items may not refer to their own results either directly or indirectly.`,
+				))
+			}),
+		},
+		"cyclic-component-dependency": {
+			path: "validate-cyclic-dependency",
+			wantDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+				return diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Self-dependent items in configuration",
+					`The following items in your configuration form a circular dependency chain through their references:
+  - component.boundary
+  - component.vault-config
 
 Terraform uses references to decide a suitable order for performing operations, so configuration items may not refer to their own results either directly or indirectly.`,
 				))

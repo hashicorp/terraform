@@ -188,6 +188,8 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 }
 
 func (p *GRPCProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	logger.Trace("GRPCProvider: GetResourceIdentitySchemas")
+
 	var resp providers.GetResourceIdentitySchemasResponse
 
 	resp.IdentityTypes = make(map[string]providers.IdentitySchema)
@@ -850,7 +852,7 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown resource type %q", imported.TypeName))
 				continue
 			}
-			importedIdentity, err := decodeDynamicValue(imported.Identity.IdentityData, importedIdentitySchema.Body.ImpliedType())
+			importedIdentity, err := decodeDynamicValue(imported.Identity.IdentityData, importedIdentitySchema.Identity.ImpliedType())
 			if err != nil {
 				resp.Diagnostics = resp.Diagnostics.Append(err)
 				return resp

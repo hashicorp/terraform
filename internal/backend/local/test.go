@@ -9,11 +9,12 @@ import (
 	"log"
 	"maps"
 	"path/filepath"
-	"sort"
+	"slices"
 
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/backend"
+
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -105,12 +106,6 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 
 	runner.View.Abstract(suite)
 
-	var files []string
-	for name := range suite.Files {
-		files = append(files, name)
-	}
-	sort.Strings(files) // execute the files in alphabetical order
-
 	// We have two sets of variables that are available to different test files.
 	// Test files in the root directory have access to the GlobalVariables only,
 	// while test files in the test directory have access to the union of
@@ -148,7 +143,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	}
 
 	suite.Status = moduletest.Pass
-	for _, name := range files {
+	for _, name := range slices.Sorted(maps.Keys(suite.Files)) {
 		if runner.Cancelled {
 			return suite.Status, diags
 		}

@@ -8,10 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/apparentlymart/go-versions/versions"
-	"github.com/hashicorp/go-slug/sourceaddrs"
-	"github.com/hashicorp/go-slug/sourcebundle"
-	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/typeexpr"
 	"github.com/zclconf/go-cty/cty"
@@ -24,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	stackparser "github.com/hashicorp/terraform/internal/stacks/stackconfig/parser"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval/stubs"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -39,36 +36,37 @@ var (
 
 type ComponentConfig struct {
 	addr   stackaddrs.ConfigComponent
+	stack  *StackConfig
 	config *stackconfig.Component
 
 	main *Main
 
-	validate   promising.Once[tfdiags.Diagnostics]
-	moduleTree promising.Once[withDiagnostics[*configs.Config]]
+	validate   perEvalPhase[promising.Once[tfdiags.Diagnostics]]
+	moduleTree promising.Once[withDiagnostics[*configs.Config]] // moduleTree is constant across all phases
 }
 
-func newComponentConfig(main *Main, addr stackaddrs.ConfigComponent, config *stackconfig.Component) *ComponentConfig {
+func newComponentConfig(main *Main, addr stackaddrs.ConfigComponent, stack *StackConfig, config *stackconfig.Component) *ComponentConfig {
 	return &ComponentConfig{
 		addr:   addr,
+		stack:  stack,
 		config: config,
 		main:   main,
 	}
 }
 
+// Addr implements ConfigComponentExpressionScope
 func (c *ComponentConfig) Addr() stackaddrs.ConfigComponent {
 	return c.addr
 }
 
-func (c *ComponentConfig) Declaration(ctx context.Context) *stackconfig.Component {
-	return c.config
-}
-
-func (c *ComponentConfig) DeclRange(_ context.Context) *hcl.Range {
+// DeclRange implements ConfigComponentExpressionScope
+func (c *ComponentConfig) DeclRange() *hcl.Range {
 	return c.config.DeclRange.ToHCL().Ptr()
 }
 
-func (c *ComponentConfig) StackConfig(ctx context.Context) *StackConfig {
-	return c.main.mustStackConfig(ctx, c.addr.Stack)
+// StackConfig implements ConfigComponentExpressionScope
+func (c *ComponentConfig) StackConfig() *StackConfig {
+	return c.stack
 }
 
 // ModuleTree returns the static representation of the tree of modules starting
@@ -87,14 +85,13 @@ func (c *ComponentConfig) ModuleTree(ctx context.Context) *configs.Config {
 // this instead returns diagnostics and a nil configuration object.
 func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
-		ctx, &c.moduleTree, c.main,
+		ctx, c.tracingName()+" modules", &c.moduleTree,
 		func(ctx context.Context) (*configs.Config, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
-			decl := c.Declaration(ctx)
-			sources := c.main.SourceBundle(ctx)
+			sources := c.main.SourceBundle()
 
-			rootModuleSource := decl.FinalSourceAddr
+			rootModuleSource := c.config.FinalSourceAddr
 			if rootModuleSource == nil {
 				// If we get here then the configuration was loaded incorrectly,
 				// either by the stackconfig package or by the caller of the
@@ -110,7 +107,7 @@ func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config,
 					Severity: hcl.DiagError,
 					Summary:  "Can't load module for component",
 					Detail:   fmt.Sprintf("The source location %s does not contain a Terraform module.", rootModuleSource),
-					Subject:  decl.SourceAddrRange.ToHCL().Ptr(),
+					Subject:  c.config.SourceAddrRange.ToHCL().Ptr(),
 				})
 				return nil, diags
 			}
@@ -121,7 +118,7 @@ func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config,
 				return nil, diags
 			}
 
-			walker := newSourceBundleModuleWalker(rootModuleSource, sources, parser)
+			walker := stackparser.NewSourceBundleModuleWalker(rootModuleSource, sources, parser)
 			configRoot, hclDiags := configs.BuildConfig(rootMod, walker, nil)
 			diags = diags.Append(hclDiags)
 			if hclDiags.HasErrors() {
@@ -242,11 +239,10 @@ func (c *ComponentConfig) CheckInputVariableValues(ctx context.Context, phase Ev
 		return nil
 	}
 
-	decl := c.Declaration(ctx)
 	varDecls := c.RootModuleVariableDecls(ctx)
 
 	// We don't care about the returned value, only that it has no errors.
-	_, diags := EvalComponentInputVariables(ctx, varDecls, wantTy, defs, decl, phase, c)
+	_, diags := EvalComponentInputVariables(ctx, varDecls, wantTy, defs, c.config, phase, c)
 	return diags
 }
 
@@ -258,23 +254,28 @@ func (c *ComponentConfig) ExprReferenceValue(ctx context.Context, phase EvalPhas
 	// We don't expose ComponentConfig in any scope outside of the validation
 	// phase, so this is sufficient for all phases. (See [Component] for how
 	// component results get calculated during the plan and apply phases.)
+
+	// By calling `checkValid` on ourself here, we will cause a cycle error to be exposed if we ended
+	// up within this function while executing c.checkValid initially. This just makes sure that there
+	// are no cycles between components.
+	c.checkValid(ctx, phase)
 	return cty.DynamicVal
 }
 
 // ResolveExpressionReference implements ExpressionScope.
 func (c *ComponentConfig) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	repetition := instances.RepetitionData{}
-	if c.Declaration(ctx).ForEach != nil {
+	if c.config.ForEach != nil {
 		// For validation, we'll return unknown for the instance data.
 		repetition.EachKey = cty.UnknownVal(cty.String).RefineNotNull()
 		repetition.EachValue = cty.DynamicVal
 	}
-	return c.StackConfig(ctx).resolveExpressionReference(ctx, ref, nil, repetition)
+	return c.stack.resolveExpressionReference(ctx, ref, nil, repetition)
 }
 
 // ExternalFunctions implements ExpressionScope.
 func (c *ComponentConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
-	return c.main.ProviderFunctions(ctx, c.StackConfig(ctx))
+	return c.main.ProviderFunctions(ctx, c.stack)
 }
 
 // PlanTimestamp implements ExpressionScope, providing the timestamp at which
@@ -284,7 +285,7 @@ func (c *ComponentConfig) PlanTimestamp() time.Time {
 }
 
 func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
-	diags, err := c.validate.Do(ctx, func(ctx context.Context) (tfdiags.Diagnostics, error) {
+	diags, err := c.validate.For(phase).Do(ctx, c.tracingName(), func(ctx context.Context) (tfdiags.Diagnostics, error) {
 		var diags tfdiags.Diagnostics
 
 		moduleTree, moreDiags := c.CheckModuleTree(ctx)
@@ -292,19 +293,18 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 		if moduleTree == nil {
 			return diags, nil
 		}
-		decl := c.Declaration(ctx)
 
 		variableDiags := c.CheckInputVariableValues(ctx, phase)
 		diags = diags.Append(variableDiags)
 
-		dependsOnDiags := ValidateDependsOn(ctx, c.StackConfig(ctx), c.config.DependsOn)
+		dependsOnDiags := ValidateDependsOn(c.stack, c.config.DependsOn)
 		diags = diags.Append(dependsOnDiags)
 
 		// We don't actually exit if we found errors with the input variables
 		// or depends_on attribute, we can still validate the actual module tree
 		// without them.
 
-		providerTypes, providerDiags := EvalProviderTypes(ctx, c.StackConfig(ctx), c.config.ProviderConfigs, phase, c)
+		providerTypes, providerDiags := EvalProviderTypes(ctx, c.stack, c.config.ProviderConfigs, phase, c)
 		diags = diags.Append(providerDiags)
 		if providerDiags.HasErrors() {
 			// If there's invalid provider configuration, we can't actually go
@@ -328,7 +328,7 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 			providerFactories[addr] = func() (providers.Interface, error) {
 				// Lazily fetch the unconfigured client for the provider
 				// as and when we need it.
-				provider, err := c.main.ProviderType(ctx, addr).UnconfiguredClient()
+				provider, err := c.main.ProviderType(addr).UnconfiguredClient()
 				if err != nil {
 					return nil, err
 				}
@@ -353,13 +353,13 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 			return diags, nil
 		}
 
-		providerClients, valid := unconfiguredProviderClients(ctx, c.main, providerTypes)
+		providerClients, valid := unconfiguredProviderClients(c.main, providerTypes)
 		if !valid {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Cannot validate component",
-				Detail:   fmt.Sprintf("Cannot validate %s because its provider configuration assignments are invalid.", c.Addr()),
-				Subject:  decl.DeclRange.ToHCL().Ptr(),
+				Detail:   fmt.Sprintf("Cannot validate %s because its provider configuration assignments are invalid.", c.addr),
+				Subject:  c.config.DeclRange.ToHCL().Ptr(),
 			})
 			return diags, nil
 		}
@@ -382,10 +382,20 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 		}))
 		return diags, nil
 	})
-	if err != nil {
-		// this is crazy, we never return an error from the inner function so
-		// this really shouldn't happen.
-		panic(fmt.Sprintf("unexpected error from validate.Do: %s", err))
+	switch err := err.(type) {
+	case promising.ErrSelfDependent:
+		// This is a case where the component is self-dependent, which is
+		// a cycle that we can't resolve. We'll report this as a diagnostic
+		// and then continue on to report any other diagnostics that we found.
+		// The promise reporter is main, so that we can get the names of all promises
+		// involved in the cycle.
+		diags = diags.Append(diagnosticsForPromisingTaskError(err))
+	default:
+		if err != nil {
+			// this is crazy, we never return an error from the inner function so
+			// this really shouldn't happen.
+			panic(fmt.Sprintf("unexpected error from validate.Do: %s", err))
+		}
 	}
 
 	return diags
@@ -402,191 +412,5 @@ func (c *ComponentConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedC
 }
 
 func (c *ComponentConfig) tracingName() string {
-	return c.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (c *ComponentConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	cb(c.validate.PromiseID(), c.Addr().String())
-	cb(c.moduleTree.PromiseID(), c.Addr().String()+" modules")
-}
-
-// sourceBundleModuleWalker is an implementation of [configs.ModuleWalker]
-// that loads all modules from a single source bundle.
-type sourceBundleModuleWalker struct {
-	absoluteSourceAddrs map[string]sourceaddrs.FinalSource
-	sources             *sourcebundle.Bundle
-	parser              *configs.SourceBundleParser
-}
-
-func newSourceBundleModuleWalker(rootModuleSource sourceaddrs.FinalSource, sources *sourcebundle.Bundle, parser *configs.SourceBundleParser) *sourceBundleModuleWalker {
-	absoluteSourceAddrs := make(map[string]sourceaddrs.FinalSource, 1)
-	absoluteSourceAddrs[addrs.RootModule.String()] = rootModuleSource
-	return &sourceBundleModuleWalker{
-		absoluteSourceAddrs: absoluteSourceAddrs,
-		sources:             sources,
-		parser:              parser,
-	}
-}
-
-// LoadModule implements configs.ModuleWalker.
-func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
-	var diags hcl.Diagnostics
-
-	// First we need to assemble the "final source address" for the module
-	// by asking the source bundle to match the given source address and
-	// version against what's in the bundle manifest. This should cause
-	// use to make the same decision that the source bundler made about
-	// which real package to use.
-	finalSourceAddr, err := w.finalSourceForModule(req.SourceAddr, &req.VersionConstraint.Required)
-	if err != nil {
-		// We should not typically get here because we're translating
-		// Terraform's own source address representations to the same
-		// representations the source bundle builder would've used, but
-		// we'll be robust about it nonetheless.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Can't load module for component",
-			Detail:   fmt.Sprintf("Invalid source address: %s.", err),
-			Subject:  req.SourceAddrRange.Ptr(),
-		})
-		return nil, nil, diags
-	}
-
-	absoluteSourceAddr, err := w.absoluteSourceAddr(finalSourceAddr, req.Parent)
-	if err != nil {
-		// Again, this should not happen, but let's ensure we can debug if it
-		// does.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Can't load module for component",
-			Detail:   fmt.Sprintf("Unable to determin absolute source address: %s.", err),
-			Subject:  req.SourceAddrRange.Ptr(),
-		})
-		return nil, nil, diags
-	}
-
-	// We store the absolute source address for this module so that any in-repo
-	// child modules can use it to construct their absolute source addresses
-	// too.
-	w.absoluteSourceAddrs[req.Path.String()] = absoluteSourceAddr
-
-	_, err = w.sources.LocalPathForSource(absoluteSourceAddr)
-	if err != nil {
-		// We should not get here if the source bundle was constructed
-		// correctly.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Can't load module for component",
-			Detail:   fmt.Sprintf("Failed to load this component's module %s: %s.", req.Path.String(), tfdiags.FormatError(err)),
-			Subject:  req.SourceAddrRange.Ptr(),
-		})
-		return nil, nil, diags
-	}
-
-	mod, moreDiags := w.parser.LoadConfigDir(absoluteSourceAddr)
-	diags = append(diags, moreDiags...)
-
-	// Annoyingly we now need to translate our version selection back into
-	// the legacy type again, so we can return it through the ModuleWalker API.
-	var legacyV *version.Version
-	if modSrc, ok := finalSourceAddr.(sourceaddrs.RegistrySourceFinal); ok {
-		legacyV, err = w.legacyVersionForVersion(modSrc.SelectedVersion())
-		if err != nil {
-			// It would be very strange to get in here because by now we've
-			// already round-tripped between the legacy and modern version
-			// constraint representations once, so we should have a version
-			// number that's compatible with both.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Can't load module for component",
-				Detail:   fmt.Sprintf("Invalid version string %q: %s.", modSrc.SelectedVersion(), err),
-				Subject:  req.SourceAddrRange.Ptr(),
-			})
-		}
-	}
-	return mod, legacyV, diags
-}
-
-func (w *sourceBundleModuleWalker) finalSourceForModule(tfSourceAddr addrs.ModuleSource, versionConstraints *version.Constraints) (sourceaddrs.FinalSource, error) {
-	// Unfortunately the configs package still uses our old model of version
-	// constraints and Terraform's own form of source addresses, so we need
-	// to adapt to what the sourcebundle API is expecting.
-	sourceAddr, err := w.bundleSourceAddrForTerraformSourceAddr(tfSourceAddr)
-	if err != nil {
-		return nil, err
-	}
-	var allowedVersions versions.Set
-	if versionConstraints != nil {
-		allowedVersions, err = w.versionSetForLegacyVersionConstraints(versionConstraints)
-		if err != nil {
-			return nil, fmt.Errorf("invalid version constraints: %w", err)
-		}
-	} else {
-		allowedVersions = versions.Released
-	}
-
-	switch sourceAddr := sourceAddr.(type) {
-	case sourceaddrs.FinalSource:
-		// Most source address types are already final source addresses.
-		return sourceAddr, nil
-	case sourceaddrs.RegistrySource:
-		// Registry sources are trickier because we need to figure out which
-		// exact version we're using.
-		vs := w.sources.RegistryPackageVersions(sourceAddr.Package())
-		v := vs.NewestInSet(allowedVersions)
-		return sourceAddr.Versioned(v), nil
-	default:
-		// Should not get here because the above should be exhaustive for all
-		// possible address types.
-		return nil, fmt.Errorf("unsupported source address type %T", tfSourceAddr)
-	}
-}
-
-func (w *sourceBundleModuleWalker) bundleSourceAddrForTerraformSourceAddr(tfSourceAddr addrs.ModuleSource) (sourceaddrs.Source, error) {
-	// In practice this should always succeed because the source bundle builder
-	// would've parsed the same source addresses using these same parsers
-	// and so source bundle building would've failed if the given address were
-	// outside the subset supported for source bundles.
-	switch tfSourceAddr := tfSourceAddr.(type) {
-	case addrs.ModuleSourceLocal:
-		return sourceaddrs.ParseLocalSource(tfSourceAddr.String())
-	case addrs.ModuleSourceRemote:
-		return sourceaddrs.ParseRemoteSource(tfSourceAddr.String())
-	case addrs.ModuleSourceRegistry:
-		return sourceaddrs.ParseRegistrySource(tfSourceAddr.String())
-	default:
-		// Should not get here because the above should be exhaustive for all
-		// possible address types.
-		return nil, fmt.Errorf("unsupported source address type %T", tfSourceAddr)
-	}
-}
-
-func (w *sourceBundleModuleWalker) absoluteSourceAddr(sourceAddr sourceaddrs.FinalSource, parent *configs.Config) (sourceaddrs.FinalSource, error) {
-	switch source := sourceAddr.(type) {
-	case sourceaddrs.LocalSource:
-		parentPath := addrs.RootModule
-		if parent != nil {
-			parentPath = parent.Path
-		}
-		absoluteParentSourceAddr, ok := w.absoluteSourceAddrs[parentPath.String()]
-		if !ok {
-			return nil, fmt.Errorf("unexpected missing source address for module parent %q", parentPath)
-		}
-		return sourceaddrs.ResolveRelativeFinalSource(absoluteParentSourceAddr, source)
-	default:
-		return sourceAddr, nil
-	}
-}
-
-func (w *sourceBundleModuleWalker) versionSetForLegacyVersionConstraints(versionConstraints *version.Constraints) (versions.Set, error) {
-	// In practice this should always succeed because the source bundle builder
-	// would've parsed the same version constraints using this same parser
-	// and so source bundle building would've failed if the given address were
-	// outside the subset supported for source bundles.
-	return versions.MeetingConstraintsStringRuby(versionConstraints.String())
-}
-
-func (w *sourceBundleModuleWalker) legacyVersionForVersion(v versions.Version) (*version.Version, error) {
-	return version.NewVersion(v.String())
+	return c.addr.String()
 }

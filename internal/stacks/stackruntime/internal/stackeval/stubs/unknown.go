@@ -8,6 +8,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -80,7 +81,7 @@ func (u *unknownProvider) UpgradeResourceIdentity(request providers.UpgradeResou
 	return u.unconfiguredClient.UpgradeResourceIdentity(request)
 }
 
-func (u *unknownProvider) ConfigureProvider(request providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+func (u *unknownProvider) ConfigureProvider(_ providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 	// This shouldn't be called, we don't configure an unknown provider within
 	// stacks and Terraform Core shouldn't call this method.
 	panic("attempted to configure an unknown provider")
@@ -134,7 +135,7 @@ func (u *unknownProvider) PlanResourceChange(request providers.PlanResourceChang
 		}
 
 		return providers.PlanResourceChangeResponse{
-			PlannedState: val,
+			PlannedState: ephemeral.StripWriteOnlyAttributes(val, schema.Body),
 			Deferred: &providers.Deferred{
 				Reason: providers.DeferredReasonProviderConfigUnknown,
 			},
@@ -199,7 +200,7 @@ func (u *unknownProvider) ImportResourceState(request providers.ImportResourceSt
 	}
 }
 
-func (u *unknownProvider) MoveResourceState(request providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
+func (u *unknownProvider) MoveResourceState(_ providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -232,7 +233,7 @@ func (u *unknownProvider) ReadDataSource(request providers.ReadDataSourceRequest
 		}
 
 		return providers.ReadDataSourceResponse{
-			State: val,
+			State: ephemeral.StripWriteOnlyAttributes(val, schema.Body),
 			Deferred: &providers.Deferred{
 				Reason: providers.DeferredReasonProviderConfigUnknown,
 			},
@@ -284,7 +285,7 @@ func (u *unknownProvider) CloseEphemeralResource(providers.CloseEphemeralResourc
 	return providers.CloseEphemeralResourceResponse{}
 }
 
-func (u *unknownProvider) CallFunction(request providers.CallFunctionRequest) providers.CallFunctionResponse {
+func (u *unknownProvider) CallFunction(_ providers.CallFunctionRequest) providers.CallFunctionResponse {
 	return providers.CallFunctionResponse{
 		Err: fmt.Errorf("CallFunction shouldn't be called on an unknown provider; this is a bug in Terraform - please report this error"),
 	}

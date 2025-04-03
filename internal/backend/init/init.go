@@ -128,7 +128,7 @@ func (b deprecatedBackendShim) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.
 // warning during validation.
 func deprecateBackend(b backend.Backend, message string) backend.Backend {
 	// Since a Backend wrapped by deprecatedBackendShim can no longer be
-	// asserted as an Enhanced or Local backend, disallow those types here
+	// asserted as an Operations Backend or Local backend, disallow those types here
 	// entirely.  If something other than a basic backend.Backend needs to be
 	// deprecated, we can add that functionality to schema.Backend or the
 	// backend itself.

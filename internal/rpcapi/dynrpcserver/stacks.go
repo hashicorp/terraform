@@ -54,6 +54,14 @@ func (s *Stacks) CloseState(a0 context.Context, a1 *stacks.CloseStackState_Reque
 	return impl.CloseState(a0, a1)
 }
 
+func (s *Stacks) CloseTerraformState(a0 context.Context, a1 *stacks.CloseTerraformState_Request) (*stacks.CloseTerraformState_Response, error) {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return nil, err
+	}
+	return impl.CloseTerraformState(a0, a1)
+}
+
 func (s *Stacks) FindStackConfigurationComponents(a0 context.Context, a1 *stacks.FindStackConfigurationComponents_Request) (*stacks.FindStackConfigurationComponents_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
@@ -76,6 +84,14 @@ func (s *Stacks) ListResourceIdentities(a0 context.Context, a1 *stacks.ListResou
 		return nil, err
 	}
 	return impl.ListResourceIdentities(a0, a1)
+}
+
+func (s *Stacks) MigrateTerraformState(a0 *stacks.MigrateTerraformState_Request, a1 stacks.Stacks_MigrateTerraformStateServer) error {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return err
+	}
+	return impl.MigrateTerraformState(a0, a1)
 }
 
 func (s *Stacks) OpenPlan(a0 stacks.Stacks_OpenPlanServer) error {
@@ -108,6 +124,14 @@ func (s *Stacks) OpenState(a0 stacks.Stacks_OpenStateServer) error {
 		return err
 	}
 	return impl.OpenState(a0)
+}
+
+func (s *Stacks) OpenTerraformState(a0 context.Context, a1 *stacks.OpenTerraformState_Request) (*stacks.OpenTerraformState_Response, error) {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return nil, err
+	}
+	return impl.OpenTerraformState(a0, a1)
 }
 
 func (s *Stacks) PlanStackChanges(a0 *stacks.PlanStackChanges_Request, a1 stacks.Stacks_PlanStackChangesServer) error {

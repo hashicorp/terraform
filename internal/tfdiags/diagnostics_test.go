@@ -542,3 +542,251 @@ func TestWarnings(t *testing.T) {
 		})
 	}
 }
+
+func TestAppendWithoutDuplicates(t *testing.T) {
+	type diagFlat struct {
+		Severity Severity
+		Summary  string
+		Detail   string
+		Subject  *SourceRange
+		Context  *SourceRange
+	}
+
+	tests := map[string]struct {
+		Cons func(Diagnostics) Diagnostics
+		Want []diagFlat
+	}{
+		"nil": {
+			func(diags Diagnostics) Diagnostics {
+				return nil
+			},
+			nil,
+		},
+		"errors.New": {
+			// these could be from different locations, so we can't dedupe them
+			func(diags Diagnostics) Diagnostics {
+				return diags.Append(
+					errors.New("oh no bad"),
+					errors.New("oh no bad"),
+				)
+			},
+			[]diagFlat{
+				{
+					Severity: Error,
+					Summary:  "oh no bad",
+				},
+				{
+					Severity: Error,
+					Summary:  "oh no bad",
+				},
+			},
+		},
+		"hcl.Diagnostic": {
+			func(diags Diagnostics) Diagnostics {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+					Subject: &hcl.Range{
+						Filename: "foo.tf",
+						Start:    hcl.Pos{Line: 1, Column: 10, Byte: 9},
+						End:      hcl.Pos{Line: 2, Column: 3, Byte: 25},
+					},
+					Context: &hcl.Range{
+						Filename: "foo.tf",
+						Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
+						End:      hcl.Pos{Line: 3, Column: 1, Byte: 30},
+					},
+				})
+				// exact same diag
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+					Subject: &hcl.Range{
+						Filename: "foo.tf",
+						Start:    hcl.Pos{Line: 1, Column: 10, Byte: 9},
+						End:      hcl.Pos{Line: 2, Column: 3, Byte: 25},
+					},
+					Context: &hcl.Range{
+						Filename: "foo.tf",
+						Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
+						End:      hcl.Pos{Line: 3, Column: 1, Byte: 30},
+					},
+				})
+				// same diag as prev, different location
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+					Subject: &hcl.Range{
+						Filename: "foo.tf",
+						Start:    hcl.Pos{Line: 4, Column: 10, Byte: 40},
+						End:      hcl.Pos{Line: 5, Column: 3, Byte: 55},
+					},
+					Context: &hcl.Range{
+						Filename: "foo.tf",
+						Start:    hcl.Pos{Line: 4, Column: 1, Byte: 40},
+						End:      hcl.Pos{Line: 6, Column: 1, Byte: 60},
+					},
+				})
+				return diags
+			},
+			[]diagFlat{
+				{
+					Severity: Error,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+					Subject: &SourceRange{
+						Filename: "foo.tf",
+						Start:    SourcePos{Line: 1, Column: 10, Byte: 9},
+						End:      SourcePos{Line: 2, Column: 3, Byte: 25},
+					},
+					Context: &SourceRange{
+						Filename: "foo.tf",
+						Start:    SourcePos{Line: 1, Column: 1, Byte: 0},
+						End:      SourcePos{Line: 3, Column: 1, Byte: 30},
+					},
+				},
+				{
+					Severity: Error,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+					Subject: &SourceRange{
+						Filename: "foo.tf",
+						Start:    SourcePos{Line: 4, Column: 10, Byte: 40},
+						End:      SourcePos{Line: 5, Column: 3, Byte: 55},
+					},
+					Context: &SourceRange{
+						Filename: "foo.tf",
+						Start:    SourcePos{Line: 4, Column: 1, Byte: 40},
+						End:      SourcePos{Line: 6, Column: 1, Byte: 60},
+					},
+				},
+			},
+		},
+		"simple warning": {
+			func(diags Diagnostics) Diagnostics {
+				diags = diags.Append(SimpleWarning("Don't forget your toothbrush!"))
+				diags = diags.Append(SimpleWarning("Don't forget your toothbrush!"))
+				return diags
+			},
+			[]diagFlat{
+				{
+					Severity: Warning,
+					Summary:  "Don't forget your toothbrush!",
+				},
+				{
+					Severity: Warning,
+					Summary:  "Don't forget your toothbrush!",
+				},
+			},
+		},
+		"hcl.Diagnostic extra": {
+			// Extra can contain anything, and we don't know how to compare
+			// those values, so we can't dedupe them
+			func(diags Diagnostics) Diagnostics {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+					Extra:    42,
+					Subject: &hcl.Range{
+						Filename: "foo.tf",
+						Start:    hcl.Pos{Line: 1, Column: 10, Byte: 9},
+						End:      hcl.Pos{Line: 2, Column: 3, Byte: 25},
+					},
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+					Extra:    38,
+					Subject: &hcl.Range{
+						Filename: "foo.tf",
+						Start:    hcl.Pos{Line: 1, Column: 10, Byte: 9},
+						End:      hcl.Pos{Line: 2, Column: 3, Byte: 25},
+					},
+				})
+				return diags
+			},
+			[]diagFlat{
+				{
+					Severity: Error,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+					Subject: &SourceRange{
+						Filename: "foo.tf",
+						Start:    SourcePos{Line: 1, Column: 10, Byte: 9},
+						End:      SourcePos{Line: 2, Column: 3, Byte: 25},
+					},
+				},
+				{
+					Severity: Error,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+					Subject: &SourceRange{
+						Filename: "foo.tf",
+						Start:    SourcePos{Line: 1, Column: 10, Byte: 9},
+						End:      SourcePos{Line: 2, Column: 3, Byte: 25},
+					},
+				},
+			},
+		},
+		"hcl.Diagnostic no-location": {
+			// Extra can contain anything, and we don't know how to compare
+			// those values, so we can't dedupe them
+			func(diags Diagnostics) Diagnostics {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+				})
+				return diags
+			},
+			[]diagFlat{
+				{
+					Severity: Error,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+				},
+				{
+					Severity: Error,
+					Summary:  "Something bad happened",
+					Detail:   "It was really, really bad.",
+				},
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			var deduped Diagnostics
+
+			diags := test.Cons(nil)
+			deduped = deduped.AppendWithoutDuplicates(diags...)
+
+			var got []diagFlat
+			for _, item := range deduped {
+				desc := item.Description()
+				source := item.Source()
+				got = append(got, diagFlat{
+					Severity: item.Severity(),
+					Summary:  desc.Summary,
+					Detail:   desc.Detail,
+					Subject:  source.Subject,
+					Context:  source.Context,
+				})
+			}
+
+			if !reflect.DeepEqual(got, test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}

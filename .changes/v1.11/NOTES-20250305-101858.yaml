@@ -1,5 +1,0 @@
-kind: NOTES
-body: Updated dependency github.com/hashicorp/aws-sdk-go-base/v2 to v2.0.0-beta.62 to support newly added AWS regions
-time: 2025-03-05T10:18:58.355372-05:00
-custom:
-    Issue: "36625"

@@ -37,8 +37,7 @@ import (
 // are evaluated, during the planning stage, we will validate that the FromIndex
 // values are unique.
 type Removed struct {
-	FromComponent stackaddrs.Component
-	FromIndex     hcl.Expression
+	From stackaddrs.RemovedFrom
 
 	SourceAddr                               sourceaddrs.Source
 	VersionConstraints                       constraints.IntersectionSpec
@@ -98,13 +97,12 @@ func decodeRemovedBlock(block *hcl.Block) (*Removed, tfdiags.Diagnostics) {
 	// We're splitting out the component and the index now, as we can decode and
 	// analyse the component now. The index might be referencing the for_each
 	// variable, which we can't decode yet.
-	component, index, moreDiags := stackaddrs.ParseRemovedFrom(content.Attributes["from"].Expr)
+	from, moreDiags := stackaddrs.ParseRemovedFrom(content.Attributes["from"].Expr)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return nil, diags
 	}
-	ret.FromComponent = component
-	ret.FromIndex = index
+	ret.From = from
 
 	sourceAddr, versionConstraints, moreDiags := decodeSourceAddrArguments(
 		content.Attributes["source"],
@@ -127,35 +125,24 @@ func decodeRemovedBlock(block *hcl.Block) (*Removed, tfdiags.Diagnostics) {
 	// reasonable state for careful partial analysis.
 
 	if attr, ok := content.Attributes["for_each"]; ok {
-		if ret.FromIndex == nil {
-			// if we have a for_each expression, then we must have an index
-			// otherwise we'll try and remove the same thing multiple times.
+		matches := false
+		for _, variable := range ret.From.Variables() {
+			if root, ok := variable[0].(hcl.TraverseRoot); ok {
+				if root.Name == "each" {
+					matches = true
+					break
+				}
+			}
+		}
+		if !matches {
+			// You have to refer to the for_each attribute somewhere in the
+			// from attribute.
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid for_each expression",
 				Detail:   "A removed block with a for_each expression must reference that expression within the `from` attribute.",
 				Subject:  attr.NameRange.Ptr(),
 			})
-		} else {
-			matches := false
-			for _, variable := range ret.FromIndex.Variables() {
-				if root, ok := variable[0].(hcl.TraverseRoot); ok {
-					if root.Name == "each" {
-						matches = true
-						break
-					}
-				}
-			}
-			if !matches {
-				// You have to refer to the for_each attribute somewhere in the
-				// from attribute.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid for_each expression",
-					Detail:   "A removed block with a for_each expression must reference that expression within the `from` attribute.",
-					Subject:  attr.NameRange.Ptr(),
-				})
-			}
 		}
 
 		ret.ForEach = attr.Expr

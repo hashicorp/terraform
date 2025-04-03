@@ -76,7 +76,7 @@ type Applyable interface {
 
 // ApplyableComponentInstance is an interface that represents a single instance
 // of a component that can be applied. This is going to be a ComponentInstance
-// or a RemovedInstance.
+// or a RemovedComponentInstance.
 type ApplyableComponentInstance interface {
 	ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]
 
@@ -89,7 +89,7 @@ type ApplyableComponentInstance interface {
 	// for the case where the apply operation was skipped. This is used to
 	// ensure that the apply operation always returns a result, even if it
 	// didn't actually do anything.
-	PlaceholderApplyResultForSkippedApply(ctx context.Context, plan *plans.Plan) *ComponentInstanceApplyResult
+	PlaceholderApplyResultForSkippedApply(plan *plans.Plan) *ComponentInstanceApplyResult
 }
 
 func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requiredProviders map[addrs.LocalProviderConfig]hcl.Expression, inst ApplyableComponentInstance) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
@@ -112,7 +112,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 	// This is the result to return along with any errors that prevent us from
 	// even starting the modules runtime apply phase. It reports that nothing
 	// changed at all.
-	noOpResult := inst.PlaceholderApplyResultForSkippedApply(ctx, plan)
+	noOpResult := inst.PlaceholderApplyResultForSkippedApply(plan)
 
 	stackPlan := main.PlanBeingApplied().Components.Get(inst.Addr())
 
@@ -159,7 +159,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		providerFactories[addr] = func() (providers.Interface, error) {
 			// Lazily fetch the unconfigured client for the provider
 			// as and when we need it.
-			provider, err := main.ProviderType(ctx, addr).UnconfiguredClient()
+			provider, err := main.ProviderType(addr).UnconfiguredClient()
 			if err != nil {
 				return nil, err
 			}
@@ -201,7 +201,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 			Severity: hcl.DiagError,
 			Summary:  "Cannot apply component plan",
 			Detail:   fmt.Sprintf("Cannot apply the plan for %s because the configured provider configuration assignments are invalid.", inst.Addr()),
-			Subject:  inst.DeclRange(ctx),
+			Subject:  inst.DeclRange(),
 		})
 		return nil, diags
 	}

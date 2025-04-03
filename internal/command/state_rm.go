@@ -16,7 +16,8 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// StateRmCommand is a Command implementation that shows a single resource.
+// StateRmCommand is a Command implementation that removes
+// a single resource from the state.
 type StateRmCommand struct {
 	StateMeta
 }

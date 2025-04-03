@@ -319,7 +319,7 @@ func TestContext2Validate_countVariableNoDefault(t *testing.T) {
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	_, diags = c.Plan(m, nil, &PlanOpts{})
 	if !diags.HasErrors() {
@@ -868,7 +868,7 @@ func TestContext2Validate_requiredVar(t *testing.T) {
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	// NOTE: This test has grown idiosyncratic because originally Terraform
 	// would (optionally) check variables during validation, and then in
@@ -2957,7 +2957,7 @@ resource "bar_instance" "test" {
 			providerAddr: *provider.GetProviderSchemaResponse,
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	// Many of the MockProvider methods check for this, so we'll set it to be
 	// true externally.
@@ -3092,5 +3092,5 @@ module "child" {
 
 	ctx := testContext2(t, &ContextOpts{})
 	diags := ctx.Validate(m, &ValidateOpts{})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 }

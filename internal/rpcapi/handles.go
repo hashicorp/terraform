@@ -8,11 +8,13 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-slug/sourcebundle"
+
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 // handle represents an identifier shared between client and server to identify
@@ -135,6 +137,19 @@ func (t *handleTable) StackPlan(hnd handle[*stackplan.Plan]) *stackplan.Plan {
 }
 
 func (t *handleTable) CloseStackPlan(hnd handle[*stackplan.Plan]) error {
+	return closeHandle(t, hnd)
+}
+
+func (t *handleTable) NewTerraformState(state *states.State) handle[*states.State] {
+	return newHandle(t, state)
+}
+
+func (t *handleTable) TerraformState(hnd handle[*states.State]) *states.State {
+	ret, _ := readHandle(t, hnd) // non-existent or invalid returns nil
+	return ret
+}
+
+func (t *handleTable) CloseTerraformState(hnd handle[*states.State]) error {
 	return closeHandle(t, hnd)
 }
 

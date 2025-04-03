@@ -6,6 +6,9 @@ package rpcapi
 import (
 	"context"
 	"io"
+	"maps"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -31,11 +34,13 @@ import (
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackmigrate"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	stacks_testing_provider "github.com/hashicorp/terraform/internal/stacks/stackruntime/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -43,7 +48,7 @@ func TestStacksOpenCloseStackConfiguration(t *testing.T) {
 	ctx := context.Background()
 
 	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
 
 	// In normal use a client would have previously opened a source bundle
 	// using Dependencies.OpenSourceBundle, so we'll simulate the effect
@@ -125,7 +130,7 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 	ctx := context.Background()
 
 	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
 
 	// In normal use a client would have previously opened a source bundle
 	// using Dependencies.OpenSourceBundle, so we'll simulate the effect
@@ -256,7 +261,7 @@ func TestStacksOpenState(t *testing.T) {
 	ctx := context.Background()
 
 	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
 
 	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
 		stacks.RegisterStacksServer(srv, stacksServer)
@@ -321,7 +326,7 @@ func TestStacksOpenPlan(t *testing.T) {
 	ctx := context.Background()
 
 	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
 
 	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
 		stacks.RegisterStacksServer(srv, stacksServer)
@@ -392,7 +397,7 @@ func TestStacksPlanStackChanges(t *testing.T) {
 	}
 
 	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
 	stacksServer.planTimestampOverride = &fakePlanTimestamp
 
 	fakeSourceBundle := &sourcebundle.Bundle{}
@@ -812,7 +817,7 @@ func TestStackChangeProgress(t *testing.T) {
 			ctx := context.Background()
 
 			handles := newHandleTable()
-			stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+			stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
 
 			// For this test, we do actually want to use a "real" provider. We'll
 			// use the providerCacheOverride to side-load the testing provider.
@@ -966,6 +971,283 @@ func TestStackChangeProgress(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestStacksOpenTerraformState_ConfigPath(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		stacks.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+
+	s := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	statePath := stackmigrate.TestStateFile(t, s)
+
+	stacksClient := stacks.NewStacksClient(grpcClient)
+	resp, err := stacksClient.OpenTerraformState(ctx, &stacks.OpenTerraformState_Request{
+		State: &stacks.OpenTerraformState_Request_ConfigPath{
+			ConfigPath: strings.TrimSuffix(statePath, "/terraform.tfstate"),
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hnd := handle[*states.State](resp.StateHandle)
+	state := handles.TerraformState(hnd)
+	if state == nil {
+		t.Fatalf("returned handle %d does not refer to a Terraform state", resp.StateHandle)
+	}
+
+	if !statefile.StatesMarshalEqual(s, state) {
+		t.Fatalf("loaded state does not match original state")
+	}
+}
+
+func TestStacksOpenTerraformState_Raw(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		stacks.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+
+	s := []byte(`{
+  "version": 4,
+  "terraform_version": "1.12.0",
+  "serial": 0,
+  "lineage": "fake-for-testing",
+  "outputs": {},
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "foo",
+      "provider": "provider[\"registry.terraform.io/hashicorp/test\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "bar",
+            "foo": "value",
+            "bar": "value"
+          },
+          "sensitive_attributes": []
+        }
+      ]
+    }
+  ],
+  "check_results": null
+}
+`)
+
+	stacksClient := stacks.NewStacksClient(grpcClient)
+	resp, err := stacksClient.OpenTerraformState(ctx, &stacks.OpenTerraformState_Request{
+		State: &stacks.OpenTerraformState_Request_Raw{
+			Raw: s,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hnd := handle[*states.State](resp.StateHandle)
+	state := handles.TerraformState(hnd)
+	if state == nil {
+		t.Fatalf("returned handle %d does not refer to a Terraform state", resp.StateHandle)
+	}
+
+	if !slices.Contains(slices.Collect(maps.Keys(state.Modules[""].Resources)), "test_instance.foo") {
+		t.Fatalf("loaded state does not contain expected resource")
+	}
+}
+
+func TestStacksMigrateTerraformState(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		stacks.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+
+	s := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "testing_deferred_resource",
+				Name: "resource",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"hello","value":"world","deferred":false}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("testing"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+
+	statePath := stackmigrate.TestStateFile(t, s)
+	stacksClient := stacks.NewStacksClient(grpcClient)
+	resp, err := stacksClient.OpenTerraformState(ctx, &stacks.OpenTerraformState_Request{
+		State: &stacks.OpenTerraformState_Request_ConfigPath{
+			ConfigPath: strings.TrimSuffix(statePath, "/terraform.tfstate"),
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hnd := handle[*states.State](resp.StateHandle)
+	state := handles.TerraformState(hnd)
+	if state == nil {
+		t.Fatalf("returned handle %d does not refer to a Terraform state", resp.StateHandle)
+	}
+
+	if !statefile.StatesMarshalEqual(s, state) {
+		t.Fatalf("loaded state does not match original state")
+	}
+
+	// up until now is basically what we did in TestStacksOpenTerraformState_ConfigPath
+	// now we're going to migrate the state and check that the migration worked
+
+	// In normal use a client would have previously opened a source bundle
+	// using Dependencies.OpenSourceBundle, so we'll simulate the effect
+	// of that here.
+
+	sources, err := sourcebundle.OpenDir("testdata/sourcebundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sourcesHnd := handles.NewSourceBundle(sources)
+
+	openResp, err := stacksServer.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+		SourceBundleHandle: sourcesHnd.ForProtobuf(),
+		SourceAddress: &terraform1.SourceAddress{
+			Source: "git::https://example.com/baz.git",
+		},
+	})
+	if err != nil {
+		t.Fatalf("unable to open stack configuration: %s", err)
+	}
+
+	// For this test, we do actually want to use a "real" provider. We'll
+	// use the providerCacheOverride to side-load the testing provider.
+	stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+	stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+		return stacks_testing_provider.NewProvider(t), nil
+	}
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	lockHandle := handles.NewDependencyLocks(lock)
+
+	stream, err := stacksClient.MigrateTerraformState(ctx, &stacks.MigrateTerraformState_Request{
+		StateHandle:           resp.StateHandle,
+		ConfigHandle:          openResp.StackConfigHandle,
+		DependencyLocksHandle: lockHandle.ForProtobuf(),
+		Mapping: &stacks.MigrateTerraformState_Request_Simple{
+			Simple: &stacks.MigrateTerraformState_Request_Mapping{
+				ResourceAddressMap: map[string]string{
+					"testing_deferred_resource.resource": "self",
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	gotEvents := []*stacks.MigrateTerraformState_Event{}
+	for {
+		event, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		gotEvents = append(gotEvents, event)
+	}
+
+	wantChanges := []*stacks.AppliedChange_ChangeDescription{
+		{
+			Key: "RSRCcomponent.self,testing_deferred_resource.resource,cur",
+			Description: &stacks.AppliedChange_ChangeDescription_ResourceInstance{
+				ResourceInstance: &stacks.AppliedChange_ResourceInstance{
+					Addr: &stacks.ResourceInstanceObjectInStackAddr{
+						ComponentInstanceAddr: "component.self",
+						ResourceInstanceAddr:  "testing_deferred_resource.resource",
+					},
+					NewValue: &stacks.DynamicValue{
+						Msgpack: mustMsgpack(t, cty.ObjectVal(map[string]cty.Value{
+							"id":       cty.StringVal("hello"),
+							"value":    cty.StringVal("world"),
+							"deferred": cty.False,
+						}), cty.Object(map[string]cty.Type{"id": cty.String, "value": cty.String, "deferred": cty.Bool})),
+					},
+					ResourceMode: stacks.ResourceMode_MANAGED,
+					ResourceType: "testing_deferred_resource",
+					ProviderAddr: "registry.terraform.io/hashicorp/testing",
+				},
+			},
+		},
+		{
+			Key: "CMPTcomponent.self",
+			Description: &stacks.AppliedChange_ChangeDescription_ComponentInstance{
+				ComponentInstance: &stacks.AppliedChange_ComponentInstance{
+					ComponentAddr:         "component.self",
+					ComponentInstanceAddr: "component.self",
+				},
+			},
+		},
+	}
+
+	if len(gotEvents) != len(wantChanges) {
+		t.Fatalf("expected %d events, got %d", len(wantChanges), len(gotEvents))
+	}
+
+	gotChanges := make([]*stacks.AppliedChange_ChangeDescription, len(gotEvents))
+	for i, evt := range gotEvents {
+		gotChanges[i] = evt.GetAppliedChange().Descriptions[0]
+	}
+	if diff := cmp.Diff(wantChanges, gotChanges, protocmp.Transform()); diff != "" {
+		t.Fatalf("wrong changes\n%s", diff)
 	}
 }
 

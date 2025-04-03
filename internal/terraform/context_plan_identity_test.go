@@ -781,7 +781,7 @@ func TestContext2Plan_resource_identity_plan(t *testing.T) {
 			if tc.expectDiagnostics != nil {
 				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiagnostics)
 			} else {
-				assertNoDiagnostics(t, diags)
+				tfdiags.AssertNoDiagnostics(t, diags)
 
 				if !tc.expectedPriorIdentity.IsNull() {
 					if !p.PlanResourceChangeCalled {

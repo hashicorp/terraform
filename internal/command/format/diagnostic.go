@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"iter"
+	"slices"
 	"sort"
 	"strings"
 
@@ -300,8 +301,7 @@ func (f *snippetFormatter) write() {
 			// This is particularly useful for expressions that get evaluated
 			// multiple times with different values, such as blocks using
 			// "count" and "for_each", or within "for" expressions.
-			values := make([]viewsjson.DiagnosticExpressionValue, len(snippet.Values))
-			copy(values, snippet.Values)
+			values := slices.Clone(snippet.Values)
 			sort.Slice(values, func(i, j int) bool {
 				return values[i].Traversal < values[j].Traversal
 			})

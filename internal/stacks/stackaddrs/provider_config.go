@@ -84,3 +84,13 @@ type ConfigProviderConfigInstance = InStackConfig[ProviderConfigInstance]
 
 // AbsProviderConfigInstance places a [ProviderConfigInstance] in the context of a particular [StackInstance].
 type AbsProviderConfigInstance = InStackInstance[ProviderConfigInstance]
+
+func AbsProviderToInstance(addr AbsProviderConfig, ik addrs.InstanceKey) AbsProviderConfigInstance {
+	return AbsProviderConfigInstance{
+		Stack: addr.Stack,
+		Item: ProviderConfigInstance{
+			ProviderConfig: addr.Item,
+			Key:            ik,
+		},
+	}
+}
