@@ -143,7 +143,7 @@ type GetProviderSchemaResponse struct {
 	Functions map[string]FunctionDecl
 
 	// Backends maps the backend type name to that type's schema.
-	StateStores map[string]Schema
+	StateStoreSchemas map[string]Schema
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
