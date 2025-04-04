@@ -6,6 +6,7 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"iter"
 	"sync"
 	"time"
 
@@ -36,21 +37,18 @@ type Stack struct {
 	deferred bool
 	mode     plans.Mode
 
-	// externalRemovedComponents are the set of removed blocks that might
-	// target components within either this stack or a child of this stack.
-	externalRemovedComponents collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent]
-	externalRemovedStackCalls collections.Map[stackaddrs.Stack, []*RemovedStackCall]
+	removed *Removed // contains removed logic
 
 	// The remaining fields memoize other objects we might create in response
 	// to method calls. Must lock "mu" before interacting with them.
-	mu             sync.Mutex
-	inputVariables map[stackaddrs.InputVariable]*InputVariable
-	localValues    map[stackaddrs.LocalValue]*LocalValue
-	stackCalls     map[stackaddrs.StackCall]*StackCall
-	outputValues   map[stackaddrs.OutputValue]*OutputValue
-	components     map[stackaddrs.Component]*Component
-	removed        *Removed
-	providers      map[stackaddrs.ProviderConfigRef]*Provider
+	mu                 sync.Mutex
+	inputVariables     map[stackaddrs.InputVariable]*InputVariable
+	localValues        map[stackaddrs.LocalValue]*LocalValue
+	stackCalls         map[stackaddrs.StackCall]*StackCall
+	outputValues       map[stackaddrs.OutputValue]*OutputValue
+	components         map[stackaddrs.Component]*Component
+	providers          map[stackaddrs.ProviderConfigRef]*Provider
+	removedInitialised bool
 }
 
 var (
@@ -64,19 +62,17 @@ func newStack(
 	addr stackaddrs.StackInstance,
 	parent *Stack,
 	config *StackConfig,
-	removedComponents collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent],
-	removedStackCalls collections.Map[stackaddrs.Stack, []*RemovedStackCall],
+	removed *Removed,
 	mode plans.Mode,
 	deferred bool) *Stack {
 	return &Stack{
-		parent:                    parent,
-		config:                    config,
-		addr:                      addr,
-		deferred:                  deferred,
-		mode:                      mode,
-		main:                      main,
-		externalRemovedComponents: removedComponents,
-		externalRemovedStackCalls: removedStackCalls,
+		parent:   parent,
+		config:   config,
+		addr:     addr,
+		deferred: deferred,
+		mode:     mode,
+		main:     main,
+		removed:  removed,
 	}
 }
 
@@ -95,7 +91,7 @@ func (s *Stack) ChildStack(ctx context.Context, addr stackaddrs.StackInstanceSte
 		}
 	}
 
-	calls := s.Removed().localStackCalls[callAddr]
+	calls := s.Removed().stackCalls[callAddr]
 	for _, call := range calls {
 		instances, _ := call.InstancesFor(ctx, s.addr, phase)
 		if instance, exists := instances[addr.Key]; exists {
@@ -221,10 +217,10 @@ func (s *Stack) EmbeddedStackCall(addr stackaddrs.StackCall) *StackCall {
 }
 
 func (s *Stack) RemovedEmbeddedStackCall(addr stackaddrs.StackCall) []*RemovedStackCall {
-	return s.Removed().localStackCalls[addr]
+	return s.Removed().stackCalls[addr]
 }
 
-func (s *Stack) KnownEmbeddedStacks(addr stackaddrs.StackCall, phase EvalPhase) collections.Set[stackaddrs.StackInstance] {
+func (s *Stack) KnownEmbeddedStacks(addr stackaddrs.StackCall, phase EvalPhase) iter.Seq[stackaddrs.StackInstance] {
 	switch phase {
 	case PlanPhase:
 		return s.main.PlanPrevState().StackInstances(stackaddrs.AbsStackCall{
@@ -239,7 +235,7 @@ func (s *Stack) KnownEmbeddedStacks(addr stackaddrs.StackCall, phase EvalPhase) 
 	default:
 		// We're not executing with an existing state in the other phases, so
 		// we have no known instances.
-		return collections.NewSet[stackaddrs.StackInstance]()
+		return func(yield func(stackaddrs.StackInstance) bool) {}
 	}
 }
 
@@ -274,16 +270,11 @@ func (s *Stack) Removed() *Removed {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.removed != nil {
+	if s.removedInitialised {
 		return s.removed
 	}
 
 	// otherwise we're going to initialise removed.
-
-	stackCallComponents := collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponent]()
-	localComponents := make(map[stackaddrs.Component][]*RemovedComponent)
-	embeddedStackCalls := collections.NewMap[stackaddrs.Stack, []*RemovedStackCall]()
-	localStackCalls := make(map[stackaddrs.StackCall][]*RemovedStackCall)
 
 	for addr, configs := range s.config.RemovedComponents().All() {
 		blocks := make([]*RemovedComponent, 0, len(configs))
@@ -291,12 +282,7 @@ func (s *Stack) Removed() *Removed {
 			blocks = append(blocks, newRemovedComponent(s.main, addr, s, config))
 		}
 
-		if addr.Stack.IsRoot() {
-			localComponents[addr.Item] = blocks
-			continue
-		}
-
-		stackCallComponents.Put(addr, blocks)
+		s.removed.AddComponent(addr, blocks)
 	}
 
 	for addr, configs := range s.config.RemovedStackCalls().All() {
@@ -305,35 +291,15 @@ func (s *Stack) Removed() *Removed {
 			blocks = append(blocks, newRemovedStackCall(s.main, addr, s, config))
 		}
 
-		if len(addr) == 1 {
-			localStackCalls[stackaddrs.StackCall{Name: addr[0].Name}] = blocks
-			continue
-		}
-		embeddedStackCalls.Put(addr, blocks)
+		s.removed.AddStackCall(addr, blocks)
 	}
 
-	for addr, configs := range s.externalRemovedComponents.All() {
-		if addr.Stack.IsRoot() {
-			localComponents[addr.Item] = append(localComponents[addr.Item], configs...)
-			continue
-		}
-		stackCallComponents.Put(addr, append(stackCallComponents.Get(addr), configs...))
-	}
-
-	for addr, configs := range s.externalRemovedStackCalls.All() {
-		if len(addr) == 1 {
-			localStackCalls[stackaddrs.StackCall{Name: addr[0].Name}] = append(localStackCalls[stackaddrs.StackCall{Name: addr[0].Name}], configs...)
-			continue
-		}
-		embeddedStackCalls.Put(addr, append(embeddedStackCalls.Get(addr), configs...))
-	}
-
-	s.removed = newRemoved(localComponents, stackCallComponents, localStackCalls, embeddedStackCalls)
+	s.removedInitialised = true
 	return s.removed
 }
 
 func (s *Stack) RemovedComponent(addr stackaddrs.Component) []*RemovedComponent {
-	return s.Removed().localComponents[addr]
+	return s.Removed().components[addr]
 }
 
 // ApplyableComponents returns the combination of removed blocks and declared
@@ -344,7 +310,7 @@ func (s *Stack) ApplyableComponents(addr stackaddrs.Component) (*Component, []*R
 
 // KnownComponentInstances returns a set of the component instances that belong
 // to the given component from the current state or plan.
-func (s *Stack) KnownComponentInstances(component stackaddrs.Component, phase EvalPhase) collections.Set[stackaddrs.ComponentInstance] {
+func (s *Stack) KnownComponentInstances(component stackaddrs.Component, phase EvalPhase) iter.Seq[stackaddrs.ComponentInstance] {
 	switch phase {
 	case PlanPhase:
 		return s.main.PlanPrevState().ComponentInstances(stackaddrs.AbsComponent{
@@ -352,14 +318,14 @@ func (s *Stack) KnownComponentInstances(component stackaddrs.Component, phase Ev
 			Item:  component,
 		})
 	case ApplyPhase:
-		return s.main.PlanBeingApplied().ComponentInstances(stackaddrs.AbsComponent{
+		return s.main.PlanBeingApplied().ComponentInstanceAddresses(stackaddrs.AbsComponent{
 			Stack: s.addr,
 			Item:  component,
 		})
 	default:
 		// We're not executing with an existing state in the other phases, so
 		// we have no known instances.
-		return collections.NewSet[stackaddrs.ComponentInstance]()
+		return func(yield func(stackaddrs.ComponentInstance) bool) {}
 	}
 }
 
@@ -655,7 +621,7 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 
 	// We're going to validate that all the removed blocks in this stack resolve
 	// to unique instance addresses.
-	for _, blocks := range s.Removed().localComponents {
+	for _, blocks := range s.Removed().components {
 		seen := make(map[addrs.InstanceKey]*RemovedComponentInstance)
 		for _, block := range blocks {
 			insts, unknown := block.InstancesFor(ctx, s.addr, PlanPhase)
@@ -678,7 +644,7 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 		}
 	}
 
-	for _, blocks := range s.Removed().localStackCalls {
+	for _, blocks := range s.Removed().stackCalls {
 		seen := collections.NewMap[stackaddrs.StackInstance, *RemovedStackCallInstance]()
 		for _, block := range blocks {
 			insts, unknown := block.InstancesFor(ctx, s.addr, PlanPhase)
@@ -717,7 +683,7 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 
 	var changes []stackplan.PlannedChange
 Instance:
-	for inst := range s.main.PlanPrevState().AllComponentInstances().All() {
+	for inst := range s.main.PlanPrevState().AllComponentInstances() {
 
 		// We track here whether this component instance has any associated
 		// resources. If this component is empty, and not referenced in the

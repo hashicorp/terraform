@@ -333,7 +333,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 	}
 
 	if plan.UIMode == plans.DestroyMode && plan.Changes.Empty() {
-		stackPlan := c.main.PlanBeingApplied().Components.Get(c.Addr())
+		stackPlan := c.main.PlanBeingApplied().GetComponent(c.Addr())
 
 		// If we're destroying and there's nothing to destroy, then we can
 		// consider this a no-op.
@@ -526,7 +526,7 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 		// begin their own destroy phases before we start ours.
 		if phase == ApplyPhase {
 			fullPlan := c.main.PlanBeingApplied()
-			ourPlan := fullPlan.Components.Get(c.Addr())
+			ourPlan := fullPlan.GetComponent(c.Addr())
 			if ourPlan == nil {
 				// Weird, but we'll tolerate it.
 				return cty.DynamicVal
@@ -727,7 +727,7 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 
 	var changes []stackstate.AppliedChange
 	if applyResult != nil {
-		changes, moreDiags = stackstate.FromState(ctx, applyResult.FinalState, c.main.PlanBeingApplied().Components.Get(c.Addr()), inputs, applyResult.AffectedResourceInstanceObjects, c)
+		changes, moreDiags = stackstate.FromState(ctx, applyResult.FinalState, c.main.PlanBeingApplied().GetComponent(c.Addr()), inputs, applyResult.AffectedResourceInstanceObjects, c)
 		diags = diags.Append(moreDiags)
 	}
 	return changes, diags

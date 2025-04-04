@@ -48,8 +48,7 @@ func newRemovedStackCallInstance(call *RemovedStackCall, from stackaddrs.StackIn
 
 func (r *RemovedStackCallInstance) Stack(ctx context.Context, phase EvalPhase) *Stack {
 	stack, err := r.stack.For(phase).Do(ctx, r.from.String()+" create", func(ctx context.Context) (*Stack, error) {
-		components, embeddedStackCalls := r.call.GetExternalRemovedBlocks()
-		return newStack(r.main, r.from, r.call.stack, r.call.config.TargetConfig(), components, embeddedStackCalls, plans.DestroyMode, r.deferred), nil
+		return newStack(r.main, r.from, r.call.stack, r.call.config.TargetConfig(), r.call.GetExternalRemovedBlocks(), plans.DestroyMode, r.deferred), nil
 	})
 	if err != nil {
 		// we never return an error from within the once call, so this shouldn't

@@ -10,7 +10,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -47,8 +46,8 @@ func newStackCall(main *Main, addr stackaddrs.AbsStackCall, stack *Stack, config
 
 // GetExternalRemovedBlocks fetches the removed blocks that target the stack
 // instances being created by this stack call.
-func (c *StackCall) GetExternalRemovedBlocks() (collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent], collections.Map[stackaddrs.Stack, []*RemovedStackCall]) {
-	return c.stack.Removed().ForStackCall(c.addr.Item)
+func (c *StackCall) GetExternalRemovedBlocks() *Removed {
+	return c.stack.Removed().Next(c.addr.Item.Name)
 }
 
 // ForEachValue returns the result of evaluating the "for_each" expression

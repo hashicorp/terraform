@@ -163,7 +163,7 @@ func (r *RemovedComponent) Instances(ctx context.Context, phase EvalPhase) (map[
 					continue
 				}
 			case ApplyPhase:
-				if _, ok := r.main.PlanBeingApplied().Components.GetOk(ci.Addr()); ok {
+				if component := r.main.PlanBeingApplied().GetComponent(ci.Addr()); component != nil {
 					knownInstances[key] = ci
 					knownAddrs = append(knownAddrs, ci.Addr())
 					continue
