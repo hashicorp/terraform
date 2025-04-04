@@ -750,10 +750,12 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 				})
 				continue
 			}
-			r.Backend = backend
 
-			// More backend validation is done later, once all blocks/attrs processed.
+			r.Backend = backend
 			backendRange = &block.DefRange
+			// Using a backend implies skipping cleanup for that run
+			r.SkipCleanup = true
+			r.SkipCleanupSet = true
 		}
 	}
 

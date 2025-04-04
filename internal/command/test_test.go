@@ -4004,13 +4004,18 @@ supplied_input_value = value-from-run-that-controls-backend`,
 				t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
 			}
 
-			// TODO - In future this will not be correct- deletion should not include things contained in the state file.
-			if provider.ResourceCount() > 0 {
-				t.Fatalf("should have deleted all resources on completion but left %v", provider.ResourceString())
+			if provider.ResourceCount() != 1 {
+				t.Fatalf("should have deleted all resources on completion except test_resource.a. Instead state contained %b resources: %v", provider.ResourceCount(), provider.ResourceString())
 			}
+
+			val := provider.Store.Get(provider.ResourceString())
+
+			if val.GetAttr("value").AsString() != "value-from-run-that-controls-backend" {
+				t.Errorf("expected resource to have value 'value-from-run-that-controls-backend' but got %s", val.GetAttr("value").AsString())
+			}
+
 		})
 	}
-
 }
 
 func TestTest_UseOfBackends_validatesUseOfSkipCleanup(t *testing.T) {
