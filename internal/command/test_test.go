@@ -3879,18 +3879,13 @@ There is no backend type named "foobar".
 	}
 }
 
-func TestTest_UseOfBackends_happyPath(t *testing.T) {
+// When there is no starting state, state is created by the run containing the backend block
+func TestTest_UseOfBackends_stateCreatedByBackend(t *testing.T) {
 
-	testCases := map[string]struct {
-		dirName           string
-		priorState        *states.State
-		expectedState     string
-		forceApplyFailure func(providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse
-	}{
-		"When there is no starting state, state is created by the run containing the backend block": {
-			dirName:    "valid-use-local-backend",
-			priorState: nil,
-			expectedState: `test_resource.a:
+	dirName := "valid-use-local-backend/no-prior-state"
+
+	resourceId := "12345"
+	expectedState := `test_resource.foobar:
   ID = 12345
   provider = provider["registry.terraform.io/hashicorp/test"]
   destroy_fail = false
@@ -3898,126 +3893,191 @@ func TestTest_UseOfBackends_happyPath(t *testing.T) {
 
 Outputs:
 
-supplied_input_value = value-from-run-that-controls-backend`,
-		},
-		"When there is pre-existing state, the state is updated by the run containing the backend block": {
-			dirName: "valid-use-local-backend",
-			// the priorState doesn't include the output, and has an outdated value field on the test_resource
-			priorState: states.BuildState(func(s *states.SyncState) {
-				s.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_resource",
-						Name: "a",
-					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-					&states.ResourceInstanceObjectSrc{
-						AttrsJSON: []byte(`{"id":"12345","value":"outdated-value-from-prior-test-run"}`),
-						Status:    states.ObjectReady,
-					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
-				)
-			}),
-			expectedState: `test_resource.a:
-  ID = 12345
-  provider = provider["registry.terraform.io/hashicorp/test"]
-  destroy_fail = false
-  value = value-from-run-that-controls-backend
+supplied_input_value = value-from-run-that-controls-backend
+test_resource_id = 12345`
 
-Outputs:
+	// SETUP
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", dirName)), td)
+	defer testChdir(t, td)()
+	localStatePath := filepath.Join(td, DefaultStateFilename)
 
-supplied_input_value = value-from-run-that-controls-backend`,
-		},
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
 	}
 
-	for tn, tc := range testCases {
-		t.Run(tn, func(t *testing.T) {
-			// SETUP
-			td := t.TempDir()
-			testCopyDir(t, testFixturePath(path.Join("test", tc.dirName)), td)
-			defer testChdir(t, td)()
-			localStatePath := filepath.Join(td, DefaultStateFilename)
+	// INIT
+	init := &InitCommand{
+		Meta: meta,
+	}
 
-			provider := testing_command.NewProvider(nil)
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
 
-			providerSource, close := newMockProviderSource(t, map[string][]string{
-				"test": {"1.0.0"},
-			})
-			defer close()
+	// TEST
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
-			streams, done := terminal.StreamsForTesting(t)
-			view := views.NewView(streams)
-			ui := new(cli.MockUi)
+	c := &TestCommand{
+		Meta: meta,
+	}
 
-			meta := Meta{
-				testingOverrides: metaOverridesForProvider(provider.Provider),
-				Ui:               ui,
-				View:             view,
-				Streams:          streams,
-				ProviderSource:   providerSource,
-			}
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
 
-			// SET & ASSERT PRIOR STATE
-			if tc.priorState != nil {
-				testStateFileDefault(t, tc.priorState)
+	// ASSERTIONS
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+	stdErr := output.Stderr()
+	if len(stdErr) > 0 {
+		t.Fatalf("unexpected error output:\n%s", stdErr)
+	}
 
-				actualState := testStateRead(t, localStatePath)
-				if diff := cmp.Diff(actualState.String(), tc.priorState.String()); len(diff) > 0 {
-					t.Errorf("prior state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
-				}
-			}
+	// State is stored according to the backend block
+	actualState := testStateRead(t, localStatePath)
+	if diff := cmp.Diff(actualState.String(), expectedState); len(diff) > 0 {
+		t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedState, actualState, diff)
+	}
 
-			// INIT
-			init := &InitCommand{
-				Meta: meta,
-			}
+	if provider.ResourceCount() != 1 {
+		t.Fatalf("should have deleted all resources on completion except test_resource.a. Instead state contained %b resources: %v", provider.ResourceCount(), provider.ResourceString())
+	}
 
-			output := done(t)
-			if code := init.Run(nil); code != 0 {
-				t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
-			}
+	val := provider.Store.Get(resourceId)
 
-			// TEST
-			// Reset the streams for the next command.
-			streams, done = terminal.StreamsForTesting(t)
-			meta.Streams = streams
-			meta.View = views.NewView(streams)
+	if val.GetAttr("id").AsString() != resourceId {
+		t.Errorf("expected resource to have value %q but got %s", resourceId, val.GetAttr("id").AsString())
+	}
+	if val.GetAttr("value").AsString() != "value-from-run-that-controls-backend" {
+		t.Errorf("expected resource to have value 'value-from-run-that-controls-backend' but got %s", val.GetAttr("value").AsString())
+	}
+}
 
-			c := &TestCommand{
-				Meta: meta,
-			}
+// When there is pre-existing state, the state is used by the run containing the backend block
+func TestTest_UseOfBackends_priorStateUsedByBackend(t *testing.T) {
 
-			code := c.Run([]string{"-no-color"})
-			output = done(t)
+	dirName := "valid-use-local-backend/with-prior-state"
+	resourceId := "53d69028-477d-7ba0-83c3-ff3807e3756f"
+	expectedState := `test_resource.foobar:
+  ID = 53d69028-477d-7ba0-83c3-ff3807e3756f
+  provider = provider["registry.terraform.io/hashicorp/test"]
+  destroy_fail = false
+  value = value-from-run-that-controls-backend
 
-			// ASSERTIONS
-			if code != 0 {
-				t.Errorf("expected status code 0 but got %d", code)
-			}
-			stdErr := output.Stderr()
-			if len(stdErr) > 0 {
-				t.Fatalf("unexpected error output:\n%s", stdErr)
-			}
+Outputs:
 
-			// State is stored according to the backend block
-			actualState := testStateRead(t, localStatePath)
-			if diff := cmp.Diff(actualState.String(), tc.expectedState); len(diff) > 0 {
-				t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
-			}
+supplied_input_value = value-from-run-that-controls-backend
+test_resource_id = 53d69028-477d-7ba0-83c3-ff3807e3756f`
 
-			if provider.ResourceCount() != 1 {
-				t.Fatalf("should have deleted all resources on completion except test_resource.a. Instead state contained %b resources: %v", provider.ResourceCount(), provider.ResourceString())
-			}
+	// SETUP
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", dirName)), td)
+	defer testChdir(t, td)()
+	localStatePath := filepath.Join(td, DefaultStateFilename)
 
-			val := provider.Store.Get(provider.ResourceString())
+	// resource store is like the remote object - needs to be assembled
+	// to resemble what's in state / the remote object being reused by the test.
+	resourceStore := &testing_command.ResourceStore{
+		Data: map[string]cty.Value{
+			"53d69028-477d-7ba0-83c3-ff3807e3756f": cty.ObjectVal(map[string]cty.Value{
+				"id":                   cty.StringVal("53d69028-477d-7ba0-83c3-ff3807e3756f"),
+				"interrupt_count":      cty.NullVal(cty.Number),
+				"value":                cty.StringVal("value-from-run-that-controls-backend"),
+				"write_only":           cty.NullVal(cty.String),
+				"create_wait_seconds":  cty.NullVal(cty.Number),
+				"destroy_fail":         cty.False,
+				"destroy_wait_seconds": cty.NullVal(cty.Number),
+			})},
+	}
+	provider := testing_command.NewProvider(resourceStore)
 
-			if val.GetAttr("value").AsString() != "value-from-run-that-controls-backend" {
-				t.Errorf("expected resource to have value 'value-from-run-that-controls-backend' but got %s", val.GetAttr("value").AsString())
-			}
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
 
-		})
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	// INIT
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// TEST
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	// ASSERTIONS
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+	stdErr := output.Stderr()
+	if len(stdErr) > 0 {
+		t.Fatalf("unexpected error output:\n%s", stdErr)
+	}
+
+	// State is stored according to the backend block
+	actualState := testStateRead(t, localStatePath)
+	if diff := cmp.Diff(actualState.String(), expectedState); len(diff) > 0 {
+		t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedState, actualState, diff)
+	}
+
+	if provider.ResourceCount() != 1 {
+		t.Fatalf("should have deleted all resources on completion except test_resource.a. Instead state contained %b resources: %v", provider.ResourceCount(), provider.ResourceString())
+	}
+
+	val := provider.Store.Get(resourceId)
+
+	// If the ID hasn't changed then we've used the pre-existing state, instead of remaking the resource
+	if val.GetAttr("id").AsString() != resourceId {
+		t.Errorf("expected resource to have value %q but got %s", resourceId, val.GetAttr("id").AsString())
+	}
+	if val.GetAttr("value").AsString() != "value-from-run-that-controls-backend" {
+		t.Errorf("expected resource to have value 'value-from-run-that-controls-backend' but got %s", val.GetAttr("value").AsString())
 	}
 }
 
