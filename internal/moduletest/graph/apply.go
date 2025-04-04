@@ -78,6 +78,7 @@ func (n *NodeTestRun) testApply(ctx *EvalContext, variables terraform.InputValue
 
 		// Update internal state
 		ctx.UpdateStateFile(key, &TestFileState{
+			File:  file,
 			Run:   run,
 			State: updated,
 		})
