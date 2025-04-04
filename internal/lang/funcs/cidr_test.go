@@ -396,3 +396,58 @@ func TestCidrSubnets(t *testing.T) {
 		})
 	}
 }
+
+func TestCidrCollapse(t *testing.T) {
+	tests := []struct {
+		Cidrs cty.Value
+		Want  cty.Value
+		Err   string
+	}{
+		{
+			Cidrs: cty.ListVal([]cty.Value{
+				cty.StringVal("192.168.0.0/16"),
+				cty.StringVal("192.168.0.56/32"),
+				cty.StringVal("192.0.0.0/8"),
+			}),
+			Want: cty.ListVal([]cty.Value{
+				cty.StringVal("192.0.0.0/8"),
+			}),
+			Err: "",
+		},
+		{
+			Cidrs: cty.ListVal([]cty.Value{
+				cty.StringVal("192.168.0.0/16"),
+				cty.StringVal("167.123.0.42/32"),
+				cty.StringVal("167.123.0.0/16"),
+			}),
+			Want: cty.ListVal([]cty.Value{
+				cty.StringVal("167.123.0.0/16"),
+				cty.StringVal("192.168.0.0/16"),
+			}),
+			Err: "",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("cidrcollapse(%#v)", test.Cidrs), func(t *testing.T) {
+			got, err := CidrCollapse(test.Cidrs)
+			wantErr := test.Err != ""
+
+			if wantErr {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				if err.Error() != test.Err {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", err.Error(), test.Err)
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
