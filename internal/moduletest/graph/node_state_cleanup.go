@@ -108,6 +108,12 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	evalCtx.Renderer().DestroySummary(destroyDiags, state.Run, file, updated)
 	state.State = updated
 
+	if state.Run.Config.Backend != nil && !destroyDiags.HasErrors() {
+		// We don't create a state artefact when the node state's corresponding run block has a backend,
+		// UNLESS an error occurs when returning the state to match that run block's config during cleanup.
+		return nil
+	}
+
 	evalCtx.WriteFileState(n.stateKey, state)
 	return nil
 }
