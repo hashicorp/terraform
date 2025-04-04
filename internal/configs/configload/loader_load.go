@@ -32,6 +32,10 @@ func (l *Loader) LoadConfigWithTests(rootDir string, testDir string) (*configs.C
 	return l.loadConfig(l.parser.LoadConfigDirWithTests(rootDir, testDir))
 }
 
+func (l *Loader) LoadConfigWithQueries(rootDir string) (*configs.Config, hcl.Diagnostics) {
+	return l.loadConfig(l.parser.LoadConfigDirWithQueries(rootDir))
+}
+
 func (l *Loader) loadConfig(rootMod *configs.Module, diags hcl.Diagnostics) (*configs.Config, hcl.Diagnostics) {
 	if rootMod == nil || diags.HasErrors() {
 		// Ensure we return any parsed modules here so that required_version

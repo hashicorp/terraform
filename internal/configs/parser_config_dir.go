@@ -78,6 +78,27 @@ func (p *Parser) LoadConfigDirWithTests(path string, testDirectory string) (*Mod
 	return mod, diags
 }
 
+func (p *Parser) LoadConfigDirWithQueries(path string) (*Module, hcl.Diagnostics) {
+	primaryPaths, overridePaths, queryPaths, diags := p.dirFilesWithQueries(path)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	primary, fDiags := p.loadFiles(primaryPaths, false)
+	diags = append(diags, fDiags...)
+	override, fDiags := p.loadFiles(overridePaths, true)
+	diags = append(diags, fDiags...)
+	queries, fDiags := p.loadQueryFiles(path, queryPaths)
+	diags = append(diags, fDiags...)
+
+	mod, modDiags := NewModuleWithQueries(primary, override, queries)
+	diags = append(diags, modDiags...)
+
+	mod.SourceDir = path
+
+	return mod, diags
+}
+
 func (p *Parser) LoadMockDataDir(dir string, useForPlanDefault bool, source hcl.Range) (*MockData, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
@@ -273,6 +294,48 @@ func (p *Parser) dirFiles(dir string, testsDir string) (primary, override, tests
 	return
 }
 
+func (p *Parser) dirFilesWithQueries(dir string) (primary, override, queries []string, diags hcl.Diagnostics) {
+	infos, err := p.fs.ReadDir(dir)
+	if err != nil {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to read module directory",
+			Detail:   fmt.Sprintf("Module directory %s does not exist or cannot be read.", dir),
+		})
+		return
+	}
+
+	for _, info := range infos {
+		if info.IsDir() {
+			// We only care about terraform configuration files.
+			continue
+		}
+
+		name := info.Name()
+		ext := fileExt(name)
+		if ext == "" || IsIgnoredFile(name) {
+			continue
+		}
+
+		if ext == ".tfquery.hcl" {
+			queries = append(queries, filepath.Join(dir, name))
+			continue
+		}
+
+		baseName := name[:len(name)-len(ext)] // strip extension
+		isOverride := baseName == "override" || strings.HasSuffix(baseName, "_override")
+
+		fullPath := filepath.Join(dir, name)
+		if isOverride {
+			override = append(override, fullPath)
+		} else {
+			primary = append(primary, fullPath)
+		}
+	}
+
+	return
+}
+
 func (p *Parser) loadTestFiles(basePath string, paths []string) (map[string]*TestFile, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
@@ -299,6 +362,21 @@ func (p *Parser) loadTestFiles(basePath string, paths []string) (map[string]*Tes
 	return tfs, diags
 }
 
+func (p *Parser) loadQueryFiles(basePath string, paths []string) ([]*QueryFile, hcl.Diagnostics) {
+	var files []*QueryFile
+	var diags hcl.Diagnostics
+
+	for _, path := range paths {
+		f, fDiags := p.LoadQueryFile(path)
+		diags = append(diags, fDiags...)
+		if f != nil {
+			files = append(files, f)
+		}
+	}
+
+	return files, diags
+}
+
 // fileExt returns the Terraform configuration extension of the given
 // path, or a blank string if it is not a recognized extension.
 func fileExt(path string) string {
@@ -310,6 +388,8 @@ func fileExt(path string) string {
 		return ".tftest.hcl"
 	} else if strings.HasSuffix(path, ".tftest.json") {
 		return ".tftest.json"
+	} else if strings.HasSuffix(path, ".tfquery.hcl") {
+		return ".tfquery.hcl"
 	} else {
 		return ""
 	}

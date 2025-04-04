@@ -57,6 +57,8 @@ type Module struct {
 	Checks map[string]*Check
 
 	Tests map[string]*TestFile
+
+	Queries []*QueryFile
 }
 
 // File describes the contents of a single configuration file.
@@ -104,6 +106,14 @@ func NewModuleWithTests(primaryFiles, overrideFiles []*File, testFiles map[strin
 	mod, diags := NewModule(primaryFiles, overrideFiles)
 	if mod != nil {
 		mod.Tests = testFiles
+	}
+	return mod, diags
+}
+
+func NewModuleWithQueries(primaryFiles, overrideFiles []*File, queryFiles []*QueryFile) (*Module, hcl.Diagnostics) {
+	mod, diags := NewModule(primaryFiles, overrideFiles)
+	if mod != nil {
+		mod.Queries = queryFiles
 	}
 	return mod, diags
 }

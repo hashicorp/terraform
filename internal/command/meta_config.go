@@ -70,6 +70,21 @@ func (m *Meta) loadConfigWithTests(rootDir, testDir string) (*configs.Config, tf
 	return config, diags
 }
 
+func (m *Meta) loadConfigWithQueries(rootDir string) (*configs.Config, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	rootDir = m.normalizePath(rootDir)
+
+	loader, err := m.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+
+	config, hclDiags := loader.LoadConfigWithQueries(rootDir)
+	diags = diags.Append(hclDiags)
+	return config, diags
+}
+
 // loadSingleModule reads configuration from the given directory and returns
 // a description of that module only, without attempting to assemble a module
 // tree for referenced child modules.
