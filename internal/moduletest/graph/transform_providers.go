@@ -82,6 +82,9 @@ func (t *TestProvidersTransformer) transformSingleConfig(config *configs.Config)
 }
 
 func (t *TestProvidersTransformer) createRootNode(g *terraform.Graph, providerMap map[*NodeTestRun]map[string]bool) *dynamicNode {
+	// This node simply helps us to add the providers to the context. We need to do this
+	// because the transformation stage occurs before the graph is fully built, while we
+	// only have access to the context during the evaluation stage.
 	node := &dynamicNode{
 		eval: func(ctx *EvalContext) tfdiags.Diagnostics {
 			for node, providers := range providerMap {

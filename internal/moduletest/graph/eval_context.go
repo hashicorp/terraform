@@ -398,10 +398,6 @@ func (ec *EvalContext) GetFileState(key string) *TestFileState {
 
 func (ec *EvalContext) WriteFileState(key string, state *TestFileState) error {
 	ec.UpdateStateFile(key, state)
-	if state.State.Empty() {
-		// Nothing to do!
-		return nil
-	}
 	ec.stateLock.Lock()
 	defer ec.stateLock.Unlock()
 	return ec.manifest.writeState(key, state)

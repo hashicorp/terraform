@@ -76,6 +76,8 @@ type TestSuiteRunner struct {
 
 	Concurrency int
 	semaphore   terraform.Semaphore
+
+	CommandMode graph.CommandMode
 }
 
 func (runner *TestSuiteRunner) Stop() {
@@ -128,7 +130,9 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		if err != nil {
 			return manifest, diags.Append(tfdiags.Sourceless(tfdiags.Error, "Error checking state manifest", err.Error()))
 		}
-		if !empty {
+
+		// Unless we're in cleanup mode, we expect the manifest to be empty.
+		if !empty && runner.CommandMode != graph.CleanupMode {
 			return manifest, diags.Append(tfdiags.Sourceless(tfdiags.Error, "State manifest not empty", ``+
 				"The state manifest should be empty before running tests. This could be due to a previous test run not cleaning up after itself."+
 				"Please ensure that all state files are cleaned up before running tests."))
@@ -179,6 +183,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		fileRunner := &TestFileRunner{
 			Suite:       runner,
 			EvalContext: evalCtx,
+			Manifest:    manifest,
 		}
 
 		runner.View.File(file, moduletest.Starting)
@@ -272,6 +277,7 @@ type TestFileRunner struct {
 	// during the execution of a file.
 	Suite       *TestSuiteRunner
 	EvalContext *graph.EvalContext
+	Manifest    *graph.TestManifest
 }
 
 func (runner *TestFileRunner) Test(file *moduletest.File) {
@@ -297,6 +303,8 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		GlobalVars:     runner.EvalContext.VariableCaches.GlobalVariables,
 		ContextOpts:    runner.Suite.Opts,
 		BackendFactory: runner.Suite.BackendFactory,
+		StateManifest:  runner.Manifest,
+		CommandMode:    runner.Suite.CommandMode,
 	}
 	g, diags := b.Build()
 	file.Diagnostics = file.Diagnostics.Append(diags)

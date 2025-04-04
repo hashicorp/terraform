@@ -45,7 +45,7 @@ type runBackend struct {
 // TestStateTransformer is a GraphTransformer that initializes the context with
 // all the states produced by the test file.
 type TestStateTransformer struct {
-	File           *moduletest.File
+	*graphOptions
 	BackendFactory func(string) backend.InitFn
 }
 
@@ -54,16 +54,10 @@ func (t *TestStateTransformer) Transform(g *terraform.Graph) error {
 	// have the same state key, they will share the same state.
 	statesMap := make(map[string]*TestFileState)
 
-	// Since the map is a pointer, we can add it to the root config node.
-	// The root config node will then add the file states to the context later
-	// when the graph is executed.
-	rootConfigNode := t.addRootConfigNode(g, statesMap)
-
-	// We filter for all the NodeTestRun nodes in the test graph.
-	// Then we iterate through them. Whenever we identify a state key that
+	// We iterate through all the file's runs. Whenever we identify a state key that
 	// hasn't had an internal state set for it yet, we create it.
-	for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
-		key := node.run.Config.StateKey
+	for _, run := range t.File.Runs {
+		key := run.Config.StateKey
 		if _, exists := statesMap[key]; !exists {
 
 			var state *TestFileState
@@ -71,7 +65,7 @@ func (t *TestStateTransformer) Transform(g *terraform.Graph) error {
 			bc, stateUsesBackend := t.File.Config.BackendConfigs[key]
 
 			switch {
-			case stateUsesBackend && bc.Run.Name == node.run.Name:
+			case stateUsesBackend && bc.Run.Name == run.Name:
 				// This state key has an associated backend, and we're processing
 				// the node for the run block that controls the backend via a
 				// "backend" block.
@@ -101,11 +95,11 @@ func (t *TestStateTransformer) Transform(g *terraform.Graph) error {
 					State: stmgr.State(),
 					backend: runBackend{
 						instance: be,
-						run:      node.run, // This is the run containing the backend block
+						run:      run, // This is the run containing the backend block
 					},
 				}
 
-			case stateUsesBackend && bc.Run.Name != node.run.Name:
+			case stateUsesBackend && bc.Run.Name != run.Name:
 				// This state key has an associated backend, but we're processing
 				// a run block that doesn't include a "backend" block.
 				//
@@ -115,20 +109,31 @@ func (t *TestStateTransformer) Transform(g *terraform.Graph) error {
 				continue
 
 			case !stateUsesBackend:
-				// We set an empty in-memory state for the state key if no backend is used.
 				log.Printf("[TRACE] TestConfigTransformer.Transform: set initial state for state key %q as empty state", key)
-				state = &TestFileState{
-					Run:   nil,
-					State: states.NewState(),
+				// If no backend is used, we load the in-memory state from the manifest. We should
+				// have already initialized the state in the manifest before we get here.
+				var err error
+				if state, err = t.StateManifest.readState(t.File.Name, key); err != nil {
+					return fmt.Errorf("error retrieving state for state key %q from manifest: %w", key, err)
 				}
+				state.File = t.File
+				state.Run = run
 			}
 
 			statesMap[key] = state
 		}
+	}
 
-		// Connect all the test runs to the config node, so that the config node
-		// is executed before any of the test runs.
-		g.Connect(dag.BasicEdge(node, rootConfigNode))
+	// Add a helper node to the graph. This node is responsible for
+	// injecting the initialized file states into the evaluation context
+	// before any test runs are executed.
+	configSetterNode := t.addRootConfigNode(g, statesMap)
+
+	// Iterate through all the test run nodes in the graph and connect them to
+	// the root configuration node. This ensures that the root configuration node
+	// is executed first, setting up the context for the test runs.
+	for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
+		g.Connect(dag.BasicEdge(node, configSetterNode))
 	}
 
 	return nil

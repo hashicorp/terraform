@@ -6,7 +6,9 @@ package command
 import (
 	"context"
 	"fmt"
+	"maps"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -22,11 +24,14 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/moduletest/graph"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type TestCommand struct {
 	Meta
+
+	cleanupMode bool
 }
 
 func (c *TestCommand) Help() string {
@@ -104,7 +109,11 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	args, diags := arguments.ParseTest(rawArgs)
 	if diags.HasErrors() {
 		c.View.Diagnostics(diags)
-		c.View.HelpPrompt("test")
+		prompt := "test"
+		if c.cleanupMode {
+			prompt = "test cleanup"
+		}
+		c.View.HelpPrompt(prompt)
 		return 1
 	}
 	c.Meta.parallelism = args.OperationParallelism
@@ -278,6 +287,9 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			Filter:              args.Filter,
 			Verbose:             args.Verbose,
 		}
+		if c.cleanupMode {
+			localRunner.CommandMode = graph.CleanupMode
+		}
 
 		// JUnit output is only compatible with local test execution
 		if args.JUnitXMLFile != "" {
@@ -360,10 +372,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 // those backend configs, sorted by the line their declaration range starts on. This allows identification
 // of the 2nd+ time that a backend configuration is used in the same file.
 func orderBackendsByDeclarationLine(backendConfigs map[string]configs.RunBlockBackend) []configs.RunBlockBackend {
-	var bcs []configs.RunBlockBackend
-	for _, bc := range backendConfigs {
-		bcs = append(bcs, bc)
-	}
+	bcs := slices.Collect(maps.Values(backendConfigs))
 	sort.Slice(bcs, func(i, j int) bool {
 		return bcs[i].Run.DeclRange.Start.Line < bcs[j].Run.DeclRange.Start.Line
 	})

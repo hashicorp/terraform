@@ -15,6 +15,17 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+type CommandMode int
+
+const (
+	// NormalMode is the default mode for running terraform test.
+	NormalMode CommandMode = iota
+	// CleanupMode is used when running terraform test cleanup.
+	// In this mode, the graph will be built with the intention of cleaning up
+	// the state, rather than applying changes.
+	CleanupMode
+)
+
 // TestGraphBuilder is a GraphBuilder implementation that builds a graph for
 // a terraform test file. The file may contain multiple runs, and each run may have
 // dependencies on other runs.
@@ -23,12 +34,16 @@ type TestGraphBuilder struct {
 	GlobalVars     map[string]backendrun.UnparsedVariableValue
 	ContextOpts    *terraform.ContextOpts
 	BackendFactory func(string) backend.InitFn
+	StateManifest  *TestManifest
+	CommandMode    CommandMode
 }
 
 type graphOptions struct {
-	File        *moduletest.File
-	GlobalVars  map[string]backendrun.UnparsedVariableValue
-	ContextOpts *terraform.ContextOpts
+	File          *moduletest.File
+	GlobalVars    map[string]backendrun.UnparsedVariableValue
+	ContextOpts   *terraform.ContextOpts
+	StateManifest *TestManifest
+	CommandMode   CommandMode
 }
 
 // See GraphBuilder
@@ -43,16 +58,28 @@ func (b *TestGraphBuilder) Build() (*terraform.Graph, tfdiags.Diagnostics) {
 // See GraphBuilder
 func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 	opts := &graphOptions{
-		File:        b.File,
-		GlobalVars:  b.GlobalVars,
-		ContextOpts: b.ContextOpts,
+		File:          b.File,
+		GlobalVars:    b.GlobalVars,
+		ContextOpts:   b.ContextOpts,
+		StateManifest: b.StateManifest,
+		CommandMode:   b.CommandMode,
 	}
 	steps := []terraform.GraphTransformer{
 		&TestRunTransformer{opts},
-		&TestStateTransformer{File: b.File, BackendFactory: b.BackendFactory},
+		&TestStateTransformer{graphOptions: opts, BackendFactory: b.BackendFactory},
 		&TestStateCleanupTransformer{opts},
 		terraform.DynamicTransformer(validateRunConfigs),
 		&TestProvidersTransformer{},
+		terraform.DynamicTransformer(func(g *terraform.Graph) error {
+			// If we're in cleanup mode, we can remove the test runs to the graph,
+			// and prevent unnecessary no-op execution.
+			if b.CommandMode == CleanupMode {
+				for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
+					g.Remove(node)
+				}
+			}
+			return nil
+		}),
 		&CloseTestGraphTransformer{},
 		&terraform.TransitiveReductionTransformer{},
 	}
