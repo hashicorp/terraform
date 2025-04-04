@@ -26,7 +26,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/moduletest/graph"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -4284,7 +4283,7 @@ func TestTest_UseOfBackends_validatesUseOfSkipCleanup(t *testing.T) {
 func TestTest_UseOfBackends_failureDuringApply(t *testing.T) {
 	// SETUP
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath(path.Join("test", "valid-use-local-backend")), td)
+	testCopyDir(t, testFixturePath(path.Join("test", "valid-use-local-backend/no-prior-state")), td)
 	defer testChdir(t, td)()
 	localStatePath := filepath.Join(td, DefaultStateFilename)
 
@@ -4311,32 +4310,6 @@ func TestTest_UseOfBackends_failureDuringApply(t *testing.T) {
 		View:             view,
 		Streams:          streams,
 		ProviderSource:   providerSource,
-	}
-
-	// SET & ASSERT PRIOR STATE
-	// the priorState doesn't include the output, and has an outdated value field on the test_resource
-	priorState := states.BuildState(func(s *states.SyncState) {
-		s.SetResourceInstanceCurrent(
-			addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "test_resource",
-				Name: "a",
-			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"12345","value":"outdated-value-from-prior-test-run"}`),
-				Status:    states.ObjectReady,
-			},
-			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
-				Module:   addrs.RootModule,
-			},
-		)
-	})
-	testStateFileDefault(t, priorState)
-
-	actualState := testStateRead(t, localStatePath)
-	if diff := cmp.Diff(actualState.String(), priorState.String()); len(diff) > 0 {
-		t.Errorf("prior state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", priorState, actualState, diff)
 	}
 
 	// INIT
@@ -4371,18 +4344,64 @@ func TestTest_UseOfBackends_failureDuringApply(t *testing.T) {
 		t.Fatal("expected error output but got none")
 	}
 
-	actualState = testStateRead(t, localStatePath)
-	// When there is a failure to apply changes to the test_resource, the resulting state only includes the output
-	// and lacks any information about the test_resource
-	expectedState := `Outputs:
-
-supplied_input_value = value-from-run-that-controls-backend`
-	if diff := cmp.Diff(actualState.String(), expectedState); len(diff) > 0 {
-		t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedState, actualState, diff)
+	// Resource was not provisioned
+	if provider.ResourceCount() > 0 {
+		t.Fatalf("no resources should have been provisioned successfully but got %v", provider.ResourceString())
 	}
 
-	if provider.ResourceCount() > 0 {
-		t.Fatalf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	// When there is a failure to apply changes to the test_resource, the resulting state saved via the backend
+	// only includes the output and lacks any information about the test_resource
+	actualBackendState := testStateRead(t, localStatePath)
+	expectedBackendState := `<no state>
+Outputs:
+
+supplied_input_value = value-from-run-that-controls-backend
+test_resource_id = 12345`
+	if diff := cmp.Diff(actualBackendState.String(), expectedBackendState); len(diff) > 0 {
+		t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedBackendState, actualBackendState, diff)
+	}
+
+	// No state artifacts are made
+	manifestPath := path.Join(td, ".terraform/test", "manifest.json")
+	manifestFile, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatalf("failed to read manifest.json: %s", err)
+	}
+
+	var manifest graph.TestManifest
+	if err := json.Unmarshal(manifestFile, &manifest); err != nil {
+		t.Fatalf("failed to unmarshal manifest.json: %s", err)
+	}
+
+	expectedStates := map[string][]string{} // empty
+	actualStates := make(map[string][]string)
+
+	// No state artifacts are made: Verify the states in the manifest
+	for fileName, file := range manifest.Files {
+		for name, state := range file.States {
+			sm := statemgr.NewFilesystem(filepath.Join(td, state.Path))
+			if err := sm.RefreshState(); err != nil {
+				t.Fatalf("error when reading state file: %s", err)
+			}
+			state := sm.State()
+
+			// If the state is nil, then the test cleaned up the state
+			if state == nil {
+				continue
+			}
+
+			var resources []string
+			for _, module := range state.Modules {
+				for _, resource := range module.Resources {
+					resources = append(resources, resource.Addr.String())
+				}
+			}
+			sort.Strings(resources)
+			actualStates[strings.TrimSuffix(fileName, ".tftest.hcl")+"."+name] = resources
+		}
+	}
+	if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
+		t.Fatalf("unexpected states: %s", diff)
 	}
 }
 
