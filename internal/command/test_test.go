@@ -4013,6 +4013,78 @@ supplied_input_value = value-from-run-that-controls-backend`,
 
 }
 
+func TestTest_UseOfBackends_validatesUseOfSkipCleanup(t *testing.T) {
+
+	cases := map[string]struct {
+		testDir    string
+		expectCode int
+		expectErr  bool
+	}{
+		"cannot set skip_cleanup=false alongside a backend block": {
+			testDir:    "backend-with-skip-cleanup/false",
+			expectCode: 1,
+			expectErr:  true,
+		},
+		"can set skip_cleanup=true alongside a backend block": {
+			testDir:    "backend-with-skip-cleanup/true",
+			expectCode: 0,
+			expectErr:  false,
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			// SETUP
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(path.Join("test", tc.testDir)), td)
+			defer testChdir(t, td)()
+
+			provider := testing_command.NewProvider(nil)
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"test": {"1.0.0"},
+			})
+			defer close()
+
+			streams, done := terminal.StreamsForTesting(t)
+			view := views.NewView(streams)
+			ui := new(cli.MockUi)
+
+			meta := Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				Ui:               ui,
+				View:             view,
+				Streams:          streams,
+				ProviderSource:   providerSource,
+			}
+
+			// INIT
+			init := &InitCommand{
+				Meta: meta,
+			}
+
+			code := init.Run([]string{"-no-color"})
+			output := done(t)
+
+			// ASSERTIONS
+			if code != tc.expectCode {
+				t.Errorf("expected status code %d but got %d", tc.expectCode, code)
+			}
+			stdErr := output.Stderr()
+			if len(stdErr) == 0 && tc.expectErr {
+				t.Fatal("expected error output but got none")
+			}
+			if len(stdErr) != 0 && !tc.expectErr {
+				t.Fatalf("did not expect error output but got: %s", stdErr)
+			}
+
+			if provider.ResourceCount() > 0 {
+				t.Fatalf("should have deleted all resources on completion but left %v", provider.ResourceString())
+			}
+
+		})
+	}
+}
+
 func TestTest_UseOfBackends_unhappyPath(t *testing.T) {
 
 	testCases := map[string]struct {
