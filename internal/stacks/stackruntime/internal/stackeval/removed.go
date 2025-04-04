@@ -15,20 +15,27 @@ import (
 type Removed struct {
 	stackCallComponents collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent]
 	localComponents     map[stackaddrs.Component][]*RemovedComponent
+	embeddedStackCalls  collections.Map[stackaddrs.Stack, []*RemovedStackCall]
+	localStackCalls     map[stackaddrs.StackCall][]*RemovedStackCall
 }
 
-func newRemoved(localComponents map[stackaddrs.Component][]*RemovedComponent, stackCallComponents collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent]) *Removed {
+func newRemoved(localComponents map[stackaddrs.Component][]*RemovedComponent,
+	stackCallComponents collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent],
+	localStackCalls map[stackaddrs.StackCall][]*RemovedStackCall,
+	embeddedStackCalls collections.Map[stackaddrs.Stack, []*RemovedStackCall]) *Removed {
 	return &Removed{
 		stackCallComponents: stackCallComponents,
 		localComponents:     localComponents,
+		localStackCalls:     localStackCalls,
+		embeddedStackCalls:  embeddedStackCalls,
 	}
 }
 
 // ForStackCall returns all removed component blocks that target the given
 // stack call. The addresses are transformed to be relative to the stack
 // created by the stack call.
-func (r *Removed) ForStackCall(addr stackaddrs.StackCall) collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent] {
-	ret := collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponent]()
+func (r *Removed) ForStackCall(addr stackaddrs.StackCall) (collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent], collections.Map[stackaddrs.Stack, []*RemovedStackCall]) {
+	components := collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponent]()
 	for target, blocks := range r.stackCallComponents.All() {
 		step := target.Stack[0]
 		rest := target.Stack[1:]
@@ -37,10 +44,21 @@ func (r *Removed) ForStackCall(addr stackaddrs.StackCall) collections.Map[stacka
 			continue
 		}
 
-		ret.Put(stackaddrs.ConfigComponent{
+		components.Put(stackaddrs.ConfigComponent{
 			Stack: rest,
 			Item:  target.Item,
 		}, blocks)
 	}
-	return ret
+	stackCalls := collections.NewMap[stackaddrs.Stack, []*RemovedStackCall]()
+	for target, blocks := range r.embeddedStackCalls.All() {
+		step := target[0]
+		rest := target[1:]
+
+		if step.Name != addr.Name {
+			continue
+		}
+
+		stackCalls.Put(rest, blocks)
+	}
+	return components, stackCalls
 }

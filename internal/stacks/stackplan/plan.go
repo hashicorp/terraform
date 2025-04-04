@@ -107,8 +107,8 @@ func (p *Plan) ComponentInstances(addr stackaddrs.AbsComponent) collections.Set[
 	return ret
 }
 
-func (p *Plan) StackInstances(addr stackaddrs.AbsStackCall) map[stackaddrs.StackInstanceStep]bool {
-	ret := make(map[stackaddrs.StackInstanceStep]bool)
+func (p *Plan) StackInstances(addr stackaddrs.AbsStackCall) collections.Set[stackaddrs.StackInstance] {
+	ret := collections.NewSet[stackaddrs.StackInstance]()
 	for key := range p.Components.All() {
 		if len(key.Stack) == 0 {
 			continue
@@ -123,7 +123,7 @@ func (p *Plan) StackInstances(addr stackaddrs.AbsStackCall) map[stackaddrs.Stack
 		if last.Name != addr.Item.Name {
 			continue
 		}
-		ret[last] = true
+		ret.Add(key.Stack)
 	}
 	return ret
 }

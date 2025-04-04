@@ -34,10 +34,12 @@ type Stack struct {
 	config   *StackConfig
 	main     *Main
 	deferred bool
+	mode     plans.Mode
 
 	// externalRemovedComponents are the set of removed blocks that might
 	// target components within either this stack or a child of this stack.
 	externalRemovedComponents collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent]
+	externalRemovedStackCalls collections.Map[stackaddrs.Stack, []*RemovedStackCall]
 
 	// The remaining fields memoize other objects we might create in response
 	// to method calls. Must lock "mu" before interacting with them.
@@ -57,35 +59,50 @@ var (
 	_ Applyable       = (*Stack)(nil)
 )
 
-func newStack(main *Main, addr stackaddrs.StackInstance, parent *Stack, config *StackConfig, removedComponents collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent], deferred bool) *Stack {
+func newStack(
+	main *Main,
+	addr stackaddrs.StackInstance,
+	parent *Stack,
+	config *StackConfig,
+	removedComponents collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent],
+	removedStackCalls collections.Map[stackaddrs.Stack, []*RemovedStackCall],
+	mode plans.Mode,
+	deferred bool) *Stack {
 	return &Stack{
 		parent:                    parent,
 		config:                    config,
 		addr:                      addr,
 		deferred:                  deferred,
+		mode:                      mode,
 		main:                      main,
 		externalRemovedComponents: removedComponents,
+		externalRemovedStackCalls: removedStackCalls,
 	}
 }
 
 // ChildStack returns the child stack at the given address.
 func (s *Stack) ChildStack(ctx context.Context, addr stackaddrs.StackInstanceStep, phase EvalPhase) *Stack {
-	calls := s.EmbeddedStackCalls()
 	callAddr := stackaddrs.StackCall{Name: addr.Name}
-	call := calls[callAddr]
 
-	if call == nil {
-		return nil
+	if call := s.EmbeddedStackCalls()[callAddr]; call != nil {
+		instances, unknown := call.Instances(ctx, phase)
+		if unknown {
+			return call.UnknownInstance(ctx, phase).Stack(ctx, phase)
+		}
+
+		if instance, exists := instances[addr.Key]; exists {
+			return instance.Stack(ctx, phase)
+		}
 	}
 
-	instances, unknown := call.Instances(ctx, phase)
-	if unknown {
-		return call.UnknownInstance(ctx, phase).Stack(ctx, phase)
+	calls := s.Removed().localStackCalls[callAddr]
+	for _, call := range calls {
+		instances, _ := call.InstancesFor(ctx, s.addr, phase)
+		if instance, exists := instances[addr.Key]; exists {
+			return instance.Stack(ctx, phase)
+		}
 	}
 
-	if instance, exists := instances[addr.Key]; exists {
-		return instance.Stack(ctx, phase)
-	}
 	return nil
 }
 
@@ -203,7 +220,11 @@ func (s *Stack) EmbeddedStackCall(addr stackaddrs.StackCall) *StackCall {
 	return s.EmbeddedStackCalls()[addr]
 }
 
-func (s *Stack) KnownEmbeddedStacks(addr stackaddrs.StackCall, phase EvalPhase) map[stackaddrs.StackInstanceStep]bool {
+func (s *Stack) RemovedEmbeddedStackCall(addr stackaddrs.StackCall) []*RemovedStackCall {
+	return s.Removed().localStackCalls[addr]
+}
+
+func (s *Stack) KnownEmbeddedStacks(addr stackaddrs.StackCall, phase EvalPhase) collections.Set[stackaddrs.StackInstance] {
 	switch phase {
 	case PlanPhase:
 		return s.main.PlanPrevState().StackInstances(stackaddrs.AbsStackCall{
@@ -218,7 +239,7 @@ func (s *Stack) KnownEmbeddedStacks(addr stackaddrs.StackCall, phase EvalPhase) 
 	default:
 		// We're not executing with an existing state in the other phases, so
 		// we have no known instances.
-		return nil
+		return collections.NewSet[stackaddrs.StackInstance]()
 	}
 }
 
@@ -261,6 +282,8 @@ func (s *Stack) Removed() *Removed {
 
 	stackCallComponents := collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponent]()
 	localComponents := make(map[stackaddrs.Component][]*RemovedComponent)
+	embeddedStackCalls := collections.NewMap[stackaddrs.Stack, []*RemovedStackCall]()
+	localStackCalls := make(map[stackaddrs.StackCall][]*RemovedStackCall)
 
 	for addr, configs := range s.config.RemovedComponents().All() {
 		blocks := make([]*RemovedComponent, 0, len(configs))
@@ -276,6 +299,19 @@ func (s *Stack) Removed() *Removed {
 		stackCallComponents.Put(addr, blocks)
 	}
 
+	for addr, configs := range s.config.RemovedStackCalls().All() {
+		blocks := make([]*RemovedStackCall, 0, len(configs))
+		for _, config := range configs {
+			blocks = append(blocks, newRemovedStackCall(s.main, addr, s, config))
+		}
+
+		if len(addr) == 1 {
+			localStackCalls[stackaddrs.StackCall{Name: addr[0].Name}] = blocks
+			continue
+		}
+		embeddedStackCalls.Put(addr, blocks)
+	}
+
 	for addr, configs := range s.externalRemovedComponents.All() {
 		if addr.Stack.IsRoot() {
 			localComponents[addr.Item] = append(localComponents[addr.Item], configs...)
@@ -284,7 +320,15 @@ func (s *Stack) Removed() *Removed {
 		stackCallComponents.Put(addr, append(stackCallComponents.Get(addr), configs...))
 	}
 
-	s.removed = newRemoved(localComponents, stackCallComponents)
+	for addr, configs := range s.externalRemovedStackCalls.All() {
+		if len(addr) == 1 {
+			localStackCalls[stackaddrs.StackCall{Name: addr[0].Name}] = append(localStackCalls[stackaddrs.StackCall{Name: addr[0].Name}], configs...)
+			continue
+		}
+		embeddedStackCalls.Put(addr, append(embeddedStackCalls.Get(addr), configs...))
+	}
+
+	s.removed = newRemoved(localComponents, stackCallComponents, localStackCalls, embeddedStackCalls)
 	return s.removed
 }
 
@@ -624,11 +668,35 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Invalid `from` attribute",
-						Detail:   fmt.Sprintf("The `from` attribute resolved to resource instance %s, which is already claimed by another removed block at %s.", inst.from, existing.call.config.config.DeclRange.ToHCL()),
+						Detail:   fmt.Sprintf("The `from` attribute resolved to component instance %s, which is already claimed by another removed block at %s.", inst.from, existing.call.config.config.DeclRange.ToHCL()),
 						Subject:  inst.call.config.config.DeclRange.ToHCL().Ptr(),
 					})
+					continue
 				}
 				seen[inst.from.Item.Key] = inst
+			}
+		}
+	}
+
+	for _, blocks := range s.Removed().localStackCalls {
+		seen := collections.NewMap[stackaddrs.StackInstance, *RemovedStackCallInstance]()
+		for _, block := range blocks {
+			insts, unknown := block.InstancesFor(ctx, s.addr, PlanPhase)
+			if unknown {
+				continue
+			}
+
+			for _, inst := range insts {
+				if existing, exists := seen.GetOk(inst.from); exists {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid `from` attribute",
+						Detail:   fmt.Sprintf("The `from` attribute resolved to stack instance %s, which is already claimed by another removed block at %s.", inst.from, existing.call.config.config.DeclRange.ToHCL()),
+						Subject:  inst.call.config.config.DeclRange.ToHCL().Ptr(),
+					})
+					continue
+				}
+				seen.Put(inst.from, inst)
 			}
 		}
 	}

@@ -165,6 +165,7 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 			})
 			continue
 		}
+		call.FinalSourceAddr = effectiveSourceAddr
 
 		if len(callers) == maxEmbeddedStackNesting {
 			var callersBuf strings.Builder
@@ -187,6 +188,37 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 		diags = diags.Append(moreDiags)
 		if childNode != nil {
 			ret.Children[call.Name] = childNode
+		}
+	}
+	for _, blocks := range stack.RemovedEmbeddedStacks.All() {
+		for _, rmvd := range blocks {
+			effectiveSourceAddr, err := resolveFinalSourceAddr(sourceAddr, rmvd.SourceAddr, rmvd.VersionConstraints, sources)
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid source address",
+					Detail: fmt.Sprintf(
+						"Cannot use %q as a source address here: %s.",
+						rmvd.SourceAddr, err,
+					),
+					Subject: rmvd.SourceAddrRange.ToHCL().Ptr(),
+				})
+				continue
+			}
+			rmvd.FinalSourceAddr = effectiveSourceAddr
+
+			next := rmvd.From.TargetStack()[0].Name
+			if _, ok := ret.Children[next]; ok {
+				// Then we've already loaded the configuration for this
+				// stack in the direct stack call.
+				continue
+			}
+
+			childNode, moreDiags := loadConfigDir(effectiveSourceAddr, sources, append(callers, sourceAddr))
+			diags = diags.Append(moreDiags)
+			if childNode != nil {
+				ret.Children[next] = childNode
+			}
 		}
 	}
 
@@ -212,7 +244,7 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 		cmpn.FinalSourceAddr = effectiveSourceAddr
 	}
 
-	for _, blocks := range stack.Removed.All() {
+	for _, blocks := range stack.RemovedComponents.All() {
 		for _, rmvd := range blocks {
 			effectiveSourceAddr, err := resolveFinalSourceAddr(sourceAddr, rmvd.SourceAddr, rmvd.VersionConstraints, sources)
 			if err != nil {

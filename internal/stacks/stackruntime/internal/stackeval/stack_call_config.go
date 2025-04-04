@@ -125,101 +125,8 @@ func (s *StackCallConfig) validateForEachValueInner(phase EvalPhase) func(contex
 func (s *StackCallConfig) ValidateInputVariableValues(ctx context.Context, phase EvalPhase) (map[stackaddrs.InputVariable]cty.Value, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
 		ctx, s.tracingName()+" inputs", s.inputVariableValues.For(phase),
-		s.validateInputVariableValuesInner(phase),
+		validateStackCallInputsFn(s.config.Inputs, s.config.DeclRange.ToHCL(), s.TargetConfig(), s, phase),
 	)
-}
-
-func (s *StackCallConfig) validateInputVariableValuesInner(phase EvalPhase) func(context.Context) (map[stackaddrs.InputVariable]cty.Value, tfdiags.Diagnostics) {
-	return func(ctx context.Context) (map[stackaddrs.InputVariable]cty.Value, tfdiags.Diagnostics) {
-		var diags tfdiags.Diagnostics
-		callee := s.TargetConfig()
-		vars := callee.InputVariables()
-
-		atys := make(map[string]cty.Type, len(vars))
-		var optional []string
-		defs := make(map[string]cty.Value, len(vars))
-		for addr, v := range vars {
-			aty := v.TypeConstraint()
-
-			atys[addr.Name] = aty
-			if def := v.DefaultValue(); def != cty.NilVal {
-				optional = append(optional, addr.Name)
-				defs[addr.Name] = def
-			}
-		}
-
-		oty := cty.ObjectWithOptionalAttrs(atys, optional)
-
-		var varsObj cty.Value
-		var hclCtx *hcl.EvalContext // NOTE: remains nil when h.config.Inputs is unset
-		if s.config.Inputs != nil {
-			result, moreDiags := EvalExprAndEvalContext(ctx, s.config.Inputs, phase, s)
-			v := result.Value
-			diags = diags.Append(moreDiags)
-			if moreDiags.HasErrors() {
-				v = cty.UnknownVal(oty.WithoutOptionalAttributesDeep())
-			}
-			varsObj = v
-			hclCtx = result.EvalContext
-		} else {
-			varsObj = cty.EmptyObjectVal
-		}
-
-		// FIXME: TODO: We need to apply the nested optional attribute defaults
-		// somewhere in here too, but it isn't clear where we should do that since
-		// we're supposed to do that before type conversion but we don't yet have
-		// the isolated variable values to apply the defaults to.
-
-		varsObj, err := convert.Convert(varsObj, oty)
-		if err != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid input variable definitions",
-				Detail: fmt.Sprintf(
-					"Unsuitable input variable definitions: %s.",
-					tfdiags.FormatError(err),
-				),
-				Subject: s.config.Inputs.Range().Ptr(),
-
-				// NOTE: The following two will be nil if the author didn't
-				// actually define the "inputs" argument, but that's okay
-				// because these fields are both optional anyway.
-				Expression:  s.config.Inputs,
-				EvalContext: hclCtx,
-			})
-			varsObj = cty.UnknownVal(oty.WithoutOptionalAttributesDeep())
-		}
-
-		ret := make(map[stackaddrs.InputVariable]cty.Value, len(vars))
-
-		for addr := range vars {
-			val := varsObj.GetAttr(addr.Name)
-			if val.IsNull() {
-				if def, ok := defs[addr.Name]; ok {
-					ret[addr] = def
-				} else {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Missing definition for required input variable",
-						Detail:   fmt.Sprintf("The input variable %q is required, so cannot be omitted.", addr.Name),
-						Subject:  s.config.Inputs.Range().Ptr(),
-
-						// NOTE: The following two will be nil if the author didn't
-						// actually define the "inputs" argument, but that's okay
-						// because these fields are both optional anyway.
-						Expression:  s.config.Inputs,
-						EvalContext: hclCtx,
-					})
-					ret[addr] = cty.UnknownVal(atys[addr.Name])
-				}
-			} else {
-				ret[addr] = val
-			}
-		}
-
-		return ret, diags
-	}
-
 }
 
 // InputVariableValues returns the effective input variable values specified
@@ -367,4 +274,98 @@ func (s *StackCallConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedC
 // ExprReferenceValue implements Referenceable.
 func (s *StackCallConfig) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
 	return s.ResultValue(ctx, phase)
+}
+
+func validateStackCallInputsFn(inputs hcl.Expression, callRange hcl.Range, config *StackConfig, scope ExpressionScope, phase EvalPhase) func(ctx context.Context) (map[stackaddrs.InputVariable]cty.Value, tfdiags.Diagnostics) {
+	return func(ctx context.Context) (map[stackaddrs.InputVariable]cty.Value, tfdiags.Diagnostics) {
+		var diags tfdiags.Diagnostics
+		vars := config.InputVariables()
+
+		atys := make(map[string]cty.Type, len(vars))
+		var optional []string
+		defs := make(map[string]cty.Value, len(vars))
+		for addr, v := range vars {
+			aty := v.TypeConstraint()
+
+			atys[addr.Name] = aty
+			if def := v.DefaultValue(); def != cty.NilVal {
+				optional = append(optional, addr.Name)
+				defs[addr.Name] = def
+			}
+		}
+
+		oty := cty.ObjectWithOptionalAttrs(atys, optional)
+
+		var varsObj cty.Value
+		var hclCtx *hcl.EvalContext // NOTE: remains nil when h.config.Inputs is unset
+		var inputsRange hcl.Range
+		if inputs != nil {
+			result, moreDiags := EvalExprAndEvalContext(ctx, inputs, phase, scope)
+			v := result.Value
+			diags = diags.Append(moreDiags)
+			if moreDiags.HasErrors() {
+				v = cty.UnknownVal(oty.WithoutOptionalAttributesDeep())
+			}
+			varsObj = v
+			hclCtx = result.EvalContext
+			inputsRange = inputs.Range()
+		} else {
+			varsObj = cty.EmptyObjectVal
+			inputsRange = callRange
+		}
+
+		// FIXME: TODO: We need to apply the nested optional attribute defaults
+		// somewhere in here too, but it isn't clear where we should do that since
+		// we're supposed to do that before type conversion but we don't yet have
+		// the isolated variable values to apply the defaults to.
+
+		varsObj, err := convert.Convert(varsObj, oty)
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid input variable definitions",
+				Detail: fmt.Sprintf(
+					"Unsuitable input variable definitions: %s.",
+					tfdiags.FormatError(err),
+				),
+				Subject: inputsRange.Ptr(),
+
+				// NOTE: The following two will be nil if the author didn't
+				// actually define the "inputs" argument, but that's okay
+				// because these fields are both optional anyway.
+				Expression:  inputs,
+				EvalContext: hclCtx,
+			})
+			varsObj = cty.UnknownVal(oty.WithoutOptionalAttributesDeep())
+		}
+
+		ret := make(map[stackaddrs.InputVariable]cty.Value, len(vars))
+
+		for addr := range vars {
+			val := varsObj.GetAttr(addr.Name)
+			if val.IsNull() {
+				if def, ok := defs[addr.Name]; ok {
+					ret[addr] = def
+				} else {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Missing definition for required input variable",
+						Detail:   fmt.Sprintf("The input variable %q is required, so cannot be omitted.", addr.Name),
+						Subject:  inputs.Range().Ptr(),
+
+						// NOTE: The following two will be nil if the author didn't
+						// actually define the "inputs" argument, but that's okay
+						// because these fields are both optional anyway.
+						Expression:  inputs,
+						EvalContext: hclCtx,
+					})
+					ret[addr] = cty.UnknownVal(atys[addr.Name])
+				}
+			} else {
+				ret[addr] = val
+			}
+		}
+
+		return ret, diags
+	}
 }
