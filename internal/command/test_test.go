@@ -1811,9 +1811,8 @@ can remove the provider configuration again.
 				Meta: meta,
 			}
 
-			output := done(t)
-
 			if code := init.Run(nil); code != 0 {
+				output := done(t)
 				t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 			}
 
@@ -1827,7 +1826,7 @@ can remove the provider configuration again.
 			}
 
 			code := c.Run([]string{"-no-color"})
-			output = done(t)
+			output := done(t)
 
 			if code != 1 {
 				t.Errorf("expected status code 1 but got %d", code)
