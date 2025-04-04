@@ -139,7 +139,7 @@ func (n *NodeStateCleanup) cleanup(ctx *EvalContext, runNode *NodeTestRun, waite
 	// operation. We can just apply the override to the state file and return.
 	if n.applyOverride != nil {
 		runNode.testApply(ctx, variables, waiter)
-		return ctx.GetFileState(n.stateKey).State, nil
+		return ctx.GetFileState(n.stateKey).State, runNode.run.Diagnostics
 	}
 
 	// During the destroy operation, we don't add warnings from this operation.
