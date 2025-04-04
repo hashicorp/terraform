@@ -114,7 +114,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 	// changed at all.
 	noOpResult := inst.PlaceholderApplyResultForSkippedApply(plan)
 
-	stackPlan := main.PlanBeingApplied().Components.Get(inst.Addr())
+	stackPlan := main.PlanBeingApplied().GetComponent(inst.Addr())
 
 	// We'll gather up our set of potentially-affected objects before we do
 	// anything else, because the modules runtime tends to mutate the objects

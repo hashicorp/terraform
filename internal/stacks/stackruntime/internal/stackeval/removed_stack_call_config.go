@@ -27,7 +27,7 @@ var (
 )
 
 type RemovedStackCallConfig struct {
-	target stackaddrs.Stack // relative to stack
+	target stackaddrs.ConfigStackCall // relative to stack
 	config *stackconfig.Removed
 	stack  *StackConfig
 
@@ -37,7 +37,7 @@ type RemovedStackCallConfig struct {
 	inputVariableValues perEvalPhase[promising.Once[withDiagnostics[map[stackaddrs.InputVariable]cty.Value]]]
 }
 
-func newRemovedStackCallConfig(main *Main, target stackaddrs.Stack, stack *StackConfig, config *stackconfig.Removed) *RemovedStackCallConfig {
+func newRemovedStackCallConfig(main *Main, target stackaddrs.ConfigStackCall, stack *StackConfig, config *stackconfig.Removed) *RemovedStackCallConfig {
 	return &RemovedStackCallConfig{
 		target: target,
 		config: config,
@@ -48,10 +48,10 @@ func newRemovedStackCallConfig(main *Main, target stackaddrs.Stack, stack *Stack
 
 func (r *RemovedStackCallConfig) TargetConfig() *StackConfig {
 	current := r.stack
-	for _, step := range r.target {
+	for _, step := range r.target.Stack {
 		current = current.ChildConfig(step)
 	}
-	return current
+	return current.ChildConfig(stackaddrs.StackStep{Name: r.target.Item.Name})
 }
 
 func (r *RemovedStackCallConfig) InputVariableValues(ctx context.Context, phase EvalPhase) (map[stackaddrs.InputVariable]cty.Value, tfdiags.Diagnostics) {

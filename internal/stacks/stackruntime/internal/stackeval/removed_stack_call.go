@@ -12,7 +12,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -27,7 +26,7 @@ var _ Applyable = (*RemovedStackCall)(nil)
 
 type RemovedStackCall struct {
 	stack  *Stack
-	target stackaddrs.Stack // relative to stack
+	target stackaddrs.ConfigStackCall // relative to stack
 
 	config *RemovedStackCallConfig
 
@@ -37,7 +36,7 @@ type RemovedStackCall struct {
 	instances    perEvalPhase[promising.Once[withDiagnostics[instancesResult[*RemovedStackCallInstance]]]]
 }
 
-func newRemovedStackCall(main *Main, target stackaddrs.Stack, stack *Stack, config *RemovedStackCallConfig) *RemovedStackCall {
+func newRemovedStackCall(main *Main, target stackaddrs.ConfigStackCall, stack *Stack, config *RemovedStackCallConfig) *RemovedStackCall {
 	return &RemovedStackCall{
 		stack:  stack,
 		target: target,
@@ -48,10 +47,8 @@ func newRemovedStackCall(main *Main, target stackaddrs.Stack, stack *Stack, conf
 
 // GetExternalRemovedBlocks fetches the removed blocks that target the stack
 // instances being created by this stack call.
-func (r *RemovedStackCall) GetExternalRemovedBlocks() (collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent], collections.Map[stackaddrs.Stack, []*RemovedStackCall]) {
-	return r.stack.Removed().ForStackCall(stackaddrs.StackCall{
-		Name: r.target[0].Name,
-	})
+func (r *RemovedStackCall) GetExternalRemovedBlocks() *Removed {
+	return r.stack.Removed().Get(r.target)
 }
 
 func (r *RemovedStackCall) ForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {

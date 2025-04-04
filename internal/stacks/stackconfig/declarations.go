@@ -53,7 +53,7 @@ type Declarations struct {
 
 	// RemovedEmbeddedStacks is the list of embedded stacks that have been removed
 	// from the configuration.
-	RemovedEmbeddedStacks collections.Map[stackaddrs.Stack, []*Removed]
+	RemovedEmbeddedStacks collections.Map[stackaddrs.ConfigStackCall, []*Removed]
 }
 
 func makeDeclarations() Declarations {
@@ -65,7 +65,7 @@ func makeDeclarations() Declarations {
 		OutputValues:          make(map[string]*OutputValue),
 		ProviderConfigs:       make(map[addrs.LocalProviderConfig]*ProviderConfig),
 		RemovedComponents:     collections.NewMap[stackaddrs.ConfigComponent, []*Removed](),
-		RemovedEmbeddedStacks: collections.NewMap[stackaddrs.Stack, []*Removed](),
+		RemovedEmbeddedStacks: collections.NewMap[stackaddrs.ConfigStackCall, []*Removed](),
 	}
 }
 
@@ -142,8 +142,11 @@ func (d *Declarations) addEmbeddedStack(decl *EmbeddedStack) tfdiags.Diagnostics
 		return diags
 	}
 
-	if blocks, exists := d.RemovedEmbeddedStacks.GetOk(stackaddrs.Stack{
-		stackaddrs.StackStep{Name: name},
+	if blocks, exists := d.RemovedEmbeddedStacks.GetOk(stackaddrs.ConfigStackCall{
+		Stack: nil,
+		Item: stackaddrs.StackCall{
+			Name: name,
+		},
 	}); exists {
 		for _, removed := range blocks {
 			if removed.From.Stack[0].Index == nil {
@@ -319,7 +322,7 @@ func (d *Declarations) addRemoved(decl *Removed) tfdiags.Diagnostics {
 
 		d.RemovedComponents.Put(addr, append(d.RemovedComponents.Get(addr), decl))
 	} else {
-		addr := decl.From.TargetStack()
+		addr := decl.From.TargetStack().ToStackCall()
 
 		if len(decl.From.Stack) == 1 && decl.From.Stack[0].Index == nil {
 			// Same logic as for components, we can just error a bit earlier

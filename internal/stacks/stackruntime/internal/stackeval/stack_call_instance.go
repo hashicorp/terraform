@@ -72,8 +72,7 @@ func (c *StackCallInstance) CalledStackAddr() stackaddrs.StackInstance {
 
 func (c *StackCallInstance) Stack(ctx context.Context, phase EvalPhase) *Stack {
 	stack, err := c.stack.For(phase).Do(ctx, c.tracingName(), func(ctx context.Context) (*Stack, error) {
-		components, embeddedStackCalls := c.call.GetExternalRemovedBlocks()
-		return newStack(c.main, c.CalledStackAddr(), c.call.stack, c.call.config.TargetConfig(), components, embeddedStackCalls, c.mode, c.deferred), nil
+		return newStack(c.main, c.CalledStackAddr(), c.call.stack, c.call.config.TargetConfig(), c.call.GetExternalRemovedBlocks(), c.mode, c.deferred), nil
 	})
 	if err != nil {
 		// we don't have cycles in here, and we don't return an error so this
