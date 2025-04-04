@@ -4085,130 +4085,109 @@ func TestTest_UseOfBackends_validatesUseOfSkipCleanup(t *testing.T) {
 	}
 }
 
-func TestTest_UseOfBackends_unhappyPath(t *testing.T) {
+func TestTest_UseOfBackends_failureDuringApply(t *testing.T) {
+	// SETUP
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "valid-use-local-backend")), td)
+	defer testChdir(t, td)()
+	localStatePath := filepath.Join(td, DefaultStateFilename)
 
-	testCases := map[string]struct {
-		dirName           string
-		priorState        *states.State
-		expectedState     string
-		forceApplyFailure func(providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse
-	}{
-		"If a test run fails, partial state will be persisted to the backend": {
-			dirName: "valid-use-local-backend",
-			// the priorState doesn't include the output, and has an outdated value field on the test_resource
-			priorState: states.BuildState(func(s *states.SyncState) {
-				s.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_resource",
-						Name: "a",
-					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-					&states.ResourceInstanceObjectSrc{
-						AttrsJSON: []byte(`{"id":"12345","value":"outdated-value-from-prior-test-run"}`),
-						Status:    states.ObjectReady,
-					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
-				)
-			}),
-			// When there is a failure to apply changes to the test_resource, the resulting state only includes the output
-			// and lacks any information about the test_resource
-			expectedState: `Outputs:
+	provider := testing_command.NewProvider(nil)
+	// Force a failure during apply
+	provider.Provider.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		resp := providers.ApplyResourceChangeResponse{}
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("forced error"))
+		return resp
+	}
 
-supplied_input_value = value-from-run-that-controls-backend`,
-			forceApplyFailure: func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
-				resp := providers.ApplyResourceChangeResponse{}
-				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("forced error"))
-				return resp
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	// SET & ASSERT PRIOR STATE
+	// the priorState doesn't include the output, and has an outdated value field on the test_resource
+	priorState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_resource",
+				Name: "a",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"12345","value":"outdated-value-from-prior-test-run"}`),
+				Status:    states.ObjectReady,
 			},
-		},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	testStateFileDefault(t, priorState)
+
+	actualState := testStateRead(t, localStatePath)
+	if diff := cmp.Diff(actualState.String(), priorState.String()); len(diff) > 0 {
+		t.Errorf("prior state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", priorState, actualState, diff)
 	}
 
-	for tn, tc := range testCases {
-		t.Run(tn, func(t *testing.T) {
-			// SETUP
-			td := t.TempDir()
-			testCopyDir(t, testFixturePath(path.Join("test", tc.dirName)), td)
-			defer testChdir(t, td)()
-			localStatePath := filepath.Join(td, DefaultStateFilename)
-
-			provider := testing_command.NewProvider(nil)
-			if tc.forceApplyFailure != nil {
-				provider.Provider.ApplyResourceChangeFn = tc.forceApplyFailure
-			}
-
-			providerSource, close := newMockProviderSource(t, map[string][]string{
-				"test": {"1.0.0"},
-			})
-			defer close()
-
-			streams, done := terminal.StreamsForTesting(t)
-			view := views.NewView(streams)
-			ui := new(cli.MockUi)
-
-			meta := Meta{
-				testingOverrides: metaOverridesForProvider(provider.Provider),
-				Ui:               ui,
-				View:             view,
-				Streams:          streams,
-				ProviderSource:   providerSource,
-			}
-
-			// SET & ASSERT PRIOR STATE
-			if tc.priorState != nil {
-				testStateFileDefault(t, tc.priorState)
-
-				actualState := testStateRead(t, localStatePath)
-				if diff := cmp.Diff(actualState.String(), tc.priorState.String()); len(diff) > 0 {
-					t.Errorf("prior state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
-				}
-			}
-
-			// INIT
-			init := &InitCommand{
-				Meta: meta,
-			}
-
-			output := done(t)
-			if code := init.Run(nil); code != 0 {
-				t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
-			}
-
-			// TEST
-			// Reset the streams for the next command.
-			streams, done = terminal.StreamsForTesting(t)
-			meta.Streams = streams
-			meta.View = views.NewView(streams)
-
-			c := &TestCommand{
-				Meta: meta,
-			}
-
-			code := c.Run([]string{"-no-color"})
-			output = done(t)
-
-			// ASSERTIONS
-			if code != 1 {
-				t.Errorf("expected status code 1 but got %d", code)
-			}
-			stdErr := output.Stderr()
-			if len(stdErr) == 0 {
-				t.Fatal("expected error output but got none")
-			}
-
-			actualState := testStateRead(t, localStatePath)
-			if diff := cmp.Diff(actualState.String(), tc.expectedState); len(diff) > 0 {
-				t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
-			}
-
-			if provider.ResourceCount() > 0 {
-				t.Fatalf("should have deleted all resources on completion but left %v", provider.ResourceString())
-			}
-		})
+	// INIT
+	init := &InitCommand{
+		Meta: meta,
 	}
 
+	output := done(t)
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// TEST
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output = done(t)
+
+	// ASSERTIONS
+	if code != 1 {
+		t.Errorf("expected status code 1 but got %d", code)
+	}
+	stdErr := output.Stderr()
+	if len(stdErr) == 0 {
+		t.Fatal("expected error output but got none")
+	}
+
+	actualState = testStateRead(t, localStatePath)
+	// When there is a failure to apply changes to the test_resource, the resulting state only includes the output
+	// and lacks any information about the test_resource
+	expectedState := `Outputs:
+
+supplied_input_value = value-from-run-that-controls-backend`
+	if diff := cmp.Diff(actualState.String(), expectedState); len(diff) > 0 {
+		t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedState, actualState, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Fatalf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
 }
 
 func TestTest_RunBlocksInProviders(t *testing.T) {
