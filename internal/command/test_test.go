@@ -3999,6 +3999,7 @@ supplied_input_value = value-from-run-that-controls-backend`,
 				t.Fatalf("unexpected error output:\n%s", stdErr)
 			}
 
+			// State is stored according to the backend block
 			actualState := testStateRead(t, localStatePath)
 			if diff := cmp.Diff(actualState.String(), tc.expectedState); len(diff) > 0 {
 				t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
@@ -4015,6 +4016,92 @@ supplied_input_value = value-from-run-that-controls-backend`,
 			}
 
 		})
+	}
+}
+
+// When cleanup reverts state to match the run block that uses a backend
+// and doesn't experience any issues (returns code 0), no state artifacts are made.
+//
+// Note: the manifest file is made regardless
+func TestTest_UseOfBackends_noStateArtifactsWhenCodeZero(t *testing.T) {
+	// SETUP
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "valid-use-local-backend")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	// INIT
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// TEST
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+
+	// ASSERTIONS
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	// State is NOT stored in .terraform/test as a state artifact because
+	// there haven't been any failures or errors in the tests
+	manifestPath := path.Join(td, ".terraform/test", "manifest.json")
+	manifestFile, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatalf("failed to read manifest.json: %s", err)
+	}
+	var manifest graph.TestManifest
+	if err := json.Unmarshal(manifestFile, &manifest); err != nil {
+		t.Fatalf("failed to unmarshal manifest.json: %s", err)
+	}
+	foundFiles := []string{}
+	for _, file := range manifest.Files {
+		for name, state := range file.States {
+			t.Logf("manifest.json describes state for %s is stored in %s", name, state.Path)
+			path := path.Join(td, state.Path)
+			_, err := os.Stat(path)
+			if err != nil && !os.IsNotExist(err) {
+				t.Fatalf("unexpected error when checking for state artifacts: %s", err)
+			}
+			if err == nil {
+				foundFiles = append(foundFiles, state.Path)
+			}
+		}
+	}
+	if len(foundFiles) > 0 {
+		t.Fatalf("found %d state files in .terraform/test when none were expected", len(foundFiles))
 	}
 }
 
