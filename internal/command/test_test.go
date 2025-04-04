@@ -4106,16 +4106,17 @@ func TestTest_UseOfBackends_whenStateArtifactsAreMade(t *testing.T) {
 
 			// SETUP
 			td := t.TempDir()
-			testCopyDir(t, testFixturePath(path.Join("test", "valid-use-local-backend")), td)
+			testCopyDir(t, testFixturePath(path.Join("test", "valid-use-local-backend/no-prior-state")), td)
 			defer testChdir(t, td)()
 
 			provider := testing_command.NewProvider(nil)
+			erroringInvocationNum := 3
+			applyResourceChangeCount := 0
 			if tc.forceError {
 				oldFunc := provider.Provider.ApplyResourceChangeFn
-				applyResourceChangeCount := 0
 				newFunc := func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 					applyResourceChangeCount++
-					if applyResourceChangeCount < 5 {
+					if applyResourceChangeCount < erroringInvocationNum {
 						return oldFunc(req)
 					}
 					// Given the config in the test fixture used, the 5th call to this function is during cleanup
@@ -4168,6 +4169,12 @@ func TestTest_UseOfBackends_whenStateArtifactsAreMade(t *testing.T) {
 			code := c.Run([]string{"-no-color"})
 
 			// ASSERTIONS
+
+			if tc.forceError && (applyResourceChangeCount != erroringInvocationNum) {
+				t.Fatalf(`Test did not force error as expected. This is because a magic number in the test setup is coupled to the config.
+The apply resource change function was invoked %d times but we trigger an error on the %dth time`, applyResourceChangeCount, erroringInvocationNum)
+			}
+
 			if code != tc.expectedCode {
 				output := done(t)
 				t.Errorf("expected status code %d but got %d: %s", tc.expectedCode, code, output.All())
