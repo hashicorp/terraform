@@ -115,6 +115,10 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	}
 
 	evalCtx.WriteFileState(n.stateKey, state)
+
+	// We don't return destroyDiags here because the calling code sets the return code for the test operation
+	// based on whether the tests passed or not; cleanup is not a factor.
+	// Users will be aware of issues with cleanup due to destroyDiags being rendered to the View.
 	return nil
 }
 
