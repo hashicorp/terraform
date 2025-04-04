@@ -594,52 +594,102 @@ main.tftest.hcl/single, and they need to be cleaned up manually:
 		t.Errorf("should not have deleted all resources on completion but only has %v", provider.ResourceString())
 	}
 
-	// Verify the manifest.json file
-	manifestPath := path.Join(td, ".terraform/test", "manifest.json")
-	manifestFile, err := os.ReadFile(manifestPath)
-	if err != nil {
-		t.Fatalf("failed to read manifest.json: %s", err)
-	}
+	actualStates := func() map[string][]string {
+		// Verify the manifest.json file
+		manifestPath := path.Join(td, ".terraform/test", "manifest.json")
+		manifestFile, err := os.ReadFile(manifestPath)
+		if err != nil {
+			t.Fatalf("failed to read manifest.json: %s", err)
+		}
 
-	var manifest graph.TestManifest
-	if err := json.Unmarshal(manifestFile, &manifest); err != nil {
-		t.Fatalf("failed to unmarshal manifest.json: %s", err)
+		var manifest graph.TestManifest
+		if err := json.Unmarshal(manifestFile, &manifest); err != nil {
+			t.Fatalf("failed to unmarshal manifest.json: %s", err)
+		}
+
+		states := make(map[string][]string)
+
+		// Verify the states in the manifest
+		for fileName, file := range manifest.Files {
+			for name, state := range file.States {
+				sm := statemgr.NewFilesystem(filepath.Join(td, state.Path))
+				if err := sm.RefreshState(); err != nil {
+					t.Fatalf("error when reading state file: %s", err)
+				}
+				state := sm.State()
+
+				// If the state is nil, then the test cleaned up the state
+				if state == nil || state.Empty() {
+					continue
+				}
+
+				var resources []string
+				for _, module := range state.Modules {
+					for _, resource := range module.Resources {
+						resources = append(resources, resource.Addr.String())
+					}
+				}
+				sort.Strings(resources)
+				states[strings.TrimSuffix(fileName, ".tftest.hcl")+"."+name] = resources
+			}
+		}
+
+		return states
 	}
 
 	expectedStates := map[string][]string{
 		"main.":       {"test_resource.another", "test_resource.resource"},
 		"main.double": {"test_resource.another", "test_resource.resource"},
 	}
-	actualStates := make(map[string][]string)
-
-	// Verify the states in the manifest
-	for fileName, file := range manifest.Files {
-		for name, state := range file.States {
-			sm := statemgr.NewFilesystem(filepath.Join(td, state.Path))
-			if err := sm.RefreshState(); err != nil {
-				t.Fatalf("error when reading state file: %s", err)
-			}
-			state := sm.State()
-
-			// If the state is nil, then the test cleaned up the state
-			if state == nil {
-				continue
-			}
-
-			var resources []string
-			for _, module := range state.Modules {
-				for _, resource := range module.Resources {
-					resources = append(resources, resource.Addr.String())
-				}
-			}
-			sort.Strings(resources)
-			actualStates[strings.TrimSuffix(fileName, ".tftest.hcl")+"."+name] = resources
-		}
-	}
-
-	if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
+	if diff := cmp.Diff(expectedStates, actualStates()); diff != "" {
 		t.Fatalf("unexpected states: %s", diff)
 	}
+
+	t.Run("cleanup failed state", func(t *testing.T) {
+		fmt.Println(td)
+		interrupt := make(chan struct{})
+		provider.Interrupt = interrupt
+		provider.Provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+			return providers.PlanResourceChangeResponse{
+				PlannedState: req.ProposedNewState,
+			}
+		}
+		provider.Provider.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+			return providers.ApplyResourceChangeResponse{
+				NewState: req.PlannedState,
+			}
+		}
+		view, done = testView(t)
+
+		c := &TestCleanupCommand{
+			&TestCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(provider.Provider),
+					View:             view,
+					ShutdownCh:       interrupt,
+				},
+			},
+		}
+
+		c.Run([]string{"-no-color"})
+		output := done(t)
+
+		expectedCleanup := `main.tftest.hcl... in progress
+main.tftest.hcl... tearing down
+main.tftest.hcl... skip
+
+Success! 0 passed, 0 failed.
+`
+		if diff := cmp.Diff(expectedCleanup, output.Stdout()); diff != "" {
+			t.Fatalf("unexpected cleanup output: expected %s\n, got %s\n, diff: %s", expectedCleanup, output.Stdout(), diff)
+		}
+
+		expectedStates := map[string][]string{}
+
+		if diff := cmp.Diff(expectedStates, actualStates()); diff != "" {
+			t.Fatalf("unexpected states after cleanup: %s", diff)
+		}
+	})
 }
 
 func TestTest_LeftoverState(t *testing.T) {

@@ -61,6 +61,10 @@ func BuildStateManifest(rootDir string, files map[string]*moduletest.File) (*Tes
 
 		// create a state file path for each state key
 		for _, key := range keys {
+			// if the state key already exists in the manifest, we use that existing entry
+			if _, ok := manifestFile.States[key]; ok {
+				continue
+			}
 			id := manifest.generateID()
 			if _, exists := ids[id]; exists {
 				panic(fmt.Sprintf("duplicate generated state id %s", id))
@@ -141,6 +145,25 @@ func (m *TestManifest) writeState(key string, state *TestFileState) error {
 	}
 
 	return nil
+}
+
+func (m *TestManifest) readState(filename, stateKey string) (*TestFileState, error) {
+	file, exists := m.Files[filename]
+	if !exists {
+		return nil, fmt.Errorf("file %s not found in manifest", filename)
+	}
+	location, exists := file.States[stateKey]
+	if !exists {
+		return nil, fmt.Errorf("state %s not found in file %s", stateKey, filename)
+	}
+
+	// Read state from disk
+	stateFile := statemgr.NewFilesystem(location.Path)
+	if err := stateFile.RefreshState(); err != nil {
+		return nil, err
+	}
+
+	return &TestFileState{State: stateFile.State()}, nil
 }
 
 // writeManifest writes the manifest to disk
