@@ -6,6 +6,7 @@ package command
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -28,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestTest_Runs(t *testing.T) {
@@ -4019,89 +4021,131 @@ supplied_input_value = value-from-run-that-controls-backend`,
 	}
 }
 
-// When cleanup reverts state to match the run block that uses a backend
-// and doesn't experience any issues (returns code 0), no state artifacts are made.
+// Testing whether a state artifact is made for a run block with a backend or not
 //
-// Note: the manifest file is made regardless
-func TestTest_UseOfBackends_noStateArtifactsWhenCodeZero(t *testing.T) {
-	// SETUP
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath(path.Join("test", "valid-use-local-backend")), td)
-	defer testChdir(t, td)()
-
-	provider := testing_command.NewProvider(nil)
-
-	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"test": {"1.0.0"},
-	})
-	defer close()
-
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := new(cli.MockUi)
-
-	meta := Meta{
-		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
-		View:             view,
-		Streams:          streams,
-		ProviderSource:   providerSource,
+// Artifacts are made when the cleanup operation errors.
+func TestTest_UseOfBackends_whenStateArtifactsAreMade(t *testing.T) {
+	cases := map[string]struct {
+		forceError       bool
+		expectedCode     int
+		expectStateFiles bool
+	}{
+		"no artifact made when there are no cleanup errors when processing a run block with a backend": {
+			forceError:       false,
+			expectedCode:     0,
+			expectStateFiles: false,
+		},
+		"artifact made when a cleanup error is forced when processing a run block with a backend": {
+			forceError:       true,
+			expectedCode:     0, // Is 0 because the tests passed before the cleanup error
+			expectStateFiles: true,
+		},
 	}
 
-	// INIT
-	init := &InitCommand{
-		Meta: meta,
-	}
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
 
-	if code := init.Run(nil); code != 0 {
-		output := done(t)
-		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
-	}
+			// SETUP
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(path.Join("test", "valid-use-local-backend")), td)
+			defer testChdir(t, td)()
 
-	// TEST
-	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
-
-	c := &TestCommand{
-		Meta: meta,
-	}
-
-	code := c.Run([]string{"-no-color"})
-
-	// ASSERTIONS
-	if code != 0 {
-		t.Errorf("expected status code 0 but got %d", code)
-	}
-
-	// State is NOT stored in .terraform/test as a state artifact because
-	// there haven't been any failures or errors in the tests
-	manifestPath := path.Join(td, ".terraform/test", "manifest.json")
-	manifestFile, err := os.ReadFile(manifestPath)
-	if err != nil {
-		t.Fatalf("failed to read manifest.json: %s", err)
-	}
-	var manifest graph.TestManifest
-	if err := json.Unmarshal(manifestFile, &manifest); err != nil {
-		t.Fatalf("failed to unmarshal manifest.json: %s", err)
-	}
-	foundFiles := []string{}
-	for _, file := range manifest.Files {
-		for name, state := range file.States {
-			t.Logf("manifest.json describes state for %s is stored in %s", name, state.Path)
-			path := path.Join(td, state.Path)
-			_, err := os.Stat(path)
-			if err != nil && !os.IsNotExist(err) {
-				t.Fatalf("unexpected error when checking for state artifacts: %s", err)
+			provider := testing_command.NewProvider(nil)
+			if tc.forceError {
+				oldFunc := provider.Provider.ApplyResourceChangeFn
+				applyResourceChangeCount := 0
+				newFunc := func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+					applyResourceChangeCount++
+					if applyResourceChangeCount < 5 {
+						return oldFunc(req)
+					}
+					// Given the config in the test fixture used, the 5th call to this function is during cleanup
+					// Return error to force error diagnostics during cleanup
+					var diags tfdiags.Diagnostics
+					return providers.ApplyResourceChangeResponse{
+						Diagnostics: diags.Append(errors.New("error forced by mock provider")),
+					}
+				}
+				provider.Provider.ApplyResourceChangeFn = newFunc
 			}
-			if err == nil {
-				foundFiles = append(foundFiles, state.Path)
+
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"test": {"1.0.0"},
+			})
+			defer close()
+
+			streams, done := terminal.StreamsForTesting(t)
+			view := views.NewView(streams)
+			ui := new(cli.MockUi)
+
+			meta := Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				Ui:               ui,
+				View:             view,
+				Streams:          streams,
+				ProviderSource:   providerSource,
 			}
-		}
-	}
-	if len(foundFiles) > 0 {
-		t.Fatalf("found %d state files in .terraform/test when none were expected", len(foundFiles))
+
+			// INIT
+			init := &InitCommand{
+				Meta: meta,
+			}
+
+			if code := init.Run(nil); code != 0 {
+				output := done(t)
+				t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+			}
+
+			// TEST
+			// Reset the streams for the next command.
+			streams, done = terminal.StreamsForTesting(t)
+			meta.Streams = streams
+			meta.View = views.NewView(streams)
+
+			c := &TestCommand{
+				Meta: meta,
+			}
+
+			code := c.Run([]string{"-no-color"})
+
+			// ASSERTIONS
+			if code != tc.expectedCode {
+				output := done(t)
+				t.Errorf("expected status code %d but got %d: %s", tc.expectedCode, code, output.All())
+			}
+
+			// State is NOT stored in .terraform/test as a state artifact because
+			// there haven't been any failures or errors in the tests
+			manifestPath := path.Join(td, ".terraform/test", "manifest.json")
+			manifestFile, err := os.ReadFile(manifestPath)
+			if err != nil {
+				t.Fatalf("failed to read manifest.json: %s", err)
+			}
+			var manifest graph.TestManifest
+			if err := json.Unmarshal(manifestFile, &manifest); err != nil {
+				t.Fatalf("failed to unmarshal manifest.json: %s", err)
+			}
+			foundFiles := []string{}
+			for _, file := range manifest.Files {
+				for name, state := range file.States {
+					t.Logf("manifest.json describes state for %s is stored in %s", name, state.Path)
+					path := path.Join(td, state.Path)
+					_, err := os.Stat(path)
+					if err != nil && !os.IsNotExist(err) {
+						t.Fatalf("unexpected error when checking for state artifacts: %s", err)
+					}
+					if err == nil {
+						foundFiles = append(foundFiles, state.Path)
+					}
+				}
+			}
+			if len(foundFiles) > 0 && !tc.expectStateFiles {
+				t.Fatalf("found %d state files in .terraform/test when none were expected", len(foundFiles))
+			}
+			if len(foundFiles) == 0 && tc.expectStateFiles {
+				t.Fatalf("found 0 state files in .terraform/test when they were were expected")
+			}
+		})
 	}
 }
 
