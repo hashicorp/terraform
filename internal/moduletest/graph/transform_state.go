@@ -94,9 +94,14 @@ func (t *TestStateTransformer) Transform(g *terraform.Graph) error {
 				if err != nil {
 					return fmt.Errorf("error retrieving state for state key %q from backend: error retrieving state manager: %w", key, err)
 				}
+				err = stmgr.RefreshState()
+				if err != nil {
+					return fmt.Errorf("error retrieving state for state key %q from backend: error reading state: %w", key, err)
+				}
 
 				log.Printf("[TRACE] TestConfigTransformer.Transform: set initial state for state key %q using backend of type %T declared at %s", key, be, bc.Backend.DeclRange)
 				state = &TestFileState{
+					File:  t.File,
 					Run:   nil,
 					State: stmgr.State(),
 					backend: runBackend{
@@ -118,6 +123,7 @@ func (t *TestStateTransformer) Transform(g *terraform.Graph) error {
 				// We set an empty in-memory state for the state key if no backend is used.
 				log.Printf("[TRACE] TestConfigTransformer.Transform: set initial state for state key %q as empty state", key)
 				state = &TestFileState{
+					File:  t.File,
 					Run:   nil,
 					State: states.NewState(),
 				}
