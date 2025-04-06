@@ -3976,9 +3976,9 @@ test_resource_id = 12345`
 func TestTest_UseOfBackends_priorStateUsedByBackend(t *testing.T) {
 
 	dirName := "valid-use-local-backend/with-prior-state"
-	resourceId := "53d69028-477d-7ba0-83c3-ff3807e3756f"
-	expectedState := `test_resource.foobar:
-  ID = 53d69028-477d-7ba0-83c3-ff3807e3756f
+	resourceId := "53d69028-477d-7ba0-83c3-ff3807e3756f" // This value needs to match the state file in the test fixtures
+	expectedState := fmt.Sprintf(`test_resource.foobar:
+  ID = %s
   provider = provider["registry.terraform.io/hashicorp/test"]
   destroy_fail = false
   value = value-from-run-that-controls-backend
@@ -3986,7 +3986,7 @@ func TestTest_UseOfBackends_priorStateUsedByBackend(t *testing.T) {
 Outputs:
 
 supplied_input_value = value-from-run-that-controls-backend
-test_resource_id = 53d69028-477d-7ba0-83c3-ff3807e3756f`
+test_resource_id = %s`, resourceId, resourceId)
 
 	// SETUP
 	td := t.TempDir()
@@ -3998,8 +3998,8 @@ test_resource_id = 53d69028-477d-7ba0-83c3-ff3807e3756f`
 	// to resemble what's in state / the remote object being reused by the test.
 	resourceStore := &testing_command.ResourceStore{
 		Data: map[string]cty.Value{
-			"53d69028-477d-7ba0-83c3-ff3807e3756f": cty.ObjectVal(map[string]cty.Value{
-				"id":                   cty.StringVal("53d69028-477d-7ba0-83c3-ff3807e3756f"),
+			resourceId: cty.ObjectVal(map[string]cty.Value{
+				"id":                   cty.StringVal(resourceId),
 				"interrupt_count":      cty.NullVal(cty.Number),
 				"value":                cty.StringVal("value-from-run-that-controls-backend"),
 				"write_only":           cty.NullVal(cty.String),
