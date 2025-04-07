@@ -133,6 +133,10 @@ type GetProviderSchemaResponse struct {
 	// to its schema.
 	EphemeralResourceTypes map[string]Schema
 
+	// ListResourceTypes maps the name of a list resource type
+	// to its schema.
+	ListResourceTypes map[string]Schema
+
 	// Functions maps from local function name (not including an namespace
 	// prefix) to the declaration of a function.
 	Functions map[string]FunctionDecl
