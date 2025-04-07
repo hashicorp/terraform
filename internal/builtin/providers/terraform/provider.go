@@ -264,6 +264,14 @@ func (p *Provider) CallFunction(req providers.CallFunctionRequest) providers.Cal
 	}
 }
 
+func (p *Provider) ListResource(req providers.ListResourceRequest) providers.ListResourceResponse {
+	panic("not implemented")
+}
+
+func (p *Provider) ValidateListResourceConfig(req providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse {
+	panic("not implemented")
+}
+
 // Close is a noop for this provider, since it's run in-process.
 func (p *Provider) Close() error {
 	return nil

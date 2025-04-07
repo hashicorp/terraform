@@ -291,6 +291,14 @@ func (u *unknownProvider) CallFunction(_ providers.CallFunctionRequest) provider
 	}
 }
 
+func (u *unknownProvider) ListResource(req providers.ListResourceRequest) providers.ListResourceResponse {
+	panic("not implemented")
+}
+
+func (u *unknownProvider) ValidateListResourceConfig(req providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse {
+	panic("not implemented")
+}
+
 func (u *unknownProvider) Close() error {
 	// the underlying unconfiguredClient is managed elsewhere.
 	return nil

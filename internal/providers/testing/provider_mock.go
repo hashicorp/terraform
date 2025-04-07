@@ -799,3 +799,11 @@ func (p *MockProvider) Close() error {
 	p.CloseCalled = true
 	return p.CloseError
 }
+
+func (m *MockProvider) ListResource(request providers.ListResourceRequest) providers.ListResourceResponse {
+	panic("not implemented")
+}
+
+func (m *MockProvider) ValidateListResourceConfig(request providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse {
+	panic("not implemented")
+}

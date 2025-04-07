@@ -1196,6 +1196,14 @@ func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp provi
 	return resp
 }
 
+func (p *GRPCProvider) ListResource(req providers.ListResourceRequest) providers.ListResourceResponse {
+	panic("not implemented")
+}
+
+func (p *GRPCProvider) ValidateListResourceConfig(req providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse {
+	panic("not implemented")
+}
+
 // closing the grpc connection is final, and terraform will call it at the end of every phase.
 func (p *GRPCProvider) Close() error {
 	logger.Trace("GRPCProvider.v6: Close")

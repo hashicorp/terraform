@@ -39,6 +39,10 @@ type Interface interface {
 	// ephemeral resource configuration values.
 	ValidateEphemeralResourceConfig(ValidateEphemeralResourceConfigRequest) ValidateEphemeralResourceConfigResponse
 
+	// ValidateListResourceConfig allows the provider to validate the
+	// list resource configuration values.
+	ValidateListResourceConfig(ValidateListResourceConfigRequest) ValidateListResourceConfigResponse
+
 	// UpgradeResourceState is called when the state loader encounters an
 	// instance state whose schema version is less than the one reported by the
 	// currently-used version of the corresponding provider, and the upgraded
@@ -99,6 +103,9 @@ type Interface interface {
 
 	// CallFunction calls a provider-contributed function.
 	CallFunction(CallFunctionRequest) CallFunctionResponse
+
+	// ListResource returns a list of resources.
+	ListResource(ListResourceRequest) ListResourceResponse
 
 	// Close shuts down the plugin process if applicable.
 	Close() error
@@ -257,6 +264,20 @@ type ValidateEphemeralResourceConfigRequest struct {
 }
 
 type ValidateEphemeralResourceConfigResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type ValidateListResourceConfigRequest struct {
+	// TypeName is the name of the list type to validate.
+	TypeName string
+
+	// Config is the configuration value to validate, which may contain unknown
+	// values.
+	Config cty.Value
+}
+
+type ValidateListResourceConfigResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }
@@ -686,4 +707,28 @@ type CallFunctionResponse struct {
 	// of function.ArgError from the go-cty package to specify a problem with a
 	// specific argument.
 	Err error
+}
+
+type ListResult struct {
+	// Identity is the object-typed value representing the identity of the remote
+	// object.
+	Identity cty.Value
+
+	// DisplayString is a human-readable description of the object
+	DisplayString string
+}
+
+type ListResourceRequest struct {
+	// TypeName is the name of the resource type being read.
+	TypeName string
+
+	// Config is the block body for the list resource.
+	Config cty.Value
+}
+
+type ListResourceResponse struct {
+	Resources []ListResult
+
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
 }

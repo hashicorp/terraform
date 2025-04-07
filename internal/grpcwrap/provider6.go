@@ -784,6 +784,14 @@ func (p *provider6) UpgradeResourceIdentity(_ context.Context, req *tfplugin6.Up
 	return resp, nil
 }
 
+func (p *provider6) ValidateListResourceConfig(_ context.Context, req *tfplugin6.ValidateListResourceConfig_Request) (*tfplugin6.ValidateListResourceConfig_Response, error) {
+	panic("not implemented")
+}
+
+func (p *provider6) ListResource(_ context.Context, req *tfplugin6.ListResource_Request) (*tfplugin6.ListResource_Response, error) {
+	panic("not implemented")
+}
+
 func (p *provider6) StopProvider(context.Context, *tfplugin6.StopProvider_Request) (*tfplugin6.StopProvider_Response, error) {
 	resp := &tfplugin6.StopProvider_Response{}
 	err := p.provider.Stop()
