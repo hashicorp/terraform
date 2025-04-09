@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: disable X25519Kyber768Draft00 in TLS to prevent timouts with some AWS network firewalls
-time: 2025-03-27T09:46:12.506243-04:00
-custom:
-    Issue: "36791"

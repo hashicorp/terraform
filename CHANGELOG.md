@@ -1,3 +1,13 @@
+## 1.11.4 (April 9, 2025)
+
+
+BUG FIXES:
+
+* disable X25519Kyber768Draft00 in TLS to prevent timouts with some AWS network firewalls ([#36791](https://github.com/hashicorp/terraform/issues/36791))
+
+* write-only attributes: internal providers should set write-only attributes to null ([#36824](https://github.com/hashicorp/terraform/issues/36824))
+
+
 ## 1.11.3 (March 26, 2025)
 
 
