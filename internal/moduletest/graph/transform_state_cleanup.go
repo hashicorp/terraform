@@ -21,11 +21,7 @@ type TestStateCleanupTransformer struct {
 func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	cleanupMap := make(map[string]*NodeStateCleanup)
 
-	for _, v := range g.Vertices() {
-		node, ok := v.(*NodeTestRun)
-		if !ok {
-			continue
-		}
+	for node := range dag.SelectSeq(g.VerticesSeq(), &NodeTestRun{}) {
 		key := node.run.GetStateKey()
 		if _, exists := cleanupMap[key]; !exists {
 			cleanupMap[key] = &NodeStateCleanup{stateKey: key, opts: t.opts}
@@ -41,7 +37,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	// existing CLI output.
 	rootCleanupNode := t.addRootCleanupNode(g)
 
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		switch node := v.(type) {
 		case *NodeTestRun:
 			// All the runs that share the same state, must share the same cleanup node,
