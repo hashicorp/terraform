@@ -6,9 +6,9 @@
     "path": "attr-as-blocks",
     "hidden": true
   },
-  { 
-    "title": "Style Guide", 
-    "path": "style" 
+  {
+    "title": "Style Guide",
+    "path": "style"
   },
   {
     "title": "Stacks",
@@ -273,11 +273,11 @@
   },
   {
     "title": "Moved block",
-    "path": "moved"
+    "href": "/terraform/language/block/moved"
   },
   {
     "title": "Terraform block",
-    "path": "terraform"
+    "href": "/terraform/language/block/terraform"
   },
   {
     "title": "Backend block",
@@ -332,7 +332,13 @@
       }
     ]
   },
-  { "title": "Checks", "path": "checks" },
+  { "title": "Check block", "href": "/terraform/language/block/check" },
+  {
+      "title": "Testing and Validation",
+      "routes": [
+       { "title": "Validate your configuration", "path": "test-and-validate/validate" }
+    ]
+  },
   {
       "title": "Import",
       "routes": [
@@ -374,10 +380,6 @@
       {
         "title": "Dynamic Blocks",
         "path": "expressions/dynamic-blocks"
-      },
-      {
-        "title": "Custom Conditions",
-        "path": "expressions/custom-conditions"
       },
       {
         "title": "Type Constraints",
@@ -1107,6 +1109,25 @@
   {
     "title": "v1.x Compatibility Promises",
     "path": "v1-compatibility-promises"
+  },
+  { "divider": true },
+  { "heading": "REFERENCE" },
+  {
+    "title": "Configuration blocks",
+    "routes": [
+      {
+      "title": "check",
+      "path": "block/check"
+      },
+      {
+      "title": "Moved block",
+      "path": "block/moved"
+      },
+      {
+        "title": "Terraform block",
+        "path": "block/terraform"
+      }
+    ]
   },
   { "divider": true },
   { "title": "Terraform Internals", "href": "/internals" }
