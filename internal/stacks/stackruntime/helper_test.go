@@ -84,8 +84,6 @@ func (tc TestContext) Validate(t *testing.T, ctx context.Context, cycle TestCycl
 }
 
 func (tc TestContext) Plan(t *testing.T, ctx context.Context, state *stackstate.State, cycle TestCycle) *stackplan.Plan {
-	t.Helper()
-
 	request := PlanRequest{
 		PlanMode:  cycle.planMode,
 		Config:    tc.config,
@@ -163,8 +161,6 @@ func (tc TestContext) Plan(t *testing.T, ctx context.Context, state *stackstate.
 }
 
 func (tc TestContext) Apply(t *testing.T, ctx context.Context, plan *stackplan.Plan, cycle TestCycle) *stackstate.State {
-	t.Helper()
-
 	request := ApplyRequest{
 		Config: tc.config,
 		Plan:   plan,

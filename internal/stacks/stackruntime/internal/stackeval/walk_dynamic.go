@@ -60,7 +60,7 @@ func walkDynamicObjectsInStack[Output any](
 	for call := range stack.EmbeddedStackCalls() {
 		walkEmbeddedStack(ctx, walk, stack, call, phase, visit)
 	}
-	for call := range stack.Removed().localStackCalls {
+	for call := range stack.Removed().stackCalls {
 		if stack.EmbeddedStackCall(call) != nil {
 			continue
 		}
@@ -70,7 +70,7 @@ func walkDynamicObjectsInStack[Output any](
 	for component := range stack.Components() {
 		walkComponent(ctx, walk, stack, component, phase, visit)
 	}
-	for component := range stack.Removed().localComponents {
+	for component := range stack.Removed().components {
 		if stack.Component(component) != nil {
 			continue // then we processed this as part of the component stage
 		}
@@ -180,7 +180,7 @@ func walkComponent[Output any](
 		})
 	}
 
-	for _, block := range stack.Removed().localComponents[addr] {
+	for _, block := range stack.Removed().components[addr] {
 		visit(ctx, walk, block) // first, just visit the removed block directly
 
 		wg.Add(1)
@@ -233,7 +233,7 @@ func walkComponent[Output any](
 		unknownComponentBlockClaimedSomething := unknownComponentBlock == nil
 
 		knownInstances := stack.KnownComponentInstances(addr, phase)
-		for inst := range knownInstances.All() {
+		for inst := range knownInstances {
 			if claimedInstances.Has(inst) {
 				// don't need the mutex any more since this will be fully
 				// initialised when all the wait groups are finished.
@@ -348,7 +348,7 @@ func walkEmbeddedStack[Output any](
 		})
 	}
 
-	for _, block := range stack.Removed().localStackCalls[addr] {
+	for _, block := range stack.Removed().stackCalls[addr] {
 		visit(ctx, walk, block)
 
 		wg.Add(1)
@@ -386,7 +386,7 @@ func walkEmbeddedStack[Output any](
 		unknownStackCallClaimedSomething := unknownStackCall == nil
 
 		knownStacks := stack.KnownEmbeddedStacks(addr, phase)
-		for inst := range knownStacks.All() {
+		for inst := range knownStacks {
 			if claimedInstances.Has(inst) {
 				continue
 			}

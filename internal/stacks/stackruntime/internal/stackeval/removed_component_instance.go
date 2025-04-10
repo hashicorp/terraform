@@ -173,7 +173,7 @@ func (r *RemovedComponentInstance) PlanPrevInputs() terraform.InputValues {
 func (r *RemovedComponentInstance) PlanCurrentInputs() (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	plan := r.main.PlanBeingApplied().Components.Get(r.Addr())
+	plan := r.main.PlanBeingApplied().GetComponent(r.Addr())
 	inputs := make(map[string]cty.Value, len(plan.PlannedInputValues))
 	for name, input := range plan.PlannedInputValues {
 		value, err := input.Decode(cty.DynamicPseudoType)
@@ -271,7 +271,7 @@ func (r *RemovedComponentInstance) CheckApply(ctx context.Context) ([]stackstate
 
 	var changes []stackstate.AppliedChange
 	if result != nil {
-		changes, moreDiags = stackstate.FromState(ctx, result.FinalState, r.main.PlanBeingApplied().Components.Get(r.Addr()), inputs, result.AffectedResourceInstanceObjects, r)
+		changes, moreDiags = stackstate.FromState(ctx, result.FinalState, r.main.PlanBeingApplied().GetComponent(r.Addr()), inputs, result.AffectedResourceInstanceObjects, r)
 		diags = diags.Append(moreDiags)
 	}
 	return changes, diags
