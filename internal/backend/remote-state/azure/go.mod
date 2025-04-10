@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform/internal/backend/remote-state/azure
 
-go 1.24.1
+go 1.24.2
 
 require (
 	github.com/hashicorp/go-azure-helpers v0.72.0
