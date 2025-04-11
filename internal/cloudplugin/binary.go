@@ -129,7 +129,8 @@ func (v BinaryManager) resolveRelease() (*Binary, error) {
 	}
 
 	// Download the archive
-	t, err := os.CreateTemp(os.TempDir(), "terraform-cloudplugin")
+	// if TF_DATA_DIR is unset, it defaults to "", which results in using TMPDIR or /tmp
+	t, err := os.CreateTemp(os.Getenv("TF_DATA_DIR"), "terraform-cloudplugin")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp file for download: %w", err)
 	}
