@@ -114,7 +114,7 @@ func TestProvidersSchema(t *testing.T) {
                     }
                 }
             },
-			"ephemeral_resource_schemas": {
+            "ephemeral_resource_schemas": {
                 "simple_resource": {
                     "version": 0,
                     "block": {
