@@ -16,7 +16,8 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/common"
 )
 
-const DefaultFilePartSize int64 = 128 * 1024 * 1024 // 128MB
+const DefaultFilePartSize int64 = 128 * 1024 * 1024   // 128MB
+const MaxFilePartSize int64 = 50 * 1024 * 1024 * 1024 // 50GB
 const defaultNumberOfGoroutines = 10
 const MaxCount int64 = 10000
 
@@ -161,12 +162,14 @@ func (multipartUploadData MultipartUploadData) multiPartUploadImpl() error {
 }
 func (m MultipartUploadData) objectMultiPartSplit() ([]objectStorageSourceBlock, error) {
 	dataSize := int64(len(m.Data))
-	offsets, limits, _ := SplitSizeToOffsetsAndLimits(dataSize)
-
+	offsets, partSize, err := SplitSizeToOffsetsAndLimits(dataSize)
+	if err != nil {
+		return nil, fmt.Errorf("error splitting data into parts: %s", err)
+	}
 	sourceBlocks := make([]objectStorageSourceBlock, len(offsets))
 	for i := range offsets {
 		start := offsets[i]
-		end := start + limits[i]
+		end := start + partSize
 		if end > dataSize {
 			end = dataSize
 		}
@@ -178,18 +181,22 @@ func (m MultipartUploadData) objectMultiPartSplit() ([]objectStorageSourceBlock,
 	return sourceBlocks, nil
 }
 
-func SplitSizeToOffsetsAndLimits(size int64) ([]int64, []int64, error) {
+/*
+SplitSizeToOffsetsAndLimits splits a file size into chunks based on DefaultFilePartSize.
+Returns the byte offsets and byte limits for each chunk.
+Returns an error if the size exceeds MaxCount parts.
+*/
+func SplitSizeToOffsetsAndLimits(size int64) ([]int64, int64, error) {
 	partSize := DefaultFilePartSize
 	totalParts := (size + partSize - 1) / partSize
 	if totalParts > MaxCount {
-		return nil, nil, fmt.Errorf("file exceeds maximum part count")
+		return nil, 0, fmt.Errorf("file exceeds maximum part count")
 	}
-	offsets, limits := make([]int64, totalParts), make([]int64, totalParts)
+	offsets := make([]int64, totalParts)
 	for i := range offsets {
 		offsets[i] = int64(i) * partSize
-		limits[i] = partSize
 	}
-	return offsets, limits, nil
+	return offsets, partSize, nil
 }
 
 func (ctx *objectStorageMultiPartUploadContext) uploadPartsWorker() {

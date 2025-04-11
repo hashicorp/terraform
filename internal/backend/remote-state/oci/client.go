@@ -157,6 +157,10 @@ func (c *RemoteClient) Put(data []byte) error {
 			},
 		}
 		err = multipartUploadData.multiPartUploadImpl()
+		if err != nil && dataSize <= MaxFilePartSize {
+			logger.Error(fmt.Sprintf("Multipart upload failed, falling back to single part upload: %v", err))
+			err = c.uploadSinglePartObject(data, sum[:])
+		}
 	} else {
 		err = c.uploadSinglePartObject(data, sum[:])
 	}
@@ -189,7 +193,6 @@ func (c *RemoteClient) uploadSinglePartObject(data, sum []byte) error {
 	if c.etag != "" {
 		putRequest.IfMatch = common.String(c.etag)
 	}
-	logger.Debug(fmt.Sprintf("kms: %s, c.kmsKeyID != %v", c.kmsKeyID, (c.kmsKeyID != "")))
 	// Handle encryption settings
 	if c.kmsKeyID != "" {
 		putRequest.OpcSseKmsKeyId = common.String(c.kmsKeyID)

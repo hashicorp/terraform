@@ -141,7 +141,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	if kmsKeyIdVal, ok := getBackendAttr(obj, KmsKeyIdAttrName); ok {
 		b.kmsKeyID = kmsKeyIdVal.AsString()
 	}
-	
+
 	b.configProvider = newOciAuthConfigProvider(obj)
 
 	err := b.configureRemoteClient()
