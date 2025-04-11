@@ -210,7 +210,6 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 				ServerCapabilities: providers.ServerCapabilities{
 					MoveResourceState: true,
 				},
-				// TODO - state store here?
 			},
 			PlanResourceChangeFn: func(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 				return getResource(request.TypeName).Plan(request, store)

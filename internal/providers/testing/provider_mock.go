@@ -149,7 +149,7 @@ func (p *MockProvider) getProviderSchema() providers.GetProviderSchemaResponse {
 		Provider:      providers.Schema{},
 		DataSources:   map[string]providers.Schema{},
 		ResourceTypes: map[string]providers.Schema{},
-		// TODO - any update needed here?
+		StateStores:   map[string]providers.Schema{},
 	}
 }
 
@@ -807,18 +807,17 @@ func (p *MockProvider) ValidateStorageConfig(r providers.ValidateStorageConfigRe
 
 	// Marshall the value to replicate behavior by the GRPC protocol,
 	// and return any relevant errors
-	// TODO
-	// storageSchema, ok := p.getProviderSchema().StorageTypes[r.TypeName]
-	// if !ok {
-	// 	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
-	// 	return resp
-	// }
+	storageSchema, ok := p.getProviderSchema().StateStores[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
+		return resp
+	}
 
-	// _, err := msgpack.Marshal(r.Config, storageSchema.Body.ImpliedType())
-	// if err != nil {
-	// 	resp.Diagnostics = resp.Diagnostics.Append(err)
-	// 	return resp
-	// }
+	_, err := msgpack.Marshal(r.Config, storageSchema.Body.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
 
 	if p.ValidateStorageConfigFn != nil {
 		return p.ValidateStorageConfigFn(r)

@@ -80,7 +80,7 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 			Block:   convert.ConfigSchemaToProto(dat.Body),
 		}
 	}
-	for typ, dat := range p.schema.StateStoreSchemas {
+	for typ, dat := range p.schema.StateStores {
 		resp.StateStoreSchemas[typ] = &tfplugin5.Schema{
 			Version: int64(dat.Version),
 			Block:   convert.ConfigSchemaToProto(dat.Body),
