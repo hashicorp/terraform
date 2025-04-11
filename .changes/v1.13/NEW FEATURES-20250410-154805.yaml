@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: Added Terraform backend implementation for OCI Object Storage
+time: 2025-04-10T15:48:05.919664+05:30
+custom:
+    Issue: "34465"

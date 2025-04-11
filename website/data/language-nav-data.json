@@ -319,6 +319,10 @@
         "path": "backend/kubernetes"
       },
       {
+        "title": "oci",
+        "path": "backend/oci"
+      },
+      {
         "title": "oss",
         "path": "backend/oss"
       },
