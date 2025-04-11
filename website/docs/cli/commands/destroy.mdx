@@ -46,5 +46,17 @@ Terraform v0.15.2 and later. For earlier versions, you _must_ use
 
 ### Target a specific resource
 
-You can use the `-target` option to destroy a particular resource and its dependencies:
+You can use the `-target` option to destroy a particular resource and its dependencies.
 
+Example:
+If you have a resource defined like this in your Terraform configuration:
+```
+resource "aws_instance" "example" {
+  ami           = "ami-0123456789abcdef0"
+  instance_type = "t2.micro"
+}
+```
+To destroy only this specific resource, you would run:
+```
+terraform destroy -target aws_instance.example
+```
