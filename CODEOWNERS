@@ -24,8 +24,8 @@
 /internal/backend/remote-state/kubernetes        @hashicorp/terraform-core @hashicorp/tf-eco-hybrid-cloud
 
 # Cloud backend
-/internal/backend/remote    @hashicorp/tf-core-cloud
-/internal/cloud             @hashicorp/tf-core-cloud
+/internal/backend/remote    @hashicorp/terraform-core @hashicorp/tf-core-cloud
+/internal/cloud             @hashicorp/terraform-core @hashicorp/tf-core-cloud
 
 # Provisioners
 builtin/provisioners/file               @hashicorp/terraform-core
