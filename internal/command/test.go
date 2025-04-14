@@ -25,7 +25,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
-	"github.com/hashicorp/terraform/internal/moduletest/graph"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -94,7 +93,7 @@ func (c *TestCommand) Synopsis() string {
 }
 
 func (c *TestCommand) Run(rawArgs []string) int {
-	preparation, diags := c.setupTestExecution(graph.NormalMode, rawArgs)
+	preparation, diags := c.setupTestExecution(moduletest.NormalMode, rawArgs)
 	if diags.HasErrors() {
 		return 1
 	}
@@ -259,7 +258,7 @@ type TestRunnerSetup struct {
 	Diagnostics   tfdiags.Diagnostics
 }
 
-func (c *Meta) setupTestExecution(mode graph.CommandMode, rawArgs []string) (TestRunnerSetup, tfdiags.Diagnostics) {
+func (c *Meta) setupTestExecution(mode moduletest.CommandMode, rawArgs []string) (TestRunnerSetup, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	common, rawArgs := arguments.ParseView(rawArgs)
@@ -276,7 +275,7 @@ func (c *Meta) setupTestExecution(mode graph.CommandMode, rawArgs []string) (Tes
 	if diags.HasErrors() {
 		c.View.Diagnostics(diags)
 		prompt := "test"
-		if mode == graph.CleanupMode {
+		if mode == moduletest.CleanupMode {
 			prompt = "test cleanup"
 		}
 		c.View.HelpPrompt(prompt)

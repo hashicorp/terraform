@@ -27,9 +27,10 @@ type GraphNodeExecutable interface {
 // TestFileState is a helper struct that just maps a run block to the state that
 // was produced by the execution of that run block.
 type TestFileState struct {
-	File  *moduletest.File
-	Run   *moduletest.Run
-	State *states.State
+	File   *moduletest.File
+	Run    *moduletest.Run
+	State  *states.State
+	Reason StateReason
 
 	backend runBackend
 }

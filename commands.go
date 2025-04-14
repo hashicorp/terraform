@@ -301,9 +301,7 @@ func initCommands(
 		},
 		"test cleanup": func() (cli.Command, error) {
 			return &command.TestCleanupCommand{
-				TestCommand: &command.TestCommand{
-					Meta: meta,
-				},
+				Meta: meta,
 			}, nil
 		},
 

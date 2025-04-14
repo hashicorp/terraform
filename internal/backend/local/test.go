@@ -77,7 +77,13 @@ type TestSuiteRunner struct {
 	Concurrency int
 	semaphore   terraform.Semaphore
 
-	CommandMode graph.CommandMode
+	CommandMode moduletest.CommandMode
+
+	// Repair is used to indicate whether the test cleanup command should run in
+	// "repair" mode. In this mode, the cleanup command will only remove state
+	// files that are a result of failed destroy operations, leaving any
+	// state due to skip_cleanup in place.
+	Repair bool
 }
 
 func (runner *TestSuiteRunner) Stop() {
@@ -132,7 +138,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		}
 
 		// Unless we're in cleanup mode, we expect the manifest to be empty.
-		if !empty && runner.CommandMode != graph.CleanupMode {
+		if !empty && runner.CommandMode != moduletest.CleanupMode {
 			return manifest, diags.Append(tfdiags.Sourceless(tfdiags.Error, "State manifest not empty", ``+
 				"The state manifest should be empty before running tests. This could be due to a previous test run not cleaning up after itself."+
 				"Please ensure that all state files are cleaned up before running tests."))
@@ -157,6 +163,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			CancelCtx: runner.CancelledCtx,
 			StopCtx:   runner.StoppedCtx,
 			Verbose:   runner.Verbose,
+			Repair:    runner.Repair,
 			Render:    runner.View,
 			Manifest:  manifest,
 		})
@@ -211,6 +218,7 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 
 	var diags tfdiags.Diagnostics
 	suite := &moduletest.Suite{
+		CommandMode: runner.CommandMode,
 		Files: func() map[string]*moduletest.File {
 			files := make(map[string]*moduletest.File)
 
@@ -315,6 +323,9 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	// walk and execute the graph
 	diags = runner.walkGraph(g)
 
+	// Update the manifest file with the reason why each state file was created.
+	err := runner.Manifest.WriteManifest()
+
 	// If the graph walk was terminated, we don't want to add the diagnostics.
 	// The error the user receives will just be:
 	// 			Failure! 0 passed, 1 failed.
@@ -325,7 +336,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		return
 	}
 
-	file.Diagnostics = file.Diagnostics.Append(diags)
+	file.Diagnostics = file.Diagnostics.Append(diags, err)
 }
 
 // walkGraph goes through the graph and execute each run it finds.

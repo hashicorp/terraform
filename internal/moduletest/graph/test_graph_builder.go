@@ -15,17 +15,6 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-type CommandMode int
-
-const (
-	// NormalMode is the default mode for running terraform test.
-	NormalMode CommandMode = iota
-	// CleanupMode is used when running terraform test cleanup.
-	// In this mode, the graph will be built with the intention of cleaning up
-	// the state, rather than applying changes.
-	CleanupMode
-)
-
 // TestGraphBuilder is a GraphBuilder implementation that builds a graph for
 // a terraform test file. The file may contain multiple runs, and each run may have
 // dependencies on other runs.
@@ -35,7 +24,7 @@ type TestGraphBuilder struct {
 	ContextOpts    *terraform.ContextOpts
 	BackendFactory func(string) backend.InitFn
 	StateManifest  *TestManifest
-	CommandMode    CommandMode
+	CommandMode    moduletest.CommandMode
 }
 
 type graphOptions struct {
@@ -43,7 +32,7 @@ type graphOptions struct {
 	GlobalVars    map[string]backendrun.UnparsedVariableValue
 	ContextOpts   *terraform.ContextOpts
 	StateManifest *TestManifest
-	CommandMode   CommandMode
+	CommandMode   moduletest.CommandMode
 }
 
 // See GraphBuilder
@@ -74,7 +63,7 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 			// If we're in cleanup mode, we can remove the test runs in the graph,
 			// and prevent unnecessary no-op execution.
 			// This will ensure that we only have nodes that are needed for cleanup in the graph.
-			if b.CommandMode == CleanupMode {
+			if b.CommandMode == moduletest.CleanupMode {
 				for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
 					g.Remove(node)
 				}

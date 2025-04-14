@@ -78,10 +78,15 @@ type EvalContext struct {
 
 	renderer views.Test
 	verbose  bool
+
+	// repair is true if the test suite is being run in cleanup repair mode.
+	// It is only set when in test cleanup mode.
+	repair bool
 }
 
 type EvalContextOpts struct {
 	Verbose   bool
+	Repair    bool
 	Render    views.Test
 	CancelCtx context.Context
 	StopCtx   context.Context
@@ -108,6 +113,7 @@ func NewEvalContext(opts *EvalContextOpts) *EvalContext {
 		stopContext:     stopCtx,
 		stopFunc:        stop,
 		verbose:         opts.Verbose,
+		repair:          opts.Repair,
 		renderer:        opts.Render,
 		manifest:        opts.Manifest,
 	}

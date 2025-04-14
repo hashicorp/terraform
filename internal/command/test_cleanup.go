@@ -12,14 +12,14 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/internal/moduletest/graph"
+	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // TestCleanupCommand is a command that cleans up left-over resources created
 // during Terraform test runs. It basically runs the test command in cleanup mode.
 type TestCleanupCommand struct {
-	*TestCommand
+	Meta
 }
 
 func (c *TestCleanupCommand) Help() string {
@@ -52,7 +52,7 @@ func (c *TestCleanupCommand) Synopsis() string {
 }
 
 func (c *TestCleanupCommand) Run(rawArgs []string) int {
-	setup, diags := c.setupTestExecution(graph.CleanupMode, rawArgs)
+	setup, diags := c.setupTestExecution(moduletest.CleanupMode, rawArgs)
 	if diags.HasErrors() {
 		return 1
 	}
@@ -94,7 +94,8 @@ func (c *TestCleanupCommand) Run(rawArgs []string) int {
 		CancelledCtx:        cancelCtx,
 		Filter:              args.Filter,
 		Verbose:             args.Verbose,
-		CommandMode:         graph.CleanupMode,
+		Repair:              args.Repair,
+		CommandMode:         moduletest.CleanupMode,
 	}
 
 	// JUnit output is only compatible with local test execution
