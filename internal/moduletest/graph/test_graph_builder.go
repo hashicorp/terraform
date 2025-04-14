@@ -71,8 +71,9 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 		terraform.DynamicTransformer(validateRunConfigs),
 		&TestProvidersTransformer{},
 		terraform.DynamicTransformer(func(g *terraform.Graph) error {
-			// If we're in cleanup mode, we can remove the test runs to the graph,
+			// If we're in cleanup mode, we can remove the test runs in the graph,
 			// and prevent unnecessary no-op execution.
+			// This will ensure that we only have nodes that are needed for cleanup in the graph.
 			if b.CommandMode == CleanupMode {
 				for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
 					g.Remove(node)

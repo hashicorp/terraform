@@ -539,7 +539,7 @@ func TestTest_DestroyFail(t *testing.T) {
 	c.Run([]string{"-no-color"})
 	output := done(t)
 
-	cleanupMessage := `main.tftest.hcl... in progress
+	message := `main.tftest.hcl... in progress
   run "setup"... pass
   run "single"... pass
   run "double"... pass
@@ -549,7 +549,7 @@ main.tftest.hcl... fail
 Failure! 3 passed, 0 failed.
 `
 
-	cleanupErr := `Terraform encountered an error destroying resources created while executing
+	outputErr := `Terraform encountered an error destroying resources created while executing
 main.tftest.hcl/double.
 
 Error: Failed to destroy resource
@@ -583,11 +583,11 @@ main.tftest.hcl/single, and they need to be cleaned up manually:
 
 	// It's really important that the above message is printed, so we're testing
 	// for it specifically and making sure it contains all the resources.
-	if diff := cmp.Diff(cleanupErr, output.Stderr()); diff != "" {
-		t.Errorf("expected err to be %s\n\nbut got %s\n\n diff:%s\n", cleanupErr, output.Stderr(), diff)
+	if diff := cmp.Diff(outputErr, output.Stderr()); diff != "" {
+		t.Errorf("expected err to be %s\n\nbut got %s\n\n diff:%s\n", outputErr, output.Stderr(), diff)
 	}
-	if diff := cmp.Diff(cleanupMessage, output.Stdout()); diff != "" {
-		t.Errorf("expected output to be %s\n\nbut got %s\n\n diff:%s\n", cleanupMessage, output.Stdout(), diff)
+	if diff := cmp.Diff(message, output.Stdout()); diff != "" {
+		t.Errorf("expected output to be %s\n\nbut got %s\n\n diff:%s\n", message, output.Stdout(), diff)
 	}
 
 	if provider.ResourceCount() != 4 {
@@ -646,7 +646,6 @@ main.tftest.hcl/single, and they need to be cleaned up manually:
 	}
 
 	t.Run("cleanup failed state", func(t *testing.T) {
-		fmt.Println(td)
 		interrupt := make(chan struct{})
 		provider.Interrupt = interrupt
 		provider.Provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
@@ -841,7 +840,6 @@ func TestTest_SharedState_Order(t *testing.T) {
 
 	c.Run(nil)
 	output := done(t).All()
-	fmt.Println(output)
 
 	// Split the log into lines
 	lines := strings.Split(output, "\n")
