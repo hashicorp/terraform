@@ -1014,24 +1014,29 @@ Runs A and B execute simultaneously. Run C waits until both A and B are done bef
 
 ## Backends
 
-By default, Terraform tests start with an empty state and provisions all resources defined in the configuration.
-However, if a `backend` block is used in a test file then the test can start with a non-empty state file.
-This allows tests to reuse long-lived pieces of infrastructure and can be used to reduce the duration of tests
+By default, Terraform tests start with an empty, in-memory state and provisions all resources defined in the configuration.
+However, if a `backend` block is used in a test file then the test can start with a non-empty state.
+This allows tests to reuse long-lived pieces of infrastructure and this feature can be used to reduce the duration of tests
 that include resources that are slow to provision, such as Kubernetes clusters.
 
-A `backend` block can be added once in a test file, to the first run block that represents an `apply` operation:
+In the example test file below a `backend` block is used to load in state from a local file:
 
 ```hcl
-# parallel.tftest.hcl
+# simple-example.tftest.hcl
 
 run "test_1" {
   command = "plan"
-  # a backend block cannot be used here
+  # A backend block cannot be used here
 }
 
 run "test_2" {
-  # a backend can be used here as the command field
-  # defaults to "apply"
+  # A backend can be used here because the run block represents
+  # an apply operation.
+  #
+  # The apply operation uses the state loaded from the backend
+  # when to create a plan that is then applied.
+
+  command = "apply"
 
   backend "local" {
     # state is saved locally, in the specified location
@@ -1039,31 +1044,109 @@ run "test_2" {
   }
 }
 
+run "test_3" {
+  # A backend block cannot be used here, because this run block uses the
+  # internal state created in run "test_2"
+
+  assert {
+    condition     = aws_s3_bucket.bucket.bucket == "test-bucket"
+    error_message = "S3 bucket name did not match expected"
+  }
+}
 ```
 
 The `backend` block here is like the pre-existing `backend` block that can be included in the `terraform` block.
-Any of the current backends can be used (from `local` storage, to storage in `s3`) and they are configured using
-a combination of the configuration in the `backend` block and values from your environment. See the pre-existing
-[backend documentation](https://developer.hashicorp.com/terraform/language/backend) for a list of available
-backends and how to configure them.
+Any of the current state-storage backends in Terraform can be used. Refer to the main [backend documentation](https://developer.hashicorp.com/terraform/language/backend)
+for a list of available backends and how to configure them.
 
 -> **Note:** Pay attention to any environment variables that you use to configure backends during `plan` and `apply`
 operations; these will also be used during tests. You may need to change your environment depending on which workflow
 you are performing.
 
+### Only one backend can be used per internal state
+
+A `backend` block is used to set the initial value of an internal, in-memory state used during test execution. Due to this,
+a `backend` block can only be used in the first run block that represents an `apply` operation for a given internal state.
+
+As described in the [Modules State](#modules-state) section, a run block's internal state is determined either by the module
+that's under test or by explicitly setting a `state_key` argument. The example test file below shows how separate `backend` blocks
+can be used in the same file as long as they are linked to different states. Those states may be implied or explicitly declared.
+
+
+```hcl
+# multiple-backends.tftest.hcl
+
+# Root module state
+## This backend block implicitly controls the internal state for testing the root module
+run "test-main-1" {
+  backend "local" {
+    path = "./state/test_A.tfstate"
+  }
+}
+
+run "test-main-2" {
+  # No backend block can be used here;
+  # this is the second apply run block for the root module's state
+}
+
+# Child module state
+## This backend block implicitly controls the internal state for the module "./modules/my-module"
+run "test-module-1" {
+  module {
+    source = "./modules/my-module"
+  }
+
+  backend "local" {
+    path = "./state/my-module.tfstate"
+  }
+}
+
+run "test-module-2" {
+  module {
+    source = "./modules/my-module"
+  }
+  # No backend block can be used here;
+  # this is the second apply run block for the "./modules/my-module" module's state
+}
+
+# State key state
+## This backend block controls the internal state for the explicitly-declared "different-state" state
+run "test-state-key-1" {
+  state_key = "different-state"
+
+  backend "local" {
+    path = "./state/state-key.tfstate"
+  }
+}
+
+run "test-state-key-2" {
+  state_key = "different-state"
+  # No backend block can be used here;
+  # this is the second apply run block for the state_key "different-state"
+}
+```
+
+In the example above there are two `run` blocks per internal state, and all `run` blocks represent an `apply` operation.
+Only the first `run` block in each pair can include the `backend` block. 
+
+-> **Note:** Terraform will stop you from trying to re-use the same state file for multiple internal states. This prevents
+multiple tests attempting to write to the same state.
+
 ### Some backend features are not available during tests
 
-Although backends are configured similarly in the `terraform` block and in `run` blocks, their behaviors are slightly
-different.
+Although backends are configured similarly in both the `terraform` block and in `run` blocks, their behaviors are slightly
+different when used in the context of `test` versus `plan` and `apply` operations.
 
 Firstly, backends used in tests are initialized during the `test` command and are not initialized during an `init` command.
-Due to this, Terraform will not detect changes in how backends are configured in a test and will not prompt you about migrating
-state from one backend to another after the backend configuration has changed.
+Due to this, Terraform will not detect changes in how your test's backends are configured. As a result, Terraform will not
+prompt you about migrating state from one backend to another after the backend configuration has changed. If you need to move
+state artifacts used in your tests you will need to do this manually.
 
-Similarly, backend initialization during tests does not use [partial configuration](https://developer.hashicorp.com/terraform/language/backend#partial-configuration)
-CLI flags like `-backend-config`, as those are only compatible with the `init` command. Configuration of the backend is only
-through the backend block and any applicable environment variables.
+Also due to the different initialization process, backend initialization during tests does not use
+[partial configuration](https://developer.hashicorp.com/terraform/language/backend#partial-configuration)
+CLI flags like `-backend-config`, as those are only compatible with the `init` command. Configuration of backends used during
+testing only uses config from the test file's `backend` blocks and any applicable environment variables.
 
 Finally, [workspaces](https://developer.hashicorp.com/terraform/language/state/workspaces) cannot be used with backends
-used in the context of a test. Any backend used in a test will default to using the `default` workspace, regardless of
-what workspaces exist and are used for `plan` and `apply` operations.
+used in the context of a test. Any backend used in a test will use the `default` workspace, regardless of
+what workspaces exist and have been selected for use during `plan` and `apply` operations.
