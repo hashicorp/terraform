@@ -24,15 +24,12 @@ type stackResource struct {
 	// The unexpanded resource address
 	AbsResource stackaddrs.AbsResource
 
-	// The address of the terraform module that the resource belongs to.
-	ContainingModule addrs.Module
-
 	// The stack and component configuration for the resource.
 	StackConfig     *stackconfig.Stack
 	ComponentConfig *stackconfig.Component
 
-	// The root module configuration for the resource's component.
-	ModuleConfig *configs.Config
+	// The source module configuration for the stack component.
+	StackModuleConfig *configs.Config
 }
 
 // implement the UniqueKeyer interface for stackResource
@@ -96,7 +93,7 @@ func (m *migration) migrateResources(resources map[string]string, modules map[st
 				Severity: hcl.DiagError,
 				Summary:  "Resource type not found",
 				Detail:   fmt.Sprintf("Resource type %s not found in provider schema.", resource.Addr.Resource.Type),
-				Subject:  target.ModuleConfig.SourceAddrRange.Ptr(),
+				Subject:  target.StackModuleConfig.SourceAddrRange.Ptr(),
 			}))
 			continue
 		}
@@ -142,9 +139,7 @@ func (m *migration) migrateResources(resources map[string]string, modules map[st
 // E.g module.child.aws_instance.foo will be replaced with component.child.aws_instance.foo
 func (m *migration) search(resource addrs.AbsResource, resources map[string]string, modules map[string]string) (*stackResource, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ret := &stackResource{
-		ContainingModule: resource.Module.Module(),
-	}
+	ret := &stackResource{}
 
 	parseComponentInstance := func(target string) (Instance, tfdiags.Diagnostics) {
 		fullTarget := "component." + strings.TrimPrefix(target, "component.")
@@ -201,22 +196,23 @@ func (m *migration) search(resource addrs.AbsResource, resources map[string]stri
 
 // getOwningProvider returns the address of the provider configuration,
 // as well as the provider instance, that was used to create the given resource instance.
-//
-// The provided config address is the location within the previous configuration
-// and we need to find the corresponding provider configuration in the new
-// configuration.
-
 func (m *migration) getOwningProvider(resource *stackResource) (addrs.AbsProviderConfig, providers.Interface, tfdiags.Diagnostics) {
 	var ret addrs.AbsProviderConfig
+	// At this point, we already worked out the stack component where we are migrating
+	// the resource to. Now we need to look into the module configuration of the stack component,
+	// and ensure that it has a provider configuration that matches the one used to create
+	// the resource instance.
 
-	providerConfig, diags := m.findProviderConfig(resource.ContainingModule, resource.AbsResource.Item.Resource, resource.ModuleConfig)
+	moduleAddr := resource.AbsResource.Item.Module.Module() // the module address within the stack component's module configuration
+	providerConfig, diags := m.findProviderConfig(moduleAddr, resource.AbsResource.Item.Resource, resource.StackModuleConfig)
 	if diags.HasErrors() {
 		return ret, nil, diags
 	}
 	component := resource.ComponentConfig
 	stackCfg := resource.StackConfig
 
-	// translate the local provider
+	// we found the provider configuration within the module configuration,
+	// now look it up in the stack configuration.
 	expr, ok := component.ProviderConfigs[providerConfig]
 	if !ok {
 		// Then the module uses a provider not referenced in the component.
@@ -289,7 +285,7 @@ func (m *migration) getOwningProvider(resource *stackResource) (addrs.AbsProvide
 	}
 }
 
-// findProviderConfig recursively searches through the module configuration to find the provider
+// findProviderConfig recursively searches through the stack module configuration to find the provider
 // that was used to create the resource instance.
 func (m *migration) findProviderConfig(module addrs.Module, resource addrs.Resource, config *configs.Config) (addrs.LocalProviderConfig, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
@@ -306,7 +302,7 @@ func (m *migration) findProviderConfig(module addrs.Module, resource addrs.Resou
 
 	next, ok := config.Children[module[0]]
 	if !ok {
-		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Provider not found", fmt.Sprintf("Module %q not found in configuration.", module[0])))
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Provider not found", fmt.Sprintf("Module %q not found in root module children.", module[0])))
 		return addrs.LocalProviderConfig{}, diags
 	}
 
@@ -340,6 +336,7 @@ func (m *migration) findProviderConfig(module addrs.Module, resource addrs.Resou
 	return r.ProviderConfigAddr(), diags
 }
 
+// loadConfig loads the module and component configuration from the stack directory.
 func (m *migration) loadConfig(resource *stackResource) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	instance := resource.AbsResource.Component
@@ -365,6 +362,6 @@ func (m *migration) loadConfig(resource *stackResource) tfdiags.Diagnostics {
 			Subject:  component.SourceAddrRange.ToHCL().Ptr(),
 		})
 	}
-	resource.ModuleConfig = moduleConfig
+	resource.StackModuleConfig = moduleConfig
 	return diags
 }

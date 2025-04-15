@@ -1768,3 +1768,144 @@ func reportDiagnosticsForTest(t *testing.T, diags tfdiags.Diagnostics) {
 		t.FailNow()
 	}
 }
+
+func TestMigrateConfig_ChildModuleAsComponentSource(t *testing.T) {
+	cfg := loadMainBundleConfigForTest(t, filepath.Join("for-stacks-migrate", "child-module-as-component-source"))
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	state := states.BuildState(func(ss *states.SyncState) {})
+	rootModule := state.RootModule()
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "testing_resource",
+			Name: "root_id",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status: states.ObjectReady,
+			AttrsJSON: []byte(`{
+				"id": "root_id",
+				"value": "root_output"
+			}`),
+		},
+		mustDefaultRootProvider("testing"),
+	)
+
+	childModule := state.EnsureModule(addrs.RootModuleInstance.Child("child_module", addrs.NoKey))
+	childProv := mustDefaultRootProvider("testing")
+	childProv.Module = childModule.Addr.Module()
+	childModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "testing_resource",
+			Name: "child_data",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status: states.ObjectReady,
+			AttrsJSON: []byte(`{
+				"id": "child_data",
+				"value": "child_output"
+			}`),
+		},
+		childProv,
+	)
+
+	mig := Migration{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		PreviousState: state,
+		Config:        cfg,
+	}
+
+	resources := map[string]string{
+		"testing_resource.root_id":    "self",
+		"testing_resource.child_data": "self",
+	}
+	modules := map[string]string{
+		"child_module": "triage",
+	}
+
+	appliedResources := []*stackstate.AppliedChangeResourceInstanceObject{}
+	appliedComponents := []*stackstate.AppliedChangeComponentInstance{}
+	expectedResources := []*stackstate.AppliedChangeResourceInstanceObject{
+		{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.root_id"),
+			NewStateSrc: &states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+					"id":    "root_id",
+					"value": "root_output",
+				}),
+				Status:  states.ObjectReady,
+				Private: nil,
+			},
+			ProviderConfigAddr: mustDefaultRootProvider("testing"),
+			Schema:             stacks_testing_provider.TestingResourceSchema,
+		},
+		{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.triage.testing_resource.child_data"),
+			NewStateSrc: &states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+					"id":    "child_data",
+					"value": "child_output",
+				}),
+				Status:  states.ObjectReady,
+				Private: nil,
+			},
+			ProviderConfigAddr: mustDefaultRootProvider("testing"),
+			Schema:             stacks_testing_provider.TestingResourceSchema,
+		},
+	}
+	expectedComponents := []*stackstate.AppliedChangeComponentInstance{
+		{
+			ComponentAddr:         mustAbsComponent("component.self"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+			OutputValues:          map[addrs.OutputValue]cty.Value{},
+			InputVariables:        map[addrs.InputVariable]cty.Value{},
+		},
+		{
+			ComponentAddr:         mustAbsComponent("component.triage"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.triage"),
+			OutputValues:          map[addrs.OutputValue]cty.Value{},
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "input"}: cty.DynamicVal,
+			},
+		},
+	}
+
+	var expDiags, gotDiags tfdiags.Diagnostics
+	mig.Migrate(resources, modules, func(change stackstate.AppliedChange) {
+		switch c := change.(type) {
+		case *stackstate.AppliedChangeResourceInstanceObject:
+			appliedResources = append(appliedResources, c)
+		case *stackstate.AppliedChangeComponentInstance:
+			appliedComponents = append(appliedComponents, c)
+		}
+	}, func(diagnostic tfdiags.Diagnostic) {
+		gotDiags = append(gotDiags, diagnostic)
+	})
+
+	if diff := compareAppliedChanges(t, expectedResources, appliedResources, func(c *stackstate.AppliedChangeResourceInstanceObject) string {
+		return c.ResourceInstanceObjectAddr.String()
+	}); diff != "" {
+		t.Errorf("unexpected applied resource changes:\n%s", diff)
+	}
+
+	if diff := compareAppliedChanges(t, expectedComponents, appliedComponents, func(c *stackstate.AppliedChangeComponentInstance) string {
+		return c.ComponentAddr.String()
+	}); diff != "" {
+		t.Errorf("unexpected applied component changes:\n%s", diff)
+	}
+
+	if diff := cmp.Diff(expDiags, gotDiags); diff != "" {
+		t.Errorf("unexpected diagnostics:\n%s", diff)
+	}
+}
