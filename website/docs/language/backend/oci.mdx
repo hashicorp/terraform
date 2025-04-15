@@ -34,7 +34,7 @@ terraform {
 }
 ```
 
-This assumes we have a bucket created called `mybucket`. The Terraform state is written to the key `path/to/my/key` and Terraform state md5 is written to the key `path/to/my/key.md5`.
+This assumes we have a bucket created called `mybucket`. The Terraform state is written to the key `path/to/my/key`.
 
 Note that for the access credentials we recommend using a [partial configuration](/terraform/language/backend#partial-configuration).
 
@@ -52,8 +52,6 @@ For non-default workspaces, the state is stored using the following path format:
  - The default workspace_key_prefix is `tf-state-env`, but it can be customized using the `workspace_key_prefix` backend parameter.
 
  - For example, with workspace `development`, the state would be stored at: `tf-state-env/development/path/to/my/key`
-
- - Additionally, an MD5 checksum file will be stored alongside the state at: `tf-state-env/development/path/to/my/key.md5`
 
 ## State Locking
 - The oci backend supports state locking by leveraging the `If-None-Match: *` header capability of OCI Object Storage.
