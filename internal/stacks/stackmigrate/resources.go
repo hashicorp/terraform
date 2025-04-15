@@ -330,8 +330,14 @@ func (m *migration) findProviderConfig(module addrs.Module, resource addrs.Resou
 		}
 	}
 
-	diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Provider not found", fmt.Sprintf("Provider %q not found in module %q.", provider.LocalName, module[0])))
-	return addrs.LocalProviderConfig{}, diags
+	// if we reach here, then the provider was not passed to the module call.
+	// Let's check the provider within the child module configuration.
+	r := next.Module.ResourceByAddr(resource)
+	if r == nil {
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Provider not found", fmt.Sprintf("Resource %q not found in containing module.", resource.String())))
+		return addrs.LocalProviderConfig{}, diags
+	}
+	return r.ProviderConfigAddr(), diags
 }
 
 func (m *migration) loadConfig(resource *stackResource) tfdiags.Diagnostics {
