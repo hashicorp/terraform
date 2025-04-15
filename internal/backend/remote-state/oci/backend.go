@@ -133,10 +133,10 @@ type Backend struct {
 }
 
 func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
-	logger.Debug("Inside PrepareConfig")
+
 	var diags tfdiags.Diagnostics
 	if obj.IsNull() {
-		logger.Debug("Received null configuration for OCI backend")
+
 		diags.Append(tfdiags.AttributeValue(tfdiags.Error, "Invalid Configuration", "Received null configuration for OCI backend.", cty.GetAttrPath(".")))
 		return obj, diags
 	}
@@ -171,9 +171,9 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 				fmt.Sprintf("The attribute %q is required by the backend for %s authentication.\n\n", RegionAttrName, authVal.AsString()), cty.GetAttrPath(RegionAttrName),
 			))
 		}
-		if authVal.AsString() == strings.ToLower(AuthSecurityToken) {
+		if strings.ToLower(authVal.AsString()) == strings.ToLower(AuthSecurityToken) {
 			profileVal, _ := getBackendAttr(obj, ConfigFileProfileAttrName)
-			if profileVal.AsString() == "" {
+			if profileVal.IsNull() || profileVal.AsString() == "" {
 				diags = diags.Append(tfdiags.AttributeValue(tfdiags.Error,
 					"Missing config_file_profile attribute required",
 					fmt.Sprintf("The attribute %q is required by the backend for %s authentication.\n\n", ConfigFileProfileAttrName, authVal.AsString()), cty.GetAttrPath(ConfigFileProfileAttrName),
