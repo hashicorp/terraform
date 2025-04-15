@@ -26,7 +26,6 @@ type RemoteClient struct {
 	path                 string
 	lockFilePath         string
 	kmsKeyID             string
-	etag                 string
 	SSECustomerKey       string
 	SSECustomerKeySHA256 string
 	SSECustomerAlgorithm string
@@ -38,15 +37,12 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 	logger.Info("Downloading remote state")
 
 	payload, err := c.getObject(ctx)
-	if err != nil {
+	if err != nil || len(payload.Data) == 0 {
 		return nil, err
 	}
+	// md5 hash of whole state
 	sum := md5.Sum(payload.Data)
-	md5Hash := base64.StdEncoding.EncodeToString(sum[:])
-	if !bytes.Equal([]byte(md5Hash), payload.MD5) {
-		logger.Error("state md5 mismatch expected: %s, actual: %s", string(payload.MD5), md5Hash)
-		return payload, fmt.Errorf("state md5 mismatch expected: %s, actual: %s", string(payload.MD5), md5Hash)
-	}
+	payload.MD5 = sum[:]
 	return payload, nil
 }
 
@@ -70,13 +66,11 @@ func (c *RemoteClient) getObject(ctx context.Context) (*remote.Payload, error) {
 		var ociHeadErr common.ServiceError
 		if errors.As(headErr, &ociHeadErr) && ociHeadErr.GetHTTPStatusCode() == 404 {
 			logger.Debug(" State file '%s' not found. Initializing Terraform state...", c.path)
-			return nil, nil
+			return &remote.Payload{}, nil
 		} else {
 			return nil, fmt.Errorf("failed to access object '%s' in bucket '%s': %w", c.path, c.bucketName, headErr)
 		}
 	}
-
-	c.etag = *headResponse.ETag
 
 	getRequest := objectstorage.GetObjectRequest{
 		NamespaceName: common.String(c.namespace),
@@ -176,9 +170,7 @@ func (c *RemoteClient) uploadSinglePartObject(data, sum []byte) error {
 			RetryPolicy: getDefaultRetryPolicy(),
 		},
 	}
-	if c.etag != "" {
-		putRequest.IfMatch = common.String(c.etag)
-	}
+
 	// Handle encryption settings
 	if c.kmsKeyID != "" {
 		putRequest.OpcSseKmsKeyId = common.String(c.kmsKeyID)
