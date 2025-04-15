@@ -21,7 +21,11 @@ func getEnvSettingWithBlankDefault(s string) string {
 }
 
 func getEnvSettingWithDefault(s string, dv string) string {
-	v := os.Getenv(TfEnvPrefix + s)
+	v := os.Getenv(TfBacckendOciEnvPrifix + s)
+	if v != "" {
+		return v
+	}
+	v = os.Getenv(TfEnvPrefix + s)
 	if v != "" {
 		return v
 	}
@@ -114,4 +118,33 @@ func validateStringObjectPath(val string, path cty.Path, diags *tfdiags.Diagnost
 			path.Copy(),
 		))
 	}
+}
+
+func validateStringWorkspacePrefix(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+	if strings.HasPrefix(val, "/") || strings.Contains(val, "//") {
+		*diags = diags.Append(tfdiags.AttributeValue(tfdiags.Error,
+			"Invalid Value",
+			`The value must not start  with "/" and also not contain consecutive "/"`,
+			path.Copy(),
+		))
+	}
+}
+
+func validateStringBucketName(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+	match, _ := regexp.MatchString(`^[a-zA-Z0-9_-]+$`, val)
+	if !match {
+		*diags = diags.Append(tfdiags.AttributeValue(tfdiags.Error,
+			"Invalid Value",
+			`The bucket name can only include alphanumeric characters, underscores (_), and hyphens (-).`,
+			path.Copy(),
+		))
+	}
+}
+func requiredAttributeErrDiag(path cty.Path) tfdiags.Diagnostic {
+	return tfdiags.AttributeValue(tfdiags.Error,
+		"Missing Required Value",
+		fmt.Sprintf("The attribute %q is required by the backend.\n\n", path)+
+			"Refer to the backend documentation for additional information which attributes are required.",
+		path,
+	)
 }

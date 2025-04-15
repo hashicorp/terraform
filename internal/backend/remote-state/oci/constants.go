@@ -13,9 +13,10 @@ const (
 	AuthOKEWorkloadIdentity               = "OKEWorkloadIdentity"
 	ResourcePrincipal                     = "ResourcePrincipal"
 
-	TfEnvPrefix      = "TF_VAR_"
-	OciEnvPrefix     = "OCI_"
-	defaultEnvPrefix = "tf-state-env"
+	TfBacckendOciEnvPrifix = "TF_BACKEND_OCI_"
+	TfEnvPrefix            = "TF_VAR_"
+	OciEnvPrefix           = "OCI_"
+	defaultEnvPrefix       = "tf-state-env"
 
 	AuthAttrName                 = "auth"
 	TenancyOcidAttrName          = "tenancy_ocid"

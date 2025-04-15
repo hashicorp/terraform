@@ -4,8 +4,9 @@
 package oci
 
 import (
-	"github.com/hashicorp/go-hclog"
+	hclog "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform/internal/logging"
+	"github.com/oracle/oci-go-sdk/v65/common"
 )
 
 var (
@@ -16,6 +17,9 @@ type backendLogger struct {
 	hclog.Logger
 }
 
+func init() {
+	common.SetSDKLogger(logger)
+}
 func NewBackendLogger(l hclog.Logger) backendLogger {
 	return backendLogger{l}
 }
