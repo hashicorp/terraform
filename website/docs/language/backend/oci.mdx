@@ -173,8 +173,8 @@ The oci backend requires the configuration of the OCI namespace and Object Stora
 | `workspace_key_prefix` | A prefix applied to the non-default state path inside the bucket. Defaults to `tf-state-env`.   |
 | `auth`                 | Authentication method (e.g., `APIKey`, `InstancePrincipal`, `ResourcePrincipal`, `InstancePrincipalWithCerts`, `SecurityToken`,`OKEWorkloadIdentity`).              |
 | `config_file_profile`  | Profile name from the OCI config file (default `~/.oci/config`).                             |
-| `sse_customer_key`    | The customer-managed encryption key used for server-side encryption. generate using command ```openssl rand -base64 32```                       |
-| `sse_customer_key_sha256` | The SHA256 hash of the customer-managed encryption key. generate using command  ```echo -n <above generated base64 key> | base64 -d | openssl dgst -sha256 -binary | base64```                                      |
+| `sse_customer_key`    | The customer-managed encryption key used for server-side encryption. generate using command `openssl rand -base64 32`                       |
+| `sse_customer_key_sha256` | The SHA256 hash of the customer-managed encryption key. generate using command  `echo -n <above generated base64 key> | base64 -d | openssl dgst -sha256 -binary | base64`                                     |
 | `sse_customer_algorithm` | The algorithm used for server-side encryption. Supported values: `AES256` |
 
 
