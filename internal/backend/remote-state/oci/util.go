@@ -21,15 +21,7 @@ func getEnvSettingWithBlankDefault(s string) string {
 }
 
 func getEnvSettingWithDefault(s string, dv string) string {
-	v := os.Getenv(TfBacckendOciEnvPrifix + s)
-	if v != "" {
-		return v
-	}
-	v = os.Getenv(TfEnvPrefix + s)
-	if v != "" {
-		return v
-	}
-	v = os.Getenv(OciEnvPrefix + s)
+	v := os.Getenv(OciEnvPrefix + s)
 	if v != "" {
 		return v
 	}

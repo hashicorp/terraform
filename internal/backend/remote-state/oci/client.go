@@ -41,11 +41,11 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 	if err != nil {
 		return nil, err
 	}
-	if md5Hash, err := c.getMd5(ctx); err != nil {
-		logger.Warn("Failed to download MD5 hash of remote state")
-	} else if !bytes.Equal(md5Hash, payload.MD5) {
-		logger.Error("state md5 mismatch expected: %s, actual: %s", string(md5Hash), string(payload.MD5))
-		return payload, fmt.Errorf("state md5 mismatch expected: %s, actual: %s", string(md5Hash), string(payload.MD5))
+	sum := md5.Sum(payload.Data)
+	md5Hash := base64.StdEncoding.EncodeToString(sum[:])
+	if !bytes.Equal([]byte(md5Hash), payload.MD5) {
+		logger.Error("state md5 mismatch expected: %s, actual: %s", string(payload.MD5), md5Hash)
+		return payload, fmt.Errorf("state md5 mismatch expected: %s, actual: %s", string(payload.MD5), md5Hash)
 	}
 	return payload, nil
 }
@@ -111,13 +111,14 @@ func (c *RemoteClient) getObject(ctx context.Context) (*remote.Payload, error) {
 	}
 
 	// Compute MD5 hash
-	sum := md5.Sum(contentArray)
-	md5Hash := base64.StdEncoding.EncodeToString(sum[:])
-
+	md5Hash := getResponse.ContentMd5
+	if md5Hash == nil || len(*md5Hash) == 0 {
+		md5Hash = getResponse.OpcMultipartMd5
+	}
 	// Construct payload
 	payload := &remote.Payload{
 		Data: contentArray,
-		MD5:  []byte(md5Hash),
+		MD5:  []byte(*md5Hash),
 	}
 
 	// Return an error instead of `nil, nil` if the object is empty
@@ -128,32 +129,6 @@ func (c *RemoteClient) getObject(ctx context.Context) (*remote.Payload, error) {
 	return payload, nil
 }
 
-func (c *RemoteClient) getMd5(ctx context.Context) ([]byte, error) {
-	getRequest := objectstorage.GetObjectRequest{
-		NamespaceName: common.String(c.namespace),
-		ObjectName:    common.String(fmt.Sprintf("%s.md5", c.path)),
-		BucketName:    common.String(c.bucketName),
-		RequestMetadata: common.RequestMetadata{
-			RetryPolicy: getDefaultRetryPolicy(),
-		},
-	}
-	getResponse, err := c.objectStorageClient.GetObject(ctx, getRequest)
-	if err != nil {
-		return nil, fmt.Errorf("failed to download md5 hash of statefile: %w", err)
-	}
-	var data []byte
-	_, err = getResponse.Content.Read(data)
-	if err != nil {
-		return nil, err
-	}
-	// Read object content
-	contentArray, err := io.ReadAll(getResponse.Content)
-	if err != nil {
-		return nil, fmt.Errorf("[MD5]unable to read 'content' from response: %w", err)
-	}
-
-	return contentArray, nil
-}
 func (c *RemoteClient) Put(data []byte) error {
 	dataSize := int64(len(data))
 	sum := md5.Sum(data)
@@ -179,7 +154,7 @@ func (c *RemoteClient) Put(data []byte) error {
 		return err
 	}
 
-	return c.putMd5([]byte(base64.StdEncoding.EncodeToString(sum[:])))
+	return nil
 }
 
 func (c *RemoteClient) uploadSinglePartObject(data, sum []byte) error {
@@ -221,31 +196,6 @@ func (c *RemoteClient) uploadSinglePartObject(data, sum []byte) error {
 	}
 
 	logger.Info("Uploaded state file response: %+v\n", putResponse)
-	return nil
-}
-
-func (c *RemoteClient) putMd5(data []byte) error {
-	if len(data) == 0 {
-		return fmt.Errorf("uploadSinglePartObject: data is empty")
-	}
-
-	ctx := context.Background()
-	sum := md5.Sum(data)
-
-	putRequest := objectstorage.PutObjectRequest{
-		NamespaceName: common.String(c.namespace),
-		ObjectName:    common.String(fmt.Sprintf("%s.md5", c.path)),
-		BucketName:    common.String(c.bucketName),
-		PutObjectBody: io.NopCloser(bytes.NewReader(data)),
-		ContentMD5:    common.String(base64.StdEncoding.EncodeToString(sum[:])),
-		RequestMetadata: common.RequestMetadata{
-			RetryPolicy: getDefaultRetryPolicy(),
-		},
-	}
-	_, err := c.objectStorageClient.PutObject(ctx, putRequest)
-	if err != nil {
-		return fmt.Errorf("failed to upload md5Hash: %w", err)
-	}
 	return nil
 }
 

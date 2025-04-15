@@ -151,7 +151,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	if keyVal, ok := getBackendAttrWithDefault(obj, KeyAttrName, defaultKeyValue); ok {
 		validateStringObjectPath(keyVal.AsString(), cty.GetAttrPath(KeyAttrName), &diags)
 	}
-	if workspaceKeyPrefixVal, ok := getBackendAttrWithDefault(obj, WorkspaceKeyPrefixAttrName, defaultEnvPrefix); ok {
+	if workspaceKeyPrefixVal, ok := getBackendAttrWithDefault(obj, WorkspaceKeyPrefixAttrName, defaultWorkspaceEnvPrefix); ok {
 		validateStringWorkspacePrefix(workspaceKeyPrefixVal.AsString(), cty.GetAttrPath(WorkspaceKeyPrefixAttrName), &diags)
 	}
 	authVal, ok := getBackendAttr(obj, AuthAttrName)
@@ -201,7 +201,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		b.key = keyVal.AsString()
 	}
 
-	if workspaceKeyPrefixVal, ok := getBackendAttrWithDefault(obj, WorkspaceKeyPrefixAttrName, defaultEnvPrefix); ok {
+	if workspaceKeyPrefixVal, ok := getBackendAttrWithDefault(obj, WorkspaceKeyPrefixAttrName, defaultWorkspaceEnvPrefix); ok {
 		b.workspaceKeyPrefix = workspaceKeyPrefixVal.AsString()
 	}
 
