@@ -88,7 +88,7 @@ func evaluateImportIdentityExpression(expr hcl.Expression, identity *configschem
 	// that context.
 	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
 	scope := ctx.EvaluationScope(nil, nil, keyData)
-	importIdentityVal, evalDiags := scope.EvalExpr(expr, identity.ImpliedType())
+	importIdentityVal, evalDiags := scope.EvalExpr(expr, identity.ConfigType())
 	if evalDiags.HasErrors() {
 		// TODO? Do we need to improve the error message?
 		return cty.NilVal, evalDiags
