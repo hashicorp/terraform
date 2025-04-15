@@ -177,6 +177,28 @@ The oci backend requires the configuration of the OCI namespace and Object Stora
 | `sse_customer_key_sha256` | The SHA256 hash of the customer-managed encryption key. generate using command  `echo -n <above generated base64 key> | base64 -d | openssl dgst -sha256 -binary | base64`                                     |
 | `sse_customer_algorithm` | The algorithm used for server-side encryption. Supported values: `AES256` |
 
+### 🔧 Setting Backend Configuration via Environment Variables
+You can configure the OCI Terraform backend using environment variables. This provides flexibility and simplifies automation workflows.
 
+For any backend attribute (e.g., region), you can set its value using one of the following environment variable formats:
 
+#### 🧩 Supported Environment Variable Prefixes (in order of priority):
+1. `TF_BACKEND_OCI_` – Preferred and backend-specific.
+    ```bash
+    export TF_BACKEND_OCI_region=us-ashburn-1
+    ```
+2. `TF_VAR_` – Standard Terraform input variable.
+    ```bash
+    export TF_VAR_region=us-ashburn-1
+   ```
+3. `OCI_` – OCI SDK-compatible environment variable
+    ```bash
+    export OCI_region=us-ashburn-1
+   ```
+4. No prefix – Generic (lowest priority)
+    ```bash
+    export region=us-ashburn-1
+   ```
+Terraform will resolve the attribute value using the first match it finds based on the above priority order.
 
+> 🔍 Tip: To avoid ambiguity and ensure clarity, it is recommended to use TF_BACKEND_OCI_ for backend-specific configuration.

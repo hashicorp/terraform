@@ -27,7 +27,6 @@ func (b *Backend) configureRemoteClient() error {
 	if err != nil {
 		return err
 	}
-	common.SetSDKLogger(logger)
 
 	client, err := buildConfigureClient(configProvider, buildHttpClient())
 	if err != nil {
