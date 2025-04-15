@@ -65,7 +65,7 @@ This locking mechanism helps prevent concurrent operations on the same state fil
 ## Permissions Required
 
 ### OCI Object Storage Bucket Permissions
-Terraform requires the following [OCI IAM permissions](https://docs.oracle.com/en-us/iaas/Content/Identity/Reference/policyreference.htm?utm_source=chatgpt.com) on the target backend bucket to manage the state file and associated lock files:
+Terraform requires the following [OCI IAM permissions](https://docs.oracle.com/en-us/iaas/Content/Identity/Reference/policyreference.htm) on the target backend bucket to manage the state file and associated lock files:
 
 - OBJECT_INSPECT (includes HeadObject)
 - OBJECT_CREATE (includes PutObject, CreateMultipartUpload, UploadPart, and CommitMultipartUpload)
