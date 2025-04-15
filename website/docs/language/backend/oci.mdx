@@ -183,22 +183,12 @@ You can configure the OCI Terraform backend using environment variables. This pr
 For any backend attribute (e.g., region), you can set its value using one of the following environment variable formats:
 
 #### 🧩 Supported Environment Variable Prefixes (in order of priority):
-1. `TF_BACKEND_OCI_` – Preferred and backend-specific.
-    ```bash
-    export TF_BACKEND_OCI_region=us-ashburn-1
-    ```
-2. `TF_VAR_` – Standard Terraform input variable.
-    ```bash
-    export TF_VAR_region=us-ashburn-1
-   ```
-3. `OCI_` – OCI SDK-compatible environment variable
+1. `OCI_` – OCI SDK-compatible environment variable. Can also be used for Terraform Provider OCI credentials.
     ```bash
     export OCI_region=us-ashburn-1
    ```
-4. No prefix – Generic (lowest priority)
+2. No prefix – Generic (lowest priority)
     ```bash
     export region=us-ashburn-1
    ```
 Terraform will resolve the attribute value using the first match it finds based on the above priority order.
-
-> 🔍 Tip: To avoid ambiguity and ensure clarity, it is recommended to use TF_BACKEND_OCI_ for backend-specific configuration.
