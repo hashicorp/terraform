@@ -34,6 +34,11 @@ func ObjectToString(obj cty.Value) string {
 				result += ","
 			}
 
+			if val.IsNull() {
+				result += fmt.Sprintf("%s=<null>", keyStr)
+				continue
+			}
+
 			switch val.Type() {
 			case cty.Bool:
 				result += fmt.Sprintf("%s=%t", keyStr, val.True())
