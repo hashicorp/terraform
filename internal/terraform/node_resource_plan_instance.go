@@ -753,6 +753,12 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		return nil, deferred, diags
 	}
 
+	// Providers are supposed to return an identity when importing by identity
+	if importTarget.Type().IsObjectType() && imported[0].Identity.IsNull() {
+		diags = diags.Append(fmt.Errorf("import of %s didn't return an identity", n.Addr.String()))
+		return nil, deferred, diags
+	}
+
 	// Providers are supposed to return null values for all write-only attributes
 	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
 		"Import returned a non-null value for a write-only attribute",
@@ -782,7 +788,6 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 				importType, importValue,
 			),
 		))
-
 	}
 
 	// refresh
