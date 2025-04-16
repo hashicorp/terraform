@@ -2299,7 +2299,7 @@ func TestEnsureProviderVersions_local_source(t *testing.T) {
 			provider: "null",
 			version:  "2.1.0",
 			wantHash: getproviders.NilHash,
-			err:      "zip: not a valid zip file",
+			err:      "failed to decompress: zip: not a valid zip file",
 		},
 		"version-constraint-unmet": {
 			provider: "null",
