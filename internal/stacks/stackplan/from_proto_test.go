@@ -26,6 +26,7 @@ func TestAddRaw(t *testing.T) {
 		"empty": {
 			Raw: nil,
 			Want: &Plan{
+				Root:            newStackInstance(stackaddrs.RootStackInstance),
 				PrevRunStateRaw: make(map[string]*anypb.Any),
 				RootInputValues: make(map[stackaddrs.InputVariable]cty.Value),
 			},
@@ -48,6 +49,7 @@ func TestAddRaw(t *testing.T) {
 				}),
 			},
 			Want: &Plan{
+				Root:            newStackInstance(stackaddrs.RootStackInstance),
 				PrevRunStateRaw: make(map[string]*anypb.Any),
 				RootInputValues: map[stackaddrs.InputVariable]cty.Value{
 					stackaddrs.InputVariable{Name: "foo"}: cty.StringVal("boop").Mark(marks.Sensitive),
@@ -67,6 +69,7 @@ func TestAddRaw(t *testing.T) {
 				}),
 			},
 			Want: &Plan{
+				Root:            newStackInstance(stackaddrs.RootStackInstance),
 				PrevRunStateRaw: make(map[string]*anypb.Any),
 				RootInputValues: map[stackaddrs.InputVariable]cty.Value{
 					stackaddrs.InputVariable{Name: "foo"}: cty.StringVal("boop"),
