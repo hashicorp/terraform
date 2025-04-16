@@ -45,6 +45,7 @@ type FmtCommand struct {
 	diff      bool
 	check     bool
 	recursive bool
+	dos2unix  bool
 	input     io.Reader // STDIN if nil
 }
 
@@ -60,6 +61,7 @@ func (c *FmtCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&c.diff, "diff", false, "diff")
 	cmdFlags.BoolVar(&c.check, "check", false, "check")
 	cmdFlags.BoolVar(&c.recursive, "recursive", false, "recursive")
+	cmdFlags.BoolVar(&c.dos2unix, "dos2unix", false, "dos2unix")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
@@ -298,10 +300,15 @@ func (c *FmtCommand) formatSourceCode(src []byte, filename string) []byte {
 	}
 
 	c.formatBody(f.Body(), nil)
+	c.dos2unix(f.Body(), nil)
 
 	return f.Bytes()
 }
 
+func (c *FmtCommand) dos2unix(body *hclwrite.Body, inBlocks []string) {
+	// Replace all occurrences of CRLF with LF
+	return outputBytes := bytes.ReplaceAll(body, []byte("\r\n"), []byte("\n"))
+}
 func (c *FmtCommand) formatBody(body *hclwrite.Body, inBlocks []string) {
 	attrs := body.Attributes()
 	for name, attr := range attrs {
