@@ -34,7 +34,7 @@ func TestBackendBasic(t *testing.T) {
 
 	backend.TestBackendStates(t, b)
 }
-func TestBackendLocked_FolceUnclock(t *testing.T) {
+func TestBackendLocked_ForceUnlock(t *testing.T) {
 	testACC(t)
 	ctx := context.Background()
 	bucketName := fmt.Sprintf("terraform-remote-oci-test-%x", time.Now().Unix())
@@ -55,7 +55,9 @@ func TestBackendLocked_FolceUnclock(t *testing.T) {
 	defer deleteOCIBucket(ctx, t, b1.client.objectStorageClient, bucketName, *response.ETag, namespace)
 	// Test state locking and force-unlock
 	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateLocksInWS(t, b1, b2, "testenv")
 	backend.TestBackendStateForceUnlock(t, b1, b2)
+	backend.TestBackendStateForceUnlockInWS(t, b1, b2, "testenv")
 }
 func TestBackendBasic_multipart_Upload(t *testing.T) {
 	testACC(t)
