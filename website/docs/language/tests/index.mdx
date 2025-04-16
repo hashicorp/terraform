@@ -83,7 +83,9 @@ executes its runs. The block has the following fields:
 
 | Field or Block Name       | Description                                                                                                              | Default Value |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------- |
-| `parallel`                 | An optional boolean attribute. If `true`, Terraform executes all eligible `run` blocks simultaneously. Refer to [Parallel execution](#parallel-execution) for more information.             | `false`       |
+| `parallel`                 | An optional boolean attribute. If `true`, Terraform executes all eligible `run` blocks simultaneously. Each run within the file can override this globally set value. Refer to [Parallel execution](#parallel-execution) for more information.             | `false`       |
+| `skip_cleanup`             | An optional boolean attribute. If `true`, Terraform skips the cleanup of the state resources created during the test. Each run within the file can override this globally set value.             | `false`       |
+
 
 ### Example usage
 
@@ -113,6 +115,7 @@ Each `run` block has the following fields and blocks:
 | `state_key`               | An optional attribute.                                                                                                   |               |
 | [`backend`](#backends)    | An optional `backend` block.                                                                                             |               |
 | `parallel`                | An optional boolean attribute.                                                                                           | `false`       |
+| `skip_cleanup`            | An optional boolean attribute.                                                                                           | `false`       |
 
 The `command` attribute and `plan_options` block tell Terraform which command and options to execute for each run block. The default operation, if you do not specify a `command` attribute or the `plan_options` block, is a normal Terraform apply operation.
 
@@ -123,6 +126,8 @@ The `plan_options` block allows test authors to customize the [planning mode](/t
 The `state_key` allows for fine-grained control over which internal state file Terraform uses for a given run block. Refer to [Modules State](#modules-state) for more information.
 
 The `parallel` attribute lets you run multiple `run` blocks in parallel. By default, this attribute is set to `false`. When set to `true`, Terraform attempts to execute the `run` block in parallel with other `run` blocks that also have the `parallel` attribute set to `true` and are not dependent on each other.
+
+The `skip_cleanup` attribute controls whether changes made to the state file during this run are cleaned up afterward. Refer to the [Skipping Cleanup](#skipping-cleanup) section for more information.
 
 ### Example usage
 
@@ -1150,3 +1155,13 @@ testing only uses config from the test file's `backend` blocks and any applicabl
 Finally, [workspaces](https://developer.hashicorp.com/terraform/language/state/workspaces) cannot be used with backends
 used in the context of a test. Any backend used in a test will use the `default` workspace, regardless of
 what workspaces exist and have been selected for use during `plan` and `apply` operations.
+## Skipping Cleanup
+
+You can skip the default [cleanup process](#modules-cleanup) by setting the `skip_cleanup` attribute to `true` in the `test` or `run` block. This is useful for debugging or when you want to inspect the state files after a test run. 
+ When multiple `run` blocks that modify the same state file set this attribute, only the last `run` block with `skip_cleanup` set to `true` will take effect. This means the state file will reflect the state as of that last `run` block.
+ Any resources retained in the state due to this attribute will also be saved in the state file artifacts. Refer to the [Artifacts](#handling-leftover-state-artifacts) section for more information. This means that you have to cleanup the state before running any other tests.
+
+## Handling Leftover State Artifacts
+
+During the execution of a test file, Terraform automatically cleans up any in-memory state it generates. This cleanup involves destroying the created remote resources. However, if the cleanup process fails, Terraform will persist a manifest file that references state files containing the remaining resources. The generated files are located within the test directory of the terraform configuration (`.terraform/test`).
+These lingering resources will block future Terraform test operations and must be manually removed to proceed.

@@ -2550,8 +2550,8 @@ Success! 5 passed, 0 failed.
 
 		val := provider.Store.Get(provider.ResourceString())
 
-		if val.GetAttr("value").AsString() != "test_five" {
-			t.Errorf("expected resource to have value 'test_five' but got %s", val.GetAttr("value").AsString())
+		if val.GetAttr("value").AsString() != "test_four" {
+			t.Errorf("expected resource to have value 'test_four' but got %s", val.GetAttr("value").AsString())
 		}
 	})
 }
