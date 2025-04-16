@@ -45,7 +45,7 @@ You can create conditions that produce custom error messages for several types o
 
 Custom conditions can help capture assumptions, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
-Refer to [Custom Condition Checks](/terraform/language/expressions/custom-conditions#input-variable-validation) for details.
+Refer to [Validate your configuration](/terraform/language/test-and-validate/validate#input-variable-validation) for details.
 
 ## Result Types
 
@@ -77,4 +77,136 @@ a string.
 
 ```hcl
 var.example ? tostring(12) : "hello"
+```
+
+## Examples
+
+You can use any of Terraform's built-in functions or language operators
+in a condition as long as the expression is valid and returns a boolean result. The following examples demonstrate language features that can help you write condition expressions.
+
+### Logical operator examples
+
+Use the logical operators `&&` (AND), `||` (OR), and `!` (NOT) to combine multiple conditions together.
+
+```hcl
+  condition = var.name != "" && lower(var.name) == var.name
+```
+
+You can also use arithmetic operators, for example `a + b`, equality operators, for example `a == b`, and comparison operators, for example `a < b`. Refer to [Arithmetic and Logical Operators](/terraform/language/expressions/operators) for details.
+
+### `contains` Function
+
+Use the [`contains` function](/terraform/language/functions/contains) to test whether a given value is one of a set of predefined valid values.
+
+```hcl
+  condition = contains(["STAGE", "PROD"], var.environment)
+```
+
+### `length` Function
+
+Use the [`length` function](/terraform/language/functions/length) to test a collection's length and require a non-empty list or map.
+
+```hcl
+  condition = length(var.items) != 0
+```
+
+Using the `length` function is more suitable than using `==` or `!=` when both operands potentially have exactly the same type, which is often ambiguous for empty collections.
+
+### `for` Expressions
+
+Use [`for` expressions](/terraform/language/expressions/for) in conjunction with the functions `alltrue` and `anytrue` to test whether a condition holds for all or for any elements of a collection.
+
+```hcl
+  condition = alltrue([
+    for v in var.instances : contains(["t2.micro", "m3.medium"], v.type)
+  ])
+```
+
+### `can` Function
+
+Use the [`can` function](/terraform/language/functions/can) to concisely use the validity of an expression as a condition. It returns `true` if its given expression evaluates successfully and `false` if it returns any error, so you can use various other functions that typically return errors as a part of your condition expressions.
+
+For example, you can use `can` with `regex` to test if a string matches a particular pattern because `regex` returns an error when given a non-matching string.
+
+```hcl
+  condition = can(regex("^[a-z]+$", var.name))
+```
+
+You can also use `can` with the type conversion functions to test whether a value is convertible to a type or type constraint.
+
+```hcl
+  # This remote output value must have a value that can
+  # be used as a string, which includes strings themselves
+  # but also allows numbers and boolean values.
+  condition = can(tostring(data.terraform_remote_state.example.outputs["name"]))
+```
+
+```hcl
+  # This remote output value must be convertible to a list
+  # type of with element type.
+  condition = can(tolist(data.terraform_remote_state.example.outputs["items"]))
+```
+
+You can also use `can` with attribute access or index operators to test whether a collection or structural value has a particular element or index.
+
+```hcl
+  # var.example must have an attribute named "foo"
+  condition = can(var.example.foo)
+```
+
+```hcl
+  # var.example must be a sequence with at least one element
+  condition = can(var.example[0])
+  # (although it would typically be clearer to write this as a
+  # test like length(var.example) > 0 to better represent the
+  # intent of the condition.)
+```
+
+### `self` Object
+
+Use the `self` object in postcondition blocks to refer to attributes of the instance under evaluation.
+
+```hcl
+resource "aws_instance" "example" {
+  instance_type = "t2.micro"
+  ami           = "ami-abc123"
+
+  lifecycle {
+    postcondition {
+      condition     = self.instance_state == "running"
+      error_message = "EC2 instance must be running."
+    }
+  }
+}
+```
+
+### `each` and `count` Objects
+
+In blocks where [`for_each`](/terraform/language/meta-arguments/for_each) or [`count`](/terraform/language/meta-arguments/count)  are set, use `each` and `count` objects to refer to other resources that are expanded in a chain.
+
+```hcl
+variable "vpc_cidrs" {
+  type = set(string)
+}
+
+data "aws_vpc" "example" {
+  for_each = var.vpc_cidrs
+
+  filter {
+    name   = "cidr"
+    values = [each.key]
+  }
+}
+
+resource "aws_internet_gateway" "example" {
+  for_each = data.aws_vpc.example
+  vpc_id = each.value.id
+
+  lifecycle {
+    precondition {
+      condition     = data.aws_vpc.example[each.key].state == "available"
+      error_message = "VPC ${each.key} must be available."
+    }
+  }
+}
 ```
