@@ -1163,5 +1163,5 @@ You can skip the default [cleanup process](#modules-cleanup) by setting the `ski
 
 ## Handling Leftover State Artifacts
 
-During the execution of a test file, Terraform automatically cleans up any state files it generates. This cleanup involves destroying the created resources. However, if the cleanup process fails, Terraform generates a manifest file that references state files containing the remaining resources. The manifest file is located within the data directory of the terraform configuration (`.terraform/test/manifest.json`).
-These lingering state artifacts will block future Terraform test operations and must be manually removed to proceed.
+During the execution of a test file, Terraform automatically cleans up any in-memory state it generates. This cleanup involves destroying the created remote resources. However, if the cleanup process fails, Terraform will persist a manifest file that references state files containing the remaining resources. The generated files are located within the test directory of the terraform configuration (`.terraform/test`).
+These lingering resources will block future Terraform test operations and must be manually removed to proceed.
