@@ -263,9 +263,9 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 		fmt.Fprintf(&list, "%d. %s\n", i+1, w)
 	}
 
-	// If the backend only has a single workspace, select that as the current workspace
-	if len(workspaces) == 1 {
-		log.Printf("[TRACE] Meta.selectWorkspace: automatically selecting the single workspace provided by the backend (%s)", workspaces[0])
+	// If the backend has at least a single workspace, select the first as the current workspace
+	if len(workspaces) >= 1 {
+		log.Printf("[TRACE] Meta.selectWorkspace: automatically selecting the first available workspace provided by the backend (%s)", workspaces[0])
 		return m.SetWorkspace(workspaces[0])
 	}
 
