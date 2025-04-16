@@ -7,7 +7,7 @@ required_providers {
 
 provider "testing" "default" {}
 
-component "parent" {
+component "self" {
   source = "./"
 
   providers = {
@@ -15,12 +15,10 @@ component "parent" {
   }
 
   inputs = {
-    id = "parent"
-    input = "parent"
   }
 }
 
-component "child" {
+component "triage" {
   source = "./child"
 
   providers = {
@@ -28,20 +26,7 @@ component "child" {
   }
 
   inputs = {
-    id = "child"
-    input = component.parent.id
-  }
-}
-
-component "child2" {
-  source = "./child"
-
-  providers = {
-    testing = provider.testing.default
-  }
-
-  inputs = {
-    id = "child"
-    input = component.parent.id
+    id = "triage"
+    input = "triage_input"
   }
 }
