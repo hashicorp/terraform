@@ -43,7 +43,8 @@ func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targ
 		// registry source.
 		return nil, fmt.Errorf("invalid provider download request: %s", err)
 	}
-	f, err := os.CreateTemp("", "terraform-provider")
+	// if TF_DATA_DIR is unset, it defaults to "", which results in using TMPDIR or /tmp
+	f, err := os.CreateTemp(os.Getenv("TF_DATA_DIR"), "terraform-provider")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open temporary file to download from %s: %w", urlStr, err)
 	}
