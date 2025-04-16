@@ -4421,7 +4421,7 @@ func TestTest_UseOfBackends_whenStateArtifactsAreMade(t *testing.T) {
 		},
 		"artifact made when a cleanup error is forced when processing a run block with a backend": {
 			forceError:       true,
-			expectedCode:     0, // Is 0 because the tests passed before the cleanup error
+			expectedCode:     1,
 			expectStateFiles: true,
 		},
 	}
