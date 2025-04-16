@@ -1,41 +1,35 @@
 ---
-page_title: Upgrading to Terraform v1.10
-description: Upgrading to Terraform v1.10
+page_title: Upgrading to Terraform v1.11
+description: Upgrading to Terraform v1.11
 ---
 
-# Upgrading to Terraform v1.10
+# Upgrading to Terraform v1.11
 
 -> **Tip:** Use the version selector to view the upgrade guides for older Terraform versions.
 
-Terraform v1.10 is a minor release in the stable Terraform v1.0 series.
+Terraform v1.11 is a minor release in the stable Terraform v1.0 series.
 
-Terraform v1.10 honors the
+Terraform v1.11 honors the
 [Terraform v1.0 Compatibility Promises](https://developer.hashicorp.com/terraform/language/v1-compatibility-promises).
 There are minor changes that may require additional upgrade steps:
 
-- `moved` blocks will now report an error if `from` or `to` points to a resource type conflicting with reserved keywords
+- Attempting to override a variable during apply via TF_VAR_ environment variable will now yield warning instead of misleading error.
 
-See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.10/CHANGELOG.md)
+See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.11/CHANGELOG.md)
 for more details. If you encounter any problems during upgrading which are not
 covered this guide, please start a new topic in
 [the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core)
 to discuss it.
 
-## Conflicting `moved` block references
+## Terraform Test
 
-Moved blocks now respect reserved keywords such as `local`, `each`, `self` etc. when parsing resource addresses.
-Configurations that reference resources with type names that match top level blocks and
-keywords from moved blocks will need to prepend the reference identifier with `resource.`.
-
-## S3 Backend 
-
-Executing `terraform init -reconfigure` is required after updating to Terraform v1.10. This removes the [deprecated fields](#root-assume-role-attribute-removal) from the internal state file.
+- The `-junit-xml` option for the terraform test command is now generally available. This option allows the command to create a test report in JUnit XML format. Feedback during the experimental phase helped map terraform test concepts to the JUnit XML format, and new additons may happen in future releases.
+- Test runs now support using mocked or overridden values in unit tests (i.e., with command = "plan"). Set override_during = plan in the run block to use the overridden values during the plan phase. The default value is `override_during = apply`.
+- Run blocks now support a `state_key` attribute, allowing test authors control over which internal state file should be used for the current test run. 
 
 ### S3 Native State Locking
 
-The S3 backend now supports S3 native state locking as an opt-in, experimental feature.
-An S3 lock can be used alongside a DynamoDB lock, or independently.
-When both locking mechanisms are configured, a lock must be successfully acquired from both locations before subsequent operations will proceed.
+S3 native state locking is now generally available. The use_lockfile argument enables users to adopt the S3-native mechanism for state locking. As part of this change, we've deprecated the DynamoDB-related arguments in favor of this new locking mechanism. While you can still use DynamoDB alongside S3-native state locking for migration purposes, we encourage migrating to the new state locking mechanism.
 
 To opt-in to S3 native state locking, set `use_lockfile` to `true`.
 
@@ -51,22 +45,3 @@ terraform {
 With S3 locking enabled, a lock file will be placed in the same location as the state file.
 The lock file will be named identically to the state file, but with a `.tflock` extension.
 **S3 bucket policies and IAM policies attached to the calling principal may need to be adjusted to include permissions for the new lock file.**
-
-In a future minor version of Terraform the experimental label will be removed from the `use_lockfile` attribute and attributes related to DynamoDB based locking will be deprecated.
-
-### Root Assume Role Attribute Removal
-
-Several root level attributes related to IAM role assumption which were previously deprecated have been removed.
-Each removed field has an analogous field inside the [`assume_role` block](https://developer.hashicorp.com/terraform/language/backend/s3#assume-role-configuration) which should be used instead.
-
-
-| Removed | Replacement |
-| --- | --- |
-| `role_arn` | `assume_role.role_arn` |
-| `session_name` | `assume_role.session_name` |
-| `external_id` | `assume_role.external_id` |
-| `assume_role_duration_seconds` | `assume_role.duration` |
-| `assume_role_policy` | `assume_role.policy` |
-| `assume_role_policy_arns` | `assume_role.policy_arn` |
-| `assume_role_tags` | `assume_role.tags` |
-| `assume_role_transitive_tag_keys` | `assume_role.transitive_tag_keys` |
