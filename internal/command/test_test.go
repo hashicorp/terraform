@@ -6,6 +6,7 @@ package command
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -26,9 +27,9 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/moduletest/graph"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestTest_Runs(t *testing.T) {
@@ -4202,18 +4203,13 @@ There is no backend type named "foobar".
 	}
 }
 
-func TestTest_UseOfBackends_happyPath(t *testing.T) {
+// When there is no starting state, state is created by the run containing the backend block
+func TestTest_UseOfBackends_stateCreatedByBackend(t *testing.T) {
 
-	testCases := map[string]struct {
-		dirName           string
-		priorState        *states.State
-		expectedState     string
-		forceApplyFailure func(providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse
-	}{
-		"When there is no starting state, state is created by the run containing the backend block": {
-			dirName:    "valid-use-local-backend",
-			priorState: nil,
-			expectedState: `test_resource.a:
+	dirName := "valid-use-local-backend/no-prior-state"
+
+	resourceId := "12345"
+	expectedState := `test_resource.foobar:
   ID = 12345
   provider = provider["registry.terraform.io/hashicorp/test"]
   destroy_fail = false
@@ -4221,175 +4217,241 @@ func TestTest_UseOfBackends_happyPath(t *testing.T) {
 
 Outputs:
 
-supplied_input_value = value-from-run-that-controls-backend`,
-		},
-		"When there is pre-existing state, the state is updated by the run containing the backend block": {
-			dirName: "valid-use-local-backend",
-			// the priorState doesn't include the output, and has an outdated value field on the test_resource
-			priorState: states.BuildState(func(s *states.SyncState) {
-				s.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_resource",
-						Name: "a",
-					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-					&states.ResourceInstanceObjectSrc{
-						AttrsJSON: []byte(`{"id":"12345","value":"outdated-value-from-prior-test-run"}`),
-						Status:    states.ObjectReady,
-					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
-				)
-			}),
-			expectedState: `test_resource.a:
-  ID = 12345
-  provider = provider["registry.terraform.io/hashicorp/test"]
-  destroy_fail = false
-  value = value-from-run-that-controls-backend
+supplied_input_value = value-from-run-that-controls-backend
+test_resource_id = 12345`
 
-Outputs:
+	// SETUP
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", dirName)), td)
+	defer testChdir(t, td)()
+	localStatePath := filepath.Join(td, DefaultStateFilename)
 
-supplied_input_value = value-from-run-that-controls-backend`,
-		},
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
 	}
 
-	for tn, tc := range testCases {
-		t.Run(tn, func(t *testing.T) {
-			// SETUP
-			td := t.TempDir()
-			testCopyDir(t, testFixturePath(path.Join("test", tc.dirName)), td)
-			defer testChdir(t, td)()
-			localStatePath := filepath.Join(td, DefaultStateFilename)
-
-			provider := testing_command.NewProvider(nil)
-
-			providerSource, close := newMockProviderSource(t, map[string][]string{
-				"test": {"1.0.0"},
-			})
-			defer close()
-
-			streams, done := terminal.StreamsForTesting(t)
-			view := views.NewView(streams)
-			ui := new(cli.MockUi)
-
-			meta := Meta{
-				testingOverrides: metaOverridesForProvider(provider.Provider),
-				Ui:               ui,
-				View:             view,
-				Streams:          streams,
-				ProviderSource:   providerSource,
-			}
-
-			// SET & ASSERT PRIOR STATE
-			if tc.priorState != nil {
-				testStateFileDefault(t, tc.priorState)
-
-				actualState := testStateRead(t, localStatePath)
-				if diff := cmp.Diff(actualState.String(), tc.priorState.String()); len(diff) > 0 {
-					t.Errorf("prior state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
-				}
-			}
-
-			// INIT
-			init := &InitCommand{
-				Meta: meta,
-			}
-
-			output := done(t)
-			if code := init.Run(nil); code != 0 {
-				t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
-			}
-
-			// TEST
-			// Reset the streams for the next command.
-			streams, done = terminal.StreamsForTesting(t)
-			meta.Streams = streams
-			meta.View = views.NewView(streams)
-
-			c := &TestCommand{
-				Meta: meta,
-			}
-
-			code := c.Run([]string{"-no-color"})
-			output = done(t)
-
-			// ASSERTIONS
-			if code != 0 {
-				t.Errorf("expected status code 0 but got %d", code)
-			}
-			stdErr := output.Stderr()
-			if len(stdErr) > 0 {
-				t.Fatalf("unexpected error output:\n%s", stdErr)
-			}
-
-			actualState := testStateRead(t, localStatePath)
-			if diff := cmp.Diff(actualState.String(), tc.expectedState); len(diff) > 0 {
-				t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
-			}
-
-			// TODO - In future this will not be correct- deletion should not include things contained in the state file.
-			if provider.ResourceCount() > 0 {
-				t.Fatalf("should have deleted all resources on completion but left %v", provider.ResourceString())
-			}
-		})
+	// INIT
+	init := &InitCommand{
+		Meta: meta,
 	}
 
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// TEST
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	// ASSERTIONS
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+	stdErr := output.Stderr()
+	if len(stdErr) > 0 {
+		t.Fatalf("unexpected error output:\n%s", stdErr)
+	}
+
+	// State is stored according to the backend block
+	actualState := testStateRead(t, localStatePath)
+	if diff := cmp.Diff(actualState.String(), expectedState); len(diff) > 0 {
+		t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedState, actualState, diff)
+	}
+
+	if provider.ResourceCount() != 1 {
+		t.Fatalf("should have deleted all resources on completion except test_resource.a. Instead state contained %b resources: %v", provider.ResourceCount(), provider.ResourceString())
+	}
+
+	val := provider.Store.Get(resourceId)
+
+	if val.GetAttr("id").AsString() != resourceId {
+		t.Errorf("expected resource to have value %q but got %s", resourceId, val.GetAttr("id").AsString())
+	}
+	if val.GetAttr("value").AsString() != "value-from-run-that-controls-backend" {
+		t.Errorf("expected resource to have value 'value-from-run-that-controls-backend' but got %s", val.GetAttr("value").AsString())
+	}
 }
 
-func TestTest_UseOfBackends_unhappyPath(t *testing.T) {
+// When there is pre-existing state, the state is used by the run containing the backend block
+func TestTest_UseOfBackends_priorStateUsedByBackend(t *testing.T) {
 
-	testCases := map[string]struct {
-		dirName           string
-		priorState        *states.State
-		expectedState     string
-		forceApplyFailure func(providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse
+	dirName := "valid-use-local-backend/with-prior-state"
+	resourceId := "53d69028-477d-7ba0-83c3-ff3807e3756f" // This value needs to match the state file in the test fixtures
+	expectedState := fmt.Sprintf(`test_resource.foobar:
+  ID = %s
+  provider = provider["registry.terraform.io/hashicorp/test"]
+  destroy_fail = false
+  value = value-from-run-that-controls-backend
+
+Outputs:
+
+supplied_input_value = value-from-run-that-controls-backend
+test_resource_id = %s`, resourceId, resourceId)
+
+	// SETUP
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", dirName)), td)
+	defer testChdir(t, td)()
+	localStatePath := filepath.Join(td, DefaultStateFilename)
+
+	// resource store is like the remote object - needs to be assembled
+	// to resemble what's in state / the remote object being reused by the test.
+	resourceStore := &testing_command.ResourceStore{
+		Data: map[string]cty.Value{
+			resourceId: cty.ObjectVal(map[string]cty.Value{
+				"id":                   cty.StringVal(resourceId),
+				"interrupt_count":      cty.NullVal(cty.Number),
+				"value":                cty.StringVal("value-from-run-that-controls-backend"),
+				"write_only":           cty.NullVal(cty.String),
+				"create_wait_seconds":  cty.NullVal(cty.Number),
+				"destroy_fail":         cty.False,
+				"destroy_wait_seconds": cty.NullVal(cty.Number),
+			})},
+	}
+	provider := testing_command.NewProvider(resourceStore)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	// INIT
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// TEST
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	// ASSERTIONS
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+	stdErr := output.Stderr()
+	if len(stdErr) > 0 {
+		t.Fatalf("unexpected error output:\n%s", stdErr)
+	}
+
+	// State is stored according to the backend block
+	actualState := testStateRead(t, localStatePath)
+	if diff := cmp.Diff(actualState.String(), expectedState); len(diff) > 0 {
+		t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedState, actualState, diff)
+	}
+
+	if provider.ResourceCount() != 1 {
+		t.Fatalf("should have deleted all resources on completion except test_resource.a. Instead state contained %b resources: %v", provider.ResourceCount(), provider.ResourceString())
+	}
+
+	val := provider.Store.Get(resourceId)
+
+	// If the ID hasn't changed then we've used the pre-existing state, instead of remaking the resource
+	if val.GetAttr("id").AsString() != resourceId {
+		t.Errorf("expected resource to have value %q but got %s", resourceId, val.GetAttr("id").AsString())
+	}
+	if val.GetAttr("value").AsString() != "value-from-run-that-controls-backend" {
+		t.Errorf("expected resource to have value 'value-from-run-that-controls-backend' but got %s", val.GetAttr("value").AsString())
+	}
+}
+
+// Testing whether a state artifact is made for a run block with a backend or not
+//
+// Artifacts are made when the cleanup operation errors.
+func TestTest_UseOfBackends_whenStateArtifactsAreMade(t *testing.T) {
+	cases := map[string]struct {
+		forceError       bool
+		expectedCode     int
+		expectStateFiles bool
 	}{
-		"If a test run fails, partial state will be persisted to the backend": {
-			dirName: "valid-use-local-backend",
-			// the priorState doesn't include the output, and has an outdated value field on the test_resource
-			priorState: states.BuildState(func(s *states.SyncState) {
-				s.SetResourceInstanceCurrent(
-					addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_resource",
-						Name: "a",
-					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-					&states.ResourceInstanceObjectSrc{
-						AttrsJSON: []byte(`{"id":"12345","value":"outdated-value-from-prior-test-run"}`),
-						Status:    states.ObjectReady,
-					},
-					addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("test"),
-						Module:   addrs.RootModule,
-					},
-				)
-			}),
-			// When there is a failure to apply changes to the test_resource, the resulting state only includes the output
-			// and lacks any information about the test_resource
-			expectedState: `Outputs:
-
-supplied_input_value = value-from-run-that-controls-backend`,
-			forceApplyFailure: func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
-				resp := providers.ApplyResourceChangeResponse{}
-				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("forced error"))
-				return resp
-			},
+		"no artifact made when there are no cleanup errors when processing a run block with a backend": {
+			forceError:       false,
+			expectedCode:     0,
+			expectStateFiles: false,
+		},
+		"artifact made when a cleanup error is forced when processing a run block with a backend": {
+			forceError:       true,
+			expectedCode:     0, // Is 0 because the tests passed before the cleanup error
+			expectStateFiles: true,
 		},
 	}
 
-	for tn, tc := range testCases {
+	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
+
 			// SETUP
 			td := t.TempDir()
-			testCopyDir(t, testFixturePath(path.Join("test", tc.dirName)), td)
+			testCopyDir(t, testFixturePath(path.Join("test", "valid-use-local-backend/no-prior-state")), td)
 			defer testChdir(t, td)()
-			localStatePath := filepath.Join(td, DefaultStateFilename)
 
 			provider := testing_command.NewProvider(nil)
-			if tc.forceApplyFailure != nil {
-				provider.Provider.ApplyResourceChangeFn = tc.forceApplyFailure
+			erroringInvocationNum := 3
+			applyResourceChangeCount := 0
+			if tc.forceError {
+				oldFunc := provider.Provider.ApplyResourceChangeFn
+				newFunc := func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+					applyResourceChangeCount++
+					if applyResourceChangeCount < erroringInvocationNum {
+						return oldFunc(req)
+					}
+					// Given the config in the test fixture used, the 5th call to this function is during cleanup
+					// Return error to force error diagnostics during cleanup
+					var diags tfdiags.Diagnostics
+					return providers.ApplyResourceChangeResponse{
+						Diagnostics: diags.Append(errors.New("error forced by mock provider")),
+					}
+				}
+				provider.Provider.ApplyResourceChangeFn = newFunc
 			}
 
 			providerSource, close := newMockProviderSource(t, map[string][]string{
@@ -4409,23 +4471,13 @@ supplied_input_value = value-from-run-that-controls-backend`,
 				ProviderSource:   providerSource,
 			}
 
-			// SET & ASSERT PRIOR STATE
-			if tc.priorState != nil {
-				testStateFileDefault(t, tc.priorState)
-
-				actualState := testStateRead(t, localStatePath)
-				if diff := cmp.Diff(actualState.String(), tc.priorState.String()); len(diff) > 0 {
-					t.Errorf("prior state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
-				}
-			}
-
 			// INIT
 			init := &InitCommand{
 				Meta: meta,
 			}
 
-			output := done(t)
 			if code := init.Run(nil); code != 0 {
+				output := done(t)
 				t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 			}
 
@@ -4440,28 +4492,249 @@ supplied_input_value = value-from-run-that-controls-backend`,
 			}
 
 			code := c.Run([]string{"-no-color"})
-			output = done(t)
 
 			// ASSERTIONS
-			if code != 1 {
-				t.Errorf("expected status code 1 but got %d", code)
-			}
-			stdErr := output.Stderr()
-			if len(stdErr) == 0 {
-				t.Fatal("expected error output but got none")
+
+			if tc.forceError && (applyResourceChangeCount != erroringInvocationNum) {
+				t.Fatalf(`Test did not force error as expected. This is because a magic number in the test setup is coupled to the config.
+The apply resource change function was invoked %d times but we trigger an error on the %dth time`, applyResourceChangeCount, erroringInvocationNum)
 			}
 
-			actualState := testStateRead(t, localStatePath)
-			if diff := cmp.Diff(actualState.String(), tc.expectedState); len(diff) > 0 {
-				t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", tc.expectedState, actualState, diff)
+			if code != tc.expectedCode {
+				output := done(t)
+				t.Errorf("expected status code %d but got %d: %s", tc.expectedCode, code, output.All())
+			}
+
+			// State is NOT stored in .terraform/test as a state artifact because
+			// there haven't been any failures or errors in the tests
+			manifestPath := path.Join(td, ".terraform/test", "manifest.json")
+			manifestFile, err := os.ReadFile(manifestPath)
+			if err != nil {
+				t.Fatalf("failed to read manifest.json: %s", err)
+			}
+			var manifest graph.TestManifest
+			if err := json.Unmarshal(manifestFile, &manifest); err != nil {
+				t.Fatalf("failed to unmarshal manifest.json: %s", err)
+			}
+			foundFiles := []string{}
+			for _, file := range manifest.Files {
+				for name, state := range file.States {
+					t.Logf("manifest.json describes state for %s is stored in %s", name, state.Path)
+					path := path.Join(td, state.Path)
+					_, err := os.Stat(path)
+					if err != nil && !os.IsNotExist(err) {
+						t.Fatalf("unexpected error when checking for state artifacts: %s", err)
+					}
+					if err == nil {
+						foundFiles = append(foundFiles, state.Path)
+					}
+				}
+			}
+			if len(foundFiles) > 0 && !tc.expectStateFiles {
+				t.Fatalf("found %d state files in .terraform/test when none were expected", len(foundFiles))
+			}
+			if len(foundFiles) == 0 && tc.expectStateFiles {
+				t.Fatalf("found 0 state files in .terraform/test when they were were expected")
+			}
+		})
+	}
+}
+
+func TestTest_UseOfBackends_validatesUseOfSkipCleanup(t *testing.T) {
+
+	cases := map[string]struct {
+		testDir    string
+		expectCode int
+		expectErr  bool
+	}{
+		"cannot set skip_cleanup=false alongside a backend block": {
+			testDir:    "backend-with-skip-cleanup/false",
+			expectCode: 1,
+			expectErr:  true,
+		},
+		"can set skip_cleanup=true alongside a backend block": {
+			testDir:    "backend-with-skip-cleanup/true",
+			expectCode: 0,
+			expectErr:  false,
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			// SETUP
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(path.Join("test", tc.testDir)), td)
+			defer testChdir(t, td)()
+
+			provider := testing_command.NewProvider(nil)
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"test": {"1.0.0"},
+			})
+			defer close()
+
+			streams, done := terminal.StreamsForTesting(t)
+			view := views.NewView(streams)
+			ui := new(cli.MockUi)
+
+			meta := Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				Ui:               ui,
+				View:             view,
+				Streams:          streams,
+				ProviderSource:   providerSource,
+			}
+
+			// INIT
+			init := &InitCommand{
+				Meta: meta,
+			}
+
+			code := init.Run([]string{"-no-color"})
+			output := done(t)
+
+			// ASSERTIONS
+			if code != tc.expectCode {
+				t.Errorf("expected status code %d but got %d", tc.expectCode, code)
+			}
+			stdErr := output.Stderr()
+			if len(stdErr) == 0 && tc.expectErr {
+				t.Fatal("expected error output but got none")
+			}
+			if len(stdErr) != 0 && !tc.expectErr {
+				t.Fatalf("did not expect error output but got: %s", stdErr)
 			}
 
 			if provider.ResourceCount() > 0 {
 				t.Fatalf("should have deleted all resources on completion but left %v", provider.ResourceString())
 			}
+
 		})
 	}
+}
 
+func TestTest_UseOfBackends_failureDuringApply(t *testing.T) {
+	// SETUP
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "valid-use-local-backend/no-prior-state")), td)
+	defer testChdir(t, td)()
+	localStatePath := filepath.Join(td, DefaultStateFilename)
+
+	provider := testing_command.NewProvider(nil)
+	// Force a failure during apply
+	provider.Provider.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		resp := providers.ApplyResourceChangeResponse{}
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("forced error"))
+		return resp
+	}
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	// INIT
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	output := done(t)
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// TEST
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output = done(t)
+
+	// ASSERTIONS
+	if code != 1 {
+		t.Errorf("expected status code 1 but got %d", code)
+	}
+	stdErr := output.Stderr()
+	if len(stdErr) == 0 {
+		t.Fatal("expected error output but got none")
+	}
+
+	// Resource was not provisioned
+	if provider.ResourceCount() > 0 {
+		t.Fatalf("no resources should have been provisioned successfully but got %v", provider.ResourceString())
+	}
+
+	// When there is a failure to apply changes to the test_resource, the resulting state saved via the backend
+	// only includes the output and lacks any information about the test_resource
+	actualBackendState := testStateRead(t, localStatePath)
+	expectedBackendState := `<no state>
+Outputs:
+
+supplied_input_value = value-from-run-that-controls-backend
+test_resource_id = 12345`
+	if diff := cmp.Diff(actualBackendState.String(), expectedBackendState); len(diff) > 0 {
+		t.Fatalf("state didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedBackendState, actualBackendState, diff)
+	}
+
+	// No state artifacts are made
+	manifestPath := path.Join(td, ".terraform/test", "manifest.json")
+	manifestFile, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatalf("failed to read manifest.json: %s", err)
+	}
+
+	var manifest graph.TestManifest
+	if err := json.Unmarshal(manifestFile, &manifest); err != nil {
+		t.Fatalf("failed to unmarshal manifest.json: %s", err)
+	}
+
+	expectedStates := map[string][]string{} // empty
+	actualStates := make(map[string][]string)
+
+	// No state artifacts are made: Verify the states in the manifest
+	for fileName, file := range manifest.Files {
+		for name, state := range file.States {
+			sm := statemgr.NewFilesystem(filepath.Join(td, state.Path))
+			if err := sm.RefreshState(); err != nil {
+				t.Fatalf("error when reading state file: %s", err)
+			}
+			state := sm.State()
+
+			// If the state is nil, then the test cleaned up the state
+			if state == nil {
+				continue
+			}
+
+			var resources []string
+			for _, module := range state.Modules {
+				for _, resource := range module.Resources {
+					resources = append(resources, resource.Addr.String())
+				}
+			}
+			sort.Strings(resources)
+			actualStates[strings.TrimSuffix(fileName, ".tftest.hcl")+"."+name] = resources
+		}
+	}
+	if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
+		t.Fatalf("unexpected states: %s", diff)
+	}
 }
 
 func TestTest_RunBlocksInProviders(t *testing.T) {

@@ -750,10 +750,12 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 				})
 				continue
 			}
-			r.Backend = backend
 
-			// More backend validation is done later, once all blocks/attrs processed.
+			r.Backend = backend
 			backendRange = &block.DefRange
+			// Using a backend implies skipping cleanup for that run
+			r.SkipCleanup = true
+			r.SkipCleanupSet = true
 		}
 	}
 
@@ -839,6 +841,16 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile) (*TestRun, hcl.Diagnos
 		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.SkipCleanup)
 		diags = append(diags, rawDiags...)
 		r.SkipCleanupSet = true
+	}
+
+	if r.SkipCleanupSet && !r.SkipCleanup && r.Backend != nil {
+		// Stop user attempting to clean up long-lived resources
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Cannot use `skip_cleanup=false` in a run block that contains a backend block",
+			Detail:   "Backend blocks are used in tests to allow reuse of long-lived resources. Due to this, cleanup behavior is implicitly skipped and backend blocks are incompatible with setting `skip_cleanup=false`",
+			Subject:  backendRange.Ptr(),
+		})
 	}
 
 	return &r, diags
