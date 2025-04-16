@@ -108,7 +108,17 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	evalCtx.Renderer().DestroySummary(destroyDiags, state.Run, file, updated)
 	state.State = updated
 
+	if state.Run.Config.Backend != nil && !destroyDiags.HasErrors() {
+		// We don't create a state artefact when the node state's corresponding run block has a backend,
+		// UNLESS an error occurs when returning the state to match that run block's config during cleanup.
+		return nil
+	}
+
 	evalCtx.WriteFileState(n.stateKey, state)
+
+	// We don't return destroyDiags here because the calling code sets the return code for the test operation
+	// based on whether the tests passed or not; cleanup is not a factor.
+	// Users will be aware of issues with cleanup due to destroyDiags being rendered to the View.
 	return nil
 }
 
@@ -133,7 +143,7 @@ func (n *NodeStateCleanup) cleanup(ctx *EvalContext, runNode *NodeTestRun, waite
 	// operation. We can just apply the override to the state file and return.
 	if n.applyOverride != nil {
 		runNode.testApply(ctx, variables, waiter)
-		return ctx.GetFileState(n.stateKey).State, nil
+		return ctx.GetFileState(n.stateKey).State, runNode.run.Diagnostics
 	}
 
 	// During the destroy operation, we don't add warnings from this operation.
