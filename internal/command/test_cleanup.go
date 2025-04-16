@@ -10,7 +10,6 @@ import (
 
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/backend/local"
-	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -36,9 +35,6 @@ Options:
 
   -repair               Overrides the skip_cleanup attribute in the manifest
                         file and attempts to clean up all resources.
-
-  -target=statefile     Specifies the state file(s) to clean up. Use this option
-                        multiple times to target multiple state files.
 
   -no-color             If specified, output won't contain any color.
 
@@ -96,12 +92,6 @@ func (c *TestCleanupCommand) Run(rawArgs []string) int {
 		Verbose:             args.Verbose,
 		Repair:              args.Repair,
 		CommandMode:         moduletest.CleanupMode,
-	}
-
-	// JUnit output is only compatible with local test execution
-	if args.JUnitXMLFile != "" {
-		// Make sure TestCommand's calls loadConfigWithTests before this code, so configLoader is not nil
-		runner.JUnit = junit.NewTestJUnitXMLFile(args.JUnitXMLFile, c.configLoader, runner)
 	}
 
 	var testDiags tfdiags.Diagnostics

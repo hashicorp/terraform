@@ -281,6 +281,13 @@ func (c *Meta) setupTestExecution(mode moduletest.CommandMode, rawArgs []string)
 		c.View.HelpPrompt(prompt)
 		return TestRunnerSetup{}, diags
 	}
+	if args.Repair && mode != moduletest.CleanupMode {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid command mode",
+			"The -repair flag is only valid for the 'test cleanup' command."))
+		return TestRunnerSetup{Args: args}, diags
+	}
 	c.parallelism = args.OperationParallelism
 
 	view := views.NewTest(args.ViewType, c.View)

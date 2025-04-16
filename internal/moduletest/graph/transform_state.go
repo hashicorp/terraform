@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
 	"github.com/hashicorp/terraform/internal/states"
@@ -125,18 +124,8 @@ func (t *TestStateTransformer) Transform(g *terraform.Graph) error {
 		}
 	}
 
-	// Add a helper node to the graph. This node is responsible for
-	// injecting the initialized file states into the evaluation context
-	// before any test runs are executed.
-	configSetterNode := t.addRootConfigNode(g, statesMap)
-
-	// Iterate through all the test run nodes in the graph and connect them to
-	// the root configuration node. This ensures that the root configuration node
-	// is executed first, setting up the context for the test runs.
-	for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
-		g.Connect(dag.BasicEdge(node, configSetterNode))
-	}
-
+	// Add the states to the evaluation context
+	t.EvalContext.FileStates = statesMap
 	return nil
 }
 
@@ -170,18 +159,6 @@ func getBackendInstance(stateKey string, config *configs.Backend, f backend.Init
 	}
 
 	return b, nil
-}
-
-func (t *TestStateTransformer) addRootConfigNode(g *terraform.Graph, statesMap map[string]*TestFileState) *dynamicNode {
-	rootConfigNode := &dynamicNode{
-		eval: func(ctx *EvalContext) tfdiags.Diagnostics {
-			var diags tfdiags.Diagnostics
-			ctx.FileStates = statesMap
-			return diags
-		},
-	}
-	g.Add(rootConfigNode)
-	return rootConfigNode
 }
 
 // TransformConfigForRun transforms the run's module configuration to include

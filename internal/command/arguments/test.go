@@ -45,7 +45,6 @@ type Test struct {
 	Verbose bool
 
 	// These flags are only relevant to the "test cleanup" command.
-	//
 	Repair bool
 }
 

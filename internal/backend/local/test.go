@@ -49,8 +49,9 @@ type TestSuiteRunner struct {
 
 	Opts *terraform.ContextOpts
 
-	View  views.Test
-	JUnit junit.JUnit
+	View     views.Test
+	JUnit    junit.JUnit
+	Manifest *graph.TestManifest
 
 	// Stopped and Cancelled track whether the user requested the testing
 	// process to be interrupted. Stopped is a nice graceful exit, we'll still
@@ -151,6 +152,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		runner.View.Conclusion(suite)
 		return moduletest.Error, diags
 	}
+	runner.Manifest = manifest
 
 	suite.Status = moduletest.Pass
 	for _, name := range slices.Sorted(maps.Keys(suite.Files)) {
@@ -187,11 +189,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			maps.Copy(vc.GlobalVariables, currentGlobalVariables)
 			vc.FileVariables = file.Config.Variables
 		})
-		fileRunner := &TestFileRunner{
-			Suite:       runner,
-			EvalContext: evalCtx,
-			Manifest:    manifest,
-		}
+		fileRunner := &TestFileRunner{Suite: runner, EvalContext: evalCtx}
 
 		runner.View.File(file, moduletest.Starting)
 		fileRunner.Test(file)
@@ -285,7 +283,6 @@ type TestFileRunner struct {
 	// during the execution of a file.
 	Suite       *TestSuiteRunner
 	EvalContext *graph.EvalContext
-	Manifest    *graph.TestManifest
 }
 
 func (runner *TestFileRunner) Test(file *moduletest.File) {
@@ -311,10 +308,10 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		GlobalVars:     runner.EvalContext.VariableCaches.GlobalVariables,
 		ContextOpts:    runner.Suite.Opts,
 		BackendFactory: runner.Suite.BackendFactory,
-		StateManifest:  runner.Manifest,
+		StateManifest:  runner.Suite.Manifest,
 		CommandMode:    runner.Suite.CommandMode,
 	}
-	g, diags := b.Build()
+	g, diags := b.Build(runner.EvalContext)
 	file.Diagnostics = file.Diagnostics.Append(diags)
 	if walkCancelled := runner.renderPreWalkDiags(file); walkCancelled {
 		return
@@ -324,7 +321,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	diags = runner.walkGraph(g)
 
 	// Update the manifest file with the reason why each state file was created.
-	err := runner.Manifest.WriteManifest()
+	err := runner.Suite.Manifest.WriteManifest()
 
 	// If the graph walk was terminated, we don't want to add the diagnostics.
 	// The error the user receives will just be:

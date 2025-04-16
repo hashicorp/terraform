@@ -33,26 +33,28 @@ type graphOptions struct {
 	ContextOpts   *terraform.ContextOpts
 	StateManifest *TestManifest
 	CommandMode   moduletest.CommandMode
+	EvalContext   *EvalContext
 }
 
 // See GraphBuilder
-func (b *TestGraphBuilder) Build() (*terraform.Graph, tfdiags.Diagnostics) {
+func (b *TestGraphBuilder) Build(ctx *EvalContext) (*terraform.Graph, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] building graph for terraform test")
-	return (&terraform.BasicGraphBuilder{
-		Steps: b.Steps(),
-		Name:  "TestGraphBuilder",
-	}).Build(addrs.RootModuleInstance)
-}
-
-// See GraphBuilder
-func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 	opts := &graphOptions{
 		File:          b.File,
 		GlobalVars:    b.GlobalVars,
 		ContextOpts:   b.ContextOpts,
 		StateManifest: b.StateManifest,
 		CommandMode:   b.CommandMode,
+		EvalContext:   ctx,
 	}
+	return (&terraform.BasicGraphBuilder{
+		Steps: b.Steps(opts),
+		Name:  "TestGraphBuilder",
+	}).Build(addrs.RootModuleInstance)
+}
+
+// See GraphBuilder
+func (b *TestGraphBuilder) Steps(opts *graphOptions) []terraform.GraphTransformer {
 	steps := []terraform.GraphTransformer{
 		&TestRunTransformer{opts},
 		&TestStateTransformer{graphOptions: opts, BackendFactory: b.BackendFactory},
