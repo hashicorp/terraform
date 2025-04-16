@@ -144,7 +144,7 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 			}
 
 			result := instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ComponentInstance {
-				return newComponentInstance(c, stackaddrs.AbsComponentToInstance(c.addr, ik), rd, c.stack.deferred)
+				return newComponentInstance(c, stackaddrs.AbsComponentToInstance(c.addr, ik), rd, c.stack.mode, c.stack.deferred)
 			})
 
 			addrs := make([]stackaddrs.AbsComponentInstance, 0, len(result.insts))
@@ -166,7 +166,7 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 
 func (c *Component) UnknownInstance(ctx context.Context, phase EvalPhase) *ComponentInstance {
 	inst, err := c.unknownInstance.For(phase).Do(ctx, c.tracingName()+" unknown instance", func(ctx context.Context) (*ComponentInstance, error) {
-		return newComponentInstance(c, stackaddrs.AbsComponentToInstance(c.addr, addrs.WildcardKey), instances.UnknownForEachRepetitionData(c.ForEachValue(ctx, phase).Type()), true), nil
+		return newComponentInstance(c, stackaddrs.AbsComponentToInstance(c.addr, addrs.WildcardKey), instances.UnknownForEachRepetitionData(c.ForEachValue(ctx, phase).Type()), c.stack.mode, true), nil
 	})
 	if err != nil {
 		// Since we never return an error from the function we pass to Do,

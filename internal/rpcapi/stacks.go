@@ -239,10 +239,10 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 	}
 
 	// Currently Components are the only thing that can be removed
-	for name, rc := range cfgNode.Stack.Removed.All() {
+	for name, rc := range cfgNode.Stack.RemovedComponents.All() {
 		var blocks []*stacks.FindStackConfigurationComponents_Removed_Block
 		for _, rc := range rc {
-			relativeAddress := rc.From.ConfigComponent()
+			relativeAddress := rc.From.TargetConfigComponent()
 			cProto := &stacks.FindStackConfigurationComponents_Removed_Block{
 				SourceAddr:    rc.FinalSourceAddr.String(),
 				ComponentAddr: stackaddrs.Config(append(stackAddr, relativeAddress.Stack...), relativeAddress.Item).String(),
@@ -256,7 +256,7 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 			}
 			blocks = append(blocks, cProto)
 		}
-		relativeAddress := rc[0].From.ConfigComponent()
+		relativeAddress := rc[0].From.TargetConfigComponent()
 		ret.Removed[name.String()] = &stacks.FindStackConfigurationComponents_Removed{
 			// in order to ensure as much backwards and forwards compatibility
 			// as possible, we're going to set the deprecated single fields

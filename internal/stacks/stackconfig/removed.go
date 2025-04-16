@@ -72,7 +72,15 @@ type Removed struct {
 	// translate the caller's local names into the callee's declared provider
 	// configurations by using the stack configuration's table of local
 	// provider names.
+	//
+	// This will only be populated if From points to a component.
 	ProviderConfigs map[addrs.LocalProviderConfig]hcl.Expression
+
+	// Inputs describes the inputs that will be used to destroy all components
+	// within the target stack.
+	//
+	// This will only be populated if From points to a stack.
+	Inputs hcl.Expression
 
 	// Destroy controls whether this removed block will actually destroy all
 	// instances of resources within this component, or just removed them from
@@ -148,9 +156,31 @@ func decodeRemovedBlock(block *hcl.Block) (*Removed, tfdiags.Diagnostics) {
 		ret.ForEach = attr.Expr
 	}
 	if attr, ok := content.Attributes["providers"]; ok {
+		if ret.From.Component == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid providers attribute",
+				Detail:   "A removed block that does not target a component should not specify any providers.",
+				Subject:  attr.NameRange.Ptr(),
+			})
+		}
+
 		var providerDiags tfdiags.Diagnostics
 		ret.ProviderConfigs, providerDiags = decodeProvidersAttribute(attr)
 		diags = diags.Append(providerDiags)
+	}
+
+	if attr, ok := content.Attributes["inputs"]; ok {
+		if ret.From.Component != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid inputs attribute",
+				Detail:   "A removed block that does not target an embedded stack should not specify any inputs.",
+				Subject:  attr.NameRange.Ptr(),
+			})
+		}
+
+		ret.Inputs = attr.Expr
 	}
 
 	ret.Destroy = true // default to true
@@ -180,6 +210,7 @@ var removedBlockSchema = &hcl.BodySchema{
 		{Name: "version", Required: false},
 		{Name: "for_each", Required: false},
 		{Name: "providers", Required: false},
+		{Name: "inputs", Required: false},
 	},
 }
 
