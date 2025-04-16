@@ -1,4 +1,4 @@
-## 1.12.0 (Unreleased)
+## 1.12.0-beta2 (April 16, 2025)
 
 
 ENHANCEMENTS:
@@ -14,6 +14,8 @@ ENHANCEMENTS:
 * Terraform Test: Continue subsequent test execution when an expected failure is not encountered. ([#34969](https://github.com/hashicorp/terraform/issues/34969))
 
 * Produce detailed diagnostic objects when test run assertions fail ([#34428](https://github.com/hashicorp/terraform/issues/34428))
+
+* backend/oss: Supports more standard environment variables to keep same with provider setting ([#36581](https://github.com/hashicorp/terraform/issues/36581))
 
 * Improved elapsed time display in UI Hook to show minutes and seconds in `mm:ss` format. ([#36368](https://github.com/hashicorp/terraform/issues/36368))
 
@@ -37,13 +39,6 @@ UPGRADE NOTES:
 
 * On Linux, Terraform now requires Linux kernel version 3.2 or later; support for previous versions has been discontinued. ([#36478](https://github.com/hashicorp/terraform/issues/36478))
 
-
-EXPERIMENTS:
-
-Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
-
-- The new command `terraform rpcapi` exposes some Terraform Core functionality through an RPC interface compatible with [`go-plugin`](https://github.com/hashicorp/go-plugin). The exact RPC API exposed here is currently subject to change at any time, because it's here primarily as a vehicle to support the [Terraform Stacks](https://www.hashicorp.com/blog/terraform-stacks-explained) private preview and so will be broken if necessary to respond to feedback from private preview participants, or possibly for other reasons. Do not use this mechanism yet outside of Terraform Stacks private preview.
-- The experimental "deferred actions" feature, enabled by passing the `-allow-deferral` option to `terraform plan`, permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values and allows providers to react more flexibly to unknown values. This experiment is under active development, and so it's not yet useful to participate in this experiment
 
 ## Previous Releases
 
