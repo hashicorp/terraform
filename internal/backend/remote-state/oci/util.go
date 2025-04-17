@@ -5,14 +5,15 @@ package oci
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/internal/backend/backendbase"
-	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 	"os"
 	"path"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/terraform/internal/backend/backendbase"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func getEnvSettingWithBlankDefault(s string) string {

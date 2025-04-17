@@ -3,13 +3,14 @@ package oci
 import (
 	"context"
 	"fmt"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
-	"os"
-	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/oracle/oci-go-sdk/v65/common"

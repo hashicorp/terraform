@@ -4,10 +4,11 @@
 package oci
 
 import (
-	"github.com/oracle/oci-go-sdk/v65/common"
 	"net"
 	"strings"
 	"time"
+
+	"github.com/oracle/oci-go-sdk/v65/common"
 )
 
 var (

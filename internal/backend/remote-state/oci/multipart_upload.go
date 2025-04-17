@@ -9,10 +9,11 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"fmt"
-	"github.com/hashicorp/go-hclog"
-	"github.com/oracle/oci-go-sdk/v65/objectstorage"
 	"io"
 	"sync"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/oracle/oci-go-sdk/v65/objectstorage"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
 )

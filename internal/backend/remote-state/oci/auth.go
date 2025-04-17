@@ -8,11 +8,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/hashicorp/terraform/version"
-	"github.com/oracle/oci-go-sdk/v65/common"
-	"github.com/oracle/oci-go-sdk/v65/common/auth"
-	"github.com/oracle/oci-go-sdk/v65/objectstorage"
-	"github.com/zclconf/go-cty/cty"
 	"net"
 	"net/http"
 	"os"
@@ -22,6 +17,12 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/hashicorp/terraform/version"
+	"github.com/oracle/oci-go-sdk/v65/common"
+	"github.com/oracle/oci-go-sdk/v65/common/auth"
+	"github.com/oracle/oci-go-sdk/v65/objectstorage"
+	"github.com/zclconf/go-cty/cty"
 )
 
 var ApiKeyConfigAttributes = [5]string{UserOcidAttrName, FingerprintAttrName, PrivateKeyAttrName, PrivateKeyPathAttrName, PrivateKeyPasswordAttrName}
