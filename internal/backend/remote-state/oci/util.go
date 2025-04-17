@@ -35,7 +35,7 @@ func getDurationFromEnvVar(varName string, defaultValue time.Duration) time.Dura
 	valueStr := getEnvSettingWithDefault(varName, fmt.Sprint(defaultValue))
 	duration, err := time.ParseDuration(valueStr)
 	if err != nil {
-		logger.Error("ERROR while parsing env variable %s value: %v", varName, err)
+		loggerFunc().Error("ERROR while parsing env variable %s value: %v", varName, err)
 		return defaultValue
 	}
 	return duration
@@ -137,6 +137,23 @@ func requiredAttributeErrDiag(path cty.Path) tfdiags.Diagnostic {
 		"Missing Required Value",
 		fmt.Sprintf("The attribute %q is required by the backend.\n\n", path)+
 			"Refer to the backend documentation for additional information which attributes are required.",
+		path,
+	)
+}
+func attributeErrDiag(summary, detail string, path cty.Path) tfdiags.Diagnostic {
+	return tfdiags.AttributeValue(
+		tfdiags.Error,
+		summary,
+		detail,
+		path,
+	)
+}
+
+func attributeWarningDiag(summary, detail string, path cty.Path) tfdiags.Diagnostic {
+	return tfdiags.AttributeValue(
+		tfdiags.Warning,
+		summary,
+		detail,
 		path,
 	)
 }

@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -32,10 +33,9 @@ type RemoteClient struct {
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, error) {
-	ctx := context.TODO()
-
+	logger := logWithOperation("download-state-file").Named(c.path)
 	logger.Info("Downloading remote state")
-
+	ctx := context.WithValue(context.Background(), "logger", logger)
 	payload, err := c.getObject(ctx)
 	if err != nil || len(payload.Data) == 0 {
 		return nil, err
@@ -47,6 +47,7 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 }
 
 func (c *RemoteClient) getObject(ctx context.Context) (*remote.Payload, error) {
+	logger := ctx.Value("logger").(hclog.Logger)
 	headRequest := objectstorage.HeadObjectRequest{
 		NamespaceName: common.String(c.namespace),
 		ObjectName:    common.String(c.path),
@@ -124,6 +125,8 @@ func (c *RemoteClient) getObject(ctx context.Context) (*remote.Payload, error) {
 }
 
 func (c *RemoteClient) Put(data []byte) error {
+	logger := logWithOperation("upload-state-file").Named(c.path)
+	ctx := context.WithValue(context.Background(), "logger", logger)
 	dataSize := int64(len(data))
 	sum := md5.Sum(data)
 	var err error
@@ -136,13 +139,13 @@ func (c *RemoteClient) Put(data []byte) error {
 				RetryPolicy: getDefaultRetryPolicy(),
 			},
 		}
-		err = multipartUploadData.multiPartUploadImpl()
+		err = multipartUploadData.multiPartUploadImpl(ctx)
 		if err != nil && dataSize <= MaxFilePartSize {
 			logger.Error(fmt.Sprintf("Multipart upload failed, falling back to single part upload: %v", err))
-			err = c.uploadSinglePartObject(data, sum[:])
+			err = c.uploadSinglePartObject(ctx, data, sum[:])
 		}
 	} else {
-		err = c.uploadSinglePartObject(data, sum[:])
+		err = c.uploadSinglePartObject(ctx, data, sum[:])
 	}
 	if err != nil {
 		return err
@@ -151,12 +154,13 @@ func (c *RemoteClient) Put(data []byte) error {
 	return nil
 }
 
-func (c *RemoteClient) uploadSinglePartObject(data, sum []byte) error {
+func (c *RemoteClient) uploadSinglePartObject(ctx context.Context, data, sum []byte) error {
+	logger := ctx.Value("logger").(hclog.Logger).Named("singlePartUpload")
+	logger.Info("Uploading single part object")
 	if len(data) == 0 {
 		return fmt.Errorf("uploadSinglePartObject: data is empty")
 	}
 
-	ctx := context.Background()
 	contentType := "application/json"
 
 	putRequest := objectstorage.PutObjectRequest{
@@ -250,6 +254,8 @@ func (c *RemoteClient) DeleteAllObjectVersions() error {
 }
 
 func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
+	logger := logWithOperation("lock-state-file").Named(c.lockFilePath)
+	logger.Info("Locking remote state")
 	ctx := context.TODO()
 	info.Path = c.path
 	infoBytes, err := json.Marshal(info)
@@ -270,7 +276,7 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 
 	putResponse, putErr := c.objectStorageClient.PutObject(ctx, putObjReq)
 	if putErr != nil {
-		lockInfo, err := c.getLockInfo(ctx)
+		lockInfo, _, err := c.getLockInfo(ctx)
 		if err != nil {
 			putErr = errors.Join(putErr, err)
 		}
@@ -279,13 +285,13 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 			Info: lockInfo,
 		}
 	}
-	logger.Debug("state lock response code: %+d\n", putResponse.String())
+	logger.Info("state lock response code: %+d\n", putResponse.RawResponse.StatusCode)
 	return info.ID, nil
 
 }
 
-// getLockInfoWithFile retrieves and parses a lock file from an S3 bucket.
-func (c *RemoteClient) getLockInfo(ctx context.Context) (*statemgr.LockInfo, error) {
+// getLockInfo retrieves and parses a lock file from an oci bucket.
+func (c *RemoteClient) getLockInfo(ctx context.Context) (*statemgr.LockInfo, string, error) {
 	// Attempt to retrieve the lock file from
 	getRequest := objectstorage.GetObjectRequest{
 		NamespaceName: common.String(c.namespace),
@@ -298,40 +304,26 @@ func (c *RemoteClient) getLockInfo(ctx context.Context) (*statemgr.LockInfo, err
 
 	getResponse, err := c.objectStorageClient.GetObject(ctx, getRequest)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get existing lock file: %w", err)
+		return nil, "", fmt.Errorf("failed to get existing lock file: %w", err)
 	}
 	lockByteData, err := io.ReadAll(getResponse.Content)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read existing lock file content: %w", err)
+		return nil, *getResponse.ETag, fmt.Errorf("failed to read existing lock file content: %w", err)
 	}
 	lockInfo := &statemgr.LockInfo{}
 	if err := json.Unmarshal(lockByteData, lockInfo); err != nil {
-		return lockInfo, fmt.Errorf("failed to unmarshal JSON data into LockInfo struct: %w", err)
+		return lockInfo, "", fmt.Errorf("failed to unmarshal JSON data into LockInfo struct: %w", err)
 	}
-	return lockInfo, nil
+	return lockInfo, *getResponse.ETag, nil
 }
 func (c *RemoteClient) Unlock(id string) error {
 	ctx := context.TODO()
-	getRequest := objectstorage.GetObjectRequest{
-		NamespaceName: common.String(c.namespace),
-		ObjectName:    common.String(c.lockFilePath),
-		BucketName:    common.String(c.bucketName),
-		RequestMetadata: common.RequestMetadata{
-			RetryPolicy: getDefaultRetryPolicy(),
-		},
-	}
+	logger := logWithOperation("unlock-state-file").Named(c.lockFilePath)
+	logger.Info("unlocking remote state")
+	lockInfo, etag, err := c.getLockInfo(ctx)
 
-	getResponse, err := c.objectStorageClient.GetObject(ctx, getRequest)
 	if err != nil {
-		return err
-	}
-	lockByteData, err := io.ReadAll(getResponse.Content)
-	if err != nil {
-		return err
-	}
-	lockInfo := &statemgr.LockInfo{}
-	if err := json.Unmarshal(lockByteData, lockInfo); err != nil {
-		return fmt.Errorf("failed to unmarshal JSON data into LockInfo struct: %w", err)
+		return fmt.Errorf("Failed to retrieve lock information from OCI Object Storage: %w", err)
 	}
 	// Verify that the provided lock ID matches the lock ID of the retrieved lock file.
 	if lockInfo.ID != id {
@@ -345,7 +337,7 @@ func (c *RemoteClient) Unlock(id string) error {
 		NamespaceName: common.String(c.namespace),
 		ObjectName:    common.String(c.lockFilePath),
 		BucketName:    common.String(c.bucketName),
-		IfMatch:       getResponse.ETag,
+		IfMatch:       common.String(etag),
 		RequestMetadata: common.RequestMetadata{
 			RetryPolicy: getDefaultRetryPolicy(),
 		},
@@ -357,6 +349,6 @@ func (c *RemoteClient) Unlock(id string) error {
 			Err:  err,
 		}
 	}
-	logger.Debug("Unlock response: %v\n", deleteResponse.String())
+	logger.Info("Unlock response: %v\n", deleteResponse.RawResponse.StatusCode)
 	return nil
 }

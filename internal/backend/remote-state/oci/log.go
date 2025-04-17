@@ -5,20 +5,26 @@ package oci
 
 import (
 	hclog "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/oracle/oci-go-sdk/v65/common"
+	"sync"
 )
 
 var (
-	logger = NewBackendLogger(logging.NewLogger("tf-backend-oci"))
+	loggerFunc = sync.OnceValue(func() hclog.Logger {
+		l := logging.HCLogger()
+		return l.Named("backend-oracle_oci")
+	})
 )
 
 type backendLogger struct {
 	hclog.Logger
 }
 
-func init() {
-	common.SetSDKLogger(logger)
+func setSDKLogger() {
+	sdklogger := NewBackendLogger(loggerFunc().With("component", "oci-go-sdk"))
+	common.SetSDKLogger(sdklogger)
 }
 func NewBackendLogger(l hclog.Logger) backendLogger {
 	return backendLogger{l}
@@ -31,4 +37,16 @@ func (l backendLogger) LogLevel() int {
 func (l backendLogger) Log(logLevel int, format string, v ...interface{}) error {
 	l.Logger.Log(hclog.Level(logLevel), format, v...)
 	return nil
+}
+func logWithOperation(operation string) hclog.Logger {
+	log := loggerFunc().With(
+		"operation", operation,
+	)
+	if id, err := uuid.GenerateUUID(); err == nil {
+		log = log.With(
+			"req_id", id,
+		)
+
+	}
+	return log
 }
