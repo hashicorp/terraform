@@ -4,11 +4,12 @@
 package oci
 
 import (
+	"sync"
+
 	hclog "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/oracle/oci-go-sdk/v65/common"
-	"sync"
 )
 
 var (
