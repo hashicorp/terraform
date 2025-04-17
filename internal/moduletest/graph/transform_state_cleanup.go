@@ -32,7 +32,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 		// Create a cleanup node for each state key
 		key := node.run.Config.StateKey
 		if _, exists := cleanupMap[key]; !exists {
-			cleanupMap[key] = &NodeStateCleanup{stateKey: key, opts: t.opts}
+			cleanupMap[key] = &NodeStateCleanup{stateKey: key, opts: t.opts, repair: t.opts.EvalContext.repair}
 			g.Add(cleanupMap[key])
 		}
 
