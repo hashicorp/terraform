@@ -45,6 +45,21 @@ func marshalAttributeValues(value cty.Value, schema *configschema.Block) attribu
 	return ret
 }
 
+func marshalIdentityValues(value cty.Value) attributeValues {
+	if value == cty.NilVal || value.IsNull() {
+		return nil
+	}
+	ret := make(attributeValues)
+
+	it := value.ElementIterator()
+	for it.Next() {
+		k, v := it.Element()
+		vJSON, _ := ctyjson.Marshal(v, v.Type())
+		ret[k.AsString()] = json.RawMessage(vJSON)
+	}
+	return ret
+}
+
 // marshalPlannedOutputs takes a list of changes and returns a map of output
 // values
 func marshalPlannedOutputs(changes *plans.ChangesSrc) (map[string]output, error) {
@@ -233,6 +248,11 @@ func marshalPlanResources(changes *plans.ChangesSrc, ris []addrs.AbsResourceInst
 			return nil, err
 		}
 		resource.SensitiveValues = v
+
+		if schema.Identity != nil {
+			resource.IdentitySchemaVersion = uint64(schema.IdentityVersion)
+			resource.IdentityValues = marshalIdentityValues(changeV.AfterIdentity)
+		}
 
 		ret = append(ret, resource)
 	}

@@ -2146,6 +2146,19 @@ func TestContext2Plan_importIdentityModuleWithOptional(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-identity-module")
 
+	identitySchema := &configschema.Object{
+		Attributes: map[string]*configschema.Attribute{
+			"name": {
+				Type:     cty.String,
+				Required: true,
+			},
+			"something": {
+				Type:     cty.Number,
+				Optional: true,
+			},
+		},
+		Nesting: configschema.NestingSingle,
+	}
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_lb": {
@@ -2158,19 +2171,7 @@ func TestContext2Plan_importIdentityModuleWithOptional(t *testing.T) {
 			},
 		},
 		IdentityTypes: map[string]*configschema.Object{
-			"aws_lb": {
-				Attributes: map[string]*configschema.Attribute{
-					"name": {
-						Type:     cty.String,
-						Required: true,
-					},
-					"something": {
-						Type:     cty.Number,
-						Optional: true,
-					},
-				},
-				Nesting: configschema.NestingSingle,
-			},
+			"aws_lb": identitySchema,
 		},
 	})
 	wantIdentity := cty.ObjectVal(map[string]cty.Value{
@@ -2210,10 +2211,14 @@ func TestContext2Plan_importIdentityModuleWithOptional(t *testing.T) {
 		t.Fatalf("no plan for %s at all", addr)
 	}
 
-	identityMatches := instPlan.Importing.Identity.Equals(wantIdentity)
+	identity, err := instPlan.Importing.Identity.Decode(identitySchema.ImpliedType())
+	if err != nil {
+		t.Fatalf("failed to decode identity: %s", err)
+	}
+	identityMatches := identity.Equals(wantIdentity)
 	if !identityMatches.True() {
 		t.Errorf("identity does not match\ngot:  %s\nwant: %s",
-			tfdiags.ObjectToString(instPlan.Importing.Identity),
+			tfdiags.ObjectToString(identity),
 			tfdiags.ObjectToString(wantIdentity))
 	}
 }

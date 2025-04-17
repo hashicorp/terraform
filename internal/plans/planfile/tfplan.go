@@ -421,9 +421,18 @@ func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 	}
 
 	if rawChange.Importing != nil {
+		var identity plans.DynamicValue
+		if rawChange.Importing.Identity != nil {
+			var err error
+			identity, err = valueFromTfplan(rawChange.Importing.Identity)
+			if err != nil {
+				return nil, fmt.Errorf("invalid \"identity\" value: %s", err)
+			}
+		}
 		ret.Importing = &plans.ImportingSrc{
-			ID:      rawChange.Importing.Id,
-			Unknown: rawChange.Importing.Unknown,
+			ID:       rawChange.Importing.Id,
+			Unknown:  rawChange.Importing.Unknown,
+			Identity: identity,
 		}
 	}
 	ret.GeneratedConfig = rawChange.GeneratedConfig
@@ -441,6 +450,21 @@ func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 	}
 	if len(afterValSensitiveAttrs) > 0 {
 		ret.AfterSensitivePaths = afterValSensitiveAttrs
+	}
+
+	if rawChange.BeforeIdentity != nil {
+		beforeIdentity, err := valueFromTfplan(rawChange.BeforeIdentity)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode before identity: %s", err)
+		}
+		ret.BeforeIdentity = beforeIdentity
+	}
+	if rawChange.AfterIdentity != nil {
+		afterIdentity, err := valueFromTfplan(rawChange.AfterIdentity)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode after identity: %s", err)
+		}
+		ret.AfterIdentity = afterIdentity
 	}
 
 	return ret, nil
@@ -809,13 +833,25 @@ func changeToTfplan(change *plans.ChangeSrc) (*planproto.Change, error) {
 	ret.AfterSensitivePaths = afterSensitivePaths
 
 	if change.Importing != nil {
+		var identity *planproto.DynamicValue
+		if change.Importing.Identity != nil {
+			identity = planproto.NewPlanDynamicValue(change.Importing.Identity)
+		}
 		ret.Importing = &planproto.Importing{
-			Id:      change.Importing.ID,
-			Unknown: change.Importing.Unknown,
+			Id:       change.Importing.ID,
+			Unknown:  change.Importing.Unknown,
+			Identity: identity,
 		}
 
 	}
 	ret.GeneratedConfig = change.GeneratedConfig
+
+	if change.BeforeIdentity != nil {
+		ret.BeforeIdentity = planproto.NewPlanDynamicValue(change.BeforeIdentity)
+	}
+	if change.AfterIdentity != nil {
+		ret.AfterIdentity = planproto.NewPlanDynamicValue(change.AfterIdentity)
+	}
 
 	ret.Action, err = ActionToProto(change.Action)
 	if err != nil {

@@ -156,6 +156,9 @@ type Change struct {
 	// might change in the future. However, not all Importing changes will
 	// contain generated config.
 	GeneratedConfig string `json:"generated_config,omitempty"`
+
+	BeforeIdentity json.RawMessage `json:"before_identity,omitempty"`
+	AfterIdentity  json.RawMessage `json:"after_identity,omitempty"`
 }
 
 // Importing is a nested object for the resource import metadata.
@@ -168,6 +171,8 @@ type Importing struct {
 	// would have led to the overall change being deferred, as such this should
 	// only be true when processing changes from the deferred changes list.
 	Unknown bool `json:"unknown,omitempty"`
+
+	Identity json.RawMessage `json:"identity,omitempty"`
 }
 
 type output struct {
@@ -503,6 +508,29 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 		} else {
 			importing = &Importing{ID: rc.Importing.ID}
 		}
+		// TODO identity
+	}
+
+	var beforeIdentity, afterIdentity []byte
+	if schema.Identity != nil && rc.BeforeIdentity != nil {
+		identity, err := rc.BeforeIdentity.Decode(schema.Identity.ImpliedType())
+		if err != nil {
+			return r, err
+		}
+		beforeIdentity, err = ctyjson.Marshal(identity, identity.Type())
+		if err != nil {
+			return r, err
+		}
+	}
+	if schema.Identity != nil && rc.AfterIdentity != nil {
+		identity, err := rc.AfterIdentity.Decode(schema.Identity.ImpliedType())
+		if err != nil {
+			return r, err
+		}
+		afterIdentity, err = ctyjson.Marshal(identity, identity.Type())
+		if err != nil {
+			return r, err
+		}
 	}
 
 	r.Change = Change{
@@ -515,6 +543,8 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 		ReplacePaths:    replacePaths,
 		Importing:       importing,
 		GeneratedConfig: rc.GeneratedConfig,
+		BeforeIdentity:  json.RawMessage(beforeIdentity),
+		AfterIdentity:   json.RawMessage(afterIdentity),
 	}
 
 	if rc.DeposedKey != states.NotDeposed {
