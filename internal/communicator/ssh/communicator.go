@@ -996,13 +996,6 @@ func (c *proxyCommandConn) Read(b []byte) (int, error) {
 
 // Write writes data to the connection (the command's stdin)
 func (c *proxyCommandConn) Write(b []byte) (int, error) {
-	c.mutex.Lock()
-	if c.closed {
-		c.mutex.Unlock()
-		return 0, io.ErrClosedPipe
-	}
-	c.mutex.Unlock()
-
 	return c.stdinPipe.Write(b)
 }
 
@@ -1022,6 +1015,7 @@ func (c *proxyCommandConn) Close() error {
 
 	// Cancel the context to signal the command to terminate
 	c.cancel()
+	c.cmd.Wait()
 
 	// If the command failed, log the stderr output
 	if c.stderr.Len() > 0 {
