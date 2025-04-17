@@ -342,11 +342,6 @@ func (c *Communicator) Disconnect() error {
 			log.Printf("[ERROR] Error closing connection: %s", err)
 			return err
 		}
-
-		// Ensure the proxy command is terminated if this is a proxy command connection
-		if proxyConn, ok := conn.(*proxyCommandConn); ok {
-			proxyConn.Close()
-		}
 	}
 
 	return nil
