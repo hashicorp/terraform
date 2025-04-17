@@ -111,6 +111,15 @@ func (t *TestHuman) Abstract(_ *moduletest.Suite) {
 func (t *TestHuman) Conclusion(suite *moduletest.Suite) {
 	t.view.streams.Println()
 
+	if suite.CommandMode == moduletest.CleanupMode {
+		if suite.Status == moduletest.Pass {
+			t.view.streams.Print(t.view.colorize.Color("[green]Success![reset]"))
+		} else {
+			t.view.streams.Print(t.view.colorize.Color("[red]Failure![reset]"))
+		}
+		return
+	}
+
 	counts := make(map[moduletest.Status]int)
 	for _, file := range suite.Files {
 		for _, run := range file.Runs {

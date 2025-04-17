@@ -49,6 +49,12 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		state.Run = n.applyOverride
 	}
 
+	// If the state was loaded as a result of an intentional skip, we
+	// don't need to clean it up when in repair mode.
+	if state.Reason == ReasonSkip && evalCtx.repair {
+		return nil
+	}
+
 	if evalCtx.Cancelled() {
 		// Don't try and clean anything up if the execution has been cancelled.
 		log.Printf("[DEBUG] TestStateManager: skipping state cleanup for %s due to cancellation", file.Name)
@@ -85,6 +91,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 
 		diags := tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name))}
 		file.UpdateStatus(moduletest.Error)
+		state.Reason = ReasonError
 		diags = diags.Append(evalCtx.WriteFileState(n.stateKey, state))
 		evalCtx.Renderer().DestroySummary(diags, nil, file, state.State)
 
@@ -93,6 +100,11 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	}
 	TransformConfigForRun(evalCtx, state.Run, file)
 
+	n.performCleanup(evalCtx, state)
+	return nil
+}
+
+func (n *NodeStateCleanup) performCleanup(evalCtx *EvalContext, state *TestFileState) tfdiags.Diagnostics {
 	runNode := &NodeTestRun{run: state.Run, opts: n.opts}
 	updated := state.State
 	startTime := time.Now().UTC()
@@ -105,9 +117,20 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		destroyDiags = destroyDiags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
 	}
 
-	evalCtx.Renderer().DestroySummary(destroyDiags, state.Run, file, updated)
+	evalCtx.Renderer().DestroySummary(destroyDiags, state.Run, n.opts.File, updated)
 	state.State = updated
 
+	// Update the file status and write the updated state back to the file.
+	status := moduletest.Pass
+	if n.applyOverride != nil { // skip_cleanup=true
+		status = runNode.run.Status
+		state.Reason = ReasonSkip
+	} else if !updated.Empty() {
+		// Then we ran a destroy operation, but failed to adequately clean up the state, so mark as errored.
+		status = moduletest.Error
+		state.Reason = ReasonError
+	}
+	n.opts.File.UpdateStatus(status)
 	if state.Run.Config.Backend != nil && !destroyDiags.HasErrors() {
 		// We don't create a state artefact when the node state's corresponding run block has a backend,
 		// UNLESS an error occurs when returning the state to match that run block's config during cleanup.
@@ -134,14 +157,14 @@ func (n *NodeStateCleanup) cleanup(ctx *EvalContext, runNode *NodeTestRun, waite
 	var diags tfdiags.Diagnostics
 	variables, variableDiags := runNode.GetVariables(ctx, false)
 	diags = diags.Append(variableDiags)
-
 	if diags.HasErrors() {
 		return state, diags
 	}
 
-	// If the run block has an override, we don't need to run the destroy
-	// operation. We can just apply the override to the state file and return.
-	if n.applyOverride != nil {
+	// If an apply override is provided and the test is not in cleanup mode,
+	// we can directly apply the override to the state file instead of performing
+	// a destroy operation.
+	if n.applyOverride != nil && n.opts.CommandMode != moduletest.CleanupMode {
 		runNode.testApply(ctx, variables, waiter)
 		return ctx.GetFileState(n.stateKey).State, runNode.run.Diagnostics
 	}
@@ -173,11 +196,5 @@ func (n *NodeStateCleanup) cleanup(ctx *EvalContext, runNode *NodeTestRun, waite
 
 	_, updated, applyDiags := runNode.apply(tfCtx, plan, moduletest.TearDown, variables, waiter)
 	diags = diags.Append(applyDiags)
-
-	if !updated.Empty() {
-		// Then we failed to adequately clean up the state, so mark as errored.
-		file.UpdateStatus(moduletest.Error)
-	}
-
 	return updated, diags
 }

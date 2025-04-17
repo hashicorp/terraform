@@ -21,7 +21,6 @@ type TestStateCleanupTransformer struct {
 
 func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	cleanupMap := make(map[string]*NodeStateCleanup)
-	runsMap := make(map[string]*NodeTestRun)
 
 	// Add a root cleanup node that runs before cleanup nodes for each state.
 	// Right now it just simply renders a teardown summary, so as to maintain
@@ -29,7 +28,6 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	rootCleanupNode := t.addRootCleanupNode(g)
 
 	for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
-		runsMap[node.run.Config.Name] = node // Add all runs to the map, so we can reference them by name later
 
 		// Create a cleanup node for each state key
 		key := node.run.Config.StateKey

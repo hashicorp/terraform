@@ -49,8 +49,9 @@ type TestSuiteRunner struct {
 
 	Opts *terraform.ContextOpts
 
-	View  views.Test
-	JUnit junit.JUnit
+	View     views.Test
+	JUnit    junit.JUnit
+	Manifest *graph.TestManifest
 
 	// Stopped and Cancelled track whether the user requested the testing
 	// process to be interrupted. Stopped is a nice graceful exit, we'll still
@@ -76,6 +77,14 @@ type TestSuiteRunner struct {
 
 	Concurrency int
 	semaphore   terraform.Semaphore
+
+	CommandMode moduletest.CommandMode
+
+	// Repair is used to indicate whether the test cleanup command should run in
+	// "repair" mode. In this mode, the cleanup command will only remove state
+	// files that are a result of failed destroy operations, leaving any
+	// state due to skip_cleanup in place.
+	Repair bool
 }
 
 func (runner *TestSuiteRunner) Stop() {
@@ -128,7 +137,9 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		if err != nil {
 			return manifest, diags.Append(tfdiags.Sourceless(tfdiags.Error, "Error checking state manifest", err.Error()))
 		}
-		if !empty {
+
+		// Unless we're in cleanup mode, we expect the manifest to be empty.
+		if !empty && runner.CommandMode != moduletest.CleanupMode {
 			return manifest, diags.Append(tfdiags.Sourceless(tfdiags.Error, "State manifest not empty", ``+
 				"The state manifest should be empty before running tests. This could be due to a previous test run not cleaning up after itself."+
 				"Please ensure that all state files are cleaned up before running tests."))
@@ -141,6 +152,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		runner.View.Conclusion(suite)
 		return moduletest.Error, diags
 	}
+	runner.Manifest = manifest
 
 	suite.Status = moduletest.Pass
 	for _, name := range slices.Sorted(maps.Keys(suite.Files)) {
@@ -153,6 +165,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			CancelCtx: runner.CancelledCtx,
 			StopCtx:   runner.StoppedCtx,
 			Verbose:   runner.Verbose,
+			Repair:    runner.Repair,
 			Render:    runner.View,
 			Manifest:  manifest,
 		})
@@ -176,10 +189,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			maps.Copy(vc.GlobalVariables, currentGlobalVariables)
 			vc.FileVariables = file.Config.Variables
 		})
-		fileRunner := &TestFileRunner{
-			Suite:       runner,
-			EvalContext: evalCtx,
-		}
+		fileRunner := &TestFileRunner{Suite: runner, EvalContext: evalCtx}
 
 		runner.View.File(file, moduletest.Starting)
 		fileRunner.Test(file)
@@ -206,6 +216,7 @@ func (runner *TestSuiteRunner) collectTests() (*moduletest.Suite, tfdiags.Diagno
 
 	var diags tfdiags.Diagnostics
 	suite := &moduletest.Suite{
+		CommandMode: runner.CommandMode,
 		Files: func() map[string]*moduletest.File {
 			files := make(map[string]*moduletest.File)
 
@@ -297,8 +308,10 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		GlobalVars:     runner.EvalContext.VariableCaches.GlobalVariables,
 		ContextOpts:    runner.Suite.Opts,
 		BackendFactory: runner.Suite.BackendFactory,
+		StateManifest:  runner.Suite.Manifest,
+		CommandMode:    runner.Suite.CommandMode,
 	}
-	g, diags := b.Build()
+	g, diags := b.Build(runner.EvalContext)
 	file.Diagnostics = file.Diagnostics.Append(diags)
 	if walkCancelled := runner.renderPreWalkDiags(file); walkCancelled {
 		return
@@ -306,6 +319,9 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 
 	// walk and execute the graph
 	diags = runner.walkGraph(g)
+
+	// Update the manifest file with the reason why each state file was created.
+	err := runner.Suite.Manifest.WriteManifest()
 
 	// If the graph walk was terminated, we don't want to add the diagnostics.
 	// The error the user receives will just be:
@@ -317,7 +333,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 		return
 	}
 
-	file.Diagnostics = file.Diagnostics.Append(diags)
+	file.Diagnostics = file.Diagnostics.Append(diags, err)
 }
 
 // walkGraph goes through the graph and execute each run it finds.

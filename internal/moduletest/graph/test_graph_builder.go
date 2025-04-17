@@ -23,36 +23,55 @@ type TestGraphBuilder struct {
 	GlobalVars     map[string]backendrun.UnparsedVariableValue
 	ContextOpts    *terraform.ContextOpts
 	BackendFactory func(string) backend.InitFn
+	StateManifest  *TestManifest
+	CommandMode    moduletest.CommandMode
 }
 
 type graphOptions struct {
-	File        *moduletest.File
-	GlobalVars  map[string]backendrun.UnparsedVariableValue
-	ContextOpts *terraform.ContextOpts
+	File          *moduletest.File
+	GlobalVars    map[string]backendrun.UnparsedVariableValue
+	ContextOpts   *terraform.ContextOpts
+	StateManifest *TestManifest
+	CommandMode   moduletest.CommandMode
+	EvalContext   *EvalContext
 }
 
 // See GraphBuilder
-func (b *TestGraphBuilder) Build() (*terraform.Graph, tfdiags.Diagnostics) {
+func (b *TestGraphBuilder) Build(ctx *EvalContext) (*terraform.Graph, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] building graph for terraform test")
+	opts := &graphOptions{
+		File:          b.File,
+		GlobalVars:    b.GlobalVars,
+		ContextOpts:   b.ContextOpts,
+		StateManifest: b.StateManifest,
+		CommandMode:   b.CommandMode,
+		EvalContext:   ctx,
+	}
 	return (&terraform.BasicGraphBuilder{
-		Steps: b.Steps(),
+		Steps: b.Steps(opts),
 		Name:  "TestGraphBuilder",
 	}).Build(addrs.RootModuleInstance)
 }
 
 // See GraphBuilder
-func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
-	opts := &graphOptions{
-		File:        b.File,
-		GlobalVars:  b.GlobalVars,
-		ContextOpts: b.ContextOpts,
-	}
+func (b *TestGraphBuilder) Steps(opts *graphOptions) []terraform.GraphTransformer {
 	steps := []terraform.GraphTransformer{
 		&TestRunTransformer{opts},
-		&TestStateTransformer{File: b.File, BackendFactory: b.BackendFactory},
+		&TestStateTransformer{graphOptions: opts, BackendFactory: b.BackendFactory},
 		&TestStateCleanupTransformer{opts},
 		terraform.DynamicTransformer(validateRunConfigs),
 		&TestProvidersTransformer{},
+		terraform.DynamicTransformer(func(g *terraform.Graph) error {
+			// If we're in cleanup mode, we can remove the test runs in the graph,
+			// and prevent unnecessary no-op execution.
+			// This will ensure that we only have nodes that are needed for cleanup in the graph.
+			if b.CommandMode == moduletest.CleanupMode {
+				for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
+					g.Remove(node)
+				}
+			}
+			return nil
+		}),
 		&CloseTestGraphTransformer{},
 		&terraform.TransitiveReductionTransformer{},
 	}

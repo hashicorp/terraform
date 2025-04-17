@@ -18,22 +18,31 @@ import (
 
 const alphanumeric = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-// TestManifest represents the overall test manifest structure
+type StateReason string
+
+const (
+	ReasonSkip  StateReason = "skip_cleanup"
+	ReasonError StateReason = "error"
+)
+
+// TestManifest represents the structure of the manifest file
+// that keeps track of the state files left-over during test runs.
 type TestManifest struct {
-	Version int                 `json:"version"`
-	Files   map[string]TestFile `json:"files"`
+	Version int                  `json:"version"`
+	Files   map[string]*TestFile `json:"files"`
 
 	dataDir string // Directory where all test-related data is stored
 }
 
 // TestFile represents a single file with its states keyed by the state key
 type TestFile struct {
-	States map[string]TestState `json:"states"`
+	States map[string]*TestState `json:"states"`
 }
 
 // TestState represents an individual test state
 type TestState struct {
-	Path string `json:"path"` // Path to the state file
+	Path   string      `json:"path"`   // Path to the state file
+	Reason StateReason `json:"reason"` // Reason for the state being left over
 }
 
 // BuildStateManifest creates a manifest for a set of files and their runs.
@@ -50,7 +59,7 @@ func BuildStateManifest(rootDir string, files map[string]*moduletest.File) (*Tes
 	for _, file := range files {
 		manifestFile, exists := manifest.Files[file.Name]
 		if !exists {
-			manifestFile = TestFile{States: make(map[string]TestState)}
+			manifestFile = &TestFile{States: make(map[string]*TestState)}
 		}
 		keys := make([]string, 0, len(file.Runs))
 
@@ -61,26 +70,30 @@ func BuildStateManifest(rootDir string, files map[string]*moduletest.File) (*Tes
 
 		// create a state file path for each state key
 		for _, key := range keys {
+			// if the state key already exists in the manifest, we use that existing entry
+			if _, ok := manifestFile.States[key]; ok {
+				continue
+			}
 			id := manifest.generateID()
 			if _, exists := ids[id]; exists {
 				panic(fmt.Sprintf("duplicate generated state id %s", id))
 			}
 			ids[id] = struct{}{}
 			path := filepath.Join(manifest.dataDir, fmt.Sprintf("%s.tfstate", id))
-			manifestFile.States[key] = TestState{Path: path}
+			manifestFile.States[key] = &TestState{Path: path}
 		}
 		manifest.Files[file.Name] = manifestFile
 	}
 
 	// write manifest to disk
-	return manifest, manifest.writeManifest()
+	return manifest, manifest.WriteManifest()
 }
 
 // LoadManifest loads a manifest from disk, or creates a new one if it doesn't exist
 func LoadManifest(dataDir string) (*TestManifest, error) {
 	manifest := &TestManifest{
 		Version: 0,
-		Files:   make(map[string]TestFile),
+		Files:   make(map[string]*TestFile),
 		dataDir: dataDir,
 	}
 
@@ -130,8 +143,9 @@ func (m *TestManifest) writeState(key string, state *TestFileState) error {
 	}
 	location, exists := file.States[key]
 	if !exists {
-		return fmt.Errorf("state %s already exists in file %s", key, filename)
+		return fmt.Errorf("state %s not found in file %s", key, filename)
 	}
+	location.Reason = state.Reason
 
 	// Write state to disk
 	stateFile := statemgr.NewFilesystem(location.Path)
@@ -143,8 +157,27 @@ func (m *TestManifest) writeState(key string, state *TestFileState) error {
 	return nil
 }
 
-// writeManifest writes the manifest to disk
-func (m *TestManifest) writeManifest() error {
+func (m *TestManifest) readState(filename, stateKey string) (*TestFileState, error) {
+	file, exists := m.Files[filename]
+	if !exists {
+		return nil, fmt.Errorf("file %s not found in manifest", filename)
+	}
+	location, exists := file.States[stateKey]
+	if !exists {
+		return nil, fmt.Errorf("state %s not found in file %s", stateKey, filename)
+	}
+
+	// Read state from disk
+	stateFile := statemgr.NewFilesystem(location.Path)
+	if err := stateFile.RefreshState(); err != nil {
+		return nil, err
+	}
+
+	return &TestFileState{State: stateFile.State(), Reason: location.Reason}, nil
+}
+
+// WriteManifest writes the manifest to disk
+func (m *TestManifest) WriteManifest() error {
 	data, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
 		return err

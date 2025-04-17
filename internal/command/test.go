@@ -6,12 +6,15 @@ package command
 import (
 	"context"
 	"fmt"
+	"maps"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/cloud"
@@ -22,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -89,129 +93,17 @@ func (c *TestCommand) Synopsis() string {
 }
 
 func (c *TestCommand) Run(rawArgs []string) int {
-	var diags tfdiags.Diagnostics
-
-	common, rawArgs := arguments.ParseView(rawArgs)
-	c.View.Configure(common)
-
-	// Since we build the colorizer for the cloud runner outside the views
-	// package we need to propagate our no-color setting manually. Once the
-	// cloud package is fully migrated over to the new streams IO we should be
-	// able to remove this.
-	c.Meta.color = !common.NoColor
-	c.Meta.Color = c.Meta.color
-
-	args, diags := arguments.ParseTest(rawArgs)
+	preparation, diags := c.setupTestExecution(moduletest.NormalMode, rawArgs)
 	if diags.HasErrors() {
-		c.View.Diagnostics(diags)
-		c.View.HelpPrompt("test")
-		return 1
-	}
-	c.Meta.parallelism = args.OperationParallelism
-
-	view := views.NewTest(args.ViewType, c.View)
-
-	// The specified testing directory must be a relative path, and it must
-	// point to a directory that is a descendant of the configuration directory.
-	if !filepath.IsLocal(args.TestDirectory) {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Invalid testing directory",
-			"The testing directory must be a relative path pointing to a directory local to the configuration directory."))
-
-		view.Diagnostics(nil, nil, diags)
 		return 1
 	}
 
-	config, configDiags := c.loadConfigWithTests(".", args.TestDirectory)
-	diags = diags.Append(configDiags)
-	if configDiags.HasErrors() {
-		view.Diagnostics(nil, nil, diags)
-		return 1
-	}
-
-	// Per file, ensure backends:
-	// * aren't reused
-	// * are valid types
-	var backendDiags tfdiags.Diagnostics
-	for _, tf := range config.Module.Tests {
-		bucketHashes := make(map[int]string)
-		// Use an ordered list of backends, so that errors are raised by 2nd+ time
-		// that a backend config is used in a file.
-		for _, bc := range orderBackendsByDeclarationLine(tf.BackendConfigs) {
-			f := backendInit.Backend(bc.Backend.Type)
-			if f == nil {
-				detail := fmt.Sprintf("There is no backend type named %q.", bc.Backend.Type)
-				if msg, removed := backendInit.RemovedBackends[bc.Backend.Type]; removed {
-					detail = msg
-				}
-				backendDiags = backendDiags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Unsupported backend type",
-					Detail:   detail,
-					Subject:  &bc.Backend.TypeRange,
-				})
-				continue
-			}
-
-			b := f()
-			schema := b.ConfigSchema()
-			hash := bc.Backend.Hash(schema)
-
-			if runName, exists := bucketHashes[hash]; exists {
-				// This backend's been encountered before
-				backendDiags = backendDiags.Append(
-					&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Repeat use of the same backend block",
-						Detail:   fmt.Sprintf("The run %q contains a backend configuration that's already been used in run %q. Sharing the same backend configuration between separate runs will result in conflicting state updates.", bc.Run.Name, runName),
-						Subject:  bc.Backend.TypeRange.Ptr(),
-					},
-				)
-				continue
-			}
-			bucketHashes[bc.Backend.Hash(schema)] = bc.Run.Name
-		}
-	}
-	diags = diags.Append(backendDiags)
-	if backendDiags.HasErrors() {
-		view.Diagnostics(nil, nil, diags)
-		return 1
-	}
-
-	// Users can also specify variables via the command line, so we'll parse
-	// all that here.
-	var items []arguments.FlagNameValue
-	for _, variable := range args.Vars.All() {
-		items = append(items, arguments.FlagNameValue{
-			Name:  variable.Name,
-			Value: variable.Value,
-		})
-	}
-	c.variableArgs = arguments.FlagNameValueSlice{Items: &items}
-
-	// Collect variables for "terraform test"
-	testVariables, variableDiags := c.collectVariableValuesForTests(args.TestDirectory)
-	diags = diags.Append(variableDiags)
-
-	variables, variableDiags := c.collectVariableValues()
-	diags = diags.Append(variableDiags)
-	if variableDiags.HasErrors() {
-		view.Diagnostics(nil, nil, diags)
-		return 1
-	}
-
-	opts, err := c.contextOpts()
-	if err != nil {
-		diags = diags.Append(err)
-		view.Diagnostics(nil, nil, diags)
-		return 1
-	}
-
-	// Print out all the diagnostics we have from the setup. These will just be
-	// warnings, and we want them out of the way before we start the actual
-	// testing.
-	view.Diagnostics(nil, nil, diags)
+	args := preparation.Args
+	view := preparation.View
+	config := preparation.Config
+	variables := preparation.Variables
+	testVariables := preparation.TestVariables
+	opts := preparation.Opts
 
 	// We have two levels of interrupt here. A 'stop' and a 'cancel'. A 'stop'
 	// is a soft request to stop. We'll finish the current test, do the tidy up,
@@ -356,14 +248,167 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	return 0
 }
 
+type TestRunnerSetup struct {
+	Args          *arguments.Test
+	View          views.Test
+	Config        *configs.Config
+	Variables     map[string]backendrun.UnparsedVariableValue
+	TestVariables map[string]backendrun.UnparsedVariableValue
+	Opts          *terraform.ContextOpts
+	Diagnostics   tfdiags.Diagnostics
+}
+
+func (c *Meta) setupTestExecution(mode moduletest.CommandMode, rawArgs []string) (TestRunnerSetup, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Since we build the colorizer for the cloud runner outside the views
+	// package we need to propagate our no-color setting manually. Once the
+	// cloud package is fully migrated over to the new streams IO we should be
+	// able to remove this.
+	c.color = !common.NoColor
+	c.Color = c.color
+
+	args, diags := arguments.ParseTest(rawArgs)
+	if diags.HasErrors() {
+		c.View.Diagnostics(diags)
+		prompt := "test"
+		if mode == moduletest.CleanupMode {
+			prompt = "test cleanup"
+		}
+		c.View.HelpPrompt(prompt)
+		return TestRunnerSetup{}, diags
+	}
+	if args.Repair && mode != moduletest.CleanupMode {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid command mode",
+			"The -repair flag is only valid for the 'test cleanup' command."))
+		return TestRunnerSetup{Args: args}, diags
+	}
+	c.parallelism = args.OperationParallelism
+
+	view := views.NewTest(args.ViewType, c.View)
+
+	// The specified testing directory must be a relative path, and it must
+	// point to a directory that is a descendant of the configuration directory.
+	if !filepath.IsLocal(args.TestDirectory) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid testing directory",
+			"The testing directory must be a relative path pointing to a directory local to the configuration directory."))
+
+		view.Diagnostics(nil, nil, diags)
+		return TestRunnerSetup{Args: args, View: view}, diags
+	}
+
+	config, configDiags := c.loadConfigWithTests(".", args.TestDirectory)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
+		view.Diagnostics(nil, nil, diags)
+		return TestRunnerSetup{Args: args, View: view}, diags
+	}
+
+	// Per file, ensure backends:
+	// * aren't reused
+	// * are valid types
+	var backendDiags tfdiags.Diagnostics
+	for _, tf := range config.Module.Tests {
+		bucketHashes := make(map[int]string)
+		// Use an ordered list of backends, so that errors are raised by 2nd+ time
+		// that a backend config is used in a file.
+		for _, bc := range orderBackendsByDeclarationLine(tf.BackendConfigs) {
+			f := backendInit.Backend(bc.Backend.Type)
+			if f == nil {
+				detail := fmt.Sprintf("There is no backend type named %q.", bc.Backend.Type)
+				if msg, removed := backendInit.RemovedBackends[bc.Backend.Type]; removed {
+					detail = msg
+				}
+				backendDiags = backendDiags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unsupported backend type",
+					Detail:   detail,
+					Subject:  &bc.Backend.TypeRange,
+				})
+				continue
+			}
+
+			b := f()
+			schema := b.ConfigSchema()
+			hash := bc.Backend.Hash(schema)
+
+			if runName, exists := bucketHashes[hash]; exists {
+				// This backend's been encountered before
+				backendDiags = backendDiags.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Repeat use of the same backend block",
+						Detail:   fmt.Sprintf("The run %q contains a backend configuration that's already been used in run %q. Sharing the same backend configuration between separate runs will result in conflicting state updates.", bc.Run.Name, runName),
+						Subject:  bc.Backend.TypeRange.Ptr(),
+					},
+				)
+				continue
+			}
+			bucketHashes[bc.Backend.Hash(schema)] = bc.Run.Name
+		}
+	}
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		view.Diagnostics(nil, nil, diags)
+		return TestRunnerSetup{Args: args, View: view, Config: config}, diags
+	}
+
+	// Users can also specify variables via the command line, so we'll parse
+	// all that here.
+	var items []arguments.FlagNameValue
+	for _, variable := range args.Vars.All() {
+		items = append(items, arguments.FlagNameValue{
+			Name:  variable.Name,
+			Value: variable.Value,
+		})
+	}
+	c.variableArgs = arguments.FlagNameValueSlice{Items: &items}
+
+	// Collect variables for "terraform test"
+	testVariables, variableDiags := c.collectVariableValuesForTests(args.TestDirectory)
+	diags = diags.Append(variableDiags)
+
+	variables, variableDiags := c.collectVariableValues()
+	diags = diags.Append(variableDiags)
+	if variableDiags.HasErrors() {
+		view.Diagnostics(nil, nil, diags)
+		return TestRunnerSetup{Args: args, View: view, Config: config}, diags
+	}
+
+	opts, err := c.contextOpts()
+	if err != nil {
+		diags = diags.Append(err)
+		view.Diagnostics(nil, nil, diags)
+		return TestRunnerSetup{Args: args, View: view, Config: config}, diags
+	}
+
+	// Print out all the diagnostics we have from the setup. These will just be
+	// warnings, and we want them out of the way before we start the actual
+	// testing.
+	view.Diagnostics(nil, nil, diags)
+
+	return TestRunnerSetup{
+		Args:          args,
+		View:          view,
+		Config:        config,
+		Variables:     variables,
+		TestVariables: testVariables,
+		Opts:          opts,
+	}, diags
+}
+
 // orderBackendsByDeclarationLine takes in a map of state keys to backend configs and returns a list of
 // those backend configs, sorted by the line their declaration range starts on. This allows identification
 // of the 2nd+ time that a backend configuration is used in the same file.
 func orderBackendsByDeclarationLine(backendConfigs map[string]configs.RunBlockBackend) []configs.RunBlockBackend {
-	var bcs []configs.RunBlockBackend
-	for _, bc := range backendConfigs {
-		bcs = append(bcs, bc)
-	}
+	bcs := slices.Collect(maps.Values(backendConfigs))
 	sort.Slice(bcs, func(i, j int) bool {
 		return bcs[i].Run.DeclRange.Start.Line < bcs[j].Run.DeclRange.Start.Line
 	})
