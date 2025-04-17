@@ -137,9 +137,26 @@ func (r *RemovedStackCall) Instances(ctx context.Context, phase EvalPhase) (map[
 					continue // don't add this to the known instances
 				}
 			}
-			knownInstances[key] = rsc
+
+			switch phase {
+			case PlanPhase:
+				if r.main.PlanPrevState().HasStackInstance(rsc.from) {
+					knownInstances[key] = rsc
+					continue
+				}
+			case ApplyPhase:
+				if stack := r.main.PlanBeingApplied().GetStack(rsc.from); stack != nil {
+					knownInstances[key] = rsc
+					continue
+				}
+			default:
+				// Otherwise, we're running in a stage that doesn't evaluate
+				// a state or the plan so we'll just include everything.
+				knownInstances[key] = rsc
+			}
 		}
 
+		result.insts = knownInstances
 		return result, diags
 	})
 	return result.insts, result.unknown, diags

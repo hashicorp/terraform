@@ -879,6 +879,42 @@ func TestPlan(t *testing.T) {
 				},
 			},
 		},
+		"removed block targets stack not in configuration or state": {
+			path: filepath.Join("with-single-input", "removed-stack-instance-dynamic"),
+			cycle: TestCycle{
+				planInputs: map[string]cty.Value{
+					"input": cty.MapValEmpty(cty.String),
+					"removed": cty.MapVal(map[string]cty.Value{
+						"component": cty.StringVal("component"),
+					}),
+				},
+				wantPlannedChanges: []stackplan.PlannedChange{
+					&stackplan.PlannedChangeApplyable{
+						Applyable: true,
+					},
+					&stackplan.PlannedChangeHeader{
+						TerraformVersion: version.SemVer,
+					},
+					&stackplan.PlannedChangePlannedTimestamp{
+						PlannedTimestamp: fakePlanTimestamp,
+					},
+					&stackplan.PlannedChangeRootInputValue{
+						Addr:   stackaddrs.InputVariable{Name: "input"},
+						Action: plans.Create,
+						Before: cty.NullVal(cty.DynamicPseudoType),
+						After:  cty.MapValEmpty(cty.String),
+					},
+					&stackplan.PlannedChangeRootInputValue{
+						Addr:   stackaddrs.InputVariable{Name: "removed"},
+						Action: plans.Create,
+						Before: cty.NullVal(cty.DynamicPseudoType),
+						After: cty.MapVal(map[string]cty.Value{
+							"component": cty.StringVal("component"),
+						}),
+					},
+				},
+			},
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {

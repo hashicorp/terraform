@@ -163,6 +163,10 @@ func (p *Plan) GetComponent(addr stackaddrs.AbsComponentInstance) *Component {
 	return targetStackInstance.GetComponent(addr.Item)
 }
 
+func (p *Plan) GetStack(addr stackaddrs.StackInstance) *StackInstance {
+	return p.Root.GetDescendentStack(addr)
+}
+
 // RequiredProviderInstances returns a description of all of the provider
 // instance slots that are required to satisfy the resource instances
 // belonging to the given component instance.
