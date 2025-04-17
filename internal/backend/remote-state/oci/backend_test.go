@@ -178,6 +178,7 @@ func TestOCIBackendConfig_PrepareConfigValidation(t *testing.T) {
 	cases := map[string]struct {
 		config        cty.Value
 		expectedDiags tfdiags.Diagnostics
+		mock          func()
 	}{
 		"null bucket": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -350,6 +351,10 @@ func TestOCIBackendConfig_PrepareConfigValidation(t *testing.T) {
 					fmt.Sprintf("The attribute %q is required by the backend for %s authentication.\n\n", RegionAttrName, AuthInstancePrincipalSetting), cty.GetAttrPath(RegionAttrName),
 				),
 			},
+			mock: func() {
+				os.Setenv("OCI_region", "")
+				os.Setenv("region", "")
+			},
 		},
 	}
 
@@ -357,7 +362,9 @@ func TestOCIBackendConfig_PrepareConfigValidation(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 
 			b := New()
-
+			if tc.mock != nil {
+				tc.mock()
+			}
 			_, valDiags := b.PrepareConfig(populateSchema(t, b.ConfigSchema(), tc.config))
 
 			if diff := cmp.Diff(valDiags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
