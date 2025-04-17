@@ -22,7 +22,7 @@ func New() backend.Backend {
 	return &Backend{}
 }
 
-// New creates a new backend for OSS remote state.
+// New creates a new backend for oci remote state.
 func (b *Backend) ConfigSchema() *configschema.Block {
 	return &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
@@ -155,35 +155,61 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		validateStringWorkspacePrefix(workspaceKeyPrefixVal.AsString(), cty.GetAttrPath(WorkspaceKeyPrefixAttrName), &diags)
 	}
 	authVal, ok := getBackendAttr(obj, AuthAttrName)
-	if !ok || authVal.AsString() == "" {
-		// Default authentication provided by SDK
-		return obj, diags
-	}
-	switch strings.ToLower(authVal.AsString()) {
-	case strings.ToLower(AuthAPIKeySetting):
-		//Nothing to do
-		return obj, diags
-	case strings.ToLower(AuthInstancePrincipalSetting), strings.ToLower(AuthInstancePrincipalWithCertsSetting), strings.ToLower(ResourcePrincipal), strings.ToLower(AuthSecurityToken):
-		region, _ := getBackendAttr(obj, RegionAttrName)
-		if region.AsString() == "" {
-			diags = diags.Append(tfdiags.AttributeValue(tfdiags.Error,
-				"Missing region attribute required",
-				fmt.Sprintf("The attribute %q is required by the backend for %s authentication.\n\n", RegionAttrName, authVal.AsString()), cty.GetAttrPath(RegionAttrName),
-			))
-		}
-		if strings.ToLower(authVal.AsString()) == strings.ToLower(AuthSecurityToken) {
-			profileVal, _ := getBackendAttr(obj, ConfigFileProfileAttrName)
-			if profileVal.IsNull() || profileVal.AsString() == "" {
+	if ok && len(authVal.AsString()) > 0 {
+
+		switch strings.ToLower(authVal.AsString()) {
+		case strings.ToLower(AuthAPIKeySetting):
+			//Nothing to do
+			return obj, diags
+		case strings.ToLower(AuthInstancePrincipalSetting), strings.ToLower(AuthInstancePrincipalWithCertsSetting), strings.ToLower(ResourcePrincipal), strings.ToLower(AuthSecurityToken):
+			region, _ := getBackendAttr(obj, RegionAttrName)
+			if region.AsString() == "" {
 				diags = diags.Append(tfdiags.AttributeValue(tfdiags.Error,
-					"Missing config_file_profile attribute required",
-					fmt.Sprintf("The attribute %q is required by the backend for %s authentication.\n\n", ConfigFileProfileAttrName, authVal.AsString()), cty.GetAttrPath(ConfigFileProfileAttrName),
+					"Missing region attribute required",
+					fmt.Sprintf("The attribute %q is required by the backend for %s authentication.\n\n", RegionAttrName, authVal.AsString()), cty.GetAttrPath(RegionAttrName),
 				))
 			}
+			if strings.ToLower(authVal.AsString()) == strings.ToLower(AuthSecurityToken) {
+				profileVal, _ := getBackendAttr(obj, ConfigFileProfileAttrName)
+				if profileVal.IsNull() || profileVal.AsString() == "" {
+					diags = diags.Append(tfdiags.AttributeValue(tfdiags.Error,
+						"Missing config_file_profile attribute required",
+						fmt.Sprintf("The attribute %q is required by the backend for %s authentication.\n\n", ConfigFileProfileAttrName, authVal.AsString()), cty.GetAttrPath(ConfigFileProfileAttrName),
+					))
+				}
+			}
+		default:
+			diags = diags.Append(tfdiags.AttributeValue(tfdiags.Error,
+				"Invalid authentication method",
+				fmt.Sprintf("auth must be one of '%s' or '%s' or '%s' or '%s' or '%s' or '%s'", AuthAPIKeySetting, AuthInstancePrincipalSetting, AuthInstancePrincipalWithCertsSetting, AuthSecurityToken, ResourcePrincipal, AuthOKEWorkloadIdentity), cty.GetAttrPath(AuthAttrName),
+			))
 		}
-	default:
-		diags = diags.Append(tfdiags.AttributeValue(tfdiags.Error,
-			"Invalid authentication method",
-			fmt.Sprintf("auth must be one of '%s' or '%s' or '%s' or '%s' or '%s' or '%s'", AuthAPIKeySetting, AuthInstancePrincipalSetting, AuthInstancePrincipalWithCertsSetting, AuthSecurityToken, ResourcePrincipal, AuthOKEWorkloadIdentity), cty.GetAttrPath(AuthAttrName),
+	}
+
+	customerKey, _ := getBackendAttr(obj, SseCustomerKeyAttrName)
+	customerKeySHA, _ := getBackendAttr(obj, SseCustomerKeySHA256AttrName)
+	kmsKeyId, _ := getBackendAttr(obj, KmsKeyIdAttrName)
+	privateKey, _ := getBackendAttr(obj, PrivateKeyAttrName)
+	privateKeyPath, _ := getBackendAttr(obj, PrivateKeyPathAttrName)
+
+	if (!customerKey.IsNull() && len(customerKey.AsString()) > 0) && (customerKeySHA.IsNull() || len(customerKeySHA.AsString()) == 0) {
+		diags = diags.Append(attributeErrDiag(
+			"Invalid Attribute Combination",
+			`  sse_customer_key and its SHA both required.`,
+			cty.GetAttrPath(SseCustomerKeySHA256AttrName)))
+	}
+	if !customerKey.IsNull() && len(customerKey.AsString()) > 0 && !kmsKeyId.IsNull() && len(kmsKeyId.AsString()) > 0 {
+		diags = diags.Append(attributeErrDiag(
+			"Invalid Attribute Combination",
+			`Only one of kms_key_id, sse_customer_key can be set.`,
+			cty.GetAttrPath(KmsKeyIdAttrName),
+		))
+	}
+	if !privateKey.IsNull() && len(privateKey.AsString()) > 0 && !privateKeyPath.IsNull() && len(privateKeyPath.AsString()) > 0 {
+		diags = diags.Append(attributeErrDiag(
+			"Invalid Attribute Combination",
+			`Only one of private_key, private_key_path can be set.`,
+			cty.GetAttrPath(PrivateKeyPathAttrName),
 		))
 	}
 	return obj, diags

@@ -3,7 +3,10 @@ package oci
 import (
 	"context"
 	"fmt"
+	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 	"os"
 	"testing"
 	"time"
@@ -162,11 +165,300 @@ func deleteOCIBucket(ctx context.Context, t *testing.T, client *objectstorage.Ob
 	}
 }
 
-// verify that we are doing ACC tests or the S3 tests specifically
+// verify that we are doing ACC tests or the oci backend tests specifically
 func testACC(t *testing.T) {
 	skip := os.Getenv("TF_ACC") == "" && os.Getenv("TF_OCI_BACKEND_TEST") == ""
 	if skip {
 		t.Log("oci backend tests require setting TF_ACC or TF_OCI_BACKEND_TEST")
 		t.Skip()
 	}
+}
+
+func TestOCIBackendConfig_PrepareConfigValidation(t *testing.T) {
+	cases := map[string]struct {
+		config        cty.Value
+		expectedDiags tfdiags.Diagnostics
+	}{
+		"null bucket": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				BucketAttrName:    cty.NullVal(cty.String),
+				NamespaceAttrName: cty.StringVal("test-namespace"),
+				KeyAttrName:       cty.StringVal("test-key"),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				requiredAttributeErrDiag(cty.GetAttrPath(BucketAttrName)),
+			},
+		},
+		"empty bucket": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				BucketAttrName:    cty.StringVal(""),
+				NamespaceAttrName: cty.StringVal("test-namespace"),
+				KeyAttrName:       cty.StringVal("test-key"),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				requiredAttributeErrDiag(cty.GetAttrPath(BucketAttrName)),
+			},
+		},
+		"null namespace": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				BucketAttrName:    cty.StringVal("test-bucket"),
+				NamespaceAttrName: cty.NullVal(cty.String),
+				KeyAttrName:       cty.StringVal("test-key"),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				requiredAttributeErrDiag(cty.GetAttrPath("namespace")),
+			},
+		},
+		"empty namespace": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				BucketAttrName:    cty.StringVal("test-bucket"),
+				NamespaceAttrName: cty.StringVal(""),
+				KeyAttrName:       cty.StringVal("test-key"),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				requiredAttributeErrDiag(cty.GetAttrPath("namespace")),
+			},
+		},
+		"key with leading slash": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				BucketAttrName:    cty.StringVal("test-bucket"),
+				NamespaceAttrName: cty.StringVal("test-namespace"),
+				KeyAttrName:       cty.StringVal("/leading-slash"),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					`The value must not start or end with "/" and also not contain consecutive "/"`,
+					cty.GetAttrPath(KeyAttrName),
+				),
+			},
+		},
+		"key with trailing slash": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				BucketAttrName:    cty.StringVal("test-bucket"),
+				NamespaceAttrName: cty.StringVal("test-namespace"),
+				KeyAttrName:       cty.StringVal("trailing-slash/"),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					`The value must not start or end with "/" and also not contain consecutive "/"`,
+					cty.GetAttrPath(KeyAttrName),
+				),
+			},
+		},
+		"key with double slash": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				BucketAttrName:    cty.StringVal("test-bucket"),
+				NamespaceAttrName: cty.StringVal("test-namespace"),
+				KeyAttrName:       cty.StringVal("test/with/double//slash"),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					`The value must not start or end with "/" and also not contain consecutive "/"`,
+					cty.GetAttrPath(KeyAttrName),
+				),
+			},
+		},
+		"workspace_key_prefix with leading slash": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				BucketAttrName:             cty.StringVal("test-bucket"),
+				NamespaceAttrName:          cty.StringVal("test-namespace"),
+				KeyAttrName:                cty.StringVal("test-key"),
+				WorkspaceKeyPrefixAttrName: cty.StringVal("/env"),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					`The value must not start  with "/" and also not contain consecutive "/"`,
+					cty.GetAttrPath(WorkspaceKeyPrefixAttrName),
+				),
+			},
+		},
+		"encryption key conflict": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				BucketAttrName:               cty.StringVal("test-bucket"),
+				NamespaceAttrName:            cty.StringVal("test-namespace"),
+				KeyAttrName:                  cty.StringVal("test-key"),
+				KmsKeyIdAttrName:             cty.StringVal("ocid1.key.oc1..example"),
+				SseCustomerKeyAttrName:       cty.StringVal("base64-encoded-key"),
+				SseCustomerKeySHA256AttrName: cty.StringVal("base64-encoded-key md5"),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Attribute Combination",
+					`Only one of kms_key_id, sse_customer_key can be set.`,
+					cty.GetAttrPath(KmsKeyIdAttrName),
+				),
+			},
+		},
+		"Invalid encryption key combination": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				BucketAttrName:         cty.StringVal("test-bucket"),
+				NamespaceAttrName:      cty.StringVal("test-namespace"),
+				KeyAttrName:            cty.StringVal("test-key"),
+				SseCustomerKeyAttrName: cty.StringVal("base64-encoded-key"),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Attribute Combination",
+					`  sse_customer_key and its SHA both required.`,
+					cty.GetAttrPath(SseCustomerKeySHA256AttrName)),
+			},
+		},
+		"private_key and private_key_path conflict": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				BucketAttrName:         cty.StringVal("test-bucket"),
+				NamespaceAttrName:      cty.StringVal("test-namespace"),
+				KeyAttrName:            cty.StringVal("test-key"),
+				PrivateKeyAttrName:     cty.StringVal("-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"),
+				PrivateKeyPathAttrName: cty.StringVal("/path/to/key.pem"),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Attribute Combination",
+					`Only one of private_key, private_key_path can be set.`,
+					cty.GetAttrPath(PrivateKeyPathAttrName),
+				),
+			},
+		},
+		"invalid auth method": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				BucketAttrName:    cty.StringVal("test-bucket"),
+				NamespaceAttrName: cty.StringVal("test-namespace"),
+				KeyAttrName:       cty.StringVal("test-key"),
+				AuthAttrName:      cty.StringVal("invalid-auth"),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				tfdiags.AttributeValue(tfdiags.Error,
+					"Invalid authentication method",
+					fmt.Sprintf("auth must be one of '%s' or '%s' or '%s' or '%s' or '%s' or '%s'", AuthAPIKeySetting, AuthInstancePrincipalSetting, AuthInstancePrincipalWithCertsSetting, AuthSecurityToken, ResourcePrincipal, AuthOKEWorkloadIdentity), cty.GetAttrPath(AuthAttrName),
+				),
+			},
+		},
+		"missing region for InstancePrinciple auth": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				BucketAttrName:    cty.StringVal("test-bucket"),
+				NamespaceAttrName: cty.StringVal("test-namespace"),
+				KeyAttrName:       cty.StringVal("test-key"),
+				AuthAttrName:      cty.StringVal(AuthInstancePrincipalSetting),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				tfdiags.AttributeValue(tfdiags.Error,
+					"Missing region attribute required",
+					fmt.Sprintf("The attribute %q is required by the backend for %s authentication.\n\n", RegionAttrName, AuthInstancePrincipalSetting), cty.GetAttrPath(RegionAttrName),
+				),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+
+			b := New()
+
+			_, valDiags := b.PrepareConfig(populateSchema(t, b.ConfigSchema(), tc.config))
+
+			if diff := cmp.Diff(valDiags, tc.expectedDiags, tfdiags.DiagnosticComparer); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+		})
+	}
+
+}
+
+func populateSchema(t *testing.T, schema *configschema.Block, value cty.Value) cty.Value {
+	ty := schema.ImpliedType()
+	var path cty.Path
+	val, err := unmarshal(value, ty, path)
+	if err != nil {
+		t.Fatalf("populating schema: %s", err)
+	}
+	return val
+}
+
+func unmarshal(value cty.Value, ty cty.Type, path cty.Path) (cty.Value, error) {
+	switch {
+	case ty.IsPrimitiveType():
+		return value, nil
+	// case ty.IsListType():
+	// 	return unmarshalList(value, ty.ElementType(), path)
+	case ty.IsSetType():
+		return unmarshalSet(value, ty.ElementType(), path)
+	case ty.IsMapType():
+		return unmarshalMap(value, ty.ElementType(), path)
+	// case ty.IsTupleType():
+	// 	return unmarshalTuple(value, ty.TupleElementTypes(), path)
+	case ty.IsObjectType():
+		return unmarshalObject(value, ty.AttributeTypes(), path)
+	default:
+		return cty.NilVal, path.NewErrorf("unsupported type %s", ty.FriendlyName())
+	}
+}
+
+func unmarshalSet(dec cty.Value, ety cty.Type, path cty.Path) (cty.Value, error) {
+	if dec.IsNull() {
+		return dec, nil
+	}
+
+	length := dec.LengthInt()
+
+	if length == 0 {
+		return cty.SetValEmpty(ety), nil
+	}
+
+	vals := make([]cty.Value, 0, length)
+	dec.ForEachElement(func(key, val cty.Value) (stop bool) {
+		vals = append(vals, val)
+		return
+	})
+
+	return cty.SetVal(vals), nil
+}
+func unmarshalMap(dec cty.Value, ety cty.Type, path cty.Path) (cty.Value, error) {
+	if dec.IsNull() {
+		return dec, nil
+	}
+
+	length := dec.LengthInt()
+
+	if length == 0 {
+		return cty.MapValEmpty(ety), nil
+	}
+
+	vals := make(map[string]cty.Value, length)
+	dec.ForEachElement(func(key, val cty.Value) (stop bool) {
+		vals[key.AsString()] = val
+		return
+	})
+
+	return cty.MapVal(vals), nil
+}
+
+func unmarshalObject(dec cty.Value, atys map[string]cty.Type, path cty.Path) (cty.Value, error) {
+	if dec.IsNull() {
+		return dec, nil
+	}
+	valueTy := dec.Type()
+
+	vals := make(map[string]cty.Value, len(atys))
+	path = append(path, nil)
+	for key, aty := range atys {
+		path[len(path)-1] = cty.IndexStep{
+			Key: cty.StringVal(key),
+		}
+
+		if !valueTy.HasAttribute(key) {
+			vals[key] = cty.NullVal(aty)
+		} else {
+			val, err := unmarshal(dec.GetAttr(key), aty, path)
+			if err != nil {
+				return cty.DynamicVal, err
+			}
+			vals[key] = val
+		}
+	}
+
+	return cty.ObjectVal(vals), nil
 }

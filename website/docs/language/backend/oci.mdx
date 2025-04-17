@@ -19,7 +19,7 @@ terraform {
     # Required
     bucket            = "mybucket"
     namespace         = "my-namespace"
-     # optional
+     # Optional
     tenancy_ocid      = "ocid1.tenancy.oc1..xxxxxxx"
     user_ocid         = "ocid1.user.oc1..xxxxxxxx"
     fingerprint       = "xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"
@@ -40,7 +40,7 @@ Note that for the access credentials we recommend using a [partial configuration
 
 ## State Storage
 
-The oci backend stores Terraform state files in Oracle Cloud Infrastructure (OCI) Object Storage at the path defined by the key parameter, inside the bucket specified by the bucket parameter.
+The oci backend stores Terraform state files in Oracle Cloud Infrastructure (OCI) Object Storage at the path defined by the `key` parameter, inside the bucket specified by the `bucket` parameter.
 
 Using the example shown above, the state file would be stored at:
 `path/to/my/key` in the bucket `mybucket`.
@@ -124,12 +124,6 @@ data "terraform_remote_state" "mystate" {
         private_key_path  = "~/.oci/oci_api_key.pem"
         region            = "us-ashburn-1"
     }
-    outputs = {
-        object_names = [
-            "test-object-1",
-            "test-object-2"
-        ]
-    }
 }
 ```
 
@@ -171,8 +165,8 @@ The oci backend requires the configuration of the OCI namespace and Object Stora
 | `workspace_key_prefix` | A prefix applied to the non-default state path inside the bucket. Defaults to `tf-state-env`.   |
 | `auth`                 | Authentication method (e.g., `APIKey`, `InstancePrincipal`, `ResourcePrincipal`, `InstancePrincipalWithCerts`, `SecurityToken`,`OKEWorkloadIdentity`).              |
 | `config_file_profile`  | Profile name from the OCI config file (default `~/.oci/config`).                             |
-| `sse_customer_key`    | The customer-managed encryption key used for server-side encryption. generate using command `openssl rand -base64 32`                       |
-| `sse_customer_key_sha256` | The SHA256 hash of the customer-managed encryption key. generate using command  `echo -n <above generated base64 key> | base64 -d | openssl dgst -sha256 -binary | base64`                                     |
+| `sse_customer_key`    | The customer-managed encryption key used for server-side encryption.                       |
+| `sse_customer_key_sha256` | The SHA256 hash of the customer-managed encryption key.                                     |
 | `sse_customer_algorithm` | The algorithm used for server-side encryption. Supported values: `AES256` |
 
 ### 🔧 Setting Backend Configuration via Environment Variables
@@ -190,3 +184,17 @@ For any backend attribute (e.g., region), you can set its value using one of the
     export region=us-ashburn-1
    ```
 Terraform will resolve the attribute value using the first match it finds based on the above priority order.
+
+### Custom encryption key
+
+To use a custom encryption key, you can generate a new key and its SHA256 hash using the following commands:
+
+1. Generate a 256-bit (32-byte) base64-encoded AES key:
+```bash
+  openssl rand -base64 32
+```
+2. Generate the SHA-256 hash of the decoded key:
+```bash
+  generate using command  `echo -n <base64_key> | base64 -d | openssl dgst -sha256 -binary | base64`
+```
+Replace <base64_key> with the value generated in step 1.

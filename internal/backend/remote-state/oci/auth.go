@@ -153,13 +153,14 @@ func (p ociAuthConfigProvider) PrivateRSAKey() (key *rsa.PrivateKey, err error) 
 
 func (p ociAuthConfigProvider) getConfigProviders() ([]common.ConfigurationProvider, error) {
 	var configProviders []common.ConfigurationProvider
+	logger := logWithOperation("AuthConfigProvider")
 	logger.Debug(fmt.Sprintf("Using %s authentication", p.authType))
 	switch strings.ToLower(p.authType) {
 	case strings.ToLower(AuthAPIKeySetting):
 		// No additional config providers needed
 	case strings.ToLower(AuthInstancePrincipalSetting):
 
-		logger.Debug("Attempting to authenticate using instance principal credentials")
+		logger.Info("Attempting to authenticate using instance principal credentials")
 		if p.region == "" {
 			return nil, fmt.Errorf("unable to determine region from Terraform backend configuration while using Instance Principal")
 		}
@@ -184,7 +185,7 @@ func (p ociAuthConfigProvider) getConfigProviders() ([]common.ConfigurationProvi
 
 		configProviders = append(configProviders, cfg)
 	case strings.ToLower(AuthInstancePrincipalWithCertsSetting):
-		logger.Debug("Attempting to authenticate using instance principal with certificates")
+		logger.Info("Attempting to authenticate using instance principal with certificates")
 
 		if p.region == "" {
 			return nil, fmt.Errorf("unable to determine region from Terraform backend configuration while using Instance Principal with certificates")
@@ -232,7 +233,7 @@ func (p ociAuthConfigProvider) getConfigProviders() ([]common.ConfigurationProvi
 		configProviders = append(configProviders, cfg)
 
 	case strings.ToLower(AuthSecurityToken):
-
+		logger.Info("Attempting to authenticate using security token")
 		if p.region == "" {
 			return nil, fmt.Errorf("can not get %s from Terraform configuration (SecurityToken)", RegionAttrName)
 		}
@@ -254,6 +255,7 @@ func (p ociAuthConfigProvider) getConfigProviders() ([]common.ConfigurationProvi
 		}
 		configProviders = append(configProviders, securityTokenBasedAuthConfigProvider)
 	case strings.ToLower(ResourcePrincipal):
+		logger.Info("Attempting to authenticate using resource principal credentials")
 		var err error
 		var resourcePrincipalAuthConfigProvider auth.ConfigurationProviderWithClaimAccess
 
@@ -268,6 +270,7 @@ func (p ociAuthConfigProvider) getConfigProviders() ([]common.ConfigurationProvi
 		}
 		configProviders = append(configProviders, resourcePrincipalAuthConfigProvider)
 	case strings.ToLower(AuthOKEWorkloadIdentity):
+		logger.Info("Attempting to authenticate using OKE workload identity")
 		okeWorkloadIdentityConfigProvider, err := auth.OkeWorkloadIdentityConfigurationProvider()
 		if err != nil {
 			return nil, fmt.Errorf("can not get oke workload indentity based auth config provider %v", err)
@@ -383,6 +386,7 @@ func buildConfigureClient(configProvider common.ConfigurationProvider, httpClien
 	if err != nil {
 		return nil, err
 	}
+	setSDKLogger()
 	client, err := objectstorage.NewObjectStorageClientWithConfigurationProvider(configProvider)
 	if err != nil {
 		return nil, err

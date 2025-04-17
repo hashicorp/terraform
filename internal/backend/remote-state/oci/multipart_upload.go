@@ -9,6 +9,7 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"fmt"
+	"github.com/hashicorp/go-hclog"
 	"github.com/oracle/oci-go-sdk/v65/objectstorage"
 	"io"
 	"sync"
@@ -41,6 +42,7 @@ type objectStorageMultiPartUploadContext struct {
 	errChan                 chan error
 	multipartUploadResponse objectstorage.CreateMultipartUploadResponse
 	multipartUploadRequest  objectstorage.CreateMultipartUploadRequest
+	logger                  hclog.Logger
 }
 
 type objectStorageSourceBlock struct {
@@ -48,8 +50,8 @@ type objectStorageSourceBlock struct {
 	blockNumber *int
 }
 
-func (multipartUploadData MultipartUploadData) multiPartUploadImpl() error {
-
+func (multipartUploadData MultipartUploadData) multiPartUploadImpl(ctx context.Context) error {
+	logger := ctx.Value("logger").(hclog.Logger).Named("multiPartUpload")
 	sourceBlocks, err := multipartUploadData.objectMultiPartSplit()
 	if err != nil {
 		return fmt.Errorf("error splitting source data: %s", err)
@@ -100,6 +102,7 @@ func (multipartUploadData MultipartUploadData) multiPartUploadImpl() error {
 				multipartUploadRequest:  *multipartUploadRequest,
 				sourceBlocks:            sourceBlocksChan,
 				osUploadPartResponses:   osUploadPartResponses,
+				logger:                  logger,
 			}
 			ctx.uploadPartsWorker()
 		}()

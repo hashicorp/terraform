@@ -133,6 +133,7 @@ func (b *Backend) configureRemoteClient() error {
 }
 
 func (b *Backend) Workspaces() ([]string, error) {
+	logger := logWithOperation("listWorkspaces")
 	const maxKeys = 1000
 
 	ctx := context.TODO()
@@ -191,7 +192,7 @@ func (b *Backend) DeleteWorkspace(name string, force bool) error {
 			return err
 		}
 	}
-	logger.Info("Deleting workspace")
+
 	b.client.path = b.path(name)
 	b.client.lockFilePath = b.getLockFilePath(name)
 	return b.client.Delete()
