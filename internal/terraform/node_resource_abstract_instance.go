@@ -661,6 +661,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 			diags = diags.Append(n.validateIdentityKnown(resp.Identity))
 			diags = diags.Append(n.validateIdentity(resp.Identity))
 			diags = diags.Append(n.validateIdentityDidNotChange(state, resp.Identity))
+			diags = diags.Append(n.validateIdentityMatchesSchema(resp.Identity, schema.Identity))
 		}
 		if resp.Deferred != nil {
 			deferred = resp.Deferred
@@ -1114,6 +1115,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			// If the identity is not known we can not validate it did not change
 			if !diags.HasErrors() {
 				diags = diags.Append(n.validateIdentityDidNotChange(currentState, plannedIdentity))
+				diags = diags.Append(n.validateIdentityMatchesSchema(plannedIdentity, schema.Identity))
 			}
 		}
 
@@ -2637,6 +2639,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		if !resp.NewIdentity.IsNull() {
 			diags = diags.Append(n.validateIdentityKnown(resp.NewIdentity))
 			diags = diags.Append(n.validateIdentity(resp.NewIdentity))
+			diags = diags.Append(n.validateIdentityMatchesSchema(resp.NewIdentity, schema.Identity))
 			if !change.Action.IsReplace() {
 				diags = diags.Append(n.validateIdentityDidNotChange(state, resp.NewIdentity))
 			}
@@ -2930,6 +2933,28 @@ func (n *NodeAbstractResourceInstance) validateIdentity(newIdentity cty.Value) (
 				n.ResolvedProvider.Provider, n.Addr,
 			),
 		))
+	}
+
+	return diags
+}
+
+func (n *NodeAbstractResourceInstance) validateIdentityMatchesSchema(newIdentity cty.Value, identitySchema *configschema.Object) (diags tfdiags.Diagnostics) {
+	if identitySchema == nil {
+		return diags
+	}
+	newType := newIdentity.Type()
+	currentType := identitySchema.ImpliedType()
+	if errs := newType.TestConformance(currentType); len(errs) > 0 {
+		for _, err := range errs {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced an identity that doesn't match the schema",
+				fmt.Sprintf(
+					"Provider %q returned an identity for %s that doesn't match the identity schema: %s. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider.Provider, n.Addr, tfdiags.FormatError(err),
+				),
+			))
+		}
 	}
 
 	return diags
