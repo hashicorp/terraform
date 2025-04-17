@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"os"
-	"os/user"
 	"path"
 	"regexp"
 	"strings"
@@ -41,19 +40,15 @@ func getDurationFromEnvVar(varName string, defaultValue time.Duration) time.Dura
 	return duration
 }
 func getHomeFolder() string {
-	if os.Getenv("TF_HOME_OVERRIDE") != "" {
-		return os.Getenv("TF_HOME_OVERRIDE")
+	if os.Getenv("OCI_HOME_OVERRIDE") != "" {
+		return os.Getenv("OCI_HOME_OVERRIDE")
 	}
-	current, e := user.Current()
-	if e != nil {
-		//Give up and try to return something sensible
-		home := os.Getenv("HOME")
-		if home == "" {
-			home = os.Getenv("USERPROFILE")
-		}
-		return home
+	home, err := os.UserHomeDir()
+	if err != nil {
+		loggerFunc().Error("ERROR while getting home directory: %v", err)
+		return ""
 	}
-	return current.HomeDir
+	return home
 }
 func checkProfile(profile string, path string) (err error) {
 	var profileRegex = regexp.MustCompile(`^\[(.*)\]`)

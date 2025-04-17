@@ -55,7 +55,7 @@ const (
 	DefaultConfigFileName = "config"
 	DefaultConfigDirName  = ".oci"
 
-	UserAgentTerraformNameEnv   = "TF_APPEND_USER_AGENT"
+	UserAgentTerraformNameEnv   = "OCI_APPEND_USER_AGENT"
 	UserAgentSDKNameEnv         = "OCI_SDK_APPEND_USER_AGENT"
 	DefaultUserAgentBackendName = "Oracle-TerraformBackend"
 	UserAgentFormatter          = "Oracle-GoSDK/%s (go/%s; %s/%s; terraform-cli/%s) %s"
