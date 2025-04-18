@@ -25,11 +25,11 @@ func (c *TestCleanupCommand) Help() string {
 	helpText := `
 Usage: terraform [global options] test cleanup [options]
 
-  Cleans up left-over resources created during Terraform test runs.
+  Cleans up left-over resources in states that were created during Terraform test runs.
 
   By default, this command ignores the skip_cleanup attributes in the manifest
-  file. Use the -repair flag to override this behavior. Additionally, the
-  -target flag allows specifying which state files to clean up.
+  file. Use the -repair flag to override this behavior, which will ensure that
+  resources that were intentionally left-over are exempt from cleanup.
 
 Options:
 

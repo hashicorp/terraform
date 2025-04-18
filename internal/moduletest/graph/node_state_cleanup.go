@@ -31,6 +31,10 @@ type NodeStateCleanup struct {
 	// If applyOverride is provided, it will be applied to the state file to reach
 	// the final state, instead of running the destroy operation.
 	applyOverride *moduletest.Run
+
+	// if true, we are in repair mode and should not clean up state that was
+	// intentionally left-over.
+	repair bool
 }
 
 func (n *NodeStateCleanup) Name() string {
@@ -42,6 +46,11 @@ func (n *NodeStateCleanup) Name() string {
 // would prevent further cleanup of other states. Instead, any diagnostics
 // will be rendered directly to ensure the cleanup process continues.
 func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
+	n.execute(evalCtx)
+	return nil
+}
+
+func (n *NodeStateCleanup) execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	file := n.opts.File
 	state := evalCtx.GetFileState(n.stateKey)
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
@@ -51,7 +60,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 
 	// If the state was loaded as a result of an intentional skip, we
 	// don't need to clean it up when in repair mode.
-	if state.Reason == ReasonSkip && evalCtx.repair {
+	if n.repair && state.Reason == ReasonSkip {
 		return nil
 	}
 
@@ -95,8 +104,7 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		diags = diags.Append(evalCtx.WriteFileState(n.stateKey, state))
 		evalCtx.Renderer().DestroySummary(diags, nil, file, state.State)
 
-		// intentionally return nil to allow further cleanup
-		return nil
+		return diags
 	}
 	TransformConfigForRun(evalCtx, state.Run, file)
 

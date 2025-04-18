@@ -8,6 +8,7 @@ run "test_two" {
   skip_cleanup = true # This will leave behind the state
   variables {
     id = "test_two"
+    unused = run.test.unused
   }
 }
 

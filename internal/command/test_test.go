@@ -829,8 +829,14 @@ main.tftest.hcl/test_three, and they need to be cleaned up manually:
 			}
 		}
 		provider.Provider.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+			var diags tfdiags.Diagnostics
+			// Simulate an error during apply, unless it is a destroy operation
+			if !req.PlannedState.IsNull() {
+				diags = diags.Append(fmt.Errorf("apply error"))
+			}
 			return providers.ApplyResourceChangeResponse{
-				NewState: req.PlannedState,
+				NewState:    req.PlannedState,
+				Diagnostics: diags,
 			}
 		}
 		view, done := testView(t)
@@ -852,12 +858,13 @@ main.tftest.hcl... pass
 
 Success!`
 		if diff := cmp.Diff(expectedCleanup, output.Stdout()); diff != "" {
-			t.Fatalf("unexpected cleanup output: expected %s\n, got %s\n, diff: %s", expectedCleanup, output.Stdout(), diff)
+			t.Errorf("unexpected cleanup output: expected %s\n, got %s\n, diff: %s", expectedCleanup, output.Stdout(), diff)
 		}
 
 		expectedStates := map[string][]string{}
+		actualStates := actualStates()
 
-		if diff := cmp.Diff(expectedStates, actualStates()); diff != "" {
+		if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
 			t.Fatalf("unexpected states after cleanup: %s", diff)
 		}
 	})

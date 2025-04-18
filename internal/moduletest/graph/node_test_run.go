@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 var (
@@ -48,10 +49,15 @@ func (n *NodeTestRun) References() []*addrs.Reference {
 // Execute executes the test run block and update the status of the run block
 // based on the result of the execution.
 func (n *NodeTestRun) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
-	log.Printf("[TRACE] TestFileRunner: executing run block %s/%s", n.File().Name, n.run.Name)
+	if n.opts.CommandMode == moduletest.CleanupMode {
+		n.cleanupModeExecute(evalCtx)
+		return nil
+	}
+
 	startTime := time.Now().UTC()
 	var diags tfdiags.Diagnostics
 	file, run := n.File(), n.run
+	log.Printf("[TRACE] TestFileRunner: executing run block %s/%s", file.Name, run.Name)
 
 	// At the end of the function, we'll update the status of the file based on
 	// the status of the run block, and render the run summary.
@@ -107,6 +113,24 @@ func (n *NodeTestRun) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		Duration: time.Since(startTime),
 	}
 	return diags
+}
+
+func (n *NodeTestRun) cleanupModeExecute(ctx *EvalContext) {
+	// In cleanup mode, the test run block is not executed.
+	// Instead, the state file associated with the run is revisited to extract
+	// its output values. These output values are then set in the context so
+	// that they can be accessed by subsequent cleanup nodes. This is necessary
+	// because cleaning up the state file for a run may depend on the output
+	// values of previous runs.
+	state := ctx.GetFileState(n.run.Config.StateKey).State
+	if state == nil {
+		return
+	}
+	outputVals := make(map[string]cty.Value, len(state.RootOutputValues))
+	for name, out := range state.RootOutputValues {
+		outputVals[name] = out.Value
+	}
+	ctx.SetOutput(n.run, cty.ObjectVal(outputVals))
 }
 
 func (n *NodeTestRun) execute(ctx *EvalContext, waiter *operationWaiter) {
