@@ -126,6 +126,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"one":              funcs.OneFunc,
 			"parseint":         stdlib.ParseIntFunc,
 			"pathexpand":       funcs.PathExpandFunc,
+			"pkleval":          funcs.PklEvalFunc,
 			"pow":              stdlib.PowFunc,
 			"range":            stdlib.RangeFunc,
 			"regex":            stdlib.RegexFunc,

@@ -6,12 +6,14 @@ package funcs
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"log"
 	"net/url"
 	"unicode/utf8"
 
+	"github.com/apple/pkl-go/pkl"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	"golang.org/x/text/encoding/ianaindex"
@@ -266,4 +268,41 @@ func TextEncodeBase64(str, enc cty.Value) (cty.Value, error) {
 // the target encoding.
 func TextDecodeBase64(str, enc cty.Value) (cty.Value, error) {
 	return TextDecodeBase64Func.Call([]cty.Value{str, enc})
+}
+
+// PklEval constructs a function that evaluates the given string with pkl and
+// returns the result as a JSON string.
+var PklEvalFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type:         function.StaticReturnType(cty.String),
+	RefineResult: refineNotNull,
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		pklData := args[0].AsString()
+
+		evaluator, err := pkl.NewEvaluator(
+			context.Background(),
+			pkl.PreconfiguredOptions, func(opts *pkl.EvaluatorOptions) {
+				opts.OutputFormat = "json"
+			})
+		if err != nil {
+			return cty.UnknownVal(cty.String), err
+		}
+		defer evaluator.Close()
+		parsed, err := evaluator.EvaluateOutputText(context.Background(), pkl.TextSource(pklData))
+		if err != nil {
+			return cty.UnknownVal(cty.String), err
+		}
+		return cty.StringVal(parsed), nil
+	},
+})
+
+// PklEval evaluates the given string with pkl and returns the result
+// as a JSON string.
+func PklEval(str cty.Value) (cty.Value, error) {
+	return PklEvalFunc.Call([]cty.Value{str})
 }

@@ -5,6 +5,7 @@ package funcs
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/lang/marks"
@@ -354,6 +355,90 @@ func TestBase64TextDecode(t *testing.T) {
 				}
 				if got, want := err.Error(), test.Err; got != want {
 					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestPklEval(t *testing.T) {
+	tests := []struct {
+		String cty.Value
+		Want   cty.Value
+		Err    string
+	}{
+		{
+			cty.StringVal(`
+module zoo
+
+class Animal {
+	name: String
+	species: String
+	age: Int
+}
+
+animals {
+	new Animal {
+		name = "Simba"
+		species = "Lion"
+		age = 5
+	}
+	new Animal {
+		name = "Rafiki"
+		species = "Mandrill"
+		age = 10
+	}
+}`),
+			cty.StringVal(`{
+  "animals": [
+    {
+      "name": "Simba",
+      "species": "Lion",
+      "age": 5
+    },
+    {
+      "name": "Rafiki",
+      "species": "Mandrill",
+      "age": 10
+    }
+  ]
+}
+`),
+			``,
+		},
+		{
+			cty.StringVal("invalid pkl"),
+			cty.UnknownVal(cty.String),
+			`Invalid property definition`,
+		},
+		{
+			cty.StringVal(`foo = "bar" test = true`),
+			cty.StringVal(`{
+  "foo": "bar",
+  "test": true
+}
+`),
+			``,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("pkleval(%#v)", test.String), func(t *testing.T) {
+			got, err := PklEval(test.String)
+
+			if test.Err != "" {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.Err; !strings.Contains(got, want) {
+					t.Fatalf("wrong error\ngot:  %s\nwant (contains match): %s", got, want)
 				}
 				return
 			} else if err != nil {

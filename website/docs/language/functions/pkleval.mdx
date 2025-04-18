@@ -1,0 +1,61 @@
+---
+page_title: pkleval - Functions - Configuration Language
+description: The pkleval function evaluates a given value with pkl and returns the resulting json string.
+---
+
+# `pkleval` Function
+
+`pkleval` evaluates a given value to a json string using the
+[Pkl](https://pkl-lang.org/main/current/language-reference/index.html) language syntax.
+
+The output of this function can be used together with
+[`jsondecode`](/terraform/language/functions/jsondecode).
+
+## Examples
+
+```pkl
+# zoo.pkl
+module zoo
+
+class Animal {
+  name: String
+  species: String
+  age: Int
+}
+
+animals {
+  new Animal {
+    name = "Simba"
+    species = "Lion"
+    age = 5
+  }
+  new Animal {
+    name = "Rafiki"
+    species = "Mandrill"
+    age = 10
+  }
+}
+```
+
+```
+> pkleval(file("zoo.pkl"))
+{
+  "animals": [
+    {
+      "name": "Simba",
+      "species": "Lion",
+      "age": 5
+    },
+    {
+      "name": "Rafiki",
+      "species": "Mandrill",
+      "age": 10
+    }
+  ]
+}
+```
+
+## Related Functions
+
+- [`jsondecode`](/terraform/language/functions/jsondecode) can be used to convert
+  pkleval output to Terraform objects/types.

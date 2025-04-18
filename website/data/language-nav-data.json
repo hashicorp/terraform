@@ -643,6 +643,10 @@
             "href": "/language/functions/jsonencode"
           },
           {
+            "title": "<code>pkleval</code>",
+            "href": "/language/functions/pkleval"
+          },
+          {
             "title": "<code>textdecodebase64</code>",
             "href": "/language/functions/textdecodebase64"
           },
@@ -972,6 +976,7 @@
       },
       { "title": "one", "path": "functions/one", "hidden": true },
       { "title": "parseint", "path": "functions/parseint", "hidden": true },
+      { "title": "pkleval", "path": "functions/pkleval", "hidden": true },
       { "title": "pathexpand", "path": "functions/pathexpand", "hidden": true },
       { "title": "plantimestamp", "path": "functions/plantimestamp", "hidden": true },
       { "title": "pow", "path": "functions/pow", "hidden": true },
