@@ -1,0 +1,4 @@
+---
+changes:
+  - description: "update cidrblock in website/docs/language/functions/flatten.mdx."
+    type: bugfix
