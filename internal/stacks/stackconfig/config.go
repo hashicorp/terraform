@@ -76,6 +76,11 @@ type ConfigNode struct {
 	// Stack is the definition of this node in the stack tree.
 	Stack *Stack
 
+	// Source is the source address of this stack. This is mainly used to
+	// ensure consistency in places where a stack might be initialised in
+	// multiple places (like in different source blocks).
+	Source sourceaddrs.FinalSource
+
 	// Children describes all of the embedded stacks nested directly beneath
 	// this node in the stack tree. The keys match the labels on the "stack"
 	// blocks in the configuration that [Config.Stack] was built from, and
@@ -150,6 +155,7 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 
 	ret := &ConfigNode{
 		Stack:    stack,
+		Source:   sourceAddr,
 		Children: make(map[string]*ConfigNode),
 	}
 	for _, call := range stack.EmbeddedStacks {
@@ -236,7 +242,7 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 						Severity: hcl.DiagError,
 						Summary:  "Invalid removed block",
 						Detail:   "The linked removed block was not executed because the `from` attribute of the removed block targets a component or embedded stack within an orphaned embedded stack.\n\nIn order to remove an entire stack, update your removed block to target the entire removed stack itself instead of the specific elements within it.",
-						Subject:  block.SourceAddrRange.ToHCL().Ptr(),
+						Subject:  block.DeclRange.ToHCL().Ptr(),
 					})
 					break
 				}
@@ -244,9 +250,21 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 
 			if current != nil {
 				next := target.Item.Name
-				if _, ok := current.Children[next]; ok {
+				if childNode, ok := current.Children[next]; ok {
 					// Then we've already loaded the configuration for this
-					// stack in the direct stack call.
+					// stack in the direct stack call or in another removed
+					// block.
+
+					if childNode.Source != block.FinalSourceAddr {
+						// but apparently the blocks don't agree on what the
+						// source should be here, so that is an error
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid source address",
+							Detail:   fmt.Sprintf("Cannot use %q as a source address here: the target stack is already initialised with another source %q.", block.FinalSourceAddr, childNode.Source),
+							Subject:  block.SourceAddrRange.ToHCL().Ptr(),
+						})
+					}
 					continue
 				}
 
@@ -281,7 +299,15 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 		cmpn.FinalSourceAddr = effectiveSourceAddr
 	}
 
-	for _, blocks := range stack.RemovedComponents.All() {
+	for addr, blocks := range stack.RemovedComponents.All() {
+
+		var source sourceaddrs.FinalSource
+		if len(addr.Stack) == 0 {
+			if cmpn, ok := stack.Components[addr.Item.Name]; ok {
+				source = cmpn.FinalSourceAddr
+			}
+		}
+
 		for _, rmvd := range blocks {
 			effectiveSourceAddr, err := resolveFinalSourceAddr(sourceAddr, rmvd.SourceAddr, rmvd.VersionConstraints, sources)
 			if err != nil {
@@ -295,6 +321,17 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 					Subject: rmvd.SourceAddrRange.ToHCL().Ptr(),
 				})
 				continue
+			}
+
+			if source == nil {
+				source = effectiveSourceAddr
+			} else if source != effectiveSourceAddr {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid source address",
+					Detail:   fmt.Sprintf("Cannot use %q as a source address here: the target stack is already initialised with another source %q.", effectiveSourceAddr, source),
+					Subject:  rmvd.SourceAddrRange.ToHCL().Ptr(),
+				})
 			}
 
 			rmvd.FinalSourceAddr = effectiveSourceAddr
