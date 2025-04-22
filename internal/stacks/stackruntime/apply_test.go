@@ -1119,6 +1119,10 @@ func TestApply(t *testing.T) {
 								"removed": cty.StringVal("removed"),
 							}),
 						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("removed-direct"),
+							Value: cty.SetValEmpty(cty.String),
+						},
 					},
 				},
 			},
