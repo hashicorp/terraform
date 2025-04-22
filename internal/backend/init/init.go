@@ -23,6 +23,7 @@ import (
 	backendHTTP "github.com/hashicorp/terraform/internal/backend/remote-state/http"
 	backendInmem "github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	backendKubernetes "github.com/hashicorp/terraform/internal/backend/remote-state/kubernetes"
+	backendOCI "github.com/hashicorp/terraform/internal/backend/remote-state/oci"
 	backendOSS "github.com/hashicorp/terraform/internal/backend/remote-state/oss"
 	backendPg "github.com/hashicorp/terraform/internal/backend/remote-state/pg"
 	backendS3 "github.com/hashicorp/terraform/internal/backend/remote-state/s3"
@@ -67,6 +68,7 @@ func Init(services *disco.Disco) {
 		"oss":        func() backend.Backend { return backendOSS.New() },
 		"pg":         func() backend.Backend { return backendPg.New() },
 		"s3":         func() backend.Backend { return backendS3.New() },
+		"oci":        func() backend.Backend { return backendOCI.New() },
 
 		// HCP Terraform 'backend'
 		// This is an implementation detail only, used for the cloud package
