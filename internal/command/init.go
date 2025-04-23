@@ -1031,10 +1031,77 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 			flushVals() // deal with any accumulated individual values first
 			mergeBody(newBody)
 		} else {
+			// The flag value is setting a single attribute's value
 			name := item.Value[:eq]
 			rawValue := item.Value[eq+1:]
-			attrS := schema.Attributes[name]
-			if attrS == nil {
+
+			splitName := strings.Split(name, ".")
+			isNested := len(splitName) > 1
+
+			var value cty.Value
+			var valueDiags tfdiags.Diagnostics
+			switch {
+			case !isNested:
+				// The flag item is overriding a top-level attribute
+				attrS := schema.Attributes[name]
+				if attrS == nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid backend configuration argument",
+						fmt.Sprintf("The backend configuration argument %q given on the command line is not expected for the selected backend type.", name),
+					))
+					continue
+				}
+
+				value, valueDiags = configValueFromCLI(item.String(), rawValue, attrS.Type)
+				diags = diags.Append(valueDiags)
+				if valueDiags.HasErrors() {
+					continue
+				}
+
+				// Synthetic values are collected as we parse each flag item
+				synthVals[name] = value
+			case isNested:
+				// The flag item is overriding a nested attribute
+				// e.g. assume_role.role_arn in the s3 backend
+				// We assume a max nesting-depth of 1
+
+				parentName := splitName[0]
+				nestedName := splitName[1]
+				parentAttr := schema.Attributes[parentName]
+				nestedAttr := parentAttr.NestedType.Attributes[nestedName]
+				if nestedAttr == nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid backend configuration argument",
+						fmt.Sprintf("The backend configuration argument %q given on the command line is not expected for the selected backend type.", name),
+					))
+					continue
+				}
+
+				value, valueDiags = configValueFromCLI(item.String(), rawValue, nestedAttr.Type)
+				diags = diags.Append(valueDiags)
+				if valueDiags.HasErrors() {
+					continue
+				}
+
+				// Collected synthetic values need to accounting for attribute nesting
+				synthParent, found := synthVals[parentName]
+				if !found {
+					synthVals[parentName] = cty.ObjectVal(map[string]cty.Value{
+						nestedName: value,
+					})
+				}
+				if found {
+					// append the new attribute override to any existing attributes
+					// also nested under the parent
+					nestedMap := synthParent.AsValueMap()
+					nestedMap[nestedName] = value
+					synthVals[parentName] = cty.ObjectVal(nestedMap)
+				}
+
+			default:
+				// Should not reach here
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid backend configuration argument",
@@ -1042,12 +1109,6 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 				))
 				continue
 			}
-			value, valueDiags := configValueFromCLI(item.String(), rawValue, attrS.Type)
-			diags = diags.Append(valueDiags)
-			if valueDiags.HasErrors() {
-				continue
-			}
-			synthVals[name] = value
 		}
 	}
 
