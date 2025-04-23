@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'backends: Nested attrbiutes can now be overridden during `init` using the `-backend-config` flag'
+time: 2025-04-23T16:41:50.904809+01:00
+custom:
+    Issue: "36911"
