@@ -25,8 +25,8 @@ var (
 // defined in the state file. It uses the provided stateKey to identify the
 // specific state to clean up and opts for additional configuration options.
 type NodeStateCleanup struct {
-	stateKey string
-	opts     *graphOptions
+	run  *moduletest.Run
+	opts *graphOptions
 
 	// If applyOverride is provided, it will be applied to the state file to reach
 	// the final state, instead of running the destroy operation.
@@ -38,7 +38,7 @@ type NodeStateCleanup struct {
 }
 
 func (n *NodeStateCleanup) Name() string {
-	return fmt.Sprintf("cleanup.%s", n.stateKey)
+	return fmt.Sprintf("cleanup.%s", n.run.Name)
 }
 
 // Execute performs the cleanup of resources defined in the state file.
@@ -46,13 +46,21 @@ func (n *NodeStateCleanup) Name() string {
 // would prevent further cleanup of other states. Instead, any diagnostics
 // will be rendered directly to ensure the cleanup process continues.
 func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
+	stateKey := n.run.Config.StateKey
+	if evalCtx.GetFileState(stateKey).processedCleanup {
+		// This state's cleanup has already been processed, so we can skip it.
+		log.Printf("[TRACE] TestStateManager: skipping state cleanup for %s", stateKey)
+		return nil
+	}
 	n.execute(evalCtx)
 	return nil
 }
 
 func (n *NodeStateCleanup) execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	file := n.opts.File
-	state := evalCtx.GetFileState(n.stateKey)
+	stateKey := n.run.Config.StateKey
+	state := evalCtx.GetFileState(stateKey)
+	state.processedCleanup = true
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
 	if n.applyOverride != nil {
 		state.Run = n.applyOverride
@@ -90,7 +98,7 @@ func (n *NodeStateCleanup) execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	}
 
 	if state.Run == nil {
-		log.Printf("[ERROR] TestFileRunner: found inconsistent run block and state file in %s for module %s", file.Name, n.stateKey)
+		log.Printf("[ERROR] TestFileRunner: found inconsistent run block and state file in %s for module %s", file.Name, stateKey)
 
 		// The state can have a nil run block if it only executed a plan
 		// command. In which case, we shouldn't have reached here as the
@@ -101,7 +109,7 @@ func (n *NodeStateCleanup) execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		diags := tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name))}
 		file.UpdateStatus(moduletest.Error)
 		state.Reason = ReasonError
-		diags = diags.Append(evalCtx.WriteFileState(n.stateKey, state))
+		diags = diags.Append(evalCtx.WriteFileState(stateKey, state))
 		evalCtx.Renderer().DestroySummary(diags, nil, file, state.State)
 
 		return diags
@@ -115,6 +123,7 @@ func (n *NodeStateCleanup) execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 func (n *NodeStateCleanup) performCleanup(evalCtx *EvalContext, state *TestFileState) tfdiags.Diagnostics {
 	runNode := &NodeTestRun{run: state.Run, opts: n.opts}
 	updated := state.State
+	stateKey := n.run.Config.StateKey
 	startTime := time.Now().UTC()
 	waiter := NewOperationWaiter(nil, evalCtx, runNode, moduletest.Running, startTime.UnixMilli())
 	var destroyDiags tfdiags.Diagnostics
@@ -145,7 +154,7 @@ func (n *NodeStateCleanup) performCleanup(evalCtx *EvalContext, state *TestFileS
 		return nil
 	}
 
-	evalCtx.WriteFileState(n.stateKey, state)
+	evalCtx.WriteFileState(stateKey, state)
 
 	// We don't return destroyDiags here because the calling code sets the return code for the test operation
 	// based on whether the tests passed or not; cleanup is not a factor.
@@ -155,7 +164,8 @@ func (n *NodeStateCleanup) performCleanup(evalCtx *EvalContext, state *TestFileS
 
 func (n *NodeStateCleanup) cleanup(ctx *EvalContext, runNode *NodeTestRun, waiter *operationWaiter) (*states.State, tfdiags.Diagnostics) {
 	file := n.opts.File
-	fileState := ctx.GetFileState(n.stateKey)
+	stateKey := runNode.run.Config.StateKey
+	fileState := ctx.GetFileState(stateKey)
 	state := fileState.State
 	run := runNode.run
 	log.Printf("[TRACE] TestFileRunner: called destroy for %s/%s", file.Name, run.Name)
@@ -174,7 +184,7 @@ func (n *NodeStateCleanup) cleanup(ctx *EvalContext, runNode *NodeTestRun, waite
 	// a destroy operation.
 	if n.applyOverride != nil && n.opts.CommandMode != moduletest.CleanupMode {
 		runNode.testApply(ctx, variables, waiter)
-		return ctx.GetFileState(n.stateKey).State, runNode.run.Diagnostics
+		return ctx.GetFileState(stateKey).State, runNode.run.Diagnostics
 	}
 
 	// During the destroy operation, we don't add warnings from this operation.

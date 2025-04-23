@@ -63,6 +63,11 @@ type EvalContext struct {
 	FileStates map[string]*TestFileState
 	stateLock  sync.Mutex
 
+	// runStates is a mapping of run addresses to their last applied state
+	// file.
+	runStates map[addrs.Run]*TestFileState
+	needs     map[addrs.Run]bool
+
 	// This is a manifest that is used to keep track of the state files created
 	// during the test runs.
 	manifest *TestManifest
@@ -388,12 +393,15 @@ func (ec *EvalContext) UpdateStateFile(key string, state *TestFileState) {
 	}
 
 	ec.FileStates[key] = &TestFileState{
-		File:  state.File,
-		Run:   state.Run,
-		State: state.State,
+		File:             state.File,
+		Run:              state.Run,
+		State:            state.State,
+		processedCleanup: state.processedCleanup,
 
 		backend: oldState.backend,
 	}
+
+	// ec.runStates[state.Run.Addr()] = ec.FileStates[key]
 }
 
 func (ec *EvalContext) GetFileState(key string) *TestFileState {

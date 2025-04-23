@@ -21,6 +21,7 @@ const alphanumeric = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345
 type StateReason string
 
 const (
+	None        StateReason = ""
 	ReasonSkip  StateReason = "skip_cleanup"
 	ReasonError StateReason = "error"
 )

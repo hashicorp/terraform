@@ -2541,16 +2541,18 @@ func TestTest_SkipCleanup(t *testing.T) {
 
 	t.Run("skipped resources should not be deleted", func(t *testing.T) {
 
-		expected := `main.tftest.hcl... in progress
+		expected := `
+Warning: Duplicate "skip_cleanup" block
+
+  on main.tftest.hcl line 14:
+  14: run "test_three" {
+
+The run "test_three" has a skip_cleanup attribute set, but shares state with
+a later run "test_two" that also has skip_cleanup set. The later run takes
+precedence, and this attribute is ignored for the earlier run.
+main.tftest.hcl... in progress
   run "test"... pass
   run "test_two"... pass
-
-Warning: Multiple runs with skip_cleanup set
-
-The run "test_two" has skip_cleanup set to true, but shares state with a
-later run "test_three" that also has skip_cleanup set. The later run takes
-precedence, and this attribute is ignored for the earlier run.
-
   run "test_three"... pass
   run "test_four"... pass
   run "test_five"... pass
@@ -2562,7 +2564,7 @@ Success! 5 passed, 0 failed.
 
 		actual := output.All()
 		if !strings.Contains(actual, expected) {
-			t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s", expected, actual)
+			t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, cmp.Diff(expected, actual))
 		}
 
 		if provider.ResourceCount() != 1 {
@@ -2718,13 +2720,13 @@ func TestTest_SkipCleanup_JSON(t *testing.T) {
 	t.Run("skipped resources should not be deleted", func(t *testing.T) {
 
 		expected := []string{
+			`{"@level":"warn","@message":"Warning: Duplicate \"skip_cleanup\" block","@module":"terraform.ui","diagnostic":{"detail":"The run \"test_three\" has a skip_cleanup attribute set, but shares state with a later run \"test_two\" that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.","range":{"end":{"byte":146,"column":17,"line":14},"filename":"main.tftest.hcl","start":{"byte":130,"column":1,"line":14}},"severity":"warning","snippet":{"code":"run \"test_three\" {","context":null,"highlight_end_offset":16,"highlight_start_offset":0,"start_line":14,"values":[]},"summary":"Duplicate \"skip_cleanup\" block"},"type":"diagnostic"}`,
 			`{"@level":"info","@message":"Found 1 file and 5 run blocks","@module":"terraform.ui","test_abstract":{"main.tftest.hcl":["test","test_two","test_three","test_four","test_five"]},"type":"test_abstract"}`,
 			`{"@level":"info","@message":"main.tftest.hcl... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","test_file":{"path":"main.tftest.hcl","progress":"starting"},"type":"test_file"}`,
 			`{"@level":"info","@message":"  \"test\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test","test_run":{"path":"main.tftest.hcl","progress":"starting","run":"test"},"type":"test_run"}`,
 			`{"@level":"info","@message":"  \"test\"... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test","test_run":{"path":"main.tftest.hcl","progress":"complete","run":"test","status":"pass"},"type":"test_run"}`,
 			`{"@level":"info","@message":"  \"test_two\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_two","test_run":{"path":"main.tftest.hcl","progress":"starting","run":"test_two"},"type":"test_run"}`,
 			`{"@level":"info","@message":"  \"test_two\"... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_two","test_run":{"path":"main.tftest.hcl","progress":"complete","run":"test_two","status":"pass"},"type":"test_run"}`,
-			`{"@level":"warn","@message":"Warning: Multiple runs with skip_cleanup set","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_two","diagnostic":{"detail":"The run \"test_two\" has skip_cleanup set to true, but shares state with a later run \"test_three\" that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.","severity":"warning","summary":"Multiple runs with skip_cleanup set"},"type":"diagnostic"}`,
 			`{"@level":"info","@message":"  \"test_three\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_three","test_run":{"path":"main.tftest.hcl","progress":"starting","run":"test_three"},"type":"test_run"}`,
 			`{"@level":"info","@message":"  \"test_three\"... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_three","test_run":{"path":"main.tftest.hcl","progress":"complete","run":"test_three","status":"pass"},"type":"test_run"}`,
 			`{"@level":"info","@message":"  \"test_four\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_four","test_run":{"path":"main.tftest.hcl","progress":"starting","run":"test_four"},"type":"test_run"}`,
@@ -4912,7 +4914,6 @@ required.
 }
 
 func TestTest_JUnitOutput(t *testing.T) {
-	t.Skip()
 	tcs := map[string]struct {
 		path         string
 		code         int

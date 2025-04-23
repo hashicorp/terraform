@@ -31,7 +31,8 @@ type TestFileState struct {
 	State  *states.State
 	Reason StateReason
 
-	backend runBackend
+	backend          runBackend
+	processedCleanup bool
 }
 
 // runBackend connects the backend instance to the run that
