@@ -1115,11 +1115,11 @@ func (n *NodeAbstractResourceInstance) plan(
 			// If the identity is not known we can not validate it did not change
 			if !diags.HasErrors() {
 				diags = diags.Append(n.validateIdentityDidNotChange(currentState, plannedIdentity))
-				diags = diags.Append(n.validateIdentityMatchesSchema(plannedIdentity, schema.Identity))
 			}
 		}
 
 		diags = diags.Append(n.validateIdentity(plannedIdentity))
+		diags = diags.Append(n.validateIdentityMatchesSchema(plannedIdentity, schema.Identity))
 	}
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
@@ -2946,7 +2946,7 @@ func (n *NodeAbstractResourceInstance) validateIdentityMatchesSchema(newIdentity
 	currentType := identitySchema.ImpliedType()
 	if errs := newType.TestConformance(currentType); len(errs) > 0 {
 		for _, err := range errs {
-			diags = diags.Append(tfdiags.Sourceless(
+			diags = diags.AppendWithoutDuplicates(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Provider produced an identity that doesn't match the schema",
 				fmt.Sprintf(
