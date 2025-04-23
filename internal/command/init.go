@@ -1064,7 +1064,8 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 			case isNested:
 				// The flag item is overriding a nested attribute
 				// e.g. assume_role.role_arn in the s3 backend
-				// We assume a max nesting-depth of 1
+				// We assume a max nesting-depth of 1 as s3 is the only
+				// backend that contains nested fields.
 
 				parentName := splitName[0]
 				nestedName := splitName[1]
@@ -1085,7 +1086,9 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 					continue
 				}
 
-				// Collected synthetic values need to accounting for attribute nesting
+				// Synthetic values are collected as we parse each flag item
+				// When doing this we need to account for attribute nesting
+				// and multiple nested fields being overridden.
 				synthParent, found := synthVals[parentName]
 				if !found {
 					synthVals[parentName] = cty.ObjectVal(map[string]cty.Value{
@@ -1093,7 +1096,7 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 					})
 				}
 				if found {
-					// append the new attribute override to any existing attributes
+					// add the new attribute override to any existing attributes
 					// also nested under the parent
 					nestedMap := synthParent.AsValueMap()
 					nestedMap[nestedName] = value
