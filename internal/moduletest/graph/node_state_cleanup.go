@@ -112,14 +112,14 @@ func (n *NodeStateCleanup) performCleanup(evalCtx *EvalContext, state *TestFileS
 	}
 
 	evalCtx.Renderer().DestroySummary(destroyDiags, state.Run, n.opts.File, updated)
-	state.State = updated
+	n.updateStateResourcesOnly(evalCtx, runNode, updated)
 
 	// Update the file status and write the updated state back to the file.
 	status := moduletest.Pass
 	if n.applyOverride != nil { // skip_cleanup=true
 		status = runNode.run.Status
 		state.Reason = ReasonSkip
-	} else if !updated.Empty() {
+	} else if !n.emptyState(updated) {
 		// Then we ran a destroy operation, but failed to adequately clean up the state, so mark as errored.
 		status = moduletest.Error
 		state.Reason = ReasonError
@@ -134,7 +134,7 @@ func (n *NodeStateCleanup) performCleanup(evalCtx *EvalContext, state *TestFileS
 	evalCtx.WriteFileState(stateKey, state)
 
 	// failed state cleanup. We need to store the dependent states too
-	if !updated.Empty() {
+	if !n.emptyState(updated) {
 		for _, dep := range n.deps {
 			depState, ok := evalCtx.snapStates[dep.run.Config.StateKey]
 			if !ok {
@@ -149,6 +149,17 @@ func (n *NodeStateCleanup) performCleanup(evalCtx *EvalContext, state *TestFileS
 	// based on whether the tests passed or not; cleanup is not a factor.
 	// Users will be aware of issues with cleanup due to destroyDiags being rendered to the View.
 	return nil
+}
+
+func (n *NodeStateCleanup) updateStateResourcesOnly(ctx *EvalContext, runNode *NodeTestRun, state *states.State) {
+	fileState := ctx.GetFileState(runNode.run.Config.StateKey)
+	if fileState == nil {
+		return
+	}
+
+	outputs := fileState.State.RootOutputValues
+	fileState.State = state
+	fileState.State.RootOutputValues = outputs
 }
 
 func (n *NodeStateCleanup) cleanup(ctx *EvalContext, runNode *NodeTestRun, waiter *operationWaiter) (*states.State, tfdiags.Diagnostics) {
@@ -234,9 +245,13 @@ func (n *NodeStateCleanup) shouldSkipCleanup(evalCtx *EvalContext, state *TestFi
 		return true
 	}
 
+	return n.emptyState(state.State)
+}
+
+func (n *NodeStateCleanup) emptyState(state *states.State) bool {
 	empty := true
-	if !state.State.Empty() {
-		for _, module := range state.State.Modules {
+	if !state.Empty() {
+		for _, module := range state.Modules {
 			for _, resource := range module.Resources {
 				if resource.Addr.Resource.Mode == addrs.ManagedResourceMode {
 					empty = false
@@ -245,6 +260,5 @@ func (n *NodeStateCleanup) shouldSkipCleanup(evalCtx *EvalContext, state *TestFi
 			}
 		}
 	}
-
 	return empty
 }

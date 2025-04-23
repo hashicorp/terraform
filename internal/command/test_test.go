@@ -2147,13 +2147,13 @@ Success! 5 passed, 0 failed.
 }
 
 func TestTest_Cleanup(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath(path.Join("test", "cleanup")), td)
-	defer testChdir(t, td)()
-
 	// function to consolidate the test command that should generate some state files and manifest
 	// It also does assertions.
-	executeTestCmd := func(provider *testing_command.TestProvider, providerSource *getproviders.MockSource) {
+	executeTestCmd := func(provider *testing_command.TestProvider, providerSource *getproviders.MockSource) (td string, def func()) {
+		td = t.TempDir()
+		testCopyDir(t, testFixturePath(path.Join("test", "cleanup")), td)
+		def = testChdir(t, td)
+
 		view, done := testView(t)
 		meta := Meta{
 			testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -2218,9 +2218,13 @@ main.tftest.hcl/test_three, and they need to be cleaned up manually:
 			"main.":            {"test_resource.resource"},
 			"main.state_three": {"test_resource.resource"},
 		}
-		if diff := cmp.Diff(expectedStates, statesFromManifest(t, td)); diff != "" {
+		actual := statesFromManifest(t, td)
+
+		if diff := cmp.Diff(expectedStates, actual); diff != "" {
 			t.Fatalf("unexpected states: %s", diff)
 		}
+
+		return
 	}
 
 	t.Run("cleanup all left-over state", func(t *testing.T) {
@@ -2231,7 +2235,8 @@ main.tftest.hcl/test_three, and they need to be cleaned up manually:
 		defer close()
 
 		// Run the test command to create the state
-		executeTestCmd(provider, providerSource)
+		td, def := executeTestCmd(provider, providerSource)
+		defer def()
 
 		interrupt := make(chan struct{})
 		provider.Interrupt = interrupt
@@ -2289,7 +2294,8 @@ Success!`
 		defer close()
 
 		// Run the test command to create the state
-		executeTestCmd(provider, providerSource)
+		td, def := executeTestCmd(provider, providerSource)
+		defer def()
 
 		interrupt := make(chan struct{})
 		provider.Interrupt = interrupt
@@ -2328,8 +2334,9 @@ Success!`
 		expectedStates := map[string][]string{
 			"main.": {"test_resource.resource"},
 		}
+		actual := statesFromManifest(t, td)
 
-		if diff := cmp.Diff(expectedStates, statesFromManifest(t, td)); diff != "" {
+		if diff := cmp.Diff(expectedStates, actual); diff != "" {
 			t.Fatalf("unexpected states after cleanup: %s", diff)
 		}
 	})
@@ -5092,6 +5099,9 @@ func statesFromManifest(t *testing.T, td string) map[string][]string {
 				for _, resource := range module.Resources {
 					resources = append(resources, resource.Addr.String())
 				}
+			}
+			if len(resources) == 0 {
+				continue
 			}
 			sort.Strings(resources)
 			states[strings.TrimSuffix(fileName, ".tftest.hcl")+"."+name] = resources
