@@ -25,6 +25,9 @@ var (
 // defined in the state file. It uses the provided stateKey to identify the
 // specific state to clean up and opts for additional configuration options.
 type NodeStateCleanup struct {
+	// each state cleanup node is associated with a specific run,
+	// but only the first execution of the run is used to
+	// destroy the state.
 	run  *moduletest.Run
 	opts *graphOptions
 
@@ -32,9 +35,9 @@ type NodeStateCleanup struct {
 	// the final state, instead of running the destroy operation.
 	applyOverride *moduletest.Run
 
-	// if true, we are in repair mode and should not clean up state that was
-	// intentionally left-over.
-	repair bool
+	// deps is a map of dependent states that need to be stored if this
+	// state cleanup fails.
+	deps map[string]*NodeStateCleanup
 }
 
 func (n *NodeStateCleanup) Name() string {
@@ -46,12 +49,6 @@ func (n *NodeStateCleanup) Name() string {
 // would prevent further cleanup of other states. Instead, any diagnostics
 // will be rendered directly to ensure the cleanup process continues.
 func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
-	stateKey := n.run.Config.StateKey
-	if evalCtx.GetFileState(stateKey).processedCleanup {
-		// This state's cleanup has already been processed, so we can skip it.
-		log.Printf("[TRACE] TestStateManager: skipping state cleanup for %s", stateKey)
-		return nil
-	}
 	n.execute(evalCtx)
 	return nil
 }
@@ -60,40 +57,12 @@ func (n *NodeStateCleanup) execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	file := n.opts.File
 	stateKey := n.run.Config.StateKey
 	state := evalCtx.GetFileState(stateKey)
-	state.processedCleanup = true
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
 	if n.applyOverride != nil {
 		state.Run = n.applyOverride
 	}
 
-	// If the state was loaded as a result of an intentional skip, we
-	// don't need to clean it up when in repair mode.
-	if n.repair && state.Reason == ReasonSkip {
-		return nil
-	}
-
-	if evalCtx.Cancelled() {
-		// Don't try and clean anything up if the execution has been cancelled.
-		log.Printf("[DEBUG] TestStateManager: skipping state cleanup for %s due to cancellation", file.Name)
-		return nil
-	}
-
-	empty := true
-	if !state.State.Empty() {
-		for _, module := range state.State.Modules {
-			for _, resource := range module.Resources {
-				if resource.Addr.Resource.Mode == addrs.ManagedResourceMode {
-					empty = false
-					break
-				}
-			}
-		}
-	}
-
-	if empty {
-		// The state can be empty for a run block that just executed a plan
-		// command, or a run block that only read data sources. We'll just
-		// skip empty run blocks.
+	if n.shouldSkipCleanup(evalCtx, state, file) {
 		return nil
 	}
 
@@ -115,6 +84,14 @@ func (n *NodeStateCleanup) execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		return diags
 	}
 	TransformConfigForRun(evalCtx, state.Run, file)
+
+	// store the state in the file before running the cleanup
+	evalCtx.snapStates[stateKey] = &TestFileState{
+		File:   file,
+		Run:    state.Run,
+		State:  state.State.DeepCopy(),
+		Reason: state.Reason,
+	}
 
 	n.performCleanup(evalCtx, state)
 	return nil
@@ -155,6 +132,18 @@ func (n *NodeStateCleanup) performCleanup(evalCtx *EvalContext, state *TestFileS
 	}
 
 	evalCtx.WriteFileState(stateKey, state)
+
+	// failed state cleanup. We need to store the dependent states too
+	if !updated.Empty() {
+		for _, dep := range n.deps {
+			depState, ok := evalCtx.snapStates[dep.run.Config.StateKey]
+			if !ok {
+				continue
+			}
+			depState.Reason = ReasonDep
+			evalCtx.WriteFileState(dep.run.Config.StateKey, depState)
+		}
+	}
 
 	// We don't return destroyDiags here because the calling code sets the return code for the test operation
 	// based on whether the tests passed or not; cleanup is not a factor.
@@ -215,4 +204,47 @@ func (n *NodeStateCleanup) cleanup(ctx *EvalContext, runNode *NodeTestRun, waite
 	_, updated, applyDiags := runNode.apply(tfCtx, plan, moduletest.TearDown, variables, waiter)
 	diags = diags.Append(applyDiags)
 	return updated, diags
+}
+
+func (n *NodeStateCleanup) shouldSkipCleanup(evalCtx *EvalContext, state *TestFileState, file *moduletest.File) bool {
+	stateKey := n.run.Config.StateKey
+	if _, ok := evalCtx.snapStates[stateKey]; ok {
+		// This state's cleanup has already been processed, so we can skip it.
+		log.Printf("[TRACE] TestStateManager: skipping state cleanup for %s", stateKey)
+		return true
+	}
+
+	// If the state was loaded as a result of an intentional skip, we
+	// don't need to clean it up when in repair mode.
+	if evalCtx.repair && state.Reason == ReasonSkip {
+		log.Printf("[DEBUG] TestStateManager: skipping state cleanup for %s due to repair mode", file.Name)
+		return true
+	}
+
+	if state.Reason == ReasonDep {
+		// If the state was loaded as a result of a dependency, we don't
+		// need to clean it up.
+		log.Printf("[DEBUG] TestStateManager: skipping state cleanup for %s due to dependency", file.Name)
+		return true
+	}
+
+	if evalCtx.Cancelled() {
+		// Don't try and clean anything up if the execution has been cancelled.
+		log.Printf("[DEBUG] TestStateManager: skipping state cleanup for %s due to cancellation", file.Name)
+		return true
+	}
+
+	empty := true
+	if !state.State.Empty() {
+		for _, module := range state.State.Modules {
+			for _, resource := range module.Resources {
+				if resource.Addr.Resource.Mode == addrs.ManagedResourceMode {
+					empty = false
+					break
+				}
+			}
+		}
+	}
+
+	return empty
 }

@@ -63,10 +63,10 @@ type EvalContext struct {
 	FileStates map[string]*TestFileState
 	stateLock  sync.Mutex
 
-	// runStates is a mapping of run addresses to their last applied state
-	// file.
-	runStates map[addrs.Run]*TestFileState
-	needs     map[addrs.Run]bool
+	// snapStates stores a snapshot of the state file before destroying it.
+	// If a subsequent run needs data from the state file, it will use the
+	// snapshot, even though the actual state resources are destroyed.
+	snapStates map[string]*TestFileState
 
 	// This is a manifest that is used to keep track of the state files created
 	// during the test runs.
@@ -81,8 +81,9 @@ type EvalContext struct {
 	stopContext   context.Context
 	stopFunc      context.CancelFunc
 
-	renderer views.Test
-	verbose  bool
+	renderer  views.Test
+	semaphore terraform.Semaphore
+	verbose   bool
 
 	// repair is true if the test suite is being run in cleanup repair mode.
 	// It is only set when in test cleanup mode.
@@ -96,6 +97,7 @@ type EvalContextOpts struct {
 	CancelCtx context.Context
 	StopCtx   context.Context
 	Manifest  *TestManifest
+	Semaphore terraform.Semaphore
 }
 
 // NewEvalContext constructs a new graph evaluation context for use in
@@ -121,6 +123,8 @@ func NewEvalContext(opts *EvalContextOpts) *EvalContext {
 		repair:          opts.Repair,
 		renderer:        opts.Render,
 		manifest:        opts.Manifest,
+		snapStates:      make(map[string]*TestFileState),
+		semaphore:       opts.Semaphore,
 	}
 }
 
@@ -393,15 +397,12 @@ func (ec *EvalContext) UpdateStateFile(key string, state *TestFileState) {
 	}
 
 	ec.FileStates[key] = &TestFileState{
-		File:             state.File,
-		Run:              state.Run,
-		State:            state.State,
-		processedCleanup: state.processedCleanup,
+		File:  state.File,
+		Run:   state.Run,
+		State: state.State,
 
 		backend: oldState.backend,
 	}
-
-	// ec.runStates[state.Run.Addr()] = ec.FileStates[key]
 }
 
 func (ec *EvalContext) GetFileState(key string) *TestFileState {

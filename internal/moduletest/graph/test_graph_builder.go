@@ -101,7 +101,7 @@ func (n *dynamicNode) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	return n.eval(evalCtx)
 }
 
-func Walk(g *terraform.Graph, ctx *EvalContext, sem terraform.Semaphore) tfdiags.Diagnostics {
+func Walk(g *terraform.Graph, ctx *EvalContext) tfdiags.Diagnostics {
 
 	// Walk the graph.
 	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
@@ -144,8 +144,8 @@ func Walk(g *terraform.Graph, ctx *EvalContext, sem terraform.Semaphore) tfdiags
 		}()
 
 		// Acquire a lock on the semaphore
-		sem.Acquire()
-		defer sem.Release()
+		ctx.semaphore.Acquire()
+		defer ctx.semaphore.Release()
 
 		if executable, ok := v.(GraphNodeExecutable); ok {
 			diags = executable.Execute(ctx)

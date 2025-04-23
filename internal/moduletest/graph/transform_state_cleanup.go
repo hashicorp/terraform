@@ -16,6 +16,8 @@ import (
 
 var _ GraphNodeExecutable = &CleanupSubGraph{}
 
+// CleanupSubGraph is a subgraph that is responsible for cleaning up the state of
+// resources defined in the state files created by the test runs.
 type CleanupSubGraph struct {
 	opts *graphOptions
 }
@@ -34,7 +36,7 @@ func (b *CleanupSubGraph) Execute(ctx *EvalContext) tfdiags.Diagnostics {
 		return diags
 	}
 
-	return Walk(g, ctx, terraform.NewSemaphore(10))
+	return Walk(g, ctx)
 }
 
 // TestStateCleanupTransformer is a GraphTransformer that adds a cleanup node
@@ -48,14 +50,45 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	overrideMap := make(map[string]*moduletest.Run)
 	for _, run := range t.opts.File.Runs {
 
-		// if skip_cleanup is set, we store the run in the overrideMap
+		// if skip_cleanup is set, we store the run in the overrideMap,
+		// and the last run with this state key will be used to override the
+		// state key in the cleanup node.
 		if run.Config.SkipCleanup {
 			overrideMap[run.Config.StateKey] = run
 		}
 
 		// Create a cleanup node for each run
-		cleanupMap[run.Name] = &NodeStateCleanup{run: run, opts: t.opts, repair: t.opts.EvalContext.repair}
+		cleanupMap[run.Name] = &NodeStateCleanup{
+			run:  run,
+			opts: t.opts,
+			deps: make(map[string]*NodeStateCleanup),
+		}
 		g.Add(cleanupMap[run.Name])
+	}
+
+	for _, run := range t.opts.File.Runs {
+		node := cleanupMap[run.Name]
+		// Ensure that referencer runs are cleaned up first
+		refs, _ := run.GetReferences()
+		for _, ref := range refs {
+			subj, ok := ref.Subject.(addrs.Run)
+			if !ok {
+				continue
+			}
+
+			node.deps[subj.Name] = cleanupMap[subj.Name]
+
+			// Look for the run with this address
+			for _, r := range t.opts.File.Runs {
+				if r.Config.Name == subj.Name {
+					prev := cleanupMap[r.Name]
+					g.Connect(dag.BasicEdge(prev, node))
+					break
+				}
+			}
+		}
+
+		node.applyOverride = overrideMap[run.Config.StateKey]
 	}
 
 	// Keep track of processed state keys to avoid duplicate connections
@@ -72,77 +105,11 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 		if _, exists := added[key]; !exists {
 			if prev != nil {
 				g.Connect(dag.BasicEdge(node, prev))
-				fmt.Printf("%s -> %s\n", node.Name(), prev.(*NodeStateCleanup).Name())
+				fmt.Printf("%s -> %s\n", prev.(*NodeStateCleanup).Name(), node.Name())
 			}
 			prev = node
 			added[key] = true
 		}
-
-		node.applyOverride = overrideMap[v.Config.StateKey]
-
-		// Check if the run has a skip_cleanup attribute set, and set it only once
-		// for each state key.
-		// override := overrides[v.Config.StateKey]
-		// if v.Config.SkipCleanup {
-		// 	// the node already has an applyOverride from a later run
-		// 	if override != nil && v.Config.SkipCleanupSet {
-		// 		// We already emitted a warning when parsing the run config
-		// 		continue
-		// 	}
-
-		// 	overrides[v.Config.StateKey] = v
-		// }
-
-		// Process each state key only once
-		// refs, _ := v.GetReferences()
-		// for _, ref := range refs {
-		// 	subj, ok := ref.Subject.(addrs.Run)
-		// 	if !ok {
-		// 		continue
-		// 	}
-
-		// 	//look for the run with this address
-		// 	for _, run := range t.opts.File.Runs {
-		// 		if run.Config.Name == subj.Name {
-		// 			g.Connect(dag.BasicEdge(cleanupMap[run.Name], node))
-		// 			fmt.Printf("%s -> %s\n", node.Name(), cleanupMap[run.Name].Name())
-		// 			break
-		// 		}
-		// 	}
-		// }
-
-		// Handle skip_cleanup attribute
-		// switch {
-		// // the node already has an applyOverride from a later run
-		// case v.Config.SkipCleanup && override != nil && v.Config.SkipCleanupSet:
-		// 	v.Diagnostics = v.Diagnostics.Append(tfdiags.Sourceless(
-		// 		tfdiags.Warning,
-		// 		"Multiple runs with skip_cleanup set",
-		// 		fmt.Sprintf(`The run %q has skip_cleanup set to true, but shares state with a later run %q that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.`,
-		// 			v.Config.Name, override.Config.Name),
-		// 	))
-		// case v.Config.SkipCleanup && override == nil:
-		// 	node.applyOverride = v
-		// }
 	}
-
-	// for node := range dag.SelectSeq(g.VerticesSeq(), func(*NodeStateCleanup) {}) {
-	// 	if override, exists := overrides[node.run.Config.StateKey]; exists {
-	// 		node.applyOverride = override
-	// 	}
-	// }
-
 	return nil
-}
-
-func (t *TestStateCleanupTransformer) addRootCleanupNode(g *terraform.Graph) *dynamicNode {
-	rootCleanupNode := &dynamicNode{
-		eval: func(ctx *EvalContext) tfdiags.Diagnostics {
-			var diags tfdiags.Diagnostics
-			ctx.Renderer().File(t.opts.File, moduletest.TearDown)
-			return diags
-		},
-	}
-	g.Add(rootCleanupNode)
-	return rootCleanupNode
 }

@@ -23,6 +23,7 @@ type StateReason string
 const (
 	None        StateReason = ""
 	ReasonSkip  StateReason = "skip_cleanup"
+	ReasonDep   StateReason = "dependency"
 	ReasonError StateReason = "error"
 )
 

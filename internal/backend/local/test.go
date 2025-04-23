@@ -166,6 +166,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			Repair:    runner.Repair,
 			Render:    runner.View,
 			Manifest:  manifest,
+			Semaphore: runner.semaphore,
 		})
 
 		for _, run := range file.Runs {
@@ -316,7 +317,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	}
 
 	// walk and execute the graph
-	diags = graph.Walk(g, runner.EvalContext, runner.Suite.semaphore)
+	diags = graph.Walk(g, runner.EvalContext)
 
 	// Update the manifest file with the reason why each state file was created.
 	err := runner.Suite.Manifest.WriteManifest()

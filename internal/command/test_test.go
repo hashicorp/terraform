@@ -690,350 +690,6 @@ Success!`
 	})
 }
 
-func TestTest_Cleanup(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath(path.Join("test", "cleanup")), td)
-	defer testChdir(t, td)()
-
-	// function to help retrieve the state from the manifest.json file
-	actualStates := func() map[string][]string {
-		// Verify the manifest.json file
-		manifestPath := path.Join(td, ".terraform/test", "manifest.json")
-		manifestFile, err := os.ReadFile(manifestPath)
-		if err != nil {
-			t.Fatalf("failed to read manifest.json: %s", err)
-		}
-
-		var manifest graph.TestManifest
-		if err := json.Unmarshal(manifestFile, &manifest); err != nil {
-			t.Fatalf("failed to unmarshal manifest.json: %s", err)
-		}
-
-		states := make(map[string][]string)
-
-		// Verify the states in the manifest
-		for fileName, file := range manifest.Files {
-			for name, state := range file.States {
-				sm := statemgr.NewFilesystem(filepath.Join(td, state.Path))
-				if err := sm.RefreshState(); err != nil {
-					t.Fatalf("error when reading state file: %s", err)
-				}
-				state := sm.State()
-
-				// If the state is nil, then the test cleaned up the state
-				if state == nil || state.Empty() {
-					continue
-				}
-
-				var resources []string
-				for _, module := range state.Modules {
-					for _, resource := range module.Resources {
-						resources = append(resources, resource.Addr.String())
-					}
-				}
-				sort.Strings(resources)
-				states[strings.TrimSuffix(fileName, ".tftest.hcl")+"."+name] = resources
-			}
-		}
-
-		return states
-	}
-
-	// function to consolidate the test command that should generate some state files and manifest
-	// It also does assertions.
-	executeTestCmd := func(provider *testing_command.TestProvider, providerSource *getproviders.MockSource) {
-		view, done := testView(t)
-		meta := Meta{
-			testingOverrides: metaOverridesForProvider(provider.Provider),
-			View:             view,
-			ProviderSource:   providerSource,
-		}
-
-		init := &InitCommand{Meta: meta}
-		if code := init.Run(nil); code != 0 {
-			output := done(t)
-			t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
-		}
-		interrupt := make(chan struct{})
-		provider.Interrupt = interrupt
-		view, done = testView(t)
-
-		c := &TestCommand{
-			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(provider.Provider),
-				View:             view,
-				ShutdownCh:       interrupt,
-			},
-		}
-
-		c.Run([]string{"-no-color"})
-		output := done(t)
-
-		message := `main.tftest.hcl... in progress
-  run "test"... pass
-  run "test_two"... pass
-  run "test_three"... pass
-  run "test_four"... pass
-main.tftest.hcl... tearing down
-main.tftest.hcl... fail
-
-Failure! 4 passed, 0 failed.
-`
-
-		outputErr := `Terraform encountered an error destroying resources created while executing
-main.tftest.hcl/test_three.
-
-Error: Failed to destroy resource
-
-destroy_fail is set to true
-
-Terraform left the following resources in state after executing
-main.tftest.hcl/test_three, and they need to be cleaned up manually:
-  - test_resource.resource
-`
-		if diff := cmp.Diff(outputErr, output.Stderr()); diff != "" {
-			t.Errorf("expected err to be %s\n\nbut got %s\n\n diff:%s\n", outputErr, output.Stderr(), diff)
-		}
-		if diff := cmp.Diff(message, output.Stdout()); diff != "" {
-			t.Errorf("expected output to be %s\n\nbut got %s\n\n diff:%s\n", message, output.Stdout(), diff)
-		}
-
-		if provider.ResourceCount() != 2 {
-			t.Errorf("should have 2 resources on completion but only has %v", provider.ResourceString())
-		}
-
-		expectedStates := map[string][]string{
-			"main.":            {"test_resource.resource"},
-			"main.state_three": {"test_resource.resource"},
-		}
-		if diff := cmp.Diff(expectedStates, actualStates()); diff != "" {
-			t.Fatalf("unexpected states: %s", diff)
-		}
-	}
-
-	t.Run("cleanup all left-over state", func(t *testing.T) {
-		provider := testing_command.NewProvider(nil)
-		providerSource, close := newMockProviderSource(t, map[string][]string{
-			"test": {"1.0.0"},
-		})
-		defer close()
-
-		// Run the test command to create the state
-		executeTestCmd(provider, providerSource)
-
-		interrupt := make(chan struct{})
-		provider.Interrupt = interrupt
-		provider.Provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
-			return providers.PlanResourceChangeResponse{
-				PlannedState: req.ProposedNewState,
-			}
-		}
-		provider.Provider.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
-			var diags tfdiags.Diagnostics
-			// Simulate an error during apply, unless it is a destroy operation
-			if !req.PlannedState.IsNull() {
-				diags = diags.Append(fmt.Errorf("apply error"))
-			}
-			return providers.ApplyResourceChangeResponse{
-				NewState:    req.PlannedState,
-				Diagnostics: diags,
-			}
-		}
-		view, done := testView(t)
-
-		c := &TestCleanupCommand{
-			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(provider.Provider),
-				View:             view,
-				ShutdownCh:       interrupt,
-			},
-		}
-
-		c.Run([]string{"-no-color"})
-		output := done(t)
-
-		expectedCleanup := `main.tftest.hcl... in progress
-main.tftest.hcl... tearing down
-main.tftest.hcl... pass
-
-Success!`
-		if diff := cmp.Diff(expectedCleanup, output.Stdout()); diff != "" {
-			t.Errorf("unexpected cleanup output: expected %s\n, got %s\n, diff: %s", expectedCleanup, output.Stdout(), diff)
-		}
-
-		expectedStates := map[string][]string{}
-		actualStates := actualStates()
-
-		if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
-			t.Fatalf("unexpected states after cleanup: %s", diff)
-		}
-	})
-
-	t.Run("cleanup failed state only (-repair)", func(t *testing.T) {
-		provider := testing_command.NewProvider(nil)
-		providerSource, close := newMockProviderSource(t, map[string][]string{
-			"test": {"1.0.0"},
-		})
-		defer close()
-
-		// Run the test command to create the state
-		executeTestCmd(provider, providerSource)
-
-		interrupt := make(chan struct{})
-		provider.Interrupt = interrupt
-		provider.Provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
-			return providers.PlanResourceChangeResponse{
-				PlannedState: req.ProposedNewState,
-			}
-		}
-		provider.Provider.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
-			return providers.ApplyResourceChangeResponse{
-				NewState: req.PlannedState,
-			}
-		}
-		view, done := testView(t)
-
-		c := &TestCleanupCommand{
-			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(provider.Provider),
-				View:             view,
-				ShutdownCh:       interrupt,
-			},
-		}
-
-		c.Run([]string{"-no-color", "-repair"})
-		output := done(t)
-
-		expectedCleanup := `main.tftest.hcl... in progress
-main.tftest.hcl... tearing down
-main.tftest.hcl... pass
-
-Success!`
-		if diff := cmp.Diff(expectedCleanup, output.Stdout()); diff != "" {
-			t.Fatalf("unexpected cleanup output: expected %s\n, got %s\n, diff: %s", expectedCleanup, output.Stdout(), diff)
-		}
-
-		expectedStates := map[string][]string{
-			"main.": {"test_resource.resource"},
-		}
-
-		if diff := cmp.Diff(expectedStates, actualStates()); diff != "" {
-			t.Fatalf("unexpected states after cleanup: %s", diff)
-		}
-	})
-}
-
-func TestTest_LeftoverState(t *testing.T) {
-	tests := []struct {
-		name       string
-		state      string
-		expectCode int
-		expectOut  string
-	}{
-		{
-			name: "non-empty state file",
-			state: `{
-				"version": 4,
-				"terraform_version": "1.0.0",
-				"serial": 1,
-				"lineage": "b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1",
-				"outputs": {
-					"message": {
-						"value": "Hello, John",
-						"type": "string"
-					}
-				},
-				"resources": []
-			}`,
-			expectCode: 1,
-			expectOut:  "\nFailure! 0 passed, 0 failed.\n",
-		},
-		{
-			name: "empty state file",
-			state: `{
-				"version": 4,
-				"terraform_version": "1.0.0",
-				"serial": 1,
-				"lineage": "b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1",
-				"outputs": {},
-				"resources": []
-			}`,
-			expectCode: 0,
-			expectOut: `main.tftest.hcl... in progress
-  run "validate_test_resource"... pass
-  run "apply_test_resource"... pass
-main.tftest.hcl... tearing down
-main.tftest.hcl... pass
-
-Success! 2 passed, 0 failed.
-`,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			td := t.TempDir()
-			testCopyDir(t, testFixturePath(path.Join("test", "plan_then_apply")), td)
-			defer testChdir(t, td)()
-
-			statePath := path.Join(td, ".terraform", "test", "main.tfstate")
-			manifestPath := path.Join(td, ".terraform/test", "manifest.json")
-			manifest := graph.TestManifest{
-				Version: 0,
-				Files: map[string]*graph.TestFile{
-					"main.tftest.hcl": {States: map[string]*graph.TestState{"single": {Path: statePath}}},
-				},
-			}
-
-			os.MkdirAll(filepath.Dir(statePath), 0755)
-			if err := os.WriteFile(statePath, []byte(tt.state), 0644); err != nil {
-				t.Fatalf("failed to write state file: %s", err)
-			}
-
-			manifestFile, err := os.Create(manifestPath)
-			if err != nil {
-				t.Fatalf("failed to create manifest.json: %s", err)
-			}
-			defer manifestFile.Close()
-
-			if err := json.NewEncoder(manifestFile).Encode(manifest); err != nil {
-				t.Fatalf("failed to write manifest.json: %s", err)
-			}
-
-			provider := testing_command.NewProvider(nil)
-			view, done := testView(t)
-
-			interrupt := make(chan struct{})
-			provider.Interrupt = interrupt
-
-			c := &TestCommand{
-				Meta: Meta{
-					testingOverrides: metaOverridesForProvider(provider.Provider),
-					View:             view,
-					ShutdownCh:       interrupt,
-				},
-			}
-
-			code := c.Run([]string{"-no-color"})
-			output := done(t)
-
-			if code != tt.expectCode {
-				t.Errorf("expected status code %d but got %d:\n\n%s", tt.expectCode, code, output.All())
-			}
-
-			if diff := cmp.Diff(tt.expectOut, output.Stdout()); diff != "" {
-				t.Errorf("unexpected output: %s", diff)
-			}
-
-			if tt.expectCode == 1 {
-				if _, err := os.Stat(statePath); err != nil {
-					t.Fatalf("state file should still be present: %s", err)
-				}
-			}
-		})
-	}
-}
-
 func TestTest_SharedState_Order(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "shared_state")), td)
@@ -2490,6 +2146,306 @@ Success! 5 passed, 0 failed.
 	}
 }
 
+func TestTest_Cleanup(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "cleanup")), td)
+	defer testChdir(t, td)()
+
+	// function to consolidate the test command that should generate some state files and manifest
+	// It also does assertions.
+	executeTestCmd := func(provider *testing_command.TestProvider, providerSource *getproviders.MockSource) {
+		view, done := testView(t)
+		meta := Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+			ProviderSource:   providerSource,
+		}
+
+		init := &InitCommand{Meta: meta}
+		if code := init.Run(nil); code != 0 {
+			output := done(t)
+			t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
+		}
+		interrupt := make(chan struct{})
+		provider.Interrupt = interrupt
+		view, done = testView(t)
+
+		c := &TestCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				View:             view,
+				ShutdownCh:       interrupt,
+			},
+		}
+
+		c.Run([]string{"-no-color"})
+		output := done(t)
+
+		message := `main.tftest.hcl... in progress
+  run "test"... pass
+  run "test_two"... pass
+  run "test_three"... pass
+  run "test_four"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 4 passed, 0 failed.
+`
+
+		outputErr := `Terraform encountered an error destroying resources created while executing
+main.tftest.hcl/test_three.
+
+Error: Failed to destroy resource
+
+destroy_fail is set to true
+
+Terraform left the following resources in state after executing
+main.tftest.hcl/test_three, and they need to be cleaned up manually:
+  - test_resource.resource
+`
+		if diff := cmp.Diff(outputErr, output.Stderr()); diff != "" {
+			t.Errorf("expected err to be %s\n\nbut got %s\n\n diff:%s\n", outputErr, output.Stderr(), diff)
+		}
+		if diff := cmp.Diff(message, output.Stdout()); diff != "" {
+			t.Errorf("expected output to be %s\n\nbut got %s\n\n diff:%s\n", message, output.Stdout(), diff)
+		}
+
+		if provider.ResourceCount() != 2 {
+			t.Errorf("should have 2 resources on completion but only has %v", provider.ResourceString())
+		}
+
+		expectedStates := map[string][]string{
+			"main.":            {"test_resource.resource"},
+			"main.state_three": {"test_resource.resource"},
+		}
+		if diff := cmp.Diff(expectedStates, statesFromManifest(t, td)); diff != "" {
+			t.Fatalf("unexpected states: %s", diff)
+		}
+	}
+
+	t.Run("cleanup all left-over state", func(t *testing.T) {
+		provider := testing_command.NewProvider(nil)
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"test": {"1.0.0"},
+		})
+		defer close()
+
+		// Run the test command to create the state
+		executeTestCmd(provider, providerSource)
+
+		interrupt := make(chan struct{})
+		provider.Interrupt = interrupt
+		provider.Provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+			return providers.PlanResourceChangeResponse{
+				PlannedState: req.ProposedNewState,
+			}
+		}
+		provider.Provider.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+			var diags tfdiags.Diagnostics
+			// Simulate an error during apply, unless it is a destroy operation
+			if !req.PlannedState.IsNull() {
+				diags = diags.Append(fmt.Errorf("apply error"))
+			}
+			return providers.ApplyResourceChangeResponse{
+				NewState:    req.PlannedState,
+				Diagnostics: diags,
+			}
+		}
+		view, done := testView(t)
+
+		c := &TestCleanupCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				View:             view,
+				ShutdownCh:       interrupt,
+			},
+		}
+
+		c.Run([]string{"-no-color"})
+		output := done(t)
+
+		expectedCleanup := `main.tftest.hcl... in progress
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
+
+Success!`
+		if diff := cmp.Diff(expectedCleanup, output.Stdout()); diff != "" {
+			t.Errorf("unexpected cleanup output: expected %s\n, got %s\n, diff: %s", expectedCleanup, output.Stdout(), diff)
+		}
+
+		expectedStates := map[string][]string{}
+		actualStates := statesFromManifest(t, td)
+
+		if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
+			t.Fatalf("unexpected states after cleanup: %s", diff)
+		}
+	})
+
+	t.Run("cleanup failed state only (-repair)", func(t *testing.T) {
+		provider := testing_command.NewProvider(nil)
+		providerSource, close := newMockProviderSource(t, map[string][]string{
+			"test": {"1.0.0"},
+		})
+		defer close()
+
+		// Run the test command to create the state
+		executeTestCmd(provider, providerSource)
+
+		interrupt := make(chan struct{})
+		provider.Interrupt = interrupt
+		provider.Provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+			return providers.PlanResourceChangeResponse{
+				PlannedState: req.ProposedNewState,
+			}
+		}
+		provider.Provider.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+			return providers.ApplyResourceChangeResponse{
+				NewState: req.PlannedState,
+			}
+		}
+		view, done := testView(t)
+
+		c := &TestCleanupCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				View:             view,
+				ShutdownCh:       interrupt,
+			},
+		}
+
+		c.Run([]string{"-no-color", "-repair"})
+		output := done(t)
+
+		expectedCleanup := `main.tftest.hcl... in progress
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
+
+Success!`
+		if diff := cmp.Diff(expectedCleanup, output.Stdout()); diff != "" {
+			t.Fatalf("unexpected cleanup output: expected %s\n, got %s\n, diff: %s", expectedCleanup, output.Stdout(), diff)
+		}
+
+		expectedStates := map[string][]string{
+			"main.": {"test_resource.resource"},
+		}
+
+		if diff := cmp.Diff(expectedStates, statesFromManifest(t, td)); diff != "" {
+			t.Fatalf("unexpected states after cleanup: %s", diff)
+		}
+	})
+}
+
+func TestTest_LeftoverState(t *testing.T) {
+	tests := []struct {
+		name       string
+		state      string
+		expectCode int
+		expectOut  string
+	}{
+		{
+			name: "non-empty state file",
+			state: `{
+				"version": 4,
+				"terraform_version": "1.0.0",
+				"serial": 1,
+				"lineage": "b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1",
+				"outputs": {
+					"message": {
+						"value": "Hello, John",
+						"type": "string"
+					}
+				},
+				"resources": []
+			}`,
+			expectCode: 1,
+			expectOut:  "\nFailure! 0 passed, 0 failed.\n",
+		},
+		{
+			name: "empty state file",
+			state: `{
+				"version": 4,
+				"terraform_version": "1.0.0",
+				"serial": 1,
+				"lineage": "b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1",
+				"outputs": {},
+				"resources": []
+			}`,
+			expectCode: 0,
+			expectOut: `main.tftest.hcl... in progress
+  run "validate_test_resource"... pass
+  run "apply_test_resource"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
+
+Success! 2 passed, 0 failed.
+`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(path.Join("test", "plan_then_apply")), td)
+			defer testChdir(t, td)()
+
+			statePath := path.Join(td, ".terraform", "test", "main.tfstate")
+			manifestPath := path.Join(td, ".terraform/test", "manifest.json")
+			manifest := graph.TestManifest{
+				Version: 0,
+				Files: map[string]*graph.TestFile{
+					"main.tftest.hcl": {States: map[string]*graph.TestState{"single": {Path: statePath}}},
+				},
+			}
+
+			os.MkdirAll(filepath.Dir(statePath), 0755)
+			if err := os.WriteFile(statePath, []byte(tt.state), 0644); err != nil {
+				t.Fatalf("failed to write state file: %s", err)
+			}
+
+			manifestFile, err := os.Create(manifestPath)
+			if err != nil {
+				t.Fatalf("failed to create manifest.json: %s", err)
+			}
+			defer manifestFile.Close()
+
+			if err := json.NewEncoder(manifestFile).Encode(manifest); err != nil {
+				t.Fatalf("failed to write manifest.json: %s", err)
+			}
+
+			provider := testing_command.NewProvider(nil)
+			view, done := testView(t)
+
+			interrupt := make(chan struct{})
+			provider.Interrupt = interrupt
+
+			c := &TestCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(provider.Provider),
+					View:             view,
+					ShutdownCh:       interrupt,
+				},
+			}
+
+			code := c.Run([]string{"-no-color"})
+			output := done(t)
+
+			if code != tt.expectCode {
+				t.Errorf("expected status code %d but got %d:\n\n%s", tt.expectCode, code, output.All())
+			}
+
+			if diff := cmp.Diff(tt.expectOut, output.Stdout()); diff != "" {
+				t.Errorf("unexpected output: %s", diff)
+			}
+
+			if tt.expectCode == 1 {
+				if _, err := os.Stat(statePath); err != nil {
+					t.Fatalf("state file should still be present: %s", err)
+				}
+			}
+		})
+	}
+}
+
 func TestTest_SkipCleanup(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "skip_cleanup")), td)
@@ -2594,36 +2550,147 @@ Success! 5 passed, 0 failed.
 		expectedStates := map[string][]string{
 			"main.": {"test_resource.resource"},
 		}
-		actualStates := make(map[string][]string)
-
-		// Verify the states in the manifest
-		for fileName, file := range manifest.Files {
-			for name, state := range file.States {
-				sm := statemgr.NewFilesystem(filepath.Join(td, state.Path))
-				if err := sm.RefreshState(); err != nil {
-					t.Fatalf("error when reading state file: %s", err)
-				}
-				state := sm.State()
-
-				// If the state is nil, then the test cleaned up the state
-				if state == nil {
-					continue
-				}
-
-				var resources []string
-				for _, module := range state.Modules {
-					for _, resource := range module.Resources {
-						resources = append(resources, resource.Addr.String())
-					}
-				}
-				sort.Strings(resources)
-				actualStates[strings.TrimSuffix(fileName, ".tftest.hcl")+"."+name] = resources
-			}
-		}
+		actualStates := statesFromManifest(t, td)
 
 		if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
 			t.Fatalf("unexpected states: %s", diff)
 		}
+	})
+}
+
+func TestTest_SkipCleanup2(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "skip_cleanup_2")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	output := done(t)
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output = done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	t.Run("skipped resources should not be deleted", func(t *testing.T) {
+
+		expected := `main.tftest.hcl... in progress
+  run "test"... pass
+  run "test_two"... pass
+  run "test_three"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
+
+Success! 3 passed, 0 failed.
+`
+
+		actual := output.All()
+		if !strings.Contains(actual, expected) {
+			t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, cmp.Diff(expected, actual))
+		}
+
+		if provider.ResourceCount() != 1 {
+			t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+		}
+
+		val := provider.Store.Get(provider.ResourceString())
+
+		if val.GetAttr("value").AsString() != "test_two" {
+			t.Errorf("expected resource to have value 'test_two' but got %s", val.GetAttr("value").AsString())
+		}
+	})
+
+	// we want to check that we leave behind the state that was skipped
+	// and the states that it depends on
+	t.Run("state should be persisted", func(t *testing.T) {
+		// Verify the manifest.json file
+		manifestPath := path.Join(td, ".terraform/test", "manifest.json")
+		manifestFile, err := os.ReadFile(manifestPath)
+		if err != nil {
+			t.Fatalf("failed to read manifest.json: %s", err)
+		}
+
+		var manifest graph.TestManifest
+		if err := json.Unmarshal(manifestFile, &manifest); err != nil {
+			t.Fatalf("failed to unmarshal manifest.json: %s", err)
+		}
+
+		expectedStates := map[string][]string{
+			"main.":      {"test_resource.resource"},
+			"main.state": {"test_resource.resource"},
+		}
+		actualStates := statesFromManifest(t, td)
+
+		if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
+			t.Fatalf("unexpected states: %s", diff)
+		}
+	})
+
+	t.Run("cleanup all left-over state", func(t *testing.T) {
+		view, done := testView(t)
+		c := &TestCleanupCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				View:             view,
+
+				Ui:             ui,
+				ProviderSource: providerSource,
+			},
+		}
+
+		c.Run([]string{"-no-color"})
+		output := done(t)
+
+		expectedCleanup := `main.tftest.hcl... in progress
+main.tftest.hcl... tearing down
+main.tftest.hcl... skip
+
+Success!`
+		if diff := cmp.Diff(expectedCleanup, output.Stdout()); diff != "" {
+			t.Errorf("unexpected cleanup output: expected %s\n, got %s\n, diff: %s", expectedCleanup, output.Stdout(), diff)
+		}
+
+		// expectedStates := map[string][]string{}
+		// actualStates := statesFromManifest(t, td)
+
+		// if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
+		// 	t.Fatalf("unexpected states after cleanup: %s", diff)
+		// }
 	})
 }
 
@@ -4989,4 +5056,47 @@ func TestTest_JUnitOutput(t *testing.T) {
 			}
 		})
 	}
+}
+
+func statesFromManifest(t *testing.T, td string) map[string][]string {
+	// Verify the manifest.json file
+	manifestPath := path.Join(td, ".terraform/test", "manifest.json")
+	manifestFile, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatalf("failed to read manifest.json: %s", err)
+	}
+
+	var manifest graph.TestManifest
+	if err := json.Unmarshal(manifestFile, &manifest); err != nil {
+		t.Fatalf("failed to unmarshal manifest.json: %s", err)
+	}
+
+	states := make(map[string][]string)
+
+	// Verify the states in the manifest
+	for fileName, file := range manifest.Files {
+		for name, state := range file.States {
+			sm := statemgr.NewFilesystem(filepath.Join(td, state.Path))
+			if err := sm.RefreshState(); err != nil {
+				t.Fatalf("error when reading state file: %s", err)
+			}
+			state := sm.State()
+
+			// If the state is nil, then the test cleaned up the state
+			if state == nil || state.Empty() {
+				continue
+			}
+
+			var resources []string
+			for _, module := range state.Modules {
+				for _, resource := range module.Resources {
+					resources = append(resources, resource.Addr.String())
+				}
+			}
+			sort.Strings(resources)
+			states[strings.TrimSuffix(fileName, ".tftest.hcl")+"."+name] = resources
+		}
+	}
+
+	return states
 }
