@@ -792,6 +792,41 @@ func TestInit_backendConfigKV(t *testing.T) {
 	}
 }
 
+func TestInit_backendConfigKVNested(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-backend-config-kv-nested"), td)
+	defer testChdir(t, td)()
+	t.Setenv("TF_INMEM_TEST", "1") // Allows use of inmem backend with a more complex schema
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	// overridden field is nested:
+	// test_nesting_single = {
+	//    child = "..."
+	// }
+	args := []string{
+		"-backend-config=test_nesting_single.child=foobar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", done(t).Stderr())
+	}
+
+	// Read our saved backend config and verify we have our settings
+	state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"lock_id":null,"test_nesting_single":{"child":"foobar"}}`; got != want {
+		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+	}
+}
+
 func TestInit_backendConfigKVReInit(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
