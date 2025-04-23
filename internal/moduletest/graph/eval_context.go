@@ -63,11 +63,6 @@ type EvalContext struct {
 	FileStates map[string]*TestFileState
 	stateLock  sync.Mutex
 
-	// snapStates stores a snapshot of the state file before destroying it.
-	// If a subsequent run needs data from the state file, it will use the
-	// snapshot, even though the actual state resources are destroyed.
-	snapStates map[string]*TestFileState
-
 	// This is a manifest that is used to keep track of the state files created
 	// during the test runs.
 	manifest *TestManifest
@@ -123,7 +118,6 @@ func NewEvalContext(opts *EvalContextOpts) *EvalContext {
 		repair:          opts.Repair,
 		renderer:        opts.Render,
 		manifest:        opts.Manifest,
-		snapStates:      make(map[string]*TestFileState),
 		semaphore:       opts.Semaphore,
 	}
 }
@@ -397,9 +391,10 @@ func (ec *EvalContext) UpdateStateFile(key string, state *TestFileState) {
 	}
 
 	ec.FileStates[key] = &TestFileState{
-		File:  state.File,
-		Run:   state.Run,
-		State: state.State,
+		File:   state.File,
+		Run:    state.Run,
+		State:  state.State,
+		Reason: state.Reason,
 
 		backend: oldState.backend,
 	}

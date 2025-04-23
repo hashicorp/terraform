@@ -10,7 +10,7 @@ run "test_two" {
   skip_cleanup = true
   variables {
     id = "test_two"
-    // The state data for this dependency will also be left behind, but the actual
+    // The output state data for this dependency will also be left behind, but the actual
     // resource will have been destroyed by the cleanup step of test_three.
     unused = run.test.unused
   }

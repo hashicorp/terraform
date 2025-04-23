@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
@@ -2218,7 +2219,7 @@ main.tftest.hcl/test_three, and they need to be cleaned up manually:
 			"main.":            {"test_resource.resource"},
 			"main.state_three": {"test_resource.resource"},
 		}
-		actual := statesFromManifest(t, td)
+		actual := removeOutputs(statesFromManifest(t, td))
 
 		if diff := cmp.Diff(expectedStates, actual); diff != "" {
 			t.Fatalf("unexpected states: %s", diff)
@@ -2279,7 +2280,7 @@ Success!`
 		}
 
 		expectedStates := map[string][]string{}
-		actualStates := statesFromManifest(t, td)
+		actualStates := removeOutputs(statesFromManifest(t, td))
 
 		if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
 			t.Fatalf("unexpected states after cleanup: %s", diff)
@@ -2334,7 +2335,7 @@ Success!`
 		expectedStates := map[string][]string{
 			"main.": {"test_resource.resource"},
 		}
-		actual := statesFromManifest(t, td)
+		actual := removeOutputs(statesFromManifest(t, td))
 
 		if diff := cmp.Diff(expectedStates, actual); diff != "" {
 			t.Fatalf("unexpected states after cleanup: %s", diff)
@@ -2352,18 +2353,31 @@ func TestTest_LeftoverState(t *testing.T) {
 		{
 			name: "non-empty state file",
 			state: `{
-				"version": 4,
-				"terraform_version": "1.0.0",
-				"serial": 1,
-				"lineage": "b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1",
-				"outputs": {
-					"message": {
-						"value": "Hello, John",
-						"type": "string"
-					}
-				},
-				"resources": []
-			}`,
+					"version": 4,
+					"terraform_version": "1.5.0",
+					"serial": 1,
+					"lineage": "example-lineage-id",
+					"outputs": {},
+					"resources": [
+						{
+						"mode": "managed",
+						"type": "test_resource",
+						"name": "foo",
+						"provider": "provider[\"registry.terraform.io/hashicorp/test\"]",
+						"instances": [
+							{
+							"schema_version": 0,
+							"attributes": {
+								"id": "constant_value",
+								"value": "bar"
+							},
+							"sensitive_attributes": [],
+							"private": "eyJzY2hlbWFfdmVyc2lvbiI6IjAifQ=="
+							}
+						]
+						}
+					]
+					}`,
 			expectCode: 1,
 			expectOut:  "\nFailure! 0 passed, 0 failed.\n",
 		},
@@ -2557,7 +2571,7 @@ Success! 5 passed, 0 failed.
 		expectedStates := map[string][]string{
 			"main.": {"test_resource.resource"},
 		}
-		actualStates := statesFromManifest(t, td)
+		actualStates := removeOutputs(statesFromManifest(t, td))
 
 		if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
 			t.Fatalf("unexpected states: %s", diff)
@@ -2658,12 +2672,12 @@ Success! 3 passed, 0 failed.
 		}
 
 		expectedStates := map[string][]string{
-			"main.":      {"test_resource.resource"},
-			"main.state": {"test_resource.resource"},
+			"main.":      {"output.id", "output.unused"},
+			"main.state": {"test_resource.resource", "output.id", "output.unused"},
 		}
 		actualStates := statesFromManifest(t, td)
 
-		if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
+		if diff := cmp.Diff(expectedStates, actualStates, equalIgnoreOrder()); diff != "" {
 			t.Fatalf("unexpected states: %s", diff)
 		}
 	})
@@ -2685,19 +2699,19 @@ Success! 3 passed, 0 failed.
 
 		expectedCleanup := `main.tftest.hcl... in progress
 main.tftest.hcl... tearing down
-main.tftest.hcl... skip
+main.tftest.hcl... pass
 
 Success!`
 		if diff := cmp.Diff(expectedCleanup, output.Stdout()); diff != "" {
 			t.Errorf("unexpected cleanup output: expected %s\n, got %s\n, diff: %s", expectedCleanup, output.Stdout(), diff)
 		}
 
-		// expectedStates := map[string][]string{}
-		// actualStates := statesFromManifest(t, td)
+		expectedStates := map[string][]string{}
+		actualStates := removeOutputs(statesFromManifest(t, td))
 
-		// if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
-		// 	t.Fatalf("unexpected states after cleanup: %s", diff)
-		// }
+		if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
+			t.Fatalf("unexpected states after cleanup: %s", diff)
+		}
 	})
 }
 
@@ -4789,33 +4803,10 @@ test_resource_id = 12345`
 	}
 
 	expectedStates := map[string][]string{} // empty
-	actualStates := make(map[string][]string)
+	actualStates := statesFromManifest(t, td)
 
 	// No state artifacts are made: Verify the states in the manifest
-	for fileName, file := range manifest.Files {
-		for name, state := range file.States {
-			sm := statemgr.NewFilesystem(filepath.Join(td, state.Path))
-			if err := sm.RefreshState(); err != nil {
-				t.Fatalf("error when reading state file: %s", err)
-			}
-			state := sm.State()
-
-			// If the state is nil, then the test cleaned up the state
-			if state == nil {
-				continue
-			}
-
-			var resources []string
-			for _, module := range state.Modules {
-				for _, resource := range module.Resources {
-					resources = append(resources, resource.Addr.String())
-				}
-			}
-			sort.Strings(resources)
-			actualStates[strings.TrimSuffix(fileName, ".tftest.hcl")+"."+name] = resources
-		}
-	}
-	if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
+	if diff := cmp.Diff(expectedStates, removeOutputs(actualStates)); diff != "" {
 		t.Fatalf("unexpected states: %s", diff)
 	}
 }
@@ -5100,12 +5091,38 @@ func statesFromManifest(t *testing.T, td string) map[string][]string {
 					resources = append(resources, resource.Addr.String())
 				}
 			}
+			for _, output := range state.RootOutputValues {
+				resources = append(resources, output.Addr.String())
+			}
 			if len(resources) == 0 {
 				continue
 			}
 			sort.Strings(resources)
 			states[strings.TrimSuffix(fileName, ".tftest.hcl")+"."+name] = resources
 		}
+	}
+
+	return states
+}
+
+func equalIgnoreOrder() cmp.Option {
+	less := func(a, b string) bool { return a < b }
+	return cmpopts.SortSlices(less)
+}
+
+func removeOutputs(states map[string][]string) map[string][]string {
+	for k, v := range states {
+		new_v := make([]string, 0, len(v))
+		for _, s := range v {
+			if !strings.HasPrefix(s, "output.") {
+				new_v = append(new_v, s)
+			}
+		}
+		if len(new_v) == 0 {
+			delete(states, k)
+			continue
+		}
+		states[k] = new_v
 	}
 
 	return states

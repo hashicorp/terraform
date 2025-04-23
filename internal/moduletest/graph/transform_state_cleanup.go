@@ -4,7 +4,6 @@
 package graph
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -49,66 +48,39 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	cleanupMap := make(map[string]*NodeStateCleanup)
 	overrideMap := make(map[string]*moduletest.Run)
 	for _, run := range t.opts.File.Runs {
+		key := run.Config.StateKey
 
-		// if skip_cleanup is set, we store the run in the overrideMap,
-		// and the last run with this state key will be used to override the
-		// state key in the cleanup node.
-		if run.Config.SkipCleanup {
-			overrideMap[run.Config.StateKey] = run
+		// If a run is marked as skip_cleanup, that run's apply
+		// will be the final state in the state file.
+		// This is only relevant to the default test mode.
+		if run.Config.SkipCleanup && t.opts.CommandMode != moduletest.CleanupMode {
+			overrideMap[key] = run
 		}
 
-		// Create a cleanup node for each run
-		cleanupMap[run.Name] = &NodeStateCleanup{
-			run:  run,
-			opts: t.opts,
-			deps: make(map[string]*NodeStateCleanup),
+		// Create a cleanup node for each state key
+		if _, exists := cleanupMap[key]; !exists {
+			cleanupMap[key] = &NodeStateCleanup{stateKey: key, opts: t.opts}
+			g.Add(cleanupMap[key])
 		}
-		g.Add(cleanupMap[run.Name])
 	}
 
-	for _, run := range t.opts.File.Runs {
-		node := cleanupMap[run.Name]
-		// Ensure that referencer runs are cleaned up first
-		refs, _ := run.GetReferences()
-		for _, ref := range refs {
-			subj, ok := ref.Subject.(addrs.Run)
-			if !ok {
-				continue
-			}
-
-			node.deps[subj.Name] = cleanupMap[subj.Name]
-
-			// Look for the run with this address
-			for _, r := range t.opts.File.Runs {
-				if r.Config.Name == subj.Name {
-					prev := cleanupMap[r.Name]
-					g.Connect(dag.BasicEdge(prev, node))
-					break
-				}
-			}
-		}
-
-		node.applyOverride = overrideMap[run.Config.StateKey]
-	}
-
-	// Keep track of processed state keys to avoid duplicate connections
 	added := make(map[string]bool)
 	var prev dag.Vertex
 
 	// Process skip_cleanup attributes and connect all cleanup nodes in
 	// reverse order of run index to preserve existing behavior.
 	// TODO: Parallelize cleanup nodes execution instead of sequential.
-	for _, v := range slices.Backward(t.opts.File.Runs) {
-		key := v.Name
+	for _, run := range slices.Backward(t.opts.File.Runs) {
+		key := run.Config.StateKey
 		node := cleanupMap[key]
 
 		if _, exists := added[key]; !exists {
 			if prev != nil {
 				g.Connect(dag.BasicEdge(node, prev))
-				fmt.Printf("%s -> %s\n", prev.(*NodeStateCleanup).Name(), node.Name())
 			}
 			prev = node
 			added[key] = true
+			node.customCleanupRun = overrideMap[key]
 		}
 	}
 	return nil
