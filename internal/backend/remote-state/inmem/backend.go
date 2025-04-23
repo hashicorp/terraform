@@ -6,6 +6,8 @@ package inmem
 import (
 	"errors"
 	"fmt"
+	"maps"
+	"os"
 	"sort"
 	"sync"
 	"time"
@@ -48,19 +50,57 @@ func Reset() {
 
 // New creates a new backend for Inmem remote state.
 func New() backend.Backend {
+	if os.Getenv("TF_INMEM_TEST") != "" {
+		// We use a different schema for testing. This isn't user facing unless they
+		// dig into the code.
+		fmt.Sprintln("TF_INMEM_TEST is set: Using test schema for the inmem backend")
+
+		return &Backend{
+			Base: backendbase.Base{
+				Schema: &configschema.Block{
+					Attributes: testSchemaAttrs(),
+				},
+			},
+		}
+	}
+
+	// Default schema that's user-facing
 	return &Backend{
 		Base: backendbase.Base{
 			Schema: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"lock_id": {
-						Type:        cty.String,
-						Optional:    true,
-						Description: "initializes the state in a locked configuration",
-					},
+				Attributes: defaultSchemaAttrs,
+			},
+		},
+	}
+}
+
+var defaultSchemaAttrs = map[string]*configschema.Attribute{
+	"lock_id": {
+		Type:        cty.String,
+		Optional:    true,
+		Description: "initializes the state in a locked configuration",
+	},
+}
+
+func testSchemaAttrs() map[string]*configschema.Attribute {
+	var newSchema = make(map[string]*configschema.Attribute)
+	maps.Copy(newSchema, defaultSchemaAttrs)
+
+	// Append test-specific parts of schema
+	newSchema["test_nesting_single"] = &configschema.Attribute{
+		Description: "An attribute that contains nested attributes, where nesting mode is NestingSingle",
+		NestedType: &configschema.Object{
+			Nesting: configschema.NestingSingle,
+			Attributes: map[string]*configschema.Attribute{
+				"child": {
+					Type:        cty.String,
+					Optional:    true,
+					Description: "A nested attribute inside the parent attribute `test_nesting_single`",
 				},
 			},
 		},
 	}
+	return newSchema
 }
 
 type Backend struct {
