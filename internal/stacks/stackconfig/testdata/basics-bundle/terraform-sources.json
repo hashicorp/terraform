@@ -15,6 +15,11 @@
             "source": "git::https://example.com/errored.git",
             "local": "errored",
             "meta": {}
+        },
+        {
+            "source": "git::https://example.com/errored-sources.git",
+            "local": "errored-sources",
+            "meta": {}
         }
     ],
     "registry": [
