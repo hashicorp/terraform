@@ -6,6 +6,7 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -27,9 +28,11 @@ type StackCall struct {
 
 	main *Main
 
-	forEachValue    perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
-	instances       perEvalPhase[promising.Once[withDiagnostics[instancesResult[*StackCallInstance]]]]
-	unknownInstance perEvalPhase[promising.Once[*StackCallInstance]]
+	forEachValue perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
+	instances    perEvalPhase[promising.Once[withDiagnostics[instancesResult[*StackCallInstance]]]]
+
+	unknownInstancesMutex sync.Mutex
+	unknownInstances      map[addrs.InstanceKey]*StackCallInstance
 }
 
 var _ Plannable = (*StackCall)(nil)
@@ -37,10 +40,11 @@ var _ Referenceable = (*StackCall)(nil)
 
 func newStackCall(main *Main, addr stackaddrs.AbsStackCall, stack *Stack, config *StackCallConfig) *StackCall {
 	return &StackCall{
-		addr:   addr,
-		main:   main,
-		stack:  stack,
-		config: config,
+		addr:             addr,
+		main:             main,
+		stack:            stack,
+		config:           config,
+		unknownInstances: make(map[addrs.InstanceKey]*StackCallInstance),
 	}
 }
 
@@ -156,15 +160,22 @@ func (c *StackCall) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 	return result.insts, result.unknown, diags
 }
 
-func (c *StackCall) UnknownInstance(ctx context.Context, phase EvalPhase) *StackCallInstance {
-	inst, err := c.unknownInstance.For(phase).Do(ctx, c.tracingName()+" unknown instace", func(ctx context.Context) (*StackCallInstance, error) {
-		return newStackCallInstance(c, addrs.WildcardKey, instances.UnknownForEachRepetitionData(c.ForEachValue(ctx, phase).Type()), c.stack.mode, true), nil
-	})
-	if err != nil {
-		// Since we never return an error from the function we pass to Do,
-		// this should never happen.
-		panic(err)
+func (c *StackCall) UnknownInstance(ctx context.Context, key addrs.InstanceKey, phase EvalPhase) *StackCallInstance {
+	c.unknownInstancesMutex.Lock()
+	defer c.unknownInstancesMutex.Unlock()
+
+	if inst, ok := c.unknownInstances[key]; ok {
+		return inst
 	}
+
+	forEachType := c.ForEachValue(ctx, phase).Type()
+	repetitionData := instances.UnknownForEachRepetitionData(forEachType)
+	if key != addrs.WildcardKey {
+		repetitionData.EachKey = key.Value()
+	}
+
+	inst := newStackCallInstance(c, key, repetitionData, c.stack.mode, true)
+	c.unknownInstances[key] = inst
 	return inst
 }
 

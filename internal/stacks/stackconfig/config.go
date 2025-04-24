@@ -5,6 +5,7 @@ package stackconfig
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/apparentlymart/go-versions/versions"
@@ -190,34 +191,70 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 			ret.Children[call.Name] = childNode
 		}
 	}
-	for _, blocks := range stack.RemovedEmbeddedStacks.All() {
-		for _, rmvd := range blocks {
-			effectiveSourceAddr, err := resolveFinalSourceAddr(sourceAddr, rmvd.SourceAddr, rmvd.VersionConstraints, sources)
+
+	var removedTargets []stackaddrs.ConfigStackCall
+	for target := range stack.RemovedEmbeddedStacks.All() {
+		// removed embedded stacks can point to deeply embedded stacks,
+		// which we actually want to load into the embedded stacks if they
+		// naturally exist. But, the parents of those deeply embedded stacks
+		// will only exist if we have already added their parents to the
+		// tree of objects. So, we're going to store all our removed blocks
+		// in a flattened list and sort them so we add children before
+		// grandchildren and onwards and properly build the list to place
+		// everything in the correct place.
+		removedTargets = append(removedTargets, target)
+	}
+
+	sort.Slice(removedTargets, func(i, j int) bool {
+		return len(removedTargets[i].Stack) < len(removedTargets[j].Stack)
+	})
+
+	for _, target := range removedTargets {
+		for _, block := range stack.RemovedEmbeddedStacks.Get(target) {
+			effectiveSourceAddr, err := resolveFinalSourceAddr(sourceAddr, block.SourceAddr, block.VersionConstraints, sources)
 			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid source address",
 					Detail: fmt.Sprintf(
 						"Cannot use %q as a source address here: %s.",
-						rmvd.SourceAddr, err,
+						block.SourceAddr, err,
 					),
-					Subject: rmvd.SourceAddrRange.ToHCL().Ptr(),
+					Subject: block.SourceAddrRange.ToHCL().Ptr(),
 				})
 				continue
 			}
-			rmvd.FinalSourceAddr = effectiveSourceAddr
+			block.FinalSourceAddr = effectiveSourceAddr
 
-			next := rmvd.From.TargetStack()[0].Name
-			if _, ok := ret.Children[next]; ok {
-				// Then we've already loaded the configuration for this
-				// stack in the direct stack call.
-				continue
+			current := ret
+			for _, step := range target.Stack {
+				current = current.Children[step.Name]
+				if current == nil {
+					// this is invalid, we can't have orphaned removed blocks
+					// so we'll just return an error and skip this block.
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid removed block",
+						Detail:   "The linked removed block was not executed because the `from` attribute of the removed block targets a component or embedded stack within an orphaned embedded stack.\n\nIn order to remove an entire stack, update your removed block to target the entire removed stack itself instead of the specific elements within it.",
+						Subject:  block.SourceAddrRange.ToHCL().Ptr(),
+					})
+					break
+				}
 			}
 
-			childNode, moreDiags := loadConfigDir(effectiveSourceAddr, sources, append(callers, sourceAddr))
-			diags = diags.Append(moreDiags)
-			if childNode != nil {
-				ret.Children[next] = childNode
+			if current != nil {
+				next := target.Item.Name
+				if _, ok := current.Children[next]; ok {
+					// Then we've already loaded the configuration for this
+					// stack in the direct stack call.
+					continue
+				}
+
+				childNode, moreDiags := loadConfigDir(effectiveSourceAddr, sources, append(callers, sourceAddr))
+				diags = diags.Append(moreDiags)
+				if childNode != nil {
+					current.Children[next] = childNode
+				}
 			}
 		}
 	}

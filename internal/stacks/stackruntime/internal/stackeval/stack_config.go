@@ -354,7 +354,7 @@ func (s *StackConfig) StackCalls() map[stackaddrs.StackCall]*StackCallConfig {
 		return nil
 	}
 	ret := make(map[stackaddrs.StackCall]*StackCallConfig, len(s.config.Children))
-	for n := range s.config.Children {
+	for n := range s.config.Stack.EmbeddedStacks {
 		stepAddr := stackaddrs.StackCall{Name: n}
 		ret[stepAddr] = s.StackCall(stepAddr)
 	}

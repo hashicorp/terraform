@@ -67,18 +67,20 @@ func (v *InputVariable) DefinedByStackCallInstance(ctx context.Context, phase Ev
 		// actually exist, which is odd but we'll tolerate it.
 		return nil
 	}
+
+	lastStep := declarerAddr[len(declarerAddr)-1]
+	instKey := lastStep.Key
+
 	callInsts, unknown := call.Instances(ctx, phase)
 	if unknown {
 		// Return our static unknown instance for this variable.
-		return call.UnknownInstance(ctx, phase)
+		return call.UnknownInstance(ctx, instKey, phase)
 	}
 	if callInsts == nil {
 		// Could get here if the call's for_each is invalid.
 		return nil
 	}
 
-	lastStep := declarerAddr[len(declarerAddr)-1]
-	instKey := lastStep.Key
 	return callInsts[instKey]
 }
 
