@@ -9,7 +9,3 @@ removed {
   from = stack.multiple
   source = "../"
 }
-
-# stack "multiple" {
-#   source = "../"
-# }
