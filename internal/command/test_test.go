@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
@@ -691,57 +692,13 @@ Success!`
 }
 
 func TestTest_Cleanup(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath(path.Join("test", "cleanup")), td)
-	defer testChdir(t, td)()
-
-	// function to help retrieve the state from the manifest.json file
-	actualStates := func() map[string][]string {
-		// Verify the manifest.json file
-		manifestPath := path.Join(td, ".terraform/test", "manifest.json")
-		manifestFile, err := os.ReadFile(manifestPath)
-		if err != nil {
-			t.Fatalf("failed to read manifest.json: %s", err)
-		}
-
-		var manifest graph.TestManifest
-		if err := json.Unmarshal(manifestFile, &manifest); err != nil {
-			t.Fatalf("failed to unmarshal manifest.json: %s", err)
-		}
-
-		states := make(map[string][]string)
-
-		// Verify the states in the manifest
-		for fileName, file := range manifest.Files {
-			for name, state := range file.States {
-				sm := statemgr.NewFilesystem(filepath.Join(td, state.Path))
-				if err := sm.RefreshState(); err != nil {
-					t.Fatalf("error when reading state file: %s", err)
-				}
-				state := sm.State()
-
-				// If the state is nil, then the test cleaned up the state
-				if state == nil || state.Empty() {
-					continue
-				}
-
-				var resources []string
-				for _, module := range state.Modules {
-					for _, resource := range module.Resources {
-						resources = append(resources, resource.Addr.String())
-					}
-				}
-				sort.Strings(resources)
-				states[strings.TrimSuffix(fileName, ".tftest.hcl")+"."+name] = resources
-			}
-		}
-
-		return states
-	}
-
 	// function to consolidate the test command that should generate some state files and manifest
 	// It also does assertions.
-	executeTestCmd := func(provider *testing_command.TestProvider, providerSource *getproviders.MockSource) {
+	executeTestCmd := func(provider *testing_command.TestProvider, providerSource *getproviders.MockSource) (td string, def func()) {
+		td = t.TempDir()
+		testCopyDir(t, testFixturePath(path.Join("test", "cleanup")), td)
+		def = testChdir(t, td)
+
 		view, done := testView(t)
 		meta := Meta{
 			testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -806,9 +763,13 @@ main.tftest.hcl/test_three, and they need to be cleaned up manually:
 			"main.":            {"test_resource.resource"},
 			"main.state_three": {"test_resource.resource"},
 		}
-		if diff := cmp.Diff(expectedStates, actualStates()); diff != "" {
+		actual := removeOutputs(statesFromManifest(t, td))
+
+		if diff := cmp.Diff(expectedStates, actual); diff != "" {
 			t.Fatalf("unexpected states: %s", diff)
 		}
+
+		return
 	}
 
 	t.Run("cleanup all left-over state", func(t *testing.T) {
@@ -819,7 +780,8 @@ main.tftest.hcl/test_three, and they need to be cleaned up manually:
 		defer close()
 
 		// Run the test command to create the state
-		executeTestCmd(provider, providerSource)
+		td, def := executeTestCmd(provider, providerSource)
+		defer def()
 
 		interrupt := make(chan struct{})
 		provider.Interrupt = interrupt
@@ -829,8 +791,14 @@ main.tftest.hcl/test_three, and they need to be cleaned up manually:
 			}
 		}
 		provider.Provider.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+			var diags tfdiags.Diagnostics
+			// Simulate an error during apply, unless it is a destroy operation
+			if !req.PlannedState.IsNull() {
+				diags = diags.Append(fmt.Errorf("apply error"))
+			}
 			return providers.ApplyResourceChangeResponse{
-				NewState: req.PlannedState,
+				NewState:    req.PlannedState,
+				Diagnostics: diags,
 			}
 		}
 		view, done := testView(t)
@@ -852,12 +820,13 @@ main.tftest.hcl... pass
 
 Success!`
 		if diff := cmp.Diff(expectedCleanup, output.Stdout()); diff != "" {
-			t.Fatalf("unexpected cleanup output: expected %s\n, got %s\n, diff: %s", expectedCleanup, output.Stdout(), diff)
+			t.Errorf("unexpected cleanup output: expected %s\n, got %s\n, diff: %s", expectedCleanup, output.Stdout(), diff)
 		}
 
 		expectedStates := map[string][]string{}
+		actualStates := removeOutputs(statesFromManifest(t, td))
 
-		if diff := cmp.Diff(expectedStates, actualStates()); diff != "" {
+		if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
 			t.Fatalf("unexpected states after cleanup: %s", diff)
 		}
 	})
@@ -870,7 +839,8 @@ Success!`
 		defer close()
 
 		// Run the test command to create the state
-		executeTestCmd(provider, providerSource)
+		td, def := executeTestCmd(provider, providerSource)
+		defer def()
 
 		interrupt := make(chan struct{})
 		provider.Interrupt = interrupt
@@ -909,8 +879,9 @@ Success!`
 		expectedStates := map[string][]string{
 			"main.": {"test_resource.resource"},
 		}
+		actual := removeOutputs(statesFromManifest(t, td))
 
-		if diff := cmp.Diff(expectedStates, actualStates()); diff != "" {
+		if diff := cmp.Diff(expectedStates, actual); diff != "" {
 			t.Fatalf("unexpected states after cleanup: %s", diff)
 		}
 	})
@@ -926,18 +897,31 @@ func TestTest_LeftoverState(t *testing.T) {
 		{
 			name: "non-empty state file",
 			state: `{
-				"version": 4,
-				"terraform_version": "1.0.0",
-				"serial": 1,
-				"lineage": "b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1",
-				"outputs": {
-					"message": {
-						"value": "Hello, John",
-						"type": "string"
-					}
-				},
-				"resources": []
-			}`,
+					"version": 4,
+					"terraform_version": "1.5.0",
+					"serial": 1,
+					"lineage": "example-lineage-id",
+					"outputs": {},
+					"resources": [
+						{
+						"mode": "managed",
+						"type": "test_resource",
+						"name": "foo",
+						"provider": "provider[\"registry.terraform.io/hashicorp/test\"]",
+						"instances": [
+							{
+							"schema_version": 0,
+							"attributes": {
+								"id": "constant_value",
+								"value": "bar"
+							},
+							"sensitive_attributes": [],
+							"private": "eyJzY2hlbWFfdmVyc2lvbiI6IjAifQ=="
+							}
+						]
+						}
+					]
+					}`,
 			expectCode: 1,
 			expectOut:  "\nFailure! 0 passed, 0 failed.\n",
 		},
@@ -2534,16 +2518,18 @@ func TestTest_SkipCleanup(t *testing.T) {
 
 	t.Run("skipped resources should not be deleted", func(t *testing.T) {
 
-		expected := `main.tftest.hcl... in progress
+		expected := `
+Warning: Duplicate "skip_cleanup" block
+
+  on main.tftest.hcl line 14:
+  14: run "test_three" {
+
+The run "test_three" has a skip_cleanup attribute set, but shares state with
+a later run "test_two" that also has skip_cleanup set. The later run takes
+precedence, and this attribute is ignored for the earlier run.
+main.tftest.hcl... in progress
   run "test"... pass
   run "test_two"... pass
-
-Warning: Multiple runs with skip_cleanup set
-
-The run "test_two" has skip_cleanup set to true, but shares state with a
-later run "test_three" that also has skip_cleanup set. The later run takes
-precedence, and this attribute is ignored for the earlier run.
-
   run "test_three"... pass
   run "test_four"... pass
   run "test_five"... pass
@@ -2555,7 +2541,7 @@ Success! 5 passed, 0 failed.
 
 		actual := output.All()
 		if !strings.Contains(actual, expected) {
-			t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s", expected, actual)
+			t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, cmp.Diff(expected, actual))
 		}
 
 		if provider.ResourceCount() != 1 {
@@ -2585,35 +2571,146 @@ Success! 5 passed, 0 failed.
 		expectedStates := map[string][]string{
 			"main.": {"test_resource.resource"},
 		}
-		actualStates := make(map[string][]string)
-
-		// Verify the states in the manifest
-		for fileName, file := range manifest.Files {
-			for name, state := range file.States {
-				sm := statemgr.NewFilesystem(filepath.Join(td, state.Path))
-				if err := sm.RefreshState(); err != nil {
-					t.Fatalf("error when reading state file: %s", err)
-				}
-				state := sm.State()
-
-				// If the state is nil, then the test cleaned up the state
-				if state == nil {
-					continue
-				}
-
-				var resources []string
-				for _, module := range state.Modules {
-					for _, resource := range module.Resources {
-						resources = append(resources, resource.Addr.String())
-					}
-				}
-				sort.Strings(resources)
-				actualStates[strings.TrimSuffix(fileName, ".tftest.hcl")+"."+name] = resources
-			}
-		}
+		actualStates := removeOutputs(statesFromManifest(t, td))
 
 		if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
 			t.Fatalf("unexpected states: %s", diff)
+		}
+	})
+}
+
+func TestTest_SkipCleanupWithRunDependencies(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "skip_cleanup_with_run_deps")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	output := done(t)
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output = done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	t.Run("skipped resources should not be deleted", func(t *testing.T) {
+
+		expected := `main.tftest.hcl... in progress
+  run "test"... pass
+  run "test_two"... pass
+  run "test_three"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
+
+Success! 3 passed, 0 failed.
+`
+
+		actual := output.All()
+		if !strings.Contains(actual, expected) {
+			t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, cmp.Diff(expected, actual))
+		}
+
+		if provider.ResourceCount() != 1 {
+			t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+		}
+
+		val := provider.Store.Get(provider.ResourceString())
+
+		if val.GetAttr("value").AsString() != "test_two" {
+			t.Errorf("expected resource to have value 'test_two' but got %s", val.GetAttr("value").AsString())
+		}
+	})
+
+	// we want to check that we leave behind the state that was skipped
+	// and the states that it depends on
+	t.Run("state should be persisted", func(t *testing.T) {
+		// Verify the manifest.json file
+		manifestPath := path.Join(td, ".terraform/test", "manifest.json")
+		manifestFile, err := os.ReadFile(manifestPath)
+		if err != nil {
+			t.Fatalf("failed to read manifest.json: %s", err)
+		}
+
+		var manifest graph.TestManifest
+		if err := json.Unmarshal(manifestFile, &manifest); err != nil {
+			t.Fatalf("failed to unmarshal manifest.json: %s", err)
+		}
+
+		expectedStates := map[string][]string{
+			"main.":      {"output.id", "output.unused"},
+			"main.state": {"test_resource.resource", "output.id", "output.unused"},
+		}
+		actualStates := statesFromManifest(t, td)
+
+		if diff := cmp.Diff(expectedStates, actualStates, equalIgnoreOrder()); diff != "" {
+			t.Fatalf("unexpected states: %s", diff)
+		}
+	})
+
+	t.Run("cleanup all left-over state", func(t *testing.T) {
+		view, done := testView(t)
+		c := &TestCleanupCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				View:             view,
+
+				Ui:             ui,
+				ProviderSource: providerSource,
+			},
+		}
+
+		c.Run([]string{"-no-color"})
+		output := done(t)
+
+		expectedCleanup := `main.tftest.hcl... in progress
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
+
+Success!`
+		if diff := cmp.Diff(expectedCleanup, output.Stdout()); diff != "" {
+			t.Errorf("unexpected cleanup output: expected %s\n, got %s\n, diff: %s", expectedCleanup, output.Stdout(), diff)
+		}
+
+		expectedStates := map[string][]string{}
+		actualStates := removeOutputs(statesFromManifest(t, td))
+
+		if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
+			t.Fatalf("unexpected states after cleanup: %s", diff)
 		}
 	})
 }
@@ -2711,13 +2808,13 @@ func TestTest_SkipCleanup_JSON(t *testing.T) {
 	t.Run("skipped resources should not be deleted", func(t *testing.T) {
 
 		expected := []string{
+			`{"@level":"warn","@message":"Warning: Duplicate \"skip_cleanup\" block","@module":"terraform.ui","diagnostic":{"detail":"The run \"test_three\" has a skip_cleanup attribute set, but shares state with a later run \"test_two\" that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.","range":{"end":{"byte":146,"column":17,"line":14},"filename":"main.tftest.hcl","start":{"byte":130,"column":1,"line":14}},"severity":"warning","snippet":{"code":"run \"test_three\" {","context":null,"highlight_end_offset":16,"highlight_start_offset":0,"start_line":14,"values":[]},"summary":"Duplicate \"skip_cleanup\" block"},"type":"diagnostic"}`,
 			`{"@level":"info","@message":"Found 1 file and 5 run blocks","@module":"terraform.ui","test_abstract":{"main.tftest.hcl":["test","test_two","test_three","test_four","test_five"]},"type":"test_abstract"}`,
 			`{"@level":"info","@message":"main.tftest.hcl... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","test_file":{"path":"main.tftest.hcl","progress":"starting"},"type":"test_file"}`,
 			`{"@level":"info","@message":"  \"test\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test","test_run":{"path":"main.tftest.hcl","progress":"starting","run":"test"},"type":"test_run"}`,
 			`{"@level":"info","@message":"  \"test\"... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test","test_run":{"path":"main.tftest.hcl","progress":"complete","run":"test","status":"pass"},"type":"test_run"}`,
 			`{"@level":"info","@message":"  \"test_two\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_two","test_run":{"path":"main.tftest.hcl","progress":"starting","run":"test_two"},"type":"test_run"}`,
 			`{"@level":"info","@message":"  \"test_two\"... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_two","test_run":{"path":"main.tftest.hcl","progress":"complete","run":"test_two","status":"pass"},"type":"test_run"}`,
-			`{"@level":"warn","@message":"Warning: Multiple runs with skip_cleanup set","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_two","diagnostic":{"detail":"The run \"test_two\" has skip_cleanup set to true, but shares state with a later run \"test_three\" that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.","severity":"warning","summary":"Multiple runs with skip_cleanup set"},"type":"diagnostic"}`,
 			`{"@level":"info","@message":"  \"test_three\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_three","test_run":{"path":"main.tftest.hcl","progress":"starting","run":"test_three"},"type":"test_run"}`,
 			`{"@level":"info","@message":"  \"test_three\"... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_three","test_run":{"path":"main.tftest.hcl","progress":"complete","run":"test_three","status":"pass"},"type":"test_run"}`,
 			`{"@level":"info","@message":"  \"test_four\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test_four","test_run":{"path":"main.tftest.hcl","progress":"starting","run":"test_four"},"type":"test_run"}`,
@@ -4706,33 +4803,10 @@ test_resource_id = 12345`
 	}
 
 	expectedStates := map[string][]string{} // empty
-	actualStates := make(map[string][]string)
+	actualStates := statesFromManifest(t, td)
 
 	// No state artifacts are made: Verify the states in the manifest
-	for fileName, file := range manifest.Files {
-		for name, state := range file.States {
-			sm := statemgr.NewFilesystem(filepath.Join(td, state.Path))
-			if err := sm.RefreshState(); err != nil {
-				t.Fatalf("error when reading state file: %s", err)
-			}
-			state := sm.State()
-
-			// If the state is nil, then the test cleaned up the state
-			if state == nil {
-				continue
-			}
-
-			var resources []string
-			for _, module := range state.Modules {
-				for _, resource := range module.Resources {
-					resources = append(resources, resource.Addr.String())
-				}
-			}
-			sort.Strings(resources)
-			actualStates[strings.TrimSuffix(fileName, ".tftest.hcl")+"."+name] = resources
-		}
-	}
-	if diff := cmp.Diff(expectedStates, actualStates); diff != "" {
+	if diff := cmp.Diff(expectedStates, removeOutputs(actualStates)); diff != "" {
 		t.Fatalf("unexpected states: %s", diff)
 	}
 }
@@ -4905,7 +4979,6 @@ required.
 }
 
 func TestTest_JUnitOutput(t *testing.T) {
-	t.Skip()
 	tcs := map[string]struct {
 		path         string
 		code         int
@@ -4981,4 +5054,76 @@ func TestTest_JUnitOutput(t *testing.T) {
 			}
 		})
 	}
+}
+
+func statesFromManifest(t *testing.T, td string) map[string][]string {
+	// Verify the manifest.json file
+	manifestPath := path.Join(td, ".terraform/test", "manifest.json")
+	manifestFile, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatalf("failed to read manifest.json: %s", err)
+	}
+
+	var manifest graph.TestManifest
+	if err := json.Unmarshal(manifestFile, &manifest); err != nil {
+		t.Fatalf("failed to unmarshal manifest.json: %s", err)
+	}
+
+	states := make(map[string][]string)
+
+	// Verify the states in the manifest
+	for fileName, file := range manifest.Files {
+		for name, state := range file.States {
+			sm := statemgr.NewFilesystem(filepath.Join(td, state.Path))
+			if err := sm.RefreshState(); err != nil {
+				t.Fatalf("error when reading state file: %s", err)
+			}
+			state := sm.State()
+
+			// If the state is nil, then the test cleaned up the state
+			if state == nil || state.Empty() {
+				continue
+			}
+
+			var resources []string
+			for _, module := range state.Modules {
+				for _, resource := range module.Resources {
+					resources = append(resources, resource.Addr.String())
+				}
+			}
+			for _, output := range state.RootOutputValues {
+				resources = append(resources, output.Addr.String())
+			}
+			if len(resources) == 0 {
+				continue
+			}
+			sort.Strings(resources)
+			states[strings.TrimSuffix(fileName, ".tftest.hcl")+"."+name] = resources
+		}
+	}
+
+	return states
+}
+
+func equalIgnoreOrder() cmp.Option {
+	less := func(a, b string) bool { return a < b }
+	return cmpopts.SortSlices(less)
+}
+
+func removeOutputs(states map[string][]string) map[string][]string {
+	for k, v := range states {
+		new_v := make([]string, 0, len(v))
+		for _, s := range v {
+			if !strings.HasPrefix(s, "output.") {
+				new_v = append(new_v, s)
+			}
+		}
+		if len(new_v) == 0 {
+			delete(states, k)
+			continue
+		}
+		states[k] = new_v
+	}
+
+	return states
 }

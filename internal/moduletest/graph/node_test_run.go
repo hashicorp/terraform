@@ -48,10 +48,10 @@ func (n *NodeTestRun) References() []*addrs.Reference {
 // Execute executes the test run block and update the status of the run block
 // based on the result of the execution.
 func (n *NodeTestRun) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
-	log.Printf("[TRACE] TestFileRunner: executing run block %s/%s", n.File().Name, n.run.Name)
 	startTime := time.Now().UTC()
 	var diags tfdiags.Diagnostics
 	file, run := n.File(), n.run
+	log.Printf("[TRACE] TestFileRunner: executing run block %s/%s", file.Name, run.Name)
 
 	// At the end of the function, we'll update the status of the file based on
 	// the status of the run block, and render the run summary.

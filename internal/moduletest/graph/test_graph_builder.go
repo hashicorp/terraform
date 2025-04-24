@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -56,20 +57,22 @@ func (b *TestGraphBuilder) Build(ctx *EvalContext) (*terraform.Graph, tfdiags.Di
 // See GraphBuilder
 func (b *TestGraphBuilder) Steps(opts *graphOptions) []terraform.GraphTransformer {
 	steps := []terraform.GraphTransformer{
-		&TestRunTransformer{opts},
+		&TestRunTransformer{opts: opts, skip: b.CommandMode == moduletest.CleanupMode},
 		&TestStateTransformer{graphOptions: opts, BackendFactory: b.BackendFactory},
-		&TestStateCleanupTransformer{opts},
-		terraform.DynamicTransformer(validateRunConfigs),
+		terraform.DynamicTransformer(validateRunConfigs(opts)),
 		&TestProvidersTransformer{},
 		terraform.DynamicTransformer(func(g *terraform.Graph) error {
-			// If we're in cleanup mode, we can remove the test runs in the graph,
-			// and prevent unnecessary no-op execution.
-			// This will ensure that we only have nodes that are needed for cleanup in the graph.
-			if b.CommandMode == moduletest.CleanupMode {
-				for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
-					g.Remove(node)
+			cleanup := &CleanupSubGraph{opts: opts}
+			g.Add(cleanup)
+
+			// ensure that the cleanup node is connected to all nodes,
+			// so that it runs last.
+			for v := range dag.ExcludeSeq(g.VerticesSeq(), func(*CleanupSubGraph) {}) {
+				if g.UpEdges(v).Len() == 0 {
+					g.Connect(dag.BasicEdge(cleanup, v))
 				}
 			}
+
 			return nil
 		}),
 		&CloseTestGraphTransformer{},
@@ -79,15 +82,17 @@ func (b *TestGraphBuilder) Steps(opts *graphOptions) []terraform.GraphTransforme
 	return steps
 }
 
-func validateRunConfigs(g *terraform.Graph) error {
-	for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
-		diags := node.run.Config.Validate(node.run.ModuleConfig)
-		node.run.Diagnostics = node.run.Diagnostics.Append(diags)
-		if diags.HasErrors() {
-			node.run.Status = moduletest.Error
+func validateRunConfigs(opts *graphOptions) func(g *terraform.Graph) error {
+	return func(g *terraform.Graph) error {
+		for _, run := range opts.File.Runs {
+			diags := run.Config.Validate(run.ModuleConfig)
+			run.Diagnostics = run.Diagnostics.Append(diags)
+			if diags.HasErrors() {
+				run.Status = moduletest.Error
+			}
 		}
+		return nil
 	}
-	return nil
 }
 
 // dynamicNode is a helper node which can be added to the graph to execute
@@ -98,4 +103,59 @@ type dynamicNode struct {
 
 func (n *dynamicNode) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 	return n.eval(evalCtx)
+}
+
+func Walk(g *terraform.Graph, ctx *EvalContext) tfdiags.Diagnostics {
+
+	// Walk the graph.
+	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
+		if ctx.Cancelled() {
+			// If the graph walk has been cancelled, the node should just return immediately.
+			// For now, this means a hard stop has been requested, in this case we don't
+			// even stop to mark future test runs as having been skipped. They'll
+			// just show up as pending in the printed summary. We will quickly
+			// just mark the overall file status has having errored to indicate
+			// it was interrupted.
+			return
+		}
+
+		// the walkFn is called asynchronously, and needs to be recovered
+		// separately in the case of a panic.
+		defer logging.PanicHandler()
+
+		log.Printf("[TRACE] vertex %q: starting visit (%T)", dag.VertexName(v), v)
+
+		defer func() {
+			if r := recover(); r != nil {
+				// If the walkFn panics, we get confusing logs about how the
+				// visit was complete. To stop this, we'll catch the panic log
+				// that the vertex panicked without finishing and re-panic.
+				log.Printf("[ERROR] vertex %q panicked", dag.VertexName(v))
+				panic(r) // re-panic
+			}
+
+			if diags.HasErrors() {
+				for _, diag := range diags {
+					if diag.Severity() == tfdiags.Error {
+						desc := diag.Description()
+						log.Printf("[ERROR] vertex %q error: %s", dag.VertexName(v), desc.Summary)
+					}
+				}
+				log.Printf("[TRACE] vertex %q: visit complete, with errors", dag.VertexName(v))
+			} else {
+				log.Printf("[TRACE] vertex %q: visit complete", dag.VertexName(v))
+			}
+		}()
+
+		// Acquire a lock on the semaphore
+		ctx.semaphore.Acquire()
+		defer ctx.semaphore.Release()
+
+		if executable, ok := v.(GraphNodeExecutable); ok {
+			diags = executable.Execute(ctx)
+		}
+		return
+	}
+
+	return g.AcyclicGraph.Walk(walkFn)
 }

@@ -28,9 +28,9 @@ type NodeStateCleanup struct {
 	stateKey string
 	opts     *graphOptions
 
-	// If applyOverride is provided, it will be applied to the state file to reach
-	// the final state, instead of running the destroy operation.
-	applyOverride *moduletest.Run
+	// If customCleanupRun is provided, it will be applied to the state file instead
+	// of running the default destroy operation during cleanup.
+	customCleanupRun *moduletest.Run
 }
 
 func (n *NodeStateCleanup) Name() string {
@@ -42,42 +42,28 @@ func (n *NodeStateCleanup) Name() string {
 // would prevent further cleanup of other states. Instead, any diagnostics
 // will be rendered directly to ensure the cleanup process continues.
 func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
+	n.execute(evalCtx)
+	return nil
+}
+
+func (n *NodeStateCleanup) execute(evalCtx *EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	file := n.opts.File
 	state := evalCtx.GetFileState(n.stateKey)
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
-	if n.applyOverride != nil {
-		state.Run = n.applyOverride
+	if n.customCleanupRun != nil {
+		state.Run = n.customCleanupRun
 	}
 
-	// If the state was loaded as a result of an intentional skip, we
-	// don't need to clean it up when in repair mode.
-	if state.Reason == ReasonSkip && evalCtx.repair {
+	if n.shouldSkipCleanup(evalCtx, state, file) {
 		return nil
 	}
 
-	if evalCtx.Cancelled() {
-		// Don't try and clean anything up if the execution has been cancelled.
-		log.Printf("[DEBUG] TestStateManager: skipping state cleanup for %s due to cancellation", file.Name)
-		return nil
-	}
-
-	empty := true
-	if !state.State.Empty() {
-		for _, module := range state.State.Modules {
-			for _, resource := range module.Resources {
-				if resource.Addr.Resource.Mode == addrs.ManagedResourceMode {
-					empty = false
-					break
-				}
-			}
-		}
-	}
-
-	if empty {
-		// The state can be empty for a run block that just executed a plan
-		// command, or a run block that only read data sources. We'll just
-		// skip empty run blocks.
-		return nil
+	// If the state is empty, we still write it so we can store the
+	// output values, but we don't need to run a destroy operation.
+	if n.emptyState(state.State) {
+		diags = diags.Append(evalCtx.WriteFileState(n.stateKey, state))
+		return diags
 	}
 
 	if state.Run == nil {
@@ -89,14 +75,13 @@ func (n *NodeStateCleanup) Execute(evalCtx *EvalContext) tfdiags.Diagnostics {
 		// above. If we do reach here, then something has gone badly wrong
 		// and we can't really recover from it.
 
-		diags := tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name))}
+		diags := diags.Append(tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name)))
 		file.UpdateStatus(moduletest.Error)
 		state.Reason = ReasonError
 		diags = diags.Append(evalCtx.WriteFileState(n.stateKey, state))
 		evalCtx.Renderer().DestroySummary(diags, nil, file, state.State)
 
-		// intentionally return nil to allow further cleanup
-		return nil
+		return diags
 	}
 	TransformConfigForRun(evalCtx, state.Run, file)
 
@@ -109,45 +94,61 @@ func (n *NodeStateCleanup) performCleanup(evalCtx *EvalContext, state *TestFileS
 	updated := state.State
 	startTime := time.Now().UTC()
 	waiter := NewOperationWaiter(nil, evalCtx, runNode, moduletest.Running, startTime.UnixMilli())
-	var destroyDiags tfdiags.Diagnostics
+	var diags tfdiags.Diagnostics
 	cancelled := waiter.Run(func() {
-		updated, destroyDiags = n.cleanup(evalCtx, runNode, waiter)
+		updated, diags = n.cleanup(evalCtx, runNode, waiter)
 	})
 	if cancelled {
-		destroyDiags = destroyDiags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
 	}
+	evalCtx.Renderer().DestroySummary(diags, state.Run, n.opts.File, updated)
 
-	evalCtx.Renderer().DestroySummary(destroyDiags, state.Run, n.opts.File, updated)
-	state.State = updated
+	// Update the statefile's resources and return the test file status
+	n.updateStateResources(runNode, state, updated)
 
-	// Update the file status and write the updated state back to the file.
-	status := moduletest.Pass
-	if n.applyOverride != nil { // skip_cleanup=true
-		status = runNode.run.Status
-		state.Reason = ReasonSkip
-	} else if !updated.Empty() {
-		// Then we ran a destroy operation, but failed to adequately clean up the state, so mark as errored.
-		status = moduletest.Error
-		state.Reason = ReasonError
-	}
-	n.opts.File.UpdateStatus(status)
-	if state.Run.Config.Backend != nil && !destroyDiags.HasErrors() {
+	if state.Run.Config.Backend != nil && !diags.HasErrors() {
 		// We don't create a state artefact when the node state's corresponding run block has a backend,
 		// UNLESS an error occurs when returning the state to match that run block's config during cleanup.
 		return nil
 	}
 
-	evalCtx.WriteFileState(n.stateKey, state)
-
+	diags = diags.Append(evalCtx.WriteFileState(n.stateKey, state))
 	// We don't return destroyDiags here because the calling code sets the return code for the test operation
 	// based on whether the tests passed or not; cleanup is not a factor.
 	// Users will be aware of issues with cleanup due to destroyDiags being rendered to the View.
 	return nil
 }
 
+func (n *NodeStateCleanup) updateStateResources(runNode *NodeTestRun, fileState *TestFileState, updated *states.State) {
+	// After destruction, we still want to preserve the output values
+	// from the original state file. This is important because other runs
+	// may reference outputs from this state file.
+	outputs := fileState.State.RootOutputValues
+
+	// Update the state file with the new state.
+	fileState.State = updated
+	fileState.State.RootOutputValues = outputs
+
+	// Update the test file status
+	status := moduletest.Pass
+	switch {
+	case n.customCleanupRun != nil: // skip_cleanup=true
+		status = runNode.run.Status
+		fileState.Reason = ReasonSkip
+	case !n.emptyState(updated):
+		// Then we ran a destroy operation, but failed to adequately clean up the state, so mark as errored.
+		status = moduletest.Error
+		fileState.Reason = ReasonError
+	default:
+		// Keep the default status of Pass
+	}
+	n.opts.File.UpdateStatus(status)
+}
+
 func (n *NodeStateCleanup) cleanup(ctx *EvalContext, runNode *NodeTestRun, waiter *operationWaiter) (*states.State, tfdiags.Diagnostics) {
 	file := n.opts.File
-	fileState := ctx.GetFileState(n.stateKey)
+	stateKey := runNode.run.Config.StateKey
+	fileState := ctx.GetFileState(stateKey)
 	state := fileState.State
 	run := runNode.run
 	log.Printf("[TRACE] TestFileRunner: called destroy for %s/%s", file.Name, run.Name)
@@ -161,12 +162,11 @@ func (n *NodeStateCleanup) cleanup(ctx *EvalContext, runNode *NodeTestRun, waite
 		return state, diags
 	}
 
-	// If an apply override is provided and the test is not in cleanup mode,
-	// we can directly apply the override to the state file instead of performing
-	// a destroy operation.
-	if n.applyOverride != nil && n.opts.CommandMode != moduletest.CleanupMode {
+	// If an apply override is provided, we can skip the destroy operation
+	// and directly apply the override to the state file.
+	if n.customCleanupRun != nil {
 		runNode.testApply(ctx, variables, waiter)
-		return ctx.GetFileState(n.stateKey).State, runNode.run.Diagnostics
+		return ctx.GetFileState(stateKey).State, runNode.run.Diagnostics
 	}
 
 	// During the destroy operation, we don't add warnings from this operation.
@@ -197,4 +197,45 @@ func (n *NodeStateCleanup) cleanup(ctx *EvalContext, runNode *NodeTestRun, waite
 	_, updated, applyDiags := runNode.apply(tfCtx, plan, moduletest.TearDown, variables, waiter)
 	diags = diags.Append(applyDiags)
 	return updated, diags
+}
+
+func (n *NodeStateCleanup) shouldSkipCleanup(evalCtx *EvalContext, state *TestFileState, file *moduletest.File) bool {
+	// If the state was loaded as a result of an intentional skip, we
+	// don't need to clean it up when in repair mode.
+	if evalCtx.repair && state.Reason == ReasonSkip {
+		log.Printf("[DEBUG] TestStateManager: skipping state cleanup for state %q due to repair mode", n.stateKey)
+		return true
+	}
+
+	if state.Reason == ReasonDep {
+		// If the state was loaded as a result of a dependency, we don't
+		// need to clean it up.
+		log.Printf("[DEBUG] TestStateManager: skipping state cleanup for state %q due to dependency", n.stateKey)
+		return true
+	}
+
+	if evalCtx.Cancelled() {
+		// Don't try and clean anything up if the execution has been cancelled.
+		log.Printf("[DEBUG] TestStateManager: skipping state cleanup for state %q due to cancellation", n.stateKey)
+		return true
+	}
+
+	return false
+}
+
+// emptyState checks if the state is empty, meaning it doesn't contain any
+// managed resources.
+func (n *NodeStateCleanup) emptyState(state *states.State) bool {
+	empty := true
+	if !state.Empty() {
+		for _, module := range state.Modules {
+			for _, resource := range module.Resources {
+				if resource.Addr.Resource.Mode == addrs.ManagedResourceMode {
+					empty = false
+					break
+				}
+			}
+		}
+	}
+	return empty
 }

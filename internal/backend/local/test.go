@@ -19,8 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/junit"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/moduletest/graph"
 	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
@@ -168,6 +166,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			Repair:    runner.Repair,
 			Render:    runner.View,
 			Manifest:  manifest,
+			Semaphore: runner.semaphore,
 		})
 
 		for _, run := range file.Runs {
@@ -318,7 +317,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	}
 
 	// walk and execute the graph
-	diags = runner.walkGraph(g)
+	diags = graph.Walk(g, runner.EvalContext)
 
 	// Update the manifest file with the reason why each state file was created.
 	err := runner.Suite.Manifest.WriteManifest()
@@ -334,63 +333,6 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	}
 
 	file.Diagnostics = file.Diagnostics.Append(diags, err)
-}
-
-// walkGraph goes through the graph and execute each run it finds.
-func (runner *TestFileRunner) walkGraph(g *terraform.Graph) tfdiags.Diagnostics {
-	sem := runner.Suite.semaphore
-
-	// Walk the graph.
-	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
-		if runner.EvalContext.Cancelled() {
-			// If the graph walk has been cancelled, the node should just return immediately.
-			// For now, this means a hard stop has been requested, in this case we don't
-			// even stop to mark future test runs as having been skipped. They'll
-			// just show up as pending in the printed summary. We will quickly
-			// just mark the overall file status has having errored to indicate
-			// it was interrupted.
-			return
-		}
-
-		// the walkFn is called asynchronously, and needs to be recovered
-		// separately in the case of a panic.
-		defer logging.PanicHandler()
-
-		log.Printf("[TRACE] vertex %q: starting visit (%T)", dag.VertexName(v), v)
-
-		defer func() {
-			if r := recover(); r != nil {
-				// If the walkFn panics, we get confusing logs about how the
-				// visit was complete. To stop this, we'll catch the panic log
-				// that the vertex panicked without finishing and re-panic.
-				log.Printf("[ERROR] vertex %q panicked", dag.VertexName(v))
-				panic(r) // re-panic
-			}
-
-			if diags.HasErrors() {
-				for _, diag := range diags {
-					if diag.Severity() == tfdiags.Error {
-						desc := diag.Description()
-						log.Printf("[ERROR] vertex %q error: %s", dag.VertexName(v), desc.Summary)
-					}
-				}
-				log.Printf("[TRACE] vertex %q: visit complete, with errors", dag.VertexName(v))
-			} else {
-				log.Printf("[TRACE] vertex %q: visit complete", dag.VertexName(v))
-			}
-		}()
-
-		// Acquire a lock on the semaphore
-		sem.Acquire()
-		defer sem.Release()
-
-		if executable, ok := v.(graph.GraphNodeExecutable); ok {
-			diags = executable.Execute(runner.EvalContext)
-		}
-		return
-	}
-
-	return g.AcyclicGraph.Walk(walkFn)
 }
 
 func (runner *TestFileRunner) renderPreWalkDiags(file *moduletest.File) (walkCancelled bool) {
