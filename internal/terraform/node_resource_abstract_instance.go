@@ -2969,6 +2969,26 @@ func (n *NodeAbstractResourceInstance) validateIdentityMatchesSchema(newIdentity
 				),
 			))
 		}
+		return diags
+	}
+
+	// Check for required attributes
+	names := make([]string, 0, len(identitySchema.Attributes))
+	for name, attrS := range identitySchema.Attributes {
+		if attrS.Required && newIdentity.GetAttr(name).IsNull() {
+			names = append(names, name)
+		}
+	}
+	if len(names) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced an identity that doesn't match the schema",
+			fmt.Sprintf(
+				"Provider %q returned an identity for %s that doesn't match the identity schema: attributes %q are required and must not be null. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.Provider, n.Addr,
+				strings.Join(names, ", "),
+			),
+		))
 	}
 
 	return diags
