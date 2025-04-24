@@ -396,6 +396,17 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		return noop, deferred, nil
 	}
 
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return plan, deferred, diags.Append(err)
+	}
+	schema := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
+	if schema.Body == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Resource.Type))
+		return nil, deferred, diags
+	}
+
 	// If we are in a context where we forget instead of destroying, we can
 	// just return the forget change without consulting the provider.
 	if ctx.Forget() {
@@ -453,7 +464,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		if !resp.PlannedIdentity.IsNull() {
 			// Destroying is an operation where we allow identity changes.
 			diags = diags.Append(n.validateIdentityKnown(resp.PlannedIdentity))
-			diags = diags.Append(n.validateIdentity(resp.PlannedIdentity))
+			diags = diags.Append(n.validateIdentity(resp.PlannedIdentity, providerSchema.Provider.Identity))
 		}
 
 		// We may not have a config for all destroys, but we want to reference
@@ -659,9 +670,8 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 
 		if !resp.Identity.IsNull() {
 			diags = diags.Append(n.validateIdentityKnown(resp.Identity))
-			diags = diags.Append(n.validateIdentity(resp.Identity))
+			diags = diags.Append(n.validateIdentity(resp.Identity, schema.Identity))
 			diags = diags.Append(n.validateIdentityDidNotChange(state, resp.Identity))
-			diags = diags.Append(n.validateIdentityMatchesSchema(resp.Identity, schema.Identity))
 		}
 		if resp.Deferred != nil {
 			deferred = resp.Deferred
@@ -1118,8 +1128,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			}
 		}
 
-		diags = diags.Append(n.validateIdentity(plannedIdentity))
-		diags = diags.Append(n.validateIdentityMatchesSchema(plannedIdentity, schema.Identity))
+		diags = diags.Append(n.validateIdentity(plannedIdentity, schema.Identity))
 	}
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
@@ -1181,7 +1190,7 @@ func (n *NodeAbstractResourceInstance) plan(
 
 			if !resp.PlannedIdentity.IsNull() {
 				// On replace the identity is allowed to change and be unknown.
-				diags = diags.Append(n.validateIdentity(resp.PlannedIdentity))
+				diags = diags.Append(n.validateIdentity(resp.PlannedIdentity, schema.Identity))
 			}
 		}
 		// We need to tread carefully here, since if there are any warnings
@@ -2638,8 +2647,7 @@ func (n *NodeAbstractResourceInstance) apply(
 
 		if !resp.NewIdentity.IsNull() {
 			diags = diags.Append(n.validateIdentityKnown(resp.NewIdentity))
-			diags = diags.Append(n.validateIdentity(resp.NewIdentity))
-			diags = diags.Append(n.validateIdentityMatchesSchema(resp.NewIdentity, schema.Identity))
+			diags = diags.Append(n.validateIdentity(resp.NewIdentity, schema.Identity))
 			if !change.Action.IsReplace() {
 				diags = diags.Append(n.validateIdentityDidNotChange(state, resp.NewIdentity))
 			}
@@ -2923,7 +2931,7 @@ func (n *NodeAbstractResourceInstance) validateIdentityDidNotChange(state *state
 	return diags
 }
 
-func (n *NodeAbstractResourceInstance) validateIdentity(newIdentity cty.Value) (diags tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) validateIdentity(newIdentity cty.Value, identitySchema *configschema.Object) (diags tfdiags.Diagnostics) {
 	if _, marks := newIdentity.UnmarkDeep(); len(marks) > 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -2933,14 +2941,6 @@ func (n *NodeAbstractResourceInstance) validateIdentity(newIdentity cty.Value) (
 				n.ResolvedProvider.Provider, n.Addr,
 			),
 		))
-	}
-
-	return diags
-}
-
-func (n *NodeAbstractResourceInstance) validateIdentityMatchesSchema(newIdentity cty.Value, identitySchema *configschema.Object) (diags tfdiags.Diagnostics) {
-	if identitySchema == nil {
-		return diags
 	}
 
 	// The identity schema is always a single object, so we can check the
