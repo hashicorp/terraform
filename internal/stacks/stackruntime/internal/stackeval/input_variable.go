@@ -45,11 +45,15 @@ func newInputVariable(main *Main, addr stackaddrs.AbsInputVariable, stack *Stack
 }
 
 // DefinedByStackCallInstance returns the stack call which ought to provide
-// the definition (i.e. the final value) of this input variable.
+// the definition (i.e. the final value) of this input variable. The source
+// of the stack could either be a regular stack call instance or a removed
+// stack call instance. One of the two will be returned. They are mutually
+// exclusive as it is an error for two blocks to create the same stack instance.
 //
 // Returns nil if this input variable belongs to the main stack, because
 // the main stack's input variables come from the planning options instead.
-// Also returns nil if the reciever belongs to a stack config instance
+//
+// Also returns nil if the receiver belongs to a stack config instance
 // that isn't actually declared in the configuration, which typically suggests
 // that we don't yet know the number of instances of one of the stack calls
 // along the chain.
