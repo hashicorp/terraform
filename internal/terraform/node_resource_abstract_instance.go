@@ -2942,11 +2942,25 @@ func (n *NodeAbstractResourceInstance) validateIdentityMatchesSchema(newIdentity
 	if identitySchema == nil {
 		return diags
 	}
+
+	// The identity schema is always a single object, so we can check the
+	// nesting type here.
+	if identitySchema.Nesting != configschema.NestingSingle {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid identity",
+			fmt.Sprintf(
+				"Provider %q returned an identity with a nesting type of %s for %s. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.Provider, identitySchema.Nesting, n.Addr,
+			),
+		))
+	}
+
 	newType := newIdentity.Type()
 	currentType := identitySchema.ImpliedType()
 	if errs := newType.TestConformance(currentType); len(errs) > 0 {
 		for _, err := range errs {
-			diags = diags.AppendWithoutDuplicates(tfdiags.Sourceless(
+			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Provider produced an identity that doesn't match the schema",
 				fmt.Sprintf(
