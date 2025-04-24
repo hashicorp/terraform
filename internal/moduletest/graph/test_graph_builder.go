@@ -57,14 +57,16 @@ func (b *TestGraphBuilder) Build(ctx *EvalContext) (*terraform.Graph, tfdiags.Di
 // See GraphBuilder
 func (b *TestGraphBuilder) Steps(opts *graphOptions) []terraform.GraphTransformer {
 	steps := []terraform.GraphTransformer{
-		&TestRunTransformer{opts},
+		&TestRunTransformer{opts: opts, skip: b.CommandMode == moduletest.CleanupMode},
 		&TestStateTransformer{graphOptions: opts, BackendFactory: b.BackendFactory},
-		terraform.DynamicTransformer(validateRunConfigs),
+		terraform.DynamicTransformer(validateRunConfigs(opts)),
 		&TestProvidersTransformer{},
 		terraform.DynamicTransformer(func(g *terraform.Graph) error {
 			cleanup := &CleanupSubGraph{opts: opts}
 			g.Add(cleanup)
 
+			// ensure that the cleanup node is connected to all nodes,
+			// so that it runs last.
 			for v := range dag.ExcludeSeq(g.VerticesSeq(), func(*CleanupSubGraph) {}) {
 				if g.UpEdges(v).Len() == 0 {
 					g.Connect(dag.BasicEdge(cleanup, v))
@@ -80,15 +82,17 @@ func (b *TestGraphBuilder) Steps(opts *graphOptions) []terraform.GraphTransforme
 	return steps
 }
 
-func validateRunConfigs(g *terraform.Graph) error {
-	for node := range dag.SelectSeq(g.VerticesSeq(), runFilter) {
-		diags := node.run.Config.Validate(node.run.ModuleConfig)
-		node.run.Diagnostics = node.run.Diagnostics.Append(diags)
-		if diags.HasErrors() {
-			node.run.Status = moduletest.Error
+func validateRunConfigs(opts *graphOptions) func(g *terraform.Graph) error {
+	return func(g *terraform.Graph) error {
+		for _, run := range opts.File.Runs {
+			diags := run.Config.Validate(run.ModuleConfig)
+			run.Diagnostics = run.Diagnostics.Append(diags)
+			if diags.HasErrors() {
+				run.Status = moduletest.Error
+			}
 		}
+		return nil
 	}
-	return nil
 }
 
 // dynamicNode is a helper node which can be added to the graph to execute

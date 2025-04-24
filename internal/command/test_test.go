@@ -2579,9 +2579,9 @@ Success! 5 passed, 0 failed.
 	})
 }
 
-func TestTest_SkipCleanup2(t *testing.T) {
+func TestTest_SkipCleanupWithRunDependencies(t *testing.T) {
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath(path.Join("test", "skip_cleanup_2")), td)
+	testCopyDir(t, testFixturePath(path.Join("test", "skip_cleanup_with_run_deps")), td)
 	defer testChdir(t, td)()
 
 	provider := testing_command.NewProvider(nil)

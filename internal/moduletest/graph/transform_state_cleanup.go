@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 var _ GraphNodeExecutable = &CleanupSubGraph{}
@@ -23,12 +24,34 @@ type CleanupSubGraph struct {
 
 func (b *CleanupSubGraph) Execute(ctx *EvalContext) tfdiags.Diagnostics {
 	ctx.Renderer().File(b.opts.File, moduletest.TearDown)
+
+	// In cleanup mode, the test run blocks are not executed.
+	// Instead, the state file associated with each run is revisited to extract
+	// its output values. These output values are then set in the context so
+	// that they can be accessed by subsequent cleanup nodes. This is necessary
+	// because cleaning up the state file for a run may depend on the output
+	// values of previous runs.
+	if b.opts.CommandMode == moduletest.CleanupMode {
+		for _, run := range b.opts.File.Runs {
+			state := ctx.GetFileState(run.Config.StateKey).State
+			if state == nil {
+				return nil
+			}
+			outputVals := make(map[string]cty.Value, len(state.RootOutputValues))
+			for name, out := range state.RootOutputValues {
+				outputVals[name] = out.Value
+			}
+			ctx.SetOutput(run, cty.ObjectVal(outputVals))
+		}
+	}
+
+	// Create a new graph for the cleanup nodes
 	g, diags := (&terraform.BasicGraphBuilder{
 		Steps: []terraform.GraphTransformer{
 			&TestStateCleanupTransformer{opts: b.opts},
 			&CloseTestGraphTransformer{},
 		},
-		Name: "TestCleanupGraph",
+		Name: "TestCleanupSubGraph",
 	}).Build(addrs.RootModuleInstance)
 
 	if diags.HasErrors() {

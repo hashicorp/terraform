@@ -18,9 +18,13 @@ import (
 // and the variables defined in each run block, to the graph.
 type TestRunTransformer struct {
 	opts *graphOptions
+	skip bool // If true, the transformer will skip adding run nodes to the graph.
 }
 
 func (t *TestRunTransformer) Transform(g *terraform.Graph) error {
+	if t.skip {
+		return nil
+	}
 	// Create and add nodes for each run
 	var nodes []*NodeTestRun
 	for _, run := range t.opts.File.Runs {
