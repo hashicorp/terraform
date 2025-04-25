@@ -73,6 +73,8 @@ type BuiltinEvalContext struct {
 	// only allowd in the context of a destroy plan.
 	forget bool
 
+	querier *QueryRunner
+
 	Hooks                   []Hook
 	InputValue              UIInput
 	ProviderCache           map[string]providers.Interface
@@ -619,4 +621,8 @@ func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities
 		DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
 		WriteOnlyAttributesAllowed: true,
 	}
+}
+
+func (ctx *BuiltinEvalContext) Querier() *QueryRunner {
+	return ctx.querier
 }

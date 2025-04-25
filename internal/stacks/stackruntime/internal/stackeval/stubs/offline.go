@@ -235,7 +235,7 @@ func (o *offlineProvider) CallFunction(request providers.CallFunctionRequest) pr
 	return o.unconfiguredClient.CallFunction(request)
 }
 
-func (o *offlineProvider) ListResource(req providers.ListResourceRequest) providers.ListResourceResponse {
+func (o *offlineProvider) ListResource(req providers.ListResourceRequest) error {
 	panic("not implemented")
 }
 

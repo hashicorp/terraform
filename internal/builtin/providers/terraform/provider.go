@@ -264,7 +264,7 @@ func (p *Provider) CallFunction(req providers.CallFunctionRequest) providers.Cal
 	}
 }
 
-func (p *Provider) ListResource(req providers.ListResourceRequest) providers.ListResourceResponse {
+func (p *Provider) ListResource(req providers.ListResourceRequest) error {
 	panic("not implemented")
 }
 

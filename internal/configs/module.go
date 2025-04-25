@@ -114,6 +114,12 @@ func NewModuleWithQueries(primaryFiles, overrideFiles []*File, queryFiles []*Que
 	mod, diags := NewModule(primaryFiles, overrideFiles)
 	if mod != nil {
 		mod.Queries = queryFiles
+		for _, qf := range mod.Queries {
+			for _, ql := range qf.Lists {
+				// set the provider FQN for the resource
+				ql.Provider = mod.ProviderForLocalConfig(ql.ProviderConfigAddr())
+			}
+		}
 	}
 	return mod, diags
 }

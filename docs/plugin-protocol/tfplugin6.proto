@@ -366,7 +366,7 @@ service Provider {
     rpc CloseEphemeralResource(CloseEphemeralResource.Request) returns (CloseEphemeralResource.Response);
 
     /////// List
-    rpc ListResource(ListResource.Request) returns (ListResource.Response);
+    rpc ListResource(ListResource.Request) returns (stream ListResource.Event);
     rpc ValidateListResourceConfig(ValidateListResourceConfig.Request) returns (ValidateListResourceConfig.Response);
 
     // GetFunctions returns the definitions of all functions.
@@ -806,7 +806,7 @@ message ListResource {
         DynamicValue config = 2;
     }
 
-    message Response {
+    message Event {
         // Resource contains all data associated with each resource instance.
         message Resource {
             // identity is the resource identity data of the resource instance.
@@ -814,13 +814,18 @@ message ListResource {
 
            	// display_string can be displayed in a UI to make it easier for humans to identify a resource
            	string display_string = 2;
+
+            // optional resource object which can be useful when combining list blocks in configuration
+            DynamicValue resource_object = 3;
         }
 
+        oneof response {
         // resources is the collection of resource instances.
-        repeated Resource resources = 1;
+        Resource resource = 1;
 
         // diagnostics is the collection of warning and error diagnostics for this request.
-        repeated Diagnostic diagnostics = 2;
+        Diagnostic diagnostic = 2;
+        }
     }
 }
 

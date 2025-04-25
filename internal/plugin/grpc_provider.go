@@ -1205,7 +1205,7 @@ func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp provi
 	return resp
 }
 
-func (p *GRPCProvider) ListResource(req providers.ListResourceRequest) providers.ListResourceResponse {
+func (p *GRPCProvider) ListResource(req providers.ListResourceRequest) error {
 	panic("not implemented")
 }
 

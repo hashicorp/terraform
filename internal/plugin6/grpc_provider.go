@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
@@ -101,6 +102,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	resp.ResourceTypes = make(map[string]providers.Schema)
 	resp.DataSources = make(map[string]providers.Schema)
 	resp.EphemeralResourceTypes = make(map[string]providers.Schema)
+	resp.ListResourceTypes = make(map[string]providers.Schema)
 
 	// Some providers may generate quite large schemas, and the internal default
 	// grpc response size limit is 4MB. 64MB should cover most any use case, and
@@ -160,6 +162,10 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 
 	for name, ephem := range protoResp.EphemeralResourceSchemas {
 		resp.EphemeralResourceTypes[name] = convert.ProtoToProviderSchema(ephem, nil)
+	}
+
+	for name, list := range protoResp.ListResourceSchemas {
+		resp.ListResourceTypes[name] = convert.ProtoToProviderSchema(list, nil)
 	}
 
 	if decls, err := convert.FunctionDeclsFromProto(protoResp.Functions); err == nil {
@@ -1196,8 +1202,70 @@ func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp provi
 	return resp
 }
 
-func (p *GRPCProvider) ListResource(req providers.ListResourceRequest) providers.ListResourceResponse {
-	panic("not implemented")
+func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) error {
+	logger.Trace("GRPCProvider.v6: ListResource")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		r.DiagEmitter(schema.Diagnostics)
+		return nil
+	}
+
+	listSchema, ok := schema.ListResourceTypes[r.TypeName]
+	if !ok {
+		r.DiagEmitter(grpcErr(fmt.Errorf("unknown data source %q", r.TypeName)))
+	}
+
+	config, err := msgpack.Marshal(r.Config, listSchema.Body.ImpliedType())
+	if err != nil {
+		r.DiagEmitter(grpcErr(err))
+		return nil
+	}
+
+	protoReq := &proto6.ListResource_Request{
+		TypeName: r.TypeName,
+		Config: &proto6.DynamicValue{
+			Msgpack: config,
+		},
+	}
+
+	protoResp, err := p.client.ListResource(p.ctx, protoReq)
+	if err != nil {
+		r.DiagEmitter(grpcErr(err))
+		return nil
+	}
+
+	for {
+		item, err := protoResp.Recv()
+		if err == io.EOF {
+			r.DoneCh <- struct{}{}
+		} else if err != nil {
+			r.DiagEmitter(grpcErr(fmt.Errorf("Failed to receive list resource item: %w", err)))
+			return nil
+		}
+
+		switch result := item.Response.(type) {
+		case *proto6.ListResource_Event_Resource_:
+			resource, err := decodeDynamicValue(result.Resource.ResourceObject, listSchema.Body.ImpliedType())
+			if err != nil {
+				r.DiagEmitter(grpcErr(err))
+				return nil
+			}
+			identity, err := decodeDynamicValue(result.Resource.Identity.IdentityData, listSchema.Identity.ImpliedType())
+			if err != nil {
+				r.DiagEmitter(grpcErr(err))
+				return nil
+			}
+			res := providers.ListResult{
+				ResourceObject: resource,
+				Identity:       identity,
+				DisplayString:  result.Resource.DisplayString,
+			}
+			r.ResourceEmitter(res)
+		case *proto6.ListResource_Event_Diagnostic:
+			r.DiagEmitter(convert.ProtoToDiagnostics([]*proto6.Diagnostic{result.Diagnostic}))
+		}
+	}
 }
 
 func (p *GRPCProvider) ValidateListResourceConfig(req providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse {

@@ -116,6 +116,8 @@ type MockProvider struct {
 	CloseEphemeralResourceRequest           providers.CloseEphemeralResourceRequest
 	CloseEphemeralResourceFn                func(providers.CloseEphemeralResourceRequest) providers.CloseEphemeralResourceResponse
 
+	ListResourceFn func(request providers.ListResourceRequest) error
+
 	CallFunctionCalled   bool
 	CallFunctionResponse providers.CallFunctionResponse
 	CallFunctionRequest  providers.CallFunctionRequest
@@ -800,10 +802,17 @@ func (p *MockProvider) Close() error {
 	return p.CloseError
 }
 
-func (m *MockProvider) ListResource(request providers.ListResourceRequest) providers.ListResourceResponse {
-	panic("not implemented")
+func (m *MockProvider) ListResource(request providers.ListResourceRequest) error {
+	m.Lock()
+	defer m.Unlock()
+
+	if m.ListResourceFn != nil {
+		return m.ListResourceFn(request)
+	}
+
+	return nil
 }
 
 func (m *MockProvider) ValidateListResourceConfig(request providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse {
-	panic("not implemented")
+	return providers.ValidateListResourceConfigResponse{}
 }

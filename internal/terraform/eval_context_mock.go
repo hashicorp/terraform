@@ -442,3 +442,7 @@ func (ctx *MockEvalContext) ClientCapabilities() providers.ClientCapabilities {
 		WriteOnlyAttributesAllowed: true,
 	}
 }
+
+func (ctx *MockEvalContext) Querier() *QueryRunner {
+	return nil
+}

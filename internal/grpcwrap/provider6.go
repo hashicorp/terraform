@@ -17,6 +17,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/plugin6/convert"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/internal/tfplugin6"
 )
 
@@ -788,8 +789,60 @@ func (p *provider6) ValidateListResourceConfig(_ context.Context, req *tfplugin6
 	panic("not implemented")
 }
 
-func (p *provider6) ListResource(_ context.Context, req *tfplugin6.ListResource_Request) (*tfplugin6.ListResource_Response, error) {
-	panic("not implemented")
+func (p *provider6) ListResource(req *tfplugin6.ListResource_Request, stream tfplugin6.Provider_ListResourceServer) error {
+	ty := p.schema.ListResourceTypes[req.TypeName].Body.ImpliedType()
+	var diags tfdiags.Diagnostics
+
+	emitDiag := func(diags tfdiags.Diagnostics) {
+		protoDiags := convert.AppendProtoDiag([]*tfplugin6.Diagnostic{}, diags)
+		for _, protoDiag := range protoDiags {
+			stream.Send(&tfplugin6.ListResource_Event{
+				Response: &tfplugin6.ListResource_Event_Diagnostic{
+					Diagnostic: protoDiag,
+				},
+			})
+		}
+	}
+
+	configVal, err := decodeDynamicValue6(req.Config, ty)
+	if err != nil {
+		emitDiag(diags.Append(err))
+		return nil
+	}
+
+	err = p.provider.ListResource(providers.ListResourceRequest{
+		TypeName:    req.TypeName,
+		Config:      configVal,
+		DiagEmitter: emitDiag,
+		ResourceEmitter: func(res providers.ListResult) {
+			ty := p.schema.ListResourceTypes[req.TypeName].Body.ImpliedType()
+			identy := p.schema.ResourceTypes[req.TypeName].Identity.ImpliedType()
+			state, err := encodeDynamicValue6(res.ResourceObject, ty)
+			if err != nil {
+				emitDiag(diags.Append(err))
+				return
+			}
+
+			identity, err := encodeDynamicValue6(res.Identity, identy)
+			if err != nil {
+				emitDiag(diags.Append(err))
+				return
+			}
+
+			stream.Send(&tfplugin6.ListResource_Event{
+				Response: &tfplugin6.ListResource_Event_Resource_{
+					Resource: &tfplugin6.ListResource_Event_Resource{
+						Identity: &tfplugin6.ResourceIdentityData{
+							IdentityData: identity,
+						},
+						ResourceObject: state,
+						DisplayString:  res.DisplayString,
+					},
+				},
+			})
+		},
+	})
+	return err
 }
 
 func (p *provider6) StopProvider(context.Context, *tfplugin6.StopProvider_Request) (*tfplugin6.StopProvider_Response, error) {

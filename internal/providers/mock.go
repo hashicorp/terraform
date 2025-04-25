@@ -406,7 +406,7 @@ func (m *Mock) CallFunction(request CallFunctionRequest) CallFunctionResponse {
 	return m.Provider.CallFunction(request)
 }
 
-func (m *Mock) ListResource(request ListResourceRequest) ListResourceResponse {
+func (m *Mock) ListResource(request ListResourceRequest) error {
 	panic("not implemented")
 }
 

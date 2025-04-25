@@ -105,7 +105,7 @@ type Interface interface {
 	CallFunction(CallFunctionRequest) CallFunctionResponse
 
 	// ListResource returns a list of resources.
-	ListResource(ListResourceRequest) ListResourceResponse
+	ListResource(ListResourceRequest) error
 
 	// Close shuts down the plugin process if applicable.
 	Close() error
@@ -720,6 +720,10 @@ type ListResult struct {
 
 	// DisplayString is a human-readable description of the object
 	DisplayString string
+
+	// ResourceObject is the object-typed value representing the state of the remote
+	// object. It may be null.
+	ResourceObject cty.Value
 }
 
 type ListResourceRequest struct {
@@ -728,11 +732,20 @@ type ListResourceRequest struct {
 
 	// Config is the block body for the list resource.
 	Config cty.Value
-}
 
-type ListResourceResponse struct {
-	Resources []ListResult
+	// DiagEmitter is a function that will be called with any diagnostics
+	// generated during the list operation. This is used to report errors
+	// and warnings to the caller.
+	DiagEmitter func(diag tfdiags.Diagnostics)
 
-	// Diagnostics contains any warnings or errors from the method call.
-	Diagnostics tfdiags.Diagnostics
+	// ResourceEmitter is a function that will be called with each resource
+	// returned by the list operation. This is used to report the resources
+	// to the caller.
+	ResourceEmitter func(resource ListResult)
+
+	// DoneCh is a channel that the provider should close when the
+	// list operation is complete. This is used to signal to the caller
+	// that the operation is finished and no more resources will be
+	// emitted.
+	DoneCh chan<- struct{}
 }

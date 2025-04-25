@@ -207,7 +207,7 @@ func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.
 	panic("CallFunction on provider that didn't declare any functions")
 }
 
-func (s simple) ListResource(req providers.ListResourceRequest) providers.ListResourceResponse {
+func (s simple) ListResource(req providers.ListResourceRequest) error {
 	panic("not implemented")
 }
 

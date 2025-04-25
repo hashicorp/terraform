@@ -70,6 +70,7 @@ type ContextGraphWalker struct {
 	provisionerCache   map[string]provisioners.Interface
 	provisionerSchemas map[string]*configschema.Block
 	provisionerLock    sync.Mutex
+	QueryRunner        *QueryRunner
 }
 
 var _ GraphWalker = (*ContextGraphWalker)(nil)
@@ -141,6 +142,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Evaluator:               evaluator,
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
+		querier:                 w.QueryRunner,
 	}
 
 	return ctx
@@ -161,4 +163,12 @@ func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfd
 	defer w.Context.parallelSem.Release()
 
 	return n.Execute(ctx, w.Operation)
+}
+
+func (w *ContextGraphWalker) Execute2(ctx EvalContext, n GraphNodeExecutable2) tfdiags.Diagnostics {
+	// Acquire a lock on the semaphore
+	w.Context.parallelSem.Acquire()
+	defer w.Context.parallelSem.Release()
+
+	return n.Execute(ctx)
 }

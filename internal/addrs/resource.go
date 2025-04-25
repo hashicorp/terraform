@@ -511,6 +511,10 @@ const (
 	// EphemeralResourceMode indicates an ephemeral resource, as defined by
 	// "ephemeral" blocks in configuration.
 	EphemeralResourceMode ResourceMode = 'E'
+
+	// ListResourceMode indicates a list resource, as defined by
+	// "list" blocks in query configuration.
+	ListResourceMode ResourceMode = 'L'
 )
 
 // AbsResourceInstanceObject represents one of the specific remote objects

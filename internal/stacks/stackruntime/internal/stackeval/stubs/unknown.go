@@ -291,7 +291,7 @@ func (u *unknownProvider) CallFunction(_ providers.CallFunctionRequest) provider
 	}
 }
 
-func (u *unknownProvider) ListResource(req providers.ListResourceRequest) providers.ListResourceResponse {
+func (u *unknownProvider) ListResource(req providers.ListResourceRequest) error {
 	panic("not implemented")
 }
 

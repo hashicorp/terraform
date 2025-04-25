@@ -8,13 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/backend/local"
-	"github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -69,7 +67,7 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 	config, configDiags := c.loadConfigWithQueries(".")
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
-		view.Diagnostics(nil, nil, diags)
+		view.Diagnostics(addrs.List{}, diags)
 		return 1
 	}
 
@@ -83,29 +81,24 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 		})
 	}
 	c.variableArgs = arguments.FlagNameValueSlice{Items: &items}
-
-	// Collect variables for "terraform test"
-	// testVariables, variableDiags := c.collectVariableValuesForTests(args.TestDirectory)
-	// diags = diags.Append(variableDiags)
-
 	variables, variableDiags := c.collectVariableValues()
 	diags = diags.Append(variableDiags)
 	if variableDiags.HasErrors() {
-		view.Diagnostics(nil, nil, diags)
+		view.Diagnostics(addrs.List{}, diags)
 		return 1
 	}
 
 	opts, err := c.contextOpts()
 	if err != nil {
 		diags = diags.Append(err)
-		view.Diagnostics(nil, nil, diags)
+		view.Diagnostics(addrs.List{}, diags)
 		return 1
 	}
 
 	// Print out all the diagnostics we have from the setup. These will just be
 	// warnings, and we want them out of the way before we start the actual
 	// testing.
-	view.Diagnostics(nil, nil, diags)
+	view.Diagnostics(addrs.List{}, diags)
 
 	// We have two levels of interrupt here. A 'stop' and a 'cancel'. A 'stop'
 	// is a soft request to stop. We'll finish the current test, do the tidy up,
@@ -114,69 +107,18 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 	// even if it's a delete operation, and we won't clean up any infrastructure
 	// if we're halfway through a test. We'll print details explaining what was
 	// stopped so the user can do their best to recover from it.
+	tfCtx, ctxDiags := terraform.NewContext(opts)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		view.Diagnostics(addrs.List{}, diags)
+		return 1
+	}
 
 	runningCtx, done := context.WithCancel(context.Background())
 	stopCtx, stop := context.WithCancel(runningCtx)
 	cancelCtx, cancel := context.WithCancel(context.Background())
 
-	var runner moduletest.TestSuiteRunner
-	if len(args.CloudRunSource) > 0 {
-
-		var renderer *jsonformat.Renderer
-		if args.ViewType == arguments.ViewHuman {
-			// We only set the renderer if we want Human-readable output.
-			// Otherwise, we just let the runner echo whatever data it receives
-			// back from the agent anyway.
-			renderer = &jsonformat.Renderer{
-				Streams:             c.Streams,
-				Colorize:            c.Colorize(),
-				RunningInAutomation: c.RunningInAutomation,
-			}
-		}
-
-		runner = &cloud.TestSuiteRunner{
-			ConfigDirectory:      ".", // Always loading from the current directory.
-			TestingDirectory:     args.TestDirectory,
-			Config:               config,
-			Services:             c.Services,
-			Source:               args.CloudRunSource,
-			GlobalVariables:      variables,
-			Stopped:              false,
-			Cancelled:            false,
-			StoppedCtx:           stopCtx,
-			CancelledCtx:         cancelCtx,
-			Verbose:              args.Verbose,
-			OperationParallelism: args.OperationParallelism,
-			Filters:              args.Filter,
-			Renderer:             renderer,
-			View:                 view,
-			Streams:              c.Streams,
-		}
-	} else {
-		localRunner := &local.TestSuiteRunner{
-			Config: config,
-			// The GlobalVariables are loaded from the
-			// main configuration directory
-			// The GlobalTestVariables are loaded from the
-			// test directory
-			GlobalVariables:     variables,
-			GlobalTestVariables: testVariables,
-			TestingDirectory:    args.TestDirectory,
-			Opts:                opts,
-			View:                view,
-			Stopped:             false,
-			Cancelled:           false,
-			StoppedCtx:          stopCtx,
-			CancelledCtx:        cancelCtx,
-			Filter:              args.Filter,
-			Verbose:             args.Verbose,
-		}
-
-		runner = localRunner
-	}
-
-	var testDiags tfdiags.Diagnostics
-	var status moduletest.Status
+	var qDiags tfdiags.Diagnostics
 
 	go func() {
 		defer logging.PanicHandler()
@@ -184,7 +126,12 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 		defer stop()
 		defer cancel()
 
-		status, testDiags = runner.Test()
+		_, qDiags = tfCtx.QueryEval(config, &terraform.QueryOpts{
+			View:         view,
+			Variables:    variables,
+			StoppedCtx:   stopCtx,
+			CancelledCtx: cancelCtx,
+		})
 	}()
 
 	// Wait for the operation to complete, or for an interrupt to occur.
@@ -193,7 +140,6 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 		// Nice request to be cancelled.
 
 		view.Interrupted()
-		runner.Stop()
 		stop()
 
 		select {
@@ -202,24 +148,9 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 			// fast as possible.
 
 			view.FatalInterrupt()
-			runner.Cancel()
 			cancel()
 
 			waitTime := 5 * time.Second
-			if len(args.CloudRunSource) > 0 {
-				// We wait longer for cloud runs because the agent should force
-				// kill the remote job after 5 seconds (as defined above).
-				//
-				// This can take longer as the remote agent doesn't receive the
-				// interrupt immediately. So for cloud runs, we'll wait a minute
-				// which should give the remote process enough to receive the
-				// signal, process it, and exit.
-				//
-				// If after a minute, the job still hasn't finished then we
-				// assume something else has gone wrong and we'll just have to
-				// live with the consequences.
-				waitTime = time.Minute
-			}
 
 			// We'll wait 5 seconds for this operation to finish now, regardless
 			// of whether it finishes successfully or not.
@@ -235,9 +166,8 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 		// tests finished normally with no interrupts.
 	}
 
-	view.Diagnostics(nil, nil, testDiags)
-
-	if status != moduletest.Pass {
+	view.Diagnostics(addrs.List{}, qDiags)
+	if qDiags.HasErrors() {
 		return 1
 	}
 	return 0

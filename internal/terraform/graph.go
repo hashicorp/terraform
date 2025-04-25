@@ -35,12 +35,11 @@ func (g *Graph) DirectedGraph() dag.Grapher {
 // will be walked with full parallelism, so the walker should expect
 // to be called in concurrently.
 func (g *Graph) Walk(walker GraphWalker) tfdiags.Diagnostics {
-	return g.walk(walker)
+	ctx := walker.EvalContext()
+	return g.walk(ctx, walker)
 }
 
-func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
-	// The callbacks for enter/exiting a graph
-	ctx := walker.EvalContext()
+func (g *Graph) walk(ctx EvalContext, walker GraphWalker) tfdiags.Diagnostics {
 
 	// Walk the graph.
 	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
@@ -144,6 +143,12 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			if diags.HasErrors() {
 				return
 			}
+		} else if ev, ok := v.(GraphNodeExecutable2); ok {
+			walker := walker.(*ContextGraphWalker)
+			diags = diags.Append(walker.Execute2(vertexCtx, ev))
+			if diags.HasErrors() {
+				return
+			}
 		}
 
 		// If the node is dynamically expanded, then expand it
@@ -181,7 +186,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 
 				// Walk the subgraph
 				log.Printf("[TRACE] vertex %q: entering dynamic subgraph", dag.VertexName(v))
-				subDiags := g.walk(walker)
+				subDiags := g.walk(ctx, walker)
 				diags = diags.Append(subDiags)
 				if subDiags.HasErrors() {
 					var errs []string

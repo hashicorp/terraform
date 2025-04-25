@@ -238,7 +238,7 @@ func (p *erroredProvider) ValidateResourceConfig(providers.ValidateResourceConfi
 	}
 }
 
-func (p *erroredProvider) ListResource(req providers.ListResourceRequest) providers.ListResourceResponse {
+func (p *erroredProvider) ListResource(req providers.ListResourceRequest) error {
 	panic("not implemented")
 }
 

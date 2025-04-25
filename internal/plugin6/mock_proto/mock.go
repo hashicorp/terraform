@@ -222,14 +222,14 @@ func (mr *MockProviderClientMockRecorder) ImportResourceState(arg0, arg1 any, ar
 }
 
 // ListResource mocks base method.
-func (m *MockProviderClient) ListResource(arg0 context.Context, arg1 *tfplugin6.ListResource_Request, arg2 ...grpc.CallOption) (*tfplugin6.ListResource_Response, error) {
+func (m *MockProviderClient) ListResource(arg0 context.Context, arg1 *tfplugin6.ListResource_Request, arg2 ...grpc.CallOption) (tfplugin6.Provider_ListResourceClient, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListResource", varargs...)
-	ret0, _ := ret[0].(*tfplugin6.ListResource_Response)
+	ret0, _ := ret[0].(tfplugin6.Provider_ListResourceClient)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
