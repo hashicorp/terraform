@@ -53,7 +53,7 @@ func New() backend.Backend {
 	if os.Getenv("TF_INMEM_TEST") != "" {
 		// We use a different schema for testing. This isn't user facing unless they
 		// dig into the code.
-		fmt.Sprintln("TF_INMEM_TEST is set: Using test schema for the inmem backend")
+		fmt.Println("TF_INMEM_TEST is set: Using test schema for the inmem backend")
 
 		return &Backend{
 			Base: backendbase.Base{
