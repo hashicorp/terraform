@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/apparentlymart/go-hcl-overlay/hcloverlay"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	svchost "github.com/hashicorp/terraform-svchost"
@@ -969,7 +970,7 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 
 	var ret hcl.Body
 	var diags tfdiags.Diagnostics
-	synthVals := make(map[string]cty.Value)
+	synthVals := map[string]cty.Value{}
 
 	mergeBody := func(newBody hcl.Body) {
 		if ret == nil {
@@ -993,6 +994,7 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 		return configs.SynthBody("-backend-config=''", synthVals), diags
 	}
 
+	overlays := []hcloverlay.Overlay{}
 	for _, item := range items {
 		eq := strings.Index(item.Value, "=")
 
@@ -1035,7 +1037,6 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 		} else {
 			// The flag value is setting a single attribute's value
 			name := item.Value[:eq]
-			rawValue := item.Value[eq+1:]
 
 			// Check the value looks like a valid attribute identifier
 			splitName := strings.Split(name, ".")
@@ -1072,34 +1073,18 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 				continue
 			}
 
-			if len(splitName) > 1 {
-				// The flag item is overriding a nested attribute (name contains multiple identifiers)
-				// e.g. assume_role.role_arn in the s3 backend
-				value, valueDiags := configValueFromCLI(item.String(), rawValue, targetAttr.Type)
-				diags = diags.Append(valueDiags)
-				if valueDiags.HasErrors() {
-					continue
-				}
-
-				// Synthetic values are collected as we parse each flag item
-				// Nested values need to be added in a way that doesn't affect pre-existing values
-				synthCopy := map[string]cty.Value{}
-				maps.Copy(synthCopy, synthVals)
-				synthVals = addNestedAttrsToCtyValueMap(synthCopy, splitName, value)
-			} else {
-				// The flag item is overriding a non-nested, top-level attribute
-				value, valueDiags := configValueFromCLI(item.String(), rawValue, targetAttr.Type)
-				diags = diags.Append(valueDiags)
-				if valueDiags.HasErrors() {
-					continue
-				}
-
-				// Synthetic values are collected as we parse each flag item
-				synthVals[name] = value
+			overlay, parseFlagDiags := hcloverlay.ParseCLIArgument(item.Value)
+			if parseFlagDiags.HasErrors() {
+				diags = diags.Append(parseFlagDiags)
 			}
+			overlays = append(overlays, overlay)
+
 		}
 	}
 
+	// ret's nil inner is a problem
+	innerBody := configs.SynthBody("-backend-config=...", synthVals)
+	ret = hcloverlay.ApplyOverlays(innerBody, overlays...)
 	flushVals()
 
 	return ret, diags
