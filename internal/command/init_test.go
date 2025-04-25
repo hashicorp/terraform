@@ -3278,3 +3278,121 @@ func expectedPackageInstallPath(name, version string, exe bool) string {
 		baseDir, fmt.Sprintf("registry.terraform.io/hashicorp/%s/%s/%s", name, version, platform),
 	))
 }
+
+func Test_addNestedAttrsToCtyValueMap(t *testing.T) {
+
+	t.Run("adds nested attributes to depth of 2 into an empty map", func(t *testing.T) {
+		obj := map[string]cty.Value{}
+		name := "a.b"
+		splitName := strings.Split(name, ".")
+		attrVal := cty.StringVal("foobar")
+		ret := addNestedAttrsToCtyValueMap(obj, splitName, attrVal)
+
+		a, ok := ret["a"]
+		if !ok {
+			t.Fatalf("expected a top-level attribute \"a\" but it's missing")
+		}
+
+		b, ok := a.AsValueMap()["b"]
+		if !ok {
+			t.Fatalf("expected an attribute \"a.b\" but it's missing")
+		}
+		if b.Equals(attrVal) == cty.False {
+			t.Fatalf("expected attribute \"a.b\" to equal %q but got %q", attrVal.AsString(), b.AsString())
+		}
+	})
+
+	t.Run("adds nested attributes to depth of 5 into an empty map", func(t *testing.T) {
+		obj := map[string]cty.Value{}
+		name := "a.b.c.d.e"
+		splitName := strings.Split(name, ".")
+		attrVal := cty.StringVal("foobar")
+		ret := addNestedAttrsToCtyValueMap(obj, splitName, attrVal)
+
+		a, ok := ret["a"]
+		if !ok {
+			t.Fatalf("expected a top-level attribute \"a\" but it's missing")
+		}
+		b, ok := a.AsValueMap()["b"]
+		if !ok {
+			t.Fatal()
+		}
+		c, ok := b.AsValueMap()["c"]
+		if !ok {
+			t.Fatal()
+		}
+		d, ok := c.AsValueMap()["d"]
+		if !ok {
+			t.Fatal()
+		}
+		e, ok := d.AsValueMap()["e"]
+		if !ok {
+			t.Fatal()
+		}
+		if e.Equals(attrVal) == cty.False {
+			t.Fatalf("expected attribute %q to equal %q but got %q", name, attrVal.AsString(), e.AsString())
+		}
+	})
+
+	t.Run("adds nested attributes to a populated map without removing existing values in a separate path", func(t *testing.T) {
+		obj := map[string]cty.Value{
+			"pre-existing-val": cty.StringVal("I should not be deleted!"),
+		}
+		name := "a.b"
+		// Both of the above have separate paths; do not share the first step of paths
+
+		splitName := strings.Split(name, ".")
+		attrVal := cty.StringVal("foobar")
+		ret := addNestedAttrsToCtyValueMap(obj, splitName, attrVal)
+
+		_, ok := ret["pre-existing-val"]
+		if !ok {
+			t.Fatalf("expected a top-level attribute \"pre-existing-val\" but it's missing")
+		}
+
+		a, ok := ret["a"]
+		if !ok {
+			t.Fatalf("expected a top-level attribute \"a\" but it's missing")
+		}
+
+		b, ok := a.AsValueMap()["b"]
+		if !ok {
+			t.Fatal()
+		}
+		if b.Equals(attrVal) == cty.False {
+			t.Fatal()
+		}
+	})
+
+	t.Run("adds nested attributes to a populated map without removing existing values in the same path", func(t *testing.T) {
+		obj := map[string]cty.Value{
+			"a": cty.ObjectVal(map[string]cty.Value{
+				"pre-existing-val": cty.StringVal("I should not be deleted!"),
+			}),
+		}
+		name := "a.b"
+		// Both of the above include 'a' as first step in path
+
+		splitName := strings.Split(name, ".")
+		attrVal := cty.StringVal("baz")
+		ret := addNestedAttrsToCtyValueMap(obj, splitName, attrVal)
+
+		a, ok := ret["a"]
+		if !ok {
+			t.Fatalf("expected a top-level attribute \"a\" but it's missing")
+		}
+
+		_, ok = a.AsValueMap()["pre-existing-val"]
+		if !ok {
+			t.Fatalf("expected an attribute \"a.pre-existing-val\" but it's missing")
+		}
+
+		b, ok := a.AsValueMap()["b"]
+		if !ok {
+			t.Fatalf("expected an attribute \"a.b\" but it's missing")
+		}
+		if b.Equals(attrVal) == cty.False {
+			t.Fatalf("expected attribute %q to equal %q but got %q", name, attrVal.AsString(), b.AsString())
+		}
+	})
+}

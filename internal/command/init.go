@@ -8,11 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"maps"
 	"reflect"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/posener/complete"
 	"github.com/zclconf/go-cty/cty"
@@ -1035,76 +1037,25 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 			name := item.Value[:eq]
 			rawValue := item.Value[eq+1:]
 
+			// Check the value looks like a valid attribute identifier
 			splitName := strings.Split(name, ".")
-			isNested := len(splitName) > 1
-
-			var value cty.Value
-			var valueDiags tfdiags.Diagnostics
-			switch {
-			case !isNested:
-				// The flag item is overriding a top-level attribute
-				attrS := schema.Attributes[name]
-				if attrS == nil {
+			for _, part := range splitName {
+				if !hclsyntax.ValidIdentifier(part) {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Invalid backend configuration argument",
-						fmt.Sprintf("The backend configuration argument %q given on the command line is not expected for the selected backend type.", name),
+						fmt.Sprintf("The backend configuration argument %q given on the command line contains an invalid identifier that cannot be used for partial configuration: %q.", name, part),
 					))
 					continue
 				}
-
-				value, valueDiags = configValueFromCLI(item.String(), rawValue, attrS.Type)
-				diags = diags.Append(valueDiags)
-				if valueDiags.HasErrors() {
-					continue
-				}
-
-				// Synthetic values are collected as we parse each flag item
-				synthVals[name] = value
-			case isNested:
-				// The flag item is overriding a nested attribute
-				// e.g. assume_role.role_arn in the s3 backend
-				// We assume a max nesting-depth of 1 as s3 is the only
-				// backend that contains nested fields.
-
-				parentName := splitName[0]
-				nestedName := splitName[1]
-				parentAttr := schema.Attributes[parentName]
-				nestedAttr := parentAttr.NestedType.Attributes[nestedName]
-				if nestedAttr == nil {
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Invalid backend configuration argument",
-						fmt.Sprintf("The backend configuration argument %q given on the command line is not expected for the selected backend type.", name),
-					))
-					continue
-				}
-
-				value, valueDiags = configValueFromCLI(item.String(), rawValue, nestedAttr.Type)
-				diags = diags.Append(valueDiags)
-				if valueDiags.HasErrors() {
-					continue
-				}
-
-				// Synthetic values are collected as we parse each flag item
-				// When doing this we need to account for attribute nesting
-				// and multiple nested fields being overridden.
-				synthParent, found := synthVals[parentName]
-				if !found {
-					synthVals[parentName] = cty.ObjectVal(map[string]cty.Value{
-						nestedName: value,
-					})
-				}
-				if found {
-					// add the new attribute override to any existing attributes
-					// also nested under the parent
-					nestedMap := synthParent.AsValueMap()
-					nestedMap[nestedName] = value
-					synthVals[parentName] = cty.ObjectVal(nestedMap)
-				}
-
-			default:
-				// Should not reach here
+			}
+			// Check the attribute exists in the backend's schema
+			path := cty.Path{}
+			for _, name := range splitName {
+				path = path.GetAttr(name)
+			}
+			targetAttr := schema.AttributeByPath(path)
+			if targetAttr == nil {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid backend configuration argument",
@@ -1112,12 +1063,68 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 				))
 				continue
 			}
+
+			if len(splitName) > 1 {
+				// The flag item is overriding a nested attribute (name contains multiple identifiers)
+				// e.g. assume_role.role_arn in the s3 backend
+				value, valueDiags := configValueFromCLI(item.String(), rawValue, targetAttr.Type)
+				diags = diags.Append(valueDiags)
+				if valueDiags.HasErrors() {
+					continue
+				}
+
+				// Synthetic values are collected as we parse each flag item
+				// Nested values need to be added in a way that doesn't affect pre-existing values
+				var synthCopy map[string]cty.Value
+				maps.Copy(synthCopy, synthVals)
+				synthVals = addNestedAttrsToCtyValueMap(synthCopy, splitName, value)
+			} else {
+				// The flag item is overriding a non-nested, top-level attribute
+				value, valueDiags := configValueFromCLI(item.String(), rawValue, targetAttr.Type)
+				diags = diags.Append(valueDiags)
+				if valueDiags.HasErrors() {
+					continue
+				}
+
+				// Synthetic values are collected as we parse each flag item
+				synthVals[name] = value
+			}
 		}
 	}
 
 	flushVals()
 
 	return ret, diags
+}
+
+// addNestedAttrsToCtyValueMap is used to assemble a map of cty Values that is used to create a cty.Object.
+// This function should be used to set nested values in the map[string]cty.Value, and cannot be used to set
+// top-level attributes (this will result in other top-level attributes being lost).
+func addNestedAttrsToCtyValueMap(accumulator map[string]cty.Value, names []string, attrValue cty.Value) map[string]cty.Value {
+	if len(names) == 1 {
+		// Base case - we are setting the attribute with the provided value
+		return map[string]cty.Value{
+			names[0]: attrValue,
+		}
+	}
+
+	// Below we are navigating the path from the final, nested attribute we want to set a value for.
+	// During this process we need to ensure that any pre-existing values in the map are not
+	// accidentally removed
+	val, ok := accumulator[names[0]]
+	if !ok {
+		accumulator[names[0]] = cty.ObjectVal(addNestedAttrsToCtyValueMap(accumulator, names[1:], attrValue))
+	} else {
+		values := val.AsValueMap()
+		newValues := addNestedAttrsToCtyValueMap(accumulator, names[1:], attrValue)
+
+		// We copy new values into the map of pre-existing values
+		maps.Copy(values, newValues)
+
+		accumulator[names[0]] = cty.ObjectVal(values)
+	}
+
+	return accumulator
 }
 
 func (c *InitCommand) AutocompleteArgs() complete.Predictor {
