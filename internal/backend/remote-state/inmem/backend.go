@@ -49,6 +49,14 @@ func Reset() {
 }
 
 // New creates a new backend for Inmem remote state.
+//
+// Currently the inmem backend is available for end users to use if they know it exists (it is not in any docs), but it was intended as a test resource.
+// Making the inmem backend unavailable to end users and only available during tests is a breaking change.
+// As a compromise for now, the inmem backend includes test-specific code that is enabled by setting the TF_INMEM_TEST environment variable.
+// Test-specific behaviors include:
+// * A more complex schema for testing code related to backend configurations
+//
+// Note: The alternative choice would be to add a duplicate of inmem in the codebase that's user-inaccessible, and this would be harder to maintain.
 func New() backend.Backend {
 	if os.Getenv("TF_INMEM_TEST") != "" {
 		// We use a different schema for testing. This isn't user facing unless they
