@@ -70,7 +70,7 @@ These optional configuration options apply when [looking up the data plane URI](
 
 The recommended data plane role assignments required for this method are either one of:
 
-- `Storage Blob Data Owner` on the storage account container (Recommended)
+- `Storage Blob Data Contributor` on the storage account container (Recommended)
 - `Storage Blob Data Contributor` on the storage account
 
 The recommended management plane role assignments required for this method are:
@@ -339,7 +339,7 @@ These optional configuration options apply when [looking up the data plane URI](
 
 The recommended data plane role assignments required for this method are either one of:
 
-- `Storage Blob Data Owner` on the storage account container (Recommended)
+- `Storage Blob Data Contributor` on the storage account container (Recommended)
 - `Storage Blob Data Contributor` on the storage account
 
 The recommended management plane role assignments required for this method are:
@@ -548,9 +548,9 @@ The following configuration options are supported:
 
 * `use_oidc` - (Optional) Set to `true` to use OpenID Connect / Workload identity federation authentication for authentication to the storage account management and data plane. This can also be sourced from the `ARM_USE_OIDC` environment variable.
 
-* `client_id` - (Optional) The Client ID of the Azure Active Directory Principal required for some authentication sub-types. This can also be sourced from the `ARM_CLIENT_ID` environment variable.
+* `client_id` - (Optional) The Client ID of the Azure Active Directory Principal required for some authentication sub-types. This can also be sourced from the `ARM_CLIENT_ID` or `ARM_CLIENT_ID_BACKEND` environment variable.
 
-* `ado_pipeline_service_connection_id` - (Optional) The Azure DevOps Pipeline Service Connection ID required for Open ID Connect / Workload identity federation authentication with Azure DevOps. This can also be sourced from the `ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID` or `ARM_OIDC_AZURE_SERVICE_CONNECTION_ID` environment variables. The provider will look for values in this order and use the first it finds configured.
+* `ado_pipeline_service_connection_id` - (Optional) The Azure DevOps Pipeline Service Connection ID required for Open ID Connect / Workload identity federation authentication with Azure DevOps. This can also be sourced from the `ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID`, `ARM_OIDC_AZURE_SERVICE_CONNECTION_ID`, `AZURESUBSCRIPTION_SERVICE_CONNECTION_ID` or `ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID_BACKEND` environment variables. The provider will look for values in this order and use the first it finds configured.
 
 * `oidc_request_url` - (Optional) The URL for the Open ID Connect provider from which to request an ID token. This is only required for advanced scenarios or third party integrations. This can also be sourced from the `ARM_OIDC_REQUEST_URL`, `ACTIONS_ID_TOKEN_REQUEST_URL` or `SYSTEM_OIDCREQUESTURI` environment variables. The provider will look for values in this order and use the first it finds configured.
 
