@@ -793,38 +793,115 @@ func TestInit_backendConfigKV(t *testing.T) {
 }
 
 func TestInit_backendConfigKVNested(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("init-backend-config-kv-nested"), td)
-	defer testChdir(t, td)()
 	t.Setenv("TF_INMEM_TEST", "1") // Allows use of inmem backend with a more complex schema
 
-	ui := new(cli.MockUi)
-	view, done := testView(t)
-	c := &InitCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-			View:             view,
-		},
-	}
+	t.Run("the -backend-config flag can overwrite a nested attribute", func(t *testing.T) {
+		// Create a temporary working directory that is empty
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-backend-config-kv-nested"), td)
+		defer testChdir(t, td)()
 
-	// overridden field is nested:
-	// test_nesting_single = {
-	//    child = "..."
-	// }
-	args := []string{
-		"-backend-config=test_nesting_single.child=foobar",
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", done(t).Stderr())
-	}
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				View:             view,
+			},
+		}
 
-	// Read our saved backend config and verify we have our settings
-	state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
-	if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"lock_id":null,"test_nesting_single":{"child":"foobar"}}`; got != want {
-		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
-	}
+		// overridden field is nested:
+		// test_nesting_single = {
+		//    child = "..."
+		// }
+		args := []string{
+			"-backend-config=test_nesting_single.child=foobar",
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: \n%s", done(t).Stderr())
+		}
+
+		// Read our saved backend config and verify we have our settings
+		state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+		if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"lock_id":null,"test_nesting_single":{"child":"foobar"}}`; got != want {
+			t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+
+	t.Run("an error is returned when when the parent attribute doesn't exist", func(t *testing.T) {
+		// Create a temporary working directory that is empty
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-backend-config-kv-nested"), td)
+		defer testChdir(t, td)()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				View:             view,
+			},
+		}
+
+		// overridden field doesn't exist
+		args := []string{
+			"-backend-config=does_not_exist.child=foobar",
+		}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("expected code 1, got: %d \n%s", code, done(t).Stderr())
+		}
+		gotStderr := done(t).Stderr()
+		wantStderr := `
+Error: Invalid backend configuration argument
+
+The backend configuration argument "does_not_exist.child" given on the
+command line is not expected for the selected backend type.
+`
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Errorf("wrong error output\n%s", diff)
+		}
+	})
+
+	t.Run("an error is returned when trying to set an attribute that contains nested attributes", func(t *testing.T) {
+		// Create a temporary working directory that is empty
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-backend-config-kv-nested"), td)
+		defer testChdir(t, td)()
+
+		ui := new(cli.MockUi)
+		view, done := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				View:             view,
+			},
+		}
+
+		// overridden field is a parent field:
+		// test_nesting_single = {
+		//    child = "..."
+		// }
+		args := []string{
+			"-backend-config=test_nesting_single=foobar",
+		}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("expected code 1, got: %d \n%s", code, done(t).Stderr())
+		}
+		gotStderr := done(t).Stderr()
+		wantStderr := `
+Error: Invalid backend configuration argument
+
+The backend configuration argument "test_nesting_single" given on the command
+line specifies an attribute that contains nested attributes. Instead, use
+separate flags for each nested attribute inside.
+`
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Errorf("wrong error output\n%s", diff)
+		}
+	})
 }
 
 func TestInit_backendConfigKVReInit(t *testing.T) {
