@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'backend/azurerm: Support Azure DevOps environment variables and backend specific variables'
+time: 2025-04-25T16:00:21.8153592+01:00
+custom:
+    Issue: "36922"
