@@ -1049,7 +1049,7 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 					continue
 				}
 			}
-			// Check the attribute exists in the backend's schema
+			// Check the attribute exists in the backend's schema and is a 'leaf' attribute
 			path := cty.Path{}
 			for _, name := range splitName {
 				path = path.GetAttr(name)
@@ -1060,6 +1060,14 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 					tfdiags.Error,
 					"Invalid backend configuration argument",
 					fmt.Sprintf("The backend configuration argument %q given on the command line is not expected for the selected backend type.", name),
+				))
+				continue
+			}
+			if targetAttr.NestedType != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid backend configuration argument",
+					fmt.Sprintf("The backend configuration argument %q given on the command line specifies an attribute that contains nested attributes. Instead, use separate flags for each nested attribute inside.", name),
 				))
 				continue
 			}
@@ -1075,7 +1083,7 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 
 				// Synthetic values are collected as we parse each flag item
 				// Nested values need to be added in a way that doesn't affect pre-existing values
-				var synthCopy map[string]cty.Value
+				synthCopy := map[string]cty.Value{}
 				maps.Copy(synthCopy, synthVals)
 				synthVals = addNestedAttrsToCtyValueMap(synthCopy, splitName, value)
 			} else {
