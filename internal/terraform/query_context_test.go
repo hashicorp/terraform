@@ -31,16 +31,25 @@ func TestQueryContext(t *testing.T) {
 		"main.tfquery.hcl": `
 			provider "test" {}
 
+			variable "input" {
+				type = string
+				default = "test"
+			}
+
 			list "test_resource" "test" {
 				provider = test
+
+				filter = {
+					attr = var.input
+				}
 			}
 	`,
 	})
 
 	p := simpleMockProvider()
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
-		DataSources: map[string]*configschema.Block{
-			"test_data_source": {
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
 				Attributes: map[string]*configschema.Attribute{
 					"attr": {
 						Type:     cty.String,
@@ -52,20 +61,35 @@ func TestQueryContext(t *testing.T) {
 		ListResourceTypes: map[string]*configschema.Block{
 			"test_resource": {
 				Attributes: map[string]*configschema.Attribute{
-					"attr": {
-						Type:     cty.String,
-						Computed: true,
+					"filter": {
+						Required: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"attr": {
+									Type:     cty.String,
+									Required: true,
+								},
+							},
+						},
 					},
 				},
 			},
 		},
 	})
 	p.ListResourceFn = func(request providers.ListResourceRequest) error {
-		request.ResourceEmitter(providers.ListResult{
-			ResourceObject: cty.ObjectVal(map[string]cty.Value{
-				"attr": cty.StringVal("test"),
-			}),
-		})
+		filter := request.Config.GetAttr("filter")
+		str := filter.GetAttr("attr").AsString()
+		if str != "inputed" {
+			return fmt.Errorf("Expected filter attr to be 'inputed', got '%s'", str)
+		}
+		for _, attr := range []string{"attr1", "attr2"} {
+			request.ResourceEmitter(providers.ListResult{
+				ResourceObject: cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal(attr),
+				}),
+			})
+		}
 		request.DoneCh <- struct{}{}
 		return nil
 	}
@@ -75,14 +99,38 @@ func TestQueryContext(t *testing.T) {
 		},
 	})
 
-	runner, diags := ctx.QueryEval(m, &QueryOpts{
-		View: &MockQueryViews{},
+	qv := &MockQueryViews{
+		ResourceAddrs: addrs.MakeSet[addrs.List](),
+		ResourceObjs:  []*states.ResourceInstanceObjectSrc{},
+	}
+	_, diags := ctx.QueryEval(m, &QueryOpts{
+		View: qv,
+		SetVariables: InputValues{
+			"input": &InputValue{
+				Value: cty.StringVal("inputed"),
+			},
+		},
 	})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
 
-	fmt.Println("Runner:", runner)
+	if !qv.ResourceCalled {
+		t.Fatal("Resource was not called")
+	}
+	if len(qv.ResourceObjs) != 2 {
+		t.Fatalf("Expected 2 resource objects, got %d", len(qv.ResourceObjs))
+	}
+
+	obj, err := qv.ResourceObjs[0].Decode(p.GetProviderSchemaResponse.ListResourceTypes["test_resource"])
+	if err != nil {
+		t.Fatalf("Failed to decode resource object: %s", err)
+	}
+
+	if obj.Value.GetAttr("attr").AsString() != "attr1" {
+		t.Fatalf("Expected attr to be 'attr1', got '%s'", obj.Value.GetAttr("attr").AsString())
+	}
+
 }
 
 // MockQueryViews is a mock implementation of the QueryViews interface for testing.
@@ -90,8 +138,8 @@ type MockQueryViews struct {
 	ListCalled     bool
 	ListStatesArg  ListStates
 	ResourceCalled bool
-	ResourceAddr   addrs.List
-	ResourceObj    *states.ResourceInstanceObjectSrc
+	ResourceAddrs  addrs.Set[addrs.List]
+	ResourceObjs   []*states.ResourceInstanceObjectSrc
 }
 
 func (m *MockQueryViews) List(states ListStates) {
@@ -101,6 +149,6 @@ func (m *MockQueryViews) List(states ListStates) {
 
 func (m *MockQueryViews) Resource(addr addrs.List, obj *states.ResourceInstanceObjectSrc) {
 	m.ResourceCalled = true
-	m.ResourceAddr = addr
-	m.ResourceObj = obj
+	m.ResourceAddrs.Add(addr)
+	m.ResourceObjs = append(m.ResourceObjs, obj)
 }

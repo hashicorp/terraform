@@ -95,13 +95,8 @@ func (b *QueryGraphBuilder) Steps() []GraphTransformer {
 		&RootVariableTransformer{
 			Config:       b.Config,
 			RawValues:    b.RootVariableValues,
-			Planning:     true,
-			DestroyApply: false, // always false for planning
-		},
-		&ModuleVariableTransformer{
-			Config:       b.Config,
-			Planning:     true,
-			DestroyApply: false, // always false for planning
+			Planning:     false,
+			DestroyApply: false,
 		},
 		&variableValidationTransformer{
 			validateWalk: b.Operation == queryWalkValidate,
@@ -119,27 +114,38 @@ func (b *QueryGraphBuilder) Steps() []GraphTransformer {
 				if !ok {
 					continue
 				}
-				if tv, ok := v.(AttachResourceSchema2); ok {
+				if tv, ok := v.(AttachListSchema); ok {
 					providerFqn := tv.Provider()
 
-					schema, err := b.Plugins.ResourceTypeSchema(providerFqn, addrs.ListResourceMode, nq.Addr().Type)
+					// Resource schema
+					schema, err := b.Plugins.ResourceTypeSchema(providerFqn, addrs.ManagedResourceMode, nq.Addr().Type)
 					if err != nil {
 						return fmt.Errorf("failed to read schema for %s in %s: %s", nq.Addr(), providerFqn, err)
 					}
 					if schema.Body == nil {
-						log.Printf("[ERROR] AttachSchemaTransformer: No resource schema available for %s", nq.Addr())
+						log.Printf("[ERROR] AttachListSchema: No resource schema available for %s", nq.Addr())
 						continue
 					}
-					log.Printf("[TRACE] AttachSchemaTransformer: attaching resource schema to %s", dag.VertexName(v))
+					log.Printf("[TRACE] AttachListSchema: attaching resource schema to %s", dag.VertexName(v))
 					tv.AttachResourceSchema(&schema)
+
+					// List schema
+					schema, err = b.Plugins.ResourceTypeSchema(providerFqn, addrs.ListResourceMode, nq.Addr().Type)
+					if err != nil {
+						return fmt.Errorf("failed to read schema for %s in %s: %s", nq.Addr(), providerFqn, err)
+					}
+					if schema.Body == nil {
+						log.Printf("[ERROR] AttachListSchema: No list resource schema available for %s", nq.Addr())
+						continue
+					}
+					log.Printf("[TRACE] AttachListSchema: attaching list resource schema to %s", dag.VertexName(v))
+					tv.AttachSchema(&schema)
 				}
 			}
 			return nil
 		}),
 
 		&ReferenceTransformer{},
-
-		&AttachDependenciesTransformer{},
 
 		// Target
 		&TargetsTransformer{Targets: b.Targets},

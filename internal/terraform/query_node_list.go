@@ -19,19 +19,24 @@ type NodeQueryList struct {
 	// The config for this list
 	Config *configs.List
 
+	// Schema is the schema for the list block itself
 	Schema *configschema.Block
+
+	// The schema for the resource type
+	ResourceSchema *configschema.Block
 
 	// The address of the provider this resource will use
 	ResolvedProvider addrs.AbsProviderConfig
 }
 
-type AttachResourceSchema2 interface {
+type AttachListSchema interface {
 	Provider() addrs.Provider
+	AttachSchema(schema *providers.Schema)
 	AttachResourceSchema(schema *providers.Schema)
 }
 
 var (
-	_ AttachResourceSchema2     = (*NodeQueryList)(nil)
+	_ AttachListSchema          = (*NodeQueryList)(nil)
 	_ GraphNodeProviderConsumer = (*NodeQueryList)(nil)
 )
 
@@ -73,12 +78,17 @@ func (n *NodeQueryList) SetProvider(p addrs.AbsProviderConfig) {
 	n.ResolvedProvider = p
 }
 
-// AttachResourceSchema2
-func (n *NodeQueryList) AttachResourceSchema(schema *providers.Schema) {
+// AttachListSchema
+func (n *NodeQueryList) AttachSchema(schema *providers.Schema) {
 	n.Schema = schema.Body
 }
 
-// AttachResourceSchema2
+// AttachListSchema
+func (n *NodeQueryList) AttachResourceSchema(schema *providers.Schema) {
+	n.ResourceSchema = schema.Body
+}
+
+// AttachListSchema
 func (n *NodeQueryList) Provider() addrs.Provider {
 	return n.Config.Provider
 }
@@ -105,17 +115,11 @@ func (n *NodeQueryList) Execute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 
 	// validate self ref
 
-	// retrieve list schema
-	schema := providerSchema.SchemaForResourceType(addrs.ListResourceMode, n.Addr().Type)
-	if schema.Body == nil {
-		// Should be caught during validation, so we don't bother with a pretty error here
-		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", n.ResolvedProvider, n.Addr().Type))
-		return diags
-	}
+	// retrieve list schema? (already done in transformer)
 
 	// evaluate the config block
 	var configDiags tfdiags.Diagnostics
-	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema.Body, nil, EvalDataForNoInstanceKey)
+	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, n.Schema, nil, EvalDataForNoInstanceKey)
 	diags = diags.Append(configDiags)
 	if diags.HasErrors() {
 		return diags
@@ -142,6 +146,13 @@ func (n *NodeQueryList) Execute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 	}
 
 	doneCh := make(chan struct{}, 1)
+	// retrieve resource schema
+	resourceSchema := providerSchema.SchemaForResourceType(addrs.ManagedResourceMode, n.Addr().Type)
+	if resourceSchema.Body == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider %q does not support managed source %q", n.ResolvedProvider, n.Addr().Type))
+		return diags
+	}
 
 	// If we get down here then our configuration is complete and we're ready
 	// to actually call the provider to list the data.
@@ -149,7 +160,7 @@ func (n *NodeQueryList) Execute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 		TypeName:        n.Addr().Type,
 		Config:          unmarkedConfigVal,
 		DiagEmitter:     n.emitDiags,
-		ResourceEmitter: n.emitResource(ctx, schema, diags),
+		ResourceEmitter: n.emitResource(ctx, resourceSchema, diags),
 		DoneCh:          doneCh,
 	})
 	if err != nil {

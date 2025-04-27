@@ -46,34 +46,11 @@ func (t *QueryConfigTransformer) transform(g *Graph, config *configs.Config) err
 		return nil
 	}
 
-	// Add our resources
-	if err := t.transformSingle(g, config); err != nil {
-		return err
-	}
+	log.Printf("[TRACE] QueryConfigTransformer: Starting for path: %v", config.Path)
 
-	// Skip nested modules for now
-	// Transform all the children without generating config.
-	// for _, c := range config.Children {
-	// 	if err := t.transform(g, c); err != nil {
-	// 		return err
-	// 	}
-	// }
-
-	return nil
-}
-
-func (t *QueryConfigTransformer) transformSingle(g *Graph, config *configs.Config) error {
-	path := config.Path
-	module := config.Module
-	log.Printf("[TRACE] QueryConfigTransformer: Starting for path: %v", path)
-
-	var allQueries []*configs.List
-	for _, r := range module.Queries {
-		for _, q := range r.Lists {
-			allQueries = append(allQueries, q)
-			node := &NodeQueryList{Config: q}
-			g.Add(node)
-		}
+	for _, l := range config.Module.Lists {
+		node := &NodeQueryList{Config: l}
+		g.Add(node)
 	}
 
 	return nil

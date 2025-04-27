@@ -21,6 +21,8 @@ type QueryFile struct {
 
 	Locals []*Local
 
+	Variables []*Variable
+
 	// Lists defines the list of List blocks within the query file.
 	Lists []*List
 
@@ -111,11 +113,16 @@ func loadQueryFile(body hcl.Body) (*QueryFile, hcl.Diagnostics) {
 			if cfg != nil {
 				file.ProviderConfigs = append(file.ProviderConfigs, cfg)
 			}
+		case "variable":
+			cfg, cfgDiags := decodeVariableBlock(block, false)
+			diags = append(diags, cfgDiags...)
+			if cfg != nil {
+				file.Variables = append(file.Variables, cfg)
+			}
 		case "locals":
 			defs, defsDiags := decodeLocalsBlock(block)
 			diags = append(diags, defsDiags...)
 			file.Locals = append(file.Locals, defs...)
-
 		default:
 			// We don't expect any other block types in a query file.
 			diags = append(diags, &hcl.Diagnostic{
@@ -185,6 +192,10 @@ var testQueryFileSchema = &hcl.BodySchema{
 		},
 		{
 			Type: "locals",
+		},
+		{
+			Type:       "variable",
+			LabelNames: []string{"name"},
 		},
 	},
 }
