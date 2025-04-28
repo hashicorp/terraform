@@ -15,8 +15,8 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/cliconfig"
 	"github.com/hashicorp/terraform/internal/command"
-	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/webbrowser"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -430,6 +430,12 @@ func initCommands(
 	if meta.AllowExperimentalFeatures {
 		Commands["cloud"] = func() (cli.Command, error) {
 			return &command.CloudCommand{
+				Meta: meta,
+			}, nil
+		}
+
+		Commands["stacks"] = func() (cli.Command, error) {
+			return &command.StacksCommand{
 				Meta: meta,
 			}, nil
 		}

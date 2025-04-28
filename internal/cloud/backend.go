@@ -227,6 +227,10 @@ func (b *Cloud) ServiceDiscoveryAliases() ([]backendrun.HostAlias, error) {
 	}, nil
 }
 
+func (b *Cloud) Services() *disco.Disco {
+	return b.services
+}
+
 // Configure implements backend.Backend (which is embedded in backendrun.OperationsBackend).
 func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
