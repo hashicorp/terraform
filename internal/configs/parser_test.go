@@ -74,7 +74,7 @@ func testNestedModuleConfigFromDirWithTests(t *testing.T, path string) (*Config,
 	t.Helper()
 
 	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDir(path, WithTestFiles("tests"))
+	mod, diags := parser.LoadConfigDir(path, MatchTestFiles("tests"))
 	if mod == nil {
 		t.Fatal("got nil root module; want non-nil")
 	}
