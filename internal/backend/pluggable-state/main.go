@@ -1,0 +1,68 @@
+package pluggable_state
+
+import (
+	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/providers"
+	grpc_statemgr "github.com/hashicorp/terraform/internal/states/grpc"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
+)
+
+func NewPluggable(p providers.Interface, typeName string) backend.Backend {
+	return &Pluggable{
+		provider: p,
+		typeName: typeName,
+	}
+}
+
+var _ backend.Backend = &Pluggable{}
+
+type Pluggable struct {
+	provider providers.Interface
+	typeName string
+}
+
+func (p *Pluggable) ConfigSchema() *configschema.Block {
+	schemaResp := p.provider.GetProviderSchema()
+	if schemaResp.StateStores == nil {
+		// No state stores
+		return nil
+	}
+	val, ok := schemaResp.StateStores[p.typeName]
+	if !ok {
+		// Cannot find state store with that type
+		return nil
+	}
+
+	// State store type exists
+	return val.Body
+}
+
+func (p *Pluggable) PrepareConfig(config cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	req := providers.ValidateStorageConfigRequest{
+		TypeName: p.typeName,
+		Config:   config,
+	}
+	resp := p.provider.ValidateStorageConfig(req)
+	return config, resp.Diagnostics
+}
+
+func (p *Pluggable) Configure(config cty.Value) tfdiags.Diagnostics {
+	return nil
+}
+
+func (p *Pluggable) Workspaces() ([]string, error) {
+	return nil, nil
+}
+
+func (p *Pluggable) DeleteWorkspace(workspace string, force bool) error {
+	return nil
+}
+
+func (p *Pluggable) StateMgr(workspace string) (statemgr.Full, error) {
+	// repackages the provider's methods inside a state manager,
+	// to be passed to the calling code that expects a statemgr.Full
+	return grpc_statemgr.NewGrpcStateManager(p.provider, p.typeName, workspace), nil
+}

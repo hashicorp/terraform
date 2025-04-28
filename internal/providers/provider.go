@@ -102,15 +102,15 @@ type Interface interface {
 
 	// ValidateStorageConfig allows the provider to validate storage configuration values
 	ValidateStorageConfig(ValidateStorageConfigRequest) ValidateStorageConfigResponse
-	// ConfigureStorage(ConfigureStorageRequest) ConfigureStorageResponse
+	ConfigureStorage(ConfigureStorageRequest) ConfigureStorageResponse
 
 	// ReadState(ReadStateRequest, srv ProviderReadStateServer)
 	// WriteState(srv ProviderWriteStateServer)
 
-	// LockState(LockStateRequest) LockStateResponse
-	// UnlockState(UnlockStateRequest) UnlockStateResponse
-	// GetStates(GetStatesRequest) GetStatesResponse
-	// DeleteState(DeleteStateRequest) DeleteStateResponse
+	LockState(LockStateRequest) LockStateResponse
+	UnlockState(UnlockStateRequest) UnlockStateResponse
+	GetStates(GetStatesRequest) GetStatesResponse
+	DeleteState(DeleteStateRequest) DeleteStateResponse
 
 	// Close shuts down the plugin process if applicable.
 	Close() error
@@ -712,6 +712,77 @@ type ValidateStorageConfigRequest struct {
 }
 
 type ValidateStorageConfigResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type ConfigureStorageRequest struct {
+	// TypeName is the name of the storage type to validate.
+	TypeName string
+
+	// Config is the configuration to use.
+	Config cty.Value
+}
+
+type ConfigureStorageResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type LockStateRequest struct {
+	// TypeName is the name of the storage type to send the lock request to.
+	TypeName string
+
+	// TypeName is the name of the state (workspace state) to lock.
+	StateId string
+
+	// Operation is the Terraform operation being performed that requires the lock
+	Operation string
+}
+
+type LockStateResponse struct {
+	// LockId is the identifier for the created lock
+	LockId string
+
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type UnlockStateRequest struct {
+	// TypeName is the name of the storage type to send the lock request to.
+	TypeName string
+
+	// TypeName is the name of the state (workspace state) to lock.
+	StateId string
+
+	// LockId is the identifier for the lock to unlock
+	LockId string
+}
+
+type UnlockStateResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type GetStatesRequest struct {
+	// TypeName is the name of the storage type to send the get states request to.
+	TypeName string
+}
+
+type GetStatesResponse struct {
+	// State IDs is a slice of identifiers for states stored in the state store
+	StateIds []string
+}
+
+type DeleteStateRequest struct {
+	// TypeName is the name of the storage type to send the delete state request to.
+	TypeName string
+
+	// TypeName is the name of the state (workspace state) to delete.
+	StateId string
+}
+
+type DeleteStateResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }

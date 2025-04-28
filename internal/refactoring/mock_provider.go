@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-var _ providers.Interface = (*mockProvider)(nil)
+// var _ providers.Interface = (*mockProvider)(nil)
 
 // mockProvider provides a mock implementation of providers.Interface that only
 // implements the methods that are used by the refactoring package.

@@ -248,6 +248,39 @@ func (o *offlineProvider) ValidateStorageConfig(req providers.ValidateStorageCon
 	}
 }
 
+func (o *offlineProvider) ConfigureStorage(req providers.ConfigureStorageRequest) providers.ConfigureStorageResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ConfigureStorage on an unconfigured provider",
+		"Cannot validate storage configuration because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ConfigureStorageResponse{
+		Diagnostics: diags,
+	}
+}
+
+func (o *offlineProvider) LockState(req providers.LockStateRequest) providers.LockStateResponse {
+	// TODO
+	return providers.LockStateResponse{}
+}
+
+func (o *offlineProvider) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
+	// TODO
+	return providers.UnlockStateResponse{}
+}
+
+func (o *offlineProvider) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
+	// TODO
+	return providers.GetStatesResponse{}
+}
+
+func (o *offlineProvider) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
+	// TODO
+	return providers.DeleteStateResponse{}
+}
+
 func (o *offlineProvider) Close() error {
 	// pass the close call to the underlying unconfigured client
 	return o.unconfiguredClient.Close()

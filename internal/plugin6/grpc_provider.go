@@ -1203,6 +1203,31 @@ func (p *GRPCProvider) ValidateStorageConfig(r providers.ValidateStorageConfigRe
 	return providers.ValidateStorageConfigResponse{}
 }
 
+func (p *GRPCProvider) ConfigureStorage(r providers.ConfigureStorageRequest) providers.ConfigureStorageResponse {
+	// TODO
+	return providers.ConfigureStorageResponse{}
+}
+
+func (p *GRPCProvider) LockState(req providers.LockStateRequest) providers.LockStateResponse {
+	// TODO
+	return providers.LockStateResponse{}
+}
+
+func (p *GRPCProvider) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
+	// TODO
+	return providers.UnlockStateResponse{}
+}
+
+func (p *GRPCProvider) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
+	// TODO
+	return providers.GetStatesResponse{}
+}
+
+func (p *GRPCProvider) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
+	// TODO
+	return providers.DeleteStateResponse{}
+}
+
 // closing the grpc connection is final, and terraform will call it at the end of every phase.
 func (p *GRPCProvider) Close() error {
 	logger.Trace("GRPCProvider.v6: Close")

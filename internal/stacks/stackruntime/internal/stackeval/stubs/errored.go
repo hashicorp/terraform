@@ -239,7 +239,31 @@ func (p *erroredProvider) ValidateResourceConfig(providers.ValidateResourceConfi
 }
 
 func (p *erroredProvider) ValidateStorageConfig(req providers.ValidateStorageConfigRequest) providers.ValidateStorageConfigResponse {
-	return providers.ValidateStorageConfigResponse{
-		Diagnostics: nil,
-	}
+	// TODO
+	return providers.ValidateStorageConfigResponse{}
+}
+
+func (p *erroredProvider) ConfigureStorage(req providers.ConfigureStorageRequest) providers.ConfigureStorageResponse {
+	// TODO
+	return providers.ConfigureStorageResponse{}
+}
+
+func (p *erroredProvider) LockState(req providers.LockStateRequest) providers.LockStateResponse {
+	// TODO
+	return providers.LockStateResponse{}
+}
+
+func (p *erroredProvider) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
+	// TODO
+	return providers.UnlockStateResponse{}
+}
+
+func (p *erroredProvider) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
+	// TODO
+	return providers.GetStatesResponse{}
+}
+
+func (p *erroredProvider) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
+	// TODO
+	return providers.DeleteStateResponse{}
 }

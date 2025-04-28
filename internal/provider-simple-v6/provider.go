@@ -74,6 +74,18 @@ func Provider() providers.Interface {
 					DescriptionKind: configschema.StringPlain,
 				},
 			},
+			StateStores: map[string]providers.Schema{
+				"local": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"path": {
+								Computed: true,
+								Type:     cty.String,
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -247,11 +259,6 @@ func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.
 
 	resp.Result = req.Arguments[0]
 	return resp
-}
-
-func (s simple) ValidateStorageConfig(req providers.ValidateStorageConfigRequest) providers.ValidateStorageConfigResponse {
-	// TODO
-	return providers.ValidateStorageConfigResponse{}
 }
 
 func (s simple) Close() error {
