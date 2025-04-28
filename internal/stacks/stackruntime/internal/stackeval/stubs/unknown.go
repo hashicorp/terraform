@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-var _ providers.Interface = (*unknownProvider)(nil)
+// var _ providers.Interface = (*unknownProvider)(nil)
 
 // unknownProvider is a stub provider that represents a provider that is
 // unknown to the current Terraform configuration. This is used when a reference
@@ -292,9 +292,39 @@ func (u *unknownProvider) CallFunction(_ providers.CallFunctionRequest) provider
 }
 
 func (u *unknownProvider) ValidateStorageConfig(request providers.ValidateStorageConfigRequest) providers.ValidateStorageConfigResponse {
-	// This is offline functionality, so we can hand it off to the unconfigured
-	// client.
-	return u.unconfiguredClient.ValidateStorageConfig(request)
+	// This shouldn't be called, we don't configure state storage in an unknown provider within
+	// stacks and Terraform Core shouldn't call this method.
+	panic("attempted to validate configuration for state storage in an unknown provider")
+}
+
+func (u *unknownProvider) ConfigureStorage(request providers.ConfigureStorageRequest) providers.ConfigureStorageResponse {
+	// This shouldn't be called, we don't configure state storage in an unknown provider within
+	// stacks and Terraform Core shouldn't call this method.
+	panic("attempted to configure state storage in an unknown provider")
+}
+
+func (u *unknownProvider) LockState(req providers.LockStateRequest) providers.LockStateResponse {
+	// This shouldn't be called, an unknown provider should not be used to manage state within
+	// stacks and Terraform Core shouldn't call this method.
+	panic("attempted to lock state via an unknown provider")
+}
+
+func (u *unknownProvider) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
+	// This shouldn't be called, an unknown provider should not be used to manage state within
+	// stacks and Terraform Core shouldn't call this method.
+	panic("attempted to unlock state via an unknown provider")
+}
+
+func (u *unknownProvider) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
+	// This shouldn't be called, an unknown provider should not be used to manage state within
+	// stacks and Terraform Core shouldn't call this method.
+	panic("attempted to get states via an unknown provider")
+}
+
+func (u *unknownProvider) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
+	// This shouldn't be called, an unknown provider should not be used to manage state within
+	// stacks and Terraform Core shouldn't call this method.
+	panic("attempted to delete a state via an unknown provider")
 }
 
 func (u *unknownProvider) Close() error {

@@ -410,6 +410,30 @@ func (m *Mock) ValidateStorageConfig(req ValidateStorageConfigRequest) ValidateS
 	return m.Provider.ValidateStorageConfig(req)
 }
 
+func (m *Mock) ConfigureStorage(req ConfigureStorageRequest) ConfigureStorageResponse {
+	return m.Provider.ConfigureStorage(req)
+}
+
+func (m *Mock) LockState(req LockStateRequest) LockStateResponse {
+	// TODO
+	return LockStateResponse{}
+}
+
+func (m *Mock) UnlockState(req UnlockStateRequest) UnlockStateResponse {
+	// TODO
+	return UnlockStateResponse{}
+}
+
+func (m *Mock) GetStates(req GetStatesRequest) GetStatesResponse {
+	// TODO
+	return GetStatesResponse{}
+}
+
+func (m *Mock) DeleteState(req DeleteStateRequest) DeleteStateResponse {
+	// TODO
+	return DeleteStateResponse{}
+}
+
 func (m *Mock) Close() error {
 	return m.Provider.Close()
 }

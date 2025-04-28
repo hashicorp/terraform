@@ -249,11 +249,6 @@ func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.
 	return resp
 }
 
-func (s simple) ValidateStorageConfig(req providers.ValidateStorageConfigRequest) providers.ValidateStorageConfigResponse {
-	// TODO
-	return providers.ValidateStorageConfigResponse{}
-}
-
 func (s simple) Close() error {
 	return nil
 }

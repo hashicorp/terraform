@@ -830,6 +830,46 @@ func (p *MockProvider) ValidateStorageConfig(r providers.ValidateStorageConfigRe
 	return resp
 }
 
+func (p *MockProvider) ConfigureStorage(r providers.ConfigureStorageRequest) (resp providers.ConfigureStorageResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	//TODO
+	return resp
+}
+
+func (p *MockProvider) LockState(req providers.LockStateRequest) providers.LockStateResponse {
+	p.Lock()
+	defer p.Unlock()
+
+	// TODO
+	return providers.LockStateResponse{}
+}
+
+func (p *MockProvider) UnlockState(req providers.UnlockStateRequest) providers.UnlockStateResponse {
+	p.Lock()
+	defer p.Unlock()
+
+	// TODO
+	return providers.UnlockStateResponse{}
+}
+
+func (p *MockProvider) GetStates(req providers.GetStatesRequest) providers.GetStatesResponse {
+	p.Lock()
+	defer p.Unlock()
+
+	// TODO
+	return providers.GetStatesResponse{}
+}
+
+func (p *MockProvider) DeleteState(req providers.DeleteStateRequest) providers.DeleteStateResponse {
+	p.Lock()
+	defer p.Unlock()
+
+	// TODO
+	return providers.DeleteStateResponse{}
+}
+
 func (p *MockProvider) Close() error {
 	p.Lock()
 	defer p.Unlock()
