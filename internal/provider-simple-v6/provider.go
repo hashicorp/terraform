@@ -74,6 +74,18 @@ func Provider() providers.Interface {
 					DescriptionKind: configschema.StringPlain,
 				},
 			},
+			StateStores: map[string]providers.Schema{
+				"local": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"path": {
+								Computed: true,
+								Type:     cty.String,
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
