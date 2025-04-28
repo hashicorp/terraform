@@ -92,7 +92,7 @@ func (p *Parser) LoadConfigDir(path string, opts ...Option) (*Module, hcl.Diagno
 // LoadConfigDirWithTests matches LoadConfigDir, but the return Module also
 // contains any relevant .tftest.hcl files.
 func (p *Parser) LoadConfigDirWithTests(path string, testDirectory string) (*Module, hcl.Diagnostics) {
-	return p.LoadConfigDir(path, WithTestFiles(testDirectory))
+	return p.LoadConfigDir(path, MatchTestFiles(testDirectory))
 }
 
 func (p *Parser) LoadMockDataDir(dir string, useForPlanDefault bool, source hcl.Range) (*MockData, hcl.Diagnostics) {
