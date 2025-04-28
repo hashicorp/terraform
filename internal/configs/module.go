@@ -57,6 +57,8 @@ type Module struct {
 	Checks map[string]*Check
 
 	Tests map[string]*TestFile
+
+	Lists map[string]*List
 }
 
 // File describes the contents of a single configuration file.
@@ -131,6 +133,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		Checks:             map[string]*Check{},
 		ProviderMetas:      map[addrs.Provider]*ProviderMeta{},
 		Tests:              map[string]*TestFile{},
+		Lists:              map[string]*List{},
 	}
 
 	// Process the required_providers blocks first, to ensure that all
@@ -489,6 +492,75 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		}
 
 		m.Import = append(m.Import, i)
+	}
+
+	return diags
+}
+
+func (m *Module) appendQueryFile(file *QueryFile) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	for _, pc := range file.ProviderConfigs {
+		key := pc.moduleUniqueKey()
+		if existing, exists := m.ProviderConfigs[key]; exists {
+			if existing.Alias == "" {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate provider configuration",
+					Detail:   fmt.Sprintf("A default (non-aliased) provider configuration for %q was already given at %s. If multiple configurations are required, set the \"alias\" argument for alternative configurations.", existing.Name, existing.DeclRange),
+					Subject:  &pc.DeclRange,
+				})
+			} else {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate provider configuration",
+					Detail:   fmt.Sprintf("A provider configuration for %q with alias %q was already given at %s. Each configuration for the same provider must have a distinct alias.", existing.Name, existing.Alias, existing.DeclRange),
+					Subject:  &pc.DeclRange,
+				})
+			}
+			continue
+		}
+		m.ProviderConfigs[key] = pc
+	}
+
+	for _, v := range file.Variables {
+		if existing, exists := m.Variables[v.Name]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate variable declaration",
+				Detail:   fmt.Sprintf("A variable named %q was already declared at %s. Variable names must be unique within a module.", existing.Name, existing.DeclRange),
+				Subject:  &v.DeclRange,
+			})
+		}
+		m.Variables[v.Name] = v
+	}
+
+	for _, l := range file.Locals {
+		if existing, exists := m.Locals[l.Name]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate local value definition",
+				Detail:   fmt.Sprintf("A local value named %q was already defined at %s. Local value names must be unique within a module.", existing.Name, existing.DeclRange),
+				Subject:  &l.DeclRange,
+			})
+		}
+		m.Locals[l.Name] = l
+	}
+
+	for _, ql := range file.Lists {
+		key := ql.moduleUniqueKey()
+		if existing, exists := m.Lists[key]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Duplicate list %q configuration", existing.Type),
+				Detail:   fmt.Sprintf("A %s list named %q was already declared at %s. List names must be unique per type in each module.", existing.Type, existing.Name, existing.DeclRange),
+				Subject:  &ql.DeclRange,
+			})
+			continue
+		}
+		// set the provider FQN for the resource
+		m.Lists[key] = ql
+		ql.Provider = m.ProviderForLocalConfig(ql.ProviderConfigAddr())
 	}
 
 	return diags

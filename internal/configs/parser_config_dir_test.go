@@ -133,7 +133,7 @@ func TestParserLoadConfigDirWithTests(t *testing.T) {
 			}
 
 			parser := NewParser(nil)
-			mod, diags := parser.LoadConfigDirWithTests(directory, testDirectory)
+			mod, diags := parser.LoadConfigDir(directory, WithTestFiles(testDirectory))
 			if len(diags) > 0 { // We don't want any warnings or errors.
 				t.Errorf("unexpected diagnostics")
 				for _, diag := range diags {
@@ -236,7 +236,7 @@ func TestParserLoadTestFiles_Invalid(t *testing.T) {
 
 func TestParserLoadConfigDirWithTests_ReturnsWarnings(t *testing.T) {
 	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDirWithTests("testdata/valid-modules/with-tests", "not_real")
+	mod, diags := parser.LoadConfigDir("testdata/valid-modules/with-tests", WithTestFiles("not_real"))
 	if len(diags) != 1 {
 		t.Errorf("expected exactly 1 diagnostic, but found %d", len(diags))
 	} else {
@@ -283,7 +283,7 @@ func TestParserLoadConfigDirFailure(t *testing.T) {
 			parser := NewParser(nil)
 			path := filepath.Join("testdata/invalid-modules", name)
 
-			_, diags := parser.LoadConfigDirWithTests(path, "tests")
+			_, diags := parser.LoadConfigDir(path, WithTestFiles("tests"))
 			if !diags.HasErrors() {
 				t.Errorf("no errors; want at least one")
 				for _, diag := range diags {
