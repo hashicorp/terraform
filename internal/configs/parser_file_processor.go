@@ -11,29 +11,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/spf13/afero"
 )
-
-// FileProcessor is an interface for components that can match and process specific file types
-type FileProcessor interface {
-	// Matches returns true if the given filename should be processed by this processor
-	Matches(name string) bool
-
-	// DirFiles finds and processes terraform configuration files in the given directory
-	DirFiles(p *Parser, dir string, opts *ProcessorOptions) ([]string, hcl.Diagnostics)
-}
-
-// ProcessorOptions contains configuration options for file processors
-type ProcessorOptions struct {
-	TestDirectory string
-}
-
-// Option is a functional option type for configuring the parser
-type Option func(*Options)
-
-type Options struct {
-	Processors    []FileProcessor
-	TestDirectory string
-}
 
 // ConfigFileSet holds the different types of configuration files found in a directory.
 type ConfigFileSet struct {
@@ -41,6 +20,27 @@ type ConfigFileSet struct {
 	Override []string // Override files (override.tf or *_override.tf)
 	Tests    []string // Test files (.tftest.hcl or .tftest.json)
 	Queries  []string // Query files (.tfquery.hcl)
+}
+
+// FileMatcher is an interface for components that can match and process specific file types
+// in a Terraform module directory.
+
+type FileMatcher interface {
+	// Matches returns true if the given filename should be processed by this matcher
+	Matches(name string) bool
+
+	// DirFiles allows the matcher to process files in a directory
+	// only relevant to its type.
+	DirFiles(dir string, options *Options, fileSet *ConfigFileSet) hcl.Diagnostics
+}
+
+// Option is a functional option type for configuring the parser
+type Option func(*Options)
+
+type Options struct {
+	matchers      []FileMatcher
+	testDirectory string
+	fs            afero.Afero
 }
 
 // dirFileSet finds Terraform configuration files within directory dir
@@ -57,85 +57,39 @@ func (p *Parser) dirFileSet(dir string, opts ...Option) (ConfigFileSet, hcl.Diag
 		Queries:  []string{},
 	}
 
-	// Initialize options with defaults
+	// Set up options
 	options := &Options{
 		// We always process module and override files
-		Processors: []FileProcessor{
-			&moduleFiles{},
-			&overrideFiles{},
-		},
-		TestDirectory: DefaultTestDirectory,
+		matchers:      []FileMatcher{&moduleFiles{}},
+		testDirectory: DefaultTestDirectory,
+		fs:            p.fs,
 	}
-
-	// Apply the provided options
 	for _, opt := range opts {
 		opt(options)
 	}
 
-	pOpts := &ProcessorOptions{TestDirectory: options.TestDirectory}
+	// Scan and categorize main directory files
+	mainDirDiags := p.rootFiles(dir, options.matchers, &fileSet)
+	diags = append(diags, mainDirDiags...)
+	if diags.HasErrors() {
+		return fileSet, diags
+	}
 
-	for _, processor := range options.Processors {
-		files, procDiags := processor.DirFiles(p, dir, pOpts)
-		diags = append(diags, procDiags...)
-
-		// Determine where to store the files based on processor type
-		switch processor.(type) {
-		case *moduleFiles:
-			fileSet.Primary = append(fileSet.Primary, files...)
-		case *overrideFiles:
-			fileSet.Override = append(fileSet.Override, files...)
-		case *testFiles:
-			fileSet.Tests = append(fileSet.Tests, files...)
-		case *queryFiles:
-			fileSet.Queries = append(fileSet.Queries, files...)
-		}
+	// Process matcher-specific files
+	for _, matcher := range options.matchers {
+		matcherDiags := matcher.DirFiles(dir, options, &fileSet)
+		diags = append(diags, matcherDiags...)
 	}
 
 	return fileSet, diags
-
 }
 
-// WithProcessor adds a file processor to the parser
-func WithProcessor(processor FileProcessor) Option {
-	return func(o *Options) {
-		o.Processors = append(o.Processors, processor)
-	}
-}
-
-// WithModuleFiles adds a processor for standard Terraform configuration files (.tf and .tf.json)
-func WithModuleFiles() Option {
-	return WithProcessor(&moduleFiles{})
-}
-
-// WithOverrideFiles adds a processor for override Terraform configuration files
-func WithOverrideFiles() Option {
-	return WithProcessor(&overrideFiles{})
-}
-
-// WithTestFiles adds a processor for Terraform test files (.tftest.hcl and .tftest.json)
-func WithTestFiles(dir string) Option {
-	return func(o *Options) {
-		o.TestDirectory = dir
-		WithProcessor(&testFiles{})(o)
-	}
-}
-
-// WithQueryFiles adds a processor for Terraform query files (.tfquery.hcl)
-func WithQueryFiles() Option {
-	return WithProcessor(&queryFiles{})
-}
-
-// moduleFiles processes regular Terraform configuration files (.tf and .tf.json)
-type moduleFiles struct{}
-
-func (m *moduleFiles) Matches(name string) bool {
-	return strings.HasSuffix(name, ".tf") || strings.HasSuffix(name, ".tf.json")
-}
-
-func (m *moduleFiles) DirFiles(p *Parser, dir string, opts *ProcessorOptions) ([]string, hcl.Diagnostics) {
+// rootFiles scans the main directory for configuration files
+// and categorizes them using the appropriate file matchers.
+func (p *Parser) rootFiles(dir string, matchers []FileMatcher, fileSet *ConfigFileSet) hcl.Diagnostics {
 	var diags hcl.Diagnostics
-	primary := []string{}
 
+	// Read main directory files
 	infos, err := p.fs.ReadDir(dir)
 	if err != nil {
 		diags = append(diags, &hcl.Diagnostic{
@@ -143,7 +97,7 @@ func (m *moduleFiles) DirFiles(p *Parser, dir string, opts *ProcessorOptions) ([
 			Summary:  "Failed to read module directory",
 			Detail:   fmt.Sprintf("Module directory %s does not exist or cannot be read.", dir),
 		})
-		return nil, diags
+		return diags
 	}
 
 	for _, info := range infos {
@@ -152,69 +106,77 @@ func (m *moduleFiles) DirFiles(p *Parser, dir string, opts *ProcessorOptions) ([
 		}
 
 		name := info.Name()
-		ext := fileExt(name)
-		if ext != ".tf" && ext != ".tf.json" {
-			continue
-		}
+		fullPath := filepath.Join(dir, name)
 
-		baseName := name[:len(name)-len(ext)] // strip extension
-		isOverride := baseName == "override" || strings.HasSuffix(baseName, "_override")
-
-		if !isOverride {
-			primary = append(primary, filepath.Join(dir, name))
+		// Try each matcher to see if it matches
+		for _, matcher := range matchers {
+			if matcher.Matches(name) {
+				switch p := matcher.(type) {
+				case *moduleFiles:
+					if p.isOverride(name) {
+						fileSet.Override = append(fileSet.Override, fullPath)
+					} else {
+						fileSet.Primary = append(fileSet.Primary, fullPath)
+					}
+				case *testFiles:
+					fileSet.Tests = append(fileSet.Tests, fullPath)
+				case *queryFiles:
+					fileSet.Queries = append(fileSet.Queries, fullPath)
+				}
+			}
 		}
 	}
 
-	return primary, diags
+	return diags
 }
 
-// overrideFiles processes override Terraform configuration files
-type overrideFiles struct{}
+// WithFileHandler adds a file matcher to the parser
+func WithFileHandler(matcher FileMatcher) Option {
+	return func(o *Options) {
+		o.matchers = append(o.matchers, matcher)
+	}
+}
 
-func (o *overrideFiles) Matches(name string) bool {
+// WithTestFiles adds a matcher for Terraform test files (.tftest.hcl and .tftest.json)
+func WithTestFiles(dir string) Option {
+	return func(o *Options) {
+		o.testDirectory = dir
+		WithFileHandler(&testFiles{})(o)
+	}
+}
+
+// WithQueryFiles adds a matcher for Terraform query files (.tfquery.hcl)
+func WithQueryFiles() Option {
+	return WithFileHandler(&queryFiles{})
+}
+
+// moduleFiles processes regular Terraform configuration files (.tf and .tf.json)
+type moduleFiles struct {
+	overrideOnly bool
+}
+
+func (m *moduleFiles) Matches(name string) bool {
+	ext := fileExt(name)
+	if ext != ".tf" && ext != ".tf.json" {
+		return false
+	}
+
+	return true
+}
+
+func (m *moduleFiles) isOverride(name string) bool {
 	ext := fileExt(name)
 	if ext != ".tf" && ext != ".tf.json" {
 		return false
 	}
 
 	baseName := name[:len(name)-len(ext)] // strip extension
-	return baseName == "override" || strings.HasSuffix(baseName, "_override")
+	isOverride := baseName == "override" || strings.HasSuffix(baseName, "_override")
+	return isOverride
 }
 
-func (o *overrideFiles) DirFiles(p *Parser, dir string, opts *ProcessorOptions) ([]string, hcl.Diagnostics) {
-	var diags hcl.Diagnostics
-	override := []string{}
-
-	infos, err := p.fs.ReadDir(dir)
-	if err != nil {
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Failed to read module directory",
-			Detail:   fmt.Sprintf("Module directory %s does not exist or cannot be read.", dir),
-		})
-		return nil, diags
-	}
-
-	for _, info := range infos {
-		if info.IsDir() || IsIgnoredFile(info.Name()) {
-			continue
-		}
-
-		name := info.Name()
-		ext := fileExt(name)
-		if ext != ".tf" && ext != ".tf.json" {
-			continue
-		}
-
-		baseName := name[:len(name)-len(ext)] // strip extension
-		isOverride := baseName == "override" || strings.HasSuffix(baseName, "_override")
-
-		if isOverride {
-			override = append(override, filepath.Join(dir, name))
-		}
-	}
-
-	return override, diags
+func (m *moduleFiles) DirFiles(dir string, options *Options, fileSet *ConfigFileSet) hcl.Diagnostics {
+	return nil
 }
 
 // testFiles processes Terraform test files (.tftest.hcl and .tftest.json)
@@ -224,42 +186,21 @@ func (t *testFiles) Matches(name string) bool {
 	return strings.HasSuffix(name, ".tftest.hcl") || strings.HasSuffix(name, ".tftest.json")
 }
 
-func (t *testFiles) DirFiles(p *Parser, dir string, opts *ProcessorOptions) ([]string, hcl.Diagnostics) {
+func (t *testFiles) DirFiles(dir string, opts *Options, fileSet *ConfigFileSet) hcl.Diagnostics {
 	var diags hcl.Diagnostics
-	tests := []string{}
 
-	// Skip if no test directory is specified
-	if opts.TestDirectory == "" {
-		return tests, diags
-	}
+	// Process test directory
+	testPath := path.Join(dir, opts.testDirectory)
+	testInfos, err := opts.fs.ReadDir(testPath)
 
-	// First check in the main directory
-	infos, err := p.fs.ReadDir(dir)
-	if err == nil {
-		for _, info := range infos {
-			if info.IsDir() || IsIgnoredFile(info.Name()) {
-				continue
-			}
-
-			name := info.Name()
-			if t.Matches(name) {
-				tests = append(tests, filepath.Join(dir, name))
-			}
-		}
-	}
-
-	// Then check in the test directory
-	testPath := path.Join(dir, opts.TestDirectory)
-	infos, err = p.fs.ReadDir(testPath)
 	if err != nil {
 		// Then we couldn't read from the testing directory for some reason.
-
 		if os.IsNotExist(err) {
 			// Then this means the testing directory did not exist.
 			// We won't actually stop loading the rest of the configuration
 			// for this, we will add a warning to explain to the user why
 			// test files weren't processed but leave it at that.
-			if opts.TestDirectory != DefaultTestDirectory {
+			if opts.testDirectory != DefaultTestDirectory {
 				// We'll only add the warning if a directory other than the
 				// default has been requested. If the user is just loading
 				// the default directory then we have no expectation that
@@ -280,22 +221,18 @@ func (t *testFiles) DirFiles(p *Parser, dir string, opts *ProcessorOptions) ([]s
 			})
 
 			// We'll also stop loading the rest of the config for this.
-			return tests, diags
+			return diags
 		}
+		return diags
 	}
 
-	for _, info := range infos {
-		if info.IsDir() || IsIgnoredFile(info.Name()) {
-			continue
-		}
-
+	// Process test directory files
+	for _, info := range testInfos {
 		name := info.Name()
-		if t.Matches(name) {
-			tests = append(tests, filepath.Join(testPath, name))
-		}
+		fileSet.Tests = append(fileSet.Tests, filepath.Join(testPath, name))
 	}
 
-	return tests, diags
+	return diags
 }
 
 // queryFiles processes Terraform query files (.tfquery.hcl)
@@ -305,30 +242,6 @@ func (q *queryFiles) Matches(name string) bool {
 	return strings.HasSuffix(name, ".tfquery.hcl")
 }
 
-func (q *queryFiles) DirFiles(p *Parser, dir string, opts *ProcessorOptions) ([]string, hcl.Diagnostics) {
-	var diags hcl.Diagnostics
-	queries := []string{}
-
-	infos, err := p.fs.ReadDir(dir)
-	if err != nil {
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Failed to read module directory",
-			Detail:   fmt.Sprintf("Module directory %s does not exist or cannot be read.", dir),
-		})
-		return nil, diags
-	}
-
-	for _, info := range infos {
-		if info.IsDir() || IsIgnoredFile(info.Name()) {
-			continue
-		}
-
-		name := info.Name()
-		if q.Matches(name) {
-			queries = append(queries, filepath.Join(dir, name))
-		}
-	}
-
-	return queries, diags
+func (q *queryFiles) DirFiles(dir string, options *Options, fileSet *ConfigFileSet) hcl.Diagnostics {
+	return nil
 }

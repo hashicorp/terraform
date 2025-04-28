@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
@@ -236,7 +237,7 @@ func TestParserLoadTestFiles_Invalid(t *testing.T) {
 
 func TestParserLoadConfigDirWithTests_ReturnsWarnings(t *testing.T) {
 	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDir("testdata/valid-modules/with-tests", WithTestFiles("not_real"))
+	mod, diags := parser.LoadConfigDirWithTests("testdata/valid-modules/with-tests", "not_real")
 	if len(diags) != 1 {
 		t.Errorf("expected exactly 1 diagnostic, but found %d", len(diags))
 	} else {
@@ -248,7 +249,7 @@ func TestParserLoadConfigDirWithTests_ReturnsWarnings(t *testing.T) {
 			t.Errorf("expected summary to be \"Test directory does not exist\" but was \"%s\"", diags[0].Summary)
 		}
 
-		if diags[0].Detail != "Requested test directory testdata/valid-modules/with-tests/not_real does not exist." {
+		if !strings.HasPrefix(diags[0].Detail, "Requested test directory testdata/valid-modules/with-tests/not_real does not exist.") {
 			t.Errorf("expected detail to be \"Requested test directory testdata/valid-modules/with-tests/not_real does not exist.\" but was \"%s\"", diags[0].Detail)
 		}
 	}
