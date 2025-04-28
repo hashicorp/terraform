@@ -65,9 +65,7 @@ func New() backend.Backend {
 
 		return &Backend{
 			Base: backendbase.Base{
-				Schema: &configschema.Block{
-					Attributes: testSchemaAttrs(),
-				},
+				Schema: testSchema(),
 			},
 		}
 	}
@@ -90,12 +88,12 @@ var defaultSchemaAttrs = map[string]*configschema.Attribute{
 	},
 }
 
-func testSchemaAttrs() map[string]*configschema.Attribute {
-	var newSchema = make(map[string]*configschema.Attribute)
-	maps.Copy(newSchema, defaultSchemaAttrs)
+func testSchema() *configschema.Block {
+	var newSchemaAttrs = make(map[string]*configschema.Attribute)
+	maps.Copy(newSchemaAttrs, defaultSchemaAttrs)
 
-	// Append test-specific parts of schema
-	newSchema["test_nesting_single"] = &configschema.Attribute{
+	// Append test-specific attributes to the default attributes
+	newSchemaAttrs["test_nested_attr_single"] = &configschema.Attribute{
 		Description: "An attribute that contains nested attributes, where nesting mode is NestingSingle",
 		NestedType: &configschema.Object{
 			Nesting: configschema.NestingSingle,
@@ -103,12 +101,15 @@ func testSchemaAttrs() map[string]*configschema.Attribute {
 				"child": {
 					Type:        cty.String,
 					Optional:    true,
-					Description: "A nested attribute inside the parent attribute `test_nesting_single`",
+					Description: "A nested attribute inside the parent attribute `test_nested_attr_single`",
 				},
 			},
 		},
 	}
-	return newSchema
+
+	return &configschema.Block{
+		Attributes: newSchemaAttrs,
+	}
 }
 
 type Backend struct {

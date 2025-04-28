@@ -792,13 +792,13 @@ func TestInit_backendConfigKV(t *testing.T) {
 	}
 }
 
-func TestInit_backendConfigKVNested(t *testing.T) {
+func TestInit_backendConfigKV_nestedAttributes(t *testing.T) {
 	t.Setenv("TF_INMEM_TEST", "1") // Allows use of inmem backend with a more complex schema
 
 	t.Run("the -backend-config flag can overwrite a nested attribute present in config", func(t *testing.T) {
 		// Create a temporary working directory that is empty
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("init-backend-config-kv-nested"), td) // test_nesting_single.child is set in this config
+		testCopyDir(t, testFixturePath("init-backend-config-kv-complex"), td) // test_nested_attr_single.child is set in this config
 		defer testChdir(t, td)()
 
 		ui := new(cli.MockUi)
@@ -812,11 +812,11 @@ func TestInit_backendConfigKVNested(t *testing.T) {
 		}
 
 		// overridden field is nested:
-		// test_nesting_single = {
+		// test_nested_attr_single = {
 		//    child = "..."
 		// }
 		args := []string{
-			"-backend-config=test_nesting_single.child=foobar",
+			"-backend-config=test_nested_attr_single.child=foobar",
 		}
 		if code := c.Run(args); code != 0 {
 			t.Fatalf("bad: \n%s", done(t).Stderr())
@@ -824,7 +824,7 @@ func TestInit_backendConfigKVNested(t *testing.T) {
 
 		// Read our saved backend config and verify we have our settings
 		state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
-		if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"lock_id":null,"test_nesting_single":{"child":"foobar"}}`; got != want {
+		if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"lock_id":null,"test_nested_attr_single":{"child":"foobar"}}`; got != want {
 			t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 		}
 	})
@@ -832,7 +832,7 @@ func TestInit_backendConfigKVNested(t *testing.T) {
 	t.Run("the -backend-config flag can overwrite a nested attribute that's not in the config", func(t *testing.T) {
 		// Create a temporary working directory that is empty
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("init-backend-config-empty"), td) // backend block for inmem is empty
+		testCopyDir(t, testFixturePath("init-backend-config-kv-complex-empty"), td) // backend block for inmem is empty
 		defer testChdir(t, td)()
 
 		ui := new(cli.MockUi)
@@ -846,11 +846,11 @@ func TestInit_backendConfigKVNested(t *testing.T) {
 		}
 
 		// overridden field is nested:
-		// test_nesting_single = {
+		// test_nested_attr_single = {
 		//    child = "..."
 		// }
 		args := []string{
-			"-backend-config=test_nesting_single.child=foobar",
+			"-backend-config=test_nested_attr_single.child=foobar",
 		}
 		if code := c.Run(args); code != 0 {
 			t.Fatalf("bad: \n%s", done(t).Stderr())
@@ -858,7 +858,7 @@ func TestInit_backendConfigKVNested(t *testing.T) {
 
 		// Read our saved backend config and verify we have our settings
 		state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
-		if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"lock_id":null,"test_nesting_single":{"child":"foobar"}}`; got != want {
+		if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"lock_id":null,"test_nested_attr_single":{"child":"foobar"}}`; got != want {
 			t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
 		}
 	})
@@ -866,7 +866,7 @@ func TestInit_backendConfigKVNested(t *testing.T) {
 	t.Run("an error is returned when when the parent attribute doesn't exist", func(t *testing.T) {
 		// Create a temporary working directory that is empty
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("init-backend-config-kv-nested"), td)
+		testCopyDir(t, testFixturePath("init-backend-config-kv-complex"), td)
 		defer testChdir(t, td)()
 
 		ui := new(cli.MockUi)
@@ -901,7 +901,7 @@ command line is not expected for the selected backend type.
 	t.Run("an error is returned when trying to set an attribute that contains nested attributes", func(t *testing.T) {
 		// Create a temporary working directory that is empty
 		td := t.TempDir()
-		testCopyDir(t, testFixturePath("init-backend-config-kv-nested"), td)
+		testCopyDir(t, testFixturePath("init-backend-config-kv-complex"), td)
 		defer testChdir(t, td)()
 
 		ui := new(cli.MockUi)
@@ -915,11 +915,11 @@ command line is not expected for the selected backend type.
 		}
 
 		// overridden field is a parent field:
-		// test_nesting_single = {
+		// test_nested_attr_single = {
 		//    child = "..."
 		// }
 		args := []string{
-			"-backend-config=test_nesting_single=foobar",
+			"-backend-config=test_nested_attr_single=foobar",
 		}
 		if code := c.Run(args); code != 1 {
 			t.Fatalf("expected code 1, got: %d \n%s", code, done(t).Stderr())
@@ -928,9 +928,9 @@ command line is not expected for the selected backend type.
 		wantStderr := `
 Error: Invalid backend configuration argument
 
-The backend configuration argument "test_nesting_single" given on the command
-line specifies an attribute that contains nested attributes. Instead, use
-separate flags for each nested attribute inside.
+The backend configuration argument "test_nested_attr_single" given on the
+command line specifies an attribute that contains nested attributes. Instead,
+use separate flags for each nested attribute inside.
 `
 		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
 			t.Errorf("wrong error output\n%s", diff)
