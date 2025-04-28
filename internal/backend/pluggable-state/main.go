@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
+	grpc_statemgr "github.com/hashicorp/terraform/internal/states/grpc"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -61,5 +62,7 @@ func (p *Pluggable) DeleteWorkspace(workspace string, force bool) error {
 }
 
 func (p *Pluggable) StateMgr(workspace string) (statemgr.Full, error) {
-	return nil, nil
+	// repackages the provider's methods inside a state manager,
+	// to be passed to the calling code that expects a statemgr.Full
+	return grpc_statemgr.NewGrpcStateManager(p.provider, p.typeName, workspace), nil
 }
