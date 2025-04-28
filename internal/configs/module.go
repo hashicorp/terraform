@@ -110,16 +110,6 @@ func NewModuleWithTests(primaryFiles, overrideFiles []*File, testFiles map[strin
 	return mod, diags
 }
 
-func NewModuleWithQueries(primaryFiles, overrideFiles []*File, queryFiles []*QueryFile) (*Module, hcl.Diagnostics) {
-	mod, diags := NewModule(primaryFiles, overrideFiles)
-	if mod != nil {
-		for _, qf := range queryFiles {
-			mod.appendQueryFile(qf)
-		}
-	}
-	return mod, diags
-}
-
 // NewModule takes a list of primary files and a list of override files and
 // produces a *Module by combining the files together.
 //

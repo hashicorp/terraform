@@ -97,7 +97,7 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 	log.Printf("[TRACE] ModuleInstaller: installing child modules for %s into %s", rootDir, i.modsDir)
 	var diags tfdiags.Diagnostics
 
-	rootMod, mDiags := i.loader.Parser().LoadConfigDirWithQueries(rootDir)
+	rootMod, mDiags := i.loader.Parser().LoadConfigDir(rootDir, configs.WithTestFiles(testsDir), configs.WithQueryFiles())
 	if rootMod == nil {
 		// We drop the diagnostics here because we only want to report module
 		// loading errors after checking the core version constraints, which we

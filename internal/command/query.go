@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -64,7 +65,7 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 
 	view := views.NewQuery(args.ViewType, c.View)
 
-	config, configDiags := c.loadConfigWithQueries(".")
+	config, configDiags := c.loadConfig(".", configs.WithQueryFiles())
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		view.Diagnostics(addrs.List{}, diags)

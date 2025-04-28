@@ -36,7 +36,7 @@ const (
 //
 // .tf files are parsed using the HCL native syntax while .tf.json files are
 // parsed using the HCL JSON syntax.
-func (p *Parser) LoadConfigDir(path string) (*Module, hcl.Diagnostics) {
+func (p *Parser) LoadConfigDir2(path string) (*Module, hcl.Diagnostics) {
 	primaryPaths, overridePaths, _, diags := p.dirFiles(path, "")
 	if diags.HasErrors() {
 		return nil, diags
@@ -71,27 +71,6 @@ func (p *Parser) LoadConfigDirWithTests(path string, testDirectory string) (*Mod
 	diags = append(diags, fDiags...)
 
 	mod, modDiags := NewModuleWithTests(primary, override, tests)
-	diags = append(diags, modDiags...)
-
-	mod.SourceDir = path
-
-	return mod, diags
-}
-
-func (p *Parser) LoadConfigDirWithQueries(path string) (*Module, hcl.Diagnostics) {
-	primaryPaths, overridePaths, queryPaths, diags := p.dirFilesWithQueries(path)
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
-	primary, fDiags := p.loadFiles(primaryPaths, false)
-	diags = append(diags, fDiags...)
-	override, fDiags := p.loadFiles(overridePaths, true)
-	diags = append(diags, fDiags...)
-	queries, fDiags := p.loadQueryFiles(path, queryPaths)
-	diags = append(diags, fDiags...)
-
-	mod, modDiags := NewModuleWithQueries(primary, override, queries)
 	diags = append(diags, modDiags...)
 
 	mod.SourceDir = path
@@ -294,48 +273,6 @@ func (p *Parser) dirFiles(dir string, testsDir string) (primary, override, tests
 	return
 }
 
-func (p *Parser) dirFilesWithQueries(dir string) (primary, override, queries []string, diags hcl.Diagnostics) {
-	infos, err := p.fs.ReadDir(dir)
-	if err != nil {
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Failed to read module directory",
-			Detail:   fmt.Sprintf("Module directory %s does not exist or cannot be read.", dir),
-		})
-		return
-	}
-
-	for _, info := range infos {
-		if info.IsDir() {
-			// We only care about terraform configuration files.
-			continue
-		}
-
-		name := info.Name()
-		ext := fileExt(name)
-		if ext == "" || IsIgnoredFile(name) {
-			continue
-		}
-
-		if ext == ".tfquery.hcl" {
-			queries = append(queries, filepath.Join(dir, name))
-			continue
-		}
-
-		baseName := name[:len(name)-len(ext)] // strip extension
-		isOverride := baseName == "override" || strings.HasSuffix(baseName, "_override")
-
-		fullPath := filepath.Join(dir, name)
-		if isOverride {
-			override = append(override, fullPath)
-		} else {
-			primary = append(primary, fullPath)
-		}
-	}
-
-	return
-}
-
 func (p *Parser) loadTestFiles(basePath string, paths []string) (map[string]*TestFile, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
@@ -362,15 +299,26 @@ func (p *Parser) loadTestFiles(basePath string, paths []string) (map[string]*Tes
 	return tfs, diags
 }
 
-func (p *Parser) loadQueryFiles(basePath string, paths []string) ([]*QueryFile, hcl.Diagnostics) {
-	var files []*QueryFile
+func (p *Parser) loadQueryFiles(basePath string, paths []string) (map[string]*QueryFile, hcl.Diagnostics) {
+	files := make(map[string]*QueryFile)
 	var diags hcl.Diagnostics
 
 	for _, path := range paths {
 		f, fDiags := p.LoadQueryFile(path)
 		diags = append(diags, fDiags...)
 		if f != nil {
-			files = append(files, f)
+			// We index test files relative to the module they are testing, so
+			// the key is the relative path between basePath and path.
+			relPath, err := filepath.Rel(basePath, path)
+			if err != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Failed to calculate relative path",
+					Detail:   fmt.Sprintf("Terraform could not calculate the relative path for test file %s and it has been skipped: %s", path, err),
+				})
+				continue
+			}
+			files[relPath] = f
 		}
 	}
 

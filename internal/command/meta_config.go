@@ -38,7 +38,7 @@ func (m *Meta) normalizePath(path string) string {
 // loadConfig reads a configuration from the given directory, which should
 // contain a root module and have already have any required descendant modules
 // installed.
-func (m *Meta) loadConfig(rootDir string) (*configs.Config, tfdiags.Diagnostics) {
+func (m *Meta) loadConfig(rootDir string, parserOpts ...configs.Option) (*configs.Config, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	rootDir = m.normalizePath(rootDir)
 
@@ -48,7 +48,7 @@ func (m *Meta) loadConfig(rootDir string) (*configs.Config, tfdiags.Diagnostics)
 		return nil, diags
 	}
 
-	config, hclDiags := loader.LoadConfig(rootDir)
+	config, hclDiags := loader.LoadConfig(rootDir, parserOpts...)
 	diags = diags.Append(hclDiags)
 	return config, diags
 }
@@ -66,21 +66,6 @@ func (m *Meta) loadConfigWithTests(rootDir, testDir string) (*configs.Config, tf
 	}
 
 	config, hclDiags := loader.LoadConfigWithTests(rootDir, testDir)
-	diags = diags.Append(hclDiags)
-	return config, diags
-}
-
-func (m *Meta) loadConfigWithQueries(rootDir string) (*configs.Config, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	rootDir = m.normalizePath(rootDir)
-
-	loader, err := m.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		return nil, diags
-	}
-
-	config, hclDiags := loader.LoadConfigWithQueries(rootDir)
 	diags = diags.Append(hclDiags)
 	return config, diags
 }
@@ -120,7 +105,7 @@ func (m *Meta) loadSingleModuleWithTests(dir string, testDir string) (*configs.M
 		return nil, diags
 	}
 
-	module, hclDiags := loader.Parser().LoadConfigDirWithTests(dir, testDir)
+	module, hclDiags := loader.Parser().LoadConfigDir(dir, configs.WithTestFiles(testDir))
 	diags = diags.Append(hclDiags)
 	return module, diags
 }

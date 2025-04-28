@@ -22,18 +22,14 @@ import (
 //
 // LoadConfig performs the basic syntax and uniqueness validations that are
 // required to process the individual modules
-func (l *Loader) LoadConfig(rootDir string) (*configs.Config, hcl.Diagnostics) {
-	return l.loadConfig(l.parser.LoadConfigDir(rootDir))
+func (l *Loader) LoadConfig(rootDir string, parserOpts ...configs.Option) (*configs.Config, hcl.Diagnostics) {
+	return l.loadConfig(l.parser.LoadConfigDir(rootDir, parserOpts...))
 }
 
 // LoadConfigWithTests matches LoadConfig, except the configs.Config contains
 // any relevant .tftest.hcl files.
 func (l *Loader) LoadConfigWithTests(rootDir string, testDir string) (*configs.Config, hcl.Diagnostics) {
 	return l.loadConfig(l.parser.LoadConfigDirWithTests(rootDir, testDir))
-}
-
-func (l *Loader) LoadConfigWithQueries(rootDir string) (*configs.Config, hcl.Diagnostics) {
-	return l.loadConfig(l.parser.LoadConfigDirWithQueries(rootDir))
 }
 
 func (l *Loader) loadConfig(rootMod *configs.Module, diags hcl.Diagnostics) (*configs.Config, hcl.Diagnostics) {
