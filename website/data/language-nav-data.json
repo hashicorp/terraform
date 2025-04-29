@@ -1116,6 +1116,10 @@
     "title": "Configuration blocks",
     "routes": [
       {
+        "title": "resource",
+        "path": "block/resource"
+      },    
+      {
       "title": "check",
       "path": "block/check"
       },
