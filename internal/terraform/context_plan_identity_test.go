@@ -437,6 +437,22 @@ func TestContext2Plan_resource_identity_plan(t *testing.T) {
 				"id": cty.StringVal("foo"),
 			}),
 		},
+		"create - invalid planned identity schema": {
+			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.BoolVal(false),
+			}),
+			expectDiagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Error, "Provider produced an identity that doesn't match the schema", "Provider \"registry.terraform.io/hashicorp/test\" returned an identity for test_resource.test that doesn't match the identity schema: .id: string required, but received bool. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
+			},
+		},
+		"create - null planned identity schema": {
+			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.NullVal(cty.String),
+			}),
+			expectDiagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Error, "Provider produced an identity that doesn't match the schema", "Provider \"registry.terraform.io/hashicorp/test\" returned an identity for test_resource.test that doesn't match the identity schema: attributes \"id\" are required and must not be null. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
+			},
+		},
 		"update": {
 			prevRunState: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
