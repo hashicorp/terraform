@@ -11,11 +11,12 @@ The `output` block lets you expose information about your infrastructure.
 
 ## Background
 
-The value of an `output` block is similar to a return value in other programming languages. The `output` block exposes information about your infrastructure that you can reference on the command line, in HCP Terraform, and in other Terraform configurations that can access your configuration's state. The `output` block serves three main purposes in Terraform:
+The value of an `output` block is similar to a return value in other programming languages. The `output` block exposes information about your infrastructure that you can reference on the command line, in HCP Terraform, and in other Terraform configurations that can access your configuration's state. The `output` block serves four main purposes in Terraform:
 
 - Child modules can expose resource attributes to parent modules.
 - Root modules can display values in CLI output.
 - Other Terraform configurations using [remote state](/terraform/language/state/remote) can access root module outputs with the `terraform_remote_state` data source.
+- Passing information from a Terraform operation to an automation tool.
 
 In HCP Terraform, your `output` block values appear in the UI after Terraform applies your configuration. You can [mark outputs as sensitive in HCP Terraform](/terraform/cloud-docs/workspaces/variables/managing-variables#sensitive-values) to hide their values in the UI and in API responses.
 
@@ -127,7 +128,9 @@ Outputs:
 admin_password = (sensitive value)
 ```
 
-Terraform still records sensitive values in state, so anyone who can access your state data can access your sensitive values. For more information about safely storing sensitive data, refer to [Sensitive data in state](/terraform/language/state/sensitive-data).
+If you use the [`terraform output` command](/terraform/cli/commands/output) with the `-json` or `-raw` command-line flags, Terraform displays `sensitive` values in plain text.
+
+Terraform also records sensitive values in state, so anyone who can access your state data can access your sensitive values. For more information about safely storing sensitive data, refer to [Sensitive data in state](/terraform/language/state/sensitive-data).
 
 #### Summary
 
@@ -147,7 +150,7 @@ output "unique_password" {
 }
 ```
 
-Passing output values between child modules and the root module is useful for managing credentials, tokens, and other temporary resources that you do not want to store in state. If you enable the `ephemeral` argument on an `output` block, then your configuration must meet the following conditions:
+Passing output values between child modules and the root module is useful for managing credentials, tokens, and other temporary values that you do not want to store in state. If you enable the `ephemeral` argument on an `output` block, then your configuration must meet the following conditions:
 
 - The value of the `output` block must come from an ephemeral context.
 - You can only reference that output in other ephemeral contexts.
