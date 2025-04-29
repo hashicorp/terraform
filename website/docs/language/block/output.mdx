@@ -266,6 +266,7 @@ In the following example, the `instance_public_ip` output has a `precondition` t
 ```hcl
 output "instance_public_ip" {
   value = aws_instance.web.public_ip
+  description = "Public IP address of the instance."
 
   precondition {
     condition     = length([for rule in aws_security_group.web.ingress : rule if rule.to_port == 80 || rule.to_port == 443]) > 0
