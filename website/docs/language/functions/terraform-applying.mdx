@@ -36,10 +36,10 @@ If you run a plan operation Terraform uses your read-only credentials, if you ru
 
 The `terraform.applying` symbol is an ephemeral value, meaning it is only available during Terraform operations and Terraform does not write this value to plan or state files. Additionally, you can only reference `terraform.applying` in ephemeral contexts:
 
-* In a [write-only argument](/terraform/language/resources/ephemeral/write-only)
-* In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)
-* In [local values](/terraform/language/values/locals#ephemeral-values)
-* In [ephemeral resources](/terraform/language/resources/ephemeral)
-* In [ephemeral outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files)
-* Configuring providers in the `provider` block
-* In [provisioner](/terraform/language/resources/provisioners/syntax) and [connection](/terraform/language/resources/provisioners/connection) blocks
+- In a [write-only argument](/terraform/language/resources/ephemeral/write-only)
+- In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)
+- In [local values](/terraform/language/values/locals#ephemeral-values)
+- In [ephemeral resources](/terraform/language/resources/ephemeral)
+- In [ephemeral outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files)
+- Configuring providers in the `provider` block
+- In [provisioner](/terraform/language/resources/provisioners/syntax) and [connection](/terraform/language/resources/provisioners/connection) blocks
