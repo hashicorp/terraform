@@ -12,7 +12,7 @@ Terraform is an infrastructure as code (IaC) tool that allows you to build, chan
 
 Below, HashiCorp co-founder and CTO Armon Dadgar describes how Terraform can help solve common infrastructure challenges.
 
-<VideoEmbed url="https://www.youtube.com/embed/h970ZBgKINg">
+<VideoEmbed url="https://www.youtube.com/embed/h970ZBgKINg"/>
 
 ## Key Features
 
