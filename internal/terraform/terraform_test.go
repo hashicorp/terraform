@@ -139,7 +139,7 @@ func testModuleInline(t testing.TB, sources map[string]string) *configs.Config {
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	config, diags := loader.LoadConfig(cfgPath, configs.WithQueryFiles(), configs.WithTestFiles("tests"))
+	config, diags := loader.LoadConfig(cfgPath, configs.MatchQueryFiles(), configs.MatchTestFiles("tests"))
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}

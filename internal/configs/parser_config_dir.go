@@ -17,9 +17,19 @@ const (
 	DefaultTestDirectory = "tests"
 )
 
-// LoadConfigDir reads the .tf and .tf.json files in the given directory
+// LoadConfigDir reads the configuration files in the given directory
 // as config files (using LoadConfigFile) and then combines these files into
 // a single Module.
+//
+// Main terraform configuration files (.tf and .tf.json) are loaded as the primary
+// module, while override files (override.tf and *_override.tf) are loaded as
+// overrides.
+// Optionally, test files (.tftest.hcl and .tftest.json) can be loaded from
+// a subdirectory of the given directory, which is specified by the
+// MatchTestFiles option, or from the default test directory.
+// If this option is not specified, test files will not be loaded.
+// Query files (.tfquery.hcl) are also loaded from the given directory if
+// specified by the MatchQueryFiles option.
 //
 // If this method returns nil, that indicates that the given directory does not
 // exist at all or could not be opened for some reason. Callers may wish to
@@ -36,21 +46,45 @@ const (
 //
 // .tf files are parsed using the HCL native syntax while .tf.json files are
 // parsed using the HCL JSON syntax.
-func (p *Parser) LoadConfigDir2(path string) (*Module, hcl.Diagnostics) {
-	primaryPaths, overridePaths, _, diags := p.dirFiles(path, "")
+func (p *Parser) LoadConfigDir(path string, opts ...Option) (*Module, hcl.Diagnostics) {
+	fileSet, diags := p.dirFileSet(path, opts...)
 	if diags.HasErrors() {
 		return nil, diags
 	}
 
-	primary, fDiags := p.loadFiles(primaryPaths, false)
-	diags = append(diags, fDiags...)
-	override, fDiags := p.loadFiles(overridePaths, true)
-	diags = append(diags, fDiags...)
+	// Load the actual files
+	primary, fDiags := p.loadFiles(fileSet.Primary, false)
+	diags = diags.Extend(fDiags)
 
+	override, fDiags := p.loadFiles(fileSet.Override, true)
+	diags = diags.Extend(fDiags)
+
+	// Initialize the module
 	mod, modDiags := NewModule(primary, override)
-	diags = append(diags, modDiags...)
+	diags = diags.Extend(modDiags)
 
-	mod.SourceDir = path
+	// Check if we need to load test files
+	if len(fileSet.Tests) > 0 {
+		testFiles, fDiags := p.loadTestFiles(path, fileSet.Tests)
+		diags = diags.Extend(fDiags)
+		if mod != nil {
+			mod.Tests = testFiles
+		}
+	}
+	// Check if we need to load query files
+	if len(fileSet.Queries) > 0 {
+		queryFiles, fDiags := p.loadQueryFiles(path, fileSet.Queries)
+		diags = append(diags, fDiags...)
+		if mod != nil {
+			for _, qf := range queryFiles {
+				diags = diags.Extend(mod.appendQueryFile(qf))
+			}
+		}
+	}
+
+	if mod != nil {
+		mod.SourceDir = path
+	}
 
 	return mod, diags
 }
@@ -58,24 +92,7 @@ func (p *Parser) LoadConfigDir2(path string) (*Module, hcl.Diagnostics) {
 // LoadConfigDirWithTests matches LoadConfigDir, but the return Module also
 // contains any relevant .tftest.hcl files.
 func (p *Parser) LoadConfigDirWithTests(path string, testDirectory string) (*Module, hcl.Diagnostics) {
-	primaryPaths, overridePaths, testPaths, diags := p.dirFiles(path, testDirectory)
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
-	primary, fDiags := p.loadFiles(primaryPaths, false)
-	diags = append(diags, fDiags...)
-	override, fDiags := p.loadFiles(overridePaths, true)
-	diags = append(diags, fDiags...)
-	tests, fDiags := p.loadTestFiles(path, testPaths)
-	diags = append(diags, fDiags...)
-
-	mod, modDiags := NewModuleWithTests(primary, override, tests)
-	diags = append(diags, modDiags...)
-
-	mod.SourceDir = path
-
-	return mod, diags
+	return p.LoadConfigDir(path, MatchTestFiles(testDirectory))
 }
 
 func (p *Parser) LoadMockDataDir(dir string, useForPlanDefault bool, source hcl.Range) (*MockData, hcl.Diagnostics) {
@@ -129,15 +146,9 @@ func (p *Parser) LoadMockDataDir(dir string, useForPlanDefault bool, source hcl.
 //
 // If the given directory does not exist or cannot be read, error diagnostics
 // are returned. If errors are returned, the resulting lists may be incomplete.
-func (p Parser) ConfigDirFiles(dir string) (primary, override []string, diags hcl.Diagnostics) {
-	primary, override, _, diags = p.dirFiles(dir, "")
-	return primary, override, diags
-}
-
-// ConfigDirFilesWithTests matches ConfigDirFiles except it also returns the
-// paths to any test files within the module.
-func (p Parser) ConfigDirFilesWithTests(dir string, testDirectory string) (primary, override, tests []string, diags hcl.Diagnostics) {
-	return p.dirFiles(dir, testDirectory)
+func (p Parser) ConfigDirFiles(dir string, opts ...Option) (primary, override []string, diags hcl.Diagnostics) {
+	fSet, diags := p.dirFileSet(dir, opts...)
+	return fSet.Primary, fSet.Override, diags
 }
 
 // IsConfigDir determines whether the given path refers to a directory that

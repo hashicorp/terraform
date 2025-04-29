@@ -105,7 +105,7 @@ func (m *Meta) loadSingleModuleWithTests(dir string, testDir string) (*configs.M
 		return nil, diags
 	}
 
-	module, hclDiags := loader.Parser().LoadConfigDir(dir, configs.WithTestFiles(testDir))
+	module, hclDiags := loader.Parser().LoadConfigDir(dir, configs.MatchTestFiles(testDir))
 	diags = diags.Append(hclDiags)
 	return module, diags
 }

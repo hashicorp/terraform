@@ -183,7 +183,7 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 			parser := NewParser(nil)
 			path := filepath.Join(testDir, name)
 
-			mod, diags := parser.LoadConfigDir(path, WithTestFiles("tests"))
+			mod, diags := parser.LoadConfigDir(path, MatchTestFiles("tests"))
 			if diags.HasErrors() {
 				// these tests should only trigger errors that are caught in
 				// the config loader.
@@ -299,7 +299,7 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 
 func TestBuildConfig_WithMockDataSources(t *testing.T) {
 	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDir("testdata/valid-modules/with-mock-sources", WithTestFiles("tests"))
+	mod, diags := parser.LoadConfigDir("testdata/valid-modules/with-mock-sources", MatchTestFiles("tests"))
 	assertNoDiagnostics(t, diags)
 	assertNoDiagnostics(t, diags)
 	if mod == nil {
@@ -330,7 +330,7 @@ func TestBuildConfig_WithMockDataSources(t *testing.T) {
 
 func TestBuildConfig_WithMockDataSourcesInline(t *testing.T) {
 	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDir("testdata/valid-modules/with-mock-sources-inline", WithTestFiles("tests"))
+	mod, diags := parser.LoadConfigDir("testdata/valid-modules/with-mock-sources-inline", MatchTestFiles("tests"))
 	assertNoDiagnostics(t, diags)
 	assertNoDiagnostics(t, diags)
 	if mod == nil {
@@ -362,7 +362,7 @@ func TestBuildConfig_WithMockDataSourcesInline(t *testing.T) {
 
 func TestBuildConfig_WithNestedTestModules(t *testing.T) {
 	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDir("testdata/valid-modules/with-tests-nested-module", WithTestFiles("tests"))
+	mod, diags := parser.LoadConfigDir("testdata/valid-modules/with-tests-nested-module", MatchTestFiles("tests"))
 	assertNoDiagnostics(t, diags)
 	if mod == nil {
 		t.Fatal("got nil root module; want non-nil")
@@ -445,7 +445,7 @@ func TestBuildConfig_WithNestedTestModules(t *testing.T) {
 
 func TestBuildConfig_WithTestModule(t *testing.T) {
 	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDir("testdata/valid-modules/with-tests-module", WithTestFiles("tests"))
+	mod, diags := parser.LoadConfigDir("testdata/valid-modules/with-tests-module", MatchTestFiles("tests"))
 	assertNoDiagnostics(t, diags)
 	if mod == nil {
 		t.Fatal("got nil root module; want non-nil")

@@ -3104,6 +3104,38 @@ func TestInit_testsWithModule(t *testing.T) {
 	}
 }
 
+func TestInit_withQuery(t *testing.T) {
+	// The configuration referenced here has an invalid query file,
+	// but init should still succeed because the query file is not
+	// loaded here.
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-with-query"), td)
+	defer testChdir(t, td)()
+
+	provider := applyFixtureProvider() // We just want the types from this provider.
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider),
+			Ui:               ui,
+			View:             view,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", done(t).Stderr())
+	}
+}
+
 // newMockProviderSource is a helper to succinctly construct a mock provider
 // source that contains a set of packages matching the given provider versions
 // that are available for installation (from temporary local files).

@@ -65,7 +65,7 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 
 	view := views.NewQuery(args.ViewType, c.View)
 
-	config, configDiags := c.loadConfig(".", configs.WithQueryFiles())
+	config, configDiags := c.loadConfig(".", configs.MatchQueryFiles())
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		view.Diagnostics(addrs.List{}, diags)
