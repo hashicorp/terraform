@@ -8,7 +8,9 @@ description: >-
 
 As your Terraform configuration grows in complexity, you might want to reorganize your resources to improve maintainability and performance. Terraform operations complete faster when you split configuration with large state files.
 
-This topic reviews the steps you must take before you split your Terraform state across multiple configurations. First, you must plan how you will group your resources and identify inter-resource dependencies. Then you must choose the best approach to migrate resources from one state file to another. Even small refactors require that you keep these principles in mind. Keep in mind that refactoring your configuration requires updating both the configuration and the corresponding state files.
+This topic reviews the steps you must take to split your Terraform state across multiple configurations. First, you must plan how you will group your resources and identify inter-resource dependencies. Then you must choose the best approach to migrate resources from one state file to another. Finally, you must decide which approach to take to move resources between state files.
+
+Even small refactors require that you keep these principles in mind. Keep in mind that refactoring your configuration requires updating both the configuration and the corresponding state files.
 
 ## Identify opportunities to refactor
 
@@ -56,13 +58,13 @@ Stateful resources, such as databases and object stores, are more complicated to
 There are two common approaches to migrating resources between two Terraform state files:
 
 - [Remove and import](#remove-and-import): Explicitly remove resources from one Terraform state file, then add it to another. We recommend this approach since the `removed` and `import` blocks help keep a record of the configuration history.
-- [Move resources directly to a new state file](#move-resources-directly-between-state-files): Use the `terraform state mv` command to move resources into a different state file. This is considered a legacy command, but is still supported in all versions of Terraform version 1.0 and newer.
+- [Move resources directly to a new state file](#move-resources-directly-to-a-new-state-file): Use the `terraform state mv` command to move resources into a different state file. This is considered a legacy command, but is still supported in all versions of Terraform version 1.0 and newer.
 
 ### Requirements
 
 [Removing and importing resources](#remove-and-import) requires Terraform version 1.7 or newer.
 
-[Moving resources directly to a new state file](#move-resources-directly-between-state-files) using the Terraform CLI requires Terraform version 1.0 or newer.
+[Moving resources directly to a new state file](#move-resources-directly-to-a-new-state-file) using the Terraform CLI requires Terraform version 1.0 or newer.
 
 ### Remove and import
 
