@@ -1052,6 +1052,10 @@
         "title": "Import Existing Resources",
         "path": "state/import"
       },
+      {
+        "title": "Refactor state",
+        "path": "state/refactor"
+      },
       { "title": "Locking", "path": "state/locking" },
       { "title": "Workspaces", "path": "state/workspaces" },
       { "title": "Remote State", "path": "state/remote" },
