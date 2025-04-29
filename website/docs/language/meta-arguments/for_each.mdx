@@ -110,7 +110,7 @@ including `uuid`, `bcrypt`, or `timestamp`, as their evaluation is deferred duri
 main evaluation step.
 
 Sensitive values, such as [sensitive input variables](/terraform/language/values/variables#suppressing-values-in-cli-output),
-[sensitive outputs](/terraform/language/values/outputs#sensitive-suppressing-values-in-cli-output),
+[sensitive outputs](/terraform/language/block/output#sensitive),
 or [sensitive resource attributes](/terraform/language/expressions/references#sensitive-resource-attributes),
 cannot be used as arguments to `for_each`. The value used in `for_each` is used
 to identify the resource instance and will always be disclosed in UI output,

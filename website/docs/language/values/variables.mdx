@@ -22,7 +22,7 @@ If you're familiar with traditional programming languages, it can be useful to
 compare Terraform modules to function definitions:
 
 * Input variables are like function arguments.
-* [Output values](/terraform/language/values/outputs) are like function return values.
+* [Output values](/terraform/language/block/output) are like function return values.
 * [Local values](/terraform/language/values/locals) are like a function's temporary local variables.
 
 -> **Note:** For brevity, input variables are often referred to as just
@@ -202,7 +202,7 @@ You can only reference ephemeral variables in specific contexts or Terraform thr
 * Another ephemeral variable
 * In [local values](/terraform/language/values/locals#ephemeral-values)
 * In [ephemeral resources](/terraform/language/resources/ephemeral)
-* In [ephemeral outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files)
+* In [ephemeral outputs](/terraform/language/block/output#ephemeral)
 * Configuring providers in the `provider` block
 * In [provisioner](/terraform/language/resources/provisioners/syntax) and [connection](/terraform/language/resources/provisioners/connection) blocks
 
@@ -293,7 +293,7 @@ you assign it a value. For more information, see
 [Sensitive Resource Attributes](/terraform/language/expressions/references#sensitive-resource-attributes).
 
 If you use a sensitive value as part of an
-[output value](/terraform/language/values/outputs) then Terraform will require
+[output value](/terraform/language/block/output) then Terraform will require
 you to also mark the output value itself as sensitive, to confirm that you
 intended to export it.
 

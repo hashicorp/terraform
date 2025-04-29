@@ -92,7 +92,7 @@ block, as long as you don't introduce circular dependencies.
 If the corresponding `module` block does not have either `count` nor `for_each`
 set then the value will be an object with one attribute for each output value
 defined in the child module. To access one of the module's
-[output values](/terraform/language/values/outputs), use `module.<MODULE NAME>.<OUTPUT NAME>`.
+[output values](/terraform/language/block/output), use `module.<MODULE NAME>.<OUTPUT NAME>`.
 
 If the corresponding `module` uses `for_each` then the value will be a map
 of objects whose keys correspond with the keys in the `for_each` expression,
@@ -303,7 +303,7 @@ However, there are some limitations to that behavior as described in
 [Cases where Terraform may disclose a sensitive variable](/terraform/language/values/variables#cases-where-terraform-may-disclose-a-sensitive-variable).
 
 If you use a sensitive value from a resource attribute as part of an
-[output value](/terraform/language/values/outputs) then Terraform will require
+[output value](/terraform/language/block/output) then Terraform will require
 you to also mark the output value itself as sensitive, to confirm that you
 intended to export it.
 

@@ -97,7 +97,7 @@ remote access credentials to be provided.
 
 ### Provisioning files using cloud-config
 
-You can add the [`cloudinit_config`](https://registry.terraform.io/providers/hashicorp/cloudinit/latest/docs) data source to your Terraform configuration and specify the files you want to provision as `text/cloud-config` content. The `cloudinit_config` data source renders multi-part MIME configurations for use with [cloud-init](https://cloudinit.readthedocs.io/en/latest/). Pass the files in the `content` field as YAML-encoded configurations using the `write_files` block. 
+You can add the [`cloudinit_config`](https://registry.terraform.io/providers/hashicorp/cloudinit/latest/docs) data source to your Terraform configuration and specify the files you want to provision as `text/cloud-config` content. The `cloudinit_config` data source renders multi-part MIME configurations for use with [cloud-init](https://cloudinit.readthedocs.io/en/latest/). Pass the files in the `content` field as YAML-encoded configurations using the `write_files` block.
 
 In the following example, the `my_cloud_config` data source specifies a `text/cloud-config` MIME part named `cloud.conf`. The `part.content` field is set to [`yamlencode`](/terraform/language/functions/yamlencode), which encodes the `write_files` JSON object as YAML so that the system can provision the referenced files.
 
@@ -233,7 +233,7 @@ The configuration for a `provisioner` block may use ephemeral values, such as
 local values](/terraform/language/values/locals#ephemeral-values), [`ephemeral`
 variables](/terraform/language/values/variables#ephemeral), or [`ephemeral`
 output
-values](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files).
+values](/terraform/language/block/output#ephemeral).
 
 Terraform does not store these values in your plan or state, or output them in
 logs.
@@ -242,7 +242,7 @@ logs.
 
 The configuration for a `provisioner` block may use sensitive values, such as
 [`sensitive` variables](/terraform/language/values/variables#suppressing-values-in-cli-output)
-or [`sensitive` output values](/terraform/language/values/outputs#sensitive-suppressing-values-in-cli-output).
+or [`sensitive` output values](/terraform/language/block/output#sensitive).
 Terraform suppresses sensitive values in all log output.
 
 ## Creation-Time Provisioners

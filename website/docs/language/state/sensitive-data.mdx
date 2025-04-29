@@ -19,7 +19,7 @@ When using [remote state](/terraform/language/state/remote), state is only ever 
 
 Terraform allows you to mark variables and outputs as ephemeral. Providers can also support specific `ephemeral` resources. Ephemerality in Terraform means that the data of a block is available during runtime, but Terraform does not write that data to state or plan files. The `ephemeral` property is helpful when managing credentials, tokens, or other temporary resources you do not want to store in Terraform state files.
 
-Learn more about defining ephemeral [input variables](/terraform/language/values/variables#exclude-values-from-state), [outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files), and [resources](/terraform/language/resources/ephemeral).
+Learn more about defining ephemeral [input variables](/terraform/language/values/variables#exclude-values-from-state), [outputs](/terraform/language/block/output#ephemeral), and [resources](/terraform/language/resources/ephemeral).
 
 ## Recommendations
 
