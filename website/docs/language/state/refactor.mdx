@@ -72,12 +72,16 @@ You can use Terraform's configuration-driven `removed` and `import` blocks to mo
 
 The following example is an initial resource configuration that you will move to a new state file.
 
+<CodeBlockConfig hideClipboard>
+
 ```hcl
 resource "aws_instance" "example" {
     instance_type = "t3.micro"
     ami = data.aws_ami.example.id
 }
 ```
+
+</CodeBlockConfig>
 
 In your source configuration, complete the following steps to remove the resources:
 
@@ -98,6 +102,8 @@ In your source configuration, complete the following steps to remove the resourc
 
 1. For each resource you want to migrate, replace the `resource`  block with a `removed` block to remove the resource from your state without destroying it. These `removed` blocks can exist anywhere in your configuration, but we recommend your organization standardizes where to declare these blocks  to help with future maintenance. One common approach is defining the `removed` block in the file that previously contained the corresponding `resource` block.
 
+    <CodeBlockConfig hideClipboard>
+
     ```diff
     - resource "aws_instance" "example" {
     -     instance_type = "t3.micro"
@@ -112,8 +118,12 @@ In your source configuration, complete the following steps to remove the resourc
     + }
     ```
 
+    </CodeBlockConfig>
+
 1. Run `terraform plan` to ensure that Terraform will not destroy the resources.
 
+    <CodeBlockConfig hideClipboard>
+    
     ```bash
     # aws_instance.example will no longer be managed by Terraform, but will not be destroyed
     # (destroy = false is set in the configuration)
@@ -121,6 +131,8 @@ In your source configuration, complete the following steps to remove the resourc
             id                                   = "i-07b510cff5f79af00"
     ##...
     ```
+
+    </CodeBlockConfig>
 
 1. Run `terraform apply` to remove the resource from state.
 
@@ -143,10 +155,14 @@ Then, in your destination configuration, complete the following steps to import 
 
 1. Run `terraform plan` to ensure that Terraform will properly import the resources.
 
+    <CodeBlockConfig hideClipboard>
+
     ```bash
     # aws_instance.example will be imported
         resource "aws_instance" "example" {
     ```
+
+    </CodeBlockConfig>
 
 1. Run `terraform apply` to complete the import. 
 
