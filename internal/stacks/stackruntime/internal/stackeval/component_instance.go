@@ -31,6 +31,7 @@ import (
 type ComponentInstance struct {
 	call     *Component
 	addr     stackaddrs.AbsComponentInstance
+	mode     plans.Mode
 	deferred bool
 
 	main    *Main
@@ -47,10 +48,11 @@ var _ Plannable = (*ComponentInstance)(nil)
 var _ ExpressionScope = (*ComponentInstance)(nil)
 var _ ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance] = (*ComponentInstance)(nil)
 
-func newComponentInstance(call *Component, addr stackaddrs.AbsComponentInstance, repetition instances.RepetitionData, deferred bool) *ComponentInstance {
+func newComponentInstance(call *Component, addr stackaddrs.AbsComponentInstance, repetition instances.RepetitionData, mode plans.Mode, deferred bool) *ComponentInstance {
 	component := &ComponentInstance{
 		call:       call,
 		addr:       addr,
+		mode:       mode,
 		deferred:   deferred,
 		main:       call.main,
 		repetition: repetition,
@@ -189,8 +191,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 		func(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
-			mode := c.main.PlanningOpts().PlanningMode
-			if mode == plans.DestroyMode {
+			if c.mode == plans.DestroyMode {
 
 				if !c.main.PlanPrevState().HasComponentInstance(c.Addr()) {
 					// If the component instance doesn't exist in the previous
@@ -235,7 +236,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 
 				// For the actual destroy plan, we'll skip the refresh and
 				// simply use the refreshed state from the refresh plan.
-				opts, moreDiags := c.PlanOpts(ctx, plans.DestroyMode, true)
+				opts, moreDiags := c.PlanOpts(ctx, c.mode, true)
 				diags = diags.Append(moreDiags)
 				if opts == nil {
 					return nil, diags
@@ -271,7 +272,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				return plan, diags.Append(moreDiags)
 			}
 
-			opts, moreDiags := c.PlanOpts(ctx, mode, false)
+			opts, moreDiags := c.PlanOpts(ctx, c.mode, false)
 			diags = diags.Append(moreDiags)
 			if opts == nil {
 				return nil, diags
@@ -332,7 +333,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 	}
 
 	if plan.UIMode == plans.DestroyMode && plan.Changes.Empty() {
-		stackPlan := c.main.PlanBeingApplied().Components.Get(c.Addr())
+		stackPlan := c.main.PlanBeingApplied().GetComponent(c.Addr())
 
 		// If we're destroying and there's nothing to destroy, then we can
 		// consider this a no-op.
@@ -502,7 +503,7 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 	switch phase {
 	case PlanPhase:
 
-		if c.main.PlanningOpts().PlanningMode == plans.DestroyMode {
+		if c.mode == plans.DestroyMode {
 			// If we are running a destroy plan, then we'll return the result
 			// of our refresh operation.
 			return cty.ObjectVal(c.refresh.Result(ctx))
@@ -525,7 +526,7 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 		// begin their own destroy phases before we start ours.
 		if phase == ApplyPhase {
 			fullPlan := c.main.PlanBeingApplied()
-			ourPlan := fullPlan.Components.Get(c.Addr())
+			ourPlan := fullPlan.GetComponent(c.Addr())
 			if ourPlan == nil {
 				// Weird, but we'll tolerate it.
 				return cty.DynamicVal
@@ -684,7 +685,7 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 		}
 
 		var refreshPlan *plans.Plan
-		if c.main.PlanningOpts().PlanningMode == plans.DestroyMode {
+		if c.mode == plans.DestroyMode {
 			// if we're in destroy mode, then we did a separate refresh plan
 			// so we'll make sure to pass that in as extra information the
 			// FromPlan function can use.
@@ -726,7 +727,7 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 
 	var changes []stackstate.AppliedChange
 	if applyResult != nil {
-		changes, moreDiags = stackstate.FromState(ctx, applyResult.FinalState, c.main.PlanBeingApplied().Components.Get(c.Addr()), inputs, applyResult.AffectedResourceInstanceObjects, c)
+		changes, moreDiags = stackstate.FromState(ctx, applyResult.FinalState, c.main.PlanBeingApplied().GetComponent(c.Addr()), inputs, applyResult.AffectedResourceInstanceObjects, c)
 		diags = diags.Append(moreDiags)
 	}
 	return changes, diags

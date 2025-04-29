@@ -386,7 +386,15 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 
 		if importing {
-			change.Importing = &plans.Importing{Target: n.importTarget}
+			// There is a subtle difference between the import by identity
+			// and the import by ID. When importing by identity, we need to
+			// make sure to use the complete identity return by the provider
+			// instead of the (potential) incomplete one from the configuration.
+			if n.importTarget.Type().IsObjectType() {
+				change.Importing = &plans.Importing{Target: instanceRefreshState.Identity}
+			} else {
+				change.Importing = &plans.Importing{Target: n.importTarget}
+			}
 		}
 
 		// FIXME: here we udpate the change to reflect the reason for

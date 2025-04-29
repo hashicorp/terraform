@@ -73,6 +73,65 @@ func TestLoadConfigDirErrors(t *testing.T) {
 	}
 }
 
+func TestLoadConfigDirSourceErrors(t *testing.T) {
+	bundle, err := sourcebundle.OpenDir("testdata/basics-bundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rootAddr := sourceaddrs.MustParseSource("git::https://example.com/errored-sources.git").(sourceaddrs.RemoteSource)
+	_, gotDiags := LoadConfigDir(rootAddr, bundle)
+
+	sort.SliceStable(gotDiags, func(i, j int) bool {
+		if gotDiags[i].Severity() != gotDiags[j].Severity() {
+			return gotDiags[i].Severity() < gotDiags[j].Severity()
+		}
+
+		if gotDiags[i].Description().Summary != gotDiags[j].Description().Summary {
+			return gotDiags[i].Description().Summary < gotDiags[j].Description().Summary
+		}
+
+		return gotDiags[i].Description().Detail < gotDiags[j].Description().Detail
+	})
+
+	wantDiags := tfdiags.Diagnostics{
+		tfdiags.Sourceless(tfdiags.Error, "Invalid removed block", "The linked removed block was not executed because the `from` attribute of the removed block targets a component or embedded stack within an orphaned embedded stack.\n\nIn order to remove an entire stack, update your removed block to target the entire removed stack itself instead of the specific elements within it."),
+		tfdiags.Sourceless(tfdiags.Error, "Invalid source address", "Cannot use \"git::https://example.com/errored-sources.git\" as a source address here: the target stack is already initialised with another source \"git::https://example.com/errored-sources.git//subdir\"."),
+		tfdiags.Sourceless(tfdiags.Error, "Invalid source address", "Cannot use \"git::https://example.com/errored-sources.git//subdir\" as a source address here: the target stack is already initialised with another source \"git::https://example.com/errored-sources.git\"."),
+	}
+
+	count := len(wantDiags)
+	if len(gotDiags) > count {
+		count = len(gotDiags)
+	}
+
+	for i := 0; i < count; i++ {
+		if i >= len(wantDiags) {
+			t.Errorf("unexpected diagnostic:\n%s", gotDiags[i])
+			continue
+		}
+
+		if i >= len(gotDiags) {
+			t.Errorf("missing diagnostic:\n%s", wantDiags[i])
+			continue
+		}
+
+		got, want := gotDiags[i], wantDiags[i]
+
+		if got, want := got.Severity(), want.Severity(); got != want {
+			t.Errorf("diagnostics[%d] severity\ngot:  %s\nwant: %s", i, got, want)
+		}
+
+		if got, want := got.Description().Summary, want.Description().Summary; got != want {
+			t.Errorf("diagnostics[%d] summary\ngot:  %s\nwant: %s", i, got, want)
+		}
+
+		if got, want := got.Description().Detail, want.Description().Detail; got != want {
+			t.Errorf("diagnostics[%d] detail\ngot:  %s\nwant: %s", i, got, want)
+		}
+	}
+}
+
 func TestLoadConfigDirBasics(t *testing.T) {
 	bundle, err := sourcebundle.OpenDir("testdata/basics-bundle")
 	if err != nil {

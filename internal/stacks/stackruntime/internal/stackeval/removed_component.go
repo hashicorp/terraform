@@ -6,12 +6,14 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -34,17 +36,20 @@ type RemovedComponent struct {
 	stack  *Stack
 	main   *Main
 
-	forEachValue    perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
-	instances       perEvalPhase[promising.Once[withDiagnostics[instancesResult[*RemovedComponentInstance]]]]
-	unknownInstance perEvalPhase[promising.Once[*RemovedComponentInstance]]
+	forEachValue perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
+	instances    perEvalPhase[promising.Once[withDiagnostics[instancesResult[*RemovedComponentInstance]]]]
+
+	unknownInstancesMutex sync.Mutex
+	unknownInstances      collections.Map[stackaddrs.AbsComponentInstance, *RemovedComponentInstance]
 }
 
 func newRemovedComponent(main *Main, target stackaddrs.ConfigComponent, stack *Stack, config *RemovedComponentConfig) *RemovedComponent {
 	return &RemovedComponent{
-		target: target,
-		main:   main,
-		config: config,
-		stack:  stack,
+		target:           target,
+		main:             main,
+		config:           config,
+		stack:            stack,
+		unknownInstances: collections.NewMap[stackaddrs.AbsComponentInstance, *RemovedComponentInstance](),
 	}
 }
 
@@ -105,7 +110,7 @@ func (r *RemovedComponent) Instances(ctx context.Context, phase EvalPhase) (map[
 				return nil
 			}
 
-			addr, moreDiags := from.AbsComponentInstance(evalContext, r.stack.addr)
+			addr, moreDiags := from.TargetAbsComponentInstance(evalContext, r.stack.addr)
 			diags = diags.Append(moreDiags)
 			if moreDiags.HasErrors() {
 				return nil
@@ -163,7 +168,7 @@ func (r *RemovedComponent) Instances(ctx context.Context, phase EvalPhase) (map[
 					continue
 				}
 			case ApplyPhase:
-				if _, ok := r.main.PlanBeingApplied().Components.GetOk(ci.Addr()); ok {
+				if component := r.main.PlanBeingApplied().GetComponent(ci.Addr()); component != nil {
 					knownInstances[key] = ci
 					knownAddrs = append(knownAddrs, ci.Addr())
 					continue
@@ -187,6 +192,22 @@ func (r *RemovedComponent) Instances(ctx context.Context, phase EvalPhase) (map[
 		return result, diags
 	})
 	return result.insts, result.unknown, diags
+}
+
+func (r *RemovedComponent) UnknownInstance(ctx context.Context, from stackaddrs.AbsComponentInstance, phase EvalPhase) *RemovedComponentInstance {
+	r.unknownInstancesMutex.Lock()
+	defer r.unknownInstancesMutex.Unlock()
+
+	if inst, ok := r.unknownInstances.GetOk(from); ok {
+		return inst
+	}
+
+	forEachType, _ := r.ForEachValue(ctx, phase)
+	repetitionData := instances.UnknownForEachRepetitionData(forEachType.Type())
+
+	inst := newRemovedComponentInstance(r, from, repetitionData, true)
+	r.unknownInstances.Put(from, inst)
+	return inst
 }
 
 func (r *RemovedComponent) PlanIsComplete(ctx context.Context, stack stackaddrs.StackInstance) bool {

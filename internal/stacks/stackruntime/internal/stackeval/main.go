@@ -18,9 +18,9 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	fileProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/file"
 	remoteExecProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/remote-exec"
-	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -310,7 +310,7 @@ func (m *Main) MainStack() *Stack {
 	defer m.mu.Unlock()
 
 	if m.mainStack == nil {
-		m.mainStack = newStack(m, stackaddrs.RootStackInstance, nil, config, collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponent](), false)
+		m.mainStack = newStack(m, stackaddrs.RootStackInstance, nil, config, newRemoved(), m.PlanningMode(), false)
 	}
 	return m.mainStack
 }
@@ -613,6 +613,16 @@ func (m *Main) PlanTimestamp() time.Time {
 
 	// This is the default case, we are not planning / applying
 	return time.Now().UTC()
+}
+
+func (m *Main) PlanningMode() plans.Mode {
+	if m.applying != nil {
+		return m.applying.plan.Mode
+	}
+	if m.planning != nil {
+		return m.planning.opts.PlanningMode
+	}
+	return plans.NormalMode
 }
 
 // DependencyLocks returns the dependency locks for the given phase.

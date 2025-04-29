@@ -6,11 +6,11 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -28,9 +28,11 @@ type StackCall struct {
 
 	main *Main
 
-	forEachValue    perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
-	instances       perEvalPhase[promising.Once[withDiagnostics[instancesResult[*StackCallInstance]]]]
-	unknownInstance perEvalPhase[promising.Once[*StackCallInstance]]
+	forEachValue perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
+	instances    perEvalPhase[promising.Once[withDiagnostics[instancesResult[*StackCallInstance]]]]
+
+	unknownInstancesMutex sync.Mutex
+	unknownInstances      map[addrs.InstanceKey]*StackCallInstance
 }
 
 var _ Plannable = (*StackCall)(nil)
@@ -38,17 +40,18 @@ var _ Referenceable = (*StackCall)(nil)
 
 func newStackCall(main *Main, addr stackaddrs.AbsStackCall, stack *Stack, config *StackCallConfig) *StackCall {
 	return &StackCall{
-		addr:   addr,
-		main:   main,
-		stack:  stack,
-		config: config,
+		addr:             addr,
+		main:             main,
+		stack:            stack,
+		config:           config,
+		unknownInstances: make(map[addrs.InstanceKey]*StackCallInstance),
 	}
 }
 
 // GetExternalRemovedBlocks fetches the removed blocks that target the stack
 // instances being created by this stack call.
-func (c *StackCall) GetExternalRemovedBlocks() collections.Map[stackaddrs.ConfigComponent, []*RemovedComponent] {
-	return c.stack.Removed().ForStackCall(c.addr.Item)
+func (c *StackCall) GetExternalRemovedBlocks() *Removed {
+	return c.stack.Removed().Next(c.addr.Item.Name)
 }
 
 // ForEachValue returns the result of evaluating the "for_each" expression
@@ -150,22 +153,29 @@ func (c *StackCall) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 			}
 
 			return instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *StackCallInstance {
-				return newStackCallInstance(c, ik, rd, c.stack.deferred)
+				return newStackCallInstance(c, ik, rd, c.stack.mode, c.stack.deferred)
 			}), diags
 		},
 	)
 	return result.insts, result.unknown, diags
 }
 
-func (c *StackCall) UnknownInstance(ctx context.Context, phase EvalPhase) *StackCallInstance {
-	inst, err := c.unknownInstance.For(phase).Do(ctx, c.tracingName()+" unknown instace", func(ctx context.Context) (*StackCallInstance, error) {
-		return newStackCallInstance(c, addrs.WildcardKey, instances.UnknownForEachRepetitionData(c.ForEachValue(ctx, phase).Type()), true), nil
-	})
-	if err != nil {
-		// Since we never return an error from the function we pass to Do,
-		// this should never happen.
-		panic(err)
+func (c *StackCall) UnknownInstance(ctx context.Context, key addrs.InstanceKey, phase EvalPhase) *StackCallInstance {
+	c.unknownInstancesMutex.Lock()
+	defer c.unknownInstancesMutex.Unlock()
+
+	if inst, ok := c.unknownInstances[key]; ok {
+		return inst
 	}
+
+	forEachType := c.ForEachValue(ctx, phase).Type()
+	repetitionData := instances.UnknownForEachRepetitionData(forEachType)
+	if key != addrs.WildcardKey {
+		repetitionData.EachKey = key.Value()
+	}
+
+	inst := newStackCallInstance(c, key, repetitionData, c.stack.mode, true)
+	c.unknownInstances[key] = inst
 	return inst
 }
 

@@ -21,7 +21,20 @@ component "parent" {
 }
 
 component "child" {
-  source = "./"
+  source = "./child"
+
+  providers = {
+    testing = provider.testing.default
+  }
+
+  inputs = {
+    id = "child"
+    input = component.parent.id
+  }
+}
+
+component "child2" {
+  source = "./child"
 
   providers = {
     testing = provider.testing.default
