@@ -12,7 +12,7 @@ You can use the `terraform.applying` symbol in your configuration to determine i
 
 Terraform automatically sets `terraform.applying` to `true` when you run an [apply](/terraform/cli/commands/apply) operation, and `false` during any other operation. The [planning mode](/terraform/cli/commands/plan#planning-modes) you run `terraform apply` in does not affect `terraform.applying`, meaning that even in destroy mode, `terraform.applying` is still `true`.
 
-You can use `terraform.applying` in scenarios where you want Terraform to do different things depending on the type of operation it is running. For example, you could use `terraform.applying` to apply different credentials if Terraform is either planning or applying.
+You can use `terraform.applying` when you want Terraform to change behavior for apply operations. For example, you could use `terraform.applying` to use different credentials if Terraform is either planning or applying.
 
 ```hcl
 locals {
