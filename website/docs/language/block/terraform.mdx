@@ -1,5 +1,5 @@
 ---
-page_title: Terraform block configuration reference
+page_title: Terraform block reference for the Terraform configuration language
 description: >-
   The `terraform` block allows you to configure Terraform behavior, including the Terraform version, backend, integration with HCP Terraform, and required providers.
 ---
@@ -13,7 +13,7 @@ This topic provides reference information about the `terraform` block. The `terr
 The `terraform` block supports the following arguments:
 
 - [`terraform`](#terraform)
-  - [`required_version`](#required_version): &nbsp string 
+  - [`required_version`](#required_version): &nbsp string
   - [`required_providers`](#required_providers): &nbsp block
     - [`<PROVIDER>`](#provider): &nbsp block
       - [`version`](#provider): &nbsp string
@@ -44,15 +44,15 @@ terraform {
       source = "<provider-address>"
     }
   }
-  provider_meta "<LABEL>" { 
-    # Shown for completeness but only used for specific cases     
+  provider_meta "<LABEL>" {
+    # Shown for completeness but only used for specific cases
   }
-  backend "<TYPE>" {        
-    # `backend` is mutually exclusive with `cloud` 
+  backend "<TYPE>" {
+    # `backend` is mutually exclusive with `cloud`
     "<ARGUMENTS>"
   }
-  cloud {                   
-    # `cloud` is mutually exclusive with `backend` 
+  cloud {
+    # `cloud` is mutually exclusive with `backend`
     organization = "<organization-name>"
     workspaces {
       tags = [ "<tag>" ]
@@ -76,7 +76,7 @@ Parent block that contains configurations that define Terraform behavior. You ca
 
 ### `required_version`
 
-Specifies which version of the Terraform CLI is allowed to run the configuration. 
+Specifies which version of the Terraform CLI is allowed to run the configuration.
 
 ```hcl
 terraform {
@@ -103,7 +103,7 @@ The `required_version` configuration applies only to the version of Terraform CL
 
 ### `required_providers`
 
-Specifies all provider plugins required to create and manage resources specified in the configuration. 
+Specifies all provider plugins required to create and manage resources specified in the configuration.
 
 ```hcl
 terraform {
@@ -131,7 +131,7 @@ terraform {
   required_providers {
     <PROVIDER> {
       version = "<version-constraint>"
-      source = "<address>"      
+      source = "<address>"
     }
   }
   # . . .
@@ -154,7 +154,7 @@ You can specify the following arguments:
 
 ### `provider_meta "<LABEL>"`
 
-Specifies metadata fields that a provider may expect. 
+Specifies metadata fields that a provider may expect.
 
 ```hcl
 terraform {
@@ -167,14 +167,14 @@ terraform {
 
 Individual modules can populate the metadata fields independently of any provider configuration. Refer to [Provider Metadata](/terraform/internals/provider-meta) for additional information.
 
-#### Summary 
+#### Summary
 
 - Data type: Block.
 - Default: None.
 
 ### `backend "<BACKEND_TYPE>"`
 
-Specifies a mechanism for storing Terraform state files. 
+Specifies a mechanism for storing Terraform state files.
 
 ```hcl
 terraform {
@@ -197,7 +197,7 @@ You cannot configure a `backend` block when the configuration also contains a [`
 
 ### `cloud`
 
-Specifies a set of attributes that allow the Terraform configuration to connect to either HCP Terraform or a Terraform Enterprise installation. 
+Specifies a set of attributes that allow the Terraform configuration to connect to either HCP Terraform or a Terraform Enterprise installation.
 
 ```hcl
 terraform {
@@ -224,7 +224,7 @@ The `cloud` block cannot refer to named values, such as input variables, locals,
 
 ### `organization`
 
-Specifies the name of the organization you want to connect to. 
+Specifies the name of the organization you want to connect to.
 
 ```hcl
 terraform {
@@ -245,7 +245,7 @@ Instead of hardcoding the organization as a string, you can alternatively use th
 
 ### `workspaces`
 
-Specifies metadata for matching workspaces in HCP Terraform. 
+Specifies metadata for matching workspaces in HCP Terraform.
 
 
 ```hcl
@@ -255,7 +255,7 @@ terraform {
       tags = [ "<workspace-tag>" ] # Mutually exclusive with `name`
       name = "<workspace-name>" # Mutually exclusive with `tags`
       project = "<project-name>"
-    }            
+    }
   }
   # . . .
 }
@@ -277,7 +277,7 @@ Terraform associates the configuration with workspaces managed in HCP Terraform 
 
 ### `hostname`
 
-Specifies the hostname for a Terraform Enterprise deployment. 
+Specifies the hostname for a Terraform Enterprise deployment.
 
 ```hcl
 terraform {
@@ -299,7 +299,7 @@ Instead of hardcoding the hostname of the Terraform Enterprise deployment, you c
 
 ### `token`
 
-Specifies a token for authenticating with HCP Terraform. 
+Specifies a token for authenticating with HCP Terraform.
 
 ```hcl
 terraform {
@@ -321,7 +321,7 @@ We recommend omitting the token from the configuration and either using the [`te
 
 ### `experiments`
 
-Specifies a list of experimental feature names that you want to opt into. 
+Specifies a list of experimental feature names that you want to opt into.
 
 ```hcl
 terraform {

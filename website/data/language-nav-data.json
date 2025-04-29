@@ -6,9 +6,9 @@
     "path": "attr-as-blocks",
     "hidden": true
   },
-  { 
-    "title": "Style Guide", 
-    "path": "style" 
+  {
+    "title": "Style Guide",
+    "path": "style"
   },
   {
     "title": "Stacks",
@@ -211,7 +211,7 @@
     "routes": [
       { "title": "Overview", "path": "values" },
       { "title": "Input Variables", "path": "values/variables" },
-      { "title": "Output Values", "path": "values/outputs" },
+      { "title": "Output block", "href": "/terraform/language/block/output" },
       { "title": "Local Values", "path": "values/locals" }
     ]
   },
@@ -273,11 +273,11 @@
   },
   {
     "title": "Moved block",
-    "path": "moved"
+    "href": "/terraform/language/block/moved"
   },
   {
     "title": "Terraform block",
-    "path": "terraform"
+    "href": "/terraform/language/block/terraform"
   },
   {
     "title": "Backend block",
@@ -336,7 +336,13 @@
       }
     ]
   },
-  { "title": "Checks", "path": "checks" },
+  { "title": "Check block", "href": "/terraform/language/block/check" },
+  {
+      "title": "Testing and Validation",
+      "routes": [
+       { "title": "Validate your configuration", "path": "test-and-validate/validate" }
+    ]
+  },
   {
       "title": "Import",
       "routes": [
@@ -378,10 +384,6 @@
       {
         "title": "Dynamic Blocks",
         "path": "expressions/dynamic-blocks"
-      },
-      {
-        "title": "Custom Conditions",
-        "path": "expressions/custom-conditions"
       },
       {
         "title": "Type Constraints",
@@ -1111,6 +1113,29 @@
   {
     "title": "v1.x Compatibility Promises",
     "path": "v1-compatibility-promises"
+  },
+  { "divider": true },
+  { "heading": "REFERENCE" },
+  {
+    "title": "Configuration blocks",
+    "routes": [
+      {
+      "title": "Check block",
+      "path": "block/check"
+      },
+      {
+      "title": "Moved block",
+      "path": "block/moved"
+      },
+      {
+      "title": "Output block",
+      "path": "block/output"
+      },
+      {
+        "title": "Terraform block",
+        "path": "block/terraform"
+      }
+    ]
   },
   { "divider": true },
   { "title": "Terraform Internals", "href": "/internals" }

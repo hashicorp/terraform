@@ -1,0 +1,245 @@
+---
+page_title: Validate your infrastructure in Terraform’s configuration language
+description: >-
+  Configuration-level validation lets you enforce rules, validate resources, and detect errors as part of your infrastructure provisioning process.
+---
+
+# Validate your configuration
+
+Validate your configuration to improve your module consumer's troubleshooting, make your runs more predictable, and help your maintainers understand your configuration's intent.
+
+## Introduction
+
+Validation helps you verify that your Terraform configuration works as you intend. Using different types of validation you can:
+
+- Verify input variables meet specific requirements.
+- Prevent incorrect outputs from writing to your state.
+- Ensure resources and data sources are configured correctly after Terraform applies them.
+- Verify the broader behavior of your infrastructure.
+- Document assumptions about your infrastructure.
+- Use HCP Terraform to regularly verify your infrastructure.
+
+When a validation fails, Terraform provides context that you can use in your error messages to help users understand and fix their issue. Terraform evaluates different ways of validation at [different stages of Terraform's execution cycle](#order-of-validation), and they can either block further operation execution or continue execution with warnings.
+
+For authors, adding validation to your configuration enforces your module's standards and requirements, helping module consumers understand and use your configuration.
+
+## Requirements
+
+- Terraform v0.13.0 or later for [input variable validation](#input-variable-validation)
+- Terraform v1.2.0 or later for [preconditions and postconditions](#preconditions-and-postconditions)
+- Terraform v1.5.0 or later for [`check` blocks](#checks)
+
+## Choose a validation for your use case
+
+> **Hands On:** Try the [Validate Modules with Custom Conditions](/terraform/tutorials/configuration-language/custom-conditions) tutorial to learn how to use variable validation, preconditions, and postconditions. Try the [Validate Infrastructure Using Checks](/terraform/tutorials/configuration-language/checks) tutorial to learn how to use `check` blocks.
+
+Terraform offers several ways of validating configuration:
+
+* Input variable validations verify your configuration's parameters when Terraform creates a plan.
+* Preconditions ensure individual resources, data sources, and outputs meet your requirements before Terraform tries to create them.
+* Postconditions verifies that Terraform produced your resources and data sources with the expected and desired settings.
+* Checks let you validate that your resources work as expected without blocking Terraform operations based on the check's result.
+
+Validating your configuration is flexible, and you can often use different kinds of validation to achieve the same result. When choosing a way of validating, consider whether or not you want the validation to block your operations, and during which phase of the Terraform workflow it should run.
+
+### Input variable validation
+
+Use input variable validation to perform the following tasks:
+- Verify input variables meet specific format requirements.
+- Verify input values fall within acceptable ranges.
+- Prevent Terraform operations if a variable is misconfigured.
+
+For example, you can validate whether a variable value has valid AMI ID syntax.
+
+```hcl
+variable "image_id" {
+  type        = string
+  description = "The id of the machine image (AMI) to use for the server."
+
+  validation {
+    condition     = length(var.image_id) > 4 && substr(var.image_id, 0, 4) == "ami-"
+    error_message = "The image_id value must be a valid AMI id, starting with \"ami-\"."
+  }
+}
+```
+
+If you set the value of the `image_id` variable to a string without AMI ID syntax, the condition evaluates to `false`. When a variable validation fails, Terraform errors, displays the configured `error_message`, and stops the operation from proceeding. While provider APIs often error on these same validations, this helps your users avoid the error and issues a helpful error message. You can also use these validations to enforce your organization's design decisions, such as naming conventions.
+
+To learn more about variable validations, refer to the [input variable block](/terraform/language/values/variables).
+
+### Preconditions and postconditions
+
+Use `precondition` blocks when you want to verify your configuration's assumptions for resources, data sources, and outputs before Terraform creates them. Use `postcondition` blocks to validate the guarantees your resources and data sources must meet for your configuration to run.
+
+#### Preconditions
+
+Terraform evaluates preconditions on resources, data sources, and outputs when Terraform creates a plan. Preconditions take precedence over any argument errors raised by providers on incorrectly configured resources, data sources, and outputs.
+
+The following example uses a precondition to verify that the AMI configured for an`aws_instance` uses the `x86_64` CPU architecture.
+
+```hcl
+resource "aws_instance" "example" {
+  instance_type = "t3.micro"
+  ami           = data.aws_ami.example.id
+
+  lifecycle {
+    # The AMI ID must refer to an AMI that contains an operating system
+    # for the `x86_64` architecture.
+    precondition {
+      condition     = data.aws_ami.example.architecture == "x86_64"
+      error_message = "The selected AMI must be for the x86_64 architecture."
+    }
+  }
+}
+```
+
+The precondition detects if the caller accidentally selected an AMI for a different architecture, which may not be able to run the software this instance hosts. Terraform evaluates the precondition while it builds its plan, and if the precondition fails Terraform throws an error with the `error_message` argument and stops the current operation. Refer to the [resource configuration reference](/terraform/language/block/resource) for more examples of using a precondition block.
+
+An `output` block can also include a precondition to verify a module's output. Use preconditions on outputs to validate that your output values meets your requirements before Terraform exposes them or stores their values in state.
+
+For example, you can use a precondition to ensure a server's security group has at least one ingress rule to allow traffic on ports `80` or `443`:
+
+```hcl
+output "instance_public_ip" {
+  value = aws_instance.web.public_ip
+
+  precondition {
+    condition     = length([for rule in aws_security_group.web.ingress : rule if rule.to_port == 80 || rule.to_port == 443]) > 0
+    error_message = "Security group must allow HTTP (port 80) or HTTPS (port 443) traffic."
+  }
+}
+```
+
+If the `precondition` fails, Terraform throws an error with the `error_message` and stops the current operation. Refer to the [`output` block reference](/terraform/language/block/output) for more details.
+
+#### Postconditions
+
+Terraform evaluates `postcondition` blocks after planning and applying changes to a resource, or after reading from a data source.
+
+For example, you can use a `postcondition` to detect if a user accidentally provided an AMI intended for the wrong system component.
+
+```hcl
+data "aws_ami" "example" {
+  id = var.aws_ami_id
+
+  lifecycle {
+    # The AMI ID must refer to an existing AMI that has the tag "nomad-server".
+    postcondition {
+      condition     = self.tags["Component"] == "nomad-server"
+      error_message = "tags[\"Component\"] must be \"nomad-server\"."
+    }
+  }
+}
+```
+
+Unless the component has the `"nomad-server"` tag, the postcondition fails, which prevents using the incorrect AMI to provision a server. If the postcondition fails, Terraform throws an error with the `error_message` argument and stops the current operation.
+
+Adding postconditions can prevent cascading changes to other dependent resources. Refer to the [`resource` configuration reference](/terraform/language/resources/syntax) for more examples of using a `postcondition` block.
+
+Postconditions can serve as static guardrails to enforce mandatory configuration aspects on your `data` and `resource` blocks. For verifying infrastructure dynamically against external or changing conditions, we recommend using the `check` blocks, which run as the final step of a Terraform operation after postconditions. Learn more about the [`check` block](#checks).
+
+#### Choose between a precondition or postcondition
+
+You can often implement similar verification with different kinds of validation to achieve the same result. For example, you could add a postcondition on a resource that produces data, or add a precondition to a resource or output that references that same data. To decide between a precondition or a postcondition, consider whether the rule you are setting represents an assumption you need to make about the configuration, or a guarantee on the resulting resource, and when it should run.
+
+Use preconditions for assumptions that you want to verify before Terraform creates the target block. For example, you may want to verify that the AMI selected for an `aws_instance` has x86_64 CPU architecture before trying to create the instance. Using preconditions for assumptions helps future maintainers understand the values a resource, output, or data source should allow.
+
+Use postconditions for guarantees that you need to verify after Terraform creates the resource or reads from the data source. For example, you may want to ensure that an `aws_instance` is launched in a network that assigns it a private DNS record. Use postconditions for guarantees to help future maintainers understand which behaviors they must preserve when changing configuration.
+
+Use the following considerations to help you decide between preconditions and postconditions:
+- Determine which block would most clearly report error messages. For example, if a resource has many dependencies, it can be pragmatic to declare one postcondition on that resource rather than preconditions on each dependency.
+- Determine whether the precondition and postcondition should you declare the same conditions. If your postcondition is in a different module from your precondition, it can be beneficial to have both, because each module verifies one another as each evolves independently.
+
+### Checks
+
+> **Hands On:** Try the [Validate Infrastructure Using Checks](/terraform/tutorials/configuration-language/checks) tutorial to learn how to use `check` blocks.
+
+Use the `check` block to validate your infrastructure outside of the typical resource lifecycle.
+
+The `check` block executes as the last step of plan or apply operation, after Terraform has planned or provisioned your infrastructure. When a `check` block's assertion fails, Terraform reports a warning and continues executing the current operation.
+
+Use `check` blocks to complete the following tasks:
+- Validate resources, data sources, variables, or outputs in your configuration.
+- Validate the behavior of your infrastructure as a whole.
+- Verify infrastructure configuration without blocking operations.
+- Perform [continuous validation in HCP Terraform](#continuous-validation-in-hcp-terraform).
+
+The following example uses a `check` block to verify the Terraform website is healthy.
+
+```hcl
+check "health_check" {
+  data "http" "terraform_io" {
+    url = "https://www.terraform.io"
+  }
+
+  assert {
+    condition = data.http.terraform_io.status_code == 200
+    error_message = "${data.http.terraform_io.url} returned an unhealthy status code"
+  }
+}
+```
+
+If the website's endpoint returns a `200` status code, then the website is healthy and the check passes. Unlike other ways of validating your configuration, `check` blocks do not block operations. If the assertion evaluates to `false`, Terraform throws a warning that includes the result of the `error_message` expression and continues the operation.
+
+For more details, refer to the [`check` configuration reference](/terraform/language/block/check).
+
+## Continuous validation in HCP Terraform
+
+If you enable health checks on a workspace, HCP Terraform continuously validates any `check` blocks, preconditions, and postconditions in your workspace's configuration to regularly verify your infrastructure. For example, you can use a `check` block to continuously monitor the validity of an API gateway certificate. Continuous validation alerts you when the condition fails, so you can update the certificate and avoid errors the next time you want to update your infrastructure.
+
+Refer to [Continuous validation](/terraform/cloud-docs/workspaces/health#continuous-validation) for more details.
+
+## Order of validation
+
+Terraform validates different aspects of your configuration as early as it can. Generally, Terraform executes evaluations in the following order:
+
+1. Terraform executes input variable validations immediately, before generating a plan.
+1. Terraform executes preconditions after generating a plan but before creating the resource, data source, or output.
+1. Terraform executes postconditions after planning and applying changes.
+1. Terraform executes checks at the end of plan and apply operations and every time health assessments run on a workspace in HCP Terraform.
+
+![Order of operations for when validations run](/img/docs/validation-order-of-operations-dark.jpg#light-theme-only)
+
+![Order of operations for when validations run](/img/docs/validation-order-of-operations-dark.jpg#dark-theme-only)
+
+The precise order that Terraform executes `check` blocks, preconditions, and postconditions can depend on whether Terraform has information about a condition's value before or after applying your configuration. If the relevant value is available before an apply operation, then Terraform performs the validation during the planning phase. For example, if Terraform has access to a resource's image ID during planning, it can execute any validations that rely on that ID.
+
+If Terraform only knows the value after applying, then Terraform delays checking that validation until the apply phase. For example, AWS assigns the root volume ID when it starts an EC2 instance, so Terraform cannot reference the root volume ID until the apply is complete.
+
+During the apply phase, a failed precondition prevents Terraform from implementing planned actions for the associated resource, data source, or output. A failed postcondition halts processing and prevents further downstream actions that rely on the resource or data source, but does not undo any actions Terraform has already taken.
+
+## Error Messages
+
+<>{/* TODO: remove once we have an input variable validation page, because then we'll have error_message described on each reference page and don't need this  */}</>
+
+Input variable validations, preconditions, postconditions, and checks all must include the `error_message` argument. This contains the text that Terraform includes as part of error messages when it detects an unmet condition.
+
+```
+Error: Resource postcondition failed
+
+  with data.aws_ami.example,
+  on ec2.tf line 19, in data "aws_ami" "example":
+  72:       condition     = self.tags["Component"] == "nomad-server"
+    |----------------
+    | self.tags["Component"] is "consul-server"
+
+The selected AMI must be tagged with the Component value "nomad-server".
+```
+
+The `error_message` argument supports any expression that evaluates to a string.
+This includes literal strings, heredocs, and template expressions. You can use the [`format` function](/terraform/language/functions/format) to convert items of `null`, `list`, or `map` types into a formatted string. Multi-line error messages are supported, and Terraform does not wrap lines with leading whitespace.
+
+We recommend writing error messages as one or more full sentences in a
+style similar to Terraform's own error messages. Terraform shows the
+message alongside the name of the resource that detected the problem and any
+external values included in the condition expression.
+
+## Conditions
+
+To learn more about the conditions you can use in validations, refer to [Conditional Expressions](/terraform/language/expressions/conditions).
+
+## Next steps
+
+Validating your configuration is the first step to mitigating risk in your infrastructure. Refer to the following topics for additional information about mitigating risk in your infrastructure lifecycle:
+- [Tests](/terraform/language/tests) help authors validate that module configuration updates do not introduce breaking changes.
+- [Policy features](/terraform/cloud-docs/policy-enforcement) in HCP Terraform enforce compliance with your organization's security rules and best practices when running Terraform plans.

@@ -1,0 +1,295 @@
+---
+page_title: Output block reference for the Terraform configuration language
+description: Use the `output` block to expose information about your module's infrastructure.
+---
+
+# `output` block reference
+
+The `output` block lets you expose information about your infrastructure.
+
+> **Hands-on:** Try the [Output Data From Terraform](/terraform/tutorials/configuration-language/outputs) tutorial.
+
+## Background
+
+The value of an `output` block is similar to a return value in other programming languages. The `output` block exposes information about your infrastructure that you can reference on the command line, in HCP Terraform, and in other Terraform configurations that can access your configuration's state. The `output` block serves four main purposes in Terraform:
+
+- Child modules can expose resource attributes to parent modules.
+- Root modules can display values in CLI output.
+- Other Terraform configurations using [remote state](/terraform/language/state/remote) can access root module outputs with the `terraform_remote_state` data source.
+- Passing information from a Terraform operation to an automation tool.
+
+In HCP Terraform, your `output` block values appear in the UI after Terraform applies your configuration. You can [mark outputs as sensitive in HCP Terraform](/terraform/cloud-docs/workspaces/variables/managing-variables#sensitive-values) to hide their values in the UI and in API responses.
+
+## Configuration model
+
+The `output` block supports the following arguments:
+
+- [`output "<LABEL>"`](#output) &nbsp; block
+  - [`value`](#value) &nbsp; expression
+  - [`description`](#description) &nbsp; string
+  - [`sensitive`](#sensitive) &nbsp; boolean
+  - [`ephemeral`](#ephemeral) &nbsp; boolean
+  - [`depends_on`](#depends_on) &nbsp; list of references
+  - [`precondition`](#precondition) &nbsp; block
+    - [`condition`](#precondition) &nbsp; expression
+    - [`error_message`](#precondition) &nbsp; string
+
+## Complete configuration
+
+All available arguments are defined in the following `output` block. There are no mutually exclusive arguments for an `output` block.
+
+```hcl
+output "<LABEL>" {
+  value       = <EXPRESSION>
+  description = "<STRING>"
+  sensitive   = <true|false>
+  ephemeral   = <true|false>
+  depends_on  = [<REFERENCE>]
+
+  precondition {
+    condition     = <EXPRESSION>
+    error_message = "<STRING>"
+  }
+}
+```
+
+## Specification
+
+An `output` block supports the following configuration.
+
+### `output "<LABEL>"`
+
+[Follow Terraform's resource naming rules](/terraform/language/style#resource-naming) when declaring an `output` block.
+
+The following arguments are supported in an `output` block:
+
+| Argument | Description | Type | Required? |
+| --- | --- | --- | --- |
+| `value` | The value Terraform returns for this output. | Expression | Required |
+| `description` | A description of the output's purpose and how to use it. | String | Optional |
+| `sensitive` | Specifies if Terraform hides this value in CLI output. | Boolean | Optional |
+| `ephemeral` | Specifies whether to prevent storing this value in state. | Boolean | Optional |
+| `depends_on` | A list of explicit dependencies for this output. | List | Optional |
+| `precondition` | A condition to validate before computing the output or storing it in state. | Block | Optional |
+
+### `value`
+
+You must include a `value` argument in each `output` block. Terraform evaluates the `value` argument's expression and exposes the result as the return value of an output and stores that value in state.
+
+```hcl
+output "unique_name" {
+  value = <expression-to-evaluate>
+}
+```
+
+Any valid expression can be an output `value.` Refer to [Expressions](/terraform/language/expressions/) to learn more.
+
+#### Summary
+
+- Data type: Expression
+- Default: None
+- Required: Yes
+
+### `description`
+
+Use the `description` argument in an `output` block to explain the purpose of this output, requirements, and what kind of value this output exports.
+
+```hcl
+output "instance_ip_addr" {
+  value       = <expression-to-evaluate>
+  description = "<concise description from the perspective of a module consumer>."
+}
+```
+We recommend writing the description from the point of view of a module consumer to help consumers understand why the output exists and how to use it.
+
+#### Summary
+
+- Data type: String
+- Default: None
+
+### `sensitive`
+
+Add the `sensitive` argument to an `output` block to hide that block's value in the CLI output of a Terraform operation.
+
+```hcl
+output "admin_password" {
+  value     = <expression-to-evaluate>
+  sensitive = <boolean>
+}
+```
+
+If you set the `sensitive` argument to `true`, Terraform redacts that output value in plan and apply operations:
+
+```shell-session
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+admin_password = (sensitive value)
+```
+
+If you use the [`terraform output` command](/terraform/cli/commands/output) with the `-json` or `-raw` command-line flags, Terraform displays `sensitive` values in plain text.
+
+Terraform also records sensitive values in state, so anyone who can access your state data can access your sensitive values. For more information about safely storing sensitive data, refer to [Sensitive data in state](/terraform/language/state/sensitive-data).
+
+#### Summary
+
+- Data type: Boolean
+- Default: `false`
+
+### `ephemeral`
+
+-> **Note**: Ephemeral outputs are available in Terraform v1.10 and later.
+
+Add the `ephemeral` argument to `output` blocks in child modules to pass data between modules without persisting that data to state or plan files. You cannot add the `ephemeral` argument to `output` blocks in the root module.
+
+```hcl
+output "unique_password" {
+  value     = <expression-to-evaluate>
+  ephemeral = <boolean>
+}
+```
+
+Passing output values between child modules and the root module is useful for managing credentials, tokens, and other temporary values that you do not want to store in state. If you enable the `ephemeral` argument on an `output` block, then your configuration must meet the following conditions:
+
+- The value of the `output` block must come from an ephemeral context.
+- You can only reference that output in other ephemeral contexts.
+
+The following ephemeral contexts can set values for output blocks with the `ephemeral` argument, and they can also reference output blocks with the `ephemeral` argument:
+- Another child module's ephemeral `output` block
+- A [write-only argument](/terraform/language/resources/ephemeral/write-only)
+- [Variables with the `ephemeral` argument](/terraform/language/values/variables#exclude-values-from-state)
+- [An `ephemeral` resource block](/terraform/language/resources/ephemeral)
+- Configuring providers in the [`provider` block](/terraform/language/providers)
+- In [provisioner](/terraform/language/resources/provisioners/syntax) and [connection](/terraform/language/resources/provisioners/connection) blocks
+
+#### Summary
+
+- Data type: Boolean
+- Default: `false`
+
+### `depends_on`
+
+The `depends_on` argument specifies an explicit dependency on another upstream resource for an `output` block. Terraform will complete all operations on the upstream resource before it computes the value of an `output` block that depends on it.
+
+```hcl
+output "unique_name" {
+  value      = <expression-to-evaluate>
+  depends_on = [<another_resource.name>]
+}
+```
+
+If the `value` expression in an `output` block references another resource, Terraform automatically determines the dependency order. If you need to establish a dependency between resources and outputs that are configured independently and do not reference each other, you can use the`depends_on` argument to declare an explicit dependency. If you add the `depends_on` argument, we recommend adding a comment to explain it.
+
+The `depends_on` block is a meta-argument. Meta-arguments are built-in arguments that control how Terraform creates resources. Refer to [Meta-arguments](/terraform/language/meta-arguments/depends_on) for additional information.
+
+<>{/* TODO: Update meta-arguments concept link once we have the page*/}</>
+
+#### Summary
+
+- Data type: List of references
+- Default: None
+
+### `precondition`
+
+The `precondition` block lets you validate that the value of an `output` block meets specific requirements. Use preconditions on outputs to validate that your output values meet your requirements before Terraform exposes them or stores their values in state.
+
+```hcl
+output "unique_name" {
+  value  = <expression-to-evaluate>
+
+  precondition {
+    condition     = <expression-to-verify>
+    error_message = "<error message string>"
+  }
+}
+```
+
+You can specify the following arguments in the `precondition` block:
+
+| Attribute | Description | Data type | Required? |
+| :---- | :---- | :---- | :---- |
+| `condition` | Expression that must return `true` for Terraform to proceed with an operation. | A valid [Conditional expression](/terraform/language/expressions/conditionals). | Required |
+| `error_message` | Message to display if the condition evaluates to `false`. | String | Required |
+
+Terraform evaluates preconditions on outputs when creating or applying a plan, and if a precondition block's `condition` expression evaluates to `false`, then Terraform throws an error with the `error_message` and stops the current operation.
+
+Refer to [Validate your configuration](/terraform/language/test-and-validate/validate#preconditions) for more details about preconditions.
+
+#### Summary
+
+- Data type: Block
+- Default: None
+
+## Examples
+
+The following examples demonstrate common use cases for `output` values.
+
+### Basic example
+
+In the following example, an `output` block exposes a server's private IP address from the current module:
+
+```hcl
+output "instance_ip_addr" {
+  value       = aws_instance.server.private_ip
+  description = "The private IP address of the main server instance."
+}
+```
+
+### Accessing child module outputs
+
+In the following example, the current module uses an output named `instance_ip_addr` from a child module named `web_server`:
+
+```hcl
+output "website_url" {
+  value = "https://${module.web_server.instance_ip_addr}"
+  description = "The URL of the web server, starting with https://."
+}
+```
+
+### Sensitive output
+
+In the following example, the `db_password` output sets the `sensitive` argument to `true` to prevent Terraform from displaying the database password in CLI output:
+
+```hcl
+output "db_password" {
+  value     = aws_db_instance.db.password
+  description = "The database password."
+  sensitive = true
+}
+```
+
+### Output with validation
+
+In the following example, the `instance_public_ip` output has a `precondition` to ensure certain conditions are met before exposing the output or saving it to state. Before `instance_public_ip` shares the public IP for server, the output's precondition ensures a server's security group has at least one ingress rule to allow traffic on ports `80` or `443`:
+
+```hcl
+output "instance_public_ip" {
+  value = aws_instance.web.public_ip
+  description = "Public IP address of the instance."
+
+  precondition {
+    condition     = length([for rule in aws_security_group.web.ingress : rule if rule.to_port == 80 || rule.to_port == 443]) > 0
+    error_message = "Security group must allow HTTP (port 80) or HTTPS (port 443) ingress traffic."
+  }
+}
+```
+If the server's security group does not allow ingress on ports `80` or `443`, then Terraform throws an error with the `error_message` and stops the current operation.
+
+### Explicit dependencies
+
+In the following example, `instance_ip_addr` adds an explicit dependency on the security group rule to ensure that Terraform creates the security group before exposing the IP address:
+
+```hcl
+output "instance_ip_addr" {
+  value       = aws_instance.server.private_ip
+  description = "The private IP address of the main server instance."
+
+  depends_on = [
+    # Services are unreachable unless the security group rule is created
+    # before exposing this IP address.
+    aws_security_group_rule.local_access,
+  ]
+}
+```
+The `output` block typically does not require explicit dependencies so we recommend that when you add an explicit dependency, include a comment to explain why it's necessary.

@@ -1,14 +1,14 @@
 ---
-page_title: ephemeralasnull function reference - Functions - Configuration Language  
-description: |-  
-  The `ephemeralasnull` function accepts an ephemeral value and returns null.  
+page_title: ephemeralasnull function reference - Functions - Configuration Language
+description: |-
+  The `ephemeralasnull` function accepts an ephemeral value and returns null.
 ---
 
 # `ephemeralasnull` function reference
 
 -> **Note**: The `ephemeralasnull` function is available in Terraform v1.10 and later.
 
-This topic provides reference information about the `ephemeralasnull` function. The `ephemeralasnull` function accepts an ephemeral value and returns `null`. 
+This topic provides reference information about the `ephemeralasnull` function. The `ephemeralasnull` function accepts an ephemeral value and returns `null`.
 
 ## Introduction
 
@@ -37,7 +37,7 @@ output "example_output" {
 }
 ```
 
-For more information on which Terraform blocks can be ephemeral, refer to ephemeral [inputs](/terraform/language/values/variables#exclude-values-from-state), [outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files), and [resources](/terraform/language/resources/ephemeral).
+For more information on which Terraform blocks can be ephemeral, refer to ephemeral [inputs](/terraform/language/values/variables#exclude-values-from-state), [outputs](/terraform/language/block/output#ephemeral), and [resources](/terraform/language/resources/ephemeral).
 
 ## Example use case
 
@@ -57,7 +57,7 @@ variable "configuration" {
   }
 }
 
-# This is a contrived example, but this pattern works with any object that is a mix of ephemeral and non-ephemeral values. 
+# This is a contrived example, but this pattern works with any object that is a mix of ephemeral and non-ephemeral values.
 locals {
   configuration_with_token = merge(
     var.configuration,
