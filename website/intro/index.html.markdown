@@ -36,7 +36,7 @@ low-level components such as
 compute instances, storage, and networking, as well as high-level
 components such as DNS entries, SaaS features, etc.
 
-<VideoEmbed url="https://www.youtube.com/embed/h970ZBgKINg">
+<VideoEmbed url="https://www.youtube.com/embed/h970ZBgKINg"/>
 
 Examples work best to showcase Terraform. Please see the
 [use cases](/intro/use-cases.html).
