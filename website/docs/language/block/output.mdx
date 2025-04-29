@@ -170,7 +170,7 @@ The following ephemeral contexts can set values for output blocks with the `ephe
 
 ### `depends_on`
 
-The `depends_on` argument specifies an explicit dependency on another upstream resource for an `output` block. Terraform must complete all operations on an upstream resource before an `output` block can reference it.
+The `depends_on` argument specifies an explicit dependency on another upstream resource for an `output` block. Terraform will complete all operations on the upstream resource before it computes the value of an `output` block that depends on it.
 
 ```hcl
 output "unique_name" {
@@ -267,7 +267,7 @@ output "instance_public_ip" {
 
   precondition {
     condition     = length([for rule in aws_security_group.web.ingress : rule if rule.to_port == 80 || rule.to_port == 443]) > 0
-    error_message = "Security group must allow HTTP (port 80) or HTTPS (port 443) traffic."
+    error_message = "Security group must allow HTTP (port 80) or HTTPS (port 443) ingress traffic."
   }
 }
 ```
@@ -289,4 +289,4 @@ output "instance_ip_addr" {
   ]
 }
 ```
-The `output` block typically does not require explicit dependencies so we recommend adding a comment to explain why it's necessary.
+The `output` block typically does not require explicit dependencies so we recommend that when you add an explicit dependency, include a comment to explain why it's necessary.
