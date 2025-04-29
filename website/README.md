@@ -35,7 +35,7 @@ For more details about how to update the sidebar navigation, refer to [Editing N
 
 ## Adding Redirects
 
-You must add a redirect when you move, rename, or delete documentation pages. Refer to https://github.com/hashicorp/terraform-website#redirects for details.
+You must add a redirect when you move, rename, or delete documentation pages. Refer to https://github.com/hashicorp/terraform-docs-common#redirects for details.
 
 ## Previewing Changes
 
