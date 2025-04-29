@@ -243,6 +243,7 @@ In the following example, the current module uses an output named `instance_ip_a
 ```hcl
 output "website_url" {
   value = "https://${module.web_server.instance_ip_addr}"
+  description = "The URL of the web server, starting with https://."
 }
 ```
 
@@ -253,6 +254,7 @@ In the following example, the `db_password` output sets the `sensitive` argument
 ```hcl
 output "db_password" {
   value     = aws_db_instance.db.password
+  description = "The database password."
   sensitive = true
 }
 ```
