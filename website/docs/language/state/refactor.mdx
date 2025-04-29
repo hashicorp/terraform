@@ -29,7 +29,7 @@ You must plan how you will group resources before starting refactoring your conf
 Consider the following resource properties when deciding how to group resources together:
 
 - **Volatility and rate of change:** By exposing your long-living infrastructure to unnecessary volatility, you introduce more opportunities for accidental changes. For example, you may scale the number of compute resources your configuration deploys several times a day, but your networking configuration may stay static for months. By managing your network resources separately, you reduce the risk of making unintended changes to it.
-- **Stateful vs stateless:** By managing stateful resources independently of stateless ones, such as separating databases from compute instances, you limit the blast radius of operations that re-provision resources and help protect against accidental data loss.
+- **Stateful versus stateless:** By managing stateful resources independently of stateless ones, such as separating databases from compute instances, you limit the blast radius of operations that re-provision resources and help protect against accidental data loss.
 - **Access and team responsibility:** By splitting your workspaces by team, you limit the responsibility per workspace and allow teams to maintain distinct areas of ownership. This helps ensure that only users familiar with specific parts of your infrastructure make changes to the related configuration.
 
 To learn about different strategies for grouping resources, refer to the [Workspace best practices](/terraform/cloud-docs/workspaces/best-practices) documentation.
@@ -38,7 +38,7 @@ To learn about different strategies for grouping resources, refer to the [Worksp
 
 As you migrate resources from one state file to another, you must identify dependencies between resources. For example, you may have compute resources that depend on your network resources. If you migrate those network resources to a new state file, your compute resources no longer be able to reference the network.
 
-We recommend using dynamic references rather than hard-coding information about resources in another configuration. Hard-coding information requires you to manually update the configuration whenever the data changes, which can lead to errors in your configuration or your deployed resources.
+We recommend using dynamic references rather than hardcoding information about resources in another configuration. Hardcoding information requires you to manually update the configuration whenever the data changes, which can lead to errors in your configuration or your deployed resources.
 
 You can use the following dynamic approaches to reference resources in another state file:
 
@@ -53,12 +53,12 @@ You can use the [`terraform graph`](/terraform/cli/commands/graph) command to he
 
 When you refactor your Terraform configuration, we recommend that you recreate stateless resources in a new Terraform configuration if you can do so without incurring downtime or extra cost.
 
-Stateful resources, such as databases and object stores, are more complicated to migrate. In many cases, you cannot delete and recreate them, or it may be complex and expensive to backup and restore the data. In this case, you can migrate your resources by moving them between state files.
+Stateful resources, such as databases and object stores, are more complicated to migrate. Often, you cannot delete and recreate them, or it may be complex and expensive to backup and restore the data. In this case, you can migrate your resources by moving them between state files.
 
 There are two common approaches to migrating resources between two Terraform state files:
 
 - [Remove and import](#remove-and-import): Explicitly remove resources from one Terraform state file, then add it to another. We recommend this approach since the `removed` and `import` blocks help keep a record of the configuration history.
-- [Move resources directly to a new state file](#move-resources-directly-to-a-new-state-file): Use the `terraform state mv` command to move resources into a different state file. This is considered a legacy command, but is still supported in all versions of Terraform version 1.0 and newer.
+- [Move resources directly to a new state file](#move-resources-directly-to-a-new-state-file): Use the `terraform state mv` command to move resources into a different state file. This is a legacy command, but is still supported in all versions of Terraform version 1.0 and newer.
 
 ### Requirements
 
