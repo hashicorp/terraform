@@ -5,7 +5,7 @@ description: Stacks help you provision and coordinate your infrastructure lifecy
 
 # Stack configuration file reference
 
-A Stack configuration file defines all the infrastructure pieces included in a Stack. Every Stack needs a configuration file, `tfstack.hcl`, and this page describes all the blocks you can use within a Stack configuration file. 
+A Stack configuration file defines all the infrastructure pieces included in a Stack. Every Stack needs a configuration file, `tfstack.hcl`, and this page describes all the blocks you can use within a Stack configuration file.
 
 ## `component` block configuration
 
@@ -66,7 +66,7 @@ component "s3" {
 
 To learn more about breaking down your infrastructure into components, refer to [Define Stack configuration](/terraform/language/stacks/create/config).
 
-## `variable` block configuration 
+## `variable` block configuration
 
 Use the `variable` block to declare input variables for your Stack configuration. Using `variable` blocks in Stacks is similar to traditional Terraform configurations but with a few minor differences.
 
@@ -100,9 +100,9 @@ This section provides details about the fields you can configure in the `variabl
 
 ## `output` block configuration
 
-Use the `output` block to make information about your infrastructure available in the HCP Terraform UI to expose information about your Stack. The `output` block functions the same way in Stack configuration as it does in traditional Terraform configurations with a few small differences. 
+Use the `output` block to make information about your infrastructure available in the HCP Terraform UI to expose information about your Stack. The `output` block functions the same way in Stack configuration as it does in traditional Terraform configurations with a few small differences.
 
-In Stack configurations, `output` blocks require the `type` argument, and they do not support the `preconditions` block. Learn more about [Outputs](/terraform/language/values/outputs).
+In Stack configurations, `output` blocks require the `type` argument, and they do not support the `preconditions` block. Learn more about [Outputs](/terraform/language/block/output).
 
 ### Complete configuration
 
@@ -131,14 +131,14 @@ This section provides details about the fields you can configure in the `output`
 
 ## `required_providers` and `provider` block configuration
 
-Terraform relies on plugins called providers to interact with cloud providers, SaaS providers, and other APIs. 
+Terraform relies on plugins called providers to interact with cloud providers, SaaS providers, and other APIs.
 
-The `required_providers` block works exactly as it does in traditional Terraform configurations. Learn more about [the `required_providers` block](/terraform/language/providers/requirements). The `provider` block functions mostly the same way in Stack configuration as it does in traditional Terraform configurations, with a few differences. 
+The `required_providers` block works exactly as it does in traditional Terraform configurations. Learn more about [the `required_providers` block](/terraform/language/providers/requirements). The `provider` block functions mostly the same way in Stack configuration as it does in traditional Terraform configurations, with a few differences.
 
 The `provider` block differs in Stack configurations in the following ways:
 
-* Supports the `for_each` [meta-argument](/terraform/language/meta-arguments/for_each)  
-* Defines aliases in the `provider` block header rather than as an argument  
+* Supports the `for_each` [meta-argument](/terraform/language/meta-arguments/for_each)
+* Defines aliases in the `provider` block header rather than as an argument
 * Accepts arguments using a config block
 
 You must also define your providers at the top level of your Stack configuration in a `tfstack.hcl` file. You cannot define providers within the modules your component blocks source.
@@ -199,9 +199,9 @@ A local value assigns a name to an expression, so you can use the name multiple 
 
 ## `removed` block configuration
 
-Stacks take a systematic approach to removing components. To remove a component from a Stack, you must use the `removed` block to ensure HCP Terraform knows which components to remove and which providers it requires to remove that component. 
+Stacks take a systematic approach to removing components. To remove a component from a Stack, you must use the `removed` block to ensure HCP Terraform knows which components to remove and which providers it requires to remove that component.
 
-Do not remove providers from your stack configuration without first removing the components that require those providers. HCP Terraform requires a component's providers to ensure it can successfully remove that component. 
+Do not remove providers from your stack configuration without first removing the components that require those providers. HCP Terraform requires a component's providers to ensure it can successfully remove that component.
 
 
 ### Complete configuration

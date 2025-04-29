@@ -5,7 +5,7 @@ description: Learn to define ephemeral blocks in Terraform configurations to kee
 
 # Ephemeral block configuration reference
 
-This topic provides reference information for the `ephemeral` block. 
+This topic provides reference information for the `ephemeral` block.
 
 -> **Note**: Ephemeral resources are available in Terraform v1.10 and later.
 
@@ -26,9 +26,9 @@ If an input argument of an ephemeral resource references a value that Terraform 
 An `ephemeral` block declares an ephemeral resource of a specific type with a
 specific local name, much like a `resource` block. Terraform uses an ephemeral resource's name to refer to that resource in the same module, but an ephemeral resource's name has no meaning outside that module's scope.
 
-Most of the arguments within the body of an `ephemeral` block are specific to the ephemeral resource you are defining. As with resources and data sources, each provider in the [Terraform Registry](https://registry.terraform.io/browse/providers) includes documentation for the ephemeral resources it supports, if any. An ephemeral resource type's documentation lists which arguments are available and how you should format your resource's values. 
+Most of the arguments within the body of an `ephemeral` block are specific to the ephemeral resource you are defining. As with resources and data sources, each provider in the [Terraform Registry](https://registry.terraform.io/browse/providers) includes documentation for the ephemeral resources it supports, if any. An ephemeral resource type's documentation lists which arguments are available and how you should format your resource's values.
 
-The following list outlines general field hierarchy, language-specific data types, and requirements in the `ephemeral` block. 
+The following list outlines general field hierarchy, language-specific data types, and requirements in the `ephemeral` block.
 
 - [`ephemeral`](#ephemeral): map
   - [`attributes`](#ephemeral)
@@ -55,7 +55,7 @@ ephemeral resources:
 * In another ephemeral resource
 * In [local values](/terraform/language/values/locals#ephemeral-values)
 * In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)
-* In [ephemeral outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files)
+* In [ephemeral outputs](/terraform/language/block/output#ephemeral)
 * Configuring providers in the `provider` block
 * In [provisioner](/terraform/language/resources/provisioners/syntax) and [connection](/terraform/language/resources/provisioners/connection) blocks
 
