@@ -119,7 +119,7 @@ func TestLoad(t *testing.T) {
 	dir := strings.TrimSuffix(backendStatePath, ".terraform/.terraform.tfstate")
 	defer s.Close()
 	loader := Loader{Discovery: testDisco(s)}
-	os.Setenv(WorkspaceNameEnvVar, "test")
+	t.Setenv(WorkspaceNameEnvVar, "test")
 	loadedState, diags := loader.LoadState(dir)
 	if diags.HasErrors() {
 		t.Fatalf("failed to load state: %s", diags.Err())
