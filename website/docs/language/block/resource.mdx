@@ -150,7 +150,9 @@ A `resource` block supports the following configuration.
 You must set the following arguments for every `resource` block: 
 
 - `TYPE`: Specifies the type of resource. This value is determined by the provider developer. Refer to provider documentation for details. The `terraform_data` resource type, which you can use to store values and trigger Terraform operations without creating actual infrastructure, is the exception. 
-- `LABEL`: Specifies a name for the resource. Terraform uses this label to track the resource in your state file. To reference the resource in your configuration, you must refer to it using `<TYPE>.<LABEL>` syntax. The label does not affect settings on the actual infrastructure resource. Refer to [References to Named Values](/terraform/language/expressions/references) and [Resource naming](/terraform/language/style#resource-naming) for expression syntax and label recommendations.
+- `LABEL`: Specifies a name for the resource. Terraform uses this label to track the resource in your state file. The label does not affect settings on the actual infrastructure resource. Refer to [References to Named Values](/terraform/language/expressions/references) and [Resource naming](/terraform/language/style#resource-naming) for expression syntax and label recommendations.
+
+To reference the resource in your configuration, you must refer to it using `<TYPE>.<LABEL>` syntax. 
 
 ### Provider-specific arguments
 
@@ -196,9 +198,9 @@ resource {
 }
 ```
 
-When a resource configuration refers to another resource, Terraform identifies the dependency and creates the upstream resource first. In some cases, you may need Terraform to create a resource before creating another, even though the resources are configured independently. 
+When a resource configuration refers to another resource, Terraform identifies the dependency and creates the upstream resource first. In some cases, you may need Terraform to create one resource before creating another, even though the resources are configured independently. 
 
-Use the `depends_on` argument when Terraform cannot infer a dependency automatically. We recommend always including a comment to explain resource dependencies when using a `depends_on` argument.
+Use the `depends_on` argument when the resources do not reference each other. We recommend always including a comment to explain resource dependencies when using a `depends_on` argument.
 
 When using the `depends_on` meta-argument, you can only reference other resources or child modules in the same root module. The list cannot include arbitrary expressions. Any values referenced in the `depends_on` list must be known before Terraform begins the operation so that it can evaluate dependencies.
 
@@ -252,7 +254,7 @@ Keys in the `for_each` argument cannot be the result of or rely on the result of
 
 The `for_each` argument does not implicitly convert lists or tuples to sets. To declare resource instances based on a nested data structure or combinations of elements from multiple data structures, you can use Terraform expressions and functions to derive a suitable value. Refer to the following examples for additional information:
 
-- [Transform a multi-level nested structure into a flat list](/terraform/language/functions/flatten#flattening-nested-structures-for-for_each)
+- [Transform a multi-level nested structure into a flat list](/terraform/language/functions/flatten#flattening-nested-structures-for-for_each).
 - [Combine collections to produce a list of element combinations](/terraform/language/functions/setproduct#finding-combinations-for-for_each).
 
 You cannot use sensitive values, such as [sensitive input variables](/terraform/language/values/variables#suppressing-values-in-cli-output), [sensitive outputs](/terraform/language/values/outputs#sensitive-suppressing-values-in-cli-output), or [sensitive resource attributes](/terraform/language/expressions/references#sensitive-resource-attributes), as arguments in `for_each`. Terraform uses the value in `for_each` to identify the resource instance and always discloses it in UI output, so sensitive values are not allowed. Terraform returns an error if you attempt to use sensitive values as `for_each` arguments.
@@ -312,10 +314,10 @@ resource {
 
 You can specify the following lifecycle rules to manage how Terraform performs operations on the resource:
 
-- [`create_before_destroy`](#create_before_destroy): Terraform creates a replacement resource before destroying the previous resource.
+- [`create_before_destroy`](#create_before_destroy): Terraform creates a replacement resource before destroying the current resource.
 - [`prevent_destroy`](#prevent_destroy): Terraform rejects operations to destroy the resource and returns an error.
-- [`ignore_changes`](#ignore_changes):  Specifies a list of resource attributes that, when modified outside of your configuration, Terraform ignores instead of attempting to update the actual resource to match the configuration.  
-- [`replace_triggered_by`](#replace-triggered_by): Terraform replaces the resource when any of the referenced resources or attributes specified change.
+- [`ignore_changes`](#ignore_changes):  Specifies a list of resource attributes that Terraform ignores changes to. Otherwise, Terraform attempts to update the actual resource to match the configuration.  
+- [`replace_triggered_by`](#replace-triggered_by): Terraform replaces the resource when any of the referenced resources or specified attributes change.
 - [`precondition`](#precondition): Specifies a condition that Terraform evaluates before creating the resource. Refer to [Test and validate](/terraform/language/test-and-validate) for additional information.
 - [`postcondition`](#postcondition): Specifies a condition that Terraform evaluates after creating the resource. Refer to [Test and validate](/terraform/language/test-and-validate) for additional information.
 
@@ -725,7 +727,7 @@ resource {
 }
 ```
 
-Terraform evaluates the command in a local shell and can use environment variables for variable substitution. We do not recommend using Terraform variables for variable substitution because doing so can lead to shell injection vulnerabilities. Instead, you should pass Terraform variables to a command through the environment parameter and use environment variable substitution. Refer to the following OWASP article for additional information about injection flaws: [Code Injection](https://owasp.org/www-community/attacks/Code_Injection).
+Terraform evaluates the command in a local shell and can use environment variables for variable substitution. We do not recommend using Terraform variables for variable substitution because doing so can lead to shell injection vulnerabilities. Instead, use the `environment` parameter and environment variable substitution. Refer to the following OWASP article for additional information about injection flaws: [Code Injection](https://owasp.org/www-community/attacks/Code_Injection).
 
 #### Summary
 
@@ -852,7 +854,7 @@ resource "aws_instance" "web" {
 
 ### Create multiple instances of a resource
 
-You can use either `count` or the `for_each` block to create multiple instances of a resource. The `count` argument is most suitable for creating multiple instances that are identical or nearly identical. The `for_each` argument is most suitable for creating multiple similar instances that you capture and reference from a map or set.
+You can use either `count` or the `for_each` block to create multiple instances of a resource. The `count` argument is most suitable for creating multiple instances that are identical or nearly identical. The `for_each` argument is most suitable for creating multiple similar instances based on attributes defined in a map or set.
 
 <Tabs>
 
@@ -942,7 +944,7 @@ resource "aws_iam_user" "deploy_user" {
 
 ### Specify a dependency
 
-The examples in this section illustrate how to specify resource dependencies.
+The examples in this section show how to specify resource dependencies.
 
 The following `resource` block partially defines an `aws_iam_role` resource. Refer to the [AWS provider documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) for all configuration settings. The `aws_iam_instance_profile` resource references the `aws_iam_role` resource, instructing Terraform to create the upstream resource first. 
 
