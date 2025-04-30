@@ -4,7 +4,6 @@
 package stackmigrate
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -59,7 +58,6 @@ func TestMeta_Workspace_override(t *testing.T) {
 // existing workflows with invalid workspace names.
 func TestMeta_Workspace_invalidSelected(t *testing.T) {
 	td := t.TempDir()
-	os.MkdirAll(td, 0755)
 	defer testChdir(t, td)()
 
 	// this is an invalid workspace name
@@ -74,7 +72,7 @@ func TestMeta_Workspace_invalidSelected(t *testing.T) {
 	if err := os.MkdirAll(DefaultDataDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(DefaultDataDir, local.DefaultWorkspaceFile), []byte(workspace), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(DefaultDataDir, local.DefaultWorkspaceFile), []byte(workspace), 0644); err != nil {
 		t.Fatal(err)
 	}
 
