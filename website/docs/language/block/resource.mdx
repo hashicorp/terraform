@@ -13,7 +13,7 @@ The `resource` block defines a piece of infrastructure and specifies the setting
 The `resource` block supports the following arguments:
 
 - [`resource "<TYPE>" "<LABEL>"`](#resource) &nbsp; block
-   - [Provider-specific arguments](#provider-specific-arguments) &nbsp; block | refer to your provider documentation
+   - [`PROVIDER ARGUMENTS`](#provider-arguments) &nbsp; block | refer to your provider documentation
    - [`count`](#count) &nbsp; number | mutually exclusive with `for_each`
    - [`depends_on`](#depends_on) &nbsp; list of references
    - [`for_each`](#for_each) &nbsp; map or set of strings | mutually exclusive with `count`
@@ -149,12 +149,12 @@ A `resource` block supports the following configuration.
 
 You must set the following arguments for every `resource` block: 
 
-- `TYPE`: Specifies the type of resource. This value is determined by the provider developer. Refer to provider documentation for details. The `terraform_data` resource type, which you can use to store values and trigger Terraform operations without creating actual infrastructure, is the exception. 
+- `TYPE`: Specifies the type of resource to create. You can declare either a resource type determined by the provider or the built-in `terraform_data` resource type, which stores values and triggers Terraform operations without creating actual infrastructure. For information about provider resource types, refer to the provider documentation. 
 - `LABEL`: Specifies a name for the resource. Terraform uses this label to track the resource in your state file. The label does not affect settings on the actual infrastructure resource. Refer to [References to Named Values](/terraform/language/expressions/references) and [Resource naming](/terraform/language/style#resource-naming) for expression syntax and label recommendations.
 
 To reference the resource in your configuration, you must refer to it using `<TYPE>.<LABEL>` syntax. 
 
-### Provider-specific arguments
+### `PROVIDER ARGUMENTS`
 
 The provider developer determines which arguments you can define for a resource. Refer to the provider documentation for details.  
 
@@ -346,7 +346,7 @@ By default, Terraform destroys a resource before creating a replacement.
 
 Refer to the documentation for the resource type you are configuring to understand which changes Terraform can make in-place and which require recreating the resource to decide whether to use the `create_before_destroy` argument. 
 
-Terraform propagates and applies the `create_before_destroy` behavior to all upstream resources. For example, if `create_before_destroy` is enabled on resource A but not on resource B, but resource A is dependent on resource B, then Terraform enables `create_before_destroy` for resource B implicitly and records it in the state file. You cannot override `create_before_destroy` to `false` on resource B because that would imply dependency cycles in the graph.
+Terraform propagates and applies the `create_before_destroy` behavior to all resource dependencies. For example, if `create_before_destroy` is enabled on resource A but not on resource B, but resource A is dependent on resource B, then Terraform enables `create_before_destroy` for resource B implicitly and records it in the state file. You cannot override `create_before_destroy` to `false` on resource B because that would imply dependency cycles in the graph.
 
 Setting`create_before_destroy` to `true` on a resource stops any configured destroy provisioners. 
 
@@ -644,7 +644,7 @@ resource {
 ```
 
 
-You can specify a string value that contains an expression. You can't use the `source` argument and the [`content`](#content) argument in the same `provisioner "file"` block. 
+You can specify a string value that contains an expression. You cannot use the `source` argument and the [`content`](#content) argument in the same `provisioner "file"` block. 
 
 When the `source` argument specifies a directory and the `type` argument in the [provisioner connection settings](#connection) is set to `ssh`, the corresponding directory specified in the `destination` argument must already exist. You can add a `provisioner "remote-exec"` block to your `resource` configuration to create the directory. If the directory does not already exist, Terraform creates it when the `type` argument in the [provisioner connection settings](#connection) is set to `winrm`.
 
@@ -673,7 +673,7 @@ resource {
 
 When `destination` points to a file, Terraform writes the value of the `content` argument to the file. When `destination` points to a directory, Terraform creates a file named `tf-file-content` inside the directory. We recommend setting the `destination` argument to a file when using `content` argument. Do not use the `content` argument and the [`source`](#source) argument in the same `provisioner "file"` block. 
 
-You can specify a string value that contains an expression. You can't use the `source` argument and the [`content`](#content) argument in the same `provisioner "file"` block. 
+You can specify a string value that contains an expression. You canot use the `source` argument and the [`content`](#content) argument in the same `provisioner "file"` block. 
 
 #### Summary
 
@@ -944,9 +944,10 @@ resource "aws_iam_user" "deploy_user" {
 
 ### Specify a dependency
 
-The examples in this section show how to specify resource dependencies.
 
-The following `resource` block partially defines an `aws_iam_role` resource. Refer to the [AWS provider documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) for all configuration settings. The `aws_iam_instance_profile` resource references the `aws_iam_role` resource, instructing Terraform to create the upstream resource first. 
+In the following example, the `aws_iam_instance_profile` resource references the `aws_iam_role` resource, instructing Terraform to create the upstream resource first. The `aws_iam_role_policy` resource configures an IAM policy that lets the EC2 instance access the S3 API.
+
+Terraform infers that it must create the instance profile before the EC2 instance, but it cannot infer that the software running in the EC2 instance needs access to the S3 API in order to boot properly. As a result, the configuration explicitly instructs Terraform to create the `aws_iam_role_policy` first:
 
 ```hcl
 resource "aws_iam_role" "example" {
@@ -957,11 +958,7 @@ resource "aws_iam_role" "example" {
 resource "aws_iam_instance_profile" "example" {
   role = aws_iam_role.example.name
 }
-```
 
-The following `resource` block configures an IAM policy that lets the EC2 instance access the S3 API.
-
-```hcl
 resource "aws_iam_role_policy" "example" {
   name   = "example"
   role   = aws_iam_role.example.name
@@ -972,11 +969,7 @@ resource "aws_iam_role_policy" "example" {
     }],
   })
 }
-```
 
-Terraform infers that it must create the instance profile before the EC2 instance, but it cannot infer that the software running in the EC2 instance needs access to the S3 API in order to boot properly. As a result, the configuration explicitly instructs Terraform to create the `aws_iam_role_policy` first:
-
-```hcl
 resource "aws_instance" "example" {
   ami           = "data.aws_ami.example.id"
   instance_type = "t2.micro"
@@ -990,6 +983,8 @@ data "aws_ami" "example" {
   # AMI configuration
 }
 ```
+
+Note that the `aws_iam_role` resource is partially defined. Refer to the [AWS provider documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) for all configuration settings.
 
 ### Select an alternate provider configuration
 
