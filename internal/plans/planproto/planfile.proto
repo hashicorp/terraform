@@ -189,6 +189,12 @@ message Change {
     // GeneratedConfig contains any configuration that was generated as part of
     // the change, as an HCL string.
     string generated_config = 6;
+
+    // The resource identity before the plan operation
+    DynamicValue before_identity = 7;
+
+    // The resource identity after the plan operation
+    DynamicValue after_identity = 8;
 }
 
 // ResourceInstanceActionReason sometimes provides some additional user-facing
@@ -377,6 +383,9 @@ message Importing {
 
     // unknown is true if the original ID of the resource is unknown.
     bool unknown = 2;
+
+    // Identity can be used to import instead of id
+    DynamicValue identity = 3;
 }
 
 // DeferredReason describes the reason why a resource instance change was

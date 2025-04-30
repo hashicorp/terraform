@@ -6,12 +6,14 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -34,14 +36,18 @@ type RemovedStackCall struct {
 
 	forEachValue perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
 	instances    perEvalPhase[promising.Once[withDiagnostics[instancesResult[*RemovedStackCallInstance]]]]
+
+	unknownInstancesMutex sync.Mutex
+	unknownInstances      collections.Map[stackaddrs.StackInstance, *RemovedStackCallInstance]
 }
 
 func newRemovedStackCall(main *Main, target stackaddrs.ConfigStackCall, stack *Stack, config *RemovedStackCallConfig) *RemovedStackCall {
 	return &RemovedStackCall{
-		stack:  stack,
-		target: target,
-		config: config,
-		main:   main,
+		stack:            stack,
+		target:           target,
+		config:           config,
+		main:             main,
+		unknownInstances: collections.NewMap[stackaddrs.StackInstance, *RemovedStackCallInstance](),
 	}
 }
 
@@ -123,26 +129,61 @@ func (r *RemovedStackCall) Instances(ctx context.Context, phase EvalPhase) (map[
 					Name: rsc.from[len(rsc.from)-1].Name,
 				})
 
-				insts, _ := embeddedCall.Instances(ctx, phase)
-				if _, exists := insts[key]; exists {
-					// error, we have an embedded stack call and a removed block
-					// pointing at the same instance
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Cannot remove stack instance",
-						Detail:   fmt.Sprintf("The stack instance %s is targeted by an embedded stack block and cannot be removed. The relevant embedded stack is defined at %s.", rsc.from, embeddedCall.config.config.DeclRange.ToHCL()),
-						Subject:  rsc.call.config.config.DeclRange.ToHCL().Ptr(),
-					})
+				if embeddedCall != nil {
+					insts, _ := embeddedCall.Instances(ctx, phase)
+					if _, exists := insts[key]; exists {
+						// error, we have an embedded stack call and a removed block
+						// pointing at the same instance
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Cannot remove stack instance",
+							Detail:   fmt.Sprintf("The stack instance %s is targeted by an embedded stack block and cannot be removed. The relevant embedded stack is defined at %s.", rsc.from, embeddedCall.config.config.DeclRange.ToHCL()),
+							Subject:  rsc.call.config.config.DeclRange.ToHCL().Ptr(),
+						})
 
-					continue // don't add this to the known instances
+						continue // don't add this to the known instances
+					}
 				}
 			}
-			knownInstances[key] = rsc
+
+			switch phase {
+			case PlanPhase:
+				if r.main.PlanPrevState().HasStackInstance(rsc.from) {
+					knownInstances[key] = rsc
+					continue
+				}
+			case ApplyPhase:
+				if stack := r.main.PlanBeingApplied().GetStack(rsc.from); stack != nil {
+					knownInstances[key] = rsc
+					continue
+				}
+			default:
+				// Otherwise, we're running in a stage that doesn't evaluate
+				// a state or the plan so we'll just include everything.
+				knownInstances[key] = rsc
+			}
 		}
 
+		result.insts = knownInstances
 		return result, diags
 	})
 	return result.insts, result.unknown, diags
+}
+
+func (r *RemovedStackCall) UnknownInstance(ctx context.Context, from stackaddrs.StackInstance, phase EvalPhase) *RemovedStackCallInstance {
+	r.unknownInstancesMutex.Lock()
+	defer r.unknownInstancesMutex.Unlock()
+
+	if inst, ok := r.unknownInstances.GetOk(from); ok {
+		return inst
+	}
+
+	forEachType, _ := r.ForEachValue(ctx, phase)
+	repetitionData := instances.UnknownForEachRepetitionData(forEachType.Type())
+
+	inst := newRemovedStackCallInstance(r, from, repetitionData, true)
+	r.unknownInstances.Put(from, inst)
+	return inst
 }
 
 func (r *RemovedStackCall) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
