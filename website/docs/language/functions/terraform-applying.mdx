@@ -12,7 +12,7 @@ You can use the `terraform.applying` symbol in your configuration to determine i
 
 Terraform automatically sets `terraform.applying` to `true` when you run an [apply](/terraform/cli/commands/apply) operation, and `false` during any other operation. The [planning mode](/terraform/cli/commands/plan#planning-modes) you run `terraform apply` in does not affect `terraform.applying`, meaning that even in destroy mode, `terraform.applying` is still `true`.
 
-You can use `terraform.applying` when you want Terraform to change behavior for apply operations. For example, you could use `terraform.applying` to use different credentials if Terraform is either planning or applying.
+You can use `terraform.applying` to change Terraform behavior during apply operations. In the following example, Terraform uses your read-only credentials when running a plan operation but uses your write credential when you run an apply operation: 
 
 ```hcl
 locals {
@@ -32,9 +32,8 @@ provider "aws" {
 
 ```
 
-If you run a plan operation Terraform uses your read-only credentials, if you run an apply operation then Terraform uses your write credentials.
 
-The `terraform.applying` symbol is an ephemeral value, meaning it is only available during Terraform operations and Terraform does not write this value to plan or state files. Additionally, you can only reference `terraform.applying` in ephemeral contexts:
+The `terraform.applying` symbol is an ephemeral value and is only available during Terraform operations. Terraform does not write ephemeral values to plan or state files. Additionally, you can only reference `terraform.applying` in the following ephemeral contexts:
 
 - In a [write-only argument](/terraform/language/resources/ephemeral/write-only)
 - In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)
