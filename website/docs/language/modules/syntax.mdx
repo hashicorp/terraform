@@ -140,7 +140,7 @@ Terraform does not use the `lifecycle` argument. However, the `lifecycle` block 
 
 The resources defined in a module are encapsulated, so the calling module
 cannot access their attributes directly. However, the child module can
-declare [output values](/terraform/language/values/outputs) to selectively
+declare [output values](/terraform/language/block/output) to selectively
 export certain values to be accessed by the calling module.
 
 For example, if the `./app-cluster` module referenced in the example above

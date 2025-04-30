@@ -211,7 +211,7 @@
     "routes": [
       { "title": "Overview", "path": "values" },
       { "title": "Input Variables", "path": "values/variables" },
-      { "title": "Output Values", "path": "values/outputs" },
+      { "title": "Output block", "href": "/terraform/language/block/output" },
       { "title": "Local Values", "path": "values/locals" }
     ]
   },
@@ -1120,12 +1120,16 @@
         "path": "block/resource"
       },    
       {
-      "title": "check",
-      "path": "block/check"
+        "title": "check",
+        "path": "block/check"
       },
       {
-      "title": "Moved block",
-      "path": "block/moved"
+        "title": "Moved block",
+        "path": "block/moved"
+      },
+      {
+        "title": "Output block",
+        "path": "block/output"
       },
       {
         "title": "Terraform block",
