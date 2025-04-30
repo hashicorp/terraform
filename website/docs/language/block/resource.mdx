@@ -176,11 +176,11 @@ To refer to an individual instance of a resource created using the `count` meta-
 
 <Tip>
 
-You can use the `count` argument as a conditional for creating resources. For example, setting a `count = var.creator ? 3 : 0` instructs Terraform to create three instances of the resource when a variable named `creator` is set to `true`. Refer to [​​Conditional Expressions](/terraform/language/expressions/conditionals) for additional information.
+You can use the `count` argument as a conditional for creating resources. For example, setting a `count = var.creator ? 3 : 0` instructs Terraform to create three instances of the resource when a variable named `creator` is set to `true`. Refer to [​​Conditional Expressions](/terraform/language/expressions/conditionals) for more information.
 
 </Tip>
 
-The `count` argument is a meta-argument, which is built into Terraform and controls the way that Terraform creates resources. Refer to [Meta-arguments](/terraform/language/meta-arguments) for additional information.
+The `count` argument is a meta-argument, which is built into Terraform and controls the way that Terraform creates resources. Refer to [Meta-arguments](/terraform/language/meta-arguments) for more information.
 
 #### Summary
 
@@ -205,9 +205,9 @@ Use the `depends_on` argument when the resources do not reference each other. We
 When using the `depends_on` meta-argument, you can only reference other resources or child modules in the same root module. The list cannot include arbitrary expressions. Any values referenced in the `depends_on` list must be known before Terraform begins the operation so that it can evaluate dependencies.
 
 Specifying an entire module in the `depends_on` argument affects the order in which Terraform provisions all of the resources and data sources associated with that module. Refer to [Resource dependencies](/terraform/language/manage-resources#resource-dependencies) <!-- placeholder link -->
-and [Data resource dependencies](/terraform/language/configure-data-sources#data-resource-dependencies) for additional information.
+and [Data resource dependencies](/terraform/language/configure-data-sources#data-resource-dependencies) for more information.
 
-The `depends_on` argument is a meta-argument, which is built into Terraform and controls the way that Terraform creates resources. Refer to [Meta-arguments](/terraform/language/concepts/meta-arguments) for additional information.
+The `depends_on` argument is a meta-argument, which is built into Terraform and controls the way that Terraform creates resources. Refer to [Meta-arguments](/terraform/language/concepts/meta-arguments) for more information.
 
 #### Summary
 
@@ -252,7 +252,7 @@ You can use pure functions, such as `toset()` and `tomap()`, to create a map or 
 
 Keys in the `for_each` argument cannot be the result of or rely on the result of impure functions, including `uuid`, `bcrypt`, or `timestamp`, because Terraform defers evaluating impure functions during the main evaluation step.
 
-The `for_each` argument does not implicitly convert lists or tuples to sets. To declare resource instances based on a nested data structure or combinations of elements from multiple data structures, you can use Terraform expressions and functions to derive a suitable value. Refer to the following examples for additional information:
+The `for_each` argument does not implicitly convert lists or tuples to sets. To declare resource instances based on a nested data structure or combinations of elements from multiple data structures, you can use Terraform expressions and functions to derive a suitable value. Refer to the following examples for more information:
 
 - [Transform a multi-level nested structure into a flat list](/terraform/language/functions/flatten#flattening-nested-structures-for-for_each).
 - [Combine collections to produce a list of element combinations](/terraform/language/functions/setproduct#finding-combinations-for-for_each).
@@ -261,7 +261,7 @@ You cannot use sensitive values, such as [sensitive input variables](/terraform/
 
 If you transform a value containing sensitive data into an argument for use in `for_each`, be aware that most functions in Terraform will return a sensitive result if given an argument with any sensitive content. In many cases, you can achieve similar results with a `for` expression. For example, to call `keys(local.map)` where `local.map` is an object with sensitive values, but non-sensitive keys, you can create a value to pass to `for_each` using `toset([for k,v in local.map : k])`.
 
-Refer to [Sensitive Data in State](/terraform/language/state/sensitive-data) for additional information. 
+Refer to [Sensitive Data in State](/terraform/language/state/sensitive-data) for more information. 
 
 The `for_each` argument exposes an `each` object that you can reference within the same block to modify specific instances of the resource. The object has the following attributes:
 
@@ -270,7 +270,7 @@ The `for_each` argument exposes an `each` object that you can reference within t
 
 Use the `<TYPE>.<NAME>[<KEY>]` syntax to access an instance of a resource created using `for_each`. For example, `azurerm_resource_group.rg["a_group"]` refers to an instance of the `azurrm_resource_group` resource named `rg` created off of the `a_group` key.
 
-The `for_each` argument is a meta-argument, which is built into Terraform and controls the way that Terraform creates resources. Refer to [Meta-arguments](/terraform/language/meta-arguments) for additional information.
+The `for_each` argument is a meta-argument, which is built into Terraform and controls the way that Terraform creates resources. Refer to [Meta-arguments](/terraform/language/meta-arguments) for more information.
 
 #### Summary
 
@@ -292,7 +292,7 @@ By default, Terraform automatically selects a provider based on the resource typ
 
 Use the `<PROVIDER>.<ALIAS>` syntax to reference a provider configuration in the `provider` argument. Refer to [Multiple Provider Configurations](/terraform/language/providers/configuration#alias-multiple-provider-configurations) for instructions on how to reference a specific provider configuration.     
 
-The `provider` argument is a meta-argument, which is built into Terraform and controls the way that Terraform creates resources. Refer to [Meta-arguments](/terraform/language/concepts/meta-arguments) for additional information.
+The `provider` argument is a meta-argument, which is built into Terraform and controls the way that Terraform creates resources. Refer to [Meta-arguments](/terraform/language/concepts/meta-arguments) for more information.
 
 #### Summary
 
@@ -318,12 +318,12 @@ You can specify the following lifecycle rules to manage how Terraform performs o
 - [`prevent_destroy`](#prevent_destroy): Terraform rejects operations to destroy the resource and returns an error.
 - [`ignore_changes`](#ignore_changes):  Specifies a list of resource attributes that Terraform ignores changes to. Otherwise, Terraform attempts to update the actual resource to match the configuration.  
 - [`replace_triggered_by`](#replace-triggered_by): Terraform replaces the resource when any of the referenced resources or specified attributes change.
-- [`precondition`](#precondition): Specifies a condition that Terraform evaluates before creating the resource. Refer to [Test and validate](/terraform/language/test-and-validate) for additional information.
-- [`postcondition`](#postcondition): Specifies a condition that Terraform evaluates after creating the resource. Refer to [Test and validate](/terraform/language/test-and-validate) for additional information.
+- [`precondition`](#precondition): Specifies a condition that Terraform evaluates before creating the resource. Refer to [Test and validate](/terraform/language/test-and-validate) for more information.
+- [`postcondition`](#postcondition): Specifies a condition that Terraform evaluates after creating the resource. Refer to [Test and validate](/terraform/language/test-and-validate) for more information.
 
 Configurations defined in the `lifecycle` block affect how Terraform constructs and traverses the dependency graph. You can only use literal values in the lifecycle block because Terraform processes them before it evaluates arbitrary expressions for a run.
 
-The `lifecycle` block is a meta-argument. Meta-arguments are built-in arguments that control how Terraform creates resources. Refer to [Meta-arguments](/terraform/language/concepts/meta-arguments) for additional information.  
+The `lifecycle` block is a meta-argument. Meta-arguments are built-in arguments that control how Terraform creates resources. Refer to [Meta-arguments](/terraform/language/concepts/meta-arguments) for more information.  
 
 #### Summary
 
@@ -508,7 +508,7 @@ The `connection` block specifies settings that let provisioners connect to resou
 
 <Warning>
 
-We recommend using configuration management tools or other means to perform actions on the local or remote machine instead of using provisioners. Refer to [Perform post-apply action](#)<!--TODO: updated with real link when ready--> for additional information.
+We recommend using configuration management tools or other means to perform actions on the local or remote machine instead of using provisioners. Refer to [Perform post-apply action](#)<!--TODO: updated with real link when ready--> for more information.
 
 </Warning>
 
@@ -539,7 +539,7 @@ resource {
 
 Terraform does not validate SSH host keys by default. You can establish a separate mechanism for key distribution and explicitly set the `host_key` argument to verify against a specific key or signing CA.
 
-You can use ephemeral values for arguments in the `connection` block. Refer [Ephemerality in resources](/terraform/language/resources/ephemeral) for additional information.
+You can use ephemeral values for arguments in the `connection` block. Refer [Ephemerality in resources](/terraform/language/resources/ephemeral) for more information.
 
 Expressions in `connection` blocks cannot refer to their parent resource by name. References create dependencies, and referring to a resource by name within its own block would create a dependency cycle. Instead, use the `self` object in expressions to refer to the `connection` block's parent block, including all of its attributes. For example, use `self.public_ip` to reference the `public_ip` attribute in an `aws_instance`. 
 
@@ -561,13 +561,13 @@ The following table describes the arguments you can use in the `connection` bloc
 | `host` | Specifies the address of the resource to connect to. <p>This argument is required.</p> | string | `ssh`<p>`winrm`</p> | none |
 | `port` | Specifies the port number to connect to. | number | `ssh`<p>`winrm`</p> | <p>`22` when `type` is `ssh`</p><p>`5985` when `type` is `winrm`</p> |
 | `timeout` | Specifies how long to wait for the connection to become available. | string | `ssh`<p>`winrm`</p> | `"5m"` |
-| `script_path` | Specifies the path on the remote resource where Terraform copies scripts to. Refer to the [`provisioner` block reference](#provisioner) for additional information. Terraform copies scripts to a path that contains random numbers depending on the `target_platform` configuration. | string | `ssh`<p>`winrm`</p> | <p>`/tmp/terraform_%RAND%.sh` when `target_platform` is `unix`</p><p>`C:/windows/temp/`<br/>`terraform_%RAND%.cmd` when `target_platform` is `windows`</p> |
+| `script_path` | Specifies the path on the remote resource where Terraform copies scripts to. Refer to the [`provisioner` block reference](#provisioner) for more information. Terraform copies scripts to a path that contains random numbers depending on the `target_platform` configuration. | string | `ssh`<p>`winrm`</p> | <p>`/tmp/terraform_%RAND%.sh` when `target_platform` is `unix`</p><p>`C:/windows/temp/`<br/>`terraform_%RAND%.cmd` when `target_platform` is `windows`</p> |
 | `private_key` | Specifies the contents of an SSH key to use for the connection. `private_key` takes precedence over `password` when both are provided. | <p>string</p><p>Use a [`file` function](/terraform/language/functions/file) to load keys from file.</p> | `ssh` | none |
 | `certificate` | Specifies the contents of a signed CA certificate. You must also configure a  `private_key` arugment. | <p>string</p><p>Use a [`file` function](/terraform/language/functions/file) to load certificates from file.</p> | `ssh` | none |
 | `agent` | Specifies an SSH agent for authentication. Set to `false` to disable using `ssh-agent` to authenticate. On Windows, the only supported SSH authentication agent is [Pageant](http://the.earth.li/\~sgtatham/putty/0.66/htmldoc/Chapter9.html#pageant). | string | `ssh` | `false` |
 | `agent_identity` | Specifies the preferred identity from the SSH agent to use for authentication. | string | `ssh` | none |
 | `host_key` | Specifies the public key from the remote host or the signing CA to verify the connection. | string | `ssh` | none |
-| `target_platform` | Specifies the target platform, which affects the default value for the `script_path` argument. You can specify either `windows` or `unix`. <p>`windows` sets the default `script_path` to `c:\windows\temp\terraform_%RAND%.cmd` if the default SSH shell on the remote resource is `cmd.exe`. Refer to the [Windows documentation](https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_server_configuration#configuring-the-default-shell-for-openssh-in-windows) for additional information. If the SSH default shell is PowerShell, set `script_path` to `"c:/windows/temp/terraform_%RAND%.ps1"`.</p><p>`unix` sets the default `script_path` to `/tmp/terraform_%RAND%.sh`. </p> | string | `ssh` |`unix` |
+| `target_platform` | Specifies the target platform, which affects the default value for the `script_path` argument. You can specify either `windows` or `unix`. <p>`windows` sets the default `script_path` to `c:\windows\temp\terraform_%RAND%.cmd` if the default SSH shell on the remote resource is `cmd.exe`. Refer to the [Windows documentation](https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_server_configuration#configuring-the-default-shell-for-openssh-in-windows) for more information. If the SSH default shell is PowerShell, set `script_path` to `"c:/windows/temp/terraform_%RAND%.ps1"`.</p><p>`unix` sets the default `script_path` to `/tmp/terraform_%RAND%.sh`. </p> | string | `ssh` |`unix` |
 | `https` | Set to `true` to connect using HTTPS instead of HTTP. | boolean | `winrm` | `false` |
 | `insecure` | Set to `true` to skip validating the HTTPS certificate chain. | boolean | `winrm` | `false` |
 | `use_ntlm` | Set to `true` to use NTLM authentication instead of basic authentication. Using NTLM removes the requirement for basic authentication to be enabled within the target guest. Refer to [Authentication for Remote Connections](https://docs.microsoft.com/en-us/windows/win32/winrm/authentication-for-remote-connections) in the Windows App Development documentation for more details. | boolean | `winrm` | `false` |
@@ -605,7 +605,7 @@ resource {
 
 <Warning>
 
-We recommend using configuration management tools or other means to perform actions on the local or remote machine instead of using the `provisioner` block. Refer to [Perform post-apply action](#)<!--TODO: updated with real link when ready--> for additional information.
+We recommend using configuration management tools or other means to perform actions on the local or remote machine instead of using the `provisioner` block. Refer to [Perform post-apply action](#)<!--TODO: updated with real link when ready--> for more information.
 
 </Warning>
 
@@ -727,7 +727,7 @@ resource {
 }
 ```
 
-Terraform evaluates the command in a local shell and can use environment variables for variable substitution. We do not recommend using Terraform variables for variable substitution because doing so can lead to shell injection vulnerabilities. Instead, use the `environment` parameter and environment variable substitution. Refer to the following OWASP article for additional information about injection flaws: [Code Injection](https://owasp.org/www-community/attacks/Code_Injection).
+Terraform evaluates the command in a local shell and can use environment variables for variable substitution. We do not recommend using Terraform variables for variable substitution because doing so can lead to shell injection vulnerabilities. Instead, use the `environment` parameter and environment variable substitution. Refer to the following OWASP article for more information about injection flaws: [Code Injection](https://owasp.org/www-community/attacks/Code_Injection).
 
 #### Summary
 
