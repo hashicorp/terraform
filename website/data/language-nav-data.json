@@ -1116,16 +1116,20 @@
     "title": "Configuration blocks",
     "routes": [
       {
-      "title": "Check block",
-      "path": "block/check"
+        "title": "resource",
+        "path": "block/resource"
+      },    
+      {
+        "title": "check",
+        "path": "block/check"
       },
       {
-      "title": "Moved block",
-      "path": "block/moved"
+        "title": "Moved block",
+        "path": "block/moved"
       },
       {
-      "title": "Output block",
-      "path": "block/output"
+        "title": "Output block",
+        "path": "block/output"
       },
       {
         "title": "Terraform block",
