@@ -13,11 +13,11 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 	"github.com/hashicorp/terraform/internal/states"
@@ -135,7 +135,7 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 
 	case *tfstackdata1.ProviderFunctionResults:
 		for _, hash := range msg.ProviderFunctionResults {
-			l.ret.ProviderFunctionResults = append(l.ret.ProviderFunctionResults, providers.FunctionHash{
+			l.ret.ProviderFunctionResults = append(l.ret.ProviderFunctionResults, lang.FunctionHash{
 				Key:    hash.Key,
 				Result: hash.Result,
 			})
@@ -212,9 +212,9 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 			return fmt.Errorf("decoding check results: %w", err)
 		}
 
-		var functionResults []providers.FunctionHash
+		var functionResults []lang.FunctionHash
 		for _, hash := range msg.ProviderFunctionResults {
-			functionResults = append(functionResults, providers.FunctionHash{
+			functionResults = append(functionResults, lang.FunctionHash{
 				Key:    hash.Key,
 				Result: hash.Result,
 			})

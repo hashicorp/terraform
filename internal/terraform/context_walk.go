@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -73,7 +74,7 @@ type graphWalkOpts struct {
 
 	MoveResults refactoring.MoveResults
 
-	ProviderFuncResults *providers.FunctionResults
+	ProviderFuncResults *lang.FunctionResults
 
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.

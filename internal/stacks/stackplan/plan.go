@@ -12,8 +12,8 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
 
@@ -85,7 +85,7 @@ type Plan struct {
 	// ProviderFunctionResults is a shared table of results from calling
 	// provider functions. This is stored and loaded from during the planning
 	// stage to use during apply operations.
-	ProviderFunctionResults []providers.FunctionHash
+	ProviderFunctionResults []lang.FunctionHash
 
 	// PlanTimestamp is the time at which the plan was created.
 	PlanTimestamp time.Time

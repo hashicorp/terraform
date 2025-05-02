@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -63,7 +64,7 @@ type ContextGraphWalker struct {
 	contextLock         sync.Mutex
 	providerCache       map[string]providers.Interface
 	providerFuncCache   map[string]providers.Interface
-	providerFuncResults *providers.FunctionResults
+	providerFuncResults *lang.FunctionResults
 	providerSchemas     map[string]providers.ProviderSchema
 	providerLock        sync.Mutex
 	provisionerCache    map[string]provisioners.Interface

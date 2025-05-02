@@ -714,7 +714,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 
 	// Initialize the results table to validate provider function calls.
 	// Hold reference to this so we can store the table data in the plan file.
-	providerFuncResults := providers.NewFunctionResultsTable(nil)
+	providerFuncResults := lang.NewFunctionResultsTable(nil)
 
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
 		Config:                     config,

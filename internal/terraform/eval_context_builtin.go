@@ -77,7 +77,7 @@ type BuiltinEvalContext struct {
 	InputValue              UIInput
 	ProviderCache           map[string]providers.Interface
 	ProviderFuncCache       map[string]providers.Interface
-	ProviderFuncResults     *providers.FunctionResults
+	ProviderFuncResults     *lang.FunctionResults
 	ProviderInputConfig     map[string]map[string]cty.Value
 	ProviderLock            *sync.Mutex
 	ProvisionerCache        map[string]provisioners.Interface

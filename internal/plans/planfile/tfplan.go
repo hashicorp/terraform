@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
@@ -171,7 +172,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 
 	for _, hash := range rawPlan.ProviderFunctionResults {
 		plan.ProviderFunctionResults = append(plan.ProviderFunctionResults,
-			providers.FunctionHash{
+			lang.FunctionHash{
 				Key:    hash.Key,
 				Result: hash.Result,
 			},

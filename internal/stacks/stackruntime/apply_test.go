@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -4216,7 +4217,7 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 				"value": cty.StringVal("hello, world!"),
 			},
 			PlannedCheckResults: &states.CheckResults{},
-			PlannedProviderFunctionResults: []providers.FunctionHash{
+			PlannedProviderFunctionResults: []lang.FunctionHash{
 				{
 					Key:    providerFunctionHashArgs(mustDefaultRootProvider("testing").Provider, "echo", cty.StringVal("hello, world!")),
 					Result: providerFunctionHashResult(cty.StringVal("hello, world!")),
@@ -4246,7 +4247,7 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 			Schema:             stacks_testing_provider.TestingResourceSchema,
 		},
 		&stackplan.PlannedChangeProviderFunctionResults{
-			Results: []providers.FunctionHash{
+			Results: []lang.FunctionHash{
 				{
 					Key:    providerFunctionHashArgs(mustDefaultRootProvider("testing").Provider, "echo", cty.StringVal("hello, world!")),
 					Result: providerFunctionHashResult(cty.StringVal("hello, world!")),

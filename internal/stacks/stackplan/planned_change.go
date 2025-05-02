@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
@@ -217,7 +218,7 @@ type PlannedChangeComponentInstance struct {
 
 	PlannedCheckResults *states.CheckResults
 
-	PlannedProviderFunctionResults []providers.FunctionHash
+	PlannedProviderFunctionResults []lang.FunctionHash
 
 	// PlanTimestamp is the timestamp that would be returned from the
 	// "plantimestamp" function in modules inside this component. We
@@ -828,7 +829,7 @@ func (pc *PlannedChangeApplyable) PlannedChangeProto() (*stacks.PlannedChange, e
 }
 
 type PlannedChangeProviderFunctionResults struct {
-	Results []providers.FunctionHash
+	Results []lang.FunctionHash
 }
 
 var _ PlannedChange = (*PlannedChangeProviderFunctionResults)(nil)

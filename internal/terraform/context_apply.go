@@ -198,7 +198,7 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		// We also want to propagate the timestamp from the plan file.
 		PlanTimeTimestamp: plan.Timestamp,
 
-		ProviderFuncResults: providers.NewFunctionResultsTable(plan.ProviderFunctionResults),
+		ProviderFuncResults: lang.NewFunctionResultsTable(plan.ProviderFunctionResults),
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)

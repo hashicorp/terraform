@@ -12,9 +12,9 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -162,7 +162,7 @@ type Plan struct {
 	// ProviderFunctionResults stores hashed results from all provider
 	// function calls, so that calls during apply can be checked for
 	// consistency.
-	ProviderFunctionResults []providers.FunctionHash
+	ProviderFunctionResults []lang.FunctionHash
 }
 
 // ProviderAddrs returns a list of all of the provider configuration addresses
