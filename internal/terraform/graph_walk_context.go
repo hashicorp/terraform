@@ -154,6 +154,12 @@ func (w *ContextGraphWalker) init() {
 }
 
 func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfdiags.Diagnostics {
+	// If the node is controlled by a lock besides the semaphore, acquire it first
+	if lv, ok := n.(GraphNodeLockable); ok {
+		lv.Lock()
+		defer lv.Unlock()
+	}
+
 	// Acquire a lock on the semaphore
 	w.Context.parallelSem.Acquire()
 	defer w.Context.parallelSem.Release()
