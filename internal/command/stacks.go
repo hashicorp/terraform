@@ -131,6 +131,7 @@ func (c *StacksCommand) realRun(args []string, stdout, stderr io.Writer) int {
 func (c *StacksCommand) discoverAndConfigure() tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
+	// using the current terraform path for the plugin binary path
 	tfBinaryPath, err := os.Executable()
 	if err != nil {
 		return diags.Append(tfdiags.Sourceless(
@@ -219,7 +220,7 @@ func (c *StacksCommand) discoverAndConfigure() tfdiags.Diagnostics {
 	}
 	c.pluginService = pluginService
 
-	tfeService, err := cb.ServicesHost.ServiceURL(tfeServiceID)
+	tfeService, err := cb.ServicesHost.ServiceURL(tfeStacksServiceID)
 	if err != nil {
 		return diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -228,6 +229,11 @@ func (c *StacksCommand) discoverAndConfigure() tfdiags.Diagnostics {
 		))
 	}
 
+	// optional env values
+	orgName := os.Getenv("TF_STACKS_ORGANIZATION_NAME")
+	projectName := os.Getenv("TF_STACKS_PROJECT_NAME")
+	stackName := os.Getenv("TF_STACKS_STACK_NAME")
+
 	// config to be passed to the plugin later.
 	c.pluginConfig = StacksPluginConfig{
 		Address:             tfeService.String(),
@@ -235,6 +241,9 @@ func (c *StacksCommand) discoverAndConfigure() tfdiags.Diagnostics {
 		DisplayHostname:     displayHostname,
 		Token:               token,
 		TerraformBinaryPath: tfBinaryPath,
+		OrganizationName:    orgName,
+		ProjectName:         projectName,
+		StackName:           stackName,
 	}
 
 	return diags
@@ -334,6 +343,9 @@ type StacksPluginConfig struct {
 	DisplayHostname     string `md:"tfc-display-hostname"`
 	Token               string `md:"tfc-token"`
 	TerraformBinaryPath string `md:"terraform-binary-path"`
+	OrganizationName    string `md:"tfc-organization"`
+	ProjectName         string `md:"tfc-project"`
+	StackName           string `md:"tfc-stack"`
 }
 
 func (c StacksPluginConfig) ToMetadata() metadata.MD {
@@ -343,6 +355,9 @@ func (c StacksPluginConfig) ToMetadata() metadata.MD {
 		"tfc-display-hostname", c.DisplayHostname,
 		"tfc-token", c.Token,
 		"terraform-binary-path", c.TerraformBinaryPath,
+		"tfc-organization", c.OrganizationName,
+		"tfc-project", c.ProjectName,
+		"tfc-stack", c.StackName,
 	)
 	return md
 }

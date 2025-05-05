@@ -12,10 +12,6 @@ import (
 	"github.com/hashicorp/terraform/internal/logging"
 )
 
-// type StacksPluginClient struct {
-// 	BasePluginClient
-// }
-
 // NewStacksPluginClient creates a new client for downloading and verifying
 // terraform-stacks plugin archives
 func NewStacksPluginClient(ctx context.Context, serviceURL *url.URL) (*BasePluginClient, error) {
@@ -34,7 +30,5 @@ func NewStacksPluginClient(ctx context.Context, serviceURL *url.URL) (*BasePlugi
 		httpClient: retryableClient,
 		pluginName: "stacksplugin",
 	}
-
-	// return &StacksPluginClient{BasePluginClient: client}, nil
 	return &client, nil
 }

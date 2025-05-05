@@ -12,10 +12,6 @@ import (
 	"github.com/hashicorp/terraform/internal/logging"
 )
 
-// type CloudPluginClient struct {
-// 	BasePluginClient
-// }
-
 // NewCloudPluginClient creates a new client for downloading and verifying
 // terraform-cloudplugin archives
 func NewCloudPluginClient(ctx context.Context, serviceURL *url.URL) (*BasePluginClient, error) {
@@ -34,7 +30,5 @@ func NewCloudPluginClient(ctx context.Context, serviceURL *url.URL) (*BasePlugin
 		httpClient: retryableClient,
 		pluginName: "cloudplugin",
 	}
-
-	// return &CloudPluginClient{BasePluginClient: client}, nil
 	return &client, nil
 }

@@ -12,12 +12,12 @@ import (
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/pluginshared"
+
 	"github.com/hashicorp/terraform/internal/rpcapi/dynrpcserver"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/dependencies"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/packages"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacksplugin/stacksproto1"
-
 	"google.golang.org/grpc"
 )
 
@@ -32,9 +32,15 @@ type GRPCStacksClient struct {
 // Proof that GRPCStacksClient fulfills the go-plugin interface
 var _ pluginshared.CustomPluginClient = GRPCStacksClient{}
 
-// Execute sends the client Execute request and waits for the plugin to return
-// an exit code response before returning
-func (c GRPCStacksClient) Execute(args []string, stdout, stderr io.Writer) int {
+type brokerIDs struct {
+	packagesBrokerID     uint32
+	dependenciesBrokerID uint32
+	stacksBrokerID       uint32
+}
+
+// registerBrokers starts the GRPC servers for the dependencies, packages, and stacks
+// services and returns the broker IDs for each.
+func (c GRPCStacksClient) registerBrokers(stdout, stderr io.Writer) brokerIDs {
 	handles := newHandleTable()
 
 	dependenciesServer := dynrpcserver.NewDependenciesStub()
@@ -75,10 +81,20 @@ func (c GRPCStacksClient) Execute(args []string, stdout, stderr io.Writer) int {
 	stacksBrokerID := c.Broker.NextId()
 	go c.Broker.AcceptAndServe(stacksBrokerID, stacksServerFunc)
 
+	return brokerIDs{
+		dependenciesBrokerID: dependenciesBrokerID,
+		packagesBrokerID:     packagesBrokerID,
+		stacksBrokerID:       stacksBrokerID,
+	}
+}
+
+// Execute sends the client Execute request and waits for the plugin to return
+// an exit code response before returning
+func (c GRPCStacksClient) executeWithBrokers(brokerIDs brokerIDs, args []string, stdout, stderr io.Writer) int {
 	client, err := c.Client.Execute(c.Context, &stacksproto1.CommandRequest{
-		DependenciesServer: dependenciesBrokerID,
-		PackagesServer:     packagesBrokerID,
-		StacksServer:       stacksBrokerID,
+		DependenciesServer: brokerIDs.dependenciesBrokerID,
+		PackagesServer:     brokerIDs.packagesBrokerID,
+		StacksServer:       brokerIDs.stacksBrokerID,
 		Args:               args,
 	})
 
@@ -131,4 +147,11 @@ func (c GRPCStacksClient) Execute(args []string, stdout, stderr io.Writer) int {
 	// This should indicate a bug in the plugin
 	fmt.Fprint(stderr, "stacksplugin exited without responding with an error code")
 	return 1
+}
+
+// Execute sends the client Execute request and waits for the plugin to return
+// an exit code response before returning
+func (c GRPCStacksClient) Execute(args []string, stdout, stderr io.Writer) int {
+	brokerIDs := c.registerBrokers(stdout, stderr)
+	return c.executeWithBrokers(brokerIDs, args, stdout, stderr)
 }
