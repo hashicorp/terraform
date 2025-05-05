@@ -464,7 +464,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		if !resp.PlannedIdentity.IsNull() {
 			// Destroying is an operation where we allow identity changes.
 			diags = diags.Append(n.validateIdentityKnown(resp.PlannedIdentity))
-			diags = diags.Append(n.validateIdentity(resp.PlannedIdentity, providerSchema.Provider.Identity))
+			diags = diags.Append(n.validateIdentity(resp.PlannedIdentity, schema.Identity))
 		}
 
 		// We may not have a config for all destroys, but we want to reference
