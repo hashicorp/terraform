@@ -554,6 +554,7 @@ type expanderModule struct {
 	moduleCalls    map[addrs.ModuleCall]expansion
 	resources      map[addrs.Resource]expansion
 	childInstances map[addrs.ModuleInstanceStep]*expanderModule
+	queryLists     map[addrs.List]expansion
 
 	// overrides ensures that any overridden modules instances will not be
 	// returned as options for expansion. A nil overrides indicates there are
@@ -566,6 +567,7 @@ func newExpanderModule(overrides *mocking.Overrides) *expanderModule {
 		moduleCalls:    make(map[addrs.ModuleCall]expansion),
 		resources:      make(map[addrs.Resource]expansion),
 		childInstances: make(map[addrs.ModuleInstanceStep]*expanderModule),
+		queryLists:     make(map[addrs.List]expansion),
 		overrides:      overrides,
 	}
 }

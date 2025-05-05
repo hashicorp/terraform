@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -97,8 +98,16 @@ func (n *NodeQueryList) References() []*addrs.Reference {
 	if n.Config == nil {
 		return nil
 	}
-
-	return ReferencesFromConfig(n.Config.Config, n.Schema)
+	refs := ReferencesFromConfig(n.Config.Config, n.Schema)
+	if n.Config.Count != nil {
+		countRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.Config.Count)
+		refs = append(refs, countRefs...)
+	}
+	if n.Config.ForEach != nil {
+		forEachRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.Config.ForEach)
+		refs = append(refs, forEachRefs...)
+	}
+	return refs
 }
 
 func (n *NodeQueryList) String() string {
@@ -106,6 +115,52 @@ func (n *NodeQueryList) String() string {
 }
 
 func (n *NodeQueryList) Execute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+	expander := ctx.InstanceExpander()
+	module := n.Path()
+	switch {
+	case n.Config.Count != nil:
+		count, ctDiags := evaluateCountExpression(n.Config.Count, ctx, false)
+		diags = diags.Append(ctDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+		if count >= 0 {
+			expander.SetQueryListCount(module, n.Addr(), count)
+		} else {
+			// -1 represents "unknown"
+			panic("NodeQueryList: count is unknown")
+		}
+
+	case n.Config.ForEach != nil:
+		forEach, known, feDiags := evaluateForEachExpression(n.Config.ForEach, ctx, false)
+		diags = diags.Append(feDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+		if known {
+			expander.SetQueryListForEach(module, n.Addr(), forEach)
+		} else {
+			panic("NodeQueryList: for_each is unknown")
+		}
+
+	default:
+		expander.SetQueryListSingle(module, n.Addr())
+	}
+
+	_, knownKeys, hasUnknown := expander.ListInstanceKeys(n.Addr())
+	if hasUnknown {
+		panic("NodeQueryList: list instance keys are unknown")
+	}
+	for _, key := range knownKeys {
+		diags = diags.Append(n.execute(ctx, n.Addr().Instance(key)))
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+
+	return diags
+}
+func (n *NodeQueryList) execute(ctx EvalContext, inst addrs.ListInstance) (diags tfdiags.Diagnostics) {
 	config := n.Config
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
@@ -117,9 +172,11 @@ func (n *NodeQueryList) Execute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 
 	// retrieve list schema? (already done in transformer)
 
+	instKeyData := ctx.InstanceExpander().GetListInstanceRepetitionData(inst)
+
 	// evaluate the config block
 	var configDiags tfdiags.Diagnostics
-	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, n.Schema, nil, EvalDataForNoInstanceKey)
+	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, n.Schema, nil, instKeyData)
 	diags = diags.Append(configDiags)
 	if diags.HasErrors() {
 		return diags

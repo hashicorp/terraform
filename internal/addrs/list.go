@@ -32,6 +32,26 @@ func (l List) UniqueKey() UniqueKey {
 
 func (r List) uniqueKeySigil() {}
 
+func (r List) Absolute() {}
+
+// ListInstance is an address for a specific instance of a list.
+// When a list is defined in configuration with "count" or "for_each" it
+// produces zero or more instances, which can be addressed using this type.
+type ListInstance struct {
+	referenceable
+	List List
+	Key  InstanceKey
+}
+
+// Instance produces the address for a specific instance of the receiver
+// that is idenfied by the given key.
+func (r List) Instance(key InstanceKey) ListInstance {
+	return ListInstance{
+		List: r,
+		Key:  key,
+	}
+}
+
 // func (r List) Equal(o List) bool {
 // 	return r.Mode == o.Mode && r.Name == o.Name && r.Type == o.Type
 // }

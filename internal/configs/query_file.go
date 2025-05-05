@@ -46,6 +46,9 @@ type List struct {
 	// Config is the main configuration body for the list block.
 	Config hcl.Body
 
+	Count   hcl.Expression
+	ForEach hcl.Expression
+
 	TypeDeclRange   hcl.Range
 	ConfigDeclRange hcl.Range
 	DeclRange       hcl.Range
@@ -141,7 +144,7 @@ func decodeQueryListBlock(block *hcl.Block, file *QueryFile) (*List, hcl.Diagnos
 	var diags hcl.Diagnostics
 
 	content, remain, contentDiags := block.Body.PartialContent(&hcl.BodySchema{
-		Attributes: []hcl.AttributeSchema{{Name: "provider"}},
+		Attributes: []hcl.AttributeSchema{{Name: "provider"}, {Name: "count"}, {Name: "for_each"}},
 	})
 	diags = append(diags, contentDiags...)
 
@@ -177,6 +180,24 @@ func decodeQueryListBlock(block *hcl.Block, file *QueryFile) (*List, hcl.Diagnos
 			Subject:  r.DeclRange.Ptr(),
 		})
 	}
+
+	if attr, exists := content.Attributes["count"]; exists {
+		r.Count = attr.Expr
+	}
+
+	if attr, exists := content.Attributes["for_each"]; exists {
+		r.ForEach = attr.Expr
+		// Cannot have count and for_each on the same resource block
+		if r.Count != nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Invalid combination of "count" and "for_each"`,
+				Detail:   `The "count" and "for_each" meta-arguments are mutually-exclusive.`,
+				Subject:  &attr.NameRange,
+			})
+		}
+	}
+
 	return &r, diags
 }
 
