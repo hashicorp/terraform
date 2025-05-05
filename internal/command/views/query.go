@@ -24,7 +24,7 @@ type Query interface {
 	List(terraform.ListStates)
 
 	// Resource renders the output for a single resource.
-	Resource(addrs.List, *states.ResourceInstanceObjectSrc)
+	Resource(addrs.AbsResourceInstance, *states.ResourceInstanceObjectSrc)
 
 	// Conclusion should print out a summary of the tests including their
 	// completed status.
@@ -77,7 +77,7 @@ func (t *QueryHuman) List(states terraform.ListStates) {
 	}
 }
 
-func (t *QueryHuman) Resource(list addrs.List, src *states.ResourceInstanceObjectSrc) {
+func (t *QueryHuman) Resource(list addrs.AbsResourceInstance, src *states.ResourceInstanceObjectSrc) {
 	t.view.streams.Println()
 	t.view.streams.Printf("identity: %s\n", src.IdentityJSON)
 	t.view.streams.Printf("resource: %s\n", src.AttrsJSON)
@@ -155,7 +155,7 @@ func (t *QueryJSON) List(states terraform.ListStates) {
 		"resources", jsonStates)
 }
 
-func (t *QueryJSON) Resource(list addrs.List, src *states.ResourceInstanceObjectSrc) {
+func (t *QueryJSON) Resource(list addrs.AbsResourceInstance, src *states.ResourceInstanceObjectSrc) {
 	t.view.log.Info(
 		"Resource",
 		"identity", src.IdentityJSON,

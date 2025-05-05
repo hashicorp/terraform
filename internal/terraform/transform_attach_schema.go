@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -75,6 +76,22 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 				continue
 			}
 			log.Printf("[TRACE] AttachSchemaTransformer: attaching resource schema to %s", dag.VertexName(v))
+
+			//  if this is a list resource, read its managed resource schema and attach the list scheme to it
+			if addr.Resource.Mode == addrs.ListResourceMode {
+				listSchema := schema
+				schema, err = t.Plugins.ResourceTypeSchema(providerFqn, addrs.ManagedResourceMode, typeName)
+				if err != nil {
+					return fmt.Errorf("failed to read schema for %s in %s: %s", addr, providerFqn, err)
+				}
+				if schema.Body == nil {
+					log.Printf("[ERROR] AttachSchemaTransformer: No list resource schema available for %s", addr)
+					continue
+				}
+				schema.ListBody = listSchema.Body
+				schema.ListVersion = listSchema.Version
+			}
+
 			tv.AttachResourceSchema(&schema)
 		}
 

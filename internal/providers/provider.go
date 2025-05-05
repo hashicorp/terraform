@@ -179,6 +179,9 @@ type Schema struct {
 
 	IdentityVersion int64
 	Identity        *configschema.Object
+
+	ListVersion int64
+	ListBody    *configschema.Block
 }
 
 // ServerCapabilities allows providers to communicate extra information

@@ -15,69 +15,16 @@ import (
 type QueryFile struct {
 	// Providers defines a set of providers that are available to the list blocks
 	// within this query file.
-	Providers map[string]*Provider
-
+	Providers       map[string]*Provider
 	ProviderConfigs []*Provider
 
-	Locals []*Local
-
+	Locals    []*Local
 	Variables []*Variable
 
-	// Lists defines the list of List blocks within the query file.
-	Lists []*List
+	// ListResources is a slice of List blocks within the query file.
+	ListResources []*Resource
 
 	VariablesDeclRange hcl.Range
-}
-
-// List represents a single list block within a query file.
-//
-// Each list block represents a single Terraform command to be executed and a set
-// of validations to list after the command.
-type List struct {
-	Type string
-	Name string
-
-	ProviderConfigRef *ProviderConfigRef
-	Provider          addrs.Provider
-
-	// File is a reference to the parent QueryFile that contains this block.
-	File *QueryFile
-
-	// Config is the main configuration body for the list block.
-	Config hcl.Body
-
-	Count   hcl.Expression
-	ForEach hcl.Expression
-
-	TypeDeclRange   hcl.Range
-	ConfigDeclRange hcl.Range
-	DeclRange       hcl.Range
-}
-
-func (list *List) moduleUniqueKey() string {
-	return list.Name
-}
-
-func (list *List) Addr() addrs.List {
-	return addrs.List{
-		Type: list.Type,
-		Name: list.Name,
-	}
-}
-
-// ProviderConfigAddr returns the address for the provider configuration that
-// should be used for this list. This function returns a default provider
-// config addr if an explicit "provider" argument was not provided.
-func (list *List) ProviderConfigAddr() addrs.LocalProviderConfig {
-	if list.ProviderConfigRef == nil {
-		// all lists must have a provider config ref
-		panic("ProviderConfigRef is nil")
-	}
-
-	return addrs.LocalProviderConfig{
-		LocalName: list.ProviderConfigRef.Name,
-		Alias:     list.ProviderConfigRef.Alias,
-	}
 }
 
 func loadQueryFile(body hcl.Body) (*QueryFile, hcl.Diagnostics) {
@@ -86,7 +33,7 @@ func loadQueryFile(body hcl.Body) (*QueryFile, hcl.Diagnostics) {
 		Providers: make(map[string]*Provider),
 	}
 
-	content, contentDiags := body.Content(testQueryFileSchema)
+	content, contentDiags := body.Content(queryFileSchema)
 	diags = append(diags, contentDiags...)
 
 	listBlockNames := make(map[string]hcl.Range)
@@ -94,10 +41,10 @@ func loadQueryFile(body hcl.Body) (*QueryFile, hcl.Diagnostics) {
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "list":
-			list, listDiags := decodeQueryListBlock(block, file)
+			list, listDiags := decodeQueryListBlock(block)
 			diags = append(diags, listDiags...)
 			if !listDiags.HasErrors() {
-				file.Lists = append(file.Lists, list)
+				file.ListResources = append(file.ListResources, list)
 			}
 
 			if rng, exists := listBlockNames[list.Name]; exists {
@@ -140,21 +87,19 @@ func loadQueryFile(body hcl.Body) (*QueryFile, hcl.Diagnostics) {
 	return file, diags
 }
 
-func decodeQueryListBlock(block *hcl.Block, file *QueryFile) (*List, hcl.Diagnostics) {
+func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
-	content, remain, contentDiags := block.Body.PartialContent(&hcl.BodySchema{
-		Attributes: []hcl.AttributeSchema{{Name: "provider"}, {Name: "count"}, {Name: "for_each"}},
-	})
+	content, remain, contentDiags := block.Body.PartialContent(ListResourceBlockSchema)
 	diags = append(diags, contentDiags...)
 
-	r := List{
-		File:          file,
-		Type:          block.Labels[0],
-		TypeDeclRange: block.LabelRanges[0],
-		Name:          block.Labels[1],
-		DeclRange:     block.DefRange,
-		Config:        remain,
+	r := Resource{
+		Mode:      addrs.ListResourceMode,
+		Type:      block.Labels[0],
+		TypeRange: block.LabelRanges[0],
+		Name:      block.Labels[1],
+		DeclRange: block.DefRange,
+		Config:    remain,
 	}
 
 	if attr, exists := content.Attributes["provider"]; exists {
@@ -201,7 +146,13 @@ func decodeQueryListBlock(block *hcl.Block, file *QueryFile) (*List, hcl.Diagnos
 	return &r, diags
 }
 
-var testQueryFileSchema = &hcl.BodySchema{
+// ListResourceBlockSchema is the schema for a list resource type within
+// a terraform query file.
+var ListResourceBlockSchema = &hcl.BodySchema{
+	Attributes: commonResourceAttributes,
+}
+
+var queryFileSchema = &hcl.BodySchema{
 	Blocks: []hcl.BlockHeaderSchema{
 		{
 			Type:       "list",

@@ -118,6 +118,7 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 	runningCtx, done := context.WithCancel(context.Background())
 	stopCtx, stop := context.WithCancel(runningCtx)
 	cancelCtx, cancel := context.WithCancel(context.Background())
+	_, _, _ = stopCtx, cancelCtx, variables
 
 	var qDiags tfdiags.Diagnostics
 
@@ -127,11 +128,10 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 		defer stop()
 		defer cancel()
 
-		_, qDiags = tfCtx.QueryEval(config, &terraform.QueryOpts{
-			View:         view,
-			Variables:    variables,
-			StoppedCtx:   stopCtx,
-			CancelledCtx: cancelCtx,
+		_, _, qDiags = tfCtx.PlanAndEval(config, nil, &terraform.PlanOpts{
+			// View:         view,
+			// StoppedCtx:   stopCtx,
+			// CancelledCtx: cancelCtx,
 		})
 	}()
 

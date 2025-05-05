@@ -135,6 +135,8 @@ type PlanOpts struct {
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
 	Forget bool
+
+	QueryViews QueryViews
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -728,6 +730,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		PlanTimeTimestamp:          timestamp,
 		FunctionResults:            funcResults,
 		Forget:                     opts.Forget,
+		View:                       opts.QueryViews,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)

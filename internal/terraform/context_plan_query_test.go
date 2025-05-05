@@ -9,12 +9,13 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
 
-func TestQueryContext(t *testing.T) {
+func TestContext2Plan_QueryContext(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 			terraform {
@@ -98,15 +99,16 @@ func TestQueryContext(t *testing.T) {
 	})
 
 	qv := &MockQueryViews{
-		ResourceAddrs: addrs.MakeMap[addrs.List, []*states.ResourceInstanceObjectSrc](),
+		ResourceAddrs: addrs.MakeMap[addrs.AbsResourceInstance, []*states.ResourceInstanceObjectSrc](),
 	}
-	_, diags := ctx.QueryEval(m, &QueryOpts{
-		View: qv,
+	_, _, diags := ctx.PlanAndEval(m, states.NewState(), &PlanOpts{
+		QueryViews: qv,
 		SetVariables: InputValues{
 			"input": &InputValue{
 				Value: cty.StringVal("inputed"),
 			},
 		},
+		Mode: plans.NormalMode,
 	})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
@@ -115,7 +117,8 @@ func TestQueryContext(t *testing.T) {
 	if !qv.ResourceCalled {
 		t.Fatal("Resource was not called")
 	}
-	objs := qv.ResourceAddrs.Get(addrs.List{Type: "test_resource", Name: "test"})
+	root := addrs.RootModuleInstance
+	objs := qv.ResourceAddrs.Get(root.ResourceInstance(addrs.ListResourceMode, "test_resource", "test", addrs.NoKey))
 	if len(objs) != 2 {
 		t.Fatalf("Expected 2 resource objects, got %d", len(qv.ResourceAddrs.Elements()))
 	}
@@ -130,7 +133,7 @@ func TestQueryContext(t *testing.T) {
 	}
 }
 
-func TestQueryContextCount(t *testing.T) {
+func TestContext2Plan_QueryContextCount(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 			terraform {
@@ -243,15 +246,16 @@ func TestQueryContextCount(t *testing.T) {
 	})
 
 	qv := &MockQueryViews{
-		ResourceAddrs: addrs.MakeMap[addrs.List, []*states.ResourceInstanceObjectSrc](),
+		ResourceAddrs: addrs.MakeMap[addrs.AbsResourceInstance, []*states.ResourceInstanceObjectSrc](),
 	}
-	_, diags := ctx.QueryEval(m, &QueryOpts{
-		View: qv,
+	_, _, diags := ctx.PlanAndEval(m, states.NewState(), &PlanOpts{
+		QueryViews: qv,
 		SetVariables: InputValues{
 			"input": &InputValue{
 				Value: cty.StringVal("inputed"),
 			},
 		},
+		Mode: plans.NormalMode,
 	})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
@@ -261,7 +265,8 @@ func TestQueryContextCount(t *testing.T) {
 		t.Fatal("Resource was not called")
 	}
 
-	objs := qv.ResourceAddrs.Get(addrs.List{Type: "test_resource", Name: "test"})
+	root := addrs.RootModuleInstance
+	objs := qv.ResourceAddrs.Get(root.ResourceInstance(addrs.ListResourceMode, "test_resource", "test", addrs.NoKey))
 	if len(objs) != 2 {
 		t.Fatalf("Expected 2 resource objects, got %d", len(qv.ResourceAddrs.Elements()))
 	}
@@ -275,16 +280,22 @@ func TestQueryContextCount(t *testing.T) {
 		t.Fatalf("Expected attr to be 'attr1', got '%s'", obj.Value.GetAttr("attr").AsString())
 	}
 
-	childObjs := qv.ResourceAddrs.Get(addrs.List{Type: "test_child_resource", Name: "test_child"})
-	if len(childObjs) != 2 {
-		t.Fatalf("Expected 2 child resource objects, got %d", len(childObjs))
+	childObj, ok := qv.ResourceAddrs.GetOk(root.ResourceInstance(addrs.ListResourceMode, "test_child_resource", "test_child", addrs.IntKey(1)))
+	if !ok || len(childObj) != 1 {
+		t.Fatal("Expected 1 resource object, got none")
 	}
-	childObj, err := childObjs[0].Decode(p.GetProviderSchemaResponse.ListResourceTypes["test_child_resource"])
+	childObj, ok = qv.ResourceAddrs.GetOk(root.ResourceInstance(addrs.ListResourceMode, "test_child_resource", "test_child", addrs.IntKey(0)))
+	if !ok || len(childObj) != 1 {
+		t.Fatal("Expected 1 resource object, got none")
+	}
+
+	objj, err := childObj[0].Decode(p.GetProviderSchemaResponse.ListResourceTypes["test_child_resource"])
 	if err != nil {
-		t.Fatalf("Failed to decode child resource object: %s", err)
+		t.Fatalf("Failed to decode resource object: %s", err)
 	}
-	if childObj.Value.GetAttr("attr").AsString() != "child_attr" {
-		t.Fatalf("Expected child attr to be 'child_attr', got '%s'", childObj.Value.GetAttr("attr").AsString())
+
+	if objj.Value.GetAttr("attr").AsString() != "child_attr" {
+		t.Fatalf("Expected child attr to be 'child_attr', got '%s'", objj.Value.GetAttr("attr").AsString())
 	}
 
 }
@@ -294,7 +305,7 @@ type MockQueryViews struct {
 	ListCalled     bool
 	ListStatesArg  ListStates
 	ResourceCalled bool
-	ResourceAddrs  addrs.Map[addrs.List, []*states.ResourceInstanceObjectSrc]
+	ResourceAddrs  addrs.Map[addrs.AbsResourceInstance, []*states.ResourceInstanceObjectSrc]
 }
 
 func (m *MockQueryViews) List(states ListStates) {
@@ -302,7 +313,7 @@ func (m *MockQueryViews) List(states ListStates) {
 	m.ListStatesArg = states
 }
 
-func (m *MockQueryViews) Resource(addr addrs.List, obj *states.ResourceInstanceObjectSrc) {
+func (m *MockQueryViews) Resource(addr addrs.AbsResourceInstance, obj *states.ResourceInstanceObjectSrc) {
 	m.ResourceCalled = true
 	if !m.ResourceAddrs.Has(addr) {
 		m.ResourceAddrs.Put(addr, []*states.ResourceInstanceObjectSrc{})

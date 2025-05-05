@@ -100,6 +100,9 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		for _, r := range module.DataResources {
 			allResources = append(allResources, r)
 		}
+		for _, r := range module.ListResources {
+			allResources = append(allResources, r)
+		}
 	}
 
 	// ephemeral resources act like temporary values and must be added to the

@@ -1,0 +1,123 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+package terraform
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+)
+
+func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+	config := n.Config
+	addr := n.ResourceInstanceAddr()
+	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// validate self ref
+	diags = diags.Append(validateSelfRef(addr.Resource, config.Config, providerSchema))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// retrieve list schema? (already done in transformer)
+	forEach, _, _ := evaluateForEachExpression(config.ForEach, ctx, false)
+	keyData := EvalDataForInstanceKey(addr.Resource.Key, forEach)
+
+	// evaluate the list config block
+	var configDiags tfdiags.Diagnostics
+	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, n.Schema.ListBody, nil, keyData)
+	diags = diags.Append(configDiags)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// Unmark before sending to provider, will re-mark before returning
+	unmarkedConfigVal, _ := configVal.UnmarkDeepWithPaths()
+	configKnown := configVal.IsWhollyKnown()
+	if !configKnown {
+		diags = diags.Append(fmt.Errorf("config is not known"))
+		return diags
+	}
+
+	log.Printf("[TRACE] NodeQueryList: Re-validating config for %s", n.Addr)
+	validateResp := provider.ValidateListResourceConfig(
+		providers.ValidateListResourceConfigRequest{
+			TypeName: n.Config.Type,
+			Config:   unmarkedConfigVal,
+		},
+	)
+	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	doneCh := make(chan struct{}, 1)
+	// retrieve resource schema
+	resourceSchema := providerSchema.SchemaForResourceType(addrs.ManagedResourceMode, n.Config.Type)
+	if resourceSchema.Body == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider %q does not support managed source %q", n.ResolvedProvider, n.Config.Type))
+		return diags
+	}
+
+	// If we get down here then our configuration is complete and we're ready
+	// to actually call the provider to list the data.
+	err = provider.ListResource(providers.ListResourceRequest{
+		TypeName:        n.Config.Type,
+		Config:          unmarkedConfigVal,
+		DiagEmitter:     n.emitDiags,
+		ResourceEmitter: n.emitResource(ctx, resourceSchema, diags),
+		DoneCh:          doneCh,
+	})
+	if err != nil {
+		return diags.Append(fmt.Errorf("failed to list %s: %s", n.Addr, err))
+	}
+
+	for {
+		select {
+		case <-doneCh:
+			return diags
+		default:
+			// Maybe we want to set some limit on how long we wait or how much data can be sent?
+			// do nothing
+		}
+	}
+}
+
+func (n *NodePlannableResourceInstance) emitDiags(diags tfdiags.Diagnostics) {
+	if diags.HasErrors() {
+		diags = diags.Append(diags.InConfigBody(n.Config.Config, n.Addr.String()))
+		return
+	}
+}
+
+func (n *NodePlannableResourceInstance) emitResource(ctx EvalContext, schema providers.Schema, diags tfdiags.Diagnostics) func(resource providers.ListResult) {
+	return func(resource providers.ListResult) {
+		obj := &states.ResourceInstanceObject{
+			Value:    resource.ResourceObject,
+			Identity: resource.Identity,
+			Status:   states.ObjectPlanned,
+		}
+		src, err := obj.Encode(schema)
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("failed to encode %s in state: %s", n.Addr, err))
+		}
+		// store the resources in some transient state or send directly to the consumer
+		// Check if there's already an entry for this address and initialize if not
+		qState := ctx.Querier().State
+		if _, exists := qState.GetOk(n.Addr); !exists {
+			qState.Put(n.Addr, []*states.ResourceInstanceObjectSrc{})
+		}
+		qState.Put(n.Addr, append(qState.Get(n.Addr), src))
+		ctx.Querier().View.Resource(n.Addr, src)
+	}
+}
