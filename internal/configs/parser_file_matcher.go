@@ -31,13 +31,13 @@ type FileMatcher interface {
 
 	// DirFiles allows the matcher to process files in a directory
 	// only relevant to its type.
-	DirFiles(dir string, options *Options, fileSet *ConfigFileSet) hcl.Diagnostics
+	DirFiles(dir string, cfg *parserConfig, fileSet *ConfigFileSet) hcl.Diagnostics
 }
 
 // Option is a functional option type for configuring the parser
-type Option func(*Options)
+type Option func(*parserConfig)
 
-type Options struct {
+type parserConfig struct {
 	matchers      []FileMatcher
 	testDirectory string
 	fs            afero.Afero
@@ -57,27 +57,27 @@ func (p *Parser) dirFileSet(dir string, opts ...Option) (ConfigFileSet, hcl.Diag
 		Queries:  []string{},
 	}
 
-	// Set up options
-	options := &Options{
-		// We always match module and override files
+	// Set up the parser configuration
+	cfg := &parserConfig{
+		// We always match .tf files
 		matchers:      []FileMatcher{&moduleFiles{}},
 		testDirectory: DefaultTestDirectory,
 		fs:            p.fs,
 	}
 	for _, opt := range opts {
-		opt(options)
+		opt(cfg)
 	}
 
 	// Scan and categorize main directory files
-	mainDirDiags := p.rootFiles(dir, options.matchers, &fileSet)
+	mainDirDiags := p.rootFiles(dir, cfg.matchers, &fileSet)
 	diags = append(diags, mainDirDiags...)
 	if diags.HasErrors() {
 		return fileSet, diags
 	}
 
 	// Process matcher-specific files
-	for _, matcher := range options.matchers {
-		matcherDiags := matcher.DirFiles(dir, options, &fileSet)
+	for _, matcher := range cfg.matchers {
+		matcherDiags := matcher.DirFiles(dir, cfg, &fileSet)
 		diags = append(diags, matcherDiags...)
 	}
 
@@ -133,15 +133,15 @@ func (p *Parser) rootFiles(dir string, matchers []FileMatcher, fileSet *ConfigFi
 
 // MatchTestFiles adds a matcher for Terraform test files (.tftest.hcl and .tftest.json)
 func MatchTestFiles(dir string) Option {
-	return func(o *Options) {
+	return func(o *parserConfig) {
 		o.testDirectory = dir
 		o.matchers = append(o.matchers, &testFiles{})
 	}
 }
 
-// MatchQueryFiles adds a matcher for Terraform query files (.tfquery.hcl)
+// MatchQueryFiles adds a matcher for Terraform query files (.tfquery.hcl and .tfquery.json)
 func MatchQueryFiles() Option {
-	return func(o *Options) {
+	return func(o *parserConfig) {
 		o.matchers = append(o.matchers, &queryFiles{})
 	}
 }
@@ -169,7 +169,7 @@ func (m *moduleFiles) isOverride(name string) bool {
 	return isOverride
 }
 
-func (m *moduleFiles) DirFiles(dir string, options *Options, fileSet *ConfigFileSet) hcl.Diagnostics {
+func (m *moduleFiles) DirFiles(dir string, options *parserConfig, fileSet *ConfigFileSet) hcl.Diagnostics {
 	return nil
 }
 
@@ -180,7 +180,7 @@ func (t *testFiles) Matches(name string) bool {
 	return strings.HasSuffix(name, ".tftest.hcl") || strings.HasSuffix(name, ".tftest.json")
 }
 
-func (t *testFiles) DirFiles(dir string, opts *Options, fileSet *ConfigFileSet) hcl.Diagnostics {
+func (t *testFiles) DirFiles(dir string, opts *parserConfig, fileSet *ConfigFileSet) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	testPath := path.Join(dir, opts.testDirectory)
@@ -232,13 +232,13 @@ func (t *testFiles) DirFiles(dir string, opts *Options, fileSet *ConfigFileSet) 
 	return diags
 }
 
-// queryFiles matches Terraform query files (.tfquery.hcl)
+// queryFiles matches Terraform query files (.tfquery.hcl and .tfquery.json)
 type queryFiles struct{}
 
 func (q *queryFiles) Matches(name string) bool {
-	return strings.HasSuffix(name, ".tfquery.hcl")
+	return strings.HasSuffix(name, ".tfquery.hcl") || strings.HasSuffix(name, ".tfquery.json")
 }
 
-func (q *queryFiles) DirFiles(dir string, options *Options, fileSet *ConfigFileSet) hcl.Diagnostics {
+func (q *queryFiles) DirFiles(dir string, options *parserConfig, fileSet *ConfigFileSet) hcl.Diagnostics {
 	return nil
 }
