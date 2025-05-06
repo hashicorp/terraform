@@ -6,7 +6,6 @@ package configs
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -26,10 +25,10 @@ const (
 // overrides.
 // Optionally, test files (.tftest.hcl and .tftest.json) can be loaded from
 // a subdirectory of the given directory, which is specified by the
-// WithTestFiles option, or from the default test directory.
+// MatchTestFiles option, or from the default test directory.
 // If this option is not specified, test files will not be loaded.
 // Query files (.tfquery.hcl) are also loaded from the given directory if
-// specified by the WithQueryFiles option.
+// specified by the MatchQueryFiles option.
 //
 // If this method returns nil, that indicates that the given directory does not
 // exist at all or could not be opened for some reason. Callers may wish to
@@ -52,7 +51,7 @@ func (p *Parser) LoadConfigDir(path string, opts ...Option) (*Module, hcl.Diagno
 		return nil, diags
 	}
 
-	// Load the actual files
+	// Load the .tf configuration files
 	primary, fDiags := p.loadFiles(fileSet.Primary, false)
 	diags = diags.Extend(fDiags)
 
@@ -154,10 +153,10 @@ func (p Parser) ConfigDirFiles(dir string, opts ...Option) (primary, override []
 // IsConfigDir determines whether the given path refers to a directory that
 // exists and contains at least one Terraform config file (with a .tf or
 // .tf.json extension.). Note, we explicitely exclude checking for tests here
-// as tests must live alongside actual .tf config files.
+// as tests must live alongside actual .tf config files. Same goes for query files.
 func (p *Parser) IsConfigDir(path string) bool {
-	primaryPaths, overridePaths, _, _ := p.dirFiles(path, "")
-	return (len(primaryPaths) + len(overridePaths)) > 0
+	pathSet, _ := p.dirFileSet(path)
+	return (len(pathSet.Primary) + len(pathSet.Override)) > 0
 }
 
 func (p *Parser) loadFiles(paths []string, override bool) ([]*File, hcl.Diagnostics) {
@@ -179,109 +178,6 @@ func (p *Parser) loadFiles(paths []string, override bool) ([]*File, hcl.Diagnost
 	}
 
 	return files, diags
-}
-
-// dirFiles finds Terraform configuration files within dir, splitting them into
-// primary and override files based on the filename.
-//
-// If testsDir is not empty, dirFiles will also retrieve Terraform testing files
-// both directly within dir and within testsDir as a subdirectory of dir. In
-// this way, testsDir acts both as a direction to retrieve test files within the
-// main direction and as the location for additional test files.
-func (p *Parser) dirFiles(dir string, testsDir string) (primary, override, tests []string, diags hcl.Diagnostics) {
-	includeTests := len(testsDir) > 0
-
-	if includeTests {
-		testPath := path.Join(dir, testsDir)
-
-		infos, err := p.fs.ReadDir(testPath)
-		if err != nil {
-			// Then we couldn't read from the testing directory for some reason.
-
-			if os.IsNotExist(err) {
-				// Then this means the testing directory did not exist.
-				// We won't actually stop loading the rest of the configuration
-				// for this, we will add a warning to explain to the user why
-				// test files weren't processed but leave it at that.
-				if testsDir != DefaultTestDirectory {
-					// We'll only add the warning if a directory other than the
-					// default has been requested. If the user is just loading
-					// the default directory then we have no expectation that
-					// it should actually exist.
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagWarning,
-						Summary:  "Test directory does not exist",
-						Detail:   fmt.Sprintf("Requested test directory %s does not exist.", testPath),
-					})
-				}
-			} else {
-				// Then there is some other reason we couldn't load. We will
-				// treat this as a full error.
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Failed to read test directory",
-					Detail:   fmt.Sprintf("Test directory %s could not be read: %v.", testPath, err),
-				})
-
-				// We'll also stop loading the rest of the config for this.
-				return
-			}
-
-		} else {
-			for _, testInfo := range infos {
-				if testInfo.IsDir() || IsIgnoredFile(testInfo.Name()) {
-					continue
-				}
-
-				if strings.HasSuffix(testInfo.Name(), ".tftest.hcl") || strings.HasSuffix(testInfo.Name(), ".tftest.json") {
-					tests = append(tests, filepath.Join(testPath, testInfo.Name()))
-				}
-			}
-		}
-
-	}
-
-	infos, err := p.fs.ReadDir(dir)
-	if err != nil {
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Failed to read module directory",
-			Detail:   fmt.Sprintf("Module directory %s does not exist or cannot be read.", dir),
-		})
-		return
-	}
-
-	for _, info := range infos {
-		if info.IsDir() {
-			// We only care about terraform configuration files.
-			continue
-		}
-
-		name := info.Name()
-		ext := fileExt(name)
-		if ext == "" || IsIgnoredFile(name) {
-			continue
-		}
-
-		if ext == ".tftest.hcl" || ext == ".tftest.json" {
-			if includeTests {
-				tests = append(tests, filepath.Join(dir, name))
-			}
-			continue
-		}
-
-		baseName := name[:len(name)-len(ext)] // strip extension
-		isOverride := baseName == "override" || strings.HasSuffix(baseName, "_override")
-
-		fullPath := filepath.Join(dir, name)
-		if isOverride {
-			override = append(override, fullPath)
-		} else {
-			primary = append(primary, fullPath)
-		}
-	}
-
-	return
 }
 
 func (p *Parser) loadTestFiles(basePath string, paths []string) (map[string]*TestFile, hcl.Diagnostics) {
@@ -349,6 +245,8 @@ func fileExt(path string) string {
 		return ".tftest.json"
 	} else if strings.HasSuffix(path, ".tfquery.hcl") {
 		return ".tfquery.hcl"
+	} else if strings.HasSuffix(path, ".tfquery.json") {
+		return ".tfquery.json"
 	} else {
 		return ""
 	}
@@ -374,10 +272,10 @@ func IsEmptyDir(path, testDir string) (bool, error) {
 	}
 
 	p := NewParser(nil)
-	fs, os, tests, diags := p.dirFiles(path, testDir)
+	fSet, diags := p.dirFileSet(path, MatchTestFiles(testDir))
 	if diags.HasErrors() {
 		return false, diags
 	}
 
-	return len(fs) == 0 && len(os) == 0 && len(tests) == 0, nil
+	return len(fSet.Primary) == 0 && len(fSet.Override) == 0 && len(fSet.Tests) == 0, nil
 }
