@@ -13,5 +13,5 @@ metadata:
     jira/label: terraform
 spec:
   type: library
-  owner: terraform-core
+  owner: team-tf-core
   lifecycle: production

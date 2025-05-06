@@ -182,7 +182,7 @@ func upgradeResourceIdentity(addr addrs.AbsResourceInstance, provider providers.
 		// to all protobuf target languages so in practice we use int64
 		// on the wire. In future we will change all of our internal
 		// representations to int64 too.
-		Version:         int64(src.SchemaVersion),
+		Version:         int64(src.IdentitySchemaVersion),
 		RawIdentityJSON: src.IdentityJSON,
 	}
 
