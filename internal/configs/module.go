@@ -59,8 +59,6 @@ type Module struct {
 	Checks map[string]*Check
 
 	Tests map[string]*TestFile
-
-	Lists map[string]*List
 }
 
 // File describes the contents of a single configuration file.
@@ -651,9 +649,9 @@ func (m *Module) appendQueryFile(file *QueryFile) hcl.Diagnostics {
 		m.Locals[l.Name] = l
 	}
 
-	for _, ql := range file.Lists {
+	for _, ql := range file.ListResources {
 		key := ql.moduleUniqueKey()
-		if existing, exists := m.Lists[key]; exists {
+		if existing, exists := m.ListResources[key]; exists {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  fmt.Sprintf("Duplicate list %q configuration", existing.Type),
@@ -663,7 +661,7 @@ func (m *Module) appendQueryFile(file *QueryFile) hcl.Diagnostics {
 			continue
 		}
 		// set the provider FQN for the resource
-		m.Lists[key] = ql
+		m.ListResources[key] = ql
 		ql.Provider = m.ProviderForLocalConfig(ql.ProviderConfigAddr())
 	}
 
