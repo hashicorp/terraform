@@ -49,6 +49,7 @@ type Module struct {
 	ManagedResources   map[string]*Resource
 	DataResources      map[string]*Resource
 	EphemeralResources map[string]*Resource
+	ListResources      map[string]*Resource
 
 	Moved   []*Moved
 	Removed []*Removed
@@ -57,8 +58,6 @@ type Module struct {
 	Checks map[string]*Check
 
 	Tests map[string]*TestFile
-
-	Lists map[string]*List
 }
 
 // File describes the contents of a single configuration file.
@@ -130,10 +129,10 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		ManagedResources:   map[string]*Resource{},
 		EphemeralResources: map[string]*Resource{},
 		DataResources:      map[string]*Resource{},
+		ListResources:      map[string]*Resource{},
 		Checks:             map[string]*Check{},
 		ProviderMetas:      map[addrs.Provider]*ProviderMeta{},
 		Tests:              map[string]*TestFile{},
-		Lists:              map[string]*List{},
 	}
 
 	// Process the required_providers blocks first, to ensure that all
@@ -200,6 +199,8 @@ func (m *Module) ResourceByAddr(addr addrs.Resource) *Resource {
 		return m.DataResources[key]
 	case addrs.EphemeralResourceMode:
 		return m.EphemeralResources[key]
+	case addrs.ListResourceMode:
+		return m.ListResources[key]
 	default:
 		return nil
 	}
@@ -547,9 +548,9 @@ func (m *Module) appendQueryFile(file *QueryFile) hcl.Diagnostics {
 		m.Locals[l.Name] = l
 	}
 
-	for _, ql := range file.Lists {
+	for _, ql := range file.ListResources {
 		key := ql.moduleUniqueKey()
-		if existing, exists := m.Lists[key]; exists {
+		if existing, exists := m.ListResources[key]; exists {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  fmt.Sprintf("Duplicate list %q configuration", existing.Type),
@@ -559,7 +560,7 @@ func (m *Module) appendQueryFile(file *QueryFile) hcl.Diagnostics {
 			continue
 		}
 		// set the provider FQN for the resource
-		m.Lists[key] = ql
+		m.ListResources[key] = ql
 		ql.Provider = m.ProviderForLocalConfig(ql.ProviderConfigAddr())
 	}
 

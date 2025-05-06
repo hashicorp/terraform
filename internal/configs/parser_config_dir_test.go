@@ -149,6 +149,61 @@ func TestParserLoadConfigDirWithTests(t *testing.T) {
 	}
 }
 
+func TestParserLoadConfigDirWithQueries(t *testing.T) {
+	tests := []struct {
+		name        string
+		directory   string
+		shouldFail  bool
+		diagnostics []string
+		resources   int
+	}{
+		{
+			name:      "simple",
+			directory: "testdata/query-files/valid/simple",
+			resources: 2,
+		},
+		{
+			name:       "no-provider",
+			directory:  "testdata/query-files/invalid/no-provider",
+			shouldFail: true,
+			diagnostics: []string{
+				"testdata/query-files/invalid/no-provider/main.tfquery.hcl:1,1-27: Missing \"provider\" attribute; You must specify a provider attribute when defining a list block.",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			parser := NewParser(nil)
+			mod, diags := parser.LoadConfigDir(test.directory, MatchQueryFiles())
+			if test.shouldFail {
+				if !diags.HasErrors() {
+					t.Errorf("expected errors, but found none")
+				}
+				if len(diags) != len(test.diagnostics) {
+					t.Fatalf("expected %d errors, but found %d", len(test.diagnostics), len(diags))
+				}
+				for i, diag := range diags {
+					if diag.Error() != test.diagnostics[i] {
+						t.Errorf("expected error to be %q, but found %q", test.diagnostics[i], diag.Error())
+					}
+				}
+			} else {
+				if len(diags) > 0 { // We don't want any warnings or errors.
+					t.Errorf("unexpected diagnostics")
+					for _, diag := range diags {
+						t.Logf("- %s", diag)
+					}
+				}
+			}
+
+			if len(mod.ListResources) != test.resources {
+				t.Errorf("incorrect number of list blocks found: %d", len(mod.ListResources))
+			}
+		})
+	}
+}
+
 func TestParserLoadTestFiles_Invalid(t *testing.T) {
 
 	tcs := map[string][]string{
