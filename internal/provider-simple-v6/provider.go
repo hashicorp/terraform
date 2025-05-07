@@ -5,6 +5,7 @@
 package simple
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -249,6 +250,24 @@ func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.
 
 	resp.Result = req.Arguments[0]
 	return resp
+}
+
+func (s simple) PlanAction(providers.PlanActionRequest) providers.PlanActionResponse {
+	// Our schema doesn't include any actions, so it should be
+	// impossible to get in here.
+	panic("PlanAction on provider that didn't declare any actions")
+}
+
+func (s simple) InvokeAction(context.Context, providers.InvokeActionRequest) providers.InvokeActionResponse {
+	// Our schema doesn't include any actions, so it should be
+	// impossible to get in here.
+	panic("InvokeAction on provider that didn't declare any actions")
+}
+
+func (s simple) CancelAction(providers.CancelActionRequest) providers.CancelActionResponse {
+	// Our schema doesn't include any actions, so it should be
+	// impossible to get in here.
+	panic("CancelAction on provider that didn't declare any actions")
 }
 
 func (s simple) Close() error {
