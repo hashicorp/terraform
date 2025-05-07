@@ -98,13 +98,13 @@ type Component struct {
 func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 	changes := &plans.ChangesSrc{}
 	plan := &plans.Plan{
-		UIMode:                  c.Mode,
-		Changes:                 changes,
-		Timestamp:               c.PlanTimestamp,
-		Applyable:               c.PlanApplyable,
-		Complete:                c.PlanComplete,
-		Checks:                  c.PlannedChecks,
-		ProviderFunctionResults: c.PlannedFunctionResults,
+		UIMode:          c.Mode,
+		Changes:         changes,
+		Timestamp:       c.PlanTimestamp,
+		Applyable:       c.PlanApplyable,
+		Complete:        c.PlanComplete,
+		Checks:          c.PlannedChecks,
+		FunctionResults: c.PlannedFunctionResults,
 	}
 
 	for _, elem := range c.ResourceInstancePlanned.Elems {

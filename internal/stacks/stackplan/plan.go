@@ -82,10 +82,10 @@ type Plan struct {
 	// associated resources.
 	DeletedComponents collections.Set[stackaddrs.AbsComponentInstance]
 
-	// ProviderFunctionResults is a shared table of results from calling
+	// FunctionResults is a shared table of results from calling
 	// provider functions. This is stored and loaded from during the planning
 	// stage to use during apply operations.
-	ProviderFunctionResults []lang.FunctionHash
+	FunctionResults []lang.FunctionHash
 
 	// PlanTimestamp is the time at which the plan was created.
 	PlanTimestamp time.Time

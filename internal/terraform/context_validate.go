@@ -113,7 +113,7 @@ func (c *Context) Validate(config *configs.Config, opts *ValidateOpts) tfdiags.D
 
 	walker, walkDiags := c.walk(graph, walkValidate, &graphWalkOpts{
 		Config:                  config,
-		ProviderFuncResults:     lang.NewFunctionResultsTable(nil),
+		FunctionResults:         lang.NewFunctionResultsTable(nil),
 		ExternalProviderConfigs: opts.ExternalProviders,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)

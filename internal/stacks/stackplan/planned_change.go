@@ -279,9 +279,9 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*stacks.PlannedC
 		return nil, fmt.Errorf("failed to encode check results: %s", err)
 	}
 
-	var plannedFunctionResults []*planproto.ProviderFunctionCallHash
+	var plannedFunctionResults []*planproto.FunctionCallHash
 	for _, result := range pc.PlannedProviderFunctionResults {
-		plannedFunctionResults = append(plannedFunctionResults, &planproto.ProviderFunctionCallHash{
+		plannedFunctionResults = append(plannedFunctionResults, &planproto.FunctionCallHash{
 			Key:    result.Key,
 			Result: result.Result,
 		})
@@ -304,7 +304,7 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*stacks.PlannedC
 		DependsOnComponentAddrs: componentAddrsRaw,
 		PlannedOutputValues:     plannedOutputValues,
 		PlannedCheckResults:     plannedCheckResults,
-		ProviderFunctionResults: plannedFunctionResults,
+		FunctionResults:         plannedFunctionResults,
 	}, proto.MarshalOptions{})
 	if err != nil {
 		return nil, err
@@ -835,9 +835,9 @@ type PlannedChangeProviderFunctionResults struct {
 var _ PlannedChange = (*PlannedChangeProviderFunctionResults)(nil)
 
 func (pc *PlannedChangeProviderFunctionResults) PlannedChangeProto() (*stacks.PlannedChange, error) {
-	var results tfstackdata1.ProviderFunctionResults
+	var results tfstackdata1.FunctionResults
 	for _, result := range pc.Results {
-		results.ProviderFunctionResults = append(results.ProviderFunctionResults, &planproto.ProviderFunctionCallHash{
+		results.FunctionResults = append(results.FunctionResults, &planproto.FunctionCallHash{
 			Key:    result.Key,
 			Result: result.Result,
 		})

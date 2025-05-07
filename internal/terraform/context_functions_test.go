@@ -148,7 +148,7 @@ output "second" {
 	}
 
 	errs := diags.Err().Error()
-	if !strings.Contains(errs, "provider function returned an inconsistent result") {
+	if !strings.Contains(errs, "function returned an inconsistent result") {
 		t.Fatalf("expected error with %q, got %q", "provider function returned an inconsistent result", errs)
 	}
 	_, diags = ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
@@ -157,7 +157,7 @@ output "second" {
 	}
 
 	errs = diags.Err().Error()
-	if !strings.Contains(errs, "provider function returned an inconsistent result") {
+	if !strings.Contains(errs, "function returned an inconsistent result") {
 		t.Fatalf("expected error with %q, got %q", "provider function returned an inconsistent result", errs)
 	}
 }
@@ -224,7 +224,7 @@ func TestContext2Plan_providerFunctionImpureApply(t *testing.T) {
 	}
 
 	errs := diags.Err().Error()
-	if !strings.Contains(errs, "provider function returned an inconsistent result") {
+	if !strings.Contains(errs, "function returned an inconsistent result") {
 		t.Fatalf("expected error with %q, got %q", "provider function returned an inconsistent result", errs)
 	}
 }

@@ -133,9 +133,9 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 			l.ret.ApplyTimeInputVariables.Add(addr)
 		}
 
-	case *tfstackdata1.ProviderFunctionResults:
-		for _, hash := range msg.ProviderFunctionResults {
-			l.ret.ProviderFunctionResults = append(l.ret.ProviderFunctionResults, lang.FunctionHash{
+	case *tfstackdata1.FunctionResults:
+		for _, hash := range msg.FunctionResults {
+			l.ret.FunctionResults = append(l.ret.FunctionResults, lang.FunctionHash{
 				Key:    hash.Key,
 				Result: hash.Result,
 			})
@@ -213,7 +213,7 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 		}
 
 		var functionResults []lang.FunctionHash
-		for _, hash := range msg.ProviderFunctionResults {
+		for _, hash := range msg.FunctionResults {
 			functionResults = append(functionResults, lang.FunctionHash{
 				Key:    hash.Key,
 				Result: hash.Result,

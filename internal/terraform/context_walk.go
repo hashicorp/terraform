@@ -74,7 +74,7 @@ type graphWalkOpts struct {
 
 	MoveResults refactoring.MoveResults
 
-	ProviderFuncResults *lang.FunctionResults
+	FunctionResults *lang.FunctionResults
 
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
@@ -197,7 +197,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		Operation:               operation,
 		StopContext:             c.runContext,
 		PlanTimestamp:           opts.PlanTimeTimestamp,
-		providerFuncResults:     opts.ProviderFuncResults,
+		functionResults:         opts.FunctionResults,
 		Forget:                  opts.Forget,
 	}
 }

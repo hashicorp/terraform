@@ -4299,7 +4299,7 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 
 	// just verify the plan is correctly loading the provider function results
 	// as well
-	if len(plan.ProviderFunctionResults) == 0 {
+	if len(plan.FunctionResults) == 0 {
 		t.Errorf("expected provider function results, got none")
 
 		if len(plan.GetComponent(mustAbsComponentInstance("component.self")).PlannedFunctionResults) == 0 {
