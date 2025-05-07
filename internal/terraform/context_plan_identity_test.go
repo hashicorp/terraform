@@ -153,6 +153,7 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 			ExpectedError:                       fmt.Errorf("failed to upgrade resource identity: provider was unable to do so"),
 		},
 		"identity sent to provider differs from returned one": {
+			// We don't throw an error here, because there are resource types with mutable identities
 			StoredIdentitySchemaVersion: 0,
 			StoredIdentityJSON:          []byte(`{"id": "foo"}`),
 			IdentitySchema: providers.IdentitySchema{
@@ -171,9 +172,8 @@ func TestContext2Plan_resource_identity_refresh(t *testing.T) {
 				"id": cty.StringVal("bar"),
 			}),
 			ExpectedIdentity: cty.ObjectVal(map[string]cty.Value{
-				"id": cty.StringVal("foo"),
+				"id": cty.StringVal("bar"),
 			}),
-			ExpectedError: fmt.Errorf("Provider produced different identity: Provider \"registry.terraform.io/hashicorp/aws\" returned a different identity for aws_instance.web than the previously stored one. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
 		},
 		"identity with unknowns": {
 			IdentitySchema: providers.IdentitySchema{
@@ -536,6 +536,7 @@ func TestContext2Plan_resource_identity_plan(t *testing.T) {
 		},
 
 		"update - changing identity": {
+			// We don't throw an error here, because there are resource types with mutable identities
 			prevRunState: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					addrs.Resource{
@@ -559,9 +560,9 @@ func TestContext2Plan_resource_identity_plan(t *testing.T) {
 				"id": cty.StringVal("foo"),
 			}),
 
-			expectDiagnostics: tfdiags.Diagnostics{
-				tfdiags.Sourceless(tfdiags.Error, "Provider produced different identity", "Provider \"registry.terraform.io/hashicorp/test\" returned a different identity for test_resource.test than the previously stored one. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
-			},
+			expectedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
+			}),
 		},
 
 		"update - updating identity schema version": {
