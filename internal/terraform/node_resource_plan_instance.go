@@ -778,7 +778,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	}
 
 	importedState := states.NewResourceInstanceObjectFromIR(imported[0])
-	if deferred == nil && importedState.Value.IsNull() {
+	if deferred == nil && !importTarget.Type().IsObjectType() && importedState.Value.IsNull() {
 		// It's actually okay for a deferred import to have returned a null.
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
