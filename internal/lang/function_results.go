@@ -43,9 +43,14 @@ func NewFunctionResultsTable(hashes []FunctionHash) *FunctionResults {
 }
 
 // CheckPrior compares the function call against any cached results, and returns
-// an error if the result does not match a prior call. A zero-value provider
-// address can be used for internal functions which need this validation.
-func (f *FunctionResults) CheckPrior(provider addrs.Provider, name string, args []cty.Value, result cty.Value) error {
+// an error if the result does not match a prior call.
+func (f *FunctionResults) CheckPrior(name string, args []cty.Value, result cty.Value) error {
+	return f.CheckPriorProvider(addrs.Provider{}, name, args, result)
+}
+
+// CheckPriorProvider compares the provider function call against any cached
+// results, and returns an error if the result does not match a prior call.
+func (f *FunctionResults) CheckPriorProvider(provider addrs.Provider, name string, args []cty.Value, result cty.Value) error {
 	argSum := sha256.New()
 
 	if !provider.IsZero() {

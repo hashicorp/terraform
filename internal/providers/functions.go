@@ -120,7 +120,7 @@ func (d FunctionDecl) BuildFunction(providerAddr addrs.Provider, name string, re
 			}
 
 			if resTable != nil {
-				err = resTable.CheckPrior(providerAddr, name, args, resp.Result)
+				err = resTable.CheckPriorProvider(providerAddr, name, args, resp.Result)
 				if err != nil {
 					return cty.UnknownVal(retType), err
 				}
