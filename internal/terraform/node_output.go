@@ -376,6 +376,21 @@ func (n *NodeApplyableOutput) References() []*addrs.Reference {
 
 // GraphNodeExecutable
 func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	if n.Config.DeprecatedSet {
+		ctx.MarkReferencableAsDeprecated(n.Config.Addr().InModule(n.Addr.Module.Module()), n.Config.Deprecated)
+	}
+
+	for _, ref := range n.References() {
+		if msg, ok := ctx.ReferencableDeprecationMessage(n.Addr.Module.Module(), ref.Subject); ok {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Usage of deprecated output",
+				Detail:   msg,
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+		}
+	}
+
 	state := ctx.State()
 	if state == nil {
 		return

@@ -349,7 +349,7 @@ The -target option is not for routine use, and is provided only for exceptional 
 		panic("nil plan but no errors")
 	}
 
-	if plan != nil {
+	if plan != nil && plan.Changes != nil {
 		relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, plan)
 		diags = diags.Append(rDiags)
 		plan.RelevantAttributes = relevantAttrs
