@@ -42,6 +42,16 @@ type resource struct {
 	// SensitiveValues is similar to AttributeValues, but with all sensitive
 	// values replaced with true, and all non-sensitive leaf values omitted.
 	SensitiveValues json.RawMessage `json:"sensitive_values,omitempty"`
+
+	// The version of the resource identity schema the "identity" property
+	// conforms to.
+	// It's a pointer, because it should be optional, but also 0 is a valid
+	// schema version.
+	IdentitySchemaVersion *uint64 `json:"identity_schema_version,omitempty"`
+
+	// The JSON representation of the resource identity, whose structure
+	// depends on the resource identity schema.
+	IdentityValues attributeValues `json:"identity,omitempty"`
 }
 
 // ResourceChange is a description of an individual change action that Terraform

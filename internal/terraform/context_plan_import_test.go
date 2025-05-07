@@ -1961,6 +1961,9 @@ func TestContext2Plan_importIdentityModule(t *testing.T) {
 				State: cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("foo"),
 				}),
+				Identity: cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("bar"),
+				}),
 			},
 		},
 	}
@@ -2137,4 +2140,143 @@ import {
 			t.Errorf("expected non-import change, got import change %#v", instPlan.Importing)
 		}
 	})
+}
+
+func TestContext2Plan_importIdentityModuleWithOptional(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "import-identity-module")
+
+	identitySchema := &configschema.Object{
+		Attributes: map[string]*configschema.Attribute{
+			"name": {
+				Type:     cty.String,
+				Required: true,
+			},
+			"something": {
+				Type:     cty.Number,
+				Optional: true,
+			},
+		},
+		Nesting: configschema.NestingSingle,
+	}
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_lb": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+		IdentityTypes: map[string]*configschema.Object{
+			"aws_lb": identitySchema,
+		},
+	})
+	wantIdentity := cty.ObjectVal(map[string]cty.Value{
+		"name":      cty.StringVal("bar"),
+		"something": cty.NumberIntVal(42),
+	})
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_lb",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+				Identity: wantIdentity,
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	addr := mustResourceInstanceAddr("aws_lb.foo")
+	instPlan := plan.Changes.ResourceInstance(addr)
+	if instPlan == nil {
+		t.Fatalf("no plan for %s at all", addr)
+	}
+
+	identity, err := instPlan.Importing.Identity.Decode(identitySchema.ImpliedType())
+	if err != nil {
+		t.Fatalf("failed to decode identity: %s", err)
+	}
+	identityMatches := identity.Equals(wantIdentity)
+	if !identityMatches.True() {
+		t.Errorf("identity does not match\ngot:  %s\nwant: %s",
+			tfdiags.ObjectToString(identity),
+			tfdiags.ObjectToString(wantIdentity))
+	}
+}
+
+func TestContext2Plan_importIdentityMissingResponse(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "import-identity-module")
+
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_lb": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+		IdentityTypes: map[string]*configschema.Object{
+			"aws_lb": {
+				Attributes: map[string]*configschema.Attribute{
+					"name": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+	})
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_lb",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+				// No identity returned
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+	if got, want := diags.Err().Error(), `import of aws_lb.foo didn't return an identity`; !strings.Contains(got, want) {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
 }

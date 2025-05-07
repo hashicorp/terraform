@@ -1119,6 +1119,10 @@ func TestApply(t *testing.T) {
 								"removed": cty.StringVal("removed"),
 							}),
 						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("removed-direct"),
+							Value: cty.SetValEmpty(cty.String),
+						},
 					},
 				},
 			},
@@ -4297,7 +4301,7 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 	if len(plan.ProviderFunctionResults) == 0 {
 		t.Errorf("expected provider function results, got none")
 
-		if len(plan.Components.Get(mustAbsComponentInstance("component.self")).PlannedFunctionResults) == 0 {
+		if len(plan.GetComponent(mustAbsComponentInstance("component.self")).PlannedFunctionResults) == 0 {
 			t.Errorf("expected component function results, got none")
 		}
 	}

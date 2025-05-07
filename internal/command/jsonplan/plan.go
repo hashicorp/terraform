@@ -156,6 +156,11 @@ type Change struct {
 	// might change in the future. However, not all Importing changes will
 	// contain generated config.
 	GeneratedConfig string `json:"generated_config,omitempty"`
+
+	// BeforeIdentity and AfterIdentity are representations of the resource
+	// identity value both before and after the action.
+	BeforeIdentity json.RawMessage `json:"before_identity,omitempty"`
+	AfterIdentity  json.RawMessage `json:"after_identity,omitempty"`
 }
 
 // Importing is a nested object for the resource import metadata.
@@ -168,6 +173,10 @@ type Importing struct {
 	// would have led to the overall change being deferred, as such this should
 	// only be true when processing changes from the deferred changes list.
 	Unknown bool `json:"unknown,omitempty"`
+
+	// The identity can be used instead of the ID to target the resource as part
+	// of the planned import operation.
+	Identity json.RawMessage `json:"identity,omitempty"`
 }
 
 type output struct {
@@ -501,7 +510,44 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 		if rc.Importing.Unknown {
 			importing = &Importing{Unknown: true}
 		} else {
-			importing = &Importing{ID: rc.Importing.ID}
+			if rc.Importing.ID != "" {
+				importing = &Importing{ID: rc.Importing.ID}
+			} else {
+				identity, err := rc.Importing.Identity.Decode(schema.Identity.ImpliedType())
+				if err != nil {
+					return r, err
+				}
+				rawIdentity, err := ctyjson.Marshal(identity, identity.Type())
+				if err != nil {
+					return r, err
+				}
+
+				importing = &Importing{
+					Identity: json.RawMessage(rawIdentity),
+				}
+			}
+		}
+	}
+
+	var beforeIdentity, afterIdentity []byte
+	if schema.Identity != nil && rc.BeforeIdentity != nil {
+		identity, err := rc.BeforeIdentity.Decode(schema.Identity.ImpliedType())
+		if err != nil {
+			return r, err
+		}
+		beforeIdentity, err = ctyjson.Marshal(identity, identity.Type())
+		if err != nil {
+			return r, err
+		}
+	}
+	if schema.Identity != nil && rc.AfterIdentity != nil {
+		identity, err := rc.AfterIdentity.Decode(schema.Identity.ImpliedType())
+		if err != nil {
+			return r, err
+		}
+		afterIdentity, err = ctyjson.Marshal(identity, identity.Type())
+		if err != nil {
+			return r, err
 		}
 	}
 
@@ -515,6 +561,8 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 		ReplacePaths:    replacePaths,
 		Importing:       importing,
 		GeneratedConfig: rc.GeneratedConfig,
+		BeforeIdentity:  json.RawMessage(beforeIdentity),
+		AfterIdentity:   json.RawMessage(afterIdentity),
 	}
 
 	if rc.DeposedKey != states.NotDeposed {
