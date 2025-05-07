@@ -671,7 +671,6 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		if !resp.Identity.IsNull() {
 			diags = diags.Append(n.validateIdentityKnown(resp.Identity))
 			diags = diags.Append(n.validateIdentity(resp.Identity, schema.Identity))
-			diags = diags.Append(n.validateIdentityDidNotChange(state, resp.Identity))
 		}
 		if resp.Deferred != nil {
 			deferred = resp.Deferred
@@ -1122,10 +1121,6 @@ func (n *NodeAbstractResourceInstance) plan(
 	if !plannedIdentity.IsNull() {
 		if !action.IsReplace() && action != plans.Create {
 			diags = diags.Append(n.validateIdentityKnown(plannedIdentity))
-			// If the identity is not known we can not validate it did not change
-			if !diags.HasErrors() {
-				diags = diags.Append(n.validateIdentityDidNotChange(currentState, plannedIdentity))
-			}
 		}
 
 		diags = diags.Append(n.validateIdentity(plannedIdentity, schema.Identity))
@@ -2648,9 +2643,6 @@ func (n *NodeAbstractResourceInstance) apply(
 		if !resp.NewIdentity.IsNull() {
 			diags = diags.Append(n.validateIdentityKnown(resp.NewIdentity))
 			diags = diags.Append(n.validateIdentity(resp.NewIdentity, schema.Identity))
-			if !change.Action.IsReplace() {
-				diags = diags.Append(n.validateIdentityDidNotChange(state, resp.NewIdentity))
-			}
 		}
 	}
 	applyDiags := resp.Diagnostics
@@ -2908,21 +2900,6 @@ func (n *NodeAbstractResourceInstance) validateIdentityKnown(newIdentity cty.Val
 			"Provider produced invalid identity",
 			fmt.Sprintf(
 				"Provider %q returned an identity with unknown values for %s. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider.Provider, n.Addr,
-			),
-		))
-	}
-
-	return diags
-}
-
-func (n *NodeAbstractResourceInstance) validateIdentityDidNotChange(state *states.ResourceInstanceObject, newIdentity cty.Value) (diags tfdiags.Diagnostics) {
-	if state != nil && !state.Identity.IsNull() && state.Identity.Equals(newIdentity).False() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider produced different identity",
-			fmt.Sprintf(
-				"Provider %q returned a different identity for %s than the previously stored one. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
 				n.ResolvedProvider.Provider, n.Addr,
 			),
 		))
