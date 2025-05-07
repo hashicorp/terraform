@@ -446,12 +446,13 @@ func TestContext2Plan_resource_identity_plan(t *testing.T) {
 			},
 		},
 		"create - null planned identity schema": {
+			// We allow null values in identities
 			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.NullVal(cty.String),
 			}),
-			expectDiagnostics: tfdiags.Diagnostics{
-				tfdiags.Sourceless(tfdiags.Error, "Provider produced an identity that doesn't match the schema", "Provider \"registry.terraform.io/hashicorp/test\" returned an identity for test_resource.test that doesn't match the identity schema: attributes \"id\" are required and must not be null. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker."),
-			},
+			expectedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.NullVal(cty.String),
+			}),
 		},
 		"update": {
 			prevRunState: states.BuildState(func(s *states.SyncState) {
