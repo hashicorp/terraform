@@ -4,6 +4,7 @@
 package stubs
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/zclconf/go-cty/cty"
@@ -289,6 +290,38 @@ func (u *unknownProvider) CallFunction(_ providers.CallFunctionRequest) provider
 	return providers.CallFunctionResponse{
 		Err: fmt.Errorf("CallFunction shouldn't be called on an unknown provider; this is a bug in Terraform - please report this error"),
 	}
+}
+
+func (u *unknownProvider) PlanAction(request providers.PlanActionRequest) providers.PlanActionResponse {
+	return providers.PlanActionResponse{
+		Diagnostics: []tfdiags.Diagnostic{
+			tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Provider configuration is unknown",
+				"Cannot plan this action because its associated provider configuration is unknown.",
+				nil, // nil attribute path means the overall configuration block
+			),
+		},
+	}
+}
+
+func (u *unknownProvider) InvokeAction(_ context.Context, request providers.InvokeActionRequest) providers.InvokeActionResponse {
+	return providers.InvokeActionResponse{
+		Diagnostics: []tfdiags.Diagnostic{
+			tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Provider configuration is unknown",
+				"Cannot invoke this action because its associated provider configuration is unknown.",
+				nil, // nil attribute path means the overall configuration block
+			),
+		},
+	}
+}
+
+func (u *unknownProvider) CancelAction(request providers.CancelActionRequest) providers.CancelActionResponse {
+	// Since the provider configuration is unknown, we don't have any specific
+	// cancellation logic to implement. We simply acknowledge the cancellation.
+	return providers.CancelActionResponse{}
 }
 
 func (u *unknownProvider) Close() error {

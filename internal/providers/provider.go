@@ -4,6 +4,8 @@
 package providers
 
 import (
+	"context"
+
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -100,6 +102,15 @@ type Interface interface {
 	// CallFunction calls a provider-contributed function.
 	CallFunction(CallFunctionRequest) CallFunctionResponse
 
+	// PlanAction plans an action to be invoked, providers might indicate potential drift and
+	// raise issues with the action configuration.
+	PlanAction(PlanActionRequest) PlanActionResponse
+	// InvokeAction invokes an action, providers return a stream of events that update terraform
+	// about the status of the action.
+	InvokeAction(context.Context, InvokeActionRequest) InvokeActionResponse
+	// CancelAction cancels an action, triggering a graceful shutdown of the action.
+	CancelAction(CancelActionRequest) CancelActionResponse
+
 	// Close shuts down the plugin process if applicable.
 	Close() error
 }
@@ -129,6 +140,9 @@ type GetProviderSchemaResponse struct {
 	// Functions maps from local function name (not including an namespace
 	// prefix) to the declaration of a function.
 	Functions map[string]FunctionDecl
+
+	// Actions maps the name of the action to its schema.
+	Actions map[string]ActionSchema
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
@@ -168,6 +182,17 @@ type Schema struct {
 
 	IdentityVersion int64
 	Identity        *configschema.Object
+}
+
+type ActionSchema struct {
+	Version         int64
+	Block           *configschema.Block
+	LinkedResources []LinkedResource
+}
+
+type LinkedResource struct {
+	AttributePath cty.Path
+	TypeName      string
 }
 
 // ServerCapabilities allows providers to communicate extra information
@@ -687,3 +712,59 @@ type CallFunctionResponse struct {
 	// specific argument.
 	Err error
 }
+
+type PlanActionRequest struct {
+	TypeName      string
+	PlannedConfig cty.Value
+}
+
+type PlanActionResponse struct {
+	NewConfig   cty.Value
+	Diagnostics tfdiags.Diagnostics
+}
+
+type InvokeActionRequest struct {
+	TypeName      string
+	PlannedConfig cty.Value
+}
+
+type InvokeActionResponse struct {
+	CancellationToken string
+	Events            <-chan InvokeActionEvent
+	Diagnostics       tfdiags.Diagnostics
+}
+
+type CancelActionRequest struct {
+	TypeName          string
+	CancellationToken string
+}
+
+type CancelActionResponse struct {
+	Diagnostics tfdiags.Diagnostics
+}
+
+type InvokeActionEvent interface {
+	isInvokeActionEvent()
+}
+
+// Finished Event
+var _ InvokeActionEvent = &InvokeActionEvent_Finished{}
+
+type InvokeActionEvent_Finished struct {
+	NewConfig   cty.Value
+	Diagnostics tfdiags.Diagnostics
+	Cancelled   bool
+}
+
+func (e *InvokeActionEvent_Finished) isInvokeActionEvent() {}
+
+// Progress Event
+var _ InvokeActionEvent = &InvokeActionEvent_Progress{}
+
+type InvokeActionEvent_Progress struct {
+	Stdout      []string
+	Stderr      []string
+	Diagnostics tfdiags.Diagnostics
+}
+
+func (e *InvokeActionEvent_Progress) isInvokeActionEvent() {}

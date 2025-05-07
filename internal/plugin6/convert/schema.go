@@ -111,6 +111,28 @@ func ProtoToProviderSchema(s *proto.Schema, id *proto.ResourceIdentitySchema) pr
 	return schema
 }
 
+func ProtoToActionSchema(s *proto.ActionSchema) providers.ActionSchema {
+	schema := providers.ActionSchema{
+		Version:         s.Version,
+		LinkedResources: []providers.LinkedResource{},
+	}
+
+	if s.Block != nil {
+		schema.Block = ProtoToConfigSchema(s.Block)
+	}
+
+	if len(s.LinkedResources) > 0 {
+		for _, lr := range s.LinkedResources {
+			schema.LinkedResources = append(schema.LinkedResources, providers.LinkedResource{
+				TypeName:      lr.Type,
+				AttributePath: AttributePathToPath(lr.Attribute),
+			})
+		}
+	}
+
+	return schema
+}
+
 func ProtoToIdentitySchema(attributes []*proto.ResourceIdentitySchema_IdentityAttribute) *configschema.Object {
 	obj := &configschema.Object{
 		Attributes: make(map[string]*configschema.Attribute),
