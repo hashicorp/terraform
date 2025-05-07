@@ -114,22 +114,17 @@ func (r *RemovedComponentInstance) ModuleTreePlan(ctx context.Context) (*plans.P
 				break
 			}
 			for _, depRemoved := range depRemoveds {
-				if !depRemoved.PlanIsComplete(ctx, depStack.addr) {
+				if !depRemoved.PlanIsComplete(ctx) {
 					deferred = true
 					break Dependents
 				}
 			}
 		}
 
-		mode := plans.DestroyMode
-		if r.main.PlanningOpts().PlanningMode == plans.RefreshOnlyMode {
-			mode = plans.RefreshOnlyMode
-		}
-
 		plantimestamp := r.main.PlanTimestamp()
 		forget := !r.call.config.config.Destroy
 		opts := &terraform.PlanOpts{
-			Mode:                       mode,
+			Mode:                       plans.DestroyMode,
 			SetVariables:               r.PlanPrevInputs(),
 			ExternalProviders:          providerClients,
 			DeferralAllowed:            true,
@@ -178,7 +173,7 @@ func (r *RemovedComponentInstance) PlanPrevInputs() terraform.InputValues {
 func (r *RemovedComponentInstance) PlanCurrentInputs() (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	plan := r.main.PlanBeingApplied().GetComponent(r.Addr())
+	plan := r.main.PlanBeingApplied().Components.Get(r.Addr())
 	inputs := make(map[string]cty.Value, len(plan.PlannedInputValues))
 	for name, input := range plan.PlannedInputValues {
 		value, err := input.Decode(cty.DynamicPseudoType)
@@ -249,11 +244,10 @@ func (r *RemovedComponentInstance) PlanChanges(ctx context.Context) ([]stackplan
 
 	var changes []stackplan.PlannedChange
 	if plan != nil {
-		action := plans.Delete
-		switch {
-		case r.main.PlanningOpts().PlanningMode == plans.RefreshOnlyMode:
-			action = plans.Read
-		case !r.call.config.config.Destroy:
+		var action plans.Action
+		if r.call.config.config.Destroy {
+			action = plans.Delete
+		} else {
 			action = plans.Forget
 		}
 		changes, moreDiags = stackplan.FromPlan(ctx, r.ModuleTree(ctx), plan, nil, action, r)
@@ -277,7 +271,7 @@ func (r *RemovedComponentInstance) CheckApply(ctx context.Context) ([]stackstate
 
 	var changes []stackstate.AppliedChange
 	if result != nil {
-		changes, moreDiags = stackstate.FromState(ctx, result.FinalState, r.main.PlanBeingApplied().GetComponent(r.Addr()), inputs, result.AffectedResourceInstanceObjects, r)
+		changes, moreDiags = stackstate.FromState(ctx, result.FinalState, r.main.PlanBeingApplied().Components.Get(r.Addr()), inputs, result.AffectedResourceInstanceObjects, r)
 		diags = diags.Append(moreDiags)
 	}
 	return changes, diags

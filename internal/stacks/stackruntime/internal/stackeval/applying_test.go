@@ -165,7 +165,7 @@ func TestApply_componentOrdering(t *testing.T) {
 		t.Fatalf("plan is not applyable")
 	}
 	{
-		cmpPlan := plan.GetComponent(cmpCInstAddr)
+		cmpPlan := plan.Components.Get(cmpCInstAddr)
 		gotDeps := cmpPlan.Dependencies
 		wantDeps := collections.NewSet[stackaddrs.AbsComponent]()
 		wantDeps.Add(cmpBAddr)
@@ -174,7 +174,7 @@ func TestApply_componentOrdering(t *testing.T) {
 		}
 	}
 	{
-		cmpPlan := plan.GetComponent(cmpBInst1Addr)
+		cmpPlan := plan.Components.Get(cmpBInst1Addr)
 		gotDeps := cmpPlan.Dependencies
 		wantDeps := collections.NewSet[stackaddrs.AbsComponent]()
 		wantDeps.Add(cmpAAddr)

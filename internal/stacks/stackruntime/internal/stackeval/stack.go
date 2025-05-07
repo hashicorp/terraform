@@ -6,7 +6,6 @@ package stackeval
 import (
 	"context"
 	"fmt"
-	"iter"
 	"sync"
 	"time"
 
@@ -20,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/typeexpr"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
@@ -31,25 +29,21 @@ import (
 // repetition arguments (if any) evaluated to determine how many instances
 // it has.
 type Stack struct {
-	addr     stackaddrs.StackInstance
-	parent   *Stack
-	config   *StackConfig
-	main     *Main
-	deferred bool
-	mode     plans.Mode
-
-	removed *Removed // contains removed logic
+	addr   stackaddrs.StackInstance
+	parent *Stack
+	config *StackConfig
+	main   *Main
 
 	// The remaining fields memoize other objects we might create in response
 	// to method calls. Must lock "mu" before interacting with them.
-	mu                 sync.Mutex
-	inputVariables     map[stackaddrs.InputVariable]*InputVariable
-	localValues        map[stackaddrs.LocalValue]*LocalValue
-	stackCalls         map[stackaddrs.StackCall]*StackCall
-	outputValues       map[stackaddrs.OutputValue]*OutputValue
-	components         map[stackaddrs.Component]*Component
-	providers          map[stackaddrs.ProviderConfigRef]*Provider
-	removedInitialised bool
+	mu             sync.Mutex
+	inputVariables map[stackaddrs.InputVariable]*InputVariable
+	localValues    map[stackaddrs.LocalValue]*LocalValue
+	stackCalls     map[stackaddrs.StackCall]*StackCall
+	outputValues   map[stackaddrs.OutputValue]*OutputValue
+	components     map[stackaddrs.Component]*Component
+	removed        map[stackaddrs.Component][]*RemovedComponent
+	providers      map[stackaddrs.ProviderConfigRef]*Provider
 }
 
 var (
@@ -58,53 +52,29 @@ var (
 	_ Applyable       = (*Stack)(nil)
 )
 
-func newStack(
-	main *Main,
-	addr stackaddrs.StackInstance,
-	parent *Stack,
-	config *StackConfig,
-	removed *Removed,
-	mode plans.Mode,
-	deferred bool) *Stack {
+func newStack(main *Main, addr stackaddrs.StackInstance, parent *Stack, config *StackConfig) *Stack {
 	return &Stack{
-		parent:   parent,
-		config:   config,
-		addr:     addr,
-		deferred: deferred,
-		mode:     mode,
-		main:     main,
-		removed:  removed,
+		parent: parent,
+		config: config,
+		addr:   addr,
+		main:   main,
 	}
 }
 
 // ChildStack returns the child stack at the given address.
 func (s *Stack) ChildStack(ctx context.Context, addr stackaddrs.StackInstanceStep, phase EvalPhase) *Stack {
+	calls := s.EmbeddedStackCalls()
 	callAddr := stackaddrs.StackCall{Name: addr.Name}
+	call := calls[callAddr]
 
-	if call := s.EmbeddedStackCalls()[callAddr]; call != nil {
-		instances, unknown := call.Instances(ctx, phase)
-		if unknown {
-			return call.UnknownInstance(ctx, addr.Key, phase).Stack(ctx, phase)
-		}
-
-		if instance, exists := instances[addr.Key]; exists {
-			return instance.Stack(ctx, phase)
-		}
+	instances, unknown := call.Instances(ctx, phase)
+	if unknown {
+		return call.UnknownInstance(ctx, phase).Stack(ctx, phase)
 	}
 
-	calls := s.Removed().stackCalls[callAddr]
-	for _, call := range calls {
-		absolute := append(s.addr, addr)
-
-		instances, unknown := call.InstancesFor(ctx, absolute, phase)
-		if unknown {
-			return call.UnknownInstance(ctx, absolute, phase).Stack(ctx, phase)
-		}
-		for _, instance := range instances {
-			return instance.Stack(ctx, phase)
-		}
+	if instance, exists := instances[addr.Key]; exists {
+		return instance.Stack(ctx, phase)
 	}
-
 	return nil
 }
 
@@ -222,29 +192,6 @@ func (s *Stack) EmbeddedStackCall(addr stackaddrs.StackCall) *StackCall {
 	return s.EmbeddedStackCalls()[addr]
 }
 
-func (s *Stack) RemovedEmbeddedStackCall(addr stackaddrs.StackCall) []*RemovedStackCall {
-	return s.Removed().stackCalls[addr]
-}
-
-func (s *Stack) KnownEmbeddedStacks(addr stackaddrs.StackCall, phase EvalPhase) iter.Seq[stackaddrs.StackInstance] {
-	switch phase {
-	case PlanPhase:
-		return s.main.PlanPrevState().StackInstances(stackaddrs.AbsStackCall{
-			Stack: s.addr,
-			Item:  addr,
-		})
-	case ApplyPhase:
-		return s.main.PlanBeingApplied().StackInstances(stackaddrs.AbsStackCall{
-			Stack: s.addr,
-			Item:  addr,
-		})
-	default:
-		// We're not executing with an existing state in the other phases, so
-		// we have no known instances.
-		return func(yield func(stackaddrs.StackInstance) bool) {}
-	}
-}
-
 func (s *Stack) Components() map[stackaddrs.Component]*Component {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -272,40 +219,31 @@ func (s *Stack) Component(addr stackaddrs.Component) *Component {
 	return s.Components()[addr]
 }
 
-func (s *Stack) Removed() *Removed {
+func (s *Stack) RemovedComponents() map[stackaddrs.Component][]*RemovedComponent {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.removedInitialised {
+	if s.removed != nil {
 		return s.removed
 	}
 
-	// otherwise we're going to initialise removed.
-
-	for addr, configs := range s.config.RemovedComponents().All() {
-		blocks := make([]*RemovedComponent, 0, len(configs))
-		for _, config := range configs {
-			blocks = append(blocks, newRemovedComponent(s.main, addr, s, config))
+	decls := s.config.RemovedComponents()
+	ret := make(map[stackaddrs.Component][]*RemovedComponent, len(decls))
+	for _, blocks := range decls {
+		for _, r := range blocks {
+			absAddr := stackaddrs.AbsComponent{
+				Stack: s.addr,
+				Item:  r.config.FromComponent,
+			}
+			ret[absAddr.Item] = append(ret[absAddr.Item], newRemovedComponent(s.main, absAddr, s, r))
 		}
-
-		s.removed.AddComponent(addr, blocks)
 	}
-
-	for addr, configs := range s.config.RemovedStackCalls().All() {
-		blocks := make([]*RemovedStackCall, 0, len(configs))
-		for _, config := range configs {
-			blocks = append(blocks, newRemovedStackCall(s.main, addr, s, config))
-		}
-
-		s.removed.AddStackCall(addr, blocks)
-	}
-
-	s.removedInitialised = true
-	return s.removed
+	s.removed = ret
+	return ret
 }
 
 func (s *Stack) RemovedComponent(addr stackaddrs.Component) []*RemovedComponent {
-	return s.Removed().components[addr]
+	return s.RemovedComponents()[addr]
 }
 
 // ApplyableComponents returns the combination of removed blocks and declared
@@ -316,7 +254,7 @@ func (s *Stack) ApplyableComponents(addr stackaddrs.Component) (*Component, []*R
 
 // KnownComponentInstances returns a set of the component instances that belong
 // to the given component from the current state or plan.
-func (s *Stack) KnownComponentInstances(component stackaddrs.Component, phase EvalPhase) iter.Seq[stackaddrs.ComponentInstance] {
+func (s *Stack) KnownComponentInstances(component stackaddrs.Component, phase EvalPhase) collections.Set[stackaddrs.ComponentInstance] {
 	switch phase {
 	case PlanPhase:
 		return s.main.PlanPrevState().ComponentInstances(stackaddrs.AbsComponent{
@@ -324,14 +262,14 @@ func (s *Stack) KnownComponentInstances(component stackaddrs.Component, phase Ev
 			Item:  component,
 		})
 	case ApplyPhase:
-		return s.main.PlanBeingApplied().ComponentInstanceAddresses(stackaddrs.AbsComponent{
+		return s.main.PlanBeingApplied().ComponentInstances(stackaddrs.AbsComponent{
 			Stack: s.addr,
 			Item:  component,
 		})
 	default:
 		// We're not executing with an existing state in the other phases, so
 		// we have no known instances.
-		return func(yield func(stackaddrs.ComponentInstance) bool) {}
+		return collections.NewSet[stackaddrs.ComponentInstance]()
 	}
 }
 
@@ -627,10 +565,10 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 
 	// We're going to validate that all the removed blocks in this stack resolve
 	// to unique instance addresses.
-	for _, blocks := range s.Removed().components {
+	for _, blocks := range s.RemovedComponents() {
 		seen := make(map[addrs.InstanceKey]*RemovedComponentInstance)
 		for _, block := range blocks {
-			insts, unknown := block.InstancesFor(ctx, s.addr, PlanPhase)
+			insts, unknown, _ := block.Instances(ctx, PlanPhase)
 			if unknown {
 				continue
 			}
@@ -640,35 +578,11 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Invalid `from` attribute",
-						Detail:   fmt.Sprintf("The `from` attribute resolved to component instance %s, which is already claimed by another removed block at %s.", inst.from, existing.call.config.config.DeclRange.ToHCL()),
+						Detail:   fmt.Sprintf("The `from` attribute resolved to resource instance %s, which is already claimed by another removed block at %s.", inst.from, existing.call.config.config.DeclRange.ToHCL()),
 						Subject:  inst.call.config.config.DeclRange.ToHCL().Ptr(),
 					})
-					continue
 				}
 				seen[inst.from.Item.Key] = inst
-			}
-		}
-	}
-
-	for _, blocks := range s.Removed().stackCalls {
-		seen := collections.NewMap[stackaddrs.StackInstance, *RemovedStackCallInstance]()
-		for _, block := range blocks {
-			insts, unknown := block.InstancesFor(ctx, s.addr, PlanPhase)
-			if unknown {
-				continue
-			}
-
-			for _, inst := range insts {
-				if existing, exists := seen.GetOk(inst.from); exists {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid `from` attribute",
-						Detail:   fmt.Sprintf("The `from` attribute resolved to stack instance %s, which is already claimed by another removed block at %s.", inst.from, existing.call.config.config.DeclRange.ToHCL()),
-						Subject:  inst.call.config.config.DeclRange.ToHCL().Ptr(),
-					})
-					continue
-				}
-				seen.Put(inst.from, inst)
 			}
 		}
 	}
@@ -689,7 +603,7 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 
 	var changes []stackplan.PlannedChange
 Instance:
-	for inst := range s.main.PlanPrevState().AllComponentInstances() {
+	for inst := range s.main.PlanPrevState().AllComponentInstances().All() {
 
 		// We track here whether this component instance has any associated
 		// resources. If this component is empty, and not referenced in the
@@ -707,37 +621,6 @@ Instance:
 				})
 				continue
 			}
-
-			// Normally, this is a simple error. The user has deleted an entire
-			// stack without adding an equivalent removed block for the stack
-			// so now the instances in that stack are all unclaimed.
-			//
-			// However, the user may have tried to write removed blocks that
-			// target specific components within a removed stack instead of
-			// just targeting the entire stack. This is invalid, for one it is
-			// easier for the user if they could just remove the whole stack,
-			// and for two it is very difficult for us to reconcile orphaned
-			// removed components and removed embedded stacks that could be
-			// floating anywhere in the configuration - instead, we'll just
-			// not allow this.
-			//
-			// In this case, we want to change the error message to be more
-			// user-friendly than the generic one, so we need to discover if
-			// this has happened here, and if so, modify the error message.
-
-			removed, _ := s.validateMissingInstanceAgainstRemovedBlocks(ctx, inst, PlanPhase)
-			if removed != nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid removed block",
-					Detail:   fmt.Sprintf("The component instance %s could not be removed. The linked removed block was not executed because the `from` attribute of the removed block targets a component or embedded stack within an orphaned embedded stack.\n\nIn order to remove an entire stack, update your removed block to target the entire removed stack itself instead of the specific elements within it.", inst.String()),
-					Subject:  removed.DeclRange.ToHCL().Ptr(),
-				})
-				continue
-			}
-
-			// If we fall out here, then we found no relevant removed blocks
-			// so we can return the generic error message!
 
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -766,7 +649,7 @@ Instance:
 		}
 
 		for _, removed := range removeds {
-			insts, unknown := removed.InstancesFor(ctx, inst.Stack, PlanPhase)
+			insts, unknown, _ := removed.Instances(ctx, PlanPhase)
 			if unknown {
 				// We can't determine if the component is targeted or not. This
 				// is okay, as any changes to this component will be deferred
@@ -892,82 +775,4 @@ func (s *Stack) tracingName() string {
 		return "root stack"
 	}
 	return addr.String()
-}
-
-// validateMissingInstanceAgainstRemovedBlocks returns the removed config most
-// applicable to the target address if it exists.
-//
-// We have an edge case where a user has written a removed block that targets
-// a stacks or components within stacks that are not defined anywhere in the
-// stack (either in a removed blocks or an embedded stack). We consider this to
-// be an error - if you remove an entire stack from the configuration then you
-// should write a removed block that targets that stack not several removed
-// blocks that target things inside the removed block.
-//
-// The above edge case is exposed when we check that all component instances
-// in state are included in the plan. This function is called with the absolute
-// address of the problematic component (the target). The error we would
-// normally return would say that the component isn't targeted by any component
-// or removed blocks. This is misleading for the discussed edge case, as the
-// user may have written a removed block that targets the component specifically
-// but it is just not getting executed as it is in a stack that is also not
-// in the configuration.
-//
-// The function aims to discover if a removed block does exist that might target
-// this component. Note, that since we can have removed blocks that target
-// entire stacks we do check both removed blocks and direct components on the
-// assumption that a removed stack might expand to include the target component
-// and we want to capture that removed stack specifically.
-func (s *Stack) validateMissingInstanceAgainstRemovedBlocks(ctx context.Context, target stackaddrs.AbsComponentInstance, phase EvalPhase) (*stackconfig.Removed, *stackconfig.Component) {
-	if len(target.Stack) == 0 {
-
-		// First, we'll handle the simple case. This means we are actually
-		// targeting a component that should be in the current stack, so we'll
-		// just look to see if there is a removed block that targets this
-		// component directly.
-
-		components, ok := s.Removed().components[target.Item.Component]
-		if ok {
-			for _, component := range components {
-				// we have the component, let's check the
-				insts, _ := component.InstancesFor(ctx, s.addr, phase)
-				if inst, ok := insts[target.Item.Key]; ok {
-					return inst.call.config.config, nil
-				}
-			}
-		}
-
-		if component := s.Component(target.Item.Component); component != nil {
-			insts, _ := component.Instances(ctx, phase)
-			if inst, ok := insts[target.Item.Key]; ok {
-				return nil, inst.call.config.config
-			}
-		}
-
-		return nil, nil
-	}
-
-	// more complicated now, we need to look into a child stack
-
-	next := target.Stack[0]
-	rest := stackaddrs.AbsComponentInstance{
-		Stack: target.Stack[1:],
-		Item:  target.Item,
-	}
-
-	if child := s.ChildStack(ctx, next, phase); child != nil {
-		return child.validateMissingInstanceAgainstRemovedBlocks(ctx, rest, phase)
-	}
-
-	// if we get here, then we had no child stack to check against. But, things
-	// are not over yet! we also have might have orphaned removed blocks.
-	// these are tracked in the Removed() struct directly, so we'll also look
-	// into there. this is the actual troublesome case we're checking for so
-	// we do expect to actually get here for these checks.
-
-	if child, ok := s.Removed().children[next.Name]; ok {
-		return child.validateMissingInstanceAgainstRemovedBlocks(ctx, append(s.addr, next), rest, phase)
-	}
-
-	return nil, nil
 }

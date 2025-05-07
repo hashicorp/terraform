@@ -36,12 +36,6 @@ module "child_mod" {
   }
 }
 
-module "child_mod2" {
-  source = "./child"
-  input = var.input
-  # provider block not passed in here
-}
-
 output "id" {
   value = testing_resource.data.id
 }

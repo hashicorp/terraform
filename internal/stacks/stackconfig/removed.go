@@ -37,7 +37,8 @@ import (
 // are evaluated, during the planning stage, we will validate that the FromIndex
 // values are unique.
 type Removed struct {
-	From stackaddrs.RemovedFrom
+	FromComponent stackaddrs.Component
+	FromIndex     hcl.Expression
 
 	SourceAddr                               sourceaddrs.Source
 	VersionConstraints                       constraints.IntersectionSpec
@@ -72,15 +73,7 @@ type Removed struct {
 	// translate the caller's local names into the callee's declared provider
 	// configurations by using the stack configuration's table of local
 	// provider names.
-	//
-	// This will only be populated if From points to a component.
 	ProviderConfigs map[addrs.LocalProviderConfig]hcl.Expression
-
-	// Inputs describes the inputs that will be used to destroy all components
-	// within the target stack.
-	//
-	// This will only be populated if From points to a stack.
-	Inputs hcl.Expression
 
 	// Destroy controls whether this removed block will actually destroy all
 	// instances of resources within this component, or just removed them from
@@ -105,12 +98,13 @@ func decodeRemovedBlock(block *hcl.Block) (*Removed, tfdiags.Diagnostics) {
 	// We're splitting out the component and the index now, as we can decode and
 	// analyse the component now. The index might be referencing the for_each
 	// variable, which we can't decode yet.
-	from, moreDiags := stackaddrs.ParseRemovedFrom(content.Attributes["from"].Expr)
+	component, index, moreDiags := stackaddrs.ParseRemovedFrom(content.Attributes["from"].Expr)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return nil, diags
 	}
-	ret.From = from
+	ret.FromComponent = component
+	ret.FromIndex = index
 
 	sourceAddr, versionConstraints, moreDiags := decodeSourceAddrArguments(
 		content.Attributes["source"],
@@ -133,54 +127,43 @@ func decodeRemovedBlock(block *hcl.Block) (*Removed, tfdiags.Diagnostics) {
 	// reasonable state for careful partial analysis.
 
 	if attr, ok := content.Attributes["for_each"]; ok {
-		matches := false
-		for _, variable := range ret.From.Variables() {
-			if root, ok := variable[0].(hcl.TraverseRoot); ok {
-				if root.Name == "each" {
-					matches = true
-					break
-				}
-			}
-		}
-		if !matches {
-			// You have to refer to the for_each attribute somewhere in the
-			// from attribute.
+		if ret.FromIndex == nil {
+			// if we have a for_each expression, then we must have an index
+			// otherwise we'll try and remove the same thing multiple times.
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid for_each expression",
 				Detail:   "A removed block with a for_each expression must reference that expression within the `from` attribute.",
 				Subject:  attr.NameRange.Ptr(),
 			})
+		} else {
+			matches := false
+			for _, variable := range ret.FromIndex.Variables() {
+				if root, ok := variable[0].(hcl.TraverseRoot); ok {
+					if root.Name == "each" {
+						matches = true
+						break
+					}
+				}
+			}
+			if !matches {
+				// You have to refer to the for_each attribute somewhere in the
+				// from attribute.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid for_each expression",
+					Detail:   "A removed block with a for_each expression must reference that expression within the `from` attribute.",
+					Subject:  attr.NameRange.Ptr(),
+				})
+			}
 		}
 
 		ret.ForEach = attr.Expr
 	}
 	if attr, ok := content.Attributes["providers"]; ok {
-		if ret.From.Component == nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid providers attribute",
-				Detail:   "A removed block that does not target a component should not specify any providers.",
-				Subject:  attr.NameRange.Ptr(),
-			})
-		}
-
 		var providerDiags tfdiags.Diagnostics
 		ret.ProviderConfigs, providerDiags = decodeProvidersAttribute(attr)
 		diags = diags.Append(providerDiags)
-	}
-
-	if attr, ok := content.Attributes["inputs"]; ok {
-		if ret.From.Component != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid inputs attribute",
-				Detail:   "A removed block that does not target an embedded stack should not specify any inputs.",
-				Subject:  attr.NameRange.Ptr(),
-			})
-		}
-
-		ret.Inputs = attr.Expr
 	}
 
 	ret.Destroy = true // default to true
@@ -210,7 +193,6 @@ var removedBlockSchema = &hcl.BodySchema{
 		{Name: "version", Required: false},
 		{Name: "for_each", Required: false},
 		{Name: "providers", Required: false},
-		{Name: "inputs", Required: false},
 	},
 }
 

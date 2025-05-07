@@ -105,13 +105,6 @@ type TestProvider struct {
 	Store *ResourceStore
 }
 
-// NewProvider creates a new TestProvider for use in tests.
-//
-// If you provide an empty or nil *ResourceStore argument this is equivalent to the provider
-// not having provisioned any remote objects prior to the test's events.
-//
-// If you provide a *ResourceStore containing values, those cty.Values represent remote objects
-// that the provider has 'already' provisioned and can return information about immediately in a test.
 func NewProvider(store *ResourceStore) *TestProvider {
 	if store == nil {
 		store = &ResourceStore{
@@ -388,10 +381,6 @@ func (provider *TestProvider) CloseEphemeralResource(providers.CloseEphemeralRes
 
 // ResourceStore manages a set of cty.Value resources that can be shared between
 // TestProvider providers.
-//
-// A ResourceStore represents the remote objects that a test provider is managing.
-// For example, when the test provider gets a ReadResource request it will search
-// the store for a resource with a matching ID. See (*TestProvider).ReadResource.
 type ResourceStore struct {
 	mutex sync.RWMutex
 

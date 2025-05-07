@@ -46,9 +46,6 @@ func Provider() providers.Interface {
 			DataSources: map[string]providers.Schema{
 				"simple_resource": simpleResource,
 			},
-			EphemeralResourceTypes: map[string]providers.Schema{
-				"simple_resource": simpleResource,
-			},
 			ServerCapabilities: providers.ServerCapabilities{
 				PlanDestroy: true,
 			},

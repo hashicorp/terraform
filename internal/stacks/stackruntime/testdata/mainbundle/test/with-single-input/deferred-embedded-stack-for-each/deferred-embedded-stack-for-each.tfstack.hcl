@@ -6,7 +6,7 @@ required_providers {
 }
 
 variable "stacks" {
-  type = map(string)
+  type = set(string)
 }
 
 provider "testing" "default" {}
@@ -16,7 +16,6 @@ stack "a" {
   for_each = var.stacks
 
   inputs = {
-    id = each.key
     input = each.value
   }
 }

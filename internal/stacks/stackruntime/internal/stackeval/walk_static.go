@@ -64,7 +64,7 @@ func walkStaticObjectsInStackConfig[Output any](
 		visit(ctx, walk, obj)
 	}
 
-	for _, objs := range stackConfig.RemovedComponents().All() {
+	for _, objs := range stackConfig.RemovedComponents() {
 		for _, obj := range objs {
 			visit(ctx, walk, obj)
 		}
@@ -72,12 +72,6 @@ func walkStaticObjectsInStackConfig[Output any](
 
 	for _, obj := range stackConfig.StackCalls() {
 		visit(ctx, walk, obj)
-	}
-
-	for _, objs := range stackConfig.RemovedStackCalls().All() {
-		for _, obj := range objs {
-			visit(ctx, walk, obj)
-		}
 	}
 
 	for _, childCfg := range stackConfig.ChildConfigs() {

@@ -77,7 +77,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 		// can error rather than deadlock if something goes wrong and causes
 		// us to try to depend on a result that isn't coming.
 		results, begin := ChangeExec(ctx, func(ctx context.Context, reg *ChangeExecRegistry[*Main]) {
-			for key, elem := range plan.AllComponents() {
+			for key, elem := range plan.Components.All() {
 				addr := key
 				componentInstPlan := elem
 				action := componentInstPlan.PlannedAction
@@ -104,7 +104,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 
 					Blocks:
 						for _, block := range removed {
-							if insts, unknown := block.InstancesFor(ctx, stack.addr, ApplyPhase); unknown {
+							if insts, unknown, _ := block.Instances(ctx, ApplyPhase); unknown {
 								matchedUnknownBlock = true
 							} else {
 								for _, i := range insts {
@@ -256,7 +256,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 									))
 									success := true
 									for _, block := range removed {
-										if !block.ApplySuccessful(ctx, stack.addr) {
+										if !block.ApplySuccessful(ctx) {
 											success = false
 										}
 									}

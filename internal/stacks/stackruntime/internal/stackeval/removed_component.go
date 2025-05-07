@@ -6,14 +6,12 @@ package stackeval
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -30,26 +28,23 @@ var (
 )
 
 type RemovedComponent struct {
-	target stackaddrs.ConfigComponent // relative to stack.addr
+	addr stackaddrs.AbsComponent
 
 	config *RemovedComponentConfig
 	stack  *Stack
 	main   *Main
 
-	forEachValue perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
-	instances    perEvalPhase[promising.Once[withDiagnostics[instancesResult[*RemovedComponentInstance]]]]
-
-	unknownInstancesMutex sync.Mutex
-	unknownInstances      collections.Map[stackaddrs.AbsComponentInstance, *RemovedComponentInstance]
+	forEachValue    perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
+	instances       perEvalPhase[promising.Once[withDiagnostics[instancesResult[*RemovedComponentInstance]]]]
+	unknownInstance perEvalPhase[promising.Once[*RemovedComponentInstance]]
 }
 
-func newRemovedComponent(main *Main, target stackaddrs.ConfigComponent, stack *Stack, config *RemovedComponentConfig) *RemovedComponent {
+func newRemovedComponent(main *Main, addr stackaddrs.AbsComponent, stack *Stack, config *RemovedComponentConfig) *RemovedComponent {
 	return &RemovedComponent{
-		target:           target,
-		main:             main,
-		config:           config,
-		stack:            stack,
-		unknownInstances: collections.NewMap[stackaddrs.AbsComponentInstance, *RemovedComponentInstance](),
+		addr:   addr,
+		main:   main,
+		config: config,
+		stack:  stack,
 	}
 }
 
@@ -72,26 +67,6 @@ func (r *RemovedComponent) ForEachValue(ctx context.Context, phase EvalPhase) (c
 	})
 }
 
-// InstancesFor is a wrapper around Instances, but it returns only the instances
-// that target components within the target stack instance.
-//
-// Essentially, a removed block can target components across multiple stack
-// instances, and this function allows callers to only get the relevant
-// instances.
-func (r *RemovedComponent) InstancesFor(ctx context.Context, target stackaddrs.StackInstance, phase EvalPhase) (map[addrs.InstanceKey]*RemovedComponentInstance, bool) {
-	results, unknown, _ := r.Instances(ctx, phase)
-
-	insts := make(map[addrs.InstanceKey]*RemovedComponentInstance)
-	for key, inst := range results {
-		if inst.Addr().Stack.String() != target.String() {
-			continue
-		}
-		insts[key] = inst
-	}
-
-	return insts, unknown
-}
-
 func (r *RemovedComponent) Instances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*RemovedComponentInstance, bool, tfdiags.Diagnostics) {
 	result, diags := doOnceWithDiags(ctx, r.tracingName()+" instances", r.instances.For(phase), func(ctx context.Context) (instancesResult[*RemovedComponentInstance], tfdiags.Diagnostics) {
 		forEachValue, diags := r.ForEachValue(ctx, phase)
@@ -102,21 +77,56 @@ func (r *RemovedComponent) Instances(ctx context.Context, phase EvalPhase) (map[
 		// First, evaluate the for_each value to get the set of instances the
 		// user has asked to be removed.
 		result := instancesMap(forEachValue, func(ik addrs.InstanceKey, rd instances.RepetitionData) *RemovedComponentInstance {
-			from := r.config.config.From
+			expr := r.config.config.FromIndex
+			if expr == nil {
+				if ik != addrs.NoKey {
+					// error, but this shouldn't happen as we validate there is
+					// no for each if the expression is null when parsing the
+					// configuration.
+					panic("has FromIndex expression, but no ForEach attribute")
+				}
 
-			evalContext, moreDiags := evalContextForTraversals(ctx, from.Variables(), phase, &removedInstanceExpressionScope{r, rd})
+				from := stackaddrs.AbsComponentInstance{
+					Stack: r.addr.Stack,
+					Item: stackaddrs.ComponentInstance{
+						Component: r.addr.Item,
+						Key:       addrs.NoKey,
+					},
+				}
+
+				return newRemovedComponentInstance(r, from, rd, false)
+			}
+
+			// Otherwise, we're going to parse the FromIndex expression now.
+
+			result, moreDiags := EvalExprAndEvalContext(ctx, expr, phase, &removedInstanceExpressionScope{r, rd})
 			diags = diags.Append(moreDiags)
 			if moreDiags.HasErrors() {
 				return nil
 			}
 
-			addr, moreDiags := from.TargetAbsComponentInstance(evalContext, r.stack.addr)
-			diags = diags.Append(moreDiags)
-			if moreDiags.HasErrors() {
+			key, err := addrs.ParseInstanceKey(result.Value)
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity:    hcl.DiagError,
+					Summary:     "Failed to parse instance key",
+					Detail:      fmt.Sprintf("The `from` attribute contains an invalid instance key for the given address: %s.", err),
+					Subject:     result.Expression.Range().Ptr(),
+					Expression:  result.Expression,
+					EvalContext: result.EvalContext,
+				})
 				return nil
 			}
 
-			return newRemovedComponentInstance(r, addr, rd, r.stack.deferred)
+			from := stackaddrs.AbsComponentInstance{
+				Stack: r.addr.Stack,
+				Item: stackaddrs.ComponentInstance{
+					Component: r.addr.Item,
+					Key:       key,
+				},
+			}
+
+			return newRemovedComponentInstance(r, from, rd, false)
 		})
 
 		// Now, filter out any instances that are not known to the previous
@@ -134,32 +144,6 @@ func (r *RemovedComponent) Instances(ctx context.Context, phase EvalPhase) (map[
 				continue
 			}
 
-			// Now we know the concrete instances for this removed block,
-			// we're going to verify that there are no component instances in
-			// the configuration that also claim this instance.
-			addr := ci.Addr()
-			if stack := r.main.Stack(ctx, addr.Stack, phase); stack != nil {
-				if component := stack.Component(addr.Item.Component); component != nil {
-					components, _ := component.Instances(ctx, phase)
-					if _, ok := components[addr.Item.Key]; ok {
-						// Then this removed instance is targeting an instance
-						// that is also claimed by a component block. We have to make
-						// this check at this stage, because it is only now we now
-						// the actual instances targeted by this removed block.
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Cannot remove component instance",
-							Detail:   fmt.Sprintf("The component instance %s is targeted by a component block and cannot be removed. The relevant component is defined at %s.", addr, component.config.config.DeclRange.ToHCL()),
-							Subject:  ci.DeclRange(),
-						})
-
-						// don't add this to the known instances, so only the
-						// component block will return values for this instance.
-						continue
-					}
-				}
-			}
-
 			switch phase {
 			case PlanPhase:
 				if r.main.PlanPrevState().HasComponentInstance(ci.Addr()) {
@@ -168,7 +152,7 @@ func (r *RemovedComponent) Instances(ctx context.Context, phase EvalPhase) (map[
 					continue
 				}
 			case ApplyPhase:
-				if component := r.main.PlanBeingApplied().GetComponent(ci.Addr()); component != nil {
+				if _, ok := r.main.PlanBeingApplied().Components.GetOk(ci.Addr()); ok {
 					knownInstances[key] = ci
 					knownAddrs = append(knownAddrs, ci.Addr())
 					continue
@@ -184,8 +168,8 @@ func (r *RemovedComponent) Instances(ctx context.Context, phase EvalPhase) (map[
 		result.insts = knownInstances
 
 		h := hooksFromContext(ctx)
-		hookSingle(ctx, h.RemovedComponentExpanded, &hooks.RemovedComponentInstances{
-			Source:        r.stack.addr,
+		hookSingle(ctx, h.ComponentExpanded, &hooks.ComponentInstances{
+			ComponentAddr: r.addr,
 			InstanceAddrs: knownAddrs,
 		})
 
@@ -194,27 +178,11 @@ func (r *RemovedComponent) Instances(ctx context.Context, phase EvalPhase) (map[
 	return result.insts, result.unknown, diags
 }
 
-func (r *RemovedComponent) UnknownInstance(ctx context.Context, from stackaddrs.AbsComponentInstance, phase EvalPhase) *RemovedComponentInstance {
-	r.unknownInstancesMutex.Lock()
-	defer r.unknownInstancesMutex.Unlock()
-
-	if inst, ok := r.unknownInstances.GetOk(from); ok {
-		return inst
-	}
-
-	forEachType, _ := r.ForEachValue(ctx, phase)
-	repetitionData := instances.UnknownForEachRepetitionData(forEachType.Type())
-
-	inst := newRemovedComponentInstance(r, from, repetitionData, true)
-	r.unknownInstances.Put(from, inst)
-	return inst
-}
-
-func (r *RemovedComponent) PlanIsComplete(ctx context.Context, stack stackaddrs.StackInstance) bool {
+func (r *RemovedComponent) PlanIsComplete(ctx context.Context) bool {
 	if !r.main.Planning() {
 		panic("PlanIsComplete used when not in the planning phase")
 	}
-	insts, unknown := r.InstancesFor(ctx, stack, PlanPhase)
+	insts, unknown, _ := r.Instances(ctx, PlanPhase)
 	if insts == nil {
 		// Suggests that the configuration was not even valid enough to
 		// decide what the instances are, so we'll return false to be
@@ -255,17 +223,17 @@ func (r *RemovedComponent) PlanChanges(ctx context.Context) ([]stackplan.Planned
 
 // tracingName implements Plannable.
 func (r *RemovedComponent) tracingName() string {
-	return fmt.Sprintf("%s -> %s (removed)", r.stack.addr, r.target)
+	return r.addr.String() + " (removed)"
 }
 
-func (r *RemovedComponent) ApplySuccessful(ctx context.Context, addr stackaddrs.StackInstance) bool {
+func (r *RemovedComponent) ApplySuccessful(ctx context.Context) bool {
 	if !r.main.Applying() {
 		panic("ApplySuccessful when not applying")
 	}
 
 	// Apply is successful if all of our instances fully completed their
 	// apply phases.
-	insts, _ := r.InstancesFor(ctx, addr, ApplyPhase)
+	insts, _, _ := r.Instances(ctx, ApplyPhase)
 	for _, inst := range insts {
 		result, _ := inst.ApplyResult(ctx)
 		if result == nil || !result.Complete {

@@ -4,16 +4,15 @@
 package rpcapi
 
 import (
-	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func listResourceIdentities(stackState *stackstate.State, identitySchemas map[addrs.Provider]map[string]providers.IdentitySchema) ([]*stacks.ListResourceIdentities_Resource, error) {
@@ -24,7 +23,7 @@ func listResourceIdentities(stackState *stackstate.State, identitySchemas map[ad
 		return resourceIdentities, nil
 	}
 
-	for ci := range stackState.AllComponentInstances() {
+	for ci := range stackState.AllComponentInstances().All() {
 		componentIdentities := stackState.IdentitiesForComponent(ci)
 		for ri, src := range componentIdentities {
 			// We skip resources without identity JSON

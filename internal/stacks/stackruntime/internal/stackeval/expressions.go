@@ -85,25 +85,24 @@ type ExpressionScope interface {
 // [EvalExprAndEvalContext] is a convenient wrapper around this which also does
 // the final step of evaluating the expression, returning both the value
 // and the evaluation context that was used to build it.
-func EvalContextForExpr(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope ExpressionScope) (*hcl.EvalContext, tfdiags.Diagnostics) {
-	return evalContextForTraversals(ctx, expr.Variables(), phase, scope)
+func EvalContextForExpr(ctx context.Context, expr hcl.Expression, functions lang.ExternalFuncs, phase EvalPhase, scope ExpressionScope) (*hcl.EvalContext, tfdiags.Diagnostics) {
+	return evalContextForTraversals(ctx, expr.Variables(), functions, phase, scope)
 }
 
 // EvalContextForBody produces an HCL expression context for decoding the
 // given [hcl.Body] into a value using the given [hcldec.Spec].
-func EvalContextForBody(ctx context.Context, body hcl.Body, spec hcldec.Spec, phase EvalPhase, scope ExpressionScope) (*hcl.EvalContext, tfdiags.Diagnostics) {
+func EvalContextForBody(ctx context.Context, body hcl.Body, spec hcldec.Spec, functions lang.ExternalFuncs, phase EvalPhase, scope ExpressionScope) (*hcl.EvalContext, tfdiags.Diagnostics) {
 	if body == nil {
 		panic("EvalContextForBody with nil body")
 	}
 	if spec == nil {
 		panic("EvalContextForBody with nil spec")
 	}
-	return evalContextForTraversals(ctx, hcldec.Variables(body, spec), phase, scope)
+	return evalContextForTraversals(ctx, hcldec.Variables(body, spec), functions, phase, scope)
 }
 
-func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, phase EvalPhase, scope ExpressionScope) (*hcl.EvalContext, tfdiags.Diagnostics) {
-	functions, diags := scope.ExternalFunctions(ctx)
-
+func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, functions lang.ExternalFuncs, phase EvalPhase, scope ExpressionScope) (*hcl.EvalContext, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	refs := make(map[stackaddrs.Referenceable]Referenceable)
 	for _, traversal := range traversals {
 		ref, _, moreDiags := stackaddrs.ParseReference(traversal)
@@ -356,7 +355,10 @@ func EvalComponentInputVariables(ctx context.Context, decls map[string]*configs.
 // the caller will need the HCL evaluation context in order to construct
 // a fully-annotated diagnostic object.
 func EvalExprAndEvalContext(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope ExpressionScope) (ExprResultValue, tfdiags.Diagnostics) {
-	hclCtx, diags := EvalContextForExpr(ctx, expr, phase, scope)
+	functions, diags := scope.ExternalFunctions(ctx)
+
+	hclCtx, evalDiags := EvalContextForExpr(ctx, expr, functions, phase, scope)
+	diags = diags.Append(evalDiags)
 	if hclCtx == nil {
 		return ExprResultValue{
 			Value:       cty.NilVal,
@@ -391,7 +393,10 @@ func EvalExpr(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope E
 // EvalBody evaluates the expressions in the given body using hcldec with
 // the given schema, returning the resulting value.
 func EvalBody(ctx context.Context, body hcl.Body, spec hcldec.Spec, phase EvalPhase, scope ExpressionScope) (cty.Value, tfdiags.Diagnostics) {
-	hclCtx, diags := EvalContextForBody(ctx, body, spec, phase, scope)
+	functions, diags := scope.ExternalFunctions(ctx)
+
+	hclCtx, moreDiags := EvalContextForBody(ctx, body, spec, functions, phase, scope)
+	diags = diags.Append(moreDiags)
 	if hclCtx == nil {
 		return cty.NilVal, diags
 	}
