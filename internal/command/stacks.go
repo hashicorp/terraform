@@ -143,6 +143,7 @@ func (c *StacksCommand) discoverAndConfigure() tfdiags.Diagnostics {
 	// Now just steal everything we need so we can pass it to the plugin later.
 	c.pluginConfig = StacksPluginConfig{
 		TerraformBinaryPath: tfBinaryPath,
+		Width:               "80",
 	}
 
 	return diags
@@ -242,23 +243,15 @@ type StacksPluginConfig struct {
 	// stuff, instead of having it all be a stringly-typed mystery ball! I want
 	// to believe in that distant shining day! 🌻 Meantime, these struct tags
 	// serve purely as docs.
-	Address             string `md:"tfc-address"`
-	BasePath            string `md:"tfc-base-path"`
-	DisplayHostname     string `md:"tfc-display-hostname"`
-	Token               string `md:"tfc-token"`
-	Organization        string `md:"tfc-organization"`
 	TerraformBinaryPath string `md:"terraform-binary-path"`
+	Width               string `md:"width"`
 }
 
 func (c StacksPluginConfig) ToMetadata() metadata.MD {
 	// First, do everything except tags the easy way
 	md := metadata.Pairs(
-		"tfc-address", c.Address,
-		"tfc-base-path", c.BasePath,
-		"tfc-display-hostname", c.DisplayHostname,
-		"tfc-token", c.Token,
-		"tfc-organization", c.Organization,
 		"terraform-binary-path", c.TerraformBinaryPath,
+		"width", c.Width,
 	)
 	return md
 }
