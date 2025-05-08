@@ -4217,7 +4217,7 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 				"value": cty.StringVal("hello, world!"),
 			},
 			PlannedCheckResults: &states.CheckResults{},
-			PlannedProviderFunctionResults: []lang.FunctionHash{
+			PlannedProviderFunctionResults: []lang.FunctionResultHash{
 				{
 					Key:    providerFunctionHashArgs(mustDefaultRootProvider("testing").Provider, "echo", cty.StringVal("hello, world!")),
 					Result: providerFunctionHashResult(cty.StringVal("hello, world!")),
@@ -4247,7 +4247,7 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 			Schema:             stacks_testing_provider.TestingResourceSchema,
 		},
 		&stackplan.PlannedChangeProviderFunctionResults{
-			Results: []lang.FunctionHash{
+			Results: []lang.FunctionResultHash{
 				{
 					Key:    providerFunctionHashArgs(mustDefaultRootProvider("testing").Provider, "echo", cty.StringVal("hello, world!")),
 					Result: providerFunctionHashResult(cty.StringVal("hello, world!")),

@@ -69,7 +69,7 @@ type Component struct {
 	// PlannedFunctionResults is a shared table of results from calling
 	// provider functions. This is stored and loaded from during the planning
 	// stage to use during apply operations.
-	PlannedFunctionResults []lang.FunctionHash
+	PlannedFunctionResults []lang.FunctionResultHash
 
 	// PlannedInputValues and PlannedInputValueMarks are the values that
 	// Terraform has planned to use for input variables in this component.

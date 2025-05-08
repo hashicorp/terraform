@@ -162,7 +162,7 @@ type Plan struct {
 	// FunctionResults stores hashed results from all providers function calls
 	// and builtin calls which may access external state so that calls during
 	// apply can be checked for consistency.
-	FunctionResults []lang.FunctionHash
+	FunctionResults []lang.FunctionResultHash
 }
 
 // ProviderAddrs returns a list of all of the provider configuration addresses

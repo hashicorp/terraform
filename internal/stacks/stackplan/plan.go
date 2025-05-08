@@ -85,7 +85,7 @@ type Plan struct {
 	// FunctionResults is a shared table of results from calling
 	// provider functions. This is stored and loaded from during the planning
 	// stage to use during apply operations.
-	FunctionResults []lang.FunctionHash
+	FunctionResults []lang.FunctionResultHash
 
 	// PlanTimestamp is the time at which the plan was created.
 	PlanTimestamp time.Time

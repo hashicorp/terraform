@@ -135,7 +135,7 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 
 	case *tfstackdata1.FunctionResults:
 		for _, hash := range msg.FunctionResults {
-			l.ret.FunctionResults = append(l.ret.FunctionResults, lang.FunctionHash{
+			l.ret.FunctionResults = append(l.ret.FunctionResults, lang.FunctionResultHash{
 				Key:    hash.Key,
 				Result: hash.Result,
 			})
@@ -212,9 +212,9 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 			return fmt.Errorf("decoding check results: %w", err)
 		}
 
-		var functionResults []lang.FunctionHash
+		var functionResults []lang.FunctionResultHash
 		for _, hash := range msg.FunctionResults {
-			functionResults = append(functionResults, lang.FunctionHash{
+			functionResults = append(functionResults, lang.FunctionResultHash{
 				Key:    hash.Key,
 				Result: hash.Result,
 			})

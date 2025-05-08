@@ -218,7 +218,7 @@ type PlannedChangeComponentInstance struct {
 
 	PlannedCheckResults *states.CheckResults
 
-	PlannedProviderFunctionResults []lang.FunctionHash
+	PlannedProviderFunctionResults []lang.FunctionResultHash
 
 	// PlanTimestamp is the timestamp that would be returned from the
 	// "plantimestamp" function in modules inside this component. We
@@ -829,7 +829,7 @@ func (pc *PlannedChangeApplyable) PlannedChangeProto() (*stacks.PlannedChange, e
 }
 
 type PlannedChangeProviderFunctionResults struct {
-	Results []lang.FunctionHash
+	Results []lang.FunctionResultHash
 }
 
 var _ PlannedChange = (*PlannedChangeProviderFunctionResults)(nil)

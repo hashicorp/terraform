@@ -172,7 +172,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 
 	for _, hash := range rawPlan.FunctionResults {
 		plan.FunctionResults = append(plan.FunctionResults,
-			lang.FunctionHash{
+			lang.FunctionResultHash{
 				Key:    hash.Key,
 				Result: hash.Result,
 			},

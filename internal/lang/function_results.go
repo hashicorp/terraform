@@ -14,7 +14,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-type priorResult struct {
+type priorResultHash struct {
 	hash [sha256.Size]byte
 	// when the result was from a current run, we keep a record of the result
 	// value to aid in debugging. Results stored in the plan will only have the
@@ -27,15 +27,15 @@ type FunctionResults struct {
 	mu sync.Mutex
 	// results stores the prior result from a function call, keyed by
 	// the hash of the function name and arguments.
-	results map[[sha256.Size]byte]priorResult
+	results map[[sha256.Size]byte]priorResultHash
 }
 
 // NewFunctionResultsTable initializes a mapping of function calls to prior
 // results used to validate function calls. The hashes argument is an
 // optional slice of prior result hashes used to preload the cache.
-func NewFunctionResultsTable(hashes []FunctionHash) *FunctionResults {
+func NewFunctionResultsTable(hashes []FunctionResultHash) *FunctionResults {
 	res := &FunctionResults{
-		results: make(map[[sha256.Size]byte]priorResult),
+		results: make(map[[sha256.Size]byte]priorResultHash),
 	}
 
 	res.insertHashes(hashes)
@@ -73,7 +73,7 @@ func (f *FunctionResults) CheckPriorProvider(provider addrs.Provider, name strin
 
 	res, ok := f.results[argHash]
 	if !ok {
-		f.results[argHash] = priorResult{
+		f.results[argHash] = priorResultHash{
 			hash:  resHash,
 			value: result,
 		}
@@ -103,32 +103,32 @@ func (f *FunctionResults) CheckPriorProvider(provider addrs.Provider, name strin
 
 // insertHashes insert key-value pairs to the functionResults map. This is used
 // to preload stored values before any Verify calls are made.
-func (f *FunctionResults) insertHashes(hashes []FunctionHash) {
+func (f *FunctionResults) insertHashes(hashes []FunctionResultHash) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
 	for _, res := range hashes {
-		f.results[[sha256.Size]byte(res.Key)] = priorResult{
+		f.results[[sha256.Size]byte(res.Key)] = priorResultHash{
 			hash: [sha256.Size]byte(res.Result),
 		}
 	}
 }
 
-// FunctionHash contains the key and result hash values from a prior function
+// FunctionResultHash contains the key and result hash values from a prior function
 // call.
-type FunctionHash struct {
+type FunctionResultHash struct {
 	Key    []byte
 	Result []byte
 }
 
 // copy the hash values into a struct which can be recorded in the plan.
-func (f *FunctionResults) GetHashes() []FunctionHash {
+func (f *FunctionResults) GetHashes() []FunctionResultHash {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	var res []FunctionHash
+	var res []FunctionResultHash
 	for k, r := range f.results {
-		res = append(res, FunctionHash{Key: k[:], Result: r.hash[:]})
+		res = append(res, FunctionResultHash{Key: k[:], Result: r.hash[:]})
 	}
 	return res
 }
