@@ -221,6 +221,26 @@ func (mr *MockProviderClientMockRecorder) ImportResourceState(arg0, arg1 any, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportResourceState", reflect.TypeOf((*MockProviderClient)(nil).ImportResourceState), varargs...)
 }
 
+// ListResource mocks base method.
+func (m *MockProviderClient) ListResource(arg0 context.Context, arg1 *tfplugin6.ListResource_Request, arg2 ...grpc.CallOption) (tfplugin6.Provider_ListResourceClient, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListResource", varargs...)
+	ret0, _ := ret[0].(tfplugin6.Provider_ListResourceClient)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListResource indicates an expected call of ListResource.
+func (mr *MockProviderClientMockRecorder) ListResource(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListResource", reflect.TypeOf((*MockProviderClient)(nil).ListResource), varargs...)
+}
+
 // MoveResourceState mocks base method.
 func (m *MockProviderClient) MoveResourceState(arg0 context.Context, arg1 *tfplugin6.MoveResourceState_Request, arg2 ...grpc.CallOption) (*tfplugin6.MoveResourceState_Response, error) {
 	m.ctrl.T.Helper()
@@ -439,6 +459,26 @@ func (mr *MockProviderClientMockRecorder) ValidateEphemeralResourceConfig(arg0, 
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateEphemeralResourceConfig", reflect.TypeOf((*MockProviderClient)(nil).ValidateEphemeralResourceConfig), varargs...)
+}
+
+// ValidateListResourceConfig mocks base method.
+func (m *MockProviderClient) ValidateListResourceConfig(arg0 context.Context, arg1 *tfplugin6.ValidateListResourceConfig_Request, arg2 ...grpc.CallOption) (*tfplugin6.ValidateListResourceConfig_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ValidateListResourceConfig", varargs...)
+	ret0, _ := ret[0].(*tfplugin6.ValidateListResourceConfig_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ValidateListResourceConfig indicates an expected call of ValidateListResourceConfig.
+func (mr *MockProviderClientMockRecorder) ValidateListResourceConfig(arg0, arg1 any, arg2 ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateListResourceConfig", reflect.TypeOf((*MockProviderClient)(nil).ValidateListResourceConfig), varargs...)
 }
 
 // ValidateProviderConfig mocks base method.
