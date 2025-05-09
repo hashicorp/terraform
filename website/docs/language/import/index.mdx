@@ -49,6 +49,8 @@ The import ID must be known at plan time for planning to succeed. If the value o
 
 The identifier you use for a resource's import ID is resource-specific. You can find the required ID in the [provider documentation](https://registry.terraform.io/browse/providers) for the resource you wish to import.
 
+Instead of the `id` argument you can also use the `identity` argument, which represents a resource's identity. The `identity` argument is an object of key-value pairs that uniquely identify a resource. The keys and values are specific to the resource type and provider.
+
 ### Import multiple instances with `for_each`
 
 Multiple resource instances can be imported via a single `import` block using the `for_each` argument. The `for_each` argument accepts a collection to iterate over, and results in an `each` iterator in the same manner as it does for [`dynamic` blocks](/terraform/language/expressions/dynamic-blocks). The `for_each` argument must be entirely known for the import plan to succeed, and `for_each` cannot be used when [generating configuration](/terraform/language/import/generating-configuration).
