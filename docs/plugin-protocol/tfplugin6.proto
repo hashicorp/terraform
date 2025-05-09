@@ -8,7 +8,7 @@
 // use protoc to generate stubs for your target language.
 //
 // Any minor versions of protocol 6 to follow should modify this file while
-// maintaining backwards compatibility. Breaking changes, if any are required, 
+// maintaining backwards compatibility. Breaking changes, if any are required,
 // will come in a subsequent major version with its own separate proto definition.
 //
 // Note that only the proto files included in a release tag of Terraform are
@@ -200,8 +200,8 @@ message Schema {
 
         // MinItems and MaxItems were never used in the protocol, and have no
         // effect on validation.
-        int64 min_items = 4 [deprecated = true];
-        int64 max_items = 5 [deprecated = true];
+        int64 min_items = 4 [ deprecated = true ];
+        int64 max_items = 5 [ deprecated = true ];
     }
 
     // The version of the schema.
@@ -306,21 +306,21 @@ message ClientCapabilities {
 // Deferred is a message that indicates that change is deferred for a reason.
 message Deferred {
     // Reason is the reason for deferring the change.
-  enum Reason {
-    // UNKNOWN is the default value, and should not be used.
-    UNKNOWN = 0;
-    // RESOURCE_CONFIG_UNKNOWN is used when the config is partially unknown and the real
-    // values need to be known before the change can be planned.
-    RESOURCE_CONFIG_UNKNOWN = 1;
-    // PROVIDER_CONFIG_UNKNOWN is used when parts of the provider configuration
-    // are unknown, e.g. the provider configuration is only known after the apply is done.
-    PROVIDER_CONFIG_UNKNOWN = 2;
-    // ABSENT_PREREQ is used when a hard dependency has not been satisfied.
-    ABSENT_PREREQ = 3;
-  }
+    enum Reason {
+        // UNKNOWN is the default value, and should not be used.
+        UNKNOWN = 0;
+        // RESOURCE_CONFIG_UNKNOWN is used when the config is partially unknown and the real
+        // values need to be known before the change can be planned.
+        RESOURCE_CONFIG_UNKNOWN = 1;
+        // PROVIDER_CONFIG_UNKNOWN is used when parts of the provider configuration
+        // are unknown, e.g. the provider configuration is only known after the apply is done.
+        PROVIDER_CONFIG_UNKNOWN = 2;
+        // ABSENT_PREREQ is used when a hard dependency has not been satisfied.
+        ABSENT_PREREQ = 3;
+    }
 
-  // reason is the reason for deferring the change.
-  Reason reason = 1;
+    // reason is the reason for deferring the change.
+    Reason reason = 1;
 }
 
 service Provider {
