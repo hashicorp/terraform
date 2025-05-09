@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
@@ -133,7 +134,7 @@ func TestParserLoadConfigDirWithTests(t *testing.T) {
 			}
 
 			parser := NewParser(nil)
-			mod, diags := parser.LoadConfigDirWithTests(directory, testDirectory)
+			mod, diags := parser.LoadConfigDir(directory, MatchTestFiles(testDirectory))
 			if len(diags) > 0 { // We don't want any warnings or errors.
 				t.Errorf("unexpected diagnostics")
 				for _, diag := range diags {
@@ -143,6 +144,61 @@ func TestParserLoadConfigDirWithTests(t *testing.T) {
 
 			if len(mod.Tests) != 2 {
 				t.Errorf("incorrect number of test files found: %d", len(mod.Tests))
+			}
+		})
+	}
+}
+
+func TestParserLoadConfigDirWithQueries(t *testing.T) {
+	tests := []struct {
+		name        string
+		directory   string
+		shouldFail  bool
+		diagnostics []string
+		resources   int
+	}{
+		{
+			name:      "simple",
+			directory: "testdata/query-files/valid/simple",
+			resources: 2,
+		},
+		{
+			name:       "no-provider",
+			directory:  "testdata/query-files/invalid/no-provider",
+			shouldFail: true,
+			diagnostics: []string{
+				"testdata/query-files/invalid/no-provider/main.tfquery.hcl:1,1-27: Missing \"provider\" attribute; You must specify a provider attribute when defining a list block.",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			parser := NewParser(nil)
+			mod, diags := parser.LoadConfigDir(test.directory, MatchQueryFiles())
+			if test.shouldFail {
+				if !diags.HasErrors() {
+					t.Errorf("expected errors, but found none")
+				}
+				if len(diags) != len(test.diagnostics) {
+					t.Fatalf("expected %d errors, but found %d", len(test.diagnostics), len(diags))
+				}
+				for i, diag := range diags {
+					if diag.Error() != test.diagnostics[i] {
+						t.Errorf("expected error to be %q, but found %q", test.diagnostics[i], diag.Error())
+					}
+				}
+			} else {
+				if len(diags) > 0 { // We don't want any warnings or errors.
+					t.Errorf("unexpected diagnostics")
+					for _, diag := range diags {
+						t.Logf("- %s", diag)
+					}
+				}
+			}
+
+			if len(mod.ListResources) != test.resources {
+				t.Errorf("incorrect number of list blocks found: %d", len(mod.ListResources))
 			}
 		})
 	}
@@ -248,7 +304,7 @@ func TestParserLoadConfigDirWithTests_ReturnsWarnings(t *testing.T) {
 			t.Errorf("expected summary to be \"Test directory does not exist\" but was \"%s\"", diags[0].Summary)
 		}
 
-		if diags[0].Detail != "Requested test directory testdata/valid-modules/with-tests/not_real does not exist." {
+		if !strings.HasPrefix(diags[0].Detail, "Requested test directory testdata/valid-modules/with-tests/not_real does not exist.") {
 			t.Errorf("expected detail to be \"Requested test directory testdata/valid-modules/with-tests/not_real does not exist.\" but was \"%s\"", diags[0].Detail)
 		}
 	}
@@ -283,7 +339,7 @@ func TestParserLoadConfigDirFailure(t *testing.T) {
 			parser := NewParser(nil)
 			path := filepath.Join("testdata/invalid-modules", name)
 
-			_, diags := parser.LoadConfigDirWithTests(path, "tests")
+			_, diags := parser.LoadConfigDir(path, MatchTestFiles("tests"))
 			if !diags.HasErrors() {
 				t.Errorf("no errors; want at least one")
 				for _, diag := range diags {
