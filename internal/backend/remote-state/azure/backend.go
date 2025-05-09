@@ -102,7 +102,7 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Client ID to use when authenticating using Azure Active Directory.",
-				DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_ID", ""),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_CLIENT_ID_BACKEND", "ARM_CLIENT_ID"}, ""),
 			},
 
 			"client_id_file_path": {
@@ -166,7 +166,7 @@ func New() backend.Backend {
 			"ado_pipeline_service_connection_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID"}, nil),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_BACKEND", "ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID", "AZURESUBSCRIPTION_SERVICE_CONNECTION_ID"}, nil),
 				Description: "The Azure DevOps Pipeline Service Connection ID.",
 			},
 
