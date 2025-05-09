@@ -34,6 +34,7 @@ func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targ
 		Client:                httpclient.New(),
 		Netrc:                 true,
 		XTerraformGetDisabled: true,
+		DoNotCheckHeadFirst:   true,
 	}
 
 	urlObj, err := url.Parse(urlStr)
