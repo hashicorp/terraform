@@ -4,6 +4,7 @@
 package testing
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -120,6 +121,21 @@ type MockProvider struct {
 	CallFunctionResponse providers.CallFunctionResponse
 	CallFunctionRequest  providers.CallFunctionRequest
 	CallFunctionFn       func(providers.CallFunctionRequest) providers.CallFunctionResponse
+
+	PlanActionCalled   bool
+	PlanActionResponse providers.PlanActionResponse
+	PlanActionRequest  providers.PlanActionRequest
+	PlanActionFn       func(providers.PlanActionRequest) providers.PlanActionResponse
+
+	InvokeActionCalled   bool
+	InvokeActionResponse providers.InvokeActionResponse
+	InvokeActionRequest  providers.InvokeActionRequest
+	InvokeActionFn       func(providers.InvokeActionRequest) providers.InvokeActionResponse
+
+	CancelActionCalled   bool
+	CancelActionResponse providers.CancelActionResponse
+	CancelActionRequest  providers.CancelActionRequest
+	CancelActionFn       func(providers.CancelActionRequest) providers.CancelActionResponse
 
 	CloseCalled bool
 	CloseError  error
@@ -798,4 +814,46 @@ func (p *MockProvider) Close() error {
 
 	p.CloseCalled = true
 	return p.CloseError
+}
+
+func (p *MockProvider) PlanAction(r providers.PlanActionRequest) (resp providers.PlanActionResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.PlanActionCalled = true
+	p.PlanActionRequest = r
+
+	if p.PlanActionFn != nil {
+		return p.PlanActionFn(r)
+	}
+
+	return p.PlanActionResponse
+}
+
+func (p *MockProvider) InvokeAction(_ context.Context, r providers.InvokeActionRequest) (resp providers.InvokeActionResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.InvokeActionCalled = true
+	p.InvokeActionRequest = r
+
+	if p.InvokeActionFn != nil {
+		return p.InvokeActionFn(r)
+	}
+
+	return p.InvokeActionResponse
+}
+
+func (p *MockProvider) CancelAction(r providers.CancelActionRequest) (resp providers.CancelActionResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.CancelActionCalled = true
+	p.CancelActionRequest = r
+
+	if p.CancelActionFn != nil {
+		return p.CancelActionFn(r)
+	}
+
+	return p.CancelActionResponse
 }

@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
@@ -23,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plugin/convert"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 )
 
@@ -101,6 +103,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	resp.ResourceTypes = make(map[string]providers.Schema)
 	resp.DataSources = make(map[string]providers.Schema)
 	resp.EphemeralResourceTypes = make(map[string]providers.Schema)
+	resp.Actions = make(map[string]providers.ActionSchema)
 
 	// Some providers may generate quite large schemas, and the internal default
 	// grpc response size limit is 4MB. 64MB should cover most any use case, and
@@ -167,6 +170,10 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	} else {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
+	}
+
+	for name, action := range protoResp.ActionSchemas {
+		resp.Actions[name] = convert.ProtoToActionSchema(action)
 	}
 
 	if protoResp.ServerCapabilities != nil {
@@ -1202,6 +1209,158 @@ func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp provi
 	}
 
 	resp.Result = resultVal
+	return resp
+}
+
+func (p *GRPCProvider) PlanAction(r providers.PlanActionRequest) (resp providers.PlanActionResponse) {
+	logger.Trace("GRPCProvider: PlanAction")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	actionSchema, ok := schema.Actions[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown action %q", r.TypeName))
+		return resp
+	}
+
+	configMP, err := msgpack.Marshal(r.PlannedConfig, actionSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto.PlanAction_Request{
+		TypeName: r.TypeName,
+		Config:   &proto.DynamicValue{Msgpack: configMP},
+	}
+
+	protoResp, err := p.client.PlanAction(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	resp.NewConfig, err = decodeDynamicValue(protoResp.NewConfig, actionSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	return resp
+}
+
+func (p *GRPCProvider) InvokeAction(ctx context.Context, r providers.InvokeActionRequest) (resp providers.InvokeActionResponse) {
+	logger.Trace("GRPCProvider: InvokeAction")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	actionSchema, ok := schema.Actions[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown action %q", r.TypeName))
+		return resp
+	}
+
+	configMP, err := msgpack.Marshal(r.PlannedConfig, actionSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto.InvokeAction_Request{
+		TypeName:      r.TypeName,
+		PlannedConfig: &proto.DynamicValue{Msgpack: configMP},
+	}
+
+	protoClient, err := p.client.InvokeAction(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	startEventChan := make(chan *proto.InvokeAction_Event_Started)
+	eventsChan := make(chan providers.InvokeActionEvent)
+
+	go func() {
+		defer close(eventsChan)
+		defer close(startEventChan)
+
+		for {
+			event, err := protoClient.Recv()
+			if err == io.EOF {
+				return
+			} else if err != nil {
+				// There was an error in the provider communication, we need to
+				// surface it to the caller and stop the stream.
+				eventsChan <- &providers.InvokeActionEvent_Finished{
+					Diagnostics: tfdiags.Diagnostics{
+						tfdiags.Sourceless(
+							tfdiags.Error,
+							"Unexpected error for action in provider communication",
+							fmt.Sprintf("The providers GRPC API returned an unexpected error %e", err),
+						),
+					},
+				}
+			}
+
+			switch evt := event.Event.(type) {
+			case *proto.InvokeAction_Event_Started_:
+				startEventChan <- evt.Started
+
+			case *proto.InvokeAction_Event_Progress_:
+				eventsChan <- &providers.InvokeActionEvent_Progress{
+					Stdout:      evt.Progress.Stdout,
+					Stderr:      evt.Progress.Stderr,
+					Diagnostics: convert.ProtoToDiagnostics(evt.Progress.Diagnostics),
+				}
+			case *proto.InvokeAction_Event_Finished_:
+				diags := convert.ProtoToDiagnostics(evt.Finished.Diagnostics)
+				newConfig, err := decodeDynamicValue(evt.Finished.NewConfig, actionSchema.Block.ImpliedType())
+				if err != nil {
+					diags = diags.Append(grpcErr(err))
+				}
+
+				eventsChan <- &providers.InvokeActionEvent_Finished{
+					NewConfig:   newConfig,
+					Diagnostics: diags,
+					Cancelled:   evt.Finished.Cancelled,
+				}
+			}
+		}
+	}()
+
+	startEvent := <-startEventChan
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(startEvent.Diagnostics))
+	resp.CancellationToken = startEvent.CancellationToken
+	resp.Events = eventsChan
+
+	return resp
+}
+
+func (p *GRPCProvider) CancelAction(r providers.CancelActionRequest) (resp providers.CancelActionResponse) {
+	logger.Trace("GRPCProvider: CancelAction")
+
+	protoReq := &proto.CancelAction_Request{
+		TypeName:          r.TypeName,
+		CancellationToken: r.CancellationToken,
+	}
+
+	protoResp, err := p.client.CancelAction(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
 	return resp
 }
 

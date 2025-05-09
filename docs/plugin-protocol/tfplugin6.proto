@@ -1,9 +1,9 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-// Terraform Plugin RPC protocol version 6.9
+// Terraform Plugin RPC protocol version 6.10
 //
-// This file defines version 6.9 of the RPC protocol. To implement a plugin
+// This file defines version 6.10 of the RPC protocol. To implement a plugin
 // against this protocol, copy this definition into your own codebase and
 // use protoc to generate stubs for your target language.
 //
@@ -269,6 +269,31 @@ message Function {
     }
 }
 
+message ActionSchema {
+    // A LinkedResource is a resource that is linked to an action action.
+    // An action can cause action drift to a linked resource, terraform will
+    // update the linked resource with the drifted value.
+    message LinkedResource {
+        message LinkedAttributes {
+            // The attribute path of the linked attribute.
+            AttributePath attribute = 1;
+        }
+
+        AttributePath attribute = 1;
+        string type = 2;
+        repeated LinkedAttributes linked_attributes = 3;
+    }
+
+    // The version of the schema.
+    int64 version = 1;
+    
+    // Block is the top level configuration block for this schema.
+    Schema.Block block = 2;
+    
+    // LinkedResource is a list of resource that can be updated by the action.
+    repeated LinkedResource linked_resources = 3;
+}
+
 // ServerCapabilities allows providers to communicate extra information
 // regarding supported protocol features. This is used to indicate
 // availability of certain forward-compatible changes which may be optional
@@ -370,6 +395,11 @@ service Provider {
 
     //////// Provider-contributed Functions
     rpc CallFunction(CallFunction.Request) returns (CallFunction.Response);
+    
+    //////// Actions Lifecycle
+    rpc PlanAction(PlanAction.Request) returns (PlanAction.Response);
+    rpc InvokeAction(InvokeAction.Request) returns (stream InvokeAction.Event);
+    rpc CancelAction(CancelAction.Request) returns (CancelAction.Response);
 
     //////// Graceful Shutdown
     rpc StopProvider(StopProvider.Request) returns (StopProvider.Response);
@@ -416,6 +446,7 @@ message GetProviderSchema {
         map<string, Schema> data_source_schemas = 3;
         map<string, Function> functions = 7;
         map<string, Schema> ephemeral_resource_schemas = 8;
+        map<string, ActionSchema> action_schemas = 9;
         repeated Diagnostic diagnostics = 4;
         Schema provider_meta = 5;
         ServerCapabilities server_capabilities = 6;
@@ -789,5 +820,66 @@ message CallFunction {
     message Response {
         DynamicValue result = 1;
         FunctionError error = 2;
+    }
+}
+
+message PlanAction {
+    message Request {
+        string type_name = 1;
+        DynamicValue config = 2;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+        // new_config is the passed in config with any changes made by the action.
+        // The action schema contains links to the resources that are changed by the action and will
+        // change as a result of this.
+        DynamicValue new_config = 2; 
+    }
+}
+
+message InvokeAction {
+    message Request {
+        string type_name = 1;
+        DynamicValue planned_config = 2;
+    }
+
+    message Event {
+        oneof event {
+            Started started = 1;
+            Finished finished = 2;
+            Progress progress = 3;
+        }
+
+        message Started {
+            // This can be sent in a request to cancel the action.
+            string cancellation_token = 1;
+            repeated Diagnostic diagnostics = 2;
+        }
+
+        message Finished {
+            // The action schema contains links to the resources that are changed by the action and 
+            // will change as a result of this.
+            DynamicValue new_config = 1; 
+            
+            bool cancelled = 2;
+            repeated Diagnostic diagnostics = 3;
+        }
+
+        message Progress {
+            repeated string stdout = 1;
+            repeated string stderr = 2;
+            repeated Diagnostic diagnostics = 3;
+        }
+    }
+}
+
+message CancelAction {
+    message Request {
+        string type_name = 1;
+        string cancellation_token = 2;
+    }
+
+    message Response {
+        repeated Diagnostic diagnostics = 1;
     }
 }
