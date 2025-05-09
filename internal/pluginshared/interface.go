@@ -1,12 +1,12 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package cloudplugin
+package pluginshared
 
 import (
 	"io"
 )
 
-type Cloud1 interface {
+type CustomPluginClient interface {
 	Execute(args []string, stdout, stderr io.Writer) int
 }

@@ -434,6 +434,12 @@ func initCommands(
 			}, nil
 		}
 
+		Commands["stacks"] = func() (cli.Command, error) {
+			return &command.StacksCommand{
+				Meta: meta,
+			}, nil
+		}
+
 		// "rpcapi" is handled a bit differently because the whole point of
 		// this interface is to bypass the CLI layer so wrapping automation can
 		// get as-direct-as-possible access to Terraform Core functionality,

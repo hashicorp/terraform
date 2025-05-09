@@ -26,6 +26,7 @@ const (
 	envLogCore     = "TF_LOG_CORE"
 	envLogProvider = "TF_LOG_PROVIDER"
 	envLogCloud    = "TF_LOG_CLOUD"
+	envLogStacks   = "TF_LOG_STACKS"
 )
 
 var (
@@ -144,6 +145,20 @@ func NewCloudLogger() hclog.Logger {
 	return l
 }
 
+// NewStacksCLILogger returns a logger for the StacksCLI plugin, possibly with a
+// different log level from the global logger.
+func NewStacksLogger() hclog.Logger {
+	l := &logPanicWrapper{
+		Logger: logger.Named("stacks"),
+	}
+
+	level := stacksLogLevel()
+	logger.Debug("created stacks logger", "level", level)
+
+	l.SetLevel(level)
+	return l
+}
+
 // CurrentLogLevel returns the current log level string based the environment vars
 func CurrentLogLevel() string {
 	ll, _ := globalLogLevel()
@@ -157,6 +172,15 @@ func providerLogLevel() hclog.Level {
 	}
 
 	return parseLogLevel(providerEnvLevel)
+}
+
+func stacksLogLevel() hclog.Level {
+	pluginEnvLevel := strings.ToUpper(os.Getenv(envLogStacks))
+	if pluginEnvLevel == "" {
+		pluginEnvLevel = strings.ToUpper(os.Getenv(envLog))
+	}
+
+	return parseLogLevel(pluginEnvLevel)
 }
 
 func cloudLogLevel() hclog.Level {
