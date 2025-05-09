@@ -272,6 +272,40 @@ func TestGRPCProvider_GetSchema_IdentityUnimplemented(t *testing.T) {
 	checkDiags(t, resp.Diagnostics)
 }
 
+func TestGRPCProvider_GetSchema_IdentityErrorDiagnostic(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mockproto.NewMockProviderClient(ctrl)
+
+	client.EXPECT().GetSchema(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(providerProtoSchema(), nil)
+
+	client.EXPECT().GetResourceIdentitySchemas(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.GetResourceIdentitySchemas_Response{
+		Diagnostics: []*proto.Diagnostic{
+			{
+				Severity: proto.Diagnostic_ERROR,
+				Summary:  "error summary",
+				Detail:   "error detail",
+			},
+		},
+		IdentitySchemas: map[string]*proto.ResourceIdentitySchema{},
+	}, nil)
+
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	resp := p.GetProviderSchema()
+
+	checkDiagsHasError(t, resp.Diagnostics)
+}
+
 func TestGRPCProvider_GetResourceIdentitySchemas(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mockproto.NewMockProviderClient(ctrl)

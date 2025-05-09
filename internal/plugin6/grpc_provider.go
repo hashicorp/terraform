@@ -142,6 +142,11 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		}
 	}
 
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(identResp.Diagnostics))
+	if resp.Diagnostics.HasErrors() {
+		return resp
+	}
+
 	resp.Provider = convert.ProtoToProviderSchema(protoResp.Provider, nil)
 	if protoResp.ProviderMeta == nil {
 		logger.Debug("No provider meta schema returned")
