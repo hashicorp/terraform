@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package providers
+package lang
 
 import (
 	"fmt"
@@ -162,12 +162,12 @@ func TestFunctionCache(t *testing.T) {
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			results := NewFunctionResultsTable(nil)
-			err := results.checkPrior(test.first.provider, test.first.name, test.first.args, test.first.result)
+			err := results.CheckPriorProvider(test.first.provider, test.first.name, test.first.args, test.first.result)
 			if err != nil {
 				t.Fatal("error on first call!", err)
 			}
 
-			err = results.checkPrior(test.second.provider, test.second.name, test.second.args, test.second.result)
+			err = results.CheckPriorProvider(test.second.provider, test.second.name, test.second.args, test.second.result)
 
 			if err != nil && !test.expectErr {
 				t.Fatal(err)
@@ -177,7 +177,7 @@ func TestFunctionCache(t *testing.T) {
 			newResults := NewFunctionResultsTable(results.GetHashes())
 
 			originalErr := err != nil
-			reloadedErr := newResults.checkPrior(test.second.provider, test.second.name, test.second.args, test.second.result) != nil
+			reloadedErr := newResults.CheckPriorProvider(test.second.provider, test.second.name, test.second.args, test.second.result) != nil
 
 			if originalErr != reloadedErr {
 				t.Fatalf("original check returned err:%t, reloaded check returned err:%t", originalErr, reloadedErr)

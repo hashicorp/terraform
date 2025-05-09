@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -112,7 +113,7 @@ func (c *Context) Validate(config *configs.Config, opts *ValidateOpts) tfdiags.D
 
 	walker, walkDiags := c.walk(graph, walkValidate, &graphWalkOpts{
 		Config:                  config,
-		ProviderFuncResults:     providers.NewFunctionResultsTable(nil),
+		FunctionResults:         lang.NewFunctionResultsTable(nil),
 		ExternalProviderConfigs: opts.ExternalProviders,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
