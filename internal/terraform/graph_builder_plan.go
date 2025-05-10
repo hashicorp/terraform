@@ -125,7 +125,7 @@ func (b *PlanGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Dia
 // See GraphBuilder
 func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 	switch b.Operation {
-	case walkPlan:
+	case walkPlan, walkQuery:
 		b.initPlan()
 	case walkPlanDestroy:
 		b.initDestroy()
@@ -146,6 +146,8 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 			importTargets: b.ImportTargets,
 
+			// the validate walk also needs to include query nodes.
+			includeQuery: b.Operation == walkQuery || b.Operation == walkValidate,
 			// We only want to generate config during a plan operation.
 			generateConfigPathForImportTargets: b.GenerateConfigPath,
 		},

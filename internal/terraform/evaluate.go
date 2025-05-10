@@ -91,9 +91,13 @@ type Evaluator struct {
 // in evaluated expressions. Otherwise, it behaves as an alias for the given
 // address.
 func (e *Evaluator) Scope(data lang.Data, self addrs.Referenceable, source addrs.Referenceable, extFuncs lang.ExternalFuncs) *lang.Scope {
+	parseRef := addrs.ParseRef
+	if e.Operation == walkQuery {
+		parseRef = addrs.ParseRefFromQueryScope
+	}
 	return &lang.Scope{
 		Data:            data,
-		ParseRef:        addrs.ParseRef,
+		ParseRef:        parseRef,
 		SelfAddr:        self,
 		SourceAddr:      source,
 		PureOnly:        e.Operation != walkApply && e.Operation != walkDestroy && e.Operation != walkEval,
@@ -586,11 +590,105 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		return d.getEphemeralResource(addr, rng)
 	}
 
+	if addr.Mode == addrs.ListResourceMode {
+		mAddr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: addr.Type,
+			Name: addr.Name,
+		}
+		schema := d.getResourceSchema(mAddr, config.Provider)
+		if schema.Body == nil {
+			// This shouldn't happen, since validation before we get here should've
+			// taken care of it, but we'll show a reasonable error message anyway.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Missing resource type schema`,
+				Detail:   fmt.Sprintf("No schema is available for %s in %s. This is a bug in Terraform and should be reported.", addr, config.Provider),
+				Subject:  rng.ToHCL().Ptr(),
+			})
+			return cty.DynamicVal, diags
+		}
+		instances := d.Evaluator.NamedValues.GetResourceListInstances(addr.Absolute(d.ModulePath))
+		ret := cty.EmptyTupleVal
+		switch {
+		case config.Count != nil:
+			// figure out what the last index we have is
+			length := -1
+			for _, inst := range instances.Elems {
+				key := inst.Key.Resource.Key
+				intKey, ok := key.(addrs.IntKey)
+				if !ok {
+					continue
+				}
+				if int(intKey) >= length {
+					length = int(intKey) + 1
+				}
+			}
+
+			if length > 0 {
+				vals := make([]cty.Value, length)
+				for _, inst := range instances.Elems {
+					key := inst.Key.Resource.Key
+					intKey, ok := key.(addrs.IntKey)
+					if !ok {
+						// old key from state, which isn't valid for evaluation
+						continue
+					}
+
+					vals[int(intKey)] = inst.Value
+				}
+
+				// Insert unknown values where there are any missing instances
+				for i, v := range vals {
+					if v == cty.NilVal {
+						vals[i] = cty.UnknownVal(ty)
+					}
+				}
+				ret = cty.TupleVal(vals)
+			} else {
+				ret = cty.EmptyTupleVal
+			}
+		case config.ForEach != nil:
+			vals := make(map[string]cty.Value)
+			for _, inst := range instances.Elems {
+				key := inst.Key.Resource.Key
+				strKey, ok := key.(addrs.StringKey)
+				if !ok {
+					// old key that is being dropped and not used for evaluation
+					continue
+				}
+				vals[string(strKey)] = inst.Value
+			}
+
+			if len(vals) > 0 {
+				// We use an object rather than a map here because resource schemas
+				// may include dynamically-typed attributes, which will then cause
+				// each instance to potentially have a different runtime type even
+				// though they all conform to the static schema.
+				ret = cty.ObjectVal(vals)
+			} else {
+				ret = cty.EmptyObjectVal
+			}
+
+			return ret, diags
+		default:
+			val, ok := instances.GetOk(addr.Absolute(d.ModulePath).Instance(addrs.NoKey))
+			if !ok {
+				// if the instance is missing, insert an unknown value
+				val = cty.UnknownVal(ty)
+			}
+
+			ret = val
+		}
+
+		return ret, diags
+	}
+
 	rs := d.Evaluator.State.Resource(addr.Absolute(d.ModulePath))
 
 	if rs == nil {
 		switch d.Operation {
-		case walkPlan, walkApply:
+		case walkPlan, walkApply, walkQuery:
 			// During plan and apply as we evaluate each removed instance they
 			// are removed from the working state. Since we know there are no
 			// instances, return an empty container of the expected type.

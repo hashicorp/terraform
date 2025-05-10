@@ -47,6 +47,7 @@ type values[LocalType namedValueAddr, AbsType namedValueAddr] struct {
 type inputVariableValues = values[addrs.InputVariable, addrs.AbsInputVariableInstance]
 type localValues = values[addrs.LocalValue, addrs.AbsLocalValue]
 type outputValues = values[addrs.OutputValue, addrs.AbsOutputValue]
+type listValues = values[addrs.Resource, addrs.AbsResource]
 
 // namedValueAddr describes the address behaviors we need for address types
 // we'll use with type [values] as defined above.

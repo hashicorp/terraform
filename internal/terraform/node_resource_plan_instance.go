@@ -98,7 +98,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	diags = diags.Append(validateSelfRef(addr.Resource, config.Config, providerSchema))
+	diags = diags.Append(validateSelfRef(addrs.ParseRef, addr.Resource, config.Config, providerSchema))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -197,7 +197,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	if config != nil {
-		diags = diags.Append(validateSelfRef(addr.Resource, config.Config, providerSchema))
+		diags = diags.Append(validateSelfRef(addrs.ParseRef, addr.Resource, config.Config, providerSchema))
 		if diags.HasErrors() {
 			return diags
 		}

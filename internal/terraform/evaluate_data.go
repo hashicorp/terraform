@@ -181,3 +181,20 @@ func (d *evaluationData) GetCheckBlock(addr addrs.Check, rng tfdiags.SourceRange
 	})
 	return cty.NilVal, diags
 }
+
+func (d *evaluationData) GetListResources(addr addrs.ResourceInstance, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	// For now, check blocks don't contain any meaningful data and can only
+	// be referenced from the testing scope within an expect_failures attribute.
+	//
+	// We've added them into the scope explicitly since they are referencable,
+	// but we'll actually just return an error message saying they can't be
+	// referenced in this context.
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Reference to \"check\" in invalid context",
+		Detail:   "The \"check\" object can only be referenced from an \"expect_failures\" attribute within a Terraform testing \"run\" block.",
+		Subject:  rng.ToHCL().Ptr(),
+	})
+	return cty.NilVal, diags
+}

@@ -71,6 +71,8 @@ type Plan struct {
 	ForceReplaceAddrs []addrs.AbsResourceInstance
 	Backend           Backend
 
+	QueryResults addrs.Map[addrs.Resource, addrs.Map[addrs.AbsResourceInstance, cty.Value]]
+
 	// Complete is true if Terraform considers this to be a "complete" plan,
 	// which is to say that it includes a planned action (even if no-op)
 	// for every resource instance object that was mentioned across both

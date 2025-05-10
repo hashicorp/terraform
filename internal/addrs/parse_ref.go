@@ -59,6 +59,8 @@ func (r *Reference) DisplayString() string {
 	return ret.String()
 }
 
+type ParseOpts func(traversal hcl.Traversal) (bool, *Reference, tfdiags.Diagnostics)
+
 // ParseRef attempts to extract a referenceable address from the prefix of the
 // given traversal, which must be an absolute traversal or this function
 // will panic.
@@ -70,7 +72,16 @@ func (r *Reference) DisplayString() string {
 //
 // If error diagnostics are returned then the Reference value is invalid and
 // must not be used.
-func ParseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
+func ParseRef(traversal hcl.Traversal, opts ...ParseOpts) (*Reference, tfdiags.Diagnostics) {
+
+	for _, opt := range opts {
+		if ok, ref, diags := opt(traversal); ok {
+			// If the option returns true, then we should return the reference
+			// and diagnostics it returned.
+			return ref, diags
+		}
+	}
+
 	ref, diags := parseRef(traversal)
 
 	// Normalize a little to make life easier for callers.
@@ -88,7 +99,7 @@ func ParseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 //
 // The testing files and functionality have a slightly expanded referencing
 // scope and so should use this function to retrieve references.
-func ParseRefFromTestingScope(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
+func ParseRefFromTestingScope(traversal hcl.Traversal, _ ...ParseOpts) (*Reference, tfdiags.Diagnostics) {
 	root := traversal.RootName()
 	rootRange := traversal[0].SourceRange()
 
@@ -138,6 +149,30 @@ func ParseRefFromTestingScope(traversal hcl.Traversal) (*Reference, tfdiags.Diag
 			reference.Remaining = nil
 		}
 		return reference, diags
+	}
+
+	// If it's not an output or a check block, then just parse it as normal.
+	return ParseRef(traversal)
+}
+
+func ParseRefFromQueryScope(traversal hcl.Traversal, _ ...ParseOpts) (*Reference, tfdiags.Diagnostics) {
+	root := traversal.RootName()
+	rootRange := traversal[0].SourceRange()
+
+	var diags tfdiags.Diagnostics
+	switch root {
+	case "list":
+		if len(traversal) < 3 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   `The "list" object must be followed by two attribute names: the resource type and the resource name.`,
+				Subject:  traversal.SourceRange().Ptr(),
+			})
+			return nil, diags
+		}
+		remain := traversal[1:] // trim off "resource" so we can use our shared resource reference parser
+		return parseResourceRef(ListResourceMode, rootRange, remain)
 	}
 
 	// If it's not an output or a check block, then just parse it as normal.

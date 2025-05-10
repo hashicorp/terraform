@@ -14,7 +14,7 @@ import (
 
 // ParseRef describes the signature of a function that can attempt to raise
 // a raw HCL traversal into a reference.
-type ParseRef func(traversal hcl.Traversal) (*addrs.Reference, tfdiags.Diagnostics)
+type ParseRef func(traversal hcl.Traversal, opts ...addrs.ParseOpts) (*addrs.Reference, tfdiags.Diagnostics)
 
 // References finds all of the references in the given set of traversals,
 // returning diagnostics if any of the traversals cannot be interpreted as a

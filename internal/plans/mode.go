@@ -31,4 +31,11 @@ const (
 	// This mode corresponds with the "-refresh-only" option to
 	// "terraform plan".
 	RefreshOnlyMode Mode = 'R'
+
+	// QueryMode is a special planning mode which only performs the
+	// querying of remote objects represented by the list blocks in query files.
+	//
+	// This mode corresponds with the plan created by the "terraform query"
+	// command.
+	QueryMode Mode = 'Q'
 )

@@ -173,7 +173,7 @@ func (ev *forEachEvaluator) Value() (cty.Value, tfdiags.Diagnostics) {
 		return cty.NullVal(cty.Map(cty.DynamicPseudoType)), nil
 	}
 
-	refs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRef, ev.expr)
+	refs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromQueryScope, ev.expr)
 	diags = diags.Append(moreDiags)
 	scope := ev.ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
 	if scope != nil {

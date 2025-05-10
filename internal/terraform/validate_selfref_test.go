@@ -101,7 +101,7 @@ func TestValidateSelfRef(t *testing.T) {
 
 			// First test the expression within the context of the configuration
 			// body.
-			diags := validateSelfRef(test.Addr, body, ps)
+			diags := validateSelfRef(addrs.ParseRef, test.Addr, body, ps)
 			if diags.HasErrors() != test.Err {
 				if test.Err {
 					t.Errorf("unexpected success; want error")

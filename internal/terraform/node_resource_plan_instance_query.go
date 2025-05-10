@@ -9,8 +9,8 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
@@ -23,7 +23,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	}
 
 	// validate self ref
-	diags = diags.Append(validateSelfRef(addr.Resource, config.Config, providerSchema))
+	diags = diags.Append(validateSelfRef(addrs.ParseRefFromQueryScope, addr.Resource, config.Config, providerSchema))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -69,14 +69,18 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
+	set := make([]cty.Value, 0)
+
 	// If we get down here then our configuration is complete and we're ready
 	// to actually call the provider to list the data.
 	err = provider.ListResource(providers.ListResourceRequest{
-		TypeName:        n.Config.Type,
-		Config:          unmarkedConfigVal,
-		DiagEmitter:     n.emitDiags,
-		ResourceEmitter: n.emitResource(ctx, resourceSchema, diags),
-		DoneCh:          doneCh,
+		TypeName:    n.Config.Type,
+		Config:      unmarkedConfigVal,
+		DiagEmitter: n.emitDiags,
+		ResourceEmitter: func(resource providers.ListResult) {
+			set = append(set, resource.ResourceObject)
+		},
+		DoneCh: doneCh,
 	})
 	if err != nil {
 		return diags.Append(fmt.Errorf("failed to list %s: %s", n.Addr, err))
@@ -85,6 +89,10 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	for {
 		select {
 		case <-doneCh:
+			// We are done listing resources
+			if len(set) != 0 {
+				ctx.NamedValues().SetResourceListInstance(n.Addr.ContainingResource(), n.Addr.Resource.Key, cty.ListVal(set))
+			}
 			return diags
 		default:
 			// Maybe we want to set some limit on how long we wait or how much data can be sent?
@@ -97,27 +105,5 @@ func (n *NodePlannableResourceInstance) emitDiags(diags tfdiags.Diagnostics) {
 	if diags.HasErrors() {
 		diags = diags.Append(diags.InConfigBody(n.Config.Config, n.Addr.String()))
 		return
-	}
-}
-
-func (n *NodePlannableResourceInstance) emitResource(ctx EvalContext, schema providers.Schema, diags tfdiags.Diagnostics) func(resource providers.ListResult) {
-	return func(resource providers.ListResult) {
-		obj := &states.ResourceInstanceObject{
-			Value:    resource.ResourceObject,
-			Identity: resource.Identity,
-			Status:   states.ObjectPlanned,
-		}
-		src, err := obj.Encode(schema)
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("failed to encode %s in state: %s", n.Addr, err))
-		}
-		// store the resources in some transient state or send directly to the consumer
-		// Check if there's already an entry for this address and initialize if not
-		qState := ctx.Querier().State
-		if _, exists := qState.GetOk(n.Addr); !exists {
-			qState.Put(n.Addr, []*states.ResourceInstanceObjectSrc{})
-		}
-		qState.Put(n.Addr, append(qState.Get(n.Addr), src))
-		ctx.Querier().View.Resource(n.Addr, src)
 	}
 }

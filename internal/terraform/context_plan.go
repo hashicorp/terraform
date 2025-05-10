@@ -219,6 +219,8 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 			))
 			return nil, nil, diags
 		}
+	case plans.QueryMode:
+		// OK
 	default:
 		// The CLI layer (and other similar callers) should not try to
 		// create a context for a mode that Terraform Core doesn't support.
@@ -278,6 +280,8 @@ The -target option is not for routine use, and is provided only for exceptional 
 		plan, evalScope, planDiags = c.destroyPlan(config, prevRunState, opts)
 	case plans.RefreshOnlyMode:
 		plan, evalScope, planDiags = c.refreshOnlyPlan(config, prevRunState, opts)
+	case plans.QueryMode:
+		plan, evalScope, planDiags = c.queryPlan(config, prevRunState, opts)
 	default:
 		panic(fmt.Sprintf("unsupported plan mode %s", opts.Mode))
 	}
@@ -414,6 +418,18 @@ func SimplePlanOpts(mode plans.Mode, setVariables InputValues) *PlanOpts {
 func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	if opts.Mode != plans.NormalMode {
+		panic(fmt.Sprintf("called Context.plan with %s", opts.Mode))
+	}
+
+	plan, evalScope, walkDiags := c.planWalk(config, prevRunState, opts)
+	diags = diags.Append(walkDiags)
+
+	return plan, evalScope, diags
+}
+
+func (c *Context) queryPlan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	if opts.Mode != plans.QueryMode {
 		panic(fmt.Sprintf("called Context.plan with %s", opts.Mode))
 	}
 
@@ -801,11 +817,15 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		}
 	}
 
+	queryResults, queryDiags := c.queryResults(walker, allInsts)
+	diags = diags.Append(queryDiags)
+
 	plan := &plans.Plan{
 		UIMode:             opts.Mode,
 		Changes:            changesSrc,
 		DriftedResources:   driftedResources,
 		DeferredResources:  deferredResources,
+		QueryResults:       queryResults,
 		PrevRunState:       prevRunState,
 		PriorState:         priorState,
 		ExternalReferences: opts.ExternalReferences,
@@ -855,6 +875,10 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	evalScope := evalScopeFromGraphWalk(walker, addrs.RootModuleInstance)
 
 	return plan, evalScope, diags
+}
+
+func (c *Context) queryResults(walker *ContextGraphWalker, allInsts instances.Set) (addrs.Map[addrs.Resource, addrs.Map[addrs.AbsResourceInstance, cty.Value]], tfdiags.Diagnostics) {
+	return walker.NamedValues.AllResourceListInstances(), nil
 }
 
 func (c *Context) deferredResources(config *configs.Config, deferrals []*plans.DeferredResourceInstanceChange, state *states.State) ([]*plans.DeferredResourceInstanceChangeSrc, tfdiags.Diagnostics) {
@@ -950,6 +974,22 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags
+	case plans.QueryMode:
+		graph, diags := (&PlanGraphBuilder{
+			Config:                  config,
+			State:                   prevRunState,
+			RootVariableValues:      opts.SetVariables,
+			ExternalProviderConfigs: externalProviderConfigs,
+			Plugins:                 c.plugins,
+			Targets:                 opts.Targets,
+			Operation:               walkQuery,
+			ExternalReferences:      opts.ExternalReferences,
+			Overrides:               opts.Overrides,
+			ImportTargets:           c.findImportTargets(config),
+			GenerateConfigPath:      opts.GenerateConfigPath,
+			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
+		}).Build(addrs.RootModuleInstance)
+		return graph, walkQuery, diags
 	default:
 		// The above should cover all plans.Mode values
 		panic(fmt.Sprintf("unsupported plan mode %s", mode))
