@@ -28,10 +28,13 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	// retrieve list schema? (already done in transformer)
-	forEach, _, _ := evaluateForEachExpression(config.ForEach, ctx, false)
-	keyData := EvalDataForInstanceKey(addr.Resource.Key, forEach)
+	keyData := EvalDataForInstanceKey(addr.Resource.Key, nil)
+	if config.ForEach != nil {
+		forEach, _, _ := evaluateForEachExpression(config.ForEach, ctx, false)
+		keyData = EvalDataForInstanceKey(addr.Resource.Key, forEach)
+	}
 
+	// retrieve list schema? (already done in transformer)
 	// evaluate the list config block
 	var configDiags tfdiags.Diagnostics
 	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, n.Schema.ListBody, nil, keyData)
@@ -61,24 +64,18 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	}
 
 	doneCh := make(chan struct{}, 1)
-	// retrieve resource schema
-	resourceSchema := providerSchema.SchemaForResourceType(addrs.ManagedResourceMode, n.Config.Type)
-	if resourceSchema.Body == nil {
-		// Should be caught during validation, so we don't bother with a pretty error here
-		diags = diags.Append(fmt.Errorf("provider %q does not support managed source %q", n.ResolvedProvider, n.Config.Type))
-		return diags
-	}
-
-	set := make([]cty.Value, 0)
+	resp := make([]cty.Value, 0)
 
 	// If we get down here then our configuration is complete and we're ready
 	// to actually call the provider to list the data.
 	err = provider.ListResource(providers.ListResourceRequest{
-		TypeName:    n.Config.Type,
-		Config:      unmarkedConfigVal,
-		DiagEmitter: n.emitDiags,
+		TypeName: n.Config.Type,
+		Config:   unmarkedConfigVal,
+		DiagEmitter: func(diag tfdiags.Diagnostics) {
+			diags = diags.Append(diag.InConfigBody(config.Config, n.Addr.String()))
+		},
 		ResourceEmitter: func(resource providers.ListResult) {
-			set = append(set, resource.ResourceObject)
+			resp = append(resp, resource.ResourceObject)
 		},
 		DoneCh: doneCh,
 	})
@@ -90,20 +87,13 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		select {
 		case <-doneCh:
 			// We are done listing resources
-			if len(set) != 0 {
-				ctx.NamedValues().SetResourceListInstance(n.Addr.ContainingResource(), n.Addr.Resource.Key, cty.ListVal(set))
+			if len(resp) != 0 {
+				ctx.NamedValues().SetResourceListInstance(n.Addr.ContainingResource(), n.Addr.Resource.Key, cty.ListVal(resp))
 			}
 			return diags
 		default:
 			// Maybe we want to set some limit on how long we wait or how much data can be sent?
 			// do nothing
 		}
-	}
-}
-
-func (n *NodePlannableResourceInstance) emitDiags(diags tfdiags.Diagnostics) {
-	if diags.HasErrors() {
-		diags = diags.Append(diags.InConfigBody(n.Config.Config, n.Addr.String()))
-		return
 	}
 }

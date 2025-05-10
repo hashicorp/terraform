@@ -5,6 +5,8 @@ package terraform
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -14,16 +16,22 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 )
 
 // queryTestCase is a test case for verifying query behavior
 type queryTestCase struct {
-	name     string
-	configs  map[string]string
-	variable cty.Value
-	want     map[string]cty.Value
+	name       string
+	configs    map[string]string
+	variables  map[string]cty.Value
+	wantFilter map[string][]string
+	want       map[string]cty.Value
+	// If specified, modifies the provider to inject custom behavior
+	providerCustomizer func(p *testing_provider.MockProvider)
+	// If set, validate diagnostics match expected
+	assertErrorDiags func(diags tfdiags.Diagnostics) bool
 }
 
 // getQueryTestSchema returns a schema for query tests with a filter attribute
@@ -47,7 +55,7 @@ func getQueryTestSchema() *configschema.Block {
 }
 
 // getQueryTestProvider returns a provider configured for query tests
-func getQueryTestProvider() *testing_provider.MockProvider {
+func getQueryTestProvider(attrMap map[string][]string) *testing_provider.MockProvider {
 	p := simpleMockProvider()
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
@@ -77,22 +85,24 @@ func getQueryTestProvider() *testing_provider.MockProvider {
 	p.ListResourceFn = func(request providers.ListResourceRequest) error {
 		filter := request.Config.GetAttr("filter")
 		str := filter.GetAttr("attr").AsString()
-
-		if str != "parent" && request.TypeName == "test_resource" {
-			return fmt.Errorf("Expected filter attr to be 'inputed' for test_resource, got '%s'", str)
+		if attrMap[request.TypeName] == nil {
+			attrMap[request.TypeName] = []string{}
 		}
 
+		attrMap[request.TypeName] = append(attrMap[request.TypeName], str)
+
+		str = strings.TrimPrefix(str, "filter_")
 		if request.TypeName == "test_child_resource" {
 			request.ResourceEmitter(providers.ListResult{
 				ResourceObject: cty.ObjectVal(map[string]cty.Value{
-					"attr": cty.StringVal(fmt.Sprintf("child_%s", str)),
+					"attr": cty.StringVal(fmt.Sprintf("resp_%s", str)),
 				}),
 			})
 		} else {
-			for _, attr := range []string{"0", "1"} {
+			for _, attr := range []string{"foo", "bar"} {
 				request.ResourceEmitter(providers.ListResult{
 					ResourceObject: cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal(str + attr),
+						"attr": cty.StringVal(fmt.Sprintf("resp_%s_%s", str, attr)),
 					}),
 				})
 			}
@@ -104,21 +114,11 @@ func getQueryTestProvider() *testing_provider.MockProvider {
 	return p
 }
 
-func TestContext2Plan_QueryExamples(t *testing.T) {
+func TestContext2Plan_Query(t *testing.T) {
 	testCases := []queryTestCase{
 		{
 			name: "basic query",
 			configs: map[string]string{
-				"main.tf": `
-					terraform {
-						required_providers {
-							test = {
-								source = "hashicorp/test"
-								version = "1.0.0"
-							}
-						}
-					}
-				`,
 				"main.tfquery.hcl": `
 					provider "test" {}
 
@@ -136,14 +136,19 @@ func TestContext2Plan_QueryExamples(t *testing.T) {
 					}
 				`,
 			},
-			variable: cty.StringVal("parent"),
+			variables: map[string]cty.Value{
+				"input": cty.StringVal("filter_parent"),
+			},
+			wantFilter: map[string][]string{
+				"test_resource": {"filter_parent"},
+			},
 			want: map[string]cty.Value{
 				"list.test_resource.test": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("parent0"),
+						"attr": cty.StringVal("resp_parent_foo"),
 					}),
 					cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("parent1"),
+						"attr": cty.StringVal("resp_parent_bar"),
 					}),
 				}),
 			},
@@ -151,16 +156,6 @@ func TestContext2Plan_QueryExamples(t *testing.T) {
 		{
 			name: "query with count",
 			configs: map[string]string{
-				"main.tf": `
-					terraform {
-						required_providers {
-							test = {
-								source = "hashicorp/test"
-								version = "1.0.0"
-							}
-						}
-					}
-				`,
 				"main.tfquery.hcl": `
 					provider "test" {}
 
@@ -182,16 +177,27 @@ func TestContext2Plan_QueryExamples(t *testing.T) {
 						provider = test
 
 						filter = {
-							attr = join("-",["attr", "${count.index}"])
+							attr = join("-",["filter_child", "${count.index}"])
 						}
 					}
 				`,
 			},
-			variable: cty.StringVal("parent"),
+			variables: map[string]cty.Value{
+				"input": cty.StringVal("filter_parent"),
+			},
+			wantFilter: map[string][]string{
+				"test_resource":       {"filter_parent"},
+				"test_child_resource": {"filter_child-0", "filter_child-1"},
+			},
 			want: map[string]cty.Value{
 				"list.test_child_resource.test_child[0]": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("child_attr-0"),
+						"attr": cty.StringVal("resp_child-0"),
+					}),
+				}),
+				"list.test_child_resource.test_child[1]": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("resp_child-1"),
 					}),
 				}),
 			},
@@ -199,16 +205,6 @@ func TestContext2Plan_QueryExamples(t *testing.T) {
 		{
 			name: "query with count and reference",
 			configs: map[string]string{
-				"main.tf": `
-					terraform {
-						required_providers {
-							test = {
-								source = "hashicorp/test"
-								version = "1.0.0"
-							}
-						}
-					}
-				`,
 				"main.tfquery.hcl": `
 					provider "test" {}
 
@@ -217,12 +213,17 @@ func TestContext2Plan_QueryExamples(t *testing.T) {
 						default = "test"
 					}
 
+					variable "countvar" {
+						type = number
+						default = 2
+					}
+
 					list "test_resource" "test" {
-						count = 2
+						count = var.countvar
 						provider = test
 
 						filter = {
-							attr = var.input
+							attr = join("",[var.input,"${count.index}"])
 						}
 					}
 
@@ -230,16 +231,23 @@ func TestContext2Plan_QueryExamples(t *testing.T) {
 						provider = test
 
 						filter = {
-							attr = join("-",["attr", list.test_resource.test[0].data[0].attr])
+							attr = join("-",["filter_child", list.test_resource.test[0].data[0].attr])
 						}
 					}
 				`,
 			},
-			variable: cty.StringVal("parent"),
+			variables: map[string]cty.Value{
+				"input":    cty.StringVal("filter_parent"),
+				"countvar": cty.NumberIntVal(2),
+			},
+			wantFilter: map[string][]string{
+				"test_resource":       {"filter_parent0", "filter_parent1"},
+				"test_child_resource": {"filter_child-resp_parent0_foo"},
+			},
 			want: map[string]cty.Value{
 				"list.test_child_resource.test_child": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("child_attr-parent0"),
+						"attr": cty.StringVal("resp_child-resp_parent0_foo"),
 					}),
 				}),
 			},
@@ -247,16 +255,6 @@ func TestContext2Plan_QueryExamples(t *testing.T) {
 		{
 			name: "query with for_each",
 			configs: map[string]string{
-				"main.tf": `
-					terraform {
-						required_providers {
-							test = {
-								source = "hashicorp/test"
-								version = "1.0.0"
-							}
-						}
-					}
-				`,
 				"main.tfquery.hcl": `
 					provider "test" {}
 
@@ -279,16 +277,22 @@ func TestContext2Plan_QueryExamples(t *testing.T) {
 						provider = test
 
 						filter = {
-							attr = each.key
+							attr = join("-",["filter_child", each.key])
 						}
 					}
 				`,
 			},
-			variable: cty.StringVal("parent"),
+			variables: map[string]cty.Value{
+				"input": cty.StringVal("filter_parent"),
+			},
+			wantFilter: map[string][]string{
+				"test_resource":       {"filter_parent"},
+				"test_child_resource": {"filter_child-resp_parent_foo", "filter_child-resp_parent_bar"},
+			},
 			want: map[string]cty.Value{
-				"list.test_child_resource.test_child[\"parent0\"]": cty.ListVal([]cty.Value{
+				"list.test_child_resource.test_child[\"resp_parent_foo\"]": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("child_parent0"),
+						"attr": cty.StringVal("resp_child-resp_parent_foo"),
 					}),
 				}),
 			},
@@ -296,16 +300,6 @@ func TestContext2Plan_QueryExamples(t *testing.T) {
 		{
 			name: "query with for_each reference",
 			configs: map[string]string{
-				"main.tf": `
-					terraform {
-						required_providers {
-							test = {
-								source = "hashicorp/test"
-								version = "1.0.0"
-							}
-						}
-					}
-				`,
 				"main.tfquery.hcl": `
 					provider "test" {}
 
@@ -315,45 +309,113 @@ func TestContext2Plan_QueryExamples(t *testing.T) {
 					}
 
 					list "test_resource" "test" {
-						for_each = toset(["attr1", "attr2"])
+						for_each = toset(["inst1", "inst2"])
+						provider = test
+
+						filter = {
+							attr = join("-",[var.input,each.key])
+						}
+					}
+
+					# looping over multiple list resources
+					# and using the first object of each list resource's result
+					list "test_child_resource" "test_child" {
+						for_each = list.test_resource.test
+						provider = test
+
+						filter = {
+							attr = join("-",["filter_child", each.value.data[0].attr])
+						}
+					}
+				`,
+			},
+			variables: map[string]cty.Value{
+				"input": cty.StringVal("filter_parent"),
+			},
+			wantFilter: map[string][]string{
+				"test_resource":       {"filter_parent-inst1", "filter_parent-inst2"},
+				"test_child_resource": {"filter_child-resp_parent-inst1_foo", "filter_child-resp_parent-inst2_foo"},
+			},
+			want: map[string]cty.Value{
+				"list.test_child_resource.test_child[\"inst1\"]": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("resp_child-resp_parent-inst1_foo"),
+					}),
+				}),
+			},
+		},
+		{
+			name: "diagnostic from provider",
+			configs: map[string]string{
+				"main.tfquery.hcl": `
+					provider "test" {}
+
+					variable "input" {
+						type = string
+						default = "test"
+					}
+
+					list "test_resource" "test" {
 						provider = test
 
 						filter = {
 							attr = var.input
 						}
 					}
-
-					list "test_child_resource" "test_child" {
-						for_each = list.test_resource.test
-						provider = test
-
-						filter = {
-							attr = each.value.data[0].attr
-						}
-					}
 				`,
 			},
-			variable: cty.StringVal("parent"),
-			want: map[string]cty.Value{
-				"list.test_child_resource.test_child[\"attr1\"]": cty.ListVal([]cty.Value{
-					cty.ObjectVal(map[string]cty.Value{
-						"attr": cty.StringVal("child_parent0"),
-					}),
-				}),
+			variables: map[string]cty.Value{
+				"input": cty.StringVal("error-trigger"),
+			},
+			providerCustomizer: func(p *testing_provider.MockProvider) {
+				originalFn := p.ListResourceFn
+				p.ListResourceFn = func(request providers.ListResourceRequest) error {
+					filter := request.Config.GetAttr("filter")
+					str := filter.GetAttr("attr").AsString()
+
+					// Emit diagnostic for a specific filter value
+					if str == "error-trigger" {
+						err := fmt.Errorf("test error: resource listing failed for filter '%s'", str)
+						diags := tfdiags.Diagnostics{}
+						request.DiagEmitter(diags.Append(err))
+						request.DoneCh <- struct{}{}
+						return nil
+					}
+
+					return originalFn(request)
+				}
+			},
+			assertErrorDiags: func(diags tfdiags.Diagnostics) bool {
+				return strings.Contains(diags.Err().Error(),
+					"test error: resource listing failed for filter 'error-trigger'")
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			tc.configs["main.tf"] = fmt.Sprintf(`
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+			`)
 			m := testModuleInline(t, tc.configs)
-			p := getQueryTestProvider()
+			gotAttr := map[string][]string{}
+			p := getQueryTestProvider(gotAttr)
+
+			if tc.providerCustomizer != nil {
+				tc.providerCustomizer(p)
+			}
 
 			ctx := testContext2(t, &ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 				},
-				Parallelism: 1,
 			})
 
 			qv := &MockQueryViews{
@@ -362,13 +424,29 @@ func TestContext2Plan_QueryExamples(t *testing.T) {
 
 			plan, _, diags := ctx.PlanAndEval(m, states.NewState(), &PlanOpts{
 				QueryViews: qv,
-				SetVariables: InputValues{
-					"input": &InputValue{
-						Value: tc.variable,
-					},
-				},
+				SetVariables: func() InputValues {
+					ret := InputValues{}
+					for k, v := range tc.variables {
+						ret[k] = &InputValue{Value: v}
+					}
+					return ret
+				}(),
 				Mode: plans.QueryMode,
 			})
+
+			// Check if diagnostics are expected
+			if tc.assertErrorDiags != nil {
+				if !diags.HasErrors() {
+					t.Fatal("Expected diagnostics with errors but none were returned")
+				}
+
+				if !tc.assertErrorDiags(diags) {
+					t.Fatal("Returned diagnostics did not match expected diagnostics")
+				}
+
+				// Skip the rest of the checks since we expected errors
+				return
+			}
 
 			if diags.HasErrors() {
 				t.Fatal(diags.Err())
@@ -392,6 +470,19 @@ func TestContext2Plan_QueryExamples(t *testing.T) {
 
 				if diff := cmp.Diff(instance, expected, ctydebug.CmpOptions); diff != "" {
 					t.Fatalf("Unexpected query result for %s:\n%s", addr, diff)
+				}
+			}
+
+			// Check the expected attributes
+			for addr, expected := range tc.wantFilter {
+				if got, ok := gotAttr[addr]; !ok {
+					t.Fatalf("Expected %s to be in the query results", addr)
+				} else {
+					sort.Strings(got)
+					sort.Strings(expected)
+					if diff := cmp.Diff(got, expected); diff != "" {
+						t.Fatalf("Unexpected query result for %s:\n%s", addr, diff)
+					}
 				}
 			}
 		})
