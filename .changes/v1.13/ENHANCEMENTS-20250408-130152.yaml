@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Terraform will use the value of TF_DATA_DIR for temporary files when installing providers, gracefully falling back to os.TempDir if it's unset.
+time: 2025-04-08T13:01:52.791835-03:00
+custom:
+    Issue: "36863"
