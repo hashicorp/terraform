@@ -6,7 +6,6 @@ package lang
 import (
 	"fmt"
 	"log"
-	"math/big"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -482,73 +481,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	}
 
 	if len(listResources) > 0 {
-		typeResources := make(map[string]cty.Value)
-
-		for typeName, nameVals := range listResources {
-			resourcesByName := make(map[string]cty.Value)
-
-			for name, val := range nameVals {
-				var result cty.Value
-
-				switch {
-				case val.Type().IsTupleType():
-					// Handle repetition from count
-					length := val.LengthInt()
-					if length == 0 {
-						result = cty.EmptyTupleVal
-						continue
-					}
-
-					elements := make([]cty.Value, length)
-					iter := val.ElementIterator()
-					for iter.Next() {
-						key, value := iter.Element()
-						if !key.IsKnown() || key.IsNull() {
-							continue
-						}
-
-						index, acc := key.AsBigFloat().Int64()
-						if acc != big.Exact {
-							continue // Skip if index isn't an exact integer
-						}
-
-						if index >= 0 && int(index) < length {
-							elements[index] = cty.ObjectVal(map[string]cty.Value{
-								"data": value,
-							})
-						}
-					}
-					result = cty.TupleVal(elements)
-
-				case val.Type().IsObjectType():
-					// Handle repetition from for_each
-					elements := make(map[string]cty.Value)
-					iter := val.ElementIterator()
-					for iter.Next() {
-						key, value := iter.Element()
-						if !key.IsKnown() || key.IsNull() {
-							continue
-						}
-
-						keyStr := key.AsString()
-						elements[keyStr] = cty.ObjectVal(map[string]cty.Value{
-							"data": value,
-						})
-					}
-					result = cty.ObjectVal(elements)
-
-				default:
-					// No repetition - single value
-					result = cty.ObjectVal(map[string]cty.Value{"data": val})
-				}
-
-				resourcesByName[name] = result
-			}
-
-			typeResources[typeName] = cty.ObjectVal(resourcesByName)
-		}
-
-		vals["list"] = cty.ObjectVal(typeResources)
+		vals["list"] = cty.ObjectVal(buildResourceObjects(listResources))
 	}
 
 	return ctx, diags

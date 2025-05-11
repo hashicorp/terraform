@@ -591,6 +591,13 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	}
 
 	if addr.Mode == addrs.ListResourceMode {
+		// The provider result of a list resource is always a tuple, but
+		// we will wrap that tuple in an object with a single attribute "data",
+		// so that we can differentiate between a list resource instance (list.aws_instance.test[index])
+		// and the elements of the result of a list resource instance (list.aws_instance.test.data[index])
+		wrappedVal := func(v cty.Value) cty.Value {
+			return cty.ObjectVal(map[string]cty.Value{"data": v})
+		}
 		mAddr := addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: addr.Type,
@@ -615,27 +622,18 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// figure out what the last index we have is
 			length := -1
 			for _, inst := range instances.Elems {
-				key := inst.Key.Resource.Key
-				intKey, ok := key.(addrs.IntKey)
-				if !ok {
-					continue
-				}
-				if int(intKey) >= length {
-					length = int(intKey) + 1
+				if intKey, ok := inst.Key.Resource.Key.(addrs.IntKey); ok {
+					length = max(int(intKey), length)
 				}
 			}
 
 			if length > 0 {
-				vals := make([]cty.Value, length)
+				vals := make([]cty.Value, length+1)
 				for _, inst := range instances.Elems {
 					key := inst.Key.Resource.Key
-					intKey, ok := key.(addrs.IntKey)
-					if !ok {
-						// old key from state, which isn't valid for evaluation
-						continue
+					if intKey, ok := key.(addrs.IntKey); ok {
+						vals[int(intKey)] = wrappedVal(inst.Value)
 					}
-
-					vals[int(intKey)] = inst.Value
 				}
 
 				// Insert unknown values where there are any missing instances
@@ -652,12 +650,9 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			vals := make(map[string]cty.Value)
 			for _, inst := range instances.Elems {
 				key := inst.Key.Resource.Key
-				strKey, ok := key.(addrs.StringKey)
-				if !ok {
-					// old key that is being dropped and not used for evaluation
-					continue
+				if strKey, ok := key.(addrs.StringKey); ok {
+					vals[string(strKey)] = wrappedVal(inst.Value)
 				}
-				vals[string(strKey)] = inst.Value
 			}
 
 			if len(vals) > 0 {
@@ -678,7 +673,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				val = cty.UnknownVal(ty)
 			}
 
-			ret = val
+			ret = wrappedVal(val)
 		}
 
 		return ret, diags

@@ -298,6 +298,51 @@ func TestContext2Plan_Query(t *testing.T) {
 			},
 		},
 		{
+			name: "query with for_each splat",
+			configs: map[string]string{
+				"main.tfquery.hcl": `
+					provider "test" {}
+
+					variable "input" {
+						type = string
+						default = "test"
+					}
+
+					list "test_resource" "test" {
+						provider = test
+
+						filter = {
+							attr = var.input
+						}
+					}
+
+					# looping of the results from a single list resource
+					list "test_child_resource" "test_child" {
+						for_each = toset(list.test_resource.test.data[*].attr)
+						provider = test
+
+						filter = {
+							attr = join("-",["filter_child", each.key])
+						}
+					}
+				`,
+			},
+			variables: map[string]cty.Value{
+				"input": cty.StringVal("filter_parent"),
+			},
+			wantFilter: map[string][]string{
+				"test_resource":       {"filter_parent"},
+				"test_child_resource": {"filter_child-resp_parent_foo", "filter_child-resp_parent_bar"},
+			},
+			want: map[string]cty.Value{
+				"list.test_child_resource.test_child[\"resp_parent_foo\"]": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"attr": cty.StringVal("resp_child-resp_parent_foo"),
+					}),
+				}),
+			},
+		},
+		{
 			name: "query with for_each reference",
 			configs: map[string]string{
 				"main.tfquery.hcl": `
