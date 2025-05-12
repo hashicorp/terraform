@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"sync"
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
@@ -47,12 +48,16 @@ func (c GRPCStacksClient) registerBrokers(stdout, stderr io.Writer) brokerIDs {
 	packagesServer := dynrpcserver.NewPackagesStub()
 	stacksServer := dynrpcserver.NewStacksStub()
 
-	var s *grpc.Server
+	var serverWG sync.WaitGroup
+	// wait for all 3 servers to start
+	serverWG.Add(3)
+
 	dependenciesServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
-		s = grpc.NewServer(opts...)
+		s := grpc.NewServer(opts...)
 		dependencies.RegisterDependenciesServer(s, dependenciesServer)
 		dependenciesServer.ActivateRPCServer(newDependenciesServer(handles, c.Services))
 
+		serverWG.Done()
 		return s
 	}
 
@@ -60,10 +65,11 @@ func (c GRPCStacksClient) registerBrokers(stdout, stderr io.Writer) brokerIDs {
 	go c.Broker.AcceptAndServe(dependenciesBrokerID, dependenciesServerFunc)
 
 	packagesServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
-		s = grpc.NewServer(opts...)
+		s := grpc.NewServer(opts...)
 		packages.RegisterPackagesServer(s, packagesServer)
 		packagesServer.ActivateRPCServer(newPackagesServer(c.Services))
 
+		serverWG.Done()
 		return s
 	}
 
@@ -71,15 +77,20 @@ func (c GRPCStacksClient) registerBrokers(stdout, stderr io.Writer) brokerIDs {
 	go c.Broker.AcceptAndServe(packagesBrokerID, packagesServerFunc)
 
 	stacksServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
-		s = grpc.NewServer(opts...)
+		s := grpc.NewServer(opts...)
 		stacks.RegisterStacksServer(s, stacksServer)
 		stacksServer.ActivateRPCServer(newStacksServer(
 			newStopper(), handles, c.Services, &serviceOpts{experimentsAllowed: true}))
+
+		serverWG.Done()
 		return s
 	}
 
 	stacksBrokerID := c.Broker.NextId()
 	go c.Broker.AcceptAndServe(stacksBrokerID, stacksServerFunc)
+
+	// block till all 3 servers have signaled readiness
+	serverWG.Wait()
 
 	return brokerIDs{
 		dependenciesBrokerID: dependenciesBrokerID,
