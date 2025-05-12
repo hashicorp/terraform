@@ -79,6 +79,8 @@ func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 		return n.dataResourceExecute(ctx)
 	case addrs.EphemeralResourceMode:
 		return n.ephemeralResourceExecute(ctx)
+	case addrs.ListResourceMode:
+		return n.listResourceExecute(ctx)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
@@ -96,7 +98,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	diags = diags.Append(validateSelfRef(addr.Resource, config.Config, providerSchema))
+	diags = diags.Append(validateSelfRef(n.RefParser(), addr.Resource, config.Config, providerSchema))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -195,7 +197,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	if config != nil {
-		diags = diags.Append(validateSelfRef(addr.Resource, config.Config, providerSchema))
+		diags = diags.Append(validateSelfRef(n.RefParser(), addr.Resource, config.Config, providerSchema))
 		if diags.HasErrors() {
 			return diags
 		}

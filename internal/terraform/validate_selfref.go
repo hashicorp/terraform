@@ -16,7 +16,7 @@ import (
 
 // validateSelfRef checks to ensure that expressions within a particular
 // referencable block do not reference that same block.
-func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema providers.ProviderSchema) tfdiags.Diagnostics {
+func validateSelfRef(parseRef langrefs.ParseRef, addr addrs.Referenceable, config hcl.Body, providerSchema providers.ProviderSchema) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	addrStrs := make([]string, 0, 1)
@@ -40,7 +40,7 @@ func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema p
 		return diags
 	}
 
-	refs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, config, schema.Body)
+	refs, _ := langrefs.ReferencesInBlock(parseRef, config, schema.Body)
 	for _, ref := range refs {
 		for _, addrStr := range addrStrs {
 			if ref.Subject.String() == addrStr {

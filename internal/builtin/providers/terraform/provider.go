@@ -14,8 +14,7 @@ import (
 )
 
 // Provider is an implementation of providers.Interface
-type Provider struct {
-}
+type Provider struct{}
 
 // NewProvider returns a new terraform provider
 func NewProvider() providers.Interface {
