@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
@@ -173,7 +172,7 @@ func (ev *forEachEvaluator) Value() (cty.Value, tfdiags.Diagnostics) {
 		return cty.NullVal(cty.Map(cty.DynamicPseudoType)), nil
 	}
 
-	refs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRef, ev.expr)
+	refs, moreDiags := langrefs.ReferencesInExpr(ev.ctx.ParseRef(), ev.expr)
 	diags = diags.Append(moreDiags)
 	scope := ev.ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
 	if scope != nil {

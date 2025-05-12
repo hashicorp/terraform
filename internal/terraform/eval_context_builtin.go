@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -619,4 +620,12 @@ func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities
 		DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
 		WriteOnlyAttributesAllowed: true,
 	}
+}
+
+func (ctx *BuiltinEvalContext) ParseRef() langrefs.ParseRef {
+	if ctx.Evaluator != nil && ctx.Evaluator.Operation == walkQuery {
+		return addrs.NewRefParserFn(addrs.ParseQueryScopeRefs())
+	}
+
+	return addrs.NewRefParserFn()
 }

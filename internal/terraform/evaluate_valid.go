@@ -90,6 +90,7 @@ func (e *Evaluator) staticValidateReference(ref *addrs.Reference, modCfg *config
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(staticValidateMultiResourceReference(modCfg, addr, ref.Remaining, ref.SourceRange))
 		diags = diags.Append(staticValidateResourceReference(modCfg, addr.ContainingResource(), source, e.Plugins, ref.Remaining, ref.SourceRange))
+		// TODO:(ListResource) validate the remaining traversal against the schema for the managed resource
 		return diags
 
 	// We also handle all module call references the same way, disregarding index.
@@ -206,6 +207,8 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 	case addrs.EphemeralResourceMode:
 		modeAdjective = "ephemeral"
 		modeArticleUpper = "An"
+	case addrs.ListResourceMode:
+		modeAdjective = "list"
 	default:
 		// should never happen
 		modeAdjective = "<invalid-mode>"
@@ -260,6 +263,56 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 			Detail:   fmt.Sprintf(`Couldn't load schema for %s resource type %q in %s: %s.`, modeAdjective, addr.Type, providerFqn.String(), err),
 			Subject:  rng.ToHCL().Ptr(),
 		})
+	}
+
+	// If this is a list resource, then we need to look up the schema for the
+	// managed resource type instead, and validate that the referenced traversal
+	// matches that schema.
+	if addr.Mode == addrs.ListResourceMode {
+		schema, err = plugins.ResourceTypeSchema(providerFqn, addrs.ManagedResourceMode, addr.Type)
+		if err != nil {
+			// Prior validation should've taken care of a schema lookup error,
+			// so we should never get here but we'll handle it here anyway for
+			// robustness.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Failed provider schema lookup`,
+				Detail:   fmt.Sprintf(`Couldn't load schema for %s resource type %q in %s: %s.`, modeAdjective, addr.Type, providerFqn.String(), err),
+				Subject:  rng.ToHCL().Ptr(),
+			})
+		}
+
+		// if remain is empty, then we are looking at a list resource (list.aws_instance.foo),
+		// which we support as a direct for_each
+
+		if len(remain) > 0 { // i.e list.aws_instance.foo.data
+			// The first step in the traversal must be an attribute called "data"
+			data, ok := remain[0].(hcl.TraverseAttr)
+			if !ok || data.Name != "data" {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Invalid list resource traversal`,
+					Detail:   fmt.Sprintf(`The first step in the traversal for a %s resource must be an attribute "data", but got %T instead.`, modeAdjective, remain[0]),
+					Subject:  rng.ToHCL().Ptr(),
+				})
+				return diags
+			}
+			remain = remain[1:]
+		}
+		if len(remain) > 0 { // i.e list.aws_instance.foo.data[count.index] or list.aws_instance.foo.data[each.key]
+			if _, ok := remain[0].(hcl.TraverseIndex); !ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Invalid list resource traversal`,
+					Detail:   fmt.Sprintf(`The second step in the traversal for a %s resource must be an index, but got %T instead.`, modeAdjective, remain[1]),
+					Subject:  rng.ToHCL().Ptr(),
+				})
+				return diags
+			}
+			// remove the index, and now we have the rest of the traversal,
+			// which we can validate against the schema
+			remain = remain[1:]
+		}
 	}
 
 	if schema.Body == nil {

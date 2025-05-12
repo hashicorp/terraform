@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -216,6 +217,9 @@ type EvalContext interface {
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowed in the context of a destroy plan.
 	Forget() bool
+
+	// ParseRef defines the function used to parse HCL references in this context.
+	ParseRef() langrefs.ParseRef
 }
 
 func evalContextForModuleInstance(baseCtx EvalContext, addr addrs.ModuleInstance) EvalContext {

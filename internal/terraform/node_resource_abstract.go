@@ -167,6 +167,11 @@ func (n *NodeAbstractResource) ModifyCreateBeforeDestroy(v bool) error {
 // GraphNodeReferencer
 func (n *NodeAbstractResource) References() []*addrs.Reference {
 	var result []*addrs.Reference
+	var parseOpts []addrs.ParseOpt
+	if n.Addr.Resource.Mode == addrs.ListResourceMode {
+		parseOpts = []addrs.ParseOpt{addrs.ParseQueryScopeRefs()}
+	}
+	parseRef := addrs.NewRefParserFn(parseOpts...)
 	// If we have a config then we prefer to use that.
 	if c := n.Config; c != nil {
 		result = append(result, n.DependsOn()...)
@@ -177,25 +182,25 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 			log.Printf("[WARN] no schema is attached to %s, so config references cannot be detected", n.Name())
 		}
 
-		refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.Count)
+		refs, _ := langrefs.ReferencesInExpr(parseRef, c.Count)
 		result = append(result, refs...)
-		refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, c.ForEach)
+		refs, _ = langrefs.ReferencesInExpr(parseRef, c.ForEach)
 		result = append(result, refs...)
 
 		for _, expr := range c.TriggersReplacement {
-			refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, expr)
+			refs, _ = langrefs.ReferencesInExpr(parseRef, expr)
 			result = append(result, refs...)
 		}
 
 		// ReferencesInBlock() requires a schema
 		if n.Schema != nil {
-			refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema.Body)
+			refs, _ = langrefs.ReferencesInBlock(parseRef, c.Config, n.Schema.Body)
 			result = append(result, refs...)
 		}
 
 		if c.Managed != nil {
 			if c.Managed.Connection != nil {
-				refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, c.Managed.Connection.Config, connectionBlockSupersetSchema)
+				refs, _ = langrefs.ReferencesInBlock(parseRef, c.Managed.Connection.Config, connectionBlockSupersetSchema)
 				result = append(result, refs...)
 			}
 
@@ -204,7 +209,7 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 					continue
 				}
 				if p.Connection != nil {
-					refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, p.Connection.Config, connectionBlockSupersetSchema)
+					refs, _ = langrefs.ReferencesInBlock(parseRef, p.Connection.Config, connectionBlockSupersetSchema)
 					result = append(result, refs...)
 				}
 
@@ -212,21 +217,21 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 				if schema == nil {
 					log.Printf("[WARN] no schema for provisioner %q is attached to %s, so provisioner block references cannot be detected", p.Type, n.Name())
 				}
-				refs, _ = langrefs.ReferencesInBlock(addrs.ParseRef, p.Config, schema)
+				refs, _ = langrefs.ReferencesInBlock(parseRef, p.Config, schema)
 				result = append(result, refs...)
 			}
 		}
 
 		for _, check := range c.Preconditions {
-			refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, check.Condition)
+			refs, _ := langrefs.ReferencesInExpr(parseRef, check.Condition)
 			result = append(result, refs...)
-			refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, check.ErrorMessage)
+			refs, _ = langrefs.ReferencesInExpr(parseRef, check.ErrorMessage)
 			result = append(result, refs...)
 		}
 		for _, check := range c.Postconditions {
-			refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, check.Condition)
+			refs, _ := langrefs.ReferencesInExpr(parseRef, check.Condition)
 			result = append(result, refs...)
-			refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, check.ErrorMessage)
+			refs, _ = langrefs.ReferencesInExpr(parseRef, check.ErrorMessage)
 			result = append(result, refs...)
 		}
 	}
