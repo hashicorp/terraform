@@ -39,6 +39,10 @@ type Interface interface {
 	// ephemeral resource configuration values.
 	ValidateEphemeralResourceConfig(ValidateEphemeralResourceConfigRequest) ValidateEphemeralResourceConfigResponse
 
+	// ValidateListResourceConfig allows the provider to validate the
+	// list resource configuration values.
+	ValidateListResourceConfig(ValidateListResourceConfigRequest) ValidateListResourceConfigResponse
+
 	// UpgradeResourceState is called when the state loader encounters an
 	// instance state whose schema version is less than the one reported by the
 	// currently-used version of the corresponding provider, and the upgraded
@@ -100,6 +104,9 @@ type Interface interface {
 	// CallFunction calls a provider-contributed function.
 	CallFunction(CallFunctionRequest) CallFunctionResponse
 
+	// ListResource returns a list of resources.
+	ListResource(ListResourceRequest) error
+
 	// Close shuts down the plugin process if applicable.
 	Close() error
 }
@@ -125,6 +132,10 @@ type GetProviderSchemaResponse struct {
 	// EphemeralResourceTypes maps the name of an ephemeral resource type
 	// to its schema.
 	EphemeralResourceTypes map[string]Schema
+
+	// ListResourceTypes maps the name of a list resource type
+	// to its schema.
+	ListResourceTypes map[string]Schema
 
 	// Functions maps from local function name (not including an namespace
 	// prefix) to the declaration of a function.
@@ -168,6 +179,9 @@ type Schema struct {
 
 	IdentityVersion int64
 	Identity        *configschema.Object
+
+	ListVersion int64
+	ListBody    *configschema.Block
 }
 
 // ServerCapabilities allows providers to communicate extra information
@@ -257,6 +271,20 @@ type ValidateEphemeralResourceConfigRequest struct {
 }
 
 type ValidateEphemeralResourceConfigResponse struct {
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type ValidateListResourceConfigRequest struct {
+	// TypeName is the name of the list type to validate.
+	TypeName string
+
+	// Config is the configuration value to validate, which may contain unknown
+	// values.
+	Config cty.Value
+}
+
+type ValidateListResourceConfigResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }
@@ -686,4 +714,41 @@ type CallFunctionResponse struct {
 	// of function.ArgError from the go-cty package to specify a problem with a
 	// specific argument.
 	Err error
+}
+
+type ListResult struct {
+	// Identity is the object-typed value representing the identity of the remote
+	// object.
+	Identity cty.Value
+
+	// DisplayString is a human-readable description of the object
+	DisplayString string
+
+	// ResourceObject is the object-typed value representing the state of the remote
+	// object. It may be null.
+	ResourceObject cty.Value
+}
+
+type ListResourceRequest struct {
+	// TypeName is the name of the resource type being read.
+	TypeName string
+
+	// Config is the block body for the list resource.
+	Config cty.Value
+
+	// DiagEmitter is a function that will be called with any diagnostics
+	// generated during the list operation. This is used to report errors
+	// and warnings to the caller.
+	DiagEmitter func(diag tfdiags.Diagnostics)
+
+	// ResourceEmitter is a function that will be called with each resource
+	// returned by the list operation. This is used to report the resources
+	// to the caller.
+	ResourceEmitter func(resource ListResult)
+
+	// DoneCh is a channel that the provider should close when the
+	// list operation is complete. This is used to signal to the caller
+	// that the operation is finished and no more resources will be
+	// emitted.
+	DoneCh chan<- struct{}
 }

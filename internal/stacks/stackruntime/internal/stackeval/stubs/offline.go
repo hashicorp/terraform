@@ -235,6 +235,14 @@ func (o *offlineProvider) CallFunction(request providers.CallFunctionRequest) pr
 	return o.unconfiguredClient.CallFunction(request)
 }
 
+func (p *offlineProvider) ListResource(req providers.ListResourceRequest) error {
+	panic("not implemented")
+}
+
+func (p *offlineProvider) ValidateListResourceConfig(req providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse {
+	panic("not implemented")
+}
+
 func (o *offlineProvider) Close() error {
 	// pass the close call to the underlying unconfigured client
 	return o.unconfiguredClient.Close()

@@ -406,6 +406,14 @@ func (m *Mock) CallFunction(request CallFunctionRequest) CallFunctionResponse {
 	return m.Provider.CallFunction(request)
 }
 
+func (m *Mock) ListResource(req ListResourceRequest) error {
+	panic("not implemented")
+}
+
+func (m *Mock) ValidateListResourceConfig(req ValidateListResourceConfigRequest) ValidateListResourceConfigResponse {
+	panic("not implemented")
+}
+
 func (m *Mock) Close() error {
 	return m.Provider.Close()
 }

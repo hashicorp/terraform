@@ -14,7 +14,8 @@ import (
 )
 
 // Provider is an implementation of providers.Interface
-type Provider struct{}
+type Provider struct {
+}
 
 // NewProvider returns a new terraform provider
 func NewProvider() providers.Interface {
@@ -262,6 +263,14 @@ func (p *Provider) CallFunction(req providers.CallFunctionRequest) providers.Cal
 	return providers.CallFunctionResponse{
 		Result: result,
 	}
+}
+
+func (p *Provider) ListResource(req providers.ListResourceRequest) error {
+	panic("not implemented")
+}
+
+func (p *Provider) ValidateListResourceConfig(req providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse {
+	panic("not implemented")
 }
 
 // Close is a noop for this provider, since it's run in-process.
