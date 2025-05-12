@@ -511,3 +511,30 @@ type ActionInvocationSrc struct {
 	TriggeringResourceInstance *addrs.AbsResourceInstance
 	TriggeringEvent            string
 }
+
+func (ais *ActionInvocationSrc) DeepCopy() *ActionInvocationSrc {
+	if ais == nil {
+		return nil
+	}
+	ret := *ais
+
+	return &ret
+}
+
+func (ais *ActionInvocationSrc) Decode() *ActionInvocation {
+	ret := &ActionInvocation{
+		ActionAddr: ais.ActionAddr,
+	}
+
+	switch ais.TriggerType {
+	case ActionTriggerTypeCli:
+		ret.Trigger = ActionInvocationCliTrigger{}
+	case ActionTriggerTypeLifecycle:
+		ret.Trigger = ActionInvocationLifecycleTrigger{
+			ResourceAddr: *ais.TriggeringResourceInstance,
+			Event:        ais.TriggeringEvent,
+		}
+	}
+
+	return ret
+}
