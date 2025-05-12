@@ -31,6 +31,9 @@ type Changes struct {
 	// can be easily re-calculated during the apply phase. Therefore only root
 	// module outputs will survive a round-trip through a plan file.
 	Outputs []*OutputChange
+
+	// ActionInvocations tracks planned changes to action invocations.
+	ActionInvocations []*ActionInvocation
 }
 
 // NewChanges returns a valid Changes object that describes no changes.
@@ -77,6 +80,11 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 			return changesSrc, err
 		}
 		changesSrc.Outputs = append(changesSrc.Outputs, oc)
+	}
+
+	for _, ai := range c.ActionInvocations {
+		aiSrc := ai.Encode()
+		changesSrc.ActionInvocations = append(changesSrc.ActionInvocations, aiSrc)
 	}
 
 	return changesSrc, nil
@@ -699,4 +707,43 @@ func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 		Importing:            c.Importing.Encode(identityTy),
 		GeneratedConfig:      c.GeneratedConfig,
 	}, nil
+}
+
+type ActionInvocationTrigger interface {
+	TriggerType() ActionTriggerType
+}
+
+type ActionInvocationCliTrigger struct{}
+
+func (t ActionInvocationCliTrigger) TriggerType() ActionTriggerType {
+	return ActionTriggerTypeCli
+}
+
+type ActionInvocationLifecycleTrigger struct {
+	ResourceAddr addrs.AbsResourceInstance
+	Event        string
+}
+
+func (t ActionInvocationLifecycleTrigger) TriggerType() ActionTriggerType {
+	return ActionTriggerTypeLifecycle
+}
+
+type ActionInvocation struct {
+	ActionAddr addrs.AbsActionInstance
+
+	Trigger ActionInvocationTrigger
+}
+
+func (a ActionInvocation) Encode() *ActionInvocationSrc {
+	ret := &ActionInvocationSrc{
+		ActionAddr:  a.ActionAddr,
+		TriggerType: a.Trigger.TriggerType(),
+	}
+
+	if lifecycleTrigger, ok := a.Trigger.(ActionInvocationLifecycleTrigger); ok {
+		ret.TriggeringResourceInstance = &lifecycleTrigger.ResourceAddr
+		ret.TriggeringEvent = lifecycleTrigger.Event
+	}
+
+	return ret
 }

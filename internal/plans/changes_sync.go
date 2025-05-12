@@ -214,3 +214,31 @@ func (cs *ChangesSync) RemoveOutputChange(addr addrs.AbsOutputValue) {
 		return
 	}
 }
+
+// AppendActionInvocation records the given action that is planned to be invoked.
+func (cs *ChangesSync) AppendActionInvocation(action *ActionInvocation) {
+	if cs == nil {
+		panic("AppendActionInvocation on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	cs.changes.ActionInvocations = append(cs.changes.ActionInvocations, action)
+}
+
+// GetActionInvocationForAction searches the set of action invocations for one matching
+// the action, returning it if it exists.
+func (cs *ChangesSync) GetActionInvocationForAction(actionAddrs addrs.AbsActionInstance) *ActionInvocation {
+	if cs == nil {
+		panic("GetActionInvocationForAction on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	for _, a := range cs.changes.ActionInvocations {
+		if a.ActionAddr.Equal(actionAddrs) {
+			return a
+		}
+	}
+	return nil
+}
