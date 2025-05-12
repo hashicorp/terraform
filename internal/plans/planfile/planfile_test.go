@@ -55,8 +55,9 @@ func TestRoundtrip(t *testing.T) {
 	// file is tested more fully in tfplan_test.go .
 	planIn := &plans.Plan{
 		Changes: &plans.ChangesSrc{
-			Resources: []*plans.ResourceInstanceChangeSrc{},
-			Outputs:   []*plans.OutputChangeSrc{},
+			Resources:         []*plans.ResourceInstanceChangeSrc{},
+			Outputs:           []*plans.OutputChangeSrc{},
+			ActionInvocations: []*plans.ActionInvocationSrc{},
 		},
 		DriftedResources:  []*plans.ResourceInstanceChangeSrc{},
 		DeferredResources: []*plans.DeferredResourceInstanceChangeSrc{},

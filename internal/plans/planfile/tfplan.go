@@ -62,8 +62,9 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 	plan := &plans.Plan{
 		VariableValues: map[string]plans.DynamicValue{},
 		Changes: &plans.ChangesSrc{
-			Outputs:   []*plans.OutputChangeSrc{},
-			Resources: []*plans.ResourceInstanceChangeSrc{},
+			Outputs:           []*plans.OutputChangeSrc{},
+			Resources:         []*plans.ResourceInstanceChangeSrc{},
+			ActionInvocations: []*plans.ActionInvocationSrc{},
 		},
 		DriftedResources:  []*plans.ResourceInstanceChangeSrc{},
 		DeferredResources: []*plans.DeferredResourceInstanceChangeSrc{},
@@ -177,6 +178,15 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 				Result: hash.Result,
 			},
 		)
+	}
+
+	for _, ai := range rawPlan.ActionInvocations {
+		actionInvocation, err := actionInvocationFromTfplan(ai, addrs.ParseAbsResourceInstanceStr)
+		if err != nil {
+			// errors from actionInvocationFromTfplan already include context
+			return nil, err
+		}
+		plan.Changes.ActionInvocations = append(plan.Changes.ActionInvocations, actionInvocation)
 	}
 
 	if rawBackend := rawPlan.Backend; rawBackend == nil {
@@ -531,12 +541,13 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		Version:          tfplanFormatVersion,
 		TerraformVersion: version.String(),
 
-		Variables:       map[string]*planproto.DynamicValue{},
-		OutputChanges:   []*planproto.OutputChange{},
-		CheckResults:    []*planproto.CheckResults{},
-		ResourceChanges: []*planproto.ResourceInstanceChange{},
-		ResourceDrift:   []*planproto.ResourceInstanceChange{},
-		DeferredChanges: []*planproto.DeferredResourceInstanceChange{},
+		Variables:         map[string]*planproto.DynamicValue{},
+		OutputChanges:     []*planproto.OutputChange{},
+		CheckResults:      []*planproto.CheckResults{},
+		ResourceChanges:   []*planproto.ResourceInstanceChange{},
+		ResourceDrift:     []*planproto.ResourceInstanceChange{},
+		DeferredChanges:   []*planproto.DeferredResourceInstanceChange{},
+		ActionInvocations: []*planproto.ActionInvocation{},
 	}
 
 	rawPlan.Applyable = plan.Applyable
@@ -634,6 +645,14 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 				Result: hash.Result,
 			},
 		)
+	}
+
+	for _, ai := range plan.Changes.ActionInvocations {
+		rawAi, err := actionInvocationToTfplan(ai)
+		if err != nil {
+			return err
+		}
+		rawPlan.ActionInvocations = append(rawPlan.ActionInvocations, rawAi)
 	}
 
 	if plan.Backend.Type == "" || plan.Backend.Config == nil {
@@ -1175,4 +1194,62 @@ func CheckResultsToPlanProto(checkResults *states.CheckResults) ([]*planproto.Ch
 	} else {
 		return nil, nil
 	}
+}
+
+func actionInvocationFromTfplan(proto *planproto.ActionInvocation, parseAddr func(str string) (addrs.AbsResourceInstance, tfdiags.Diagnostics)) (*plans.ActionInvocationSrc, error) {
+	if proto == nil {
+		return nil, fmt.Errorf("action invocation object is absent")
+	}
+
+	ret := &plans.ActionInvocationSrc{
+		TriggerType: plans.ActionTriggerTypeUnknown,
+	}
+
+	actionAddr, parseActionDiags := addrs.ParseAbsActionInstanceStr(proto.ActionAddr)
+	if parseActionDiags.HasErrors() {
+		return nil, fmt.Errorf("invalid action address %q: %s", proto.ActionAddr, parseActionDiags.Err())
+	}
+
+	ret.ActionAddr = *actionAddr
+
+	if cli := proto.GetCliTrigger(); cli != nil {
+		ret.TriggerType = plans.ActionTriggerTypeCli
+	}
+
+	if lifecycle := proto.GetLifecycleTrigger(); lifecycle != nil {
+		ret.TriggerType = plans.ActionTriggerTypeLifecycle
+		triggerAddrs, diags := parseAddr(lifecycle.ResourceInstanceAddr)
+		if diags.HasErrors() {
+			return nil, fmt.Errorf("invalid resource instance address %q: %s", lifecycle.ResourceInstanceAddr, diags.Err())
+		}
+		ret.TriggeringResourceInstance = &triggerAddrs
+		ret.TriggeringEvent = lifecycle.Event
+	}
+
+	return ret, nil
+}
+
+func actionInvocationToTfplan(src *plans.ActionInvocationSrc) (*planproto.ActionInvocation, error) {
+	proto := &planproto.ActionInvocation{
+		ActionAddr: src.ActionAddr.String(),
+	}
+
+	switch src.TriggerType {
+	case plans.ActionTriggerTypeCli:
+		proto.Trigger = &planproto.ActionInvocation_CliTrigger_{}
+	case plans.ActionTriggerTypeLifecycle:
+		if src.TriggeringResourceInstance == nil {
+			return nil, fmt.Errorf("lifecycle trigger is missing triggering resource instance")
+		}
+		proto.Trigger = &planproto.ActionInvocation_LifecycleTrigger_{
+			LifecycleTrigger: &planproto.ActionInvocation_LifecycleTrigger{
+				ResourceInstanceAddr: src.TriggeringResourceInstance.String(),
+				Event:                src.TriggeringEvent,
+			},
+		}
+	default:
+		return nil, fmt.Errorf("unsupported action trigger type %q", src.TriggerType)
+	}
+
+	return proto, nil
 }

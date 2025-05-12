@@ -124,6 +124,8 @@ message Plan {
     string timestamp = 21;
 
     repeated FunctionCallHash function_results = 22;
+
+    repeated ActionInvocation action_invocations = 23;
 }
 
 // Mode describes the planning mode that created the plan.
@@ -403,4 +405,24 @@ enum DeferredReason {
 // instance change.
 message Deferred {
     DeferredReason reason = 1;
+}
+
+message ActionInvocation {
+    message LifecycleTrigger {
+        // The address of the resource instance that triggered this action.
+        string resource_instance_addr = 1;
+
+        // The event that triggered this action.
+        string event = 2;
+    }
+    message CliTrigger {} // Empty for now, but may be used in the future.
+
+    // The absolute address of the action instancne that will be invoked.
+    string action_addr = 1;
+
+    oneof trigger {
+        // The lifecycle trigger that caused this action to be invoked.
+        LifecycleTrigger lifecycle_trigger = 2;
+        CliTrigger cli_trigger = 3;
+    }
 }
