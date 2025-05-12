@@ -6,6 +6,10 @@ package addrs
 import (
 	"fmt"
 	"testing"
+
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestActionEqual(t *testing.T) {
@@ -338,6 +342,128 @@ func TestAbsActionUniqueKey(t *testing.T) {
 					gotEqual, test.WantEqual,
 				)
 			}
+		})
+	}
+}
+
+func TestParseActionInstance(t *testing.T) {
+	for name, tc := range map[string]struct {
+		input         string
+		expected      ActionInstance
+		expectedDiags tfdiags.Diagnostics
+	}{
+		"simple": {
+			input:    "action.aws_lambda_invocation.foo",
+			expected: Action{Type: "aws_lambda_invocation", Name: "foo"}.Instance(NoKey),
+		},
+		"with_string_key": {
+			input:    "action.aws_instance_reboot.foo[\"bar\"]",
+			expected: Action{Type: "aws_instance_reboot", Name: "foo"}.Instance(StringKey("bar")),
+		},
+		"with_int_key": {
+			input:    "action.aws_instance.foo[0]",
+			expected: Action{Type: "aws_instance", Name: "foo"}.Instance(IntKey(0)),
+		},
+		"non-action": {
+			input:         "aws_instance.foo",
+			expectedDiags: tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Invalid address", "An action address must have at least three segments: the action keyword, the action type and the action name.")},
+		},
+		"action with attribute access": {
+			input:         "action.aws_instance.foo[0].id",
+			expectedDiags: tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Invalid address", "An action address must have at most four segments: the action keyword, the action type, the action name and an optional key.")},
+		},
+		"action with non index fourth step": {
+			input:         "action.aws_instance.foo.id",
+			expectedDiags: tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Invalid address", "Invalid instance key: must be either a string or an integer")},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(tc.input), "", hcl.Pos{Line: 1, Column: 1})
+			if parseDiags.HasErrors() {
+				t.Fatalf("unexpected error parsing action %q: %v", tc.input, parseDiags)
+			}
+
+			got, diags := ParseActionInstance(traversal)
+
+			if len(tc.expectedDiags) > 0 {
+				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectedDiags)
+			} else {
+				tfdiags.AssertNoDiagnostics(t, diags)
+
+				if !got.Equal(tc.expected) {
+					t.Fatalf("expected %v, got %v", tc.expected, got)
+				}
+			}
+
+		})
+	}
+}
+
+func TestParseAbsActionInstance(t *testing.T) {
+	for name, tc := range map[string]struct {
+		input         string
+		expected      AbsActionInstance
+		expectedDiags tfdiags.Diagnostics
+	}{
+		"simple": {
+			input: "action.aws_lambda_invocation.foo",
+			expected: AbsActionInstance{
+				Module: RootModuleInstance,
+				Action: Action{Type: "aws_lambda_invocation", Name: "foo"}.Instance(NoKey),
+			},
+		},
+		"with_string_key": {
+			input: "action.aws_instance_reboot.foo[\"bar\"]",
+			expected: AbsActionInstance{
+				Module: RootModuleInstance,
+				Action: Action{Type: "aws_instance_reboot", Name: "foo"}.Instance(StringKey("bar")),
+			},
+		},
+		"with_int_key": {
+			input: "action.aws_instance.foo[0]",
+			expected: AbsActionInstance{
+				Module: RootModuleInstance,
+				Action: Action{Type: "aws_instance", Name: "foo"}.Instance(IntKey(0)),
+			},
+		},
+		"with_module": {
+			input: "module.child.action.aws_instance.foo",
+			expected: AbsActionInstance{
+				Module: mustParseModuleInstanceStr("module.child"),
+				Action: Action{Type: "aws_instance", Name: "foo"}.Instance(NoKey),
+			},
+		},
+		"non-action": {
+			input:         "aws_instance.foo",
+			expectedDiags: tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Invalid address", "An action address must have at least three segments: the action keyword, the action type and the action name.")},
+		},
+		"action with attribute access": {
+			input:         "action.aws_instance.foo[0].id",
+			expectedDiags: tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Invalid address", "An action address must have at most four segments: the action keyword, the action type, the action name and an optional key.")},
+		},
+		"action with non index fourth step": {
+			input:         "action.aws_instance.foo.id",
+			expectedDiags: tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "Invalid address", "Invalid instance key: must be either a string or an integer")},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(tc.input), "", hcl.Pos{Line: 1, Column: 1})
+			if parseDiags.HasErrors() {
+				t.Fatalf("unexpected error parsing action %q: %s", tc.input, parseDiags.Error())
+			}
+
+			got, diags := ParseAbsActionInstance(traversal)
+
+			if len(tc.expectedDiags) > 0 {
+				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectedDiags)
+			} else {
+				tfdiags.AssertNoDiagnostics(t, diags)
+
+				if !got.Equal(tc.expected) {
+					t.Fatalf("expected %v, got %v", tc.expected, got)
+				}
+			}
+
 		})
 	}
 }

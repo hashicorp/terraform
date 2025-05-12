@@ -6,6 +6,12 @@ package addrs
 import (
 	"fmt"
 	"strings"
+
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 // Action is an address for an action block within configuration, which
@@ -327,3 +333,163 @@ func (a ConfigAction) UniqueKey() UniqueKey {
 type configActionKey string
 
 func (k configActionKey) uniqueKeySigil() {}
+
+func ParseAbsActionInstanceStr(str string) (*AbsActionInstance, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
+	diags = diags.Append(parseDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	res, absActionDiags := ParseAbsActionInstance(traversal)
+	diags = diags.Append(absActionDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	return res, diags
+}
+func ParseAbsActionInstance(traversal hcl.Traversal) (*AbsActionInstance, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	if len(traversal) < 3 {
+		return nil, diags.Append(
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid address",
+				"An action address must have at least three segments: the action keyword, the action type and the action name.",
+			),
+		)
+	}
+
+	mod := RootModuleInstance
+	if traversal.RootName() == "module" {
+		// Parse the module instance address
+		module, remain, moduleInstanceDiags := parseModuleInstancePrefix(traversal, false)
+		diags = diags.Append(moduleInstanceDiags)
+		if diags.HasErrors() {
+			return nil, diags
+		}
+
+		traversal = remain
+		mod = module
+	}
+
+	// Parse the action address
+	action, actionDiags := ParseActionInstance(traversal)
+	diags = diags.Append(actionDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	return &AbsActionInstance{
+		Module: mod,
+		Action: *action,
+	}, nil
+}
+
+func ParseActionInstance(traversal hcl.Traversal) (*ActionInstance, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	if len(traversal) < 3 {
+		return nil, diags.Append(
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid address",
+				"An action address must have at least three segments: the action keyword, the action type and the action name.",
+			),
+		)
+	}
+
+	if len(traversal) > 4 {
+		return nil, diags.Append(
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid address",
+				"An action address must have at most four segments: the action keyword, the action type, the action name and an optional key.",
+			),
+		)
+	}
+
+	root, ok := traversal[0].(hcl.TraverseRoot)
+	if !ok {
+		return nil, diags.Append(
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid address",
+				fmt.Sprintf("Expected action keyword to be 'action', got %T", traversal[0]),
+			),
+		)
+	}
+
+	if root.Name != "action" {
+		return nil, diags.Append(
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid address",
+				fmt.Sprintf("Expected action keyword to be 'action', got %s", root.Name),
+			),
+		)
+	}
+
+	actionType, ok := traversal[1].(hcl.TraverseAttr)
+	if !ok {
+		return nil, diags.Append(
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid address",
+				fmt.Sprintf("Expected action type to be a string, got %T", traversal[0]),
+			),
+		)
+	}
+
+	actionName, ok := traversal[2].(hcl.TraverseAttr)
+	if !ok {
+		return nil, diags.Append(
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid address",
+				fmt.Sprintf("Expected action name to be a string, got %T", traversal[1]),
+			),
+		)
+	}
+	action := Action{
+		Type: actionType.Name,
+		Name: actionName.Name,
+	}
+
+	instanceKey := NoKey
+	if len(traversal) == 4 {
+		key, ok := traversal[3].(hcl.TraverseIndex)
+		if !ok {
+			return nil, diags.Append(
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid address",
+					"Invalid instance key: must be either a string or an integer",
+				),
+			)
+		}
+		switch key.Key.Type() {
+		case cty.String:
+			instanceKey = StringKey(key.Key.AsString())
+		case cty.Number:
+			var idxInt int
+			err := gocty.FromCtyValue(key.Key, &idxInt)
+			if err == nil {
+				instanceKey = IntKey(idxInt)
+			} else {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid address operator",
+					Detail:   fmt.Sprintf("Invalid module index: %s.", err),
+					Subject:  key.SourceRange().Ptr(),
+				})
+			}
+		}
+	}
+
+	actionInstance := action.Instance(instanceKey)
+	return &actionInstance, diags
+}
