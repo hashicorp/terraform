@@ -478,7 +478,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 func (n *NodeValidatableResource) evaluateExpr(ctx EvalContext, expr hcl.Expression, wantTy cty.Type, self addrs.Referenceable, keyData instances.RepetitionData) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRef, expr)
+	refs, refDiags := langrefs.ReferencesInExpr(n.RefParser(), expr)
 	diags = diags.Append(refDiags)
 
 	scope := ctx.EvaluationScope(self, nil, keyData)

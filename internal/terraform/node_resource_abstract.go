@@ -167,11 +167,7 @@ func (n *NodeAbstractResource) ModifyCreateBeforeDestroy(v bool) error {
 // GraphNodeReferencer
 func (n *NodeAbstractResource) References() []*addrs.Reference {
 	var result []*addrs.Reference
-	var parseOpts []addrs.ParseOpt
-	if n.Addr.Resource.Mode == addrs.ListResourceMode {
-		parseOpts = []addrs.ParseOpt{addrs.ParseQueryScopeRefs()}
-	}
-	parseRef := addrs.NewRefParserFn(parseOpts...)
+	parseRef := n.RefParser()
 	// If we have a config then we prefer to use that.
 	if c := n.Config; c != nil {
 		result = append(result, n.DependsOn()...)
@@ -255,6 +251,17 @@ func (n *NodeAbstractResource) ImportReferences() []*addrs.Reference {
 		result = append(result, refs...)
 	}
 	return result
+}
+
+// RefParser returns a parser function to use for parsing references
+// in this resource's configuration.
+func (n *NodeAbstractResource) RefParser() langrefs.ParseRef {
+	var parseOpts []addrs.ParseOpt
+	if n.Addr.Resource.Mode == addrs.ListResourceMode {
+		parseOpts = []addrs.ParseOpt{addrs.ParseQueryScopeRefs()}
+	}
+
+	return addrs.NewRefParserFn(parseOpts...)
 }
 
 func (n *NodeAbstractResource) DependsOn() []*addrs.Reference {
