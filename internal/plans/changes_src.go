@@ -33,6 +33,9 @@ type ChangesSrc struct {
 	// can be easily re-calculated during the apply phase. Therefore only root
 	// module outputs will survive a round-trip through a plan file.
 	Outputs []*OutputChangeSrc
+
+	// ActionInvocations tracks planned action invocations.
+	ActionInvocations []*ActionInvocationSrc
 }
 
 func NewChangesSrc() *ChangesSrc {
@@ -484,4 +487,27 @@ func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
 		Importing:       cs.Importing.Decode(identityType),
 		GeneratedConfig: cs.GeneratedConfig,
 	}, nil
+}
+
+type ActionTriggerType string
+
+const (
+	// ActionTriggerTypeUnknown is the default value for ActionTriggerType
+	// indicating that the trigger type is unknown.
+
+	ActionTriggerTypeUnknown ActionTriggerType = "unknown"
+	// ActionTriggerTypeLifecycle is used when the action is triggered by a
+	// resource.
+	ActionTriggerTypeLifecycle ActionTriggerType = "resource"
+	// ActionTriggerTypeCli is used when the action is triggered by a CLI command.
+	ActionTriggerTypeCli ActionTriggerType = "cli"
+)
+
+type ActionInvocationSrc struct {
+	ActionAddr addrs.AbsActionInstance
+
+	TriggerType ActionTriggerType
+
+	TriggeringResourceInstance *addrs.AbsResourceInstance
+	TriggeringEvent            string
 }

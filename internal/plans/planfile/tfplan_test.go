@@ -154,6 +154,7 @@ func TestTFPlanRoundTrip(t *testing.T) {
 					},
 				},
 			},
+			ActionInvocations: []*plans.ActionInvocationSrc{},
 		},
 		DriftedResources: []*plans.ResourceInstanceChangeSrc{
 			{
@@ -483,5 +484,121 @@ func TestTFPlanRoundTripDestroy(t *testing.T) {
 		if oc.After == cty.NilVal {
 			t.Fatalf("unexpected nil After value: %#v\n", ocs)
 		}
+	}
+}
+
+func TestActionInvocationsRoundtrip(t *testing.T) {
+	triggeringInstance := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "aws_lambda", Name: "best_lambda"}.Absolute(addrs.RootModuleInstance).Instance(addrs.NoKey)
+	for name, tc := range map[string]struct {
+		input []*plans.ActionInvocationSrc
+	}{
+		"empty": {
+			input: []*plans.ActionInvocationSrc{},
+		},
+		"cli": {
+			input: []*plans.ActionInvocationSrc{
+				{
+					ActionAddr: addrs.Action{
+						Type: "aws_lambda_invoke",
+						Name: "my_lambda",
+					}.Absolute(addrs.RootModuleInstance).Instance(addrs.NoKey),
+					TriggerType: plans.ActionTriggerTypeCli,
+				},
+				{
+					ActionAddr: addrs.Action{
+						Type: "aws_lambda_invoke",
+						Name: "my_non_root_lambda",
+					}.Absolute(addrs.ModuleInstance{
+						addrs.ModuleInstanceStep{
+							Name:        "child",
+							InstanceKey: addrs.NoKey,
+						},
+					}).Instance(addrs.NoKey),
+					TriggerType: plans.ActionTriggerTypeCli,
+				},
+				{
+					ActionAddr: addrs.Action{
+						Type: "aws_lambda_invoke",
+						Name: "my_non_root_expanded_lambda",
+					}.Absolute(addrs.ModuleInstance{
+						addrs.ModuleInstanceStep{
+							Name:        "child",
+							InstanceKey: addrs.StringKey("foo"),
+						},
+					}).Instance(addrs.NoKey),
+					TriggerType: plans.ActionTriggerTypeCli,
+				},
+				{
+					ActionAddr: addrs.Action{
+						Type: "aws_lambda_invoke",
+						Name: "my_lambda_expanded",
+					}.Absolute(addrs.RootModuleInstance).Instance(addrs.StringKey("foo")),
+					TriggerType: plans.ActionTriggerTypeCli,
+				},
+			},
+		},
+		"lifecycle": {
+			input: []*plans.ActionInvocationSrc{
+				{
+					ActionAddr: addrs.Action{
+						Type: "aws_lambda_invoke",
+						Name: "my_lambda",
+					}.Absolute(addrs.RootModuleInstance).Instance(addrs.NoKey),
+					TriggerType: plans.ActionTriggerTypeLifecycle,
+
+					TriggeringResourceInstance: &triggeringInstance,
+					TriggeringEvent:            "after_update",
+				},
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			plan := &plans.Plan{
+				Changes: &plans.ChangesSrc{
+					ActionInvocations: tc.input,
+				},
+				Backend: plans.Backend{
+					Type: "local",
+					Config: mustNewDynamicValue(
+						cty.ObjectVal(map[string]cty.Value{
+							"foo": cty.StringVal("bar"),
+						}),
+						cty.Object(map[string]cty.Type{
+							"foo": cty.String,
+						}),
+					),
+					Workspace: "default",
+				},
+			}
+
+			var buf bytes.Buffer
+			err := writeTfplan(plan, &buf)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			newPlan, err := readTfplan(&buf)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if len(newPlan.Changes.ActionInvocations) != len(tc.input) {
+				t.Fatalf("expected %d action invocations, got %d", len(tc.input), len(newPlan.Changes.ActionInvocations))
+			}
+			for i, ai := range newPlan.Changes.ActionInvocations {
+				if !ai.ActionAddr.Equal(tc.input[i].ActionAddr) {
+					t.Errorf("expected action address %s, got %s", tc.input[i].ActionAddr, ai.ActionAddr)
+				}
+				if ai.TriggerType != tc.input[i].TriggerType {
+					t.Errorf("expected trigger type %s, got %s", tc.input[i].TriggerType, ai.TriggerType)
+				}
+				if ai.TriggeringResourceInstance != nil && !ai.TriggeringResourceInstance.Equal(*tc.input[i].TriggeringResourceInstance) {
+					t.Errorf("expected triggering resource instance %s, got %s", *tc.input[i].TriggeringResourceInstance, *ai.TriggeringResourceInstance)
+				}
+				if ai.TriggeringEvent != tc.input[i].TriggeringEvent {
+					t.Errorf("expected triggering event %s, got %s", tc.input[i].TriggeringEvent, ai.TriggeringEvent)
+				}
+			}
+		})
 	}
 }
