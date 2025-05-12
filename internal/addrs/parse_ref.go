@@ -478,6 +478,13 @@ func parseResourceRef(mode ResourceMode, startRange hcl.Range, traversal hcl.Tra
 				Detail:   `The "ephemeral" object does not support this operation.`,
 				Subject:  traversal[0].SourceRange().Ptr(),
 			})
+		case ListResourceMode:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   `The "list" object does not support this operation.`,
+				Subject:  traversal[0].SourceRange().Ptr(),
+			})
 		default:
 			// Shouldn't get here because the above should be exhaustive for
 			// all of the resource modes. But we'll still return a
@@ -501,6 +508,8 @@ func parseResourceRef(mode ResourceMode, startRange hcl.Range, traversal hcl.Tra
 			what = "a data source"
 		case EphemeralResourceMode:
 			what = "an ephemeral resource type"
+		case ListResourceMode:
+			what = "a list resource type"
 		default:
 			what = "a resource type"
 		}

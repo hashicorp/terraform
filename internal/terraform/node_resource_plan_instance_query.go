@@ -51,7 +51,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	log.Printf("[TRACE] NodeQueryList: Re-validating config for %s", n.Addr)
+	log.Printf("[TRACE] NodePlannableResourceInstance: Re-validating config for %s", n.Addr)
 	validateResp := provider.ValidateListResourceConfig(
 		providers.ValidateListResourceConfigRequest{
 			TypeName: n.Config.Type,
