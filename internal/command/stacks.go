@@ -59,6 +59,8 @@ const (
 	// The stacks plugin release download service that the BinaryManager relies
 	// on to fetch the plugin.
 	stackspluginServiceID = "stacksplugin.v1"
+
+	defaultHostname = "app.terraform.io"
 )
 
 var (
@@ -165,20 +167,8 @@ func (c *StacksCommand) discoverAndConfigure() tfdiags.Diagnostics {
 
 	displayHostname := os.Getenv("TF_STACKS_HOSTNAME")
 	if strings.TrimSpace(displayHostname) == "" {
-		return diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"TF_STACKS_HOSTNAME is not set",
-			"TF_STACKS_HOSTNAME must be set to the hostname of the HCP Terraform instance",
-		))
-	}
-
-	token := os.Getenv("TF_STACKS_TOKEN")
-	if strings.TrimSpace(token) == "" {
-		return diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"TF_STACKS_TOKEN is not set",
-			"TF_STACKS_TOKEN must be set to the token of the HCP Terraform instance",
-		))
+		log.Printf("[TRACE] stacksplugin hostname not set, falling back to %q", defaultHostname)
+		displayHostname = defaultHostname
 	}
 
 	hostname, err := svchost.ForComparison(displayHostname)
@@ -207,6 +197,20 @@ func (c *StacksCommand) discoverAndConfigure() tfdiags.Diagnostics {
 
 	// The discovery request worked, so cache the full results.
 	cb.ServicesHost = host
+
+	token := os.Getenv("TF_STACKS_TOKEN")
+	if strings.TrimSpace(token) == "" {
+		// attempt to read from the credentials file
+		token, err = cloud.CliConfigToken(hostname, cb.Services())
+		if err != nil {
+			// some commands like stacks init and validate could be run without a token so allow it without errors
+			diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Could not read token from credentials file, proceeding without a token",
+				err.Error(),
+			))
+		}
+	}
 
 	// re-use the cached service discovery info for this TFC
 	// instance to find our plugin service and TFE API URLs:
@@ -244,6 +248,7 @@ func (c *StacksCommand) discoverAndConfigure() tfdiags.Diagnostics {
 		OrganizationName:    orgName,
 		ProjectName:         projectName,
 		StackName:           stackName,
+		TerminalWidth:       c.Meta.Streams.Stdout.Columns(),
 	}
 
 	return diags
@@ -346,6 +351,7 @@ type StacksPluginConfig struct {
 	OrganizationName    string `md:"tfc-organization"`
 	ProjectName         string `md:"tfc-project"`
 	StackName           string `md:"tfc-stack"`
+	TerminalWidth       int    `md:"terminal-width"`
 }
 
 func (c StacksPluginConfig) ToMetadata() metadata.MD {
@@ -358,6 +364,7 @@ func (c StacksPluginConfig) ToMetadata() metadata.MD {
 		"tfc-organization", c.OrganizationName,
 		"tfc-project", c.ProjectName,
 		"tfc-stack", c.StackName,
+		"terminal-width", fmt.Sprintf("%d", c.TerminalWidth),
 	)
 	return md
 }

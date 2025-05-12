@@ -296,7 +296,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	// Get the token from the CLI Config File in the credentials section
 	// if no token was set in the configuration
 	if token == "" {
-		token, err = cliConfigToken(hostname, b.services)
+		token, err = CliConfigToken(hostname, b.services)
 		if err != nil {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
@@ -593,10 +593,10 @@ func resolveCloudConfig(obj cty.Value) (cloudConfig, tfdiags.Diagnostics) {
 	return ret, diags
 }
 
-// cliConfigToken returns the token for this host as configured in the credentials
+// CliConfigToken returns the token for this host as configured in the credentials
 // section of the CLI Config File. If no token was configured, an empty
 // string will be returned instead.
-func cliConfigToken(hostname svchost.Hostname, services *disco.Disco) (string, error) {
+func CliConfigToken(hostname svchost.Hostname, services *disco.Disco) (string, error) {
 	creds, err := services.CredentialsForHost(hostname)
 	if err != nil {
 		log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", hostname.ForDisplay(), err)

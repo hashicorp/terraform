@@ -20,6 +20,7 @@ func TestStacksPluginConfig_ToMetadata(t *testing.T) {
 		"tfc-project", "example-project",
 		"tfc-stack", "example-stack",
 		"terraform-binary-path", "",
+		"terminal-width", "78",
 	)
 	inputStruct := StacksPluginConfig{
 		Address:             "https://app.staging.terraform.io",
@@ -30,6 +31,7 @@ func TestStacksPluginConfig_ToMetadata(t *testing.T) {
 		ProjectName:         "example-project",
 		StackName:           "example-stack",
 		TerraformBinaryPath: "",
+		TerminalWidth:       78,
 	}
 	result := inputStruct.ToMetadata()
 	if !reflect.DeepEqual(expected, result) {
