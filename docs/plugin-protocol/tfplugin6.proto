@@ -1,16 +1,15 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-// Terraform Plugin RPC protocol version 6.8
+// Terraform Plugin RPC protocol version 6.9
 //
-// This file defines version 6.8 of the RPC protocol. To implement a plugin
+// This file defines version 6.9 of the RPC protocol. To implement a plugin
 // against this protocol, copy this definition into your own codebase and
 // use protoc to generate stubs for your target language.
 //
-// This file will not be updated. Any minor versions of protocol 6 to follow
-// should copy this file and modify the copy while maintaing backwards
-// compatibility. Breaking changes, if any are required, will come
-// in a subsequent major version with its own separate proto definition.
+// Any minor versions of protocol 6 to follow should modify this file while
+// maintaining backwards compatibility. Breaking changes, if any are required, 
+// will come in a subsequent major version with its own separate proto definition.
 //
 // Note that only the proto files included in a release tag of Terraform are
 // official protocol releases. Proto files taken from other commits may include
@@ -86,6 +85,63 @@ message RawState {
 enum StringKind {
     PLAIN = 0;
     MARKDOWN = 1;
+}
+
+// ResourceIdentitySchema represents the structure and types of data used to identify
+// a managed resource type. Effectively, resource identity is a versioned object
+// that can be used to compare resources, whether already managed and/or being
+// discovered.
+message ResourceIdentitySchema {
+    // IdentityAttribute represents one value of data within resource identity. These
+    // are always used in resource identity comparisons.
+    message IdentityAttribute {
+        // name is the identity attribute name
+        string name = 1;
+
+        // type is the identity attribute type
+        bytes type = 2;
+
+        // required_for_import when enabled signifies that this attribute must be
+        // defined for ImportResourceState to complete successfully
+        bool required_for_import = 3;
+
+        // optional_for_import when enabled signifies that this attribute is not
+        // required for ImportResourceState, because it can be supplied by the
+        // provider. It is still possible to supply this attribute during import.
+        bool optional_for_import = 4;
+
+        // description is a human-readable description of the attribute in Markdown
+        string description = 5;
+    }
+
+    // version is the identity version and separate from the Schema version.
+    // Any time the structure or format of identity_attributes changes, this version
+    // should be incremented. Versioning implicitly starts at 0 and by convention
+    // should be incremented by 1 each change.
+    //
+    // When comparing identity_attributes data, differing versions should always be treated
+    // as inequal.
+    int64 version = 1;
+
+    // identity_attributes are the individual value definitions which define identity data
+    // for a managed resource type. This information is used to decode DynamicValue of
+    // identity data.
+    //
+    // These attributes are intended for permanent identity data and must be wholly
+    // representative of all data necessary to compare two managed resource instances
+    // with no other data. This generally should include account, endpoint, location,
+    // and automatically generated identifiers. For some resources, this may include
+    // configuration-based data, such as a required name which must be unique.
+    repeated IdentityAttribute identity_attributes = 2;
+}
+
+message ResourceIdentityData {
+    // identity_data is the resource identity data for the given definition. It should
+    // be decoded using the identity schema.
+    //
+    // This data is considered permanent for the identity version and suitable for
+    // longer-term storage.
+    DynamicValue identity_data = 1;
 }
 
 // Schema is the configuration schema for a Resource or Provider.
@@ -241,7 +297,7 @@ message ClientCapabilities {
     // The deferral_allowed capability signals that the client is able to
     // handle deferred responses from the provider.
     bool deferral_allowed = 1;
-    
+
     // The write_only_attributes_allowed capability signals that the client
     // is able to handle write_only attributes for managed resources.
     bool write_only_attributes_allowed = 2;
@@ -284,6 +340,13 @@ service Provider {
     rpc ValidateResourceConfig(ValidateResourceConfig.Request) returns (ValidateResourceConfig.Response);
     rpc ValidateDataResourceConfig(ValidateDataResourceConfig.Request) returns (ValidateDataResourceConfig.Response);
     rpc UpgradeResourceState(UpgradeResourceState.Request) returns (UpgradeResourceState.Response);
+
+    // GetResourceIdentitySchemas returns the identity schemas for all managed
+    // resources.
+    rpc GetResourceIdentitySchemas(GetResourceIdentitySchemas.Request) returns (GetResourceIdentitySchemas.Response);
+    // UpgradeResourceIdentityData should return the upgraded resource identity
+    // data for a managed resource type.
+    rpc UpgradeResourceIdentity(UpgradeResourceIdentity.Request) returns (UpgradeResourceIdentity.Response);
 
     //////// One-time initialization, called before other functions below
     rpc ConfigureProvider(ConfigureProvider.Request) returns (ConfigureProvider.Response);
@@ -404,6 +467,43 @@ message UpgradeResourceState {
     }
 }
 
+message GetResourceIdentitySchemas {
+    message Request {
+    }
+
+    message Response {
+        // identity_schemas is a mapping of resource type names to their identity schemas.
+        map<string, ResourceIdentitySchema> identity_schemas = 1;
+
+        // diagnostics is the collection of warning and error diagnostics for this request.
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message UpgradeResourceIdentity {
+    message Request {
+        // type_name is the managed resource type name
+        string type_name = 1;
+
+        // version is the version of the resource identity data to upgrade
+        int64 version = 2;
+
+        // raw_identity is the raw identity as stored for the resource. Core does
+        // not have access to the identity schema of prior_version, so it's the
+        // provider's responsibility to interpret this value using the
+        // appropriate older schema. The raw_identity will be json encoded.
+        RawState raw_identity = 3;
+    }
+
+    message Response {
+        // upgraded_identity returns the upgraded resource identity data
+        ResourceIdentityData upgraded_identity = 1;
+
+        // diagnostics is the collection of warning and error diagnostics for this request
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
 message ValidateResourceConfig {
     message Request {
         string type_name = 1;
@@ -461,6 +561,7 @@ message ReadResource {
         bytes private = 3;
         DynamicValue provider_meta = 4;
         ClientCapabilities client_capabilities = 5;
+        ResourceIdentityData current_identity = 6;
     }
     message Response {
         DynamicValue new_state = 1;
@@ -469,6 +570,7 @@ message ReadResource {
         // deferred is set if the provider is deferring the change. If set the caller
         // needs to handle the deferral.
         Deferred deferred = 4;
+        ResourceIdentityData new_identity = 5;
     }
 }
 
@@ -481,6 +583,7 @@ message PlanResourceChange {
         bytes prior_private = 5;
         DynamicValue provider_meta = 6;
         ClientCapabilities client_capabilities = 7;
+        ResourceIdentityData prior_identity = 8;
     }
 
     message Response {
@@ -505,6 +608,8 @@ message PlanResourceChange {
         // deferred is set if the provider is deferring the change. If set the caller
         // needs to handle the deferral.
         Deferred deferred = 6;
+
+        ResourceIdentityData planned_identity = 7;
     }
 }
 
@@ -516,6 +621,7 @@ message ApplyResourceChange {
         DynamicValue config = 4;
         bytes planned_private = 5;
         DynamicValue provider_meta = 6;
+        ResourceIdentityData planned_identity = 7;
     }
     message Response {
         DynamicValue new_state = 1;
@@ -534,6 +640,8 @@ message ApplyResourceChange {
         //     ==== THIS MUST BE LEFT UNSET IN ALL OTHER SDKS ====
         //     ====              DO NOT USE THIS              ====
         bool legacy_type_system = 4;
+
+        ResourceIdentityData new_identity = 5;
     }
 }
 
@@ -542,12 +650,14 @@ message ImportResourceState {
         string type_name = 1;
         string id = 2;
         ClientCapabilities client_capabilities = 3;
+        ResourceIdentityData identity = 4;
     }
 
     message ImportedResource {
         string type_name = 1;
         DynamicValue state = 2;
         bytes private = 3;
+        ResourceIdentityData identity = 4;
     }
 
     message Response {
@@ -581,6 +691,15 @@ message MoveResourceState {
 
         // The private state of the resource being moved.
         bytes source_private = 6;
+
+        // The raw identity of the resource being moved. Only the json field is
+        // populated, as there should be no legacy providers using the flatmap
+        // format that support newly introduced RPCs.
+        RawState source_identity = 7;
+
+        // The identity schema version of the resource type that the resource
+        // is being moved from.
+        int64 source_identity_schema_version = 8;
     }
 
     message Response {
@@ -592,6 +711,8 @@ message MoveResourceState {
 
         // The private state of the resource after it has been moved.
         bytes target_private = 3;
+
+        ResourceIdentityData target_identity = 4;
     }
 }
 

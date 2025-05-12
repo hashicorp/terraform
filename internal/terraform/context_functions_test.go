@@ -6,6 +6,8 @@ package terraform
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -148,7 +150,7 @@ output "second" {
 	}
 
 	errs := diags.Err().Error()
-	if !strings.Contains(errs, "provider function returned an inconsistent result") {
+	if !strings.Contains(errs, "function returned an inconsistent result") {
 		t.Fatalf("expected error with %q, got %q", "provider function returned an inconsistent result", errs)
 	}
 	_, diags = ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
@@ -157,7 +159,7 @@ output "second" {
 	}
 
 	errs = diags.Err().Error()
-	if !strings.Contains(errs, "provider function returned an inconsistent result") {
+	if !strings.Contains(errs, "function returned an inconsistent result") {
 		t.Fatalf("expected error with %q, got %q", "provider function returned an inconsistent result", errs)
 	}
 }
@@ -224,7 +226,68 @@ func TestContext2Plan_providerFunctionImpureApply(t *testing.T) {
 	}
 
 	errs := diags.Err().Error()
-	if !strings.Contains(errs, "provider function returned an inconsistent result") {
+	if !strings.Contains(errs, "function returned an inconsistent result") {
+		t.Fatalf("expected error with %q, got %q", "provider function returned an inconsistent result", errs)
+	}
+}
+
+// check that we can detect inconsistent results from filesystem functions during apply
+func TestContext2Plan_filesystemFunctionImpureApply(t *testing.T) {
+	m, snap := testModuleWithSnapshot(t, "resource-fs-func")
+
+	externalDataFile := filepath.Join(t.TempDir(), "testdata")
+	dataFile, err := os.Create(externalDataFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dataFile.Close()
+
+	if _, err := dataFile.WriteString("initial data"); err != nil {
+		t.Fatal(err)
+	}
+
+	p := testProvider("test")
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"external_file": &InputValue{
+				Value:      cty.StringVal(externalDataFile),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	// Write / Read plan to simulate running it through a Plan file
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
+	if err != nil {
+		t.Fatalf("failed to round-trip through planfile: %s", err)
+	}
+
+	ctxOpts.Providers = map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+	}
+	ctx = testContext2(t, ctxOpts)
+
+	// cause the external file data to change
+	if _, err := dataFile.WriteString("incorrect data"); err != nil {
+		t.Fatal(err)
+	}
+
+	_, diags = ctx.Apply(plan, m, nil)
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	}
+
+	errs := diags.Err().Error()
+	if !strings.Contains(errs, "function returned an inconsistent result") {
 		t.Fatalf("expected error with %q, got %q", "provider function returned an inconsistent result", errs)
 	}
 }
