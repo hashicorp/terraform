@@ -47,11 +47,16 @@ func (c GRPCStacksClient) registerBrokers(stdout, stderr io.Writer) brokerIDs {
 	packagesServer := dynrpcserver.NewPackagesStub()
 	stacksServer := dynrpcserver.NewStacksStub()
 
-	var s *grpc.Server
+	// Create channels to signal when each service is ready
+	dependenciesReady := make(chan struct{})
+	packagesReady := make(chan struct{})
+	stacksReady := make(chan struct{})
+
 	dependenciesServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
-		s = grpc.NewServer(opts...)
+		s := grpc.NewServer(opts...)
 		dependencies.RegisterDependenciesServer(s, dependenciesServer)
 		dependenciesServer.ActivateRPCServer(newDependenciesServer(handles, c.Services))
+		close(dependenciesReady) // Signal that this service is ready
 
 		return s
 	}
@@ -60,9 +65,10 @@ func (c GRPCStacksClient) registerBrokers(stdout, stderr io.Writer) brokerIDs {
 	go c.Broker.AcceptAndServe(dependenciesBrokerID, dependenciesServerFunc)
 
 	packagesServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
-		s = grpc.NewServer(opts...)
+		s := grpc.NewServer(opts...)
 		packages.RegisterPackagesServer(s, packagesServer)
 		packagesServer.ActivateRPCServer(newPackagesServer(c.Services))
+		close(packagesReady) // Signal that this service is ready
 
 		return s
 	}
@@ -71,21 +77,46 @@ func (c GRPCStacksClient) registerBrokers(stdout, stderr io.Writer) brokerIDs {
 	go c.Broker.AcceptAndServe(packagesBrokerID, packagesServerFunc)
 
 	stacksServerFunc := func(opts []grpc.ServerOption) *grpc.Server {
-		s = grpc.NewServer(opts...)
+		s := grpc.NewServer(opts...)
 		stacks.RegisterStacksServer(s, stacksServer)
 		stacksServer.ActivateRPCServer(newStacksServer(
 			newStopper(), handles, c.Services, &serviceOpts{experimentsAllowed: true}))
+
+		close(stacksReady) // Signal that this service is ready
 		return s
 	}
 
 	stacksBrokerID := c.Broker.NextId()
 	go c.Broker.AcceptAndServe(stacksBrokerID, stacksServerFunc)
 
+	// Wait for all services to be ready
+	<-dependenciesReady
+	<-packagesReady
+	<-stacksReady
+
 	return brokerIDs{
 		dependenciesBrokerID: dependenciesBrokerID,
 		packagesBrokerID:     packagesBrokerID,
 		stacksBrokerID:       stacksBrokerID,
 	}
+}
+
+func logServerInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	log.Printf("[TRACE] Received request: %s", info.FullMethod)
+	resp, err := handler(ctx, req)
+	if err != nil {
+		log.Printf("[ERROR] Handler error for %s: %v", info.FullMethod, err)
+	}
+	return resp, err
+}
+
+func logStreamInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	log.Printf("[TRACE] Started streaming: %s", info.FullMethod)
+	err := handler(srv, ss)
+	if err != nil {
+		log.Printf("[ERROR] Stream handler error for %s: %v", info.FullMethod, err)
+	}
+	return err
 }
 
 // Execute sends the client Execute request and waits for the plugin to return
