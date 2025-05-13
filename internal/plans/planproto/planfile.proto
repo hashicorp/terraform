@@ -433,4 +433,8 @@ message ActionInvocation {
     // sensitive. Values at these paths should be obscured in human-readable
     // output.
     repeated Path sensitive_paths = 5;
+    
+    // Set to true if we are certain this action is going to be invoked.
+    // Set to false if we are not sure, e.g. when the condition contains an unknown value.
+    bool certain = 6;
 }

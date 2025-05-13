@@ -518,6 +518,8 @@ type ActionInvocationSrc struct {
 
 	TriggerType ActionTriggerType
 
+	IsCertain bool // true if the action is certain to be invoked, false if e.g. the condition contains unknowns
+
 	TriggeringResourceInstance *addrs.AbsResourceInstance
 	TriggeringEvent            string
 }
@@ -535,6 +537,7 @@ func (ais *ActionInvocationSrc) DeepCopy() *ActionInvocationSrc {
 func (ais *ActionInvocationSrc) Decode() (*ActionInvocation, error) {
 	ret := &ActionInvocation{
 		ActionAddr: ais.ActionAddr,
+		IsCertain:  ais.IsCertain,
 	}
 
 	ty := cty.DynamicPseudoType
