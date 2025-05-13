@@ -206,26 +206,15 @@ func (p *Parser) loadTestFiles(basePath string, paths []string) (map[string]*Tes
 	return tfs, diags
 }
 
-func (p *Parser) loadQueryFiles(basePath string, paths []string) (map[string]*QueryFile, hcl.Diagnostics) {
-	files := make(map[string]*QueryFile)
+func (p *Parser) loadQueryFiles(basePath string, paths []string) ([]*QueryFile, hcl.Diagnostics) {
+	files := make([]*QueryFile, 0, len(paths))
 	var diags hcl.Diagnostics
 
 	for _, path := range paths {
 		f, fDiags := p.LoadQueryFile(path)
 		diags = append(diags, fDiags...)
 		if f != nil {
-			// We index test files relative to the module they are testing, so
-			// the key is the relative path between basePath and path.
-			relPath, err := filepath.Rel(basePath, path)
-			if err != nil {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagWarning,
-					Summary:  "Failed to calculate relative path",
-					Detail:   fmt.Sprintf("Terraform could not calculate the relative path for test file %s and it has been skipped: %s", path, err),
-				})
-				continue
-			}
-			files[relPath] = f
+			files = append(files, f)
 		}
 	}
 
