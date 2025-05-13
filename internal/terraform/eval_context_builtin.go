@@ -623,9 +623,5 @@ func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities
 }
 
 func (ctx *BuiltinEvalContext) ParseRef() langrefs.ParseRef {
-	if ctx.Evaluator != nil && ctx.Evaluator.Operation == walkQuery {
-		return addrs.NewRefParserFn(addrs.ParseQueryScopeRefs())
-	}
-
-	return addrs.NewRefParserFn()
+	return ctx.Evaluator.ParseRef
 }

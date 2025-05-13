@@ -97,6 +97,11 @@ func (w *ContextGraphWalker) enterScope(scope evalContextScope) EvalContext {
 func (w *ContextGraphWalker) EvalContext() EvalContext {
 	w.once.Do(w.init)
 
+	parseRefOptions := make([]addrs.ParseOpt, 0)
+	if w.Config.HasListBlocks() {
+		parseRefOptions = append(parseRefOptions, addrs.ParseQueryScopeRefs())
+	}
+
 	// Our evaluator shares some locks with the main context and the walker
 	// so that we can safely run multiple evaluations at once across
 	// different modules.
@@ -113,6 +118,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Deferrals:          w.Deferrals,
 		PlanTimestamp:      w.PlanTimestamp,
 		FunctionResults:    w.functionResults,
+		ParseRef:           addrs.NewRefParserFn(parseRefOptions...),
 	}
 
 	ctx := &BuiltinEvalContext{

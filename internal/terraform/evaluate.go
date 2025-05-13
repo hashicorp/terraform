@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -38,6 +39,8 @@ type Evaluator struct {
 
 	// Config is the root node in the configuration tree.
 	Config *configs.Config
+
+	ParseRef langrefs.ParseRef
 
 	// Instances tracks the dynamic instances that are associated with each
 	// module call or resource. The graph walk gradually registers the
@@ -91,13 +94,9 @@ type Evaluator struct {
 // in evaluated expressions. Otherwise, it behaves as an alias for the given
 // address.
 func (e *Evaluator) Scope(data lang.Data, self addrs.Referenceable, source addrs.Referenceable, extFuncs lang.ExternalFuncs) *lang.Scope {
-	var parseOpts []addrs.ParseOpt
-	if e.Operation == walkQuery {
-		parseOpts = []addrs.ParseOpt{addrs.ParseQueryScopeRefs()}
-	}
 	return &lang.Scope{
 		Data:            data,
-		ParseRef:        addrs.NewRefParserFn(parseOpts...),
+		ParseRef:        e.ParseRef,
 		SelfAddr:        self,
 		SourceAddr:      source,
 		PureOnly:        e.Operation != walkApply && e.Operation != walkDestroy && e.Operation != walkEval,

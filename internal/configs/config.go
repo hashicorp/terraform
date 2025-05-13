@@ -415,6 +415,19 @@ func (c *Config) ProviderRequirementsByModule() (*ModuleRequirements, hcl.Diagno
 	return ret, diags
 }
 
+// HasListBlocks returns true if any of the modules in the configuration
+// contain any list blocks.
+func (c *Config) HasListBlocks() bool {
+	var hasListBlocks bool
+	c.DeepEach(func(c *Config) {
+		if len(c.Module.ListResources) > 0 {
+			hasListBlocks = true
+		}
+	})
+
+	return hasListBlocks
+}
+
 // addProviderRequirements is the main part of the ProviderRequirements
 // implementation, gradually mutating a shared requirements object to
 // eventually return. If the recurse argument is true, the requirements will
