@@ -23,9 +23,10 @@ const (
 	// Allow logging of specific subsystems.
 	// We only separate core and providers for now, but this could be extended
 	// to other loggers, like provisioners and remote-state backends.
-	envLogCore     = "TF_LOG_CORE"
-	envLogProvider = "TF_LOG_PROVIDER"
-	envLogCloud    = "TF_LOG_CLOUD"
+	envLogCore      = "TF_LOG_CORE"
+	envLogProvider  = "TF_LOG_PROVIDER"
+	envLogCloud     = "TF_LOG_CLOUD"
+	envLogStacksCLI = "TF_LOG_STACKSCLI"
 )
 
 var (
@@ -144,6 +145,20 @@ func NewCloudLogger() hclog.Logger {
 	return l
 }
 
+// NewStacksCLILogger returns a logger for the StacksCLI plugin, possibly with a
+// different log level from the global logger.
+func NewStacksCLILogger() hclog.Logger {
+	l := &logPanicWrapper{
+		Logger: logger.Named("stacks"),
+	}
+
+	level := stacksCLILogLevel()
+	logger.Debug("created stacks cli logger", "level", level)
+
+	l.SetLevel(level)
+	return l
+}
+
 // CurrentLogLevel returns the current log level string based the environment vars
 func CurrentLogLevel() string {
 	ll, _ := globalLogLevel()
@@ -166,6 +181,15 @@ func cloudLogLevel() hclog.Level {
 	}
 
 	return parseLogLevel(providerEnvLevel)
+}
+
+func stacksCLILogLevel() hclog.Level {
+	pluginEnvLevel := strings.ToUpper(os.Getenv(envLogStacksCLI))
+	if pluginEnvLevel == "" {
+		pluginEnvLevel = strings.ToUpper(os.Getenv(envLog))
+	}
+
+	return parseLogLevel(pluginEnvLevel)
 }
 
 func globalLogLevel() (hclog.Level, bool) {
