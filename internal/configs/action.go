@@ -119,6 +119,15 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		for _, expr := range exprs {
 			traversal, travDiags := hcl.AbsTraversalForExpr(expr)
 			diags = append(diags, travDiags...)
+			// verify that the traversal is an action
+			if traversal.RootName() != "action" {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid actions argument inside action_triggers",
+					Detail:   "action_triggers.actions accepts a list of one or more actions",
+					Subject:  block.DefRange.Ptr(),
+				})
+			}
 			if len(traversal) != 0 {
 				actionRef := ActionRef{
 					Traversal: traversal,
@@ -134,7 +143,7 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "No actions specified",
-			Detail:   "At least one action must be specified for an action trigger.",
+			Detail:   "At least one action must be specified for an action_trigger.",
 			Subject:  block.DefRange.Ptr(),
 		})
 	}
@@ -143,7 +152,7 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "No events specified",
-			Detail:   "At least one event must be specified for an action trigger.",
+			Detail:   "At least one event must be specified for an action_trigger.",
 			Subject:  block.DefRange.Ptr(),
 		})
 	}
