@@ -31,6 +31,7 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/statestorage"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
@@ -184,7 +185,7 @@ func (c *InitCommand) Run(args []string) int {
 	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
 		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	case initArgs.StateStorage:
-		back, backendOutput, backDiags = c.initStateStorage(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
+		back, backendOutput, backDiags = c.initStateStorage(ctx, rootModEarly, initArgs.ViewType, view)
 	case initArgs.Backend:
 		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	default:
@@ -419,84 +420,34 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 	return back, true, diags
 }
 
-func (c *InitCommand) initStateStorage(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initStateStorage(ctx context.Context, root *configs.Module, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize state storage")
-	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
 	defer span.End()
 
-	// TODO: change
-	view.Output(views.InitializingBackendMessage)
+	view.Output(views.InitializingStateStorageMessage)
 
-	var backendConfig *configs.Backend
-	var backendConfigOverride hcl.Body
-	if root.Backend != nil {
-		backendType := root.Backend.Type
-		if backendType == "cloud" {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Unsupported backend type",
-				Detail:   fmt.Sprintf("There is no explicit backend type named %q. To configure HCP Terraform, declare a 'cloud' block instead.", backendType),
-				Subject:  &root.Backend.TypeRange,
-			})
-			return nil, true, diags
-		}
+	var stateStorageConfig *configs.StateStorage
 
-		bf := backendInit.Backend(backendType)
-		if bf == nil {
-			detail := fmt.Sprintf("There is no backend type named %q.", backendType)
-			if msg, removed := backendInit.RemovedBackends[backendType]; removed {
-				detail = msg
-			}
+	if root.StateStorage != nil {
+		sf, diags := statestorage.Storage(root.StateStorage.Type)
 
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Unsupported backend type",
-				Detail:   detail,
-				Subject:  &root.Backend.TypeRange,
-			})
-			return nil, true, diags
-		}
+		storage := sf()
+		// storageSchema := storage.ConfigSchema()
+		stateStorageConfig = root.StateStorage
 
-		b := bf()
-		backendSchema := b.ConfigSchema()
-		backendConfig = root.Backend
-
-		var overrideDiags tfdiags.Diagnostics
-		backendConfigOverride, overrideDiags = c.backendConfigOverrideBody(extraConfig, backendSchema)
-		diags = diags.Append(overrideDiags)
-		if overrideDiags.HasErrors() {
-			return nil, true, diags
-		}
-	} else {
-		// If the user supplied a -backend-config on the CLI but no backend
-		// block was found in the configuration, it's likely - but not
-		// necessarily - a mistake. Return a warning.
-		if !extraConfig.Empty() {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Warning,
-				"Missing backend configuration",
-				`-backend-config was used without a "backend" block in the configuration.
-
-If you intended to override the default local backend configuration,
-no action is required, but you may add an explicit backend block to your
-configuration to clear this warning:
-
-terraform {
-  backend "local" {}
-}
-
-However, if you intended to override a defined backend, please verify that
-the backend configuration is present and valid.
-`,
-			))
-		}
+		// var overrideDiags tfdiags.Diagnostics
+		// stateStorageConfigOverride, overrideDiags = c.stateStorageConfigOverrideBody(extraConfig, storageSchema)
+		// diags = diags.Append(overrideDiags)
+		// if overrideDiags.HasErrors() {
+		// 	return nil, true, diags
+		// }
 	}
 
 	opts := &BackendOpts{
-		Config:         backendConfig,
-		ConfigOverride: backendConfigOverride,
-		Init:           true,
-		ViewType:       viewType,
+		Config: stateStorageConfig,
+		// ConfigOverride: backendConfigOverride,
+		Init:     true,
+		ViewType: viewType,
 	}
 
 	back, backDiags := c.Backend(opts)

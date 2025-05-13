@@ -28,6 +28,8 @@ type Init struct {
 	// Backend specifies whether to disable backend or HCP Terraform initialization.
 	Backend bool
 
+	StateStorage bool
+
 	// Cloud specifies whether to disable backend or HCP Terraform initialization.
 	Cloud bool
 
@@ -91,6 +93,7 @@ func ParseInit(args []string) (*Init, tfdiags.Diagnostics) {
 	cmdFlags.BoolVar(&init.InputEnabled, "input", true, "input")
 	cmdFlags.BoolVar(&init.CompactWarnings, "compact-warnings", false, "use compact warnings")
 	cmdFlags.BoolVar(&init.Backend, "backend", true, "")
+	cmdFlags.BoolVar(&init.StateStorage, "state-storage", true, "")
 	cmdFlags.BoolVar(&init.Cloud, "cloud", true, "")
 	cmdFlags.StringVar(&init.FromModule, "from-module", "", "copy the source of the given module into the directory before init")
 	cmdFlags.BoolVar(&init.Get, "get", true, "")

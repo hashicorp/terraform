@@ -258,6 +258,7 @@ const (
 	InitializingTerraformCloudMessage   InitMessageCode = "initializing_terraform_cloud_message"
 	InitializingModulesMessage          InitMessageCode = "initializing_modules_message"
 	InitializingBackendMessage          InitMessageCode = "initializing_backend_message"
+	InitializingStateStorageMessage     InitMessageCode = "initializing_state_storage_message"
 	InitializingProviderPluginMessage   InitMessageCode = "initializing_provider_plugin_message"
 	LockInfo                            InitMessageCode = "lock_info"
 	DependenciesLockChangesInfo         InitMessageCode = "dependencies_lock_changes_info"
