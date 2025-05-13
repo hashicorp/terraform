@@ -432,6 +432,23 @@ func TestIsEmptyDir_noConfigsButHasTests(t *testing.T) {
 	}
 }
 
+func TestParserLoadConfigDir_reservedNamespace(t *testing.T) {
+	dir := filepath.Join("testdata", "invalid-modules", "reserved-namespaces")
+	parser := NewParser(nil)
+	_, diags := parser.LoadConfigDir(dir, MatchTestFiles("tests"), MatchQueryFiles())
+	if !diags.HasErrors() {
+		t.Errorf("no errors; want at least one")
+		for _, diag := range diags {
+			t.Logf("- %s", diag)
+		}
+		return
+	}
+	exp := `testdata/invalid-modules/reserved-namespaces/main.tf:1,10-21: Invalid resource type; The resource type "ephemeral" is reserved and cannot be used as it conflicts with a top-level terraform namespace.`
+	if diags.Error() != exp {
+		t.Errorf("expected error to be %q, but found %q", exp, diags.Error())
+	}
+}
+
 func TestIsEmptyDir_nestedTestsOnly(t *testing.T) {
 	// The top directory has no configs and no test files, but the nested
 	// directory has test files

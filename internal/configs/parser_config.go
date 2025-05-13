@@ -7,6 +7,24 @@ import (
 	"github.com/hashicorp/hcl/v2"
 )
 
+var (
+	// ReservedNamespaces contains namespaces that are reserved as top-level namespaces
+	// in the Terraform language. These namespaces are reserved for future use
+	// and should not be used as block types in configuration files.
+	//
+	// Each namespace is mapped to a boolean which is initially false. When a configuration
+	// file uses features from a particular namespace, the corresponding value will be set to true,
+	// allowing for detection of namespace conflicts during parsing.
+	//
+	// This mechanism provides backwards compatibility for configurations created before
+	// these namespaces were reserved, while preventing ambiguity in newer configurations
+	// that might use the reserved language features.
+	ReservedNamespaces = map[string]bool{
+		"ephemeral": false,
+		"list":      false,
+	}
+)
+
 // LoadConfigFile reads the file at the given path and parses it as a config
 // file.
 //
@@ -101,6 +119,7 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 	diags = append(diags, contentDiags...)
 
 	for _, block := range content.Blocks {
+		ReservedNamespaces[block.Type] = true
 		switch block.Type {
 
 		case "terraform":
