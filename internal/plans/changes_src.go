@@ -143,6 +143,14 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 		}
 		changes.Outputs = append(changes.Outputs, oc)
 	}
+
+	for _, ais := range c.ActionInvocations {
+		ai, err := ais.Decode()
+		if err != nil {
+			return nil, err
+		}
+		changes.ActionInvocations = append(changes.ActionInvocations, ai)
+	}
 	return changes, nil
 }
 
