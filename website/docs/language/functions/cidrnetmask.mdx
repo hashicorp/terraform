@@ -20,7 +20,7 @@ cidrnetmask(prefix)
 The result is a subnet address formatted in the conventional dotted-decimal
 IPv4 address syntax, as expected by some software.
 
-Because CIDR notation is the only valid notation for IPv6 addresses, `cidrnetmask`
+ The `cidrnetmask` function only accepts IPv4 addresses in CIDR notation. If you use an IPv6 address, `cidrnetmask` returns an error. 
 produces an error if given an IPv6 address.
 
 -> **Note:** As a historical accident, this function interprets IPv4 address
