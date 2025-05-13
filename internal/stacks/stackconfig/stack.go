@@ -104,7 +104,7 @@ func LoadSingleStackConfig(sourceAddr sourceaddrs.FinalSource, sources *sourcebu
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Invalid stack configuration directory",
-				fmt.Sprintf("This stack configuration has mixed the deprecated .tfstack.hcl or .tfstack.json file extensions with the latest .tfcomponent.hcl or .tfcomponent.json file extensions. Update all files to the latest .tfcomponent file extension."),
+				"This stack configuration has mixed the deprecated .tfstack.hcl or .tfstack.json file extensions with the latest .tfcomponent.hcl or .tfcomponent.json file extensions. Update all files to the latest .tfcomponent file extension.",
 			))
 			continue
 		}
@@ -180,7 +180,7 @@ func LoadSingleStackConfig(sourceAddr sourceaddrs.FinalSource, sources *sourcebu
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  "Deprecated filename usage",
-			Detail:   fmt.Sprintf("This configuration is using the deprecated .tfstack.hcl or .tfstack.json file extensions. This will not be supported in a future version of Terraform, please update your files to use the latest .tfcomponent.hcl or .tfcomponent.json file extensions."),
+			Detail:   "This configuration is using the deprecated .tfstack.hcl or .tfstack.json file extensions. This will not be supported in a future version of Terraform, please update your files to use the latest .tfcomponent.hcl or .tfcomponent.json file extensions.",
 		})
 	}
 
