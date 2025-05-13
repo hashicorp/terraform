@@ -551,6 +551,25 @@ func TestActionInvocationsRoundtrip(t *testing.T) {
 				},
 			},
 		},
+		"with config": {
+			input: []*plans.ActionInvocationSrc{
+				{
+					ActionAddr: addrs.Action{
+						Type: "aws_lambda_invoke",
+						Name: "my_lambda",
+					}.Absolute(addrs.RootModuleInstance).Instance(addrs.NoKey),
+					TriggerType: plans.ActionTriggerTypeLifecycle,
+
+					TriggeringResourceInstance: &triggeringInstance,
+					TriggeringEvent:            "after_update",
+					Config: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"hello": cty.StringVal("world"),
+						"top":   cty.StringVal("secret"),
+					}), cty.DynamicPseudoType),
+					SensitivePaths: []cty.Path{cty.GetAttrPath("top")},
+				},
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			plan := &plans.Plan{

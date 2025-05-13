@@ -425,4 +425,12 @@ message ActionInvocation {
         LifecycleTrigger lifecycle_trigger = 2;
         CliTrigger cli_trigger = 3;
     }
+    
+    // msgpack-encoded HCL value of the configuration
+    DynamicValue config = 4;
+    
+    // An unordered set of paths into the config which are marked as
+    // sensitive. Values at these paths should be obscured in human-readable
+    // output.
+    repeated Path sensitive_paths = 5;
 }

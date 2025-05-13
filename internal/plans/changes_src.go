@@ -504,7 +504,9 @@ const (
 )
 
 type ActionInvocationSrc struct {
-	ActionAddr addrs.AbsActionInstance
+	ActionAddr     addrs.AbsActionInstance
+	Config         DynamicValue
+	SensitivePaths []cty.Path
 
 	TriggerType ActionTriggerType
 
@@ -517,14 +519,24 @@ func (ais *ActionInvocationSrc) DeepCopy() *ActionInvocationSrc {
 		return nil
 	}
 	ret := *ais
+	ret.Config = ais.Config.Copy()
 
 	return &ret
 }
 
-func (ais *ActionInvocationSrc) Decode() *ActionInvocation {
+func (ais *ActionInvocationSrc) Decode() (*ActionInvocation, error) {
 	ret := &ActionInvocation{
 		ActionAddr: ais.ActionAddr,
 	}
+
+	ty := cty.DynamicPseudoType
+	unmarkedConfig, err := ais.Config.Decode(ty)
+
+	if err != nil {
+		return nil, fmt.Errorf("error decoding 'config' value: %s", err)
+	}
+
+	ret.Config = marks.MarkPaths(unmarkedConfig, marks.Sensitive, ais.SensitivePaths)
 
 	switch ais.TriggerType {
 	case ActionTriggerTypeCli:
@@ -536,5 +548,5 @@ func (ais *ActionInvocationSrc) Decode() *ActionInvocation {
 		}
 	}
 
-	return ret
+	return ret, nil
 }

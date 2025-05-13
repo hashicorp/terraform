@@ -1232,6 +1232,7 @@ func actionInvocationFromTfplan(proto *planproto.ActionInvocation, parseAddr fun
 func actionInvocationToTfplan(src *plans.ActionInvocationSrc) (*planproto.ActionInvocation, error) {
 	proto := &planproto.ActionInvocation{
 		ActionAddr: src.ActionAddr.String(),
+		Config:     valueToTfplan(src.Config),
 	}
 
 	switch src.TriggerType {
