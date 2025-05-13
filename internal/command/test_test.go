@@ -3463,7 +3463,7 @@ func TestTest_JUnitOutput(t *testing.T) {
 			}
 
 			// actual output will include timestamps and test duration data, which isn't deterministic; redact it for comparison
-			timeRegexp := regexp.MustCompile(`time=\"[0-9\.]+\"`)
+			timeRegexp := regexp.MustCompile(`time="[^"]+"`)
 			actualOut = timeRegexp.ReplaceAll(actualOut, []byte("time=\"TIME_REDACTED\""))
 			timestampRegexp := regexp.MustCompile(`timestamp="[^"]+"`)
 			actualOut = timestampRegexp.ReplaceAll(actualOut, []byte("timestamp=\"TIMESTAMP_REDACTED\""))
