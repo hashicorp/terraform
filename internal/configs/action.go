@@ -85,10 +85,6 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		events := []ActionTriggerEvent{}
 
 		for _, expr := range exprs {
-
-			expr, shimDiags := shimTraversalInString(expr, true)
-			diags = append(diags, shimDiags...)
-
 			var event ActionTriggerEvent
 			switch hcl.ExprAsKeyword(expr) {
 			case "before_create":
@@ -121,9 +117,6 @@ func decodeActionTriggerBlock(block *hcl.Block) (*ActionTrigger, hcl.Diagnostics
 		diags = append(diags, ediags...)
 		actions := []ActionRef{}
 		for _, expr := range exprs {
-			expr, shimDiags := shimTraversalInString(expr, false)
-			diags = append(diags, shimDiags...)
-
 			traversal, travDiags := hcl.AbsTraversalForExpr(expr)
 			diags = append(diags, travDiags...)
 			if len(traversal) != 0 {
