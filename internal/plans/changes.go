@@ -735,6 +735,8 @@ type ActionInvocation struct {
 	ActionAddr addrs.AbsActionInstance
 	Config     cty.Value
 
+	IsCertain bool
+
 	Trigger ActionInvocationTrigger
 }
 
@@ -743,6 +745,7 @@ func (a ActionInvocation) Encode() (*ActionInvocationSrc, error) {
 	ret := &ActionInvocationSrc{
 		ActionAddr:  a.ActionAddr,
 		TriggerType: a.Trigger.TriggerType(),
+		IsCertain:   a.IsCertain,
 	}
 
 	unmarkedConfig, marksesConfig := a.Config.UnmarkDeepWithPaths()

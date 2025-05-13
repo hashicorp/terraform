@@ -1203,6 +1203,7 @@ func actionInvocationFromTfplan(proto *planproto.ActionInvocation, parseAddr fun
 
 	ret := &plans.ActionInvocationSrc{
 		TriggerType: plans.ActionTriggerTypeUnknown,
+		IsCertain:   proto.Certain,
 	}
 
 	actionAddr, parseActionDiags := addrs.ParseAbsActionInstanceStr(proto.ActionAddr)
@@ -1233,6 +1234,7 @@ func actionInvocationToTfplan(src *plans.ActionInvocationSrc) (*planproto.Action
 	proto := &planproto.ActionInvocation{
 		ActionAddr: src.ActionAddr.String(),
 		Config:     valueToTfplan(src.Config),
+		Certain:    src.IsCertain,
 	}
 
 	switch src.TriggerType {
