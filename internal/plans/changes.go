@@ -83,7 +83,10 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 	}
 
 	for _, ai := range c.ActionInvocations {
-		aiSrc := ai.Encode()
+		aiSrc, err := ai.Encode()
+		if err != nil {
+			return changesSrc, err
+		}
 		changesSrc.ActionInvocations = append(changesSrc.ActionInvocations, aiSrc)
 	}
 
@@ -730,14 +733,33 @@ func (t ActionInvocationLifecycleTrigger) TriggerType() ActionTriggerType {
 
 type ActionInvocation struct {
 	ActionAddr addrs.AbsActionInstance
+	Config     cty.Value
 
 	Trigger ActionInvocationTrigger
 }
 
-func (a ActionInvocation) Encode() *ActionInvocationSrc {
+func (a ActionInvocation) Encode() (*ActionInvocationSrc, error) {
+	var err error
 	ret := &ActionInvocationSrc{
 		ActionAddr:  a.ActionAddr,
 		TriggerType: a.Trigger.TriggerType(),
+	}
+
+	unmarkedConfig, marksesConfig := a.Config.UnmarkDeepWithPaths()
+	sensitiveAttrsConfig, unsupportedMarksesConfig := marks.PathsWithMark(marksesConfig, marks.Sensitive)
+
+	if len(unsupportedMarksesConfig) != 0 {
+		return nil, fmt.Errorf(
+			"config value %s: can't serialize value marked with %#v (this is a bug in Terraform)",
+			tfdiags.FormatCtyPath(unsupportedMarksesConfig[0].Path),
+			unsupportedMarksesConfig[0].Marks,
+		)
+	}
+
+	ret.SensitivePaths = sensitiveAttrsConfig
+	ret.Config, err = NewDynamicValue(unmarkedConfig, cty.DynamicPseudoType)
+	if err != nil {
+		return nil, err
 	}
 
 	if lifecycleTrigger, ok := a.Trigger.(ActionInvocationLifecycleTrigger); ok {
@@ -745,5 +767,5 @@ func (a ActionInvocation) Encode() *ActionInvocationSrc {
 		ret.TriggeringEvent = lifecycleTrigger.Event
 	}
 
-	return ret
+	return ret, nil
 }
