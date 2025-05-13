@@ -328,6 +328,17 @@ func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema
 	return val, body, diags
 }
 
+// We should use this signature for EvaluateBlock
+func (ctx *BuiltinEvalContext) EvaluateBlock2(body hcl.Body, schema *configschema.Block, self, source addrs.Referenceable, keyData InstanceKeyEvalData) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	scope := ctx.EvaluationScope(self, source, keyData)
+	body, evalDiags := scope.ExpandBlock(body, schema)
+	diags = diags.Append(evalDiags)
+	val, evalDiags := scope.EvalBlock(body, schema)
+	diags = diags.Append(evalDiags)
+	return val, body, diags
+}
+
 func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
 	scope := ctx.EvaluationScope(self, nil, EvalDataForNoInstanceKey)
 	return scope.EvalExpr(expr, wantType)

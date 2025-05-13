@@ -3094,3 +3094,67 @@ module "child" {
 	diags := ctx.Validate(m, &ValidateOpts{})
 	tfdiags.AssertNoDiagnostics(t, diags)
 }
+
+func TestContext2Validate_queryList(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			terraform {	
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+
+			resource "list" "test_resource" {
+				provider = test
+			}
+`,
+		"main.tfquery.hcl": `
+			variable "input" {
+				type = string
+				default = "foo"
+			}
+
+			list "test_resource" "test" {
+				provider = test
+
+				filter = {
+					attr = var.input
+				}
+			}
+
+			list "test_resource" "example" {
+				provider = test
+
+				filter = {
+					attr = list.test_resource.test.data[0].instance_type
+				}
+			}
+		`,
+	})
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	providerConfigAddr := addrs.RootProviderConfig{Provider: providerAddr}
+
+	provider := getTestProvider()
+
+	ctx, diags := NewContext(&ContextOpts{
+		PreloadedProviderSchemas: map[addrs.Provider]providers.ProviderSchema{
+			providerAddr: *provider.GetProviderSchemaResponse,
+		},
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	// Many of the MockProvider methods check for this, so we'll set it to be
+	// true externally.
+	provider.ConfigureProviderCalled = true
+
+	diags = ctx.Validate(m, &ValidateOpts{
+		ExternalProviders: map[addrs.RootProviderConfig]providers.Interface{
+			providerConfigAddr: provider,
+		},
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+}

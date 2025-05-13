@@ -424,7 +424,8 @@ func TestBuiltinEvalContext_List_EvaluateBlock(t *testing.T) {
 
 			// Call the method under test
 			body := m.Module.ListResources[tc.block].Config
-			result, _, resultDiags := ctx.EvaluateBlock(body, tc.schema, tc.self, tc.keyData)
+			rsc := mustAbsResourceAddr(tc.block)
+			result, _, resultDiags := ctx.EvaluateBlock2(body, tc.schema, tc.self, rsc.Resource, tc.keyData)
 
 			// Check for expected diagnostics
 			if resultDiags.HasErrors() != (tc.expectedDiagCount > 0) {
@@ -442,7 +443,7 @@ func TestBuiltinEvalContext_List_EvaluateBlock(t *testing.T) {
 
 			// Verify that the result value matches what we expect
 			if !reflect.DeepEqual(result, tc.expectedVal) {
-				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", result, tc.expectedVal)
+				t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", result, tc.expectedVal)
 			}
 		})
 	}
@@ -512,7 +513,7 @@ func getTestProvider() *testing_provider.MockProvider {
 					},
 				},
 			},
-			"instance_type": {
+			"list": {
 				Attributes: map[string]*configschema.Attribute{
 					"attr": {
 						Type:     cty.String,
