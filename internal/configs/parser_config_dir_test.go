@@ -151,16 +151,23 @@ func TestParserLoadConfigDirWithTests(t *testing.T) {
 
 func TestParserLoadConfigDirWithQueries(t *testing.T) {
 	tests := []struct {
-		name        string
-		directory   string
-		shouldFail  bool
-		diagnostics []string
-		resources   int
+		name             string
+		directory        string
+		shouldFail       bool
+		diagnostics      []string
+		listResources    int
+		managedResources int
 	}{
 		{
-			name:      "simple",
-			directory: "testdata/query-files/valid/simple",
-			resources: 2,
+			name:          "simple",
+			directory:     "testdata/query-files/valid/simple",
+			listResources: 2,
+		},
+		{
+			name:             "mixed",
+			directory:        "testdata/query-files/valid/mixed",
+			listResources:    2,
+			managedResources: 1,
 		},
 		{
 			name:       "no-provider",
@@ -197,8 +204,12 @@ func TestParserLoadConfigDirWithQueries(t *testing.T) {
 				}
 			}
 
-			if len(mod.ListResources) != test.resources {
+			if len(mod.ListResources) != test.listResources {
 				t.Errorf("incorrect number of list blocks found: %d", len(mod.ListResources))
+			}
+
+			if len(mod.ManagedResources) != test.managedResources {
+				t.Errorf("incorrect number of managed blocks found: %d", len(mod.ManagedResources))
 			}
 		})
 	}
