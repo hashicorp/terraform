@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package backend
 
 import (
@@ -10,7 +13,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configtesting"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -65,7 +68,7 @@ func TestBackendConfig(t *testing.T, b Backend, c hcl.Body) Backend {
 // this function will panic.
 func TestWrapConfig(raw map[string]interface{}) hcl.Body {
 	obj := hcl2shim.HCL2ValueFromConfigValue(raw)
-	return configs.SynthBody("<TestWrapConfig>", obj.AsValueMap())
+	return configtesting.SynthBody("<TestWrapConfig>", obj.AsValueMap())
 }
 
 // TestBackend will test the functionality of a Backend. The backend is
@@ -132,7 +135,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 		if err := foo.WriteState(fooState); err != nil {
 			t.Fatal("error writing foo state:", err)
 		}
-		if err := foo.PersistState(); err != nil {
+		if err := foo.PersistState(nil); err != nil {
 			t.Fatal("error persisting foo state:", err)
 		}
 
@@ -160,7 +163,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 		if err := bar.WriteState(barState); err != nil {
 			t.Fatalf("bad: %s", err)
 		}
-		if err := bar.PersistState(); err != nil {
+		if err := bar.PersistState(nil); err != nil {
 			t.Fatalf("bad: %s", err)
 		}
 
@@ -219,12 +222,12 @@ func TestBackendStates(t *testing.T, b Backend) {
 	}
 
 	// Delete some workspaces
-	if err := b.DeleteWorkspace("foo"); err != nil {
+	if err := b.DeleteWorkspace("foo", true); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Verify the default state can't be deleted
-	if err := b.DeleteWorkspace(DefaultStateName); err == nil {
+	if err := b.DeleteWorkspace(DefaultStateName, true); err == nil {
 		t.Fatal("expected error")
 	}
 
@@ -242,7 +245,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 		t.Fatalf("should be empty: %s", v)
 	}
 	// and delete it again
-	if err := b.DeleteWorkspace("foo"); err != nil {
+	if err := b.DeleteWorkspace("foo", true); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

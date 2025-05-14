@@ -1,12 +1,16 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package planfile
 
 import (
 	"archive/zip"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"maps"
 	"path"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -52,7 +56,7 @@ func readConfigSnapshot(z *zip.Reader) (*configload.Snapshot, error) {
 			if err != nil {
 				return nil, fmt.Errorf("failed to open module manifest: %s", r)
 			}
-			manifestSrc, err = ioutil.ReadAll(r)
+			manifestSrc, err = io.ReadAll(r)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read module manifest: %s", r)
 			}
@@ -74,7 +78,7 @@ func readConfigSnapshot(z *zip.Reader) (*configload.Snapshot, error) {
 			if err != nil {
 				return nil, fmt.Errorf("failed to open snapshot of %s from module %q: %s", fileName, moduleKey, err)
 			}
-			fileSrc, err := ioutil.ReadAll(r)
+			fileSrc, err := io.ReadAll(r)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read snapshot of %s from module %q: %s", fileName, moduleKey, err)
 			}
@@ -155,15 +159,10 @@ func writeConfigSnapshot(snap *configload.Snapshot, z *zip.Writer) error {
 	// need to be user-actionable.
 
 	var manifest configSnapshotModuleManifest
-	keys := make([]string, 0, len(snap.Modules))
-	for k := range snap.Modules {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
 
 	// We'll re-use this fileheader for each Create we do below.
 
-	for _, k := range keys {
+	for _, k := range slices.Sorted(maps.Keys(snap.Modules)) {
 		snapMod := snap.Modules[k]
 		record := configSnapshotModuleRecord{
 			Dir:        snapMod.Dir,

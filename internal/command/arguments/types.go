@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package arguments
 
 // ViewType represents which view layer to use for a given command. Not all

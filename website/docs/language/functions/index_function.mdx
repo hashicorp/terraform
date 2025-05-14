@@ -5,7 +5,7 @@ description: The index function finds the element index for a given value in a l
 
 # `index` Function
 
-`index` finds the element index for a given value in a list.
+`index` finds the first element index for a given value in a list.
 
 ```hcl
 index(list, value)
@@ -21,7 +21,14 @@ value is not present in the list.
 1
 ```
 
+In this example, the index of the first occurence of `"two"` is returned.
+
+```
+> index(["one", "two", "two"], "two")
+1
+```
+
 ## Related Functions
 
-* [`element`](/language/functions/element) retrieves a particular element from a list given
+* [`element`](/terraform/language/functions/element) retrieves a particular element from a list given
   its index.

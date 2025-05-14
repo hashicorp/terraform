@@ -1,12 +1,158 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package plans
 
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/schemarepo"
+	"github.com/hashicorp/terraform/internal/states"
 )
+
+// ChangesSrc describes various actions that Terraform will attempt to take if
+// the corresponding plan is applied.
+//
+// A Changes object can be rendered into a visual diff (by the caller, using
+// code in another package) for display to the user.
+type ChangesSrc struct {
+	// Resources tracks planned changes to resource instance objects.
+	Resources []*ResourceInstanceChangeSrc
+
+	// Outputs tracks planned changes output values.
+	//
+	// Note that although an in-memory plan contains planned changes for
+	// outputs throughout the configuration, a plan serialized
+	// to disk retains only the root outputs because they are
+	// externally-visible, while other outputs are implementation details and
+	// can be easily re-calculated during the apply phase. Therefore only root
+	// module outputs will survive a round-trip through a plan file.
+	Outputs []*OutputChangeSrc
+}
+
+func NewChangesSrc() *ChangesSrc {
+	return &ChangesSrc{}
+}
+
+func (c *ChangesSrc) Empty() bool {
+	for _, res := range c.Resources {
+		if res.Action != NoOp || res.Moved() {
+			return false
+		}
+
+		if res.Importing != nil {
+			return false
+		}
+	}
+
+	for _, out := range c.Outputs {
+		if out.Addr.Module.IsRoot() && out.Action != NoOp {
+			return false
+		}
+	}
+
+	return true
+}
+
+// ResourceInstance returns the planned change for the current object of the
+// resource instance of the given address, if any. Returns nil if no change is
+// planned.
+func (c *ChangesSrc) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInstanceChangeSrc {
+	for _, rc := range c.Resources {
+		if rc.Addr.Equal(addr) && rc.DeposedKey == states.NotDeposed {
+			return rc
+		}
+	}
+
+	return nil
+}
+
+// ResourceInstanceDeposed returns the plan change of a deposed object of
+// the resource instance of the given address, if any. Returns nil if no change
+// is planned.
+func (c *ChangesSrc) ResourceInstanceDeposed(addr addrs.AbsResourceInstance, key states.DeposedKey) *ResourceInstanceChangeSrc {
+	for _, rc := range c.Resources {
+		if rc.Addr.Equal(addr) && rc.DeposedKey == key {
+			return rc
+		}
+	}
+
+	return nil
+}
+
+// OutputValue returns the planned change for the output value with the
+//
+//	given address, if any. Returns nil if no change is planned.
+func (c *ChangesSrc) OutputValue(addr addrs.AbsOutputValue) *OutputChangeSrc {
+	for _, oc := range c.Outputs {
+		if oc.Addr.Equal(addr) {
+			return oc
+		}
+	}
+
+	return nil
+}
+
+// Decode decodes all the stored resource and output changes into a new *Changes value.
+func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
+	changes := NewChanges()
+
+	for _, rcs := range c.Resources {
+		p, ok := schemas.Providers[rcs.ProviderAddr.Provider]
+		if !ok {
+			return nil, fmt.Errorf("ChangesSrc.Decode: missing provider %s for %s", rcs.ProviderAddr, rcs.Addr)
+		}
+
+		var schema providers.Schema
+		switch rcs.Addr.Resource.Resource.Mode {
+		case addrs.ManagedResourceMode:
+			schema = p.ResourceTypes[rcs.Addr.Resource.Resource.Type]
+		case addrs.DataResourceMode:
+			schema = p.DataSources[rcs.Addr.Resource.Resource.Type]
+		default:
+			panic(fmt.Sprintf("unexpected resource mode %s", rcs.Addr.Resource.Resource.Mode))
+		}
+
+		if schema.Body == nil {
+			return nil, fmt.Errorf("ChangesSrc.Decode: missing schema for %s", rcs.Addr)
+		}
+
+		rc, err := rcs.Decode(schema)
+		if err != nil {
+			return nil, err
+		}
+
+		rc.Before = marks.MarkPaths(rc.Before, marks.Sensitive, rcs.BeforeSensitivePaths)
+		rc.After = marks.MarkPaths(rc.After, marks.Sensitive, rcs.AfterSensitivePaths)
+
+		changes.Resources = append(changes.Resources, rc)
+	}
+
+	for _, ocs := range c.Outputs {
+		oc, err := ocs.Decode()
+		if err != nil {
+			return nil, err
+		}
+		changes.Outputs = append(changes.Outputs, oc)
+	}
+	return changes, nil
+}
+
+// AppendResourceInstanceChange records the given resource instance change in
+// the set of planned resource changes.
+func (c *ChangesSrc) AppendResourceInstanceChange(change *ResourceInstanceChangeSrc) {
+	if c == nil {
+		panic("AppendResourceInstanceChange on nil ChangesSync")
+	}
+
+	s := change.DeepCopy()
+	c.Resources = append(c.Resources, s)
+}
 
 // ResourceInstanceChangeSrc is a not-yet-decoded ResourceInstanceChange.
 // Pass the associated resource type's schema type to method Decode to
@@ -14,7 +160,22 @@ import (
 type ResourceInstanceChangeSrc struct {
 	// Addr is the absolute address of the resource instance that the change
 	// will apply to.
+	//
+	// THIS IS NOT A SUFFICIENT UNIQUE IDENTIFIER! It doesn't consider the
+	// fact that multiple objects for the same resource instance might be
+	// present in the same plan; use the ObjectAddr method instead if you
+	// need a unique address for a particular change.
 	Addr addrs.AbsResourceInstance
+
+	// DeposedKey is the identifier for a deposed object associated with the
+	// given instance, or states.NotDeposed if this change applies to the
+	// current object.
+	//
+	// A Replace change for a resource with create_before_destroy set will
+	// create a new DeposedKey temporarily during replacement. In that case,
+	// DeposedKey in the plan is always states.NotDeposed, representing that
+	// the current object is being replaced with the deposed.
+	DeposedKey states.DeposedKey
 
 	// PrevRunAddr is the absolute address that this resource instance had at
 	// the conclusion of a previous run.
@@ -28,16 +189,6 @@ type ResourceInstanceChangeSrc struct {
 	// equal to Addr in that case in order to simplify logic elsewhere which
 	// aims to detect and react to the movement of instances between addresses.
 	PrevRunAddr addrs.AbsResourceInstance
-
-	// DeposedKey is the identifier for a deposed object associated with the
-	// given instance, or states.NotDeposed if this change applies to the
-	// current object.
-	//
-	// A Replace change for a resource with create_before_destroy set will
-	// create a new DeposedKey temporarily during replacement. In that case,
-	// DeposedKey in the plan is always states.NotDeposed, representing that
-	// the current object is being replaced with the deposed.
-	DeposedKey states.DeposedKey
 
 	// Provider is the address of the provider configuration that was used
 	// to plan this change, and thus the configuration that must also be
@@ -71,11 +222,18 @@ type ResourceInstanceChangeSrc struct {
 	Private []byte
 }
 
+func (rcs *ResourceInstanceChangeSrc) ObjectAddr() addrs.AbsResourceInstanceObject {
+	return addrs.AbsResourceInstanceObject{
+		ResourceInstance: rcs.Addr,
+		DeposedKey:       rcs.DeposedKey,
+	}
+}
+
 // Decode unmarshals the raw representation of the instance object being
 // changed. Pass the implied type of the corresponding resource type schema
 // for correct operation.
-func (rcs *ResourceInstanceChangeSrc) Decode(ty cty.Type) (*ResourceInstanceChange, error) {
-	change, err := rcs.ChangeSrc.Decode(ty)
+func (rcs *ResourceInstanceChangeSrc) Decode(schema providers.Schema) (*ResourceInstanceChange, error) {
+	change, err := rcs.ChangeSrc.Decode(&schema)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +309,7 @@ type OutputChangeSrc struct {
 // Decode unmarshals the raw representation of the output value being
 // changed.
 func (ocs *OutputChangeSrc) Decode() (*OutputChange, error) {
-	change, err := ocs.ChangeSrc.Decode(cty.DynamicPseudoType)
+	change, err := ocs.ChangeSrc.Decode(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -182,6 +340,57 @@ func (ocs *OutputChangeSrc) DeepCopy() *OutputChangeSrc {
 	return &ret
 }
 
+// ImportingSrc is the part of a ChangeSrc that describes the embedded import
+// action.
+//
+// The fields in here are subject to change, so downstream consumers should be
+// prepared for backwards compatibility in case the contents changes.
+type ImportingSrc struct {
+	// ID is the original ID of the imported resource.
+	ID string
+
+	// Identity is the original identity of the imported resource.
+	Identity DynamicValue
+
+	// Unknown is true if the ID was unknown when we tried to import it. This
+	// should only be true if the overall change is embedded within a deferred
+	// action.
+	Unknown bool
+}
+
+// Decode unmarshals the raw representation of the importing action.
+func (is *ImportingSrc) Decode(identityType cty.Type) *Importing {
+	if is == nil {
+		return nil
+	}
+	if is.Unknown {
+		if is.Identity == nil {
+			return &Importing{
+				Target: cty.UnknownVal(cty.String),
+			}
+		}
+
+		return &Importing{
+			Target: cty.UnknownVal(cty.EmptyObject),
+		}
+	}
+
+	if is.Identity == nil {
+		return &Importing{
+			Target: cty.StringVal(is.ID),
+		}
+	}
+
+	target, err := is.Identity.Decode(identityType)
+	if err != nil {
+		return &Importing{
+			Target: target,
+		}
+	}
+
+	return nil
+}
+
 // ChangeSrc is a not-yet-decoded Change.
 type ChangeSrc struct {
 	// Action defines what kind of change is being made.
@@ -192,12 +401,31 @@ type ChangeSrc struct {
 	// storage.
 	Before, After DynamicValue
 
-	// BeforeValMarks and AfterValMarks are stored path+mark combinations
-	// that might be discovered when encoding a change. Marks are removed
-	// to enable encoding (marked values cannot be marshalled), and so storing
-	// the path+mark combinations allow us to re-mark the value later
-	// when, for example, displaying the diff to the UI.
-	BeforeValMarks, AfterValMarks []cty.PathValueMarks
+	// BeforeIdentity and AfterIdentity correspond to the fields of the same name in Change,
+	// but have not yet been decoded from the serialized value used for
+	// storage.
+	BeforeIdentity, AfterIdentity DynamicValue
+
+	// BeforeSensitivePaths and AfterSensitivePaths are the paths for any
+	// values in Before or After (respectively) that are considered to be
+	// sensitive. The sensitive marks are removed from the in-memory values
+	// to enable encoding (marked values cannot be marshalled), and so we
+	// store the sensitive paths to allow re-marking later when we decode
+	// the serialized change.
+	BeforeSensitivePaths, AfterSensitivePaths []cty.Path
+
+	// Importing is present if the resource is being imported as part of this
+	// change.
+	//
+	// Use the simple presence of this field to detect if a ChangeSrc is to be
+	// imported, the contents of this structure may be modified going forward.
+	Importing *ImportingSrc
+
+	// GeneratedConfig contains any HCL config generated for this resource
+	// during planning, as a string. If GeneratedConfig is populated, Importing
+	// should be true. However, not all Importing changes contain generated
+	// config.
+	GeneratedConfig string
 }
 
 // Decode unmarshals the raw representations of the before and after values
@@ -207,15 +435,31 @@ type ChangeSrc struct {
 // Where a ChangeSrc is embedded in some other struct, it's generally better
 // to call the corresponding Decode method of that struct rather than working
 // directly with its embedded Change.
-func (cs *ChangeSrc) Decode(ty cty.Type) (*Change, error) {
+func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
 	var err error
+
+	ty := cty.DynamicPseudoType
+	identityType := cty.DynamicPseudoType
+	if schema != nil {
+		ty = schema.Body.ImpliedType()
+		identityType = schema.Identity.ImpliedType()
+	}
+
 	before := cty.NullVal(ty)
+	beforeIdentity := cty.NullVal(identityType)
 	after := cty.NullVal(ty)
+	afterIdentity := cty.NullVal(identityType)
 
 	if len(cs.Before) > 0 {
 		before, err = cs.Before.Decode(ty)
 		if err != nil {
 			return nil, fmt.Errorf("error decoding 'before' value: %s", err)
+		}
+	}
+	if len(cs.BeforeIdentity) > 0 {
+		beforeIdentity, err = cs.BeforeIdentity.Decode(identityType)
+		if err != nil {
+			return nil, fmt.Errorf("error decoding 'beforeIdentity' value: %s", err)
 		}
 	}
 	if len(cs.After) > 0 {
@@ -224,10 +468,20 @@ func (cs *ChangeSrc) Decode(ty cty.Type) (*Change, error) {
 			return nil, fmt.Errorf("error decoding 'after' value: %s", err)
 		}
 	}
+	if len(cs.AfterIdentity) > 0 {
+		afterIdentity, err = cs.AfterIdentity.Decode(identityType)
+		if err != nil {
+			return nil, fmt.Errorf("error decoding 'afterIdentity' value: %s", err)
+		}
+	}
 
 	return &Change{
-		Action: cs.Action,
-		Before: before.MarkWithPaths(cs.BeforeValMarks),
-		After:  after.MarkWithPaths(cs.AfterValMarks),
+		Action:          cs.Action,
+		Before:          marks.MarkPaths(before, marks.Sensitive, cs.BeforeSensitivePaths),
+		BeforeIdentity:  beforeIdentity,
+		After:           marks.MarkPaths(after, marks.Sensitive, cs.AfterSensitivePaths),
+		AfterIdentity:   afterIdentity,
+		Importing:       cs.Importing.Decode(identityType),
+		GeneratedConfig: cs.GeneratedConfig,
 	}, nil
 }

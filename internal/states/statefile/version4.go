@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package statefile
 
 import (
@@ -12,7 +15,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -134,8 +136,9 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 			instAddr := rAddr.Instance(key)
 
 			obj := &states.ResourceInstanceObjectSrc{
-				SchemaVersion:       isV4.SchemaVersion,
-				CreateBeforeDestroy: isV4.CreateBeforeDestroy,
+				SchemaVersion:         isV4.SchemaVersion,
+				CreateBeforeDestroy:   isV4.CreateBeforeDestroy,
+				IdentitySchemaVersion: isV4.IdentitySchemaVersion,
 			}
 
 			{
@@ -154,6 +157,10 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 				}
 			}
 
+			if isV4.IdentityRaw != nil {
+				obj.IdentityJSON = isV4.IdentityRaw
+			}
+
 			// Sensitive paths
 			if isV4.AttributeSensitivePaths != nil {
 				paths, pathsDiags := unmarshalPaths([]byte(isV4.AttributeSensitivePaths))
@@ -161,15 +168,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 				if pathsDiags.HasErrors() {
 					continue
 				}
-
-				var pvm []cty.PathValueMarks
-				for _, path := range paths {
-					pvm = append(pvm, cty.PathValueMarks{
-						Path:  path,
-						Marks: cty.NewValueMarks(marks.Sensitive),
-					})
-				}
-				obj.AttrSensitivePaths = pvm
+				obj.AttrSensitivePaths = paths
 			}
 
 			{
@@ -254,10 +253,9 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 	}
 
 	// The root module is special in that we persist its attributes and thus
-	// need to reload them now. (For descendent modules we just re-calculate
+	// need to reload them now. (For descendant modules we just re-calculate
 	// them based on the latest configuration on each run.)
 	{
-		rootModule := state.RootModule()
 		for name, fos := range sV4.RootOutputs {
 			os := &states.OutputValue{
 				Addr: addrs.AbsOutputValue{
@@ -289,7 +287,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 			}
 
 			os.Value = val
-			rootModule.OutputValues[name] = os
+			state.RootOutputValues[name] = os
 		}
 	}
 
@@ -335,7 +333,7 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 		Resources:        []resourceStateV4{},
 	}
 
-	for name, os := range file.State.RootModule().OutputValues {
+	for name, os := range file.State.RootOutputValues {
 		src, err := ctyjson.Marshal(os.Value, os.Value.Type())
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
@@ -414,9 +412,7 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 		}
 	}
 
-	if file.State.CheckResults != nil {
-		sV4.CheckResults = encodeCheckResultsV4(file.State.CheckResults)
-	}
+	sV4.CheckResults = encodeCheckResultsV4(file.State.CheckResults)
 
 	sV4.normalize()
 
@@ -488,14 +484,8 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		}
 	}
 
-	// Extract paths from path value marks
-	var paths []cty.Path
-	for _, vm := range obj.AttrSensitivePaths {
-		paths = append(paths, vm.Path)
-	}
-
 	// Marshal paths to JSON
-	attributeSensitivePaths, pathsDiags := marshalPaths(paths)
+	attributeSensitivePaths, pathsDiags := marshalPaths(obj.AttrSensitivePaths)
 	diags = diags.Append(pathsDiags)
 
 	return append(isV4s, instanceObjectStateV4{
@@ -509,6 +499,8 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		PrivateRaw:              privateRaw,
 		Dependencies:            deps,
 		CreateBeforeDestroy:     obj.CreateBeforeDestroy,
+		IdentitySchemaVersion:   obj.IdentitySchemaVersion,
+		IdentityRaw:             obj.IdentityJSON,
 	}), diags
 }
 
@@ -524,7 +516,11 @@ func decodeCheckResultsV4(in []checkResultsV4) (*states.CheckResults, tfdiags.Di
 	for _, aggrIn := range in {
 		objectKind := decodeCheckableObjectKindV4(aggrIn.ObjectKind)
 		if objectKind == addrs.CheckableKindInvalid {
-			diags = diags.Append(fmt.Errorf("unsupported checkable object kind %q", aggrIn.ObjectKind))
+			// We cannot decode a future unknown check result kind, but
+			// for forwards compatibility we need not treat this as an
+			// error. Eliding unknown check results will not result in
+			// significant data loss and allows us to maintain state file
+			// interoperability in the 1.x series.
 			continue
 		}
 
@@ -576,6 +572,11 @@ func decodeCheckResultsV4(in []checkResultsV4) (*states.CheckResults, tfdiags.Di
 }
 
 func encodeCheckResultsV4(in *states.CheckResults) []checkResultsV4 {
+	// normalize empty and nil sets in the serialized state
+	if in == nil || in.ConfigResults.Len() == 0 {
+		return nil
+	}
+
 	ret := make([]checkResultsV4, 0, in.ConfigResults.Len())
 
 	for _, configElem := range in.ConfigResults.Elems {
@@ -635,6 +636,10 @@ func decodeCheckableObjectKindV4(in string) addrs.CheckableKind {
 		return addrs.CheckableResource
 	case "output":
 		return addrs.CheckableOutputValue
+	case "check":
+		return addrs.CheckableCheck
+	case "var":
+		return addrs.CheckableInputVariable
 	default:
 		// We'll treat anything else as invalid just as a concession to
 		// forward-compatible parsing, in case a later version of Terraform
@@ -649,6 +654,10 @@ func encodeCheckableObjectKindV4(in addrs.CheckableKind) string {
 		return "resource"
 	case addrs.CheckableOutputValue:
 		return "output"
+	case addrs.CheckableCheck:
+		return "check"
+	case addrs.CheckableInputVariable:
+		return "var"
 	default:
 		panic(fmt.Sprintf("unsupported checkable object kind %s", in))
 	}
@@ -699,6 +708,9 @@ type instanceObjectStateV4 struct {
 	AttributesRaw           json.RawMessage   `json:"attributes,omitempty"`
 	AttributesFlat          map[string]string `json:"attributes_flat,omitempty"`
 	AttributeSensitivePaths json.RawMessage   `json:"sensitive_attributes,omitempty"`
+
+	IdentitySchemaVersion uint64          `json:"identity_schema_version"`
+	IdentityRaw           json.RawMessage `json:"identity,omitempty"`
 
 	PrivateRaw []byte `json:"private,omitempty"`
 
@@ -808,6 +820,9 @@ func unmarshalPaths(buf []byte) ([]cty.Path, tfdiags.Diagnostics) {
 		))
 	}
 
+	if len(jsonPaths) == 0 {
+		return nil, diags
+	}
 	paths := make([]cty.Path, 0, len(jsonPaths))
 
 unmarshalOuter:

@@ -1,10 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
 	"net/url"
 	"strings"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 // WorkspaceCommand is a Command Implementation that manipulates workspaces,
@@ -21,8 +24,7 @@ func (c *WorkspaceCommand) Run(args []string) int {
 	cmdFlags := c.Meta.extendedFlagSet("workspace")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 
-	c.Ui.Output(c.Help())
-	return 0
+	return cli.RunResultHelp
 }
 
 func (c *WorkspaceCommand) Help() string {
@@ -68,7 +70,8 @@ const (
 	envDoesNotExist = `
 Workspace %q doesn't exist.
 
-You can create this workspace with the "new" subcommand.`
+You can create this workspace with the "new" subcommand 
+or include the "-or-create" flag with the "select" subcommand.`
 
 	envChanged = `[reset][green]Switched to workspace %q.`
 

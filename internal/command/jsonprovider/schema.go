@@ -1,38 +1,70 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonprovider
 
 import (
-	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
-type schema struct {
+type Schema struct {
 	Version uint64 `json:"version"`
-	Block   *block `json:"block,omitempty"`
+	Block   *Block `json:"block,omitempty"`
 }
 
 // marshalSchema is a convenience wrapper around mashalBlock. Schema version
 // should be set by the caller.
-func marshalSchema(block *configschema.Block) *schema {
-	if block == nil {
-		return &schema{}
+func marshalSchema(schema providers.Schema) *Schema {
+	if schema.Body == nil {
+		return &Schema{}
 	}
 
-	var ret schema
-	ret.Block = marshalBlock(block)
+	var ret Schema
+	ret.Block = marshalBlock(schema.Body)
+	ret.Version = uint64(schema.Version)
 
 	return &ret
 }
 
-func marshalSchemas(blocks map[string]*configschema.Block, rVersions map[string]uint64) map[string]*schema {
-	if blocks == nil {
-		return map[string]*schema{}
+func marshalSchemas(schemas map[string]providers.Schema) map[string]*Schema {
+	if schemas == nil {
+		return map[string]*Schema{}
 	}
-	ret := make(map[string]*schema, len(blocks))
-	for k, v := range blocks {
+	ret := make(map[string]*Schema, len(schemas))
+	for k, v := range schemas {
 		ret[k] = marshalSchema(v)
-		version, ok := rVersions[k]
-		if ok {
-			ret[k].Version = version
+	}
+	return ret
+}
+
+type IdentitySchema struct {
+	Version    uint64                        `json:"version"`
+	Attributes map[string]*IdentityAttribute `json:"attributes,omitempty"`
+}
+
+func marshalIdentitySchema(schema providers.Schema) *IdentitySchema {
+	var ret IdentitySchema
+	ret.Version = uint64(schema.IdentityVersion)
+	ret.Attributes = make(map[string]*IdentityAttribute, len(schema.Identity.Attributes))
+
+	for k, v := range schema.Identity.Attributes {
+		ret.Attributes[k] = marshalIdentityAttribute(v)
+	}
+
+	return &ret
+}
+
+func marshalIdentitySchemas(schemas map[string]providers.Schema) map[string]*IdentitySchema {
+	if schemas == nil {
+		return map[string]*IdentitySchema{}
+	}
+
+	ret := make(map[string]*IdentitySchema, len(schemas))
+	for k, v := range schemas {
+		if v.Identity != nil {
+			ret[k] = marshalIdentitySchema(v)
 		}
 	}
+
 	return ret
 }

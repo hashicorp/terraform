@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package funcs
 
 import (
@@ -68,11 +71,15 @@ func TestLength(t *testing.T) {
 		},
 		{
 			cty.UnknownVal(cty.List(cty.Bool)),
-			cty.UnknownVal(cty.Number),
+			cty.UnknownVal(cty.Number).Refine().
+				NotNull().
+				NumberRangeLowerBound(cty.Zero, true).
+				NumberRangeUpperBound(cty.NumberIntVal(math.MaxInt), true).
+				NewValue(),
 		},
 		{
 			cty.DynamicVal,
-			cty.UnknownVal(cty.Number),
+			cty.UnknownVal(cty.Number).RefineNotNull(),
 		},
 		{
 			cty.StringVal("hello"),
@@ -117,11 +124,10 @@ func TestLength(t *testing.T) {
 		},
 		{
 			cty.UnknownVal(cty.String),
-			cty.UnknownVal(cty.Number),
-		},
-		{
-			cty.DynamicVal,
-			cty.UnknownVal(cty.Number),
+			cty.UnknownVal(cty.Number).Refine().
+				NotNull().
+				NumberRangeLowerBound(cty.Zero, true).
+				NewValue(),
 		},
 		{ // Marked collections return a marked length
 			cty.ListVal([]cty.Value{
@@ -162,6 +168,10 @@ func TestLength(t *testing.T) {
 				"c": cty.StringVal("nice to meet you"),
 			}).Mark("secret"),
 			cty.NumberIntVal(3).Mark("secret"),
+		},
+		{ // Marked objects return a marked length
+			cty.UnknownVal(cty.String).Mark("secret"),
+			cty.UnknownVal(cty.Number).Refine().NotNull().NumberRangeLowerBound(cty.NumberIntVal(0), true).NewValue().Mark("secret"),
 		},
 		{ // Marks on object attribute values do not propagate
 			cty.ObjectVal(map[string]cty.Value{
@@ -226,7 +236,7 @@ func TestAllTrue(t *testing.T) {
 		},
 		{
 			cty.ListVal([]cty.Value{cty.UnknownVal(cty.Bool)}),
-			cty.UnknownVal(cty.Bool),
+			cty.UnknownVal(cty.Bool).RefineNotNull(),
 			false,
 		},
 		{
@@ -234,12 +244,12 @@ func TestAllTrue(t *testing.T) {
 				cty.UnknownVal(cty.Bool),
 				cty.UnknownVal(cty.Bool),
 			}),
-			cty.UnknownVal(cty.Bool),
+			cty.UnknownVal(cty.Bool).RefineNotNull(),
 			false,
 		},
 		{
 			cty.UnknownVal(cty.List(cty.Bool)),
-			cty.UnknownVal(cty.Bool),
+			cty.UnknownVal(cty.Bool).RefineNotNull(),
 			false,
 		},
 		{
@@ -307,7 +317,7 @@ func TestAnyTrue(t *testing.T) {
 		},
 		{
 			cty.ListVal([]cty.Value{cty.UnknownVal(cty.Bool)}),
-			cty.UnknownVal(cty.Bool),
+			cty.UnknownVal(cty.Bool).RefineNotNull(),
 			false,
 		},
 		{
@@ -315,7 +325,7 @@ func TestAnyTrue(t *testing.T) {
 				cty.UnknownVal(cty.Bool),
 				cty.False,
 			}),
-			cty.UnknownVal(cty.Bool),
+			cty.UnknownVal(cty.Bool).RefineNotNull(),
 			false,
 		},
 		{
@@ -328,7 +338,7 @@ func TestAnyTrue(t *testing.T) {
 		},
 		{
 			cty.UnknownVal(cty.List(cty.Bool)),
-			cty.UnknownVal(cty.Bool),
+			cty.UnknownVal(cty.Bool).RefineNotNull(),
 			false,
 		},
 		{
@@ -406,17 +416,17 @@ func TestCoalesce(t *testing.T) {
 		},
 		{
 			[]cty.Value{cty.UnknownVal(cty.Bool), cty.True},
-			cty.UnknownVal(cty.Bool),
+			cty.UnknownVal(cty.Bool).RefineNotNull(),
 			false,
 		},
 		{
 			[]cty.Value{cty.UnknownVal(cty.Bool), cty.StringVal("hello")},
-			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String).RefineNotNull(),
 			false,
 		},
 		{
 			[]cty.Value{cty.DynamicVal, cty.True},
-			cty.UnknownVal(cty.Bool),
+			cty.UnknownVal(cty.Bool).RefineNotNull(),
 			false,
 		},
 		{
@@ -878,6 +888,15 @@ func TestLookup(t *testing.T) {
 			cty.StringVal("beep").Mark("a"),
 			false,
 		},
+		{ // propagate marks from unknown map
+			[]cty.Value{
+				cty.UnknownVal(cty.Map(cty.String)).Mark("a"),
+				cty.StringVal("boop").Mark("b"),
+				cty.StringVal("nope"),
+			},
+			cty.UnknownVal(cty.String).Mark("a").Mark("b"),
+			false,
+		},
 	}
 
 	for _, test := range tests {
@@ -1062,7 +1081,7 @@ func TestMatchkeys(t *testing.T) {
 			cty.ListVal([]cty.Value{
 				cty.StringVal("ref1"),
 			}),
-			cty.UnknownVal(cty.List(cty.String)),
+			cty.UnknownVal(cty.List(cty.String)).RefineNotNull(),
 			false,
 		},
 		{ // different types that can be unified
@@ -1526,7 +1545,7 @@ func TestSum(t *testing.T) {
 				cty.StringVal("b"),
 				cty.StringVal("c"),
 			}),
-			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String).RefineNotNull(),
 			"argument must be list, set, or tuple of number values",
 		},
 		{
@@ -1580,7 +1599,7 @@ func TestSum(t *testing.T) {
 				cty.StringVal("a"),
 				cty.NumberIntVal(38),
 			}),
-			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String).RefineNotNull(),
 			"argument must be list, set, or tuple of number values",
 		},
 		{
@@ -1600,17 +1619,17 @@ func TestSum(t *testing.T) {
 		},
 		{
 			cty.UnknownVal(cty.Number),
-			cty.UnknownVal(cty.Number),
+			cty.UnknownVal(cty.Number).RefineNotNull(),
 			"",
 		},
 		{
 			cty.UnknownVal(cty.List(cty.Number)),
-			cty.UnknownVal(cty.Number),
+			cty.UnknownVal(cty.Number).RefineNotNull(),
 			"",
 		},
 		{ // known list containing unknown values
 			cty.ListVal([]cty.Value{cty.UnknownVal(cty.Number)}),
-			cty.UnknownVal(cty.Number),
+			cty.UnknownVal(cty.Number).RefineNotNull(),
 			"",
 		},
 		{ // numbers too large to represent as float64
@@ -1704,7 +1723,7 @@ func TestTranspose(t *testing.T) {
 			cty.MapVal(map[string]cty.Value{
 				"key1": cty.UnknownVal(cty.List(cty.String)),
 			}),
-			cty.UnknownVal(cty.Map(cty.List(cty.String))),
+			cty.UnknownVal(cty.Map(cty.List(cty.String))).RefineNotNull(),
 			false,
 		},
 		{ // bad map - empty value
@@ -1812,6 +1831,37 @@ func TestTranspose(t *testing.T) {
 					cty.StringVal("key3"),
 				}),
 			}).WithMarks(cty.NewValueMarks("beep", "boop", "bloop")),
+			false,
+		},
+		{
+			cty.NullVal(cty.Map(cty.List(cty.String))),
+			cty.NilVal,
+			true,
+		},
+		{
+			cty.MapVal(map[string]cty.Value{
+				"test": cty.NullVal(cty.List(cty.String)),
+			}),
+			cty.NilVal,
+			true,
+		},
+		{
+			cty.MapVal(map[string]cty.Value{
+				"test": cty.ListVal([]cty.Value{cty.NullVal(cty.String)}),
+			}),
+			cty.NilVal,
+			true,
+		},
+		{
+			cty.UnknownVal(cty.Map(cty.List(cty.String))),
+			cty.UnknownVal(cty.Map(cty.List(cty.String))).RefineNotNull(),
+			false,
+		},
+		{
+			cty.MapVal(map[string]cty.Value{
+				"test": cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
+			}),
+			cty.UnknownVal(cty.Map(cty.List(cty.String))).RefineNotNull(),
 			false,
 		},
 	}

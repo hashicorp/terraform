@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package e2etest
 
 import (
@@ -113,6 +116,7 @@ func (p *providerServer5) ApplyResourceChange(ctx context.Context, req *proto5.A
 	defer p.Unlock()
 
 	p.applyResourceChangeCalled = true
+
 	return p.ProviderServer.ApplyResourceChange(ctx, req)
 }
 

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -13,6 +16,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-version"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -20,12 +26,12 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/providers"
+	provider_testing "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
-	"github.com/zclconf/go-cty/cty"
 )
 
 var (
@@ -38,14 +44,12 @@ var (
 func TestNewContextRequiredVersion(t *testing.T) {
 	cases := []struct {
 		Name    string
-		Module  string
 		Version string
 		Value   string
 		Err     bool
 	}{
 		{
 			"no requirement",
-			"",
 			"0.1.0",
 			"",
 			false,
@@ -53,7 +57,6 @@ func TestNewContextRequiredVersion(t *testing.T) {
 
 		{
 			"doesn't match",
-			"",
 			"0.1.0",
 			"> 0.6.0",
 			true,
@@ -61,7 +64,6 @@ func TestNewContextRequiredVersion(t *testing.T) {
 
 		{
 			"matches",
-			"",
 			"0.7.0",
 			"> 0.6.0",
 			false,
@@ -69,7 +71,6 @@ func TestNewContextRequiredVersion(t *testing.T) {
 
 		{
 			"prerelease doesn't match with inequality",
-			"",
 			"0.8.0",
 			"> 0.7.0-beta",
 			true,
@@ -77,25 +78,8 @@ func TestNewContextRequiredVersion(t *testing.T) {
 
 		{
 			"prerelease doesn't match with equality",
-			"",
 			"0.7.0",
 			"0.7.0-beta",
-			true,
-		},
-
-		{
-			"module matches",
-			"context-required-version-module",
-			"0.5.0",
-			"",
-			false,
-		},
-
-		{
-			"module doesn't match",
-			"context-required-version-module",
-			"0.4.0",
-			"",
 			true,
 		},
 	}
@@ -107,11 +91,7 @@ func TestNewContextRequiredVersion(t *testing.T) {
 			tfversion.SemVer = version.Must(version.NewVersion(tc.Version))
 			defer func() { tfversion.SemVer = old }()
 
-			name := "context-required-version"
-			if tc.Module != "" {
-				name = tc.Module
-			}
-			mod := testModule(t, name)
+			mod := testModule(t, "context-required-version")
 			if tc.Value != "" {
 				constraint, err := version.NewConstraint(tc.Value)
 				if err != nil {
@@ -126,7 +106,66 @@ func TestNewContextRequiredVersion(t *testing.T) {
 				t.Fatalf("unexpected NewContext errors: %s", diags.Err())
 			}
 
-			diags = c.Validate(mod)
+			diags = c.Validate(mod, nil)
+			if diags.HasErrors() != tc.Err {
+				t.Fatalf("err: %s", diags.Err())
+			}
+		})
+	}
+}
+
+func TestNewContextRequiredVersion_child(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "child" {
+  source = "./child"
+}
+`,
+		"child/main.tf": `
+terraform {}
+`,
+	})
+
+	cases := map[string]struct {
+		Version    string
+		Constraint string
+		Err        bool
+	}{
+		"matches": {
+			"0.5.0",
+			">= 0.5.0",
+			false,
+		},
+		"doesn't match": {
+			"0.4.0",
+			">= 0.5.0",
+			true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			// Reset the version for the tests
+			old := tfversion.SemVer
+			tfversion.SemVer = version.Must(version.NewVersion(tc.Version))
+			defer func() { tfversion.SemVer = old }()
+
+			if tc.Constraint != "" {
+				constraint, err := version.NewConstraint(tc.Constraint)
+				if err != nil {
+					t.Fatalf("can't parse %q as version constraint", tc.Constraint)
+				}
+				child := mod.Children["child"]
+				child.Module.CoreVersionConstraints = append(child.Module.CoreVersionConstraints, configs.VersionConstraint{
+					Required: constraint,
+				})
+			}
+			c, diags := NewContext(&ContextOpts{})
+			if diags.HasErrors() {
+				t.Fatalf("unexpected NewContext errors: %s", diags.Err())
+			}
+
+			diags = c.Validate(mod, nil)
 			if diags.HasErrors() != tc.Err {
 				t.Fatalf("err: %s", diags.Err())
 			}
@@ -136,7 +175,7 @@ func TestNewContextRequiredVersion(t *testing.T) {
 
 func TestContext_missingPlugins(t *testing.T) {
 	ctx, diags := NewContext(&ContextOpts{})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	configSrc := `
 terraform {
@@ -164,6 +203,29 @@ resource "implicit_thing" "b" {
 		"main.tf": configSrc,
 	})
 
+	state := states.BuildState(func(state *states.SyncState) {
+		state.SetResourceInstanceCurrent(addrs.AbsResourceInstance{
+			Resource: addrs.ResourceInstance{
+				Resource: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "implicit3_thing",
+					Name: "c",
+				},
+			},
+		},
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustParseJson(map[string]interface{}{}),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.Provider{
+					Type:      "implicit3",
+					Namespace: "hashicorp",
+					Hostname:  "registry.terraform.io",
+				},
+			})
+	})
+
 	// Validate and Plan are the two entry points where we explicitly verify
 	// the available plugins match what the configuration needs. For other
 	// operations we typically fail more deeply in Terraform Core, with
@@ -171,8 +233,8 @@ resource "implicit_thing" "b" {
 	// require doing some pretty weird things that aren't common enough to
 	// be worth the complexity to check for them.
 
-	validateDiags := ctx.Validate(cfg)
-	_, planDiags := ctx.Plan(cfg, nil, DefaultPlanOpts)
+	validateDiags := ctx.Validate(cfg, nil)
+	_, planDiags := ctx.Plan(cfg, state, DefaultPlanOpts)
 
 	tests := map[string]tfdiags.Diagnostics{
 		"validate": validateDiags,
@@ -209,12 +271,69 @@ resource "implicit_thing" "b" {
 					`This configuration requires provisioner plugin "nonexist", which isn't available. If you're intending to use an external provisioner plugin, you must install it manually into one of the plugin search directories before running Terraform.`,
 				),
 			)
-			assertDiagnosticsMatch(t, gotDiags, wantDiags)
+
+			if testName == "plan" {
+				// the plan also validates the state
+				wantDiags = wantDiags.Append(
+					tfdiags.Sourceless(
+						tfdiags.Error,
+						"Missing required provider",
+						"This state requires provider registry.terraform.io/hashicorp/implicit3, but that provider isn't available. You may be able to install it automatically by running:\n  terraform init",
+					),
+				)
+			}
+			tfdiags.AssertDiagnosticsMatch(t, gotDiags, wantDiags)
 		})
 	}
 }
 
-func testContext2(t *testing.T, opts *ContextOpts) *Context {
+func TestContext_preloadedProviderSchemas(t *testing.T) {
+	var provider *provider_testing.MockProvider
+	{
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(fmt.Errorf("mustn't really call GetProviderSchema"))
+		provider = &provider_testing.MockProvider{
+			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+				Diagnostics: diags,
+			},
+		}
+	}
+
+	tfCore, err := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewBuiltInProvider("blep"): func() (providers.Interface, error) {
+				return provider, nil
+			},
+		},
+		PreloadedProviderSchemas: map[addrs.Provider]providers.ProviderSchema{
+			addrs.NewBuiltInProvider("blep"): providers.ProviderSchema{},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := testModuleInline(t, map[string]string{
+		"main.tf": `
+			terraform {
+				required_providers {
+					blep = {
+						source = "terraform.io/builtin/blep"
+					}
+				}
+			}
+			provider "blep" {}
+		`,
+	})
+	_, diags := tfCore.Schemas(cfg, states.NewState())
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	if provider.GetProviderSchemaCalled {
+		t.Error("called GetProviderSchema even though a preloaded schema was provided")
+	}
+}
+
+func testContext2(t testing.TB, opts *ContextOpts) *Context {
 	t.Helper()
 
 	ctx, diags := NewContext(opts)
@@ -327,8 +446,8 @@ func testDiffFn(req providers.PlanResourceChangeRequest) (resp providers.PlanRes
 	return
 }
 
-func testProvider(prefix string) *MockProvider {
-	p := new(MockProvider)
+func testProvider(prefix string) *provider_testing.MockProvider {
+	p := new(provider_testing.MockProvider)
 	p.GetProviderSchemaResponse = testProviderSchema(prefix)
 
 	return p
@@ -390,7 +509,7 @@ func testCheckDeadlock(t *testing.T, f func()) {
 }
 
 func testProviderSchema(name string) *providers.GetProviderSchemaResponse {
-	return getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	return getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"region": {
@@ -715,7 +834,7 @@ func contextOptsForPlanViaFile(t *testing.T, configSnap *configload.Snapshot, pl
 // new plan and state types, and should not be used in new tests. Instead, use
 // a library like "cmp" to do a deep equality check and diff on the two
 // data structures.
-func legacyPlanComparisonString(state *states.State, changes *plans.Changes) string {
+func legacyPlanComparisonString(state *states.State, changes *plans.ChangesSrc) string {
 	return fmt.Sprintf(
 		"DIFF:\n\n%s\n\nSTATE:\n\n%s",
 		legacyDiffComparisonString(changes),
@@ -730,7 +849,7 @@ func legacyPlanComparisonString(state *states.State, changes *plans.Changes) str
 // This is here only for compatibility with existing tests that predate our
 // new plan types, and should not be used in new tests. Instead, use a library
 // like "cmp" to do a deep equality check and diff on the two data structures.
-func legacyDiffComparisonString(changes *plans.Changes) string {
+func legacyDiffComparisonString(changes *plans.ChangesSrc) string {
 	// The old string representation of a plan was grouped by module, but
 	// our new plan structure is not grouped in that way and so we'll need
 	// to preprocess it in order to produce that grouping.
@@ -895,80 +1014,56 @@ func legacyDiffComparisonString(changes *plans.Changes) string {
 	return buf.String()
 }
 
-// assertNoDiagnostics fails the test in progress (using t.Fatal) if the given
-// diagnostics is non-empty.
-func assertNoDiagnostics(t *testing.T, diags tfdiags.Diagnostics) {
-	t.Helper()
-	if len(diags) == 0 {
-		return
-	}
-	logDiagnostics(t, diags)
-	t.FailNow()
-}
-
-// assertNoDiagnostics fails the test in progress (using t.Fatal) if the given
-// diagnostics has any errors.
-func assertNoErrors(t *testing.T, diags tfdiags.Diagnostics) {
-	t.Helper()
-	if !diags.HasErrors() {
-		return
-	}
-	logDiagnostics(t, diags)
-	t.FailNow()
-}
-
-// assertDiagnosticsMatch fails the test in progress (using t.Fatal) if the
-// two sets of diagnostics don't match after being normalized using the
-// "ForRPC" processing step, which eliminates the specific type information
-// and HCL expression information of each diagnostic.
+// checkPlanCompleteAndApplyable reports testing errors if the plan is not
+// flagged as being both complete and applyable.
 //
-// assertDiagnosticsMatch sorts the two sets of diagnostics in the usual way
-// before comparing them, though diagnostics only have a partial order so that
-// will not totally normalize the ordering of all diagnostics sets.
-func assertDiagnosticsMatch(t *testing.T, got, want tfdiags.Diagnostics) {
-	got = got.ForRPC()
-	want = want.ForRPC()
-	got.Sort()
-	want.Sort()
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Fatalf("wrong diagnostics\n%s", diff)
+// It does not prevent the test from continuing if those flags are not
+// set, since downstream test assertions are likely to add extra context
+// as to what went wrong.
+func checkPlanCompleteAndApplyable(t *testing.T, plan *plans.Plan) {
+	t.Helper()
+	checkPlanComplete(t, plan)
+	checkPlanApplyable(t, plan)
+}
+
+// checkPlanComplete reports a testing error if the plan is not flagged
+// as being "complete".
+//
+// It does not prevent the test from continuing if that flag is not
+// set, since downstream test assertions are likely to add extra context
+// as to what went wrong.
+func checkPlanComplete(t *testing.T, plan *plans.Plan) {
+	t.Helper()
+	if !plan.Complete {
+		t.Error("plan is incomplete; should be complete")
 	}
 }
 
-// logDiagnostics is a test helper that logs the given diagnostics to to the
-// given testing.T using t.Log, in a way that is hopefully useful in debugging
-// a test. It does not generate any errors or fail the test. See
-// assertNoDiagnostics and assertNoErrors for more specific helpers that can
-// also fail the test.
-func logDiagnostics(t *testing.T, diags tfdiags.Diagnostics) {
+// checkPlanApplyable reports a testing error if the plan is not flagged
+// as being "applyable".
+//
+// It does not prevent the test from continuing if that flag is not
+// set, since downstream test assertions are likely to add extra context
+// as to what went wrong.
+func checkPlanApplyable(t *testing.T, plan *plans.Plan) {
 	t.Helper()
-	for _, diag := range diags {
-		desc := diag.Description()
-		rng := diag.Source()
+	if !plan.Applyable {
+		t.Error("plan is not applyable; should be applyable")
+	}
+}
 
-		var severity string
-		switch diag.Severity() {
-		case tfdiags.Error:
-			severity = "ERROR"
-		case tfdiags.Warning:
-			severity = "WARN"
-		default:
-			severity = "???" // should never happen
-		}
-
-		if subj := rng.Subject; subj != nil {
-			if desc.Detail == "" {
-				t.Logf("[%s@%s] %s", severity, subj.StartString(), desc.Summary)
-			} else {
-				t.Logf("[%s@%s] %s: %s", severity, subj.StartString(), desc.Summary, desc.Detail)
-			}
-		} else {
-			if desc.Detail == "" {
-				t.Logf("[%s] %s", severity, desc.Summary)
-			} else {
-				t.Logf("[%s] %s: %s", severity, desc.Summary, desc.Detail)
-			}
-		}
+// checkPlanErrored reports a testing error if the plan is not flagged
+// as "errored" and non-applyable.
+//
+// It does not prevent the test from continuing if those flags are not
+// set, since downstream test assertions are likely to add extra context
+// as to what went wrong.
+func checkPlanErrored(t *testing.T, plan *plans.Plan) {
+	t.Helper()
+	if !plan.Errored {
+		t.Error("plan is not marked as errored; should be")
+	} else if plan.Applyable {
+		t.Error("plan is applyable; plans with errors should never be applyable")
 	}
 }
 

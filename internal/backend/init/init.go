@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package init contains the list of backends that can be initialized and
 // basic helper functions for initializing those backends.
 package init
@@ -10,9 +13,9 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	backendRemote "github.com/hashicorp/terraform/internal/backend/remote"
-	backendArtifactory "github.com/hashicorp/terraform/internal/backend/remote-state/artifactory"
 	backendAzure "github.com/hashicorp/terraform/internal/backend/remote-state/azure"
 	backendConsul "github.com/hashicorp/terraform/internal/backend/remote-state/consul"
 	backendCos "github.com/hashicorp/terraform/internal/backend/remote-state/cos"
@@ -20,11 +23,10 @@ import (
 	backendHTTP "github.com/hashicorp/terraform/internal/backend/remote-state/http"
 	backendInmem "github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	backendKubernetes "github.com/hashicorp/terraform/internal/backend/remote-state/kubernetes"
-	backendManta "github.com/hashicorp/terraform/internal/backend/remote-state/manta"
+	backendOCI "github.com/hashicorp/terraform/internal/backend/remote-state/oci"
 	backendOSS "github.com/hashicorp/terraform/internal/backend/remote-state/oss"
 	backendPg "github.com/hashicorp/terraform/internal/backend/remote-state/pg"
 	backendS3 "github.com/hashicorp/terraform/internal/backend/remote-state/s3"
-	backendSwift "github.com/hashicorp/terraform/internal/backend/remote-state/swift"
 	backendCloud "github.com/hashicorp/terraform/internal/cloud"
 )
 
@@ -66,42 +68,20 @@ func Init(services *disco.Disco) {
 		"oss":        func() backend.Backend { return backendOSS.New() },
 		"pg":         func() backend.Backend { return backendPg.New() },
 		"s3":         func() backend.Backend { return backendS3.New() },
+		"oci":        func() backend.Backend { return backendOCI.New() },
 
-		// Terraform Cloud 'backend'
+		// HCP Terraform 'backend'
 		// This is an implementation detail only, used for the cloud package
 		"cloud": func() backend.Backend { return backendCloud.New(services) },
-
-		// FIXME: remove deprecated backends for v1.3
-		// Deprecated backends.
-		"azure": func() backend.Backend {
-			return deprecateBackend(
-				backendAzure.New(),
-				`Warning: "azure" name is deprecated, please use "azurerm"`,
-			)
-		},
-		"artifactory": func() backend.Backend {
-			return deprecateBackend(
-				backendArtifactory.New(),
-				`Warning: "artifactory" backend is deprecated, and will be removed in a future release."`,
-			)
-		},
-		"manta": func() backend.Backend {
-			return deprecateBackend(
-				backendManta.New(),
-				`Warning: "manta" backend is deprecated, and will be removed in a future release."`,
-			)
-		},
-		"swift": func() backend.Backend {
-			return deprecateBackend(
-				backendSwift.New(),
-				`Warning: "swift" backend is deprecated, and will be removed in a future release."`,
-			)
-		},
 	}
 
 	RemovedBackends = map[string]string{
-		"etcd":   `The "etcd" backend is not supported in Terraform v1.3 or later.`,
-		"etcdv3": `The "etcdv3" backend is not supported in Terraform v1.3 or later.`,
+		"artifactory": `The "artifactory" backend is not supported in Terraform v1.3 or later.`,
+		"azure":       `The "azure" backend name has been removed, please use "azurerm".`,
+		"etcd":        `The "etcd" backend is not supported in Terraform v1.3 or later.`,
+		"etcdv3":      `The "etcdv3" backend is not supported in Terraform v1.3 or later.`,
+		"manta":       `The "manta" backend is not supported in Terraform v1.3 or later.`,
+		"swift":       `The "swift" backend is not supported in Terraform v1.3 or later.`,
 	}
 }
 
@@ -150,15 +130,15 @@ func (b deprecatedBackendShim) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.
 // warning during validation.
 func deprecateBackend(b backend.Backend, message string) backend.Backend {
 	// Since a Backend wrapped by deprecatedBackendShim can no longer be
-	// asserted as an Enhanced or Local backend, disallow those types here
+	// asserted as an Operations Backend or Local backend, disallow those types here
 	// entirely.  If something other than a basic backend.Backend needs to be
 	// deprecated, we can add that functionality to schema.Backend or the
 	// backend itself.
-	if _, ok := b.(backend.Enhanced); ok {
-		panic("cannot use DeprecateBackend on an Enhanced Backend")
+	if _, ok := b.(backendrun.OperationsBackend); ok {
+		panic("cannot use DeprecateBackend on a Backend that supports operations")
 	}
 
-	if _, ok := b.(backend.Local); ok {
+	if _, ok := b.(backendrun.Local); ok {
 		panic("cannot use DeprecateBackend on a Local Backend")
 	}
 

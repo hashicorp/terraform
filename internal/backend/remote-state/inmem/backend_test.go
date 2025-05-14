@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package inmem
 
 import (
@@ -82,7 +85,7 @@ func TestRemoteState(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatal(err)
 	}
 

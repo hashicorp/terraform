@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package views
 
 import (
@@ -15,10 +18,11 @@ import (
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+// How long to wait between sending heartbeat/progress messages
 const defaultPeriodicUiTimer = 10 * time.Second
 const maxIdLen = 80
 
@@ -46,10 +50,15 @@ var _ terraform.Hook = (*UiHook)(nil)
 
 // uiResourceState tracks the state of a single resource
 type uiResourceState struct {
-	DispAddr       string
-	IDKey, IDValue string
-	Op             uiResourceOp
-	Start          time.Time
+	// Address represents resource address
+	Address string
+	// IDKey represents name of the identifyable attribute (e.g. "id" or "name")
+	IDKey string
+	// IDValue represents the ID
+	IDValue string
+
+	Op    uiResourceOp
+	Start time.Time
 
 	DoneCh chan struct{} // To be used for cancellation
 
@@ -66,12 +75,15 @@ const (
 	uiResourceDestroy
 	uiResourceRead
 	uiResourceNoOp
+	uiResourceOpen
+	uiResourceRenew
+	uiResourceClose
 )
 
-func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
-	dispAddr := addr.String()
-	if gen != states.CurrentGen {
-		dispAddr = fmt.Sprintf("%s (deposed object %s)", dispAddr, gen)
+func (h *UiHook) PreApply(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+	dispAddr := id.Addr.String()
+	if dk != addrs.NotDeposed {
+		dispAddr = fmt.Sprintf("%s (deposed object %s)", dispAddr, dk)
 	}
 
 	var operation string
@@ -118,15 +130,15 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 		))
 	}
 
-	key := addr.String()
+	key := id.Addr.String()
 	uiState := uiResourceState{
-		DispAddr: key,
-		IDKey:    idKey,
-		IDValue:  idValue,
-		Op:       op,
-		Start:    time.Now().Round(time.Second),
-		DoneCh:   make(chan struct{}),
-		done:     make(chan struct{}),
+		Address: key,
+		IDKey:   idKey,
+		IDValue: idValue,
+		Op:      op,
+		Start:   time.Now().Round(time.Second),
+		DoneCh:  make(chan struct{}),
+		done:    make(chan struct{}),
 	}
 
 	h.resourcesLock.Lock()
@@ -135,13 +147,13 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 
 	// Start goroutine that shows progress
 	if op != uiResourceNoOp {
-		go h.stillApplying(uiState)
+		go h.stillRunning(uiState)
 	}
 
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) stillApplying(state uiResourceState) {
+func (h *UiHook) stillRunning(state uiResourceState) {
 	defer close(state.done)
 	for {
 		select {
@@ -162,6 +174,12 @@ func (h *UiHook) stillApplying(state uiResourceState) {
 			msg = "Still creating..."
 		case uiResourceRead:
 			msg = "Still reading..."
+		case uiResourceOpen:
+			msg = "Still opening..."
+		case uiResourceRenew:
+			msg = "Still renewing..."
+		case uiResourceClose:
+			msg = "Still closing..."
 		case uiResourceUnknown:
 			return
 		}
@@ -171,26 +189,31 @@ func (h *UiHook) stillApplying(state uiResourceState) {
 			idSuffix = fmt.Sprintf("%s=%s, ", state.IDKey, truncateId(state.IDValue, maxIdLen))
 		}
 
+		elapsed := time.Now().Round(time.Second).Sub(state.Start)
+		minutes := int(elapsed.Seconds()) / 60
+		seconds := int(elapsed.Seconds()) % 60
+
 		h.println(fmt.Sprintf(
-			h.view.colorize.Color("[reset][bold]%s: %s [%s%s elapsed][reset]"),
-			state.DispAddr,
+			h.view.colorize.Color("[reset][bold]%s: %s [%s%02dm%02ds elapsed][reset]"),
+			state.Address,
 			msg,
 			idSuffix,
-			time.Now().Round(time.Second).Sub(state.Start),
+			minutes,
+			seconds,
 		))
 	}
 }
 
-func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, applyerr error) (terraform.HookAction, error) {
-	id := addr.String()
+func (h *UiHook) PostApply(id terraform.HookResourceIdentity, dk addrs.DeposedKey, newState cty.Value, applyerr error) (terraform.HookAction, error) {
+	addr := id.Addr.String()
 
 	h.resourcesLock.Lock()
-	state := h.resources[id]
+	state := h.resources[addr]
 	if state.DoneCh != nil {
 		close(state.DoneCh)
 	}
 
-	delete(h.resources, id)
+	delete(h.resources, addr)
 	h.resourcesLock.Unlock()
 
 	var stateIdSuffix string
@@ -220,9 +243,9 @@ func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation
 		return terraform.HookActionContinue, nil
 	}
 
-	addrStr := addr.String()
-	if depKey, ok := gen.(states.DeposedKey); ok {
-		addrStr = fmt.Sprintf("%s (deposed object %s)", addrStr, depKey)
+	addrStr := id.Addr.String()
+	if dk != addrs.NotDeposed {
+		addrStr = fmt.Sprintf("%s (deposed object %s)", addrStr, dk)
 	}
 
 	colorized := fmt.Sprintf(
@@ -234,20 +257,20 @@ func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) PreProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string) (terraform.HookAction, error) {
+func (h *UiHook) PreProvisionInstanceStep(id terraform.HookResourceIdentity, typeName string) (terraform.HookAction, error) {
 	h.println(fmt.Sprintf(
 		h.view.colorize.Color("[reset][bold]%s: Provisioning with '%s'...[reset]"),
-		addr, typeName,
+		id.Addr, typeName,
 	))
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName string, msg string) {
+func (h *UiHook) ProvisionOutput(id terraform.HookResourceIdentity, typeName string, msg string) {
 	var buf bytes.Buffer
 
 	prefix := fmt.Sprintf(
 		h.view.colorize.Color("[reset][bold]%s (%s):[reset] "),
-		addr, typeName,
+		id.Addr, typeName,
 	)
 	s := bufio.NewScanner(strings.NewReader(msg))
 	s.Split(scanLines)
@@ -261,15 +284,15 @@ func (h *UiHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName string
 	h.println(strings.TrimSpace(buf.String()))
 }
 
-func (h *UiHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value) (terraform.HookAction, error) {
+func (h *UiHook) PreRefresh(id terraform.HookResourceIdentity, dk addrs.DeposedKey, priorState cty.Value) (terraform.HookAction, error) {
 	var stateIdSuffix string
 	if k, v := format.ObjectValueID(priorState); k != "" && v != "" {
 		stateIdSuffix = fmt.Sprintf(" [%s=%s]", k, v)
 	}
 
-	addrStr := addr.String()
-	if depKey, ok := gen.(states.DeposedKey); ok {
-		addrStr = fmt.Sprintf("%s (deposed object %s)", addrStr, depKey)
+	addrStr := id.Addr.String()
+	if dk != addrs.NotDeposed {
+		addrStr = fmt.Sprintf("%s (deposed object %s)", addrStr, dk)
 	}
 
 	h.println(fmt.Sprintf(
@@ -278,18 +301,18 @@ func (h *UiHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generatio
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) PreImportState(addr addrs.AbsResourceInstance, importID string) (terraform.HookAction, error) {
+func (h *UiHook) PreImportState(id terraform.HookResourceIdentity, importID string) (terraform.HookAction, error) {
 	h.println(fmt.Sprintf(
 		h.view.colorize.Color("[reset][bold]%s: Importing from ID %q..."),
-		addr, importID,
+		id.Addr, importID,
 	))
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (terraform.HookAction, error) {
+func (h *UiHook) PostImportState(id terraform.HookResourceIdentity, imported []providers.ImportedResource) (terraform.HookAction, error) {
 	h.println(fmt.Sprintf(
 		h.view.colorize.Color("[reset][bold][green]%s: Import prepared!"),
-		addr,
+		id.Addr,
 	))
 	for _, s := range imported {
 		h.println(fmt.Sprintf(
@@ -297,6 +320,132 @@ func (h *UiHook) PostImportState(addr addrs.AbsResourceInstance, imported []prov
 			s.TypeName,
 		))
 	}
+
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PrePlanImport(id terraform.HookResourceIdentity, importTarget cty.Value) (terraform.HookAction, error) {
+	if importTarget.Type().IsObjectType() {
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: Preparing import... [identity=%s]"),
+			id.Addr, tfdiags.ObjectToString(importTarget),
+		))
+	} else {
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: Preparing import... [id=%s]"),
+			id.Addr, importTarget.AsString(),
+		))
+
+	}
+
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PreApplyImport(id terraform.HookResourceIdentity, importing plans.ImportingSrc) (terraform.HookAction, error) {
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]%s: Importing... [id=%s]"),
+		id.Addr, importing.ID,
+	))
+
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PostApplyImport(id terraform.HookResourceIdentity, importing plans.ImportingSrc) (terraform.HookAction, error) {
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]%s: Import complete [id=%s]"),
+		id.Addr, importing.ID,
+	))
+
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PreEphemeralOp(rId terraform.HookResourceIdentity, action plans.Action) (terraform.HookAction, error) {
+	key := rId.Addr.String()
+
+	var operation string
+	var op uiResourceOp
+	switch action {
+	case plans.Read:
+		// FIXME: this uses the same semantics as data sources, where "read"
+		// means deferred until apply, but because data sources don't implement
+		// hooks, and the meaning of Read is overloaded, we can't rely on any
+		// existing hooks
+		operation = "Configuration unknown, deferring..."
+	case plans.Open:
+		operation = "Opening..."
+		op = uiResourceOpen
+	case plans.Renew:
+		operation = "Renewing..."
+		op = uiResourceRenew
+	case plans.Close:
+		operation = "Closing..."
+		op = uiResourceClose
+	default:
+		// We don't expect any other actions in here, so anything else is a
+		// bug in the caller but we'll ignore it in order to be robust.
+		h.println(fmt.Sprintf("(Unknown action %s for %s)", action, key))
+		return terraform.HookActionContinue, nil
+	}
+
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]%s: %s"),
+		rId.Addr, operation,
+	))
+
+	if action == plans.Read {
+		return terraform.HookActionContinue, nil
+	}
+
+	uiState := uiResourceState{
+		Address: key,
+		Op:      op,
+		Start:   time.Now().Round(time.Second),
+		DoneCh:  make(chan struct{}),
+		done:    make(chan struct{}),
+	}
+
+	h.resourcesLock.Lock()
+	h.resources[key] = uiState
+	h.resourcesLock.Unlock()
+
+	go h.stillRunning(uiState)
+
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PostEphemeralOp(rId terraform.HookResourceIdentity, action plans.Action, opErr error) (terraform.HookAction, error) {
+	addr := rId.Addr.String()
+	h.resourcesLock.Lock()
+	state := h.resources[addr]
+	if state.DoneCh != nil {
+		close(state.DoneCh)
+	}
+	delete(h.resources, addr)
+	h.resourcesLock.Unlock()
+
+	elapsedTime := time.Now().Round(time.Second).Sub(state.Start)
+
+	var msg string
+	switch state.Op {
+	case uiResourceOpen:
+		msg = "Opening complete"
+	case uiResourceRenew:
+		msg = "Renewal complete"
+	case uiResourceClose:
+		msg = "Closing complete"
+	case uiResourceUnknown:
+		return terraform.HookActionContinue, nil
+	}
+
+	if opErr != nil {
+		// Errors are collected and printed in ApplyCommand, no need to duplicate
+		return terraform.HookActionContinue, nil
+	}
+
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]%s: %s after %s"),
+		rId.Addr, msg, elapsedTime,
+	))
 
 	return terraform.HookActionContinue, nil
 }

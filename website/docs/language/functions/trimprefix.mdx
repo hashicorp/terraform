@@ -7,7 +7,7 @@ description: |-
 
 # `trimprefix` Function
 
-`trimprefix` removes the specified prefix from the start of the given string. If the string does not start with the prefix, the string is returned unchanged.
+`trimprefix` removes the specified prefix from the start of the given string, but only once. If the string does not begin with the prefix, the original string is returned unchanged.
 
 ## Examples
 
@@ -21,9 +21,14 @@ world
 helloworld
 ```
 
+```
+> trimprefix("--hello", "-")
+-hello
+```
+
 ## Related Functions
 
-* [`trim`](/language/functions/trim) removes characters at the start and end of a string.
-* [`trimsuffix`](/language/functions/trimsuffix) removes a word from the end of a string.
-* [`trimspace`](/language/functions/trimspace) removes all types of whitespace from
+* [`trim`](/terraform/language/functions/trim) removes characters at the start and end of a string.
+* [`trimsuffix`](/terraform/language/functions/trimsuffix) removes a word from the end of a string.
+* [`trimspace`](/terraform/language/functions/trimspace) removes all types of whitespace from
   both the start and the end of a string.

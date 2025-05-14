@@ -1,11 +1,17 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package depsfile
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 
+	"maps"
+
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 )
 
 // Locks is the top-level type representing the information retained in a
@@ -66,11 +72,7 @@ func (l *Locks) Provider(addr addrs.Provider) *ProviderLock {
 func (l *Locks) AllProviders() map[addrs.Provider]*ProviderLock {
 	// We return a copy of our internal map so that future calls to
 	// SetProvider won't modify the map we're returning, or vice-versa.
-	ret := make(map[addrs.Provider]*ProviderLock, len(l.providers))
-	for k, v := range l.providers {
-		ret[k] = v
-	}
-	return ret
+	return maps.Clone(l.providers)
 }
 
 // SetProvider creates a new lock or replaces the existing lock for the given
@@ -88,7 +90,7 @@ func (l *Locks) AllProviders() map[addrs.Provider]*ProviderLock {
 // non-lockable provider address then this function will panic. Use
 // function ProviderIsLockable to determine whether a particular provider
 // should participate in the version locking mechanism.
-func (l *Locks) SetProvider(addr addrs.Provider, version getproviders.Version, constraints getproviders.VersionConstraints, hashes []getproviders.Hash) *ProviderLock {
+func (l *Locks) SetProvider(addr addrs.Provider, version providerreqs.Version, constraints providerreqs.VersionConstraints, hashes []providerreqs.Hash) *ProviderLock {
 	if !ProviderIsLockable(addr) {
 		panic(fmt.Sprintf("Locks.SetProvider with non-lockable provider %s", addr))
 	}
@@ -172,7 +174,7 @@ func (l *Locks) SetSameOverriddenProviders(other *Locks) {
 // non-lockable provider address then this function will panic. Use
 // function ProviderIsLockable to determine whether a particular provider
 // should participate in the version locking mechanism.
-func NewProviderLock(addr addrs.Provider, version getproviders.Version, constraints getproviders.VersionConstraints, hashes []getproviders.Hash) *ProviderLock {
+func NewProviderLock(addr addrs.Provider, version providerreqs.Version, constraints providerreqs.VersionConstraints, hashes []providerreqs.Hash) *ProviderLock {
 	if !ProviderIsLockable(addr) {
 		panic(fmt.Sprintf("Locks.NewProviderLock with non-lockable provider %s", addr))
 	}
@@ -193,7 +195,7 @@ func NewProviderLock(addr addrs.Provider, version getproviders.Version, constrai
 	// assumes that we already sorted the items, which means that any duplicates
 	// will be consecutive in the sequence.
 	dedupeHashes := hashes[:0]
-	prevHash := getproviders.NilHash
+	prevHash := providerreqs.NilHash
 	for _, hash := range hashes {
 		if hash != prevHash {
 			dedupeHashes = append(dedupeHashes, hash)
@@ -312,11 +314,7 @@ func (l *Locks) Empty() bool {
 func (l *Locks) DeepCopy() *Locks {
 	ret := NewLocks()
 	for addr, lock := range l.providers {
-		var hashes []getproviders.Hash
-		if len(lock.hashes) > 0 {
-			hashes = make([]getproviders.Hash, len(lock.hashes))
-			copy(hashes, lock.hashes)
-		}
+		hashes := slices.Clone(lock.hashes)
 		ret.SetProvider(addr, lock.version, lock.versionConstraints, hashes)
 	}
 	return ret
@@ -334,8 +332,8 @@ type ProviderLock struct {
 	// constraint but the previous selection still remains valid.
 	// "version" is therefore authoritative, while "versionConstraints" is
 	// just for a UI hint and not used to make any real decisions.
-	version            getproviders.Version
-	versionConstraints getproviders.VersionConstraints
+	version            providerreqs.Version
+	versionConstraints providerreqs.VersionConstraints
 
 	// hashes contains zero or more hashes of packages or package contents
 	// for the package associated with the selected version across all of
@@ -347,7 +345,7 @@ type ProviderLock struct {
 	// "h1:" for the first hash format version. Other hash versions following
 	// this scheme may come later. These versioned hash schemes are implemented
 	// in the getproviders package; for example, "h1:" is implemented in
-	// getproviders.HashV1 .
+	// providerreqs.HashV1 .
 	//
 	// There is also a legacy hash format which is just a lowercase-hex-encoded
 	// SHA256 hash of the official upstream .zip file for the selected version.
@@ -364,7 +362,7 @@ type ProviderLock struct {
 	// means we can only populate the hash for the current platform, and so
 	// it won't be possible to verify a subsequent installation of the same
 	// provider on a different platform.
-	hashes []getproviders.Hash
+	hashes []providerreqs.Hash
 }
 
 // Provider returns the address of the provider this lock applies to.
@@ -373,7 +371,7 @@ func (l *ProviderLock) Provider() addrs.Provider {
 }
 
 // Version returns the currently-selected version for the corresponding provider.
-func (l *ProviderLock) Version() getproviders.Version {
+func (l *ProviderLock) Version() providerreqs.Version {
 	return l.version
 }
 
@@ -385,7 +383,7 @@ func (l *ProviderLock) Version() getproviders.Version {
 // configuration have changed since a selection was made, and thus hint to the
 // user that they may need to run terraform init -upgrade to apply the new
 // constraints.
-func (l *ProviderLock) VersionConstraints() getproviders.VersionConstraints {
+func (l *ProviderLock) VersionConstraints() providerreqs.VersionConstraints {
 	return l.versionConstraints
 }
 
@@ -399,7 +397,7 @@ func (l *ProviderLock) VersionConstraints() getproviders.VersionConstraints {
 // of which must match in order for verification to be considered successful.
 //
 // Do not modify the backing array of the returned slice.
-func (l *ProviderLock) AllHashes() []getproviders.Hash {
+func (l *ProviderLock) AllHashes() []providerreqs.Hash {
 	return l.hashes
 }
 
@@ -434,6 +432,6 @@ func (l *ProviderLock) ContainsAll(target *ProviderLock) bool {
 //
 // At least one of the given hashes must match for a package to be considered
 // valud.
-func (l *ProviderLock) PreferredHashes() []getproviders.Hash {
-	return getproviders.PreferredHashes(l.hashes)
+func (l *ProviderLock) PreferredHashes() []providerreqs.Hash {
+	return providerreqs.PreferredHashes(l.hashes)
 }

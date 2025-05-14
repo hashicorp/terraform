@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 # This Dockerfile builds on golang:alpine by building Terraform from source
 # using the current working directory.
 #
@@ -10,7 +13,7 @@
 FROM docker.mirror.hashicorp.services/golang:alpine
 LABEL maintainer="HashiCorp Terraform Team <terraform@hashicorp.com>"
 
-RUN apk add --no-cache git bash openssh
+RUN apk add --no-cache git bash openssh ca-certificates
 
 ENV TF_DEV=true
 ENV TF_RELEASE=1

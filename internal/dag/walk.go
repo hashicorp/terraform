@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package dag
 
 import (
@@ -71,6 +74,15 @@ func (w *Walker) init() {
 	if w.edges == nil {
 		w.edges = make(Set)
 	}
+}
+
+// NewWalker creates a new walker with the given callback function.
+func NewWalker(cb WalkFunc, opts ...func(*Walker)) *Walker {
+	w := &Walker{Callback: cb}
+	for _, opt := range opts {
+		opt(w)
+	}
+	return w
 }
 
 type walkerVertex struct {

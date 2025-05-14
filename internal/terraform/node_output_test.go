@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -11,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -19,6 +23,7 @@ func TestNodeApplyableOutputExecute_knownValue(t *testing.T) {
 	ctx.StateState = states.NewState().SyncWrapper()
 	ctx.RefreshStateState = states.NewState().SyncWrapper()
 	ctx.ChecksState = checks.NewState(nil)
+	ctx.DeferralsState = deferring.NewDeferred(false)
 
 	config := &configs.Output{Name: "map-output"}
 	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
@@ -121,6 +126,7 @@ func TestNodeApplyableOutputExecute_sensitiveValueAndOutput(t *testing.T) {
 	ctx := new(MockEvalContext)
 	ctx.StateState = states.NewState().SyncWrapper()
 	ctx.ChecksState = checks.NewState(nil)
+	ctx.DeferralsState = deferring.NewDeferred(false)
 
 	config := &configs.Output{
 		Name:      "map-output",
@@ -150,7 +156,10 @@ func TestNodeDestroyableOutputExecute(t *testing.T) {
 	outputAddr := addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance)
 
 	state := states.NewState()
-	state.Module(addrs.RootModuleInstance).SetOutputValue("foo", cty.StringVal("bar"), false)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("bar"), false,
+	)
 	state.OutputValue(outputAddr)
 
 	ctx := &MockEvalContext{

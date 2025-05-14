@@ -1,0 +1,78 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+package terraform1;
+
+
+// Represents a selected or available version of a provider, from either a
+// dependency lock object (selected) or a provider cache object (available).
+//
+// This message type corresponds in meaning with a single "provider" block in a
+// dependency lock file, but not all messages of this type directly represent
+// such a physical block.
+message ProviderPackage {
+    // The address of the provider using the canonical form of the provider
+    // source address syntax.
+    string source_addr = 1;
+
+    // The version number of this provider package. Unset for (and only for)
+    // built-in providers; callers may use the set-ness of this field to
+    // distinguish installable vs. built-in providers without having to
+    // parse the source address syntax.
+    string version = 2;
+
+    // The hash strings that Terraform knows about for this provider package,
+    // using the same "scheme:hash" syntax used in Terraform's dependency
+    // lock file format.
+    //
+    // For a message representing a "selected" provider package this enumerates
+    // all of the checksums that were previously loaded from a dependency
+    // lock file or otherwise inserted into a dependency locks object, which
+    // are usually (but not necessarily) originally obtained from the
+    // provider's origin registry and then cached in the lock file.
+    //
+    // For a message representing an "available" provider package this
+    // describes only the actual package on disk, and so will typically
+    // include only the subset of the checksums from the corresponding
+    // "selected" package that are relevant to the current platform where
+    // Terraform Core is running.
+    repeated string hashes = 3;
+}
+
+// A source address in the same form as it would appear in a Terraform
+// configuration: a source string combined with an optional version constraint
+// string, where the latter is valid only for registry module addresses.
+//
+// This is not used for "final" source addresses that have already been reduced
+// to an exact version selection. For those we just directly encode the string
+// representation of the final address, including a version number if necessary.
+message SourceAddress {
+    string source = 1;
+    string versions = 2;
+}
+
+message Diagnostic {
+    enum Severity {
+        INVALID = 0;
+        ERROR = 1;
+        WARNING = 2;
+    }
+    Severity severity = 1;
+    string summary = 2;
+    string detail = 3;
+    SourceRange subject = 4;
+    SourceRange context = 5;
+}
+
+message SourceRange {
+    string source_addr = 1;
+    SourcePos start = 2;
+    SourcePos end = 3;
+}
+
+message SourcePos {
+    int64 byte = 1;
+    int64 line = 2;
+    int64 column = 3;
+}

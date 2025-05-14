@@ -1,8 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package cloud
 
 import (
+	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
-	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 // Most of the logic for migrating into and out of "cloud mode" actually lives
@@ -14,7 +17,7 @@ import (
 // the context of Cloud integration mode.
 type ConfigChangeMode rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type ConfigChangeMode
+//go:generate go tool golang.org/x/tools/cmd/stringer -type ConfigChangeMode
 
 const (
 	// ConfigMigrationIn represents when the configuration calls for using
@@ -45,7 +48,7 @@ const (
 // the way we currently model working directory settings and config, so its
 // signature probably won't survive any non-trivial refactoring of how
 // the CLI layer thinks about backends/state storage.
-func DetectConfigChangeType(wdState *legacy.BackendState, config *configs.Backend, haveLocalStates bool) ConfigChangeMode {
+func DetectConfigChangeType(wdState *workdir.BackendState, config *configs.Backend, haveLocalStates bool) ConfigChangeMode {
 	// Although externally the cloud integration isn't really a "backend",
 	// internally we treat it a bit like one just to preserve all of our
 	// existing interfaces that assume backends. "cloud" is the placeholder

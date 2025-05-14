@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package remoteexec
 
 import (
@@ -11,10 +14,10 @@ import (
 
 	"strings"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/communicator"
 	"github.com/hashicorp/terraform/internal/communicator/remote"
 	"github.com/hashicorp/terraform/internal/provisioners"
-	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -253,6 +256,13 @@ func TestProvisionerTimeout(t *testing.T) {
 	<-done
 	if runErr != nil {
 		t.Fatal(err)
+	}
+
+	// make sure provisioner disconnected after the commands were run
+	select {
+	case <-disconnected:
+	case <-time.After(2 * time.Second):
+		t.Fatal("communicator did not disconnect")
 	}
 }
 

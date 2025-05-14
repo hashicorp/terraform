@@ -45,6 +45,31 @@ The other subsystems described below should always be set up to match
 themselves with `unicode.Version` and generate an error if they cannot, but
 that isn't true of all of them.
 
+## Unicode Identifier Rules in HCL
+
+_Identifier and Pattern Syntax_ (TF31) is a Unicode standards annex which
+describe a set of rules for tokenizing "identifiers", such as variable names
+in a programming language.
+
+HCL uses a superset of that specification for its own identifier tokenization
+rules, and so it includes some code derived from the TF31 data tables that
+describe which characters belong to the "ID_Start" and "ID_Continue" classes.
+
+Since Terraform is the primary user of HCL, it's typically Terraform's adoption
+of a new Unicode version which drives HCL to adopt one. To update the Unicode
+tables to a new version:
+* Edit `hclsyntax/generate.go`'s line which runs `unicode2ragel.rb` to specify
+  the URL of the `DerivedCoreProperties.txt` data file for the intended Unicode
+  version.
+* Run `go generate ./hclsyntax` to run the generation code to update both
+  `unicode_derived.rl` and, indirectly, `scan_tokens.go`. (You will need both
+  a Ruby interpreter and the Ragel state machine compiler on your system in
+  order to complete this step.)
+* Run all the tests to check for regressions: `go test ./...`
+* If all looks good, commit all of the changes and open a PR to HCL.
+* Once that PR is merged and released, update Terraform to use the new version
+  of HCL.
+
 ## Unicode Text Segmentation
 
 _Text Segmentation_ (TR29) is a Unicode standards annex which describes

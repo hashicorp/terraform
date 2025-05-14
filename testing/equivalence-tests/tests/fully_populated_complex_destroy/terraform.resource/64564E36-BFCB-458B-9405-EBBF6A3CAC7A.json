@@ -1,0 +1,445 @@
+{
+  "values": {
+    "bool": {
+      "boolean": true
+    },
+    "float": {
+      "number": "9.87654321e+08"
+    },
+    "id": {
+      "string": "64564E36-BFCB-458B-9405-EBBF6A3CAC7A"
+    },
+    "integer": {
+      "number": "9.87654321e+08"
+    },
+    "list": {
+      "list": [
+        {
+          "object": {
+            "string": {
+              "string": "this is my first entry in the list, and doesn't contain anything interesting"
+            }
+          }
+        },
+        {
+          "object": {
+            "string": {
+              "string": "this is my second entry in the list\nI am a bit more interesting\nand contain multiple lines"
+            }
+          }
+        },
+        {
+          "object": {
+            "list": {
+              "list": [
+                {
+                  "object": {
+                    "number": {
+                      "number": "0"
+                    }
+                  }
+                },
+                {
+                  "object": {
+                    "number": {
+                      "number": "1"
+                    }
+                  }
+                },
+                {
+                  "object": {
+                    "number": {
+                      "number": "2"
+                    }
+                  }
+                }
+              ]
+            },
+            "string": {
+              "string": "this is my third entry, and I actually have a nested list"
+            }
+          }
+        },
+        {
+          "object": {
+            "set": {
+              "set": [
+                {
+                  "object": {
+                    "number": {
+                      "number": "0"
+                    }
+                  }
+                },
+                {
+                  "object": {
+                    "number": {
+                      "number": "1"
+                    }
+                  }
+                }
+              ]
+            },
+            "string": {
+              "string": "this is my fourth entry, and I actually have a nested set"
+            }
+          }
+        }
+      ]
+    },
+    "list_block": {
+      "list": [
+        {
+          "object": {
+            "list_block": {
+              "list": []
+            },
+            "set_block": {
+              "set": []
+            },
+            "string": {
+              "string": "{\"index\":0}"
+            }
+          }
+        },
+        {
+          "object": {
+            "list": {
+              "list": [
+                {
+                  "object": {
+                    "number": {
+                      "number": "0"
+                    }
+                  }
+                },
+                {
+                  "object": {
+                    "number": {
+                      "number": "1"
+                    }
+                  }
+                },
+                {
+                  "object": {
+                    "number": {
+                      "number": "2"
+                    }
+                  }
+                }
+              ]
+            },
+            "list_block": {
+              "list": []
+            },
+            "set_block": {
+              "set": []
+            },
+            "string": {
+              "string": "{\"index\":1}"
+            }
+          }
+        },
+        {
+          "object": {
+            "list_block": {
+              "list": []
+            },
+            "set": {
+              "set": [
+                {
+                  "object": {
+                    "number": {
+                      "number": "0"
+                    }
+                  }
+                },
+                {
+                  "object": {
+                    "number": {
+                      "number": "1"
+                    }
+                  }
+                }
+              ]
+            },
+            "set_block": {
+              "set": []
+            },
+            "string": {
+              "string": "{\"index\":2}"
+            }
+          }
+        }
+      ]
+    },
+    "map": {
+      "map": {
+        "key_four": {
+          "object": {
+            "set": {
+              "set": [
+                {
+                  "object": {
+                    "number": {
+                      "number": "0"
+                    }
+                  }
+                },
+                {
+                  "object": {
+                    "number": {
+                      "number": "1"
+                    }
+                  }
+                }
+              ]
+            },
+            "string": {
+              "string": "this is my fourth entry, and I actually have a nested set"
+            }
+          }
+        },
+        "key_one": {
+          "object": {
+            "string": {
+              "string": "this is my first entry in the map, and doesn't contain anything interesting"
+            }
+          }
+        },
+        "key_three": {
+          "object": {
+            "list": {
+              "list": [
+                {
+                  "object": {
+                    "number": {
+                      "number": "0"
+                    }
+                  }
+                },
+                {
+                  "object": {
+                    "number": {
+                      "number": "1"
+                    }
+                  }
+                },
+                {
+                  "object": {
+                    "number": {
+                      "number": "2"
+                    }
+                  }
+                }
+              ]
+            },
+            "string": {
+              "string": "this is my third entry, and I actually have a nested list"
+            }
+          }
+        },
+        "key_two": {
+          "object": {
+            "string": {
+              "string": "this is my second entry in the map\nI am a bit more interesting\nand contain multiple lines"
+            }
+          }
+        }
+      }
+    },
+    "number": {
+      "number": "1.23456789e+08"
+    },
+    "object": {
+      "object": {
+        "bool": {
+          "boolean": false
+        },
+        "number": {
+          "number": "0"
+        },
+        "object": {
+          "object": {
+            "bool": {
+              "boolean": true
+            },
+            "number": {
+              "number": "1"
+            },
+            "string": {
+              "string": "i am a nested nested object"
+            }
+          }
+        },
+        "string": {
+          "string": "i am a nested object"
+        }
+      }
+    },
+    "set": {
+      "set": [
+        {
+          "object": {
+            "list": {
+              "list": [
+                {
+                  "object": {
+                    "number": {
+                      "number": "0"
+                    }
+                  }
+                },
+                {
+                  "object": {
+                    "number": {
+                      "number": "1"
+                    }
+                  }
+                },
+                {
+                  "object": {
+                    "number": {
+                      "number": "2"
+                    }
+                  }
+                }
+              ]
+            },
+            "string": {
+              "string": "this is my third entry, and I actually have a nested list"
+            }
+          }
+        },
+        {
+          "object": {
+            "set": {
+              "set": [
+                {
+                  "object": {
+                    "number": {
+                      "number": "0"
+                    }
+                  }
+                },
+                {
+                  "object": {
+                    "number": {
+                      "number": "1"
+                    }
+                  }
+                }
+              ]
+            },
+            "string": {
+              "string": "this is my fourth entry, and I actually have a nested set"
+            }
+          }
+        },
+        {
+          "object": {
+            "string": {
+              "string": "this is my first entry in the set, and doesn't contain anything interesting"
+            }
+          }
+        },
+        {
+          "object": {
+            "string": {
+              "string": "this is my second entry in the set\nI am a bit more interesting\nand contain multiple lines"
+            }
+          }
+        }
+      ]
+    },
+    "set_block": {
+      "set": [
+        {
+          "object": {
+            "list": {
+              "list": [
+                {
+                  "object": {
+                    "number": {
+                      "number": "0"
+                    }
+                  }
+                },
+                {
+                  "object": {
+                    "number": {
+                      "number": "1"
+                    }
+                  }
+                },
+                {
+                  "object": {
+                    "number": {
+                      "number": "2"
+                    }
+                  }
+                }
+              ]
+            },
+            "list_block": {
+              "list": []
+            },
+            "set_block": {
+              "set": []
+            },
+            "string": {
+              "string": "{\"index\":1}"
+            }
+          }
+        },
+        {
+          "object": {
+            "list_block": {
+              "list": []
+            },
+            "set": {
+              "set": [
+                {
+                  "object": {
+                    "number": {
+                      "number": "0"
+                    }
+                  }
+                },
+                {
+                  "object": {
+                    "number": {
+                      "number": "1"
+                    }
+                  }
+                }
+              ]
+            },
+            "set_block": {
+              "set": []
+            },
+            "string": {
+              "string": "{\"index\":2}"
+            }
+          }
+        },
+        {
+          "object": {
+            "list_block": {
+              "list": []
+            },
+            "set_block": {
+              "set": []
+            },
+            "string": {
+              "string": "{\"index\":0}"
+            }
+          }
+        }
+      ]
+    },
+    "string": {
+      "string": "a not very long or complex string"
+    }
+  }
+}

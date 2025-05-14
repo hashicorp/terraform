@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configschema
 
 import (
@@ -31,6 +34,18 @@ func TestBlockValueMarks(t *testing.T) {
 					},
 					Nesting: NestingList,
 				},
+			},
+			"nested_sensitive": {
+				NestedType: &Object{
+					Attributes: map[string]*Attribute{
+						"boop": {
+							Type: cty.String,
+						},
+					},
+					Nesting: NestingList,
+				},
+				Sensitive: true,
+				Optional:  true,
 			},
 		},
 
@@ -73,6 +88,9 @@ func TestBlockValueMarks(t *testing.T) {
 					"boop": cty.String,
 					"honk": cty.String,
 				}))),
+				"nested_sensitive": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"boop": cty.String,
+				}))),
 				"list": cty.UnknownVal(schema.BlockTypes["list"].ImpliedType()),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
@@ -82,6 +100,9 @@ func TestBlockValueMarks(t *testing.T) {
 					"boop": cty.String,
 					"honk": cty.String,
 				}))),
+				"nested_sensitive": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"boop": cty.String,
+				}))).Mark(marks.Sensitive),
 				"list": cty.UnknownVal(schema.BlockTypes["list"].ImpliedType()),
 			}),
 		},
@@ -90,6 +111,10 @@ func TestBlockValueMarks(t *testing.T) {
 				"sensitive":   cty.NullVal(cty.String),
 				"unsensitive": cty.UnknownVal(cty.String),
 				"nested": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"boop": cty.String,
+					"honk": cty.String,
+				}))),
+				"nested_sensitive": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
 					"boop": cty.String,
 					"honk": cty.String,
 				}))),
@@ -111,6 +136,9 @@ func TestBlockValueMarks(t *testing.T) {
 					"boop": cty.String,
 					"honk": cty.String,
 				}))),
+				"nested_sensitive": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"boop": cty.String,
+				}))).Mark(marks.Sensitive),
 				"list": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"sensitive":   cty.UnknownVal(cty.String).Mark(marks.Sensitive),
@@ -141,6 +169,9 @@ func TestBlockValueMarks(t *testing.T) {
 						"honk": cty.UnknownVal(cty.String),
 					}),
 				}),
+				"nested_sensitive": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"boop": cty.String,
+				}))),
 				"list": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
 					"sensitive":   cty.String,
 					"unsensitive": cty.String,
@@ -163,6 +194,9 @@ func TestBlockValueMarks(t *testing.T) {
 						"honk": cty.UnknownVal(cty.String).Mark(marks.Sensitive),
 					}),
 				}),
+				"nested_sensitive": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"boop": cty.String,
+				}))).Mark(marks.Sensitive),
 				"list": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
 					"sensitive":   cty.String,
 					"unsensitive": cty.String,
@@ -173,9 +207,19 @@ func TestBlockValueMarks(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got := tc.given.MarkWithPaths(schema.ValueMarks(tc.given, nil))
-			if !got.RawEquals(tc.expect) {
-				t.Fatalf("\nexpected: %#v\ngot:      %#v\n", tc.expect, got)
+			given, err := schema.CoerceValue(tc.given)
+			if err != nil {
+				t.Fatal(err)
+			}
+			expect, err := schema.CoerceValue(tc.expect)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			sensitivePaths := schema.SensitivePaths(given, nil)
+			got := marks.MarkPaths(given, marks.Sensitive, sensitivePaths)
+			if !expect.RawEquals(got) {
+				t.Fatalf("\nexpected: %#v\ngot:      %#v\n", expect, got)
 			}
 		})
 	}

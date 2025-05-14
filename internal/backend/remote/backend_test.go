@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package remote
 
 import (
@@ -9,18 +12,19 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/tfdiags"
-	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func TestRemote(t *testing.T) {
-	var _ backend.Enhanced = New(nil)
-	var _ backend.CLI = New(nil)
+	var _ backendrun.OperationsBackend = New(nil)
+	var _ backendrun.CLI = New(nil)
 }
 
 func TestRemote_backendDefault(t *testing.T) {
@@ -262,11 +266,11 @@ func TestRemote_addAndRemoveWorkspacesDefault(t *testing.T) {
 		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
 	}
 
-	if err := b.DeleteWorkspace(backend.DefaultStateName); err != nil {
+	if err := b.DeleteWorkspace(backend.DefaultStateName, true); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if err := b.DeleteWorkspace("prod"); err != backend.ErrWorkspacesNotSupported {
+	if err := b.DeleteWorkspace("prod", true); err != backend.ErrWorkspacesNotSupported {
 		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
 	}
 }
@@ -319,11 +323,11 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 		t.Fatalf("expected %#+v, got %#+v", expectedWorkspaces, states)
 	}
 
-	if err := b.DeleteWorkspace(backend.DefaultStateName); err != backend.ErrDefaultWorkspaceNotSupported {
+	if err := b.DeleteWorkspace(backend.DefaultStateName, true); err != backend.ErrDefaultWorkspaceNotSupported {
 		t.Fatalf("expected error %v, got %v", backend.ErrDefaultWorkspaceNotSupported, err)
 	}
 
-	if err := b.DeleteWorkspace(expectedA); err != nil {
+	if err := b.DeleteWorkspace(expectedA, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -337,7 +341,7 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 		t.Fatalf("expected %#+v got %#+v", expectedWorkspaces, states)
 	}
 
-	if err := b.DeleteWorkspace(expectedB); err != nil {
+	if err := b.DeleteWorkspace(expectedB, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -662,8 +666,103 @@ func TestRemote_VerifyWorkspaceTerraformVersion_workspaceErrors(t *testing.T) {
 	if len(diags) != 1 {
 		t.Fatal("expected diag, but none returned")
 	}
-	if got := diags.Err().Error(); !strings.Contains(got, "Error looking up workspace: Invalid Terraform version") {
+	if got := diags.Err().Error(); !strings.Contains(got, "The remote workspace specified an invalid Terraform version or constraint") {
 		t.Fatalf("unexpected error: %s", got)
+	}
+}
+
+func TestRemote_VerifyWorkspaceTerraformVersion_versionConstraint(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	// Define our test case struct
+	type testCase struct {
+		terraformVersion  string
+		versionConstraint string
+		shouldSatisfy     bool
+		prerelease        string
+	}
+
+	// Create a slice of test cases
+	testCases := []testCase{
+		{
+			terraformVersion:  "1.8.0",
+			versionConstraint: "> 1.9.0",
+			shouldSatisfy:     false,
+			prerelease:        "",
+		},
+		{
+			terraformVersion:  "1.10.1",
+			versionConstraint: "~> 1.10.0",
+			shouldSatisfy:     true,
+			prerelease:        "",
+		},
+		{
+			terraformVersion:  "1.10.0",
+			versionConstraint: "> 1.9.0",
+			shouldSatisfy:     true,
+			prerelease:        "",
+		},
+		{
+			terraformVersion:  "1.8.0",
+			versionConstraint: "~> 1.9.0",
+			shouldSatisfy:     false,
+			prerelease:        "",
+		},
+		{
+			terraformVersion:  "1.10.0",
+			versionConstraint: "> v1.9.4",
+			shouldSatisfy:     false,
+			prerelease:        "dev",
+		},
+		{
+			terraformVersion:  "1.10.0",
+			versionConstraint: "> 1.10.0",
+			shouldSatisfy:     false,
+			prerelease:        "dev",
+		},
+	}
+
+	// Save and restore the actual version.
+	p := tfversion.Prerelease
+	v := tfversion.Version
+	defer func() {
+		tfversion.Prerelease = p
+		tfversion.Version = v
+	}()
+
+	// Now we loop through each test case, utilizing the values of each case
+	// to setup our test and assert accordingly.
+	for _, tc := range testCases {
+
+		tfversion.Prerelease = tc.prerelease
+		tfversion.Version = tc.terraformVersion
+
+		// Update the mock remote workspace Terraform version to be a version constraint string
+		if _, err := b.client.Workspaces.Update(
+			context.Background(),
+			b.organization,
+			b.workspace,
+			tfe.WorkspaceUpdateOptions{
+				TerraformVersion: tfe.String(tc.versionConstraint),
+			},
+		); err != nil {
+			t.Fatalf("error: %v", err)
+		}
+		diags := b.VerifyWorkspaceTerraformVersion(backend.DefaultStateName)
+
+		if tc.shouldSatisfy {
+			if len(diags) > 0 {
+				t.Fatalf("expected no diagnostics, but got: %v", diags.Err().Error())
+			}
+		} else {
+			if len(diags) == 0 {
+				t.Fatal("expected diagnostic, but none returned")
+			}
+			if got := diags.Err().Error(); !strings.Contains(got, "Terraform version mismatch") {
+				t.Fatalf("unexpected error: %s", got)
+			}
+		}
 	}
 }
 
@@ -720,5 +819,31 @@ func TestRemote_VerifyWorkspaceTerraformVersion_ignoreFlagSet(t *testing.T) {
 	wantDetail := "The local Terraform version (0.14.0) does not match the configured version for remote workspace hashicorp/prod (0.13.5)."
 	if got := diags[0].Description().Detail; got != wantDetail {
 		t.Errorf("wrong summary: got %s, want %s", got, wantDetail)
+	}
+}
+
+func TestRemote_ServiceDiscoveryAliases(t *testing.T) {
+	s := testServer(t)
+	b := New(testDisco(s))
+
+	diag := b.Configure(cty.ObjectVal(map[string]cty.Value{
+		"hostname":     cty.NullVal(cty.String), // Forces aliasing to test server
+		"organization": cty.StringVal("hashicorp"),
+		"token":        cty.NullVal(cty.String),
+		"workspaces": cty.ObjectVal(map[string]cty.Value{
+			"name":   cty.StringVal("prod"),
+			"prefix": cty.NullVal(cty.String),
+		}),
+	}))
+	if diag.HasErrors() {
+		t.Fatalf("expected no diagnostic errors, got %s", diag.Err())
+	}
+
+	aliases, err := b.ServiceDiscoveryAliases()
+	if err != nil {
+		t.Fatalf("expected no errors, got %s", err)
+	}
+	if len(aliases) != 1 {
+		t.Fatalf("expected 1 alias but got %d", len(aliases))
 	}
 }

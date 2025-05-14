@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package funcs
 
 import (
@@ -144,7 +147,7 @@ func TestFileBase64Sha256(t *testing.T) {
 		},
 	}
 
-	fileSHA256 := MakeFileBase64Sha256Func(".")
+	fileSHA256 := MakeFileBase64Sha256Func(".", noopWrapper)
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("filebase64sha256(%#v)", test.Path), func(t *testing.T) {
@@ -225,7 +228,7 @@ func TestFileBase64Sha512(t *testing.T) {
 		},
 	}
 
-	fileSHA512 := MakeFileBase64Sha512Func(".")
+	fileSHA512 := MakeFileBase64Sha512Func(".", noopWrapper)
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("filebase64sha512(%#v)", test.Path), func(t *testing.T) {
@@ -343,7 +346,7 @@ func TestFileMD5(t *testing.T) {
 		},
 	}
 
-	fileMD5 := MakeFileMd5Func(".")
+	fileMD5 := MakeFileMd5Func(".", noopWrapper)
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("filemd5(%#v)", test.Path), func(t *testing.T) {
@@ -500,7 +503,7 @@ func TestFileSHA1(t *testing.T) {
 		},
 	}
 
-	fileSHA1 := MakeFileSha1Func(".")
+	fileSHA1 := MakeFileSha1Func(".", noopWrapper)
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("filesha1(%#v)", test.Path), func(t *testing.T) {
@@ -578,7 +581,7 @@ func TestFileSHA256(t *testing.T) {
 		},
 	}
 
-	fileSHA256 := MakeFileSha256Func(".")
+	fileSHA256 := MakeFileSha256Func(".", noopWrapper)
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("filesha256(%#v)", test.Path), func(t *testing.T) {
@@ -656,7 +659,7 @@ func TestFileSHA512(t *testing.T) {
 		},
 	}
 
-	fileSHA512 := MakeFileSha512Func(".")
+	fileSHA512 := MakeFileSha512Func(".", noopWrapper)
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("filesha512(%#v)", test.Path), func(t *testing.T) {

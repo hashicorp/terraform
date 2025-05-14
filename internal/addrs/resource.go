@@ -1,8 +1,14 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package addrs
 
 import (
+	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"strings"
+	"time"
 )
 
 // Resource is an address for a resource block within configuration, which
@@ -21,6 +27,8 @@ func (r Resource) String() string {
 		return fmt.Sprintf("%s.%s", r.Type, r.Name)
 	case DataResourceMode:
 		return fmt.Sprintf("data.%s.%s", r.Type, r.Name)
+	case EphemeralResourceMode:
+		return fmt.Sprintf("ephemeral.%s.%s", r.Type, r.Name)
 	default:
 		// Should never happen, but we'll return a string here rather than
 		// crashing just in case it does.
@@ -30,6 +38,22 @@ func (r Resource) String() string {
 
 func (r Resource) Equal(o Resource) bool {
 	return r.Mode == o.Mode && r.Name == o.Name && r.Type == o.Type
+}
+
+func (r Resource) Less(o Resource) bool {
+	switch {
+	case r.Mode != o.Mode:
+		return r.Mode == DataResourceMode
+
+	case r.Type != o.Type:
+		return r.Type < o.Type
+
+	case r.Name != o.Name:
+		return r.Name < o.Name
+
+	default:
+		return false
+	}
 }
 
 func (r Resource) UniqueKey() UniqueKey {
@@ -98,6 +122,18 @@ func (r ResourceInstance) String() string {
 
 func (r ResourceInstance) Equal(o ResourceInstance) bool {
 	return r.Key == o.Key && r.Resource.Equal(o.Resource)
+}
+
+func (r ResourceInstance) Less(o ResourceInstance) bool {
+	if !r.Resource.Equal(o.Resource) {
+		return r.Resource.Less(o.Resource)
+	}
+
+	if r.Key != o.Key {
+		return InstanceKeyLess(r.Key, o.Key)
+	}
+
+	return false
 }
 
 func (r ResourceInstance) UniqueKey() UniqueKey {
@@ -195,6 +231,18 @@ func (r AbsResource) Equal(o AbsResource) bool {
 	return r.Module.Equal(o.Module) && r.Resource.Equal(o.Resource)
 }
 
+func (r AbsResource) Less(o AbsResource) bool {
+	if !r.Module.Equal(o.Module) {
+		return r.Module.Less(o.Module)
+	}
+
+	if !r.Resource.Equal(o.Resource) {
+		return r.Resource.Less(o.Resource)
+	}
+
+	return false
+}
+
 func (r AbsResource) absMoveableSigil() {
 	// AbsResource is moveable
 }
@@ -249,6 +297,29 @@ func (r AbsResourceInstance) ConfigResource() ConfigResource {
 	}
 }
 
+// CurrentObject returns the address of the resource instance's "current"
+// object, which is the one used for expression evaluation etc.
+func (r AbsResourceInstance) CurrentObject() AbsResourceInstanceObject {
+	return AbsResourceInstanceObject{
+		ResourceInstance: r,
+		DeposedKey:       NotDeposed,
+	}
+}
+
+// DeposedObject returns the address of a "deposed" object for the receiving
+// resource instance, which appears only if a create-before-destroy replacement
+// succeeds the create step but fails the destroy step, making the original
+// object live on as a desposed object.
+//
+// If the given [DeposedKey] is [NotDeposed] then this is equivalent to
+// [AbsResourceInstance.CurrentObject].
+func (r AbsResourceInstance) DeposedObject(key DeposedKey) AbsResourceInstanceObject {
+	return AbsResourceInstanceObject{
+		ResourceInstance: r,
+		DeposedKey:       key,
+	}
+}
+
 // TargetContains implements Targetable by returning true if the given other
 // address is equal to the receiver.
 func (r AbsResourceInstance) TargetContains(other Targetable) bool {
@@ -289,8 +360,8 @@ func (r AbsResourceInstance) AffectedAbsResource() AbsResource {
 	}
 }
 
-func (r AbsResourceInstance) Check(t CheckType, i int) Check {
-	return Check{
+func (r AbsResourceInstance) CheckRule(t CheckRuleType, i int) CheckRule {
+	return CheckRule{
 		Container: r,
 		Type:      t,
 		Index:     i,
@@ -308,30 +379,15 @@ func (r AbsResourceInstance) Equal(o AbsResourceInstance) bool {
 // Less returns true if the receiver should sort before the given other value
 // in a sorted list of addresses.
 func (r AbsResourceInstance) Less(o AbsResourceInstance) bool {
-	switch {
-
-	case len(r.Module) != len(o.Module):
-		return len(r.Module) < len(o.Module)
-
-	case r.Module.String() != o.Module.String():
+	if !r.Module.Equal(o.Module) {
 		return r.Module.Less(o.Module)
-
-	case r.Resource.Resource.Mode != o.Resource.Resource.Mode:
-		return r.Resource.Resource.Mode == DataResourceMode
-
-	case r.Resource.Resource.Type != o.Resource.Resource.Type:
-		return r.Resource.Resource.Type < o.Resource.Resource.Type
-
-	case r.Resource.Resource.Name != o.Resource.Resource.Name:
-		return r.Resource.Resource.Name < o.Resource.Resource.Name
-
-	case r.Resource.Key != o.Resource.Key:
-		return InstanceKeyLess(r.Resource.Key, o.Resource.Key)
-
-	default:
-		return false
-
 	}
+
+	if !r.Resource.Equal(o.Resource) {
+		return r.Resource.Less(o.Resource)
+	}
+
+	return false
 }
 
 // AbsResourceInstance is a Checkable
@@ -437,7 +493,7 @@ func (k configResourceKey) uniqueKeySigil() {}
 // resource lifecycle has a slightly different address format.
 type ResourceMode rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type ResourceMode
+//go:generate go tool golang.org/x/tools/cmd/stringer -type ResourceMode
 
 const (
 	// InvalidResourceMode is the zero value of ResourceMode and is not
@@ -451,4 +507,127 @@ const (
 	// DataResourceMode indicates a data resource, as defined by
 	// "data" blocks in configuration.
 	DataResourceMode ResourceMode = 'D'
+
+	// EphemeralResourceMode indicates an ephemeral resource, as defined by
+	// "ephemeral" blocks in configuration.
+	EphemeralResourceMode ResourceMode = 'E'
 )
+
+// AbsResourceInstanceObject represents one of the specific remote objects
+// associated with a resource instance.
+//
+// When DeposedKey is [NotDeposed], this represents the "current" object.
+// Otherwise, this represents a deposed object with the given key.
+//
+// The distinction between "current" and "deposed" objects is a planning and
+// state concern that isn't reflected directly in configuration, so there
+// are no "ConfigResourceInstanceObject" or "ResourceInstanceObject" address
+// types.
+type AbsResourceInstanceObject struct {
+	ResourceInstance AbsResourceInstance
+	DeposedKey       DeposedKey
+}
+
+// String returns a string that could be used to refer to this object
+// in the UI, but is not necessarily suitable for use as a unique key.
+func (o AbsResourceInstanceObject) String() string {
+	if o.DeposedKey != NotDeposed {
+		return fmt.Sprintf("%s deposed object %s", o.ResourceInstance, o.DeposedKey)
+	}
+	return o.ResourceInstance.String()
+}
+
+// IsCurrent returns true only if this address is for a "current" object.
+func (o AbsResourceInstanceObject) IsCurrent() bool {
+	return o.DeposedKey == NotDeposed
+}
+
+// IsCurrent returns true only if this address is for a "deposed" object.
+func (o AbsResourceInstanceObject) IsDeposed() bool {
+	return o.DeposedKey != NotDeposed
+}
+
+// UniqueKey implements [UniqueKeyer]
+func (o AbsResourceInstanceObject) UniqueKey() UniqueKey {
+	return absResourceInstanceObjectKey{
+		resourceInstanceKey: o.ResourceInstance.UniqueKey(),
+		deposedKey:          o.DeposedKey,
+	}
+}
+
+// Less describes the "natural order" of resource instance object addresses.
+//
+// Objects that differ in the resource instance address sort in the natural
+// order of AbsResourceInstance. Objects belonging to the same resource
+// instance sort by deposed key, with non-deposed ("current") objects sorting
+// first.
+func (o AbsResourceInstanceObject) Less(other AbsResourceInstanceObject) bool {
+	switch {
+	case !o.ResourceInstance.Equal(other.ResourceInstance):
+		return o.ResourceInstance.Less(other.ResourceInstance)
+	default:
+		return o.DeposedKey < other.DeposedKey
+	}
+}
+
+type absResourceInstanceObjectKey struct {
+	resourceInstanceKey UniqueKey
+	deposedKey          DeposedKey
+}
+
+func (absResourceInstanceObjectKey) uniqueKeySigil() {}
+
+// DeposedKey is a 8-character hex string used to uniquely identify deposed
+// instance objects in the state.
+//
+// The zero value of this type is [NotDeposed] and represents a "current"
+// object, not deposed at all. All other valid values of this type are strings
+// containing exactly eight lowercase hex characters.
+type DeposedKey string
+
+// NotDeposed is a special invalid value of DeposedKey that is used to represent
+// the absense of a deposed key, typically when referring to the "current" object
+// for a particular resource instance. It must not be used as an actual deposed
+// key.
+const NotDeposed = DeposedKey("")
+
+var deposedKeyRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+// NewDeposedKey generates a pseudo-random deposed key. Because of the short
+// length of these keys, uniqueness is not a natural consequence and so the
+// caller should test to see if the generated key is already in use and generate
+// another if so, until a unique key is found.
+func NewDeposedKey() DeposedKey {
+	v := deposedKeyRand.Uint32()
+	return DeposedKey(fmt.Sprintf("%08x", v))
+}
+
+// ParseDeposedKey parses a string that is expected to be a deposed key,
+// returning an error if it doesn't conform to the expected syntax.
+func ParseDeposedKey(raw string) (DeposedKey, error) {
+	if len(raw) != 8 {
+		return "00000000", fmt.Errorf("must be eight hexadecimal digits")
+	}
+	if raw != strings.ToLower(raw) {
+		return "00000000", fmt.Errorf("must use lowercase hex digits")
+	}
+	_, err := hex.DecodeString(raw)
+	if err != nil {
+		return "00000000", fmt.Errorf("must be eight hexadecimal digits")
+	}
+	return DeposedKey(raw), nil
+}
+
+func (k DeposedKey) String() string {
+	return string(k)
+}
+
+func (k DeposedKey) GoString() string {
+	ks := string(k)
+	switch {
+	case ks == "":
+		return "states.NotDeposed"
+	default:
+		return fmt.Sprintf("states.DeposedKey(%q)", ks)
+	}
+}

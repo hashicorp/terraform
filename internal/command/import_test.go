@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -8,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -47,7 +50,7 @@ func TestImport(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {Type: cty.String, Optional: true, Computed: true},
 					},
@@ -101,7 +104,7 @@ func TestImport_providerConfig(t *testing.T) {
 	}
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"foo": {Type: cty.String, Optional: true},
 				},
@@ -109,7 +112,7 @@ func TestImport_providerConfig(t *testing.T) {
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {Type: cty.String, Optional: true, Computed: true},
 					},
@@ -214,7 +217,7 @@ func TestImport_remoteState(t *testing.T) {
 	}
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"foo": {Type: cty.String, Optional: true},
 				},
@@ -222,7 +225,7 @@ func TestImport_remoteState(t *testing.T) {
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {Type: cty.String, Optional: true, Computed: true},
 					},
@@ -369,7 +372,7 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 	}
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"foo": {Type: cty.String, Optional: true},
 				},
@@ -377,7 +380,7 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {Type: cty.String, Optional: true, Computed: true},
 					},
@@ -449,7 +452,7 @@ func TestImport_providerConfigWithDataSource(t *testing.T) {
 	}
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"foo": {Type: cty.String, Optional: true},
 				},
@@ -457,7 +460,7 @@ func TestImport_providerConfigWithDataSource(t *testing.T) {
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {Type: cty.String, Optional: true, Computed: true},
 					},
@@ -466,7 +469,7 @@ func TestImport_providerConfigWithDataSource(t *testing.T) {
 		},
 		DataSources: map[string]providers.Schema{
 			"test_data": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"foo": {Type: cty.String, Optional: true},
 					},
@@ -514,7 +517,7 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 	}
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"foo": {Type: cty.String, Optional: true},
 				},
@@ -522,7 +525,7 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {Type: cty.String, Optional: true, Computed: true},
 					},
@@ -593,7 +596,7 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 	}
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"foo": {Type: cty.String, Optional: true},
 				},
@@ -601,7 +604,7 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {Type: cty.String, Optional: true, Computed: true},
 					},
@@ -751,7 +754,7 @@ func TestImportModuleVarFile(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"foo": {Type: cty.String, Optional: true},
 					},
@@ -825,7 +828,7 @@ func TestImportModuleInputVariableEvaluation(t *testing.T) {
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"foo": {Type: cty.String, Optional: true},
 					},

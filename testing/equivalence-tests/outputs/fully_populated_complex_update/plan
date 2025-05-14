@@ -1,0 +1,131 @@
+tfcoremock_complex_resource.complex: Refreshing state... [id=64564E36-BFCB-458B-9405-EBBF6A3CAC7A]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+
+Terraform will perform the following actions:
+
+  # tfcoremock_complex_resource.complex will be updated in-place
+  ~ resource "tfcoremock_complex_resource" "complex" {
+      ~ float   = 987654321 -> 123456789
+        id      = "64564E36-BFCB-458B-9405-EBBF6A3CAC7A"
+      ~ integer = 987654321 -> 123456789
+      ~ list    = [
+          ~ {
+              ~ string = <<-EOT
+                    this is my second entry in the list
+                    I am a bit more interesting
+                    and contain multiple lines
+                  + but I've been edited
+                EOT
+            },
+          ~ {
+              ~ list   = [
+                  ~ {
+                      ~ number = 2 -> 3
+                    },
+                  + {
+                      + number = 4
+                    },
+                    # (2 unchanged elements hidden)
+                ]
+                # (1 unchanged attribute hidden)
+            },
+          ~ {
+              ~ set    = [
+                  - {
+                      - number = 1 -> null
+                    },
+                  + {
+                      + number = 2
+                    },
+                    # (1 unchanged element hidden)
+                ]
+              ~ string = "this is my fourth entry, and I actually have a nested set" -> "this is my fourth entry, and I actually have a nested set and I edited my test"
+            },
+            # (1 unchanged element hidden)
+        ]
+      ~ map     = {
+          ~ "key_four" = {
+              ~ set    = [
+                  + {
+                      + number = 3
+                    },
+                  + {
+                      + number = 4
+                    },
+                    # (2 unchanged elements hidden)
+                ]
+                # (1 unchanged attribute hidden)
+            },
+          ~ "key_three" = {
+              ~ list   = [
+                  ~ {
+                      ~ number = 1 -> 3
+                    },
+                  ~ {
+                      ~ number = 2 -> 1
+                    },
+                  + {
+                      + number = 2
+                    },
+                    # (1 unchanged element hidden)
+                ]
+                # (1 unchanged attribute hidden)
+            },
+            # (2 unchanged elements hidden)
+        }
+      ~ number  = 123456789 -> 987654321
+      ~ object  = {
+          - bool   = false -> null
+          ~ object = {
+              - number = 1 -> null
+                # (2 unchanged attributes hidden)
+            }
+            # (2 unchanged attributes hidden)
+        }
+        # (3 unchanged attributes hidden)
+
+      - list_block {
+          - set    = [
+              - {
+                  - number = 0 -> null
+                },
+              - {
+                  - number = 1 -> null
+                },
+            ] -> null
+          - string = jsonencode(
+                {
+                  - index = 2
+                }
+            ) -> null
+        }
+
+      - set_block {
+          - string = jsonencode(
+                {
+                  - index = 0
+                }
+            ) -> null
+        }
+      + set_block {
+          + string = jsonencode(
+                {
+                  + index = 3
+                }
+            )
+        }
+
+        # (4 unchanged blocks hidden)
+    }
+
+Plan: 0 to add, 1 to change, 0 to destroy.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Saved the plan to: equivalence_test_plan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "equivalence_test_plan"

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package cloud
 
 import (
@@ -6,13 +9,14 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/go-tfe"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/mitchellh/cli"
+
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 )
 
 // IntegrationOutputWriter is an interface used to to write output tailored for
-// Terraform Cloud integrations
+// HCP Terraform integrations
 type IntegrationOutputWriter interface {
 	End()
 	OutputElapsed(message string, maxMessage int)
@@ -20,12 +24,12 @@ type IntegrationOutputWriter interface {
 	SubOutput(str string)
 }
 
-// IntegrationContext is a set of data that is useful when performing Terraform Cloud integration operations
+// IntegrationContext is a set of data that is useful when performing HCP Terraform integration operations
 type IntegrationContext struct {
 	B             *Cloud
 	StopContext   context.Context
 	CancelContext context.Context
-	Op            *backend.Operation
+	Op            *backendrun.Operation
 	Run           *tfe.Run
 }
 
@@ -38,14 +42,14 @@ type integrationCLIOutput struct {
 
 var _ IntegrationOutputWriter = (*integrationCLIOutput)(nil) // Compile time check
 
-func (s *IntegrationContext) Poll(every func(i int) (bool, error)) error {
+func (s *IntegrationContext) Poll(backoffMinInterval float64, backoffMaxInterval float64, every func(i int) (bool, error)) error {
 	for i := 0; ; i++ {
 		select {
 		case <-s.StopContext.Done():
 			return s.StopContext.Err()
 		case <-s.CancelContext.Done():
 			return s.CancelContext.Err()
-		case <-time.After(backoff(backoffMin, backoffMax, i)):
+		case <-time.After(backoff(backoffMinInterval, backoffMaxInterval, i)):
 			// blocks for a time between min and max
 		}
 

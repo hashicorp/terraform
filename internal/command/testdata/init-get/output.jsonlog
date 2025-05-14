@@ -1,0 +1,7 @@
+{"@level":"info","@message":"Terraform 1.9.0-dev","@module":"terraform.ui","terraform":"1.9.0-dev","type":"version","ui":"1.2"}
+{"@level":"info","@message":"Initializing the backend...","@module":"terraform.ui","message_code": "initializing_backend_message","type":"init_output"}
+{"@level":"info","@message":"Initializing modules...","@module":"terraform.ui","message_code": "initializing_modules_message","type":"init_output"}
+{"@level":"info","@message":"- foo in foo","@module":"terraform.ui","type":"log"}
+{"@level":"info","@message":"Initializing provider plugins...","@module":"terraform.ui","message_code": "initializing_provider_plugin_message","type":"init_output"}
+{"@level":"info","@message":"Terraform has been successfully initialized!","@module":"terraform.ui","message_code": "output_init_success_message","type":"init_output"}
+{"@level":"info","@message":"You may now begin working with Terraform. Try running \"terraform plan\" to see\nany changes that are required for your infrastructure. All Terraform commands\nshould now work.\n\nIf you ever set or change modules or backend configuration for Terraform,\nrerun this command to reinitialize your working directory. If you forget, other\ncommands will detect it and remind you to do so if necessary.","@module":"terraform.ui","message_code": "output_init_success_cli_message","type":"init_output"}

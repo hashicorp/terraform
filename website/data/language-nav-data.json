@@ -6,20 +6,54 @@
     "path": "attr-as-blocks",
     "hidden": true
   },
+  { 
+    "title": "Style Guide", 
+    "path": "style" 
+  },
   {
-    "title": "Terraform v1.0 Compatibility Promises",
-    "path": "v1-compatibility-promises",
-    "hidden": true
+    "title": "Stacks",
+    "badge": {
+        "text": "BETA",
+        "type": "outlined",
+        "color": "neutral"
+    },
+    "routes": [
+      { "title": "Overview", "path": "stacks" },
+      { "title": "Use cases", "path": "stacks/use-cases" },
+      { "title": "Design a Stack", "path": "stacks/design" },
+      {
+        "title": "Create a Stack",
+        "routes": [
+          { "title": "Define configuration", "path": "stacks/create/config" },
+          { "title": "Declare providers", "path": "stacks/create/declare-providers" }
+        ]
+      },
+      {
+        "title": "Define deployments",
+        "routes": [
+          { "title": "Define configuration", "path": "stacks/deploy/config" },
+          { "title": "Set conditions for deployment plans", "path": "stacks/deploy/conditions" },
+          { "title": "Authenticate a Stack", "path": "stacks/deploy/authenticate" },
+          { "title": "Pass data from one Stack to another", "path": "stacks/deploy/pass-data" }
+        ]
+      },
+      {
+        "title": "Reference",
+        "routes": [
+          { "title": "Stack configuration file", "path": "stacks/reference/tfstack" },
+          { "title": "Deployment configuration file", "path": "stacks/reference/tfdeploy" },
+          { "title": "Tfstacks CLI", "path": "stacks/reference/tfstacks-cli" }
+        ]
+      }
+    ]
   },
   {
     "title": "Files and Directories",
     "routes": [
       { "title": "Overview", "path": "files" },
       { "title": "Override Files", "path": "files/override" },
-      {
-        "title": "Dependency Lock File",
-        "path": "files/dependency-lock"
-      }
+      { "title": "Dependency Lock File", "path": "files/dependency-lock" },
+      { "title": "Test Files", "path": "files/tests" }
     ]
   },
   {
@@ -33,8 +67,7 @@
       {
         "title": "JSON Configuration Syntax",
         "path": "syntax/json"
-      },
-      { "title": "Style Conventions", "path": "syntax/style" }
+      }
     ]
   },
   {
@@ -97,23 +130,27 @@
           {
             "title": "remote-exec",
             "path": "resources/provisioners/remote-exec"
-          },
-          { "divider": true },
+          }
+        ]
+      },
+      {
+        "title": "The <code>terraform_data</code> Resource Type",
+        "path": "resources/terraform-data"
+      },
+      {
+        "title": "Ephemerality in Resources",
+         "routes": [
           {
-            "title": "chef",
-            "path": "resources/provisioners/chef"
+            "title": "Overview",
+            "path": "resources/ephemeral"
           },
           {
-            "title": "habitat",
-            "path": "resources/provisioners/habitat"
+            "title": "Ephemeral block",
+            "path": "resources/ephemeral/reference"
           },
           {
-            "title": "puppet",
-            "path": "resources/provisioners/puppet"
-          },
-          {
-            "title": "salt-masterless",
-            "path": "resources/provisioners/salt-masterless"
+            "title": "Use write-only arguments",
+            "path": "resources/ephemeral/write-only"
           }
         ]
       }
@@ -231,12 +268,83 @@
             "path": "modules/develop/refactoring"
           }
         ]
+      }
+    ]
+  },
+  {
+    "title": "Moved block",
+    "path": "moved"
+  },
+  {
+    "title": "Terraform block",
+    "path": "terraform"
+  },
+  {
+    "title": "Backend block",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "backend"
       },
       {
-        "title": "Module Testing Experiment",
-        "path": "modules/testing-experiment",
-        "hidden": true
+        "title": "local",
+        "path": "backend/local"
+      },
+      {
+        "title": "remote",
+        "path": "backend/remote"
+      },
+      {
+        "title": "azurerm",
+        "path": "backend/azurerm"
+      },
+      {
+        "title": "consul",
+        "path": "backend/consul"
+      },
+      {
+        "title": "cos",
+        "path": "backend/cos"
+      },
+      {
+        "title": "gcs",
+        "path": "backend/gcs"
+      },
+      {
+        "title": "http",
+        "path": "backend/http"
+      },
+      {
+        "title": "Kubernetes",
+        "path": "backend/kubernetes"
+      },
+      {
+        "title": "oci",
+        "path": "backend/oci"
+      },
+      {
+        "title": "oss",
+        "path": "backend/oss"
+      },
+      {
+        "title": "pg",
+        "path": "backend/pg"
+      },
+      {
+        "title": "s3",
+        "path": "backend/s3"
       }
+    ]
+  },
+  { "title": "Checks", "path": "checks" },
+  {
+      "title": "Import",
+      "routes": [
+       { "title": "Overview", "path": "import" },
+       {
+         "title": "Generating Configuration",
+         "path": "import/generating-configuration"
+       }
     ]
   },
   {
@@ -272,7 +380,7 @@
         "path": "expressions/dynamic-blocks"
       },
       {
-        "title": "Custom Condition Checks",
+        "title": "Custom Conditions",
         "path": "expressions/custom-conditions"
       },
       {
@@ -361,12 +469,20 @@
             "href": "/language/functions/startswith"
           },
           {
+            "title": "<code>strcontains</code>",
+            "href": "/language/functions/strcontains"
+          },
+          {
             "title": "<code>strrev</code>",
             "href": "/language/functions/strrev"
           },
           {
             "title": "<code>substr</code>",
             "href": "/language/functions/substr"
+          },
+          {
+            "title": "<code>templatestring</code>",
+            "href": "/language/functions/templatestring"
           },
           {
             "title": "<code>title</code>",
@@ -598,6 +714,10 @@
             "href": "/language/functions/formatdate"
           },
           {
+            "title": "<code>plantimestamp</code>",
+            "href": "/language/functions/plantimestamp"
+          },
+          {
             "title": "<code>timeadd</code>",
             "href": "/language/functions/timeadd"
           },
@@ -696,6 +816,11 @@
         "title": "Type Conversion Functions",
         "routes": [
           { "title": "<code>can</code>", "href": "/language/functions/can" },
+          { "title": "<code>ephemeralasnull</code>", "href": "/language/functions/ephemeralasnull" },
+          {
+            "title": "<code>issensitive</code>",
+            "href": "/language/functions/issensitive"
+          },
           {
             "title": "<code>nonsensitive</code>",
             "href": "/language/functions/nonsensitive"
@@ -730,6 +855,15 @@
           },
           { "title": "<code>try</code>", "href": "/language/functions/try" },
           { "title": "<code>type</code>", "href": "/language/functions/type" }
+        ]
+      },
+      {
+        "title": "Terraform-specific Functions",
+        "routes": [
+          { "title": "<code>provider::terraform::encode_tfvars</code>", "href": "/language/functions/terraform-encode_tfvars" },
+          { "title": "<code>provider::terraform::decode_tfvars</code>", "href": "/language/functions/terraform-decode_tfvars" },
+          { "title": "<code>provider::terraform::encode_expr</code>", "href": "/language/functions/terraform-encode_expr" },
+          { "title": "<code>terraform.applying</code>", "href": "/language/functions/terraform-applying" }
         ]
       },
       { "title": "abs", "path": "functions/abs", "hidden": true },
@@ -789,6 +923,7 @@
       { "title": "distinct", "path": "functions/distinct", "hidden": true },
       { "title": "element", "path": "functions/element", "hidden": true },
       { "title": "endswith", "path": "functions/endswith", "hidden": true },
+      { "title": "ephemeralasnull", "path": "functions/ephemeralasnull", "hidden": true },
       { "title": "file", "path": "functions/file", "hidden": true },
       { "title": "filebase64", "path": "functions/filebase64", "hidden": true },
       {
@@ -814,6 +949,11 @@
       { "title": "formatlist", "path": "functions/formatlist", "hidden": true },
       { "title": "indent", "path": "functions/indent", "hidden": true },
       { "title": "index", "path": "functions/index_function", "hidden": true },
+      {
+        "title": "issensitive",
+        "path": "functions/issensitive",
+        "hidden": true
+      },
       { "title": "join", "path": "functions/join", "hidden": true },
       { "title": "jsondecode", "path": "functions/jsondecode", "hidden": true },
       { "title": "jsonencode", "path": "functions/jsonencode", "hidden": true },
@@ -837,6 +977,7 @@
       { "title": "one", "path": "functions/one", "hidden": true },
       { "title": "parseint", "path": "functions/parseint", "hidden": true },
       { "title": "pathexpand", "path": "functions/pathexpand", "hidden": true },
+      { "title": "plantimestamp", "path": "functions/plantimestamp", "hidden": true },
       { "title": "pow", "path": "functions/pow", "hidden": true },
       { "title": "range", "path": "functions/range", "hidden": true },
       { "title": "regex", "path": "functions/regex", "hidden": true },
@@ -865,6 +1006,7 @@
       { "title": "sort", "path": "functions/sort", "hidden": true },
       { "title": "split", "path": "functions/split", "hidden": true },
       { "title": "startswith", "path": "functions/startswith", "hidden": true },
+      { "title": "strcontains", "path": "functions/strcontains", "hidden": true},
       { "title": "strrev", "path": "functions/strrev", "hidden": true },
       { "title": "substr", "path": "functions/substr", "hidden": true },
       { "title": "sum", "path": "functions/sum", "hidden": true },
@@ -873,6 +1015,19 @@
         "path": "functions/templatefile",
         "hidden": true
       },
+      {
+        "title": "templatestring",
+        "path": "functions/templatestring",
+        "hidden": true
+      },
+      {
+        "title": "terraform.applying",
+        "path": "functions/terraform-applying",
+        "hidden": true
+      },
+      { "title": "terraform-encode_tfvars", "path": "functions/terraform-encode_tfvars", "hidden": true },
+      { "title": "terraform-decode_tfvars", "path": "functions/terraform-decode_tfvars", "hidden": true },
+      { "title": "terraform-encode_expr", "path": "functions/terraform-encode_expr", "hidden": true },
       {
         "title": "textdecodebase64",
         "path": "functions/textdecodebase64",
@@ -911,171 +1066,6 @@
     ]
   },
   {
-    "title": "Terraform Settings",
-    "routes": [
-      { "title": "Overview", "path": "settings" },
-      { "title": "Terraform Cloud", "path": "settings/terraform-cloud" },
-      {
-        "title": "Backends",
-        "routes": [
-          {
-            "title": "Backend Configuration",
-            "path": "settings/backends/configuration"
-          },
-          {
-            "title": "Available Backends",
-            "routes": [
-              {
-                "title": "local",
-                "href": "/language/settings/backends/local"
-              },
-              {
-                "title": "remote",
-                "href": "/language/settings/backends/remote"
-              },
-              {
-                "title": "artifactory",
-                "href": "/language/settings/backends/artifactory"
-              },
-              {
-                "title": "azurerm",
-                "href": "/language/settings/backends/azurerm"
-              },
-              {
-                "title": "consul",
-                "href": "/language/settings/backends/consul"
-              },
-              {
-                "title": "cos",
-                "href": "/language/settings/backends/cos"
-              },
-              {
-                "title": "etcd",
-                "href": "/language/settings/backends/etcd"
-              },
-              {
-                "title": "etcdv3",
-                "href": "/language/settings/backends/etcdv3"
-              },
-              {
-                "title": "gcs",
-                "href": "/language/settings/backends/gcs"
-              },
-              {
-                "title": "http",
-                "href": "/language/settings/backends/http"
-              },
-              {
-                "title": "Kubernetes",
-                "href": "/language/settings/backends/kubernetes"
-              },
-              {
-                "title": "manta",
-                "href": "/language/settings/backends/manta"
-              },
-              {
-                "title": "oss",
-                "href": "/language/settings/backends/oss"
-              },
-              {
-                "title": "pg",
-                "href": "/language/settings/backends/pg"
-              },
-              {
-                "title": "s3",
-                "href": "/language/settings/backends/s3"
-              },
-              {
-                "title": "swift",
-                "href": "/language/settings/backends/swift"
-              }
-            ]
-          },
-          {
-            "title": "local",
-            "hidden": true,
-            "path": "settings/backends/local"
-          },
-          {
-            "title": "remote",
-            "hidden": true,
-            "path": "settings/backends/remote"
-          },
-          {
-            "title": "artifactory",
-            "hidden": true,
-            "path": "settings/backends/artifactory"
-          },
-          {
-            "title": "azurerm",
-            "hidden": true,
-            "path": "settings/backends/azurerm"
-          },
-          {
-            "title": "consul",
-            "hidden": true,
-            "path": "settings/backends/consul"
-          },
-          {
-            "title": "cos",
-            "hidden": true,
-            "path": "settings/backends/cos"
-          },
-          {
-            "title": "etcd",
-            "hidden": true,
-            "path": "settings/backends/etcd"
-          },
-          {
-            "title": "etcdv3",
-            "hidden": true,
-            "path": "settings/backends/etcdv3"
-          },
-          {
-            "title": "gcs",
-            "hidden": true,
-            "path": "settings/backends/gcs"
-          },
-          {
-            "title": "http",
-            "hidden": true,
-            "path": "settings/backends/http"
-          },
-          {
-            "title": "Kubernetes",
-            "hidden": true,
-            "path": "settings/backends/kubernetes"
-          },
-          {
-            "title": "manta",
-            "hidden": true,
-            "path": "settings/backends/manta"
-          },
-          {
-            "title": "oss",
-            "hidden": true,
-            "path": "settings/backends/oss"
-          },
-          {
-            "title": "pg",
-            "hidden": true,
-            "path": "settings/backends/pg"
-          },
-          {
-            "title": "s3",
-            "hidden": true,
-            "path": "settings/backends/s3"
-          },
-          {
-            "title": "swift",
-            "hidden": true,
-            "path": "settings/backends/swift"
-          }
-        ]
-      }
-    ]
-  },
-  {
     "title": "State",
     "routes": [
       { "title": "Overview", "path": "state" },
@@ -1092,6 +1082,10 @@
         "title": "Import Existing Resources",
         "path": "state/import"
       },
+      {
+        "title": "Refactor state",
+        "path": "state/refactor"
+      },
       { "title": "Locking", "path": "state/locking" },
       { "title": "Workspaces", "path": "state/workspaces" },
       { "title": "Remote State", "path": "state/remote" },
@@ -1102,64 +1096,26 @@
     ]
   },
   {
-    "title": "Upgrade Guides",
+    "title": "Tests",
     "routes": [
-      { "title": "Overview", "path": "upgrade-guides" },
       {
-        "title": "Upgrading to Terraform v1.2",
-        "path": "upgrade-guides/1-2"
+        "title": "Overview",
+        "path": "tests"
       },
       {
-        "title": "Upgrading to Terraform v1.1",
-        "path": "upgrade-guides/1-1"
-      },
-      {
-        "title": "Upgrading to Terraform v1.0",
-        "path": "upgrade-guides/1-0"
-      },
-      {
-        "title": "v1.0 Compatibility Promises",
-        "href": "/language/v1-compatibility-promises"
-      },
-      {
-        "title": "Upgrading to Terraform v0.15",
-        "path": "upgrade-guides/0-15"
-      },
-      {
-        "title": "Upgrading to Terraform v0.14",
-        "path": "upgrade-guides/0-14"
-      },
-      {
-        "title": "Upgrading to Terraform v0.13",
-        "path": "upgrade-guides/0-13"
-      },
-      {
-        "title": "Upgrading to Terraform v0.12",
-        "path": "upgrade-guides/0-12"
-      },
-      {
-        "title": "Upgrading to Terraform v0.11",
-        "path": "upgrade-guides/0-11"
-      },
-      {
-        "title": "Upgrading to Terraform v0.10",
-        "path": "upgrade-guides/0-10"
-      },
-      {
-        "title": "Upgrading to Terraform v0.9",
-        "path": "upgrade-guides/0-9"
-      },
-      {
-        "title": "Upgrading to Terraform v0.8",
-        "path": "upgrade-guides/0-8"
-      },
-      {
-        "title": "Upgrading to Terraform v0.7",
-        "path": "upgrade-guides/0-7"
+        "title": "Mocks",
+        "path": "tests/mocking"
       }
     ]
   },
+  {
+    "title": "Upgrading to Terraform v1.10",
+    "path": "upgrade-guides"
+  },
+  {
+    "title": "v1.x Compatibility Promises",
+    "path": "v1-compatibility-promises"
+  },
   { "divider": true },
-  { "title": "Terraform Internals", "href": "/internals" },
-  { "divider": true }
+  { "title": "Terraform Internals", "href": "/internals" }
 ]

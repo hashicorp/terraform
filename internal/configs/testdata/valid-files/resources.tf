@@ -47,3 +47,12 @@ resource "aws_instance" "depends" {
     replace_triggered_by = [ aws_instance.web[1], aws_security_group.firewall.id ]
   }
 }
+
+ephemeral "aws_connect" "tunnel" {
+}
+
+ephemeral "aws_secret" "auth" {
+  for_each = local.auths
+  input = each.value
+  depends_on = [aws_instance.depends]
+}

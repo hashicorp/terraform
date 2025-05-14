@@ -1,17 +1,25 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package lang
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/function"
+	"github.com/zclconf/go-cty/cty/function/stdlib"
 )
 
 // TestFunctions tests that functions are callable through the functionality
@@ -355,6 +363,17 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"ephemeralasnull": {
+			{
+				`ephemeralasnull(local.ephemeral)`,
+				cty.NullVal(cty.String),
+			},
+			{
+				`ephemeralasnull("not ephemeral")`,
+				cty.StringVal("not ephemeral"),
+			},
+		},
+
 		"file": {
 			{
 				`file("hello.txt")`,
@@ -505,6 +524,13 @@ func TestFunctions(t *testing.T) {
 			{
 				`index(["a", "b", "c"], "a")`,
 				cty.NumberIntVal(0),
+			},
+		},
+
+		"issensitive": {
+			{
+				`issensitive(1)`,
+				cty.False,
 			},
 		},
 
@@ -666,6 +692,13 @@ func TestFunctions(t *testing.T) {
 			{
 				`pathexpand("~/test-file")`,
 				cty.StringVal(filepath.Join(homePath, "test-file")),
+			},
+		},
+
+		"plantimestamp": {
+			{
+				`plantimestamp()`,
+				cty.StringVal("2004-04-25T15:00:00Z"),
 			},
 		},
 
@@ -898,6 +931,17 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"strcontains": {
+			{
+				`strcontains("hello", "llo")`,
+				cty.BoolVal(true),
+			},
+			{
+				`strcontains("hello", "a")`,
+				cty.BoolVal(false),
+			},
+		},
+
 		"strrev": {
 			{
 				`strrev("hello world")`,
@@ -937,6 +981,25 @@ func TestFunctions(t *testing.T) {
 			{
 				`templatefile("hello.tmpl", {name = "Jodie"})`,
 				cty.StringVal("Hello, Jodie!"),
+			},
+			{
+				`core::templatefile("hello.tmpl", {name = "Namespaced Jodie"})`,
+				cty.StringVal("Hello, Namespaced Jodie!"),
+			},
+		},
+
+		"templatestring": {
+			{
+				`templatestring(local.greeting_template, {
+  name = "Arthur"
+})`,
+				cty.StringVal("Hello, Arthur!"),
+			},
+			{
+				`core::templatestring(local.greeting_template, {
+  name = "Namespaced Arthur"
+})`,
+				cty.StringVal("Hello, Namespaced Arthur!"),
 			},
 		},
 
@@ -1078,6 +1141,10 @@ func TestFunctions(t *testing.T) {
 				`upper("hello")`,
 				cty.StringVal("HELLO"),
 			},
+			{
+				`core::upper("hello")`,
+				cty.StringVal("HELLO"),
+			},
 		},
 
 		"urlencode": {
@@ -1131,6 +1198,10 @@ func TestFunctions(t *testing.T) {
 					"key": cty.StringVal("0ba"),
 				}),
 			},
+			{
+				`yamldecode("~")`,
+				cty.NullVal(cty.DynamicPseudoType),
+			},
 		},
 
 		"yamlencode": {
@@ -1158,16 +1229,40 @@ func TestFunctions(t *testing.T) {
 				}),
 			},
 		},
+		// External function dispatching tests. These ones are only here to
+		// test that dispatching to externally-declared functions works
+		// _at all_, using just some placeholder functions declared in the
+		// test code below.
+		"provider::foo::upper": {
+			{
+				`provider::foo::upper("hello")`,
+				cty.StringVal("HELLO"),
+			},
+		},
 	}
 
 	experimentalFuncs := map[string]experiments.Experiment{}
-	experimentalFuncs["defaults"] = experiments.ModuleVariableOptionalAttrs
+
+	// We'll also register a few "external functions" so that we can
+	// verify that registering these works. The functions actually
+	// available in a real module will be determined dynamically by
+	// Terraform core based on declarations in that module, so here
+	// we're just aiming to test whether dispatching to these works
+	// at all, not to test that any particular functions work.
+	externalFuncs := ExternalFuncs{
+		Provider: map[string]map[string]function.Function{
+			"foo": {
+				"upper": stdlib.UpperFunc,
+			},
+		},
+	}
 
 	t.Run("all functions are tested", func(t *testing.T) {
 		data := &dataForTests{} // no variables available; we only need literals here
 		scope := &Scope{
-			Data:    data,
-			BaseDir: "./testdata/functions-test", // for the functions that read from the filesystem
+			Data:          data,
+			BaseDir:       "./testdata/functions-test", // for the functions that read from the filesystem
+			ExternalFuncs: externalFuncs,
 		}
 
 		// Check that there is at least one test case for each function, omitting
@@ -1181,6 +1276,11 @@ func TestFunctions(t *testing.T) {
 			delete(allFunctions, impureFunc)
 		}
 		for f := range scope.Functions() {
+			if strings.Contains(f, "::") {
+				// Only non-namespaced functions are absolutely required to
+				// have at least one test. (Others _may_ have tests.)
+				continue
+			}
 			if _, ok := tests[f]; !ok {
 				t.Errorf("Missing test for function %s\n", f)
 			}
@@ -1204,8 +1304,9 @@ func TestFunctions(t *testing.T) {
 					t.Run(testName, func(t *testing.T) {
 						data := &dataForTests{} // no variables available; we only need literals here
 						scope := &Scope{
-							Data:    data,
-							BaseDir: "./testdata/functions-test", // for the functions that read from the filesystem
+							Data:          data,
+							BaseDir:       "./testdata/functions-test", // for the functions that read from the filesystem
+							ExternalFuncs: externalFuncs,
 						}
 
 						expr, parseDiags := hclsyntax.ParseExpression([]byte(test.src), "test.hcl", hcl.Pos{Line: 1, Column: 1})
@@ -1236,10 +1337,18 @@ func TestFunctions(t *testing.T) {
 
 			for _, test := range funcTests {
 				t.Run(test.src, func(t *testing.T) {
-					data := &dataForTests{} // no variables available; we only need literals here
+					data := &dataForTests{
+						LocalValues: map[string]cty.Value{
+							"greeting_template": cty.StringVal("Hello, ${name}!"),
+							"ephemeral":         cty.StringVal("ephemeral").Mark(marks.Ephemeral),
+						},
+					}
 					scope := &Scope{
-						Data:    data,
-						BaseDir: "./testdata/functions-test", // for the functions that read from the filesystem
+						Data:          data,
+						ParseRef:      addrs.ParseRef,
+						BaseDir:       "./testdata/functions-test", // for the functions that read from the filesystem
+						PlanTimestamp: time.Date(2004, 04, 25, 15, 00, 00, 000, time.UTC),
+						ExternalFuncs: externalFuncs,
 					}
 					prepareScope(t, scope)
 
@@ -1265,6 +1374,26 @@ func TestFunctions(t *testing.T) {
 				})
 			}
 		})
+	}
+}
+
+func TestPlanTimeStampUnknown(t *testing.T) {
+	// plantimestamp should return an unknown if there is no timestamp, which
+	// happens during validation
+	expr, parseDiags := hclsyntax.ParseExpression([]byte("plantimestamp()"), "test.hcl", hcl.Pos{Line: 1, Column: 1})
+	if parseDiags.HasErrors() {
+		t.Fatal(parseDiags)
+	}
+
+	scope := &Scope{}
+	got, diags := scope.EvalExpr(expr, cty.DynamicPseudoType)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+
+	}
+
+	if got.IsKnown() {
+		t.Fatalf("plantimestamp() should be unknown, got %#v\n", got)
 	}
 }
 

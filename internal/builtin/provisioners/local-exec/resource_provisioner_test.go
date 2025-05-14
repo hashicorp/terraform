@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package localexec
 
 import (
@@ -8,8 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/provisioners"
-	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 )
 

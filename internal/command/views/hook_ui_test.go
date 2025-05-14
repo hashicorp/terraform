@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package views
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"testing"
@@ -18,6 +22,17 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
+
+func testUiHookResourceID(addr addrs.AbsResourceInstance) terraform.HookResourceIdentity {
+	return terraform.HookResourceIdentity{
+		Addr: addr,
+		ProviderAddr: addrs.Provider{
+			Type:      "test",
+			Namespace: "hashicorp",
+			Hostname:  "example.com",
+		},
+	}
+}
 
 // Test the PreApply hook for creating a new resource
 func TestUiHookPreApply_create(t *testing.T) {
@@ -48,7 +63,7 @@ func TestUiHookPreApply_create(t *testing.T) {
 		}),
 	})
 
-	action, err := h.PreApply(addr, states.CurrentGen, plans.Create, priorState, plannedNewState)
+	action, err := h.PreApply(testUiHookResourceID(addr), addrs.NotDeposed, plans.Create, priorState, plannedNewState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +121,7 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 		}),
 	})
 
-	action, err := h.PreApply(addr, states.CurrentGen, plans.Update, priorState, plannedNewState)
+	action, err := h.PreApply(testUiHookResourceID(addr), addrs.NotDeposed, plans.Update, priorState, plannedNewState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +129,7 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
 
-	time.Sleep(3100 * time.Millisecond)
+	time.Sleep(3005 * time.Millisecond)
 
 	// stop the background writer
 	uiState := h.resources[addr.String()]
@@ -122,13 +137,14 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 	<-uiState.done
 
 	expectedOutput := `test_instance.foo: Modifying... [id=test]
-test_instance.foo: Still modifying... [id=test, 1s elapsed]
-test_instance.foo: Still modifying... [id=test, 2s elapsed]
-test_instance.foo: Still modifying... [id=test, 3s elapsed]
+test_instance.foo: Still modifying... [id=test, 00m01s elapsed]
+test_instance.foo: Still modifying... [id=test, 00m02s elapsed]
+test_instance.foo: Still modifying... [id=test, 00m03s elapsed]
 `
 	result := done(t)
 	output := result.Stdout()
-	if output != expectedOutput {
+	// we do not test for equality because time.Sleep can take longer than declared time
+	if !strings.HasPrefix(output, expectedOutput) {
 		t.Fatalf("Output didn't match.\nExpected: %q\nGiven: %q", expectedOutput, output)
 	}
 
@@ -170,7 +186,7 @@ func TestUiHookPreApply_destroy(t *testing.T) {
 	}))
 
 	key := states.NewDeposedKey()
-	action, err := h.PreApply(addr, key, plans.Delete, priorState, plannedNewState)
+	action, err := h.PreApply(testUiHookResourceID(addr), key, plans.Delete, priorState, plannedNewState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +237,7 @@ func TestUiHookPostApply_colorInterpolation(t *testing.T) {
 		"id": cty.StringVal("[blue]"),
 	})
 
-	action, err := h.PostApply(addr, states.CurrentGen, newState, nil)
+	action, err := h.PostApply(testUiHookResourceID(addr), addrs.NotDeposed, newState, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -274,7 +290,7 @@ func TestUiHookPostApply_emptyState(t *testing.T) {
 		"names": cty.List(cty.String),
 	}))
 
-	action, err := h.PostApply(addr, states.CurrentGen, newState, nil)
+	action, err := h.PostApply(testUiHookResourceID(addr), addrs.NotDeposed, newState, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -296,7 +312,7 @@ func TestUiHookPostApply_emptyState(t *testing.T) {
 	}
 }
 
-func TestPreProvisionInstanceStep(t *testing.T) {
+func TestUiHookPreProvisionInstanceStep(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
@@ -307,7 +323,7 @@ func TestPreProvisionInstanceStep(t *testing.T) {
 		Name: "foo",
 	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	action, err := h.PreProvisionInstanceStep(addr, "local-exec")
+	action, err := h.PreProvisionInstanceStep(testUiHookResourceID(addr), "local-exec")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -323,7 +339,7 @@ func TestPreProvisionInstanceStep(t *testing.T) {
 
 // Test ProvisionOutput, including lots of edge cases for the output
 // whitespace/line ending logic.
-func TestProvisionOutput(t *testing.T) {
+func TestUiHookProvisionOutput(t *testing.T) {
 	addr := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,
 		Type: "test_instance",
@@ -394,7 +410,7 @@ test_instance.foo (winrm): bar
 			view := NewView(streams)
 			h := NewUiHook(view)
 
-			h.ProvisionOutput(addr, tc.provisioner, tc.input)
+			h.ProvisionOutput(testUiHookResourceID(addr), tc.provisioner, tc.input)
 			result := done(t)
 
 			if got := result.Stdout(); got != tc.wantOutput {
@@ -406,7 +422,7 @@ test_instance.foo (winrm): bar
 
 // Test the PreRefresh hook in the normal path where the resource exists with
 // an ID key and value in the state.
-func TestPreRefresh(t *testing.T) {
+func TestUiHookPreRefresh(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
@@ -422,7 +438,7 @@ func TestPreRefresh(t *testing.T) {
 		"bar": cty.ListValEmpty(cty.String),
 	})
 
-	action, err := h.PreRefresh(addr, states.CurrentGen, priorState)
+	action, err := h.PreRefresh(testUiHookResourceID(addr), addrs.NotDeposed, priorState)
 
 	if err != nil {
 		t.Fatal(err)
@@ -439,7 +455,7 @@ func TestPreRefresh(t *testing.T) {
 
 // Test that PreRefresh still works if no ID key and value can be determined
 // from state.
-func TestPreRefresh_noID(t *testing.T) {
+func TestUiHookPreRefresh_noID(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
@@ -454,7 +470,7 @@ func TestPreRefresh_noID(t *testing.T) {
 		"bar": cty.ListValEmpty(cty.String),
 	})
 
-	action, err := h.PreRefresh(addr, states.CurrentGen, priorState)
+	action, err := h.PreRefresh(testUiHookResourceID(addr), addrs.NotDeposed, priorState)
 
 	if err != nil {
 		t.Fatal(err)
@@ -470,7 +486,7 @@ func TestPreRefresh_noID(t *testing.T) {
 }
 
 // Test the very simple PreImportState hook.
-func TestPreImportState(t *testing.T) {
+func TestUiHookPreImportState(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
@@ -481,7 +497,7 @@ func TestPreImportState(t *testing.T) {
 		Name: "foo",
 	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	action, err := h.PreImportState(addr, "test")
+	action, err := h.PreImportState(testUiHookResourceID(addr), "test")
 
 	if err != nil {
 		t.Fatal(err)
@@ -499,7 +515,7 @@ func TestPreImportState(t *testing.T) {
 // Test the PostImportState UI hook. Again, this hook behaviour seems odd to
 // me (see below), so please don't consider these tests as justification for
 // keeping this behaviour.
-func TestPostImportState(t *testing.T) {
+func TestUiHookPostImportState(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
@@ -529,7 +545,7 @@ func TestPostImportState(t *testing.T) {
 		},
 	}
 
-	action, err := h.PostImportState(addr, imported)
+	action, err := h.PostImportState(testUiHookResourceID(addr), imported)
 
 	if err != nil {
 		t.Fatal(err)
@@ -542,6 +558,126 @@ func TestPostImportState(t *testing.T) {
 	want := `test_instance.foo: Import prepared!
   Prepared test_some_instance for import
   Prepared test_other_instance for import
+`
+	if got := result.Stdout(); got != want {
+		t.Fatalf("unexpected output\n got: %q\nwant: %q", got, want)
+	}
+}
+
+func TestUiHookEphemeralOp(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	h := NewUiHook(view)
+
+	addr := addrs.Resource{
+		Mode: addrs.EphemeralResourceMode,
+		Type: "test_instance",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	action, err := h.PreEphemeralOp(testUiHookResourceID(addr), plans.Close)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+
+	action, err = h.PostEphemeralOp(testUiHookResourceID(addr), plans.Close, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+	result := done(t)
+
+	want := `ephemeral.test_instance.foo: Closing...
+ephemeral.test_instance.foo: Closing complete after 0s
+`
+	if got := result.Stdout(); got != want {
+		t.Fatalf("unexpected output\n got: %q\nwant: %q", got, want)
+	}
+}
+
+func TestUiHookEphemeralOp_progress(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	h := NewUiHook(view)
+	h.periodicUiTimer = 1 * time.Second
+
+	addr := addrs.Resource{
+		Mode: addrs.EphemeralResourceMode,
+		Type: "test_instance",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	action, err := h.PreEphemeralOp(testUiHookResourceID(addr), plans.Open)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+
+	start := time.Now()
+	time.Sleep(2005 * time.Millisecond)
+	elapsed := time.Since(start).Round(time.Second)
+
+	action, err = h.PostEphemeralOp(testUiHookResourceID(addr), plans.Open, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+
+	result := done(t)
+	stdout := result.Stdout()
+
+	// we do not test for equality because time.Sleep can take longer than declared time
+	wantPrefix := `ephemeral.test_instance.foo: Opening...
+ephemeral.test_instance.foo: Still opening... [00m01s elapsed]
+ephemeral.test_instance.foo: Still opening... [00m02s elapsed]`
+	if !strings.HasPrefix(stdout, wantPrefix) {
+		t.Fatalf("unexpected prefix\n got: %q\nwant: %q", stdout, wantPrefix)
+	}
+	wantSuffix := fmt.Sprintf(`ephemeral.test_instance.foo: Opening complete after %s
+`, elapsed)
+	if !strings.HasSuffix(stdout, wantSuffix) {
+		t.Fatalf("unexpected prefix\n got: %q\nwant: %q", stdout, wantSuffix)
+	}
+}
+
+func TestUiHookEphemeralOp_error(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	h := NewUiHook(view)
+
+	addr := addrs.Resource{
+		Mode: addrs.EphemeralResourceMode,
+		Type: "test_instance",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	action, err := h.PreEphemeralOp(testUiHookResourceID(addr), plans.Close)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+
+	action, err = h.PostEphemeralOp(testUiHookResourceID(addr), plans.Close, errors.New("test error"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+	result := done(t)
+
+	want := `ephemeral.test_instance.foo: Closing...
 `
 	if got := result.Stdout(); got != want {
 		t.Fatalf("unexpected output\n got: %q\nwant: %q", got, want)

@@ -1,16 +1,24 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package plugin
 
 import (
 	"bytes"
 	"fmt"
 	"testing"
+	"time"
 
-	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+	"go.uber.org/mock/gomock"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	mockproto "github.com/hashicorp/terraform/internal/plugin/mock_proto"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
@@ -28,6 +36,13 @@ func mockProviderClient(t *testing.T) *mockproto.MockProviderClient {
 		gomock.Any(),
 		gomock.Any(),
 	).Return(providerProtoSchema(), nil)
+
+	// GetResourceIdentitySchemas is called as part of GetSchema
+	client.EXPECT().GetResourceIdentitySchemas(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(providerResourceIdentitySchemas(), nil)
 
 	return client
 }
@@ -89,6 +104,39 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 				},
 			},
 		},
+		EphemeralResourceSchemas: map[string]*proto.Schema{
+			"ephemeral": &proto.Schema{
+				Block: &proto.Schema_Block{
+					Attributes: []*proto.Schema_Attribute{
+						{
+							Name:     "attr",
+							Type:     []byte(`"string"`),
+							Computed: true,
+						},
+					},
+				},
+			},
+		},
+		ServerCapabilities: &proto.ServerCapabilities{
+			GetProviderSchemaOptional: true,
+		},
+	}
+}
+
+func providerResourceIdentitySchemas() *proto.GetResourceIdentitySchemas_Response {
+	return &proto.GetResourceIdentitySchemas_Response{
+		IdentitySchemas: map[string]*proto.ResourceIdentitySchema{
+			"resource": {
+				Version: 1,
+				IdentityAttributes: []*proto.ResourceIdentitySchema_IdentityAttribute{
+					{
+						Name:              "id_attr",
+						Type:              []byte(`"string"`),
+						RequiredForImport: true,
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -98,6 +146,27 @@ func TestGRPCProvider_GetSchema(t *testing.T) {
 	}
 
 	resp := p.GetProviderSchema()
+	checkDiags(t, resp.Diagnostics)
+}
+
+// ensure that the global schema cache is used when the provider supports
+// GetProviderSchemaOptional
+func TestGRPCProvider_GetSchema_globalCache(t *testing.T) {
+	p := &GRPCProvider{
+		Addr:   addrs.ImpliedProviderForUnqualifiedType("test"),
+		client: mockProviderClient(t),
+	}
+
+	// first call primes the cache
+	resp := p.GetProviderSchema()
+
+	// create a new provider instance which does not expect a GetProviderSchemaCall
+	p = &GRPCProvider{
+		Addr:   addrs.ImpliedProviderForUnqualifiedType("test"),
+		client: mockproto.NewMockProviderClient(gomock.NewController(t)),
+	}
+
+	resp = p.GetProviderSchema()
 	checkDiags(t, resp.Diagnostics)
 }
 
@@ -151,6 +220,94 @@ func TestGRPCProvider_GetSchema_ResponseErrorDiagnostic(t *testing.T) {
 	resp := p.GetProviderSchema()
 
 	checkDiagsHasError(t, resp.Diagnostics)
+}
+
+func TestGRPCProvider_GetSchema_IdentityError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mockproto.NewMockProviderClient(ctrl)
+
+	client.EXPECT().GetSchema(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(providerProtoSchema(), nil)
+
+	client.EXPECT().GetResourceIdentitySchemas(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.GetResourceIdentitySchemas_Response{}, fmt.Errorf("test error"))
+
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	resp := p.GetProviderSchema()
+
+	checkDiagsHasError(t, resp.Diagnostics)
+}
+
+func TestGRPCProvider_GetSchema_IdentityUnimplemented(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mockproto.NewMockProviderClient(ctrl)
+
+	client.EXPECT().GetSchema(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(providerProtoSchema(), nil)
+
+	client.EXPECT().GetResourceIdentitySchemas(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.GetResourceIdentitySchemas_Response{}, status.Error(codes.Unimplemented, "test error"))
+
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	resp := p.GetProviderSchema()
+
+	checkDiags(t, resp.Diagnostics)
+}
+
+func TestGRPCProvider_GetResourceIdentitySchemas(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mockproto.NewMockProviderClient(ctrl)
+
+	client.EXPECT().GetResourceIdentitySchemas(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(providerResourceIdentitySchemas(), nil)
+
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	resp := p.GetResourceIdentitySchemas()
+
+	checkDiags(t, resp.Diagnostics)
+}
+
+func TestGRPCProvider_GetResourceIdentitySchemas_Unimplemented(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mockproto.NewMockProviderClient(ctrl)
+
+	client.EXPECT().GetResourceIdentitySchemas(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.GetResourceIdentitySchemas_Response{}, status.Error(codes.Unimplemented, "test error"))
+
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	resp := p.GetResourceIdentitySchemas()
+
+	checkDiags(t, resp.Diagnostics)
 }
 
 func TestGRPCProvider_PrepareProviderConfig(t *testing.T) {
@@ -269,6 +426,84 @@ func TestGRPCProvider_UpgradeResourceStateJSON(t *testing.T) {
 	}
 }
 
+func TestGRPCProvider_UpgradeResourceIdentity(t *testing.T) {
+	testCases := []struct {
+		desc          string
+		response      *proto.UpgradeResourceIdentity_Response
+		expectError   bool
+		expectedValue cty.Value
+	}{
+		{
+			"successful upgrade",
+			&proto.UpgradeResourceIdentity_Response{
+				UpgradedIdentity: &proto.ResourceIdentityData{
+					IdentityData: &proto.DynamicValue{
+						Json: []byte(`{"id_attr":"bar"}`),
+					},
+				},
+			},
+			false,
+			cty.ObjectVal(map[string]cty.Value{"id_attr": cty.StringVal("bar")}),
+		},
+		{
+			"response with error diagnostic",
+			&proto.UpgradeResourceIdentity_Response{
+				Diagnostics: []*proto.Diagnostic{
+					{
+						Severity: proto.Diagnostic_ERROR,
+						Summary:  "test error",
+						Detail:   "test error detail",
+					},
+				},
+			},
+			true,
+			cty.NilVal,
+		},
+		{
+			"schema mismatch",
+			&proto.UpgradeResourceIdentity_Response{
+				UpgradedIdentity: &proto.ResourceIdentityData{
+					IdentityData: &proto.DynamicValue{
+						Json: []byte(`{"attr_new":"bar"}`),
+					},
+				},
+			},
+			true,
+			cty.NilVal,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			client := mockProviderClient(t)
+			p := &GRPCProvider{
+				client: client,
+			}
+
+			client.EXPECT().UpgradeResourceIdentity(
+				gomock.Any(),
+				gomock.Any(),
+			).Return(tc.response, nil)
+
+			resp := p.UpgradeResourceIdentity(providers.UpgradeResourceIdentityRequest{
+				TypeName:        "resource",
+				Version:         0,
+				RawIdentityJSON: []byte(`{"old_attr":"bar"}`),
+			})
+
+			if tc.expectError {
+				checkDiagsHasError(t, resp.Diagnostics)
+			} else {
+				checkDiags(t, resp.Diagnostics)
+
+				if !cmp.Equal(tc.expectedValue, resp.UpgradedIdentity, typeComparer, valueComparer, equateEmpty) {
+					t.Fatal(cmp.Diff(tc.expectedValue, resp.UpgradedIdentity, typeComparer, valueComparer, equateEmpty))
+				}
+			}
+		})
+	}
+}
+
 func TestGRPCProvider_Configure(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
@@ -336,6 +571,41 @@ func TestGRPCProvider_ReadResource(t *testing.T) {
 
 	if !cmp.Equal(expected, resp.NewState, typeComparer, valueComparer, equateEmpty) {
 		t.Fatal(cmp.Diff(expected, resp.NewState, typeComparer, valueComparer, equateEmpty))
+	}
+}
+
+func TestGRPCProvider_ReadResource_deferred(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	client.EXPECT().ReadResource(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.ReadResource_Response{
+		NewState: &proto.DynamicValue{
+			Msgpack: []byte("\x81\xa4attr\xa3bar"),
+		},
+		Deferred: &proto.Deferred{
+			Reason: proto.Deferred_ABSENT_PREREQ,
+		},
+	}, nil)
+
+	resp := p.ReadResource(providers.ReadResourceRequest{
+		TypeName: "resource",
+		PriorState: cty.ObjectVal(map[string]cty.Value{
+			"attr": cty.StringVal("foo"),
+		}),
+	})
+
+	checkDiags(t, resp.Diagnostics)
+
+	expectedDeferred := &providers.Deferred{
+		Reason: providers.DeferredReasonAbsentPrereq,
+	}
+	if !cmp.Equal(expectedDeferred, resp.Deferred, typeComparer, valueComparer, equateEmpty) {
+		t.Fatal(cmp.Diff(expectedDeferred, resp.Deferred, typeComparer, valueComparer, equateEmpty))
 	}
 }
 
@@ -666,6 +936,7 @@ func TestGRPCProvider_ImportResourceState(t *testing.T) {
 		t.Fatal(cmp.Diff(expectedResource, imported, typeComparer, valueComparer, equateEmpty))
 	}
 }
+
 func TestGRPCProvider_ImportResourceStateJSON(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
@@ -707,6 +978,132 @@ func TestGRPCProvider_ImportResourceStateJSON(t *testing.T) {
 	imported := resp.ImportedResources[0]
 	if !cmp.Equal(expectedResource, imported, typeComparer, valueComparer, equateEmpty) {
 		t.Fatal(cmp.Diff(expectedResource, imported, typeComparer, valueComparer, equateEmpty))
+	}
+}
+
+func TestGRPCProvider_ImportResourceState_Identity(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	client.EXPECT().ImportResourceState(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.ImportResourceState_Response{
+		ImportedResources: []*proto.ImportResourceState_ImportedResource{
+			{
+				TypeName: "resource",
+				State: &proto.DynamicValue{
+					Msgpack: []byte("\x81\xa4attr\xa3bar"),
+				},
+				Identity: &proto.ResourceIdentityData{
+					IdentityData: &proto.DynamicValue{
+						Msgpack: []byte("\x81\xa7id_attr\xa3foo"),
+					},
+				},
+			},
+		},
+	}, nil)
+
+	resp := p.ImportResourceState(providers.ImportResourceStateRequest{
+		TypeName: "resource",
+		Identity: cty.ObjectVal(map[string]cty.Value{
+			"id_attr": cty.StringVal("foo"),
+		}),
+	})
+
+	checkDiags(t, resp.Diagnostics)
+
+	expectedResource := providers.ImportedResource{
+		TypeName: "resource",
+		State: cty.ObjectVal(map[string]cty.Value{
+			"attr": cty.StringVal("bar"),
+		}),
+		Identity: cty.ObjectVal(map[string]cty.Value{
+			"id_attr": cty.StringVal("foo"),
+		}),
+	}
+
+	imported := resp.ImportedResources[0]
+	if !cmp.Equal(expectedResource, imported, typeComparer, valueComparer, equateEmpty) {
+		t.Fatal(cmp.Diff(expectedResource, imported, typeComparer, valueComparer, equateEmpty))
+	}
+}
+
+func TestGRPCProvider_MoveResourceState(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	expectedTargetPrivate := []byte(`{"target": "private"}`)
+	expectedTargetState := cty.ObjectVal(map[string]cty.Value{
+		"attr": cty.StringVal("bar"),
+	})
+
+	client.EXPECT().MoveResourceState(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.MoveResourceState_Response{
+		TargetState: &proto.DynamicValue{
+			Msgpack: []byte("\x81\xa4attr\xa3bar"),
+		},
+		TargetPrivate: expectedTargetPrivate,
+	}, nil)
+
+	resp := p.MoveResourceState(providers.MoveResourceStateRequest{
+		SourcePrivate:   []byte(`{"source": "private"}`),
+		SourceStateJSON: []byte(`{"source_attr":"bar"}`),
+		TargetTypeName:  "resource",
+	})
+
+	checkDiags(t, resp.Diagnostics)
+
+	if !cmp.Equal(expectedTargetPrivate, resp.TargetPrivate, typeComparer, valueComparer, equateEmpty) {
+		t.Fatal(cmp.Diff(expectedTargetPrivate, resp.TargetPrivate, typeComparer, valueComparer, equateEmpty))
+	}
+
+	if !cmp.Equal(expectedTargetState, resp.TargetState, typeComparer, valueComparer, equateEmpty) {
+		t.Fatal(cmp.Diff(expectedTargetState, resp.TargetState, typeComparer, valueComparer, equateEmpty))
+	}
+}
+
+func TestGRPCProvider_MoveResourceStateJSON(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	expectedTargetPrivate := []byte(`{"target": "private"}`)
+	expectedTargetState := cty.ObjectVal(map[string]cty.Value{
+		"attr": cty.StringVal("bar"),
+	})
+
+	client.EXPECT().MoveResourceState(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.MoveResourceState_Response{
+		TargetState: &proto.DynamicValue{
+			Json: []byte(`{"attr":"bar"}`),
+		},
+		TargetPrivate: expectedTargetPrivate,
+	}, nil)
+
+	resp := p.MoveResourceState(providers.MoveResourceStateRequest{
+		SourcePrivate:   []byte(`{"source": "private"}`),
+		SourceStateJSON: []byte(`{"source_attr":"bar"}`),
+		TargetTypeName:  "resource",
+	})
+
+	checkDiags(t, resp.Diagnostics)
+
+	if !cmp.Equal(expectedTargetPrivate, resp.TargetPrivate, typeComparer, valueComparer, equateEmpty) {
+		t.Fatal(cmp.Diff(expectedTargetPrivate, resp.TargetPrivate, typeComparer, valueComparer, equateEmpty))
+	}
+
+	if !cmp.Equal(expectedTargetState, resp.TargetState, typeComparer, valueComparer, equateEmpty) {
+		t.Fatal(cmp.Diff(expectedTargetState, resp.TargetState, typeComparer, valueComparer, equateEmpty))
 	}
 }
 
@@ -774,4 +1171,96 @@ func TestGRPCProvider_ReadDataSourceJSON(t *testing.T) {
 	if !cmp.Equal(expected, resp.State, typeComparer, valueComparer, equateEmpty) {
 		t.Fatal(cmp.Diff(expected, resp.State, typeComparer, valueComparer, equateEmpty))
 	}
+}
+
+func TestGRPCProvider_openEphemeralResource(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	client.EXPECT().OpenEphemeralResource(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.OpenEphemeralResource_Response{
+		Result: &proto.DynamicValue{
+			Msgpack: []byte("\x81\xa4attr\xa3bar"),
+		},
+		RenewAt: timestamppb.New(time.Now().Add(time.Second)),
+		Private: []byte("private data"),
+	}, nil)
+
+	resp := p.OpenEphemeralResource(providers.OpenEphemeralResourceRequest{
+		TypeName: "ephemeral",
+		Config: cty.ObjectVal(map[string]cty.Value{
+			"attr": cty.NullVal(cty.String),
+		}),
+	})
+
+	checkDiags(t, resp.Diagnostics)
+
+	expected := cty.ObjectVal(map[string]cty.Value{
+		"attr": cty.StringVal("bar"),
+	})
+
+	if !cmp.Equal(expected, resp.Result, typeComparer, valueComparer, equateEmpty) {
+		t.Fatal(cmp.Diff(expected, resp.Result, typeComparer, valueComparer, equateEmpty))
+	}
+
+	if !resp.RenewAt.After(time.Now()) {
+		t.Fatal("invalid RenewAt:", resp.RenewAt)
+	}
+
+	if !bytes.Equal(resp.Private, []byte("private data")) {
+		t.Fatalf("invalid private data: %q", resp.Private)
+	}
+}
+
+func TestGRPCProvider_renewEphemeralResource(t *testing.T) {
+	client := mockproto.NewMockProviderClient(gomock.NewController(t))
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	client.EXPECT().RenewEphemeralResource(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.RenewEphemeralResource_Response{
+		RenewAt: timestamppb.New(time.Now().Add(time.Second)),
+		Private: []byte("private data"),
+	}, nil)
+
+	resp := p.RenewEphemeralResource(providers.RenewEphemeralResourceRequest{
+		TypeName: "ephemeral",
+		Private:  []byte("private data"),
+	})
+
+	checkDiags(t, resp.Diagnostics)
+
+	if !resp.RenewAt.After(time.Now()) {
+		t.Fatal("invalid RenewAt:", resp.RenewAt)
+	}
+
+	if !bytes.Equal(resp.Private, []byte("private data")) {
+		t.Fatalf("invalid private data: %q", resp.Private)
+	}
+}
+
+func TestGRPCProvider_closeEphemeralResource(t *testing.T) {
+	client := mockproto.NewMockProviderClient(gomock.NewController(t))
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	client.EXPECT().CloseEphemeralResource(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.CloseEphemeralResource_Response{}, nil)
+
+	resp := p.CloseEphemeralResource(providers.CloseEphemeralResourceRequest{
+		TypeName: "ephemeral",
+		Private:  []byte("private data"),
+	})
+
+	checkDiags(t, resp.Diagnostics)
 }

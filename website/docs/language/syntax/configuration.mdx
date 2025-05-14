@@ -15,7 +15,7 @@ those constructs are built from.
 This page describes the _native syntax_ of the Terraform language, which is
 a rich language designed to be relatively easy for humans to read and write.
 The constructs in the Terraform language can also be expressed in
-[JSON syntax](/language/syntax/json), which is harder for humans
+[JSON syntax](/terraform/language/syntax/json), which is harder for humans
 to read and edit but easier to generate and parse programmatically.
 
 This low-level syntax of the Terraform language is defined in terms of a
@@ -46,7 +46,7 @@ after the equals sign is the argument's value.
 The context where the argument appears determines what value types are valid
 (for example, each resource type has a schema that defines the types of its
 arguments), but many arguments accept arbitrary
-[expressions](/language/expressions), which allow the value to
+[expressions](/terraform/language/expressions), which allow the value to
 either be specified literally or generated from other values programmatically.
 
 -> **Note:** Terraform's configuration language is based on a more general
@@ -76,6 +76,7 @@ resource "aws_instance" "example" {
 A block has a _type_ (`resource` in this example). Each block type defines
 how many _labels_ must follow the type keyword. The `resource` block type
 expects two labels, which are `aws_instance` and `example` in the example above.
+The `aws_instance` label is specific to the AWS provider. It specifies the `resource` type that Terraform provisions when you apply the configuration. The second label is an arbitrary name that you can add to the particular instance of the resource. You can create multiple instances of the same block type and differentiate them by giving each instance a unique name. In this example, the Terraform configuration author assigned the `example` label to this instance of the `aws_instance` resource. 
 A particular block type may have any number of required labels, or it may
 require none as with the nested `network_interface` block type.
 

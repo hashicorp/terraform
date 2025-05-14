@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -5,10 +8,10 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/mitchellh/cli"
 )
 
 func TestVersionCommand_implements(t *testing.T) {
@@ -103,7 +106,7 @@ func TestVersion_outdated(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "Terraform v4.5.6\non aros_riscv64\n\nYour version of Terraform is out of date! The latest version\nis 4.5.7. You can update by downloading from https://www.terraform.io/downloads.html"
+	expected := "Terraform v4.5.6\non aros_riscv64\n\nYour version of Terraform is out of date! The latest version\nis 4.5.7. You can update by downloading from https://developer.hashicorp.com/terraform/install"
 	if actual != expected {
 		t.Fatalf("wrong output\ngot: %#v\nwant: %#v", actual, expected)
 	}

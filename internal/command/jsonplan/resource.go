@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonplan
 
 import (
@@ -6,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
-// Resource is the representation of a resource in the json plan
+// resource is the representation of a resource in the json plan
 type resource struct {
 	// Address is the absolute resource address
 	Address string `json:"address,omitempty"`
@@ -39,12 +42,22 @@ type resource struct {
 	// SensitiveValues is similar to AttributeValues, but with all sensitive
 	// values replaced with true, and all non-sensitive leaf values omitted.
 	SensitiveValues json.RawMessage `json:"sensitive_values,omitempty"`
+
+	// The version of the resource identity schema the "identity" property
+	// conforms to.
+	// It's a pointer, because it should be optional, but also 0 is a valid
+	// schema version.
+	IdentitySchemaVersion *uint64 `json:"identity_schema_version,omitempty"`
+
+	// The JSON representation of the resource identity, whose structure
+	// depends on the resource identity schema.
+	IdentityValues attributeValues `json:"identity,omitempty"`
 }
 
-// resourceChange is a description of an individual change action that Terraform
+// ResourceChange is a description of an individual change action that Terraform
 // plans to use to move from the prior state to a new state matching the
 // configuration.
-type resourceChange struct {
+type ResourceChange struct {
 	// Address is the absolute resource address
 	Address string `json:"address,omitempty"`
 
@@ -67,10 +80,11 @@ type resourceChange struct {
 	// "managed" or "data"
 	Mode string `json:"mode,omitempty"`
 
-	Type         string            `json:"type,omitempty"`
-	Name         string            `json:"name,omitempty"`
-	Index        addrs.InstanceKey `json:"index,omitempty"`
-	ProviderName string            `json:"provider_name,omitempty"`
+	Type         string          `json:"type,omitempty"`
+	Name         string          `json:"name,omitempty"`
+	Index        json.RawMessage `json:"index,omitempty"`
+	IndexUnknown bool            `json:"index_unknown,omitempty"`
+	ProviderName string          `json:"provider_name,omitempty"`
 
 	// "deposed", if set, indicates that this action applies to a "deposed"
 	// object of the given instance rather than to its "current" object. Omitted
@@ -78,7 +92,7 @@ type resourceChange struct {
 	Deposed string `json:"deposed,omitempty"`
 
 	// Change describes the change that will be made to this object
-	Change change `json:"change,omitempty"`
+	Change Change `json:"change,omitempty"`
 
 	// ActionReason is a keyword representing some optional extra context
 	// for why the actions in Change.Actions were chosen.
@@ -89,4 +103,14 @@ type resourceChange struct {
 	// information should be resilient to encountering unrecognized values
 	// and treat them as an unspecified reason.
 	ActionReason string `json:"action_reason,omitempty"`
+}
+
+// DeferredResourceChange is a description of a resource change that has been
+// deferred for some reason.
+type DeferredResourceChange struct {
+	// Reason is the reason why this resource change was deferred.
+	Reason string `json:"reason"`
+
+	// Change contains any information we have about the deferred change.
+	ResourceChange ResourceChange `json:"resource_change"`
 }

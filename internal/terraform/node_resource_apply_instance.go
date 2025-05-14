@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -6,8 +9,10 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -23,10 +28,6 @@ type NodeApplyableResourceInstance struct {
 	*NodeAbstractResourceInstance
 
 	graphNodeDeposer // implementation of GraphNodeDeposerConfig
-
-	// If this node is forced to be CreateBeforeDestroy, we need to record that
-	// in the state to.
-	ForceCreateBeforeDestroy bool
 
 	// forceReplace are resource instance addresses where the user wants to
 	// force generating a replace action. This set isn't pre-filtered, so
@@ -44,24 +45,6 @@ var (
 	_ GraphNodeExecutable         = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
 )
-
-// CreateBeforeDestroy returns this node's CreateBeforeDestroy status.
-func (n *NodeApplyableResourceInstance) CreateBeforeDestroy() bool {
-	if n.ForceCreateBeforeDestroy {
-		return n.ForceCreateBeforeDestroy
-	}
-
-	if n.Config != nil && n.Config.Managed != nil {
-		return n.Config.Managed.CreateBeforeDestroy
-	}
-
-	return false
-}
-
-func (n *NodeApplyableResourceInstance) ModifyCreateBeforeDestroy(v bool) error {
-	n.ForceCreateBeforeDestroy = v
-	return nil
-}
 
 // GraphNodeCreator
 func (n *NodeApplyableResourceInstance) CreateAddr() *addrs.AbsResourceInstance {
@@ -113,11 +96,16 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 	addr := n.ResourceInstanceAddr()
 
 	if n.Config == nil {
-		// This should not be possible, but we've got here in at least one
-		// case as discussed in the following issue:
-		//    https://github.com/hashicorp/terraform/issues/21258
-		// To avoid an outright crash here, we'll instead return an explicit
-		// error.
+		// If there is no config, and there is no change, then we have nothing
+		// to do and the change was left in the plan for informational
+		// purposes only.
+		changes := ctx.Changes()
+		csrc := changes.GetResourceInstanceChange(n.ResourceInstanceAddr(), addrs.NotDeposed)
+		if csrc == nil || csrc.Action == plans.NoOp {
+			log.Printf("[DEBUG] NodeApplyableResourceInstance: No config or planned change recorded for %s", n.Addr)
+			return nil
+		}
+
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Resource node has no configuration attached",
@@ -135,9 +123,21 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 		return n.managedResourceExecute(ctx)
 	case addrs.DataResourceMode:
 		return n.dataResourceExecute(ctx)
+	case addrs.EphemeralResourceMode:
+		return n.ephemeralResourceExecute(ctx)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
+}
+
+func (n *NodeApplyableResourceInstance) ephemeralResourceExecute(ctx EvalContext) tfdiags.Diagnostics {
+	_, diags := ephemeralResourceOpen(ctx, ephemeralResourceInput{
+		addr:           n.Addr,
+		config:         n.Config,
+		providerConfig: n.ResolvedProvider,
+	})
+
+	return diags
 }
 
 func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
@@ -265,9 +265,20 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	diffApply, _, _, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
+	diffApply, _, deferred, repeatData, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
+		return diags
+	}
+
+	if deferred != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Resource deferred during apply, but not during plan",
+			fmt.Sprintf(
+				"Terraform has encountered a bug where a provider would mark the resource %q as deferred during apply, but not during plan. This is most likely a bug in the provider. Please file an issue with the provider.", n.Addr,
+			),
+		))
 		return diags
 	}
 
@@ -290,7 +301,14 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	state, repeatData, applyDiags := n.apply(ctx, state, diffApply, n.Config, n.CreateBeforeDestroy())
+	// If there is no change, there was nothing to apply, and we don't need to
+	// re-write the state, but we do need to re-evaluate postconditions.
+	if diffApply.Action == plans.NoOp {
+		return diags.Append(n.managedResourcePostconditions(ctx, repeatData))
+	}
+
+	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, repeatData, n.CreateBeforeDestroy())
+
 	diags = diags.Append(applyDiags)
 
 	// We clear the change out here so that future nodes don't see a change
@@ -365,15 +383,18 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// _after_ writing the state because we want to check against
 	// the result of the operation, and to fail on future operations
 	// until the user makes the condition succeed.
+	return diags.Append(n.managedResourcePostconditions(ctx, repeatData))
+}
+
+func (n *NodeApplyableResourceInstance) managedResourcePostconditions(ctx EvalContext, repeatData instances.RepetitionData) (diags tfdiags.Diagnostics) {
+
 	checkDiags := evalCheckRules(
 		addrs.ResourcePostcondition,
 		n.Config.Postconditions,
 		ctx, n.ResourceInstanceAddr(), repeatData,
 		tfdiags.Error,
 	)
-	diags = diags.Append(checkDiags)
-
-	return diags
+	return diags.Append(checkDiags)
 }
 
 // checkPlannedChange produces errors if the _actual_ expected value is not
@@ -382,12 +403,12 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 // Errors here are most often indicative of a bug in the provider, so our error
 // messages will report with that in mind. It's also possible that there's a bug
 // in Terraform's Core's own "proposed new value" code in EvalDiff.
-func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plannedChange, actualChange *plans.ResourceInstanceChange, providerSchema *ProviderSchema) tfdiags.Diagnostics {
+func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plannedChange, actualChange *plans.ResourceInstanceChange, providerSchema providers.ProviderSchema) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	addr := n.ResourceInstanceAddr().Resource
 
-	schema, _ := providerSchema.SchemaForResourceAddr(addr.ContainingResource())
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceAddr(addr.ContainingResource())
+	if schema.Body == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support %q", addr.Resource.Type))
 		return diags
@@ -429,7 +450,7 @@ func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plan
 		}
 	}
 
-	errs := objchange.AssertObjectCompatible(schema, plannedChange.After, actualChange.After)
+	errs := objchange.AssertObjectCompatible(schema.Body, plannedChange.After, actualChange.After)
 	for _, err := range errs {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,

@@ -1,22 +1,25 @@
 ---
-page_title: Basic CLI Features
-description: An introduction to the terraform command and its available subcommands.
+page_title: Terraform CLI overview
+description: The Terrafrom CLI includes commands for provisioning infrastructure as code and managing the infrastructure lifecycle. Learn about Terraform CLI features.
 ---
 
-# Basic CLI Features
+# Terraform CLI Overview
 
-> **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
+This topic provides an overview of the Terraform command line interface.
 
-The command line interface to Terraform is via the `terraform` command, which
+> **Hands-on:** Try the [Terraform: Get Started](/terraform/tutorials/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials.
+
+
+## Introduction
+
+The command line interface to Terraform is the `terraform` command, which
 accepts a variety of subcommands such as `terraform init` or `terraform plan`.
-A full list of all of the supported subcommands is in the navigation section
-of this page.
 
 We refer to the `terraform` command line tool as "Terraform CLI" elsewhere
 in the documentation. This terminology is often used to distinguish it from
 other components you might use in the Terraform product family, such as
-[Terraform Cloud](/cloud-docs) or
-the various [Terraform providers](/language/providers), which
+[HCP Terraform](/terraform/cloud-docs) or
+the various [Terraform providers](/terraform/language/providers), which
 are developed and released separately from Terraform CLI.
 
 To view a list of the commands available in your current Terraform version,
@@ -45,6 +48,8 @@ All other commands:
   import        Associate existing infrastructure with a Terraform resource
   login         Obtain and save credentials for a remote host
   logout        Remove locally-stored credentials for a remote host
+  metadata      Metadata related commands
+  modules       Show all declared modules in a working directory
   output        Show output values from your root module
   providers     Show the providers required for this configuration
   refresh       Update the state to match remote systems
@@ -58,7 +63,7 @@ All other commands:
 Global options (use these before the subcommand, if any):
   -chdir=DIR    Switch to a different working directory before executing the
                 given subcommand.
-  -help         Show this help output, or the help for a specified subcommand.
+  -help         Show this help output or the help for a specified subcommand.
   -version      An alias for the "version" subcommand.
 ```
 
@@ -69,10 +74,9 @@ To get specific help for any specific command, use the `-help` option with the
 relevant subcommand. For example, to see help about the "validate" subcommand
 you can run `terraform validate -help`.
 
-The inline help built in to Terraform CLI describes the most important
+The inline help built into Terraform CLI describes the most important
 characteristics of each command. For more detailed information, refer to each
-command's section of this documentation, available in the navigation
-section of this page.
+command's page for details.
 
 ## Switching working directory with `-chdir`
 
@@ -98,7 +102,7 @@ will be read or written in the given directory instead.
 There are two exceptions where Terraform will use the original working directory
 even when you specify `-chdir=...`:
 
-* Settings in the [CLI Configuration](/cli/config/config-file) are not for a specific
+* Settings in the [CLI Configuration](/terraform/cli/config/config-file) are not for a specific
   subcommand and Terraform processes them before acting on the `-chdir`
   option.
 
@@ -110,8 +114,7 @@ even when you specify `-chdir=...`:
 ## Shell Tab-completion
 
 If you use either `bash` or `zsh` as your command shell, Terraform can provide
-tab-completion support for all command names and (at this time) _some_ command
-arguments.
+tab-completion support for all command names and some command arguments.
 
 To add the necessary commands to your shell profile, run the following command:
 
@@ -129,14 +132,11 @@ manually in the shell profile, run the following command:
 terraform -uninstall-autocomplete
 ```
 
-Currently not all of Terraform's subcommands have full tab-completion support
-for all arguments. We plan to improve tab-completion coverage over time.
-
 ## Upgrade and Security Bulletin Checks
 
 The Terraform CLI commands interact with the HashiCorp service
 [Checkpoint](https://checkpoint.hashicorp.com/) to check for the availability
-of new versions and for critical security bulletins about the current version.
+of new versions and critical security bulletins about the current version.
 
 One place where the effect of this can be seen is in `terraform version`, where
 it is used by default to indicate in the output when a newer version is
@@ -151,7 +151,7 @@ Checkpoint itself can be entirely disabled for all HashiCorp products by
 setting the environment variable `CHECKPOINT_DISABLE` to any non-empty value.
 
 Alternatively, settings in
-[the CLI configuration file](/cli/config/config-file) can be used to
+[the CLI configuration file](/terraform/cli/config/config-file) can be used to
 disable checkpoint features. The following checkpoint-related settings are
 supported in this file:
 

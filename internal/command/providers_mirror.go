@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -10,6 +13,7 @@ import (
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/go-getter"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -30,8 +34,13 @@ func (c *ProvidersMirrorCommand) Synopsis() string {
 func (c *ProvidersMirrorCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	cmdFlags := c.Meta.defaultFlagSet("providers mirror")
-	var optPlatforms FlagStringSlice
+
+	var optPlatforms arguments.FlagStringSlice
 	cmdFlags.Var(&optPlatforms, "platform", "target platform")
+
+	var optLockFile bool
+	cmdFlags.BoolVar(&optLockFile, "lock-file", true, "use lock file")
+
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
@@ -71,10 +80,29 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 		}
 	}
 
+	// Installation steps can be cancelled by SIGINT and similar.
+	ctx, done := c.InterruptibleContext(c.CommandContext())
+	defer done()
+
 	config, confDiags := c.loadConfig(".")
 	diags = diags.Append(confDiags)
 	reqs, moreDiags := config.ProviderRequirements()
 	diags = diags.Append(moreDiags)
+
+	// Read lock file
+	lockedDeps, lockedDepsDiags := c.Meta.lockedDependencies()
+	diags = diags.Append(lockedDepsDiags)
+
+	// If lock file is present, validate it against configuration
+	if !lockedDeps.Empty() && optLockFile {
+		if errs := config.VerifyDependencySelections(lockedDeps); len(errs) > 0 {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Inconsistent dependency lock file",
+				fmt.Sprintf("To update the locked dependency selections to match a changed configuration, run:\n  terraform init -upgrade\n got:%v", errs),
+			))
+		}
+	}
 
 	// If we have any error diagnostics already then we won't proceed further.
 	if diags.HasErrors() {
@@ -114,8 +142,6 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 	//   infrequently to update a mirror, so it doesn't need to optimize away
 	//   fetches of packages that might already be present.
 
-	ctx, cancel := c.InterruptibleContext()
-	defer cancel()
 	for provider, constraints := range reqs {
 		if provider.IsBuiltIn() {
 			c.Ui.Output(fmt.Sprintf("- Skipping %s because it is built in to Terraform CLI", provider.ForDisplay()))
@@ -140,7 +166,10 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 			continue
 		}
 		selected := candidates.Newest()
-		if len(constraintsStr) > 0 {
+		if !lockedDeps.Empty() && optLockFile {
+			selected = lockedDeps.Provider(provider).Version()
+			c.Ui.Output(fmt.Sprintf("  - Selected v%s to match dependency lock file", selected.String()))
+		} else if len(constraintsStr) > 0 {
 			c.Ui.Output(fmt.Sprintf("  - Selected v%s to meet constraints %s", selected.String(), constraintsStr))
 		} else {
 			c.Ui.Output(fmt.Sprintf("  - Selected v%s with no constraints", selected.String()))
@@ -355,5 +384,10 @@ Options:
                      Linux operating system running on an AMD64 or x86_64
                      CPU. Each provider is available only for a limited
                      set of target platforms.
+
+  -lock-file=false  Ignore the provider lock file when fetching providers.
+                    By default the mirror command will use the version info
+                    in the lock file if the configuration directory has been
+                    previously initialized.
 `
 }

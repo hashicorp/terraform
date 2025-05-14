@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package e2etest
 
 import (
@@ -146,7 +149,7 @@ func TestInitProvidersLocalOnly(t *testing.T) {
 	// not work until you remove it.
 	//
 	// To avoid this, we will  "zero out" any existing cli config file.
-	tf.AddEnv("TF_CLI_CONFIG_FILE=\"\"")
+	tf.AddEnv("TF_CLI_CONFIG_FILE=")
 
 	// Our fixture dir has a generic os_arch dir, which we need to customize
 	// to the actual OS/arch where this test is running in order to get the
@@ -371,14 +374,13 @@ func TestInitProviderNotFound(t *testing.T) {
 │ Could not retrieve the list of available versions for provider
 │ hashicorp/nonexist: provider registry registry.terraform.io does not have a
 │ provider named registry.terraform.io/hashicorp/nonexist
-│ 
+│` + ` ` + `
 │ All modules should specify their required_providers so that external
 │ consumers will get the correct providers when using a module. To see which
 │ modules are currently depending on hashicorp/nonexist, run the following
 │ command:
 │     terraform providers
 ╵
-
 `
 		if stripAnsi(stderr) != expectedErr {
 			t.Errorf("wrong output:\n%s", cmp.Diff(stripAnsi(stderr), expectedErr))

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -16,7 +19,7 @@ import (
 
 func dataSourceRemoteStateGetSchema() providers.Schema {
 	return providers.Schema{
-		Block: &configschema.Block{
+		Body: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"backend": {
 					Type:            cty.String,
@@ -166,11 +169,8 @@ func dataSourceRemoteStateRead(d cty.Value) (cty.Value, tfdiags.Diagnostics) {
 		newState["outputs"] = cty.EmptyObjectVal
 		return cty.ObjectVal(newState), diags
 	}
-	mod := remoteState.RootModule()
-	if mod != nil { // should always have a root module in any valid state
-		for k, os := range mod.OutputValues {
-			outputs[k] = os.Value
-		}
+	for k, os := range remoteState.RootOutputValues {
+		outputs[k] = os.Value
 	}
 
 	newState["outputs"] = cty.ObjectVal(outputs)
@@ -239,7 +239,7 @@ func getBackend(cfg cty.Value) (backend.Backend, cty.Value, tfdiags.Diagnostics)
 		return nil, cty.NilVal, diags
 	}
 
-	// If this is the enhanced remote backend, we want to disable the version
+	// If this is the remote OperationsBackend, we want to disable the version
 	// check, because this is a read-only operation
 	if rb, ok := b.(*remote.Remote); ok {
 		rb.IgnoreVersionConflict()

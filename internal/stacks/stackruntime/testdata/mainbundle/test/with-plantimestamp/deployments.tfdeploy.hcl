@@ -1,0 +1,3 @@
+deployment "main" {
+  inputs = {}
+}

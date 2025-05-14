@@ -1,26 +1,40 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
+	"context"
+
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
+
+type hookFunc func(func(Hook) (HookAction, error)) error
 
 // EvalContext is the interface that is given to eval nodes to execute.
 type EvalContext interface {
-	// Stopped returns a channel that is closed when evaluation is stopped
-	// via Terraform.Context.Stop()
-	Stopped() <-chan struct{}
+	// Stopped returns a context that is canceled when evaluation is stopped via
+	// Terraform.Context.Stop()
+	StopCtx() context.Context
 
 	// Path is the current module path.
 	Path() addrs.ModuleInstance
@@ -38,7 +52,7 @@ type EvalContext interface {
 	// It is an error to initialize the same provider more than once. This
 	// method will panic if the module instance address of the given provider
 	// configuration does not match the Path() of the EvalContext.
-	InitProvider(addr addrs.AbsProviderConfig) (providers.Interface, error)
+	InitProvider(addr addrs.AbsProviderConfig, configs *configs.Provider) (providers.Interface, error)
 
 	// Provider gets the provider instance with the given address (already
 	// initialized) or returns nil if the provider isn't initialized.
@@ -54,7 +68,7 @@ type EvalContext interface {
 	//
 	// This method expects an _absolute_ provider configuration address, since
 	// resources in one module are able to use providers from other modules.
-	ProviderSchema(addrs.AbsProviderConfig) (*ProviderSchema, error)
+	ProviderSchema(addrs.AbsProviderConfig) (providers.ProviderSchema, error)
 
 	// CloseProvider closes provider connections that aren't needed anymore.
 	//
@@ -87,8 +101,8 @@ type EvalContext interface {
 	// InitProvisioner.
 	ProvisionerSchema(string) (*configschema.Block, error)
 
-	// CloseProvisioner closes all provisioner plugins.
-	CloseProvisioners() error
+	// ClosePlugins closes all cached provisioner and provider plugins.
+	ClosePlugins() error
 
 	// EvaluateBlock takes the given raw configuration block and associated
 	// schema and evaluates it to produce a value of an object type that
@@ -125,37 +139,21 @@ type EvalContext interface {
 
 	// EvaluationScope returns a scope that can be used to evaluate reference
 	// addresses in this context.
-	EvaluationScope(self addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope
+	EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope
 
-	// SetRootModuleArgument defines the value for one variable of the root
-	// module. The caller must ensure that given value is a suitable
-	// "final value" for the variable, which means that it's already converted
-	// and validated to match any configured constraints and validation rules.
-	//
-	// Calling this function multiple times with the same variable address
-	// will silently overwrite the value provided by a previous call.
-	SetRootModuleArgument(addrs.InputVariable, cty.Value)
+	// LanguageExperimentActive returns true if the given experiment is
+	// active in the module associated with this EvalContext, or false
+	// otherwise.
+	LanguageExperimentActive(experiment experiments.Experiment) bool
 
-	// SetModuleCallArgument defines the value for one input variable of a
-	// particular child module call. The caller must ensure that the given
-	// value is a suitable "final value" for the variable, which means that
-	// it's already converted and validated to match any configured
-	// constraints and validation rules.
-	//
-	// Calling this function multiple times with the same variable address
-	// will silently overwrite the value provided by a previous call.
-	SetModuleCallArgument(addrs.ModuleCallInstance, addrs.InputVariable, cty.Value)
+	// EphemeralResources returns a helper object for tracking active
+	// instances of ephemeral resources declared in the configuration.
+	EphemeralResources() *ephemeral.Resources
 
-	// GetVariableValue returns the value provided for the input variable with
-	// the given address, or cty.DynamicVal if the variable hasn't been assigned
-	// a value yet.
-	//
-	// Most callers should deal with variable values only indirectly via
-	// EvaluationScope and the other expression evaluation functions, but
-	// this is provided because variables tend to be evaluated outside of
-	// the context of the module they belong to and so we sometimes need to
-	// override the normal expression evaluation behavior.
-	GetVariableValue(addr addrs.AbsInputVariableInstance) cty.Value
+	// NamedValues returns the object that tracks the gradual evaluation of
+	// all input variables, local values, and output values during a graph
+	// walk.
+	NamedValues() *namedvals.State
 
 	// Changes returns the writer object that can be used to write new proposed
 	// changes into the global changes set.
@@ -188,6 +186,15 @@ type EvalContext interface {
 	// EvalContext objects for a given configuration.
 	InstanceExpander() *instances.Expander
 
+	// Deferrals returns a helper object for tracking deferred actions, which
+	// means that Terraform either cannot plan an action at all or cannot
+	// perform a planned action due to an upstream dependency being deferred.
+	Deferrals() *deferring.Deferred
+
+	// ClientCapabilities returns the client capabilities sent to the providers
+	// for each request. They define what this terraform instance is capable of.
+	ClientCapabilities() providers.ClientCapabilities
+
 	// MoveResults returns a map describing the results of handling any
 	// resource instance move statements prior to the graph walk, so that
 	// the graph walk can then record that information appropriately in other
@@ -198,7 +205,21 @@ type EvalContext interface {
 	// objects accessible through it.
 	MoveResults() refactoring.MoveResults
 
-	// WithPath returns a copy of the context with the internal path set to the
-	// path argument.
-	WithPath(path addrs.ModuleInstance) EvalContext
+	// Overrides contains the modules and resources we should mock as part of
+	// this execution.
+	Overrides() *mocking.Overrides
+
+	// withScope derives a new EvalContext that has all of the same global
+	// context, but a new evaluation scope.
+	withScope(scope evalContextScope) EvalContext
+
+	// Forget if set to true will cause the plan to forget all resources. This is
+	// only allowed in the context of a destroy plan.
+	Forget() bool
+}
+
+func evalContextForModuleInstance(baseCtx EvalContext, addr addrs.ModuleInstance) EvalContext {
+	return baseCtx.withScope(evalContextModuleInstance{
+		Addr: addr,
+	})
 }

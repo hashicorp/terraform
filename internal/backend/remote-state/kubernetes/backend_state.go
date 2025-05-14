@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package kubernetes
 
 import (
@@ -6,11 +9,12 @@ import (
 	"fmt"
 	"sort"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Workspaces returns a list of names for the workspaces found in k8s. The default
@@ -60,7 +64,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 	return states, nil
 }
 
-func (b *Backend) DeleteWorkspace(name string) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 	if name == backend.DefaultStateName || name == "" {
 		return fmt.Errorf("can't delete default state")
 	}
@@ -96,7 +100,8 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 			return nil, err
 		}
 
-		secretName, err := c.createSecretName()
+		// get base secret name
+		secretName, err := c.createSecretName(0)
 		if err != nil {
 			return nil, err
 		}
@@ -123,7 +128,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		if err := stateMgr.WriteState(states.NewState()); err != nil {
 			return nil, unlock(err)
 		}
-		if err := stateMgr.PersistState(); err != nil {
+		if err := stateMgr.PersistState(nil); err != nil {
 			return nil, unlock(err)
 		}
 

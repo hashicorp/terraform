@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -27,6 +30,10 @@ const DefaultPluginVendorDir = "terraform.d/plugins/" + pluginMachineName
 // DefaultStateFilename is the default filename used for the state file.
 const DefaultStateFilename = "terraform.tfstate"
 
+// DefaultStatePersistInterval is the default interval a backend should persist
+// Terraform state, if applicable. Backends can set their own custom defaults.
+const DefaultStatePersistInterval = 20
+
 // DefaultVarsFilename is the default filename used for vars
 const DefaultVarsFilename = "terraform.tfvars"
 
@@ -38,7 +45,7 @@ const DefaultBackupExtension = ".backup"
 const DefaultParallelism = 10
 
 // ErrUnsupportedLocalOp is the common error message shown for operations
-// that require a backend.Local.
+// that require a backendrun.Local.
 const ErrUnsupportedLocalOp = `The configured backend doesn't support this operation.
 
 The "backend" in Terraform defines how Terraform operates. The default

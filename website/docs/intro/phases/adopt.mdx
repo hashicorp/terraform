@@ -1,0 +1,55 @@
+---
+page_title: Adopt Terraform
+description: Establish strong foundational practices that support future scale and make Terraform operations predictable and secure. 
+---
+
+# Adopt Terraform
+
+An individual practitioner can establish strong foundational practices that support future scale and make Terraform operations predictable and secure. 
+
+## Use version control
+
+Store your Terraform configuration in a version control system, such as Git, just as you would with your application code. Terraform configuration files are code, and will benefit from the same features as your application in a version control repository such as versioning and easier code reviews.
+
+<Warning>
+
+Do not store [`terraform.tfstate` state files](/terraform/language/state), provider credentials, or sensitive values in version control. Use a [gitignore file](https://github.com/github/gitignore/blob/main/Terraform.gitignore) to avoid accidentally committing sensitive files. 
+
+</Warning>
+
+You can [connect your VCS provider to HCP Terraform](/terraform/cloud-docs/vcs) to automatically initiate Terraform runs and view [speculative plans that let you preview your infrastructure changes](/terraform/cloud-docs/run/ui#speculative-plans-on-pull-requests) in your pull requests. 
+
+## Reuse code with modules
+
+Terraform modules group resources that you usually deploy together, letting you define reusable units of infrastructure code. For example, when you create a VPC in AWS, you may also need to create subnets, the route table, the internet gateway, security groups, and more. Instead of defining the individual resources and configuring the relationships between them every time you need a new VPC, you can use the [VPC module](https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws/latest), which you can customize using input variables to quickly create the required infrastructure. The [public Terraform module registry](https://registry.terraform.io/browse/modules) offers many modules that encode best practices for common use cases. 
+
+You can also create your own modules to deploy the specific infrastructure required by your services. Even a small three-tier application may require many Terraform-managed resources. A module lets you contain that complexity, turning each deployment of the application stack into a short, readable, and reusable configuration. The following Terraform configuration references a local module stored at `./modules/appstack` that takes in two arguments named `web_instance_count` and `api_instance_count`:
+
+```hcl
+module "appstack" {
+  source = "./modules/appstack"
+
+  web_instance_count = 2
+  api_instance_count = 1
+}
+
+output "web_instance_ips" {
+  value = module.appstack.web_ips
+}
+```
+
+[Follow our tutorials to learn how to use and develop modules](/terraform/tutorials/modules/module) and explore the [public Terraform module registry](https://registry.terraform.io/browse/modules). 
+
+## Use secrets storage
+
+Your configuration may rely on sensitive values, such as provider credentials. Although you can mark certain variables as sensitive to prevent displaying them as plaintext in run output, a more robust solution is to use secrets storage such as [HashiCorp Vault](/vault)
+
+Vault securely stores sensitive information such as credentials and provides granular access control. You can integrate Vault into your Terraform configuration using the [Vault provider](https://registry.terraform.io/providers/hashicorp/vault/latest/docs/data-sources/generic_secret). If you deploy your infrastructure to a major cloud provider, such as AWS, you can also [generate short-lived credentials with Vault](/terraform/tutorials/secrets/secrets-vault) or use [dynamic provider credentials](/terraform/cloud-docs/workspaces/dynamic-provider-credentials), which prevents having to store credentials. 
+
+Vault also integrates into many popular CI/CD solutions such as [GitHub, Jenkins, and CircleCI](/well-architected-framework/security/security-cicd-vault). Vault provides a central system to store and access data, which lets CI/CD pipelines push and pull secrets programmatically.
+
+## Next steps
+
+Multiple developers working on the same codebase introduces a new set of challenges, but solutions such as remote state backends help ease collaboration and coordinate execution. 
+
+[Learn how to collaborate with Terraform](/terraform/intro/phases/collaborate).

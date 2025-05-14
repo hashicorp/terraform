@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonplan
 
 import (
@@ -5,12 +8,18 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/zclconf/go-cty/cty"
 )
+
+func ptrOf[T any](v T) *T {
+	return &v
+}
 
 func TestMarshalAttributeValues(t *testing.T) {
 	tests := []struct {
@@ -100,7 +109,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got := marshalAttributeValues(test.Attr, test.Schema)
+		got := marshalAttributeValues(test.Attr)
 		eq := reflect.DeepEqual(got, test.Want)
 		if !eq {
 			t.Fatalf("wrong result:\nGot: %#v\nWant: %#v\n", got, test.Want)
@@ -112,17 +121,17 @@ func TestMarshalPlannedOutputs(t *testing.T) {
 	after, _ := plans.NewDynamicValue(cty.StringVal("after"), cty.DynamicPseudoType)
 
 	tests := []struct {
-		Changes *plans.Changes
+		Changes *plans.ChangesSrc
 		Want    map[string]output
 		Err     bool
 	}{
 		{
-			&plans.Changes{},
+			&plans.ChangesSrc{},
 			nil,
 			false,
 		},
 		{
-			&plans.Changes{
+			&plans.ChangesSrc{
 				Outputs: []*plans.OutputChangeSrc{
 					{
 						Addr: addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
@@ -144,7 +153,7 @@ func TestMarshalPlannedOutputs(t *testing.T) {
 			false,
 		},
 		{ // Delete action
-			&plans.Changes{
+			&plans.ChangesSrc{
 				Outputs: []*plans.OutputChangeSrc{
 					{
 						Addr: addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
@@ -180,11 +189,13 @@ func TestMarshalPlannedOutputs(t *testing.T) {
 
 func TestMarshalPlanResources(t *testing.T) {
 	tests := map[string]struct {
-		Action plans.Action
-		Before cty.Value
-		After  cty.Value
-		Want   []resource
-		Err    bool
+		Action         plans.Action
+		Before         cty.Value
+		After          cty.Value
+		Want           []resource
+		Err            bool
+		BeforeIdentity cty.Value
+		AfterIdentity  cty.Value
 	}{
 		"create with unknowns": {
 			Action: plans.Create,
@@ -252,6 +263,37 @@ func TestMarshalPlanResources(t *testing.T) {
 			}},
 			Err: false,
 		},
+		"with identity": {
+			Action: plans.Create,
+			Before: cty.NullVal(cty.EmptyObject),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"woozles": cty.StringVal("woo"),
+				"foozles": cty.NullVal(cty.String),
+			}),
+			BeforeIdentity: cty.NullVal(cty.EmptyObject),
+			AfterIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("someId"),
+			}),
+			Want: []resource{{
+				Address:       "test_thing.example",
+				Mode:          "managed",
+				Type:          "test_thing",
+				Name:          "example",
+				Index:         addrs.InstanceKey(nil),
+				ProviderName:  "registry.terraform.io/hashicorp/test",
+				SchemaVersion: 1,
+				AttributeValues: attributeValues{
+					"woozles": json.RawMessage(`"woo"`),
+					"foozles": json.RawMessage(`null`),
+				},
+				SensitiveValues:       json.RawMessage("{}"),
+				IdentitySchemaVersion: ptrOf[uint64](2),
+				IdentityValues: attributeValues{
+					"id": json.RawMessage(`"someId"`),
+				},
+			}},
+			Err: false,
+		},
 	}
 
 	for name, test := range tests {
@@ -265,7 +307,24 @@ func TestMarshalPlanResources(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			testChange := &plans.Changes{
+
+			var beforeIdentity, afterIdentity plans.DynamicValue
+			if !test.BeforeIdentity.IsNull() {
+				var err error
+				beforeIdentity, err = plans.NewDynamicValue(test.BeforeIdentity, test.BeforeIdentity.Type())
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			if !test.AfterIdentity.IsNull() {
+				var err error
+				afterIdentity, err = plans.NewDynamicValue(test.AfterIdentity, test.AfterIdentity.Type())
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			testChange := &plans.ChangesSrc{
 				Resources: []*plans.ResourceInstanceChangeSrc{
 					{
 						Addr: addrs.Resource{
@@ -278,9 +337,11 @@ func TestMarshalPlanResources(t *testing.T) {
 							Module:   addrs.RootModule,
 						},
 						ChangeSrc: plans.ChangeSrc{
-							Action: test.Action,
-							Before: before,
-							After:  after,
+							Action:         test.Action,
+							Before:         before,
+							After:          after,
+							BeforeIdentity: beforeIdentity,
+							AfterIdentity:  afterIdentity,
 						},
 					},
 				},
@@ -311,7 +372,7 @@ func TestMarshalPlanValuesNoopDeposed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	testChange := &plans.Changes{
+	testChange := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: addrs.Resource{
@@ -341,18 +402,25 @@ func TestMarshalPlanValuesNoopDeposed(t *testing.T) {
 
 func testSchemas() *terraform.Schemas {
 	return &terraform.Schemas{
-		Providers: map[addrs.Provider]*terraform.ProviderSchema{
-			addrs.NewDefaultProvider("test"): &terraform.ProviderSchema{
-				ResourceTypes: map[string]*configschema.Block{
+		Providers: map[addrs.Provider]providers.ProviderSchema{
+			addrs.NewDefaultProvider("test"): providers.ProviderSchema{
+				ResourceTypes: map[string]providers.Schema{
 					"test_thing": {
-						Attributes: map[string]*configschema.Attribute{
-							"woozles": {Type: cty.String, Optional: true, Computed: true},
-							"foozles": {Type: cty.String, Optional: true},
+						Version: 1,
+						Body: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"woozles": {Type: cty.String, Optional: true, Computed: true},
+								"foozles": {Type: cty.String, Optional: true},
+							},
+						},
+						IdentityVersion: 2,
+						Identity: &configschema.Object{
+							Attributes: map[string]*configschema.Attribute{
+								"id": {Type: cty.String, Required: true},
+							},
+							Nesting: configschema.NestingSingle,
 						},
 					},
-				},
-				ResourceTypeSchemaVersions: map[string]uint64{
-					"test_thing": 1,
 				},
 			},
 		},

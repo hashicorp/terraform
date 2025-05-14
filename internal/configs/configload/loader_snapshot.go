@@ -1,18 +1,23 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configload
 
 import (
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"time"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/spf13/afero"
+
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/modsdir"
-	"github.com/spf13/afero"
 )
 
 // LoadConfigWithSnapshot is a variant of LoadConfig that also simultaneously
@@ -28,7 +33,7 @@ func (l *Loader) LoadConfigWithSnapshot(rootDir string) (*configs.Config, *Snaps
 		Modules: map[string]*SnapshotModule{},
 	}
 	walker := l.makeModuleWalkerSnapshot(snap)
-	cfg, cDiags := configs.BuildConfig(rootMod, walker)
+	cfg, cDiags := configs.BuildConfig(rootMod, walker, configs.MockDataLoaderFunc(l.LoadExternalMockData))
 	diags = append(diags, cDiags...)
 
 	addDiags := l.addModuleToSnapshot(snap, "", rootDir, "", nil)
@@ -253,11 +258,7 @@ func (fs snapshotFS) Open(name string) (afero.File, error) {
 		modDir := filepath.Clean(candidate.Dir)
 		if modDir == directDir {
 			// We've matched the module directory itself
-			filenames := make([]string, 0, len(candidate.Files))
-			for n := range candidate.Files {
-				filenames = append(filenames, n)
-			}
-			sort.Strings(filenames)
+			filenames := slices.Sorted(maps.Keys(candidate.Files))
 			return &snapshotDir{
 				filenames: filenames,
 			}, nil
@@ -323,6 +324,10 @@ func (fs snapshotFS) Name() string {
 
 func (fs snapshotFS) Chmod(name string, mode os.FileMode) error {
 	return fmt.Errorf("cannot set file mode inside configuration snapshot")
+}
+
+func (snapshotFS) Chown(name string, uid int, gid int) error {
+	return fmt.Errorf("cannot set file owner inside configuration snapshot")
 }
 
 func (fs snapshotFS) Chtimes(name string, atime, mtime time.Time) error {

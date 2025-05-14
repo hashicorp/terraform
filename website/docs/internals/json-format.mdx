@@ -1,19 +1,20 @@
 ---
-page_title: 'Internals: JSON Output Format'
+page_title: JSON output format
 description: >-
-  Terraform provides a machine-readable JSON representation of state,
-  configuration and plan.
+  Learn how to configure Terraform to print JSON-formatted details about state, configuration, and proposed infrastructure plans. 
 ---
 
-# JSON Output Format
+# JSON Output Format Overview
 
--> **Note:** This format is available in Terraform 0.12 and later.
+This topic provides overview information about the JSON output Terraform prints to the terminal. 
+
+## Introduction
 
 When Terraform plans to make changes, it prints a human-readable summary to the terminal. It can also, when run with `-out=<PATH>`, write a much more detailed binary plan file, which can later be used to apply those changes.
 
-Since the format of plan files isn't suited for use with external tools (and likely never will be), Terraform can output a machine-readable JSON representation of a plan file's changes. It can also convert state files to the same format, to simplify data loading and provide better long-term compatibility.
+Terraform can output a machine-readable JSON representation of a plan file's changes. It can also convert state files to the same format, to simplify data loading and provide better long-term compatibility.
 
-Use `terraform show -json <FILE>` to generate a JSON representation of a plan or state file. See [the `terraform show` documentation](/cli/commands/show) for more details.
+Use `terraform show -json <FILE>` to generate a JSON representation of a plan or state file. See [the `terraform show` documentation](/terraform/cli/commands/show) for more details.
 
 The output includes a `format_version` key, which as of Terraform 1.1.0 has
 value `"1.0"`. The semantics of this version are:
@@ -24,9 +25,6 @@ value `"1.0"`. The semantics of this version are:
 - We will increment the major version, e.g. `"2.0"`, for changes that are not
   backward-compatible. Reject any input which reports an unsupported major
   version.
-
-We will introduce new major versions only within the bounds of
-[the Terraform 1.0 Compatibility Promises](/language/v1-compatibility-promises).
 
 ## Format Summary
 
@@ -49,7 +47,7 @@ The JSON output format consists of the following objects and sub-objects:
 
 ## State Representation
 
-Because state does not currently have any significant metadata not covered by the common values representation ([described below](#values-representation)), the `<state-representation>` is straightforward:
+State does not have any significant metadata not included in the common [values representation](#values-representation), so the `<state-representation>` uses the following format:
 
 ```javascript
 {
@@ -60,8 +58,6 @@ Because state does not currently have any significant metadata not covered by th
   "terraform_version": "version.string"
 }
 ```
-
-The extra wrapping object here will allow for any extension we may need to add in future versions of this format.
 
 ## Plan Representation
 
@@ -76,6 +72,34 @@ For ease of consumption by callers, the plan representation includes a partial r
   // "prior_state" is a representation of the state that the configuration is
   // being applied to, using the state representation described above.
   "prior_state":  <state-representation>,
+
+  // "applyable" indicates that it would make sense for a wrapping automation
+  // to try to apply this plan, possibly after asking a human operator for
+  // approval.
+  //
+  // Other attributes may give additional context about why the plan is not
+  // applyable, but wrapping automations should use this flag as their
+  // primary condition to accommodate potential changes to the exact definition
+  // of "applyable" in future Terraform versions.
+  "applyable": true,
+
+  // "complete" indicates that Terraform expects that after applying this
+  // plan the actual state will match the desired state.
+  //
+  // An incomplete plan is expected to require at least one additional
+  // plan/apply round to achieve convergence, and so wrapping automations
+  // should ideally either automatically start a new plan/apply round after
+  // this plan is applied, or prompt the operator that they should do so.
+  //
+  // Other attributes may give additional context about why the plan is not
+  // complete, but wrapping automations should use this flag as their
+  // primary condition to accommodate potential changes to the exact definition
+  // of "complete" in future Terraform versions.
+  "complete": true,
+
+  // "errored" indicates whether planning failed. An errored plan cannot be applied,
+  // but the actions planned before failure may help to understand the error.
+  "errored": false,
 
   // "configuration" is a representation of the configuration being applied to the
   // prior state, using the configuration representation described above.
@@ -184,7 +208,7 @@ For ease of consumption by callers, the plan representation includes a partial r
       //
       // If there is no special reason to note, Terraform will omit this
       // property altogether.
-      action_reason: "replace_because_tainted"
+      "action_reason": "replace_because_tainted"
     }
   ],
 
@@ -246,7 +270,7 @@ The following example illustrates the structure of a `<values-representation>`:
 ```javascript
 {
   // "outputs" describes the outputs from the root module. Outputs from
-  // descendent modules are not available because they are not retained in all
+  // descendant modules are not available because they are not retained in all
   // of the underlying structures we will build this values representation from.
   "outputs": {
     "private_ip": {
@@ -340,7 +364,7 @@ The following example illustrates the structure of a `<values-representation>`:
 }
 ```
 
-The translation of attribute and output values is the same intuitive mapping from HCL types to JSON types used by Terraform's [`jsonencode`](/language/functions/jsonencode) function. This mapping does lose some information: lists, sets, and tuples all lower to JSON arrays while maps and objects both lower to JSON objects. Unknown values and null values are both treated as absent or null.
+The translation of attribute and output values is the same intuitive mapping from HCL types to JSON types used by Terraform's [`jsonencode`](/terraform/language/functions/jsonencode) function. This mapping does lose some information: lists, sets, and tuples all lower to JSON arrays while maps and objects both lower to JSON objects. Unknown values and null values are both treated as absent or null.
 
 Output values include a `"type"` field, which is a [serialization of the value's type](https://pkg.go.dev/github.com/zclconf/go-cty/cty#Type.MarshalJSON). For primitive types this is a string value, such as `"number"` or `"bool"`. Complex types are represented as a nested JSON array, such as `["map","string"]` or `["object",{"a":"number"}]`. This can be used to reconstruct the output value with the correct type.
 
@@ -378,7 +402,7 @@ Because the configuration models are produced at a stage prior to expression eva
       "alias": "foo",
 
       // "module_address" is included only for provider configurations that are
-      // declared in a descendent module, and gives the opaque address for the
+      // declared in a descendant module, and gives the opaque address for the
       // module that contains the provider configuration.
       "module_address": "module.child",
 
@@ -390,7 +414,7 @@ Because the configuration models are produced at a stage prior to expression eva
   },
 
   // "root_module" describes the root module in the configuration, and serves
-  // as the root of a tree of similar objects describing descendent modules.
+  // as the root of a tree of similar objects describing descendant modules.
   "root_module": {
 
     // "outputs" describes the output value configurations in the module.
@@ -608,13 +632,20 @@ A `<change-representation>` describes the change to the indicated object.
   // replacement (for example, if the resource was tainted). Each path
   // consists of one or more steps, each of which will be a number or a
   // string.
-  "replace_paths": [["triggers"]]
+  "replace_paths": [["triggers"]],
+
+  // "importing" is present only when the object is being imported as part
+  // of this change.
+  "importing": {
+    // "id" is the import ID of the object being imported.
+    "id": "foo"
+  }
 }
 ```
 
 ## Checks Representation
 
-~> **Warning:** The JSON representation of "checks" is currently experimental
+~> **Warning:** The JSON representation of checks is experimental
 and some details may change in future Terraform versions based on feedback,
 even in minor releases of Terraform CLI.
 
@@ -629,8 +660,7 @@ A `<checks-representation>` describes the current state of a checkable object in
       // "kind" specifies what kind of checkable object this is. Different
       // kinds of object will have different additional properties inside the
       // address object, but all kinds include both "kind" and "to_display".
-      // Currently the two valid kinds are "resource" and "output_value", but
-      // additional kinds may be added in future Terraform versions.
+      // The two valid kinds are "resource" and "output_value".
       "kind": "resource",
 
       // "to_display" contains an opaque string representation of the address

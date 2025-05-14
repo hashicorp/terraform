@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -5,11 +8,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/mitchellh/reflectwalk"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
-	"github.com/mitchellh/reflectwalk"
 )
 
 func TestResourceConfigGet(t *testing.T) {

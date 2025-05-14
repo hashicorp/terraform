@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package main
 
 import (
@@ -20,7 +23,7 @@ func Test_apply_no_input_flag(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-input=false"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized`,
 						},
 						{
 							command:           []string{"apply", "-input=false"},
@@ -42,7 +45,7 @@ func Test_apply_no_input_flag(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-input=false"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized`,
 						},
 						{
 							command:           []string{"apply", "-auto-approve", "-input=false"},

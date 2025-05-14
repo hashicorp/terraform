@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonprovider
 
 import (
@@ -7,9 +10,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-type attribute struct {
+type Attribute struct {
 	AttributeType       json.RawMessage `json:"type,omitempty"`
-	AttributeNestedType *nestedType     `json:"nested_type,omitempty"`
+	AttributeNestedType *NestedType     `json:"nested_type,omitempty"`
 	Description         string          `json:"description,omitempty"`
 	DescriptionKind     string          `json:"description_kind,omitempty"`
 	Deprecated          bool            `json:"deprecated,omitempty"`
@@ -17,10 +20,11 @@ type attribute struct {
 	Optional            bool            `json:"optional,omitempty"`
 	Computed            bool            `json:"computed,omitempty"`
 	Sensitive           bool            `json:"sensitive,omitempty"`
+	WriteOnly           bool            `json:"write_only,omitempty"`
 }
 
-type nestedType struct {
-	Attributes  map[string]*attribute `json:"attributes,omitempty"`
+type NestedType struct {
+	Attributes  map[string]*Attribute `json:"attributes,omitempty"`
 	NestingMode string                `json:"nesting_mode,omitempty"`
 }
 
@@ -33,8 +37,8 @@ func marshalStringKind(sk configschema.StringKind) string {
 	}
 }
 
-func marshalAttribute(attr *configschema.Attribute) *attribute {
-	ret := &attribute{
+func marshalAttribute(attr *configschema.Attribute) *Attribute {
+	ret := &Attribute{
 		Description:     attr.Description,
 		DescriptionKind: marshalStringKind(attr.DescriptionKind),
 		Required:        attr.Required,
@@ -42,6 +46,7 @@ func marshalAttribute(attr *configschema.Attribute) *attribute {
 		Computed:        attr.Computed,
 		Sensitive:       attr.Sensitive,
 		Deprecated:      attr.Deprecated,
+		WriteOnly:       attr.WriteOnly,
 	}
 
 	// we're not concerned about errors because at this point the schema has
@@ -52,15 +57,39 @@ func marshalAttribute(attr *configschema.Attribute) *attribute {
 	}
 
 	if attr.NestedType != nil {
-		nestedTy := nestedType{
+		nestedTy := NestedType{
 			NestingMode: nestingModeString(attr.NestedType.Nesting),
 		}
-		attrs := make(map[string]*attribute, len(attr.NestedType.Attributes))
+		attrs := make(map[string]*Attribute, len(attr.NestedType.Attributes))
 		for k, attr := range attr.NestedType.Attributes {
 			attrs[k] = marshalAttribute(attr)
 		}
 		nestedTy.Attributes = attrs
 		ret.AttributeNestedType = &nestedTy
+	}
+
+	return ret
+}
+
+type IdentityAttribute struct {
+	IdentityType      json.RawMessage `json:"type,omitempty"`
+	Description       string          `json:"description,omitempty"`
+	RequiredForImport bool            `json:"required_for_import,omitempty"`
+	OptionalForImport bool            `json:"optional_for_import,omitempty"`
+}
+
+func marshalIdentityAttribute(attr *configschema.Attribute) *IdentityAttribute {
+	ret := &IdentityAttribute{
+		Description:       attr.Description,
+		RequiredForImport: attr.Required,
+		OptionalForImport: attr.Optional,
+	}
+
+	// we're not concerned about errors because at this point the schema has
+	// already been checked and re-checked.
+	if attr.Type != cty.NilType {
+		attrTy, _ := attr.Type.MarshalJSON()
+		ret.IdentityType = attrTy
 	}
 
 	return ret

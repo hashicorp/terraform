@@ -9,7 +9,7 @@
 #
 # For this test in particular we're using the "vendor" directory that is
 # the documented way to include provider plugins directly inside a
-# configuration uploaded to Terraform Cloud, but this functionality applies
+# configuration uploaded to HCP Terraform, but this functionality applies
 # to all of the implicit local filesystem search directories.
 
 terraform {

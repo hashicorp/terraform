@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package oss
 
 import (
@@ -5,6 +8,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -12,9 +16,7 @@ import (
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
-	"github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/pkg/errors"
 
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -180,23 +182,22 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 		},
 	}
 
-	log.Printf("[DEBUG] Recording state lock in tablestore: %#v", putParams)
+	log.Printf("[DEBUG] Recording state lock in tablestore: %#v; LOCKID:%s", putParams, c.lockPath())
 
 	_, err := c.otsClient.PutRow(&tablestore.PutRowRequest{
 		PutRowChange: putParams,
 	})
 	if err != nil {
-		log.Printf("[WARN] Error storing state lock in tablestore: %#v", err)
+		err = fmt.Errorf("invoking PutRow got an error: %#v", err)
 		lockInfo, infoErr := c.getLockInfo()
 		if infoErr != nil {
-			log.Printf("[WARN] Error getting lock info: %#v", err)
-			err = multierror.Append(err, infoErr)
+			err = errors.Join(err, fmt.Errorf("\ngetting lock info got an error: %#v", infoErr))
 		}
 		lockErr := &statemgr.LockError{
 			Err:  err,
 			Info: lockInfo,
 		}
-		log.Printf("[WARN] state lock error: %#v", lockErr)
+		log.Printf("[ERROR] state lock error: %s", lockErr.Error())
 		return "", lockErr
 	}
 
@@ -386,12 +387,10 @@ func (c *RemoteClient) Unlock(id string) error {
 				},
 			},
 			Condition: &tablestore.RowCondition{
-				RowExistenceExpectation: tablestore.RowExistenceExpectation_EXPECT_EXIST,
+				RowExistenceExpectation: tablestore.RowExistenceExpectation_IGNORE,
 			},
 		},
 	}
-
-	log.Printf("[DEBUG] Deleting state lock from tablestore: %#v", params)
 
 	_, err = c.otsClient.DeleteRow(params)
 

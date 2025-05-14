@@ -1,43 +1,42 @@
 ---
-page_title: Import
+page_title: Import existing infrastructure resources
 description: >-
-  Terraform can import and manage existing infrastructure. This can help you
-  transition your infrastructure to Terraform.
+  Terraform lets you import existing infrastructure into state so that you can begin managing your infrastructure as code.
 ---
 
-# Import
+# Import existing resources overview
 
-> **Hands-on:** Try the [Import Terraform Configuration](https://learn.hashicorp.com/tutorials/terraform/state-import?in=terraform/state&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+This topic provides an overview of the Terraform commands that let you import existing infrastructure resources so that you can manage them with Terraform. 
 
-Terraform is able to import existing infrastructure. This allows you take
-resources you've created by some other means and bring it under Terraform
-management.
+> **Hands-on:** Try the [Import Terraform Configuration](/terraform/tutorials/state/state-import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
-This is a great way to slowly transition infrastructure to Terraform, or
-to be able to be confident that you can use Terraform in the future if it
-potentially doesn't support every feature you need today.
 
-~> Warning: Terraform expects that each remote object it is managing will be
-bound to only one resource address, which is normally guaranteed by Terraform
-itself having created all objects. If you import existing objects into Terraform,
-be careful to import each remote object to only one Terraform resource address.
-If you import the same object multiple times, Terraform may exhibit unwanted
-behavior. For more information on this assumption, see
-[the State section](/language/state).
+## Workflows
 
-## Currently State Only
+You can import an existing resource to state from the Terraform CLI. You can also perform import operations using HCP Terraform. To import multiple resources, use the `import` block.  
 
-The current implementation of Terraform import can only import resources
-into the [state](/language/state). It does not generate configuration. A future
-version of Terraform will also generate configuration.
+### Import to state
 
-Because of this, prior to running `terraform import` it is necessary to write
-manually a `resource` configuration block for the resource, to which the
-imported object will be mapped.
+Before you run `terraform import` you must manually write a `resource` configuration block for the resource. The resource block describes where Terraform should map the imported object.
 
-While this may seem tedious, it still gives Terraform users an avenue for
-importing existing resources.
+The `terraform import` CLI command can only import resources into the [state](/terraform/language/state). Importing via the CLI does _not_ generate configuration. If you want to generate the accompanying configuration for imported resources, [use the `import` block instead](/terraform/language/import).
 
-## Terraform Cloud
+Terraform expects each remote object to be bound to a single resource address. You should import each remote object to one Terraform resource address. Importing the same object multiple times may result in unwanted behavior. Refer to [State](/terraform/language/state) for more details.
 
-When you use Terraform on the command line with Terraform Cloud, many commands (e.g., `apply`) run inside your Terraform Cloud environment. However, the `import` command runs locally, so it will not have access to information from Terraform Cloud. To successfully perform an import, you may need to set local variables equivalent to any remote workspace variables in Terraform Cloud.
+### HCP Terraform
+
+When you use Terraform on the command line with HCP Terraform, commands such as `apply` run inside your HCP Terraform environment. However, the `import` command runs locally, so it does not have access to information from HCP Terraform. To successfully perform an import, you may need to set local variables equivalent to any remote workspace variables in HCP Terraform.
+
+### Import multiple resources
+
+You can specify multiple resources in the `import` block to import more than one resource at a time. You can also review imports as part of your normal plan and apply workflow. Refer to the [`import` block reference ](/terraform/language/import) in the Terraform configuration language documentation for addtitional information.
+
+## Resource importability
+
+Each resource in Terraform must implement some basic logic to become
+importable. As a result, you cannot import all Terraform resources.
+
+The resources that you can import are documented at the bottom of
+each resource documentation page in the [Terraform Registry](https://registry.terraform.io/). If you have issues importing a resource, report an issue in the relevant provider repository.
+
+To make a resource importable, refer to [Extending Terraform: Resources — Import](/terraform/plugin/sdkv2/resources/import).
