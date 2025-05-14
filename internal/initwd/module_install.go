@@ -97,7 +97,7 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 	log.Printf("[TRACE] ModuleInstaller: installing child modules for %s into %s", rootDir, i.modsDir)
 	var diags tfdiags.Diagnostics
 
-	rootMod, mDiags := i.loader.Parser().LoadConfigDir(rootDir, configs.MatchQueryFiles(), configs.MatchTestFiles(testsDir))
+	rootMod, mDiags := i.loader.Parser().LoadConfigDir(rootDir, configs.MatchTestFiles(testsDir))
 	if rootMod == nil {
 		// We drop the diagnostics here because we only want to report module
 		// loading errors after checking the core version constraints, which we
@@ -380,7 +380,7 @@ func (i *ModuleInstaller) installLocalModule(req *configs.ModuleRequest, key str
 	}
 
 	// Finally we are ready to try actually loading the module.
-	mod, mDiags := i.loader.Parser().LoadConfigDir(newDir, configs.MatchQueryFiles())
+	mod, mDiags := i.loader.Parser().LoadConfigDir(newDir)
 	if mod == nil {
 		// nil indicates missing or unreadable directory, so we'll
 		// discard the returned diags and return a more specific

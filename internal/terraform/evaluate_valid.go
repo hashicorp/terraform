@@ -311,16 +311,10 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 func staticValidateListResourceReference(modCfg *configs.Config, addr addrs.Resource, source addrs.Referenceable, plugins *contextPlugins, remain hcl.Traversal, rng tfdiags.SourceRange) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	var modeAdjective string
-	modeArticleUpper := "A"
-	modeAdjective = "list"
-
-	listAsList := modCfg.HasListBlocks()
-
 	// For an address that starts with list.<type>, it takes precedence as being a list resource
-	// over a managed resource. So we need to check if the list resource
-	// is declared first, and if not, then check if the managed resource
-	// is declared.
+	// over a managed resource. If the list resource is not declared, we will
+	// return an error, but if the managed resource is declared, we will
+	// include a suggestion to use the managed resource instead.
 	cfg := modCfg.Module.ResourceByAddr(addr)
 	if cfg == nil {
 		mAddr := addrs.Resource{
@@ -328,7 +322,7 @@ func staticValidateListResourceReference(modCfg *configs.Config, addr addrs.Reso
 			Type: "list",
 			Name: addr.Type,
 		}
-		if listAsList {
+		if modCfg.HasListBlocks() {
 			detail := fmt.Sprintf(
 				`A list resource %q has not been declared in %s.`,
 				addr, moduleConfigDisplayAddr(modCfg.Path),
@@ -345,8 +339,6 @@ func staticValidateListResourceReference(modCfg *configs.Config, addr addrs.Reso
 			return diags
 		}
 	}
-
-	// okay. we have a list resource.
 
 	if cfg.Container != nil && (source == nil || !cfg.Container.Accessible(source)) {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -372,27 +364,6 @@ func staticValidateListResourceReference(modCfg *configs.Config, addr addrs.Reso
 			Subject:  rng.ToHCL().Ptr(),
 		})
 	}
-
-	// if this resource is a list resource, we validate if there is a managed resource
-	// block with the same name, which will typically be a collision. If a managed resource
-	// of type list is declared, then this reference is ambiguous, and we should
-	// return an error.
-	mAddr := addrs.Resource{
-		Mode: addrs.ManagedResourceMode,
-		Type: "list",
-		Name: addr.Type,
-	}
-	cfg = modCfg.Module.ResourceByAddr(mAddr)
-	if cfg != nil {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  `Ambiguous resource reference`,
-			Detail:   fmt.Sprintf(`The resource reference %s is ambiguous because its type is the same as the top-level namespace %q. Replace the reference with the fully qualified name of the resource, e.g. resource.%s`, addr, mAddr.Type, addr),
-			Subject:  rng.ToHCL().Ptr(),
-		})
-		return diags
-	}
-
 	// if remain is empty, then we are looking at a list resource (list.aws_instance.foo),
 	// which we support as a direct for_each
 
@@ -403,7 +374,7 @@ func staticValidateListResourceReference(modCfg *configs.Config, addr addrs.Reso
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  `Invalid list resource traversal`,
-				Detail:   fmt.Sprintf(`The first step in the traversal for a %s resource must be an attribute "data", but got %T instead.`, modeAdjective, remain[0]),
+				Detail:   fmt.Sprintf(`The first step in the traversal for a list resource must be an attribute "data", but got %T instead.`, remain[0]),
 				Subject:  rng.ToHCL().Ptr(),
 			})
 			return diags
@@ -415,13 +386,13 @@ func staticValidateListResourceReference(modCfg *configs.Config, addr addrs.Reso
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  `Invalid list resource traversal`,
-				Detail:   fmt.Sprintf(`The second step in the traversal for a %s resource must be an index, but got %T instead.`, modeAdjective, remain[0]),
+				Detail:   fmt.Sprintf(`The second step in the traversal for a list resource must be an index, but got %T instead.`, remain[0]),
 				Subject:  rng.ToHCL().Ptr(),
 			})
 			return diags
 		}
 		// remove the index, and now we have the rest of the traversal,
-		// which we can validate against the schema
+		// which we can validate against the managed resource's schema
 		remain = remain[1:]
 	}
 
@@ -433,8 +404,7 @@ func staticValidateListResourceReference(modCfg *configs.Config, addr addrs.Reso
 			Severity: hcl.DiagError,
 			Summary:  `Invalid resource type`,
 			Detail: fmt.Sprintf(
-				`%s %s resource type %q is not supported by provider %q.`,
-				modeArticleUpper, modeAdjective,
+				`A list resource type %q is not supported by provider %q.`,
 				addr.Type,
 				providerFqn.String(),
 			),

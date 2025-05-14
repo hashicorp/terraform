@@ -50,6 +50,7 @@ type Module struct {
 	DataResources      map[string]*Resource
 	EphemeralResources map[string]*Resource
 	ListResources      map[string]*Resource
+	Actions            map[string]*Action
 
 	Moved   []*Moved
 	Removed []*Removed
@@ -96,7 +97,8 @@ type File struct {
 	Removed []*Removed
 	Import  []*Import
 
-	Checks []*Check
+	Checks  []*Check
+	Actions []*Action
 }
 
 // NewModuleWithTests matches NewModule except it will also load in the provided
@@ -133,6 +135,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		Checks:             map[string]*Check{},
 		ProviderMetas:      map[addrs.Provider]*ProviderMeta{},
 		Tests:              map[string]*TestFile{},
+		Actions:            map[string]*Action{},
 	}
 
 	// Process the required_providers blocks first, to ensure that all
@@ -495,6 +498,35 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		m.Import = append(m.Import, i)
 	}
 
+	for _, a := range file.Actions {
+		key := a.moduleUniqueKey()
+		if existing, exists := m.Actions[key]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Duplicate action %q configuration", existing.Type),
+				Detail:   fmt.Sprintf("An action named %q was already declared at %s. Resource names must be unique per type in each module.", existing.Name, existing.DeclRange),
+				Subject:  &a.DeclRange,
+			})
+			continue
+		}
+		m.Actions[key] = a
+
+		// set the provider FQN for the action
+		if a.ProviderConfigRef != nil {
+			a.Provider = m.ProviderForLocalConfig(a.ProviderConfigAddr())
+		} else {
+			// an invalid resource name (for e.g. "null resource" instead of
+			// "null_resource") can cause a panic down the line in addrs:
+			// https://github.com/hashicorp/terraform/issues/25560
+			implied, err := addrs.ParseProviderPart(a.Addr().ImpliedProvider())
+			if err == nil {
+				a.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+			}
+			// We don't return a diagnostic because the invalid resource name
+			// will already have been caught.
+		}
+	}
+
 	return diags
 }
 
@@ -752,6 +784,22 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			Detail:   "Import blocks can appear only in normal files, not in override files.",
 			Subject:  m.DeclRange.Ptr(),
 		})
+	}
+
+	for _, a := range file.Actions {
+		key := a.moduleUniqueKey()
+		existing, exists := m.Actions[key]
+		if !exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing resource to override",
+				Detail:   fmt.Sprintf("There is no action named %q. An override file can only override a resource block defined in a primary configuration file.", a.Name),
+				Subject:  &a.DeclRange,
+			})
+			continue
+		}
+		mergeDiags := existing.merge(a, m.ProviderRequirements.RequiredProviders)
+		diags = append(diags, mergeDiags...)
 	}
 
 	return diags

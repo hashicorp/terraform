@@ -93,7 +93,7 @@ func loadQueryFile(body hcl.Body) (*QueryFile, hcl.Diagnostics) {
 func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
-	content, remain, contentDiags := block.Body.PartialContent(QueryListResourceBlockSchema)
+	content, contentDiags := block.Body.Content(QueryListResourceBlockSchema)
 	diags = append(diags, contentDiags...)
 
 	r := Resource{
@@ -102,7 +102,6 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		TypeRange: block.LabelRanges[0],
 		Name:      block.Labels[1],
 		DeclRange: block.DefRange,
-		Config:    remain,
 	}
 
 	if attr, exists := content.Attributes["provider"]; exists {
@@ -143,6 +142,19 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 				Subject:  &attr.NameRange,
 			})
 		}
+	}
+
+	if len(content.Blocks) != 1 {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid number of blocks",
+			Detail:   "A list block must contain exactly one \"config\" block.",
+			Subject:  block.DefRange.Ptr(),
+		})
+	} else {
+		// Decode the config block.
+		configBlock := content.Blocks[0]
+		r.Config = configBlock.Body
 	}
 
 	return &r, diags

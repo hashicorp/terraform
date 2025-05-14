@@ -153,37 +153,47 @@ func TestParserLoadConfigDirWithQueries(t *testing.T) {
 	tests := []struct {
 		name             string
 		directory        string
-		shouldFail       bool
 		diagnostics      []string
 		listResources    int
 		managedResources int
+		allowExperiments bool
 	}{
 		{
-			name:          "simple",
-			directory:     "testdata/query-files/valid/simple",
-			listResources: 2,
+			name:             "simple",
+			directory:        "testdata/query-files/valid/simple",
+			listResources:    2,
+			allowExperiments: true,
 		},
 		{
 			name:             "mixed",
 			directory:        "testdata/query-files/valid/mixed",
 			listResources:    2,
 			managedResources: 1,
+			allowExperiments: true,
 		},
 		{
-			name:       "no-provider",
-			directory:  "testdata/query-files/invalid/no-provider",
-			shouldFail: true,
+			name:             "loading query lists with no-experiments",
+			directory:        "testdata/query-files/valid/mixed",
+			managedResources: 1,
+			listResources:    0,
+			allowExperiments: false,
+		},
+		{
+			name:      "no-provider",
+			directory: "testdata/query-files/invalid/no-provider",
 			diagnostics: []string{
 				"testdata/query-files/invalid/no-provider/main.tfquery.hcl:1,1-27: Missing \"provider\" attribute; You must specify a provider attribute when defining a list block.",
 			},
+			allowExperiments: true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			parser := NewParser(nil)
-			mod, diags := parser.LoadConfigDir(test.directory, MatchQueryFiles())
-			if test.shouldFail {
+			parser.AllowLanguageExperiments(test.allowExperiments)
+			mod, diags := parser.LoadConfigDir(test.directory)
+			if len(test.diagnostics) > 0 {
 				if !diags.HasErrors() {
 					t.Errorf("expected errors, but found none")
 				}
@@ -303,7 +313,7 @@ func TestParserLoadTestFiles_Invalid(t *testing.T) {
 
 func TestParserLoadConfigDirWithTests_ReturnsWarnings(t *testing.T) {
 	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDirWithTests("testdata/valid-modules/with-tests", "not_real")
+	mod, diags := parser.LoadConfigDir("testdata/valid-modules/with-tests", MatchTestFiles("not_real"))
 	if len(diags) != 1 {
 		t.Errorf("expected exactly 1 diagnostic, but found %d", len(diags))
 	} else {
@@ -435,7 +445,7 @@ func TestIsEmptyDir_noConfigsButHasTests(t *testing.T) {
 func TestParserLoadConfigDir_reservedNamespace(t *testing.T) {
 	dir := filepath.Join("testdata", "invalid-modules", "reserved-namespaces")
 	parser := NewParser(nil)
-	_, diags := parser.LoadConfigDir(dir, MatchTestFiles("tests"), MatchQueryFiles())
+	_, diags := parser.LoadConfigDir(dir, MatchTestFiles("tests"))
 	if !diags.HasErrors() {
 		t.Errorf("no errors; want at least one")
 		for _, diag := range diags {
