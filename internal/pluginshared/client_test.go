@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package cloudplugin
+package pluginshared
 
 import (
 	"bytes"
@@ -52,8 +52,8 @@ func TestCloudPluginClient_DownloadFile(t *testing.T) {
 
 	t.Run("404 response", func(t *testing.T) {
 		err := client.DownloadFile("/archives/nope.zip", io.Discard)
-		if !errors.Is(err, ErrCloudPluginNotFound) {
-			t.Fatalf("expected error %q, got %q", ErrCloudPluginNotFound, err)
+		if !errors.Is(err, ErrPluginNotFound) {
+			t.Fatalf("expected error %q, got %q", ErrPluginNotFound, err)
 		}
 	})
 }
@@ -116,7 +116,7 @@ func TestCloudPluginClient_NotSupportedByTerraformCloud(t *testing.T) {
 	}
 
 	_, err = client.FetchManifest(time.Time{})
-	if !errors.Is(err, ErrCloudPluginNotSupported) {
+	if !errors.Is(err, ErrPluginNotSupported) {
 		t.Errorf("Expected ErrCloudPluginNotSupported, got %v", err)
 	}
 }
