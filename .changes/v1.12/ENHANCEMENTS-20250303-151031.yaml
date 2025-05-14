@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: Improved elapsed time display in UI Hook to show minutes and seconds in `mm:ss` format.
-time: 2025-03-03T15:10:31.423108698-03:00
-custom:
-    Issue: "36368"

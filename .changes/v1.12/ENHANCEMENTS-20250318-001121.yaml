@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: Update legacy term used in error messages. (Terraform Cloud agent => HCP Terraform Agent)
-time: 2025-03-18T00:11:21.679162+09:00
-custom:
-    Issue: "36706"
