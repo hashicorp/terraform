@@ -152,6 +152,14 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 			Subject:  block.DefRange.Ptr(),
 		})
 	} else {
+		if content.Blocks[0].Type != "config" {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid block type",
+				Detail:   fmt.Sprintf("Expected a \"config\" block, but got %s.", content.Blocks[0].Type),
+				Subject:  content.Blocks[0].DefRange.Ptr(),
+			})
+		}
 		// Decode the config block.
 		configBlock := content.Blocks[0]
 		r.Config = configBlock.Body
@@ -164,6 +172,11 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 // a terraform query file.
 var QueryListResourceBlockSchema = &hcl.BodySchema{
 	Attributes: commonResourceAttributes,
+	Blocks: []hcl.BlockHeaderSchema{
+		{
+			Type: "config",
+		},
+	},
 }
 
 // queryFileSchema is the schema for a terraform query file. It defines the

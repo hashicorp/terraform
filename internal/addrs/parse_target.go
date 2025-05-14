@@ -177,6 +177,9 @@ func parseResourceInstanceUnderModule(moduleAddr ModuleInstance, allowPartial bo
 	case "ephemeral":
 		mode = EphemeralResourceMode
 		remain = remain[1:]
+	case "list":
+		mode = ListResourceMode
+		remain = remain[1:]
 	case "resource":
 		// Starting a resource address with "resource" is optional, so we'll
 		// just ignore it.

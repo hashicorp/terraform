@@ -130,8 +130,10 @@ func TestBuiltinEvalContext_List_EvaluateBlock(t *testing.T) {
 					list "test_resource" "test" {
 						provider = test
 
-						filter = {
-							attr = var.input
+						config {
+							filter = {
+								attr = var.input
+							}
 						}
 					}
 				`,
@@ -176,16 +178,20 @@ func TestBuiltinEvalContext_List_EvaluateBlock(t *testing.T) {
 					list "test_resource" "test" {
 						provider = test
 
-						filter = {
-							attr = var.input
+						config {
+							filter = {
+								attr = var.input
+							}
 						}
 					}
 
 					list "test_resource" "example" {
 						provider = test
 
-						filter = {
-							attr = list.test_resource.test.data[0].instance_type
+						config {
+							filter = {
+								attr = list.test_resource.test.data[0].instance_type
+							}
 						}
 					}
 				`,
@@ -230,12 +236,14 @@ func TestBuiltinEvalContext_List_EvaluateBlock(t *testing.T) {
 					list "test_resource" "complex" {
 						provider = test
 
-						filter = {
-							attr = var.input
-							id = "abc-123"
-							tags = {
-								"Name" = "test-resource"
-								"Environment" = "dev"
+						config {
+							filter = {
+								attr = var.input
+								id = "abc-123"
+								tags = {
+									"Name" = "test-resource"
+									"Environment" = "dev"
+								}
 							}
 						}
 					}
@@ -275,8 +283,10 @@ func TestBuiltinEvalContext_List_EvaluateBlock(t *testing.T) {
 						count = 2
 						provider = test
 
-						filter = {
-							attr = "${var.input}-${count.index}"
+						config {
+							filter = {
+								attr = "${var.input}-${count.index}"
+							}
 						}
 					}
 				`,
@@ -310,8 +320,10 @@ func TestBuiltinEvalContext_List_EvaluateBlock(t *testing.T) {
 						for_each = toset(["key1", "key2"])
 						provider = test
 
-						filter = {
-							attr = "${var.input}-${each.key}"
+						config {
+							filter = {
+								attr = "${var.input}-${each.key}"
+							}
 						}
 					}
 				`,
@@ -344,8 +356,10 @@ func TestBuiltinEvalContext_List_EvaluateBlock(t *testing.T) {
 					list "test_resource" "invalid" {
 						provider = test
 
-						filter = {
-							attr = non_existent_var
+						config {
+							filter = {
+								attr = non_existent_var
+							}
 						}
 					}
 				`,
@@ -409,6 +423,7 @@ func TestBuiltinEvalContext_List_EvaluateBlock(t *testing.T) {
 				NamedValues: namedvals,
 				State:       state.SyncWrapper(),
 				Plugins:     plugins,
+				ParseRef:    addrs.NewRefParserFn(addrs.ParseQueryScopeRefs()),
 			}
 
 			// Set up a mock evaluation scope
@@ -424,16 +439,16 @@ func TestBuiltinEvalContext_List_EvaluateBlock(t *testing.T) {
 
 			// Call the method under test
 			body := m.Module.ListResources[tc.block].Config
-			rsc := mustAbsResourceAddr(tc.block)
-			result, _, resultDiags := ctx.EvaluateBlock2(body, tc.schema, tc.self, rsc.Resource, tc.keyData)
+			// rsc := mustAbsResourceAddr(tc.block)
+			result, _, resultDiags := ctx.EvaluateBlock(body, tc.schema, tc.self, tc.keyData)
 
 			// Check for expected diagnostics
 			if resultDiags.HasErrors() != (tc.expectedDiagCount > 0) {
-				t.Errorf("unexpected diagnostics status: %s", resultDiags.Err())
+				t.Fatalf("unexpected diagnostics status: %s", resultDiags.Err())
 			}
 
 			if len(resultDiags) != tc.expectedDiagCount && tc.expectedDiagCount > 0 {
-				t.Errorf("expected %d diagnostics, got %d: %s", tc.expectedDiagCount, len(resultDiags), resultDiags.Err())
+				t.Fatalf("expected %d diagnostics, got %d: %s", tc.expectedDiagCount, len(resultDiags), resultDiags.Err())
 			}
 
 			// If we expected errors, don't continue with value testing
