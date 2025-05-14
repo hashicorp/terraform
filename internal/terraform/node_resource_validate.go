@@ -482,7 +482,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 			return diags
 		}
 
-		configVal, _, valDiags := ctx.(*BuiltinEvalContext).EvaluateBlock2(n.Config.Config, schema.Body, nil, n.Addr.Resource, keyData)
+		configVal, _, valDiags := ctx.EvaluateBlock(n.Config.Config, schema.Body, nil, keyData)
 		diags = diags.Append(valDiags)
 		if valDiags.HasErrors() {
 			return diags

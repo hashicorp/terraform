@@ -117,7 +117,7 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 		})
 	}
 
-	mod, mDiags := l.parser.LoadConfigDir(record.Dir)
+	mod, mDiags := l.parser.LoadConfigDir(record.Dir, configs.MatchQueryFiles())
 	diags = append(diags, mDiags...)
 	if mod == nil {
 		// nil specifically indicates that the directory does not exist or

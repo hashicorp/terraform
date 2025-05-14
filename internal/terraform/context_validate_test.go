@@ -6,6 +6,7 @@ package terraform
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -3096,65 +3097,333 @@ module "child" {
 }
 
 func TestContext2Validate_queryList(t *testing.T) {
-	m := testModuleInline(t, map[string]string{
-		"main.tf": `
-			terraform {	
-				required_providers {
-					test = {
-						source = "hashicorp/test"
-						version = "1.0.0"
+	// if there is a list block in the config, and you pass a reference that starts with list.<block>.<name>
+	// then we should be able to resolve it to list resources. If the list resource does not exist, and
+	// you wanted it to refernce a normal resource, you need to
+	// use resource.<block>.<name> instead. We can add an error for this.
+
+	// If there is a list block in the config, and you pass a reference that starts with resource.list.<name>
+	// then we should be able to resolve it to normal managed resources.
+
+	// If there is no list block in the config, and you pass a reference that starts with list.<block>.<name>
+	// then we should be able to resolve it to normal managed resources.
+
+	cases := []struct {
+		name           string
+		mainConfig     string
+		extraConfig    map[string]string
+		queryConfig    string
+		diagCount      int
+		expectedErrMsg []string
+	}{
+		{
+			// There is a list block in the config, therefore any reference that starts with
+			// list would try to resolve to a list resource.
+			name: "reference list block from resource",
+			mainConfig: `
+				terraform {	
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				resource "list" "test_resource1" {
+					provider = test
+				}
+
+				resource "list" "test_resource2" {
+					provider = test
+					attr = list.test_resource1.attr
+				}
+				`,
+			queryConfig: `
+				variable "input" {
+					type = string
+					default = "foo"
+				}
+
+				list "test_resource" "test" {
+					provider = test
+
+					filter = {
+						attr = var.input
+					}
+				}
+				`,
+			diagCount: 1,
+			expectedErrMsg: []string{
+				"A list resource \"list.test_resource1.attr\" has not been declared in the root module.\n\nDid you mean the managed resource list.test_resource1? If so, please use the fully qualified name of the resource, e.g. resource.list.test_resource1",
+			},
+		},
+		{
+			// No list block in the config, but we are referencing a managed resource
+			// of type list. This should be allowed.
+			name: "reference managed resource of type list",
+			mainConfig: `
+				terraform {	
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				resource "list" "test_resource1" {
+					provider = test
+				}
+
+				resource "list" "test_resource2" {
+					provider = test
+					attr = list.test_resource1.attr
+				}
+				`,
+		},
+		{
+			// There is a list block in the config, and we are referencing a managed resource
+			// of type list using the resource.<block>.<name> syntax. This should be allowed.
+			name: "reference managed resource of type list using resource.<block>.<name>",
+			mainConfig: `
+				terraform {	
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				resource "list" "test_resource" {
+					provider = test
+					attr = "bar"
+				}
+
+				resource "list" "normal_resource" {
+					provider = test
+					attr = resource.list.test_resource.attr
+				}
+				`,
+			queryConfig: `
+				list "test_resource" "test" {
+					provider = test
+
+					filter = {
+						attr = resource.list.test_resource.attr
+					}
+				}
+				`,
+		},
+		{
+			// Test referencing a non-existent list resource
+			name: "reference non-existent list resource",
+			mainConfig: `
+				terraform {	
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+				`,
+			queryConfig: `
+				list "test_resource" "test" {
+					provider = test
+
+					filter = {
+						attr = list.non_existent.attr
+					}
+				}
+				`,
+			diagCount: 1,
+			expectedErrMsg: []string{
+				"A list resource \"list.non_existent.attr\" has not been declared",
+			},
+		},
+		{
+			// Test referencing a list resource with invalid attribute
+			name: "reference list resource with invalid attribute",
+			mainConfig: `
+				terraform {	
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+				`,
+			queryConfig: `
+				list "test_resource" "test" {
+					provider = test
+
+					filter = {
+						attr = "valid"
+					}
+				}
+
+				list "test_resource" "another" {
+					provider = test
+
+					filter = {
+						attr = list.test_resource.test.data[0].invalid_attr
+					}
+				}
+				`,
+			diagCount: 1,
+			expectedErrMsg: []string{
+				"Unsupported attribute: This object has no argument, nested block, or exported attribute named \"invalid_attr\".",
+			},
+		},
+		{
+			name: "circular reference between list resources",
+			mainConfig: `
+				terraform {	
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+				`,
+			queryConfig: `
+				list "test_resource" "test1" {
+					provider = test
+
+					filter = {
+						attr = list.test_resource.test2.data[0].id
+					}
+				}
+
+				list "test_resource" "test2" {
+					provider = test
+
+					filter = {
+						attr = list.test_resource.test1.data[0].id
+					}
+				}
+				`,
+			diagCount: 1,
+			expectedErrMsg: []string{
+				"Cycle: list.test_resource",
+			},
+		},
+		{
+			// Test complex expression with list reference
+			name: "complex expression with list reference",
+			mainConfig: `
+				terraform {	
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+				`,
+			queryConfig: `
+				variable "test_var" {
+					type = string
+					default = "default"
+				}
+
+				list "test_resource" "test1" {
+					provider = test
+
+					filter = {
+						attr = var.test_var
+					}
+				}
+
+				list "test_resource" "test2" {
+					provider = test
+
+					filter = {
+						attr = length(list.test_resource.test1.data) > 0 ? list.test_resource.test1.data[0].instance_type : var.test_var
+					}
+				}
+				`,
+		},
+		{
+			// Test list reference with index but without data field
+			name: "list reference with index but without data field",
+			mainConfig: `
+				terraform {	
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+				`,
+			queryConfig: `
+				list "test_resource" "test1" {
+					for_each = toset(["foo", "bar"])
+					provider = test
+
+					filter = {
+						attr = each.value
+					}
+				}
+
+				list "test_resource" "test2" {
+					provider = test
+					for_each = list.test_resource.test1
+
+					filter = {
+						attr = each.value.data[0].instance_type
+					}
+				}
+				`,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			configs := map[string]string{"main.tf": tc.mainConfig}
+			if tc.queryConfig != "" {
+				configs["main.tfquery.hcl"] = tc.queryConfig
+			}
+			maps.Copy(configs, tc.extraConfig)
+
+			m := testModuleInline(t, configs)
+
+			providerAddr := addrs.NewDefaultProvider("test")
+			providerConfigAddr := addrs.RootProviderConfig{Provider: providerAddr}
+
+			provider := getTestProvider()
+
+			ctx, diags := NewContext(&ContextOpts{
+				PreloadedProviderSchemas: map[addrs.Provider]providers.ProviderSchema{
+					providerAddr: *provider.GetProviderSchemaResponse,
+				},
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			// Many of the MockProvider methods check for this, so we'll set it to be
+			// true externally.
+			provider.ConfigureProviderCalled = true
+
+			diags = ctx.Validate(m, &ValidateOpts{
+				ExternalProviders: map[addrs.RootProviderConfig]providers.Interface{
+					providerConfigAddr: provider,
+				},
+			})
+			tfdiags.AssertDiagnosticCount(t, diags, tc.diagCount)
+
+			if tc.diagCount > 0 {
+				for _, err := range tc.expectedErrMsg {
+					if !strings.Contains(diags.Err().Error(), err) {
+						t.Errorf("expected error message %q, but got %q", err, diags.Err().Error())
 					}
 				}
 			}
 
-			resource "list" "test_resource" {
-				provider = test
-			}
-`,
-		"main.tfquery.hcl": `
-			variable "input" {
-				type = string
-				default = "foo"
-			}
-
-			list "test_resource" "test" {
-				provider = test
-
-				filter = {
-					attr = var.input
-				}
-			}
-
-			list "test_resource" "example" {
-				provider = test
-
-				filter = {
-					attr = list.test_resource.test.data[0].instance_type
-				}
-			}
-		`,
-	})
-
-	providerAddr := addrs.NewDefaultProvider("test")
-	providerConfigAddr := addrs.RootProviderConfig{Provider: providerAddr}
-
-	provider := getTestProvider()
-
-	ctx, diags := NewContext(&ContextOpts{
-		PreloadedProviderSchemas: map[addrs.Provider]providers.ProviderSchema{
-			providerAddr: *provider.GetProviderSchemaResponse,
-		},
-	})
-	tfdiags.AssertNoDiagnostics(t, diags)
-
-	// Many of the MockProvider methods check for this, so we'll set it to be
-	// true externally.
-	provider.ConfigureProviderCalled = true
-
-	diags = ctx.Validate(m, &ValidateOpts{
-		ExternalProviders: map[addrs.RootProviderConfig]providers.Interface{
-			providerConfigAddr: provider,
-		},
-	})
-	tfdiags.AssertNoDiagnostics(t, diags)
+		})
+	}
 }

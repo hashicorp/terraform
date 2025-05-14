@@ -160,7 +160,7 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 		return &change, diags
 	}
 
-	diags = diags.Append(validateSelfRef(addrs.NewRefParserFn(), n.addr.Resource(), n.config.Config, providerSchema))
+	diags = diags.Append(validateSelfRef(ctx.ParseRef(), n.addr.Resource(), n.config.Config, providerSchema))
 	if diags.HasErrors() {
 		return &change, diags
 	}
@@ -331,7 +331,7 @@ func (n *nodePlannablePartialExpandedResource) dataResourceExecute(ctx EvalConte
 		return &change, diags
 	}
 
-	diags = diags.Append(validateSelfRef(addrs.NewRefParserFn(), n.addr.Resource(), n.config.Config, providerSchema))
+	diags = diags.Append(validateSelfRef(ctx.ParseRef(), n.addr.Resource(), n.config.Config, providerSchema))
 	if diags.HasErrors() {
 		return &change, diags
 	}
