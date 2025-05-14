@@ -118,10 +118,7 @@ func (p *RefParser) parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagn
 //
 // If error diagnostics are returned then the Reference value is invalid and
 // must not be used.
-func ParseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
-	parser := NewRefParserFn()
-	return parser(traversal)
-}
+var ParseRef = NewRefParserFn()
 
 // ParseRefFromTestingScope adds check blocks and outputs into the available
 // references returned by ParseRef.

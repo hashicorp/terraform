@@ -439,7 +439,6 @@ func TestBuiltinEvalContext_List_EvaluateBlock(t *testing.T) {
 
 			// Call the method under test
 			body := m.Module.ListResources[tc.block].Config
-			// rsc := mustAbsResourceAddr(tc.block)
 			result, _, resultDiags := ctx.EvaluateBlock(body, tc.schema, tc.self, tc.keyData)
 
 			// Check for expected diagnostics

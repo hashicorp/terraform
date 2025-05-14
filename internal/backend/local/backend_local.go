@@ -15,6 +15,7 @@ import (
 
 	"maps"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
@@ -138,6 +139,9 @@ func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *confi
 		}
 	}
 
+	if ret.Config.HasListBlocks() {
+		addrs.ParseRef = addrs.NewRefParserFn(addrs.ParseQueryScopeRefs())
+	}
 	return ret, configSnap, s, diags
 }
 
