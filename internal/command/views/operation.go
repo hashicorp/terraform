@@ -146,26 +146,26 @@ func (v *OperationHuman) PlanNextStep(planPath string, genConfigPath string) {
 	v.view.outputHorizRule()
 
 	if genConfigPath != "" {
-		v.view.streams.Printf(
+		v.view.streams.Println(
 			format.WordWrap(
 				"\n"+strings.TrimSpace(fmt.Sprintf(planHeaderGenConfig, genConfigPath)),
 				v.view.outputColumns(),
-			) + "\n")
+			))
 	}
 
 	if planPath == "" {
-		v.view.streams.Print(
+		v.view.streams.Println(
 			format.WordWrap(
 				"\n"+strings.TrimSpace(planHeaderNoOutput),
 				v.view.outputColumns(),
-			) + "\n",
+			),
 		)
 	} else {
-		v.view.streams.Printf(
+		v.view.streams.Println(
 			format.WordWrap(
 				"\n"+strings.TrimSpace(fmt.Sprintf(planHeaderYesOutput, planPath, planPath)),
 				v.view.outputColumns(),
-			) + "\n",
+			),
 		)
 	}
 }

@@ -1,0 +1,40 @@
+---
+page_title: Phases of Terraform Adoption
+description: Evolve your Terraform strategy as adoption grows within your organization
+---
+
+# Phases of Terraform Adoption
+
+As more of your organization adopts Terraform, your infrastructure provisioning workflows will need to change and adapt. The workflows that are suitable for individual practitioners may not scale to larger enterprises. This guide will help you plan your organization's Terraform adoption strategy and presents workflow considerations that you should keep in mind to support future scale. This guide focuses on challenges faced by larger organizations, but we recommend implementing each practice as early as you can to help you scale smoothly. 
+
+## Adopt
+
+An individual practitioner can establish strong foundational practices that support future scale and make Terraform operations predictable and secure. 
+
+[Learn how to adopt Terraform](/terraform/intro/phases/adopt)
+
+## Collaborate
+
+Multiple developers working on the same codebase introduces a new set of challenges, but solutions such as remote state backends help ease collaboration and coordinate execution.
+
+[Learn how to collaborate with Terraform](/terraform/intro/phases/collaborate).
+
+## Scale
+
+As Terraform usage expands across your organization, you will need to decide how to define boundaries of infrastructure ownership.
+
+You will also need to decide on a cloud deployment strategy based on your organization's practices and needs. Possible approaches include using a single account in a single cloud provider, a hybrid or multi-cloud approach, or to divide up resources across accounts by environment.  Regardless of your implementation, Terraform lets you manage your infrastructure with a consistent workflow.
+
+[Learn how to scale Terraform](/terraform/intro/phases/scale).
+
+## Govern
+
+As your teams grow, a common operational challenge is deciding how to enforce your organization's standards and practices. Using codified, automated policy enforcement with Sentinel or OPA ensures consistent application of your standards.
+
+[Learn how to govern your organization's best practices](/terraform/intro/phases/govern).
+
+## Next steps
+
+This guide introduces considerations to keep in mind as your organization adopts Terraform, but there are many more topics to explore. To learn more Terraform best practices, refer to [Terraform style guide](/terraform/language/style). The [HashiCorp Well-Architected Framework](/well-architected-framework) provides more in-depth information on how to adopt and scale your use of Terraform.
+
+[HCP Terraform](/terraform/tutorials/cloud-get-started) provides a place to get started with many of these topics, and you can [get started for free](https://app.terraform.io/public/signup/account).

@@ -189,6 +189,36 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 		}
 	}
 
+	if cfg.Ephemeral {
+		// An ephemeral input variable always has an ephemeral value inside the
+		// module, even if the value assigned to it from outside is not. This
+		// is a useful simplification so that module authors can be explicit
+		// about what guarantees they are intending to make (regardless of
+		// current implementation details). Changing the ephemerality of an
+		// input variable is a breaking change to a module's API.
+		val = val.Mark(marks.Ephemeral)
+	} else {
+		if marks.Contains(val, marks.Ephemeral) {
+			var subject hcl.Range
+			if raw.HasSourceRange() {
+				subject = raw.SourceRange.ToHCL()
+			} else {
+				// We shouldn't typically get here for ephemeral values, because
+				// all of the source types that can represent expressions that
+				// could potentially produce ephemeral values are those which
+				// have source locations. This is just here for robustness.
+				subject = cfg.DeclRange
+			}
+
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Ephemeral value not allowed",
+				Detail:   "This input variable is not declared as accepting a ephemeral values, so it cannot be set to a result derived from an ephemeral value.",
+				Subject:  subject.Ptr(),
+			})
+		}
+	}
+
 	return val, diags
 }
 
@@ -197,69 +227,8 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 //
 // This must be used only after any side-effects that make the value of the
 // variable available for use in expression evaluation, such as
-// EvalModuleCallArgument for variables in descendent modules.
-func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContext, rules []*configs.CheckRule, valueRng hcl.Range) (diags tfdiags.Diagnostics) {
-	if len(rules) == 0 {
-		log.Printf("[TRACE] evalVariableValidations: no validation rules declared for %s, so skipping", addr)
-		return nil
-	}
-	log.Printf("[TRACE] evalVariableValidations: validating %s", addr)
-
-	checkState := ctx.Checks()
-	if !checkState.ConfigHasChecks(addr.ConfigCheckable()) {
-		// We have nothing to do if this object doesn't have any checks,
-		// but the "rules" slice should agree that we don't.
-		if ct := len(rules); ct != 0 {
-			panic(fmt.Sprintf("check state says that %s should have no rules, but it has %d", addr, ct))
-		}
-		return diags
-	}
-
-	// Validation expressions are statically validated (during configuration
-	// loading) to refer only to the variable being validated, so we can
-	// bypass our usual evaluation machinery here and just produce a minimal
-	// evaluation context containing just the required value.
-	val := ctx.NamedValues().GetInputVariableValue(addr)
-	if val == cty.NilVal {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "No final value for variable",
-			Detail:   fmt.Sprintf("Terraform doesn't have a final value for %s during validation. This is a bug in Terraform; please report it!", addr),
-		})
-		return diags
-	}
-	hclCtx := &hcl.EvalContext{
-		Variables: map[string]cty.Value{
-			"var": cty.ObjectVal(map[string]cty.Value{
-				addr.Variable.Name: val,
-			}),
-		},
-		Functions: ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey).Functions(),
-	}
-
-	for ix, validation := range rules {
-		result, ruleDiags := evalVariableValidation(validation, hclCtx, valueRng, addr, ix)
-		diags = diags.Append(ruleDiags)
-
-		log.Printf("[TRACE] evalVariableValidations: %s status is now %s", addr, result.Status)
-		if result.Status == checks.StatusFail {
-			checkState.ReportCheckFailure(addr, addrs.InputValidation, ix, result.FailureMessage)
-		} else {
-			checkState.ReportCheckResult(addr, addrs.InputValidation, ix, result.Status)
-		}
-	}
-
-	return diags
-}
-
-// evalVariableValidationsCrossRef is an experimental variant of
-// [evalVariableValidations] that allows arbitrary references to any object
-// declared in the same module as the variable.
-//
-// If the experiment is successful, this function should replace
-// [evalVariableValidations], but it's currently written separately to minimize
-// the risk of the experiment impacting non-opted modules.
-func evalVariableValidationsCrossRef(addr addrs.AbsInputVariableInstance, ctx EvalContext, rules []*configs.CheckRule, valueRng hcl.Range) (diags tfdiags.Diagnostics) {
+// EvalModuleCallArgument for variables in descendant modules.
+func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContext, rules []*configs.CheckRule, valueRng hcl.Range, validateWalk bool) (diags tfdiags.Diagnostics) {
 	if len(rules) == 0 {
 		log.Printf("[TRACE] evalVariableValidations: no validation rules declared for %s, so skipping", addr)
 		return nil
@@ -300,8 +269,48 @@ func evalVariableValidationsCrossRef(addr addrs.AbsInputVariableInstance, ctx Ev
 		return diags
 	}
 
+	// HACK: Historically we manually built a very constrained hcl.EvalContext
+	// here, which only included the value of the one specific input variable
+	// we're validating, since we didn't yet support referring to anything
+	// else. That accidentally bypassed our rule that input variables are
+	// always unknown during the validate walk, and thus accidentally created
+	// a useful behavior of actually checking constant-only values against
+	// their validation rules just during "terraform validate", rather than
+	// having to run "terraform plan".
+	//
+	// Although that behavior was accidental, it makes simple validation rules
+	// more useful and is protected by compatibility promises, and so we'll
+	// fake it here by overwriting the unknown value that scope.EvalContext
+	// will have inserted with a possibly-more-known value using the same
+	// strategy our special code used to use.
+	ourVal := ctx.NamedValues().GetInputVariableValue(addr)
+	if ourVal != cty.NilVal {
+		// (it would be weird for ourVal to be nil here, but we'll tolerate it
+		// because it was scope.EvalContext's responsibility to check for the
+		// absent final value, and even if it didn't we'll just get an
+		// evaluation error when evaluating the expressions below anyway.)
+
+		// Our goal here is to make sure that a reference to the variable
+		// we're checking will evaluate to ourVal, regardless of what else
+		// scope.EvalContext might have put in the variables table.
+		if hclCtx.Variables == nil {
+			hclCtx.Variables = make(map[string]cty.Value)
+		}
+		if varsVal, ok := hclCtx.Variables["var"]; ok {
+			// Unfortunately we need to unpack and repack the object here,
+			// because cty values are immutable.
+			attrs := varsVal.AsValueMap()
+			attrs[addr.Variable.Name] = ourVal
+			hclCtx.Variables["var"] = cty.ObjectVal(attrs)
+		} else {
+			hclCtx.Variables["var"] = cty.ObjectVal(map[string]cty.Value{
+				addr.Variable.Name: ourVal,
+			})
+		}
+	}
+
 	for ix, validation := range rules {
-		result, ruleDiags := evalVariableValidation(validation, hclCtx, valueRng, addr, ix)
+		result, ruleDiags := evalVariableValidation(validation, hclCtx, valueRng, addr, ix, validateWalk)
 		diags = diags.Append(ruleDiags)
 
 		log.Printf("[TRACE] evalVariableValidations: %s status is now %s", addr, result.Status)
@@ -315,7 +324,7 @@ func evalVariableValidationsCrossRef(addr addrs.AbsInputVariableInstance, ctx Ev
 	return diags
 }
 
-func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalContext, valueRng hcl.Range, addr addrs.AbsInputVariableInstance, ix int) (checkResult, tfdiags.Diagnostics) {
+func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalContext, valueRng hcl.Range, addr addrs.AbsInputVariableInstance, ix int, validateWalk bool) (checkResult, tfdiags.Diagnostics) {
 	const errInvalidCondition = "Invalid variable validation result"
 	const errInvalidValue = "Invalid value for variable"
 	var diags tfdiags.Diagnostics
@@ -418,8 +427,28 @@ func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalConte
 		return checkResult{Status: status}, diags
 	}
 
+	if !errorValue.IsKnown() {
+		if validateWalk {
+			log.Printf("[DEBUG] evalVariableValidations: %s rule %s error_message value is unknown, so skipping validation for now", addr, validation.DeclRange)
+			return checkResult{Status: checks.StatusUnknown}, diags
+		}
+
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     "Invalid error message",
+			Detail:      "Unsuitable value for error message: expression refers to values that won't be known until the apply phase.",
+			Subject:     validation.ErrorMessage.Range().Ptr(),
+			Expression:  validation.ErrorMessage,
+			EvalContext: hclCtx,
+			Extra:       diagnosticCausedByUnknown(true),
+		})
+		return checkResult{
+			Status: checks.StatusError,
+		}, diags
+	}
+
 	var errorMessage string
-	if !errorDiags.HasErrors() && errorValue.IsKnown() && !errorValue.IsNull() {
+	if !errorDiags.HasErrors() && !errorValue.IsNull() {
 		var err error
 		errorValue, err = convert.Convert(errorValue, cty.String)
 		if err != nil {
@@ -440,6 +469,20 @@ func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalConte
 					Detail: `The error expression used to explain this condition refers to sensitive values. Terraform will not display the resulting message.
 
 You can correct this by removing references to sensitive values, or by carefully using the nonsensitive() function if the expression will not reveal the sensitive data.`,
+
+					Subject:     validation.ErrorMessage.Range().Ptr(),
+					Expression:  validation.ErrorMessage,
+					EvalContext: hclCtx,
+				})
+				errorMessage = "The error message included a sensitive value, so it will not be displayed."
+			} else if marks.Has(errorValue, marks.Ephemeral) {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+
+					Summary: "Error message refers to ephemeral values",
+					Detail: `The error expression used to explain this condition refers to ephemeral values. Terraform will not display the resulting message.
+
+You can correct this by removing references to ephemeral values, or by carefully using the ephemeralasnull() function if the expression will not reveal the ephemeral data.`,
 
 					Subject:     validation.ErrorMessage.Range().Ptr(),
 					Expression:  validation.ErrorMessage,

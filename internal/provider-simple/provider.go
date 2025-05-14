@@ -21,7 +21,7 @@ type simple struct {
 
 func Provider() providers.Interface {
 	simpleResource := providers.Schema{
-		Block: &configschema.Block{
+		Body: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"id": {
 					Computed: true,
@@ -38,12 +38,15 @@ func Provider() providers.Interface {
 	return simple{
 		schema: providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
-				Block: nil,
+				Body: nil,
 			},
 			ResourceTypes: map[string]providers.Schema{
 				"simple_resource": simpleResource,
 			},
 			DataSources: map[string]providers.Schema{
+				"simple_resource": simpleResource,
+			},
+			EphemeralResourceTypes: map[string]providers.Schema{
 				"simple_resource": simpleResource,
 			},
 			ServerCapabilities: providers.ServerCapabilities{
@@ -55,6 +58,25 @@ func Provider() providers.Interface {
 
 func (s simple) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return s.schema
+}
+
+func (s simple) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	return providers.GetResourceIdentitySchemasResponse{
+		IdentityTypes: map[string]providers.IdentitySchema{
+			"simple_resource": {
+				Version: 0,
+				Body: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+					Nesting: configschema.NestingSingle,
+				},
+			},
+		},
+	}
 }
 
 func (s simple) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
@@ -70,10 +92,19 @@ func (s simple) ValidateDataResourceConfig(req providers.ValidateDataResourceCon
 }
 
 func (p simple) UpgradeResourceState(req providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
-	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
+	ty := p.schema.ResourceTypes[req.TypeName].Body.ImpliedType()
 	val, err := ctyjson.Unmarshal(req.RawStateJSON, ty)
 	resp.Diagnostics = resp.Diagnostics.Append(err)
 	resp.UpgradedState = val
+	return resp
+}
+
+func (p simple) UpgradeResourceIdentity(req providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
+	schema := p.GetResourceIdentitySchemas().IdentityTypes[req.TypeName].Body
+	ty := schema.ImpliedType()
+	val, err := ctyjson.Unmarshal(req.RawIdentityJSON, ty)
+	resp.Diagnostics = resp.Diagnostics.Append(err)
+	resp.UpgradedIdentity = val
 	return resp
 }
 
@@ -88,6 +119,7 @@ func (s simple) Stop() error {
 func (s simple) ReadResource(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
 	// just return the same state we received
 	resp.NewState = req.PriorState
+	resp.Identity = req.CurrentIdentity
 	return resp
 }
 
@@ -121,6 +153,7 @@ func (s simple) ApplyResourceChange(req providers.ApplyResourceChangeRequest) (r
 		m["id"] = cty.StringVal(time.Now().String())
 	}
 	resp.NewState = cty.ObjectVal(m)
+	resp.NewIdentity = req.PlannedIdentity
 
 	return resp
 }
@@ -142,6 +175,30 @@ func (s simple) ReadDataSource(req providers.ReadDataSourceRequest) (resp provid
 	m["id"] = cty.StringVal("static_id")
 	resp.State = cty.ObjectVal(m)
 	return resp
+}
+
+func (p simple) ValidateEphemeralResourceConfig(req providers.ValidateEphemeralResourceConfigRequest) providers.ValidateEphemeralResourceConfigResponse {
+	// Our schema doesn't include any ephemeral resource types, so it should be
+	// impossible to get in here.
+	panic("ValidateEphemeralResourceConfig on provider that didn't declare any ephemeral resource types")
+}
+
+func (s simple) OpenEphemeralResource(providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
+	// Our schema doesn't include any ephemeral resource types, so it should be
+	// impossible to get in here.
+	panic("OpenEphemeralResource on provider that didn't declare any ephemeral resource types")
+}
+
+func (s simple) RenewEphemeralResource(providers.RenewEphemeralResourceRequest) providers.RenewEphemeralResourceResponse {
+	// Our schema doesn't include any ephemeral resource types, so it should be
+	// impossible to get in here.
+	panic("RenewEphemeralResource on provider that didn't declare any ephemeral resource types")
+}
+
+func (s simple) CloseEphemeralResource(providers.CloseEphemeralResourceRequest) providers.CloseEphemeralResourceResponse {
+	// Our schema doesn't include any ephemeral resource types, so it should be
+	// impossible to get in here.
+	panic("CloseEphemeralResource on provider that didn't declare any ephemeral resource types")
 }
 
 func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {

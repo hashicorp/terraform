@@ -184,6 +184,32 @@ func (ms *Module) ForgetResourceInstanceAll(addr addrs.ResourceInstance) {
 	}
 }
 
+// ForgetResourceInstanceCurrent removes the record of the current object with
+// the given address, if present. If not present, this is a no-op.
+func (ms *Module) ForgetResourceInstanceCurrent(addr addrs.ResourceInstance) {
+	rs := ms.Resource(addr.Resource)
+	if rs == nil {
+		return
+	}
+	is := rs.Instance(addr.Key)
+	if is == nil {
+		return
+	}
+
+	is.Current = nil
+
+	if !is.HasObjects() {
+		// If we have no objects at all then we'll clean up.
+		delete(rs.Instances, addr.Key)
+	}
+	if len(rs.Instances) == 0 {
+		// Also clean up if we only expect to have one instance anyway
+		// and there are none. We leave the resource behind if an each mode
+		// is active because an empty list or map of instances is a valid state.
+		delete(ms.Resources, addr.Resource.String())
+	}
+}
+
 // ForgetResourceInstanceDeposed removes the record of the deposed object with
 // the given address and key, if present. If not present, this is a no-op.
 func (ms *Module) ForgetResourceInstanceDeposed(addr addrs.ResourceInstance, key DeposedKey) {

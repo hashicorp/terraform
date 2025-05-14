@@ -57,6 +57,14 @@ func ParseApply(args []string) (*Apply, tfdiags.Diagnostics) {
 		))
 	}
 
+	if apply.State.StatePath != "" {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Deprecated flag: -state",
+			`Use the "path" attribute within the "local" backend to specify a file for state storage`,
+		))
+	}
+
 	args = cmdFlags.Args()
 	if len(args) > 0 {
 		apply.PlanPath = args[0]

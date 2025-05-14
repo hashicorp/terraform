@@ -1,14 +1,16 @@
 ---
-page_title: Debugging
+page_title: Enable logs to debug Terraform
 description: >-
-  Terraform has detailed logs which can be enabled by setting the TF_LOG
-  environment variable to any value. This will cause detailed logs to appear on
-  stderr
+  Enable Terraform to generate logs so that you can debug unexpected behaviors.
 ---
 
-# Debugging Terraform
+# Enable Terraform logs
+
+This topic describes how to enable Terraform logs so that you can debug unexpected behaviors.
 
 > **Hands-on:** Try the [Create Dynamic Expressions](/terraform/tutorials/configuration-language/troubleshooting-workflow#bug-reporting-best-practices?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+
+## Set the `TF_LOG` variable
 
 Terraform has detailed logs that you can enable by setting the `TF_LOG` environment variable to any value. Enabling this setting causes detailed logs to appear on `stderr`.
 
@@ -17,6 +19,8 @@ You can set `TF_LOG` to one of the log levels (in order of decreasing verbosity)
 Setting `TF_LOG` to `JSON` outputs logs at the `TRACE` level or higher, and uses a parseable JSON encoding as the formatting.
 
 ~> **Warning:** The JSON encoding of log files is not considered a stable interface. It may change at any time, without warning. It is meant to support tooling that will be forthcoming, and that tooling is the only supported way to interact with JSON formatted logs.
+
+## Set the `TF_LOG_CORE` variable 
 
 Logging can be enabled separately for Terraform itself and the provider plugins
 using the `TF_LOG_CORE` or `TF_LOG_PROVIDER` environment variables. These take

@@ -1,0 +1,165 @@
+---
+page_title: Terraform Stack CLI reference
+description: The terraform-stacks-cli is a command-line tool for validating, initializing, and managing Stack configurations. Learn about the terraform-stacks-cli commands and options.
+---
+
+# Terraform Stack CLI reference
+
+The `terraform-stacks-cli` is a command-line tool for validating, initializing, and testing Stack configurations.
+
+## Requirements
+
+The `terraform-stacks-cli` requires an `alpha` version of Terraform, and you must use at least version `terraform_1.10.0-alpha20241009` or higher. You can download an `alpha` version of Terraform on the [releases page](https://releases.hashicorp.com/terraform/). We recommend downloading the latest alpha version of Terraform to use the most up-to-date functionality.
+
+## Installation
+
+To install the `terraform-stacks-cli`, you can download it directly [on the HashiCorp releases page](https://releases.hashicorp.com/tfstacks) or install it with one of the following package managers: Homebrew, Debian/Ubuntu, CentOS/RHEL, Fedora, or Amazon Linux.
+
+#### Homebrew
+
+Run the following commands to install the  `terraform-stacks-cli` using Homebrew.
+
+```shell-session
+$ brew tap hashicorp/tap
+$ brew install hashicorp/tap/tfstacks
+```
+
+#### Linux Package Managers
+
+Run the following commands to install the  `terraform-stacks-cli` with the following Linux package managers.
+
+##### Debian or Ubuntu
+
+Run the following commands to install the  `terraform-stacks-cli` using Debian or Ubuntu.
+
+```shell-session
+$ wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+$ echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+$ sudo apt update && sudo apt install terraform-stacks-cli
+```
+
+##### CentOS or RHEL
+
+Run the following commands to install the  terraform-stacks-cli using CentOS or RHEL.
+
+```shell-session
+$ sudo yum install -y yum-utils
+$ sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+$ sudo yum -y install terraform-stacks-cli
+```
+
+##### Fedora
+
+Run the following commands to install the `terraform-stacks-cli` using Fedora.
+
+```shell-session
+$ sudo dnf install -y dnf-plugins-core
+$ sudo dnf config-manager addrepo --from-repofile=https://rpm.releases.hashicorp.com/fedora/hashicorp.repo
+$ sudo dnf -y install terraform-stacks-cli
+```
+
+##### Amazon Linux
+
+Run the following commands to install the `terraform-stacks-cli` using Amazon Linux.
+
+```shell-session
+$ sudo yum install -y yum-utils shadow-utils
+$ sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+$ sudo yum -y install terraform-stacks-cli
+```
+
+## Commands
+
+The `terraform-stacks-cli` supports the following four commands:
+
+* [`tfstacks init`](#tfstacks-init-command)  
+* [`tfstacks validate`](#tfstacks-validate-command)  
+* [`tfstacks providers lock [-platform=os_arch]`](#tfstacks-providers-lock-command)
+* [`tfstacks plan -organization=org_name -stack=stack_id -deployment=deployment_name [-hostname=hostname]`](#tfstacks-plan-command)
+* [`tfstacks fmt`](#tfstacks-fmt-command)
+
+Each Stack command supports [global options](#global-options).
+
+### `tfstacks init` command
+
+The `tfstacks init` command attempts to download any dependencies your Stack configuration requires. 
+
+```shell-session
+$ tfstacks init
+```
+
+If the `tfstacks init` command cannot find a dependency, it warns you of the reason why and installs a false dependency in the real one's place to unblock any future validation. Meaning, that it the  `tfstacks init` command cannot download a dependency, you can still run `tfstacks validate`, but the missing dependencies are not validated.  
+
+### `tfstacks validate` command
+
+The `tfstacks validate` command loads your Stack configuration and validates that your stack’s syntax and static types are correct.
+
+```shell-session
+$ tfstacks validate
+```
+
+We recommend running this command whenever you change your Stack configuration.
+
+### `tfstacks providers lock` command
+
+The `tfstacks providers lock` command creates and updates your stack’s provider lock file. 
+
+```shell-session
+$ tfstacks providers lock [-platform=os_arch]
+```
+
+The `tfstacks providers lock` command references the `required_providers` block from your configuration to know which providers to download and compute the provider lock hashes for. The `tfstacks providers lock` command only checks the `required_providers` block, so you must list all of the providers you use in the `required_providers` block to ensure that the `tfstacks providers lock` command can find them. 
+
+By default, the `tfstacks providers lock` installs hashes for providers built for  `linux_amd64` machines, which HCP Terraform requires for execution. You can optionally use the `-platform=os_arch` argument to create hashes for other platforms.
+
+### `tfstacks plan` command
+
+The `tfstacks plan` runs a remote, speculative plan with local code in the current directory. If you are not currently logged in to HCP Terraform when you run this command, the output prompts you to log in.
+
+```shell-session
+$ tfstacks plan -organization=REQUIRED_ORG_NAME -stack=REQUIRED_STACK_ID -deployment=REQUIRED_DEPLOYMENT [-hostname=hostname]
+```
+
+The `tfstacks plan` accepts the following arguments.
+
+| Field | Description | Required |
+| :---- | :---- | :---- |
+| `-organization`  | Set the `organization` flag to the name of this stack’s organization.<br/><br/>Alternatively, you can set an environment variable named `TFSTACKS_ORGANIZATION` with the same value. | Required |
+| `-stack=` | Set the `stack` flag to the ID of the Stack you want to perform this plan in. You can find a stack’s ID underneath its name when you view that Stack in HCP Terraform.<br/><br/>Alternatively, you can set an environment variable named `TFSTACKS_STACK_ID` with the same value. | Required |
+| `-deployment=` | Set the `deployment` flag to the deployment name you want to perform this plan in. The deployment name must match one of the deployment names you specified in the `tfdeploy.hcl` file.<br/><br/>Alternatively, you can set an environment variable named `TFSTACKS_DEPLOYMENT` with the same value. | Required |
+| `-hostname=` | You can set the `hostname` flag to the hostname of the HCP Terraform instance you want to perform this plan in. The default value is `app.terraform.io`.<br/><br/>Alternatively, you can set an environment variable named `TFSTACKS_HOSTNAME` with the same value. | Optional |
+
+### `tfstacks fmt` command
+
+-> The `tfstacks fmt` command requires v0.6.0 of the `terraform-stacks-cli` or higher. Refer to [installation](#installation) for instructions.
+
+The `tfstacks fmt` command scans your current directory for Stack configuration files, `.tfstack.hcl` and `.tfdeploy.hcl`, and formats those files to match Terraform's canonical format and style.
+
+```shell-session
+$ tfstacks fmt [options] [target]
+```
+
+By default, the `tfstacks fmt` command scans your current directory for configuration files. You can also provide a `target` argument to tell `tfstacks fmt` to scan:
+* A directory 
+* A specific file
+* Standard input by supplying a single dash (`-`).
+
+The `tfstacks fmt` command accepts the following arguments.
+
+| Flag | Description | Required |
+| :---- | :---- | :---- |
+| `-list=false` | Prevents the command from listing the files containing formatting inconsistencies. | Optional |
+| `-diff` | Displays the diffs of formatting changes. | Optional |
+| `-write=false` | Prevents the command from overwriting files. This behavior is implied by the `-check` flag or if the input is from `STDIN`. | Optional |
+| `-check` | Checks if the input is formatted. The exit status is `0` if the command's input is properly formatted. Otherwise, the exit status is non-zero, and the command outputs a list of improperly formatted file names. | Optional |
+| `-recursive` | Processes files in subdirectories in addition to the current directory. By default, only the specified directory is processed. | Optional |
+
+The `tfstacks fmt` command uses the same formatting rules as the Terraform CLI's `terraform fmt` command. Refer to [`terraform fmt`](/terraform/cli/commands/fmt) for more information on formatting rules.
+
+## Global options
+
+You can apply the following global options to any `tfstacks` command:
+
+* The `-terraform-binary` flag specifies a specific version of Terraform to use instead of the one in your PATH.  
+* The `-chdir` flag points to an alternate configuration directory.  
+* The `-no-color` flag disables color output in the CLI.

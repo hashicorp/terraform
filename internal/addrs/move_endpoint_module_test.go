@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -1118,7 +1119,7 @@ func TestMoveEndpointChainAndNested(t *testing.T) {
 		},
 
 		{
-			Endpoint: mustParseAbsResourceInstanceStr("module.foo[2].module.bar.resource.baz").ContainingResource(),
+			Endpoint: mustParseAbsResourceInstanceStr("module.foo[2].module.bar.resource_type.baz").ContainingResource(),
 			Other: AbsModuleCall{
 				Module: mustParseModuleInstanceStr("module.foo[2]"),
 				Call:   ModuleCall{Name: "bar"},
@@ -1128,7 +1129,7 @@ func TestMoveEndpointChainAndNested(t *testing.T) {
 		},
 
 		{
-			Endpoint: mustParseAbsResourceInstanceStr("module.foo[2].module.bar[3].resource.baz[2]"),
+			Endpoint: mustParseAbsResourceInstanceStr("module.foo[2].module.bar[3].resource_type.baz[2]"),
 			Other: AbsModuleCall{
 				Module: mustParseModuleInstanceStr("module.foo[2]"),
 				Call:   ModuleCall{Name: "bar"},
@@ -1155,14 +1156,14 @@ func TestMoveEndpointChainAndNested(t *testing.T) {
 		},
 
 		{
-			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource.baz").ContainingResource(),
+			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz").ContainingResource(),
 			Other:        mustParseModuleInstanceStr("module.foo[2]"),
 			CanChainFrom: false,
 			NestedWithin: true,
 		},
 
 		{
-			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].module.bar.resource.baz"),
+			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].module.bar.resource_type.baz"),
 			Other:        mustParseModuleInstanceStr("module.foo[2]"),
 			CanChainFrom: false,
 			NestedWithin: true,
@@ -1173,28 +1174,28 @@ func TestMoveEndpointChainAndNested(t *testing.T) {
 				Module: mustParseModuleInstanceStr("module.foo[2]"),
 				Call:   ModuleCall{Name: "bar"},
 			},
-			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz").ContainingResource(),
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz").ContainingResource(),
 			CanChainFrom: false,
 			NestedWithin: false,
 		},
 
 		{
 			Endpoint:     mustParseModuleInstanceStr("module.foo[2]"),
-			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz").ContainingResource(),
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz").ContainingResource(),
 			CanChainFrom: false,
 			NestedWithin: false,
 		},
 
 		{
-			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource.baz").ContainingResource(),
-			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz").ContainingResource(),
+			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz").ContainingResource(),
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz").ContainingResource(),
 			CanChainFrom: true,
 			NestedWithin: false,
 		},
 
 		{
-			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
-			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz[2]").ContainingResource(),
+			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz"),
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz[2]").ContainingResource(),
 			CanChainFrom: false,
 			NestedWithin: true,
 		},
@@ -1204,53 +1205,53 @@ func TestMoveEndpointChainAndNested(t *testing.T) {
 				Module: mustParseModuleInstanceStr("module.foo[2]"),
 				Call:   ModuleCall{Name: "bar"},
 			},
-			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz"),
 			CanChainFrom: false,
 		},
 
 		{
 			Endpoint:     mustParseModuleInstanceStr("module.foo[2]"),
-			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz"),
 			CanChainFrom: false,
 		},
 		{
-			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource.baz").ContainingResource(),
-			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
+			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz").ContainingResource(),
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz"),
 			CanChainFrom: false,
 		},
 
 		{
-			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
-			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
+			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz"),
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz"),
 			CanChainFrom: true,
 		},
 
 		{
-			Endpoint:     mustParseAbsResourceInstanceStr("resource.baz"),
+			Endpoint:     mustParseAbsResourceInstanceStr("resource_type.baz"),
 			EndpointMod:  Module{"foo"},
-			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz"),
 			CanChainFrom: true,
 		},
 
 		{
-			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
-			Other:        mustParseAbsResourceInstanceStr("resource.baz"),
+			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz"),
+			Other:        mustParseAbsResourceInstanceStr("resource_type.baz"),
 			OtherMod:     Module{"foo"},
 			CanChainFrom: true,
 		},
 
 		{
-			Endpoint:     mustParseAbsResourceInstanceStr("resource.baz"),
+			Endpoint:     mustParseAbsResourceInstanceStr("resource_type.baz"),
 			EndpointMod:  Module{"foo"},
-			Other:        mustParseAbsResourceInstanceStr("resource.baz"),
+			Other:        mustParseAbsResourceInstanceStr("resource_type.baz"),
 			OtherMod:     Module{"foo"},
 			CanChainFrom: true,
 		},
 
 		{
-			Endpoint:     mustParseAbsResourceInstanceStr("resource.baz").ContainingResource(),
+			Endpoint:     mustParseAbsResourceInstanceStr("resource_type.baz").ContainingResource(),
 			EndpointMod:  Module{"foo"},
-			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz").ContainingResource(),
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz").ContainingResource(),
 			CanChainFrom: true,
 		},
 
@@ -1275,29 +1276,29 @@ func TestMoveEndpointChainAndNested(t *testing.T) {
 		},
 
 		{
-			Endpoint:     mustParseAbsResourceInstanceStr("resource.baz"),
+			Endpoint:     mustParseAbsResourceInstanceStr("resource_type.baz"),
 			EndpointMod:  Module{"foo"},
-			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz").ContainingResource(),
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz").ContainingResource(),
 			NestedWithin: true,
 		},
 
 		{
-			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
-			Other:        mustParseAbsResourceInstanceStr("resource.baz").ContainingResource(),
+			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource_type.baz"),
+			Other:        mustParseAbsResourceInstanceStr("resource_type.baz").ContainingResource(),
 			OtherMod:     Module{"foo"},
 			NestedWithin: true,
 		},
 
 		{
-			Endpoint:     mustParseAbsResourceInstanceStr("resource.baz"),
+			Endpoint:     mustParseAbsResourceInstanceStr("resource_type.baz"),
 			EndpointMod:  Module{"foo"},
-			Other:        mustParseAbsResourceInstanceStr("resource.baz").ContainingResource(),
+			Other:        mustParseAbsResourceInstanceStr("resource_type.baz").ContainingResource(),
 			OtherMod:     Module{"foo"},
 			NestedWithin: true,
 		},
 
 		{
-			Endpoint:     mustParseAbsResourceInstanceStr("ressurce.baz").ContainingResource(),
+			Endpoint:     mustParseAbsResourceInstanceStr("resource_type.baz").ContainingResource(),
 			EndpointMod:  Module{"foo"},
 			Other:        mustParseModuleInstanceStr("module.foo[2]"),
 			NestedWithin: true,
@@ -1406,7 +1407,7 @@ func TestSelectsModule(t *testing.T) {
 		{
 			Endpoint: &MoveEndpointInModule{
 				module:     mustParseModuleInstanceStr("module.foo").Module(),
-				relSubject: mustParseAbsResourceInstanceStr(`module.bar.resource.name["key"]`),
+				relSubject: mustParseAbsResourceInstanceStr(`module.bar.resource_type.name["key"]`),
 			},
 			Addr:    mustParseModuleInstanceStr(`module.foo[1].module.bar`),
 			Selects: true,
@@ -1420,7 +1421,7 @@ func TestSelectsModule(t *testing.T) {
 		},
 		{
 			Endpoint: &MoveEndpointInModule{
-				relSubject: mustParseAbsResourceInstanceStr(`module.bar.module.baz["key"].resource.name`).ContainingResource(),
+				relSubject: mustParseAbsResourceInstanceStr(`module.bar.module.baz["key"].resource_type.name`).ContainingResource(),
 			},
 			Addr:    mustParseModuleInstanceStr(`module.bar.module.baz["key"]`),
 			Selects: true,
@@ -1428,7 +1429,7 @@ func TestSelectsModule(t *testing.T) {
 		{
 			Endpoint: &MoveEndpointInModule{
 				module:     mustParseModuleInstanceStr("module.nope").Module(),
-				relSubject: mustParseAbsResourceInstanceStr(`module.bar.resource.name["key"]`),
+				relSubject: mustParseAbsResourceInstanceStr(`module.bar.resource_type.name["key"]`),
 			},
 			Addr:    mustParseModuleInstanceStr(`module.foo[1].module.bar`),
 			Selects: false,
@@ -1442,7 +1443,7 @@ func TestSelectsModule(t *testing.T) {
 		},
 		{
 			Endpoint: &MoveEndpointInModule{
-				relSubject: mustParseAbsResourceInstanceStr(`module.nope.module.baz["key"].resource.name`).ContainingResource(),
+				relSubject: mustParseAbsResourceInstanceStr(`module.nope.module.baz["key"].resource_type.name`).ContainingResource(),
 			},
 			Addr:    mustParseModuleInstanceStr(`module.bar.module.baz["key"]`),
 			Selects: false,

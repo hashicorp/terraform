@@ -6,6 +6,7 @@ package funcs
 import (
 	"strconv"
 
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/lang/types"
 	"github.com/zclconf/go-cty/cty"
@@ -37,6 +38,7 @@ func MakeToFunc(wantTy cty.Type) function.Function {
 				AllowNull:        true,
 				AllowMarked:      true,
 				AllowDynamicType: true,
+				AllowUnknown:     true,
 			},
 		},
 		Type: func(args []cty.Value) (cty.Type, error) {
@@ -61,8 +63,10 @@ func MakeToFunc(wantTy cty.Type) function.Function {
 			return wantTy, nil
 		},
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-			// We didn't set "AllowUnknown" on our argument, so it is guaranteed
-			// to be known here but may still be null.
+			if !args[0].IsKnown() {
+				return cty.UnknownVal(retType).WithSameMarks(args[0]), nil
+			}
+
 			ret, err := convert.Convert(args[0], retType)
 			if err != nil {
 				val, _ := args[0].UnmarkDeep()
@@ -97,6 +101,38 @@ func MakeToFunc(wantTy cty.Type) function.Function {
 			return ret, nil
 		},
 	})
+}
+
+// EphemeralAsNullFunc is a cty function that takes a value of any type and
+// returns a similar value with any ephemeral-marked values anywhere in the
+// structure replaced with a null value of the same type that is not marked
+// as ephemeral.
+//
+// This is intended as a convenience for returning the non-ephemeral parts of
+// a partially-ephemeral data structure through an output value that isn't
+// ephemeral itself.
+var EphemeralAsNullFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name:             "value",
+			Type:             cty.DynamicPseudoType,
+			AllowDynamicType: true,
+			AllowUnknown:     true,
+			AllowNull:        true,
+			AllowMarked:      true,
+		},
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		// This function always preserves the type of the given argument.
+		return args[0].Type(), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		return ephemeral.RemoveEphemeralValues(args[0]), nil
+	},
+})
+
+func EphemeralAsNull(input cty.Value) (cty.Value, error) {
+	return EphemeralAsNullFunc.Call([]cty.Value{input})
 }
 
 // TypeFunc returns an encapsulated value containing its argument's type. This

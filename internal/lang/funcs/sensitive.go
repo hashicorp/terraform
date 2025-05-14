@@ -28,8 +28,7 @@ var SensitiveFunc = function.New(&function.Spec{
 		return args[0].Type(), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		val, _ := args[0].Unmark()
-		return val.Mark(marks.Sensitive), nil
+		return args[0].Mark(marks.Sensitive), nil
 	},
 })
 
@@ -71,8 +70,14 @@ var IssensitiveFunc = function.New(&function.Spec{
 		return cty.Bool, nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-		s := args[0].HasMark(marks.Sensitive)
-		return cty.BoolVal(s), nil
+		switch v := args[0]; {
+		case v.HasMark(marks.Sensitive):
+			return cty.True, nil
+		case !v.IsKnown():
+			return cty.UnknownVal(cty.Bool), nil
+		default:
+			return cty.False, nil
+		}
 	},
 })
 

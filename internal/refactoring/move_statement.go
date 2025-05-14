@@ -68,7 +68,7 @@ func findMoveStatements(cfg *configs.Config, into []MoveStatement) []MoveStateme
 			// Only attach providers if we are moving resources, and we attach
 			// the to resource provider from the config. We can retrieve the
 			// from resource provider from the state later.
-			modCfg := cfg.Descendent(toResource.Module)
+			modCfg := cfg.Descendant(toResource.Module)
 			// It's possible that multiple refactorings have left a moved block
 			// that points to a module which no longer exists. This may also be
 			// a mistake, but the user will see the unexpected deletion in the
@@ -180,7 +180,7 @@ func impliedMoveStatements(cfg *configs.Config, prevRunState *states.State, expl
 				// zero as the one to retain.
 				if !haveMoveStatementForResource(rAddr, explicitStmts) {
 
-					resource := cfg.Descendent(addrs.RootModule).Module.ResourceByAddr(rAddr.Resource)
+					resource := cfg.Descendant(addrs.RootModule).Module.ResourceByAddr(rAddr.Resource)
 					provider := &addrs.AbsProviderConfig{
 						Module:   rAddr.Module.Module(),
 						Provider: resource.Provider,

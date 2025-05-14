@@ -5,6 +5,8 @@ package depsfile
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 
 	"github.com/hashicorp/hcl/v2"
@@ -138,10 +140,7 @@ func SaveLocksToBytes(locks *Locks) ([]byte, tfdiags.Diagnostics) {
 		},
 	})
 
-	providers := make([]addrs.Provider, 0, len(locks.providers))
-	for provider := range locks.providers {
-		providers = append(providers, provider)
-	}
+	providers := slices.Collect(maps.Keys(locks.providers))
 	sort.Slice(providers, func(i, j int) bool {
 		return providers[i].LessThan(providers[j])
 	})

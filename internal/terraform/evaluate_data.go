@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/didyoumean"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -68,7 +69,7 @@ func (d *evaluationData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRang
 		return cty.StringVal(filepath.ToSlash(wd)), diags
 
 	case "module":
-		moduleConfig := d.Evaluator.Config.Descendent(d.Module)
+		moduleConfig := d.Evaluator.Config.Descendant(d.Module)
 		if moduleConfig == nil {
 			// should never happen, since we can't be evaluating in a module
 			// that wasn't mentioned in configuration.
@@ -99,42 +100,34 @@ func (d *evaluationData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRang
 // GetTerraformAttr implements lang.Data.
 func (d *evaluationData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	switch addr.Name {
 
-	if d.Evaluator.Meta == nil || d.Evaluator.Meta.Env == "" {
-		// The absense of an "env" (really: workspace) name suggests that
+	case "workspace":
+		// The absence of an "env" (really: workspace) name suggests that
 		// we're running in a non-workspace context, such as in a component
-		// of a stack. terraform.workspace -- and the terraform symbol in
-		// general -- is a legacy thing from workspaces mode that isn't
-		// carried forward to stacks, because stack configurations can instead
-		// vary their behavior based on input variables provided in the
-		// deployment configuration.
-		switch addr.Name {
-		case "workspace":
+		// of a stack. terraform.workspace is a legacy thing from workspaces
+		// mode that isn't carried forward to stacks, because stack
+		// configurations can instead vary their behavior based on input
+		// variables provided in the deployment configuration.
+		if d.Evaluator.Meta == nil || d.Evaluator.Meta.Env == "" {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  `Invalid reference`,
 				Detail:   `The terraform.workspace attribute is only available for modules used in Terraform workspaces. Use input variables instead to create variations between different instances of this module.`,
 				Subject:  rng.ToHCL().Ptr(),
 			})
-		default:
-			// A more generic error for any other attribute name, since no
-			// others are valid anyway but it would be confusing to mention
-			// terraform.workspace here.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  `Invalid reference`,
-				Detail:   `The "terraform" object is only available for modules used in Terraform workspaces.`,
-				Subject:  rng.ToHCL().Ptr(),
-			})
+			return cty.DynamicVal, diags
 		}
-		return cty.DynamicVal, diags
-	}
-
-	switch addr.Name {
-
-	case "workspace":
 		workspaceName := d.Evaluator.Meta.Env
 		return cty.StringVal(workspaceName), diags
+
+	// terraform.applying is an ephemeral boolean value that's set to true
+	// during an apply walk or false in any other situation. This is
+	// intended to allow, for example, using a more privileged auth role
+	// in a provider configuration during the apply phase but a more
+	// constrained role for other situations.
+	case "applying":
+		return cty.BoolVal(d.Evaluator.Operation == walkApply).Mark(marks.Ephemeral), nil
 
 	case "env":
 		// Prior to Terraform 0.12 there was an attribute "env", which was
@@ -152,7 +145,7 @@ func (d *evaluationData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Invalid "terraform" attribute`,
-			Detail:   fmt.Sprintf(`The "terraform" object does not have an attribute named %q. The only supported attribute is terraform.workspace, the name of the currently-selected workspace.`, addr.Name),
+			Detail:   fmt.Sprintf(`The "terraform" object does not have an attribute named %q. The only supported attributes are terraform.workspace, the name of the currently-selected workspace, and terraform.applying, a boolean which is true only during apply.`, addr.Name),
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return cty.DynamicVal, diags

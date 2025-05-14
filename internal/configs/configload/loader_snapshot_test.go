@@ -45,7 +45,7 @@ func TestLoadConfigWithSnapshot(t *testing.T) {
 
 		problems := deep.Equal(wantModuleDirs, gotModuleDirs)
 		for _, problem := range problems {
-			t.Errorf(problem)
+			t.Error(problem)
 		}
 		if len(problems) > 0 {
 			return

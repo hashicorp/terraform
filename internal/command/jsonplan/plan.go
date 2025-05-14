@@ -153,9 +153,14 @@ type Change struct {
 	// during planning as a string.
 	//
 	// If this is populated, then Importing should also be populated but this
-	// might change in the future. However, nNot all Importing changes will
+	// might change in the future. However, not all Importing changes will
 	// contain generated config.
 	GeneratedConfig string `json:"generated_config,omitempty"`
+
+	// BeforeIdentity and AfterIdentity are representations of the resource
+	// identity value both before and after the action.
+	BeforeIdentity json.RawMessage `json:"before_identity,omitempty"`
+	AfterIdentity  json.RawMessage `json:"after_identity,omitempty"`
 }
 
 // Importing is a nested object for the resource import metadata.
@@ -163,6 +168,15 @@ type Importing struct {
 	// The original ID of this resource used to target it as part of planned
 	// import operation.
 	ID string `json:"id,omitempty"`
+
+	// Unknown indicates the ID was unknown at the time of planning. This
+	// would have led to the overall change being deferred, as such this should
+	// only be true when processing changes from the deferred changes list.
+	Unknown bool `json:"unknown,omitempty"`
+
+	// The identity can be used instead of the ID to target the resource as part
+	// of the planned import operation.
+	Identity json.RawMessage `json:"identity,omitempty"`
 }
 
 type output struct {
@@ -287,7 +301,7 @@ func Marshal(
 	}
 
 	if p.DeferredResources != nil {
-		output.DeferredChanges, err = marshalDeferredResourceChanges(p.DeferredResources, schemas)
+		output.DeferredChanges, err = MarshalDeferredResourceChanges(p.DeferredResources, schemas)
 		if err != nil {
 			return nil, fmt.Errorf("error in marshaling deferred resource changes: %s", err)
 		}
@@ -419,16 +433,16 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 		r.PreviousAddress = rc.PrevRunAddr.String()
 	}
 
-	schema, _ := schemas.ResourceTypeConfig(
+	schema := schemas.ResourceTypeConfig(
 		rc.ProviderAddr.Provider,
 		addr.Resource.Resource.Mode,
 		addr.Resource.Resource.Type,
 	)
-	if schema == nil {
+	if schema.Body == nil {
 		return r, fmt.Errorf("no schema found for %s (in provider %s)", r.Address, rc.ProviderAddr.Provider)
 	}
 
-	changeV, err := rc.Decode(schema.ImpliedType())
+	changeV, err := rc.Decode(schema)
 	if err != nil {
 		return r, err
 	}
@@ -447,7 +461,7 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 			return r, err
 		}
 		sensitivePaths := rc.BeforeSensitivePaths
-		sensitivePaths = append(sensitivePaths, schema.SensitivePaths(changeV.Before, nil)...)
+		sensitivePaths = append(sensitivePaths, schema.Body.SensitivePaths(changeV.Before, nil)...)
 		bs := jsonstate.SensitiveAsBool(marks.MarkPaths(changeV.Before, marks.Sensitive, sensitivePaths))
 		beforeSensitive, err = ctyjson.Marshal(bs, bs.Type())
 		if err != nil {
@@ -474,7 +488,7 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 			afterUnknown = unknownAsBool(changeV.After)
 		}
 		sensitivePaths := rc.AfterSensitivePaths
-		sensitivePaths = append(sensitivePaths, schema.SensitivePaths(changeV.After, nil)...)
+		sensitivePaths = append(sensitivePaths, schema.Body.SensitivePaths(changeV.After, nil)...)
 		as := jsonstate.SensitiveAsBool(marks.MarkPaths(changeV.After, marks.Sensitive, sensitivePaths))
 		afterSensitive, err = ctyjson.Marshal(as, as.Type())
 		if err != nil {
@@ -493,7 +507,48 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 
 	var importing *Importing
 	if rc.Importing != nil {
-		importing = &Importing{ID: rc.Importing.ID}
+		if rc.Importing.Unknown {
+			importing = &Importing{Unknown: true}
+		} else {
+			if rc.Importing.ID != "" {
+				importing = &Importing{ID: rc.Importing.ID}
+			} else {
+				identity, err := rc.Importing.Identity.Decode(schema.Identity.ImpliedType())
+				if err != nil {
+					return r, err
+				}
+				rawIdentity, err := ctyjson.Marshal(identity, identity.Type())
+				if err != nil {
+					return r, err
+				}
+
+				importing = &Importing{
+					Identity: json.RawMessage(rawIdentity),
+				}
+			}
+		}
+	}
+
+	var beforeIdentity, afterIdentity []byte
+	if schema.Identity != nil && rc.BeforeIdentity != nil {
+		identity, err := rc.BeforeIdentity.Decode(schema.Identity.ImpliedType())
+		if err != nil {
+			return r, err
+		}
+		beforeIdentity, err = ctyjson.Marshal(identity, identity.Type())
+		if err != nil {
+			return r, err
+		}
+	}
+	if schema.Identity != nil && rc.AfterIdentity != nil {
+		identity, err := rc.AfterIdentity.Decode(schema.Identity.ImpliedType())
+		if err != nil {
+			return r, err
+		}
+		afterIdentity, err = ctyjson.Marshal(identity, identity.Type())
+		if err != nil {
+			return r, err
+		}
 	}
 
 	r.Change = Change{
@@ -506,6 +561,8 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 		ReplacePaths:    replacePaths,
 		Importing:       importing,
 		GeneratedConfig: rc.GeneratedConfig,
+		BeforeIdentity:  json.RawMessage(beforeIdentity),
+		AfterIdentity:   json.RawMessage(afterIdentity),
 	}
 
 	if rc.DeposedKey != states.NotDeposed {
@@ -514,9 +571,14 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 
 	key := addr.Resource.Key
 	if key != nil {
-		value := key.Value()
-		if r.Index, err = ctyjson.Marshal(value, value.Type()); err != nil {
-			return r, err
+		if key == addrs.WildcardKey {
+			// The wildcard key should only be set for a deferred instance.
+			r.IndexUnknown = true
+		} else {
+			value := key.Value()
+			if r.Index, err = ctyjson.Marshal(value, value.Type()); err != nil {
+				return r, err
+			}
 		}
 	}
 
@@ -569,10 +631,11 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 	return r, nil
 }
 
-// marshalDeferredResourceChanges converts the provided internal representation
+// MarshalDeferredResourceChanges converts the provided internal representation
 // of DeferredResourceInstanceChangeSrc objects into the public structured JSON
 // changes.
-func marshalDeferredResourceChanges(resources []*plans.DeferredResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]DeferredResourceChange, error) {
+// This is public to make testing easier.
+func MarshalDeferredResourceChanges(resources []*plans.DeferredResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]DeferredResourceChange, error) {
 	var ret []DeferredResourceChange
 
 	var sortedResources []*plans.DeferredResourceInstanceChangeSrc
@@ -625,7 +688,7 @@ func marshalDeferredResourceChanges(resources []*plans.DeferredResourceInstanceC
 // This function is referenced directly from the structured renderer tests, to
 // ensure parity between the renderers. It probably shouldn't be used anywhere
 // else.
-func MarshalOutputChanges(changes *plans.Changes) (map[string]Change, error) {
+func MarshalOutputChanges(changes *plans.ChangesSrc) (map[string]Change, error) {
 	if changes == nil {
 		// Nothing to do!
 		return nil, nil
@@ -715,7 +778,7 @@ func MarshalOutputChanges(changes *plans.Changes) (map[string]Change, error) {
 	return outputChanges, nil
 }
 
-func (p *plan) marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) error {
+func (p *plan) marshalPlannedValues(changes *plans.ChangesSrc, schemas *terraform.Schemas) error {
 	// marshal the planned changes into a module
 	plan, err := marshalPlannedValues(changes, schemas)
 	if err != nil {
@@ -743,6 +806,15 @@ func (p *plan) marshalRelevantAttrs(plan *plans.Plan) error {
 
 		p.RelevantAttributes = append(p.RelevantAttributes, ResourceAttr{addr, path})
 	}
+
+	// we want our outputs to be deterministic, so we'll sort the attributes
+	// here. The order of the attributes is not important, as long as it is
+	// stable.
+
+	sort.SliceStable(p.RelevantAttributes, func(i, j int) bool {
+		return strings.Compare(fmt.Sprintf("%#v", plan.RelevantAttributes[i]), fmt.Sprintf("%#v", plan.RelevantAttributes[j])) < 0
+	})
+
 	return nil
 }
 

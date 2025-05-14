@@ -38,9 +38,12 @@ type Provider struct {
 
 	// Mock and MockData declare this provider as a "mock_provider", which means
 	// it should use the data in MockData instead of actually initialising the
-	// provider.
-	Mock     bool
-	MockData *MockData
+	// provider. MockDataDuringPlan tells the provider that, by default, it
+	// should generate values during the planning stage instead of waiting for
+	// the apply stage.
+	Mock               bool
+	MockDataDuringPlan bool
+	MockData           *MockData
 
 	// MockDataExternalSource is a file path pointing to the external data
 	// file for a mock provider. An empty string indicates all data should be

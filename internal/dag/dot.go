@@ -6,6 +6,8 @@ package dag
 import (
 	"bytes"
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -97,13 +99,8 @@ func (v *marshalVertex) dot(g *marshalGraph, opts *DotOpts) []byte {
 			return []byte{}
 		}
 
-		newAttrs := make(map[string]string)
-		for k, v := range attrs {
-			newAttrs[k] = v
-		}
-		for k, v := range node.Attrs {
-			newAttrs[k] = v
-		}
+		newAttrs := maps.Clone(attrs)
+		maps.Copy(newAttrs, node.Attrs)
 
 		name = node.Name
 		attrs = newAttrs
@@ -177,7 +174,7 @@ func (g *marshalGraph) writeBody(opts *DotOpts, w *indentWriter) {
 		w.Write(v.dot(g, opts))
 	}
 
-	var dotEdges []string
+	dotEdges := make(map[string]string)
 
 	if opts.DrawCycles {
 		for _, c := range g.Cycles {
@@ -203,20 +200,22 @@ func (g *marshalGraph) writeBody(opts *DotOpts, w *indentWriter) {
 					Attrs:  make(map[string]string),
 				}
 
-				dotEdges = append(dotEdges, cycleDot(e, g))
+				dotEdges[e.Name] = cycleDot(e, g)
 				src = tgt
 			}
 		}
 	}
 
 	for _, e := range g.Edges {
-		dotEdges = append(dotEdges, e.dot(g))
+		// only add the edge if it's not been added as part of a cycle
+		// or if there are duplicates.
+		if _, ok := dotEdges[e.Name]; !ok {
+			dotEdges[e.Name] = e.dot(g)
+		}
 	}
 
-	// srot these again to match the old output
-	sort.Strings(dotEdges)
-
-	for _, e := range dotEdges {
+	// sort these again to match the old output
+	for _, e := range slices.Sorted(maps.Values(dotEdges)) {
 		w.WriteString(e + "\n")
 	}
 

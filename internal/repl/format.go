@@ -23,6 +23,9 @@ func FormatValue(v cty.Value, indent int) string {
 	if v.HasMark(marks.Sensitive) {
 		return "(sensitive value)"
 	}
+	if v.HasMark(marks.Ephemeral) {
+		return "(ephemeral value)"
+	}
 	if v.IsNull() {
 		ty := v.Type()
 		switch {

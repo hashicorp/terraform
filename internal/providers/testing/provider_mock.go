@@ -32,28 +32,33 @@ type MockProvider struct {
 	GetProviderSchemaCalled   bool
 	GetProviderSchemaResponse *providers.GetProviderSchemaResponse
 
+	GetResourceIdentitySchemasCalled   bool
+	GetResourceIdentitySchemasResponse *providers.GetResourceIdentitySchemasResponse
+
 	ValidateProviderConfigCalled   bool
 	ValidateProviderConfigResponse *providers.ValidateProviderConfigResponse
 	ValidateProviderConfigRequest  providers.ValidateProviderConfigRequest
 	ValidateProviderConfigFn       func(providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse
 
 	ValidateResourceConfigCalled   bool
-	ValidateResourceConfigTypeName string
 	ValidateResourceConfigResponse *providers.ValidateResourceConfigResponse
 	ValidateResourceConfigRequest  providers.ValidateResourceConfigRequest
 	ValidateResourceConfigFn       func(providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse
 
 	ValidateDataResourceConfigCalled   bool
-	ValidateDataResourceConfigTypeName string
 	ValidateDataResourceConfigResponse *providers.ValidateDataResourceConfigResponse
 	ValidateDataResourceConfigRequest  providers.ValidateDataResourceConfigRequest
 	ValidateDataResourceConfigFn       func(providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse
 
 	UpgradeResourceStateCalled   bool
-	UpgradeResourceStateTypeName string
 	UpgradeResourceStateResponse *providers.UpgradeResourceStateResponse
 	UpgradeResourceStateRequest  providers.UpgradeResourceStateRequest
 	UpgradeResourceStateFn       func(providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse
+
+	UpgradeResourceIdentityCalled   bool
+	UpgradeResourceIdentityResponse *providers.UpgradeResourceIdentityResponse
+	UpgradeResourceIdentityRequest  providers.UpgradeResourceIdentityRequest
+	UpgradeResourceIdentityFn       func(providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse
 
 	ConfigureProviderCalled   bool
 	ConfigureProviderResponse *providers.ConfigureProviderResponse
@@ -94,6 +99,23 @@ type MockProvider struct {
 	ReadDataSourceRequest  providers.ReadDataSourceRequest
 	ReadDataSourceFn       func(providers.ReadDataSourceRequest) providers.ReadDataSourceResponse
 
+	ValidateEphemeralResourceConfigCalled   bool
+	ValidateEphemeralResourceConfigResponse *providers.ValidateEphemeralResourceConfigResponse
+	ValidateEphemeralResourceConfigRequest  providers.ValidateEphemeralResourceConfigRequest
+	ValidateEphemeralResourceConfigFn       func(providers.ValidateEphemeralResourceConfigRequest) providers.ValidateEphemeralResourceConfigResponse
+	OpenEphemeralResourceCalled             bool
+	OpenEphemeralResourceResponse           *providers.OpenEphemeralResourceResponse
+	OpenEphemeralResourceRequest            providers.OpenEphemeralResourceRequest
+	OpenEphemeralResourceFn                 func(providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse
+	RenewEphemeralResourceCalled            bool
+	RenewEphemeralResourceResponse          *providers.RenewEphemeralResourceResponse
+	RenewEphemeralResourceRequest           providers.RenewEphemeralResourceRequest
+	RenewEphemeralResourceFn                func(providers.RenewEphemeralResourceRequest) providers.RenewEphemeralResourceResponse
+	CloseEphemeralResourceCalled            bool
+	CloseEphemeralResourceResponse          *providers.CloseEphemeralResourceResponse
+	CloseEphemeralResourceRequest           providers.CloseEphemeralResourceRequest
+	CloseEphemeralResourceFn                func(providers.CloseEphemeralResourceRequest) providers.CloseEphemeralResourceResponse
+
 	CallFunctionCalled   bool
 	CallFunctionResponse providers.CallFunctionResponse
 	CallFunctionRequest  providers.CallFunctionRequest
@@ -122,6 +144,24 @@ func (p *MockProvider) getProviderSchema() providers.GetProviderSchemaResponse {
 		Provider:      providers.Schema{},
 		DataSources:   map[string]providers.Schema{},
 		ResourceTypes: map[string]providers.Schema{},
+	}
+}
+
+func (p *MockProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	p.Lock()
+	defer p.Unlock()
+	p.GetResourceIdentitySchemasCalled = true
+
+	return p.getResourceIdentitySchemas()
+}
+
+func (p *MockProvider) getResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	if p.GetResourceIdentitySchemasResponse != nil {
+		return *p.GetResourceIdentitySchemasResponse
+	}
+
+	return providers.GetResourceIdentitySchemasResponse{
+		IdentityTypes: map[string]providers.IdentitySchema{},
 	}
 }
 
@@ -158,7 +198,7 @@ func (p *MockProvider) ValidateResourceConfig(r providers.ValidateResourceConfig
 		return resp
 	}
 
-	_, err := msgpack.Marshal(r.Config, resourceSchema.Block.ImpliedType())
+	_, err := msgpack.Marshal(r.Config, resourceSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -188,7 +228,7 @@ func (p *MockProvider) ValidateDataResourceConfig(r providers.ValidateDataResour
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
 		return resp
 	}
-	_, err := msgpack.Marshal(r.Config, dataSchema.Block.ImpliedType())
+	_, err := msgpack.Marshal(r.Config, dataSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
@@ -205,6 +245,41 @@ func (p *MockProvider) ValidateDataResourceConfig(r providers.ValidateDataResour
 	return resp
 }
 
+func (p *MockProvider) ValidateEphemeralResourceConfig(r providers.ValidateEphemeralResourceConfigRequest) (resp providers.ValidateEphemeralResourceConfigResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.ValidateEphemeralResourceConfigCalled = true
+	p.ValidateEphemeralResourceConfigRequest = r
+
+	// Marshall the value to replicate behavior by the GRPC protocol
+	dataSchema, ok := p.getProviderSchema().EphemeralResourceTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
+		return resp
+	}
+	_, err := msgpack.Marshal(r.Config, dataSchema.Body.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	if p.ValidateDataResourceConfigFn != nil {
+		return p.ValidateEphemeralResourceConfigFn(r)
+	}
+
+	if p.ValidateDataResourceConfigResponse != nil {
+		return *p.ValidateEphemeralResourceConfigResponse
+	}
+
+	return resp
+}
+
+// UpgradeResourceState mocks out the response from the provider during an UpgradeResourceState RPC
+// The default logic will return the resource's state unchanged, unless other logic is defined on the mock (e.g. UpgradeResourceStateFn)
+//
+// When using this mock you may need to provide custom logic if the plugin-framework alters values in state,
+// e.g. when handling write-only attributes.
 func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
 	p.Lock()
 	defer p.Unlock()
@@ -220,7 +295,7 @@ func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 		return resp
 	}
 
-	schemaType := schema.Block.ImpliedType()
+	schemaType := schema.Body.ImpliedType()
 
 	p.UpgradeResourceStateCalled = true
 	p.UpgradeResourceStateRequest = r
@@ -250,6 +325,45 @@ func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 		}
 		resp.UpgradedState = v
 	}
+
+	return resp
+}
+
+func (p *MockProvider) UpgradeResourceIdentity(r providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before UpgradeResourceIdentity %q", r.TypeName))
+		return resp
+	}
+	p.UpgradeResourceIdentityCalled = true
+	p.UpgradeResourceIdentityRequest = r
+
+	if p.UpgradeResourceIdentityFn != nil {
+		return p.UpgradeResourceIdentityFn(r)
+	}
+
+	if p.UpgradeResourceIdentityResponse != nil {
+		return *p.UpgradeResourceIdentityResponse
+	}
+
+	schema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]
+
+	if !ok || schema.Identity == nil {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no identity schema found for %q", r.TypeName))
+		return resp
+	}
+
+	identityType := schema.Identity.ImpliedType()
+
+	v, err := ctyjson.Unmarshal(r.RawIdentityJSON, identityType)
+
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+	resp.UpgradedIdentity = v
 
 	return resp
 }
@@ -313,16 +427,51 @@ func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 			return resp
 		}
 
-		newState, err := schema.Block.CoerceValue(resp.NewState)
+		newState, err := schema.Body.CoerceValue(resp.NewState)
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 		}
 		resp.NewState = newState
+		if resp.Identity.IsNull() {
+			resp.Identity = r.CurrentIdentity
+		}
+
 		return resp
 	}
 
-	// otherwise just return the same state we received
-	resp.NewState = r.PriorState
+	// otherwise just return the same state we received without the write-only attributes
+	// since there are old tests without a schema we default to the prior state
+	if schema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]; ok {
+
+		newVal, err := cty.Transform(r.PriorState, func(path cty.Path, v cty.Value) (cty.Value, error) {
+			// We're only concerned with known null values, which can be computed
+			// by the provider.
+			if !v.IsKnown() {
+				return v, nil
+			}
+
+			attrSchema := schema.Body.AttributeByPath(path)
+			if attrSchema == nil {
+				// this is an intermediate path which does not represent an attribute
+				return v, nil
+			}
+
+			// Write-only attributes always return null
+			if attrSchema.WriteOnly {
+				return cty.NullVal(v.Type()), nil
+			}
+
+			return v, nil
+		})
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+		}
+		resp.NewState = newVal
+	} else {
+		resp.NewState = r.PriorState
+	}
+
+	resp.Identity = r.CurrentIdentity
 	resp.Private = r.Private
 	return resp
 }
@@ -369,10 +518,15 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 			return v, nil
 		}
 
-		attrSchema := schema.Block.AttributeByPath(path)
+		attrSchema := schema.Body.AttributeByPath(path)
 		if attrSchema == nil {
 			// this is an intermediate path which does not represent an attribute
 			return v, nil
+		}
+
+		// Write-only attributes always return null
+		if attrSchema.WriteOnly {
+			return cty.NullVal(v.Type()), nil
 		}
 
 		// get the current configuration value, to detect when a
@@ -435,6 +589,7 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	// if the value is nil, we return that directly to correspond to a delete
 	if r.PlannedState.IsNull() {
 		resp.NewState = r.PlannedState
+		resp.NewIdentity = r.PlannedIdentity
 		return resp
 	}
 
@@ -464,6 +619,7 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 
 	resp.NewState = val
 	resp.Private = r.PlannedPrivate
+	resp.NewIdentity = r.PlannedIdentity
 
 	return resp
 }
@@ -499,7 +655,7 @@ func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateReques
 			}
 
 			var err error
-			res.State, err = schema.Block.CoerceValue(res.State)
+			res.State, err = schema.Body.CoerceValue(res.State)
 			if err != nil {
 				resp.Diagnostics = resp.Diagnostics.Append(err)
 				return resp
@@ -548,6 +704,75 @@ func (p *MockProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 
 	if p.ReadDataSourceResponse != nil {
 		resp = *p.ReadDataSourceResponse
+	}
+
+	return resp
+}
+
+func (p *MockProvider) OpenEphemeralResource(r providers.OpenEphemeralResourceRequest) (resp providers.OpenEphemeralResourceResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before OpenEphemeralResource %q", r.TypeName))
+		return resp
+	}
+
+	p.OpenEphemeralResourceCalled = true
+	p.OpenEphemeralResourceRequest = r
+
+	if p.OpenEphemeralResourceFn != nil {
+		return p.OpenEphemeralResourceFn(r)
+	}
+
+	if p.OpenEphemeralResourceResponse != nil {
+		resp = *p.OpenEphemeralResourceResponse
+	}
+
+	return resp
+}
+
+func (p *MockProvider) RenewEphemeralResource(r providers.RenewEphemeralResourceRequest) (resp providers.RenewEphemeralResourceResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before RenewEphemeralResource %q", r.TypeName))
+		return resp
+	}
+
+	p.RenewEphemeralResourceCalled = true
+	p.RenewEphemeralResourceRequest = r
+
+	if p.RenewEphemeralResourceFn != nil {
+		return p.RenewEphemeralResourceFn(r)
+	}
+
+	if p.RenewEphemeralResourceResponse != nil {
+		resp = *p.RenewEphemeralResourceResponse
+	}
+
+	return resp
+}
+
+func (p *MockProvider) CloseEphemeralResource(r providers.CloseEphemeralResourceRequest) (resp providers.CloseEphemeralResourceResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before CloseEphemeralResource %q", r.TypeName))
+		return resp
+	}
+
+	p.CloseEphemeralResourceCalled = true
+	p.CloseEphemeralResourceRequest = r
+
+	if p.CloseEphemeralResourceFn != nil {
+		return p.CloseEphemeralResourceFn(r)
+	}
+
+	if p.CloseEphemeralResourceResponse != nil {
+		resp = *p.CloseEphemeralResourceResponse
 	}
 
 	return resp

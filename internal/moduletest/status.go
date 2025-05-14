@@ -13,7 +13,7 @@ package moduletest
 //
 // See the Status.Merge function for this requirement being used in action.
 //
-//go:generate go run golang.org/x/tools/cmd/stringer -type=Status status.go
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=Status status.go
 type Status int
 
 const (

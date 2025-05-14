@@ -28,6 +28,9 @@ func MakeStaticTimestampFunc(static time.Time) function.Function {
 		Params: []function.Parameter{},
 		Type:   function.StaticReturnType(cty.String),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+			if static.IsZero() {
+				return cty.UnknownVal(cty.String), nil
+			}
 			return cty.StringVal(static.Format(time.RFC3339)), nil
 		},
 	})

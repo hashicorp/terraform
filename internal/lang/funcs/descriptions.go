@@ -162,6 +162,10 @@ var DescriptionList = map[string]descriptionEntry{
 		Description:      "`endswith` takes two values: a string to check and a suffix string. The function returns true if the first string ends with that exact suffix.",
 		ParamDescription: []string{"", ""},
 	},
+	"ephemeralasnull": {
+		Description:      "`ephemeralasnull` takes a value of any type and returns a similar value of the same type with any ephemeral values replaced with non-ephemeral null values and all non-ephemeral values preserved.",
+		ParamDescription: []string{""},
+	},
 	"file": {
 		Description:      "`file` reads the contents of a file at the given path and returns them as a string.",
 		ParamDescription: []string{""},
@@ -423,8 +427,8 @@ var DescriptionList = map[string]descriptionEntry{
 	"templatestring": {
 		Description: "`templatestring` takes a string from elsewhere in the module and renders its content as a template using a supplied set of template variables.",
 		ParamDescription: []string{
-			"a simple reference to a string value containing the template source code",
-			"object of variables to expose in the template scope",
+			"A simple reference to a string value containing the template source code.",
+			"Object of variables to expose in the template scope.",
 		},
 	},
 	"textdecodebase64": {

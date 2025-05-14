@@ -6,9 +6,10 @@ package configload
 import (
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"time"
 
 	version "github.com/hashicorp/go-version"
@@ -257,11 +258,7 @@ func (fs snapshotFS) Open(name string) (afero.File, error) {
 		modDir := filepath.Clean(candidate.Dir)
 		if modDir == directDir {
 			// We've matched the module directory itself
-			filenames := make([]string, 0, len(candidate.Files))
-			for n := range candidate.Files {
-				filenames = append(filenames, n)
-			}
-			sort.Strings(filenames)
+			filenames := slices.Sorted(maps.Keys(candidate.Files))
 			return &snapshotDir{
 				filenames: filenames,
 			}, nil

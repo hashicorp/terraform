@@ -14,6 +14,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -39,15 +40,7 @@ import (
 // Callers must call [Main.DoCleanup] on that object once they've finished
 // with it to avoid leaking non-memory resources such as goroutines and
 // provider plugin processes.
-func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb.Any, opts ApplyOpts, outp ApplyOutput) (*Main, error) {
-	// FIXME: ApplyPlan takes a raw plan and decodes it here, whereas
-	// the corresponding function for planning expects the caller to
-	// have already done the work to load the raw state. We should
-	// make these two consistent one way or the other.
-	plan, err := stackplan.LoadFromProto(rawPlan)
-	if err != nil {
-		return nil, fmt.Errorf("invalid raw plan: %w", err)
-	}
+func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.Plan, opts ApplyOpts, outp ApplyOutput) (*Main, error) {
 	if !plan.Applyable {
 		// We should not get here because a caller should not ask us to try
 		// to apply a plan that wasn't marked as applyable, but we'll check
@@ -84,9 +77,9 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 		// can error rather than deadlock if something goes wrong and causes
 		// us to try to depend on a result that isn't coming.
 		results, begin := ChangeExec(ctx, func(ctx context.Context, reg *ChangeExecRegistry[*Main]) {
-			for _, elem := range plan.Components.Elems() {
-				addr := elem.K
-				componentInstPlan := elem.V
+			for key, elem := range plan.AllComponents() {
+				addr := key
+				componentInstPlan := elem
 				action := componentInstPlan.PlannedAction
 				dependencyAddrs := componentInstPlan.Dependencies
 				dependentAddrs := componentInstPlan.Dependents
@@ -99,23 +92,61 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 						log.Printf("[TRACE] stackeval: %s preparing to apply", addr)
 
 						stack := main.Stack(ctx, addr.Stack, ApplyPhase)
-						component := stack.Component(ctx, addr.Item.Component)
-						insts := component.Instances(ctx, ApplyPhase)
-						inst, ok := insts[addr.Item.Key]
-						if !ok {
-							// If we managed to plan a change for this instance
-							// during the plan phase but yet it doesn't exist
-							// during the apply phase then that suggests that
-							// something upstream has failed in a strange way
-							// during apply and so this component's for_each or
-							// count argument can't be properly evaluated anymore.
-							// This is an unlikely case but we'll tolerate it by
-							// returning a placeholder value and expect the cause
-							// to be reported by some object when we do the apply
-							// checking walk below.
-							log.Printf("[ERROR] stackeval: %s has planned changes, but does not seem to be declared", addr)
-							span.SetStatus(codes.Error, "missing component instance declaration")
-							return nil, nil
+						component, removed := stack.ApplyableComponents(addr.Item.Component)
+
+						// A component change can be sourced from a removed
+						// block or a component block. We'll try to find the
+						// instance that we need to use to apply these changes.
+
+						var inst ApplyableComponentInstance
+
+						matchedUnknownBlock := false
+
+					Blocks:
+						for _, block := range removed {
+							if insts, unknown := block.InstancesFor(ctx, stack.addr, ApplyPhase); unknown {
+								matchedUnknownBlock = true
+							} else {
+								for _, i := range insts {
+									if i.from.Item.Key == addr.Item.Key {
+										inst = i
+										break Blocks
+									}
+								}
+							}
+						}
+
+						if component != nil {
+							if insts, unknown := component.Instances(ctx, ApplyPhase); unknown {
+								matchedUnknownBlock = true
+							} else {
+								if i, ok := insts[addr.Item.Key]; ok {
+									if inst != nil {
+										var diags tfdiags.Diagnostics
+										diags = diags.Append(tfdiags.Sourceless(
+											tfdiags.Error,
+											"Invalid component instance",
+											fmt.Sprintf("There was a plan for %s, which matched both removed and component blocks.", addr),
+										))
+										log.Printf("[ERROR] stackeval: %s has both a component and a removed block that point to the same address", addr)
+										span.SetStatus(codes.Error, "both component and removed block present")
+										return nil, diags
+									}
+									inst = i
+								}
+							}
+						}
+
+						if inst == nil && !matchedUnknownBlock {
+							var diags tfdiags.Diagnostics
+							diags = diags.Append(tfdiags.Sourceless(
+								tfdiags.Error,
+								"Invalid component instance",
+								fmt.Sprintf("There was a plan for %s, which matched no known component instances.", addr),
+							))
+							log.Printf("[ERROR] stackeval: %s has planned changes, but no instance to apply them to", addr)
+							span.SetStatus(codes.Error, "no instance to apply changes to")
+							return nil, diags
 						}
 
 						modulesRuntimePlan, err := componentInstPlan.ForModulesRuntime()
@@ -137,8 +168,37 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 							return nil, diags
 						}
 
+						if matchedUnknownBlock && inst == nil {
+							log.Printf("[TRACE] stackeval: %s matched an unknown block so returning prior state unchanged.", addr)
+							span.SetStatus(codes.Ok, "apply unknown")
+
+							for _, step := range addr.Stack {
+								if step.Key == addrs.WildcardKey {
+									// for instances that were unknown we don't
+									// emit any updates for them.
+									return nil, nil
+								}
+							}
+							if addr.Item.Key == addrs.WildcardKey {
+								// for instances that were unknown we don't
+								// emit any updates for them.
+								return nil, nil
+							}
+
+							// if we get here, then this was a concrete instance
+							// that was in state before the original plan, we
+							// do want to emit a "nothing changed" update for
+							// this instance.
+
+							return &ComponentInstanceApplyResult{
+								FinalState: modulesRuntimePlan.PrevRunState,
+								Complete:   false,
+							}, nil
+						}
+
 						var waitForComponents collections.Set[stackaddrs.AbsComponent]
-						if action == plans.Delete {
+						var waitForRemoveds collections.Set[stackaddrs.AbsComponent]
+						if action == plans.Delete || action == plans.Forget {
 							// If the effect of this apply will be to destroy this
 							// component instance then we need to wait for all
 							// of our dependents to be destroyed first, because
@@ -150,6 +210,10 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 							// downstream component were referring to a
 							// component that's been removed from the config.)
 							waitForComponents = dependentAddrs
+
+							// If we're being destroyed, then we're waiting for
+							// everything that depended on us anyway.
+							waitForRemoveds = dependencyAddrs
 						} else {
 							// For all other actions, we must wait for our
 							// dependencies to finish applying their changes.
@@ -158,9 +222,9 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 						if depCount := waitForComponents.Len(); depCount != 0 {
 							log.Printf("[TRACE] stackeval: %s waiting for its predecessors (%d) to complete", addr, depCount)
 						}
-						for _, waitComponentAddr := range waitForComponents.Elems() {
+						for waitComponentAddr := range waitForComponents.All() {
 							if stack := main.Stack(ctx, waitComponentAddr.Stack, ApplyPhase); stack != nil {
-								if component := stack.Component(ctx, waitComponentAddr.Item); component != nil {
+								if component := stack.Component(waitComponentAddr.Item); component != nil {
 									span.AddEvent("awaiting predecessor", trace.WithAttributes(
 										attribute.String("component_addr", waitComponentAddr.String()),
 									))
@@ -176,7 +240,38 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 
 										// We'll return a stub result that reports that nothing was changed, since
 										// we're not going to run our apply phase at all.
-										return inst.PlaceholderApplyResultForSkippedApply(ctx, modulesRuntimePlan), nil
+										return inst.PlaceholderApplyResultForSkippedApply(modulesRuntimePlan), nil
+										// Since we're not calling inst.ApplyModuleTreePlan at all in this
+										// codepath, the stacks runtime will not emit any progress events for
+										// this component instance or any of the objects inside it.
+									}
+								}
+							}
+						}
+						for waitComponentAddr := range waitForRemoveds.All() {
+							if stack := main.Stack(ctx, waitComponentAddr.Stack, ApplyPhase); stack != nil {
+								if removed := stack.RemovedComponent(waitComponentAddr.Item); removed != nil {
+									span.AddEvent("awaiting predecessor", trace.WithAttributes(
+										attribute.String("component_addr", waitComponentAddr.String()),
+									))
+									success := true
+									for _, block := range removed {
+										if !block.ApplySuccessful(ctx, stack.addr) {
+											success = false
+										}
+									}
+									if !success {
+										// If anything we're waiting on does not succeed then we can't proceed without
+										// violating the dependency invariants.
+										log.Printf("[TRACE] stackeval: %s cannot start because %s changes did not apply completely", addr, waitComponentAddr)
+										span.AddEvent("predecessor is incomplete", trace.WithAttributes(
+											attribute.String("component_addr", waitComponentAddr.String()),
+										))
+										span.SetStatus(codes.Error, "predecessors did not completely apply")
+
+										// We'll return a stub result that reports that nothing was changed, since
+										// we're not going to run our apply phase at all.
+										return inst.PlaceholderApplyResultForSkippedApply(modulesRuntimePlan), nil
 										// Since we're not calling inst.ApplyModuleTreePlan at all in this
 										// codepath, the stacks runtime will not emit any progress events for
 										// this component instance or any of the objects inside it.
@@ -198,7 +293,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 			}
 		})
 
-		main := NewForApplying(config, plan.RootInputValues, plan, results, opts)
+		main := NewForApplying(config, plan, results, opts)
 		main.AllowLanguageExperiments(opts.ExperimentsAllowed)
 		begin(ctx, main) // the change tasks registered above become runnable
 
@@ -264,7 +359,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 	})
 	diags := withDiags.Diagnostics
 	main := withDiags.Result
-	diags = diags.Append(diagnosticsForPromisingTaskError(err, main))
+	diags = diags.Append(diagnosticsForPromisingTaskError(err))
 	if len(diags) > 0 {
 		outp.AnnounceDiagnostics(ctx, diags)
 	}

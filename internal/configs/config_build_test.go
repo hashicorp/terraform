@@ -308,7 +308,7 @@ func TestBuildConfig_WithMockDataSources(t *testing.T) {
 
 	cfg, diags := BuildConfig(mod, nil, MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
 		sourcePath := filepath.Join("testdata/valid-modules/with-mock-sources", provider.MockDataExternalSource)
-		return parser.LoadMockDataDir(sourcePath, hcl.Range{})
+		return parser.LoadMockDataDir(sourcePath, provider.MockDataDuringPlan, hcl.Range{})
 	}))
 	assertNoDiagnostics(t, diags)
 	if cfg == nil {
@@ -339,7 +339,7 @@ func TestBuildConfig_WithMockDataSourcesInline(t *testing.T) {
 
 	cfg, diags := BuildConfig(mod, nil, MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
 		sourcePath := filepath.Join("testdata/valid-modules/with-mock-sources-inline", provider.MockDataExternalSource)
-		return parser.LoadMockDataDir(sourcePath, hcl.Range{})
+		return parser.LoadMockDataDir(sourcePath, provider.MockDataDuringPlan, hcl.Range{})
 	}))
 	assertNoDiagnostics(t, diags)
 	if cfg == nil {

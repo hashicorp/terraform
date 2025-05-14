@@ -65,19 +65,9 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	// Attempt to load the plan file, if specified
-	planFile, diags := c.LoadPlanFile(args.PlanPath)
+	planFile, loadPlanFileDiags := c.LoadPlanFile(args.PlanPath)
+	diags = diags.Append(loadPlanFileDiags)
 	if diags.HasErrors() {
-		view.Diagnostics(diags)
-		return 1
-	}
-
-	// Check for invalid combination of plan file and variable overrides
-	if planFile != nil && !args.Vars.Empty() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Can't set variables when applying a saved plan",
-			"The -var and -var-file options cannot be used when applying a saved plan file, because a saved plan includes the variable values that were set when it was created.",
-		))
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -389,12 +379,24 @@ Options:
   -parallelism=n         Limit the number of parallel resource operations.
                          Defaults to 10.
 
+  -replace=resource      Terraform will plan to replace this resource instance
+                         instead of doing an update or no-op action. 
+
   -state=path            Path to read and save state (unless state-out
                          is specified). Defaults to "terraform.tfstate".
 
   -state-out=path        Path to write state to that is different than
                          "-state". This can be used to preserve the old
                          state.
+                         
+  -var 'foo=bar'         Set a value for one of the input variables in the root
+                         module of the configuration. Use this option more than
+                         once to set more than one variable.
+
+  -var-file=filename     Load variable values from the given file, in addition
+                         to the default files terraform.tfvars and *.auto.tfvars.
+                         Use this option more than once to include more than one
+                         variables file.
 
   If you don't provide a saved plan file then this command will also accept
   all of the plan-customization options accepted by the terraform plan command.

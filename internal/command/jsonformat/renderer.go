@@ -62,8 +62,12 @@ const (
 	LogResourceDrift     JSONLogType = "resource_drift"
 	LogVersion           JSONLogType = "version"
 
-	// Test Messages
+	// Ephemeral operation messages
+	LogEphemeralOpStart    JSONLogType = "ephemeral_op_start"
+	LogEphemeralOpComplete JSONLogType = "ephemeral_op_complete"
+	LogEphemeralOpErrored  JSONLogType = "ephemeral_op_errored"
 
+	// Test Messages
 	LogTestAbstract  JSONLogType = "test_abstract"
 	LogTestFile      JSONLogType = "test_file"
 	LogTestRun       JSONLogType = "test_run"
@@ -146,6 +150,7 @@ func (renderer Renderer) RenderLog(log *JSONLog) error {
 		LogProvisionComplete,
 		LogProvisionErrored,
 		LogApplyErrored,
+		LogEphemeralOpErrored,
 		LogTestAbstract,
 		LogTestStatus,
 		LogTestRetry,
@@ -155,7 +160,7 @@ func (renderer Renderer) RenderLog(log *JSONLog) error {
 		// We won't display these types of logs
 		return nil
 
-	case LogApplyStart, LogApplyComplete, LogRefreshStart, LogProvisionStart, LogResourceDrift:
+	case LogApplyStart, LogApplyComplete, LogRefreshStart, LogProvisionStart, LogResourceDrift, LogEphemeralOpStart, LogEphemeralOpComplete:
 		msg := fmt.Sprintf(renderer.Colorize.Color("[bold]%s[reset]"), log.Message)
 		renderer.Streams.Println(msg)
 

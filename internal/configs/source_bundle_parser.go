@@ -58,7 +58,16 @@ func (p *SourceBundleParser) LoadConfigDir(source sourceaddrs.FinalSource) (*Mod
 	mod, modDiags := NewModule(primary, override)
 	diags = append(diags, modDiags...)
 
-	mod.SourceDir = source.String()
+	sourceDir, err := p.sources.LocalPathForSource(source)
+	if err != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Cannot find configuration source code",
+			Detail:   fmt.Sprintf("Failed to load %s from the pre-installed source packages: %s. This is a bug in Terraform - please report it.", source, err),
+		})
+		return nil, diags
+	}
+	mod.SourceDir = sourceDir
 
 	return mod, diags
 }
@@ -69,6 +78,11 @@ func (p *SourceBundleParser) LoadConfigDir(source sourceaddrs.FinalSource) (*Mod
 func (p *SourceBundleParser) IsConfigDir(source sourceaddrs.FinalSource) bool {
 	primaryPaths, overridePaths, _ := p.dirSources(source)
 	return (len(primaryPaths) + len(overridePaths)) > 0
+}
+
+// Bundle returns the source bundle that this parser is reading from.
+func (p *SourceBundleParser) Bundle() *sourcebundle.Bundle {
+	return p.sources
 }
 
 func (p *SourceBundleParser) dirSources(source sourceaddrs.FinalSource) (primary, override []sourceaddrs.FinalSource, diags hcl.Diagnostics) {

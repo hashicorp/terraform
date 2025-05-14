@@ -262,28 +262,48 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 	for _, p := range pm {
 		key := p.ProviderAddr().String()
 
-		// get the close provider of this type if we alread created it
-		closer := cpm[key]
-
-		if closer == nil {
-			// create a closer for this provider type
-			closer = &graphNodeCloseProvider{Addr: p.ProviderAddr()}
-			g.Add(closer)
-			cpm[key] = closer
+		// make sure we haven't created the closer node already
+		_, ok := cpm[key]
+		if ok {
+			log.Printf("[ERROR] CloseProviderTransformer: already created close node for %s", key)
+			continue
 		}
+
+		// create a closer for this provider type
+		closer := &graphNodeCloseProvider{Addr: p.ProviderAddr()}
+		g.Add(closer)
+		cpm[key] = closer
 
 		// Close node depends on the provider itself
 		// this is added unconditionally, so it will connect to all instances
 		// of the provider. Extra edges will be removed by transitive
 		// reduction.
 		g.Connect(dag.BasicEdge(closer, p))
+	}
 
-		// connect all the provider's resources to the close node
-		for _, s := range g.UpEdges(p) {
-			if _, ok := s.(GraphNodeProviderConsumer); ok {
-				g.Connect(dag.BasicEdge(closer, s))
-			}
+	// Now look for all provider consumers and connect them to the appropriate closers.
+	for _, v := range g.Vertices() {
+		pc, ok := v.(GraphNodeProviderConsumer)
+		if !ok {
+			continue
 		}
+
+		p, exact := pc.ProvidedBy()
+		if p == nil && exact {
+			// this node does not require a provider
+			continue
+		}
+
+		provider, ok := p.(addrs.AbsProviderConfig)
+		if !ok {
+			return fmt.Errorf("%s failed to return a provider reference", dag.VertexName(pc))
+		}
+
+		closer, ok := cpm[provider.String()]
+		if !ok {
+			return fmt.Errorf("no graphNodeCloseProvider for %s", provider)
+		}
+		g.Connect(dag.BasicEdge(closer, v))
 	}
 
 	return err
@@ -717,7 +737,7 @@ func (t *ProviderConfigTransformer) attachProviderConfigs(g *Graph) error {
 		addr := apn.ProviderAddr()
 
 		// Get the configuration.
-		mc := t.Config.Descendent(addr.Module)
+		mc := t.Config.Descendant(addr.Module)
 		if mc == nil {
 			log.Printf("[TRACE] ProviderConfigTransformer: no configuration available for %s", addr.String())
 			continue

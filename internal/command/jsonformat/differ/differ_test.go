@@ -99,6 +99,41 @@ func TestValue_SimpleBlocks(t *testing.T) {
 				"normal_attribute": renderers.ValidatePrimitive(nil, "some value", plans.Create, false),
 			}, nil, nil, nil, nil, plans.Create, false),
 		},
+		"create_with_unknown_block": {
+			input: structured.Change{
+				Before: nil,
+				After: map[string]interface{}{
+					"normal_attribute": "some value",
+				},
+				Unknown: map[string]any{
+					"nested": true,
+				},
+			},
+			block: &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"normal_attribute": {
+						AttributeType: unmarshalType(t, cty.String),
+					},
+				},
+				BlockTypes: map[string]*jsonprovider.BlockType{
+					"nested": {
+						NestingMode: "single",
+						Block: &jsonprovider.Block{
+							Attributes: map[string]*jsonprovider.Attribute{
+								"attr": {
+									AttributeType: unmarshalType(t, cty.String),
+									Optional:      true,
+								},
+							},
+						},
+					},
+				},
+			},
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				"normal_attribute": renderers.ValidatePrimitive(nil, "some value", plans.Create, false),
+			}, map[string]renderers.ValidateDiffFunction{
+				"nested": renderers.ValidateUnknown(nil, plans.Create, false),
+			}, nil, nil, nil, plans.Create, false)},
 	}
 	for name, tc := range tcs {
 		// Set some default values

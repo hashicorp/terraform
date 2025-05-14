@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	homedir "github.com/mitchellh/go-homedir"
@@ -359,6 +360,17 @@ func TestFunctions(t *testing.T) {
 			{
 				`endswith(" ", "hello")`,
 				cty.False,
+			},
+		},
+
+		"ephemeralasnull": {
+			{
+				`ephemeralasnull(local.ephemeral)`,
+				cty.NullVal(cty.String),
+			},
+			{
+				`ephemeralasnull("not ephemeral")`,
+				cty.StringVal("not ephemeral"),
 			},
 		},
 
@@ -976,6 +988,21 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"templatestring": {
+			{
+				`templatestring(local.greeting_template, {
+  name = "Arthur"
+})`,
+				cty.StringVal("Hello, Arthur!"),
+			},
+			{
+				`core::templatestring(local.greeting_template, {
+  name = "Namespaced Arthur"
+})`,
+				cty.StringVal("Hello, Namespaced Arthur!"),
+			},
+		},
+
 		"timeadd": {
 			{
 				`timeadd("2017-11-22T00:00:00Z", "1s")`,
@@ -1215,7 +1242,6 @@ func TestFunctions(t *testing.T) {
 	}
 
 	experimentalFuncs := map[string]experiments.Experiment{}
-	experimentalFuncs["defaults"] = experiments.ModuleVariableOptionalAttrs
 
 	// We'll also register a few "external functions" so that we can
 	// verify that registering these works. The functions actually
@@ -1311,9 +1337,15 @@ func TestFunctions(t *testing.T) {
 
 			for _, test := range funcTests {
 				t.Run(test.src, func(t *testing.T) {
-					data := &dataForTests{} // no variables available; we only need literals here
+					data := &dataForTests{
+						LocalValues: map[string]cty.Value{
+							"greeting_template": cty.StringVal("Hello, ${name}!"),
+							"ephemeral":         cty.StringVal("ephemeral").Mark(marks.Ephemeral),
+						},
+					}
 					scope := &Scope{
 						Data:          data,
+						ParseRef:      addrs.ParseRef,
 						BaseDir:       "./testdata/functions-test", // for the functions that read from the filesystem
 						PlanTimestamp: time.Date(2004, 04, 25, 15, 00, 00, 000, time.UTC),
 						ExternalFuncs: externalFuncs,
@@ -1342,6 +1374,26 @@ func TestFunctions(t *testing.T) {
 				})
 			}
 		})
+	}
+}
+
+func TestPlanTimeStampUnknown(t *testing.T) {
+	// plantimestamp should return an unknown if there is no timestamp, which
+	// happens during validation
+	expr, parseDiags := hclsyntax.ParseExpression([]byte("plantimestamp()"), "test.hcl", hcl.Pos{Line: 1, Column: 1})
+	if parseDiags.HasErrors() {
+		t.Fatal(parseDiags)
+	}
+
+	scope := &Scope{}
+	got, diags := scope.EvalExpr(expr, cty.DynamicPseudoType)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+
+	}
+
+	if got.IsKnown() {
+		t.Fatalf("plantimestamp() should be unknown, got %#v\n", got)
 	}
 }
 

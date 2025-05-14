@@ -86,6 +86,8 @@ func Marshal(f map[string]function.Function) ([]byte, tfdiags.Diagnostics) {
 			signatures.Signatures[name] = marshalCan(v)
 		} else if name == "try" || name == "core::try" {
 			signatures.Signatures[name] = marshalTry(v)
+		} else if name == "templatestring" || name == "core::templatestring" {
+			signatures.Signatures[name] = marshalTemplatestring(v)
 		} else {
 			signature, err := marshalFunction(v)
 			if err != nil {
@@ -189,6 +191,31 @@ func marshalCan(can function.Function) *FunctionSignature {
 				Name:        can.Params()[0].Name,
 				Description: can.Params()[0].Description,
 				IsNullable:  can.Params()[0].AllowNull,
+				Type:        cty.DynamicPseudoType,
+			},
+		},
+	}
+}
+
+// marshalTemplatestring returns a static function signature for the
+// templatestring function.
+// We need this exception because the function implementation uses capsule
+// types that we can't marshal.
+func marshalTemplatestring(templatestring function.Function) *FunctionSignature {
+	return &FunctionSignature{
+		Description: templatestring.Description(),
+		ReturnType:  cty.String,
+		Parameters: []*parameter{
+			{
+				Name:        templatestring.Params()[0].Name,
+				Description: templatestring.Params()[0].Description,
+				IsNullable:  templatestring.Params()[0].AllowNull,
+				Type:        cty.String,
+			},
+			{
+				Name:        templatestring.Params()[1].Name,
+				Description: templatestring.Params()[1].Description,
+				IsNullable:  templatestring.Params()[1].AllowNull,
 				Type:        cty.DynamicPseudoType,
 			},
 		},

@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -21,6 +20,8 @@ import (
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -50,6 +51,10 @@ type Evaluator struct {
 	// variables, local values, and output values.
 	NamedValues *namedvals.State
 
+	// EphemeralResources tracks the currently-open instances of any ephemeral
+	// resources.
+	EphemeralResources *ephemeral.Resources
+
 	// Deferrals tracks resources and modules that have had either their
 	// expansion or their specific planned actions deferred to a future
 	// plan/apply round.
@@ -71,6 +76,11 @@ type Evaluator struct {
 	// ensures they can be safely accessed and modified concurrently.
 	Changes *plans.ChangesSync
 
+	// FunctionResults carries forward the global cache of function results to
+	// be used when building out all the builtin functions returned in the
+	// Scope.
+	FunctionResults *lang.FunctionResults
+
 	PlanTimestamp time.Time
 }
 
@@ -82,14 +92,15 @@ type Evaluator struct {
 // address.
 func (e *Evaluator) Scope(data lang.Data, self addrs.Referenceable, source addrs.Referenceable, extFuncs lang.ExternalFuncs) *lang.Scope {
 	return &lang.Scope{
-		Data:          data,
-		ParseRef:      addrs.ParseRef,
-		SelfAddr:      self,
-		SourceAddr:    source,
-		PureOnly:      e.Operation != walkApply && e.Operation != walkDestroy && e.Operation != walkEval,
-		BaseDir:       ".", // Always current working directory for now.
-		PlanTimestamp: e.PlanTimestamp,
-		ExternalFuncs: extFuncs,
+		Data:            data,
+		ParseRef:        addrs.ParseRef,
+		SelfAddr:        self,
+		SourceAddr:      source,
+		PureOnly:        e.Operation != walkApply && e.Operation != walkDestroy && e.Operation != walkEval,
+		BaseDir:         ".", // Always current working directory for now.
+		PlanTimestamp:   e.PlanTimestamp,
+		ExternalFuncs:   extFuncs,
+		FunctionResults: e.FunctionResults,
 	}
 }
 
@@ -231,7 +242,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 
 	// First we'll make sure the requested value is declared in configuration,
 	// so we can produce a nice message if not.
-	moduleConfig := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
+	moduleConfig := d.Evaluator.Config.DescendantForInstance(d.ModulePath)
 	if moduleConfig == nil {
 		// should never happen, since we can't be evaluating in a module
 		// that wasn't mentioned in configuration.
@@ -274,18 +285,26 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	// being liberal in what it accepts because the subsequent plan walk has
 	// more information available and so can be more conservative.
 	if d.Operation == walkValidate {
-		// Ensure variable sensitivity is captured in the validate walk
+		// We should still capture the statically-configured marks during
+		// the validate walk.
+		ret := cty.UnknownVal(config.Type)
 		if config.Sensitive {
-			return cty.UnknownVal(config.Type).Mark(marks.Sensitive), diags
+			ret = ret.Mark(marks.Sensitive)
 		}
-		return cty.UnknownVal(config.Type), diags
+		if config.Ephemeral {
+			ret = ret.Mark(marks.Ephemeral)
+		}
+		return ret, diags
 	}
 
 	val := d.Evaluator.NamedValues.GetInputVariableValue(d.ModulePath.InputVariable(addr.Name))
 
-	// Mark if sensitive
+	// Mark if sensitive and/or ephemeral
 	if config.Sensitive {
 		val = val.Mark(marks.Sensitive)
+	}
+	if config.Ephemeral {
+		val = val.Mark(marks.Ephemeral)
 	}
 
 	return val, diags
@@ -296,7 +315,7 @@ func (d *evaluationStateData) GetLocalValue(addr addrs.LocalValue, rng tfdiags.S
 
 	// First we'll make sure the requested value is declared in configuration,
 	// so we can produce a nice message if not.
-	moduleConfig := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
+	moduleConfig := d.Evaluator.Config.DescendantForInstance(d.ModulePath)
 	if moduleConfig == nil {
 		// should never happen, since we can't be evaluating in a module
 		// that wasn't mentioned in configuration.
@@ -335,7 +354,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	moduleAddr := d.ModulePath.Module().Child(addr.Name)
 	absAddr := addr.Absolute(d.ModulePath)
 
-	parentCfg := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
+	parentCfg := d.Evaluator.Config.DescendantForInstance(d.ModulePath)
 	callConfig, ok := parentCfg.Module.ModuleCalls[addr.Name]
 	if !ok {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -350,7 +369,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// We'll consult the configuration to see what output names we are
 	// expecting, so we can ensure the resulting object is of the expected
 	// type even if our data is incomplete for some reason.
-	moduleConfig := d.Evaluator.Config.Descendent(moduleAddr)
+	moduleConfig := d.Evaluator.Config.Descendant(moduleAddr)
 	if moduleConfig == nil {
 		// should never happen, since we have a valid module call above, this
 		// should be caught during static validation.
@@ -485,7 +504,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// First we'll consult the configuration to see if an resource of this
 	// name is declared at all.
 	moduleAddr := d.ModulePath
-	moduleConfig := d.Evaluator.Config.DescendentForInstance(moduleAddr)
+	moduleConfig := d.Evaluator.Config.DescendantForInstance(moduleAddr)
 	if moduleConfig == nil {
 		// should never happen, since we can't be evaluating in a module
 		// that wasn't mentioned in configuration.
@@ -518,7 +537,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// would be nice to rework this function to rely on the ResourceInstanceKeys
 	// result for _all_ of its work, rather than continuing to duplicate a bunch
 	// of the logic we've tried to encapsulate over ther already.
-	if d.Operation == walkPlan {
+	if d.Operation == walkPlan || d.Operation == walkApply {
 		if _, _, hasUnknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(addr.Absolute(moduleAddr)); hasUnknownKeys {
 			// There really isn't anything interesting we can do in this situation,
 			// because it means we have an unknown for_each/count, in which case
@@ -528,7 +547,13 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// (We can't get in here for a single-instance resource because in that
 			// case we would know that there's only one key and it's addrs.NoKey,
 			// so we'll fall through to the other logic below.)
-			return cty.DynamicVal, diags
+			unknownVal := cty.DynamicVal
+
+			// If an ephemeral resource is deferred we need to mark the returned unknown value as ephemeral
+			if addr.Mode == addrs.EphemeralResourceMode {
+				unknownVal = unknownVal.Mark(marks.Ephemeral)
+			}
+			return unknownVal, diags
 		}
 	}
 
@@ -537,7 +562,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// We need to build an abs provider address, but we can use a default
 	// instance since we're only interested in the schema.
 	schema := d.getResourceSchema(addr, config.Provider)
-	if schema == nil {
+	if schema.Body == nil {
 		// This shouldn't happen, since validation before we get here should've
 		// taken care of it, but we'll show a reasonable error message anyway.
 		diags = diags.Append(&hcl.Diagnostic{
@@ -548,7 +573,18 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		})
 		return cty.DynamicVal, diags
 	}
-	ty := schema.ImpliedType()
+	ty := schema.Body.ImpliedType()
+
+	if addr.Mode == addrs.EphemeralResourceMode {
+		// FIXME: This does not yet work with deferrals, and it would be nice to
+		// find some way to refactor this so that the following code is not so
+		// tethered to the current implementation details. Instead we should
+		// have an abstract idea of first determining what instances the
+		// resource has (using d.Evaluator.Instances.ResourceInstanceKeys) and
+		// then retrieving the value for each instance to assemble into the
+		// result, using some per-resource-mode logic maintained elsewhere.
+		return d.getEphemeralResource(addr, rng)
+	}
 
 	rs := d.Evaluator.State.Resource(addr.Absolute(d.ModulePath))
 
@@ -599,17 +635,34 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			}
 
 		default:
-			// We should only end up here during the validate walk,
-			// since later walks should have at least partial states populated
-			// for all resources in the configuration.
+			// We should only end up here during the validate walk (or
+			// console/eval), since later walks should have at least partial
+			// states populated for all resources in the configuration.
 			return cty.DynamicVal, diags
 		}
 	}
 
-	// Decode all instances in the current state
+	// Now, we're going to build up a value that represents the resource
+	// or resources that are in the state.
 	instances := map[addrs.InstanceKey]cty.Value{}
+
+	// First, we're going to load any instances that we have written into the
+	// deferrals system. A deferred resource overrides anything that might be
+	// in the state for the resource, so we do this first.
+	for key, value := range d.Evaluator.Deferrals.GetDeferredResourceInstances(addr.Absolute(d.ModulePath)) {
+		instances[key] = value
+	}
+
+	// Decode all instances in the current state
 	pendingDestroy := d.Operation == walkDestroy
 	for key, is := range rs.Instances {
+		if _, ok := instances[key]; ok {
+			// Then we've already loaded this instance from the deferrals so
+			// we'll just ignore it being in state.
+			continue
+		}
+		// Otherwise, we'll load the instance from state.
+
 		if is == nil || is.Current == nil {
 			// Assume we're dealing with an instance that hasn't been created yet.
 			instances[key] = cty.UnknownVal(ty)
@@ -617,7 +670,6 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		}
 
 		instAddr := addr.Instance(key).Absolute(d.ModulePath)
-
 		change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, addrs.NotDeposed)
 		if change != nil {
 			// Don't take any resources that are yet to be deleted into account.
@@ -635,38 +687,21 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		// and need to be replaced by the planned value here.
 		if is.Current.Status == states.ObjectPlanned {
 			if change == nil {
-				// If the object is in planned status then we should not get
-				// here, since we should have found a pending value in the plan
-				// above instead.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Missing pending object in plan",
-					Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", instAddr),
-					Subject:  &config.DeclRange,
-				})
+				// FIXME: This is usually an unfortunate case where we need to
+				// lookup an individual instance referenced via "self" for
+				// postconditions which we know exists, but because evaluation
+				// must always get the resource in aggregate some instance
+				// changes may not yet be registered.
+				instances[key] = cty.DynamicVal
+				// log the problem for debugging, since it may be a legitimate error we can't catch
+				log.Printf("[WARN] instance %s is marked as having a change pending but that change is not recorded in the plan", instAddr)
 				continue
 			}
-			val, err := change.After.Decode(ty)
-			if err != nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid resource instance data in plan",
-					Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", instAddr, err),
-					Subject:  &config.DeclRange,
-				})
-				continue
-			}
-
-			// Unlike decoding state, decoding a change does not automatically
-			// mark values.
-			// FIXME: Correct that inconsistency by moving this logic into
-			// the decoder function in the plans package, so that we can
-			// test that behavior being implemented in only one place.
-			instances[key] = marks.MarkPaths(val, marks.Sensitive, change.AfterSensitivePaths)
+			instances[key] = change.After
 			continue
 		}
 
-		ios, err := is.Current.Decode(ty)
+		ios, err := is.Current.Decode(schema)
 		if err != nil {
 			// This shouldn't happen, since by the time we get here we
 			// should have upgraded the state data already.
@@ -758,13 +793,122 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	return ret, diags
 }
 
-func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.Provider) *configschema.Block {
-	schema, _, err := d.Evaluator.Plugins.ResourceTypeSchema(providerAddr, addr.Mode, addr.Type)
+func (d *evaluationStateData) getEphemeralResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	if d.Operation == walkValidate || d.Operation == walkEval {
+		// Ephemeral instances are never live during the validate walk. Eval is
+		// similarly offline, and since there is no value stored we can't return
+		// anything other than dynamic.
+		return cty.DynamicVal.Mark(marks.Ephemeral), diags
+	}
+
+	// Now, we're going to build up a value that represents the resource
+	// or resources that are in the state.
+	instances := map[addrs.InstanceKey]cty.Value{}
+
+	// First, we're going to load any instances that we have written into the
+	// deferrals system. A deferred resource overrides anything that might be
+	// in the state for the resource, so we do this first.
+	for key, value := range d.Evaluator.Deferrals.GetDeferredResourceInstances(addr.Absolute(d.ModulePath)) {
+		instances[key] = value
+	}
+
+	absAddr := addr.Absolute(d.ModulePath)
+	keyType, keys, haveUnknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(absAddr)
+	if haveUnknownKeys {
+		// We can probably do better than totally unknown at least for a
+		// single-instance resource, but we'll just keep it simple for now.
+		// Result must be marked as ephemeral so that we can still catch
+		// attempts to use the results in non-ephemeral locations, so that
+		// the operator doesn't end up trapped with an error on a subsequent
+		// plan/apply round.
+		return cty.DynamicVal.Mark(marks.Ephemeral), diags
+	}
+
+	ephems := d.Evaluator.EphemeralResources
+	getInstValue := func(addr addrs.AbsResourceInstance) (cty.Value, tfdiags.Diagnostics) {
+		var diags tfdiags.Diagnostics
+
+		// If we have a deferred instance with this key we don't need to check if it is live or not,
+		// it has not been created so we can just return the deferred value.
+		if v, ok := instances[addr.Resource.Key]; ok {
+			return v, diags
+		}
+
+		val, isLive := ephems.InstanceValue(addr)
+		if !isLive {
+			// If the instance is no longer "live" by the time we're accessing
+			// it then that suggests that it needed renewal and renewal has
+			// failed, and so the object's value is no longer usable. We'll
+			// still return the value in case it's somehow useful for diagnosis,
+			// but we return an error to prevent further evaluation of whatever
+			// other expression depended on the liveness of this object.
+			//
+			// This error message is written on the assumption that it will
+			// always appear alongside the provider's renewal error, but that'll
+			// be exposed only once the (now-zombied) ephemeral resource is
+			// eventually closed, so that we can avoid returning the same error
+			// multiple times.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Ephemeral resource instance has expired",
+				Detail: fmt.Sprintf(
+					"The remote object for %s is no longer available due to a renewal error, so Terraform cannot evaluate this expression.",
+					addr,
+				),
+				Subject: rng.ToHCL().Ptr(),
+			})
+		}
+		if val == cty.NilVal {
+			val = cty.DynamicVal.Mark(marks.Ephemeral)
+		}
+		return val, diags
+	}
+
+	switch keyType {
+	case addrs.NoKeyType:
+		// For "no key" we're returning just a single object representing
+		// the single instance of this resource.
+		instVal, moreDiags := getInstValue(absAddr.Instance(addrs.NoKey))
+		diags = diags.Append(moreDiags)
+		return instVal, diags
+	case addrs.IntKeyType:
+		// For integer keys we're returning a tuple-typed value whose
+		// indices are the keys.
+		elems := make([]cty.Value, len(keys))
+		for _, key := range keys {
+			idx := int(key.(addrs.IntKey))
+			instAddr := absAddr.Instance(key)
+			instVal, moreDiags := getInstValue(instAddr)
+			diags = diags.Append(moreDiags)
+			elems[idx] = instVal
+		}
+		return cty.TupleVal(elems), diags
+	case addrs.StringKeyType:
+		// For string keys we're returning an object-typed value whose
+		// attributes are the keys.
+		attrs := make(map[string]cty.Value, len(keys))
+		for _, key := range keys {
+			attrName := string(key.(addrs.StringKey))
+			instAddr := absAddr.Instance(key)
+			instVal, moreDiags := getInstValue(instAddr)
+			diags = diags.Append(moreDiags)
+			attrs[attrName] = instVal
+		}
+		return cty.ObjectVal(attrs), diags
+	default:
+		panic(fmt.Sprintf("unhandled instance key type %#v", keyType))
+	}
+}
+
+func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.Provider) providers.Schema {
+	schema, err := d.Evaluator.Plugins.ResourceTypeSchema(providerAddr, addr.Mode, addr.Type)
 	if err != nil {
 		// We have plently other codepaths that will detect and report
 		// schema lookup errors before we'd reach this point, so we'll just
 		// treat a failure here the same as having no schema.
-		return nil
+		return providers.Schema{}
 	}
 	return schema
 }
@@ -774,7 +918,7 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 
 	// First we'll make sure the requested value is declared in configuration,
 	// so we can produce a nice message if not.
-	moduleConfig := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
+	moduleConfig := d.Evaluator.Config.DescendantForInstance(d.ModulePath)
 	if moduleConfig == nil {
 		// should never happen, since we can't be evaluating in a module
 		// that wasn't mentioned in configuration.

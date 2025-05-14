@@ -1,18 +1,17 @@
 ---
-page_title: 'Command: force-unlock'
+page_title: terraform force-unlock command reference
 description: >-
-  The terraform force-unlock command unlocks the state for a configuration. It
+  The `terraform force-unlock` command unlocks the state for a configuration. It
   does not modify your infrastructure.
 ---
 
-# Command: force-unlock
+# `terraform force-unlock` command
 
-Manually unlock the state for the defined configuration.
+This topic provides reference information about the `terraform force-unlock` command. This command manually unlocks the state for the defined configuration.
 
-This will not modify your infrastructure. This command removes the lock on the
-state for the current configuration. The behavior of this lock is dependent
+This command removes the lock on the state for the current configuration. The behavior of this lock is dependent
 on the backend being used. Local state files cannot be unlocked by another
-process.
+process. The `terraform force-unlock` command does not modify your infrastructure. 
 
 ## Usage
 
@@ -27,4 +26,4 @@ process.
 
 Options:
 
-* `-force` -  Don't ask for input for unlock confirmation.
+- `-force` -  Don't ask for input for unlock confirmation.

@@ -31,7 +31,7 @@ func ServePlugin(ctx context.Context, opts ServerOpts) error {
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: handshake,
 		VersionedPlugins: map[int]plugin.PluginSet{
-			1: plugin.PluginSet{
+			1: {
 				"tfcore": &corePlugin{
 					experimentsAllowed: opts.ExperimentsAllowed,
 				},

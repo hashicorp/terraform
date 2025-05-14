@@ -89,10 +89,13 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 
 // testModuleInline takes a map of path -> config strings and yields a config
 // structure with those files loaded from disk
-func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
+func testModuleInline(t testing.TB, sources map[string]string) *configs.Config {
 	t.Helper()
 
-	cfgPath := t.TempDir()
+	cfgPath, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	for path, configStr := range sources {
 		dir := filepath.Dir(path)
@@ -224,6 +227,14 @@ func mustAbsResourceAddr(s string) addrs.AbsResource {
 		panic(diags.Err())
 	}
 	return addr
+}
+
+func mustAbsOutputValue(s string) addrs.AbsOutputValue {
+	p, diags := addrs.ParseAbsOutputValueStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return p
 }
 
 func mustProviderConfig(s string) addrs.AbsProviderConfig {
@@ -647,13 +658,6 @@ module.child:
 
     Dependencies:
       aws_instance.foo
-`
-
-const testTerraformApplyOutputOrphanStr = `
-<no state>
-Outputs:
-
-foo = bar
 `
 
 const testTerraformApplyOutputOrphanModuleStr = `

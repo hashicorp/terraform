@@ -3,7 +3,7 @@
 
 package terraform
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=walkOperation graph_walk_operation.go
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=walkOperation graph_walk_operation.go
 
 // walkOperation is an enum which tells the walkContext what to do.
 type walkOperation byte

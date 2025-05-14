@@ -26,11 +26,22 @@ type unknownRenderer struct {
 }
 
 func (renderer unknownRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
-	if diff.Action == plans.Create {
+
+	// the before renderer can be nil and not a create action when the provider
+	// previously returned a null value for the computed attribute and is now
+	// declaring they will recompute it as part of the next update.
+
+	if diff.Action == plans.Create || renderer.before.Renderer == nil {
 		return fmt.Sprintf("(known after apply)%s", forcesReplacement(diff.Replace, opts))
 	}
 
+	beforeOpts := opts.Clone()
 	// Never render null suffix for children of unknown changes.
-	opts.OverrideNullSuffix = true
-	return fmt.Sprintf("%s -> (known after apply)%s", renderer.before.RenderHuman(indent, opts), forcesReplacement(diff.Replace, opts))
+	beforeOpts.OverrideNullSuffix = true
+	if diff.Replace {
+		// If we're displaying forces replacement for the overall unknown
+		// change, then do not display it for the before specifically.
+		beforeOpts.ForbidForcesReplacement = true
+	}
+	return fmt.Sprintf("%s -> (known after apply)%s", renderer.before.RenderHuman(indent, beforeOpts), forcesReplacement(diff.Replace, opts))
 }
