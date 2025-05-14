@@ -98,6 +98,9 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 	w.once.Do(w.init)
 
 	parseRefOptions := make([]addrs.ParseOpt, 0)
+	// If the config has any list blocks, we need to parse ambiguous references
+	// as query scopes. E.g "list.my_instance" will be parsed as a list block
+	// reference, not a managed resource reference.
 	if w.Config.HasListBlocks() {
 		parseRefOptions = append(parseRefOptions, addrs.ParseQueryScopeRefs())
 	}
