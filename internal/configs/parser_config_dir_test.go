@@ -313,7 +313,7 @@ func TestParserLoadTestFiles_Invalid(t *testing.T) {
 
 func TestParserLoadConfigDirWithTests_ReturnsWarnings(t *testing.T) {
 	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDir("testdata/valid-modules/with-tests", WithTestFiles("not_real"))
+	mod, diags := parser.LoadConfigDir("testdata/valid-modules/with-tests", MatchTestFiles("not_real"))
 	if len(diags) != 1 {
 		t.Errorf("expected exactly 1 diagnostic, but found %d", len(diags))
 	} else {
