@@ -27,8 +27,7 @@ const (
 // a subdirectory of the given directory, which is specified by the
 // MatchTestFiles option, or from the default test directory.
 // If this option is not specified, test files will not be loaded.
-// Query files (.tfquery.hcl) are also loaded from the given directory if
-// specified by the MatchQueryFiles option.
+// Query files (.tfquery.hcl) are also loaded from the given directory.
 //
 // If this method returns nil, that indicates that the given directory does not
 // exist at all or could not be opened for some reason. Callers may wish to

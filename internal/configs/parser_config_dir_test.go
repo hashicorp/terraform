@@ -182,7 +182,7 @@ func TestParserLoadConfigDirWithQueries(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			parser := NewParser(nil)
-			mod, diags := parser.LoadConfigDir(test.directory, MatchQueryFiles())
+			mod, diags := parser.LoadConfigDir(test.directory)
 			if test.shouldFail {
 				if !diags.HasErrors() {
 					t.Errorf("expected errors, but found none")
