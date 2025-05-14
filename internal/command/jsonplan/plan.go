@@ -72,6 +72,7 @@ type plan struct {
 	Config             json.RawMessage          `json:"configuration,omitempty"`
 	RelevantAttributes []ResourceAttr           `json:"relevant_attributes,omitempty"`
 	Checks             json.RawMessage          `json:"checks,omitempty"`
+	ActionInvocations  []ActionInvocation       `json:"action_invocations,omitempty"`
 	Timestamp          string                   `json:"timestamp,omitempty"`
 	Applyable          bool                     `json:"applyable"`
 	Complete           bool                     `json:"complete"`
@@ -238,6 +239,10 @@ func MarshalForRenderer(
 		return nil, nil, nil, nil, err
 	}
 
+	if output.ActionInvocations, err = MarshalActionInvocations(p.Changes.ActionInvocations); err != nil {
+
+	}
+
 	return output.OutputChanges, output.ResourceChanges, output.ResourceDrift, output.RelevantAttributes, nil
 }
 
@@ -330,6 +335,8 @@ func Marshal(
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling config: %s", err)
 	}
+
+	// TODO: Action Invocations
 
 	return json.Marshal(output)
 }
@@ -816,6 +823,55 @@ func (p *plan) marshalRelevantAttrs(plan *plans.Plan) error {
 	})
 
 	return nil
+}
+
+func MarshalActionInvocations(ais []*plans.ActionInvocationSrc) ([]ActionInvocation, error) {
+	var err error
+	var marshalledAi *ActionInvocation
+	ret := make([]ActionInvocation, 0, len(ais))
+	for i, ai := range ais {
+		marshalledAi, err = marshalActionInvocation(ai)
+		if err != nil {
+			return nil, err
+		}
+
+		ret[i] = *marshalledAi
+	}
+	return ret, nil
+}
+
+func marshalActionInvocation(ai *plans.ActionInvocationSrc) (*ActionInvocation, error) {
+	result := ActionInvocation{
+		ActionAddress: ai.ActionAddr.String(),
+	}
+
+	switch ai.TriggerType {
+	case plans.ActionTriggerTypeCli:
+		result.TriggeredBy = "cli"
+	case plans.ActionTriggerTypeLifecycle:
+		result.TriggeredBy = "lifecycle"
+		result.TriggeringEvent = ai.TriggeringEvent
+		result.TriggeringResourceAddress = ai.TriggeringResourceInstance.String()
+	default:
+		return nil, fmt.Errorf("unknown action trigger type %s", ai.TriggerType)
+	}
+
+	changeV, err := ai.Decode()
+	if err != nil {
+		return nil, err
+	}
+
+	if changeV.Config != cty.NilVal {
+		result.Config = marshalAttributeValues(changeV.Config)
+		s := jsonstate.SensitiveAsBool(changeV.Config)
+		v, err := ctyjson.Marshal(s, s.Type())
+		if err != nil {
+			return nil, err
+		}
+		result.SensitiveConfig = v
+	}
+
+	return &result, nil
 }
 
 // omitUnknowns recursively walks the src cty.Value and returns a new cty.Value,
