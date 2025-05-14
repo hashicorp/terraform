@@ -177,22 +177,6 @@ func (p *Parser) loadFiles(paths []string, override bool) ([]*File, hcl.Diagnost
 		}
 	}
 
-	for _, file := range files {
-		// This is a reserved namespace, so we should not have any
-		// resources in this namespace.
-		for _, r := range file.ManagedResources {
-			active := ReservedNamespaces[r.Type]
-			if active {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid resource type",
-					Detail:   fmt.Sprintf("The resource type %q is reserved and cannot be used as it conflicts with a top-level terraform namespace.", r.Type),
-					Subject:  r.TypeRange.Ptr(),
-				})
-			}
-		}
-	}
-
 	return files, diags
 }
 
