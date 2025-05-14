@@ -415,6 +415,70 @@ func TestOutputs(t *testing.T) {
 	}
 }
 
+func TestActionInvocation(t *testing.T) {
+	ti := addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "aws_lambda_function", "my-lambda").Instance(addrs.NoKey)
+	for name, tc := range map[string]struct {
+		input    plans.ActionInvocationSrc
+		expected *ActionInvocation
+	}{
+		"cli": {
+			input: plans.ActionInvocationSrc{
+				ActionAddr: addrs.Action{
+					Type: "aws_lambda",
+					Name: "my-lambda",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				Config: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}), cty.DynamicPseudoType),
+				TriggerType: plans.ActionTriggerTypeCli,
+			},
+			expected: &ActionInvocation{
+				ActionAddress: "action.aws_lambda.my-lambda",
+				Config: attributeValues{
+					"foo": json.RawMessage(`"bar"`),
+				},
+				SensitiveConfig: json.RawMessage(`{}`),
+				TriggeredBy:     "cli",
+			},
+		},
+		"lifecycle": {
+			input: plans.ActionInvocationSrc{
+				ActionAddr: addrs.Action{
+					Type: "aws_lambda",
+					Name: "my-lambda",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				Config: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+					"foo": cty.StringVal("bar"),
+				}), cty.DynamicPseudoType),
+				TriggerType:                plans.ActionTriggerTypeLifecycle,
+				TriggeringResourceInstance: &ti,
+				TriggeringEvent:            "before_create",
+			},
+			expected: &ActionInvocation{
+				ActionAddress: "action.aws_lambda.my-lambda",
+				Config: attributeValues{
+					"foo": json.RawMessage(`"bar"`),
+				},
+				SensitiveConfig:           json.RawMessage(`{}`),
+				TriggeredBy:               "lifecycle",
+				TriggeringResourceAddress: "aws_lambda_function.my-lambda",
+				TriggeringEvent:           "before_create",
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			changes, err := marshalActionInvocation(&tc.input)
+			if err != nil {
+				t.Fatalf("unexpected err: %s", err)
+			}
+
+			if !cmp.Equal(changes, tc.expected) {
+				t.Errorf("wrong result:\n %v\n", cmp.Diff(changes, tc.expected))
+			}
+		})
+	}
+}
+
 func deepObjectValue(depth int) cty.Value {
 	v := cty.ObjectVal(map[string]cty.Value{
 		"a": cty.StringVal("a"),
@@ -469,4 +533,12 @@ func BenchmarkUnknownAsBool_9(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		unknownAsBool(value)
 	}
+}
+
+func mustNewDynamicValue(val cty.Value, ty cty.Type) plans.DynamicValue {
+	ret, err := plans.NewDynamicValue(val, ty)
+	if err != nil {
+		panic(err)
+	}
+	return ret
 }
