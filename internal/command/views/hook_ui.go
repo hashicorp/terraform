@@ -342,19 +342,67 @@ func (h *UiHook) PrePlanImport(id terraform.HookResourceIdentity, importTarget c
 }
 
 func (h *UiHook) PreApplyImport(id terraform.HookResourceIdentity, importing plans.ImportingSrc) (terraform.HookAction, error) {
-	h.println(fmt.Sprintf(
-		h.view.colorize.Color("[reset][bold]%s: Importing... [id=%s]"),
-		id.Addr, importing.ID,
-	))
+	if importing.Identity != nil {
+		ty, err := importing.Identity.ImpliedType()
+		if err != nil {
+			h.println(fmt.Sprintf(
+				h.view.colorize.Color("[reset][bold]%s: Importing... [identity=(type error)]"),
+				id.Addr,
+			))
+			return terraform.HookActionContinue, nil
+		}
+		val, err := importing.Identity.Decode(ty)
+		if err != nil {
+			h.println(fmt.Sprintf(
+				h.view.colorize.Color("[reset][bold]%s: Importing... [identity=(decode error)]"),
+				id.Addr,
+			))
+			return terraform.HookActionContinue, nil
+		}
+
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: Importing... [identity=%s]"),
+			id.Addr, tfdiags.ObjectToString(val),
+		))
+	} else {
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: Importing... [id=%s]"),
+			id.Addr, importing.ID,
+		))
+	}
 
 	return terraform.HookActionContinue, nil
 }
 
 func (h *UiHook) PostApplyImport(id terraform.HookResourceIdentity, importing plans.ImportingSrc) (terraform.HookAction, error) {
-	h.println(fmt.Sprintf(
-		h.view.colorize.Color("[reset][bold]%s: Import complete [id=%s]"),
-		id.Addr, importing.ID,
-	))
+	if importing.Identity != nil {
+		ty, err := importing.Identity.ImpliedType()
+		if err != nil {
+			h.println(fmt.Sprintf(
+				h.view.colorize.Color("[reset][bold]%s: Import complete [identity=(type error)]"),
+				id.Addr,
+			))
+			return terraform.HookActionContinue, nil
+		}
+		val, err := importing.Identity.Decode(ty)
+		if err != nil {
+			h.println(fmt.Sprintf(
+				h.view.colorize.Color("[reset][bold]%s: Import complete [identity=(decode error)]"),
+				id.Addr,
+			))
+			return terraform.HookActionContinue, nil
+		}
+
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: Import complete [identity=%s]"),
+			id.Addr, tfdiags.ObjectToString(val),
+		))
+	} else {
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: Import complete [id=%s]"),
+			id.Addr, importing.ID,
+		))
+	}
 
 	return terraform.HookActionContinue, nil
 }
