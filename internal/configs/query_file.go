@@ -93,7 +93,7 @@ func loadQueryFile(body hcl.Body) (*QueryFile, hcl.Diagnostics) {
 func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
-	content, contentDiags := block.Body.Content(QueryListResourceBlockSchema)
+	content, remain, contentDiags := block.Body.PartialContent(QueryListResourceBlockSchema)
 	diags = append(diags, contentDiags...)
 
 	r := Resource{
@@ -102,6 +102,7 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		TypeRange: block.LabelRanges[0],
 		Name:      block.Labels[1],
 		DeclRange: block.DefRange,
+		Config:    remain,
 	}
 
 	if attr, exists := content.Attributes["provider"]; exists {
@@ -172,11 +173,6 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 // a terraform query file.
 var QueryListResourceBlockSchema = &hcl.BodySchema{
 	Attributes: commonResourceAttributes,
-	Blocks: []hcl.BlockHeaderSchema{
-		{
-			Type: "config",
-		},
-	},
 }
 
 // queryFileSchema is the schema for a terraform query file. It defines the
