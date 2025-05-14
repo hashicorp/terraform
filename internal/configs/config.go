@@ -415,6 +415,25 @@ func (c *Config) ProviderRequirementsByModule() (*ModuleRequirements, hcl.Diagno
 	return ret, diags
 }
 
+// HasListBlocks returns true if any of the modules in the configuration
+// contain any list blocks.
+func (c *Config) HasEphemeral() bool {
+	var has bool
+	c.DeepEach(func(c *Config) {
+		if len(c.Module.EphemeralResources) > 0 {
+			has = true
+		}
+	})
+
+	return has
+}
+
+func (c *Config) UpdateParseRef() {
+	if c.HasEphemeral() {
+		addrs.ParseRef = addrs.NewRefParserFn(addrs.ParseEphemeral())
+	}
+}
+
 // addProviderRequirements is the main part of the ProviderRequirements
 // implementation, gradually mutating a shared requirements object to
 // eventually return. If the recurse argument is true, the requirements will

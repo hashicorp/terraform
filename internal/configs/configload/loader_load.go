@@ -46,6 +46,10 @@ func (l *Loader) loadConfig(rootMod *configs.Module, diags hcl.Diagnostics) (*co
 	cfg, cDiags := configs.BuildConfig(rootMod, configs.ModuleWalkerFunc(l.moduleWalkerLoad), configs.MockDataLoaderFunc(l.LoadExternalMockData))
 	diags = append(diags, cDiags...)
 
+	// Update the ref parser that will be used to parse references in the
+	// configuration. This depends on the type of files present in the
+	// configuration.
+	cfg.UpdateParseRef()
 	return cfg, diags
 }
 

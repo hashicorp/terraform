@@ -39,6 +39,11 @@ func (l *Loader) LoadConfigWithSnapshot(rootDir string) (*configs.Config, *Snaps
 	addDiags := l.addModuleToSnapshot(snap, "", rootDir, "", nil)
 	diags = append(diags, addDiags...)
 
+	// Update the ref parser that will be used to parse references in the
+	// configuration. This depends on the type of files present in the
+	// configuration.
+	cfg.UpdateParseRef()
+
 	return cfg, snap, diags
 }
 

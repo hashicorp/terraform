@@ -59,6 +59,54 @@ func (r *Reference) DisplayString() string {
 	return ret.String()
 }
 
+// ParseOpt is a function that can be used to specify custom parsing behavior.
+type ParseOpt func(traversal hcl.Traversal) (bool, *Reference, tfdiags.Diagnostics)
+
+// RefParser is a parser for references that can be configured with
+// ParseOpts. It will try each option in order until one of them returns
+// a handled result. If none of the options handle the traversal, it will
+// fall back to the default parsing behavior.
+type RefParser struct{ opts []ParseOpt }
+
+// NewRefParserFn returns a new reference parser function that will try each of
+// the given options in order until one of them returns a handled result.
+// If none of the options handle the traversal, it will fall back to the
+// default parsing behavior.
+func NewRefParserFn(opts ...ParseOpt) func(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
+	return (&RefParser{opts: opts}).parseRef
+}
+func (p *RefParser) parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var reference *Reference
+
+	// try each of the options first
+	for _, opt := range p.opts {
+		handled, ref, tDiags := opt(traversal)
+		if handled {
+			reference = ref
+			diags = diags.Append(tDiags)
+			break
+		}
+	}
+
+	// no options handled the traversal, so fall back to the default
+	if reference == nil && diags == nil {
+		var d tfdiags.Diagnostics
+		reference, d = parseRef(traversal)
+		diags = diags.Append(d)
+	}
+
+	// Normalize a little to make life easier for callers.
+	if reference != nil {
+		if len(reference.Remaining) == 0 {
+			reference.Remaining = nil
+		}
+		return reference, diags
+	}
+
+	return reference, diags
+}
+
 // ParseRef attempts to extract a referenceable address from the prefix of the
 // given traversal, which must be an absolute traversal or this function
 // will panic.
@@ -70,18 +118,7 @@ func (r *Reference) DisplayString() string {
 //
 // If error diagnostics are returned then the Reference value is invalid and
 // must not be used.
-func ParseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
-	ref, diags := parseRef(traversal)
-
-	// Normalize a little to make life easier for callers.
-	if ref != nil {
-		if len(ref.Remaining) == 0 {
-			ref.Remaining = nil
-		}
-	}
-
-	return ref, diags
-}
+var ParseRef = NewRefParserFn()
 
 // ParseRefFromTestingScope adds check blocks and outputs into the available
 // references returned by ParseRef.
@@ -142,6 +179,35 @@ func ParseRefFromTestingScope(traversal hcl.Traversal) (*Reference, tfdiags.Diag
 
 	// If it's not an output or a check block, then just parse it as normal.
 	return ParseRef(traversal)
+}
+
+// ParseEphemeral returns a ParseOpts that handles the "ephemeral" prefix
+// in a traversal. This is used to parse references to ephemeral resources.
+// Without this opt, the "ephemeral" prefix would be treated as a normal
+// resource type name.
+func ParseEphemeral() ParseOpt {
+	return func(traversal hcl.Traversal) (bool, *Reference, tfdiags.Diagnostics) {
+		root := traversal.RootName()
+		rootRange := traversal[0].SourceRange()
+
+		var diags tfdiags.Diagnostics
+		if root == "ephemeral" {
+			if len(traversal) < 3 {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid reference",
+					Detail:   `The "ephemeral" object must be followed by two attribute names: the ephemeral resource type and the resource name.`,
+					Subject:  traversal.SourceRange().Ptr(),
+				})
+				return true, nil, diags
+			}
+			remain := traversal[1:] // trim off "ephemeral" so we can use our shared resource reference parser
+			ref, diags := parseResourceRef(EphemeralResourceMode, rootRange, remain)
+			return true, ref, diags
+		}
+
+		return false, nil, diags
+	}
 }
 
 // ParseRefStr is a helper wrapper around ParseRef that takes a string
@@ -246,20 +312,6 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 		}
 		remain := traversal[1:] // trim off "resource" so we can use our shared resource reference parser
 		return parseResourceRef(ManagedResourceMode, rootRange, remain)
-
-	case "ephemeral":
-		if len(traversal) < 3 {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid reference",
-				Detail:   `The "ephemeral" object must be followed by two attribute names: the ephemeral resource type and the resource name.`,
-				Subject:  traversal.SourceRange().Ptr(),
-			})
-			return nil, diags
-		}
-		remain := traversal[1:] // trim off "ephemeral" so we can use our shared resource reference parser
-		return parseResourceRef(EphemeralResourceMode, rootRange, remain)
-
 	case "local":
 		name, rng, remain, diags := parseSingleAttrRef(traversal)
 		return &Reference{
