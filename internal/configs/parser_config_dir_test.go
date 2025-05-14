@@ -153,37 +153,47 @@ func TestParserLoadConfigDirWithQueries(t *testing.T) {
 	tests := []struct {
 		name             string
 		directory        string
-		shouldFail       bool
 		diagnostics      []string
 		listResources    int
 		managedResources int
+		allowExperiments bool
 	}{
 		{
-			name:          "simple",
-			directory:     "testdata/query-files/valid/simple",
-			listResources: 2,
+			name:             "simple",
+			directory:        "testdata/query-files/valid/simple",
+			listResources:    2,
+			allowExperiments: true,
 		},
 		{
 			name:             "mixed",
 			directory:        "testdata/query-files/valid/mixed",
 			listResources:    2,
 			managedResources: 1,
+			allowExperiments: true,
 		},
 		{
-			name:       "no-provider",
-			directory:  "testdata/query-files/invalid/no-provider",
-			shouldFail: true,
+			name:             "loading query lists with no-experiments",
+			directory:        "testdata/query-files/valid/mixed",
+			managedResources: 1,
+			listResources:    0,
+			allowExperiments: false,
+		},
+		{
+			name:      "no-provider",
+			directory: "testdata/query-files/invalid/no-provider",
 			diagnostics: []string{
 				"testdata/query-files/invalid/no-provider/main.tfquery.hcl:1,1-27: Missing \"provider\" attribute; You must specify a provider attribute when defining a list block.",
 			},
+			allowExperiments: true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			parser := NewParser(nil)
+			parser.AllowLanguageExperiments(test.allowExperiments)
 			mod, diags := parser.LoadConfigDir(test.directory)
-			if test.shouldFail {
+			if len(test.diagnostics) > 0 {
 				if !diags.HasErrors() {
 					t.Errorf("expected errors, but found none")
 				}
