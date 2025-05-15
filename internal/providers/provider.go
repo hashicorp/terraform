@@ -101,6 +101,9 @@ type Interface interface {
 	// of rendering it invalid as soon as possible.
 	CloseEphemeralResource(CloseEphemeralResourceRequest) CloseEphemeralResourceResponse
 
+	// ListResource returns a list of resources.
+	ListResource(ListResourceRequest) error
+
 	// CallFunction calls a provider-contributed function.
 	CallFunction(CallFunctionRequest) CallFunctionResponse
 
@@ -176,6 +179,9 @@ type Schema struct {
 
 	IdentityVersion int64
 	Identity        *configschema.Object
+
+	ListVersion int64
+	ListBody    *configschema.Block
 }
 
 // ServerCapabilities allows providers to communicate extra information

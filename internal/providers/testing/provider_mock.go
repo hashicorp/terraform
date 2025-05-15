@@ -121,6 +121,8 @@ type MockProvider struct {
 	CloseEphemeralResourceRequest           providers.CloseEphemeralResourceRequest
 	CloseEphemeralResourceFn                func(providers.CloseEphemeralResourceRequest) providers.CloseEphemeralResourceResponse
 
+	ListResourceFn func(request providers.ListResourceRequest) error
+
 	CallFunctionCalled   bool
 	CallFunctionResponse providers.CallFunctionResponse
 	CallFunctionRequest  providers.CallFunctionRequest
@@ -308,6 +310,17 @@ func (p *MockProvider) ValidateListResourceConfig(r providers.ValidateListResour
 	}
 
 	return resp
+}
+
+func (m *MockProvider) ListResource(request providers.ListResourceRequest) error {
+	m.Lock()
+	defer m.Unlock()
+
+	if m.ListResourceFn != nil {
+		return m.ListResourceFn(request)
+	}
+
+	return nil
 }
 
 // UpgradeResourceState mocks out the response from the provider during an UpgradeResourceState RPC
