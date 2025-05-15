@@ -223,6 +223,16 @@ func loadModule(root *Config, req *ModuleRequest, walker ModuleWalker) (*Config,
 		})
 	}
 
+	if len(mod.ListResources) > 0 {
+		first := slices.Collect(maps.Values(mod.ListResources))[0]
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid list configuration",
+			Detail:   fmt.Sprintf("A list block was detected in %q. List blocks are only allowed in the root module.", cfg.Path),
+			Subject:  first.DeclRange.Ptr(),
+		})
+	}
+
 	return cfg, diags
 }
 

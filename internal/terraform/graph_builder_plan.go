@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"log"
+	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -146,6 +147,8 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 			importTargets: b.ImportTargets,
 
+			// the validate walk also needs to include query-related nodes.
+			includeQuery: slices.Contains([]walkOperation{walkValidate, walkQuery}, b.Operation),
 			// We only want to generate config during a plan operation.
 			generateConfigPathForImportTargets: b.GenerateConfigPath,
 		},
