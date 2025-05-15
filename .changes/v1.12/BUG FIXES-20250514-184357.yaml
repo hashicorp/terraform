@@ -1,5 +1,5 @@
 kind: BUG FIXES
-body: avoid sending HEAD request on provider download
+body: Fix regression during provider installation by reverting back to not sending HEAD requests.
 time: 2025-05-14T18:43:57.332193-04:00
 custom:
-    Issue: "36987"
+    Issue: "36998"
