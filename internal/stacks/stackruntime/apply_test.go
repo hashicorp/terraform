@@ -1972,7 +1972,7 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 							Summary:  "No value for required variable",
 							Detail:   "The root input variable \"var.ephemeral\" is not set, and has no default value.",
 							Subject: &hcl.Range{
-								Filename: "git::https://example.com/test.git//with-single-input/ephemeral/ephemeral.tfstack.hcl",
+								Filename: "git::https://example.com/test.git//with-single-input/ephemeral/ephemeral.tfcomponent.hcl",
 								Start: hcl.Pos{
 									Line:   14,
 									Column: 1,
