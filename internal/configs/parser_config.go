@@ -48,6 +48,17 @@ func (p *Parser) LoadTestFile(path string) (*TestFile, hcl.Diagnostics) {
 	return test, diags
 }
 
+func (p *Parser) LoadQueryFile(path string) (*QueryFile, hcl.Diagnostics) {
+	body, diags := p.LoadHCLFile(path)
+	if body == nil {
+		return nil, diags
+	}
+
+	query, queryDiags := loadQueryFile(body)
+	diags = append(diags, queryDiags...)
+	return query, diags
+}
+
 // LoadMockDataFile reads the file at the given path and parses it as a
 // Terraform mock data file.
 //

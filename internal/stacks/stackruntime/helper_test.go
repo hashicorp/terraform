@@ -62,12 +62,14 @@ type TestCycle struct {
 	planMode           plans.Mode
 	planInputs         map[string]cty.Value
 	wantPlannedChanges []stackplan.PlannedChange
+	wantPlannedHooks   *ExpectedHooks
 	wantPlannedDiags   tfdiags.Diagnostics
 
 	// Apply options
 
 	applyInputs        map[string]cty.Value
 	wantAppliedChanges []stackstate.AppliedChange
+	wantAppliedHooks   *ExpectedHooks
 	wantAppliedDiags   tfdiags.Diagnostics
 }
 
@@ -108,7 +110,8 @@ func (tc TestContext) Plan(t *testing.T, ctx context.Context, state *stackstate.
 		Diagnostics:    diagsCh,
 	}
 
-	go Plan(ctx, &request, &response)
+	capturedHooks := NewCapturedHooks(true)
+	go Plan(ContextWithHooks(ctx, capturedHooks.captureHooks()), &request, &response)
 	changes, diags := collectPlanOutput(changesCh, diagsCh)
 	validateDiags(t, cycle.wantPlannedDiags, diags)
 
@@ -136,6 +139,10 @@ func (tc TestContext) Plan(t *testing.T, ctx context.Context, state *stackstate.
 		if diff := cmp.Diff(cycle.wantPlannedChanges, filteredChanges, changesCmpOpts); len(diff) > 0 {
 			t.Errorf("wrong planned changes\n%s", diff)
 		}
+	}
+
+	if cycle.wantPlannedHooks != nil {
+		cycle.wantPlannedHooks.Validate(t, &capturedHooks.ExpectedHooks)
 	}
 
 	planLoader := stackplan.NewLoader()
@@ -183,7 +190,8 @@ func (tc TestContext) Apply(t *testing.T, ctx context.Context, plan *stackplan.P
 		Diagnostics:    diagsCh,
 	}
 
-	go Apply(ctx, &request, &response)
+	capturedHooks := NewCapturedHooks(false)
+	go Apply(ContextWithHooks(ctx, capturedHooks.captureHooks()), &request, &response)
 	changes, diags := collectApplyOutput(changesCh, diagsCh)
 	validateDiags(t, cycle.wantAppliedDiags, diags)
 
@@ -195,6 +203,10 @@ func (tc TestContext) Apply(t *testing.T, ctx context.Context, plan *stackplan.P
 		if diff := cmp.Diff(cycle.wantAppliedChanges, changes, changesCmpOpts); diff != "" {
 			t.Errorf("wrong applied changes\n%s", diff)
 		}
+	}
+
+	if cycle.wantAppliedHooks != nil {
+		cycle.wantAppliedHooks.Validate(t, &capturedHooks.ExpectedHooks)
 	}
 
 	stateLoader := stackstate.NewLoader()

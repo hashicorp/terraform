@@ -74,7 +74,7 @@ func (r *RefreshInstance) Plan(ctx context.Context) (*plans.Plan, tfdiags.Diagno
 		// compatible with the destroy operation.
 		opts.PreDestroyRefresh = true
 
-		plan, moreDiags := PlanComponentInstance(ctx, r.component.main, r.component.PlanPrevState(), opts, r.component)
+		plan, moreDiags := PlanComponentInstance(ctx, r.component.main, r.component.PlanPrevState(), opts, nil, r.component)
 		return plan, diags.Append(moreDiags)
 	})
 }

@@ -14,6 +14,51 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+func TestLoadConfigDirDeprecated(t *testing.T) {
+	bundle, err := sourcebundle.OpenDir("testdata/basics-bundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rootAddr := sourceaddrs.MustParseSource("git::https://example.com/deprecated.git").(sourceaddrs.RemoteSource)
+	_, gotDiags := LoadConfigDir(rootAddr, bundle)
+
+	wantDiags := tfdiags.Diagnostics{
+		tfdiags.Sourceless(tfdiags.Warning, "Deprecated filename usage", "This configuration is using the deprecated .tfstack.hcl or .tfstack.json file extensions. This will not be supported in a future version of Terraform, please update your files to use the latest .tfcomponent.hcl or .tfcomponent.json file extensions."),
+	}
+
+	count := len(wantDiags)
+	if len(gotDiags) > count {
+		count = len(gotDiags)
+	}
+
+	for i := 0; i < count; i++ {
+		if i >= len(wantDiags) {
+			t.Errorf("unexpected diagnostic:\n%s", gotDiags[i])
+			continue
+		}
+
+		if i >= len(gotDiags) {
+			t.Errorf("missing diagnostic:\n%s", wantDiags[i])
+			continue
+		}
+
+		got, want := gotDiags[i], wantDiags[i]
+
+		if got, want := got.Severity(), want.Severity(); got != want {
+			t.Errorf("diagnostics[%d] severity\ngot:  %s\nwant: %s", i, got, want)
+		}
+
+		if got, want := got.Description().Summary, want.Description().Summary; got != want {
+			t.Errorf("diagnostics[%d] summary\ngot:  %s\nwant: %s", i, got, want)
+		}
+
+		if got, want := got.Description().Detail, want.Description().Detail; got != want {
+			t.Errorf("diagnostics[%d] detail\ngot:  %s\nwant: %s", i, got, want)
+		}
+	}
+}
+
 func TestLoadConfigDirErrors(t *testing.T) {
 	bundle, err := sourcebundle.OpenDir("testdata/basics-bundle")
 	if err != nil {
@@ -36,7 +81,7 @@ func TestLoadConfigDirErrors(t *testing.T) {
 	})
 
 	wantDiags := tfdiags.Diagnostics{
-		tfdiags.Sourceless(tfdiags.Error, "Component exists for removed block", "A removed block for component \"a\" was declared without an index, but a component block with the same name was declared at git::https://example.com/errored.git//main.tfstack.hcl:10,1-14.\n\nA removed block without an index indicates that the component and all instances were removed from the configuration, and this is not the case."),
+		tfdiags.Sourceless(tfdiags.Error, "Component exists for removed block", "A removed block for component \"a\" was declared without an index, but a component block with the same name was declared at git::https://example.com/errored.git//main.tfcomponent.hcl:10,1-14.\n\nA removed block without an index indicates that the component and all instances were removed from the configuration, and this is not the case."),
 		tfdiags.Sourceless(tfdiags.Error, "Invalid for_each expression", "A removed block with a for_each expression must reference that expression within the `from` attribute."),
 		tfdiags.Sourceless(tfdiags.Error, "Invalid for_each expression", "A removed block with a for_each expression must reference that expression within the `from` attribute."),
 	}
