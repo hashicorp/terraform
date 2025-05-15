@@ -7,10 +7,9 @@
 // against this protocol, copy this definition into your own codebase and
 // use protoc to generate stubs for your target language.
 //
-// This file will not be updated. Any minor versions of protocol 6 to follow
-// should copy this file and modify the copy while maintaing backwards
-// compatibility. Breaking changes, if any are required, will come
-// in a subsequent major version with its own separate proto definition.
+// Any minor versions of protocol 6 to follow should modify this file while
+// maintaining backwards compatibility. Breaking changes, if any are required,
+// will come in a subsequent major version with its own separate proto definition.
 //
 // Note that only the proto files included in a release tag of Terraform are
 // official protocol releases. Proto files taken from other commits may include

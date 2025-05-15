@@ -431,6 +431,14 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		return plan, deferred, diags
 	}
 
+	// Call pre-diff hook
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PreDiff(n.HookResourceIdentity(), deposedKey, currentState.Value, nullVal)
+	}))
+	if diags.HasErrors() {
+		return plan, deferred, diags
+	}
+
 	var resp providers.PlanResourceChangeResponse
 	if n.override != nil {
 		// If we have an overridden value from the test framework, that means
@@ -490,6 +498,14 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			)
 			return plan, deferred, diags
 		}
+	}
+
+	// Call post-refresh hook
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostDiff(n.HookResourceIdentity(), deposedKey, plans.Delete, currentState.Value, nullVal)
+	}))
+	if diags.HasErrors() {
+		return plan, deferred, diags
 	}
 
 	// Plan is always the same for a destroy.
@@ -671,7 +687,6 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		if !resp.Identity.IsNull() {
 			diags = diags.Append(n.validateIdentityKnown(resp.Identity))
 			diags = diags.Append(n.validateIdentity(resp.Identity, schema.Identity))
-			diags = diags.Append(n.validateIdentityDidNotChange(state, resp.Identity))
 		}
 		if resp.Deferred != nil {
 			deferred = resp.Deferred
@@ -1122,10 +1137,6 @@ func (n *NodeAbstractResourceInstance) plan(
 	if !plannedIdentity.IsNull() {
 		if !action.IsReplace() && action != plans.Create {
 			diags = diags.Append(n.validateIdentityKnown(plannedIdentity))
-			// If the identity is not known we can not validate it did not change
-			if !diags.HasErrors() {
-				diags = diags.Append(n.validateIdentityDidNotChange(currentState, plannedIdentity))
-			}
 		}
 
 		diags = diags.Append(n.validateIdentity(plannedIdentity, schema.Identity))
@@ -2648,9 +2659,6 @@ func (n *NodeAbstractResourceInstance) apply(
 		if !resp.NewIdentity.IsNull() {
 			diags = diags.Append(n.validateIdentityKnown(resp.NewIdentity))
 			diags = diags.Append(n.validateIdentity(resp.NewIdentity, schema.Identity))
-			if !change.Action.IsReplace() {
-				diags = diags.Append(n.validateIdentityDidNotChange(state, resp.NewIdentity))
-			}
 		}
 	}
 	applyDiags := resp.Diagnostics
@@ -2916,21 +2924,6 @@ func (n *NodeAbstractResourceInstance) validateIdentityKnown(newIdentity cty.Val
 	return diags
 }
 
-func (n *NodeAbstractResourceInstance) validateIdentityDidNotChange(state *states.ResourceInstanceObject, newIdentity cty.Value) (diags tfdiags.Diagnostics) {
-	if state != nil && !state.Identity.IsNull() && state.Identity.Equals(newIdentity).False() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider produced different identity",
-			fmt.Sprintf(
-				"Provider %q returned a different identity for %s than the previously stored one. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider.Provider, n.Addr,
-			),
-		))
-	}
-
-	return diags
-}
-
 func (n *NodeAbstractResourceInstance) validateIdentity(newIdentity cty.Value, identitySchema *configschema.Object) (diags tfdiags.Diagnostics) {
 	if _, marks := newIdentity.UnmarkDeep(); len(marks) > 0 {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -2970,25 +2963,6 @@ func (n *NodeAbstractResourceInstance) validateIdentity(newIdentity cty.Value, i
 			))
 		}
 		return diags
-	}
-
-	// Check for required attributes
-	names := make([]string, 0, len(identitySchema.Attributes))
-	for name, attrS := range identitySchema.Attributes {
-		if attrS.Required && newIdentity.GetAttr(name).IsNull() {
-			names = append(names, name)
-		}
-	}
-	if len(names) > 0 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider produced an identity that doesn't match the schema",
-			fmt.Sprintf(
-				"Provider %q returned an identity for %s that doesn't match the identity schema: attributes %q are required and must not be null. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider.Provider, n.Addr,
-				strings.Join(names, ", "),
-			),
-		))
 	}
 
 	return diags

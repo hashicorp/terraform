@@ -84,7 +84,7 @@ type Main struct {
 	mainStackConfig         *StackConfig
 	mainStack               *Stack
 	providerTypes           map[addrs.Provider]*ProviderType
-	providerFunctionResults *providers.FunctionResults
+	providerFunctionResults *lang.FunctionResults
 	cleanupFuncs            []func(context.Context) tfdiags.Diagnostics
 }
 
@@ -116,7 +116,7 @@ func NewForValidating(config *stackconfig.Config, opts ValidateOpts) *Main {
 		},
 		providerFactories:       opts.ProviderFactories,
 		providerTypes:           make(map[addrs.Provider]*ProviderType),
-		providerFunctionResults: providers.NewFunctionResultsTable(nil),
+		providerFunctionResults: lang.NewFunctionResultsTable(nil),
 	}
 }
 
@@ -134,7 +134,7 @@ func NewForPlanning(config *stackconfig.Config, prevState *stackstate.State, opt
 		},
 		providerFactories:       opts.ProviderFactories,
 		providerTypes:           make(map[addrs.Provider]*ProviderType),
-		providerFunctionResults: providers.NewFunctionResultsTable(nil),
+		providerFunctionResults: lang.NewFunctionResultsTable(nil),
 	}
 }
 
@@ -148,7 +148,7 @@ func NewForApplying(config *stackconfig.Config, plan *stackplan.Plan, execResult
 		},
 		providerFactories:       opts.ProviderFactories,
 		providerTypes:           make(map[addrs.Provider]*ProviderType),
-		providerFunctionResults: providers.NewFunctionResultsTable(plan.ProviderFunctionResults),
+		providerFunctionResults: lang.NewFunctionResultsTable(plan.FunctionResults),
 	}
 }
 
@@ -161,7 +161,7 @@ func NewForInspecting(config *stackconfig.Config, state *stackstate.State, opts 
 		},
 		providerFactories:       opts.ProviderFactories,
 		providerTypes:           make(map[addrs.Provider]*ProviderType),
-		providerFunctionResults: providers.NewFunctionResultsTable(nil),
+		providerFunctionResults: lang.NewFunctionResultsTable(nil),
 		testOnlyGlobals:         opts.TestOnlyGlobals,
 	}
 }
