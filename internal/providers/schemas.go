@@ -22,6 +22,8 @@ func (ss ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeName
 		return ss.DataSources[typeName]
 	case addrs.EphemeralResourceMode:
 		return ss.EphemeralResourceTypes[typeName]
+	case addrs.ListResourceMode:
+		return ss.ListResourceTypes[typeName]
 	default:
 		// Shouldn't happen, because the above cases are comprehensive.
 		return Schema{}

@@ -644,3 +644,31 @@ func (s *State) MoveModule(src, dst addrs.AbsModuleCall) {
 		s.MoveModuleInstance(ms.Addr, newInst)
 	}
 }
+
+func (s *State) SetListResourceInstance(addr addrs.AbsResource, key addrs.InstanceKey, val *ResourceInstanceObject) {
+	ms := s.Module(addr.Module)
+	if ms == nil {
+		panic(fmt.Sprintf("no state for module %s", addr.Module.String()))
+	}
+	if _, ok := ms.ListResources[addr.Resource.String()]; !ok {
+		ms.ListResources[addr.Resource.String()] = addrs.MakeMap[addrs.AbsResourceInstance, *ResourceInstanceObject]()
+	}
+	ms.ListResources[addr.Resource.String()].Put(addr.Instance(key), val)
+}
+
+func (s *State) GetListResource(addr addrs.AbsResource) addrs.Map[addrs.AbsResourceInstance, *ResourceInstanceObject] {
+	ms := s.Module(addr.Module)
+	if ms == nil {
+		panic(fmt.Sprintf("no state for module %s", addr.Module.String()))
+	}
+	if _, ok := ms.ListResources[addr.Resource.String()]; !ok {
+		ms.ListResources[addr.Resource.String()] = addrs.MakeMap[addrs.AbsResourceInstance, *ResourceInstanceObject]()
+	}
+	insts := ms.ListResources[addr.Resource.String()]
+	return insts
+}
+
+func (s *State) AllListResourceInstances() map[string]addrs.Map[addrs.AbsResourceInstance, *ResourceInstanceObject] {
+	// only root modules have list resources
+	return s.Modules[addrs.RootModuleInstance.String()].ListResources
+}
