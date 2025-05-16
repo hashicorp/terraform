@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
@@ -6166,7 +6165,7 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 			sort.SliceStable(gotPlanDiags, diagnosticSortFunc(gotPlanDiags))
 
 			expectDiagnosticsForTest(t, gotPlanDiags, tc.wantPlanDiags...)
-			if diff := cmp.Diff(tc.wantPlanChanges, gotPlanChanges, ctydebug.CmpOptions, cmpCollectionsSet, cmpopts.IgnoreUnexported(states.ResourceInstanceObjectSrc{})); diff != "" {
+			if diff := cmp.Diff(tc.wantPlanChanges, gotPlanChanges, changesCmpOpts); diff != "" {
 				t.Errorf("wrong changes\n%s", diff)
 			}
 		})
@@ -6318,17 +6317,3 @@ func expectOutput(t *testing.T, name string, changes []stackplan.PlannedChange) 
 	t.Fatalf("expected output value %q", name)
 	return nil
 }
-
-var cmpCollectionsSet = cmp.Comparer(func(x, y collections.Set[stackaddrs.AbsComponent]) bool {
-	if x.Len() != y.Len() {
-		return false
-	}
-
-	for v := range x.All() {
-		if !y.Has(v) {
-			return false
-		}
-	}
-
-	return true
-})
