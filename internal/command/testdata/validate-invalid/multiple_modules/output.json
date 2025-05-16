@@ -7,7 +7,7 @@
     {
       "severity": "error",
       "summary": "Duplicate module call",
-      "detail": "A module call named \"multi_module\" was already defined at testdata/validate-invalid/multiple_modules/main.tf:1,1-22. Module calls must have unique names within a module.",
+      "detail": "A module call named \"multi_module\" was already defined at ./testdata/validate-invalid/multiple_modules/main.tf:1,1-22. Module calls must have unique names within a module.",
       "range": {
         "filename": "testdata/validate-invalid/multiple_modules/main.tf",
         "start": {

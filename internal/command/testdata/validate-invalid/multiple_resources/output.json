@@ -7,7 +7,7 @@
     {
       "severity": "error",
       "summary": "Duplicate resource \"aws_instance\" configuration",
-      "detail": "A aws_instance resource named \"web\" was already declared at testdata/validate-invalid/multiple_resources/main.tf:1,1-30. Resource names must be unique per type in each module.",
+      "detail": "A aws_instance resource named \"web\" was already declared at ./testdata/validate-invalid/multiple_resources/main.tf:1,1-30. Resource names must be unique per type in each module.",
       "range": {
         "filename": "testdata/validate-invalid/multiple_resources/main.tf",
         "start": {

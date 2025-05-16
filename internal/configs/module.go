@@ -283,7 +283,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Duplicate provider_meta block",
-				Detail:   fmt.Sprintf("A provider_meta block for provider %q was already declared at %s. Providers may only have one provider_meta block per module.", existing.Provider, existing.DeclRange),
+				Detail:   fmt.Sprintf("A provider_meta block for provider %q was already declared at ./%s. Providers may only have one provider_meta block per module.", existing.Provider, existing.DeclRange),
 				Subject:  &pm.DeclRange,
 			})
 		}
@@ -295,7 +295,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Duplicate variable declaration",
-				Detail:   fmt.Sprintf("A variable named %q was already declared at %s. Variable names must be unique within a module.", existing.Name, existing.DeclRange),
+				Detail:   fmt.Sprintf("A variable named %q was already declared at ./%s. Variable names must be unique within a module.", existing.Name, existing.DeclRange),
 				Subject:  &v.DeclRange,
 			})
 		}
@@ -307,7 +307,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Duplicate local value definition",
-				Detail:   fmt.Sprintf("A local value named %q was already defined at %s. Local value names must be unique within a module.", existing.Name, existing.DeclRange),
+				Detail:   fmt.Sprintf("A local value named %q was already defined at ./%s. Local value names must be unique within a module.", existing.Name, existing.DeclRange),
 				Subject:  &l.DeclRange,
 			})
 		}
@@ -319,7 +319,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Duplicate output definition",
-				Detail:   fmt.Sprintf("An output named %q was already defined at %s. Output names must be unique within a module.", existing.Name, existing.DeclRange),
+				Detail:   fmt.Sprintf("An output named %q was already defined at ./%s. Output names must be unique within a module.", existing.Name, existing.DeclRange),
 				Subject:  &o.DeclRange,
 			})
 		}
@@ -331,7 +331,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Duplicate module call",
-				Detail:   fmt.Sprintf("A module call named %q was already defined at %s. Module calls must have unique names within a module.", existing.Name, existing.DeclRange),
+				Detail:   fmt.Sprintf("A module call named %q was already defined at ./%s. Module calls must have unique names within a module.", existing.Name, existing.DeclRange),
 				Subject:  &mc.DeclRange,
 			})
 		}
@@ -344,7 +344,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  fmt.Sprintf("Duplicate resource %q configuration", existing.Type),
-				Detail:   fmt.Sprintf("A %s resource named %q was already declared at %s. Resource names must be unique per type in each module.", existing.Type, existing.Name, existing.DeclRange),
+				Detail:   fmt.Sprintf("A %s resource named %q was already declared at ./%s. Resource names must be unique per type in each module.", existing.Type, existing.Name, existing.DeclRange),
 				Subject:  &r.DeclRange,
 			})
 			continue
@@ -376,7 +376,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  fmt.Sprintf("Duplicate data %q configuration", existing.Type),
-				Detail:   fmt.Sprintf("A %s data resource named %q was already declared at %s. Resource names must be unique per type in each module.", existing.Type, existing.Name, existing.DeclRange),
+				Detail:   fmt.Sprintf("A %s data resource named %q was already declared at ./%s. Resource names must be unique per type in each module.", existing.Type, existing.Name, existing.DeclRange),
 				Subject:  &r.DeclRange,
 			})
 			continue
@@ -390,7 +390,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  fmt.Sprintf("Duplicate ephemeral %q configuration", existing.Type),
-				Detail:   fmt.Sprintf("A %s ephemeral resource named %q was already declared at %s. Resource names must be unique per type in each module.", existing.Type, existing.Name, existing.DeclRange),
+				Detail:   fmt.Sprintf("A %s ephemeral resource named %q was already declared at ./%s. Resource names must be unique per type in each module.", existing.Type, existing.Name, existing.DeclRange),
 				Subject:  &r.DeclRange,
 			})
 			continue
@@ -420,7 +420,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  fmt.Sprintf("Duplicate data %q configuration", existing.Type),
-					Detail:   fmt.Sprintf("A %s data resource named %q was already declared at %s. Resource names must be unique per type in each module, including within check blocks.", existing.Type, existing.Name, existing.DeclRange),
+					Detail:   fmt.Sprintf("A %s data resource named %q was already declared at ./%s. Resource names must be unique per type in each module, including within check blocks.", existing.Type, existing.Name, existing.DeclRange),
 					Subject:  &c.DataResource.DeclRange,
 				})
 				continue
@@ -432,7 +432,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  fmt.Sprintf("Duplicate check %q configuration", existing.Name),
-				Detail:   fmt.Sprintf("A check block named %q was already declared at %s. Check blocks must be unique within each module.", existing.Name, existing.DeclRange),
+				Detail:   fmt.Sprintf("A check block named %q was already declared at ./%s. Check blocks must be unique within each module.", existing.Name, existing.DeclRange),
 				Subject:  &c.DeclRange,
 			})
 			continue
@@ -475,7 +475,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  fmt.Sprintf("Duplicate import configuration for %q", i.ToResource),
-					Detail:   fmt.Sprintf("An import block for the resource %q was already declared at %s. A resource can have only one import block.", i.ToResource, mi.DeclRange),
+					Detail:   fmt.Sprintf("An import block for the resource %q was already declared at ./%s. A resource can have only one import block.", i.ToResource, mi.DeclRange),
 					Subject:  i.To.Range().Ptr(),
 				})
 			}
@@ -504,7 +504,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  fmt.Sprintf("Duplicate action %q configuration", existing.Type),
-				Detail:   fmt.Sprintf("An action named %q was already declared at %s. Resource names must be unique per type in each module.", existing.Name, existing.DeclRange),
+				Detail:   fmt.Sprintf("An action named %q was already declared at ./%s. Resource names must be unique per type in each module.", existing.Name, existing.DeclRange),
 				Subject:  &a.DeclRange,
 			})
 			continue
@@ -561,7 +561,7 @@ func (m *Module) appendQueryFile(file *QueryFile) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Duplicate variable declaration",
-				Detail:   fmt.Sprintf("A variable named %q was already declared at %s. Variable names must be unique within a module.", existing.Name, existing.DeclRange),
+				Detail:   fmt.Sprintf("A variable named %q was already declared at ./%s. Variable names must be unique within a module.", existing.Name, existing.DeclRange),
 				Subject:  &v.DeclRange,
 			})
 		}
@@ -573,7 +573,7 @@ func (m *Module) appendQueryFile(file *QueryFile) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Duplicate local value definition",
-				Detail:   fmt.Sprintf("A local value named %q was already defined at %s. Local value names must be unique within a module.", existing.Name, existing.DeclRange),
+				Detail:   fmt.Sprintf("A local value named %q was already defined at ./%s. Local value names must be unique within a module.", existing.Name, existing.DeclRange),
 				Subject:  &l.DeclRange,
 			})
 		}
@@ -586,7 +586,7 @@ func (m *Module) appendQueryFile(file *QueryFile) hcl.Diagnostics {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  fmt.Sprintf("Duplicate list %q configuration", existing.Type),
-				Detail:   fmt.Sprintf("A %s list named %q was already declared at %s. List names must be unique per type in each module.", existing.Type, existing.Name, existing.DeclRange),
+				Detail:   fmt.Sprintf("A %s list named %q was already declared at ./%s. List names must be unique per type in each module.", existing.Type, existing.Name, existing.DeclRange),
 				Subject:  &ql.DeclRange,
 			})
 			continue

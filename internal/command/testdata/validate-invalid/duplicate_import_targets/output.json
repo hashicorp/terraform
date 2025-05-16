@@ -7,7 +7,7 @@
     {
       "severity": "error",
       "summary": "Duplicate import configuration for \"aws_instance.web\"",
-      "detail": "An import block for the resource \"aws_instance.web\" was already declared at testdata/validate-invalid/duplicate_import_targets/main.tf:4,1-7. A resource can have only one import block.",
+      "detail": "An import block for the resource \"aws_instance.web\" was already declared at ./testdata/validate-invalid/duplicate_import_targets/main.tf:4,1-7. A resource can have only one import block.",
       "range": {
         "filename": "testdata/validate-invalid/duplicate_import_targets/main.tf",
         "start": {
