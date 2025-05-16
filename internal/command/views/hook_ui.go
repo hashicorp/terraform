@@ -14,8 +14,10 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -31,6 +33,7 @@ func NewUiHook(view *View) *UiHook {
 		view:            view,
 		periodicUiTimer: defaultPeriodicUiTimer,
 		resources:       make(map[string]uiResourceState),
+		log:             logging.HCLogger(),
 	}
 }
 
@@ -44,6 +47,8 @@ type UiHook struct {
 
 	resources     map[string]uiResourceState
 	resourcesLock sync.Mutex
+
+	log hclog.Logger
 }
 
 var _ terraform.Hook = (*UiHook)(nil)
@@ -345,6 +350,7 @@ func (h *UiHook) PreApplyImport(id terraform.HookResourceIdentity, importing pla
 	if importing.Identity != nil {
 		ty, err := importing.Identity.ImpliedType()
 		if err != nil {
+			h.log.Debug("UiHook: PreApplyImport failed to get identity ImpliedType", err)
 			h.println(fmt.Sprintf(
 				h.view.colorize.Color("[reset][bold]%s: Importing... [identity=(type error)]"),
 				id.Addr,
@@ -353,6 +359,7 @@ func (h *UiHook) PreApplyImport(id terraform.HookResourceIdentity, importing pla
 		}
 		val, err := importing.Identity.Decode(ty)
 		if err != nil {
+			h.log.Debug("UiHook: PreApplyImport failed to decode identity", err)
 			h.println(fmt.Sprintf(
 				h.view.colorize.Color("[reset][bold]%s: Importing... [identity=(decode error)]"),
 				id.Addr,
@@ -378,6 +385,7 @@ func (h *UiHook) PostApplyImport(id terraform.HookResourceIdentity, importing pl
 	if importing.Identity != nil {
 		ty, err := importing.Identity.ImpliedType()
 		if err != nil {
+			h.log.Debug("UiHook: PostApplyImport failed to get identity ImpliedType", err)
 			h.println(fmt.Sprintf(
 				h.view.colorize.Color("[reset][bold]%s: Import complete [identity=(type error)]"),
 				id.Addr,
@@ -386,6 +394,7 @@ func (h *UiHook) PostApplyImport(id terraform.HookResourceIdentity, importing pl
 		}
 		val, err := importing.Identity.Decode(ty)
 		if err != nil {
+			h.log.Debug("UiHook: PostApplyImport failed to decode identity", err)
 			h.println(fmt.Sprintf(
 				h.view.colorize.Color("[reset][bold]%s: Import complete [identity=(decode error)]"),
 				id.Addr,
