@@ -81,7 +81,7 @@ func (d *Declarations) addComponent(decl *Component) tfdiags.Diagnostics {
 			Severity: hcl.DiagError,
 			Summary:  "Duplicate component declaration",
 			Detail: fmt.Sprintf(
-				"An component named %q was already declared at %s.",
+				"An component named %q was already declared at ./%s.",
 				name, existing.DeclRange.ToHCL(),
 			),
 			Subject: decl.DeclRange.ToHCL().Ptr(),
@@ -134,7 +134,7 @@ func (d *Declarations) addEmbeddedStack(decl *EmbeddedStack) tfdiags.Diagnostics
 			Severity: hcl.DiagError,
 			Summary:  "Duplicate embedded stack call",
 			Detail: fmt.Sprintf(
-				"An embedded stack call named %q was already declared at %s.",
+				"An embedded stack call named %q was already declared at ./%s.",
 				name, existing.DeclRange.ToHCL(),
 			),
 			Subject: decl.DeclRange.ToHCL().Ptr(),
@@ -180,7 +180,7 @@ func (d *Declarations) addInputVariable(decl *InputVariable) tfdiags.Diagnostics
 			Severity: hcl.DiagError,
 			Summary:  "Duplicate input variable declaration",
 			Detail: fmt.Sprintf(
-				"An input variable named %q was already declared at %s.",
+				"An input variable named %q was already declared at ./%s.",
 				name, existing.DeclRange.ToHCL(),
 			),
 			Subject: decl.DeclRange.ToHCL().Ptr(),
@@ -204,7 +204,7 @@ func (d *Declarations) addLocalValue(decl *LocalValue) tfdiags.Diagnostics {
 			Severity: hcl.DiagError,
 			Summary:  "Duplicate local value declaration",
 			Detail: fmt.Sprintf(
-				"A local value named %q was already declared at %s.",
+				"A local value named %q was already declared at ./%s.",
 				name, existing.DeclRange.ToHCL(),
 			),
 			Subject: decl.DeclRange.ToHCL().Ptr(),
@@ -228,7 +228,7 @@ func (d *Declarations) addOutputValue(decl *OutputValue) tfdiags.Diagnostics {
 			Severity: hcl.DiagError,
 			Summary:  "Duplicate output value declaration",
 			Detail: fmt.Sprintf(
-				"An output value named %q was already declared at %s.",
+				"An output value named %q was already declared at ./%s.",
 				name, existing.DeclRange.ToHCL(),
 			),
 			Subject: decl.DeclRange.ToHCL().Ptr(),
@@ -273,7 +273,7 @@ func (d *Declarations) addProviderConfig(decl *ProviderConfig) tfdiags.Diagnosti
 			Severity: hcl.DiagError,
 			Summary:  "Duplicate provider configuration",
 			Detail: fmt.Sprintf(
-				"An configuration named %q for provider %q was already declared at %s.",
+				"An configuration named %q for provider %q was already declared at ./%s.",
 				addr.LocalName, addr.Alias, existing.DeclRange.ToHCL(),
 			),
 			Subject: decl.DeclRange.ToHCL().Ptr(),

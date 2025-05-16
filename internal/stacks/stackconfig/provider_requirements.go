@@ -55,7 +55,7 @@ func decodeProviderRequirementsBlock(block *hcl.Block) (*ProviderRequirements, t
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Duplicate provider local name",
-				Detail:   fmt.Sprintf("A provider requirement with local name %q was already declared at %s.", name, existing.DeclRange.StartString()),
+				Detail:   fmt.Sprintf("A provider requirement with local name %q was already declared at ./%s.", name, existing.DeclRange.StartString()),
 				Subject:  attr.NameRange.Ptr(),
 			})
 			continue
@@ -82,7 +82,7 @@ func decodeProviderRequirementsBlock(block *hcl.Block) (*ProviderRequirements, t
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Duplicate attribute",
-					Detail:   fmt.Sprintf("The attribute %q was already defined at %s.", name, existing.Key.Range()),
+					Detail:   fmt.Sprintf("The attribute %q was already defined at ./%s.", name, existing.Key.Range()),
 					Subject:  pair.Key.Range().Ptr(),
 				})
 				continue
