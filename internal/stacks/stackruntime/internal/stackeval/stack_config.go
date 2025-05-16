@@ -43,7 +43,7 @@ type StackConfig struct {
 	localValues       map[stackaddrs.LocalValue]*LocalValueConfig
 	outputValues      map[stackaddrs.OutputValue]*OutputValueConfig
 	stackCalls        map[stackaddrs.StackCall]*StackCallConfig
-	removedStackCalls collections.Map[stackaddrs.Stack, []*RemovedStackCallConfig]
+	removedStackCalls collections.Map[stackaddrs.ConfigStackCall, []*RemovedStackCallConfig]
 	components        map[stackaddrs.Component]*ComponentConfig
 	removedComponents collections.Map[stackaddrs.ConfigComponent, []*RemovedComponentConfig]
 	providers         map[stackaddrs.ProviderConfig]*ProviderConfig
@@ -65,7 +65,7 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, parent *StackConfig, conf
 		localValues:       make(map[stackaddrs.LocalValue]*LocalValueConfig, len(config.Stack.Declarations.LocalValues)),
 		outputValues:      make(map[stackaddrs.OutputValue]*OutputValueConfig, len(config.Stack.Declarations.OutputValues)),
 		stackCalls:        make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
-		removedStackCalls: collections.NewMap[stackaddrs.Stack, []*RemovedStackCallConfig](),
+		removedStackCalls: collections.NewMap[stackaddrs.ConfigStackCall, []*RemovedStackCallConfig](),
 		components:        make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
 		removedComponents: collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponentConfig](),
 		providers:         make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(config.Stack.Declarations.ProviderConfigs)),
@@ -361,14 +361,14 @@ func (s *StackConfig) StackCalls() map[stackaddrs.StackCall]*StackCallConfig {
 	return ret
 }
 
-func (s *StackConfig) RemovedStackCall(addr stackaddrs.Stack) []*RemovedStackCallConfig {
+func (s *StackConfig) RemovedStackCall(addr stackaddrs.ConfigStackCall) []*RemovedStackCallConfig {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	ret, ok := s.removedStackCalls.GetOk(addr)
 	if !ok {
 		for _, cfg := range s.config.Stack.RemovedEmbeddedStacks.Get(addr) {
-			removed := newRemovedStackCallConfig(s.main, append(s.addr, addr...), s, cfg)
+			removed := newRemovedStackCallConfig(s.main, addr, s, cfg)
 			ret = append(ret, removed)
 		}
 		s.removedStackCalls.Put(addr, ret)
@@ -376,8 +376,8 @@ func (s *StackConfig) RemovedStackCall(addr stackaddrs.Stack) []*RemovedStackCal
 	return ret
 }
 
-func (s *StackConfig) RemovedStackCalls() collections.Map[stackaddrs.Stack, []*RemovedStackCallConfig] {
-	ret := collections.NewMap[stackaddrs.Stack, []*RemovedStackCallConfig]()
+func (s *StackConfig) RemovedStackCalls() collections.Map[stackaddrs.ConfigStackCall, []*RemovedStackCallConfig] {
+	ret := collections.NewMap[stackaddrs.ConfigStackCall, []*RemovedStackCallConfig]()
 	for addr := range s.config.Stack.RemovedEmbeddedStacks.All() {
 		ret.Put(addr, s.RemovedStackCall(addr))
 	}

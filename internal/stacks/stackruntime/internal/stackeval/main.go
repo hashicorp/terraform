@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	fileProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/file"
 	remoteExecProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/remote-exec"
-	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -317,7 +316,7 @@ func (m *Main) MainStack() *Stack {
 			mode = m.PlanningOpts().PlanningMode
 		}
 
-		m.mainStack = newStack(m, stackaddrs.RootStackInstance, nil, config, collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponent](), collections.NewMap[stackaddrs.Stack, []*RemovedStackCall](), mode, false)
+		m.mainStack = newStack(m, stackaddrs.RootStackInstance, nil, config, newRemoved(), mode, false)
 	}
 	return m.mainStack
 }

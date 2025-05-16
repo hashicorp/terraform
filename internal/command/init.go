@@ -23,15 +23,12 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
-	"github.com/hashicorp/terraform/internal/backend/local"
-	pluggable_state "github.com/hashicorp/terraform/internal/backend/pluggable-state"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	simple "github.com/hashicorp/terraform/internal/provider-simple-v6"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -183,22 +180,23 @@ func (c *InitCommand) Run(args []string) int {
 	var backDiags tfdiags.Diagnostics
 	var backendOutput bool
 
-	spv6 := simple.Provider()
-	// Which state storage implementation to use from the provider
-	typeName := "local"
-	// How do we convert a provider into a Backend interface?
-	stateStorage := pluggable_state.NewPluggable(spv6, typeName)
-	back = local.NewWithBackend(stateStorage)
-
-	// switch {
-	// case initArgs.Cloud && rootModEarly.CloudConfig != nil:
-	// 	back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
-	// case initArgs.Backend:
-	// 	back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
-	// default:
-	// 	// load the previously-stored backend config
-	// 	back, backDiags = c.Meta.backendFromState(ctx)
-	// }
+	switch {
+	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
+		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
+	case initArgs.StateStorage:
+		//  spv6 := simple.Provider()
+		// // Which state storage implementation to use from the provider
+		// typeName := "local"
+		// // How do we convert a provider into a Backend interface?
+		// stateStorage := pluggable_state.NewPluggable(spv6, typeName)
+		// back = local.NewWithBackend(stateStorage)
+		back, backendOutput, backDiags = c.initStateStorage(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
+	case initArgs.Backend:
+		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
+	default:
+		// load the previously-stored backend config
+		back, backDiags = c.Meta.backendFromState(ctx)
+	}
 	if backendOutput {
 		header = true
 	}
@@ -437,7 +435,33 @@ func (c *InitCommand) initStateStorage(ctx context.Context, root *configs.Module
 
 	var backendConfig *configs.Backend
 	var backendConfigOverride hcl.Body
-	if root.StateStorage != nil {
+	if root.Backend != nil {
+		backendType := root.Backend.Type
+		if backendType == "cloud" {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unsupported backend type",
+				Detail:   fmt.Sprintf("There is no explicit backend type named %q. To configure HCP Terraform, declare a 'cloud' block instead.", backendType),
+				Subject:  &root.Backend.TypeRange,
+			})
+			return nil, true, diags
+		}
+
+		bf := backendInit.Backend(backendType)
+		if bf == nil {
+			detail := fmt.Sprintf("There is no backend type named %q.", backendType)
+			if msg, removed := backendInit.RemovedBackends[backendType]; removed {
+				detail = msg
+			}
+
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unsupported backend type",
+				Detail:   detail,
+				Subject:  &root.Backend.TypeRange,
+			})
+			return nil, true, diags
+		}
 
 		b := bf()
 		backendSchema := b.ConfigSchema()
@@ -591,6 +615,9 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	}
 	if state != nil {
 		stateReqs := state.ProviderRequirements()
+		if len(stateReqs) > 0 {
+			log.Printf("state requires %d providers: %#v", len(stateReqs), stateReqs)
+		}
 		reqs = reqs.Merge(stateReqs)
 	}
 

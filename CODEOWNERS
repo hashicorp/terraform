@@ -22,6 +22,11 @@
 #/internal/backend/remote-state/pg               @remilapeyre
 /internal/backend/remote-state/s3                @hashicorp/terraform-core @hashicorp/terraform-aws
 /internal/backend/remote-state/kubernetes        @hashicorp/terraform-core @hashicorp/tf-eco-hybrid-cloud
+#/internal/backend/remote-state/oracle_oci        @ravinitp @pvkrishnachaitanya
+
+# Cloud backend
+/internal/backend/remote    @hashicorp/terraform-core @hashicorp/tf-core-cloud
+/internal/cloud             @hashicorp/terraform-core @hashicorp/tf-core-cloud
 
 # Provisioners
 builtin/provisioners/file               @hashicorp/terraform-core

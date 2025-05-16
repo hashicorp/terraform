@@ -250,8 +250,8 @@ func TestPlanning_DestroyMode(t *testing.T) {
 	plan, diags := testPlan(t, main)
 	assertNoDiagnostics(t, diags)
 
-	aCmpPlan := plan.Components.Get(aComponentInstAddr)
-	bCmpPlan := plan.Components.Get(bComponentInstAddr)
+	aCmpPlan := plan.GetComponent(aComponentInstAddr)
+	bCmpPlan := plan.GetComponent(bComponentInstAddr)
 	if aCmpPlan == nil || bCmpPlan == nil {
 		t.Fatalf(
 			"incomplete plan\n%s: %#v\n%s: %#v",
@@ -412,8 +412,6 @@ func TestPlanning_RequiredComponents(t *testing.T) {
 		plan, diags := testPlan(t, main)
 		assertNoDiagnostics(t, diags)
 
-		componentPlans := plan.Components
-
 		tests := []struct {
 			component        stackaddrs.AbsComponent
 			wantDependencies []stackaddrs.AbsComponent
@@ -453,7 +451,7 @@ func TestPlanning_RequiredComponents(t *testing.T) {
 						Component: test.component.Item,
 					},
 				}
-				cp := componentPlans.Get(instAddr)
+				cp := plan.GetComponent(instAddr)
 				{
 					got := cp.Dependencies
 					want := collections.NewSet[stackaddrs.AbsComponent]()
@@ -591,11 +589,11 @@ func TestPlanning_DeferredChangesPropagation(t *testing.T) {
 		plan, diags := testPlan(t, main)
 		assertNoErrors(t, diags)
 
-		firstPlan := plan.Components.Get(componentFirstInstAddr)
+		firstPlan := plan.GetComponent(componentFirstInstAddr)
 		if firstPlan.PlanComplete {
 			t.Error("first component has a complete plan; should be incomplete because it has deferred actions")
 		}
-		secondPlan := plan.Components.Get(componentSecondInstAddr)
+		secondPlan := plan.GetComponent(componentSecondInstAddr)
 		if secondPlan.PlanComplete {
 			t.Error("second component has a complete plan; should be incomplete because everything in it should've been deferred")
 		}
@@ -772,7 +770,7 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 		// address for this data resource, but no planned action because
 		// dropping a data resource from the state is not an "action" in the
 		// usual sense (it doesn't cause any calls to the provider).
-		mainPlan := plan.Components.Get(stackaddrs.AbsComponentInstance{
+		mainPlan := plan.GetComponent(stackaddrs.AbsComponentInstance{
 			Stack: stackaddrs.RootStackInstance,
 			Item: stackaddrs.ComponentInstance{
 				Component: stackaddrs.Component{Name: "main"},
@@ -836,7 +834,7 @@ func TestPlanning_PathValues(t *testing.T) {
 			t.Fatalf("unexpected diagnostics: %s", diags)
 		}
 
-		component, ok := plan.Components.GetOk(stackaddrs.AbsComponentInstance{
+		component := plan.GetComponent(stackaddrs.AbsComponentInstance{
 			Stack: stackaddrs.RootStackInstance,
 			Item: stackaddrs.ComponentInstance{
 				Component: stackaddrs.Component{
@@ -845,7 +843,7 @@ func TestPlanning_PathValues(t *testing.T) {
 				Key: addrs.NoKey,
 			},
 		})
-		if !ok {
+		if component == nil {
 			t.Fatalf("component not found in plan")
 		}
 

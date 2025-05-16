@@ -77,6 +77,7 @@ type File struct {
 	ActiveExperiments experiments.Set
 
 	Backends          []*Backend
+	StateStorages     []*StateStorage
 	CloudConfigs      []*CloudConfig
 	ProviderConfigs   []*Provider
 	ProviderMetas     []*ProviderMeta
@@ -223,6 +224,19 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.Backend = b
+	}
+
+	for _, ss := range file.StateStorages {
+		if m.StateStorage != nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate state storage configuration",
+				Detail:   fmt.Sprintf("A module may have only one state storage configuration. The state storage was previously configured at %s.", m.StateStorage.DeclRange),
+				Subject:  &ss.DeclRange,
+			})
+			continue
+		}
+		m.StateStorage = ss
 	}
 
 	for _, c := range file.CloudConfigs {
@@ -519,6 +533,23 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 				Summary:  "Duplicate backend configuration",
 				Detail:   fmt.Sprintf("Each override file may have only one backend configuration. A backend was previously configured at %s.", file.Backends[0].DeclRange),
 				Subject:  &file.Backends[1].DeclRange,
+			})
+		}
+	}
+
+	if len(file.StateStorages) != 0 {
+		switch len(file.StateStorages) {
+		case 1:
+			m.CloudConfig = nil // A state_storage block is mutually exclusive with a cloud one, and overwrites any cloud config
+			m.StateStorage = file.StateStorages[0]
+		default:
+			// An override file with multiple state storages is still invalid, even
+			// though it can override state storages from _other_ files.
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate state storage configuration",
+				Detail:   fmt.Sprintf("Each override file may have only one state storage configuration. A state storage was previously configured at %s.", file.StateStorages[0].DeclRange),
+				Subject:  &file.StateStorages[1].DeclRange,
 			})
 		}
 	}
