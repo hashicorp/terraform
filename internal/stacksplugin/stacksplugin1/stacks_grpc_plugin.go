@@ -21,9 +21,10 @@ import (
 // implementation exists in this package.
 type GRPCStacksPlugin struct {
 	plugin.GRPCPlugin
-	Metadata metadata.MD
-	Impl     pluginshared.CustomPluginClient
-	Services *disco.Disco
+	Metadata   metadata.MD
+	Impl       pluginshared.CustomPluginClient
+	Services   *disco.Disco
+	ShutdownCh <-chan struct{}
 }
 
 // Server always returns an error; we're only implementing the GRPCPlugin
@@ -42,10 +43,11 @@ func (p *GRPCStacksPlugin) Client(*plugin.MuxBroker, *rpc.Client) (interface{}, 
 func (p *GRPCStacksPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
 	ctx = metadata.NewOutgoingContext(ctx, p.Metadata)
 	return &rpcapi.GRPCStacksClient{
-		Client:   stacksproto1.NewCommandServiceClient(c),
-		Broker:   broker,
-		Services: p.Services,
-		Context:  ctx,
+		Client:     stacksproto1.NewCommandServiceClient(c),
+		Broker:     broker,
+		Services:   p.Services,
+		Context:    ctx,
+		ShutdownCh: p.ShutdownCh,
 	}, nil
 }
 

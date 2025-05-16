@@ -94,8 +94,9 @@ func (c *StacksCommand) realRun(args []string, stdout, stderr io.Writer) int {
 		VersionedPlugins: map[int]plugin.PluginSet{
 			1: {
 				"stacks": &stacksplugin1.GRPCStacksPlugin{
-					Metadata: c.pluginConfig.ToMetadata(),
-					Services: c.Meta.Services,
+					Metadata:   c.pluginConfig.ToMetadata(),
+					Services:   c.Meta.Services,
+					ShutdownCh: c.Meta.ShutdownCh,
 				},
 			},
 		},
