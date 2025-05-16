@@ -244,3 +244,7 @@ func (p *erroredProvider) ValidateListResourceConfig(providers.ValidateListResou
 		Diagnostics: nil,
 	}
 }
+
+func (p *erroredProvider) ListResource(req providers.ListResourceRequest) error {
+	panic("not implemented")
+}

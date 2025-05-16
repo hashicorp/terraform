@@ -245,6 +245,10 @@ func (u *offlineProvider) CloseEphemeralResource(providers.CloseEphemeralResourc
 	return providers.CloseEphemeralResourceResponse{}
 }
 
+func (o *offlineProvider) ListResource(req providers.ListResourceRequest) error {
+	panic("not implemented")
+}
+
 func (o *offlineProvider) CallFunction(request providers.CallFunctionRequest) providers.CallFunctionResponse {
 	return o.unconfiguredClient.CallFunction(request)
 }

@@ -241,6 +241,10 @@ func (s simple) CloseEphemeralResource(req providers.CloseEphemeralResourceReque
 	return resp
 }
 
+func (s simple) ListResource(req providers.ListResourceRequest) error {
+	panic("not implemented")
+}
+
 func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
 	if req.FunctionName != "noop" {
 		resp.Err = fmt.Errorf("CallFunction for undefined function %q", req.FunctionName)

@@ -291,6 +291,10 @@ func (u *unknownProvider) CloseEphemeralResource(providers.CloseEphemeralResourc
 	return providers.CloseEphemeralResourceResponse{}
 }
 
+func (u *unknownProvider) ListResource(req providers.ListResourceRequest) error {
+	panic("not implemented")
+}
+
 func (u *unknownProvider) CallFunction(_ providers.CallFunctionRequest) providers.CallFunctionResponse {
 	return providers.CallFunctionResponse{
 		Err: fmt.Errorf("CallFunction shouldn't be called on an unknown provider; this is a bug in Terraform - please report this error"),

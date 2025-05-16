@@ -409,6 +409,10 @@ func (m *Mock) CloseEphemeralResource(CloseEphemeralResourceRequest) CloseEpheme
 	}
 }
 
+func (m *Mock) ListResource(req ListResourceRequest) error {
+	return m.Provider.ListResource(req)
+}
+
 func (m *Mock) CallFunction(request CallFunctionRequest) CallFunctionResponse {
 	return m.Provider.CallFunction(request)
 }

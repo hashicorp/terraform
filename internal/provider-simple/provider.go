@@ -205,6 +205,10 @@ func (s simple) CloseEphemeralResource(providers.CloseEphemeralResourceRequest) 
 	panic("CloseEphemeralResource on provider that didn't declare any ephemeral resource types")
 }
 
+func (s simple) ListResource(req providers.ListResourceRequest) error {
+	panic("not implemented")
+}
+
 func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
 	// Our schema doesn't include any functions, so it should be impossible
 	// to get in here.
