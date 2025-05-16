@@ -12,20 +12,24 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 func TestBuiltinEvalContextProviderInput(t *testing.T) {
 	var lock sync.Mutex
 	cache := make(map[string]map[string]cty.Value)
 
-	ctx1 := testBuiltinEvalContext(t)
+	ctx1 := defaultTestCtx(t)
 	ctx1 = ctx1.withScope(evalContextModuleInstance{Addr: addrs.RootModuleInstance}).(*BuiltinEvalContext)
 	ctx1.ProviderInputConfig = cache
 	ctx1.ProviderLock = &lock
 
-	ctx2 := testBuiltinEvalContext(t)
+	ctx2 := defaultTestCtx(t)
 	ctx2 = ctx2.withScope(evalContextModuleInstance{Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey)}).(*BuiltinEvalContext)
 	ctx2.ProviderInputConfig = cache
 	ctx2.ProviderLock = &lock
@@ -61,7 +65,7 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 
 	testP := &testing_provider.MockProvider{}
 
-	ctx := testBuiltinEvalContext(t)
+	ctx := defaultTestCtx(t)
 	ctx = ctx.withScope(evalContextModuleInstance{Addr: addrs.RootModuleInstance}).(*BuiltinEvalContext)
 	ctx.ProviderLock = &lock
 	ctx.ProviderCache = make(map[string]providers.Interface)
@@ -101,6 +105,41 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 	}
 }
 
-func testBuiltinEvalContext(t *testing.T) *BuiltinEvalContext {
-	return &BuiltinEvalContext{}
+var defaultTestCtx = func(t *testing.T) *BuiltinEvalContext {
+	return testBuiltinEvalContext(t, walkPlan, nil, nil, nil)
+}
+
+func testBuiltinEvalContext(t *testing.T, op walkOperation, cfg *configs.Config, state *states.State, valState *namedvals.State) *BuiltinEvalContext {
+	t.Helper()
+	if state == nil {
+		state = states.NewState()
+	}
+	if cfg == nil {
+		cfg = configs.NewEmptyConfig()
+	}
+	if valState == nil {
+		valState = namedvals.NewState()
+	}
+	ex := instances.NewExpander(nil)
+	eph := ephemeral.NewResources()
+	ev := &Evaluator{
+		Config:             cfg,
+		State:              state.SyncWrapper(),
+		Operation:          op,
+		NamedValues:        valState,
+		Instances:          ex,
+		EphemeralResources: eph,
+	}
+	return &BuiltinEvalContext{
+		Evaluator:               ev,
+		StateValue:              state.SyncWrapper(),
+		PrevRunStateValue:       state.DeepCopy().SyncWrapper(),
+		RefreshStateValue:       state.DeepCopy().SyncWrapper(),
+		NamedValuesValue:        valState,
+		ProviderLock:            &sync.Mutex{},
+		ProviderCache:           make(map[string]providers.Interface),
+		ProviderFuncCache:       make(map[string]providers.Interface),
+		InstanceExpanderValue:   ex,
+		EphemeralResourcesValue: eph,
+	}
 }
