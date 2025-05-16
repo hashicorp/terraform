@@ -8,6 +8,11 @@ override_data {
   }
 }
 
+override_provisioner {
+  target = aws_instance.fourth
+  values = {}
+}
+
 run "test" {
   override_resource {
     target = aws_instance.first
@@ -21,5 +26,10 @@ run "test" {
     values = {
       arn = "aws:secretsmanager"
     }
+  }
+
+  override_provisioner {
+    target = aws_instance.fourth
+    values = {}
   }
 }
