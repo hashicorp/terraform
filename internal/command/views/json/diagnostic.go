@@ -199,7 +199,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 		}
 
 		diagnostic.Range = &DiagnosticRange{
-			Filename: highlightRange.Filename,
+			Filename: fmt.Sprintf("./%s", highlightRange.Filename),
 			Start: Pos{
 				Line:   highlightRange.Start.Line,
 				Column: highlightRange.Start.Column,
