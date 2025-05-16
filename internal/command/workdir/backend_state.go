@@ -32,9 +32,16 @@ type BackendStateFile struct {
 	TFVersion string `json:"terraform_version,omitempty"`
 
 	// Backend tracks the configuration for the backend in use with
-	// this state. This is used to track any changes in the backend
-	// configuration.
+	// this state. This is used to track any changes in the `backend`
+	// block's configuration.
+	// Note: this also used to tracking changes in the `cloud` block
 	Backend *BackendState `json:"backend,omitempty"`
+
+	// StateStorage tracks the configuration for a state store in use
+	// with this state. This is used to track any changes in the `state_storage`
+	// block's configuration or associated data about the provider facilitating
+	// state storage
+	StateStorage *StateStorageState `json:"state_storage,omitempty"`
 
 	// This is here just so we can sniff for the unlikely-but-possible
 	// situation that someone is trying to use modern Terraform with a
@@ -139,6 +146,25 @@ type BackendState struct {
 	Type      string          `json:"type"`   // Backend type
 	ConfigRaw json.RawMessage `json:"config"` // Backend raw config
 	Hash      uint64          `json:"hash"`   // Hash of portion of configuration from config files
+}
+
+// StateStorageState is a dumb name
+type StateStorageState struct {
+	Type      string          `json:"type"`     // State storage type name
+	Provider  *Provider       `json:"provider"` // Details about the state-storage provider
+	ConfigRaw json.RawMessage `json:"config"`   // Backend raw config
+	Hash      uint64          `json:"hash"`     // Hash of portion of configuration from config files
+}
+
+// Provider is used in the StateStorageState struct to describe the provider that's used for pluggable
+// state storage. The data inside should mirror an entry in the dependency lock file.
+type Provider struct {
+	Version string `json:"version"` // The specific provider version used for the state store. Should be set using a getproviders.Version, etc.
+	Source  string `json:"source"`  // The FQN/fully-qualified name of the provider.
+}
+
+func (s *StateStorageState) Empty() bool {
+	return s == nil || s.Type == ""
 }
 
 // Empty returns true if there is no active backend.

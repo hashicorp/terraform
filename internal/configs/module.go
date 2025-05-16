@@ -34,6 +34,7 @@ type Module struct {
 	ActiveExperiments experiments.Set
 
 	Backend              *Backend
+	StateStorage         *StateStorage
 	CloudConfig          *CloudConfig
 	ProviderConfigs      map[string]*Provider
 	ProviderRequirements *RequiredProviders

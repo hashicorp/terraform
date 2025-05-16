@@ -844,17 +844,64 @@ func (m *Meta) backendFromState(_ context.Context) (backend.Backend, tfdiags.Dia
 //
 // The functions below cover handling all the various scenarios that
 // can exist when loading a backend. They are named in the format of
-// "backend_C_R_S" where C, R, S may be upper or lowercase. Lowercase
+// "backend_C_R_S" or "backend_Z_R_Y" where C, Z, R, S, Y may be upper or lowercase. Lowercase
 // means it is false, uppercase means it is true. The full set of eight
 // possible cases is handled.
 //
 // The fields are:
 //
-//   * C - Backend configuration is set and changed in TF files
+//   * C - Backend configuration set and changed in TF files
+//   * Z - State storage configuration set and changed in TF files
 //   * R - Legacy remote state is set
 //   * S - Backend configuration is set in the state
+//   * Y - State_storage configuration is set in the state
 //
 //-------------------------------------------------------------------
+
+// // Unconfiguring a state store (moving from state_store => local).
+// func (m *Meta) backend_z_r_Y(c *configs.StateStorage, cHash int, sMgr *clistate.LocalState, output bool, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+// 	var diags tfdiags.Diagnostics
+
+// 	vt := arguments.ViewJSON
+// 	// Set default viewtype if none was set as the StateLocker needs to know exactly
+// 	// what viewType we want to have.
+// 	if opts == nil || opts.ViewType != vt {
+// 		vt = arguments.ViewHuman
+// 	}
+
+// 	s := sMgr.State()
+
+// 	// We do not need to handle the cloud block here, as the cloud block is represented as a backend block
+// 	// in the backend state.
+
+// 	m.Ui.Output(fmt.Sprintf("Migrating from using the %s state store to local state.", s.StateStorage.Type))
+
+// 	// Grab a purely local backend to get the local state if it exists
+// 	localB, moreDiags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
+// 	diags = diags.Append(moreDiags)
+// 	if moreDiags.HasErrors() {
+// 		return nil, diags
+// 	}
+
+// 	// Initialize the configured backend
+// 	b, moreDiags := m.savedBackend(sMgr)
+// 	diags = diags.Append(moreDiags)
+// 	if moreDiags.HasErrors() {
+// 		return nil, diags
+// 	}
+
+// 	return nil, nil
+// }
+
+// // Configuring a state_store for the first time.
+// func (m *Meta) backend_Z_r_y() (backend.Backend, tfdiags.Diagnostics) {
+// 	return nil, nil
+// }
+
+// // Changing a previously saved backend.
+// func (m *Meta) backend_Z_r_Y_changed() (backend.Backend, tfdiags.Diagnostics) {
+// 	return nil, nil
+// }
 
 // Unconfiguring a backend (moving from backend => local).
 func (m *Meta) backend_c_r_S(
@@ -1236,6 +1283,47 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 
 	return b, diags
 }
+
+// // Initializing a saved state store from the cache file (legacy state file)
+// func (m *Meta) savedStateStore(sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
+// 	var diags tfdiags.Diagnostics
+
+// 	s := sMgr.State()
+
+// 	factories, err := m.providerFactories()
+// 	if err != nil {
+// 		diags = diags.Append(err)
+// 		return nil, diags
+// 	}
+// 	pAddr, sourceDiags := addrs.ParseProviderSourceString(s.StateStorage.Provider.Source)
+// 	diags = diags.Append(sourceDiags)
+// 	if sourceDiags.HasErrors() {
+// 		return nil, diags
+// 	}
+
+// 	if factory, ok := factories[pAddr]; ok {
+// 		provider, err := factory()
+// 		if err != nil {
+// 			diags = diags.Append(err)
+// 			return nil, diags
+// 		}
+
+// 		// We need to configure the provider before we use it for state storage
+// 		// Code would be similar to `func (n *NodeApplyableProvider) ValidateProvider` in internal/terraform/node_provider.go
+
+// 		resp := provider.GetProviderSchema()
+// 		if len(resp.StateStores) == 0 {
+// 			panic("no state stores!")
+// 		}
+// 		if _, ok := resp.StateStores[s.StateStorage.Type]; !ok {
+// 			panic("provider doesn't include state store type: " + s.StateStorage.Type)
+// 		}
+
+// 		// Here we'd call code to get the provider as a backend.Backend
+// 	}
+
+// 	return nil, nil
+// }
 
 // Initializing a saved backend from the cache file (legacy state file)
 //
