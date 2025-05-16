@@ -1,6 +1,8 @@
 package refactoring
 
 import (
+	"context"
+
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -111,6 +113,18 @@ func (provider *mockProvider) CloseEphemeralResource(providers.CloseEphemeralRes
 }
 
 func (provider *mockProvider) CallFunction(providers.CallFunctionRequest) providers.CallFunctionResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) PlanAction(providers.PlanActionRequest) providers.PlanActionResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) InvokeAction(_ context.Context, _ providers.InvokeActionRequest) providers.InvokeActionResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) CancelAction(providers.CancelActionRequest) providers.CancelActionResponse {
 	panic("not implemented in mock")
 }
 

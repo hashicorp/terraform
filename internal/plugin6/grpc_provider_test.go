@@ -5,6 +5,7 @@ package plugin6
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/msgpack"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -122,6 +124,20 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 						},
 					},
 				},
+			},
+		},
+		ActionSchemas: map[string]*proto.ActionSchema{
+			"action": {
+				Block: &proto.Schema_Block{
+					Version: 1,
+					Attributes: []*proto.Schema_Attribute{
+						{
+							Name: "attr",
+							Type: []byte(`"string"`),
+						},
+					},
+				},
+				LinkedResources: []*proto.ActionSchema_LinkedResource{},
 			},
 		},
 		ServerCapabilities: &proto.ServerCapabilities{
@@ -1301,6 +1317,134 @@ func TestGRPCProvider_closeEphemeralResource(t *testing.T) {
 	resp := p.CloseEphemeralResource(providers.CloseEphemeralResourceRequest{
 		TypeName: "ephemeral",
 		Private:  []byte("private data"),
+	})
+
+	checkDiags(t, resp.Diagnostics)
+}
+
+func TestGRPCProvider_planAction_valid(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	client.EXPECT().PlanAction(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.PlanAction_Response{}, nil)
+
+	resp := p.PlanAction(providers.PlanActionRequest{
+		TypeName: "action",
+		PlannedConfig: cty.ObjectVal(map[string]cty.Value{
+			"attr": cty.StringVal("foo"),
+		}),
+	})
+
+	checkDiags(t, resp.Diagnostics)
+}
+
+func TestGRPCProvider_planAction_invalid_config(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	resp := p.PlanAction(providers.PlanActionRequest{
+		TypeName: "action",
+		PlannedConfig: cty.ObjectVal(map[string]cty.Value{
+			"not_the_right_attr": cty.StringVal("foo"),
+		}),
+	})
+
+	checkDiagsHasError(t, resp.Diagnostics)
+}
+
+func TestGRPCProvider_invokeAction_valid(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	updatedConfigCty := cty.ObjectVal(map[string]cty.Value{
+		"attr": cty.StringVal("bar"),
+	})
+
+	updatedConfig, err := msgpack.Marshal(updatedConfigCty, updatedConfigCty.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mockInvokeClient := &mockproto.MockInvokeProtoClient{
+		Events: []*proto.InvokeAction_Event{
+			{
+				Event: &proto.InvokeAction_Event_Started_{
+					Started: &proto.InvokeAction_Event_Started{
+						CancellationToken: "best-token",
+					},
+				},
+			},
+			{
+				Event: &proto.InvokeAction_Event_Progress_{
+					Progress: &proto.InvokeAction_Event_Progress{
+						Stdout: []string{"Hello", "World"},
+					},
+				},
+			},
+			{
+				Event: &proto.InvokeAction_Event_Finished_{
+					Finished: &proto.InvokeAction_Event_Finished{
+						NewConfig: &proto.DynamicValue{Msgpack: updatedConfig},
+					},
+				},
+			},
+		},
+	}
+
+	client.EXPECT().InvokeAction(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(mockInvokeClient, nil)
+
+	resp := p.InvokeAction(context.TODO(), providers.InvokeActionRequest{
+		TypeName: "action",
+		PlannedConfig: cty.ObjectVal(map[string]cty.Value{
+			"attr": cty.StringVal("foo"),
+		}),
+	})
+
+	checkDiags(t, resp.Diagnostics)
+}
+
+func TestGRPCProvider_invokeAction_invalid(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	resp := p.InvokeAction(context.TODO(), providers.InvokeActionRequest{
+		TypeName: "action",
+		PlannedConfig: cty.ObjectVal(map[string]cty.Value{
+			"not-defined": cty.StringVal("foo"),
+		}),
+	})
+
+	checkDiagsHasError(t, resp.Diagnostics)
+}
+
+func TestGRPCProvider_cancelAction(t *testing.T) {
+	client := mockproto.NewMockProviderClient(gomock.NewController(t))
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	client.EXPECT().CancelAction(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.CancelAction_Response{}, nil)
+
+	resp := p.CancelAction(providers.CancelActionRequest{
+		TypeName:          "action",
+		CancellationToken: "best-token",
 	})
 
 	checkDiags(t, resp.Diagnostics)

@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -72,6 +73,7 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 				ReturnType: cty.String,
 			},
 		},
+		Actions: map[string]providers.ActionSchema{},
 	}
 	providers.SchemaCache.Set(tfaddr.NewProvider(tfaddr.BuiltInProviderHost, tfaddr.BuiltInProviderNamespace, "terraform"), resp)
 	return resp
@@ -262,6 +264,36 @@ func (p *Provider) CallFunction(req providers.CallFunctionRequest) providers.Cal
 	return providers.CallFunctionResponse{
 		Result: result,
 	}
+}
+
+func (p *Provider) PlanAction(req providers.PlanActionRequest) providers.PlanActionResponse {
+	var resp providers.PlanActionResponse
+
+	switch req.TypeName {
+	default:
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported action %q", req.TypeName))
+	}
+
+	return resp
+}
+
+func (p *Provider) InvokeAction(_ context.Context, req providers.InvokeActionRequest) providers.InvokeActionResponse {
+	var resp providers.InvokeActionResponse
+
+	switch req.TypeName {
+	default:
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported action %q", req.TypeName))
+	}
+
+	return resp
+}
+
+func (p *Provider) CancelAction(req providers.CancelActionRequest) providers.CancelActionResponse {
+	var resp providers.CancelActionResponse
+
+	// Handle cancellation logic if applicable
+	resp.Diagnostics = resp.Diagnostics.Append("cancel action is not supported")
+	return resp
 }
 
 // Close is a noop for this provider, since it's run in-process.
