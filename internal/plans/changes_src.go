@@ -120,7 +120,7 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 			panic(fmt.Sprintf("unexpected resource mode %s", rcs.Addr.Resource.Resource.Mode))
 		}
 
-		if schema.Body == nil {
+		if !(schema.Body == nil || rcs.ChangeSpec == nil) {
 			return nil, fmt.Errorf("ChangesSrc.Decode: missing schema for %s", rcs.Addr)
 		}
 
@@ -200,6 +200,11 @@ type ResourceInstanceChangeSrc struct {
 	// ChangeSrc is an embedded description of the not-yet-decoded change.
 	ChangeSrc
 
+	// ChangeSpec contains the type definitions related to the change.
+	// If present, it will be used to encode the change values instead of the
+	// types in the schema.
+	*ChangeSpec
+
 	// ActionReason is an optional extra indication of why we chose the
 	// action recorded in Change.Action for this particular resource instance.
 	//
@@ -235,7 +240,19 @@ func (rcs *ResourceInstanceChangeSrc) ObjectAddr() addrs.AbsResourceInstanceObje
 // changed. Pass the implied type of the corresponding resource type schema
 // for correct operation.
 func (rcs *ResourceInstanceChangeSrc) Decode(schema providers.Schema) (*ResourceInstanceChange, error) {
-	change, err := rcs.ChangeSrc.Decode(&schema)
+	var spec *ChangeSpec
+	if rcs.ChangeSpec != nil {
+		spec = &ChangeSpec{
+			ObjectType:   rcs.ChangeSpec.ObjectType,
+			IdentityType: rcs.ChangeSpec.IdentityType,
+		}
+	} else {
+		spec = &ChangeSpec{
+			ObjectType:   schema.Body.ImpliedType(),
+			IdentityType: schema.Identity.ImpliedType(),
+		}
+	}
+	change, err := rcs.ChangeSrc.Decode(spec)
 	if err != nil {
 		return nil, err
 	}
@@ -254,6 +271,7 @@ func (rcs *ResourceInstanceChangeSrc) Decode(schema providers.Schema) (*Resource
 		ActionReason:    rcs.ActionReason,
 		RequiredReplace: rcs.RequiredReplace,
 		Private:         rcs.Private,
+		ChangeSpec:      rcs.ChangeSpec,
 	}, nil
 }
 
@@ -437,14 +455,14 @@ type ChangeSrc struct {
 // Where a ChangeSrc is embedded in some other struct, it's generally better
 // to call the corresponding Decode method of that struct rather than working
 // directly with its embedded Change.
-func (cs *ChangeSrc) Decode(schema *providers.Schema) (*Change, error) {
+func (cs *ChangeSrc) Decode(spec *ChangeSpec) (*Change, error) {
 	var err error
 
 	ty := cty.DynamicPseudoType
 	identityType := cty.DynamicPseudoType
-	if schema != nil {
-		ty = schema.Body.ImpliedType()
-		identityType = schema.Identity.ImpliedType()
+	if spec != nil {
+		ty = spec.ObjectType
+		identityType = spec.IdentityType
 	}
 
 	before := cty.NullVal(ty)

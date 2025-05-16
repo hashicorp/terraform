@@ -62,7 +62,7 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 			panic(fmt.Sprintf("unexpected resource mode %s", rc.Addr.Resource.Resource.Mode))
 		}
 
-		if schema.Body == nil {
+		if !(schema.Body == nil || rc.ChangeSpec == nil) {
 			return changesSrc, fmt.Errorf("Changes.Encode: missing schema for %s", rc.Addr)
 		}
 		rcs, err := rc.Encode(schema)
@@ -248,6 +248,11 @@ type ResourceInstanceChange struct {
 	// Change is an embedded description of the change.
 	Change
 
+	// ChangeSpec contains the type definitions related to the change.
+	// If present, it will be used to encode the change values instead of the
+	// types in the schema.
+	*ChangeSpec
+
 	// ActionReason is an optional extra indication of why we chose the
 	// action recorded in Change.Action for this particular resource instance.
 	//
@@ -282,7 +287,19 @@ type ResourceInstanceChange struct {
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
 func (rc *ResourceInstanceChange) Encode(schema providers.Schema) (*ResourceInstanceChangeSrc, error) {
-	cs, err := rc.Change.Encode(&schema)
+	var spec *ChangeSpec
+	if rc.ChangeSpec != nil {
+		spec = &ChangeSpec{
+			ObjectType:   rc.ChangeSpec.ObjectType,
+			IdentityType: rc.ChangeSpec.IdentityType,
+		}
+	} else {
+		spec = &ChangeSpec{
+			ObjectType:   schema.Body.ImpliedType(),
+			IdentityType: schema.Identity.ImpliedType(),
+		}
+	}
+	cs, err := rc.Change.Encode(spec)
 	if err != nil {
 		return nil, err
 	}
@@ -302,6 +319,7 @@ func (rc *ResourceInstanceChange) Encode(schema providers.Schema) (*ResourceInst
 		ActionReason:    rc.ActionReason,
 		RequiredReplace: rc.RequiredReplace,
 		Private:         rc.Private,
+		ChangeSpec:      rc.ChangeSpec,
 	}, err
 }
 
@@ -621,6 +639,15 @@ type Change struct {
 	GeneratedConfig string
 }
 
+// ChangeSpec describes the specification of the change's types.
+type ChangeSpec struct {
+	// ObjectType is the type of the object that is being changed.
+	ObjectType cty.Type
+
+	// IdentityType is the type of the identity of the object that is being changed.
+	IdentityType cty.Type
+}
+
 // Encode produces a variant of the reciever that has its change values
 // serialized so it can be written to a plan file. Pass the type constraint
 // that the values are expected to conform to; to properly decode the values
@@ -629,7 +656,13 @@ type Change struct {
 // Where a Change is embedded in some other struct, it's generally better
 // to call the corresponding Encode method of that struct rather than working
 // directly with its embedded Change.
-func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
+func (c *Change) Encode(spec *ChangeSpec) (*ChangeSrc, error) {
+	ty := cty.DynamicPseudoType
+	identityTy := cty.DynamicPseudoType
+	if spec != nil {
+		ty = spec.ObjectType
+		identityTy = spec.IdentityType
+	}
 	// We can't serialize value marks directly so we'll need to extract the
 	// sensitive marks and store them in a separate field.
 	//
@@ -655,11 +688,6 @@ func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 		)
 	}
 
-	ty := cty.DynamicPseudoType
-	if schema != nil {
-		ty = schema.Body.ImpliedType()
-	}
-
 	beforeDV, err := NewDynamicValue(unmarkedBefore, ty)
 	if err != nil {
 		return nil, err
@@ -671,11 +699,6 @@ func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 
 	var beforeIdentityDV DynamicValue
 	var afterIdentityDV DynamicValue
-
-	identityTy := cty.DynamicPseudoType
-	if schema != nil {
-		identityTy = schema.Identity.ImpliedType()
-	}
 
 	if !c.BeforeIdentity.IsNull() {
 		beforeIdentityDV, err = NewDynamicValue(c.BeforeIdentity, identityTy)
