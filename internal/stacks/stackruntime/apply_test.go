@@ -42,7 +42,7 @@ import (
 
 var changesCmpOpts = cmp.Options{
 	ctydebug.CmpOptions,
-	cmpCollectionsSet,
+	collections.CmpOptions,
 	cmpopts.IgnoreUnexported(addrs.InputVariable{}),
 	cmpopts.IgnoreUnexported(states.ResourceInstanceObjectSrc{}),
 }
@@ -4273,7 +4273,7 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 			After:  cty.StringVal("hello, world!"),
 		},
 	}
-	if diff := cmp.Diff(wantPlanChanges, planChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantPlanChanges, planChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 
