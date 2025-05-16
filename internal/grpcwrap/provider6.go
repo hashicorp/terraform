@@ -47,6 +47,7 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 		DataSourceSchemas:        make(map[string]*tfplugin6.Schema),
 		EphemeralResourceSchemas: make(map[string]*tfplugin6.Schema),
 		Functions:                make(map[string]*tfplugin6.Function),
+		ListResourceSchemas:      make(map[string]*tfplugin6.Schema),
 	}
 
 	resp.Provider = &tfplugin6.Schema{
@@ -77,6 +78,12 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 	}
 	for typ, dat := range p.schema.EphemeralResourceTypes {
 		resp.EphemeralResourceSchemas[typ] = &tfplugin6.Schema{
+			Version: int64(dat.Version),
+			Block:   convert.ConfigSchemaToProto(dat.Body),
+		}
+	}
+	for typ, dat := range p.schema.ListResourceTypes {
+		resp.ListResourceSchemas[typ] = &tfplugin6.Schema{
 			Version: int64(dat.Version),
 			Block:   convert.ConfigSchemaToProto(dat.Body),
 		}
@@ -159,7 +166,7 @@ func (p *provider6) ValidateDataResourceConfig(_ context.Context, req *tfplugin6
 
 func (p *provider6) ValidateEphemeralResourceConfig(_ context.Context, req *tfplugin6.ValidateEphemeralResourceConfig_Request) (*tfplugin6.ValidateEphemeralResourceConfig_Response, error) {
 	resp := &tfplugin6.ValidateEphemeralResourceConfig_Response{}
-	ty := p.schema.DataSources[req.TypeName].Body.ImpliedType()
+	ty := p.schema.EphemeralResourceTypes[req.TypeName].Body.ImpliedType()
 
 	configVal, err := decodeDynamicValue6(req.Config, ty)
 	if err != nil {
@@ -168,6 +175,25 @@ func (p *provider6) ValidateEphemeralResourceConfig(_ context.Context, req *tfpl
 	}
 
 	validateResp := p.provider.ValidateEphemeralResourceConfig(providers.ValidateEphemeralResourceConfigRequest{
+		TypeName: req.TypeName,
+		Config:   configVal,
+	})
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, validateResp.Diagnostics)
+	return resp, nil
+}
+
+func (p *provider6) ValidateListResourceConfig(_ context.Context, req *tfplugin6.ValidateListResourceConfig_Request) (*tfplugin6.ValidateListResourceConfig_Response, error) {
+	resp := &tfplugin6.ValidateListResourceConfig_Response{}
+	ty := p.schema.ListResourceTypes[req.TypeName].Body.ImpliedType()
+
+	configVal, err := decodeDynamicValue6(req.Config, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	validateResp := p.provider.ValidateListResourceConfig(providers.ValidateListResourceConfigRequest{
 		TypeName: req.TypeName,
 		Config:   configVal,
 	})
@@ -782,6 +808,10 @@ func (p *provider6) UpgradeResourceIdentity(_ context.Context, req *tfplugin6.Up
 		IdentityData: dv,
 	}
 	return resp, nil
+}
+
+func (p *provider6) ListResource(*tfplugin6.ListResource_Request, tfplugin6.Provider_ListResourceServer) error {
+	panic("not implemented")
 }
 
 func (p *provider6) StopProvider(context.Context, *tfplugin6.StopProvider_Request) (*tfplugin6.StopProvider_Response, error) {

@@ -35,6 +35,7 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 			"terraform_data": dataStoreResourceSchema(),
 		},
 		EphemeralResourceTypes: map[string]providers.Schema{},
+		ListResourceTypes:      map[string]providers.Schema{},
 		Functions: map[string]providers.FunctionDecl{
 			"encode_tfvars": {
 				Summary:     "Produce a string representation of an object using the same syntax as for `.tfvars` files",
@@ -111,6 +112,12 @@ func (p *Provider) ValidateDataResourceConfig(req providers.ValidateDataResource
 	res.Diagnostics = diags
 
 	return res
+}
+
+func (p *Provider) ValidateListResourceConfig(req providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse {
+	var resp providers.ValidateListResourceConfigResponse
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported list resource type %q", req.TypeName))
+	return resp
 }
 
 // Configure configures and initializes the provider.

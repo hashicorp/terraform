@@ -45,6 +45,7 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 		ResourceSchemas:          make(map[string]*tfplugin5.Schema),
 		DataSourceSchemas:        make(map[string]*tfplugin5.Schema),
 		EphemeralResourceSchemas: make(map[string]*tfplugin5.Schema),
+		ListResourceSchemas:      make(map[string]*tfplugin5.Schema),
 	}
 
 	resp.Provider = &tfplugin5.Schema{
@@ -75,6 +76,12 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 	}
 	for typ, dat := range p.schema.EphemeralResourceTypes {
 		resp.EphemeralResourceSchemas[typ] = &tfplugin5.Schema{
+			Version: int64(dat.Version),
+			Block:   convert.ConfigSchemaToProto(dat.Body),
+		}
+	}
+	for typ, dat := range p.schema.ListResourceTypes {
+		resp.ListResourceSchemas[typ] = &tfplugin5.Schema{
 			Version: int64(dat.Version),
 			Block:   convert.ConfigSchemaToProto(dat.Body),
 		}
@@ -170,6 +177,25 @@ func (p *provider) ValidateEphemeralResourceConfig(_ context.Context, req *tfplu
 	}
 
 	validateResp := p.provider.ValidateEphemeralResourceConfig(providers.ValidateEphemeralResourceConfigRequest{
+		TypeName: req.TypeName,
+		Config:   configVal,
+	})
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, validateResp.Diagnostics)
+	return resp, nil
+}
+
+func (p *provider) ValidateListResourceConfig(_ context.Context, req *tfplugin5.ValidateListResourceConfig_Request) (*tfplugin5.ValidateListResourceConfig_Response, error) {
+	resp := &tfplugin5.ValidateListResourceConfig_Response{}
+	ty := p.schema.ListResourceTypes[req.TypeName].Body.ImpliedType()
+
+	configVal, err := decodeDynamicValue(req.Config, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	validateResp := p.provider.ValidateListResourceConfig(providers.ValidateListResourceConfigRequest{
 		TypeName: req.TypeName,
 		Config:   configVal,
 	})
@@ -734,6 +760,10 @@ func (p *provider) UpgradeResourceIdentity(_ context.Context, req *tfplugin5.Upg
 		IdentityData: dv,
 	}
 	return resp, nil
+}
+
+func (p *provider) ListResource(*tfplugin5.ListResource_Request, tfplugin5.Provider_ListResourceServer) error {
+	panic("not implemented")
 }
 
 func (p *provider) Stop(context.Context, *tfplugin5.Stop_Request) (*tfplugin5.Stop_Response, error) {

@@ -237,3 +237,10 @@ func (p *erroredProvider) ValidateResourceConfig(providers.ValidateResourceConfi
 		Diagnostics: nil,
 	}
 }
+
+// ValidateListResourceConfig implements providers.Interface.
+func (p *erroredProvider) ValidateListResourceConfig(providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse {
+	return providers.ValidateListResourceConfigResponse{
+		Diagnostics: nil,
+	}
+}

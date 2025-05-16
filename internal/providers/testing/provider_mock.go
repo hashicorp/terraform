@@ -50,6 +50,11 @@ type MockProvider struct {
 	ValidateDataResourceConfigRequest  providers.ValidateDataResourceConfigRequest
 	ValidateDataResourceConfigFn       func(providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse
 
+	ValidateListResourceConfigCalled   bool
+	ValidateListResourceConfigResponse *providers.ValidateListResourceConfigResponse
+	ValidateListResourceConfigRequest  providers.ValidateListResourceConfigRequest
+	ValidateListResourceConfigFn       func(providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse
+
 	UpgradeResourceStateCalled   bool
 	UpgradeResourceStateResponse *providers.UpgradeResourceStateResponse
 	UpgradeResourceStateRequest  providers.UpgradeResourceStateRequest
@@ -253,23 +258,53 @@ func (p *MockProvider) ValidateEphemeralResourceConfig(r providers.ValidateEphem
 	p.ValidateEphemeralResourceConfigRequest = r
 
 	// Marshall the value to replicate behavior by the GRPC protocol
-	dataSchema, ok := p.getProviderSchema().EphemeralResourceTypes[r.TypeName]
+	ephemeralSchema, ok := p.getProviderSchema().EphemeralResourceTypes[r.TypeName]
 	if !ok {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
 		return resp
 	}
-	_, err := msgpack.Marshal(r.Config, dataSchema.Body.ImpliedType())
+	_, err := msgpack.Marshal(r.Config, ephemeralSchema.Body.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
 
-	if p.ValidateDataResourceConfigFn != nil {
+	if p.ValidateEphemeralResourceConfigFn != nil {
 		return p.ValidateEphemeralResourceConfigFn(r)
 	}
 
-	if p.ValidateDataResourceConfigResponse != nil {
+	if p.ValidateEphemeralResourceConfigResponse != nil {
 		return *p.ValidateEphemeralResourceConfigResponse
+	}
+
+	return resp
+}
+
+func (p *MockProvider) ValidateListResourceConfig(r providers.ValidateListResourceConfigRequest) (resp providers.ValidateListResourceConfigResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.ValidateListResourceConfigCalled = true
+	p.ValidateListResourceConfigRequest = r
+
+	// Marshall the value to replicate behavior by the GRPC protocol
+	listSchema, ok := p.getProviderSchema().ListResourceTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
+		return resp
+	}
+	_, err := msgpack.Marshal(r.Config, listSchema.Body.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	if p.ValidateListResourceConfigFn != nil {
+		return p.ValidateListResourceConfigFn(r)
+	}
+
+	if p.ValidateListResourceConfigResponse != nil {
+		return *p.ValidateListResourceConfigResponse
 	}
 
 	return resp
