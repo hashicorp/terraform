@@ -25,7 +25,6 @@ type State struct {
 	variables inputVariableValues
 	locals    localValues
 	outputs   outputValues
-	lists     addrs.Map[addrs.Resource, addrs.Map[addrs.AbsResourceInstance, cty.Value]]
 }
 
 func NewState() *State {
@@ -33,7 +32,6 @@ func NewState() *State {
 		variables: newValues[addrs.InputVariable, addrs.AbsInputVariableInstance](),
 		locals:    newValues[addrs.LocalValue, addrs.AbsLocalValue](),
 		outputs:   newValues[addrs.OutputValue, addrs.AbsOutputValue](),
-		lists:     addrs.MakeMap[addrs.Resource, addrs.Map[addrs.AbsResourceInstance, cty.Value]](),
 	}
 }
 
@@ -125,29 +123,4 @@ func (s *State) GetOutputValuePlaceholder(addr addrs.InPartialExpandedModule[add
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.outputs.GetPlaceholderResult(addr)
-}
-
-func (s *State) SetResourceListInstance(addr addrs.AbsResource, key addrs.InstanceKey, val cty.Value) {
-	s.mu.Lock()
-	if !s.lists.Has(addr.Resource) {
-		s.lists.Put(addr.Resource, addrs.MakeMap[addrs.AbsResourceInstance, cty.Value]())
-	}
-	s.lists.Get(addr.Resource).Put(addr.Instance(key), val)
-	s.mu.Unlock()
-}
-
-func (s *State) GetResourceListInstances(addr addrs.AbsResource) addrs.Map[addrs.AbsResourceInstance, cty.Value] {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if !s.lists.Has(addr.Resource) {
-		return addrs.MakeMap[addrs.AbsResourceInstance, cty.Value]()
-	}
-	insts := s.lists.Get(addr.Resource)
-	return insts
-}
-
-func (s *State) AllResourceListInstances() addrs.Map[addrs.Resource, addrs.Map[addrs.AbsResourceInstance, cty.Value]] {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.lists
 }

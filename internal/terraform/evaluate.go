@@ -800,12 +800,26 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 
 func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	switch d.Operation {
+	case walkValidate:
+		return cty.DynamicVal, diags
+	case walkQuery:
+		// continue
+	default:
+		return cty.DynamicVal, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Unsupported operation`,
+			Detail:   fmt.Sprintf("List resources are not supported in %s operations.", d.Operation),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+	}
+
 	// The provider result of a list resource is always a tuple, but
 	// we will wrap that tuple in an object with a single attribute "data",
 	// so that we can differentiate between a list resource instance (list.aws_instance.test[index])
 	// and the elements of the result of a list resource instance (list.aws_instance.test.data[index])
-	wrappedVal := func(v cty.Value) cty.Value {
-		return cty.ObjectVal(map[string]cty.Value{"data": v})
+	wrappedVal := func(v *states.ResourceInstanceObject) cty.Value {
+		return cty.ObjectVal(map[string]cty.Value{"data": v.Value})
 	}
 	lAddr := config.Addr()
 	mAddr := addrs.Resource{
@@ -826,32 +840,16 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 		return cty.DynamicVal, diags
 	}
 	ty := schema.Body.ImpliedType()
-	instances := d.Evaluator.NamedValues.GetResourceListInstances(lAddr.Absolute(d.ModulePath))
+	instances := d.Evaluator.State.GetListResource(lAddr.Absolute(d.ModulePath))
 
 	if len(instances.Values()) == 0 {
-		switch d.Operation {
-		case walkPlan:
-			// Since we know there are no instances, return an empty container of the expected type.
-			switch {
-			case config.Count != nil:
-				return cty.EmptyTupleVal, diags
-			case config.ForEach != nil:
-				return cty.EmptyObjectVal, diags
-			default:
-				// While we can reference an expanded resource with 0
-				// instances, we cannot reference instances that do not exist.
-				// Due to the fact that we may have direct references to
-				// instances that may end up in a root output during destroy
-				// (since a planned destroy cannot yet remove root outputs), we
-				// need to return a dynamic value here to allow evaluation to
-				// continue.
-				log.Printf("[ERROR] unknown instance %q referenced during %s", lAddr.Absolute(d.ModulePath), d.Operation)
-				return cty.DynamicVal, diags
-			}
+		// Since we know there are no instances, return an empty container of the expected type.
+		switch {
+		case config.Count != nil:
+			return cty.EmptyTupleVal, diags
+		case config.ForEach != nil:
+			return cty.EmptyObjectVal, diags
 		default:
-			// We should only end up here during the validate walk (or
-			// console/eval), since later walks should have at least partial
-			// states populated for all resources in the configuration.
 			return cty.DynamicVal, diags
 		}
 	}
@@ -907,13 +905,15 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 
 		return ret, diags
 	default:
-		val, ok := instances.GetOk(lAddr.Absolute(d.ModulePath).Instance(addrs.NoKey))
+		inst, ok := instances.GetOk(lAddr.Absolute(d.ModulePath).Instance(addrs.NoKey))
 		if !ok {
 			// if the instance is missing, insert an unknown value
-			val = cty.UnknownVal(ty)
+			inst = &states.ResourceInstanceObject{
+				Value: cty.UnknownVal(ty),
+			}
 		}
 
-		ret = wrappedVal(val)
+		ret = wrappedVal(inst)
 	}
 
 	return ret, diags

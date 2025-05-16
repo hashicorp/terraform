@@ -3492,7 +3492,6 @@ func TestContext2Validate_queryList(t *testing.T) {
 					providerConfigAddr: provider,
 				},
 			})
-			// tfdiags.AssertDiagnosticCount(t, diags, tc.diagCount)
 			if len(diags) != tc.diagCount {
 				t.Fatalf("expected %d diagnostics, got %d \n -diags: %s", tc.diagCount, len(diags), diags)
 			}
