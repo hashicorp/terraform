@@ -804,8 +804,8 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 	// we will wrap that tuple in an object with a single attribute "data",
 	// so that we can differentiate between a list resource instance (list.aws_instance.test[index])
 	// and the elements of the result of a list resource instance (list.aws_instance.test.data[index])
-	wrappedVal := func(v cty.Value) cty.Value {
-		return cty.ObjectVal(map[string]cty.Value{"data": v})
+	wrappedVal := func(v *states.ResourceInstanceObject) cty.Value {
+		return cty.ObjectVal(map[string]cty.Value{"data": v.Value})
 	}
 	lAddr := config.Addr()
 	mAddr := addrs.Resource{
@@ -826,7 +826,7 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 		return cty.DynamicVal, diags
 	}
 	ty := schema.Body.ImpliedType()
-	instances := d.Evaluator.NamedValues.GetResourceListInstances(lAddr.Absolute(d.ModulePath))
+	instances := d.Evaluator.State.GetListResource(lAddr.Absolute(d.ModulePath))
 
 	if len(instances.Values()) == 0 {
 		switch d.Operation {
@@ -907,13 +907,15 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 
 		return ret, diags
 	default:
-		val, ok := instances.GetOk(lAddr.Absolute(d.ModulePath).Instance(addrs.NoKey))
+		inst, ok := instances.GetOk(lAddr.Absolute(d.ModulePath).Instance(addrs.NoKey))
 		if !ok {
 			// if the instance is missing, insert an unknown value
-			val = cty.UnknownVal(ty)
+			inst = &states.ResourceInstanceObject{
+				Value: cty.UnknownVal(ty),
+			}
 		}
 
-		ret = wrappedVal(val)
+		ret = wrappedVal(inst)
 	}
 
 	return ret, diags
