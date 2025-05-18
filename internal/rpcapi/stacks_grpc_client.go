@@ -108,6 +108,7 @@ func (c GRPCStacksClient) executeWithBrokers(brokerIDs brokerIDs, args []string,
 	// Monitor for interrupt and cancel the context if received
 	go func() {
 		sig := <-c.ShutdownCh
+		fmt.Print("\n\nOperation Interrupted, any remote operations started will continue\n\n")
 		log.Printf("[INFO] Received signal: %s, cancelling operation", sig)
 		cancel()
 	}()
