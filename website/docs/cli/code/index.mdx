@@ -1,6 +1,7 @@
 ---
 page_title: Format and validate Terraform configuration using the Terraform CLI 
 description: Learn about the Terraform commands that validate, format, and upgrade code written in HCL.
+---
 
 # Write and modify Terrafrom configuration from the CLI
 
@@ -15,32 +16,32 @@ in the Terraform language.
 ## Workflows 
 
 Terraform CLI includes several commands to make Terraform code more convenient
-to work with. The following commands can be integrated into your editing 
-workflow and may save you time and effort:
+to work with. You can integrate the following commands into your editing 
+workflow to test expressions and format and validate your configuration syntax:
 
-- [`terraform console`](/terraform/cli/commands/console): Start an 
+- The [`terraform console`](/terraform/cli/commands/console) command starts an 
   interactive shell for evaluating Terraform
-  [expressions](/terraform/language/expressions) to quickly verify that a 
+  [expressions](/terraform/language/expressions), to quickly verify that a 
   particular resource argument results in the value you expect.
 
-- [`terraform fmt`](/terraform/cli/commands/fmt): Rewrite Terraform
+- The [`terraform fmt`](/terraform/cli/commands/fmt) command automatically rewrites Terraform
   configuration files to a canonical format and style, so you don't have to
-  waste time making minor adjustments for readability and consistency. `fmt` works
+  waste time making minor adjustments for readability and consistency. The `terraform fmt` command works
   well as a pre-commit hook in your version control system.
 
-- [`terraform validate`](/terraform/cli/commands/validate): Validate the
+- The [`terraform validate`](/terraform/cli/commands/validate) commands validates the
   syntax and arguments of the Terraform configuration files in a directory,
   including argument and attribute names and types for resources and modules.
   The `plan` and `apply` commands automatically validate a configuration before
-  performing any other work. `validate` isn't a crucial part of the core
+  performing any other work. Running `validate` isn't a crucial part of the core
   workflow but can be very useful as a pre-commit hook or as part of a
   continuous integration pipeline.
 
-- [`0.13upgrade`](/terraform/cli/commands/0.13upgrade) and
-  [`0.12upgrade`](/terraform/cli/commands/0.12upgrade): Modify the configuration files in a Terraform module automatically to help deal with major
+-  The [`0.13upgrade`](/terraform/cli/commands/0.13upgrade) and
+  [`0.12upgrade`](/terraform/cli/commands/0.12upgrade) commands modify the configuration files in a Terraform module automatically to help deal with major
   syntax changes that occurred in the 0.13 and 0.12 releases of Terraform. Both
   commands are only available in the Terraform version they are
   associated with. Make sure to upgrade older code to be compatible
   with 0.12 before attempting to make it compatible with 0.13. For more detailed
-  information about updating code for new Terraform versions, see the [upgrade
+  information about updating code for new Terraform versions, refer to the [upgrade
   guides](/terraform/language/upgrade-guides).
