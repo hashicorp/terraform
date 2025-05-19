@@ -45,6 +45,10 @@ func (provider *mockProvider) ValidateDataResourceConfig(providers.ValidateDataR
 	panic("not implemented in mock")
 }
 
+func (provider *mockProvider) ValidateListResourceConfig(providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse {
+	panic("not implemented in mock")
+}
+
 func (provider *mockProvider) UpgradeResourceState(providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
 	panic("not implemented in mock")
 }

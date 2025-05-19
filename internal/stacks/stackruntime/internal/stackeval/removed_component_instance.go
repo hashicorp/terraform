@@ -140,7 +140,28 @@ func (r *RemovedComponentInstance) ModuleTreePlan(ctx context.Context) (*plans.P
 			ForcePlanTimestamp: &plantimestamp,
 		}
 
-		plan, moreDiags := PlanComponentInstance(ctx, r.main, r.PlanPrevState(), opts, r)
+		h := hooksFromContext(ctx)
+		hookSingle(ctx, h.PendingComponentInstancePlan, r.Addr())
+		seq, ctx := hookBegin(ctx, h.BeginComponentInstancePlan, h.ContextAttach, r.Addr())
+		plan, moreDiags := PlanComponentInstance(ctx, r.main, r.PlanPrevState(), opts, []terraform.Hook{
+			&componentInstanceTerraformHook{
+				ctx:   ctx,
+				seq:   seq,
+				hooks: hooksFromContext(ctx),
+				addr:  r.Addr(),
+			},
+		}, r)
+		if plan != nil {
+			ReportComponentInstance(ctx, plan, h, seq, r)
+			if plan.Complete {
+				hookMore(ctx, seq, h.EndComponentInstancePlan, r.Addr())
+			} else {
+				hookMore(ctx, seq, h.DeferComponentInstancePlan, r.Addr())
+			}
+		} else {
+			hookMore(ctx, seq, h.ErrorComponentInstancePlan, r.Addr())
+		}
+
 		return plan, diags.Append(moreDiags)
 	})
 }

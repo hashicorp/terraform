@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package cloudplugin
+package pluginshared
 
 import (
 	"context"
@@ -63,7 +63,7 @@ func TestBinaryManager_Resolve(t *testing.T) {
 	serviceURL := serverURL.JoinPath("/api/cloudplugin/v1")
 
 	tempDir := t.TempDir()
-	manager, err := NewBinaryManager(context.Background(), tempDir, "", serviceURL, "darwin", "amd64")
+	manager, err := NewCloudBinaryManager(context.Background(), tempDir, "", serviceURL, "darwin", "amd64")
 	if err != nil {
 		t.Fatalf("expected no err, got: %s", err)
 	}

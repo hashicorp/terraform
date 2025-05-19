@@ -124,6 +124,20 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 				},
 			},
 		},
+		ListResourceSchemas: map[string]*proto.Schema{
+			"list": &proto.Schema{
+				Version: 1,
+				Block: &proto.Schema_Block{
+					Attributes: []*proto.Schema_Attribute{
+						{
+							Name:     "attr",
+							Type:     []byte(`"string"`),
+							Required: true,
+						},
+					},
+				},
+			},
+		},
 		ServerCapabilities: &proto.ServerCapabilities{
 			GetProviderSchemaOptional: true,
 		},
@@ -279,6 +293,40 @@ func TestGRPCProvider_GetSchema_IdentityUnimplemented(t *testing.T) {
 	checkDiags(t, resp.Diagnostics)
 }
 
+func TestGRPCProvider_GetSchema_IdentityErrorDiagnostic(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	client := mockproto.NewMockProviderClient(ctrl)
+
+	client.EXPECT().GetProviderSchema(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(providerProtoSchema(), nil)
+
+	client.EXPECT().GetResourceIdentitySchemas(
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.GetResourceIdentitySchemas_Response{
+		Diagnostics: []*proto.Diagnostic{
+			{
+				Severity: proto.Diagnostic_ERROR,
+				Summary:  "error summary",
+				Detail:   "error detail",
+			},
+		},
+		IdentitySchemas: map[string]*proto.ResourceIdentitySchema{},
+	}, nil)
+
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	resp := p.GetProviderSchema()
+
+	checkDiagsHasError(t, resp.Diagnostics)
+}
+
 func TestGRPCProvider_GetResourceIdentitySchemas(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mockproto.NewMockProviderClient(ctrl)
@@ -366,6 +414,25 @@ func TestGRPCProvider_ValidateDataResourceConfig(t *testing.T) {
 	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"attr": "value"})
 	resp := p.ValidateDataResourceConfig(providers.ValidateDataResourceConfigRequest{
 		TypeName: "data",
+		Config:   cfg,
+	})
+	checkDiags(t, resp.Diagnostics)
+}
+
+func TestGRPCProvider_ValidateListResourceConfig(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	client.EXPECT().ValidateListResourceConfig(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.ValidateListResourceConfig_Response{}, nil)
+
+	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"attr": "value"})
+	resp := p.ValidateListResourceConfig(providers.ValidateListResourceConfigRequest{
+		TypeName: "list",
 		Config:   cfg,
 	})
 	checkDiags(t, resp.Diagnostics)
