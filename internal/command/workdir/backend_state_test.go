@@ -65,7 +65,7 @@ func TestParseBackendStateFile(t *testing.T) {
 			Want: &BackendStateFile{
 				Version:   3,
 				TFVersion: "0.8.0",
-				Backend: &BackendState{
+				Backend: &BackendConfigState{
 					Type:      "treasure_chest_buried_on_a_remote_island",
 					ConfigRaw: json.RawMessage("{}"),
 				},
@@ -102,7 +102,7 @@ func ParseBackendStateConfig(t *testing.T) {
 	// largely just a thin wrapper around configschema's "ImpliedType" and
 	// cty's json unmarshal/marshal and both of those are well-tested elsewhere.
 
-	s := &BackendState{
+	s := &BackendConfigState{
 		Type: "whatever",
 		ConfigRaw: []byte(`{
 			"foo": "bar"
