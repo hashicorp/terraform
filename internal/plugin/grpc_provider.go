@@ -101,6 +101,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	resp.ResourceTypes = make(map[string]providers.Schema)
 	resp.DataSources = make(map[string]providers.Schema)
 	resp.EphemeralResourceTypes = make(map[string]providers.Schema)
+	resp.ListResourceTypes = make(map[string]providers.Schema)
 
 	// Some providers may generate quite large schemas, and the internal default
 	// grpc response size limit is 4MB. 64MB should cover most any use case, and
@@ -165,6 +166,10 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 
 	for name, ephem := range protoResp.EphemeralResourceSchemas {
 		resp.EphemeralResourceTypes[name] = convert.ProtoToProviderSchema(ephem, nil)
+	}
+
+	for name, list := range protoResp.ListResourceSchemas {
+		resp.ListResourceTypes[name] = convert.ProtoToProviderSchema(list, nil)
 	}
 
 	if decls, err := convert.FunctionDeclsFromProto(protoResp.Functions); err == nil {
@@ -332,6 +337,42 @@ func (p *GRPCProvider) ValidateDataResourceConfig(r providers.ValidateDataResour
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 		return resp
 	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	return resp
+}
+
+func (p *GRPCProvider) ValidateListResourceConfig(r providers.ValidateListResourceConfigRequest) (resp providers.ValidateListResourceConfigResponse) {
+	logger.Trace("GRPCProvider: ValidateListResourceConfig")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	listResourceSchema, ok := schema.ListResourceTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown list resource type %q", r.TypeName))
+		return resp
+	}
+
+	mp, err := msgpack.Marshal(r.Config, listResourceSchema.Body.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto.ValidateListResourceConfig_Request{
+		TypeName: r.TypeName,
+		Config:   &proto.DynamicValue{Msgpack: mp},
+	}
+
+	protoResp, err := p.client.ValidateListResourceConfig(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	return resp
 }
@@ -1208,6 +1249,10 @@ func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp provi
 
 	resp.Result = resultVal
 	return resp
+}
+
+func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) error {
+	panic("not implemented")
 }
 
 // closing the grpc connection is final, and terraform will call it at the end of every phase.
