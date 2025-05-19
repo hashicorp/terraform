@@ -133,9 +133,10 @@ child modules. In these cases, the argument has an expected type and the given
 expression must produce a value of that type.
 
 Where possible, Terraform automatically converts values from one type to
-another in order to produce the expected type. If this isn't possible, Terraform
-will produce a type mismatch error and you must update the configuration with a
-more suitable expression.
+another to produce the expected type. If this conversion is impossible, Terraform
+produces a type mismatch error and you must update the configuration with a
+more suitable expression. Automatic type conversion does not occur when using 
+the [equality operator](/terraform/language/expressions/operators.mdx#equality-operators).
 
 Terraform automatically converts number and bool values to strings when needed.
 It also converts strings to numbers or bools, as long as the string contains a
