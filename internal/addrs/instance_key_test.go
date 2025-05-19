@@ -71,7 +71,7 @@ func TestInstanceKeyString(t *testing.T) {
 			got := test.Key.String()
 			want := test.Want
 			if got != want {
-				t.Errorf("wrong result\nreciever: %s\ngot:      %s\nwant:     %s", testName, got, want)
+				t.Errorf("wrong result\nreceiver: %s\ngot:      %s\nwant:     %s", testName, got, want)
 			}
 		})
 	}

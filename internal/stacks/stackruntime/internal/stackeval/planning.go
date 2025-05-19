@@ -37,7 +37,7 @@ type PlanOpts struct {
 type Plannable interface {
 	// PlanChanges produces zero or more [stackplan.PlannedChange] objects
 	// representing changes needed to converge the current and desired states
-	// for the reciever, and zero or more diagnostics that represent any
+	// for the receiver, and zero or more diagnostics that represent any
 	// problems encountered while calcuating the changes.
 	//
 	// The diagnostics returned by PlanChanges must be shallow, which is to

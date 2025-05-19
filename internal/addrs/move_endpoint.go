@@ -71,7 +71,7 @@ func (e *MoveEndpoint) Equal(other *MoveEndpoint) bool {
 }
 
 // MightUnifyWith returns true if it is possible that a later call to
-// UnifyMoveEndpoints might succeed if given the reciever and the other
+// UnifyMoveEndpoints might succeed if given the receiver and the other
 // given endpoint.
 //
 // This is intended for early static validation of obviously-wrong situations,
@@ -85,7 +85,7 @@ func (e *MoveEndpoint) MightUnifyWith(other *MoveEndpoint) bool {
 	return from != nil && to != nil
 }
 
-// ConfigMoveable transforms the reciever into a ConfigMoveable by resolving it
+// ConfigMoveable transforms the receiver into a ConfigMoveable by resolving it
 // relative to the given base module, which should be the module where
 // the MoveEndpoint expression was found.
 //

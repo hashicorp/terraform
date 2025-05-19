@@ -28,7 +28,7 @@ type UniqueKey[T any] interface {
 
 // A UniqueKeyer is a type that knows how to calculate a unique key itself.
 type UniqueKeyer[T any] interface {
-	// UniqueKey returns the unique key of the reciever.
+	// UniqueKey returns the unique key of the receiver.
 	//
 	// A correct implementation of UniqueKey must return a distinct value
 	// for each unique value of T, where the uniqueness of T values is decided

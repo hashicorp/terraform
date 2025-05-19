@@ -179,7 +179,7 @@ func (s ModuleSourceRemote) ForDisplay() string {
 // given path are both respected.
 //
 // This will return nonsense if given a registry address other than the one
-// that generated the reciever via a registry lookup.
+// that generated the receiver via a registry lookup.
 func (s ModuleSourceRemote) FromRegistry(given ModuleSourceRegistry) ModuleSourceRemote {
 	ret := s // not a pointer, so this is a shallow copy
 

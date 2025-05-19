@@ -93,7 +93,7 @@ func ExtraInfoNext[T any](previous interface{}) T {
 // tfdiags API, but that non-HCL uses of this will not need to implement HCL
 // just to get this interface.
 type DiagnosticExtraUnwrapper interface {
-	// If the reciever is wrapping another "diagnostic extra" value, returns
+	// If the receiver is wrapping another "diagnostic extra" value, returns
 	// that value. Otherwise returns nil to indicate dynamically that nothing
 	// is wrapped.
 	//

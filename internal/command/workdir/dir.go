@@ -82,7 +82,7 @@ func NewDir(mainPath string) *Dir {
 }
 
 // OverrideOriginalWorkingDir records a different path as the
-// "original working directory" for the reciever.
+// "original working directory" for the receiver.
 //
 // Use this only to record the original working directory when Terraform is run
 // with the -chdir=... global option. In that case, the directory given in
@@ -123,7 +123,7 @@ func (d *Dir) OriginalWorkingDir() string {
 	return d.originalDir
 }
 
-// DataDir returns the base path where the reciever keeps all of the settings
+// DataDir returns the base path where the receiver keeps all of the settings
 // and artifacts that must persist between consecutive commands in a single
 // session.
 //

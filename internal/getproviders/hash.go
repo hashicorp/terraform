@@ -310,7 +310,7 @@ func PackageHashV1(loc PackageLocation) (providerreqs.Hash, error) {
 }
 
 // Hash computes a hash of the contents of the package at the location
-// associated with the reciever, using whichever hash algorithm is the current
+// associated with the receiver, using whichever hash algorithm is the current
 // default.
 //
 // This method will change to use new hash versions as they are introduced
