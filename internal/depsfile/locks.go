@@ -5,7 +5,10 @@ package depsfile
 
 import (
 	"fmt"
+	"slices"
 	"sort"
+
+	"maps"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
@@ -69,11 +72,7 @@ func (l *Locks) Provider(addr addrs.Provider) *ProviderLock {
 func (l *Locks) AllProviders() map[addrs.Provider]*ProviderLock {
 	// We return a copy of our internal map so that future calls to
 	// SetProvider won't modify the map we're returning, or vice-versa.
-	ret := make(map[addrs.Provider]*ProviderLock, len(l.providers))
-	for k, v := range l.providers {
-		ret[k] = v
-	}
-	return ret
+	return maps.Clone(l.providers)
 }
 
 // SetProvider creates a new lock or replaces the existing lock for the given
@@ -315,11 +314,7 @@ func (l *Locks) Empty() bool {
 func (l *Locks) DeepCopy() *Locks {
 	ret := NewLocks()
 	for addr, lock := range l.providers {
-		var hashes []providerreqs.Hash
-		if len(lock.hashes) > 0 {
-			hashes = make([]providerreqs.Hash, len(lock.hashes))
-			copy(hashes, lock.hashes)
-		}
+		hashes := slices.Clone(lock.hashes)
 		ret.SetProvider(addr, lock.version, lock.versionConstraints, hashes)
 	}
 	return ret

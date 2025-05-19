@@ -56,10 +56,11 @@ func (b *Block) filter(path cty.Path, filterAttribute FilterT[*Attribute], filte
 	for name, attrS := range b.Attributes {
 		path := path.GetAttr(name)
 		if filterAttribute == nil || !filterAttribute(path, attrS) {
-			ret.Attributes[name] = attrS
+			attr := *attrS
 			if attrS.NestedType != nil {
-				ret.Attributes[name].NestedType = filterNestedType(attrS.NestedType, path, filterAttribute)
+				attr.NestedType = filterNestedType(attrS.NestedType, path, filterAttribute)
 			}
+			ret.Attributes[name] = &attr
 		}
 	}
 
@@ -95,10 +96,11 @@ func filterNestedType(obj *Object, path cty.Path, filterAttribute FilterT[*Attri
 	for name, attrS := range obj.Attributes {
 		path := path.GetAttr(name)
 		if filterAttribute == nil || !filterAttribute(path, attrS) {
-			ret.Attributes[name] = attrS
+			attr := *attrS
 			if attrS.NestedType != nil {
-				ret.Attributes[name].NestedType = filterNestedType(attrS.NestedType, path, filterAttribute)
+				attr.NestedType = filterNestedType(attrS.NestedType, path, filterAttribute)
 			}
+			ret.Attributes[name] = &attr
 		}
 	}
 

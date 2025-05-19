@@ -51,6 +51,18 @@ func evaluateCountExpression(expr hcl.Expression, ctx EvalContext, allowUnknown 
 		})
 	}
 
+	// Ephemeral values are not allowed in count expressions.
+	if countVal.HasMark(marks.Ephemeral) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid count argument",
+			Detail:   `The given "count" value is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values here.`,
+			Subject:  expr.Range().Ptr(),
+			Extra:    DiagnosticCausedByEphemeral(true),
+		})
+		return -1, diags
+	}
+
 	if countVal.IsNull() || !countVal.IsKnown() {
 		return -1, diags
 	}
@@ -86,7 +98,7 @@ func evaluateCountExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Val
 			// we can't easily do that right now because the hcl.EvalContext
 			// (which is not the same as the ctx we have in scope here) is
 			// hidden away inside ctx.EvaluateExpr.
-			Extra: diagnosticCausedByEphemeral(true),
+			Extra: DiagnosticCausedByEphemeral(true),
 		})
 	}
 

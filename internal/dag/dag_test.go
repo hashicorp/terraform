@@ -241,10 +241,7 @@ func TestAcyclicGraphAncestors(t *testing.T) {
 	g.Connect(BasicEdge(3, 4))
 	g.Connect(BasicEdge(4, 5))
 
-	actual, err := g.Ancestors(2)
-	if err != nil {
-		t.Fatalf("err: %#v", err)
-	}
+	actual := g.Ancestors(2)
 
 	expected := []Vertex{3, 4, 5}
 
@@ -259,7 +256,7 @@ func TestAcyclicGraphAncestors(t *testing.T) {
 	}
 }
 
-func TestAcyclicGraphDescendents(t *testing.T) {
+func TestAcyclicGraphDescendants(t *testing.T) {
 	var g AcyclicGraph
 	g.Add(1)
 	g.Add(2)
@@ -272,10 +269,7 @@ func TestAcyclicGraphDescendents(t *testing.T) {
 	g.Connect(BasicEdge(3, 4))
 	g.Connect(BasicEdge(4, 5))
 
-	actual, err := g.Descendents(2)
-	if err != nil {
-		t.Fatalf("err: %#v", err)
-	}
+	actual := g.Descendants(2)
 
 	expected := []Vertex{0, 1}
 
@@ -287,6 +281,108 @@ func TestAcyclicGraphDescendents(t *testing.T) {
 		if !actual.Include(e) {
 			t.Fatalf("expected: %#v to include: %#v", expected, actual)
 		}
+	}
+}
+
+func TestAcyclicGraphFindDescendants(t *testing.T) {
+	var g AcyclicGraph
+	g.Add(0)
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Add(5)
+	g.Add(6)
+	g.Connect(BasicEdge(0, 1))
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(2, 6))
+	g.Connect(BasicEdge(3, 4))
+	g.Connect(BasicEdge(4, 5))
+	g.Connect(BasicEdge(5, 6))
+
+	actual := g.FirstDescendantsWith(6, func(v Vertex) bool {
+		// looking for first odd descendants
+		return v.(int)%2 != 0
+	})
+
+	expected := make(Set)
+	expected.Add(1)
+	expected.Add(5)
+
+	if expected.Intersection(actual).Len() != expected.Len() {
+		t.Fatalf("expected %#v, got %#v\n", expected, actual)
+	}
+
+	foundOne := g.MatchDescendant(6, func(v Vertex) bool {
+		return v.(int) == 1
+	})
+	if !foundOne {
+		t.Fatal("did not match 1 in the graph")
+	}
+
+	foundSix := g.MatchDescendant(6, func(v Vertex) bool {
+		return v.(int) == 6
+	})
+	if foundSix {
+		t.Fatal("6 should not be a descendant of itself")
+	}
+
+	foundTen := g.MatchDescendant(6, func(v Vertex) bool {
+		return v.(int) == 10
+	})
+	if foundTen {
+		t.Fatal("10 is not in the graph at all")
+	}
+}
+
+func TestAcyclicGraphFindAncestors(t *testing.T) {
+	var g AcyclicGraph
+	g.Add(0)
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Add(5)
+	g.Add(6)
+	g.Connect(BasicEdge(1, 0))
+	g.Connect(BasicEdge(2, 1))
+	g.Connect(BasicEdge(6, 2))
+	g.Connect(BasicEdge(4, 3))
+	g.Connect(BasicEdge(5, 4))
+	g.Connect(BasicEdge(6, 5))
+
+	actual := g.FirstAncestorsWith(6, func(v Vertex) bool {
+		// looking for first odd ancestors
+		return v.(int)%2 != 0
+	})
+
+	expected := make(Set)
+	expected.Add(1)
+	expected.Add(5)
+
+	if expected.Intersection(actual).Len() != expected.Len() {
+		t.Fatalf("expected %#v, got %#v\n", expected, actual)
+	}
+
+	foundOne := g.MatchAncestor(6, func(v Vertex) bool {
+		return v.(int) == 1
+	})
+	if !foundOne {
+		t.Fatal("did not match 1 in the graph")
+	}
+
+	foundSix := g.MatchAncestor(6, func(v Vertex) bool {
+		return v.(int) == 6
+	})
+	if foundSix {
+		t.Fatal("6 should not be a descendant of itself")
+	}
+
+	foundTen := g.MatchAncestor(6, func(v Vertex) bool {
+		return v.(int) == 10
+	})
+	if foundTen {
+		t.Fatal("10 is not in the graph at all")
 	}
 }
 
@@ -406,10 +502,7 @@ func BenchmarkDAG(b *testing.B) {
 		b.StartTimer()
 		// Find dependencies for every node
 		for _, v := range g.Vertices() {
-			_, err := g.Ancestors(v)
-			if err != nil {
-				b.Fatal(err)
-			}
+			_ = g.Ancestors(v)
 		}
 
 		// reduce the final graph

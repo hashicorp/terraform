@@ -6,6 +6,7 @@ package planfile
 import (
 	"fmt"
 	"io"
+	"slices"
 	"time"
 
 	"github.com/zclconf/go-cty/cty"
@@ -14,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
@@ -59,7 +61,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 
 	plan := &plans.Plan{
 		VariableValues: map[string]plans.DynamicValue{},
-		Changes: &plans.Changes{
+		Changes: &plans.ChangesSrc{
 			Outputs:   []*plans.OutputChangeSrc{},
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 		},
@@ -72,15 +74,9 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 	plan.Complete = rawPlan.Complete
 	plan.Errored = rawPlan.Errored
 
-	switch rawPlan.UiMode {
-	case planproto.Mode_NORMAL:
-		plan.UIMode = plans.NormalMode
-	case planproto.Mode_DESTROY:
-		plan.UIMode = plans.DestroyMode
-	case planproto.Mode_REFRESH_ONLY:
-		plan.UIMode = plans.RefreshOnlyMode
-	default:
-		return nil, fmt.Errorf("plan has invalid mode %s", rawPlan.UiMode)
+	plan.UIMode, err = planproto.FromMode(rawPlan.UiMode)
+	if err != nil {
+		return nil, err
 	}
 
 	for _, rawOC := range rawPlan.OutputChanges {
@@ -174,9 +170,9 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		}
 	}
 
-	for _, hash := range rawPlan.ProviderFunctionResults {
-		plan.ProviderFunctionResults = append(plan.ProviderFunctionResults,
-			providers.FunctionHash{
+	for _, hash := range rawPlan.FunctionResults {
+		plan.FunctionResults = append(plan.FunctionResults,
+			lang.FunctionResultHash{
 				Key:    hash.Key,
 				Result: hash.Result,
 			},
@@ -426,9 +422,18 @@ func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 	}
 
 	if rawChange.Importing != nil {
+		var identity plans.DynamicValue
+		if rawChange.Importing.Identity != nil {
+			var err error
+			identity, err = valueFromTfplan(rawChange.Importing.Identity)
+			if err != nil {
+				return nil, fmt.Errorf("invalid \"identity\" value: %s", err)
+			}
+		}
 		ret.Importing = &plans.ImportingSrc{
-			ID:      rawChange.Importing.Id,
-			Unknown: rawChange.Importing.Unknown,
+			ID:       rawChange.Importing.Id,
+			Unknown:  rawChange.Importing.Unknown,
+			Identity: identity,
 		}
 	}
 	ret.GeneratedConfig = rawChange.GeneratedConfig
@@ -446,6 +451,21 @@ func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 	}
 	if len(afterValSensitiveAttrs) > 0 {
 		ret.AfterSensitivePaths = afterValSensitiveAttrs
+	}
+
+	if rawChange.BeforeIdentity != nil {
+		beforeIdentity, err := valueFromTfplan(rawChange.BeforeIdentity)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode before identity: %s", err)
+		}
+		ret.BeforeIdentity = beforeIdentity
+	}
+	if rawChange.AfterIdentity != nil {
+		afterIdentity, err := valueFromTfplan(rawChange.AfterIdentity)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode after identity: %s", err)
+		}
+		ret.AfterIdentity = afterIdentity
 	}
 
 	return ret, nil
@@ -523,15 +543,10 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 	rawPlan.Complete = plan.Complete
 	rawPlan.Errored = plan.Errored
 
-	switch plan.UIMode {
-	case plans.NormalMode:
-		rawPlan.UiMode = planproto.Mode_NORMAL
-	case plans.DestroyMode:
-		rawPlan.UiMode = planproto.Mode_DESTROY
-	case plans.RefreshOnlyMode:
-		rawPlan.UiMode = planproto.Mode_REFRESH_ONLY
-	default:
-		return fmt.Errorf("plan has unsupported mode %s", plan.UIMode)
+	var err error
+	rawPlan.UiMode, err = planproto.NewMode(plan.UIMode)
+	if err != nil {
+		return err
 	}
 
 	for _, oc := range plan.Changes.Outputs {
@@ -609,15 +624,12 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		rawPlan.Variables[name] = valueToTfplan(val)
 	}
 	if plan.ApplyTimeVariables.Len() != 0 {
-		rawPlan.ApplyTimeVariables = make([]string, 0, plan.ApplyTimeVariables.Len())
-		for _, name := range plan.ApplyTimeVariables.Elems() {
-			rawPlan.ApplyTimeVariables = append(rawPlan.ApplyTimeVariables, name)
-		}
+		rawPlan.ApplyTimeVariables = slices.Collect(plan.ApplyTimeVariables.All())
 	}
 
-	for _, hash := range plan.ProviderFunctionResults {
-		rawPlan.ProviderFunctionResults = append(rawPlan.ProviderFunctionResults,
-			&planproto.ProviderFunctionCallHash{
+	for _, hash := range plan.FunctionResults {
+		rawPlan.FunctionResults = append(rawPlan.FunctionResults,
+			&planproto.FunctionCallHash{
 				Key:    hash.Key,
 				Result: hash.Result,
 			},
@@ -822,13 +834,25 @@ func changeToTfplan(change *plans.ChangeSrc) (*planproto.Change, error) {
 	ret.AfterSensitivePaths = afterSensitivePaths
 
 	if change.Importing != nil {
+		var identity *planproto.DynamicValue
+		if change.Importing.Identity != nil {
+			identity = planproto.NewPlanDynamicValue(change.Importing.Identity)
+		}
 		ret.Importing = &planproto.Importing{
-			Id:      change.Importing.ID,
-			Unknown: change.Importing.Unknown,
+			Id:       change.Importing.ID,
+			Unknown:  change.Importing.Unknown,
+			Identity: identity,
 		}
 
 	}
 	ret.GeneratedConfig = change.GeneratedConfig
+
+	if change.BeforeIdentity != nil {
+		ret.BeforeIdentity = planproto.NewPlanDynamicValue(change.BeforeIdentity)
+	}
+	if change.AfterIdentity != nil {
+		ret.AfterIdentity = planproto.NewPlanDynamicValue(change.AfterIdentity)
+	}
 
 	ret.Action, err = ActionToProto(change.Action)
 	if err != nil {

@@ -75,6 +75,14 @@ For example, to correlate with indices of a referring resource, use:
 			WantErr: `Reference to scoped resource: The referenced data resource "boop_data" "boop_nested" is not available from this context.`,
 		},
 		{
+			Ref:     "ephemeral.beep.boop",
+			WantErr: ``,
+		},
+		{
+			Ref:     "ephemeral.beep.nonexistant",
+			WantErr: `Reference to undeclared resource: An ephemeral resource "beep" "nonexistant" has not been declared in the root module.`,
+		},
+		{
 			Ref:     "data.boop_data.boop_nested",
 			WantErr: ``,
 			Src:     addrs.Check{Name: "foo"},
@@ -96,7 +104,7 @@ For example, to correlate with indices of a referring resource, use:
 			addrs.NewDefaultProvider("aws"): {
 				ResourceTypes: map[string]providers.Schema{
 					"aws_instance": {
-						Block: &configschema.Block{},
+						Body: &configschema.Block{},
 					},
 				},
 			},
@@ -104,12 +112,12 @@ For example, to correlate with indices of a referring resource, use:
 				ResourceTypes: map[string]providers.Schema{
 					// intentional mismatch between resource type prefix and provider type
 					"boop_instance": {
-						Block: &configschema.Block{},
+						Body: &configschema.Block{},
 					},
 				},
 				DataSources: map[string]providers.Schema{
 					"boop_data": {
-						Block: &configschema.Block{
+						Body: &configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
 								"id": {
 									Type:     cty.String,
@@ -117,6 +125,11 @@ For example, to correlate with indices of a referring resource, use:
 								},
 							},
 						},
+					},
+				},
+				EphemeralResourceTypes: map[string]providers.Schema{
+					"beep": {
+						Body: &configschema.Block{},
 					},
 				},
 			},

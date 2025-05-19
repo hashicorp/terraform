@@ -43,7 +43,7 @@ const (
 	genericHostname    = "localterraform.com"
 )
 
-// Remote is an implementation of EnhancedBackend that performs all
+// Remote is an implementation of backendrun.OperationsBackend that performs all
 // operations in a remote backend.
 type Remote struct {
 	// CLI and Colorize control the CLI output. If CLI is nil then no CLI
@@ -78,7 +78,7 @@ type Remote struct {
 	// services is used for service discovery
 	services *disco.Disco
 
-	// local, if non-nil, will be used for all enhanced behavior. This
+	// local, if non-nil, will be used for all OperationsBackend behavior. This
 	// allows local behavior with the remote backend functioning as remote
 	// state storage backend.
 	local backendrun.OperationsBackend
@@ -107,7 +107,7 @@ func New(services *disco.Disco) *Remote {
 	}
 }
 
-// ConfigSchema implements backend.Enhanced.
+// ConfigSchema implements backend.Backend.
 func (b *Remote) ConfigSchema() *configschema.Block {
 	return &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
@@ -221,7 +221,7 @@ func (b *Remote) ServiceDiscoveryAliases() ([]backendrun.HostAlias, error) {
 	}, nil
 }
 
-// Configure implements backend.Enhanced.
+// Configure implements backend.Backend.
 func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	if obj.IsNull() {
@@ -545,7 +545,7 @@ func (b *Remote) retryLogHook(attemptNum int, resp *http.Response) {
 	}
 }
 
-// Workspaces implements backend.Enhanced.
+// Workspaces implements backend.Backend.
 func (b *Remote) Workspaces() ([]string, error) {
 	if b.prefix == "" {
 		return nil, backend.ErrWorkspacesNotSupported
@@ -608,7 +608,7 @@ func (b *Remote) WorkspaceNamePattern() string {
 	return ""
 }
 
-// DeleteWorkspace implements backend.Enhanced.
+// DeleteWorkspace implements backend.Backend.
 func (b *Remote) DeleteWorkspace(name string, _ bool) error {
 	if b.workspace == "" && name == backend.DefaultStateName {
 		return backend.ErrDefaultWorkspaceNotSupported
@@ -636,7 +636,7 @@ func (b *Remote) DeleteWorkspace(name string, _ bool) error {
 	return client.Delete()
 }
 
-// StateMgr implements backend.Enhanced.
+// StateMgr implements backend.Backend.
 func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
 	if b.workspace == "" && name == backend.DefaultStateName {
 		return nil, backend.ErrDefaultWorkspaceNotSupported
@@ -744,7 +744,7 @@ func (b *Remote) fetchWorkspace(ctx context.Context, organization string, name s
 	return w, nil
 }
 
-// Operation implements backend.Enhanced.
+// Operation implements backendrun.OperationsBackend.
 func (b *Remote) Operation(ctx context.Context, op *backendrun.Operation) (*backendrun.RunningOperation, error) {
 	w, err := b.fetchWorkspace(ctx, b.organization, op.Workspace)
 
@@ -952,43 +952,53 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 		return nil
 	}
 
-	remoteVersion, err := version.NewSemver(workspace.TerraformVersion)
+	remoteConstraint, err := version.NewConstraint(workspace.TerraformVersion)
 	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Error looking up workspace",
-			fmt.Sprintf("Invalid Terraform version: %s", err),
-		))
+		message := fmt.Sprintf(
+			"The remote workspace specified an invalid Terraform version or constraint (%s), "+
+				"and it isn't possible to determine whether the local Terraform version (%s) is compatible.",
+			workspace.TerraformVersion,
+			tfversion.String(),
+		)
+		diags = diags.Append(incompatibleWorkspaceTerraformVersion(message, b.ignoreVersionConflict))
 		return diags
 	}
 
-	v014 := version.Must(version.NewSemver("0.14.0"))
-	if tfversion.SemVer.LessThan(v014) || remoteVersion.LessThan(v014) {
-		// Versions of Terraform prior to 0.14.0 will refuse to load state files
-		// written by a newer version of Terraform, even if it is only a patch
-		// level difference. As a result we require an exact match.
-		if tfversion.SemVer.Equal(remoteVersion) {
-			return diags
+	remoteVersion, _ := version.NewSemver(workspace.TerraformVersion)
+
+	if remoteVersion != nil && remoteVersion.Prerelease() == "" {
+		v014 := version.Must(version.NewSemver("0.14.0"))
+		v130 := version.Must(version.NewSemver("1.3.0"))
+
+		// Versions from 0.14 through the early 1.x series should be compatible
+		// (though we don't know about 1.3 yet).
+		if remoteVersion.GreaterThanOrEqual(v014) && remoteVersion.LessThan(v130) {
+			early1xCompatible, err := version.NewConstraint(fmt.Sprintf(">= 0.14.0, < %s", v130.String()))
+			if err != nil {
+				panic(err)
+			}
+			remoteConstraint = early1xCompatible
+		}
+
+		// Any future new state format will require at least a minor version
+		// increment, so x.y.* will always be compatible with each other.
+		if remoteVersion.GreaterThanOrEqual(v130) {
+			rwvs := remoteVersion.Segments64()
+			if len(rwvs) >= 3 {
+				// ~> x.y.0
+				minorVersionCompatible, err := version.NewConstraint(fmt.Sprintf("~> %d.%d.0", rwvs[0], rwvs[1]))
+				if err != nil {
+					panic(err)
+				}
+				remoteConstraint = minorVersionCompatible
+			}
 		}
 	}
-	if tfversion.SemVer.GreaterThanOrEqual(v014) && remoteVersion.GreaterThanOrEqual(v014) {
-		// Versions of Terraform after 0.14.0 should be compatible with each
-		// other.  At the time this code was written, the only constraints we
-		// are aware of are:
-		//
-		// - 0.14.0 is guaranteed to be compatible with versions up to but not
-		//   including 1.3.0
-		v130 := version.Must(version.NewSemver("1.3.0"))
-		if tfversion.SemVer.LessThan(v130) && remoteVersion.LessThan(v130) {
-			return diags
-		}
-		// - Any new Terraform state version will require at least minor patch
-		//   increment, so x.y.* will always be compatible with each other
-		tfvs := tfversion.SemVer.Segments64()
-		rwvs := remoteVersion.Segments64()
-		if len(tfvs) == 3 && len(rwvs) == 3 && tfvs[0] == rwvs[0] && tfvs[1] == rwvs[1] {
-			return diags
-		}
+
+	fullTfversion := version.Must(version.NewSemver(tfversion.String()))
+
+	if remoteConstraint.Check(fullTfversion) {
+		return diags
 	}
 
 	// Even if ignoring version conflicts, it may still be useful to call this
@@ -1018,6 +1028,19 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 
 	return diags
 }
+
+func incompatibleWorkspaceTerraformVersion(message string, ignoreVersionConflict bool) tfdiags.Diagnostic {
+	severity := tfdiags.Error
+	suggestion := ignoreRemoteVersionHelp
+	if ignoreVersionConflict {
+		severity = tfdiags.Warning
+		suggestion = ""
+	}
+	description := strings.TrimSpace(fmt.Sprintf("%s\n\n%s", message, suggestion))
+	return tfdiags.Sourceless(severity, "Incompatible Terraform version", description)
+}
+
+const ignoreRemoteVersionHelp = "If you're sure you want to upgrade the state, you can force Terraform to continue using the -ignore-remote-version flag. This may result in an unusable workspace."
 
 func (b *Remote) IsLocalOperations() bool {
 	return b.forceLocal

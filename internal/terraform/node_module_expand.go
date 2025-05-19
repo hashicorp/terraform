@@ -29,10 +29,7 @@ var (
 	_ GraphNodeReferenceable    = (*nodeExpandModule)(nil)
 	_ GraphNodeReferencer       = (*nodeExpandModule)(nil)
 	_ GraphNodeReferenceOutside = (*nodeExpandModule)(nil)
-	_ graphNodeExpandsInstances = (*nodeExpandModule)(nil)
 )
-
-func (n *nodeExpandModule) expandsInstances() {}
 
 func (n *nodeExpandModule) Name() string {
 	return n.Addr.String() + " (expand)"
@@ -212,6 +209,9 @@ func (n *nodeCloseModule) Execute(ctx EvalContext, op walkOperation) (diags tfdi
 	// If this is the root module, we are cleaning up the walk, so close
 	// any running plugins
 	diags = diags.Append(ctx.ClosePlugins())
+
+	// We also close up the ephemeral resource manager
+	diags = diags.Append(ctx.EphemeralResources().Close(ctx.StopCtx()))
 
 	switch op {
 	case walkApply, walkDestroy:

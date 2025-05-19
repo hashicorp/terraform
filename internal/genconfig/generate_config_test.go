@@ -502,6 +502,48 @@ resource "tfcoremock_simple_resource" "empty" {
   value = jsonencode(["Hello", "World"])
 }`,
 		},
+		"simple_resource_with_json_primitive_strings": {
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"value_string_number": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"value_string_bool": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			addr: addrs.AbsResourceInstance{
+				Module: nil,
+				Resource: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "tfcoremock_simple_resource",
+						Name: "empty",
+					},
+					Key: nil,
+				},
+			},
+			provider: addrs.LocalProviderConfig{
+				LocalName: "tfcoremock",
+			},
+			value: cty.ObjectVal(map[string]cty.Value{
+				"id":                  cty.StringVal("D2320658"),
+				"value_string_number": cty.StringVal("42"),
+				"value_string_bool":   cty.StringVal("true"),
+			}),
+			expected: `
+resource "tfcoremock_simple_resource" "empty" {
+  value_string_bool   = "true"
+  value_string_number = "42"
+}`,
+		},
 		"simple_resource_with_malformed_json": {
 			schema: &configschema.Block{
 				// BlockTypes: map[string]*configschema.NestedBlock{},
@@ -598,6 +640,182 @@ resource "tfcoremock_sensitive_values" "values" {
   object       = null # sensitive
   set          = null # sensitive
   string       = null # sensitive
+}`,
+		},
+		"simple_map_with_whitespace_in_keys": {
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"map": {
+						Type:     cty.Map(cty.String),
+						Optional: true,
+					},
+				},
+			},
+			addr: addrs.AbsResourceInstance{
+				Module: addrs.RootModuleInstance,
+				Resource: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "resource",
+					},
+					Key: addrs.NoKey,
+				},
+			},
+			provider: addrs.LocalProviderConfig{
+				LocalName: "testing",
+			},
+			value: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"key with spaces":      cty.StringVal("spaces"),
+					"key_with_underscores": cty.StringVal("underscores"),
+				}),
+			}),
+			expected: `resource "testing_resource" "resource" {
+  map = {
+    "key with spaces"    = "spaces"
+    key_with_underscores = "underscores"
+  }
+}`,
+		},
+		"nested_map_with_whitespace_in_keys": {
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"map": {
+						NestedType: &configschema.Object{
+							Attributes: map[string]*configschema.Attribute{
+								"value": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+							Nesting: configschema.NestingMap,
+						},
+						Optional: true,
+					},
+				},
+			},
+			addr: addrs.AbsResourceInstance{
+				Module: addrs.RootModuleInstance,
+				Resource: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "resource",
+					},
+					Key: addrs.NoKey,
+				},
+			},
+			provider: addrs.LocalProviderConfig{
+				LocalName: "testing",
+			},
+			value: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"key with spaces": cty.ObjectVal(map[string]cty.Value{
+						"value": cty.StringVal("spaces"),
+					}),
+					"key_with_underscores": cty.ObjectVal(map[string]cty.Value{
+						"value": cty.StringVal("underscores"),
+					}),
+				}),
+			}),
+			expected: `resource "testing_resource" "resource" {
+  map = {
+    "key with spaces" = {
+      value = "spaces"
+    }
+    key_with_underscores = {
+      value = "underscores"
+    }
+  }
+}`,
+		},
+		"simple_map_with_periods_in_keys": {
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"map": {
+						Type:     cty.Map(cty.String),
+						Optional: true,
+					},
+				},
+			},
+			addr: addrs.AbsResourceInstance{
+				Module: addrs.RootModuleInstance,
+				Resource: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "resource",
+					},
+					Key: addrs.NoKey,
+				},
+			},
+			provider: addrs.LocalProviderConfig{
+				LocalName: "testing",
+			},
+			value: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"key.with.periods":     cty.StringVal("periods"),
+					"key_with_underscores": cty.StringVal("underscores"),
+				}),
+			}),
+			expected: `resource "testing_resource" "resource" {
+  map = {
+    "key.with.periods"   = "periods"
+    key_with_underscores = "underscores"
+  }
+}`,
+		},
+		"nested_map_with_periods_in_keys": {
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"map": {
+						NestedType: &configschema.Object{
+							Attributes: map[string]*configschema.Attribute{
+								"value": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+							Nesting: configschema.NestingMap,
+						},
+						Optional: true,
+					},
+				},
+			},
+			addr: addrs.AbsResourceInstance{
+				Module: addrs.RootModuleInstance,
+				Resource: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "resource",
+					},
+					Key: addrs.NoKey,
+				},
+			},
+			provider: addrs.LocalProviderConfig{
+				LocalName: "testing",
+			},
+			value: cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"key.with.periods": cty.ObjectVal(map[string]cty.Value{
+						"value": cty.StringVal("periods"),
+					}),
+					"key_with_underscores": cty.ObjectVal(map[string]cty.Value{
+						"value": cty.StringVal("underscores"),
+					}),
+				}),
+			}),
+			expected: `resource "testing_resource" "resource" {
+  map = {
+    "key.with.periods" = {
+      value = "periods"
+    }
+    key_with_underscores = {
+      value = "underscores"
+    }
+  }
 }`,
 		},
 	}

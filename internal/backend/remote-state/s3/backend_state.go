@@ -27,6 +27,8 @@ const (
 	// defaultWorkspaceKeyPrefix is the default prefix for workspace storage.
 	// The colon is used to reduce the chance of name conflicts with existing objects.
 	defaultWorkspaceKeyPrefix = "env:"
+	// lockFileSuffix defines the suffix for Terraform state lock files.
+	lockFileSuffix = ".tflock"
 )
 
 func (b *Backend) Workspaces() ([]string, error) {
@@ -163,6 +165,8 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 		kmsKeyID:              b.kmsKeyID,
 		ddbTable:              b.ddbTable,
 		skipS3Checksum:        b.skipS3Checksum,
+		lockFilePath:          b.getLockFilePath(name),
+		useLockFile:           b.useLockFile,
 	}
 
 	return client, nil
@@ -275,4 +279,10 @@ func newBucketRegionError(requestRegion, bucketRegion string) bucketRegionError 
 
 func (err bucketRegionError) Error() string {
 	return fmt.Sprintf("requested bucket from %q, actual location %q", err.requestRegion, err.bucketRegion)
+}
+
+// getLockFilePath returns the path to the lock file for the given Terraform state.
+// For `default.tfstate`, the lock file is stored at `default.tfstate.tflock`.
+func (b *Backend) getLockFilePath(name string) string {
+	return b.path(name) + lockFileSuffix
 }

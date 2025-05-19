@@ -30,6 +30,11 @@ func TestFile(t *testing.T) {
 			``,
 		},
 		{
+			cty.UnknownVal(cty.String).Mark(marks.Sensitive),
+			cty.UnknownVal(cty.String).RefineNotNull().Mark(marks.Sensitive),
+			``,
+		},
+		{
 			cty.StringVal("testdata/icon.png"),
 			cty.NilVal,
 			`contents of "testdata/icon.png" are not valid UTF-8; use the filebase64 function to obtain the Base64 encoded contents or the other file functions (e.g. filemd5, filesha256) to obtain file hashing results instead`,
@@ -199,6 +204,44 @@ func TestTemplateFile(t *testing.T) {
 			cty.StringVal("Hello World").Mark(marks.Sensitive),
 			``,
 		},
+		{
+			cty.StringVal("testdata/list.tmpl").Mark("path"),
+			cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b").Mark("var"),
+					cty.StringVal("c"),
+				}).Mark("vars"),
+			}),
+			cty.StringVal("- a\n- b\n- c\n").Mark("path").Mark("var").Mark("vars"),
+			``,
+		},
+		{
+			cty.StringVal("testdata/list.tmpl").Mark("path"),
+			cty.UnknownVal(cty.Map(cty.String)),
+			cty.DynamicVal.Mark("path"),
+			``,
+		},
+		{
+			cty.StringVal("testdata/list.tmpl").Mark("path"),
+			cty.ObjectVal(map[string]cty.Value{
+				"list": cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.UnknownVal(cty.String).Mark("var"),
+					cty.StringVal("c"),
+				}),
+			}),
+			cty.UnknownVal(cty.String).RefineNotNull().Mark("path").Mark("var"),
+			``,
+		},
+		{
+			cty.UnknownVal(cty.String).Mark("path"),
+			cty.ObjectVal(map[string]cty.Value{
+				"key": cty.StringVal("value").Mark("var"),
+			}),
+			cty.DynamicVal.Mark("path").Mark("var"),
+			``,
+		},
 	}
 
 	funcs := map[string]function.Function{
@@ -208,7 +251,7 @@ func TestTemplateFile(t *testing.T) {
 	funcsFunc := func() (funcTable map[string]function.Function, fsFuncs collections.Set[string], templateFuncs collections.Set[string]) {
 		return funcs, collections.NewSetCmp[string](), collections.NewSetCmp[string]("templatefile")
 	}
-	templateFileFn := MakeTemplateFileFunc(".", funcsFunc)
+	templateFileFn := MakeTemplateFileFunc(".", funcsFunc, noopWrapper)
 	funcs["templatefile"] = templateFileFn
 	funcs["core::templatefile"] = templateFileFn
 
@@ -276,6 +319,11 @@ func TestFileExists(t *testing.T) {
 			cty.StringVal("testdata/unreadable/foobar").Mark(marks.Sensitive),
 			cty.BoolVal(false),
 			`failed to stat (sensitive value)`,
+		},
+		{
+			cty.UnknownVal(cty.String).Mark(marks.Sensitive),
+			cty.UnknownVal(cty.Bool).RefineNotNull().Mark(marks.Sensitive),
+			``,
 		},
 	}
 
@@ -507,6 +555,18 @@ func TestFileSet(t *testing.T) {
 				cty.StringVal("hello.tmpl"),
 				cty.StringVal("hello.txt"),
 			}),
+			``,
+		},
+		{
+			cty.StringVal("testdata"),
+			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.Set(cty.String)).RefineNotNull(),
+			``,
+		},
+		{
+			cty.StringVal("testdata"),
+			cty.UnknownVal(cty.String).Mark(marks.Sensitive),
+			cty.UnknownVal(cty.Set(cty.String)).RefineNotNull().Mark(marks.Sensitive),
 			``,
 		},
 	}

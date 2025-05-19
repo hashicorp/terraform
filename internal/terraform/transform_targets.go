@@ -64,8 +64,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 				tn.SetTargets(addrs)
 			}
 
-			deps, _ := g.Ancestors(v)
-			for _, d := range deps {
+			for _, d := range g.Ancestors(v) {
 				targetedNodes.Add(d)
 			}
 		}
@@ -91,7 +90,7 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 
 		// If this output is descended only from targeted resources, then we
 		// will keep it
-		deps, _ := g.Ancestors(v)
+		deps := g.Ancestors(v)
 		found := 0
 		for _, d := range deps {
 			switch d.(type) {

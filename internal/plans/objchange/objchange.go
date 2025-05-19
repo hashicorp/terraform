@@ -229,7 +229,6 @@ func proposedNewNestingList(schema nestedSchema, prior, config cty.Value) cty.Va
 
 func proposedNewNestingMap(schema nestedSchema, prior, config cty.Value) cty.Value {
 	newV := config
-
 	newVals := map[string]cty.Value{}
 
 	if config.IsNull() || !config.IsKnown() || config.LengthInt() == 0 {
@@ -239,7 +238,7 @@ func proposedNewNestingMap(schema nestedSchema, prior, config cty.Value) cty.Val
 	}
 	cfgMap := config.AsValueMap()
 
-	// prior may be null or empty
+	// prior may be null, empty or unknown
 	priorMap := map[string]cty.Value{}
 	if !prior.IsNull() && prior.IsKnown() && prior.LengthInt() > 0 {
 		priorMap = prior.AsValueMap()
@@ -248,10 +247,13 @@ func proposedNewNestingMap(schema nestedSchema, prior, config cty.Value) cty.Val
 	for name, configEV := range cfgMap {
 		priorEV, inPrior := priorMap[name]
 		if !inPrior {
-			// If there is no corresponding prior element then
-			// we just take the config value as-is.
-			newVals[name] = configEV
-			continue
+			// if the prior cty.Map value was unknown the map won't have any
+			// keys, so generate an unknown value.
+			if !prior.IsKnown() {
+				priorEV = cty.UnknownVal(configEV.Type())
+			} else {
+				priorEV = cty.NullVal(configEV.Type())
+			}
 		}
 
 		newVals[name] = proposedNewBlockOrObject(schema, priorEV, configEV)
@@ -334,14 +336,16 @@ func proposedNewAttributes(attrs map[string]*configschema.Attribute, prior, conf
 	newAttrs := make(map[string]cty.Value, len(attrs))
 	for name, attr := range attrs {
 		var priorV cty.Value
-		if prior.IsNull() {
+
+		switch {
+		case prior.IsNull():
 			priorV = cty.NullVal(prior.Type().AttributeType(name))
-		} else {
+		case !prior.IsKnown():
+			priorV = cty.UnknownVal(prior.Type().AttributeType(name))
+		default:
 			priorV = prior.GetAttr(name)
 		}
-
 		configV := config.GetAttr(name)
-
 		var newV cty.Value
 		switch {
 		// required isn't considered when constructing the plan, so attributes

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
@@ -17,6 +18,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -196,7 +198,7 @@ func TestReferencesInExpr(t *testing.T) {
 			diags = diags.Append(hclDiags)
 			assertNoDiagnostics(t, diags)
 
-			gotRefs := ReferencesInExpr(context.Background(), expr)
+			gotRefs := ReferencesInExpr(expr)
 			gotTargets := make([]stackaddrs.Referenceable, len(gotRefs))
 			for i, ref := range gotRefs {
 				gotTargets[i] = ref.Target
@@ -304,7 +306,7 @@ type staticReferenceable struct {
 var _ Referenceable = staticReferenceable{}
 
 // ExprReferenceValue implements Referenceable.
-func (r staticReferenceable) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
+func (r staticReferenceable) ExprReferenceValue(context.Context, EvalPhase) cty.Value {
 	return r.v
 }
 
@@ -334,7 +336,7 @@ func newStaticExpressionScope() staticExpressionScope {
 }
 
 // ResolveExpressionReference implements ExpressionScope.
-func (s staticExpressionScope) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
+func (s staticExpressionScope) ResolveExpressionReference(_ context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret, ok := s.vs.GetOk(ref.Target)
 	if !ok {
@@ -347,6 +349,16 @@ func (s staticExpressionScope) ResolveExpressionReference(ctx context.Context, r
 		return nil, diags
 	}
 	return ret, diags
+}
+
+// ExternalFunctions implements ExpressionScope
+func (s staticExpressionScope) ExternalFunctions(_ context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
+	return lang.ExternalFuncs{}, nil
+}
+
+// PlanTimestamp implements ExpressionScope
+func (s staticExpressionScope) PlanTimestamp() time.Time {
+	return time.Now().UTC()
 }
 
 // Add makes the given object available in the scope at the given address.

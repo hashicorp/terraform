@@ -4,7 +4,6 @@
 package azure
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -16,6 +15,8 @@ func TestBackend_impl(t *testing.T) {
 }
 
 func TestBackendConfig(t *testing.T) {
+	t.Parallel()
+
 	// This test just instantiates the client. Shouldn't make any actual
 	// requests nor incur any costs.
 
@@ -42,146 +43,254 @@ func TestBackendConfig(t *testing.T) {
 }
 
 func TestAccBackendAccessKeyBasic(t *testing.T) {
-	testAccAzureBackend(t)
-	rs := randString(4)
-	res := testResourceNames(rs, "testState")
-	armClient := buildTestClient(t, res)
+	t.Parallel()
 
-	ctx := context.TODO()
-	err := armClient.buildTestResources(ctx, &res)
-	defer armClient.destroyTestResources(ctx, res)
+	testAccAzureBackend(t)
+
+	ctx := newCtx()
+	m := BuildTestMeta(t, ctx)
+
+	err := m.buildTestResources(ctx)
 	if err != nil {
-		armClient.destroyTestResources(ctx, res)
+		m.destroyTestResources(ctx)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
+	defer m.destroyTestResources(ctx)
 
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"storage_account_name": res.storageAccountName,
-		"container_name":       res.storageContainerName,
-		"key":                  res.storageKeyName,
-		"access_key":           res.storageAccountAccessKey,
-		"environment":          os.Getenv("ARM_ENVIRONMENT"),
-		"endpoint":             os.Getenv("ARM_ENDPOINT"),
+		"storage_account_name": m.names.storageAccountName,
+		"container_name":       m.names.storageContainerName,
+		"key":                  m.names.storageKeyName,
+		"access_key":           m.storageAccessKey,
+		"environment":          m.env.Name,
 	})).(*Backend)
 
 	backend.TestBackendStates(t, b)
 }
 
 func TestAccBackendSASTokenBasic(t *testing.T) {
-	testAccAzureBackend(t)
-	rs := randString(4)
-	res := testResourceNames(rs, "testState")
-	armClient := buildTestClient(t, res)
+	t.Parallel()
 
-	ctx := context.TODO()
-	err := armClient.buildTestResources(ctx, &res)
-	defer armClient.destroyTestResources(ctx, res)
+	testAccAzureBackend(t)
+
+	ctx := newCtx()
+	m := BuildTestMeta(t, ctx)
+
+	err := m.buildTestResources(ctx)
 	if err != nil {
+		m.destroyTestResources(ctx)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
+	defer m.destroyTestResources(ctx)
 
-	sasToken, err := buildSasToken(res.storageAccountName, res.storageAccountAccessKey)
+	sasToken, err := buildSasToken(m.names.storageAccountName, m.storageAccessKey)
 	if err != nil {
 		t.Fatalf("Error building SAS Token: %+v", err)
 	}
 
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"storage_account_name": res.storageAccountName,
-		"container_name":       res.storageContainerName,
-		"key":                  res.storageKeyName,
+		"storage_account_name": m.names.storageAccountName,
+		"container_name":       m.names.storageContainerName,
+		"key":                  m.names.storageKeyName,
 		"sas_token":            *sasToken,
-		"environment":          os.Getenv("ARM_ENVIRONMENT"),
-		"endpoint":             os.Getenv("ARM_ENDPOINT"),
+		"environment":          m.env.Name,
 	})).(*Backend)
 
 	backend.TestBackendStates(t, b)
 }
 
-func TestAccBackendOIDCBasic(t *testing.T) {
-	testAccAzureBackend(t)
-	rs := randString(4)
-	res := testResourceNames(rs, "testState")
-	armClient := buildTestClient(t, res)
+func TestAccBackendGithubOIDCBasic(t *testing.T) {
+	t.Parallel()
 
-	ctx := context.TODO()
-	err := armClient.buildTestResources(ctx, &res)
-	defer armClient.destroyTestResources(ctx, res)
-	if err != nil {
-		t.Fatalf("Error creating Test Resources: %q", err)
+	testAccAzureBackendRunningInGitHubActions(t)
+
+	oidcRequestToken := os.Getenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+	if oidcRequestToken == "" {
+		t.Fatalf("Missing ACTIONS_ID_TOKEN_REQUEST_TOKEN")
 	}
 
+	oidcRequestURL := os.Getenv("ACTIONS_ID_TOKEN_REQUEST_URL")
+	if oidcRequestURL == "" {
+		t.Fatalf("Missing ACTIONS_ID_TOKEN_REQUEST_URL")
+	}
+
+	ctx := newCtx()
+	m := BuildTestMeta(t, ctx)
+
+	err := m.buildTestResources(ctx)
+	if err != nil {
+		m.destroyTestResources(ctx)
+		t.Fatalf("Error creating Test Resources: %q", err)
+	}
+	defer m.destroyTestResources(ctx)
+
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"storage_account_name": res.storageAccountName,
-		"container_name":       res.storageContainerName,
-		"key":                  res.storageKeyName,
-		"resource_group_name":  res.resourceGroup,
+		"subscription_id":      m.subscriptionId,
+		"resource_group_name":  m.names.resourceGroup,
+		"storage_account_name": m.names.storageAccountName,
+		"container_name":       m.names.storageContainerName,
+		"key":                  m.names.storageKeyName,
 		"use_oidc":             true,
-		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
-		"environment":          os.Getenv("ARM_ENVIRONMENT"),
-		"endpoint":             os.Getenv("ARM_ENDPOINT"),
+		"oidc_request_token":   oidcRequestToken,
+		"oidc_request_url":     oidcRequestURL,
+		"tenant_id":            m.tenantId,
+		"client_id":            m.clientId,
+		"environment":          m.env.Name,
+	})).(*Backend)
+
+	backend.TestBackendStates(t, b)
+}
+
+func TestAccBackendADOPipelinesOIDCBasic(t *testing.T) {
+	t.Parallel()
+
+	testAccAzureBackendRunningInADOPipelines(t)
+
+	oidcRequestToken := os.Getenv("SYSTEM_ACCESSTOKEN")
+	if oidcRequestToken == "" {
+		t.Fatalf("Missing SYSTEM_ACCESSTOKEN")
+	}
+
+	oidcRequestURL := os.Getenv("SYSTEM_OIDCREQUESTURI")
+	if oidcRequestURL == "" {
+		t.Fatalf("Missing SYSTEM_OIDCREQUESTURI")
+	}
+
+	adoPipelineServiceConnectionId := os.Getenv("ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID")
+	if adoPipelineServiceConnectionId == "" {
+		t.Fatalf("Missing ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID")
+	}
+
+	ctx := newCtx()
+	m := BuildTestMeta(t, ctx)
+
+	err := m.buildTestResources(ctx)
+	if err != nil {
+		m.destroyTestResources(ctx)
+		t.Fatalf("Error creating Test Resources: %q", err)
+	}
+	defer m.destroyTestResources(ctx)
+
+	clearARMEnv()
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"subscription_id":                    m.subscriptionId,
+		"resource_group_name":                m.names.resourceGroup,
+		"storage_account_name":               m.names.storageAccountName,
+		"container_name":                     m.names.storageContainerName,
+		"key":                                m.names.storageKeyName,
+		"use_oidc":                           true,
+		"oidc_request_token":                 oidcRequestToken,
+		"oidc_request_url":                   oidcRequestURL,
+		"ado_pipeline_service_connection_id": adoPipelineServiceConnectionId,
+		"tenant_id":                          m.tenantId,
+		"client_id":                          m.clientId,
+		"environment":                        m.env.Name,
 	})).(*Backend)
 
 	backend.TestBackendStates(t, b)
 }
 
 func TestAccBackendAzureADAuthBasic(t *testing.T) {
-	testAccAzureBackend(t)
-	rs := randString(4)
-	res := testResourceNames(rs, "testState")
-	res.useAzureADAuth = true
-	armClient := buildTestClient(t, res)
+	t.Parallel()
 
-	ctx := context.TODO()
-	err := armClient.buildTestResources(ctx, &res)
-	defer armClient.destroyTestResources(ctx, res)
+	testAccAzureBackend(t)
+
+	ctx := newCtx()
+	m := BuildTestMeta(t, ctx)
+
+	err := m.buildTestResources(ctx)
 	if err != nil {
-		armClient.destroyTestResources(ctx, res)
+		m.destroyTestResources(ctx)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
+	defer m.destroyTestResources(ctx)
 
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"storage_account_name": res.storageAccountName,
-		"container_name":       res.storageContainerName,
-		"key":                  res.storageKeyName,
-		"access_key":           res.storageAccountAccessKey,
-		"environment":          os.Getenv("ARM_ENVIRONMENT"),
-		"endpoint":             os.Getenv("ARM_ENDPOINT"),
+		"subscription_id":      m.subscriptionId,
+		"resource_group_name":  m.names.resourceGroup,
+		"storage_account_name": m.names.storageAccountName,
+		"container_name":       m.names.storageContainerName,
+		"key":                  m.names.storageKeyName,
+		"tenant_id":            m.tenantId,
+		"client_id":            m.clientId,
+		"client_secret":        m.clientSecret,
 		"use_azuread_auth":     true,
+		"environment":          m.env.Name,
+	})).(*Backend)
+
+	backend.TestBackendStates(t, b)
+}
+
+func TestAccBackendAzureADAuthBasicWithBlobEndpointLookup(t *testing.T) {
+	t.Parallel()
+
+	testAccAzureBackend(t)
+
+	ctx := newCtx()
+	m := BuildTestMeta(t, ctx)
+
+	err := m.buildTestResources(ctx)
+	if err != nil {
+		m.destroyTestResources(ctx)
+		t.Fatalf("Error creating Test Resources: %q", err)
+	}
+	defer m.destroyTestResources(ctx)
+
+	clearARMEnv()
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"subscription_id":      m.subscriptionId,
+		"resource_group_name":  m.names.resourceGroup,
+		"storage_account_name": m.names.storageAccountName,
+		"container_name":       m.names.storageContainerName,
+		"key":                  m.names.storageKeyName,
+		"tenant_id":            m.tenantId,
+		"client_id":            m.clientId,
+		"client_secret":        m.clientSecret,
+		"use_azuread_auth":     true,
+		"environment":          m.env.Name,
+		"lookup_blob_endpoint": true,
 	})).(*Backend)
 
 	backend.TestBackendStates(t, b)
 }
 
 func TestAccBackendManagedServiceIdentityBasic(t *testing.T) {
-	testAccAzureBackendRunningInAzure(t)
-	rs := randString(4)
-	res := testResourceNames(rs, "testState")
-	armClient := buildTestClient(t, res)
+	t.Parallel()
 
-	ctx := context.TODO()
-	err := armClient.buildTestResources(ctx, &res)
-	defer armClient.destroyTestResources(ctx, res)
+	testAccAzureBackendRunningInAzure(t)
+
+	ctx := newCtx()
+	m := BuildTestMeta(t, ctx)
+
+	err := m.buildTestResources(ctx)
 	if err != nil {
+		m.destroyTestResources(ctx)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
+	defer m.destroyTestResources(ctx)
 
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"storage_account_name": res.storageAccountName,
-		"container_name":       res.storageContainerName,
-		"key":                  res.storageKeyName,
-		"resource_group_name":  res.resourceGroup,
+		"subscription_id":      m.subscriptionId,
+		"resource_group_name":  m.names.resourceGroup,
+		"storage_account_name": m.names.storageAccountName,
+		"container_name":       m.names.storageContainerName,
+		"key":                  m.names.storageKeyName,
 		"use_msi":              true,
-		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
-		"environment":          os.Getenv("ARM_ENVIRONMENT"),
-		"endpoint":             os.Getenv("ARM_ENDPOINT"),
+		"tenant_id":            m.tenantId,
+		"environment":          m.env.Name,
 	})).(*Backend)
 
 	backend.TestBackendStates(t, b)
 }
 
 func TestAccBackendServicePrincipalClientCertificateBasic(t *testing.T) {
+	t.Parallel()
+
 	testAccAzureBackend(t)
 
 	clientCertPassword := os.Getenv("ARM_CLIENT_CERTIFICATE_PASSWORD")
@@ -190,128 +299,95 @@ func TestAccBackendServicePrincipalClientCertificateBasic(t *testing.T) {
 		t.Skip("Skipping since `ARM_CLIENT_CERTIFICATE_PATH` is not specified!")
 	}
 
-	rs := randString(4)
-	res := testResourceNames(rs, "testState")
-	armClient := buildTestClient(t, res)
+	ctx := newCtx()
+	m := BuildTestMeta(t, ctx)
 
-	ctx := context.TODO()
-	err := armClient.buildTestResources(ctx, &res)
-	defer armClient.destroyTestResources(ctx, res)
+	err := m.buildTestResources(ctx)
 	if err != nil {
+		m.destroyTestResources(ctx)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
+	defer m.destroyTestResources(ctx)
 
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"storage_account_name":        res.storageAccountName,
-		"container_name":              res.storageContainerName,
-		"key":                         res.storageKeyName,
-		"resource_group_name":         res.resourceGroup,
-		"subscription_id":             os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"tenant_id":                   os.Getenv("ARM_TENANT_ID"),
-		"client_id":                   os.Getenv("ARM_CLIENT_ID"),
+		"subscription_id":             m.subscriptionId,
+		"resource_group_name":         m.names.resourceGroup,
+		"storage_account_name":        m.names.storageAccountName,
+		"container_name":              m.names.storageContainerName,
+		"key":                         m.names.storageKeyName,
+		"tenant_id":                   m.tenantId,
+		"client_id":                   m.clientId,
 		"client_certificate_password": clientCertPassword,
 		"client_certificate_path":     clientCertPath,
-		"environment":                 os.Getenv("ARM_ENVIRONMENT"),
-		"endpoint":                    os.Getenv("ARM_ENDPOINT"),
+		"environment":                 m.env.Name,
 	})).(*Backend)
 
 	backend.TestBackendStates(t, b)
 }
 
 func TestAccBackendServicePrincipalClientSecretBasic(t *testing.T) {
-	testAccAzureBackend(t)
-	rs := randString(4)
-	res := testResourceNames(rs, "testState")
-	armClient := buildTestClient(t, res)
+	t.Parallel()
 
-	ctx := context.TODO()
-	err := armClient.buildTestResources(ctx, &res)
-	defer armClient.destroyTestResources(ctx, res)
-	if err != nil {
-		t.Fatalf("Error creating Test Resources: %q", err)
-	}
-
-	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"storage_account_name": res.storageAccountName,
-		"container_name":       res.storageContainerName,
-		"key":                  res.storageKeyName,
-		"resource_group_name":  res.resourceGroup,
-		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
-		"client_id":            os.Getenv("ARM_CLIENT_ID"),
-		"client_secret":        os.Getenv("ARM_CLIENT_SECRET"),
-		"environment":          os.Getenv("ARM_ENVIRONMENT"),
-		"endpoint":             os.Getenv("ARM_ENDPOINT"),
-	})).(*Backend)
-
-	backend.TestBackendStates(t, b)
-}
-
-func TestAccBackendServicePrincipalClientSecretCustomEndpoint(t *testing.T) {
 	testAccAzureBackend(t)
 
-	// this is only applicable for Azure Stack.
-	endpoint := os.Getenv("ARM_ENDPOINT")
-	if endpoint == "" {
-		t.Skip("Skipping as ARM_ENDPOINT isn't configured")
-	}
+	ctx := newCtx()
+	m := BuildTestMeta(t, ctx)
 
-	rs := randString(4)
-	res := testResourceNames(rs, "testState")
-	armClient := buildTestClient(t, res)
-
-	ctx := context.TODO()
-	err := armClient.buildTestResources(ctx, &res)
-	defer armClient.destroyTestResources(ctx, res)
+	err := m.buildTestResources(ctx)
 	if err != nil {
+		m.destroyTestResources(ctx)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
+	defer m.destroyTestResources(ctx)
 
+	clearARMEnv()
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"storage_account_name": res.storageAccountName,
-		"container_name":       res.storageContainerName,
-		"key":                  res.storageKeyName,
-		"resource_group_name":  res.resourceGroup,
-		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
-		"client_id":            os.Getenv("ARM_CLIENT_ID"),
-		"client_secret":        os.Getenv("ARM_CLIENT_SECRET"),
-		"environment":          os.Getenv("ARM_ENVIRONMENT"),
-		"endpoint":             endpoint,
+		"subscription_id":      m.subscriptionId,
+		"resource_group_name":  m.names.resourceGroup,
+		"storage_account_name": m.names.storageAccountName,
+		"container_name":       m.names.storageContainerName,
+		"key":                  m.names.storageKeyName,
+		"tenant_id":            m.tenantId,
+		"client_id":            m.clientId,
+		"client_secret":        m.clientSecret,
+		"environment":          m.env.Name,
 	})).(*Backend)
 
 	backend.TestBackendStates(t, b)
 }
 
 func TestAccBackendAccessKeyLocked(t *testing.T) {
-	testAccAzureBackend(t)
-	rs := randString(4)
-	res := testResourceNames(rs, "testState")
-	armClient := buildTestClient(t, res)
+	t.Parallel()
 
-	ctx := context.TODO()
-	err := armClient.buildTestResources(ctx, &res)
-	defer armClient.destroyTestResources(ctx, res)
+	testAccAzureBackend(t)
+
+	ctx := newCtx()
+	m := BuildTestMeta(t, ctx)
+
+	err := m.buildTestResources(ctx)
 	if err != nil {
+		m.destroyTestResources(ctx)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
+	defer m.destroyTestResources(ctx)
+
+	clearARMEnv()
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"storage_account_name": res.storageAccountName,
-		"container_name":       res.storageContainerName,
-		"key":                  res.storageKeyName,
-		"access_key":           res.storageAccountAccessKey,
-		"environment":          os.Getenv("ARM_ENVIRONMENT"),
-		"endpoint":             os.Getenv("ARM_ENDPOINT"),
+		"storage_account_name": m.names.storageAccountName,
+		"container_name":       m.names.storageContainerName,
+		"key":                  m.names.storageKeyName,
+		"access_key":           m.storageAccessKey,
+		"environment":          m.env.Name,
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"storage_account_name": res.storageAccountName,
-		"container_name":       res.storageContainerName,
-		"key":                  res.storageKeyName,
-		"access_key":           res.storageAccountAccessKey,
-		"environment":          os.Getenv("ARM_ENVIRONMENT"),
-		"endpoint":             os.Getenv("ARM_ENDPOINT"),
+		"storage_account_name": m.names.storageAccountName,
+		"container_name":       m.names.storageContainerName,
+		"key":                  m.names.storageKeyName,
+		"access_key":           m.storageAccessKey,
+		"environment":          m.env.Name,
 	})).(*Backend)
 
 	backend.TestBackendStateLocks(t, b1, b2)
@@ -322,42 +398,44 @@ func TestAccBackendAccessKeyLocked(t *testing.T) {
 }
 
 func TestAccBackendServicePrincipalLocked(t *testing.T) {
-	testAccAzureBackend(t)
-	rs := randString(4)
-	res := testResourceNames(rs, "testState")
-	armClient := buildTestClient(t, res)
+	t.Parallel()
 
-	ctx := context.TODO()
-	err := armClient.buildTestResources(ctx, &res)
-	defer armClient.destroyTestResources(ctx, res)
+	testAccAzureBackend(t)
+
+	ctx := newCtx()
+	m := BuildTestMeta(t, ctx)
+
+	err := m.buildTestResources(ctx)
 	if err != nil {
+		m.destroyTestResources(ctx)
 		t.Fatalf("Error creating Test Resources: %q", err)
 	}
+	defer m.destroyTestResources(ctx)
+
+	clearARMEnv()
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"storage_account_name": res.storageAccountName,
-		"container_name":       res.storageContainerName,
-		"key":                  res.storageKeyName,
-		"access_key":           res.storageAccountAccessKey,
-		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
-		"client_id":            os.Getenv("ARM_CLIENT_ID"),
-		"client_secret":        os.Getenv("ARM_CLIENT_SECRET"),
-		"environment":          os.Getenv("ARM_ENVIRONMENT"),
-		"endpoint":             os.Getenv("ARM_ENDPOINT"),
+		"subscription_id":      m.subscriptionId,
+		"resource_group_name":  m.names.resourceGroup,
+		"storage_account_name": m.names.storageAccountName,
+		"container_name":       m.names.storageContainerName,
+		"key":                  m.names.storageKeyName,
+		"tenant_id":            m.tenantId,
+		"client_id":            m.clientId,
+		"client_secret":        m.clientSecret,
+		"environment":          m.env.Name,
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"storage_account_name": res.storageAccountName,
-		"container_name":       res.storageContainerName,
-		"key":                  res.storageKeyName,
-		"access_key":           res.storageAccountAccessKey,
-		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
-		"client_id":            os.Getenv("ARM_CLIENT_ID"),
-		"client_secret":        os.Getenv("ARM_CLIENT_SECRET"),
-		"environment":          os.Getenv("ARM_ENVIRONMENT"),
-		"endpoint":             os.Getenv("ARM_ENDPOINT"),
+		"subscription_id":      m.subscriptionId,
+		"resource_group_name":  m.names.resourceGroup,
+		"storage_account_name": m.names.storageAccountName,
+		"container_name":       m.names.storageContainerName,
+		"key":                  m.names.storageKeyName,
+		"tenant_id":            m.tenantId,
+		"client_id":            m.clientId,
+		"client_secret":        m.clientSecret,
+		"environment":          m.env.Name,
 	})).(*Backend)
 
 	backend.TestBackendStateLocks(t, b1, b2)

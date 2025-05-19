@@ -74,7 +74,7 @@ func (h *stopHook) PostImportState(id HookResourceIdentity, imported []providers
 	return h.hook()
 }
 
-func (h *stopHook) PrePlanImport(id HookResourceIdentity, importID string) (HookAction, error) {
+func (h *stopHook) PrePlanImport(id HookResourceIdentity, importTarget cty.Value) (HookAction, error) {
 	return h.hook()
 }
 
@@ -87,6 +87,14 @@ func (h *stopHook) PreApplyImport(id HookResourceIdentity, importing plans.Impor
 }
 
 func (h *stopHook) PostApplyImport(id HookResourceIdentity, importing plans.ImportingSrc) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) PreEphemeralOp(id HookResourceIdentity, action plans.Action) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action, opErr error) (HookAction, error) {
 	return h.hook()
 }
 

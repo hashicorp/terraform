@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -38,24 +39,25 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 		close(resp.PlannedChanges) // MUST be the last channel to close
 	}()
 
-	var errored, applyable bool
+	var errored bool
+
+	planTimestamp := time.Now().UTC()
+	if req.ForcePlanTimestamp != nil {
+		planTimestamp = *req.ForcePlanTimestamp
+	}
 
 	main := stackeval.NewForPlanning(req.Config, req.PrevState, stackeval.PlanOpts{
 		PlanningMode:        req.PlanMode,
 		InputVariableValues: req.InputValues,
 		ProviderFactories:   req.ProviderFactories,
+		DependencyLocks:     req.DependencyLocks,
 
-		ForcePlanTimestamp: req.ForcePlanTimestamp,
+		PlanTimestamp: planTimestamp,
 	})
 	main.AllowLanguageExperiments(req.ExperimentsAllowed)
 	main.PlanAll(ctx, stackeval.PlanOutput{
 		AnnouncePlannedChange: func(ctx context.Context, change stackplan.PlannedChange) {
 			resp.PlannedChanges <- change
-			if componentChange, ok := change.(*stackplan.PlannedChangeComponentInstance); ok {
-				if componentChange.PlanApplyable {
-					applyable = true
-				}
-			}
 		},
 		AnnounceDiagnostics: func(ctx context.Context, diags tfdiags.Diagnostics) {
 			for _, diag := range diags {
@@ -75,9 +77,8 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 		resp.Diagnostics <- diag
 	}
 
-	// An overall stack plan is applyable if at least one of its component
-	// instances is applyable and we had no error diagnostics.
-	resp.Applyable = !errored && applyable
+	// An overall stack plan is applyable if it has no error diagnostics.
+	resp.Applyable = !errored
 
 	// Before we return we'll emit one more special planned change just to
 	// remember in the raw plan sequence whether we considered this plan to be
@@ -97,6 +98,7 @@ type PlanRequest struct {
 
 	InputValues       map[stackaddrs.InputVariable]ExternalInputValue
 	ProviderFactories map[addrs.Provider]providers.Factory
+	DependencyLocks   depsfile.Locks
 
 	// ForcePlanTimestamp, if not nil, will force the plantimestamp function
 	// to return the given value instead of whatever real time the plan

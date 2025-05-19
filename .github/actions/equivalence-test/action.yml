@@ -2,14 +2,8 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 name: equivalence-test
-description: "Execute the suite of Terraform equivalence tests in testing/equivalence-tests"
+description: "Execute the suite of Terraform equivalence tests in testing/equivalence-tests and update the golden files."
 inputs:
-  target-terraform-version:
-    description: "The version of Terraform to use in execution."
-    required: true
-  target-terraform-branch:
-    description: "The branch within this repository to update and compare."
-    required: true
   target-equivalence-test-version:
     description: "The version of the Terraform equivalence tests to use."
     default: "0.3.0"
@@ -19,9 +13,22 @@ inputs:
   target-arch:
     description: "Current architecture"
     default: "amd64"
+  current-branch:
+    description: "What branch are we currently on?"
+    required: true
+  new-branch:
+    description: "Name of new branch to be created for the review."
+    required: true
+  reviewers:
+    description: "Comma-separated list of GitHub usernames to request review from."
+    required: true
+  message:
+    description: "Message to include in the commit."
+    required: true
 runs:
   using: "composite"
   steps:
+
     - name: "download equivalence test binary"
       shell: bash
       run: |
@@ -30,15 +37,13 @@ runs:
           ./bin/equivalence-tests \
           ${{ inputs.target-os }} \
           ${{ inputs.target-arch }}
-    - name: "download terraform binary"
+
+    - name: Build terraform
       shell: bash
-      run: |
-        ./.github/scripts/equivalence-test.sh download_terraform_binary \
-          ${{ inputs.target-terraform-version }} \
-          ./bin/terraform \
-          ${{ inputs.target-os }} \
-          ${{ inputs.target-arch }}
+      run: ./.github/scripts/equivalence-test.sh build_terraform_binary ./bin/terraform
+
     - name: "run and update equivalence tests"
+      id: execute
       shell: bash
       run: |
         ./bin/equivalence-tests update \
@@ -46,16 +51,29 @@ runs:
           --goldens=testing/equivalence-tests/outputs \
           --binary=$(pwd)/bin/terraform
         
+        git add --intent-to-add testing/equivalence-tests/outputs
         changed=$(git diff --quiet -- testing/equivalence-tests/outputs || echo true)
-        if [[ $changed == "true" ]]; then
-          echo "found changes, and pushing new golden files into branch ${{ inputs.target-terraform-branch }}."
+        echo "changed=$changed" >> "${GITHUB_OUTPUT}"
 
-          git config user.email "52939924+teamterraform@users.noreply.github.com"
-          git config user.name "The Terraform Team"
-
-          git add ./testing/equivalence-tests/outputs
-          git commit -m "Automated equivalence test golden file update for release ${{ inputs.target-terraform-version }}."
-          git push
-        else
-          echo "found no changes, so not pushing any updates."
-        fi
+    - name: "branch, commit, and push changes"
+      if: steps.execute.outputs.changed == 'true'
+      shell: bash
+      run: |
+        git config user.name "hc-github-team-tf-core"
+        git config user.email "github-team-tf-core@hashicorp.com"
+        git checkout -b ${{ inputs.new-branch }}
+        git add testing/equivalence-tests/outputs
+        git commit -m "Update equivalence test golden files."
+        git push --set-upstream origin ${{ inputs.new-branch }}
+          
+    - name: "create pull request"
+      if: steps.execute.outputs.changed == 'true'
+      shell: bash
+      run: |
+        gh pr create \
+          --draft \
+          --base ${{ inputs.current-branch }} \
+          --head ${{ inputs.new-branch }} \
+          --title "Update equivalence test golden files" \
+          --body '${{ inputs.message }}' \
+          --reviewer ${{ inputs.reviewers }}

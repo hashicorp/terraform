@@ -8,9 +8,13 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-slug/sourcebundle"
+
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 // handle represents an identifier shared between client and server to identify
@@ -107,6 +111,45 @@ func (t *handleTable) StackConfig(hnd handle[*stackconfig.Config]) *stackconfig.
 }
 
 func (t *handleTable) CloseStackConfig(hnd handle[*stackconfig.Config]) error {
+	return closeHandle(t, hnd)
+}
+
+func (t *handleTable) NewStackState(state *stackstate.State) handle[*stackstate.State] {
+	return newHandle(t, state)
+}
+
+func (t *handleTable) StackState(hnd handle[*stackstate.State]) *stackstate.State {
+	ret, _ := readHandle(t, hnd) // non-existent or invalid returns nil
+	return ret
+}
+
+func (t *handleTable) CloseStackState(hnd handle[*stackstate.State]) error {
+	return closeHandle(t, hnd)
+}
+
+func (t *handleTable) NewStackPlan(state *stackplan.Plan) handle[*stackplan.Plan] {
+	return newHandle(t, state)
+}
+
+func (t *handleTable) StackPlan(hnd handle[*stackplan.Plan]) *stackplan.Plan {
+	ret, _ := readHandle(t, hnd) // non-existent or invalid returns nil
+	return ret
+}
+
+func (t *handleTable) CloseStackPlan(hnd handle[*stackplan.Plan]) error {
+	return closeHandle(t, hnd)
+}
+
+func (t *handleTable) NewTerraformState(state *states.State) handle[*states.State] {
+	return newHandle(t, state)
+}
+
+func (t *handleTable) TerraformState(hnd handle[*states.State]) *states.State {
+	ret, _ := readHandle(t, hnd) // non-existent or invalid returns nil
+	return ret
+}
+
+func (t *handleTable) CloseTerraformState(hnd handle[*states.State]) error {
 	return closeHandle(t, hnd)
 }
 

@@ -8,7 +8,7 @@ package plans
 // have multiple qualities.
 type Quality int
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type Quality
+//go:generate go tool golang.org/x/tools/cmd/stringer -type Quality
 
 const (
 	// Errored plans did not successfully complete, and cannot be applied.

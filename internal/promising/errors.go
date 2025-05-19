@@ -3,16 +3,13 @@
 
 package promising
 
-import (
-	"errors"
-)
+// ErrUnresolved is the error type returned by a promise getter or a main
+// task execution if a task fails to resolve all of the promises it is
+// responsible for before it returns.
+type ErrUnresolved []PromiseID
 
-// ErrUnresolved is the error returned by a promise getter if the task
-// responsible for resolving the promise returns before resolving the promise.
-var ErrUnresolved error
-
-func init() {
-	ErrUnresolved = errors.New("promise unresolved")
+func (err ErrUnresolved) Error() string {
+	return "promise unresolved"
 }
 
 // ErrSelfDependent is the error type returned by a promise getter if the

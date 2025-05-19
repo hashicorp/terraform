@@ -1,38 +1,67 @@
 ---
-page_title: timeadd - Functions - Configuration Language
+page_title: timeadd function reference - Functions - Configuration Language
 description: |-
   The timeadd function adds a duration to a timestamp, returning a new
   timestamp.
 ---
 
-# `timeadd` Function
+# `timeadd` function reference
 
+This topic provices reference information about the `timeadd` function. 
 `timeadd` adds a duration to a timestamp, returning a new timestamp.
+
+## Introduction
+
+The Terraform language represents timestamps as strings using [RFC
+3339][rfc3339]'s Date and Time format.
+`timeadd` requires that the `timestamp` argument is a string conforming to the Date and Time syntax.
+
+## Syntax
+
+Use the `timeadd` function with the following syntax:
+
 
 ```hcl
 timeadd(timestamp, duration)
 ```
 
-In the Terraform language, timestamps are conventionally represented as
-strings using [RFC 3339](https://tools.ietf.org/html/rfc3339)
-"Date and Time format" syntax. `timeadd` requires the `timestamp` argument
-to be a string conforming to this syntax.
+- `timestamp` is a string representation of a date in RFC 3339 format. Refer to the
+  external RFC 3339's [Internet Date/Time Format section][date-time-format] for how to construct a timestamp string.
+- `duration` is a string representation of a time difference. This string consists of
+sequences of number and unit pairs, such as `"1.5h"` or `"1h30m"`. You may use
+the following units:
 
-`duration` is a string representation of a time difference, consisting of
-sequences of number and unit pairs, like `"1.5h"` or `"1h30m"`. The accepted
-units are `"ns"`, `"us"` (or `"µs"`), `"ms"`, `"s"`, `"m"`, and `"h"`. The first
-number may be negative to indicate a negative duration, like `"-2h5m"`.
+  - `ns`: nanosecond
+  - `us` or `µs`: microsecond
+  - `ms`: millisecond
+  - `s`: second
+  - `m`: minute
+  - `h`: hour
 
-The result is a string, also in RFC 3339 format, representing the result
-of adding the given direction to the given timestamp.
+  To indicate a negative duration, make the first number negative, such as `"-2h5m"`.
 
-## Examples
+The `timeadd` result is a string, also in RFC 3339 format, representing the result
+of adding the given duration to the given timestamp.
 
+## Example use case
+
+This example adds ten minutes.
+
+```hcl
+> timeadd("2024-08-16T12:45:05Z", "10m")
+"2024-08-16T12:55:05Z"
 ```
-> timeadd("2017-11-22T00:00:00Z", "10m")
-2017-11-22T00:10:00Z
+
+This example subtracts ten minutes by using a negative duration.
+
+```hcl
+> timeadd("2024-08-16T12:45:05Z", "-10m")
+"2024-08-16T12:35:05Z"
 ```
 
 # Related Functions
 
 * [`timecmp`](/terraform/language/functions/timecmp) determines an ordering for two timestamps.
+
+[rfc3339]: https://tools.ietf.org/html/rfc3339
+[date-time-format]: https://datatracker.ietf.org/doc/html/rfc3339#section-5.6

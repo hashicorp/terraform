@@ -1,0 +1,95 @@
+---
+page_title: Ephemeral block configuration reference
+description: Learn to define ephemeral blocks in Terraform configurations to keep temporary and sensitive information out of Terraform state and plan files.
+---
+
+# Ephemeral block configuration reference
+
+This topic provides reference information for the `ephemeral` block. 
+
+-> **Note**: Ephemeral resources are available in Terraform v1.10 and later.
+
+## Introduction
+
+Ephemeral resources are Terraform resources that are essentially temporary. Ephemeral resources have a unique lifecycle, and Terraform does not store them in its state. Each `ephemeral` block describes one or more ephemeral resources, such as a temporary password or connection to another system.
+
+## Dependency graph
+
+Ephemeral resources form nodes in Terraform's dependency graph, which interact similarly as resources and data sources. For example, when a resource or data source depends on an attribute of an ephemeral resource, Terraform automatically provisions the ephemeral resource first.
+
+## Defer provisioning
+
+If an input argument of an ephemeral resource references a value that Terraform does not know yet, but can learn during or after a plan, Terraform defers executing that resource until the apply stage. Deferring execution lets Terraform ensure it has all of the information it needs to properly provision the ephemeral resource.
+
+## Configuration model
+
+An `ephemeral` block declares an ephemeral resource of a specific type with a
+specific local name, much like a `resource` block. Terraform uses an ephemeral resource's name to refer to that resource in the same module, but an ephemeral resource's name has no meaning outside that module's scope.
+
+Most of the arguments within the body of an `ephemeral` block are specific to the ephemeral resource you are defining. As with resources and data sources, each provider in the [Terraform Registry](https://registry.terraform.io/browse/providers) includes documentation for the ephemeral resources it supports, if any. An ephemeral resource type's documentation lists which arguments are available and how you should format your resource's values. 
+
+The following list outlines general field hierarchy, language-specific data types, and requirements in the `ephemeral` block. 
+
+- [`ephemeral`](#ephemeral): map
+  - [`attributes`](#ephemeral)
+  - [`meta-arguments`](#ephemeral)
+
+## Complete configuration
+
+An `ephemeral` block has the following form:
+
+```hcl
+ephemeral "<resource_type>" "<resource_name>" {
+  <attributes>
+  <meta-arguments>
+}
+```
+
+## Reference ephemeral resources
+
+You can only reference ephemeral resources in specific ephemeral contexts or
+Terraform throws an error. The following are valid contexts for referencing
+ephemeral resources:
+
+* In a [write-only argument](/terraform/language/resources/ephemeral/write-only)
+* In another ephemeral resource
+* In [local values](/terraform/language/values/locals#ephemeral-values)
+* In [ephemeral variables](/terraform/language/values/variables#exclude-values-from-state)
+* In [ephemeral outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files)
+* Configuring providers in the `provider` block
+* In [provisioner](/terraform/language/resources/provisioners/syntax) and [connection](/terraform/language/resources/provisioners/connection) blocks
+
+## Meta-arguments
+
+You can use the following meta-arguments with ephemeral resources to change the behavior of those resources. The following meta-arguments work the same way for resources, data sources, and ephemeral
+resources:
+
+- [`depends_on`, for specifying hidden dependencies](/terraform/language/meta-arguments/depends_on)
+- [`count`, for creating multiple resource instances according to a count](/terraform/language/meta-arguments/count)
+- [`for_each`, to create multiple instances according to a map or set of strings](/terraform/language/meta-arguments/for_each)
+- [`provider`, for selecting a non-default provider configuration](/terraform/language/meta-arguments/resource-provider)
+- [`lifecycle`, for lifecycle customizations](/terraform/language/meta-arguments/lifecycle)
+
+Ephemeral resources do not support the `provisioner` meta-argument.
+
+## Example
+
+The following example configures the `postgresql` provider with credentials from
+an ephemeral resource. Since these credentials are managed by an ephemeral resource, Terraform does not store them in your state or plan files.
+
+```hcl
+ephemeral "aws_secretsmanager_secret_version" "db_master" {
+  secret_id = aws_secretsmanager_secret_version.db_password.secret_id
+}
+
+locals {
+  credentials = jsondecode(ephemeral.aws_secretsmanager_secret_version.db_master.secret_string)
+}
+
+provider "postgresql" {
+  host     = aws_db_instance.example.address
+  port     = aws_db_instance.example.port
+  username = local.credentials["username"]
+  password = local.credentials["password"]
+}
+```

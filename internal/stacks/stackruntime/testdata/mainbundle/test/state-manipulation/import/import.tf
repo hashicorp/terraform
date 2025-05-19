@@ -17,6 +17,6 @@ import {
 }
 
 resource "testing_resource" "data" {
-  id = "imported"
+  id = var.id
   value = "imported"
 }

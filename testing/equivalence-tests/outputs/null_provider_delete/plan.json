@@ -1,4 +1,6 @@
 {
+  "applyable": true,
+  "complete": true,
   "configuration": {
     "provider_config": {
       "null": {
@@ -9,7 +11,8 @@
     },
     "root_module": {}
   },
-  "format_version": "1.1",
+  "errored": false,
+  "format_version": "1.2",
   "planned_values": {
     "root_module": {}
   },

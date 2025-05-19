@@ -7,6 +7,8 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"iter"
+	"slices"
 	"sort"
 	"strings"
 
@@ -77,7 +79,8 @@ func DiagnosticFromJSON(diag *viewsjson.Diagnostic, color *colorstring.Colorize,
 	// be pure text that lends itself well to word-wrapping.
 	fmt.Fprintf(&buf, color.Color("[bold]%s[reset]\n\n"), diag.Summary)
 
-	appendSourceSnippets(&buf, diag, color)
+	f := &snippetFormatter{&buf, diag, color}
+	f.write()
 
 	if diag.Detail != "" {
 		paraWidth := width - leftRuleWidth - 1 // leave room for the left rule
@@ -151,7 +154,8 @@ func DiagnosticPlainFromJSON(diag *viewsjson.Diagnostic, width int) string {
 	// be pure text that lends itself well to word-wrapping.
 	fmt.Fprintf(&buf, "%s\n\n", diag.Summary)
 
-	appendSourceSnippets(&buf, diag, disabledColorize)
+	f := &snippetFormatter{&buf, diag, disabledColorize}
+	f.write()
 
 	if diag.Detail != "" {
 		if width > 1 {
@@ -215,7 +219,17 @@ func DiagnosticWarningsCompact(diags tfdiags.Diagnostics, color *colorstring.Col
 	return b.String()
 }
 
-func appendSourceSnippets(buf *bytes.Buffer, diag *viewsjson.Diagnostic, color *colorstring.Colorize) {
+// snippetFormatter handles formatting diagnostic information with source snippets
+type snippetFormatter struct {
+	buf   *bytes.Buffer
+	diag  *viewsjson.Diagnostic
+	color *colorstring.Colorize
+}
+
+func (f *snippetFormatter) write() {
+	diag := f.diag
+	buf := f.buf
+	color := f.color
 	if diag.Address != "" {
 		fmt.Fprintf(buf, "  with %s,\n", diag.Address)
 	}
@@ -281,14 +295,13 @@ func appendSourceSnippets(buf *bytes.Buffer, diag *viewsjson.Diagnostic, color *
 			)
 		}
 
-		if len(snippet.Values) > 0 || (snippet.FunctionCall != nil && snippet.FunctionCall.Signature != nil) {
+		if len(snippet.Values) > 0 || (snippet.FunctionCall != nil && snippet.FunctionCall.Signature != nil) || snippet.TestAssertionExpr != nil {
 			// The diagnostic may also have information about the dynamic
 			// values of relevant variables at the point of evaluation.
 			// This is particularly useful for expressions that get evaluated
 			// multiple times with different values, such as blocks using
 			// "count" and "for_each", or within "for" expressions.
-			values := make([]viewsjson.DiagnosticExpressionValue, len(snippet.Values))
-			copy(values, snippet.Values)
+			values := slices.Clone(snippet.Values)
 			sort.Slice(values, func(i, j int) bool {
 				return values[i].Traversal < values[j].Traversal
 			})
@@ -312,11 +325,139 @@ func appendSourceSnippets(buf *bytes.Buffer, diag *viewsjson.Diagnostic, color *
 				}
 				buf.WriteString(")\n")
 			}
-			for _, value := range values {
-				fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] [bold]%s[reset] %s\n"), value.Traversal, value.Statement)
+
+			// always print the values unless in the case of a test assertion, where we only print them if the user has requested verbose output
+			printValues := snippet.TestAssertionExpr == nil || snippet.TestAssertionExpr.ShowVerbose
+
+			// The diagnostic may also have information about failures from test assertions
+			// in a `terraform test` run. This is useful for understanding the values that
+			// were being compared when the assertion failed.
+			// Also, we'll print a JSON diff of the two values to make it easier to see the
+			// differences.
+			if snippet.TestAssertionExpr != nil {
+				f.printTestDiagOutput(snippet.TestAssertionExpr)
+			}
+
+			if printValues {
+				for _, value := range values {
+					// if the statement is one line, we'll just print it as is
+					// otherwise, we have to ensure that each line is indented correctly
+					// and that the first line has the traversal information
+					valSlice := strings.Split(value.Statement, "\n")
+					fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] [bold]%s[reset] %s\n"),
+						value.Traversal, valSlice[0])
+
+					for _, line := range valSlice[1:] {
+						fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset]   %s\n"), line)
+					}
+				}
 			}
 		}
 	}
 
 	buf.WriteByte('\n')
+}
+
+func (f *snippetFormatter) printTestDiagOutput(diag *viewsjson.DiagnosticTestBinaryExpr) {
+	buf := f.buf
+	color := f.color
+	// We only print the LHS and RHS if the user has requested verbose output
+	// for the test assertion.
+	if diag.ShowVerbose {
+		fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [bold]LHS[reset]:\n"))
+		for line := range strings.SplitSeq(diag.LHS, "\n") {
+			fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset]   %s\n"), line)
+		}
+		fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [bold]RHS[reset]:\n"))
+		for line := range strings.SplitSeq(diag.RHS, "\n") {
+			fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset]   %s\n"), line)
+		}
+	}
+	if diag.Warning != "" {
+		fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] [bold]Warning[reset]: %s\n"), diag.Warning)
+	}
+	f.printJSONDiff(diag.LHS, diag.RHS)
+	buf.WriteByte('\n')
+}
+
+// printJSONDiff prints a colorized line-by-line diff of the JSON values of the LHS and RHS expressions
+// in a test assertion.
+// It visually distinguishes removed and added lines, helping users identify
+// discrepancies between an "actual" (lhsStr) and an "expected" (rhsStr) JSON output.
+func (f *snippetFormatter) printJSONDiff(lhsStr, rhsStr string) {
+
+	buf := f.buf
+	color := f.color
+	// No visible difference in the JSON, so we'll just return
+	if lhsStr == rhsStr {
+		return
+	}
+	fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [bold]Diff[reset]:\n"))
+	fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [red][bold]--- actual[reset]\n"))
+	fmt.Fprint(buf, color.Color("    [dark_gray]│[reset] [green][bold]+++ expected[reset]\n"))
+	nextLhs, stopLhs := iter.Pull(strings.SplitSeq(lhsStr, "\n"))
+	nextRhs, stopRhs := iter.Pull(strings.SplitSeq(rhsStr, "\n"))
+
+	printLine := func(prefix, line string) {
+		var colour string
+		switch prefix {
+		case "-":
+			colour = "[red]"
+		case "+":
+			colour = "[green]"
+		default:
+		}
+		msg := fmt.Sprintf("    [dark_gray]│[reset] %s%s[reset] %s\n", colour, prefix, line)
+		fmt.Fprint(buf, color.Color(msg))
+	}
+
+	// Collect differing lines separately for each side
+	removedLines := []string{}
+	addedLines := []string{}
+
+	// Function to print collected diffs and reset buffers
+	printDiffs := func() {
+		for _, line := range removedLines {
+			printLine("-", line)
+		}
+		for _, line := range addedLines {
+			printLine("+", line)
+		}
+		removedLines = []string{}
+		addedLines = []string{}
+	}
+
+	// We'll iterate over both sides of the expression and collect the differences
+	// along the way. When a match is found, we'll then print all the collected diffs
+	// and the matching line, and then reset the buffers.
+	for {
+		lhsLine, lhsOk := nextLhs()
+		rhsLine, rhsOk := nextRhs()
+
+		if !lhsOk && !rhsOk { // Both sides are done, so we'll print the diffs and break
+			printDiffs()
+			break
+		}
+
+		// If one side is done, we'll just print the remaining lines from the other side
+		if !lhsOk {
+			addedLines = append(addedLines, rhsLine)
+			continue
+		}
+		if !rhsOk {
+			removedLines = append(removedLines, lhsLine)
+			continue
+		}
+
+		if lhsLine == rhsLine {
+			printDiffs()
+			printLine(" ", lhsLine)
+		} else {
+			removedLines = append(removedLines, lhsLine)
+			addedLines = append(addedLines, rhsLine)
+		}
+	}
+
+	stopLhs()
+	stopRhs()
 }

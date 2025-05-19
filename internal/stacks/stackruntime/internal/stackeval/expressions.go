@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
@@ -25,7 +26,7 @@ import (
 
 type EvalPhase rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type EvalPhase
+//go:generate go tool golang.org/x/tools/cmd/stringer -type EvalPhase
 
 const (
 	NoPhase       EvalPhase = 0
@@ -66,6 +67,15 @@ type ExpressionScope interface {
 	// means in the receiver's evaluation scope and returns the concrete object
 	// that the address is referring to.
 	ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics)
+
+	// PlanTimestamp returns the timestamp that should be used as part of the
+	// plantimestamp function in expressions.
+	PlanTimestamp() time.Time
+
+	// ExternalFunctions should return the set of external functions that are
+	// available to the current scope. The returned function should be called
+	// when the returned functions are no longer needed.
+	ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics)
 }
 
 // EvalContextForExpr produces an HCL expression evaluation context for the
@@ -92,7 +102,8 @@ func EvalContextForBody(ctx context.Context, body hcl.Body, spec hcldec.Spec, ph
 }
 
 func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, phase EvalPhase, scope ExpressionScope) (*hcl.EvalContext, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
+	functions, diags := scope.ExternalFunctions(ctx)
+
 	refs := make(map[stackaddrs.Referenceable]Referenceable)
 	for _, traversal := range traversals {
 		ref, _, moreDiags := stackaddrs.ParseReference(traversal)
@@ -181,11 +192,12 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 	// use the same functions but have entirely separate implementations
 	// of what data is in scope.
 	fakeScope := &lang.Scope{
-		Data:        nil, // not a real scope; can't actually make an evalcontext
-		BaseDir:     ".",
-		PureOnly:    phase != ApplyPhase,
-		ConsoleMode: false,
-		// TODO: PlanTimestamp
+		Data:          nil, // not a real scope; can't actually make an evalcontext
+		BaseDir:       ".",
+		PureOnly:      phase != ApplyPhase,
+		ConsoleMode:   false,
+		PlanTimestamp: scope.PlanTimestamp(),
+		ExternalFuncs: functions,
 	}
 	hclCtx := &hcl.EvalContext{
 		Variables: map[string]cty.Value{
@@ -491,6 +503,6 @@ type JustValue struct {
 var _ Referenceable = JustValue{}
 
 // ExprReferenceValue implements Referenceable.
-func (jv JustValue) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
+func (jv JustValue) ExprReferenceValue(context.Context, EvalPhase) cty.Value {
 	return jv.v
 }

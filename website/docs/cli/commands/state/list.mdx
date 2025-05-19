@@ -1,13 +1,13 @@
 ---
-page_title: 'Command: state list'
+page_title: terraform state list command reference
 description: >-
-  The terraform state list command is used to list resources within a Terraform
+  The terraform state list command lists resources within a Terraform
   state.
 ---
 
-# Command: state list
+# `terraform state list` command
 
-The `terraform state list` command is used to list resources within a
+The `terraform state list` command lists resources within a
 [Terraform state](/terraform/language/state).
 
 ## Usage
@@ -18,7 +18,7 @@ The command will list all resources in the state file matching the given
 addresses (if any). If no addresses are given, all resources are listed.
 
 The resources listed are sorted according to module depth order followed
-by alphabetical. This means that resources that are in your immediate
+alphabetically. This means that resources that are in your immediate
 configuration are listed first, and resources that are more deeply nested
 within modules are listed last.
 

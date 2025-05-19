@@ -1,18 +1,18 @@
 ---
-page_title: 'Command: init'
+page_title: terraform init command reference
 description: >-
-  The terraform init command initializes a working directory containing
+  The `terraform init` command initializes a working directory containing
   configuration files and installs plugins for required providers.
 ---
 
-# Command: init
-
-> **Hands-on:** Try the [Terraform: Get Started](/terraform/tutorials/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials. For more in-depth details on the `init` command, check out the [Initialize Terraform Configuration tutorial](/terraform/tutorials/cli/init?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
+# `terraform init` command
 
 The `terraform init` command initializes a working directory
-containing Terraform configuration files. This is the first command that should
-be run after writing a new Terraform configuration or cloning an existing one
+containing Terraform configuration files. This is the first command you should
+run after writing a new Terraform configuration or cloning an existing configuration
 from version control. It is safe to run this command multiple times.
+
+> **Hands-on:** Try the [Terraform: Get Started](/terraform/tutorials/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials. For more in-depth details on the `init` command, check out the [Initialize Terraform Configuration tutorial](/terraform/tutorials/cli/init?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
 
 ## Usage
 
@@ -74,7 +74,7 @@ activating credentials) before running `terraform init`.
 ## Backend Initialization
 
 During init, the root configuration directory is consulted for
-[backend configuration](/terraform/language/settings/backends/configuration) and the chosen backend
+[backend configuration](/terraform/language/backend) and the chosen backend
 is initialized using the given configuration settings.
 
 Re-running init with an already-initialized backend will update the working
@@ -96,7 +96,7 @@ when the working directory was already previously initialized for a particular
 backend.
 
 The `-backend-config=...` option can be used for
-[partial backend configuration](/terraform/language/settings/backends/configuration#partial-configuration),
+[partial backend configuration](/terraform/language/backend#partial-configuration),
 in situations where the backend settings are dynamic or sensitive and so cannot
 be statically specified in the configuration file.
 

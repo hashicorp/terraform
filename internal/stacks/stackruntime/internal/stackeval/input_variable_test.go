@@ -6,14 +6,20 @@ package stackeval
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/promising"
-	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
+	"google.golang.org/protobuf/encoding/prototext"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/promising"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 )
 
 func TestInputVariableValue(t *testing.T) {
@@ -21,7 +27,7 @@ func TestInputVariableValue(t *testing.T) {
 	cfg := testStackConfig(t, "input_variable", "basics")
 
 	// NOTE: This also indirectly tests the propagation of input values
-	// from a parent stack into one of itschildren, even though that's
+	// from a parent stack into one of its children, even though that's
 	// technically the responsibility of [StackCall] rather than [InputVariable],
 	// because propagating downward into child stacks is a major purpose
 	// of input variables that must keep working.
@@ -81,8 +87,8 @@ func TestInputVariableValue(t *testing.T) {
 
 			t.Run("root", func(t *testing.T) {
 				promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
-					mainStack := main.MainStack(ctx)
-					rootVar := mainStack.InputVariable(ctx, stackaddrs.InputVariable{Name: "name"})
+					mainStack := main.MainStack()
+					rootVar := mainStack.InputVariable(stackaddrs.InputVariable{Name: "name"})
 					got, diags := rootVar.CheckValue(ctx, InspectPhase)
 
 					if test.WantRootErr {
@@ -106,7 +112,7 @@ func TestInputVariableValue(t *testing.T) {
 				t.Run("child", func(t *testing.T) {
 					promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
 						childStack := main.Stack(ctx, childStackAddr, InspectPhase)
-						rootVar := childStack.InputVariable(ctx, stackaddrs.InputVariable{Name: "name"})
+						rootVar := childStack.InputVariable(stackaddrs.InputVariable{Name: "name"})
 						got, diags := rootVar.CheckValue(ctx, InspectPhase)
 						if diags.HasErrors() {
 							t.Errorf("unexpected errors\n%s", diags.Err().Error())
@@ -190,7 +196,7 @@ func TestInputVariableEphemeral(t *testing.T) {
 				if childStack == nil {
 					t.Fatalf("missing %s", childStackAddr)
 				}
-				childStackCall := main.MainStack(ctx).EmbeddedStackCall(ctx, childStackCallAddr)
+				childStackCall := main.MainStack().EmbeddedStackCall(childStackCallAddr)
 				if childStackCall == nil {
 					t.Fatalf("missing %s", childStackCallAddr)
 				}
@@ -216,7 +222,7 @@ func TestInputVariableEphemeral(t *testing.T) {
 					t.Errorf("wrong inputs for %s\n%s", childStackCallAddr, diff)
 				}
 
-				aVar := childStack.InputVariable(ctx, aVarAddr)
+				aVar := childStack.InputVariable(aVarAddr)
 				if aVar == nil {
 					t.Fatalf("missing %s", stackaddrs.Absolute(childStackAddr, aVarAddr))
 				}
@@ -250,6 +256,234 @@ func TestInputVariableEphemeral(t *testing.T) {
 				}
 				return struct{}{}, nil
 			})
+		})
+	}
+}
+
+func TestInputVariablePlanApply(t *testing.T) {
+	ctx := context.Background()
+	cfg := testStackConfig(t, "input_variable", "basics")
+
+	tests := map[string]struct {
+		PlanVal  cty.Value
+		ApplyVal cty.Value
+		WantErr  bool
+	}{
+		"unmarked": {
+			PlanVal:  cty.StringVal("alisdair"),
+			ApplyVal: cty.StringVal("alisdair"),
+		},
+		"sensitive": {
+			PlanVal:  cty.StringVal("alisdair").Mark(marks.Sensitive),
+			ApplyVal: cty.StringVal("alisdair").Mark(marks.Sensitive),
+		},
+		"changed": {
+			PlanVal:  cty.StringVal("alice"),
+			ApplyVal: cty.StringVal("bob"),
+			WantErr:  true,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			planOutput, err := promising.MainTask(ctx, func(ctx context.Context) (*planOutputTester, error) {
+				main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
+					PlanningMode:  plans.NormalMode,
+					PlanTimestamp: time.Now().UTC(),
+					InputVariableValues: map[stackaddrs.InputVariable]ExternalInputValue{
+						{Name: "name"}: {
+							Value: test.PlanVal,
+						},
+					},
+				})
+
+				outp, outpTester := testPlanOutput(t)
+				main.PlanAll(ctx, outp)
+
+				return outpTester, nil
+			})
+			if err != nil {
+				t.Fatalf("planning failed: %s", err)
+			}
+
+			rawPlan := planOutput.RawChanges(t)
+			plan, diags := planOutput.Close(t)
+			assertNoDiagnostics(t, diags)
+
+			if !plan.Applyable {
+				m := prototext.MarshalOptions{
+					Multiline: true,
+					Indent:    "  ",
+				}
+				for _, raw := range rawPlan {
+					t.Log(m.Format(raw))
+				}
+				t.Fatalf("plan is not applyable")
+			}
+
+			_, err = promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
+				main := NewForApplying(cfg, plan, nil, ApplyOpts{
+					InputVariableValues: map[stackaddrs.InputVariable]ExternalInputValue{
+						{Name: "name"}: {
+							Value: test.ApplyVal,
+						},
+					},
+				})
+				mainStack := main.MainStack()
+				rootVar := mainStack.InputVariable(stackaddrs.InputVariable{Name: "name"})
+				got, diags := rootVar.CheckValue(ctx, ApplyPhase)
+
+				if test.WantErr {
+					if !diags.HasErrors() {
+						t.Errorf("succeeded; want error\ngot: %#v", got)
+					}
+					return struct{}{}, nil
+				}
+
+				if diags.HasErrors() {
+					t.Errorf("unexpected errors\n%s", diags.Err().Error())
+				}
+				want := test.ApplyVal
+				if !want.RawEquals(got) {
+					t.Errorf("wrong value\ngot:  %#v\nwant: %#v", got, want)
+				}
+
+				return struct{}{}, nil
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestInputVariablePlanChanges(t *testing.T) {
+	ctx := context.Background()
+	cfg := testStackConfig(t, "input_variable", "basics")
+
+	tests := map[string]struct {
+		PlanVal            cty.Value
+		PreviousPlanVal    cty.Value
+		WantPlannedChanges []stackplan.PlannedChange
+	}{
+		"unmarked": {
+			PlanVal:         cty.StringVal("value_1"),
+			PreviousPlanVal: cty.NullVal(cty.String),
+			WantPlannedChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:            stackaddrs.InputVariable{Name: "name"},
+					Action:          plans.Update,
+					Before:          cty.NullVal(cty.String),
+					After:           cty.StringVal("value_1"),
+					RequiredOnApply: false,
+					DeleteOnApply:   false,
+				},
+			},
+		},
+		"sensitive": {
+			PlanVal:         cty.StringVal("value_2").Mark(marks.Sensitive),
+			PreviousPlanVal: cty.NullVal(cty.String),
+			WantPlannedChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:            stackaddrs.InputVariable{Name: "name"},
+					Action:          plans.Update,
+					Before:          cty.NullVal(cty.String),
+					After:           cty.StringVal("value_2").Mark(marks.Sensitive),
+					RequiredOnApply: false,
+					DeleteOnApply:   false,
+				},
+			},
+		},
+		"ephemeral": {
+			PlanVal:         cty.StringVal("value_3").Mark(marks.Ephemeral),
+			PreviousPlanVal: cty.NullVal(cty.String),
+			WantPlannedChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:            stackaddrs.InputVariable{Name: "name"},
+					Action:          plans.Update,
+					Before:          cty.NullVal(cty.String),
+					After:           cty.StringVal("value_3").Mark(marks.Ephemeral),
+					RequiredOnApply: false,
+					DeleteOnApply:   false,
+				},
+			},
+		},
+		"sensitive_and_ephemeral": {
+			PlanVal:         cty.StringVal("value_4").Mark(marks.Ephemeral).Mark(marks.Sensitive),
+			PreviousPlanVal: cty.NullVal(cty.String),
+			WantPlannedChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:            stackaddrs.InputVariable{Name: "name"},
+					Action:          plans.Update,
+					Before:          cty.NullVal(cty.String),
+					After:           cty.StringVal("value_4").Mark(marks.Ephemeral).Mark(marks.Sensitive),
+					RequiredOnApply: false,
+					DeleteOnApply:   false,
+				},
+			},
+		},
+		"from_non_null_to_sensitive": {
+			PlanVal:         cty.StringVal("value_2").Mark(marks.Sensitive),
+			PreviousPlanVal: cty.StringVal("value_1"),
+			WantPlannedChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:            stackaddrs.InputVariable{Name: "name"},
+					Action:          plans.Update,
+					Before:          cty.StringVal("value_1"),
+					After:           cty.StringVal("value_2").Mark(marks.Sensitive),
+					RequiredOnApply: false,
+					DeleteOnApply:   false,
+				},
+			},
+		},
+		"from_ephemeral_to_unmark": {
+			PlanVal:         cty.StringVal("value_2"),
+			PreviousPlanVal: cty.StringVal("value_1").Mark(marks.Ephemeral),
+			WantPlannedChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:            stackaddrs.InputVariable{Name: "name"},
+					Action:          plans.Update,
+					Before:          cty.StringVal("value_1").Mark(marks.Ephemeral),
+					After:           cty.StringVal("value_2"),
+					RequiredOnApply: false,
+					DeleteOnApply:   false,
+				},
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := promising.MainTask(ctx, func(ctx context.Context) (*planOutputTester, error) {
+				previousState := stackstate.NewStateBuilder().AddInput("name", test.PreviousPlanVal).Build()
+
+				main := NewForPlanning(cfg, previousState, PlanOpts{
+					PlanningMode:  plans.NormalMode,
+					PlanTimestamp: time.Now().UTC(),
+					InputVariableValues: map[stackaddrs.InputVariable]ExternalInputValue{
+						{Name: "name"}: {
+							Value: test.PlanVal,
+						},
+					},
+				})
+
+				mainStack := main.MainStack()
+				rootVar := mainStack.InputVariable(stackaddrs.InputVariable{Name: "name"})
+				got, diags := rootVar.PlanChanges(ctx)
+				if diags.HasErrors() {
+					t.Errorf("unexpected errors\n%s", diags.Err().Error())
+				}
+
+				opts := cmp.Options{ctydebug.CmpOptions}
+				if diff := cmp.Diff(test.WantPlannedChanges, got, opts); len(diff) > 0 {
+					t.Errorf("wrong planned changes\n%s", diff)
+				}
+
+				return nil, nil
+			})
+			if err != nil {
+				t.Fatalf("planning failed: %s", err)
+			}
 		})
 	}
 }

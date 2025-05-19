@@ -27,7 +27,12 @@ var (
 	_ GraphNodeExecutable          = (*NodeForgetResourceInstance)(nil)
 	_ GraphNodeProviderConsumer    = (*NodeForgetResourceInstance)(nil)
 	_ GraphNodeProvisionerConsumer = (*NodeForgetResourceInstance)(nil)
+	_ GraphNodeDestroyer           = (*NodeForgetResourceInstance)(nil)
 )
+
+func (n *NodeForgetResourceInstance) DestroyAddr() *addrs.AbsResourceInstance {
+	return &n.Addr
+}
 
 func (n *NodeForgetResourceInstance) Name() string {
 	return n.ResourceInstanceAddr().String() + " (forget)"
@@ -76,7 +81,7 @@ func (n *NodeForgetResourceInstance) Execute(ctx EvalContext, op walkOperation) 
 		return diags
 	}
 
-	ctx.State().ForgetResourceInstanceAll(n.Addr)
+	ctx.State().ForgetResourceInstanceCurrent(n.Addr)
 
 	diags = diags.Append(updateStateHook(ctx))
 	return diags
