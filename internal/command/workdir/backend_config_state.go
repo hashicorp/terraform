@@ -58,7 +58,7 @@ func (s *BackendConfigState) SetConfig(val cty.Value, schema *configschema.Block
 	return nil
 }
 
-// ForPlan produces an alternative representation of the reciever that is
+// ForPlan produces an alternative representation of the receiver that is
 // suitable for storing in a plan. The current workspace must additionally
 // be provided, to be stored alongside the backend configuration.
 //
