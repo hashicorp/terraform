@@ -165,11 +165,6 @@ func getProviderSchemaResponseFromProviderSchema(providerSchema *providerSchema)
 			Body:    schema,
 			Version: int64(providerSchema.ListResourceTypeSchemaVersions[name]),
 		}
-		id, ok := providerSchema.IdentityTypes[name]
-		if ok {
-			ps.Identity = id
-			ps.IdentityVersion = int64(providerSchema.IdentityTypeSchemaVersions[name])
-		}
 		resp.ListResourceTypes[name] = ps
 	}
 

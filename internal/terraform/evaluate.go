@@ -819,7 +819,10 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 	// so that we can differentiate between a list resource instance (list.aws_instance.test[index])
 	// and the elements of the result of a list resource instance (list.aws_instance.test.data[index])
 	wrappedVal := func(v *states.ResourceInstanceObject) cty.Value {
-		return cty.ObjectVal(map[string]cty.Value{"data": v.Value})
+		return cty.ObjectVal(map[string]cty.Value{
+			"data":     v.Value,
+			"identity": v.Identity,
+		})
 	}
 	lAddr := config.Addr()
 	mAddr := addrs.Resource{
@@ -827,8 +830,8 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 		Type: lAddr.Type,
 		Name: lAddr.Name,
 	}
-	schema := d.getResourceSchema(mAddr, config.Provider)
-	if schema.Body == nil {
+	resourceSchema := d.getResourceSchema(mAddr, config.Provider)
+	if resourceSchema.Body == nil {
 		// This shouldn't happen, since validation before we get here should've
 		// taken care of it, but we'll show a reasonable error message anyway.
 		diags = diags.Append(&hcl.Diagnostic{
@@ -839,7 +842,7 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 		})
 		return cty.DynamicVal, diags
 	}
-	ty := schema.Body.ImpliedType()
+	resourceType := resourceSchema.Body.ImpliedType()
 	instances := d.Evaluator.State.GetListResource(lAddr.Absolute(d.ModulePath))
 
 	if len(instances.Values()) == 0 {
@@ -877,7 +880,7 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 			// Insert unknown values where there are any missing instances
 			for i, v := range vals {
 				if v == cty.NilVal {
-					vals[i] = cty.UnknownVal(ty)
+					vals[i] = cty.UnknownVal(resourceType)
 				}
 			}
 			ret = cty.TupleVal(vals)
@@ -909,7 +912,7 @@ func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdi
 		if !ok {
 			// if the instance is missing, insert an unknown value
 			inst = &states.ResourceInstanceObject{
-				Value: cty.UnknownVal(ty),
+				Value: cty.UnknownVal(resourceType),
 			}
 		}
 
