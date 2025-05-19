@@ -49,7 +49,7 @@ better editing experience as a result.
 Given a template file `backends.tftpl` with the following content:
 
 ```
-%{ for addr, port in ip_addrs ~}
+%{ for addr in ip_addrs ~}
 backend ${addr}:${port}
 %{ endfor ~}
 ```
