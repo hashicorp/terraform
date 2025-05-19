@@ -182,10 +182,7 @@ The keys of the `providers` map are provider configuration names as expected by
 the child module, and the values are the names of corresponding configurations
 in the _current_ module.
 
-If the unaliased `provider` name is not present in the providers map, 
-it will still be inherited in the same way as implicit provider inheritance.
-`providers` argument used in `module` block will not override the default 
-inheritance behavior.
+Modules implicitly inherit default providers. Setting a `providers` argument within a `module` block overrides the default inheritance behavior for that provider.
 
 Additional provider configurations (those with the `alias` argument set) are
 _never_ inherited automatically by child modules, and so must always be passed
