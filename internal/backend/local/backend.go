@@ -183,6 +183,10 @@ func (b *Local) Configure(obj cty.Value) tfdiags.Diagnostics {
 	return diags
 }
 
+func (b *Local) ServiceDiscoveryAliases() ([]backend.HostAlias, error) {
+	return []backend.HostAlias{}, nil
+}
+
 func (b *Local) Workspaces() ([]string, error) {
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {

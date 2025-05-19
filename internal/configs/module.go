@@ -418,18 +418,6 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 				})
 				continue
 			}
-
-			if i.ID == mi.ID {
-				if i.To.Resource.Resource.Type == mi.To.Resource.Resource.Type {
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  fmt.Sprintf("Duplicate import for ID %q", i.ID),
-						Detail:   fmt.Sprintf("An import block for the ID %q and a resource of type %q was already declared at %s. The same resource cannot be imported twice.", i.ID, i.To.Resource.Resource.Type, mi.DeclRange),
-						Subject:  &i.DeclRange,
-					})
-					continue
-				}
-			}
 		}
 
 		if i.ProviderConfigRef != nil {

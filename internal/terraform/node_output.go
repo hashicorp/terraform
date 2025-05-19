@@ -108,10 +108,6 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 				Planning: n.Planning,
 			}
 
-		case n.Destroying:
-			// nothing is done here for non-root outputs
-			continue
-
 		default:
 			node = &NodeApplyableOutput{
 				Addr:         absAddr,

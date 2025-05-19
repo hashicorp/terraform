@@ -47,10 +47,10 @@ func (c *GetCommand) Run(args []string) int {
 
 func (c *GetCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] get [options] PATH
+Usage: terraform [global options] get [options]
 
-  Downloads and installs modules needed for the configuration given by
-  PATH.
+  Downloads and installs modules needed for the configuration in the 
+  current working directory.
 
   This recursively downloads all modules needed, such as modules
   imported by modules imported by the root and so on. If a module is
