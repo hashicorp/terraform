@@ -1,0 +1,269 @@
+---
+page_title: Refactor Terraform state
+description: >-
+  Learn how to move resources between state files and identify dependencies between resources.
+---
+
+# Refactor Terraform state
+
+As your Terraform configuration grows in complexity, you might want to reorganize your resources to improve maintainability and performance. Terraform operations complete faster when you split configuration with large state files.
+
+This topic reviews the steps you must take to split your Terraform state across multiple configurations. First, you must plan how you will group your resources and identify inter-resource dependencies. Then you must choose the best approach to migrate resources from one state file to another. Finally, you must decide which approach to take to move resources between state files.
+
+Even small refactors require that you keep these principles in mind. Keep in mind that refactoring your configuration requires updating both the configuration and the corresponding state files.
+
+## Identify opportunities to refactor
+
+When refactoring your Terraform configuration, identify groups of resources that may benefit from a separate cadence of lifecycle management, or logically-related collections of resources that you can capture in a module instead. Refactoring your Terraform configuration should make it easier to maintain.
+
+The following are some common opportunities for refactoring:
+
+- **Long Terraform applies.** Your configuration has grown over time and become cumbersome to manage. Large, monolithic configuration can cause Terraform plan and apply operations to take a long time to complete and cause unintended changes.
+- **Changes to management lifecycles.** Managing frequently updated resources separately from infrequently updated resources can help simplify your operations and reduce the blast radius of unintended changes.
+- **Changes to resource ownership.** In some organizations, teams may split the responsibility of maintaining different parts of the architecture. In these cases, it is common for teams to refactor the configuration and state to match their area of ownership and scope.
+- **Reusable module opportunity.** You have identified a subsection of your configuration that would make for a good module. If you create the same set of resources in multiple configurations, we recommend grouping those resources into a module and reusing it across your organization.
+
+## Plan your refactored state
+
+You must plan how you will group resources before starting refactoring your configuration. 
+Consider the following resource properties when deciding how to group resources together:
+
+- **Volatility and rate of change:** By exposing your long-living infrastructure to unnecessary volatility, you introduce more opportunities for accidental changes. For example, you may scale the number of compute resources your configuration deploys several times a day, but your networking configuration may stay static for months. By managing your network resources separately, you reduce the risk of making unintended changes to it.
+- **Stateful versus stateless:** By managing stateful resources independently of stateless ones, such as separating databases from compute instances, you limit the blast radius of operations that re-provision resources and help protect against accidental data loss.
+- **Access and team responsibility:** By splitting your workspaces by team, you limit the responsibility per workspace and allow teams to maintain distinct areas of ownership. This helps ensure that only users familiar with specific parts of your infrastructure make changes to the related configuration.
+
+To learn about different strategies for grouping resources, refer to the [Workspace best practices](/terraform/cloud-docs/workspaces/best-practices) documentation.
+
+## Identify dependencies
+
+As you migrate resources from one state file to another, you must identify dependencies between resources. For example, you may have compute resources that depend on your network resources. If you migrate those network resources to a new state file, your compute resources no longer be able to reference the network.
+
+We recommend using dynamic references rather than hardcoding information about resources in another configuration. Hardcoding information requires you to manually update the configuration whenever the data changes, which can lead to errors in your configuration or your deployed resources.
+
+You can use the following dynamic approaches to reference resources in another state file:
+
+- If your provider supports it, you can use a resource-specific data source to query your cloud provider. For example, you can use the [`aws_vpc`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/vpc) data source to look up information about a VPC created in another configuration.
+- If you use HCP Terraform or Terraform Enterprise, you can use the [`tfe_outputs`](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs) data source to reference outputs from another workspace.
+- If you are using another remote backend, or the local backend, you can use the [`terraform_remote_state`](/terraform/language/state/remote-state-data) data source. To access state in an HCP Terraform workspace, you must explicitly specify which other workspaces have access. Refer to [remote state sharing](/terraform/cloud-docs/workspaces/settings#remote-state-sharing) for more information.
+
+
+You can use the [`terraform graph`](/terraform/cli/commands/graph) command to help visualize the relationships between the resources in your configuration and identify any dependencies.
+
+## Migrate resources
+
+When you refactor your Terraform configuration, we recommend that you recreate stateless resources in a new Terraform configuration if you can do so without incurring downtime or extra cost.
+
+Stateful resources, such as databases and object stores, are more complicated to migrate. Often, you cannot delete and recreate them, or it may be complex and expensive to backup and restore the data. In this case, you can migrate your resources by moving them between state files.
+
+There are two common approaches to migrating resources between two Terraform state files:
+
+- [Remove and import](#remove-and-import): Explicitly remove resources from one Terraform state file, then add it to another. We recommend this approach since the `removed` and `import` blocks help keep a record of the configuration history.
+- [Move resources directly to a new state file](#move-resources-directly-to-a-new-state-file): Use the `terraform state mv` command to move resources into a different state file. This is a legacy command, but is still supported in all versions of Terraform version 1.0 and newer.
+
+### Requirements
+
+[Removing and importing resources](#remove-and-import) requires Terraform version 1.7 or newer.
+
+[Moving resources directly to a new state file](#move-resources-directly-to-a-new-state-file) using the Terraform CLI requires Terraform version 1.0 or newer.
+
+### Remove and import
+
+You can use Terraform's configuration-driven `removed` and `import` blocks to move resources between state files without destroying them.
+
+The following example is an initial resource configuration that you will move to a new state file.
+
+<CodeBlockConfig hideClipboard>
+
+```hcl
+resource "aws_instance" "example" {
+    instance_type = "t3.micro"
+    ami = data.aws_ami.example.id
+}
+```
+
+</CodeBlockConfig>
+
+In your source configuration, complete the following steps to remove the resources:
+
+1. Retrieve your latest Terraform state and save the output to a file as a backup.
+
+    ```shell-session
+    $ terraform state pull > terraform.tfstate.backup
+    ```
+
+1. Review your provider's configuration to check which attribute you must use to import your resource type before you remove it. For example, the import [`aws_instance`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance#import) resource uses the `id` attribute to import an EC2 instance into your Terraform state.
+
+    ```shell-session
+    $ terrafrom state show aws_instance.example
+    ##...
+    id = "i-07b510cff5f79af00"
+    ##...
+    ```
+
+1. For each resource you want to migrate, replace the `resource`  block with a `removed` block to remove the resource from your state without destroying it. These `removed` blocks can exist anywhere in your configuration, but we recommend your organization standardizes where to declare these blocks  to help with future maintenance. One common approach is defining the `removed` block in the file that previously contained the corresponding `resource` block.
+
+    <CodeBlockConfig hideClipboard>
+
+    ```diff
+    - resource "aws_instance" "example" {
+    -     instance_type = "t3.micro"
+    -     ami = data.aws_ami.example.id
+    - }
+
+    + removed {
+    +   from = aws_instance.example
+    +   lifecycle {
+    +     destroy = false
+    +   }
+    + }
+    ```
+
+    </CodeBlockConfig>
+
+1. Run `terraform plan` to ensure that Terraform will not destroy the resources.
+
+    <CodeBlockConfig hideClipboard>
+    
+    ```bash
+    # aws_instance.example will no longer be managed by Terraform, but will not be destroyed
+    # (destroy = false is set in the configuration)
+    . resource "aws_instance" "example" {
+            id                                   = "i-07b510cff5f79af00"
+    ##...
+    ```
+
+    </CodeBlockConfig>
+
+1. Run `terraform apply` to remove the resource from state.
+
+Then, in your destination configuration, complete the following steps to import the resources:
+
+1. Add the resources to the configuration you are migrating the resources to.
+1. For each added resource, add an `import` block to add the resource to your state without recreating it. These `import` blocks can exist anywhere in your configuration, but we recommend you standardize on location in your organization to help with future maintenance. One common practice is to define the `import` block in the same file you add the `resource` block to.
+
+    ```hcl
+    resource "aws_instance" "example" {
+        instance_type = "t3.micro"
+        ami = data.aws_ami.example.id
+    }
+
+    import {
+    id = "i-07b510cff5f79af00"
+    to = aws_instance.example
+    }
+    ```
+
+1. Run `terraform plan` to ensure that Terraform will properly import the resources.
+
+    <CodeBlockConfig hideClipboard>
+
+    ```bash
+    # aws_instance.example will be imported
+        resource "aws_instance" "example" {
+    ```
+
+    </CodeBlockConfig>
+
+1. Run `terraform apply` to complete the import. 
+
+    ```shell-session
+    $ terraform apply 
+
+    ##...
+
+    Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
+
+    Do you want to perform these actions?
+    Terraform will perform the actions described above.
+    Only 'yes' will be accepted to approve.
+
+    Enter a value: yes
+
+    aws_instance.example: Importing... [id=i-12345678901234567]
+    aws_instance.example: Import complete [id=i-12345678901234567]
+
+    Apply complete! Resources: 1 imported, 0 added, 0 changed, 0 destroyed.
+    ```
+
+After you complete the migration you can optionally remove the `removed` and `import` blocks, or choose to keep them as a record of the resource's lifecycle.
+
+Refer to the following documentation to learn more about the `removed` and `import` blocks:
+
+- [Removing resources](/terraform/language/resources/syntax#removing-resources)
+- [Import block reference documentation](/terraform/language/import) 
+
+### Move resources directly to a new state file
+
+You can also use the `terraform state mv` command to move resources directly between state files. 
+
+<Warning>
+
+The `-state` and `-state-out` flags are legacy options that Terraform maintains for backwards compatibility. 
+
+This approach also uses the `terraform state pull` and `terraform state push` commands. While Terraform performs safety checks when you manually update remote state, this method does have some risk of corrupting your remote state.
+
+We recommend that you use the `removed` and `import` blocks documented above for any new migrations.
+
+</Warning>
+
+#### Prepare the state files
+
+If you are using the local state backend, you can move resources directly between two state files. If you are using a remote state backend, such as HCP Terraform or AWS S3, you must first download the state files for the source and destination workspaces.
+
+To download the state files, complete the following steps:
+
+1. In the directory with your source configuration, use the `terraform state pull` command to save the state file locally.
+
+    ```shell-session
+    $ terraform state pull > source.tfstate
+    ```
+
+1. In the directory with your destination configuration, use the `terraform state pull` command to save the state file locally.
+
+    ```shell-session
+    $ terraform state pull > destination.tfstate
+    ```
+
+#### Move the resources
+
+Next, use the `terraform state mv` command to move the resource from the source state to the destination state.
+
+```shell-session
+$ terraform state mv -state source/source.tfstate -state-out destination/destination.tfstate aws_instance.example aws_instance.example
+
+Move "aws_instance.example" to "aws_instance.example"
+Successfully moved 1 object(s).
+```
+
+The `terraform state mv` command uses the `-state` flag to point to the source state file, and the `-state-out` flag to point to the destination state file. The final two arguments tell Terraform which resource to move out from the source state, and the resource to move it to in the destination state.
+
+Repeat this step for every resource you want to migrate.
+
+#### Push the state files
+
+If you are using a remote backend, you must push the state files to the backend with the `terraform state push` command.
+
+1. In the directory with your source configuration, use the `terraform state push` command to update the remote state.
+
+    ```shell-session
+    $ terraform state push source.tfstate
+    ```
+
+1. In the directory with your destination configuration, use the `terraform state push` command to update the remote state.
+
+    ```shell-session
+    $ terraform state push destination.tfstate
+    ```
+
+#### Update your configuration and verify the migration
+
+Next, update your configuration to match your state, and then verify that your changes are correct.
+
+1. Remove the resources that you migrated from your source configuration.
+1. Run `terraform plan` on your source configuration and ensure that Terraform will not make any changes to your infrastructure.
+1. Add the resources that you migrated to your destination configuration.
+1. Run `terraform plan` on your destination configuration and ensure that Terraform will not make any changes to your infrastructure.
+1. Create pull requests for the repositories that store your source and destination configurations. If your code review process creates a speculative plan for changes to your Terraform configuration, review the results and ensure that Terraform will not make any changes to your infrastructure.
+1. Merge the pull requests.
+
+Refer to the [`terraform state mv` command reference documentation](/terraform/cli/commands/state/mv) to learn more.

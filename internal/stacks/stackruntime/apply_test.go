@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -41,7 +42,7 @@ import (
 
 var changesCmpOpts = cmp.Options{
 	ctydebug.CmpOptions,
-	cmpCollectionsSet,
+	collections.CmpOptions,
 	cmpopts.IgnoreUnexported(addrs.InputVariable{}),
 	cmpopts.IgnoreUnexported(states.ResourceInstanceObjectSrc{}),
 }
@@ -1119,6 +1120,10 @@ func TestApply(t *testing.T) {
 								"removed": cty.StringVal("removed"),
 							}),
 						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("removed-direct"),
+							Value: cty.SetValEmpty(cty.String),
+						},
 					},
 				},
 			},
@@ -1967,7 +1972,7 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 							Summary:  "No value for required variable",
 							Detail:   "The root input variable \"var.ephemeral\" is not set, and has no default value.",
 							Subject: &hcl.Range{
-								Filename: "git::https://example.com/test.git//with-single-input/ephemeral/ephemeral.tfstack.hcl",
+								Filename: "git::https://example.com/test.git//with-single-input/ephemeral/ephemeral.tfcomponent.hcl",
 								Start: hcl.Pos{
 									Line:   14,
 									Column: 1,
@@ -4212,7 +4217,7 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 				"value": cty.StringVal("hello, world!"),
 			},
 			PlannedCheckResults: &states.CheckResults{},
-			PlannedProviderFunctionResults: []providers.FunctionHash{
+			PlannedProviderFunctionResults: []lang.FunctionResultHash{
 				{
 					Key:    providerFunctionHashArgs(mustDefaultRootProvider("testing").Provider, "echo", cty.StringVal("hello, world!")),
 					Result: providerFunctionHashResult(cty.StringVal("hello, world!")),
@@ -4242,7 +4247,7 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 			Schema:             stacks_testing_provider.TestingResourceSchema,
 		},
 		&stackplan.PlannedChangeProviderFunctionResults{
-			Results: []providers.FunctionHash{
+			Results: []lang.FunctionResultHash{
 				{
 					Key:    providerFunctionHashArgs(mustDefaultRootProvider("testing").Provider, "echo", cty.StringVal("hello, world!")),
 					Result: providerFunctionHashResult(cty.StringVal("hello, world!")),
@@ -4268,7 +4273,7 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 			After:  cty.StringVal("hello, world!"),
 		},
 	}
-	if diff := cmp.Diff(wantPlanChanges, planChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantPlanChanges, planChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 
@@ -4294,10 +4299,10 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 
 	// just verify the plan is correctly loading the provider function results
 	// as well
-	if len(plan.ProviderFunctionResults) == 0 {
+	if len(plan.FunctionResults) == 0 {
 		t.Errorf("expected provider function results, got none")
 
-		if len(plan.Components.Get(mustAbsComponentInstance("component.self")).PlannedFunctionResults) == 0 {
+		if len(plan.GetComponent(mustAbsComponentInstance("component.self")).PlannedFunctionResults) == 0 {
 			t.Errorf("expected component function results, got none")
 		}
 	}

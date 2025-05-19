@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
@@ -217,7 +218,7 @@ type PlannedChangeComponentInstance struct {
 
 	PlannedCheckResults *states.CheckResults
 
-	PlannedProviderFunctionResults []providers.FunctionHash
+	PlannedProviderFunctionResults []lang.FunctionResultHash
 
 	// PlanTimestamp is the timestamp that would be returned from the
 	// "plantimestamp" function in modules inside this component. We
@@ -278,9 +279,9 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*stacks.PlannedC
 		return nil, fmt.Errorf("failed to encode check results: %s", err)
 	}
 
-	var plannedFunctionResults []*planproto.ProviderFunctionCallHash
+	var plannedFunctionResults []*planproto.FunctionCallHash
 	for _, result := range pc.PlannedProviderFunctionResults {
-		plannedFunctionResults = append(plannedFunctionResults, &planproto.ProviderFunctionCallHash{
+		plannedFunctionResults = append(plannedFunctionResults, &planproto.FunctionCallHash{
 			Key:    result.Key,
 			Result: result.Result,
 		})
@@ -303,7 +304,7 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*stacks.PlannedC
 		DependsOnComponentAddrs: componentAddrsRaw,
 		PlannedOutputValues:     plannedOutputValues,
 		PlannedCheckResults:     plannedCheckResults,
-		ProviderFunctionResults: plannedFunctionResults,
+		FunctionResults:         plannedFunctionResults,
 	}, proto.MarshalOptions{})
 	if err != nil {
 		return nil, err
@@ -828,15 +829,15 @@ func (pc *PlannedChangeApplyable) PlannedChangeProto() (*stacks.PlannedChange, e
 }
 
 type PlannedChangeProviderFunctionResults struct {
-	Results []providers.FunctionHash
+	Results []lang.FunctionResultHash
 }
 
 var _ PlannedChange = (*PlannedChangeProviderFunctionResults)(nil)
 
 func (pc *PlannedChangeProviderFunctionResults) PlannedChangeProto() (*stacks.PlannedChange, error) {
-	var results tfstackdata1.ProviderFunctionResults
+	var results tfstackdata1.FunctionResults
 	for _, result := range pc.Results {
-		results.ProviderFunctionResults = append(results.ProviderFunctionResults, &planproto.ProviderFunctionCallHash{
+		results.FunctionResults = append(results.FunctionResults, &planproto.FunctionCallHash{
 			Key:    result.Key,
 			Result: result.Result,
 		})

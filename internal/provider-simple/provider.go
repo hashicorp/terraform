@@ -46,6 +46,9 @@ func Provider() providers.Interface {
 			DataSources: map[string]providers.Schema{
 				"simple_resource": simpleResource,
 			},
+			EphemeralResourceTypes: map[string]providers.Schema{
+				"simple_resource": simpleResource,
+			},
 			ServerCapabilities: providers.ServerCapabilities{
 				PlanDestroy: true,
 			},
@@ -85,6 +88,10 @@ func (s simple) ValidateResourceConfig(req providers.ValidateResourceConfigReque
 }
 
 func (s simple) ValidateDataResourceConfig(req providers.ValidateDataResourceConfigRequest) (resp providers.ValidateDataResourceConfigResponse) {
+	return resp
+}
+
+func (s simple) ValidateListResourceConfig(req providers.ValidateListResourceConfigRequest) (resp providers.ValidateListResourceConfigResponse) {
 	return resp
 }
 

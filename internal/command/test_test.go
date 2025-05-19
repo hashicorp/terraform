@@ -1494,9 +1494,8 @@ func TestTest_ModuleDependencies(t *testing.T) {
 		Meta: meta,
 	}
 
-	output := done(t)
-
 	if code := init.Run(nil); code != 0 {
+		output := done(t)
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -1510,7 +1509,7 @@ func TestTest_ModuleDependencies(t *testing.T) {
 	}
 
 	code := command.Run(nil)
-	output = done(t)
+	output := done(t)
 
 	printedOutput := false
 
@@ -1812,9 +1811,8 @@ can remove the provider configuration again.
 				Meta: meta,
 			}
 
-			output := done(t)
-
 			if code := init.Run(nil); code != 0 {
+				output := done(t)
 				t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 			}
 
@@ -1828,7 +1826,7 @@ can remove the provider configuration again.
 			}
 
 			code := c.Run([]string{"-no-color"})
-			output = done(t)
+			output := done(t)
 
 			if code != 1 {
 				t.Errorf("expected status code 1 but got %d", code)
@@ -1935,9 +1933,8 @@ func TestTest_StatePropagation(t *testing.T) {
 		Meta: meta,
 	}
 
-	output := done(t)
-
 	if code := init.Run(nil); code != 0 {
+		output := done(t)
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -1951,7 +1948,7 @@ func TestTest_StatePropagation(t *testing.T) {
 	}
 
 	code := c.Run([]string{"-verbose", "-no-color"})
-	output = done(t)
+	output := done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
@@ -2075,9 +2072,8 @@ func TestTest_OnlyExternalModules(t *testing.T) {
 		Meta: meta,
 	}
 
-	output := done(t)
-
 	if code := init.Run(nil); code != 0 {
+		output := done(t)
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -2091,7 +2087,7 @@ func TestTest_OnlyExternalModules(t *testing.T) {
 	}
 
 	code := c.Run([]string{"-no-color"})
-	output = done(t)
+	output := done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
@@ -2211,9 +2207,8 @@ func TestTest_InvalidWarningsInCleanup(t *testing.T) {
 		Meta: meta,
 	}
 
-	output := done(t)
-
 	if code := init.Run(nil); code != 0 {
+		output := done(t)
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -2227,7 +2222,7 @@ func TestTest_InvalidWarningsInCleanup(t *testing.T) {
 	}
 
 	code := c.Run([]string{"-no-color"})
-	output = done(t)
+	output := done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
@@ -2810,9 +2805,8 @@ func TestTest_SensitiveInputValues(t *testing.T) {
 		Meta: meta,
 	}
 
-	output := done(t)
-
 	if code := init.Run(nil); code != 0 {
+		output := done(t)
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -2826,7 +2820,7 @@ func TestTest_SensitiveInputValues(t *testing.T) {
 	}
 
 	code := c.Run([]string{"-no-color", "-verbose"})
-	output = done(t)
+	output := done(t)
 
 	if code != 1 {
 		t.Errorf("expected status code 1 but got %d", code)
@@ -3088,9 +3082,8 @@ func TestTest_InvalidOverrides(t *testing.T) {
 		Meta: meta,
 	}
 
-	output := done(t)
-
 	if code := init.Run(nil); code != 0 {
+		output := done(t)
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -3104,7 +3097,7 @@ func TestTest_InvalidOverrides(t *testing.T) {
 	}
 
 	code := c.Run([]string{"-no-color"})
-	output = done(t)
+	output := done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
@@ -3188,9 +3181,8 @@ func TestTest_InvalidConfig(t *testing.T) {
 		Meta: meta,
 	}
 
-	output := done(t)
-
 	if code := init.Run(nil); code != 0 {
+		output := done(t)
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -3204,7 +3196,7 @@ func TestTest_InvalidConfig(t *testing.T) {
 	}
 
 	code := c.Run([]string{"-no-color"})
-	output = done(t)
+	output := done(t)
 
 	if code != 1 {
 		t.Errorf("expected status code ! but got %d", code)
@@ -3271,9 +3263,8 @@ func TestTest_RunBlocksInProviders(t *testing.T) {
 		Meta: meta,
 	}
 
-	output := done(t)
-
 	if code := init.Run(nil); code != 0 {
+		output := done(t)
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -3287,7 +3278,7 @@ func TestTest_RunBlocksInProviders(t *testing.T) {
 	}
 
 	code := test.Run([]string{"-no-color"})
-	output = done(t)
+	output := done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
@@ -3339,9 +3330,8 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 		Meta: meta,
 	}
 
-	output := done(t)
-
 	if code := init.Run(nil); code != 0 {
+		output := done(t)
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -3355,7 +3345,7 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 	}
 
 	code := test.Run([]string{"-no-color"})
-	output = done(t)
+	output := done(t)
 
 	if code != 1 {
 		t.Errorf("expected status code 1 but got %d", code)
@@ -3473,7 +3463,7 @@ func TestTest_JUnitOutput(t *testing.T) {
 			}
 
 			// actual output will include timestamps and test duration data, which isn't deterministic; redact it for comparison
-			timeRegexp := regexp.MustCompile(`time=\"[0-9\.]+\"`)
+			timeRegexp := regexp.MustCompile(`time="[^"]+"`)
 			actualOut = timeRegexp.ReplaceAll(actualOut, []byte("time=\"TIME_REDACTED\""))
 			timestampRegexp := regexp.MustCompile(`timestamp="[^"]+"`)
 			actualOut = timestampRegexp.ReplaceAll(actualOut, []byte("timestamp=\"TIMESTAMP_REDACTED\""))

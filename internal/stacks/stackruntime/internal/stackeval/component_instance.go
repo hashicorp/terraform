@@ -218,6 +218,10 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				// outputs from this component can read from the refresh result
 				// without causing a cycle.
 
+				h := hooksFromContext(ctx)
+				hookSingle(ctx, h.PendingComponentInstancePlan, c.Addr())
+				seq, planCtx := hookBegin(ctx, h.BeginComponentInstancePlan, h.ContextAttach, c.Addr())
+
 				refresh, moreDiags := c.refresh.Plan(ctx)
 				var filteredDiags tfdiags.Diagnostics
 				for _, diag := range moreDiags {
@@ -231,6 +235,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				}
 				diags = diags.Append(filteredDiags)
 				if refresh == nil {
+					hookMore(ctx, seq, h.ErrorComponentInstancePlan, c.Addr())
 					return nil, diags
 				}
 
@@ -239,6 +244,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				opts, moreDiags := c.PlanOpts(ctx, c.mode, true)
 				diags = diags.Append(moreDiags)
 				if opts == nil {
+					hookMore(ctx, seq, h.ErrorComponentInstancePlan, c.Addr())
 					return nil, diags
 				}
 
@@ -268,7 +274,24 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					}
 				}
 
-				plan, moreDiags := PlanComponentInstance(ctx, c.main, refresh.PriorState, opts, c)
+				plan, moreDiags := PlanComponentInstance(planCtx, c.main, refresh.PriorState, opts, []terraform.Hook{
+					&componentInstanceTerraformHook{
+						ctx:   ctx,
+						seq:   seq,
+						hooks: hooksFromContext(ctx),
+						addr:  c.Addr(),
+					},
+				}, c)
+				if plan != nil {
+					ReportComponentInstance(ctx, plan, h, seq, c)
+					if plan.Complete {
+						hookMore(ctx, seq, h.EndComponentInstancePlan, c.Addr())
+					} else {
+						hookMore(ctx, seq, h.DeferComponentInstancePlan, c.Addr())
+					}
+				} else {
+					hookMore(ctx, seq, h.ErrorComponentInstancePlan, c.Addr())
+				}
 				return plan, diags.Append(moreDiags)
 			}
 
@@ -311,7 +334,27 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				}
 			}
 
-			plan, moreDiags := PlanComponentInstance(ctx, c.main, c.PlanPrevState(), opts, c)
+			h := hooksFromContext(ctx)
+			hookSingle(ctx, h.PendingComponentInstancePlan, c.Addr())
+			seq, ctx := hookBegin(ctx, h.BeginComponentInstancePlan, h.ContextAttach, c.Addr())
+			plan, moreDiags := PlanComponentInstance(ctx, c.main, c.PlanPrevState(), opts, []terraform.Hook{
+				&componentInstanceTerraformHook{
+					ctx:   ctx,
+					seq:   seq,
+					hooks: hooksFromContext(ctx),
+					addr:  c.Addr(),
+				},
+			}, c)
+			if plan != nil {
+				ReportComponentInstance(ctx, plan, h, seq, c)
+				if plan.Complete {
+					hookMore(ctx, seq, h.EndComponentInstancePlan, c.Addr())
+				} else {
+					hookMore(ctx, seq, h.DeferComponentInstancePlan, c.Addr())
+				}
+			} else {
+				hookMore(ctx, seq, h.ErrorComponentInstancePlan, c.Addr())
+			}
 			return plan, diags.Append(moreDiags)
 		},
 	)
@@ -333,7 +376,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 	}
 
 	if plan.UIMode == plans.DestroyMode && plan.Changes.Empty() {
-		stackPlan := c.main.PlanBeingApplied().Components.Get(c.Addr())
+		stackPlan := c.main.PlanBeingApplied().GetComponent(c.Addr())
 
 		// If we're destroying and there's nothing to destroy, then we can
 		// consider this a no-op.
@@ -526,7 +569,7 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 		// begin their own destroy phases before we start ours.
 		if phase == ApplyPhase {
 			fullPlan := c.main.PlanBeingApplied()
-			ourPlan := fullPlan.Components.Get(c.Addr())
+			ourPlan := fullPlan.GetComponent(c.Addr())
 			if ourPlan == nil {
 				// Weird, but we'll tolerate it.
 				return cty.DynamicVal
@@ -727,7 +770,7 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 
 	var changes []stackstate.AppliedChange
 	if applyResult != nil {
-		changes, moreDiags = stackstate.FromState(ctx, applyResult.FinalState, c.main.PlanBeingApplied().Components.Get(c.Addr()), inputs, applyResult.AffectedResourceInstanceObjects, c)
+		changes, moreDiags = stackstate.FromState(ctx, applyResult.FinalState, c.main.PlanBeingApplied().GetComponent(c.Addr()), inputs, applyResult.AffectedResourceInstanceObjects, c)
 		diags = diags.Append(moreDiags)
 	}
 	return changes, diags

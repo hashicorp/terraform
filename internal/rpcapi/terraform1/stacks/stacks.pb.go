@@ -2294,11 +2294,21 @@ func (*MigrateTerraformState_Event_AppliedChange) isMigrateTerraformState_Event_
 // Mapping of terraform constructs to stack components.
 type MigrateTerraformState_Request_Mapping struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// resource_address_map maps resources in the root module to their new
-	// components. The keys are the addresses of the resources in the Terraform
-	// state, and the values are the names of the new components.
+	// resource_address_map maps resources either to components or to new
+	// resource addresses.
 	//
-	// eg. resource_type.resource_name -> component_name
+	// eg.
+	// resource_type.resource_name -> component.component_name = component.component_name.resource_type.resource_name
+	// resource_type.resource_name -> component.component_name.resource_type.other_name = component.component_name.resource_type.other_name
+	// module.module_name.resource_type.resource_name -> component.component_name = component.component_name.module.module_name.resource_type.resource_name
+	//
+	// The keys in the map must be fully qualified absolute addresses, so this
+	// includes instance keys (for example).
+	//
+	// The values can either be a simple component address
+	// (component.component_name) in which case the address from the key
+	// is copied over without modification, or the value can also be a fully
+	// qualified absolute address (including instance keys).
 	ResourceAddressMap map[string]string `protobuf:"bytes,1,rep,name=resource_address_map,json=resourceAddressMap,proto3" json:"resource_address_map,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// module_address_map maps modules in the root module to their new
 	// components. The keys are the module names in the Terraform state, and

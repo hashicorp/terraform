@@ -52,8 +52,9 @@ type Resource struct {
 
 // ManagedResource represents a "resource" block in a module or file.
 type ManagedResource struct {
-	Connection   *Connection
-	Provisioners []*Provisioner
+	Connection     *Connection
+	Provisioners   []*Provisioner
+	ActionTriggers []*ActionTrigger
 
 	CreateBeforeDestroy bool
 	PreventDestroy      bool
@@ -104,7 +105,7 @@ func (r *Resource) HasCustomConditions() bool {
 	return len(r.Postconditions) != 0 || len(r.Preconditions) != 0
 }
 
-func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagnostics) {
+func decodeResourceBlock(block *hcl.Block, override bool, allowExperiments bool) (*Resource, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	r := &Resource{
 		Mode:      addrs.ManagedResourceMode,
@@ -281,6 +282,17 @@ func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagno
 					case "postcondition":
 						r.Postconditions = append(r.Postconditions, cr)
 					}
+
+				// decoded, but not yet used!
+				case "action_trigger":
+					if allowExperiments {
+						at, atDiags := decodeActionTriggerBlock(block)
+						diags = append(diags, atDiags...)
+						if at != nil {
+							r.Managed.ActionTriggers = append(r.Managed.ActionTriggers, at)
+						}
+					}
+
 				default:
 					// The cases above should be exhaustive for all block types
 					// defined in the lifecycle schema, so this shouldn't happen.
@@ -963,5 +975,6 @@ var resourceLifecycleBlockSchema = &hcl.BodySchema{
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "precondition"},
 		{Type: "postcondition"},
+		{Type: "action_trigger"},
 	},
 }

@@ -29,6 +29,8 @@ func (r Resource) String() string {
 		return fmt.Sprintf("data.%s.%s", r.Type, r.Name)
 	case EphemeralResourceMode:
 		return fmt.Sprintf("ephemeral.%s.%s", r.Type, r.Name)
+	case ListResourceMode:
+		return fmt.Sprintf("list.%s.%s", r.Type, r.Name)
 	default:
 		// Should never happen, but we'll return a string here rather than
 		// crashing just in case it does.
@@ -511,6 +513,10 @@ const (
 	// EphemeralResourceMode indicates an ephemeral resource, as defined by
 	// "ephemeral" blocks in configuration.
 	EphemeralResourceMode ResourceMode = 'E'
+
+	// ListResourceMode indicates a list resource, as defined by
+	// "list" blocks in tfquery configuration.
+	ListResourceMode ResourceMode = 'L'
 )
 
 // AbsResourceInstanceObject represents one of the specific remote objects
