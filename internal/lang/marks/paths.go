@@ -4,9 +4,10 @@
 package marks
 
 import (
-	"fmt"
 	"sort"
+	"strings"
 
+	"github.com/hashicorp/terraform/internal/lang/format"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -30,14 +31,39 @@ func PathsWithMark(pvms []cty.PathValueMarks, wantMark any) (withWanted []cty.Pa
 		if _, ok := pvm.Marks[wantMark]; ok {
 			withWanted = append(withWanted, pvm.Path)
 		}
+
 		for mark := range pvm.Marks {
 			if mark != wantMark {
 				withOthers = append(withOthers, pvm)
+				// only add a path with unwanted marks a single time
+				break
 			}
 		}
 	}
 
 	return withWanted, withOthers
+}
+
+// RemoveAll take a series of PathValueMarks and removes the unwanted mark from
+// all paths. Paths with no remaining marks will be removed entirely. The
+// PathValuesMarks passed in are not cloned, and RemoveAll will modify the
+// original values, so the prior set of marks should not be retained for use.
+func RemoveAll(pvms []cty.PathValueMarks, remove any) []cty.PathValueMarks {
+	if len(pvms) == 0 {
+		// No-allocations path for the common case where there are no marks at all.
+		return nil
+	}
+
+	var res []cty.PathValueMarks
+
+	for _, pvm := range pvms {
+		delete(pvm.Marks, remove)
+		if len(pvm.Marks) > 0 {
+			res = append(res, pvm)
+		}
+	}
+
+	return res
 }
 
 // MarkPaths transforms the given value by marking each of the given paths
@@ -77,9 +103,17 @@ func MarksEqual(a, b []cty.PathValueMarks) bool {
 
 	less := func(s []cty.PathValueMarks) func(i, j int) bool {
 		return func(i, j int) bool {
+			cmp := strings.Compare(format.CtyPath(s[i].Path), format.CtyPath(s[j].Path))
+
+			switch {
+			case cmp < 0:
+				return true
+			case cmp > 0:
+				return false
+			}
 			// the sort only needs to be consistent, so use the GoString format
 			// to get a comparable value
-			return fmt.Sprintf("%#v", s[i]) < fmt.Sprintf("%#v", s[j])
+			return s[i].Marks.GoString() < s[j].Marks.GoString()
 		}
 	}
 

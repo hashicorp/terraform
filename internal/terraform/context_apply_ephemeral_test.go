@@ -38,7 +38,7 @@ resource "test_object" "test" {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			EphemeralResourceTypes: map[string]providers.Schema{
 				"ephem_resource": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"value": {
 								Type:     cty.String,
@@ -94,7 +94,7 @@ resource "test_object" "test" {
 	})
 
 	plan, diags := ctx.Plan(m, nil, DefaultPlanOpts)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if !ephem.OpenEphemeralResourceCalled {
 		t.Error("OpenEphemeralResourceCalled not called")
@@ -114,7 +114,7 @@ resource "test_object" "test" {
 	renewDone = sync.OnceFunc(func() { close(renewed) })
 
 	_, diags = ctx.Apply(plan, m, nil)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if !ephem.OpenEphemeralResourceCalled {
 		t.Error("OpenEphemeralResourceCalled not called")
@@ -142,6 +142,13 @@ provider "test" {
 
 resource "test_object" "test" {
 }
+
+# make sure ephemerals with zero instances are processed correctly too
+module "zero" {
+  count = 0
+  source = "./mod"
+  input = "test"
+}
 `,
 		"./mod/main.tf": `
 variable input {
@@ -154,6 +161,7 @@ output "data" {
   ephemeral = true
   value = ephemeral.ephem_resource.data.value
 }
+
 `,
 	})
 
@@ -161,7 +169,7 @@ output "data" {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			EphemeralResourceTypes: map[string]providers.Schema{
 				"ephem_resource": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"value": {
 								Type:     cty.String,
@@ -227,7 +235,7 @@ output "data" {
 	})
 
 	plan, diags := ctx.Plan(m, nil, DefaultPlanOpts)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if !ephem.OpenEphemeralResourceCalled {
 		t.Error("OpenEphemeralResourceCalled not called")
@@ -241,7 +249,7 @@ output "data" {
 	ephem.CloseEphemeralResourceCalled = false
 
 	state, diags := ctx.Apply(plan, m, nil)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if !ephem.OpenEphemeralResourceCalled {
 		t.Error("OpenEphemeralResourceCalled not called")
@@ -255,7 +263,7 @@ output "data" {
 	ephem.CloseEphemeralResourceCalled = false
 
 	plan, diags = ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if !ephem.OpenEphemeralResourceCalled {
 		t.Error("OpenEphemeralResourceCalled not called")
@@ -268,7 +276,7 @@ output "data" {
 	ephem.CloseEphemeralResourceCalled = false
 
 	_, diags = ctx.Apply(plan, m, nil)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if !ephem.OpenEphemeralResourceCalled {
 		t.Error("OpenEphemeralResourceCalled not called")
@@ -313,7 +321,7 @@ resource "test_object" "test" {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			EphemeralResourceTypes: map[string]providers.Schema{
 				"ephem_resource": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"value": {
 								Type:     cty.String,
@@ -343,7 +351,7 @@ resource "test_object" "test" {
 	})
 
 	diags := ctx.Validate(m, &ValidateOpts{})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	plan, diags := ctx.Plan(m, nil, &PlanOpts{
 		SetVariables: InputValues{
@@ -353,13 +361,13 @@ resource "test_object" "test" {
 			},
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	// reset the ephemeral call flags
 	ephem.ConfigureProviderCalled = false
 
 	_, diags = ctx.Apply(plan, m, nil)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 }
 
 func TestContext2Apply_write_only_attribute_not_in_plan_and_state(t *testing.T) {
@@ -377,24 +385,26 @@ resource "ephem_write_only" "wo" {
 `,
 	})
 
+	schema := providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"normal": {
+					Type:     cty.String,
+					Required: true,
+				},
+				"write_only": {
+					Type:      cty.String,
+					WriteOnly: true,
+					Required:  true,
+				},
+			},
+		},
+		Version: 0,
+	}
 	ephem := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
-				"ephem_write_only": {
-					Block: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"normal": {
-								Type:     cty.String,
-								Required: true,
-							},
-							"write_only": {
-								Type:      cty.String,
-								WriteOnly: true,
-								Required:  true,
-							},
-						},
-					},
-				},
+				"ephem_write_only": schema,
 			},
 		},
 	}
@@ -415,14 +425,14 @@ resource "ephem_write_only" "wo" {
 			"ephem": ephemVar,
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if len(plan.Changes.Resources) != 1 {
 		t.Fatalf("Expected 1 resource change, got %d", len(plan.Changes.Resources))
 	}
 
 	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
-	assertNoDiagnostics(t, schemaDiags)
+	tfdiags.AssertNoDiagnostics(t, schemaDiags)
 	planChanges, err := plan.Changes.Decode(schemas)
 	if err != nil {
 		t.Fatalf("Failed to decode plan changes: %v.", err)
@@ -437,7 +447,7 @@ resource "ephem_write_only" "wo" {
 			"ephem": ephemVar,
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	resource := state.Resource(addrs.AbsResource{
 		Module: addrs.RootModuleInstance,
@@ -457,10 +467,7 @@ resource "ephem_write_only" "wo" {
 		t.Fatalf("Resource instance not found")
 	}
 
-	attrs, err := resourceInstance.Current.Decode(cty.Object(map[string]cty.Type{
-		"normal":     cty.String,
-		"write_only": cty.String,
-	}))
+	attrs, err := resourceInstance.Current.Decode(schema)
 	if err != nil {
 		t.Fatalf("Failed to decode attributes: %v", err)
 	}
@@ -489,24 +496,25 @@ resource "ephem_write_only" "wo" {
 `,
 	})
 
+	schema := providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"normal": {
+					Type:     cty.String,
+					Required: true,
+				},
+				"write_only": {
+					Type:      cty.String,
+					WriteOnly: true,
+					Required:  true,
+				},
+			},
+		},
+	}
 	ephem := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
-				"ephem_write_only": {
-					Block: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"normal": {
-								Type:     cty.String,
-								Required: true,
-							},
-							"write_only": {
-								Type:      cty.String,
-								WriteOnly: true,
-								Required:  true,
-							},
-						},
-					},
-				},
+				"ephem_write_only": schema,
 			},
 		},
 	}
@@ -543,14 +551,14 @@ resource "ephem_write_only" "wo" {
 			"ephem": ephemVar,
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if len(plan.Changes.Resources) != 1 {
 		t.Fatalf("Expected 1 resource change, got %d", len(plan.Changes.Resources))
 	}
 
 	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
-	assertNoDiagnostics(t, schemaDiags)
+	tfdiags.AssertNoDiagnostics(t, schemaDiags)
 	planChanges, err := plan.Changes.Decode(schemas)
 	if err != nil {
 		t.Fatalf("Failed to decode plan changes: %v.", err)
@@ -565,7 +573,7 @@ resource "ephem_write_only" "wo" {
 			"ephem": ephemVar,
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	resource := state.Resource(addrs.AbsResource{
 		Module: addrs.RootModuleInstance,
@@ -585,10 +593,7 @@ resource "ephem_write_only" "wo" {
 		t.Fatalf("Resource instance not found")
 	}
 
-	attrs, err := resourceInstance.Current.Decode(cty.Object(map[string]cty.Type{
-		"normal":     cty.String,
-		"write_only": cty.String,
-	}))
+	attrs, err := resourceInstance.Current.Decode(schema)
 	if err != nil {
 		t.Fatalf("Failed to decode attributes: %v", err)
 	}
@@ -617,24 +622,25 @@ resource "ephem_write_only" "wo" {
 `,
 	})
 
+	schema := providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"normal": {
+					Type:     cty.String,
+					Required: true,
+				},
+				"write_only": {
+					Type:      cty.String,
+					WriteOnly: true,
+					Required:  true,
+				},
+			},
+		},
+	}
 	ephem := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
-				"ephem_write_only": {
-					Block: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"normal": {
-								Type:     cty.String,
-								Required: true,
-							},
-							"write_only": {
-								Type:      cty.String,
-								WriteOnly: true,
-								Required:  true,
-							},
-						},
-					},
-				},
+				"ephem_write_only": schema,
 			},
 		},
 	}
@@ -682,14 +688,14 @@ resource "ephem_write_only" "wo" {
 			"ephem": ephemVar,
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	if len(plan.Changes.Resources) != 1 {
 		t.Fatalf("Expected 1 resource change, got %d", len(plan.Changes.Resources))
 	}
 
 	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
-	assertNoDiagnostics(t, schemaDiags)
+	tfdiags.AssertNoDiagnostics(t, schemaDiags)
 	planChanges, err := plan.Changes.Decode(schemas)
 	if err != nil {
 		t.Fatalf("Failed to decode plan changes: %v.", err)
@@ -704,7 +710,7 @@ resource "ephem_write_only" "wo" {
 			"ephem": ephemVar,
 		},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	resource := state.Resource(addrs.AbsResource{
 		Module: addrs.RootModuleInstance,
@@ -724,10 +730,7 @@ resource "ephem_write_only" "wo" {
 		t.Fatalf("Resource instance not found")
 	}
 
-	attrs, err := resourceInstance.Current.Decode(cty.Object(map[string]cty.Type{
-		"normal":     cty.String,
-		"write_only": cty.String,
-	}))
+	attrs, err := resourceInstance.Current.Decode(schema)
 	if err != nil {
 		t.Fatalf("Failed to decode attributes: %v", err)
 	}
@@ -760,7 +763,7 @@ resource "ephem_write_only" "wo" {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"ephem_write_only": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"normal": {
 								Type:     cty.String,
@@ -802,7 +805,7 @@ resource "ephem_write_only" "wo" {
 		},
 	})
 
-	assertNoDiagnostics(t, planDiags)
+	tfdiags.AssertNoDiagnostics(t, planDiags)
 
 	_, diags := ctx.Apply(plan, m, &ApplyOpts{
 		SetVariables: InputValues{
@@ -818,7 +821,7 @@ resource "ephem_write_only" "wo" {
 		`Provider "provider[\"registry.terraform.io/hashicorp/ephem\"]" returned a value for the write-only attribute "ephem_write_only.wo.write_only" after apply. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.`,
 	))
 
-	assertDiagnosticsMatch(t, diags, expectedDiags)
+	tfdiags.AssertDiagnosticsMatch(t, diags, expectedDiags)
 }
 
 func TestContext2Apply_write_only_attribute_provider_plan_with_non_null_value(t *testing.T) {
@@ -840,7 +843,7 @@ resource "ephem_write_only" "wo" {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"ephem_write_only": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"normal": {
 								Type:     cty.String,
@@ -890,7 +893,7 @@ resource "ephem_write_only" "wo" {
 		`Provider "provider[\"registry.terraform.io/hashicorp/ephem\"]" returned a value for the write-only attribute "ephem_write_only.wo.write_only" during planning. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.`,
 	))
 
-	assertDiagnosticsMatch(t, diags, expectedDiags)
+	tfdiags.AssertDiagnosticsMatch(t, diags, expectedDiags)
 }
 
 func TestContext2Apply_write_only_attribute_provider_read_with_non_null_value(t *testing.T) {
@@ -912,7 +915,7 @@ resource "ephem_write_only" "wo" {
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"ephem_write_only": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"normal": {
 								Type:     cty.String,
@@ -977,5 +980,5 @@ resource "ephem_write_only" "wo" {
 		`Provider "provider[\"registry.terraform.io/hashicorp/ephem\"]" returned a value for the write-only attribute "ephem_write_only.wo.write_only" during refresh. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.`,
 	))
 
-	assertDiagnosticsMatch(t, diags, expectedDiags)
+	tfdiags.AssertDiagnosticsMatch(t, diags, expectedDiags)
 }

@@ -21,7 +21,7 @@ type simple struct {
 
 func Provider() providers.Interface {
 	simpleResource := providers.Schema{
-		Block: &configschema.Block{
+		Body: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"id": {
 					Computed: true,
@@ -38,12 +38,15 @@ func Provider() providers.Interface {
 	return simple{
 		schema: providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
-				Block: nil,
+				Body: nil,
 			},
 			ResourceTypes: map[string]providers.Schema{
 				"simple_resource": simpleResource,
 			},
 			DataSources: map[string]providers.Schema{
+				"simple_resource": simpleResource,
+			},
+			EphemeralResourceTypes: map[string]providers.Schema{
 				"simple_resource": simpleResource,
 			},
 			ServerCapabilities: providers.ServerCapabilities{
@@ -55,6 +58,25 @@ func Provider() providers.Interface {
 
 func (s simple) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return s.schema
+}
+
+func (s simple) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	return providers.GetResourceIdentitySchemasResponse{
+		IdentityTypes: map[string]providers.IdentitySchema{
+			"simple_resource": {
+				Version: 0,
+				Body: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+					Nesting: configschema.NestingSingle,
+				},
+			},
+		},
+	}
 }
 
 func (s simple) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
@@ -69,11 +91,24 @@ func (s simple) ValidateDataResourceConfig(req providers.ValidateDataResourceCon
 	return resp
 }
 
+func (s simple) ValidateListResourceConfig(req providers.ValidateListResourceConfigRequest) (resp providers.ValidateListResourceConfigResponse) {
+	return resp
+}
+
 func (p simple) UpgradeResourceState(req providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
-	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
+	ty := p.schema.ResourceTypes[req.TypeName].Body.ImpliedType()
 	val, err := ctyjson.Unmarshal(req.RawStateJSON, ty)
 	resp.Diagnostics = resp.Diagnostics.Append(err)
 	resp.UpgradedState = val
+	return resp
+}
+
+func (p simple) UpgradeResourceIdentity(req providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
+	schema := p.GetResourceIdentitySchemas().IdentityTypes[req.TypeName].Body
+	ty := schema.ImpliedType()
+	val, err := ctyjson.Unmarshal(req.RawIdentityJSON, ty)
+	resp.Diagnostics = resp.Diagnostics.Append(err)
+	resp.UpgradedIdentity = val
 	return resp
 }
 
@@ -88,6 +123,7 @@ func (s simple) Stop() error {
 func (s simple) ReadResource(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
 	// just return the same state we received
 	resp.NewState = req.PriorState
+	resp.Identity = req.CurrentIdentity
 	return resp
 }
 
@@ -121,6 +157,7 @@ func (s simple) ApplyResourceChange(req providers.ApplyResourceChangeRequest) (r
 		m["id"] = cty.StringVal(time.Now().String())
 	}
 	resp.NewState = cty.ObjectVal(m)
+	resp.NewIdentity = req.PlannedIdentity
 
 	return resp
 }

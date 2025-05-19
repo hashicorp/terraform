@@ -3,7 +3,7 @@
 
 package http
 
-//go:generate go run go.uber.org/mock/mockgen -package $GOPACKAGE -source $GOFILE -destination mock_$GOFILE
+//go:generate go tool go.uber.org/mock/mockgen -package $GOPACKAGE -source $GOFILE -destination mock_$GOFILE
 
 import (
 	"context"

@@ -44,7 +44,7 @@ func TestDirFromModule_registry(t *testing.T) {
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
 	diags := DirFromModule(context.Background(), loader, dir, modsDir, "hashicorp/module-installer-acctest/aws//examples/main", reg, hooks)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	v := version.Must(version.NewVersion("0.0.2"))
 
@@ -108,9 +108,7 @@ func TestDirFromModule_registry(t *testing.T) {
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
 	config, loadDiags := loader.LoadConfig(".")
-	if assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags)) {
-		return
-	}
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
 		"":                     "in example",
@@ -162,7 +160,7 @@ func TestDirFromModule_submodules(t *testing.T) {
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
 	diags := DirFromModule(context.Background(), loader, dir, modInstallDir, fromModuleDir, nil, hooks)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 	wantCalls := []testInstallHookCall{
 		{
 			Name:       "Install",
@@ -190,9 +188,8 @@ func TestDirFromModule_submodules(t *testing.T) {
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
 	config, loadDiags := loader.LoadConfig(".")
-	if assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags)) {
-		return
-	}
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+
 	wantTraces := map[string]string{
 		"":                "in root module",
 		"child_a":         "in child_a module",
@@ -288,7 +285,7 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
 	diags := DirFromModule(context.Background(), loader, ".", modInstallDir, sourceDir, nil, hooks)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 	wantCalls := []testInstallHookCall{
 		{
 			Name:       "Install",
@@ -316,9 +313,8 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
 	config, loadDiags := loader.LoadConfig(".")
-	if assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags)) {
-		return
-	}
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+
 	wantTraces := map[string]string{
 		"":                "in root module",
 		"child_a":         "in child_a module",

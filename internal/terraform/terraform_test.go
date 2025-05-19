@@ -92,7 +92,10 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 func testModuleInline(t testing.TB, sources map[string]string) *configs.Config {
 	t.Helper()
 
-	cfgPath := t.TempDir()
+	cfgPath, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	for path, configStr := range sources {
 		dir := filepath.Dir(path)
@@ -136,7 +139,7 @@ func testModuleInline(t testing.TB, sources map[string]string) *configs.Config {
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	config, diags := loader.LoadConfigWithTests(cfgPath, "tests")
+	config, diags := loader.LoadConfig(cfgPath, configs.MatchTestFiles("tests"))
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}

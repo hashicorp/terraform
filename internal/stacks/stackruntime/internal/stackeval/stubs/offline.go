@@ -33,7 +33,11 @@ func (o *offlineProvider) GetProviderSchema() providers.GetProviderSchemaRespons
 	return o.unconfiguredClient.GetProviderSchema()
 }
 
-func (o *offlineProvider) ValidateProviderConfig(request providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
+func (o *offlineProvider) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	return o.unconfiguredClient.GetResourceIdentitySchemas()
+}
+
+func (o *offlineProvider) ValidateProviderConfig(_ providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -46,7 +50,7 @@ func (o *offlineProvider) ValidateProviderConfig(request providers.ValidateProvi
 	}
 }
 
-func (o *offlineProvider) ValidateResourceConfig(request providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
+func (o *offlineProvider) ValidateResourceConfig(_ providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -59,7 +63,7 @@ func (o *offlineProvider) ValidateResourceConfig(request providers.ValidateResou
 	}
 }
 
-func (o *offlineProvider) ValidateDataResourceConfig(request providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
+func (o *offlineProvider) ValidateDataResourceConfig(_ providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -86,7 +90,21 @@ func (p *offlineProvider) ValidateEphemeralResourceConfig(providers.ValidateEphe
 	}
 }
 
-func (o *offlineProvider) UpgradeResourceState(request providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
+// ValidateListResourceConfig implements providers.Interface.
+func (p *offlineProvider) ValidateListResourceConfig(providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ValidateListResourceConfig on an unconfigured provider",
+		"Cannot validate this resource config because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ValidateListResourceConfigResponse{
+		Diagnostics: diags,
+	}
+}
+
+func (o *offlineProvider) UpgradeResourceState(_ providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -99,7 +117,20 @@ func (o *offlineProvider) UpgradeResourceState(request providers.UpgradeResource
 	}
 }
 
-func (o *offlineProvider) ConfigureProvider(request providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+func (o *offlineProvider) UpgradeResourceIdentity(_ providers.UpgradeResourceIdentityRequest) providers.UpgradeResourceIdentityResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called UpgradeResourceIdentity on an unconfigured provider",
+		"Cannot upgrade the state of this resource because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.UpgradeResourceIdentityResponse{
+		Diagnostics: diags,
+	}
+}
+
+func (o *offlineProvider) ConfigureProvider(_ providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -117,7 +148,7 @@ func (o *offlineProvider) Stop() error {
 	return o.unconfiguredClient.Stop()
 }
 
-func (o *offlineProvider) ReadResource(request providers.ReadResourceRequest) providers.ReadResourceResponse {
+func (o *offlineProvider) ReadResource(_ providers.ReadResourceRequest) providers.ReadResourceResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -130,7 +161,7 @@ func (o *offlineProvider) ReadResource(request providers.ReadResourceRequest) pr
 	}
 }
 
-func (o *offlineProvider) PlanResourceChange(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+func (o *offlineProvider) PlanResourceChange(_ providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -143,7 +174,7 @@ func (o *offlineProvider) PlanResourceChange(request providers.PlanResourceChang
 	}
 }
 
-func (o *offlineProvider) ApplyResourceChange(request providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+func (o *offlineProvider) ApplyResourceChange(_ providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -156,7 +187,7 @@ func (o *offlineProvider) ApplyResourceChange(request providers.ApplyResourceCha
 	}
 }
 
-func (o *offlineProvider) ImportResourceState(request providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+func (o *offlineProvider) ImportResourceState(_ providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -173,7 +204,7 @@ func (o *offlineProvider) MoveResourceState(request providers.MoveResourceStateR
 	return o.unconfiguredClient.MoveResourceState(request)
 }
 
-func (o *offlineProvider) ReadDataSource(request providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+func (o *offlineProvider) ReadDataSource(_ providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,

@@ -11,22 +11,18 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+// evaluateImportIdExpression evaluates the given expression to determine the
+// import Id for a resource. It should evaluate to a non-empty string.
+//
+// The given expression must be non-nil or the function will panic.
 func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData instances.RepetitionData, allowUnknown bool) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-
-	if expr == nil {
-		return cty.NilVal, diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid import id argument",
-			Detail:   "The import ID cannot be null.",
-			Subject:  expr.Range().Ptr(),
-		})
-	}
 
 	// import blocks only exist in the root module, and must be evaluated in
 	// that context.
@@ -78,6 +74,49 @@ func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData in
 	}
 
 	return importIdVal, diags
+}
+
+// evaluateImportIdentityExpression evaluates the given expression to determine the
+// import identity for a resource. It uses the resource identity schema to validate
+// the structure of the object..
+//
+// The given expression must be non-nil or the function will panic.
+func evaluateImportIdentityExpression(expr hcl.Expression, identity *configschema.Object, ctx EvalContext, keyData instances.RepetitionData, allowUnknown bool) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// import blocks only exist in the root module, and must be evaluated in
+	// that context.
+	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
+	scope := ctx.EvaluationScope(nil, nil, keyData)
+	importIdentityVal, evalDiags := scope.EvalExpr(expr, identity.ConfigType())
+	if evalDiags.HasErrors() {
+		// TODO? Do we need to improve the error message?
+		return cty.NilVal, evalDiags
+	}
+
+	if importIdentityVal.IsNull() {
+		return cty.NilVal, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid import identity argument",
+			Detail:   "The import identity cannot be null.",
+			Subject:  expr.Range().Ptr(),
+		})
+	}
+	if !allowUnknown && !importIdentityVal.IsWhollyKnown() {
+		return cty.NilVal, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid import identity argument",
+			Detail:   `The import block "identity" argument depends on resource attributes that cannot be determined until apply, so Terraform cannot plan to import this resource.`, // FIXME and what should I do about that?
+			Subject:  expr.Range().Ptr(),
+			Extra:    diagnosticCausedByUnknown(true),
+		})
+	}
+
+	// Import data may have marks, which we can discard because the id is only
+	// sent to the provider.
+	importIdentityVal, _ = importIdentityVal.Unmark()
+
+	return importIdentityVal, diags
 }
 
 func evalImportToExpression(expr hcl.Expression, keyData instances.RepetitionData) (addrs.AbsResourceInstance, tfdiags.Diagnostics) {

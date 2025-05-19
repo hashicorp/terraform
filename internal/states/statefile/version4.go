@@ -136,8 +136,9 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 			instAddr := rAddr.Instance(key)
 
 			obj := &states.ResourceInstanceObjectSrc{
-				SchemaVersion:       isV4.SchemaVersion,
-				CreateBeforeDestroy: isV4.CreateBeforeDestroy,
+				SchemaVersion:         isV4.SchemaVersion,
+				CreateBeforeDestroy:   isV4.CreateBeforeDestroy,
+				IdentitySchemaVersion: isV4.IdentitySchemaVersion,
 			}
 
 			{
@@ -154,6 +155,10 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 					// to hand-write inline in tests.
 					obj.AttrsJSON = []byte{'{', '}'}
 				}
+			}
+
+			if isV4.IdentityRaw != nil {
+				obj.IdentityJSON = isV4.IdentityRaw
 			}
 
 			// Sensitive paths
@@ -494,6 +499,8 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		PrivateRaw:              privateRaw,
 		Dependencies:            deps,
 		CreateBeforeDestroy:     obj.CreateBeforeDestroy,
+		IdentitySchemaVersion:   obj.IdentitySchemaVersion,
+		IdentityRaw:             obj.IdentityJSON,
 	}), diags
 }
 
@@ -701,6 +708,9 @@ type instanceObjectStateV4 struct {
 	AttributesRaw           json.RawMessage   `json:"attributes,omitempty"`
 	AttributesFlat          map[string]string `json:"attributes_flat,omitempty"`
 	AttributeSensitivePaths json.RawMessage   `json:"sensitive_attributes,omitempty"`
+
+	IdentitySchemaVersion uint64          `json:"identity_schema_version"`
+	IdentityRaw           json.RawMessage `json:"identity,omitempty"`
 
 	PrivateRaw []byte `json:"private,omitempty"`
 

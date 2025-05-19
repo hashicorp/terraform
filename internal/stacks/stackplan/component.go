@@ -11,8 +11,8 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -69,7 +69,7 @@ type Component struct {
 	// PlannedFunctionResults is a shared table of results from calling
 	// provider functions. This is stored and loaded from during the planning
 	// stage to use during apply operations.
-	PlannedFunctionResults []providers.FunctionHash
+	PlannedFunctionResults []lang.FunctionResultHash
 
 	// PlannedInputValues and PlannedInputValueMarks are the values that
 	// Terraform has planned to use for input variables in this component.
@@ -98,13 +98,13 @@ type Component struct {
 func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 	changes := &plans.ChangesSrc{}
 	plan := &plans.Plan{
-		UIMode:                  c.Mode,
-		Changes:                 changes,
-		Timestamp:               c.PlanTimestamp,
-		Applyable:               c.PlanApplyable,
-		Complete:                c.PlanComplete,
-		Checks:                  c.PlannedChecks,
-		ProviderFunctionResults: c.PlannedFunctionResults,
+		UIMode:          c.Mode,
+		Changes:         changes,
+		Timestamp:       c.PlanTimestamp,
+		Applyable:       c.PlanApplyable,
+		Complete:        c.PlanComplete,
+		Checks:          c.PlannedChecks,
+		FunctionResults: c.PlannedFunctionResults,
 	}
 
 	for _, elem := range c.ResourceInstancePlanned.Elems {

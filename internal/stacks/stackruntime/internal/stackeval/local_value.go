@@ -10,7 +10,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -18,7 +17,9 @@ import (
 
 // LocalValue represents a local value defined within a [Stack].
 type LocalValue struct {
-	addr stackaddrs.AbsLocalValue
+	addr   stackaddrs.AbsLocalValue
+	config *LocalValueConfig
+	stack  *Stack
 
 	main *Main
 
@@ -28,29 +29,13 @@ type LocalValue struct {
 var _ Referenceable = (*LocalValue)(nil)
 var _ Plannable = (*LocalValue)(nil)
 
-func newLocalValue(main *Main, addr stackaddrs.AbsLocalValue) *LocalValue {
+func newLocalValue(main *Main, addr stackaddrs.AbsLocalValue, stack *Stack, config *LocalValueConfig) *LocalValue {
 	return &LocalValue{
-		addr: addr,
-		main: main,
+		addr:   addr,
+		config: config,
+		stack:  stack,
+		main:   main,
 	}
-}
-
-func (v *LocalValue) Addr() stackaddrs.AbsLocalValue {
-	return v.addr
-}
-
-func (v *LocalValue) Config(ctx context.Context) *LocalValueConfig {
-	configAddr := stackaddrs.ConfigForAbs(v.Addr())
-	stackCfg := v.main.StackConfig(ctx, configAddr.Stack)
-	return stackCfg.LocalValue(ctx, configAddr.Item)
-}
-
-func (v *LocalValue) Declaration(ctx context.Context) *stackconfig.LocalValue {
-	return v.Config(ctx).Declaration()
-}
-
-func (v *LocalValue) Stack(ctx context.Context, phase EvalPhase) *Stack {
-	return v.main.Stack(ctx, v.Addr().Stack, phase)
 }
 
 func (v *LocalValue) Value(ctx context.Context, phase EvalPhase) cty.Value {
@@ -74,18 +59,12 @@ func (v *LocalValue) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Di
 
 func (v *LocalValue) CheckValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return withCtyDynamicValPlaceholder(doOnceWithDiags(
-		ctx, v.value.For(phase), v.main,
+		ctx, v.tracingName(), v.value.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
-			decl := v.Declaration(ctx)
-			stack := v.Stack(ctx, phase)
-
-			if stack == nil {
-				return cty.DynamicVal, diags
-			}
-
-			result, moreDiags := EvalExprAndEvalContext(ctx, decl.Value, phase, stack)
+			decl := v.config.config
+			result, moreDiags := EvalExprAndEvalContext(ctx, decl.Value, phase, v.stack)
 			diags = diags.Append(moreDiags)
 			if moreDiags.HasErrors() {
 				return cty.DynamicVal, diags
@@ -102,11 +81,11 @@ func (v *LocalValue) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange
 }
 
 // References implements Referrer
-func (v *LocalValue) References(ctx context.Context) []stackaddrs.AbsReference {
-	cfg := v.Declaration(ctx)
+func (v *LocalValue) References(context.Context) []stackaddrs.AbsReference {
+	cfg := v.config.config
 	var ret []stackaddrs.Reference
-	ret = append(ret, ReferencesInExpr(ctx, cfg.Value)...)
-	return makeReferencesAbsolute(ret, v.Addr().Stack)
+	ret = append(ret, ReferencesInExpr(cfg.Value)...)
+	return makeReferencesAbsolute(ret, v.addr.Stack)
 }
 
 // CheckApply implements Applyable.
@@ -115,5 +94,5 @@ func (v *LocalValue) CheckApply(ctx context.Context) ([]stackstate.AppliedChange
 }
 
 func (v *LocalValue) tracingName() string {
-	return v.Addr().String()
+	return v.addr.String()
 }

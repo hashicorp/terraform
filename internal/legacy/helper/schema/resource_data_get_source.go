@@ -3,7 +3,7 @@
 
 package schema
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=getSource resource_data_get_source.go
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=getSource resource_data_get_source.go
 
 // getSource represents the level we want to get for a value (internally).
 // Any source less than or equal to the level will be loaded (whichever

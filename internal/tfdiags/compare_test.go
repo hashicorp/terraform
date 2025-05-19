@@ -17,6 +17,19 @@ func TestDiagnosticComparer(t *testing.T) {
 		Severity: hcl.DiagError,
 		Summary:  "error",
 		Detail:   "this is an error",
+		Subject: &hcl.Range{
+			Filename: "foobar.tf",
+			Start: hcl.Pos{
+				Line:   0,
+				Column: 0,
+				Byte:   0,
+			},
+			End: hcl.Pos{
+				Line:   1,
+				Column: 1,
+				Byte:   1,
+			},
+		},
 	}
 
 	cases := map[string]struct {
@@ -24,10 +37,17 @@ func TestDiagnosticComparer(t *testing.T) {
 		diag2      Diagnostic
 		expectDiff bool
 	}{
+		// Correctly identifying things that match
 		"reports that identical diagnostics match": {
 			diag1:      hclDiagnostic{&baseError},
 			diag2:      hclDiagnostic{&baseError},
 			expectDiff: false,
+		},
+		// Correctly identifies when things don't match
+		"reports that diagnostics don't match if the concrete type differs": {
+			diag1:      hclDiagnostic{&baseError},
+			diag2:      makeRPCFriendlyDiag(hclDiagnostic{&baseError}),
+			expectDiff: true,
 		},
 		"reports that diagnostics don't match if severity differs": {
 			diag1: hclDiagnostic{&baseError},
@@ -65,17 +85,12 @@ func TestDiagnosticComparer(t *testing.T) {
 			}(),
 			expectDiff: true,
 		},
-		"reports that diagnostics don't match if attribute path missing from one differs": {
+		"reports that diagnostics don't match if attribute path is missing from one": {
 			diag1: func() Diagnostic {
 				return AttributeValue(Error, "summary here", "detail here", cty.Path{cty.GetAttrStep{Name: "foobar1"}})
 			}(),
 			diag2: func() Diagnostic {
-				d := hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "summary here",
-					Detail:   "detail here",
-				}
-				return hclDiagnostic{&d}
+				return AttributeValue(Error, "summary here", "detail here", cty.Path{})
 			}(),
 			expectDiff: true,
 		},
@@ -94,5 +109,4 @@ func TestDiagnosticComparer(t *testing.T) {
 			}
 		})
 	}
-
 }

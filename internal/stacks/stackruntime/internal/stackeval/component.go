@@ -6,6 +6,7 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
@@ -24,50 +24,29 @@ import (
 type Component struct {
 	addr stackaddrs.AbsComponent
 
-	main *Main
+	main   *Main
+	stack  *Stack
+	config *ComponentConfig
 
-	forEachValue    perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
-	instances       perEvalPhase[promising.Once[withDiagnostics[instancesResult[*ComponentInstance]]]]
-	unknownInstance perEvalPhase[promising.Once[*ComponentInstance]]
+	forEachValue perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
+	instances    perEvalPhase[promising.Once[withDiagnostics[instancesResult[*ComponentInstance]]]]
+
+	unknownInstancesMutex sync.Mutex
+	unknownInstances      map[addrs.InstanceKey]*ComponentInstance
 }
 
 var _ Plannable = (*Component)(nil)
 var _ Applyable = (*Component)(nil)
 var _ Referenceable = (*Component)(nil)
 
-func newComponent(main *Main, addr stackaddrs.AbsComponent) *Component {
+func newComponent(main *Main, addr stackaddrs.AbsComponent, stack *Stack, config *ComponentConfig) *Component {
 	return &Component{
-		addr: addr,
-		main: main,
+		addr:             addr,
+		main:             main,
+		stack:            stack,
+		config:           config,
+		unknownInstances: make(map[addrs.InstanceKey]*ComponentInstance),
 	}
-}
-
-func (c *Component) Addr() stackaddrs.AbsComponent {
-	return c.addr
-}
-
-func (c *Component) Config(ctx context.Context) *ComponentConfig {
-	configAddr := stackaddrs.ConfigForAbs(c.Addr())
-	stackConfig := c.main.StackConfig(ctx, configAddr.Stack)
-	if stackConfig == nil {
-		return nil
-	}
-	return stackConfig.Component(ctx, configAddr.Item)
-}
-
-func (c *Component) Declaration(ctx context.Context) *stackconfig.Component {
-	cfg := c.Config(ctx)
-	if cfg == nil {
-		return nil
-	}
-	return cfg.Declaration(ctx)
-}
-
-func (c *Component) Stack(ctx context.Context) *Stack {
-	// Unchecked because we should've been constructed from the same stack
-	// object we're about to return, and so this should be valid unless
-	// the original construction was from an invalid object itself.
-	return c.main.StackUnchecked(ctx, c.Addr().Stack)
 }
 
 // ForEachValue returns the result of evaluating the "for_each" expression
@@ -104,15 +83,15 @@ func (c *Component) ForEachValue(ctx context.Context, phase EvalPhase) cty.Value
 // that we cannot know the for_each value.
 func (c *Component) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	val, diags := doOnceWithDiags(
-		ctx, c.forEachValue.For(phase), c.main,
+		ctx, c.tracingName()+" for_each", c.forEachValue.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
-			cfg := c.Declaration(ctx)
+			cfg := c.config.config
 
 			switch {
 
 			case cfg.ForEach != nil:
-				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.Stack(ctx), "component")
+				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.stack, "component")
 				diags = diags.Append(moreDiags)
 				if diags.HasErrors() {
 					return cty.DynamicVal, diags
@@ -158,7 +137,7 @@ func (c *Component) Instances(ctx context.Context, phase EvalPhase) (map[addrs.I
 
 func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ComponentInstance, bool, tfdiags.Diagnostics) {
 	result, diags := doOnceWithDiags(
-		ctx, c.instances.For(phase), c.main,
+		ctx, c.tracingName()+" instances", c.instances.For(phase),
 		func(ctx context.Context) (instancesResult[*ComponentInstance], tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 			forEachVal, forEachValueDiags := c.CheckForEachValue(ctx, phase)
@@ -169,7 +148,7 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 			}
 
 			result := instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ComponentInstance {
-				return newComponentInstance(c, ik, rd, false)
+				return newComponentInstance(c, stackaddrs.AbsComponentToInstance(c.addr, ik), rd, c.stack.mode, c.stack.deferred)
 			})
 
 			addrs := make([]stackaddrs.AbsComponentInstance, 0, len(result.insts))
@@ -179,7 +158,7 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 
 			h := hooksFromContext(ctx)
 			hookSingle(ctx, h.ComponentExpanded, &hooks.ComponentInstances{
-				ComponentAddr: c.Addr(),
+				ComponentAddr: c.addr,
 				InstanceAddrs: addrs,
 			})
 
@@ -189,20 +168,27 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 	return result.insts, result.unknown, diags
 }
 
-func (c *Component) UnknownInstance(ctx context.Context, phase EvalPhase) *ComponentInstance {
-	inst, err := c.unknownInstance.For(phase).Do(ctx, func(ctx context.Context) (*ComponentInstance, error) {
-		return newComponentInstance(c, addrs.WildcardKey, instances.UnknownForEachRepetitionData(c.ForEachValue(ctx, phase).Type()), true), nil
-	})
-	if err != nil {
-		// Since we never return an error from the function we pass to Do,
-		// this should never happen.
-		panic(err)
+func (c *Component) UnknownInstance(ctx context.Context, key addrs.InstanceKey, phase EvalPhase) *ComponentInstance {
+	c.unknownInstancesMutex.Lock()
+	defer c.unknownInstancesMutex.Unlock()
+
+	if inst, ok := c.unknownInstances[key]; ok {
+		return inst
 	}
+
+	forEachType := c.ForEachValue(ctx, phase).Type()
+	repetitionData := instances.UnknownForEachRepetitionData(forEachType)
+	if key != addrs.WildcardKey {
+		repetitionData.EachKey = key.Value()
+	}
+
+	inst := newComponentInstance(c, stackaddrs.AbsComponentToInstance(c.addr, key), repetitionData, c.stack.mode, true)
+	c.unknownInstances[key] = inst
 	return inst
 }
 
 func (c *Component) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
-	decl := c.Declaration(ctx)
+	decl := c.config.config
 	insts, unknown := c.Instances(ctx, phase)
 
 	switch {
@@ -325,16 +311,16 @@ func (c *Component) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange,
 }
 
 // References implements Referrer
-func (c *Component) References(ctx context.Context) []stackaddrs.AbsReference {
-	cfg := c.Declaration(ctx)
+func (c *Component) References(context.Context) []stackaddrs.AbsReference {
+	cfg := c.config.config
 	var ret []stackaddrs.Reference
-	ret = append(ret, ReferencesInExpr(ctx, cfg.ForEach)...)
-	ret = append(ret, ReferencesInExpr(ctx, cfg.Inputs)...)
+	ret = append(ret, ReferencesInExpr(cfg.ForEach)...)
+	ret = append(ret, ReferencesInExpr(cfg.Inputs)...)
 	for _, expr := range cfg.ProviderConfigs {
-		ret = append(ret, ReferencesInExpr(ctx, expr)...)
+		ret = append(ret, ReferencesInExpr(expr)...)
 	}
-	ret = append(ret, referencesInTraversals(ctx, cfg.DependsOn)...)
-	return makeReferencesAbsolute(ret, c.Addr().Stack)
+	ret = append(ret, referencesInTraversals(cfg.DependsOn)...)
+	return makeReferencesAbsolute(ret, c.addr.Stack)
 }
 
 // RequiredComponents returns the set of required components for this component.
@@ -372,26 +358,5 @@ func (c *Component) ApplySuccessful(ctx context.Context) bool {
 }
 
 func (c *Component) tracingName() string {
-	return c.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (c *Component) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	name := c.Addr().String()
-	instsName := name + " instances"
-	forEachName := name + " for_each"
-	c.instances.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[instancesResult[*ComponentInstance]]]) {
-		cb(o.PromiseID(), instsName)
-	})
-	// FIXME: We should call reportNamedPromises on the individual
-	// ComponentInstance objects too, but promising.Once doesn't allow us
-	// to peek to see if the Once was already resolved without blocking on
-	// it, and we don't want to block on any promises in here.
-	// Without this, any promises belonging to the individual instances will
-	// not be named in a self-dependency error report, but since references
-	// to component instances are always indirect through the component this
-	// shouldn't be a big deal in most cases.
-	c.forEachValue.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(o.PromiseID(), forEachName)
-	})
+	return c.addr.String()
 }

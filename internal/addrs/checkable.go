@@ -49,7 +49,7 @@ var (
 // CheckableKind describes the different kinds of checkable objects.
 type CheckableKind rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=CheckableKind checkable.go
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=CheckableKind checkable.go
 
 const (
 	CheckableKindInvalid   CheckableKind = 0

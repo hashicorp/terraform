@@ -6,8 +6,9 @@ package ephemeral
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 )
 
 func TestNonNullWriteOnlyPaths(t *testing.T) {
@@ -69,20 +70,30 @@ func TestNonNullWriteOnlyPaths(t *testing.T) {
 
 		"write-only attributes in blocks": {
 			val: cty.ObjectVal(map[string]cty.Value{
-				"foo": cty.ObjectVal(map[string]cty.Value{
-					"valid-write-only": cty.NullVal(cty.String),
-					"valid":            cty.StringVal("valid"),
-					"id":               cty.StringVal("i-abc123"),
-					"bar": cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
 						"valid-write-only": cty.NullVal(cty.String),
 						"valid":            cty.StringVal("valid"),
 						"id":               cty.StringVal("i-abc123"),
+						"bar": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"valid-write-only": cty.NullVal(cty.String),
+								"valid":            cty.StringVal("valid"),
+								"id":               cty.StringVal("i-abc123"),
+							}),
+							cty.ObjectVal(map[string]cty.Value{
+								"valid-write-only": cty.NullVal(cty.String),
+								"valid":            cty.StringVal("valid"),
+								"id":               cty.StringVal("i-xyz123"),
+							}),
+						}),
 					}),
 				}),
 			}),
 			schema: &configschema.Block{
 				BlockTypes: map[string]*configschema.NestedBlock{
 					"foo": {
+						Nesting: configschema.NestingList,
 						Block: configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
 								"valid-write-only": {
@@ -102,6 +113,7 @@ func TestNonNullWriteOnlyPaths(t *testing.T) {
 							},
 							BlockTypes: map[string]*configschema.NestedBlock{
 								"bar": {
+									Nesting: configschema.NestingList,
 									Block: configschema.Block{
 										Attributes: map[string]*configschema.Attribute{
 											"valid-write-only": {
@@ -126,11 +138,18 @@ func TestNonNullWriteOnlyPaths(t *testing.T) {
 					},
 				},
 			},
-			expectedPaths: []cty.Path{cty.GetAttrPath("foo").GetAttr("id"), cty.GetAttrPath("foo").GetAttr("bar").GetAttr("id")},
+			expectedPaths: []cty.Path{
+				cty.GetAttrPath("foo").Index(cty.NumberIntVal(0)).GetAttr("id"),
+				cty.GetAttrPath("foo").Index(cty.NumberIntVal(0)).GetAttr("bar").Index(cty.NumberIntVal(0)).GetAttr("id"),
+				cty.GetAttrPath("foo").Index(cty.NumberIntVal(0)).GetAttr("bar").Index(cty.NumberIntVal(1)).GetAttr("id"),
+			},
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			paths := NonNullWriteOnlyPaths(tc.val, tc.schema, nil)
+			paths, err := nonNullWriteOnlyPaths(tc.val, tc.schema)
+			if err != nil {
+				t.Fatal(err)
+			}
 
 			if len(paths) != len(tc.expectedPaths) {
 				t.Fatalf("expected %d write-only paths, got %d", len(tc.expectedPaths), len(paths))

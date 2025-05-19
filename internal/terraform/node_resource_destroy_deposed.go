@@ -447,14 +447,15 @@ func (n *NodeDestroyDeposedResourceInstanceObject) writeResourceInstanceState(ct
 		return err
 	}
 
-	schema, currentVersion := providerSchema.SchemaForResourceAddr(absAddr.ContainingResource().Resource)
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceAddr(absAddr.ContainingResource().Resource)
+	if schema.Body == nil {
 		// It shouldn't be possible to get this far in any real scenario
 		// without a schema, but we might end up here in contrived tests that
 		// fail to set up their world properly.
 		return fmt.Errorf("failed to encode %s in state: no resource type schema available", absAddr)
 	}
-	src, err := obj.Encode(schema.ImpliedType(), currentVersion)
+
+	src, err := obj.Encode(schema)
 	if err != nil {
 		return fmt.Errorf("failed to encode %s in state: %s", absAddr, err)
 	}

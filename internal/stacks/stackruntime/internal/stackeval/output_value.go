@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/typeexpr"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
@@ -25,7 +24,9 @@ import (
 
 // OutputValue represents an input variable belonging to a [Stack].
 type OutputValue struct {
-	addr stackaddrs.AbsOutputValue
+	addr   stackaddrs.AbsOutputValue
+	stack  *Stack
+	config *OutputValueConfig
 
 	main *Main
 
@@ -34,40 +35,17 @@ type OutputValue struct {
 
 var _ Plannable = (*OutputValue)(nil)
 
-func newOutputValue(main *Main, addr stackaddrs.AbsOutputValue) *OutputValue {
+func newOutputValue(main *Main, addr stackaddrs.AbsOutputValue, stack *Stack, config *OutputValueConfig) *OutputValue {
 	return &OutputValue{
-		addr: addr,
-		main: main,
+		addr:   addr,
+		stack:  stack,
+		config: config,
+		main:   main,
 	}
 }
 
-func (v *OutputValue) Addr() stackaddrs.AbsOutputValue {
-	return v.addr
-}
-
-func (v *OutputValue) Config(ctx context.Context) *OutputValueConfig {
-	configAddr := stackaddrs.ConfigForAbs(v.Addr())
-	stackConfig := v.main.StackConfig(ctx, configAddr.Stack)
-	if stackConfig == nil {
-		return nil
-	}
-	return stackConfig.OutputValue(ctx, configAddr.Item)
-}
-
-func (v *OutputValue) Stack(ctx context.Context, phase EvalPhase) *Stack {
-	return v.main.Stack(ctx, v.Addr().Stack, phase)
-}
-
-func (v *OutputValue) Declaration(ctx context.Context) *stackconfig.OutputValue {
-	cfg := v.Config(ctx)
-	if cfg == nil {
-		return nil
-	}
-	return cfg.Declaration(ctx)
-}
-
-func (v *OutputValue) ResultType(ctx context.Context) (cty.Type, *typeexpr.Defaults) {
-	decl := v.Declaration(ctx)
+func (v *OutputValue) ResultType() (cty.Type, *typeexpr.Defaults) {
+	decl := v.config.config
 	if decl == nil {
 		// If we get here then something odd must be going on, but
 		// we don't have enough context to guess why so we'll just
@@ -79,11 +57,11 @@ func (v *OutputValue) ResultType(ctx context.Context) (cty.Type, *typeexpr.Defau
 	return decl.Type.Constraint, decl.Type.Defaults
 }
 
-func (v *OutputValue) CheckResultType(ctx context.Context) (cty.Type, *typeexpr.Defaults, tfdiags.Diagnostics) {
+func (v *OutputValue) CheckResultType() (cty.Type, *typeexpr.Defaults, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ty, defs := v.ResultType(ctx)
-	decl := v.Declaration(ctx)
-	if v.Addr().Stack.IsRoot() {
+	ty, defs := v.ResultType()
+	decl := v.config.config
+	if v.addr.Stack.IsRoot() {
 		// A root output value cannot return provider configuration references,
 		// because root outputs outlive the operation that generated them but
 		// provider instances are live only during a single evaluation.
@@ -113,21 +91,14 @@ func (v *OutputValue) ResultValue(ctx context.Context, phase EvalPhase) cty.Valu
 
 func (v *OutputValue) CheckResultValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return withCtyDynamicValPlaceholder(doOnceWithDiags(
-		ctx, v.resultValue.For(phase), v.main,
+		ctx, v.tracingName(), v.resultValue.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
-			cfg := v.Config(ctx)
-			ty, defs := v.ResultType(ctx)
+			cfg := v.config
+			ty, defs := v.ResultType()
 
-			stack := v.Stack(ctx, phase)
-			if stack == nil {
-				// If we're in a stack whose expansion isn't known yet then
-				// we'll return an unknown value placeholder so that
-				// downstreams can at least do type-checking.
-				return cfg.markResultValue(cty.UnknownVal(ty)), diags
-			}
-			result, moreDiags := EvalExprAndEvalContext(ctx, v.Declaration(ctx).Value, phase, stack)
+			result, moreDiags := EvalExprAndEvalContext(ctx, v.config.config.Value, phase, v.stack)
 			diags = diags.Append(moreDiags)
 			if moreDiags.HasErrors() {
 				return cfg.markResultValue(cty.UnknownVal(ty)), diags
@@ -142,18 +113,18 @@ func (v *OutputValue) CheckResultValue(ctx context.Context, phase EvalPhase) (ct
 				diags = diags.Append(result.Diagnostic(
 					tfdiags.Error,
 					"Invalid output value result",
-					fmt.Sprintf("Unsuitable value for output %q: %s.", v.Addr().Item.Name, tfdiags.FormatError(err)),
+					fmt.Sprintf("Unsuitable value for output %q: %s.", v.addr.Item.Name, tfdiags.FormatError(err)),
 				))
 				return cfg.markResultValue(cty.UnknownVal(ty)), diags
 			}
 
-			if cfg.Declaration(ctx).Ephemeral {
+			if cfg.config.Ephemeral {
 				// Verify that ephemeral outputs are not declared on the root stack.
-				if v.Addr().Stack.IsRoot() {
+				if v.addr.Stack.IsRoot() {
 					diags = diags.Append(result.Diagnostic(
 						tfdiags.Error,
 						"Ephemeral output value not allowed on root stack",
-						fmt.Sprintf("Output value %q is marked as ephemeral, this is only allowed in embedded stacks.", v.Addr().Item.Name),
+						fmt.Sprintf("Output value %q is marked as ephemeral, this is only allowed in embedded stacks.", v.addr.Item.Name),
 					))
 				}
 
@@ -162,7 +133,7 @@ func (v *OutputValue) CheckResultValue(ctx context.Context, phase EvalPhase) (ct
 					diags = diags.Append(result.Diagnostic(
 						tfdiags.Error,
 						"Expected ephemeral value",
-						fmt.Sprintf("The output value %q is marked as ephemeral, but the value is not ephemeral.", v.Addr().Item.Name),
+						fmt.Sprintf("The output value %q is marked as ephemeral, but the value is not ephemeral.", v.addr.Item.Name),
 					))
 				}
 
@@ -175,7 +146,7 @@ func (v *OutputValue) CheckResultValue(ctx context.Context, phase EvalPhase) (ct
 						moreDiags = moreDiags.Append(result.Diagnostic(
 							tfdiags.Error,
 							"Ephemeral value not allowed",
-							fmt.Sprintf("The output value %q does not accept ephemeral values.", v.Addr().Item.Name),
+							fmt.Sprintf("The output value %q does not accept ephemeral values.", v.addr.Item.Name),
 						))
 					} else {
 						moreDiags = moreDiags.Append(result.Diagnostic(
@@ -183,7 +154,7 @@ func (v *OutputValue) CheckResultValue(ctx context.Context, phase EvalPhase) (ct
 							"Ephemeral value not allowed",
 							fmt.Sprintf(
 								"The output value %q does not accept ephemeral values, so the value of %s is not compatible.",
-								v.Addr().Item.Name,
+								v.addr.Item.Name,
 								tfdiags.FormatCtyPath(path),
 							),
 						))
@@ -208,7 +179,7 @@ func (v *OutputValue) checkValid(ctx context.Context, phase EvalPhase) tfdiags.D
 
 	// FIXME: We should really check the type during the validation phase
 	// in OutputValueConfig, rather than the planning phase in OutputValue.
-	_, _, moreDiags := v.CheckResultType(ctx)
+	_, _, moreDiags := v.CheckResultType()
 	diags = diags.Append(moreDiags)
 	_, moreDiags = v.CheckResultValue(ctx, phase)
 	diags = diags.Append(moreDiags)
@@ -225,11 +196,11 @@ func (v *OutputValue) PlanChanges(ctx context.Context) ([]stackplan.PlannedChang
 	}
 
 	// Only the root stack's outputs are exposed externally.
-	if !v.Addr().Stack.IsRoot() {
+	if !v.addr.Stack.IsRoot() {
 		return nil, diags
 	}
 
-	before := v.main.PlanPrevState().RootOutputValue(v.Addr().Item)
+	before := v.main.PlanPrevState().RootOutputValue(v.addr.Item)
 	if v.main.PlanningOpts().PlanningMode == plans.DestroyMode {
 		if before == cty.NilVal {
 			// If the value didn't exist before and we're in destroy mode,
@@ -238,10 +209,10 @@ func (v *OutputValue) PlanChanges(ctx context.Context) ([]stackplan.PlannedChang
 		}
 
 		// Otherwise, return a planned change deleting the value.
-		ty, _ := v.ResultType(ctx)
+		ty, _ := v.ResultType()
 		return []stackplan.PlannedChange{
 			&stackplan.PlannedChangeOutputValue{
-				Addr:   v.Addr().Item,
+				Addr:   v.addr.Item,
 				Action: plans.Delete,
 				Before: before,
 				After:  cty.NullVal(ty),
@@ -249,7 +220,7 @@ func (v *OutputValue) PlanChanges(ctx context.Context) ([]stackplan.PlannedChang
 		}, diags
 	}
 
-	decl := v.Declaration(ctx)
+	decl := v.config.config
 	after := v.ResultValue(ctx, PlanPhase)
 	if decl.Ephemeral {
 		after = cty.NullVal(after.Type())
@@ -279,7 +250,7 @@ func (v *OutputValue) PlanChanges(ctx context.Context) ([]stackplan.PlannedChang
 
 	return []stackplan.PlannedChange{
 		&stackplan.PlannedChangeOutputValue{
-			Addr:   v.Addr().Item,
+			Addr:   v.addr.Item,
 			Action: action,
 			Before: before,
 			After:  after,
@@ -288,16 +259,16 @@ func (v *OutputValue) PlanChanges(ctx context.Context) ([]stackplan.PlannedChang
 }
 
 // References implements Referrer
-func (v *OutputValue) References(ctx context.Context) []stackaddrs.AbsReference {
-	cfg := v.Declaration(ctx)
+func (v *OutputValue) References(context.Context) []stackaddrs.AbsReference {
+	cfg := v.config.config
 	var ret []stackaddrs.Reference
-	ret = append(ret, ReferencesInExpr(ctx, cfg.Value)...)
-	return makeReferencesAbsolute(ret, v.Addr().Stack)
+	ret = append(ret, ReferencesInExpr(cfg.Value)...)
+	return makeReferencesAbsolute(ret, v.addr.Stack)
 }
 
 // CheckApply implements Applyable.
 func (v *OutputValue) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
-	if !v.Addr().Stack.IsRoot() {
+	if !v.addr.Stack.IsRoot() {
 		return nil, v.checkValid(ctx, ApplyPhase)
 	}
 
@@ -306,14 +277,14 @@ func (v *OutputValue) CheckApply(ctx context.Context) ([]stackstate.AppliedChang
 		return nil, diags
 	}
 
-	if v.main.PlanBeingApplied().DeletedOutputValues.Has(v.Addr().Item) {
+	if v.main.PlanBeingApplied().DeletedOutputValues.Has(v.addr.Item) {
 		// If the plan being applied has marked this output value for deletion,
 		// we won't handle it here. The stack will take care of removing
 		// everything related to this output value.
 		return nil, diags
 	}
 
-	decl := v.Declaration(ctx)
+	decl := v.config.config
 	value := v.ResultValue(ctx, ApplyPhase)
 	if decl.Ephemeral {
 		value = cty.NullVal(value.Type())
@@ -321,20 +292,12 @@ func (v *OutputValue) CheckApply(ctx context.Context) ([]stackstate.AppliedChang
 
 	return []stackstate.AppliedChange{
 		&stackstate.AppliedChangeOutputValue{
-			Addr:  v.Addr().Item,
+			Addr:  v.addr.Item,
 			Value: value,
 		},
 	}, diags
 }
 
 func (v *OutputValue) tracingName() string {
-	return v.Addr().String()
-}
-
-// reportNamedPromises implements namedPromiseReporter.
-func (v *OutputValue) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	name := v.Addr().String()
-	v.resultValue.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(o.PromiseID(), name)
-	})
+	return v.addr.String()
 }

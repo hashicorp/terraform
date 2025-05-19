@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"strconv"
@@ -16,10 +17,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-)
-
-var (
-	failedTestSummary = "Test assertion failed"
 )
 
 // TestJUnitXMLFile produces a JUnit XML file at the conclusion of a test
@@ -159,8 +156,9 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 
 	enc.EncodeToken(xml.StartElement{Name: suitesName})
 
-	sortedFiles := suiteFilesAsSortedList(suite.Files) // to ensure consistent ordering in XML
-	for _, file := range sortedFiles {
+	// Sort the file names to ensure consistent ordering in XML
+	for _, name := range slices.Sorted(maps.Keys(suite.Files)) {
+		file := suite.Files[name]
 		// Each test file is modelled as a "test suite".
 
 		// First we'll count the number of tests and number of failures/errors
@@ -217,7 +215,7 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 				// When the test fails we only use error diags that originate from failing assertions
 				var failedAssertions tfdiags.Diagnostics
 				for _, d := range run.Diagnostics {
-					if d.Severity() == tfdiags.Error && d.Description().Summary == failedTestSummary {
+					if tfdiags.DiagnosticCausedByTestFailure(d) {
 						failedAssertions = failedAssertions.Append(d)
 					}
 				}
@@ -259,7 +257,7 @@ func junitXMLTestReport(suite *moduletest.Suite, suiteRunnerStopped bool, source
 
 					// Collect diags not due to failed assertions, both errors and warnings
 					for _, d := range run.Diagnostics {
-						if d.Description().Summary != failedTestSummary {
+						if !tfdiags.DiagnosticCausedByTestFailure(d) {
 							systemErrDiags = systemErrDiags.Append(d)
 						}
 					}
@@ -329,22 +327,6 @@ func skipDetails(runIndex int, file *moduletest.File, suiteStopped bool) *withMe
 
 	// Unhandled case: This results in <skipped></skipped> with no attributes or body
 	return &withMessage{}
-}
-
-func suiteFilesAsSortedList(files map[string]*moduletest.File) []*moduletest.File {
-	fileNames := make([]string, len(files))
-	i := 0
-	for k := range files {
-		fileNames[i] = k
-		i++
-	}
-	slices.Sort(fileNames)
-
-	sortedFiles := make([]*moduletest.File, len(files))
-	for i, name := range fileNames {
-		sortedFiles[i] = files[name]
-	}
-	return sortedFiles
 }
 
 func getDiagString(diags tfdiags.Diagnostics, sources map[string][]byte) string {

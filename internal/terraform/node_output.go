@@ -55,10 +55,7 @@ var (
 	_ GraphNodeDynamicExpandable  = (*nodeExpandOutput)(nil)
 	_ graphNodeTemporaryValue     = (*nodeExpandOutput)(nil)
 	_ GraphNodeAttachDependencies = (*nodeExpandOutput)(nil)
-	_ graphNodeExpandsInstances   = (*nodeExpandOutput)(nil)
 )
-
-func (n *nodeExpandOutput) expandsInstances() {}
 
 func (n *nodeExpandOutput) temporaryValue() bool {
 	// non root outputs are temporary

@@ -13,7 +13,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func (m *Main) resolveTestOnlyGlobalReference(ctx context.Context, addr stackaddrs.TestOnlyGlobal, rng tfdiags.SourceRange) (Referenceable, tfdiags.Diagnostics) {
+func (m *Main) resolveTestOnlyGlobalReference(addr stackaddrs.TestOnlyGlobal, rng tfdiags.SourceRange) (Referenceable, tfdiags.Diagnostics) {
 	if m.testOnlyGlobals == nil {
 		var diags tfdiags.Diagnostics
 		// We don't seem to be running in a testing context, so we'll pretend
@@ -51,7 +51,7 @@ type testOnlyGlobal struct {
 }
 
 // ExprReferenceValue implements Referenceable.
-func (g *testOnlyGlobal) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
+func (g *testOnlyGlobal) ExprReferenceValue(context.Context, EvalPhase) cty.Value {
 	// By the time we get here we can assume that we represent an
 	// actually-defined test-only global, because
 	// Main.resolveTestOnlyGlobalReference checks that.

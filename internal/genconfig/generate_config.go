@@ -6,7 +6,8 @@ package genconfig
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -72,14 +73,7 @@ func writeConfigAttributes(addr addrs.AbsResourceInstance, buf *strings.Builder,
 	}
 
 	// Get a list of sorted attribute names so the output will be consistent between runs.
-	keys := make([]string, 0, len(attrs))
-	for k := range attrs {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for i := range keys {
-		name := keys[i]
+	for _, name := range slices.Sorted(maps.Keys(attrs)) {
 		attrS := attrs[name]
 		if attrS.NestedType != nil {
 			diags = diags.Append(writeConfigNestedTypeAttribute(addr, buf, name, attrS, indent))
@@ -124,15 +118,8 @@ func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *stri
 		return diags
 	}
 
-	// Get a list of sorted attribute names so the output will be consistent between runs.
-	keys := make([]string, 0, len(attrs))
-	for k := range attrs {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for i := range keys {
-		name := keys[i]
+	// Sort attribute names so the output will be consistent between runs.
+	for _, name := range slices.Sorted(maps.Keys(attrs)) {
 		attrS := attrs[name]
 		if attrS.NestedType != nil {
 			writeConfigNestedTypeAttributeFromExisting(addr, buf, name, attrS, stateVal, indent)
@@ -233,14 +220,7 @@ func writeConfigBlocks(addr addrs.AbsResourceInstance, buf *strings.Builder, blo
 	}
 
 	// Get a list of sorted block names so the output will be consistent between runs.
-	names := make([]string, 0, len(blocks))
-	for k := range blocks {
-		names = append(names, k)
-	}
-	sort.Strings(names)
-
-	for i := range names {
-		name := names[i]
+	for _, name := range slices.Sorted(maps.Keys(blocks)) {
 		blockS := blocks[name]
 		diags = diags.Append(writeConfigNestedBlock(addr, buf, name, blockS, indent))
 	}
@@ -329,14 +309,8 @@ func writeConfigBlocksFromExisting(addr addrs.AbsResourceInstance, buf *strings.
 		return diags
 	}
 
-	// Get a list of sorted block names so the output will be consistent between runs.
-	names := make([]string, 0, len(blocks))
-	for k := range blocks {
-		names = append(names, k)
-	}
-	sort.Strings(names)
-
-	for _, name := range names {
+	// Sort block names so the output will be consistent between runs.
+	for _, name := range slices.Sorted(maps.Keys(blocks)) {
 		blockS := blocks[name]
 		// This shouldn't happen in real usage; state always has all values (set
 		// to null as needed), but it protects against panics in tests (and any
@@ -436,15 +410,10 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 		}
 
 		vals := attr.AsValueMap()
-		keys := make([]string, 0, len(vals))
-		for key := range vals {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
 
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s = {\n", name))
-		for _, key := range keys {
+		for _, key := range slices.Sorted(maps.Keys(vals)) {
 			buf.WriteString(strings.Repeat(" ", indent+2))
 			buf.WriteString(fmt.Sprintf("%s = {", hclEscapeString(key)))
 
@@ -513,12 +482,7 @@ func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *str
 		}
 
 		vals := stateVal.AsValueMap()
-		keys := make([]string, 0, len(vals))
-		for key := range vals {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
-		for _, key := range keys {
+		for _, key := range slices.Sorted(maps.Keys(vals)) {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s %q {", name, key))
 			// This entire map element is marked

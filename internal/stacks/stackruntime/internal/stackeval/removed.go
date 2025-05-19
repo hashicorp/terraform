@@ -5,232 +5,150 @@ package stackeval
 
 import (
 	"context"
+	"sync"
 
-	"github.com/zclconf/go-cty/cty"
-
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/hashicorp/terraform/internal/stacks/stackplan"
-	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
-	"github.com/hashicorp/terraform/internal/stacks/stackstate"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 )
 
-var (
-	_ Plannable = (*Removed)(nil)
-	_ Applyable = (*Removed)(nil)
-)
-
+// Removed encapsulates the somewhat complicated logic for tracking and
+// managing the removed block instances in a given stack.
+//
+// The Removed block does actually capture the entire tree of removed blocks
+// in a single instance via the children field. Each Stack has a reference to
+// its Removed instance, from which it can access all of its children.
 type Removed struct {
-	addr stackaddrs.AbsComponent
+	sync.Mutex
 
-	main *Main
+	components map[stackaddrs.Component][]*RemovedComponent
+	stackCalls map[stackaddrs.StackCall][]*RemovedStackCall
 
-	forEachValue    perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
-	instances       perEvalPhase[promising.Once[withDiagnostics[instancesResult[*RemovedInstance]]]]
-	unknownInstance perEvalPhase[promising.Once[*RemovedInstance]]
+	children map[string]*Removed
 }
 
-func newRemoved(main *Main, addr stackaddrs.AbsComponent) *Removed {
+func newRemoved() *Removed {
 	return &Removed{
-		addr: addr,
-		main: main,
+		components: make(map[stackaddrs.Component][]*RemovedComponent),
+		stackCalls: make(map[stackaddrs.StackCall][]*RemovedStackCall),
+		children:   make(map[string]*Removed),
 	}
 }
 
-// reportNamedPromises implements namedPromiseReporter.
-func (r *Removed) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	name := r.tracingName()
-	instsName := name + " instances"
-	forEachName := name + " for_each"
-	r.instances.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[instancesResult[*RemovedInstance]]]) {
-		cb(o.PromiseID(), instsName)
-	})
-	// FIXME: We should call reportNamedPromises on the individual
-	// ComponentInstance objects too, but promising.Once doesn't allow us
-	// to peek to see if the Once was already resolved without blocking on
-	// it, and we don't want to block on any promises in here.
-	// Without this, any promises belonging to the individual instances will
-	// not be named in a self-dependency error report, but since references
-	// to component instances are always indirect through the component this
-	// shouldn't be a big deal in most cases.
-	r.forEachValue.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
-		cb(o.PromiseID(), forEachName)
-	})
-}
-
-func (r *Removed) Addr() stackaddrs.AbsComponent {
-	return r.addr
-}
-
-func (r *Removed) Stack(ctx context.Context) *Stack {
-	return r.main.StackUnchecked(ctx, r.addr.Stack)
-}
-
-func (r *Removed) Config(ctx context.Context) *RemovedConfig {
-	configAddr := stackaddrs.ConfigForAbs(r.Addr())
-	stackConfig := r.main.StackConfig(ctx, configAddr.Stack)
-	if stackConfig == nil {
-		return nil
+func (removed *Removed) Get(addr stackaddrs.ConfigStackCall) *Removed {
+	if len(addr.Stack) == 0 {
+		return removed.Next(addr.Item.Name)
 	}
-	return stackConfig.Removed(ctx, configAddr.Item)
-}
-
-func (r *Removed) ForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
-	return doOnceWithDiags(ctx, r.forEachValue.For(phase), r, func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
-		config := r.Config(ctx).config
-
-		switch {
-		case config.ForEach != nil:
-			result, diags := evaluateForEachExpr(ctx, config.ForEach, phase, r.Stack(ctx), "removed")
-			if diags.HasErrors() {
-				return cty.DynamicVal, diags
-			}
-
-			return result.Value, diags
-
-		default:
-			return cty.NilVal, nil
-		}
+	return removed.Next(addr.Stack[0].Name).Get(stackaddrs.ConfigStackCall{
+		Stack: addr.Stack[1:],
+		Item:  addr.Item,
 	})
 }
 
-func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*RemovedInstance, bool, tfdiags.Diagnostics) {
-	result, diags := doOnceWithDiags(ctx, r.instances.For(phase), r.main, func(ctx context.Context) (instancesResult[*RemovedInstance], tfdiags.Diagnostics) {
-		forEachValue, diags := r.ForEachValue(ctx, phase)
-		if diags.HasErrors() {
-			return instancesResult[*RemovedInstance]{}, diags
-		}
+func (removed *Removed) Next(step string) *Removed {
+	removed.Lock()
+	defer removed.Unlock()
 
-		// First, evaluate the for_each value to get the set of instances the
-		// user has asked to be removed.
-		result := instancesMap(forEachValue, func(ik addrs.InstanceKey, rd instances.RepetitionData) *RemovedInstance {
-			return newRemovedInstance(r, ik, rd, false)
-		})
+	next := removed.children[step]
+	if next == nil {
+		next = newRemoved()
+		removed.children[step] = next
+	}
+	return next
+}
 
-		// Now, filter out any instances that are not known to the previous
-		// state. This means the user has targeted a component that (a) never
-		// existed or (b) was removed in a previous operation.
-		//
-		// This stops us emitting planned and applied changes for instances that
-		// do not exist.
-		knownAddrs := make([]stackaddrs.AbsComponentInstance, 0, len(result.insts))
-		knownInstances := make(map[addrs.InstanceKey]*RemovedInstance, len(result.insts))
-		for key, ci := range result.insts {
-			switch phase {
-			case PlanPhase:
-				if r.main.PlanPrevState().HasComponentInstance(ci.Addr()) {
-					knownInstances[key] = ci
-					knownAddrs = append(knownAddrs, ci.Addr())
-					continue
+func (removed *Removed) AddComponent(addr stackaddrs.ConfigComponent, components []*RemovedComponent) {
+	if len(addr.Stack) == 0 {
+		removed.components[addr.Item] = append(removed.components[addr.Item], components...)
+		return
+	}
+	removed.Next(addr.Stack[0].Name).AddComponent(stackaddrs.ConfigComponent{
+		Stack: addr.Stack[1:],
+		Item:  addr.Item,
+	}, components)
+}
+
+func (removed *Removed) AddStackCall(addr stackaddrs.ConfigStackCall, stackCalls []*RemovedStackCall) {
+	if len(addr.Stack) == 0 {
+		removed.stackCalls[addr.Item] = append(removed.stackCalls[addr.Item], stackCalls...)
+		return
+	}
+	removed.Next(addr.Stack[0].Name).AddStackCall(stackaddrs.ConfigStackCall{
+		Stack: addr.Stack[1:],
+		Item:  addr.Item,
+	}, stackCalls)
+}
+
+// validateMissingInstanceAgainstRemovedBlocks matches the function of the same
+// name defined on Stack.
+//
+// This function should only ever be called from inside that function and it
+// performs the same purpose except it exclusively looks for orphaned blocks
+// with the children.
+//
+// This function assumes all the checks made in the equivalent function in Stack
+// have been completed, so again (!!!) it should only be called from within
+// the other function.
+func (removed *Removed) validateMissingInstanceAgainstRemovedBlocks(ctx context.Context, addr stackaddrs.StackInstance, target stackaddrs.AbsComponentInstance, phase EvalPhase) (*stackconfig.Removed, *stackconfig.Component) {
+
+	// we're just jumping directly into checking the children, the removed
+	// stack calls should have already been checked by the function on
+	// Stack.
+
+	if len(target.Stack) == 0 {
+
+		if components, ok := removed.components[target.Item.Component]; ok {
+			for _, component := range components {
+				insts, _ := component.InstancesFor(ctx, addr, phase)
+				for _, inst := range insts {
+					if inst.from.Item.Key == target.Item.Key {
+						// then we have actually found it! this is a removed
+						// block that targets the target address, but isn't
+						// in any stacks.
+						return inst.call.config.config, nil
+					}
 				}
-			case ApplyPhase:
-				if _, ok := r.main.PlanBeingApplied().Components.GetOk(ci.Addr()); ok {
-					knownInstances[key] = ci
-					knownAddrs = append(knownAddrs, ci.Addr())
-					continue
-				}
-			default:
-				// Otherwise, we're running in a stage that doesn't evaluate
-				// a state or the plan so we'll just include everything.
-				knownInstances[key] = ci
-				knownAddrs = append(knownAddrs, ci.Addr())
-
 			}
 		}
-		result.insts = knownInstances
 
-		h := hooksFromContext(ctx)
-		hookSingle(ctx, h.ComponentExpanded, &hooks.ComponentInstances{
-			ComponentAddr: r.Addr(),
-			InstanceAddrs: knownAddrs,
-		})
-
-		return result, diags
-	})
-	return result.insts, result.unknown, diags
-}
-
-func (r *Removed) UnknownInstance(ctx context.Context, phase EvalPhase) *RemovedInstance {
-	inst, err := r.unknownInstance.For(phase).Do(ctx, func(ctx context.Context) (*RemovedInstance, error) {
-		forEachValue, _ := r.ForEachValue(ctx, phase)
-		return newRemovedInstance(r, addrs.WildcardKey, instances.UnknownForEachRepetitionData(forEachValue.Type()), true), nil
-	})
-	if err != nil {
-		panic(err)
-	}
-	return inst
-}
-
-func (r *Removed) PlanIsComplete(ctx context.Context) bool {
-	if !r.main.Planning() {
-		panic("PlanIsComplete used when not in the planning phase")
-	}
-	insts, unknown, _ := r.Instances(ctx, PlanPhase)
-	if insts == nil {
-		// Suggests that the configuration was not even valid enough to
-		// decide what the instances are, so we'll return false to be
-		// conservative and let the error be returned by a different path.
-		return false
+		return nil, nil // we found no potential blocks
 	}
 
-	if unknown {
-		// If the wildcard key is used the instance originates from an unknown
-		// for_each value, which means the result is unknown.
-		return false
+	// otherwise, we'll keep looking!
+
+	// first, we'll check to see if we have a removed block targeting
+	// the entire stack.
+
+	next := target.Stack[0]
+	rest := stackaddrs.AbsComponentInstance{
+		Stack: target.Stack[1:],
+		Item:  target.Item,
 	}
 
-	for _, inst := range insts {
-		plan, _ := inst.ModuleTreePlan(ctx)
-		if plan == nil {
-			// Seems that we weren't even able to create a plan for this
-			// one, so we'll just assume it was incomplete to be conservative,
-			// and assume that whatever errors caused this nil result will
-			// get returned by a different return path.
-			return false
+	if calls, ok := removed.stackCalls[stackaddrs.StackCall{Name: next.Name}]; ok {
+		for _, call := range calls {
+			insts, _ := call.InstancesFor(ctx, append(addr, next), phase)
+			for _, inst := range insts {
+				stack := inst.Stack(ctx, phase)
+
+				// now, hand the search back over to the stack to check if
+				// the target instance is actually claimed by this removed
+				// stack.
+				removed, component := stack.validateMissingInstanceAgainstRemovedBlocks(ctx, rest, phase)
+				if removed != nil || component != nil {
+					// if we found any match, then return this removed block
+					// as the original source
+					return call.config.config, nil
+				}
+			}
 		}
 
-		if !plan.Complete {
-			return false
-		}
-	}
-	// If we get here without returning false then we can say that
-	// all of the instance plans are complete.
-	return true
-}
-
-// PlanChanges implements Plannable.
-func (r *Removed) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
-	_, _, diags := r.Instances(ctx, PlanPhase)
-	return nil, diags
-}
-
-// tracingName implements Plannable.
-func (r *Removed) tracingName() string {
-	return r.Addr().String() + " (removed)"
-}
-
-func (r *Removed) ApplySuccessful(ctx context.Context) bool {
-	if !r.main.Applying() {
-		panic("ApplySuccessful when not applying")
 	}
 
-	// Apply is successful if all of our instances fully completed their
-	// apply phases.
-	insts, _, _ := r.Instances(ctx, ApplyPhase)
-	for _, inst := range insts {
-		result, _ := inst.ApplyResult(ctx)
-		if result == nil || !result.Complete {
-			return false
-		}
-	}
-	return true
-}
+	// finally, we'll keep going through the children of the next one.
 
-// CheckApply implements Applyable.
-func (r *Removed) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
-	_, _, diags := r.Instances(ctx, ApplyPhase)
-	return nil, diags
+	if child, ok := removed.children[next.Name]; ok {
+		return child.validateMissingInstanceAgainstRemovedBlocks(ctx, append(addr, next), rest, phase)
+	}
+
+	return nil, nil
 }

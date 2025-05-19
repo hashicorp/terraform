@@ -14,3 +14,17 @@ run "input_failure" {
   ]
 
 }
+
+
+// This should not run because the previous run block is expected to error, thus
+// terminating the test file.
+run "no_run" {
+
+  variables {
+    input = "abc"
+  }
+  assert {
+    condition = var.input == "abc"
+    error_message = "should not run"
+  }
+}

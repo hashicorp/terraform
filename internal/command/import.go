@@ -173,7 +173,7 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
-	// We require a backend.Local to build a context.
+	// We require a backendrun.Local to build a context.
 	// This isn't necessarily a "local.Local" backend, which provides local
 	// operations, however that is the only current implementation. A
 	// "local.Local" backend also doesn't necessarily provide local state, as
@@ -236,7 +236,7 @@ func (c *ImportCommand) Run(args []string) int {
 		Targets: []*terraform.ImportTarget{
 			{
 				LegacyAddr: addr,
-				IDString:   args[1],
+				LegacyID:   args[1],
 			},
 		},
 
@@ -341,7 +341,7 @@ func (c *ImportCommand) Synopsis() string {
 }
 
 const importCommandInvalidAddressReference = `For information on valid syntax, see:
-https://www.terraform.io/docs/cli/state/resource-addressing.html`
+https://developer.hashicorp.com/terraform/cli/state/resource-addressing`
 
 const importCommandMissingResourceFmt = `[reset][bold][red]Error:[reset][bold] resource address %q does not exist in the configuration.[reset]
 

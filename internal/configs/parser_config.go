@@ -48,6 +48,17 @@ func (p *Parser) LoadTestFile(path string) (*TestFile, hcl.Diagnostics) {
 	return test, diags
 }
 
+func (p *Parser) LoadQueryFile(path string) (*QueryFile, hcl.Diagnostics) {
+	body, diags := p.LoadHCLFile(path)
+	if body == nil {
+		return nil, diags
+	}
+
+	query, queryDiags := loadQueryFile(body)
+	diags = append(diags, queryDiags...)
+	return query, diags
+}
+
 // LoadMockDataFile reads the file at the given path and parses it as a
 // Terraform mock data file.
 //
@@ -182,7 +193,7 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 			}
 
 		case "resource":
-			cfg, cfgDiags := decodeResourceBlock(block, override)
+			cfg, cfgDiags := decodeResourceBlock(block, override, allowExperiments)
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.ManagedResources = append(file.ManagedResources, cfg)
@@ -228,6 +239,15 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.Checks = append(file.Checks, cfg)
+			}
+
+		case "action":
+			if allowExperiments {
+				cfg, cfgDiags := decodeActionBlock(block)
+				diags = append(diags, cfgDiags...)
+				if cfg != nil {
+					file.Actions = append(file.Actions, cfg)
+				}
 			}
 
 		default:
@@ -319,6 +339,10 @@ var configFileSchema = &hcl.BodySchema{
 		},
 		{
 			Type:       "ephemeral",
+			LabelNames: []string{"type", "name"},
+		},
+		{
+			Type:       "action",
 			LabelNames: []string{"type", "name"},
 		},
 		{

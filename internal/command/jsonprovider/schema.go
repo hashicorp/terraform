@@ -15,12 +15,12 @@ type Schema struct {
 // marshalSchema is a convenience wrapper around mashalBlock. Schema version
 // should be set by the caller.
 func marshalSchema(schema providers.Schema) *Schema {
-	if schema.Block == nil {
+	if schema.Body == nil {
 		return &Schema{}
 	}
 
 	var ret Schema
-	ret.Block = marshalBlock(schema.Block)
+	ret.Block = marshalBlock(schema.Body)
 	ret.Version = uint64(schema.Version)
 
 	return &ret
@@ -34,5 +34,37 @@ func marshalSchemas(schemas map[string]providers.Schema) map[string]*Schema {
 	for k, v := range schemas {
 		ret[k] = marshalSchema(v)
 	}
+	return ret
+}
+
+type IdentitySchema struct {
+	Version    uint64                        `json:"version"`
+	Attributes map[string]*IdentityAttribute `json:"attributes,omitempty"`
+}
+
+func marshalIdentitySchema(schema providers.Schema) *IdentitySchema {
+	var ret IdentitySchema
+	ret.Version = uint64(schema.IdentityVersion)
+	ret.Attributes = make(map[string]*IdentityAttribute, len(schema.Identity.Attributes))
+
+	for k, v := range schema.Identity.Attributes {
+		ret.Attributes[k] = marshalIdentityAttribute(v)
+	}
+
+	return &ret
+}
+
+func marshalIdentitySchemas(schemas map[string]providers.Schema) map[string]*IdentitySchema {
+	if schemas == nil {
+		return map[string]*IdentitySchema{}
+	}
+
+	ret := make(map[string]*IdentitySchema, len(schemas))
+	for k, v := range schemas {
+		if v.Identity != nil {
+			ret[k] = marshalIdentitySchema(v)
+		}
+	}
+
 	return ret
 }

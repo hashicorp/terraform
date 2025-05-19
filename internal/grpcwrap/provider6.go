@@ -5,6 +5,7 @@ package grpcwrap
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
@@ -24,14 +25,16 @@ import (
 // internal provider implementation.
 func Provider6(p providers.Interface) tfplugin6.ProviderServer {
 	return &provider6{
-		provider: p,
-		schema:   p.GetProviderSchema(),
+		provider:        p,
+		schema:          p.GetProviderSchema(),
+		identitySchemas: p.GetResourceIdentitySchemas(),
 	}
 }
 
 type provider6 struct {
-	provider providers.Interface
-	schema   providers.GetProviderSchemaResponse
+	provider        providers.Interface
+	schema          providers.GetProviderSchemaResponse
+	identitySchemas providers.GetResourceIdentitySchemasResponse
 }
 
 func (p *provider6) GetMetadata(_ context.Context, req *tfplugin6.GetMetadata_Request) (*tfplugin6.GetMetadata_Response, error) {
@@ -44,38 +47,45 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 		DataSourceSchemas:        make(map[string]*tfplugin6.Schema),
 		EphemeralResourceSchemas: make(map[string]*tfplugin6.Schema),
 		Functions:                make(map[string]*tfplugin6.Function),
+		ListResourceSchemas:      make(map[string]*tfplugin6.Schema),
 	}
 
 	resp.Provider = &tfplugin6.Schema{
 		Block: &tfplugin6.Schema_Block{},
 	}
-	if p.schema.Provider.Block != nil {
-		resp.Provider.Block = convert.ConfigSchemaToProto(p.schema.Provider.Block)
+	if p.schema.Provider.Body != nil {
+		resp.Provider.Block = convert.ConfigSchemaToProto(p.schema.Provider.Body)
 	}
 
 	resp.ProviderMeta = &tfplugin6.Schema{
 		Block: &tfplugin6.Schema_Block{},
 	}
-	if p.schema.ProviderMeta.Block != nil {
-		resp.ProviderMeta.Block = convert.ConfigSchemaToProto(p.schema.ProviderMeta.Block)
+	if p.schema.ProviderMeta.Body != nil {
+		resp.ProviderMeta.Block = convert.ConfigSchemaToProto(p.schema.ProviderMeta.Body)
 	}
 
 	for typ, res := range p.schema.ResourceTypes {
 		resp.ResourceSchemas[typ] = &tfplugin6.Schema{
 			Version: res.Version,
-			Block:   convert.ConfigSchemaToProto(res.Block),
+			Block:   convert.ConfigSchemaToProto(res.Body),
 		}
 	}
 	for typ, dat := range p.schema.DataSources {
 		resp.DataSourceSchemas[typ] = &tfplugin6.Schema{
-			Version: dat.Version,
-			Block:   convert.ConfigSchemaToProto(dat.Block),
+			Version: int64(dat.Version),
+			Block:   convert.ConfigSchemaToProto(dat.Body),
 		}
 	}
 	for typ, dat := range p.schema.EphemeralResourceTypes {
 		resp.EphemeralResourceSchemas[typ] = &tfplugin6.Schema{
-			Version: dat.Version,
-			Block:   convert.ConfigSchemaToProto(dat.Block),
+			Version: int64(dat.Version),
+			Block:   convert.ConfigSchemaToProto(dat.Body),
+		}
+	}
+	for typ, dat := range p.schema.ListResourceTypes {
+		resp.ListResourceSchemas[typ] = &tfplugin6.Schema{
+			Version: int64(dat.Version),
+			Block:   convert.ConfigSchemaToProto(dat.Body),
 		}
 	}
 	if decls, err := convert.FunctionDeclsToProto(p.schema.Functions); err == nil {
@@ -99,7 +109,7 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 
 func (p *provider6) ValidateProviderConfig(_ context.Context, req *tfplugin6.ValidateProviderConfig_Request) (*tfplugin6.ValidateProviderConfig_Response, error) {
 	resp := &tfplugin6.ValidateProviderConfig_Response{}
-	ty := p.schema.Provider.Block.ImpliedType()
+	ty := p.schema.Provider.Body.ImpliedType()
 
 	configVal, err := decodeDynamicValue6(req.Config, ty)
 	if err != nil {
@@ -118,7 +128,7 @@ func (p *provider6) ValidateProviderConfig(_ context.Context, req *tfplugin6.Val
 
 func (p *provider6) ValidateResourceConfig(_ context.Context, req *tfplugin6.ValidateResourceConfig_Request) (*tfplugin6.ValidateResourceConfig_Response, error) {
 	resp := &tfplugin6.ValidateResourceConfig_Response{}
-	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
+	ty := p.schema.ResourceTypes[req.TypeName].Body.ImpliedType()
 
 	configVal, err := decodeDynamicValue6(req.Config, ty)
 	if err != nil {
@@ -137,7 +147,7 @@ func (p *provider6) ValidateResourceConfig(_ context.Context, req *tfplugin6.Val
 
 func (p *provider6) ValidateDataResourceConfig(_ context.Context, req *tfplugin6.ValidateDataResourceConfig_Request) (*tfplugin6.ValidateDataResourceConfig_Response, error) {
 	resp := &tfplugin6.ValidateDataResourceConfig_Response{}
-	ty := p.schema.DataSources[req.TypeName].Block.ImpliedType()
+	ty := p.schema.DataSources[req.TypeName].Body.ImpliedType()
 
 	configVal, err := decodeDynamicValue6(req.Config, ty)
 	if err != nil {
@@ -156,7 +166,7 @@ func (p *provider6) ValidateDataResourceConfig(_ context.Context, req *tfplugin6
 
 func (p *provider6) ValidateEphemeralResourceConfig(_ context.Context, req *tfplugin6.ValidateEphemeralResourceConfig_Request) (*tfplugin6.ValidateEphemeralResourceConfig_Response, error) {
 	resp := &tfplugin6.ValidateEphemeralResourceConfig_Response{}
-	ty := p.schema.DataSources[req.TypeName].Block.ImpliedType()
+	ty := p.schema.EphemeralResourceTypes[req.TypeName].Body.ImpliedType()
 
 	configVal, err := decodeDynamicValue6(req.Config, ty)
 	if err != nil {
@@ -173,9 +183,28 @@ func (p *provider6) ValidateEphemeralResourceConfig(_ context.Context, req *tfpl
 	return resp, nil
 }
 
+func (p *provider6) ValidateListResourceConfig(_ context.Context, req *tfplugin6.ValidateListResourceConfig_Request) (*tfplugin6.ValidateListResourceConfig_Response, error) {
+	resp := &tfplugin6.ValidateListResourceConfig_Response{}
+	ty := p.schema.ListResourceTypes[req.TypeName].Body.ImpliedType()
+
+	configVal, err := decodeDynamicValue6(req.Config, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	validateResp := p.provider.ValidateListResourceConfig(providers.ValidateListResourceConfigRequest{
+		TypeName: req.TypeName,
+		Config:   configVal,
+	})
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, validateResp.Diagnostics)
+	return resp, nil
+}
+
 func (p *provider6) UpgradeResourceState(_ context.Context, req *tfplugin6.UpgradeResourceState_Request) (*tfplugin6.UpgradeResourceState_Response, error) {
 	resp := &tfplugin6.UpgradeResourceState_Response{}
-	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
+	ty := p.schema.ResourceTypes[req.TypeName].Body.ImpliedType()
 
 	upgradeResp := p.provider.UpgradeResourceState(providers.UpgradeResourceStateRequest{
 		TypeName:     req.TypeName,
@@ -201,7 +230,7 @@ func (p *provider6) UpgradeResourceState(_ context.Context, req *tfplugin6.Upgra
 
 func (p *provider6) ConfigureProvider(_ context.Context, req *tfplugin6.ConfigureProvider_Request) (*tfplugin6.ConfigureProvider_Response, error) {
 	resp := &tfplugin6.ConfigureProvider_Response{}
-	ty := p.schema.Provider.Block.ImpliedType()
+	ty := p.schema.Provider.Body.ImpliedType()
 
 	configVal, err := decodeDynamicValue6(req.Config, ty)
 	if err != nil {
@@ -220,7 +249,8 @@ func (p *provider6) ConfigureProvider(_ context.Context, req *tfplugin6.Configur
 
 func (p *provider6) ReadResource(_ context.Context, req *tfplugin6.ReadResource_Request) (*tfplugin6.ReadResource_Response, error) {
 	resp := &tfplugin6.ReadResource_Response{}
-	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
+	resSchema := p.schema.ResourceTypes[req.TypeName]
+	ty := resSchema.Body.ImpliedType()
 
 	stateVal, err := decodeDynamicValue6(req.CurrentState, ty)
 	if err != nil {
@@ -228,18 +258,32 @@ func (p *provider6) ReadResource(_ context.Context, req *tfplugin6.ReadResource_
 		return resp, nil
 	}
 
-	metaTy := p.schema.ProviderMeta.Block.ImpliedType()
+	metaTy := p.schema.ProviderMeta.Body.ImpliedType()
 	metaVal, err := decodeDynamicValue6(req.ProviderMeta, metaTy)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
+	var currentIdentity cty.Value
+	if req.CurrentIdentity != nil && req.CurrentIdentity.IdentityData != nil {
+		if resSchema.Identity == nil {
+			return resp, fmt.Errorf("identity schema not found for type %s", req.TypeName)
+		}
+
+		currentIdentity, err = decodeDynamicValue6(req.CurrentIdentity.IdentityData, resSchema.Identity.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+	}
+
 	readResp := p.provider.ReadResource(providers.ReadResourceRequest{
-		TypeName:     req.TypeName,
-		PriorState:   stateVal,
-		Private:      req.Private,
-		ProviderMeta: metaVal,
+		TypeName:        req.TypeName,
+		PriorState:      stateVal,
+		Private:         req.Private,
+		ProviderMeta:    metaVal,
+		CurrentIdentity: currentIdentity,
 	})
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, readResp.Diagnostics)
 	if readResp.Diagnostics.HasErrors() {
@@ -254,12 +298,27 @@ func (p *provider6) ReadResource(_ context.Context, req *tfplugin6.ReadResource_
 	}
 	resp.NewState = dv
 
+	if !readResp.Identity.IsNull() {
+		if resSchema.Identity == nil {
+			return resp, fmt.Errorf("identity schema not found for type %s", req.TypeName)
+		}
+		newIdentity, err := encodeDynamicValue6(readResp.Identity, resSchema.Identity.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+		resp.NewIdentity = &tfplugin6.ResourceIdentityData{
+			IdentityData: newIdentity,
+		}
+	}
+
 	return resp, nil
 }
 
 func (p *provider6) PlanResourceChange(_ context.Context, req *tfplugin6.PlanResourceChange_Request) (*tfplugin6.PlanResourceChange_Response, error) {
 	resp := &tfplugin6.PlanResourceChange_Response{}
-	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
+	resSchema := p.schema.ResourceTypes[req.TypeName]
+	ty := resSchema.Body.ImpliedType()
 
 	priorStateVal, err := decodeDynamicValue6(req.PriorState, ty)
 	if err != nil {
@@ -279,11 +338,24 @@ func (p *provider6) PlanResourceChange(_ context.Context, req *tfplugin6.PlanRes
 		return resp, nil
 	}
 
-	metaTy := p.schema.ProviderMeta.Block.ImpliedType()
+	metaTy := p.schema.ProviderMeta.Body.ImpliedType()
 	metaVal, err := decodeDynamicValue6(req.ProviderMeta, metaTy)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
+	}
+
+	var priorIdentity cty.Value
+	if req.PriorIdentity != nil && req.PriorIdentity.IdentityData != nil {
+		if resSchema.Identity == nil {
+			return resp, fmt.Errorf("identity schema not found for type %s", req.TypeName)
+		}
+
+		priorIdentity, err = decodeDynamicValue6(req.PriorIdentity.IdentityData, resSchema.Identity.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
 	}
 
 	planResp := p.provider.PlanResourceChange(providers.PlanResourceChangeRequest{
@@ -293,6 +365,7 @@ func (p *provider6) PlanResourceChange(_ context.Context, req *tfplugin6.PlanRes
 		Config:           configVal,
 		PriorPrivate:     req.PriorPrivate,
 		ProviderMeta:     metaVal,
+		PriorIdentity:    priorIdentity,
 	})
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, planResp.Diagnostics)
 	if planResp.Diagnostics.HasErrors() {
@@ -311,12 +384,29 @@ func (p *provider6) PlanResourceChange(_ context.Context, req *tfplugin6.PlanRes
 		resp.RequiresReplace = append(resp.RequiresReplace, convert.PathToAttributePath(path))
 	}
 
+	if !planResp.PlannedIdentity.IsNull() {
+		if resSchema.Identity == nil {
+			return resp, fmt.Errorf("identity schema not found for type %s", req.TypeName)
+		}
+
+		plannedIdentityVal, err := encodeDynamicValue6(planResp.PlannedIdentity, resSchema.Identity.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+
+		resp.PlannedIdentity = &tfplugin6.ResourceIdentityData{
+			IdentityData: plannedIdentityVal,
+		}
+	}
+
 	return resp, nil
 }
 
 func (p *provider6) ApplyResourceChange(_ context.Context, req *tfplugin6.ApplyResourceChange_Request) (*tfplugin6.ApplyResourceChange_Response, error) {
 	resp := &tfplugin6.ApplyResourceChange_Response{}
-	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
+	resSchema := p.schema.ResourceTypes[req.TypeName]
+	ty := resSchema.Body.ImpliedType()
 
 	priorStateVal, err := decodeDynamicValue6(req.PriorState, ty)
 	if err != nil {
@@ -336,20 +426,34 @@ func (p *provider6) ApplyResourceChange(_ context.Context, req *tfplugin6.ApplyR
 		return resp, nil
 	}
 
-	metaTy := p.schema.ProviderMeta.Block.ImpliedType()
+	metaTy := p.schema.ProviderMeta.Body.ImpliedType()
 	metaVal, err := decodeDynamicValue6(req.ProviderMeta, metaTy)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
 
+	var plannedIdentity cty.Value
+	if req.PlannedIdentity != nil && req.PlannedIdentity.IdentityData != nil {
+		if resSchema.Identity == nil {
+			return resp, fmt.Errorf("identity schema not found for type %s", req.TypeName)
+		}
+
+		plannedIdentity, err = decodeDynamicValue6(req.PlannedIdentity.IdentityData, resSchema.Identity.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+	}
+
 	applyResp := p.provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
-		TypeName:       req.TypeName,
-		PriorState:     priorStateVal,
-		PlannedState:   plannedStateVal,
-		Config:         configVal,
-		PlannedPrivate: req.PlannedPrivate,
-		ProviderMeta:   metaVal,
+		TypeName:        req.TypeName,
+		PriorState:      priorStateVal,
+		PlannedState:    plannedStateVal,
+		Config:          configVal,
+		PlannedPrivate:  req.PlannedPrivate,
+		ProviderMeta:    metaVal,
+		PlannedIdentity: plannedIdentity,
 	})
 
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, applyResp.Diagnostics)
@@ -364,31 +468,78 @@ func (p *provider6) ApplyResourceChange(_ context.Context, req *tfplugin6.ApplyR
 		return resp, nil
 	}
 
+	if !applyResp.NewIdentity.IsNull() {
+		if resSchema.Identity == nil {
+			return resp, fmt.Errorf("identity schema not found for type %s", req.TypeName)
+		}
+		newIdentity, err := encodeDynamicValue6(applyResp.NewIdentity, resSchema.Identity.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+		resp.NewIdentity = &tfplugin6.ResourceIdentityData{
+			IdentityData: newIdentity,
+		}
+	}
+
 	return resp, nil
 }
 
 func (p *provider6) ImportResourceState(_ context.Context, req *tfplugin6.ImportResourceState_Request) (*tfplugin6.ImportResourceState_Response, error) {
 	resp := &tfplugin6.ImportResourceState_Response{}
 
+	resSchema := p.schema.ResourceTypes[req.TypeName]
+
+	var identity cty.Value
+	var err error
+	if req.Identity != nil && req.Identity.IdentityData != nil {
+		if resSchema.Identity == nil {
+			return resp, fmt.Errorf("identity schema not found for type %s", req.TypeName)
+		}
+		identity, err = decodeDynamicValue6(req.Identity.IdentityData, resSchema.Identity.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+	}
+
 	importResp := p.provider.ImportResourceState(providers.ImportResourceStateRequest{
 		TypeName: req.TypeName,
 		ID:       req.Id,
+		Identity: identity,
 	})
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, importResp.Diagnostics)
 
 	for _, res := range importResp.ImportedResources {
-		ty := p.schema.ResourceTypes[res.TypeName].Block.ImpliedType()
+		importSchema := p.schema.ResourceTypes[res.TypeName]
+		ty := importSchema.Body.ImpliedType()
 		state, err := encodeDynamicValue6(res.State, ty)
 		if err != nil {
 			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 			continue
 		}
-
-		resp.ImportedResources = append(resp.ImportedResources, &tfplugin6.ImportResourceState_ImportedResource{
+		importedResource := &tfplugin6.ImportResourceState_ImportedResource{
 			TypeName: res.TypeName,
 			State:    state,
 			Private:  res.Private,
-		})
+		}
+		if !res.Identity.IsNull() {
+			if importSchema.Identity == nil {
+				return nil, fmt.Errorf("identity schema not found for type %s", res.TypeName)
+			}
+
+			identity, err := encodeDynamicValue6(res.Identity, importSchema.Identity.ImpliedType())
+			if err != nil {
+				resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+				continue
+			}
+
+			importedResource.Identity = &tfplugin6.ResourceIdentityData{
+				IdentityData: identity,
+			}
+		}
+
+		resp.ImportedResources = append(resp.ImportedResources, importedResource)
 	}
 
 	return resp, nil
@@ -397,6 +548,12 @@ func (p *provider6) ImportResourceState(_ context.Context, req *tfplugin6.Import
 func (p *provider6) MoveResourceState(_ context.Context, request *tfplugin6.MoveResourceState_Request) (*tfplugin6.MoveResourceState_Response, error) {
 	resp := &tfplugin6.MoveResourceState_Response{}
 
+	var sourceIdentity []byte
+	var err error
+	if request.SourceIdentity != nil && len(request.SourceIdentity.Json) > 0 {
+		sourceIdentity = request.SourceIdentity.Json
+	}
+
 	moveResp := p.provider.MoveResourceState(providers.MoveResourceStateRequest{
 		SourceProviderAddress: request.SourceProviderAddress,
 		SourceTypeName:        request.SourceTypeName,
@@ -404,18 +561,37 @@ func (p *provider6) MoveResourceState(_ context.Context, request *tfplugin6.Move
 		SourceStateJSON:       request.SourceState.Json,
 		SourcePrivate:         request.SourcePrivate,
 		TargetTypeName:        request.TargetTypeName,
+		SourceIdentity:        sourceIdentity,
 	})
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, moveResp.Diagnostics)
 	if moveResp.Diagnostics.HasErrors() {
 		return resp, nil
 	}
 
-	targetType := p.schema.ResourceTypes[request.TargetTypeName].Block.ImpliedType()
+	targetSchema := p.schema.ResourceTypes[request.TargetTypeName]
+	targetType := targetSchema.Body.ImpliedType()
 	targetState, err := encodeDynamicValue6(moveResp.TargetState, targetType)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
 	}
+
+	if !moveResp.TargetIdentity.IsNull() {
+		if targetSchema.Identity == nil {
+			return resp, fmt.Errorf("identity schema not found for type %s", request.TargetTypeName)
+		}
+
+		targetIdentity, err := encodeDynamicValue6(moveResp.TargetIdentity, targetSchema.Identity.ImpliedType())
+		if err != nil {
+			resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+			return resp, nil
+		}
+
+		resp.TargetIdentity = &tfplugin6.ResourceIdentityData{
+			IdentityData: targetIdentity,
+		}
+	}
+
 	resp.TargetState = targetState
 	resp.TargetPrivate = moveResp.TargetPrivate
 	return resp, nil
@@ -423,7 +599,7 @@ func (p *provider6) MoveResourceState(_ context.Context, request *tfplugin6.Move
 
 func (p *provider6) ReadDataSource(_ context.Context, req *tfplugin6.ReadDataSource_Request) (*tfplugin6.ReadDataSource_Response, error) {
 	resp := &tfplugin6.ReadDataSource_Response{}
-	ty := p.schema.DataSources[req.TypeName].Block.ImpliedType()
+	ty := p.schema.DataSources[req.TypeName].Body.ImpliedType()
 
 	configVal, err := decodeDynamicValue6(req.Config, ty)
 	if err != nil {
@@ -431,7 +607,7 @@ func (p *provider6) ReadDataSource(_ context.Context, req *tfplugin6.ReadDataSou
 		return resp, nil
 	}
 
-	metaTy := p.schema.ProviderMeta.Block.ImpliedType()
+	metaTy := p.schema.ProviderMeta.Body.ImpliedType()
 	metaVal, err := decodeDynamicValue6(req.ProviderMeta, metaTy)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
@@ -459,7 +635,7 @@ func (p *provider6) ReadDataSource(_ context.Context, req *tfplugin6.ReadDataSou
 
 func (p *provider6) OpenEphemeralResource(_ context.Context, req *tfplugin6.OpenEphemeralResource_Request) (*tfplugin6.OpenEphemeralResource_Response, error) {
 	resp := &tfplugin6.OpenEphemeralResource_Response{}
-	ty := p.schema.EphemeralResourceTypes[req.TypeName].Block.ImpliedType()
+	ty := p.schema.EphemeralResourceTypes[req.TypeName].Body.ImpliedType()
 
 	configVal, err := decodeDynamicValue6(req.Config, ty)
 	if err != nil {
@@ -587,6 +763,55 @@ func (p *provider6) CallFunction(_ context.Context, req *tfplugin6.CallFunction_
 	}
 
 	return resp, nil
+}
+
+func (p *provider6) GetResourceIdentitySchemas(_ context.Context, req *tfplugin6.GetResourceIdentitySchemas_Request) (*tfplugin6.GetResourceIdentitySchemas_Response, error) {
+	resp := &tfplugin6.GetResourceIdentitySchemas_Response{
+		IdentitySchemas: map[string]*tfplugin6.ResourceIdentitySchema{},
+		Diagnostics:     []*tfplugin6.Diagnostic{},
+	}
+
+	for name, schema := range p.identitySchemas.IdentityTypes {
+		resp.IdentitySchemas[name] = convert.ResourceIdentitySchemaToProto(schema)
+	}
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, p.identitySchemas.Diagnostics)
+	return resp, nil
+}
+
+func (p *provider6) UpgradeResourceIdentity(_ context.Context, req *tfplugin6.UpgradeResourceIdentity_Request) (*tfplugin6.UpgradeResourceIdentity_Response, error) {
+	resp := &tfplugin6.UpgradeResourceIdentity_Response{}
+	resource, ok := p.identitySchemas.IdentityTypes[req.TypeName]
+	if !ok {
+		return nil, fmt.Errorf("resource identity schema not found for type %q", req.TypeName)
+	}
+	ty := resource.Body.ImpliedType()
+
+	upgradeResp := p.provider.UpgradeResourceIdentity(providers.UpgradeResourceIdentityRequest{
+		TypeName:        req.TypeName,
+		Version:         req.Version,
+		RawIdentityJSON: req.RawIdentity.Json,
+	})
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, upgradeResp.Diagnostics)
+
+	if upgradeResp.Diagnostics.HasErrors() {
+		return resp, nil
+	}
+
+	dv, err := encodeDynamicValue6(upgradeResp.UpgradedIdentity, ty)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	resp.UpgradedIdentity = &tfplugin6.ResourceIdentityData{
+		IdentityData: dv,
+	}
+	return resp, nil
+}
+
+func (p *provider6) ListResource(*tfplugin6.ListResource_Request, tfplugin6.Provider_ListResourceServer) error {
+	panic("not implemented")
 }
 
 func (p *provider6) StopProvider(context.Context, *tfplugin6.StopProvider_Request) (*tfplugin6.StopProvider_Response, error) {

@@ -29,8 +29,9 @@ type ConfigComponentExpressionScope[Addr any] interface {
 	ExpressionScope
 
 	Addr() Addr
+	StackConfig() *StackConfig
 	ModuleTree(ctx context.Context) *configs.Config
-	DeclRange(ctx context.Context) *hcl.Range
+	DeclRange() *hcl.Range
 }
 
 // EvalProviderTypes evaluates the provider configurations for a component,
@@ -68,7 +69,7 @@ func EvalProviderTypes(ctx context.Context, stack *StackConfig, providers map[ad
 					"The root module for %s requires a provider configuration named %q for provider %q, which is not assigned in the block's \"providers\" argument.",
 					scope.Addr(), componentAddr.StringCompact(), typeAddr.ForDisplay(),
 				),
-				Subject: scope.DeclRange(ctx),
+				Subject: scope.DeclRange(),
 			})
 			continue
 		}
@@ -93,8 +94,8 @@ func EvalProviderTypes(ctx context.Context, stack *StackConfig, providers map[ad
 			if actualTypeAddr != typeAddr {
 				var errorDetail string
 
-				stackName, matchingTypeExists := stack.ProviderLocalName(ctx, typeAddr)
-				_, matchingNameExists := stack.ProviderForLocalName(ctx, componentAddr.LocalName)
+				stackName, matchingTypeExists := stack.ProviderLocalName(typeAddr)
+				_, matchingNameExists := stack.ProviderForLocalName(componentAddr.LocalName)
 				moduleProviderTypeExplicit := elem.Value.Explicit
 				if !matchingTypeExists && !matchingNameExists {
 					// Then the user just hasn't declared the target provider
@@ -219,7 +220,6 @@ func EvalProviderValues(ctx context.Context, main *Main, providers map[addrs.Loc
 	//   store the additional information we need. Once this is fixed we can
 	//   come and tidy this up as well.
 
-	stackConfig := main.StackConfig(ctx, scope.Addr().Stack.ConfigAddr())
 	moduleTree := scope.ModuleTree(ctx)
 
 	// We'll search through the declConfigs to find any keys that match the
@@ -262,7 +262,7 @@ func EvalProviderValues(ctx context.Context, main *Main, providers map[addrs.Loc
 			knownProviders[sourceAddr] = inst
 		}
 
-		if _, ok := stackConfig.ProviderLocalName(ctx, provider); !ok {
+		if _, ok := scope.StackConfig().ProviderLocalName(provider); !ok {
 			// Even though we have an entry for this provider in the declConfigs
 			// doesn't mean we have an entry for this in our required providers.
 			diags = diags.Append(&hcl.Diagnostic{
@@ -272,7 +272,7 @@ func EvalProviderValues(ctx context.Context, main *Main, providers map[addrs.Loc
 					"The root module for %s has resources in state that require a configuration for provider %q, which isn't declared as a dependency of this stack configuration.\n\nDeclare this provider in the stack's required_providers block, and then assign a configuration for that provider in this block's \"providers\" argument.",
 					scope.Addr(), provider.ForDisplay(),
 				),
-				Subject: scope.DeclRange(ctx),
+				Subject: scope.DeclRange(),
 			})
 		}
 	}
@@ -303,7 +303,7 @@ func EvalProviderValues(ctx context.Context, main *Main, providers map[addrs.Loc
 				"The root module for %s has resources in state that require a provider configuration named %q for provider %q, which is not assigned in the block's \"providers\" argument.",
 				scope.Addr(), localAddr.StringCompact(), previousProvider.Provider.ForDisplay(),
 			),
-			Subject: scope.DeclRange(ctx),
+			Subject: scope.DeclRange(),
 		})
 	}
 
@@ -417,7 +417,7 @@ func neededProviderSchemas[Addr any](ctx context.Context, main *Main, phase Eval
 
 	providerSchemas := make(map[addrs.Provider]providers.ProviderSchema)
 	for _, sourceAddr := range config.ProviderTypes() {
-		pTy := main.ProviderType(ctx, sourceAddr)
+		pTy := main.ProviderType(sourceAddr)
 		if pTy == nil {
 			continue // not our job to report a missing provider
 		}
@@ -427,7 +427,7 @@ func neededProviderSchemas[Addr any](ctx context.Context, main *Main, phase Eval
 		if depLocks != nil {
 			// Check if the provider is in the lockfile,
 			// if it is not we can not read the provider schema
-			providerLockfileDiags := CheckProviderInLockfile(*depLocks, pTy, scope.DeclRange(ctx))
+			providerLockfileDiags := CheckProviderInLockfile(*depLocks, pTy, scope.DeclRange())
 
 			// We report these diagnostics in a different place
 			if providerLockfileDiags.HasErrors() {
@@ -442,7 +442,7 @@ func neededProviderSchemas[Addr any](ctx context.Context, main *Main, phase Eval
 				Severity: hcl.DiagError,
 				Summary:  "Provider initialization error",
 				Detail:   fmt.Sprintf("Failed to fetch the provider schema for %s: %s.", sourceAddr, err),
-				Subject:  scope.DeclRange(ctx),
+				Subject:  scope.DeclRange(),
 			})
 			continue
 		}
@@ -454,12 +454,12 @@ func neededProviderSchemas[Addr any](ctx context.Context, main *Main, phase Eval
 // unconfiguredProviderClients returns the provider clients for the providers
 // required by the configuration of the given component, along with any
 // diagnostics that were encountered while fetching those clients.
-func unconfiguredProviderClients(ctx context.Context, main *Main, ps addrs.Set[addrs.RootProviderConfig]) (map[addrs.RootProviderConfig]providers.Interface, bool) {
+func unconfiguredProviderClients(main *Main, ps addrs.Set[addrs.RootProviderConfig]) (map[addrs.RootProviderConfig]providers.Interface, bool) {
 	insts := make(map[addrs.RootProviderConfig]providers.Interface)
 	valid := true
 
 	for _, provider := range ps {
-		pTy := main.ProviderType(ctx, provider.Provider)
+		pTy := main.ProviderType(provider.Provider)
 		if pTy == nil {
 			valid = false
 			continue // not our job to report a missing provider
@@ -485,7 +485,7 @@ func configuredProviderClients(ctx context.Context, main *Main, known map[addrs.
 		if providerInstStack == nil {
 			continue
 		}
-		provider := providerInstStack.Provider(ctx, callerAddr.Item.ProviderConfig)
+		provider := providerInstStack.Provider(callerAddr.Item.ProviderConfig)
 		if provider == nil {
 			continue
 		}
@@ -506,7 +506,7 @@ func configuredProviderClients(ctx context.Context, main *Main, known map[addrs.
 		providerInsts[calleeAddr] = inst.Client(ctx, phase)
 	}
 	for calleeAddr, provider := range unknown {
-		pTy := main.ProviderType(ctx, provider)
+		pTy := main.ProviderType(provider)
 		client, err := pTy.UnconfiguredClient()
 		if err != nil {
 			continue

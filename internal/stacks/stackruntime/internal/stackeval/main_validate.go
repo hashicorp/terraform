@@ -6,9 +6,10 @@ package stackeval
 import (
 	"context"
 
+	"go.opentelemetry.io/otel/codes"
+
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"go.opentelemetry.io/otel/codes"
 )
 
 // ValidateAll checks the validation rules for declared in the configuration
@@ -47,7 +48,7 @@ func (m *Main) ValidateAll(ctx context.Context) tfdiags.Diagnostics {
 
 		return complete(), nil
 	})
-	diags = diags.Append(diagnosticsForPromisingTaskError(err, m))
+	diags = diags.Append(diagnosticsForPromisingTaskError(err))
 	return finalDiagnosticsFromEval(diags)
 }
 

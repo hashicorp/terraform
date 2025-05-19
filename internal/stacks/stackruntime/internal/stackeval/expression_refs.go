@@ -30,11 +30,11 @@ type Referrer interface {
 // It ignores any invalid references, on the assumption that the expression
 // will eventually be evaluated and then those invalid references would be
 // reported as errors at that point.
-func ReferencesInExpr(ctx context.Context, expr hcl.Expression) []stackaddrs.Reference {
+func ReferencesInExpr(expr hcl.Expression) []stackaddrs.Reference {
 	if expr == nil {
 		return nil
 	}
-	return referencesInTraversals(ctx, expr.Variables())
+	return referencesInTraversals(expr.Variables())
 }
 
 // ReferencesInBody returns all of the valid references contained in the given
@@ -43,14 +43,14 @@ func ReferencesInExpr(ctx context.Context, expr hcl.Expression) []stackaddrs.Ref
 // It ignores any invalid references, on the assumption that the body
 // will eventually be evaluated and then those invalid references would be
 // reported as errors at that point.
-func ReferencesInBody(ctx context.Context, body hcl.Body, spec hcldec.Spec) []stackaddrs.Reference {
+func ReferencesInBody(body hcl.Body, spec hcldec.Spec) []stackaddrs.Reference {
 	if body == nil {
 		return nil
 	}
-	return referencesInTraversals(ctx, hcldec.Variables(body, spec))
+	return referencesInTraversals(hcldec.Variables(body, spec))
 }
 
-func referencesInTraversals(ctx context.Context, traversals []hcl.Traversal) []stackaddrs.Reference {
+func referencesInTraversals(traversals []hcl.Traversal) []stackaddrs.Reference {
 	if len(traversals) == 0 {
 		return nil
 	}
@@ -140,35 +140,35 @@ func (m *Main) requiredComponentsForReferrer(ctx context.Context, obj Referrer, 
 			// now, in which the apply will wait for the whole stack to finish
 			// before moving on.
 			currentStack := m.Stack(ctx, targetAddr.Stack, phase)
-			for step, nextStack := range currentStack.childStacks {
-				if step.Name != stackCallAddr.Name {
-					// Then this child stack isn't from the current stack call.
-					continue
-				}
+			if currentStack != nil {
+				next := currentStack.EmbeddedStackCall(stackCallAddr)
+				instances, _ := next.Instances(ctx, phase)
+				for _, instance := range instances {
+					nextStack := instance.Stack(ctx, phase)
+					for _, component := range nextStack.Components() {
+						ref := stackaddrs.AbsReferenceable{
+							Stack: component.addr.Stack,
+							Item: stackaddrs.Component{
+								Name: component.addr.Item.Name,
+							},
+						}
+						if !queued.Has(ref) {
+							queue = append(queue, ref)
+							queued.Add(ref)
+						}
+					}
 
-				for _, component := range nextStack.Components(ctx) {
-					ref := stackaddrs.AbsReferenceable{
-						Stack: component.addr.Stack,
-						Item: stackaddrs.Component{
-							Name: component.addr.Item.Name,
-						},
-					}
-					if !queued.Has(ref) {
-						queue = append(queue, ref)
-						queued.Add(ref)
-					}
-				}
-
-				// We'll also include any other stack calls within the embedded
-				// stack.
-				for _, call := range nextStack.EmbeddedStackCalls(ctx) {
-					ref := stackaddrs.AbsReferenceable{
-						Stack: call.addr.Stack,
-						Item:  call.addr.Item,
-					}
-					if !queued.Has(ref) {
-						queue = append(queue, ref)
-						queued.Add(ref)
+					// We'll also include any other stack calls within the embedded
+					// stack.
+					for _, call := range nextStack.EmbeddedStackCalls() {
+						ref := stackaddrs.AbsReferenceable{
+							Stack: call.addr.Stack,
+							Item:  call.addr.Item,
+						}
+						if !queued.Has(ref) {
+							queue = append(queue, ref)
+							queued.Add(ref)
+						}
 					}
 				}
 			}
@@ -220,7 +220,7 @@ func (m *Main) requiredComponentsForReferrer(ctx context.Context, obj Referrer, 
 //
 // The StackConfig argument should be the stack that the component or embedded
 // stack is a part of. It is used to validate any references actually exist.
-func ValidateDependsOn(ctx context.Context, source *StackConfig, traversals []hcl.Traversal) tfdiags.Diagnostics {
+func ValidateDependsOn(source *StackConfig, traversals []hcl.Traversal) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	for _, traversal := range traversals {
 		// We don't actually care about the result here, only that it has no
@@ -234,7 +234,7 @@ func ValidateDependsOn(ctx context.Context, source *StackConfig, traversals []hc
 		switch addr := ref.Target.(type) {
 		case stackaddrs.StackCall:
 			// Make sure this stack call exists.
-			if source.StackCall(ctx, addr) == nil {
+			if source.StackCall(addr) == nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid depends_on target",
@@ -244,7 +244,7 @@ func ValidateDependsOn(ctx context.Context, source *StackConfig, traversals []hc
 			}
 		case stackaddrs.Component:
 			// Make sure this component exists.
-			if source.Component(ctx, addr) == nil {
+			if source.Component(addr) == nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid depends_on target",

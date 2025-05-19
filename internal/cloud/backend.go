@@ -49,7 +49,7 @@ const (
 
 var ErrCloudDoesNotSupportKVTags = errors.New("your version of Terraform Enterprise does not support key-value tags. Please upgrade Terraform Enterprise to a version that supports this feature or use set type tags instead.")
 
-// Cloud is an implementation of EnhancedBackend in service of the HCP Terraform or Terraform Enterprise
+// Cloud is an implementation of backendrun.OperationsBackend in service of the HCP Terraform or Terraform Enterprise
 // integration for Terraform CLI. This backend is not intended to be surfaced at the user level and
 // is instead an implementation detail of cloud.Cloud.
 type Cloud struct {
@@ -131,7 +131,7 @@ func New(services *disco.Disco) *Cloud {
 	}
 }
 
-// ConfigSchema implements backend.Enhanced.
+// ConfigSchema implements backend.Backend (which is embedded in backendrun.OperationsBackend).
 func (b *Cloud) ConfigSchema() *configschema.Block {
 	return &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
@@ -179,9 +179,9 @@ func (b *Cloud) ConfigSchema() *configschema.Block {
 	}
 }
 
-// PrepareConfig implements backend.Backend. Per the interface contract, it
-// should catch invalid contents in the config value and populate knowable
-// default values, but must NOT consult environment variables or other knowledge
+// PrepareConfig implements backend.Backend (which is embedded in backendrun.OperationsBackend).
+// Per the interface contract, it should catch invalid contents in the config value and populate
+// knowable default values, but must NOT consult environment variables or other knowledge
 // outside the config value itself.
 func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
@@ -227,7 +227,11 @@ func (b *Cloud) ServiceDiscoveryAliases() ([]backendrun.HostAlias, error) {
 	}, nil
 }
 
-// Configure implements backend.Enhanced.
+func (b *Cloud) Services() *disco.Disco {
+	return b.services
+}
+
+// Configure implements backend.Backend (which is embedded in backendrun.OperationsBackend).
 func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	if obj.IsNull() {
@@ -292,7 +296,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	// Get the token from the CLI Config File in the credentials section
 	// if no token was set in the configuration
 	if token == "" {
-		token, err = cliConfigToken(hostname, b.services)
+		token, err = CliConfigToken(hostname, b.services)
 		if err != nil {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
@@ -589,10 +593,10 @@ func resolveCloudConfig(obj cty.Value) (cloudConfig, tfdiags.Diagnostics) {
 	return ret, diags
 }
 
-// cliConfigToken returns the token for this host as configured in the credentials
+// CliConfigToken returns the token for this host as configured in the credentials
 // section of the CLI Config File. If no token was configured, an empty
 // string will be returned instead.
-func cliConfigToken(hostname svchost.Hostname, services *disco.Disco) (string, error) {
+func CliConfigToken(hostname svchost.Hostname, services *disco.Disco) (string, error) {
 	creds, err := services.CredentialsForHost(hostname)
 	if err != nil {
 		log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", hostname.ForDisplay(), err)
@@ -614,8 +618,8 @@ func (b *Cloud) retryLogHook(attemptNum int, resp *http.Response) {
 	}
 }
 
-// Workspaces implements backend.Enhanced, returning a filtered list of workspace names according to
-// the workspace mapping strategy configured.
+// Workspaces implements backend.Backend (which is embedded in backendrun.OperationsBackend),
+// returning a filtered list of workspace names according to the workspace mapping strategy configured.
 func (b *Cloud) Workspaces() ([]string, error) {
 	// Create a slice to contain all the names.
 	var names []string
@@ -689,7 +693,7 @@ func (b *Cloud) Workspaces() ([]string, error) {
 	return names, nil
 }
 
-// DeleteWorkspace implements backend.Backend.
+// DeleteWorkspace implements backend.Backend (which is embedded in backendrun.OperationsBackend).
 func (b *Cloud) DeleteWorkspace(name string, force bool) error {
 	if name == backend.DefaultStateName {
 		return backend.ErrDefaultWorkspaceNotSupported
@@ -713,7 +717,7 @@ func (b *Cloud) DeleteWorkspace(name string, force bool) error {
 	return State.Delete(force)
 }
 
-// StateMgr implements backend.Enhanced.
+// StateMgr implements backend.Backend (which is embedded in backendrun.OperationsBackend).
 func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 	var remoteTFVersion string
 
@@ -1536,6 +1540,6 @@ is the primary and recommended strategy to use.  This option conflicts with "nam
 When configured, only the specified workspace can be used. This option conflicts with "tags"
 and with the TF_WORKSPACE environment variable.`
 
-	schemaDescriptionProject = `The name of an HCP Terraform or Terraform Enterpise project. Workspaces that need creating
+	schemaDescriptionProject = `The name of an HCP Terraform or Terraform Enterprise project. Workspaces that need creating
 will be created within this project.`
 )

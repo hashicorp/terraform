@@ -72,60 +72,100 @@ func TestParseTest(t *testing.T) {
 		"defaults": {
 			args: nil,
 			want: &Test{
-				Filter:        nil,
-				TestDirectory: "tests",
-				ViewType:      ViewHuman,
-				Vars:          &Vars{},
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
 			},
 			wantDiags: nil,
 		},
 		"with-filters": {
 			args: []string{"-filter=one.tftest.hcl", "-filter=two.tftest.hcl"},
 			want: &Test{
-				Filter:        []string{"one.tftest.hcl", "two.tftest.hcl"},
-				TestDirectory: "tests",
-				ViewType:      ViewHuman,
-				Vars:          &Vars{},
+				Filter:               []string{"one.tftest.hcl", "two.tftest.hcl"},
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
 			},
 			wantDiags: nil,
 		},
 		"json": {
 			args: []string{"-json"},
 			want: &Test{
-				Filter:        nil,
-				TestDirectory: "tests",
-				ViewType:      ViewJSON,
-				Vars:          &Vars{},
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewJSON,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
 			},
 			wantDiags: nil,
 		},
 		"test-directory": {
 			args: []string{"-test-directory=other"},
 			want: &Test{
-				Filter:        nil,
-				TestDirectory: "other",
-				ViewType:      ViewHuman,
-				Vars:          &Vars{},
+				Filter:               nil,
+				TestDirectory:        "other",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
 			},
 			wantDiags: nil,
 		},
 		"verbose": {
 			args: []string{"-verbose"},
 			want: &Test{
-				Filter:        nil,
-				TestDirectory: "tests",
-				ViewType:      ViewHuman,
-				Verbose:       true,
-				Vars:          &Vars{},
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Verbose:              true,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
 			},
+		},
+		"with-parallelism-set": {
+			args: []string{"-parallelism=5"},
+			want: &Test{
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 5,
+			},
+			wantDiags: nil,
+		},
+		"with-parallelism-0": {
+			args: []string{"-parallelism=0"},
+			want: &Test{
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
+			},
+			wantDiags: nil,
+		},
+		"cloud-with-parallelism-0": {
+			args: []string{"-parallelism=0", "-cloud-run=foobar"},
+			want: &Test{
+				CloudRunSource:       "foobar",
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 0,
+			},
+			wantDiags: nil,
 		},
 		"unknown flag": {
 			args: []string{"-boop"},
 			want: &Test{
-				Filter:        nil,
-				TestDirectory: "tests",
-				ViewType:      ViewHuman,
-				Vars:          &Vars{},
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
 			},
 			wantDiags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -138,12 +178,13 @@ func TestParseTest(t *testing.T) {
 		"incompatible flags: -junit-xml and -cloud-run": {
 			args: []string{"-junit-xml=./output.xml", "-cloud-run=foobar"},
 			want: &Test{
-				CloudRunSource: "foobar",
-				JUnitXMLFile:   "./output.xml",
-				Filter:         nil,
-				TestDirectory:  "tests",
-				ViewType:       ViewHuman,
-				Vars:           &Vars{},
+				CloudRunSource:       "foobar",
+				JUnitXMLFile:         "./output.xml",
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
 			},
 			wantDiags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -165,9 +206,7 @@ func TestParseTest(t *testing.T) {
 				t.Errorf("diff:\n%s", diff)
 			}
 
-			if diff := cmp.Diff(diags, tc.wantDiags, tfdiags.DiagnosticComparer); diff != "" {
-				t.Errorf("unexpected diff in diags:\n%s", diff)
-			}
+			tfdiags.AssertDiagnosticsMatch(t, diags, tc.wantDiags)
 		})
 	}
 }

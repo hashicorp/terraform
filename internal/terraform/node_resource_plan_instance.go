@@ -209,9 +209,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// and a Refresh, and save the resulting state to instanceRefreshState.
 
 	if importing {
-		if n.importTarget.IsKnown() {
+		if n.importTarget.IsWhollyKnown() {
 			var importDiags tfdiags.Diagnostics
-			instanceRefreshState, deferred, importDiags = n.importState(ctx, addr, n.importTarget.AsString(), provider, providerSchema)
+			instanceRefreshState, deferred, importDiags = n.importState(ctx, addr, n.importTarget, provider, providerSchema)
 			diags = diags.Append(importDiags)
 		} else {
 			// Otherwise, just mark the resource as deferred without trying to
@@ -234,7 +234,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 				// function isn't doing anything as there is no configuration
 				// to validate.
 
-				impliedType := providerSchema.ResourceTypes[addr.Resource.Resource.Type].Block.ImpliedType()
+				impliedType := providerSchema.ResourceTypes[addr.Resource.Resource.Type].Body.ImpliedType()
 				ctx.Deferrals().ReportResourceInstanceDeferred(addr, providers.DeferredReasonResourceConfigUnknown, &plans.ResourceInstanceChange{
 					Addr:         addr,
 					PrevRunAddr:  addr,
@@ -244,7 +244,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 						Before: cty.NullVal(impliedType),
 						After:  cty.UnknownVal(impliedType),
 						Importing: &plans.Importing{
-							ID: n.importTarget,
+							Target: n.importTarget,
 						},
 					},
 				})
@@ -318,6 +318,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		if deferred == nil {
 			diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
 		}
+
 		if diags.HasErrors() {
 			return diags
 		}
@@ -385,7 +386,15 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 
 		if importing {
-			change.Importing = &plans.Importing{ID: n.importTarget}
+			// There is a subtle difference between the import by identity
+			// and the import by ID. When importing by identity, we need to
+			// make sure to use the complete identity return by the provider
+			// instead of the (potential) incomplete one from the configuration.
+			if n.importTarget.Type().IsObjectType() {
+				change.Importing = &plans.Importing{Target: instanceRefreshState.Identity}
+			} else {
+				change.Importing = &plans.Importing{Target: n.importTarget}
+			}
 		}
 
 		// FIXME: here we udpate the change to reflect the reason for
@@ -569,7 +578,7 @@ func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repDat
 	return diags
 }
 
-func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, importId string, provider providers.Interface, providerSchema providers.ProviderSchema) (*states.ResourceInstanceObject, *providers.Deferred, tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, importTarget cty.Value, provider providers.Interface, providerSchema providers.ProviderSchema) (*states.ResourceInstanceObject, *providers.Deferred, tfdiags.Diagnostics) {
 	deferralAllowed := ctx.Deferrals().DeferralAllowed()
 	var diags tfdiags.Diagnostics
 	absAddr := addr.Resource.Absolute(ctx.Path())
@@ -581,14 +590,14 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	var deferred *providers.Deferred
 
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PrePlanImport(hookResourceID, importId)
+		return h.PrePlanImport(hookResourceID, importTarget)
 	}))
 	if diags.HasErrors() {
 		return nil, deferred, diags
 	}
 
-	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
-	if schema == nil {
+	schema := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
+	if schema.Body == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", n.Addr))
 		return nil, deferred, diags
@@ -615,7 +624,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 
 		forEach, _, _ := evaluateForEachExpression(n.Config.ForEach, ctx, false)
 		keyData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
-		configVal, _, configDiags := ctx.EvaluateBlock(n.Config.Config, schema, nil, keyData)
+		configVal, _, configDiags := ctx.EvaluateBlock(n.Config.Config, schema.Body, nil, keyData)
 		if configDiags.HasErrors() {
 			// We have an overridden resource so we're definitely in a test and
 			// the users config is not valid. So give up and just report the
@@ -638,22 +647,32 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			Value:             n.override.Values,
 			Range:             n.override.Range,
 			ComputedAsUnknown: false,
-		}, schema)
+		}, schema.Body)
 		resp = providers.ImportResourceStateResponse{
 			ImportedResources: []providers.ImportedResource{
 				{
 					TypeName: addr.Resource.Resource.Type,
-					State:    override,
+					State:    ephemeral.StripWriteOnlyAttributes(override, schema.Body),
 				},
 			},
 			Diagnostics: overrideDiags.InConfigBody(n.Config.Config, absAddr.String()),
 		}
 	} else {
-		resp = provider.ImportResourceState(providers.ImportResourceStateRequest{
-			TypeName:           addr.Resource.Resource.Type,
-			ID:                 importId,
-			ClientCapabilities: ctx.ClientCapabilities(),
-		})
+		if importTarget.Type().IsObjectType() {
+			// Identity-based import
+			resp = provider.ImportResourceState(providers.ImportResourceStateRequest{
+				TypeName:           addr.Resource.Resource.Type,
+				Identity:           importTarget,
+				ClientCapabilities: ctx.ClientCapabilities(),
+			})
+		} else {
+			// ID-based/string import
+			resp = provider.ImportResourceState(providers.ImportResourceStateRequest{
+				TypeName:           addr.Resource.Resource.Type,
+				ID:                 importTarget.AsString(),
+				ClientCapabilities: ctx.ClientCapabilities(),
+			})
+		}
 	}
 	// If we don't support deferrals, but the provider reports a deferral and does not
 	// emit any error level diagnostics, we should emit an error.
@@ -666,16 +685,25 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		return nil, deferred, diags
 	}
 
+	importType := "ID"
+	var importValue string
+	if importTarget.Type().IsObjectType() {
+		importType = "Identity"
+		importValue = tfdiags.ObjectToString(importTarget)
+	} else {
+		importValue = importTarget.AsString()
+	}
+
 	imported := resp.ImportedResources
 
 	if len(imported) > 1 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Multiple import states not supported",
-			fmt.Sprintf("While attempting to import with ID %s, the provider "+
+			fmt.Sprintf("While attempting to import with %s %s, the provider "+
 				"returned multiple resource instance states. This "+
 				"is not currently supported.",
-				importId,
+				importType, importValue,
 			),
 		))
 	}
@@ -687,9 +715,9 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Import returned no resources",
-				fmt.Sprintf("While attempting to import with ID %s, the provider"+
+				fmt.Sprintf("While attempting to import with %s %s, the provider"+
 					"returned no instance states.",
-					importId,
+					importType, importValue,
 				),
 			))
 			return nil, deferred, diags
@@ -699,16 +727,16 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		// state we're going to import.
 		state := providers.ImportedResource{
 			TypeName: addr.Resource.Resource.Type,
-			State:    cty.NullVal(schema.ImpliedType()),
+			State:    cty.NullVal(schema.Body.ImpliedType()),
 		}
 
 		// We skip the read and further validation since we make up the state
 		// of the imported resource anyways.
-		return state.AsInstanceObject(), deferred, diags
+		return states.NewResourceInstanceObjectFromIR(state), deferred, diags
 	}
 
 	for _, obj := range imported {
-		log.Printf("[TRACE] graphNodeImportState: import %s %q produced instance object of type %s", absAddr.String(), importId, obj.TypeName)
+		log.Printf("[TRACE] graphNodeImportState: import %s %q produced instance object of type %s", absAddr.String(), importValue, obj.TypeName)
 	}
 
 	// We can only call the hooks and validate the imported state if we have
@@ -725,17 +753,23 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		return nil, deferred, diags
 	}
 
+	// Providers are supposed to return an identity when importing by identity
+	if importTarget.Type().IsObjectType() && imported[0].Identity.IsNull() {
+		diags = diags.Append(fmt.Errorf("import of %s didn't return an identity", n.Addr.String()))
+		return nil, deferred, diags
+	}
+
 	// Providers are supposed to return null values for all write-only attributes
 	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
 		"Import returned a non-null value for a write-only attribute",
 		func(path cty.Path) string {
 			return fmt.Sprintf(
-				"While attempting to import with ID %s, the provider %q returned a value for the write-only attribute \"%s%s\". Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				importId, n.ResolvedProvider, n.Addr, tfdiags.FormatCtyPath(path),
+				"While attempting to import with %s %s, the provider %q returned a value for the write-only attribute \"%s%s\". Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				importType, importValue, n.ResolvedProvider, n.Addr, tfdiags.FormatCtyPath(path),
 			)
 		},
 		imported[0].State,
-		schema,
+		schema.Body,
 	)
 	diags = diags.Append(writeOnlyDiags)
 
@@ -743,18 +777,17 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		return nil, deferred, diags
 	}
 
-	importedState := imported[0].AsInstanceObject()
-	if deferred == nil && importedState.Value.IsNull() {
+	importedState := states.NewResourceInstanceObjectFromIR(imported[0])
+	if deferred == nil && !importTarget.Type().IsObjectType() && importedState.Value.IsNull() {
 		// It's actually okay for a deferred import to have returned a null.
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Import returned null resource",
-			fmt.Sprintf("While attempting to import with ID %s, the provider"+
+			fmt.Sprintf("While attempting to import with %s %s, the provider"+
 				"returned an instance with no state.",
-				importId,
+				importType, importValue,
 			),
 		))
-
 	}
 
 	// refresh
@@ -807,7 +840,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		// First we generate the contents of the resource block for use within
 		// the planning node. Then we wrap it in an enclosing resource block to
 		// pass into the plan for rendering.
-		generatedHCLAttributes, generatedDiags := n.generateHCLStringAttributes(n.Addr, instanceRefreshState, schema)
+		generatedHCLAttributes, generatedDiags := n.generateHCLStringAttributes(n.Addr, instanceRefreshState, schema.Body)
 		diags = diags.Append(generatedDiags)
 
 		n.generatedConfigHCL = genconfig.WrapResourceContents(n.Addr, generatedHCLAttributes)

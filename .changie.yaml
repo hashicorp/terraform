@@ -1,9 +1,8 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: BUSL-1.1
 
-
 changesDir: .changes
-unreleasedDir: unreleased
+unreleasedDir: v1.13
 versionFooterPath: version_footer.tpl.md
 changelogPath: CHANGELOG.md
 versionExt: md

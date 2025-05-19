@@ -417,20 +417,6 @@
       }
     ]
   },
-  {
-    "title": "Installation",
-    "hidden": true,
-    "routes": [
-      {
-        "title": "APT Packages for Debian and Ubuntu",
-        "path": "install/apt"
-      },
-      {
-        "title": "Yum Packages for Red Hat Enterprise Linux, Fedora, and Amazon Linux",
-        "path": "install/yum"
-      }
-    ]
-  },
   { "divider": true },
   { "title": "Terraform Internals", "href": "/internals" }
 ]

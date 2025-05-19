@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -20,6 +21,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
@@ -31,6 +33,25 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
+
+// cleanString removes newlines, and redundant spaces.
+func cleanString(s string) string {
+	// Replace newlines with a single space.
+	s = strings.ReplaceAll(s, "\n", " ")
+
+	// Remove other special characters like \r, \t
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, "\t", "")
+
+	// Replace multiple spaces with a single space.
+	spaceRegex := regexp.MustCompile(`\s+`)
+	s = spaceRegex.ReplaceAllString(s, " ")
+
+	// Trim any leading or trailing spaces.
+	s = strings.TrimSpace(s)
+
+	return s
+}
 
 func TestInit_empty(t *testing.T) {
 	// Create a temporary working directory that is empty
@@ -51,6 +72,42 @@ func TestInit_empty(t *testing.T) {
 	args := []string{}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", done(t).All())
+	}
+	exp := views.MessageRegistry[views.OutputInitEmptyMessage].JSONValue
+	actual := cleanString(done(t).All())
+	if !strings.Contains(actual, cleanString(exp)) {
+		t.Fatalf("expected output to be %q\n, got %q", exp, actual)
+	}
+}
+
+func TestInit_only_test_files(t *testing.T) {
+	// Create a temporary working directory that has only test files and no tf configuration
+	td := t.TempDir()
+	os.MkdirAll(td, 0755)
+	defer testChdir(t, td)()
+
+	if _, err := os.Create("main.tftest.hcl"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", done(t).All())
+	}
+	exp := views.MessageRegistry[views.OutputInitSuccessCLIMessage].JSONValue
+	actual := cleanString(done(t).All())
+	if !strings.Contains(actual, cleanString(exp)) {
+		t.Fatalf("expected output to be %q\n, got %q", exp, actual)
 	}
 }
 

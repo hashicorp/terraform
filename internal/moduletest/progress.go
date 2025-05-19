@@ -8,7 +8,7 @@ package moduletest
 // We will include the progress markers to provide feedback as each test file
 // executes.
 //
-//go:generate go run golang.org/x/tools/cmd/stringer -type=Progress progress.go
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=Progress progress.go
 type Progress int
 
 const (

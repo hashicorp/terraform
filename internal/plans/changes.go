@@ -60,11 +60,10 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 			panic(fmt.Sprintf("unexpected resource mode %s", rc.Addr.Resource.Resource.Mode))
 		}
 
-		if schema.Block == nil {
+		if schema.Body == nil {
 			return changesSrc, fmt.Errorf("Changes.Encode: missing schema for %s", rc.Addr)
 		}
-
-		rcs, err := rc.Encode(schema.Block.ImpliedType())
+		rcs, err := rc.Encode(schema)
 		if err != nil {
 			return changesSrc, fmt.Errorf("Changes.Encode: %w", err)
 		}
@@ -280,8 +279,8 @@ type ResourceInstanceChange struct {
 // Encode produces a variant of the reciever that has its change values
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
-func (rc *ResourceInstanceChange) Encode(ty cty.Type) (*ResourceInstanceChangeSrc, error) {
-	cs, err := rc.Change.Encode(ty)
+func (rc *ResourceInstanceChange) Encode(schema providers.Schema) (*ResourceInstanceChangeSrc, error) {
+	cs, err := rc.Change.Encode(&schema)
 	if err != nil {
 		return nil, err
 	}
@@ -292,6 +291,7 @@ func (rc *ResourceInstanceChange) Encode(ty cty.Type) (*ResourceInstanceChangeSr
 		prevRunAddr = rc.Addr
 	}
 	return &ResourceInstanceChangeSrc{
+
 		Addr:            rc.Addr,
 		PrevRunAddr:     prevRunAddr,
 		DeposedKey:      rc.DeposedKey,
@@ -347,7 +347,9 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 				Change: Change{
 					Action:          Delete,
 					Before:          rc.Before,
+					BeforeIdentity:  rc.BeforeIdentity,
 					After:           cty.NullVal(rc.Before.Type()),
+					AfterIdentity:   cty.NullVal(rc.BeforeIdentity.Type()),
 					Importing:       rc.Importing,
 					GeneratedConfig: rc.GeneratedConfig,
 				},
@@ -361,7 +363,9 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 				Change: Change{
 					Action:          NoOp,
 					Before:          rc.Before,
+					BeforeIdentity:  rc.BeforeIdentity,
 					After:           rc.Before,
+					AfterIdentity:   rc.BeforeIdentity,
 					Importing:       rc.Importing,
 					GeneratedConfig: rc.GeneratedConfig,
 				},
@@ -378,7 +382,9 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 				Change: Change{
 					Action:          NoOp,
 					Before:          rc.Before,
+					BeforeIdentity:  rc.BeforeIdentity,
 					After:           rc.Before,
+					AfterIdentity:   rc.BeforeIdentity,
 					Importing:       rc.Importing,
 					GeneratedConfig: rc.GeneratedConfig,
 				},
@@ -392,7 +398,9 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 				Change: Change{
 					Action:          Create,
 					Before:          cty.NullVal(rc.After.Type()),
+					BeforeIdentity:  cty.NullVal(rc.AfterIdentity.Type()),
 					After:           rc.After,
+					AfterIdentity:   rc.AfterIdentity,
 					Importing:       rc.Importing,
 					GeneratedConfig: rc.GeneratedConfig,
 				},
@@ -413,7 +421,7 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 // apply step.
 type ResourceInstanceChangeActionReason rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=ResourceInstanceChangeActionReason changes.go
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=ResourceInstanceChangeActionReason changes.go
 
 const (
 	// In most cases there's no special reason for choosing a particular
@@ -526,7 +534,7 @@ type OutputChange struct {
 // Encode produces a variant of the reciever that has its change values
 // serialized so it can be written to a plan file.
 func (oc *OutputChange) Encode() (*OutputChangeSrc, error) {
-	cs, err := oc.Change.Encode(cty.DynamicPseudoType)
+	cs, err := oc.Change.Encode(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -543,18 +551,28 @@ func (oc *OutputChange) Encode() (*OutputChangeSrc, error) {
 // The fields in here are subject to change, so downstream consumers should be
 // prepared for backwards compatibility in case the contents changes.
 type Importing struct {
-	ID cty.Value
+	Target cty.Value
 }
 
 // Encode converts the Importing object into a form suitable for serialization
 // to a plan file.
-func (i *Importing) Encode() *ImportingSrc {
+func (i *Importing) Encode(identityTy cty.Type) *ImportingSrc {
 	if i == nil {
 		return nil
 	}
-	if i.ID.IsKnown() {
-		return &ImportingSrc{
-			ID: i.ID.AsString(),
+	if i.Target.IsWhollyKnown() {
+		if i.Target.Type().IsObjectType() {
+			identity, err := NewDynamicValue(i.Target, identityTy)
+			if err != nil {
+				return nil
+			}
+			return &ImportingSrc{
+				Identity: identity,
+			}
+		} else {
+			return &ImportingSrc{
+				ID: i.Target.AsString(),
+			}
 		}
 	}
 	return &ImportingSrc{
@@ -584,6 +602,9 @@ type Change struct {
 	// collections/structures.
 	Before, After cty.Value
 
+	// Keeping track of how the identity of the resource has changed.
+	BeforeIdentity, AfterIdentity cty.Value
+
 	// Importing is present if the resource is being imported as part of this
 	// change.
 	//
@@ -606,7 +627,7 @@ type Change struct {
 // Where a Change is embedded in some other struct, it's generally better
 // to call the corresponding Encode method of that struct rather than working
 // directly with its embedded Change.
-func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
+func (c *Change) Encode(schema *providers.Schema) (*ChangeSrc, error) {
 	// We can't serialize value marks directly so we'll need to extract the
 	// sensitive marks and store them in a separate field.
 	//
@@ -632,6 +653,11 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 		)
 	}
 
+	ty := cty.DynamicPseudoType
+	if schema != nil {
+		ty = schema.Body.ImpliedType()
+	}
+
 	beforeDV, err := NewDynamicValue(unmarkedBefore, ty)
 	if err != nil {
 		return nil, err
@@ -641,13 +667,36 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 		return nil, err
 	}
 
+	var beforeIdentityDV DynamicValue
+	var afterIdentityDV DynamicValue
+
+	identityTy := cty.DynamicPseudoType
+	if schema != nil {
+		identityTy = schema.Identity.ImpliedType()
+	}
+
+	if !c.BeforeIdentity.IsNull() {
+		beforeIdentityDV, err = NewDynamicValue(c.BeforeIdentity, identityTy)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if !c.AfterIdentity.IsNull() {
+		afterIdentityDV, err = NewDynamicValue(c.AfterIdentity, identityTy)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &ChangeSrc{
 		Action:               c.Action,
 		Before:               beforeDV,
 		After:                afterDV,
 		BeforeSensitivePaths: sensitiveAttrsBefore,
 		AfterSensitivePaths:  sensitiveAttrsAfter,
-		Importing:            c.Importing.Encode(),
+		BeforeIdentity:       beforeIdentityDV,
+		AfterIdentity:        afterIdentityDV,
+		Importing:            c.Importing.Encode(identityTy),
 		GeneratedConfig:      c.GeneratedConfig,
 	}, nil
 }
