@@ -202,16 +202,16 @@ type variable struct {
 func MarshalForRenderer(
 	p *plans.Plan,
 	schemas *terraform.Schemas,
-) (map[string]Change, []ResourceChange, []ResourceChange, []ResourceAttr, error) {
+) (map[string]Change, []ResourceChange, []ResourceChange, []ResourceAttr, []ActionInvocation, error) {
 	output := newPlan()
 
 	var err error
 	if output.OutputChanges, err = MarshalOutputChanges(p.Changes); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	if output.ResourceChanges, err = MarshalResourceChanges(p.Changes.Resources, schemas); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	if len(p.DriftedResources) > 0 {
@@ -231,19 +231,19 @@ func MarshalForRenderer(
 		}
 		output.ResourceDrift, err = MarshalResourceChanges(driftedResources, schemas)
 		if err != nil {
-			return nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, err
 		}
 	}
 
 	if err := output.marshalRelevantAttrs(p); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	if output.ActionInvocations, err = MarshalActionInvocations(p.Changes.ActionInvocations); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
-	return output.OutputChanges, output.ResourceChanges, output.ResourceDrift, output.RelevantAttributes, nil
+	return output.OutputChanges, output.ResourceChanges, output.ResourceDrift, output.RelevantAttributes, output.ActionInvocations, nil
 }
 
 // Marshal returns the json encoding of a terraform plan.
@@ -832,14 +832,14 @@ func (p *plan) marshalRelevantAttrs(plan *plans.Plan) error {
 func MarshalActionInvocations(ais []*plans.ActionInvocationSrc) ([]ActionInvocation, error) {
 	var err error
 	var marshalledAi *ActionInvocation
-	ret := make([]ActionInvocation, 0, len(ais))
-	for i, ai := range ais {
+	ret := []ActionInvocation{}
+	for _, ai := range ais {
 		marshalledAi, err = marshalActionInvocation(ai)
 		if err != nil {
 			return nil, err
 		}
 
-		ret[i] = *marshalledAi
+		ret = append(ret, *marshalledAi)
 	}
 	return ret, nil
 }

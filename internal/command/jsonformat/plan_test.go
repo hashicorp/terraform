@@ -8265,6 +8265,81 @@ func TestResourceChange_deferredActions(t *testing.T) {
 	}
 }
 
+func TestRenderHuman_ActionInvocations(t *testing.T) {
+	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
+	providerAddr := addrs.AbsProviderConfig{
+		Provider: addrs.NewDefaultProvider("test"),
+		Module:   addrs.RootModule,
+	}
+	blockSchema := testSchema(configschema.NestingSingle)
+	fullSchema := &terraform.Schemas{
+		Providers: map[addrs.Provider]providers.ProviderSchema{
+			providerAddr.Provider: {
+				ResourceTypes: map[string]providers.Schema{
+					"test_instance": {
+						Body: blockSchema,
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range map[string]struct {
+		changes []plans.ActionInvocation
+		output  string
+	}{
+		"basic-cli": {
+			changes: []plans.ActionInvocation{{
+				ActionAddr: addrs.Action{
+					Type: "aws_lambda_invocation",
+					Name: "example",
+				}.Absolute(addrs.RootModuleInstance).Instance(addrs.NoKey),
+				IsCertain: true,
+				Trigger:   plans.ActionInvocationCliTrigger{},
+				Config: cty.ObjectVal(map[string]cty.Value{
+					"function_name": cty.StringVal("example"),
+					"values": cty.ObjectVal(map[string]cty.Value{
+						"key": cty.StringVal("value"),
+					}),
+				}),
+			}},
+			output: `  # aws_lambda_invocation.example was triggered by the CLI
+  action "aws_lambda_invocation" "example" {
+    function_name  = "example"
+    values = {
+      key = "value"
+    }
+  }`,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var changes []*plans.ActionInvocationSrc
+			for _, change := range tc.changes {
+				changeSrc, err := change.Encode()
+				if err != nil {
+					t.Fatalf("Failed to encode change: %s", err)
+				}
+				changes = append(changes, changeSrc)
+			}
+
+			actionChanges, err := jsonplan.MarshalActionInvocations(changes)
+			if err != nil {
+				t.Fatalf("failed to marshal deferred changes: %s", err)
+			}
+			renderer := Renderer{Colorize: color}
+			jsonschemas := jsonprovider.MarshalForRenderer(fullSchema)
+			diffs := precomputeDiffs(Plan{
+				ActionInvocations: actionChanges,
+				ProviderSchemas:   jsonschemas,
+			}, plans.NormalMode)
+			output := renderHumanActionInvocation(renderer, diffs.actionInvocations[0])
+			if diff := cmp.Diff(tc.output, output); len(diff) > 0 {
+				t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s\ndiff:\n%s", output, tc.output, diff)
+			}
+		})
+	}
+}
+
 func outputChange(name string, before, after cty.Value, sensitive bool) *plans.OutputChangeSrc {
 	addr := addrs.AbsOutputValue{
 		OutputValue: addrs.OutputValue{Name: name},
