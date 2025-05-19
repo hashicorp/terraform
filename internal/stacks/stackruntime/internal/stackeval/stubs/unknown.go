@@ -297,6 +297,17 @@ func (u *unknownProvider) CallFunction(_ providers.CallFunctionRequest) provider
 	}
 }
 
+func (u *unknownProvider) ListResource(providers.ListResourceRequest) error {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ListResource on an unknown provider",
+		"Terraform called ListResource on an unknown provider. This is a bug in Terraform - please report this error.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return diags.Err()
+}
+
 func (u *unknownProvider) Close() error {
 	// the underlying unconfiguredClient is managed elsewhere.
 	return nil

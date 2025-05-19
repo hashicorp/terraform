@@ -211,6 +211,12 @@ func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.
 	panic("CallFunction on provider that didn't declare any functions")
 }
 
+func (s simple) ListResource(providers.ListResourceRequest) error {
+	// Our schema doesn't include any list resource types, so it should be
+	// impossible to get in here.
+	panic("ListResource on provider that didn't declare any list resource types")
+}
+
 func (s simple) Close() error {
 	return nil
 }

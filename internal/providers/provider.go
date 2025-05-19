@@ -104,6 +104,9 @@ type Interface interface {
 	// CallFunction calls a provider-contributed function.
 	CallFunction(CallFunctionRequest) CallFunctionResponse
 
+	// ListResource queries the remote for a specific resource type
+	ListResource(ListResourceRequest) error
+
 	// Close shuts down the plugin process if applicable.
 	Close() error
 }
@@ -710,6 +713,28 @@ type CallFunctionResponse struct {
 	Err error
 }
 
+// ListResourceEvent represents a single resource from the list operation
+type ListResourceEvent struct {
+	// Identity contains the resource identity data
+	Identity cty.Value
+
+	// DisplayName is a human-readable name for the resource
+	DisplayName string
+
+	// ResourceObject contains the full resource object if requested
+	ResourceObject cty.Value
+
+	// Diagnostics contains any warnings or errors specific to this event
+	Diagnostics tfdiags.Diagnostics
+}
+
+// ListResourceCallback is called for each resource found during ListResource
+type ListResourceCallback interface {
+	// OnItem is called for each resource found
+	// Return true to continue receiving events, false to stop
+	OnItem(event ListResourceEvent) bool
+}
+
 type ListResourceRequest struct {
 	// TypeName is the name of the resource type being read.
 	TypeName string
@@ -720,4 +745,7 @@ type ListResourceRequest struct {
 	// IncludeResourceObject can be set to true when a provider should include
 	// the full resource object for each result
 	IncludeResourceObject bool
+
+	// Callback is called for each resource found
+	Callback ListResourceCallback
 }

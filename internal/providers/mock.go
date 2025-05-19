@@ -413,6 +413,10 @@ func (m *Mock) CallFunction(request CallFunctionRequest) CallFunctionResponse {
 	return m.Provider.CallFunction(request)
 }
 
+func (m *Mock) ListResource(request ListResourceRequest) error {
+	return m.Provider.ListResource(request)
+}
+
 func (m *Mock) Close() error {
 	return m.Provider.Close()
 }

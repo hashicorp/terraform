@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
@@ -1243,7 +1244,89 @@ func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp provi
 }
 
 func (p *GRPCProvider) ListResource(r providers.ListResourceRequest) error {
-	panic("not implemented")
+	logger.Trace("GRPCProvider.v6: ListResource")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		return schema.Diagnostics.Err()
+	}
+
+	listResourceSchema, ok := schema.ListResourceTypes[r.TypeName]
+	if !ok {
+		return fmt.Errorf("unknown list resource type %q", r.TypeName)
+	}
+
+	resourceSchema, ok := schema.ResourceTypes[r.TypeName]
+	if !ok || resourceSchema.Identity == nil {
+		return fmt.Errorf("identity schema not found for resource type %s", r.TypeName)
+	}
+
+	mp, err := msgpack.Marshal(r.Config, listResourceSchema.Body.ImpliedType())
+	if err != nil {
+		return err
+	}
+
+	protoReq := &proto6.ListResource_Request{
+		TypeName:              r.TypeName,
+		Config:                &proto6.DynamicValue{Msgpack: mp},
+		IncludeResourceObject: r.IncludeResourceObject,
+	}
+
+	// Start the streaming RPC
+	client, err := p.client.ListResource(p.ctx, protoReq)
+	if err != nil {
+		return grpcErr(err).Err()
+	}
+
+	// Process the stream
+	for {
+		event, err := client.Recv()
+		if err == io.EOF {
+			// End of stream, we're done
+			return nil
+		}
+
+		if err != nil {
+			return grpcErr(err).Err()
+		}
+
+		// Process the event
+		resourceEvent := providers.ListResourceEvent{
+			DisplayName: event.DisplayName,
+			Diagnostics: convert.ProtoToDiagnostics(event.Diagnostic),
+		}
+
+		// Handle identity data - it must be present
+		if event.Identity == nil || event.Identity.IdentityData == nil {
+			return fmt.Errorf("missing identity data in ListResource event for %s", r.TypeName)
+		}
+
+		identityVal, err := decodeDynamicValue(event.Identity.IdentityData, resourceSchema.Identity.ImpliedType())
+		if err != nil {
+			return err
+		}
+		resourceEvent.Identity = identityVal
+
+		// Handle resource object if present and requested
+		if event.ResourceObject != nil && r.IncludeResourceObject {
+			// Use the ResourceTypes schema for the resource object
+			resourceObj, err := decodeDynamicValue(event.ResourceObject, resourceSchema.Body.ImpliedType())
+			if err != nil {
+				return err
+			}
+			resourceEvent.ResourceObject = resourceObj
+		}
+
+		// Call the callback and check if we should continue
+		if r.Callback != nil {
+			if !r.Callback.OnItem(resourceEvent) {
+				// Callback requested to stop
+				break
+			}
+		}
+	}
+
+	return nil
 }
 
 // closing the grpc connection is final, and terraform will call it at the end of every phase.
