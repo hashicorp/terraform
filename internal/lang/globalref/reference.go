@@ -113,7 +113,7 @@ func (r Reference) ResourceInstance() (addrs.AbsResourceInstance, bool) {
 }
 
 // DebugString returns an internal (but still somewhat Terraform-language-like)
-// compact string representation of the reciever, which isn't an address that
+// compact string representation of the receiver, which isn't an address that
 // any of our usual address parsers could accept but still captures the
 // essence of what the reference represents.
 //

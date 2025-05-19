@@ -485,7 +485,7 @@ func (p RootProviderConfig) String() string {
 	return p.AbsProviderConfig().String()
 }
 
-// UniqueKey returns a comparable unique key for the reciever suitable for
+// UniqueKey returns a comparable unique key for the receiver suitable for
 // use in generic collection types such as [Set] and [Map].
 func (p RootProviderConfig) UniqueKey() UniqueKey {
 	// A RootProviderConfig is inherently comparable and so can be its own key

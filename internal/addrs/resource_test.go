@@ -236,7 +236,7 @@ func TestAbsResourceUniqueKey(t *testing.T) {
 	}.Absolute(RootModuleInstance.Child("boop", NoKey))
 
 	tests := []struct {
-		Reciever  AbsResource
+		receiver  AbsResource
 		Other     UniqueKeyer
 		WantEqual bool
 	}{
@@ -273,15 +273,15 @@ func TestAbsResourceUniqueKey(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("%s matches %T %s?", test.Reciever, test.Other, test.Other), func(t *testing.T) {
-			rKey := test.Reciever.UniqueKey()
+		t.Run(fmt.Sprintf("%s matches %T %s?", test.receiver, test.Other, test.Other), func(t *testing.T) {
+			rKey := test.receiver.UniqueKey()
 			oKey := test.Other.UniqueKey()
 
 			gotEqual := rKey == oKey
 			if gotEqual != test.WantEqual {
 				t.Errorf(
 					"wrong result\nreceiver: %s\nother:    %s (%T)\ngot:  %t\nwant: %t",
-					test.Reciever, test.Other, test.Other,
+					test.receiver, test.Other, test.Other,
 					gotEqual, test.WantEqual,
 				)
 			}
