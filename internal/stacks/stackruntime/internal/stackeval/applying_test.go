@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
@@ -66,7 +67,7 @@ func TestApply_componentOrdering(t *testing.T) {
 	testProviderSchema := providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_report": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"marker": {
 							Type:     cty.String,
@@ -128,6 +129,7 @@ func TestApply_componentOrdering(t *testing.T) {
 					}, nil
 				},
 			},
+			PlanTimestamp: time.Now().UTC(),
 		})
 
 		outp, outpTester := testPlanOutput(t)
@@ -163,7 +165,7 @@ func TestApply_componentOrdering(t *testing.T) {
 		t.Fatalf("plan is not applyable")
 	}
 	{
-		cmpPlan := plan.Components.Get(cmpCInstAddr)
+		cmpPlan := plan.GetComponent(cmpCInstAddr)
 		gotDeps := cmpPlan.Dependencies
 		wantDeps := collections.NewSet[stackaddrs.AbsComponent]()
 		wantDeps.Add(cmpBAddr)
@@ -172,7 +174,7 @@ func TestApply_componentOrdering(t *testing.T) {
 		}
 	}
 	{
-		cmpPlan := plan.Components.Get(cmpBInst1Addr)
+		cmpPlan := plan.GetComponent(cmpBInst1Addr)
 		gotDeps := cmpPlan.Dependencies
 		wantDeps := collections.NewSet[stackaddrs.AbsComponent]()
 		wantDeps.Add(cmpAAddr)
@@ -195,7 +197,7 @@ func TestApply_componentOrdering(t *testing.T) {
 
 		outp, outpTester := testApplyOutput(t, nil)
 
-		main, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
+		main, err := ApplyPlan(ctx, cfg, plan, ApplyOpts{
 			ProviderFactories: ProviderFactories{
 				testProviderAddr: func() (providers.Interface, error) {
 					return &testing_provider.MockProvider{
@@ -287,6 +289,7 @@ func TestApply_componentOrdering(t *testing.T) {
 					}, nil
 				},
 			},
+			PlanTimestamp: time.Now().UTC(),
 		})
 
 		outp, outpTester := testPlanOutput(t)
@@ -322,7 +325,7 @@ func TestApply_componentOrdering(t *testing.T) {
 
 		outp, outpTester := testApplyOutput(t, nil)
 
-		main, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
+		main, err := ApplyPlan(ctx, cfg, plan, ApplyOpts{
 			ProviderFactories: ProviderFactories{
 				testProviderAddr: func() (providers.Interface, error) {
 					return &testing_provider.MockProvider{

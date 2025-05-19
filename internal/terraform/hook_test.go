@@ -127,7 +127,7 @@ func (h *testHook) PostImportState(id HookResourceIdentity, imported []providers
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PrePlanImport(id HookResourceIdentity, importID string) (HookAction, error) {
+func (h *testHook) PrePlanImport(id HookResourceIdentity, importTarget cty.Value) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PrePlanImport", id.Addr.String()})
@@ -152,6 +152,20 @@ func (h *testHook) PostApplyImport(id HookResourceIdentity, importing plans.Impo
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PostApplyImport", id.Addr.String()})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) PreEphemeralOp(id HookResourceIdentity, action plans.Action) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PreEphemeralOp", id.Addr.String()})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action, err error) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PostEphemeralOp", id.Addr.String()})
 	return HookActionContinue, nil
 }
 

@@ -26,11 +26,11 @@ Commands:
 
     ./equivalence-test.sh download_equivalence_test_binary 0.3.0 ./bin/terraform-equivalence-testing linux amd64
 
-  download_terraform_binary <version> <target> <os> <arch>
-    download_terraform_binary downloads the terraform release binary for a given
-    version and places it at the target path.
+  build_terraform_binary <target>
+    download_terraform_binary builds the Terraform binary and places it at the
+    target path.
 
-    ./equivalence-test.sh download_terraform_binary 1.4.3 ./bin/terraform linux amd64
+    ./equivalence-test.sh build_terraform_binary ./bin/terraform
 EOF
 }
 
@@ -65,25 +65,17 @@ function download_equivalence_test_binary {
   rm releases.json
 }
 
-function download_terraform_binary {
-  VERSION="${1:-}"
-  TARGET="${2:-}"
-  OS="${3:-}"
-  ARCH="${4:-}"
+function build_terraform_binary {
+  TARGET="${1:-}"
 
-  if [[ -z "$VERSION" || -z "$TARGET" || -z "$OS" || -z "$ARCH" ]]; then
-    echo "missing at least one of [<version>, <target>, <os>, <arch>] arguments"
+  if [[ -z "$TARGET" ]]; then
+    echo "target argument"
     usage
     exit 1
   fi
 
-  mkdir -p zip
-  curl "https://releases.hashicorp.com/terraform/${VERSION}/terraform_${VERSION}_${OS}_${ARCH}.zip" > "zip/terraform.zip"
-
-  mkdir -p bin
-  unzip -p "zip/terraform.zip" terraform > "$TARGET"
+  go build -o "$TARGET" ./
   chmod u+x "$TARGET"
-  rm -r zip
 }
 
 function get_target_branch {
@@ -142,14 +134,14 @@ function main {
       download_equivalence_test_binary "$2" "$3" "$4" "$5"
 
       ;;
-    download_terraform_binary)
-      if [ "${#@}" != 5 ]; then
+    build_terraform_binary)
+      if [ "${#@}" != 2 ]; then
         echo "invalid number of arguments"
         usage
         exit 1
       fi
 
-      download_terraform_binary "$2" "$3" "$4" "$5"
+      build_terraform_binary "$2"
 
       ;;
     *)

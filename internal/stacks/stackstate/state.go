@@ -4,6 +4,9 @@
 package stackstate
 
 import (
+	"iter"
+
+	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -20,7 +23,9 @@ import (
 // not be modified after it's been constructed; results of planning or applying
 // changes are represented in other ways inside the stacks language runtime.
 type State struct {
-	componentInstances collections.Map[stackaddrs.AbsComponentInstance, *componentInstanceState]
+	root    *stackInstanceState
+	outputs map[stackaddrs.OutputValue]cty.Value
+	inputs  map[stackaddrs.InputVariable]cty.Value
 
 	// discardUnsupportedKeys is the set of state keys that we encountered
 	// during decoding which are of types that are not supported by this
@@ -36,14 +41,51 @@ type State struct {
 // NewState constructs a new, empty state.
 func NewState() *State {
 	return &State{
-		componentInstances:     collections.NewMap[stackaddrs.AbsComponentInstance, *componentInstanceState](),
+		root:                   newStackInstanceState(stackaddrs.RootStackInstance),
+		outputs:                make(map[stackaddrs.OutputValue]cty.Value),
+		inputs:                 make(map[stackaddrs.InputVariable]cty.Value),
 		discardUnsupportedKeys: statekeys.NewKeySet(),
 		inputRaw:               nil,
 	}
 }
 
+// RootInputVariables returns the values for the input variables currently in
+// the state. An address that is in the map and maps to cty.NilVal is an
+// ephemeral input, so it was present during the last operation but the value
+// in unknown. Compared to an input variable not in the map at all, which
+// indicates a new input variable that wasn't in the configuration during the
+// last operation.
+func (s *State) RootInputVariables() map[stackaddrs.InputVariable]cty.Value {
+	return s.inputs
+}
+
+// RootInputVariable returns the input variable defined at the given address.
+// If the second return value is true, then the value is present but is
+// ephemeral and not known. If the first returned value is cty.NilVal and the
+// second is false then the value isn't present in the state.
+func (s *State) RootInputVariable(addr stackaddrs.InputVariable) cty.Value {
+	return s.inputs[addr]
+}
+
+func (s *State) RootOutputValues() map[stackaddrs.OutputValue]cty.Value {
+	return s.outputs
+}
+
+func (s *State) RootOutputValue(addr stackaddrs.OutputValue) cty.Value {
+	return s.outputs[addr]
+}
+
 func (s *State) HasComponentInstance(addr stackaddrs.AbsComponentInstance) bool {
-	return s.componentInstances.HasKey(addr)
+	stack := s.root.getDescendent(addr.Stack)
+	if stack == nil {
+		return false
+	}
+	return stack.getComponentInstance(addr.Item) != nil
+}
+
+func (s *State) HasStackInstance(addr stackaddrs.StackInstance) bool {
+	stack := s.root.getDescendent(addr)
+	return stack != nil
 }
 
 // AllComponentInstances returns a set of addresses for all of the component
@@ -55,20 +97,120 @@ func (s *State) HasComponentInstance(addr stackaddrs.AbsComponentInstance) bool 
 // instance record tracked in raw state, but it can potentially be absent in
 // exceptional cases such as if Terraform Core crashed partway through the
 // previous run.
-func (s *State) AllComponentInstances() collections.Set[stackaddrs.AbsComponentInstance] {
-	var ret collections.Set[stackaddrs.AbsComponentInstance]
-	if s.componentInstances.Len() == 0 {
-		return ret
+func (s *State) AllComponentInstances() iter.Seq[stackaddrs.AbsComponentInstance] {
+	return func(yield func(stackaddrs.AbsComponentInstance) bool) {
+		s.root.iterate(yield)
 	}
-	ret = collections.NewSet[stackaddrs.AbsComponentInstance]()
-	for _, elem := range s.componentInstances.Elems() {
-		ret.Add(elem.K)
+}
+
+// ComponentInstances returns the set of component instances that belong to the
+// given component, or an empty set if no such component is tracked in the
+// state.
+//
+// This will always be a subset of AllComponentInstances.
+func (s *State) ComponentInstances(addr stackaddrs.AbsComponent) iter.Seq[stackaddrs.ComponentInstance] {
+	return func(yield func(stackaddrs.ComponentInstance) bool) {
+		target := s.root.getDescendent(addr.Stack)
+		if target == nil {
+			return
+		}
+
+		for key := range target.components[addr.Item] {
+			yield(stackaddrs.ComponentInstance{
+				Component: addr.Item,
+				Key:       key,
+			})
+		}
 	}
-	return ret
+}
+
+// StackInstances returns the set of known stack instances for the given stack
+// call.
+func (s *State) StackInstances(call stackaddrs.AbsStackCall) iter.Seq[stackaddrs.StackInstance] {
+	return func(yield func(stackaddrs.StackInstance) bool) {
+		target := s.root.getDescendent(call.Stack)
+		if target == nil {
+			return
+		}
+
+		for _, stack := range target.children[call.Item.Name] {
+			yield(stack.address)
+		}
+	}
 }
 
 func (s *State) componentInstanceState(addr stackaddrs.AbsComponentInstance) *componentInstanceState {
-	return s.componentInstances.Get(addr)
+	target := s.root.getDescendent(addr.Stack)
+	if target == nil {
+		return nil
+	}
+	return target.getComponentInstance(addr.Item)
+}
+
+// DependenciesForComponent returns the list of components that are required by
+// the given component instance, or an empty set if no such component instance
+// is tracked in the state.
+func (s *State) DependenciesForComponent(addr stackaddrs.AbsComponentInstance) collections.Set[stackaddrs.AbsComponent] {
+	cs := s.componentInstanceState(addr)
+	if cs == nil {
+		return collections.NewSet[stackaddrs.AbsComponent]()
+	}
+	return cs.dependencies
+}
+
+// DependentsForComponent returns the list of components that are require the
+// given component instance, or an empty set if no such component instance is
+// tracked in the state.
+func (s *State) DependentsForComponent(addr stackaddrs.AbsComponentInstance) collections.Set[stackaddrs.AbsComponent] {
+	cs := s.componentInstanceState(addr)
+	if cs == nil {
+		return collections.NewSet[stackaddrs.AbsComponent]()
+	}
+	return cs.dependents
+}
+
+// ResultsForComponent returns the output values for the given component
+// instance, or nil if no such component instance is tracked in the state.
+func (s *State) ResultsForComponent(addr stackaddrs.AbsComponentInstance) map[addrs.OutputValue]cty.Value {
+	cs := s.componentInstanceState(addr)
+	if cs == nil {
+		return nil
+	}
+	return cs.outputValues
+}
+
+// InputsForComponent returns the input values for the given component
+// instance, or nil if no such component instance is tracked in the state.
+func (s *State) InputsForComponent(addr stackaddrs.AbsComponentInstance) map[addrs.InputVariable]cty.Value {
+	cs := s.componentInstanceState(addr)
+	if cs == nil {
+		return nil
+	}
+	return cs.inputVariables
+}
+
+type IdentitySrc struct {
+	IdentitySchemaVersion uint64
+	IdentityJSON          []byte
+}
+
+// IdentitiesForComponent returns the identity values for the given component
+// instance, or nil if no such component instance is tracked in the state.
+func (s *State) IdentitiesForComponent(addr stackaddrs.AbsComponentInstance) map[*addrs.AbsResourceInstanceObject]IdentitySrc {
+	cs := s.componentInstanceState(addr)
+	if cs == nil {
+		return nil
+	}
+
+	res := make(map[*addrs.AbsResourceInstanceObject]IdentitySrc)
+	for _, rio := range cs.resourceInstanceObjects.Elements() {
+		res[&rio.Key] = IdentitySrc{
+			IdentitySchemaVersion: rio.Value.src.IdentitySchemaVersion,
+			IdentityJSON:          rio.Value.src.IdentityJSON,
+		}
+	}
+
+	return res
 }
 
 // ComponentInstanceResourceInstanceObjects returns a set of addresses for
@@ -76,8 +218,8 @@ func (s *State) componentInstanceState(addr stackaddrs.AbsComponentInstance) *co
 // with the given address.
 func (s *State) ComponentInstanceResourceInstanceObjects(addr stackaddrs.AbsComponentInstance) collections.Set[stackaddrs.AbsResourceInstanceObject] {
 	var ret collections.Set[stackaddrs.AbsResourceInstanceObject]
-	cs, ok := s.componentInstances.GetOk(addr)
-	if !ok {
+	cs := s.componentInstanceState(addr)
+	if cs == nil {
 		return ret
 	}
 	ret = collections.NewSet[stackaddrs.AbsResourceInstanceObject]()
@@ -87,23 +229,6 @@ func (s *State) ComponentInstanceResourceInstanceObjects(addr stackaddrs.AbsComp
 			Item:      elem.Key,
 		}
 		ret.Add(objKey)
-	}
-	return ret
-}
-
-// AllResourceInstanceObjects returns a set of addresses for all of the resource
-// instance objects that are tracked in the state, across all components.
-func (s *State) AllResourceInstanceObjects() collections.Set[stackaddrs.AbsResourceInstanceObject] {
-	ret := collections.NewSet[stackaddrs.AbsResourceInstanceObject]()
-	for _, elem := range s.componentInstances.Elems() {
-		componentAddr := elem.K
-		for _, elem := range elem.V.resourceInstanceObjects.Elems {
-			objKey := stackaddrs.AbsResourceInstanceObject{
-				Component: componentAddr,
-				Item:      elem.Key,
-			}
-			ret.Add(objKey)
-		}
 	}
 	return ret
 }
@@ -127,8 +252,8 @@ func (s *State) ResourceInstanceObjectSrc(addr stackaddrs.AbsResourceInstanceObj
 // function that operates on the configuration of a component instance rather
 // than the state of one.
 func (s *State) RequiredProviderInstances(component stackaddrs.AbsComponentInstance) addrs.Set[addrs.RootProviderConfig] {
-	state, ok := s.componentInstances.GetOk(component)
-	if !ok {
+	state := s.componentInstanceState(component)
+	if state == nil {
 		// Then we have no state for this component, which is fine.
 		return addrs.MakeSet[addrs.RootProviderConfig]()
 	}
@@ -144,8 +269,8 @@ func (s *State) RequiredProviderInstances(component stackaddrs.AbsComponentInsta
 }
 
 func (s *State) resourceInstanceObjectState(addr stackaddrs.AbsResourceInstanceObject) *resourceInstanceObjectState {
-	cs, ok := s.componentInstances.GetOk(addr.Component)
-	if !ok {
+	cs := s.componentInstanceState(addr.Component)
+	if cs == nil {
 		return nil
 	}
 	return cs.resourceInstanceObjects.Get(addr.Item)
@@ -160,7 +285,7 @@ func (s *State) resourceInstanceObjectState(addr stackaddrs.AbsResourceInstanceO
 func (s *State) ComponentInstanceStateForModulesRuntime(addr stackaddrs.AbsComponentInstance) *states.State {
 	return states.BuildState(func(ss *states.SyncState) {
 		objAddrs := s.ComponentInstanceResourceInstanceObjects(addr)
-		for _, objAddr := range objAddrs.Elems() {
+		for objAddr := range objAddrs.All() {
 			rios := s.resourceInstanceObjectState(objAddr)
 
 			if objAddr.Item.IsCurrent() {
@@ -197,14 +322,49 @@ func (s *State) InputRaw() map[string]*anypb.Any {
 	return s.inputRaw
 }
 
+func (s *State) addOutputValue(addr stackaddrs.OutputValue, value cty.Value) {
+	s.outputs[addr] = value
+}
+
+func (s *State) addInputVariable(addr stackaddrs.InputVariable, value cty.Value) {
+	s.inputs[addr] = value
+}
+
 func (s *State) ensureComponentInstanceState(addr stackaddrs.AbsComponentInstance) *componentInstanceState {
-	if existing, ok := s.componentInstances.GetOk(addr); ok {
-		return existing
+	current := s.root
+	for _, step := range addr.Stack {
+		next := current.getChild(step)
+		if next == nil {
+			next = newStackInstanceState(append(current.address, step))
+
+			children, ok := current.children[step.Name]
+			if !ok {
+				children = make(map[addrs.InstanceKey]*stackInstanceState)
+			}
+			children[step.Key] = next
+			current.children[step.Name] = children
+		}
+		current = next
 	}
-	s.componentInstances.Put(addr, &componentInstanceState{
-		resourceInstanceObjects: addrs.MakeMap[addrs.AbsResourceInstanceObject, *resourceInstanceObjectState](),
-	})
-	return s.componentInstances.Get(addr)
+
+	component := current.getComponentInstance(addr.Item)
+	if component == nil {
+		component = &componentInstanceState{
+			dependencies:            collections.NewSet[stackaddrs.AbsComponent](),
+			dependents:              collections.NewSet[stackaddrs.AbsComponent](),
+			outputValues:            make(map[addrs.OutputValue]cty.Value),
+			inputVariables:          make(map[addrs.InputVariable]cty.Value),
+			resourceInstanceObjects: addrs.MakeMap[addrs.AbsResourceInstanceObject, *resourceInstanceObjectState](),
+		}
+
+		components, ok := current.components[addr.Item.Component]
+		if !ok {
+			components = make(map[addrs.InstanceKey]*componentInstanceState)
+		}
+		components[addr.Item.Key] = component
+		current.components[addr.Item.Component] = components
+	}
+	return component
 }
 
 func (s *State) addResourceInstanceObject(addr stackaddrs.AbsResourceInstanceObject, src *states.ResourceInstanceObjectSrc, providerConfigAddr addrs.AbsProviderConfig) {
@@ -217,10 +377,97 @@ func (s *State) addResourceInstanceObject(addr stackaddrs.AbsResourceInstanceObj
 }
 
 type componentInstanceState struct {
+	// dependencies is the set of component instances that this component
+	// depended on the last time it was updated.
+	dependencies collections.Set[stackaddrs.AbsComponent]
+
+	// dependents is a set of component instances that depended on this
+	// component the last time it was updated.
+	dependents collections.Set[stackaddrs.AbsComponent]
+
+	// outputValues is a map from output value addresses to their values at
+	// completion of the last apply operation.
+	outputValues map[addrs.OutputValue]cty.Value
+
+	// inputVariables is a map from input variable addresses to their values at
+	// completion of the last apply operation.
+	inputVariables map[addrs.InputVariable]cty.Value
+
+	// resourceInstanceObjects is a map from resource instance object addresses
+	// to their state.
 	resourceInstanceObjects addrs.Map[addrs.AbsResourceInstanceObject, *resourceInstanceObjectState]
 }
 
 type resourceInstanceObjectState struct {
 	src                *states.ResourceInstanceObjectSrc
 	providerConfigAddr addrs.AbsProviderConfig
+}
+
+type stackInstanceState struct {
+	address    stackaddrs.StackInstance
+	components map[stackaddrs.Component]map[addrs.InstanceKey]*componentInstanceState
+	children   map[string]map[addrs.InstanceKey]*stackInstanceState
+}
+
+func newStackInstanceState(address stackaddrs.StackInstance) *stackInstanceState {
+	return &stackInstanceState{
+		address:    address,
+		components: make(map[stackaddrs.Component]map[addrs.InstanceKey]*componentInstanceState),
+		children:   make(map[string]map[addrs.InstanceKey]*stackInstanceState),
+	}
+}
+
+func (s *stackInstanceState) getDescendent(stack stackaddrs.StackInstance) *stackInstanceState {
+	if len(stack) == 0 {
+		return s
+	}
+
+	next := s.getChild(stack[0])
+	if next == nil {
+		return nil
+	}
+	return next.getDescendent(stack[1:])
+}
+
+func (s *stackInstanceState) getChild(step stackaddrs.StackInstanceStep) *stackInstanceState {
+	stacks, ok := s.children[step.Name]
+	if !ok {
+		return nil
+	}
+	return stacks[step.Key]
+}
+
+func (s *stackInstanceState) getComponentInstance(component stackaddrs.ComponentInstance) *componentInstanceState {
+	components, ok := s.components[component.Component]
+	if !ok {
+		return nil
+	}
+	return components[component.Key]
+}
+
+func (s *stackInstanceState) iterate(yield func(stackaddrs.AbsComponentInstance) bool) bool {
+	for component, components := range s.components {
+		for key := range components {
+			proceed := yield(stackaddrs.AbsComponentInstance{
+				Stack: s.address,
+				Item: stackaddrs.ComponentInstance{
+					Component: component,
+					Key:       key,
+				},
+			})
+			if !proceed {
+				return false
+			}
+		}
+	}
+
+	for _, children := range s.children {
+		for _, child := range children {
+			if !child.iterate(yield) {
+				return false
+			}
+		}
+	}
+
+	return true
 }

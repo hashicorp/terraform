@@ -12,14 +12,26 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+const (
+	MainStateIdentifier = ""
+)
+
 type Run struct {
 	Config *configs.TestRun
+
+	// ModuleConfig is a copy of the module configuration that the run is testing.
+	// The variables and provider configurations are copied so that the run can
+	// modify them safely without affecting the original configuration.
+	// However, any other fields in the module configuration are still shared between
+	// all runs that use the same module configuration.
+	ModuleConfig *configs.Config
 
 	Verbose *Verbose
 
@@ -42,8 +54,44 @@ type Run struct {
 	ExecutionMeta *RunExecutionMeta
 }
 
+func NewRun(config *configs.TestRun, moduleConfig *configs.Config, index int) *Run {
+	// Make a copy the module configuration variables and provider configuration maps
+	// so that the run can modify the map safely.
+	newModuleConfig := *moduleConfig
+	if moduleConfig.Module != nil {
+		newModule := *moduleConfig.Module
+		newModule.Variables = make(map[string]*configs.Variable, len(moduleConfig.Module.Variables))
+		for name, variable := range moduleConfig.Module.Variables {
+			newModule.Variables[name] = variable
+		}
+		newModule.ProviderConfigs = make(map[string]*configs.Provider, len(moduleConfig.Module.ProviderConfigs))
+		for name, provider := range moduleConfig.Module.ProviderConfigs {
+			newModule.ProviderConfigs[name] = provider
+		}
+		newModuleConfig.Module = &newModule
+	}
+
+	return &Run{
+		Config:       config,
+		ModuleConfig: &newModuleConfig,
+		Name:         config.Name,
+		Index:        index,
+	}
+}
+
 type RunExecutionMeta struct {
+	Start    time.Time
 	Duration time.Duration
+}
+
+// StartTimestamp returns the start time metadata as a timestamp formatted as YYYY-MM-DDTHH:MM:SSZ.
+// Times are converted to UTC, if they aren't already.
+// If the start time is unset an empty string is returned.
+func (m *RunExecutionMeta) StartTimestamp() string {
+	if m.Start.IsZero() {
+		return ""
+	}
+	return m.Start.UTC().Format(time.RFC3339)
 }
 
 // Verbose is a utility struct that holds all the information required for a run
@@ -111,14 +159,14 @@ func (run *Run) GetReferences() ([]*addrs.Reference, tfdiags.Diagnostics) {
 
 	for _, rule := range run.Config.CheckRules {
 		for _, variable := range rule.Condition.Variables() {
-			reference, diags := addrs.ParseRef(variable)
+			reference, diags := addrs.ParseRefFromTestingScope(variable)
 			diagnostics = diagnostics.Append(diags)
 			if reference != nil {
 				references = append(references, reference)
 			}
 		}
 		for _, variable := range rule.ErrorMessage.Variables() {
-			reference, diags := addrs.ParseRef(variable)
+			reference, diags := addrs.ParseRefFromTestingScope(variable)
 			diagnostics = diagnostics.Append(diags)
 			if reference != nil {
 				references = append(references, reference)
@@ -126,7 +174,38 @@ func (run *Run) GetReferences() ([]*addrs.Reference, tfdiags.Diagnostics) {
 		}
 	}
 
+	for _, expr := range run.Config.Variables {
+		moreRefs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, expr)
+		diagnostics = diagnostics.Append(moreDiags)
+		references = append(references, moreRefs...)
+	}
+
 	return references, diagnostics
+}
+
+// GetStateKey returns the run's state key. If an explicit state key is set in
+// the run's configuration, that key is returned. Otherwise, if the run is using
+// an alternate module under test, the source of that module is returned as the
+// state key. If neither of these conditions are met, an empty string is
+// returned, and this denotes that the run is using the root module under test.
+func (run *Run) GetStateKey() string {
+	if run.Config.StateKey != "" {
+		return run.Config.StateKey
+	}
+
+	// The run has an alternate module under test, so we can use the module's source
+	if run.Config.ConfigUnderTest != nil {
+		return run.Config.Module.Source.String()
+	}
+
+	return MainStateIdentifier
+}
+
+// GetModuleConfigID returns the identifier for the module configuration that
+// this run is testing. This is used to uniquely identify the module
+// configuration in the test state.
+func (run *Run) GetModuleConfigID() string {
+	return run.ModuleConfig.Module.SourceDir
 }
 
 // ExplainExpectedFailures is similar to ValidateExpectedFailures except it
@@ -469,9 +548,32 @@ func (run *Run) ValidateExpectedFailures(originals tfdiags.Diagnostics) tfdiags.
 				Summary:  "Missing expected failure",
 				Detail:   fmt.Sprintf("The checkable object, %s, was expected to report an error but did not.", addr.String()),
 				Subject:  sourceRanges.Get(addr).ToHCL().Ptr(),
+				Extra:    missingExpectedFailure(true),
 			})
 		}
 	}
 
 	return diags
+}
+
+// DiagnosticExtraFromMissingExpectedFailure provides an interface for diagnostic ExtraInfo to
+// denote that a diagnostic was generated as a result of a missing expected failure.
+type DiagnosticExtraFromMissingExpectedFailure interface {
+	DiagnosticFromMissingExpectedFailure() bool
+}
+
+// DiagnosticFromMissingExpectedFailure checks if the provided diagnostic
+// is a result of a missing expected failure.
+func DiagnosticFromMissingExpectedFailure(diag tfdiags.Diagnostic) bool {
+	maybe := tfdiags.ExtraInfo[DiagnosticExtraFromMissingExpectedFailure](diag)
+	if maybe == nil {
+		return false
+	}
+	return maybe.DiagnosticFromMissingExpectedFailure()
+}
+
+type missingExpectedFailure bool
+
+func (missingExpectedFailure) DiagnosticFromMissingExpectedFailure() bool {
+	return true
 }

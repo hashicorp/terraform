@@ -71,6 +71,13 @@ const (
 	ActionReplace ChangeAction = "replace"
 	ActionDelete  ChangeAction = "delete"
 	ActionImport  ChangeAction = "import"
+
+	// While ephemeral resources do not represent a change
+	// or participate in the plan in the same way as the above
+	// we declare them here for convenience in helper functions.
+	ActionOpen  ChangeAction = "open"
+	ActionRenew ChangeAction = "renew"
+	ActionClose ChangeAction = "close"
 )
 
 func changeAction(action plans.Action) ChangeAction {
@@ -89,6 +96,12 @@ func changeAction(action plans.Action) ChangeAction {
 		return ActionDelete
 	case plans.Forget:
 		return ActionForget
+	case plans.Open:
+		return ActionOpen
+	case plans.Renew:
+		return ActionRenew
+	case plans.Close:
+		return ActionClose
 	default:
 		return ActionNoOp
 	}

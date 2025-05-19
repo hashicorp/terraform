@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // Highlight a test's name with your cursor and run this debugger configuration
+            // from the debugger tools in the left-side Activity Bar.
+            // This will result in the equivalent of this command being run using the debugger:
+            // `go test -v -run ^<selected text>$ <the current opened file's folder path>`
+            "name": "Run selected test",
+            "request": "launch",
+            "type": "go",
+            "args": [
+                "-test.v",
+                "-test.run",
+                "^${selectedText}$"
+            ],
+            // Environment variables can be set from a file or as key-value pairs in the configuration.
+            // "env": {
+            //     "MY_ENV": "my-value",
+            // },
+            // "envFile": "./vscode/private.env",
+            "mode": "auto",
+            "program": "${fileDirname}",
+            "showLog": true // dlv's logs
+        }
+    ]
+}

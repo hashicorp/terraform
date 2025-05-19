@@ -20,7 +20,7 @@ import (
 type DiffTransformer struct {
 	Concrete ConcreteResourceInstanceNodeFunc
 	State    *states.State
-	Changes  *plans.Changes
+	Changes  *plans.ChangesSrc
 	Config   *configs.Config
 }
 
@@ -32,7 +32,7 @@ func (t *DiffTransformer) hasConfigConditions(addr addrs.AbsResourceInstance) bo
 		return false
 	}
 
-	cfg := t.Config.DescendentForInstance(addr.Module)
+	cfg := t.Config.DescendantForInstance(addr.Module)
 	if cfg == nil {
 		return false
 	}

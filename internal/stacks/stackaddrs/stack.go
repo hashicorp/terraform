@@ -69,6 +69,17 @@ func (s Stack) UniqueKey() collections.UniqueKey[Stack] {
 	return stackUniqueKey(s.String())
 }
 
+// ToStackCall converts the stack address into the absolute address of the stack
+// call that would create this stack.
+func (s Stack) ToStackCall() ConfigStackCall {
+	return ConfigStackCall{
+		Stack: s.Parent(),
+		Item: StackCall{
+			Name: s[len(s)-1].Name,
+		},
+	}
+}
+
 type stackUniqueKey string
 
 // IsUniqueKey implements collections.UniqueKey.
@@ -166,6 +177,25 @@ func (s StackInstance) String() string {
 
 func (s StackInstance) UniqueKey() collections.UniqueKey[StackInstance] {
 	return stackInstanceUniqueKey(s.String())
+}
+
+// Contains returns true if the receiver contains the given stack, or false
+// otherwise. Contains is true if stack is a child stack of the receiver. If
+// stack is the same as the receiver, Contains returns true.
+func (s StackInstance) Contains(stack StackInstance) bool {
+	if len(s) > len(stack) {
+		return false
+	}
+
+	for ix, step := range s {
+		if stack[ix].Name != step.Name {
+			return false
+		}
+		if stack[ix].Key != step.Key {
+			return false
+		}
+	}
+	return true
 }
 
 type stackInstanceUniqueKey string

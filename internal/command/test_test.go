@@ -4,10 +4,13 @@
 package command
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path"
+	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -27,35 +30,51 @@ func TestTest_Runs(t *testing.T) {
 		override              string
 		args                  []string
 		envVars               map[string]string
-		expectedOut           string
+		expectedOut           []string
 		expectedErr           []string
 		expectedResourceCount int
 		code                  int
 		initCode              int
 		skip                  bool
+		description           string
 	}{
 		"simple_pass": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
+		"top-dir-only-test-files": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
+		"top-dir-only-nested-test-files": {
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"simple_pass_nested": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"simple_pass_nested_alternate": {
 			args:        []string{"-test-directory", "other"},
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"simple_pass_very_nested": {
 			args:        []string{"-test-directory", "tests/subdir"},
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
+		},
+		"simple_pass_cmd_parallel": {
+			override:    "simple_pass",
+			args:        []string{"-parallelism", "1"},
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+			description: "simple_pass with parallelism set to 1",
 		},
 		"simple_pass_very_nested_alternate": {
 			override:    "simple_pass_very_nested",
 			args:        []string{"-test-directory", "./tests/subdir"},
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"simple_pass_bad_test_directory": {
@@ -71,195 +90,249 @@ func TestTest_Runs(t *testing.T) {
 			code:        1,
 		},
 		"pass_with_locals": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"pass_with_outputs": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"pass_with_variables": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"plan_then_apply": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"expect_failures_checks": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"expect_failures_inputs": {
-			expectedOut: "1 passed, 0 failed.",
-			code:        0,
-		},
-		"expect_failures_outputs": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"expect_failures_resources": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"multiple_files": {
-			expectedOut: "2 passed, 0 failed",
+			expectedOut: []string{"2 passed, 0 failed"},
 			code:        0,
 		},
 		"multiple_files_with_filter": {
 			override:    "multiple_files",
 			args:        []string{"-filter=one.tftest.hcl"},
-			expectedOut: "1 passed, 0 failed",
+			expectedOut: []string{"1 passed, 0 failed"},
 			code:        0,
 		},
+		"no_state": {
+			expectedOut: []string{"0 passed, 1 failed"},
+			expectedErr: []string{"No value for required variable"},
+			description: "the run apply fails, causing it to produce a nil state.",
+			code:        1,
+		},
 		"variables": {
-			expectedOut: "2 passed, 0 failed",
+			expectedOut: []string{"2 passed, 0 failed"},
 			code:        0,
 		},
 		"variables_overridden": {
 			override:    "variables",
 			args:        []string{"-var=input=foo"},
-			expectedOut: "1 passed, 1 failed",
+			expectedOut: []string{"1 passed, 1 failed"},
 			expectedErr: []string{`invalid value`},
 			code:        1,
 		},
 		"simple_fail": {
-			expectedOut: "0 passed, 1 failed.",
-			expectedErr: []string{"invalid value"},
-			code:        1,
+			expectedOut: []string{"0 passed, 1 failed."},
+			expectedErr: []string{"invalid value", `│ - "bar"
+    │ + "zap"`},
+			code: 1,
 		},
 		"custom_condition_checks": {
-			expectedOut: "0 passed, 1 failed.",
+			expectedOut: []string{"0 passed, 1 failed."},
 			expectedErr: []string{"this really should fail"},
 			code:        1,
 		},
 		"custom_condition_inputs": {
-			expectedOut: "0 passed, 1 failed.",
+			expectedOut: []string{"0 passed, 1 failed."},
 			expectedErr: []string{"this should definitely fail"},
 			code:        1,
 		},
 		"custom_condition_outputs": {
-			expectedOut: "0 passed, 1 failed.",
+			expectedOut: []string{"0 passed, 1 failed."},
 			expectedErr: []string{"this should fail"},
 			code:        1,
 		},
 		"custom_condition_resources": {
-			expectedOut: "0 passed, 1 failed.",
+			expectedOut: []string{"0 passed, 1 failed."},
 			expectedErr: []string{"this really should fail"},
 			code:        1,
 		},
 		"no_providers_in_main": {
-			expectedOut: "1 passed, 0 failed",
+			expectedOut: []string{"1 passed, 0 failed"},
 			code:        0,
 		},
 		"default_variables": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"undefined_variables": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"shared_state": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"8 passed, 0 failed."},
 			code:        0,
 		},
 		"shared_state_object": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"variable_references": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			args:        []string{"-var=global=\"triple\""},
 			code:        0,
 		},
 		"unreferenced_global_variable": {
 			override:    "variable_references",
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			// The other variable shouldn't pass validation, but it won't be
 			// referenced anywhere so should just be ignored.
 			args: []string{"-var=global=\"triple\"", "-var=other=bad"},
 			code: 0,
 		},
 		"variables_types": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			args:        []string{"-var=number_input=0", "-var=string_input=Hello, world!", "-var=list_input=[\"Hello\",\"world\"]"},
 			code:        0,
 		},
 		"null-outputs": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"destroy_fail": {
-			expectedOut:           "1 passed, 0 failed.",
+			expectedOut:           []string{"3 passed, 0 failed."},
 			expectedErr:           []string{`Terraform left the following resources in state`},
 			code:                  1,
-			expectedResourceCount: 1,
+			expectedResourceCount: 4,
 		},
 		"default_optional_values": {
-			expectedOut: "4 passed, 0 failed.",
+			expectedOut: []string{"4 passed, 0 failed."},
 			code:        0,
 		},
 		"tfvars_in_test_dir": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"auto_tfvars_in_test_dir": {
 			override:    "tfvars_in_test_dir",
 			args:        []string{"-test-directory=alternate"},
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"functions_available": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"provider-functions-available": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"mocking": {
-			expectedOut: "6 passed, 0 failed.",
+			expectedOut: []string{"10 passed, 0 failed."},
 			code:        0,
 		},
 		"mocking-invalid": {
-			expectedErr: []string{"Invalid outputs attribute"},
-			initCode:    1,
+			expectedErr: []string{
+				"Invalid outputs attribute",
+				"The override_during attribute must be a value of plan or apply.",
+			},
+			initCode: 1,
+		},
+		"mocking-error": {
+			expectedErr: []string{
+				"Unknown condition value",
+				"plan_mocked_overridden.tftest.hcl",
+				"test_resource.primary[0].id",
+				"plan_mocked_provider.tftest.hcl",
+				"test_resource.secondary[0].id",
+			},
+			code: 1,
 		},
 		"dangling_data_block": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			code:        0,
 		},
 		"skip_destroy_on_empty": {
-			expectedOut: "3 passed, 0 failed.",
+			expectedOut: []string{"3 passed, 0 failed."},
 			code:        0,
 		},
 		"empty_module_with_output": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"global_var_refs": {
-			expectedOut: "1 passed, 2 failed.",
+			expectedOut: []string{"1 passed, 2 failed."},
 			expectedErr: []string{"The input variable \"env_var_input\" is not available to the current context", "The input variable \"setup\" is not available to the current context"},
 			code:        1,
 		},
 		"global_var_ref_in_suite_var": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			code:        0,
 		},
 		"env-vars": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: []string{"1 passed, 0 failed."},
 			envVars: map[string]string{
 				"TF_VAR_input": "foo",
 			},
 			code: 0,
 		},
 		"env-vars-in-module": {
-			expectedOut: "2 passed, 0 failed.",
+			expectedOut: []string{"2 passed, 0 failed."},
 			envVars: map[string]string{
 				"TF_VAR_input": "foo",
 			},
 			code: 0,
+		},
+		"ephemeral_input": {
+			expectedOut: []string{"2 passed, 0 failed."},
+			code:        0,
+		},
+		"ephemeral_input_with_error": {
+			expectedOut: []string{"Error message refers to ephemeral values", "1 passed, 1 failed."},
+			expectedErr: []string{"Test assertion failed",
+				`│ - "(ephemeral value)"
+    │ + "bar"`},
+			code: 1,
+		},
+		"ephemeral_resource": {
+			expectedOut: []string{"0 passed, 1 failed."},
+			expectedErr: []string{"Ephemeral resource instance has expired", "Ephemeral resources cannot be asserted"},
+			code:        1,
+		},
+		"with_state_key": {
+			expectedOut: []string{"3 passed, 1 failed."},
+			expectedErr: []string{"Test assertion failed", "resource renamed without moved block"},
+			code:        1,
+		},
+		"unapplyable-plan": {
+			expectedOut: []string{"0 passed, 1 failed."},
+			expectedErr: []string{"Cannot apply non-applyable plan"},
+			code:        1,
+		},
+		"write-only-attributes": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
+		"write-only-attributes-mocked": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
+		"write-only-attributes-overridden": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
 		},
 	}
 	for name, tc := range tcs {
@@ -319,8 +392,12 @@ func TestTest_Runs(t *testing.T) {
 				output := done(t).All()
 				stdout, stderr := output, output
 
-				if !strings.Contains(stdout, tc.expectedOut) {
-					t.Errorf("output didn't contain expected string:\n\n%s", stdout)
+				if len(tc.expectedOut) > 0 {
+					for _, expectedOut := range tc.expectedOut {
+						if !strings.Contains(stdout, expectedOut) {
+							t.Errorf("output didn't contain expected string:\n\n%s", stdout)
+						}
+					}
 				}
 
 				if len(tc.expectedErr) > 0 {
@@ -351,15 +428,19 @@ func TestTest_Runs(t *testing.T) {
 				Meta: meta,
 			}
 
-			code := c.Run(tc.args)
+			code := c.Run(append(tc.args, "-no-color"))
 			output := done(t)
 
 			if code != tc.code {
 				t.Errorf("expected status code %d but got %d:\n\n%s", tc.code, code, output.All())
 			}
 
-			if !strings.Contains(output.Stdout(), tc.expectedOut) {
-				t.Errorf("output didn't contain expected string:\n\n%s", output.Stdout())
+			if len(tc.expectedOut) > 0 {
+				for _, expectedOut := range tc.expectedOut {
+					if !strings.Contains(output.Stdout(), expectedOut) {
+						t.Errorf("output didn't contain expected string:\n\n%s", output.Stdout())
+					}
+				}
 			}
 
 			if len(tc.expectedErr) > 0 {
@@ -408,6 +489,327 @@ func TestTest_Interrupt(t *testing.T) {
 	if provider.ResourceCount() > 0 {
 		// we asked for a nice stop in this one, so it should still have tidied everything up.
 		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_DestroyFail(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "destroy_fail")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	view, done := testView(t)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		View:             view,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{Meta: meta}
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
+	}
+
+	interrupt := make(chan struct{})
+	provider.Interrupt = interrupt
+	view, done = testView(t)
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+			ShutdownCh:       interrupt,
+		},
+	}
+
+	c.Run([]string{"-no-color"})
+	output := done(t)
+	err := output.Stderr()
+
+	cleanupMessage := `main.tftest.hcl... in progress
+  run "setup"... pass
+  run "single"... pass
+  run "double"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 3 passed, 0 failed.
+`
+
+	cleanupErr := `Terraform encountered an error destroying resources created while executing
+main.tftest.hcl/double.
+
+Error: Failed to destroy resource
+
+destroy_fail is set to true
+
+Error: Failed to destroy resource
+
+destroy_fail is set to true
+
+Terraform left the following resources in state after executing
+main.tftest.hcl/double, and they need to be cleaned up manually:
+  - test_resource.another
+  - test_resource.resource
+Terraform encountered an error destroying resources created while executing
+main.tftest.hcl/single.
+
+Error: Failed to destroy resource
+
+destroy_fail is set to true
+
+Error: Failed to destroy resource
+
+destroy_fail is set to true
+
+Terraform left the following resources in state after executing
+main.tftest.hcl/single, and they need to be cleaned up manually:
+  - test_resource.another
+  - test_resource.resource
+`
+
+	// It's really important that the above message is printed, so we're testing
+	// for it specifically and making sure it contains all the resources.
+	if diff := cmp.Diff(cleanupErr, err); diff != "" {
+		t.Errorf("expected err to be %s\n\nbut got %s\n\n diff:%s\n", cleanupErr, err, diff)
+	}
+	if diff := cmp.Diff(cleanupMessage, output.Stdout()); diff != "" {
+		t.Errorf("expected output to be %s\n\nbut got %s\n\n diff:%s\n", cleanupMessage, output.Stdout(), diff)
+	}
+
+	// This time the test command shouldn't have cleaned up the resource because
+	// the destroy failed.
+	if provider.ResourceCount() != 4 {
+		t.Errorf("should not have deleted all resources on completion but only has %v", provider.ResourceString())
+	}
+}
+
+func TestTest_SharedState_Order(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "shared_state")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 9, code, output.All())
+	}
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	c.Run(nil)
+	output := done(t).All()
+
+	// Split the log into lines
+	lines := strings.Split(output, "\n")
+
+	var arr []string
+	for _, line := range lines {
+		if strings.Contains(line, "run \"") && strings.Contains(line, "\x1b[32mpass") {
+			arr = append(arr, line)
+		}
+	}
+
+	// Ensure the order of the tests is correct. Even though they share no state,
+	// the order should be sequential.
+	expectedOrder := []string{
+		// main.tftest.hcl
+		"run \"setup\"",
+		"run \"test\"",
+
+		// no-shared-state.tftest.hcl
+		"run \"setup\"",
+		"run \"test_a\"",
+		"run \"test_b\"",
+		"run \"test_c\"",
+		"run \"test_d\"",
+		"run \"test_e\"",
+	}
+
+	for i, line := range expectedOrder {
+		if !strings.Contains(arr[i], line) {
+			t.Errorf("unexpected test order: expected %q, got %q", line, arr[i])
+		}
+	}
+}
+
+func TestTest_Parallel_Divided_Order(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "parallel_divided")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 9, code, output.All())
+	}
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	c.Run(nil)
+	output := done(t).All()
+
+	// Split the log into lines
+	lines := strings.Split(output, "\n")
+
+	// Find the positions of the tests in the log output
+	var mainFirstIndex, mainSecondIndex, mainThirdIndex, mainFourthIndex, mainFifthIndex, mainSixthIndex int
+	for i, line := range lines {
+		if strings.Contains(line, "run \"main_first\"") {
+			mainFirstIndex = i
+		} else if strings.Contains(line, "run \"main_second\"") {
+			mainSecondIndex = i
+		} else if strings.Contains(line, "run \"main_third\"") {
+			mainThirdIndex = i
+		} else if strings.Contains(line, "run \"main_fourth\"") {
+			mainFourthIndex = i
+		} else if strings.Contains(line, "run \"main_fifth\"") {
+			mainFifthIndex = i
+		} else if strings.Contains(line, "run \"main_sixth\"") {
+			mainSixthIndex = i
+		}
+	}
+	if mainFirstIndex == 0 || mainSecondIndex == 0 || mainThirdIndex == 0 || mainFourthIndex == 0 || mainFifthIndex == 0 || mainSixthIndex == 0 {
+		t.Fatalf("one or more tests not found in the log output")
+	}
+
+	// Ensure the order of the tests is correct. The runs before main_fourth can execute in parallel.
+	if mainFirstIndex > mainFourthIndex || mainSecondIndex > mainFourthIndex || mainThirdIndex > mainFourthIndex {
+		t.Errorf("main_first, main_second, or main_third appears after main_fourth in the log output")
+	}
+
+	// Ensure main_fifth and main_sixth do not execute before main_fourth
+	if mainFifthIndex < mainFourthIndex {
+		t.Errorf("main_fifth appears before main_fourth in the log output")
+	}
+	if mainSixthIndex < mainFourthIndex {
+		t.Errorf("main_sixth appears before main_fourth in the log output")
+	}
+}
+
+func TestTest_Parallel(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "parallel")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code %d but got %d: %s", 9, code, output.All())
+	}
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	c.Run(nil)
+	output := done(t).All()
+
+	if !strings.Contains(output, "40 passed, 0 failed") {
+		t.Errorf("output didn't produce the right output:\n\n%s", output)
+	}
+
+	// Split the log into lines
+	lines := strings.Split(output, "\n")
+
+	// Find the positions of "test_d", "test_c", "test_setup" in the log output
+	var testDIndex, testCIndex, testSetupIndex int
+	for i, line := range lines {
+		if strings.Contains(line, "run \"setup\"") {
+			testSetupIndex = i
+		} else if strings.Contains(line, "run \"test_d\"") {
+			testDIndex = i
+		} else if strings.Contains(line, "run \"test_c\"") {
+			testCIndex = i
+		}
+	}
+	if testDIndex == 0 || testCIndex == 0 || testSetupIndex == 0 {
+		t.Fatalf("test_d, test_c, or test_setup not found in the log output")
+	}
+
+	// Ensure "test_d" appears before "test_c", because test_d has no dependencies,
+	// and would therefore run in parallel to much earlier tests which test_c depends on.
+	if testDIndex > testCIndex {
+		t.Errorf("test_d appears after test_c in the log output")
+	}
+
+	// Ensure "test_d" appears after "test_setup", because they have the same state key
+	if testDIndex < testSetupIndex {
+		t.Errorf("test_d appears before test_setup in the log output")
 	}
 }
 
@@ -522,7 +924,7 @@ func TestTest_ProviderAlias(t *testing.T) {
 
 	output := done(t)
 
-	if code := init.Run(nil); code != 0 {
+	if code := init.Run([]string{"-no-color"}); code != 0 {
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -535,7 +937,7 @@ func TestTest_ProviderAlias(t *testing.T) {
 		Meta: meta,
 	}
 
-	code := command.Run(nil)
+	code := command.Run([]string{"-no-color"})
 	output = done(t)
 
 	printedOutput := false
@@ -543,6 +945,495 @@ func TestTest_ProviderAlias(t *testing.T) {
 	if code != 0 {
 		printedOutput = true
 		t.Errorf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	if provider.ResourceCount() > 0 {
+		if !printedOutput {
+			t.Errorf("should have deleted all resources on completion but left %s\n\n%s", provider.ResourceString(), output.All())
+		} else {
+			t.Errorf("should have deleted all resources on completion but left %s", provider.ResourceString())
+		}
+	}
+}
+
+func TestTest_ComplexCondition(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "complex_condition")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.0.0"}})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	output := done(t)
+
+	if code := init.Run([]string{"-no-color"}); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	command := &TestCommand{
+		Meta: meta,
+	}
+
+	code := command.Run([]string{"-no-color"})
+	output = done(t)
+
+	printedOutput := false
+
+	if code != 1 {
+		printedOutput = true
+		t.Errorf("expected status code 1 but got %d: %s", code, output.All())
+	}
+
+	expectedOut := `main.tftest.hcl... in progress
+  run "validate_diff_types"... fail
+  run "validate_output"... fail
+  run "validate_complex_output"... fail
+  run "validate_complex_output_sensitive"... fail
+  run "validate_complex_output_pass"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 1 passed, 4 failed.
+`
+
+	expectedErr := `
+Error: Test assertion failed
+
+  on main.tftest.hcl line 37, in run "validate_diff_types":
+  37:     condition = var.tr1 == var.tr2 
+    ├────────────────
+    │ Warning: LHS and RHS values are of different types
+
+
+expected to fail
+
+Error: Test assertion failed
+
+  on main.tftest.hcl line 44, in run "validate_output":
+  44:     condition = output.foo == var.foo
+    ├────────────────
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │   {
+    │ -   "bar": "notbaz",
+    │ +   "bar": "baz",
+    │     "matches": "matches",
+    │ -   "qux": "quux",
+    │ -   "xuq": "xuq"
+    │ +   "qux": "qux",
+    │ +   "xuq": "nope"
+    │   }
+
+
+expected to fail due to different values
+
+Error: Test assertion failed
+
+  on main.tftest.hcl line 52, in run "validate_complex_output":
+  52:     condition = output.complex == var.bar
+    ├────────────────
+    │ Warning: LHS and RHS values are of different types
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │   {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │ -       "qux": "quux"
+    │ +       "qux": "qux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+
+
+expected to fail
+
+Error: Test assertion failed
+
+  on main.tftest.hcl line 60, in run "validate_complex_output_sensitive":
+  60:     condition = output.complex == output.complex_sensitive
+    ├────────────────
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │ - {
+    │ -   "root": [
+    │ -     {
+    │ -       "bar": [
+    │ -         1
+    │ -       ],
+    │ -       "qux": "quux"
+    │ -     },
+    │ -     {
+    │ -       "bar": [
+    │ -         2
+    │ -       ],
+    │ -       "qux": "quux"
+    │ -     }
+    │ -   ]
+    │ - }
+    │ + "(sensitive value)"
+
+
+expected to fail
+`
+	if diff := cmp.Diff(output.Stdout(), expectedOut); len(diff) > 0 {
+		t.Errorf("\nexpected: \n%s\ngot: %s\ndiff: %s", expectedOut, output.All(), diff)
+	}
+	if diff := cmp.Diff(output.Stderr(), expectedErr); len(diff) > 0 {
+		t.Errorf("\nexpected stderr: \n%s\ngot: %s\ndiff: %s", expectedErr, output.Stderr(), diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		if !printedOutput {
+			t.Errorf("should have deleted all resources on completion but left %s\n\n%s", provider.ResourceString(), output.All())
+		} else {
+			t.Errorf("should have deleted all resources on completion but left %s", provider.ResourceString())
+		}
+	}
+}
+
+func TestTest_ComplexConditionVerbose(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "complex_condition")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.0.0"}})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	output := done(t)
+
+	if code := init.Run([]string{"-no-color"}); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	command := &TestCommand{
+		Meta: meta,
+	}
+
+	code := command.Run([]string{"-no-color", "-verbose"})
+	output = done(t)
+
+	printedOutput := false
+
+	if code != 1 {
+		printedOutput = true
+		t.Errorf("expected status code 1 but got %d: %s", code, output.All())
+	}
+
+	expectedErr := `
+Error: Test assertion failed
+
+  on main.tftest.hcl line 37, in run "validate_diff_types":
+  37:     condition = var.tr1 == var.tr2 
+    ├────────────────
+    │ LHS:
+    │   {
+    │     "iops": null,
+    │     "size": 60
+    │   }
+    │ RHS:
+    │   {
+    │     "iops": null,
+    │     "size": 60
+    │   }
+    │ Warning: LHS and RHS values are of different types
+
+    │ var.tr1 is {
+    │     "iops": null,
+    │     "size": 60
+    │   }
+    │ var.tr2 is {
+    │     "iops": null,
+    │     "size": 60
+    │   }
+
+expected to fail
+
+Error: Test assertion failed
+
+  on main.tftest.hcl line 44, in run "validate_output":
+  44:     condition = output.foo == var.foo
+    ├────────────────
+    │ LHS:
+    │   {
+    │     "bar": "notbaz",
+    │     "matches": "matches",
+    │     "qux": "quux",
+    │     "xuq": "xuq"
+    │   }
+    │ RHS:
+    │   {
+    │     "bar": "baz",
+    │     "matches": "matches",
+    │     "qux": "qux",
+    │     "xuq": "nope"
+    │   }
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │   {
+    │ -   "bar": "notbaz",
+    │ +   "bar": "baz",
+    │     "matches": "matches",
+    │ -   "qux": "quux",
+    │ -   "xuq": "xuq"
+    │ +   "qux": "qux",
+    │ +   "xuq": "nope"
+    │   }
+
+    │ output.foo is {
+    │     "bar": "notbaz",
+    │     "matches": "matches",
+    │     "qux": "quux",
+    │     "xuq": "xuq"
+    │   }
+    │ var.foo is {
+    │     "bar": "baz",
+    │     "matches": "matches",
+    │     "qux": "qux",
+    │     "xuq": "nope"
+    │   }
+
+expected to fail due to different values
+
+Error: Test assertion failed
+
+  on main.tftest.hcl line 52, in run "validate_complex_output":
+  52:     condition = output.complex == var.bar
+    ├────────────────
+    │ LHS:
+    │   {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "quux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+    │ RHS:
+    │   {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "qux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+    │ Warning: LHS and RHS values are of different types
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │   {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │ -       "qux": "quux"
+    │ +       "qux": "qux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+
+    │ output.complex is {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "quux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+    │ var.bar is {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "qux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+
+expected to fail
+
+Error: Test assertion failed
+
+  on main.tftest.hcl line 60, in run "validate_complex_output_sensitive":
+  60:     condition = output.complex == output.complex_sensitive
+    ├────────────────
+    │ LHS:
+    │   {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "quux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+    │ RHS:
+    │   "(sensitive value)"
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │ - {
+    │ -   "root": [
+    │ -     {
+    │ -       "bar": [
+    │ -         1
+    │ -       ],
+    │ -       "qux": "quux"
+    │ -     },
+    │ -     {
+    │ -       "bar": [
+    │ -         2
+    │ -       ],
+    │ -       "qux": "quux"
+    │ -     }
+    │ -   ]
+    │ - }
+    │ + "(sensitive value)"
+
+    │ output.complex is {
+    │     "root": [
+    │       {
+    │         "bar": [
+    │           1
+    │         ],
+    │         "qux": "quux"
+    │       },
+    │       {
+    │         "bar": [
+    │           2
+    │         ],
+    │         "qux": "quux"
+    │       }
+    │     ]
+    │   }
+    │ output.complex_sensitive is "(sensitive value)"
+
+expected to fail
+`
+	outputs := []string{
+		"main.tftest.hcl... in progress",
+		"  run \"validate_diff_types\"... fail",
+		"  run \"validate_output\"... fail",
+		"  run \"validate_complex_output\"... fail",
+		"  run \"validate_complex_output_sensitive\"... fail",
+		"  run \"validate_complex_output_pass\"... pass",
+		"main.tftest.hcl... tearing down",
+		"main.tftest.hcl... fail",
+		"Failure! 1 passed, 4 failed.",
+	}
+	stdout := output.Stdout()
+	for _, expected := range outputs {
+		if !strings.Contains(stdout, expected) {
+			t.Errorf("output didn't contain expected output %q", expected)
+		}
+	}
+
+	if diff := cmp.Diff(output.Stderr(), expectedErr); len(diff) > 0 {
+		t.Errorf("\nexpected stderr: \n%s\ngot: %s\ndiff: %s", expectedErr, output.Stderr(), diff)
 	}
 
 	if provider.ResourceCount() > 0 {
@@ -603,9 +1494,8 @@ func TestTest_ModuleDependencies(t *testing.T) {
 		Meta: meta,
 	}
 
-	output := done(t)
-
 	if code := init.Run(nil); code != 0 {
+		output := done(t)
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -619,7 +1509,7 @@ func TestTest_ModuleDependencies(t *testing.T) {
 	}
 
 	code := command.Run(nil)
-	output = done(t)
+	output := done(t)
 
 	printedOutput := false
 
@@ -739,6 +1629,7 @@ Terraform will perform the following actions:
       + destroy_fail = (known after apply)
       + id           = "constant_value"
       + value        = "bar"
+      + write_only   = (write-only attribute)
     }
 
 Plan: 1 to add, 0 to change, 0 to destroy.
@@ -750,6 +1641,7 @@ resource "test_resource" "foo" {
     destroy_fail = false
     id           = "constant_value"
     value        = "bar"
+    write_only   = (write-only attribute)
 }
 
 main.tftest.hcl... tearing down
@@ -850,6 +1742,23 @@ provider configuration to destroy test_resource.secondary, after which you
 can remove the provider configuration again.
 `,
 		},
+		"missing-provider-definition-in-file": {
+			expectedOut: `main.tftest.hcl... in progress
+  run "passes_validation"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 0 passed, 1 failed.
+`,
+			expectedErr: `
+Error: Missing provider definition for test
+
+  on main.tftest.hcl line 12, in run "passes_validation":
+  12:     test = test
+
+This provider block references a provider definition that does not exist.
+`,
+		},
 		"missing-provider-in-test-module": {
 			expectedOut: `main.tftest.hcl... in progress
   run "passes_validation_primary"... pass
@@ -902,9 +1811,8 @@ can remove the provider configuration again.
 				Meta: meta,
 			}
 
-			output := done(t)
-
 			if code := init.Run(nil); code != 0 {
+				output := done(t)
 				t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 			}
 
@@ -918,7 +1826,7 @@ can remove the provider configuration again.
 			}
 
 			code := c.Run([]string{"-no-color"})
-			output = done(t)
+			output := done(t)
 
 			if code != 1 {
 				t.Errorf("expected status code 1 but got %d", code)
@@ -1025,9 +1933,8 @@ func TestTest_StatePropagation(t *testing.T) {
 		Meta: meta,
 	}
 
-	output := done(t)
-
 	if code := init.Run(nil); code != 0 {
+		output := done(t)
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -1041,7 +1948,7 @@ func TestTest_StatePropagation(t *testing.T) {
 	}
 
 	code := c.Run([]string{"-verbose", "-no-color"})
-	output = done(t)
+	output := done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
@@ -1055,6 +1962,7 @@ resource "test_resource" "module_resource" {
     destroy_fail = false
     id           = "df6h8as9"
     value        = "start"
+    write_only   = (write-only attribute)
 }
 
   run "initial_apply"... pass
@@ -1064,6 +1972,7 @@ resource "test_resource" "resource" {
     destroy_fail = false
     id           = "598318e0"
     value        = "start"
+    write_only   = (write-only attribute)
 }
 
   run "plan_second_example"... pass
@@ -1079,6 +1988,7 @@ Terraform will perform the following actions:
       + destroy_fail = (known after apply)
       + id           = "b6a1d8cb"
       + value        = "start"
+      + write_only   = (write-only attribute)
     }
 
 Plan: 1 to add, 0 to change, 0 to destroy.
@@ -1095,7 +2005,7 @@ Terraform will perform the following actions:
   ~ resource "test_resource" "resource" {
         id           = "598318e0"
       ~ value        = "start" -> "update"
-        # (1 unchanged attribute hidden)
+        # (2 unchanged attributes hidden)
     }
 
 Plan: 0 to add, 1 to change, 0 to destroy.
@@ -1112,7 +2022,7 @@ Terraform will perform the following actions:
   ~ resource "test_resource" "module_resource" {
         id           = "df6h8as9"
       ~ value        = "start" -> "update"
-        # (1 unchanged attribute hidden)
+        # (2 unchanged attributes hidden)
     }
 
 Plan: 0 to add, 1 to change, 0 to destroy.
@@ -1125,8 +2035,8 @@ Success! 5 passed, 0 failed.
 
 	actual := output.All()
 
-	if !strings.Contains(actual, expected) {
-		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s", expected, actual)
+	if diff := cmp.Diff(expected, actual); diff != "" {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
 	}
 
 	if provider.ResourceCount() > 0 {
@@ -1162,9 +2072,8 @@ func TestTest_OnlyExternalModules(t *testing.T) {
 		Meta: meta,
 	}
 
-	output := done(t)
-
 	if code := init.Run(nil); code != 0 {
+		output := done(t)
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -1178,7 +2087,7 @@ func TestTest_OnlyExternalModules(t *testing.T) {
 	}
 
 	code := c.Run([]string{"-no-color"})
-	output = done(t)
+	output := done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
@@ -1298,9 +2207,8 @@ func TestTest_InvalidWarningsInCleanup(t *testing.T) {
 		Meta: meta,
 	}
 
-	output := done(t)
-
 	if code := init.Run(nil); code != 0 {
+		output := done(t)
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -1314,7 +2222,7 @@ func TestTest_InvalidWarningsInCleanup(t *testing.T) {
 	}
 
 	code := c.Run([]string{"-no-color"})
-	output = done(t)
+	output := done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
@@ -1371,18 +2279,6 @@ func TestTest_BadReferences(t *testing.T) {
 	}
 
 	expectedOut := `main.tftest.hcl... in progress
-  run "setup"... pass
-  run "test"... fail
-
-Warning: Value for undeclared variable
-
-  on main.tftest.hcl line 17, in run "test":
-  17:     input_three = run.madeup.response
-
-The module under test does not declare a variable named "input_three", but it
-is declared in run block "test".
-
-  run "finalise"... skip
 main.tftest.hcl... tearing down
 main.tftest.hcl... fail
 providers.tftest.hcl... in progress
@@ -1390,7 +2286,7 @@ providers.tftest.hcl... in progress
 providers.tftest.hcl... tearing down
 providers.tftest.hcl... fail
 
-Failure! 1 passed, 2 failed, 1 skipped.
+Failure! 0 passed, 1 failed.
 `
 	actualOut := output.Stdout()
 	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
@@ -1572,6 +2468,7 @@ the apply operation could not be executed and so the overall test case will
 be marked as a failure and the original diagnostic included in the test
 report.
 
+  run "no_run"... skip
 input.tftest.hcl... tearing down
 input.tftest.hcl... fail
 output.tftest.hcl... in progress
@@ -1604,7 +2501,7 @@ test report.
 resource.tftest.hcl... tearing down
 resource.tftest.hcl... fail
 
-Failure! 1 passed, 3 failed.
+Failure! 1 passed, 3 failed, 1 skipped.
 `
 	actualOut := output.Stdout()
 	if diff := cmp.Diff(expectedOut, actualOut); len(diff) > 0 {
@@ -1651,6 +2548,71 @@ input must contain the character 'b'
 	}
 }
 
+func TestTest_MissingExpectedFailuresDuringApply(t *testing.T) {
+	// Test asserting that the test run fails, but not errors out, when expected failures are not present during apply.
+	// This lets subsequent runs continue to execute and the file to be marked as failed.
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "expect_failures_during_apply")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	if code == 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	expectedOut := `main.tftest.hcl... in progress
+  run "test"... fail
+  run "follow-up"... pass
+
+Warning: Value for undeclared variable
+
+  on main.tftest.hcl line 16, in run "follow-up":
+  16:     input = "does not matter"
+
+The module under test does not declare a variable named "input", but it is
+declared in run block "follow-up".
+
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 1 passed, 1 failed.
+`
+	actualOut := output.Stdout()
+	if diff := cmp.Diff(expectedOut, actualOut); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
+	}
+
+	expectedErr := `
+Error: Missing expected failure
+
+  on main.tftest.hcl line 7, in run "test":
+   7:     output.output
+
+The checkable object, output.output, was expected to report an error but did
+not.
+`
+	actualErr := output.Stderr()
+	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
 func TestTest_UnknownAndNulls(t *testing.T) {
 
 	tcs := map[string]struct {
@@ -1673,8 +2635,13 @@ Error: Test assertion failed
   on main.tftest.hcl line 8, in run "first":
    8:     condition     = test_resource.resource.value == output.null_output
     ├────────────────
-    │ output.null_output is null
-    │ test_resource.resource.value is "bar"
+    │ Warning: LHS and RHS values are of different types
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │ - "bar"
+    │ + null
+
 
 this is always going to fail
 `,
@@ -1726,8 +2693,9 @@ Condition expression could not be evaluated at this time. This means you have
 executed a %s block with %s and one of the values your
 condition depended on is not known until after the plan has been applied.
 Either remove this value from your condition, or execute an %s command
-from this %s block.
-`, "`run`", "`command = plan`", "`apply`", "`run`"),
+from this %s block. Alternatively, if there is an override for this value,
+you can make it available during the plan phase by setting %s in the %s block.
+`, "`run`", "`command = plan`", "`apply`", "`run`", "`override_during =\nplan`", "`override_`"),
 		},
 		"unknown_value_in_vars": {
 			code: 1,
@@ -1837,9 +2805,8 @@ func TestTest_SensitiveInputValues(t *testing.T) {
 		Meta: meta,
 	}
 
-	output := done(t)
-
 	if code := init.Run(nil); code != 0 {
+		output := done(t)
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -1853,10 +2820,10 @@ func TestTest_SensitiveInputValues(t *testing.T) {
 	}
 
 	code := c.Run([]string{"-no-color", "-verbose"})
-	output = done(t)
+	output := done(t)
 
-	if code != 0 {
-		t.Errorf("expected status code 0 but got %d", code)
+	if code != 1 {
+		t.Errorf("expected status code 1 but got %d", code)
 	}
 
 	expected := `main.tftest.hcl... in progress
@@ -1875,6 +2842,22 @@ resource "test_resource" "resource" {
     destroy_fail = false
     id           = "9ddca5a9"
     value        = (sensitive value)
+    write_only   = (write-only attribute)
+}
+
+
+Outputs:
+
+password = (sensitive value)
+
+  run "test_failed"... fail
+
+# test_resource.resource:
+resource "test_resource" "resource" {
+    destroy_fail = false
+    id           = "9ddca5a9"
+    value        = (sensitive value)
+    write_only   = (write-only attribute)
 }
 
 
@@ -1883,15 +2866,56 @@ Outputs:
 password = (sensitive value)
 
 main.tftest.hcl... tearing down
-main.tftest.hcl... pass
+main.tftest.hcl... fail
 
-Success! 2 passed, 0 failed.
+Failure! 2 passed, 1 failed.
 `
 
-	actual := output.All()
+	expectedErr := `
+Error: Test assertion failed
+
+  on main.tftest.hcl line 27, in run "test_failed":
+  27:     condition = var.complex == {
+  28:       foo = "bar"
+  29:       baz = test_resource.resource.id
+  30:     }
+    ├────────────────
+    │ LHS:
+    │   {
+    │     "baz": "(sensitive value)",
+    │     "foo": "bar"
+    │   }
+    │ RHS:
+    │   {
+    │     "baz": "9ddca5a9",
+    │     "foo": "bar"
+    │   }
+    │ Diff:
+    │ --- actual
+    │ +++ expected
+    │   {
+    │ -   "baz": "(sensitive value)",
+    │ +   "baz": "9ddca5a9",
+    │     "foo": "bar"
+    │   }
+
+    │ test_resource.resource.id is "9ddca5a9"
+    │ var.complex is {
+    │     "baz": "(sensitive value)",
+    │     "foo": "bar"
+    │   }
+
+expected to fail
+`
+
+	actual := output.Stdout()
 
 	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
 		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+
+	if diff := cmp.Diff(output.Stderr(), expectedErr); len(diff) > 0 {
+		t.Errorf("stderr didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, output.Stderr(), diff)
 	}
 
 	if provider.ResourceCount() > 0 {
@@ -2058,9 +3082,8 @@ func TestTest_InvalidOverrides(t *testing.T) {
 		Meta: meta,
 	}
 
-	output := done(t)
-
 	if code := init.Run(nil); code != 0 {
+		output := done(t)
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -2074,7 +3097,7 @@ func TestTest_InvalidOverrides(t *testing.T) {
 	}
 
 	code := c.Run([]string{"-no-color"})
-	output = done(t)
+	output := done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
@@ -2131,6 +3154,87 @@ Success! 2 passed, 0 failed.
 	}
 }
 
+func TestTest_InvalidConfig(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "invalid_config")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		Ui:             ui,
+		View:           view,
+		Streams:        streams,
+		ProviderSource: providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	if code != 1 {
+		t.Errorf("expected status code ! but got %d", code)
+	}
+
+	expectedOut := `main.tftest.hcl... in progress
+  run "test"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 0 passed, 1 failed.
+`
+	expectedErr := `
+Error: Failed to load plugin schemas
+
+Error while loading schemas for plugin components: Failed to obtain provider
+schema: Could not load the schema for provider
+registry.terraform.io/hashicorp/test: failed to instantiate provider
+"registry.terraform.io/hashicorp/test" to obtain schema: fork/exec
+.terraform/providers/registry.terraform.io/hashicorp/test/1.0.0/%s/terraform-provider-test_1.0.0:
+permission denied..
+`
+	expectedErr = fmt.Sprintf(expectedErr, runtime.GOOS+"_"+runtime.GOARCH)
+	out := output.Stdout()
+	err := output.Stderr()
+
+	if diff := cmp.Diff(out, expectedOut); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, out, diff)
+	}
+	if diff := cmp.Diff(err, expectedErr); len(diff) > 0 {
+		t.Errorf("error didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, err, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
 func TestTest_RunBlocksInProviders(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "provider_runs")), td)
@@ -2159,9 +3263,8 @@ func TestTest_RunBlocksInProviders(t *testing.T) {
 		Meta: meta,
 	}
 
-	output := done(t)
-
 	if code := init.Run(nil); code != 0 {
+		output := done(t)
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -2175,7 +3278,7 @@ func TestTest_RunBlocksInProviders(t *testing.T) {
 	}
 
 	code := test.Run([]string{"-no-color"})
-	output = done(t)
+	output := done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
@@ -2227,9 +3330,8 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 		Meta: meta,
 	}
 
-	output := done(t)
-
 	if code := init.Run(nil); code != 0 {
+		output := done(t)
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
@@ -2243,7 +3345,7 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 	}
 
 	code := test.Run([]string{"-no-color"})
-	output = done(t)
+	output := done(t)
 
 	if code != 1 {
 		t.Errorf("expected status code 1 but got %d", code)
@@ -2295,5 +3397,84 @@ required.
 
 	if provider.ResourceCount() > 0 {
 		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_JUnitOutput(t *testing.T) {
+
+	tcs := map[string]struct {
+		path         string
+		code         int
+		wantFilename string
+	}{
+		"can create XML for a single file with 1 pass, 1 fail": {
+			path:         "junit-output/1pass-1fail",
+			wantFilename: "expected-output.xml",
+			code:         1, // Test failure
+		},
+		"can create XML for multiple files with 1 pass each": {
+			path:         "junit-output/multiple-files",
+			wantFilename: "expected-output.xml",
+			code:         0,
+		},
+		"can display a test run's errors under the equivalent test case element": {
+			path:         "junit-output/missing-provider",
+			wantFilename: "expected-output.xml",
+			code:         1, // Test error
+		},
+	}
+
+	for tn, tc := range tcs {
+		t.Run(tn, func(t *testing.T) {
+			// Setup test
+			td := t.TempDir()
+			testPath := path.Join("test", tc.path)
+			testCopyDir(t, testFixturePath(testPath), td)
+			defer testChdir(t, td)()
+
+			provider := testing_command.NewProvider(nil)
+			view, done := testView(t)
+
+			c := &TestCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(provider.Provider),
+					View:             view,
+				},
+			}
+
+			// Run command with -junit-xml=./output.xml flag
+			outputFile := fmt.Sprintf("%s/output.xml", td)
+			code := c.Run([]string{fmt.Sprintf("-junit-xml=%s", outputFile), "-no-color"})
+			done(t)
+
+			// Assertions
+			if code != tc.code {
+				t.Errorf("expected status code %d but got %d", tc.code, code)
+			}
+
+			actualOut, err := os.ReadFile(outputFile)
+			if err != nil {
+				t.Fatalf("error opening XML file: %s", err)
+			}
+			expectedOutputFile := fmt.Sprintf("%s/%s", td, tc.wantFilename)
+			expectedOutput, err := os.ReadFile(expectedOutputFile)
+			if err != nil {
+				t.Fatalf("error opening XML file: %s", err)
+			}
+
+			// actual output will include timestamps and test duration data, which isn't deterministic; redact it for comparison
+			timeRegexp := regexp.MustCompile(`time="[^"]+"`)
+			actualOut = timeRegexp.ReplaceAll(actualOut, []byte("time=\"TIME_REDACTED\""))
+			timestampRegexp := regexp.MustCompile(`timestamp="[^"]+"`)
+			actualOut = timestampRegexp.ReplaceAll(actualOut, []byte("timestamp=\"TIMESTAMP_REDACTED\""))
+
+			if !bytes.Equal(actualOut, expectedOutput) {
+				t.Fatalf("wanted XML:\n%s\n got XML:\n%s\ndiff:%s\n", string(expectedOutput), string(actualOut), cmp.Diff(expectedOutput, actualOut))
+			}
+
+			if provider.ResourceCount() > 0 {
+				t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+			}
+		})
 	}
 }

@@ -860,7 +860,7 @@ func planFixtureSchema() providers.ProviderSchema {
 	return providers.ProviderSchema{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"ami": {Type: cty.String, Optional: true},
 					},
@@ -880,7 +880,7 @@ func planFixtureSchema() providers.ProviderSchema {
 		},
 		DataSources: map[string]providers.Schema{
 			"test_ds": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"filter": {Type: cty.String, Required: true},
 					},

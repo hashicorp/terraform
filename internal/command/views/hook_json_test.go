@@ -4,16 +4,19 @@
 package views
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func testJSONHookResourceID(addr addrs.AbsResourceInstance) terraform.HookResourceIdentity {
@@ -76,7 +79,7 @@ func TestJSONHook_create(t *testing.T) {
 	now = now.Add(10 * time.Second)
 	after <- now
 	nowMu.Unlock()
-	time.Sleep(1 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 
 	// Travel 10s into the future, notify the progress goroutine, and sleep
 	// briefly to allow it to execute
@@ -84,7 +87,7 @@ func TestJSONHook_create(t *testing.T) {
 	now = now.Add(10 * time.Second)
 	after <- now
 	nowMu.Unlock()
-	time.Sleep(1 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 
 	// Travel 2s into the future. We have arrived!
 	nowMu.Lock()
@@ -95,13 +98,13 @@ func TestJSONHook_create(t *testing.T) {
 	testHookReturnValues(t, action, err)
 
 	// Shut down the progress goroutine if still active
-	hook.applyingLock.Lock()
-	for key, progress := range hook.applying {
+	hook.resourceProgressMu.Lock()
+	for key, progress := range hook.resourceProgress {
 		close(progress.done)
 		<-progress.heartbeatDone
-		delete(hook.applying, key)
+		delete(hook.resourceProgress, key)
 	}
-	hook.applyingLock.Unlock()
+	hook.resourceProgressMu.Unlock()
 
 	wantResource := map[string]interface{}{
 		"addr":             string("test_instance.boop"),
@@ -226,13 +229,13 @@ func TestJSONHook_errors(t *testing.T) {
 	testHookReturnValues(t, action, err)
 
 	// Shut down the progress goroutine
-	hook.applyingLock.Lock()
-	for key, progress := range hook.applying {
+	hook.resourceProgressMu.Lock()
+	for key, progress := range hook.resourceProgress {
 		close(progress.done)
 		<-progress.heartbeatDone
-		delete(hook.applying, key)
+		delete(hook.resourceProgress, key)
 	}
-	hook.applyingLock.Unlock()
+	hook.resourceProgressMu.Unlock()
 
 	wantResource := map[string]interface{}{
 		"addr":             string("test_instance.boop"),
@@ -332,6 +335,231 @@ func TestJSONHook_refresh(t *testing.T) {
 				"resource": wantResource,
 				"id_key":   "id",
 				"id_value": "honk",
+			},
+		},
+	}
+
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestJSONHook_EphemeralOp(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	hook := newJSONHook(NewJSONView(NewView(streams)))
+
+	addr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_instance",
+		Name: "boop",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	action, err := hook.PreEphemeralOp(testJSONHookResourceID(addr), plans.Open)
+	testHookReturnValues(t, action, err)
+
+	action, err = hook.PostEphemeralOp(testJSONHookResourceID(addr), plans.Open, nil)
+	testHookReturnValues(t, action, err)
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": "test_instance.boop: Opening...",
+			"@module":  "terraform.ui",
+			"type":     "ephemeral_op_start",
+			"hook": map[string]interface{}{
+				"action": string("open"),
+				"resource": map[string]interface{}{
+					"addr":             string("test_instance.boop"),
+					"implied_provider": string("test"),
+					"module":           string(""),
+					"resource":         string("test_instance.boop"),
+					"resource_key":     nil,
+					"resource_name":    string("boop"),
+					"resource_type":    string("test_instance"),
+				},
+			},
+		},
+		{
+			"@level":   "info",
+			"@message": "test_instance.boop: Opening complete after 0s",
+			"@module":  "terraform.ui",
+			"type":     "ephemeral_op_complete",
+			"hook": map[string]interface{}{
+				"action":          string("open"),
+				"elapsed_seconds": float64(0),
+				"resource": map[string]interface{}{
+					"addr":             string("test_instance.boop"),
+					"implied_provider": string("test"),
+					"module":           string(""),
+					"resource":         string("test_instance.boop"),
+					"resource_key":     nil,
+					"resource_name":    string("boop"),
+					"resource_type":    string("test_instance"),
+				},
+			},
+		},
+	}
+
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestJSONHook_EphemeralOp_progress(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	hook := newJSONHook(NewJSONView(NewView(streams)))
+	hook.periodicUiTimer = 1 * time.Second
+
+	addr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_instance",
+		Name: "boop",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	action, err := hook.PreEphemeralOp(testJSONHookResourceID(addr), plans.Open)
+	testHookReturnValues(t, action, err)
+
+	time.Sleep(2005 * time.Millisecond)
+
+	action, err = hook.PostEphemeralOp(testJSONHookResourceID(addr), plans.Open, nil)
+	testHookReturnValues(t, action, err)
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": "test_instance.boop: Opening...",
+			"@module":  "terraform.ui",
+			"type":     "ephemeral_op_start",
+			"hook": map[string]interface{}{
+				"action": string("open"),
+				"resource": map[string]interface{}{
+					"addr":             string("test_instance.boop"),
+					"implied_provider": string("test"),
+					"module":           string(""),
+					"resource":         string("test_instance.boop"),
+					"resource_key":     nil,
+					"resource_name":    string("boop"),
+					"resource_type":    string("test_instance"),
+				},
+			},
+		},
+		{
+			"@level":   "info",
+			"@message": "test_instance.boop: Still opening... [1s elapsed]",
+			"@module":  "terraform.ui",
+			"type":     "ephemeral_op_progress",
+			"hook": map[string]interface{}{
+				"action":          string("open"),
+				"elapsed_seconds": float64(1),
+				"resource": map[string]interface{}{
+					"addr":             string("test_instance.boop"),
+					"implied_provider": string("test"),
+					"module":           string(""),
+					"resource":         string("test_instance.boop"),
+					"resource_key":     nil,
+					"resource_name":    string("boop"),
+					"resource_type":    string("test_instance"),
+				},
+			},
+		},
+		{
+			"@level":   "info",
+			"@message": "test_instance.boop: Still opening... [2s elapsed]",
+			"@module":  "terraform.ui",
+			"type":     "ephemeral_op_progress",
+			"hook": map[string]interface{}{
+				"action":          string("open"),
+				"elapsed_seconds": float64(2),
+				"resource": map[string]interface{}{
+					"addr":             string("test_instance.boop"),
+					"implied_provider": string("test"),
+					"module":           string(""),
+					"resource":         string("test_instance.boop"),
+					"resource_key":     nil,
+					"resource_name":    string("boop"),
+					"resource_type":    string("test_instance"),
+				},
+			},
+		},
+		{
+			"@level":   "info",
+			"@message": "test_instance.boop: Opening complete after 2s",
+			"@module":  "terraform.ui",
+			"type":     "ephemeral_op_complete",
+			"hook": map[string]interface{}{
+				"action":          string("open"),
+				"elapsed_seconds": float64(2),
+				"resource": map[string]interface{}{
+					"addr":             string("test_instance.boop"),
+					"implied_provider": string("test"),
+					"module":           string(""),
+					"resource":         string("test_instance.boop"),
+					"resource_key":     nil,
+					"resource_name":    string("boop"),
+					"resource_type":    string("test_instance"),
+				},
+			},
+		},
+	}
+
+	stdout := done(t).Stdout()
+
+	// time.Sleep can take longer than declared time
+	// so we only test the first lines we expect to see after sleeping
+	lines := strings.SplitN(stdout, "\n", 4)
+	firstLines := strings.Join(lines[:4], "\n")
+
+	testJSONViewOutputEquals(t, firstLines, want)
+}
+
+func TestJSONHook_EphemeralOp_error(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	hook := newJSONHook(NewJSONView(NewView(streams)))
+
+	addr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_instance",
+		Name: "boop",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	action, err := hook.PreEphemeralOp(testJSONHookResourceID(addr), plans.Open)
+	testHookReturnValues(t, action, err)
+
+	action, err = hook.PostEphemeralOp(testJSONHookResourceID(addr), plans.Open, errors.New("test error"))
+	testHookReturnValues(t, action, err)
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": "test_instance.boop: Opening...",
+			"@module":  "terraform.ui",
+			"type":     "ephemeral_op_start",
+			"hook": map[string]interface{}{
+				"action": string("open"),
+				"resource": map[string]interface{}{
+					"addr":             string("test_instance.boop"),
+					"implied_provider": string("test"),
+					"module":           string(""),
+					"resource":         string("test_instance.boop"),
+					"resource_key":     nil,
+					"resource_name":    string("boop"),
+					"resource_type":    string("test_instance"),
+				},
+			},
+		},
+		{
+			"@level":   "info",
+			"@message": "test_instance.boop: Opening errored after 0s",
+			"@module":  "terraform.ui",
+			"type":     "ephemeral_op_errored",
+			"hook": map[string]interface{}{
+				"action":          string("open"),
+				"elapsed_seconds": float64(0),
+				"resource": map[string]interface{}{
+					"addr":             string("test_instance.boop"),
+					"implied_provider": string("test"),
+					"module":           string(""),
+					"resource":         string("test_instance.boop"),
+					"resource_key":     nil,
+					"resource_name":    string("boop"),
+					"resource_type":    string("test_instance"),
+				},
 			},
 		},
 	}

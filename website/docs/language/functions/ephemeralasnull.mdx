@@ -1,0 +1,85 @@
+---
+page_title: ephemeralasnull function reference - Functions - Configuration Language  
+description: |-  
+  The `ephemeralasnull` function accepts an ephemeral value and returns null.  
+---
+
+# `ephemeralasnull` function reference
+
+-> **Note**: The `ephemeralasnull` function is available in Terraform v1.10 and later.
+
+This topic provides reference information about the `ephemeralasnull` function. The `ephemeralasnull` function accepts an ephemeral value and returns `null`. 
+
+## Introduction
+
+You can use the `ephemeralasnull` function to nullify ephemeral values. For example, if you pass an object with a nested ephemeral value to `ephemeralasnull`,it nullifies any ephemeral values within that object.
+
+## Syntax
+
+Use the `ephemeralasnull` function with the following syntax:
+
+```hcl
+ephemeralasnull(var.my_ephemeral_value)
+```
+
+In the following example, you can pass the `ephemeralasnull` function an ephemeral value, and the function returns `null`:
+
+```hcl
+variable "example" {
+  type      = string
+  default   = "test"
+  ephemeral = true
+}
+
+# This output returns null.
+output "example_output" {
+  value       = ephemeralasnull(var.example)
+}
+```
+
+For more information on which Terraform blocks can be ephemeral, refer to ephemeral [inputs](/terraform/language/values/variables#exclude-values-from-state), [outputs](/terraform/language/values/outputs#ephemeral-avoid-storing-values-in-state-or-plan-files), and [resources](/terraform/language/resources/ephemeral).
+
+## Example use case
+
+The following example shows how you can use the  `ephemeralasnull` function to intake a map that contains some ephemeral values, and output the values that are not ephemeral.
+
+```hcl
+variable "session_token" {
+  type      = string
+  default   = "test"
+  ephemeral = true
+}
+
+variable "configuration" {
+  type = map(string)
+  default = {
+    "env" = "development"
+  }
+}
+
+# This is a contrived example, but this pattern works with any object that is a mix of ephemeral and non-ephemeral values. 
+locals {
+  configuration_with_token = merge(
+    var.configuration,
+    { "session_token" = var.session_token }
+  )
+  ephemeral = true
+}
+
+output "configuration_settings" {
+# Using ephemeralasnull enables you to output the non-ephemeral values.
+  value       = ephemeralasnull(local.things_with_token)
+  description = "Environment setting."
+}
+```
+
+When you apply the above configuration, Terraform returns the `ephemeral` values in `locals.configuration_settings` as `null`. This lets you output the non-ephemeral value `env`.
+
+```hcl
+Outputs:
+
+configuration_settings = {
+  "env" = "development"
+  "session_token" = tostring(null)
+}
+```

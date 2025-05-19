@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -33,7 +34,7 @@ func TestTFPlanRoundTrip(t *testing.T) {
 			"foo": mustNewDynamicValueStr("foo value"),
 		},
 		ApplyTimeVariables: applyTimeVariables,
-		Changes: &plans.Changes{
+		Changes: &plans.ChangesSrc{
 			Outputs: []*plans.OutputChangeSrc{
 				{
 					Addr: addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
@@ -216,6 +217,35 @@ func TestTFPlanRoundTrip(t *testing.T) {
 					},
 				},
 			},
+			{
+				DeferredReason: providers.DeferredReasonInstanceCountUnknown,
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "woot",
+					}.Instance(addrs.WildcardKey).Absolute(addrs.ModuleInstance{
+						addrs.ModuleInstanceStep{
+							Name:        "mod",
+							InstanceKey: addrs.WildcardKey,
+						},
+					}),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+						After: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+							"id": cty.UnknownVal(cty.String),
+							"boop": cty.ListVal([]cty.Value{
+								cty.StringVal("beep"),
+								cty.StringVal("bonk"),
+							}),
+						}), objTy),
+					},
+				},
+			},
 		},
 		RelevantAttributes: []globalref.ResourceAttr{
 			{
@@ -352,8 +382,19 @@ func TestTFPlanRoundTripDestroy(t *testing.T) {
 		"id": cty.String,
 	})
 
+	objSchema := providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"id": {
+					Type:     cty.String,
+					Required: true,
+				},
+			},
+		},
+	}
+
 	plan := &plans.Plan{
-		Changes: &plans.Changes{
+		Changes: &plans.ChangesSrc{
 			Outputs: []*plans.OutputChangeSrc{
 				{
 					Addr: addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
@@ -424,7 +465,7 @@ func TestTFPlanRoundTripDestroy(t *testing.T) {
 	}
 
 	for _, rics := range newPlan.Changes.Resources {
-		ric, err := rics.Decode(objTy)
+		ric, err := rics.Decode(objSchema)
 		if err != nil {
 			t.Fatal(err)
 		}

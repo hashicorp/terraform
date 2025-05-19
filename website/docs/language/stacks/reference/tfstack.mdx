@@ -1,0 +1,307 @@
+---
+page_title: Stack configuration file reference
+description: Stacks help you provision and coordinate your infrastructure lifecycle at scale. Learn how to write a Stack configurion file to create a Stack for your infrastructure.
+---
+
+# Stack configuration file reference
+
+A Stack configuration file defines all the infrastructure pieces included in a Stack. Every Stack needs a configuration file, `tfstack.hcl`, and this page describes all the blocks you can use within a Stack configuration file. 
+
+## `component` block configuration
+
+The `component` block defines the infrastructure to include in your Stack. Each Stack requires at least one `component` block. Add a `component` block to your configuration for every module you want to include in your Stack.
+
+The following list outlines field hierarchy, language-specific data types, and requirements in the `component` block.
+
+### Complete configuration
+
+When every field is defined, a `component` block has the following form:
+
+```hcl
+component "unique_name" {
+    source = <The Terraform module to source>
+    inputs = {
+        input_name          = <variable_value>
+    }
+    providers = {
+        random    = provider.provider_name.provider_alias
+    }
+}
+```
+
+### Specification
+
+This section details the fields you can configure in the `component` block.
+
+Each Stack must have at least one `component` block, and the label of the component block must be unique within your Stack. The `component` block is a map that defines a module to source, input variables for that module, and the names of the providers that your module requires.
+
+| Field | Description | Type | Required |
+| :---- | :---- | :---- | :---- |
+| `source` | The Terraform module to [source](https://developer.hashicorp.com/terraform/language/modules/sources) for this component. | string | Required |
+| `version` | If you declare a module from the public Terraform registry in the source field, you can define which module version to use.  | string | Optional |
+| `inputs` | A mapping of module input variable names to values. The keys of this map must correspond to the variable names defined by the `source` module. The values can be one of three types: A variable reference such as `var.variable_name`, a component output such as `component.component_name.output_name`, or a literal valid HCL value such as "string value".  | map | Required |
+| `providers` | A mapping of provider names to providers declared in your Stack configuration. Modules cannot configure their own providers. You must [declare providers](/terraform/language/stacks/create/declare-providers) in the top level of the Stack and pass them into each module in the Stack. | map | Required |
+| `depends_on` | A list of other components that HCP Terraform must execute before this component. You do not need to include another component’s outputs in this list, because Terraform automatically recognizes them.  | list | Optional |
+
+### Reference
+
+The `component` block also supports the `for_each` meta-argument.  For example, the following configuration uses `for_each` to provision modules in multiple AWS regions for a given environment.
+
+```hcl
+component "s3" {
+    for_each = var.regions
+
+    source = "./s3"
+
+    inputs = {
+        region = each.value
+    }
+
+    providers = {
+        aws    = provider.aws.configurations[each.value]
+        random = provider.random.this
+    }
+}
+```
+
+To learn more about breaking down your infrastructure into components, refer to [Define Stack configuration](/terraform/language/stacks/create/config).
+
+## `variable` block configuration 
+
+Use the `variable` block to declare input variables for your Stack configuration. Using `variable` blocks in Stacks is similar to traditional Terraform configurations but with a few minor differences.
+
+In Stack configurations, `variable` blocks must define a `type` field and do not support the `validation` argument. Learn more about Terraform [Variables](/terraform/language/values/variables).
+
+### Complete configuration
+
+When every field is defined, a `variable` block has the following form:
+```hcl
+variable "unique_variable_name" {
+    description = "Description of the purpose of this variable"
+    type        = string
+    default     = "Default variable value"
+    sensitive   = false
+    nullable    = false
+}
+```
+
+### Specification
+
+This section provides details about the fields you can configure in the `variable` block.
+
+| Field | Description | Type | Required |
+| :---- | :---- | :---- | :---- |
+| `type` | A type constraint for the variable's value. Can be string, number, bool, list, map, set, tuple, or object. Stacks require you to declare a `type` for your variables.  | string | Required |
+| `description` | A human-friendly description for the variable. | string | Optional |
+| `default` | A default value for the variable which Terraform uses if no value is provided. | any | Optional |
+| `sensitive` | Marks the variable as sensitive, which prevents its value from being displayed in logs or in the HCP Terraform user interface. | bool | Optional |
+| `nullable` | Specifies whether the variable can be null. | bool | Optional |
+| `ephemeral` | Marks that this variable’s value is dynamic. For example, an expiring authentication token is `ephemeral`. Learn more about [Ephemeral variables](/terraform/language/values/variables#exclude-values-from-state). | bool | Optional |
+
+## `output` block configuration
+
+Use the `output` block to make information about your infrastructure available in the HCP Terraform UI to expose information about your Stack. The `output` block functions the same way in Stack configuration as it does in traditional Terraform configurations with a few small differences. 
+
+In Stack configurations, `output` blocks require the `type` argument, and they do not support the `preconditions` block. Learn more about [Outputs](/terraform/language/values/outputs).
+
+### Complete configuration
+
+When every field is defined, an `output` block has the following form:
+```hcl
+output "unique_name_of_output" {
+  description = "Description of the purpose of this output"
+  type        = string
+  value       = component.component_name.some_value
+  sensitive   = false
+  ephemeral   = false
+}
+```
+
+### Specification
+
+This section provides details about the fields you can configure in the `output` block.
+
+| Field | Description | Type | Required |
+| :---- | :---- | :---- | :---- |
+| `description` | A human-friendly description for the output. | string | Optional |
+| `type` | The type of the output. | type constraint | Required |
+| `value` | The value to output. | any | Required |
+| `sensitive` | Marks the variable as sensitive, which prevents its value from being displayed in logs or in the HCP Terraform UI.  | bool | Optional |
+| `ephemeral` | Whether to exclude the value from plans and state data. | bool | Optional |
+
+## `required_providers` and `provider` block configuration
+
+Terraform relies on plugins called providers to interact with cloud providers, SaaS providers, and other APIs. 
+
+The `required_providers` block works exactly as it does in traditional Terraform configurations. Learn more about [the `required_providers` block](/terraform/language/providers/requirements). The `provider` block functions mostly the same way in Stack configuration as it does in traditional Terraform configurations, with a few differences. 
+
+The `provider` block differs in Stack configurations in the following ways:
+
+* Supports the `for_each` [meta-argument](/terraform/language/meta-arguments/for_each)  
+* Defines aliases in the `provider` block header rather than as an argument  
+* Accepts arguments using a config block
+
+You must also define your providers at the top level of your Stack configuration in a `tfstack.hcl` file. You cannot define providers within the modules your component blocks source.
+
+### Complete configuration
+
+Provider configuration differs depending on which API you are interacting with. Below, you can configure the AWS provider and pass it to your S3 component.
+
+```hcl
+required_providers {
+    aws = {
+        source  = "hashicorp/aws"
+        version = "~> 5.7.0"
+    }
+}
+
+# "main" is the alias for this provider
+provider "aws" "main" {
+# The config block accepts the configuration for a provider
+    config {
+        region = var.region
+
+        assume_role_with_web_identity {
+            role_arn           = var.role_arn
+            web_identity_token = var.identity_token
+        }
+    }
+}
+```
+
+The `provider` block also supports the `for_each` meta-argument. For example, the following provider uses `for_each` to create multiple AWS configurations.
+
+```hcl
+provider "aws" "configurations" {
+    for_each = var.regions
+
+    config {
+        region = each.value
+
+        assume_role_with_web_identity {
+            role_arn           = var.role_arn
+            web_identity_token = var.identity_token
+        }
+
+        default_tags {
+            tags = var.default_tags
+        }
+    }
+}
+```
+
+For more information on declaring providers in Stacks, refer to [Declare providers](/terraform/language/stacks/create/declare-providers).
+
+## `locals` block configuration
+
+A local value assigns a name to an expression, so you can use the name multiple times within your Stack configuration instead of repeating the expression. The `locals` block works exactly as it does in traditional Terraform configurations. Learn more about [the `locals` block](/terraform/language/values/locals).
+
+
+## `removed` block configuration
+
+Stacks take a systematic approach to removing components. To remove a component from a Stack, you must use the `removed` block to ensure HCP Terraform knows which components to remove and which providers it requires to remove that component. 
+
+Do not remove providers from your stack configuration without first removing the components that require those providers. HCP Terraform requires a component's providers to ensure it can successfully remove that component. 
+
+
+### Complete configuration
+
+When every field is defined, a `removed` block has the following form:
+
+```hcl
+
+removed {
+    source = "<The module that the component you want to remove uses>"
+
+    from = component.component_name
+    providers = {
+        aws = provider.aws.this
+    }
+}
+```
+
+
+### Specification
+
+This section provides details about the fields you can configure in the `removed` block.
+
+| Field | Description | Type | Required |
+| :---- | :---- | :---- | :---- |
+| `from` | The name of the resource you want to remove. | string | Required |
+| `source` | The source module of the component you want to remove. | string | Required |
+| `providers` | A mapping of provider names to the providers that the component you want to remove uses. HCP Terraform needs your component providers to remove that component properly. | map | Required |
+
+### Reference
+
+The `removed` block also supports the `for_each` meta-argument to support removing multiple `components`.  For example, if you are trying to remove a dynamic component that HCP Terraform deploys in multiple AWS regions.
+
+```hcl
+component "s3_buckets" {
+    source = "./s3"
+
+    for_each = var.regions
+
+    providers = {
+        aws = provider.aws.config[each.value]
+    }
+
+    variables = {
+        region = each.value
+    }
+}
+```
+
+You can use the `for_each` meta-argument to remove each component dynamically.
+
+```hcl
+removed {
+    source = "./s3"
+
+    for_each = var.regions
+
+    from = component.s3_buckets[each.value]
+    providers = {
+        aws = provider.aws.config[each.value]
+    }
+}
+```
+
+HCP Terraform iterates through the `var.regions` variable and removes each AWS region's corresponding component. Expanding on this example, you could add a new variable to keep track of the regions you want to remove.
+
+```hcl
+variable "regions" {
+    type = set(string)
+}
+
+# Adding a region to this variable instructs HCP Terraform to remove it.
+variable "removed_regions" {
+    type = set(string)
+}
+
+component "s3_buckets" {
+    source = "./s3"
+
+    for_each = var.regions
+
+    providers = {
+        aws = provider.aws.config[each.value]
+    }
+
+    variables = {
+        region = each.value
+    }
+}
+
+removed {
+    source = "./s3"
+    # Iterate and remove the regions in our new removed_regions variable.
+    for_each = var.removed_regions
+
+    from = component.s3_buckets[each.value]
+    providers = {
+        aws = provider.aws.config[each.value]
+    }
+}
+```
+
+When you move a region from `regions` to the `removed_regions` variable, HCP Terraform plans to remove that region's corresponding components.

@@ -1,0 +1,88 @@
+---
+page_title: terraform modules command reference
+description: >-
+  The `terraform modules` command prints source and version data about all declared
+  modules in Terraform configuration.
+---
+
+# Command: modules
+
+The `terraform modules` command provides a holistic view of all Terraform modules
+declared in Terraform configuration for the current working directory.
+This command can be useful for auditing or setting policies on module consumption.
+The output of `terraform modules` includes a list of each declared module's
+key, source, and version.
+
+-> **Note**: The `terraform modules` command requires **Terraform v1.10.0 or later**.
+
+## Usage
+
+Usage: `terraform modules [options]`
+
+The following optional flags are available:
+
+- `-json` - Displays the module declarations in a machine-readable, JSON format.
+
+The output of `terraform modules -json` includes a `format_version` key, which is set to the value of `"1.0"` in Terraform 1.10.0. The semantics of this version are:
+
+- For minor versions, such as `"1.1"`, changes or additions will be backward-compatible.
+  Ignore object properties that are unrecognized to remain forward-compatible
+  with future minor versions.
+- For major versions, such as `"2.0"`, changes will not be backward-compatible. Reject any input which reports an unsupported major version.
+
+We will introduce new major versions only within the bounds of
+[the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
+
+## Output Format
+
+The `terraform modules` command returns a nested structure, representing module composition and hierarchy within your configuration.
+
+The following example demonstrates what the `terraform modules` command returns without any additional flags:
+
+```shell-session
+Modules declared by configuration:
+
+.
+├── "my_private_registry_module"[app.terraform.io/hashicorp/label/null] 1.0.0 (>=1.0.0, < 2.0.1)
+├── "my_public_registry_module"[terraform-aws-modules/iam/aws] 5.47.1 (>5.0.1)
+└── "my_local_module_a"[./path/to/local/module_a]
+    └── "my_local_module_b"[./path/to/local/module_a/module_b]
+        └── "my_local_module_c"[./path/to/local/module/module_a/module_b/module_c]
+```
+
+The following example is a representation of the JSON output format that `terraform modules -json` returns.
+
+```javascript
+{
+    "format_version": "1.0",
+    "modules": [
+        {
+            "key": "my_private_registry_module",
+            "source": "app.terraform.io/hashicorp/label/null",
+            "version": "1.0.0"
+        },
+        {
+            "key": "my_public_registry_module",
+            "source": "terraform-aws-modules/iam/aws",
+            "version": "5.47.1"
+        },
+        {
+            "key": "my_local_module_a",
+            "source": "./path/to/local/module_a",
+            "version": ""
+        },
+        {
+            "key": "my_local_module_b",
+            "source": "./path/to/local/module_a/module_b",
+            "version": ""
+        },
+        {
+            "key": "my_local_module_c",
+            "source": "./path/to/local/module/module_a/module_b/module_c",
+            "version": ""
+        },
+    ]
+}
+```
+
+

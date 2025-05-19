@@ -809,7 +809,7 @@ func TestComputedValuesForDataSource(t *testing.T) {
 				}),
 			}),
 			expectedFailures: []string{
-				"Terraform expected an object type for attribute \"nested_object\" defined within the mocked data at :0,0-0, but found string.",
+				"Terraform expected an object type for attribute \".nested_object[...]\" defined within the mocked data at :0,0-0, but found string.",
 			},
 		},
 		"invalid_replacement_path_nested_block": {
@@ -846,7 +846,7 @@ func TestComputedValuesForDataSource(t *testing.T) {
 				}),
 			}),
 			expectedFailures: []string{
-				"Terraform expected an object type for attribute \"nested_object\" defined within the mocked data at :0,0-0, but found string.",
+				"Terraform expected an object type for attribute \".nested_object[...]\" defined within the mocked data at :0,0-0, but found string.",
 			},
 		},
 		"invalid_replacement_type": {
@@ -863,7 +863,7 @@ func TestComputedValuesForDataSource(t *testing.T) {
 				"value": cty.StringVal("Hello, world!"),
 			}),
 			expectedFailures: []string{
-				"Terraform could not compute a value for the target type string with the mocked data defined at :0,0-0 with the attribute \"id\": string required.",
+				"Terraform could not compute a value for the target type string with the mocked data defined at :0,0-0 with the attribute \".id\": string required.",
 			},
 		},
 		"invalid_replacement_type_nested": {
@@ -899,7 +899,7 @@ func TestComputedValuesForDataSource(t *testing.T) {
 				}),
 			}),
 			expectedFailures: []string{
-				"Terraform could not compute a value for the target type string with the mocked data defined at :0,0-0 with the attribute \"nested.id\": string required.",
+				`Terraform could not compute a value for the target type string with the mocked data defined at :0,0-0 with the attribute ".nested[\"one\"].id": string required.`,
 			},
 		},
 		"invalid_replacement_type_nested_block": {
@@ -933,7 +933,7 @@ func TestComputedValuesForDataSource(t *testing.T) {
 				}),
 			}),
 			expectedFailures: []string{
-				"Terraform could not compute a value for the target type string with the mocked data defined at :0,0-0 with the attribute \"block.id\": string required.",
+				"Terraform could not compute a value for the target type string with the mocked data defined at :0,0-0 with the attribute \".block[0].id\": string required.",
 			},
 		},
 		"dynamic_attribute_unset": {
@@ -983,7 +983,7 @@ func TestComputedValuesForDataSource(t *testing.T) {
 				testRand = nil
 			}()
 
-			actual, diags := ComputedValuesForDataSource(tc.target, MockedData{
+			actual, diags := ComputedValuesForDataSource(tc.target, &MockedData{
 				Value: tc.with,
 			}, tc.schema)
 

@@ -32,7 +32,7 @@ const (
 	DefaultBackupExtension = ".backup"
 )
 
-// Local is an implementation of EnhancedBackend that performs all operations
+// Local is an implementation of backendrun.OperationsBackend that performs all operations
 // locally. This is the "default" backend and implements normal Terraform
 // behavior as it is well known.
 type Local struct {
@@ -59,6 +59,13 @@ type Local struct {
 	// and will override what'd be built from the State* fields if non-empty.
 	// While the interpretation of the State* fields depends on the active
 	// workspace, the OverrideState* fields are always used literally.
+	//
+	// OverrideStatePath is set as a result of the -state flag
+	// OverrideStateOutPath is set as a result of the -state-out flag
+	// OverrideStateBackupPath is set as a result of the -state-backup flag
+	//
+	// Note: these flags are only accepted by some commands.
+	// Importantly, they are not accepted by `init`.
 	OverrideStatePath       string
 	OverrideStateOutPath    string
 	OverrideStateBackupPath string
@@ -79,9 +86,9 @@ type Local struct {
 	OpInput      bool
 	OpValidation bool
 
-	// Backend, if non-nil, will use this backend for non-enhanced behavior.
+	// Backend, if non-nil, will use this backend for non-operations behavior.
 	// This allows local behavior with remote state storage. It is a way to
-	// "upgrade" a non-enhanced backend to an enhanced backend with typical
+	// "upgrade" a non-operations backend to an operations backend with typical
 	// behavior.
 	//
 	// If this is nil, local performs normal state loading and storage.
@@ -92,6 +99,7 @@ type Local struct {
 }
 
 var _ backend.Backend = (*Local)(nil)
+var _ backendrun.OperationsBackend = (*Local)(nil)
 
 // New returns a new initialized local backend.
 func New() *Local {
@@ -99,7 +107,7 @@ func New() *Local {
 }
 
 // NewWithBackend returns a new local backend initialized with a
-// dedicated backend for non-enhanced behavior.
+// dedicated backend for non-operations/state-storage behavior.
 func NewWithBackend(backend backend.Backend) *Local {
 	return &Local{
 		Backend: backend,
@@ -387,8 +395,14 @@ func (b *Local) opWait(
 	return
 }
 
-// StatePaths returns the StatePath, StateOutPath, and StateBackupPath as
-// configured from the CLI.
+// StatePaths returns the StatePath, StateOutPath, and StateBackupPath for a given workspace name.
+// This value is affected by:
+//
+// * Default versus non-default workspace.
+//
+// * Values from the configuration.
+//
+// * Values configured from the CLI.
 func (b *Local) StatePaths(name string) (stateIn, stateOut, backupOut string) {
 	statePath := b.OverrideStatePath
 	stateOutPath := b.OverrideStateOutPath

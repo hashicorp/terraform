@@ -1,14 +1,13 @@
 ---
-page_title: 'Command: destroy'
+page_title: terraform destroy command reference
 description: >-
-  The terraform destroy command destroys all objects managed by a Terraform
+  The `terraform destroy` command deprovisions all objects managed by a Terraform
   configuration.
 ---
 
-# Command: destroy
+# `terraform destroy` command
 
-The `terraform destroy` command is a convenient way to destroy all remote
-objects managed by a particular Terraform configuration.
+The `terraform destroy` command deprovisions all objects managed by a Terraform configuration.
 
 While you will typically not want to destroy long-lived objects in a production
 environment, Terraform is sometimes used to manage ephemeral infrastructure
@@ -44,3 +43,8 @@ you the proposed destroy changes without executing them.
 -> **Note:** The `-destroy` option to `terraform apply` exists only in
 Terraform v0.15.2 and later. For earlier versions, you _must_ use
 `terraform destroy` to get the effect of `terraform apply -destroy`.
+
+### Target a specific resource
+
+You can use the `-target` option to destroy a particular resource and its dependencies:
+

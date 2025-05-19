@@ -13,11 +13,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
-	armStorage "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2021-01-01/storage"
-	"github.com/Azure/go-autorest/autorest"
+	"github.com/hashicorp/go-azure-helpers/lang/pointer"
+	"github.com/hashicorp/go-azure-helpers/resourcemanager/commonids"
 	sasStorage "github.com/hashicorp/go-azure-helpers/storage"
-	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
+	"github.com/hashicorp/go-azure-sdk/resource-manager/resources/2024-03-01/resourcegroups"
+	"github.com/hashicorp/go-azure-sdk/resource-manager/storage/2023-01-01/storageaccounts"
+	"github.com/hashicorp/go-azure-sdk/sdk/auth"
+	"github.com/hashicorp/go-azure-sdk/sdk/environments"
+	"github.com/jackofallops/giovanni/storage/2023-11-03/blob/blobs"
+	"github.com/jackofallops/giovanni/storage/2023-11-03/blob/containers"
 )
 
 const (
@@ -52,57 +56,34 @@ func testAccAzureBackendRunningInGitHubActions(t *testing.T) {
 	}
 }
 
-func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
-	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
-	tenantID := os.Getenv("ARM_TENANT_ID")
-	clientID := os.Getenv("ARM_CLIENT_ID")
-	clientSecret := os.Getenv("ARM_CLIENT_SECRET")
-	msiEnabled := strings.EqualFold(os.Getenv("ARM_USE_MSI"), "true")
-	environment := os.Getenv("ARM_ENVIRONMENT")
+// these kind of tests can only run when within ADO Pipelines (e.g. OIDC)
+func testAccAzureBackendRunningInADOPipelines(t *testing.T) {
+	testAccAzureBackend(t)
 
-	hasCredentials := (clientID != "" && clientSecret != "") || msiEnabled
-	if !hasCredentials {
-		t.Fatal("Azure credentials missing or incomplete")
+	if os.Getenv("TF_RUNNING_IN_ADO_PIPELINES") == "" {
+		t.Skip("Skipping test since not running in ADO Pipelines")
 	}
+}
 
-	if subscriptionID == "" {
-		t.Fatalf("Missing ARM_SUBSCRIPTION_ID")
+// clearARMEnv cleans up the azure related environment variables.
+// This is to ensure the configuration only comes from HCL, which avoids
+// env vars for test setup interfere the behavior.
+//
+// NOTE: Since `go test` runs all test cases in a single process, clearing
+// environment has a whole process impact to other test cases. While this
+// impact can be eliminated given all the tests are implemented in a similar
+// pattern that those env vars will be consumed at the very begining. The test
+// runner has to ensure to set a **big enough parallelism**.
+func clearARMEnv() {
+	for _, evexp := range os.Environ() {
+		k, _, ok := strings.Cut(evexp, "=")
+		if !ok {
+			continue
+		}
+		if strings.HasPrefix(k, "ARM_") {
+			os.Unsetenv(k)
+		}
 	}
-
-	if tenantID == "" {
-		t.Fatalf("Missing ARM_TENANT_ID")
-	}
-
-	if environment == "" {
-		t.Fatalf("Missing ARM_ENVIRONMENT")
-	}
-
-	// location isn't used in this method, but is in the other test methods
-	location := os.Getenv("ARM_LOCATION")
-	if location == "" {
-		t.Fatalf("Missing ARM_LOCATION")
-	}
-
-	// Endpoint is optional (only for Stack)
-	endpoint := os.Getenv("ARM_ENDPOINT")
-
-	armClient, err := buildArmClient(context.TODO(), BackendConfig{
-		SubscriptionID:                subscriptionID,
-		TenantID:                      tenantID,
-		ClientID:                      clientID,
-		ClientSecret:                  clientSecret,
-		CustomResourceManagerEndpoint: endpoint,
-		Environment:                   environment,
-		ResourceGroupName:             res.resourceGroup,
-		StorageAccountName:            res.storageAccountName,
-		UseMsi:                        msiEnabled,
-		UseAzureADAuthentication:      res.useAzureADAuth,
-	})
-	if err != nil {
-		t.Fatalf("Failed to build ArmClient: %+v", err)
-	}
-
-	return armClient
 }
 
 func buildSasToken(accountName, accessKey string) (*string, error) {
@@ -116,6 +97,7 @@ func buildSasToken(accountName, accessKey string) (*string, error) {
 	signedProtocol := "https,http"
 	signedIp := ""
 	signedVersion := sasSignedVersion
+	signedEncryptionScope := ""
 
 	utcNow := time.Now().UTC()
 
@@ -124,7 +106,7 @@ func buildSasToken(accountName, accessKey string) (*string, error) {
 	endDate := utcNow.Add(time.Hour * 24).Format(time.RFC3339)
 
 	sasToken, err := sasStorage.ComputeAccountSASToken(accountName, accessKey, permissions, services, resourceTypes,
-		startDate, endDate, signedProtocol, signedIp, signedVersion)
+		startDate, endDate, signedProtocol, signedIp, signedVersion, signedEncryptionScope)
 	if err != nil {
 		return nil, fmt.Errorf("Error computing SAS Token: %+v", err)
 	}
@@ -133,102 +115,216 @@ func buildSasToken(accountName, accessKey string) (*string, error) {
 }
 
 type resourceNames struct {
-	resourceGroup           string
-	location                string
-	storageAccountName      string
-	storageContainerName    string
-	storageKeyName          string
-	storageAccountAccessKey string
-	useAzureADAuth          bool
+	resourceGroup        string
+	storageAccountName   string
+	storageContainerName string
+	storageKeyName       string
 }
 
 func testResourceNames(rString string, keyName string) resourceNames {
 	return resourceNames{
 		resourceGroup:        fmt.Sprintf("acctestRG-backend-%s-%s", strings.Replace(time.Now().Local().Format("060102150405.00"), ".", "", 1), rString),
-		location:             os.Getenv("ARM_LOCATION"),
 		storageAccountName:   fmt.Sprintf("acctestsa%s", rString),
 		storageContainerName: "acctestcont",
 		storageKeyName:       keyName,
-		useAzureADAuth:       false,
 	}
 }
 
-func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames) error {
-	log.Printf("Creating Resource Group %q", names.resourceGroup)
-	_, err := c.groupsClient.CreateOrUpdate(ctx, names.resourceGroup, resources.Group{Location: &names.location})
+type TestMeta struct {
+	names resourceNames
+
+	clientId     string
+	clientSecret string
+
+	tenantId       string
+	subscriptionId string
+	location       string
+	env            environments.Environment
+
+	// This is populated during test resource deploying
+	storageAccessKey string
+
+	// This is populated during test resoruce deploying
+	blobBaseUri string
+
+	resourceGroupsClient  *resourcegroups.ResourceGroupsClient
+	storageAccountsClient *storageaccounts.StorageAccountsClient
+}
+
+func BuildTestMeta(t *testing.T, ctx context.Context) *TestMeta {
+	names := testResourceNames(randString(10), "testState")
+
+	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
+	if subscriptionID == "" {
+		t.Fatalf("Missing ARM_SUBSCRIPTION_ID")
+	}
+
+	tenantID := os.Getenv("ARM_TENANT_ID")
+	if tenantID == "" {
+		t.Fatalf("Missing ARM_TENANT_ID")
+	}
+
+	location := os.Getenv("ARM_LOCATION")
+	if location == "" {
+		t.Fatalf("Missing ARM_LOCATION")
+	}
+
+	clientID := os.Getenv("ARM_CLIENT_ID")
+	clientSecret := os.Getenv("ARM_CLIENT_SECRET")
+
+	environment := "public"
+	if v := os.Getenv("ARM_ENVIRONMENT"); v != "" {
+		environment = v
+	}
+	env, err := environments.FromName(environment)
 	if err != nil {
+		t.Fatalf("Failed to build environment for %s: %v", environment, err)
+	}
+
+	// For deploying test resources, we support the followings:
+	// - Client secret: For most of the tests
+	// - Client certificate: For client certificate related tests
+	// - MSI: For MSI related tests
+	// - OIDC: For OIDC related tests
+	authConfig := &auth.Credentials{
+		Environment:                    *env,
+		TenantID:                       tenantID,
+		ClientID:                       clientID,
+		ClientSecret:                   clientSecret,
+		ClientCertificatePath:          os.Getenv("ARM_CLIENT_CERTIFICATE_PATH"),
+		ClientCertificatePassword:      os.Getenv("ARM_CLIENT_CERTIFICATE_PASSWORD"),
+		OIDCTokenRequestURL:            getEnvvars("ACTIONS_ID_TOKEN_REQUEST_URL", "SYSTEM_OIDCREQUESTURI"),
+		OIDCTokenRequestToken:          getEnvvars("ACTIONS_ID_TOKEN_REQUEST_TOKEN", "SYSTEM_ACCESSTOKEN"),
+		ADOPipelineServiceConnectionID: os.Getenv("ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID"),
+
+		EnableAuthenticatingUsingClientSecret:      true,
+		EnableAuthenticatingUsingClientCertificate: true,
+		EnableAuthenticatingUsingManagedIdentity:   true,
+		EnableAuthenticationUsingGitHubOIDC:        true,
+		EnableAuthenticationUsingADOPipelineOIDC:   true,
+	}
+
+	resourceManagerAuth, err := auth.NewAuthorizerFromCredentials(ctx, *authConfig, env.ResourceManager)
+	if err != nil {
+		t.Fatalf("unable to build authorizer for Resource Manager API: %+v", err)
+	}
+
+	resourceGroupsClient, err := resourcegroups.NewResourceGroupsClientWithBaseURI(env.ResourceManager)
+	if err != nil {
+		t.Fatalf("building Resource Groups client: %+v", err)
+	}
+	resourceGroupsClient.Client.SetAuthorizer(resourceManagerAuth)
+
+	storageAccountsClient, err := storageaccounts.NewStorageAccountsClientWithBaseURI(env.ResourceManager)
+	if err != nil {
+		t.Fatalf("building Storage Accounts client: %+v", err)
+	}
+	storageAccountsClient.Client.SetAuthorizer(resourceManagerAuth)
+
+	return &TestMeta{
+		names: names,
+
+		clientId:     clientID,
+		clientSecret: clientSecret,
+
+		tenantId:       tenantID,
+		subscriptionId: subscriptionID,
+		location:       location,
+		env:            *env,
+
+		resourceGroupsClient:  resourceGroupsClient,
+		storageAccountsClient: storageAccountsClient,
+	}
+}
+
+func (c *TestMeta) buildTestResources(ctx context.Context) error {
+	log.Printf("Creating Resource Group %q", c.names.resourceGroup)
+	rgid := commonids.NewResourceGroupID(c.subscriptionId, c.names.resourceGroup)
+	if _, err := c.resourceGroupsClient.CreateOrUpdate(ctx, rgid, resourcegroups.ResourceGroup{Location: c.location}); err != nil {
 		return fmt.Errorf("failed to create test resource group: %s", err)
 	}
 
-	log.Printf("Creating Storage Account %q in Resource Group %q", names.storageAccountName, names.resourceGroup)
-	storageProps := armStorage.AccountCreateParameters{
-		Sku: &armStorage.Sku{
-			Name: armStorage.StandardLRS,
-			Tier: armStorage.Standard,
+	log.Printf("Creating Storage Account %q in Resource Group %q", c.names.storageAccountName, c.names.resourceGroup)
+	storageProps := storageaccounts.StorageAccountCreateParameters{
+		Kind: storageaccounts.KindStorageVTwo,
+		Sku: storageaccounts.Sku{
+			Name: storageaccounts.SkuNameStandardLRS,
+			Tier: pointer.To(storageaccounts.SkuTierStandard),
 		},
-		Location: &names.location,
+		Location: c.location,
 	}
-	if names.useAzureADAuth {
-		allowSharedKeyAccess := false
-		storageProps.AccountPropertiesCreateParameters = &armStorage.AccountPropertiesCreateParameters{
-			AllowSharedKeyAccess: &allowSharedKeyAccess,
-		}
-	}
-	future, err := c.storageAccountsClient.Create(ctx, names.resourceGroup, names.storageAccountName, storageProps)
-	if err != nil {
+
+	said := commonids.NewStorageAccountID(c.subscriptionId, c.names.resourceGroup, c.names.storageAccountName)
+	if err := c.storageAccountsClient.CreateThenPoll(ctx, said, storageProps); err != nil {
 		return fmt.Errorf("failed to create test storage account: %s", err)
 	}
 
-	err = future.WaitForCompletionRef(ctx, c.storageAccountsClient.Client)
+	// Populate the storage account access key
+	resp, err := c.storageAccountsClient.GetProperties(ctx, said, storageaccounts.DefaultGetPropertiesOperationOptions())
 	if err != nil {
-		return fmt.Errorf("failed waiting for the creation of storage account: %s", err)
+		return fmt.Errorf("retrieving %s: %+v", said, err)
+	}
+	if resp.Model == nil {
+		return fmt.Errorf("unexpected null model of %s", said)
+	}
+	accountDetail, err := populateAccountDetails(said, *resp.Model)
+	if err != nil {
+		return fmt.Errorf("populating details for %s: %+v", said, err)
 	}
 
-	containersClient := containers.NewWithEnvironment(c.environment)
-	if names.useAzureADAuth {
-		containersClient.Client.Authorizer = *c.azureAdStorageAuth
-	} else {
-		log.Printf("fetching access key for storage account")
-		resp, err := c.storageAccountsClient.ListKeys(ctx, names.resourceGroup, names.storageAccountName, "")
-		if err != nil {
-			return fmt.Errorf("failed to list storage account keys %s:", err)
-		}
+	accountKey, err := accountDetail.AccountKey(ctx, c.storageAccountsClient)
+	if err != nil {
+		return fmt.Errorf("listing access key for %s: %+v", said, err)
+	}
+	c.storageAccessKey = *accountKey
 
-		keys := *resp.Keys
-		accessKey := *keys[0].Value
-		names.storageAccountAccessKey = accessKey
+	blobBaseUri, err := accountDetail.DataPlaneEndpoint(EndpointTypeBlob)
+	if err != nil {
+		return err
+	}
+	c.blobBaseUri = *blobBaseUri
 
-		storageAuth, err := autorest.NewSharedKeyAuthorizer(names.storageAccountName, accessKey, autorest.SharedKey)
-		if err != nil {
-			return fmt.Errorf("Error building Authorizer: %+v", err)
-		}
-
-		containersClient.Client.Authorizer = storageAuth
+	containersClient, err := containers.NewWithBaseUri(*blobBaseUri)
+	if err != nil {
+		return fmt.Errorf("failed to new container client: %v", err)
 	}
 
-	log.Printf("Creating Container %q in Storage Account %q (Resource Group %q)", names.storageContainerName, names.storageAccountName, names.resourceGroup)
-	_, err = containersClient.Create(ctx, names.storageAccountName, names.storageContainerName, containers.CreateInput{})
+	authorizer, err := auth.NewSharedKeyAuthorizer(c.names.storageAccountName, *accountKey, auth.SharedKey)
 	if err != nil {
+		return fmt.Errorf("new shared key authorizer: %v", err)
+	}
+	containersClient.Client.Authorizer = authorizer
+
+	log.Printf("Creating Container %q in Storage Account %q (Resource Group %q)", c.names.storageContainerName, c.names.storageAccountName, c.names.resourceGroup)
+	if _, err = containersClient.Create(ctx, c.names.storageContainerName, containers.CreateInput{}); err != nil {
 		return fmt.Errorf("failed to create storage container: %s", err)
 	}
 
 	return nil
 }
 
-func (c ArmClient) destroyTestResources(ctx context.Context, resources resourceNames) error {
-	log.Printf("[DEBUG] Deleting Resource Group %q..", resources.resourceGroup)
-	future, err := c.groupsClient.Delete(ctx, resources.resourceGroup)
-	if err != nil {
+func (c *TestMeta) destroyTestResources(ctx context.Context) error {
+	log.Printf("[DEBUG] Deleting Resource Group %q..", c.names.resourceGroup)
+	rgid := commonids.NewResourceGroupID(c.subscriptionId, c.names.resourceGroup)
+	if err := c.resourceGroupsClient.DeleteThenPoll(ctx, rgid, resourcegroups.DefaultDeleteOperationOptions()); err != nil {
 		return fmt.Errorf("Error deleting Resource Group: %+v", err)
 	}
+	return nil
+}
 
-	log.Printf("[DEBUG] Waiting for deletion of Resource Group %q..", resources.resourceGroup)
-	err = future.WaitForCompletionRef(ctx, c.groupsClient.Client)
+func (c *TestMeta) getBlobClient(ctx context.Context) (bc *blobs.Client, err error) {
+	blobsClient, err := blobs.NewWithBaseUri(c.blobBaseUri)
 	if err != nil {
-		return fmt.Errorf("Error waiting for the deletion of Resource Group: %+v", err)
+		return nil, fmt.Errorf("new blob client: %v", err)
 	}
 
-	return nil
+	authorizer, err := auth.NewSharedKeyAuthorizer(c.names.storageAccountName, c.storageAccessKey, auth.SharedKey)
+	if err != nil {
+		return nil, fmt.Errorf("new shared key authorizer: %v", err)
+	}
+	blobsClient.Client.SetAuthorizer(authorizer)
+
+	return blobsClient, nil
 }
 
 // randString generates a random alphanumeric string of the length specified
@@ -239,4 +335,14 @@ func randString(strlen int) string {
 		result[i] = charSet[rand.Intn(len(charSet))]
 	}
 	return string(result)
+}
+
+// getEnvvars return the first non-empty env var specified. If none is found, it returns empty string.
+func getEnvvars(envvars ...string) string {
+	for _, envvar := range envvars {
+		if v := os.Getenv(envvar); v != "" {
+			return v
+		}
+	}
+	return ""
 }

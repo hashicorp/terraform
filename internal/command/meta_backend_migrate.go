@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -492,7 +491,7 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 	destination := destinationState.State()
 
 	// Save both to a temporary
-	td, err := ioutil.TempDir("", "terraform")
+	td, err := os.MkdirTemp("", "terraform")
 	if err != nil {
 		return false, fmt.Errorf("Error creating temporary directory: %s", err)
 	}
@@ -577,7 +576,7 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 	if sourceTFC && !destinationTFC {
 		// From HCP Terraform to another backend. This is not yet implemented, and
 		// we recommend people to use the HCP Terraform API.
-		return fmt.Errorf(strings.TrimSpace(errTFCMigrateNotYetImplemented))
+		return errors.New(strings.TrimSpace(errTFCMigrateNotYetImplemented))
 	}
 
 	// Everything below, by the above two conditionals, now assumes that the
@@ -631,7 +630,7 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 		return m.backendMigrateState_s_s(opts)
 	}
 
-	destinationTagsStrategy := cloudBackendDestination.WorkspaceMapping.Strategy() == cloud.WorkspaceTagsStrategy
+	destinationTagsStrategy := cloudBackendDestination.WorkspaceMapping.IsTagsStrategy()
 	destinationNameStrategy := cloudBackendDestination.WorkspaceMapping.Strategy() == cloud.WorkspaceNameStrategy
 
 	multiSource := !sourceSingleState && len(sourceWorkspaces) > 1
@@ -1012,7 +1011,7 @@ const errTFCMigrateNotYetImplemented = `
 Migrating state from HCP Terraform or Terraform Enterprise to another backend is not 
 yet implemented.
 
-Please use the API to do this: https://www.terraform.io/docs/cloud/api/state-versions.html
+Please use the API to do this: https://developer.hashicorp.com/terraform/cloud-docs/api-docs/state-versions
 `
 
 const errInteractiveInputDisabled = `
@@ -1037,7 +1036,7 @@ workspaces are named uniquely across all configurations used within an organizat
 strategy to start with is <COMPONENT>-<ENVIRONMENT>-<REGION> (e.g. networking-prod-us-east, 
 networking-staging-us-east).
 
-For more information on workspace naming, see https://www.terraform.io/docs/cloud/workspaces/naming.html
+For more information on workspace naming, see https://developer.hashicorp.com/terraform/cloud-docs/workspaces/create
 
 When migrating existing workspaces from the backend %[1]q to %[2]s, 
 would you like to rename your workspaces? Enter 1 or 2.

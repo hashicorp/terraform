@@ -5,16 +5,15 @@ package kubernetes
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
-	"github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/go-homedir"
+	"github.com/zclconf/go-cty/cty"
 	k8sSchema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -22,6 +21,12 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+
+	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendbase"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/version"
 )
 
 // Modified from github.com/terraform-providers/terraform-provider-kubernetes
@@ -44,158 +49,191 @@ var (
 
 // New creates a new backend for kubernetes remote state.
 func New() backend.Backend {
-	s := &schema.Backend{
-		Schema: map[string]*schema.Schema{
-			"secret_suffix": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Suffix used when creating the secret. The secret will be named in the format: `tfstate-{workspace}-{secret_suffix}`.",
-			},
-			"labels": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Description: "Map of additional labels to be applied to the secret.",
-				Elem:        &schema.Schema{Type: schema.TypeString},
-			},
-			"namespace": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_NAMESPACE", "default"),
-				Description: "Namespace to store the secret in.",
-			},
-			"in_cluster_config": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_IN_CLUSTER_CONFIG", false),
-				Description: "Used to authenticate to the cluster from inside a pod.",
-			},
-			"load_config_file": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_LOAD_CONFIG_FILE", true),
-				Description: "Load local kubeconfig.",
-			},
-			"host": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_HOST", ""),
-				Description: "The hostname (in form of URI) of Kubernetes master.",
-			},
-			"username": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_USER", ""),
-				Description: "The username to use for HTTP basic authentication when accessing the Kubernetes master endpoint.",
-			},
-			"password": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_PASSWORD", ""),
-				Description: "The password to use for HTTP basic authentication when accessing the Kubernetes master endpoint.",
-			},
-			"insecure": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_INSECURE", false),
-				Description: "Whether server should be accessed without verifying the TLS certificate.",
-			},
-			"client_certificate": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_CLIENT_CERT_DATA", ""),
-				Description: "PEM-encoded client certificate for TLS authentication.",
-			},
-			"client_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_CLIENT_KEY_DATA", ""),
-				Description: "PEM-encoded client certificate key for TLS authentication.",
-			},
-			"cluster_ca_certificate": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_CLUSTER_CA_CERT_DATA", ""),
-				Description: "PEM-encoded root certificates bundle for TLS authentication.",
-			},
-			"config_paths": {
-				Type:        schema.TypeList,
-				Elem:        &schema.Schema{Type: schema.TypeString},
-				Optional:    true,
-				Description: "A list of paths to kube config files. Can be set with KUBE_CONFIG_PATHS environment variable.",
-			},
-			"config_path": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_CONFIG_PATH", ""),
-				Description: "Path to the kube config file. Can be set with KUBE_CONFIG_PATH environment variable.",
-			},
-			"config_context": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_CTX", ""),
-			},
-			"config_context_auth_info": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_CTX_AUTH_INFO", ""),
-				Description: "",
-			},
-			"config_context_cluster": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_CTX_CLUSTER", ""),
-				Description: "",
-			},
-			"token": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_TOKEN", ""),
-				Description: "Token to authentifcate a service account.",
-			},
-			"proxy_url": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "URL to the proxy to be used for all API requests",
-				DefaultFunc: schema.EnvDefaultFunc("KUBE_PROXY_URL", ""),
-			},
-			"exec": {
-				Type:     schema.TypeList,
-				Optional: true,
-				MaxItems: 1,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"api_version": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"command": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-						"env": {
-							Type:     schema.TypeMap,
-							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-						},
-						"args": {
-							Type:     schema.TypeList,
-							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+	return &Backend{
+		Base: backendbase.Base{
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"secret_suffix": {
+						Type:        cty.String,
+						Required:    true,
+						Description: "Suffix used when creating the secret. The secret will be named in the format: `tfstate-{workspace}-{secret_suffix}`. Note that the backend may append its own numeric index to the secret name when chunking large state files into multiple secrets. In this case, there will be multiple secrets named in the format: `tfstate-{workspace}-{secret_suffix}-{index}`.",
+					},
+					"labels": {
+						Type:        cty.Map(cty.String),
+						Optional:    true,
+						Description: "Map of additional labels to be applied to the secret.",
+					},
+					"namespace": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "Namespace to store the secret in.",
+					},
+					"in_cluster_config": {
+						Type:        cty.Bool,
+						Optional:    true,
+						Description: "Used to authenticate to the cluster from inside a pod.",
+					},
+					"load_config_file": {
+						Type:        cty.Bool,
+						Optional:    true,
+						Description: "Load local kubeconfig.",
+					},
+					"host": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "The hostname (in form of URI) of Kubernetes master.",
+					},
+					"username": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "The username to use for HTTP basic authentication when accessing the Kubernetes master endpoint.",
+					},
+					"password": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "The password to use for HTTP basic authentication when accessing the Kubernetes master endpoint.",
+					},
+					"insecure": {
+						Type:        cty.Bool,
+						Optional:    true,
+						Description: "Whether server should be accessed without verifying the TLS certificate.",
+					},
+					"client_certificate": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "PEM-encoded client certificate for TLS authentication.",
+					},
+					"client_key": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "PEM-encoded client certificate key for TLS authentication.",
+					},
+					"cluster_ca_certificate": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "PEM-encoded root certificates bundle for TLS authentication.",
+					},
+					"config_paths": {
+						Type:        cty.List(cty.String),
+						Optional:    true,
+						Description: "A list of paths to kube config files. Can be set with KUBE_CONFIG_PATHS environment variable.",
+					},
+					"config_path": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "Path to the kube config file. Can be set with KUBE_CONFIG_PATH environment variable.",
+					},
+					"config_context": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"config_context_auth_info": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "",
+					},
+					"config_context_cluster": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "",
+					},
+					"token": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "Token to authentifcate a service account.",
+					},
+					"proxy_url": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "URL to the proxy to be used for all API requests",
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"exec": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"api_version": {
+									Type:     cty.String,
+									Required: true,
+								},
+								"command": {
+									Type:     cty.String,
+									Required: true,
+								},
+								"env": {
+									Type:     cty.Map(cty.String),
+									Optional: true,
+								},
+								"args": {
+									Type:     cty.List(cty.String),
+									Optional: true,
+								},
+							},
 						},
 					},
 				},
-				Description: "Use a credential plugin to authenticate.",
+			},
+			SDKLikeDefaults: backendbase.SDKLikeDefaults{
+				"namespace": {
+					EnvVars:  []string{"KUBE_NAMESPACE"},
+					Fallback: "default",
+				},
+				"in_cluster_config": {
+					EnvVars:  []string{"KUBE_IN_CLUSTER_CONFIG"},
+					Fallback: "false",
+				},
+				"load_config_file": {
+					EnvVars:  []string{"KUBE_LOAD_CONFIG_FILE"},
+					Fallback: "true",
+				},
+				"host": {
+					EnvVars: []string{"KUBE_HOST"},
+				},
+				"username": {
+					EnvVars: []string{"KUBE_USER"},
+				},
+				"password": {
+					EnvVars: []string{"KUBE_PASSWORD"},
+				},
+				"insecure": {
+					EnvVars:  []string{"KUBE_INSECURE"},
+					Fallback: "false",
+				},
+				"client_certificate": {
+					EnvVars: []string{"KUBE_CLIENT_CERT_DATA"},
+				},
+				"client_key": {
+					EnvVars: []string{"KUBE_CLIENT_KEY_DATA"},
+				},
+				"cluster_ca_certificate": {
+					EnvVars: []string{"KUBE_CLUSTER_CA_CERT_DATA"},
+				},
+				"config_path": {
+					EnvVars: []string{"KUBE_CONFIG_PATH"},
+				},
+				"config_context": {
+					EnvVars: []string{"KUBE_CTX"},
+				},
+				"config_context_auth_info": {
+					EnvVars: []string{"KUBE_CTX_AUTH_INFO"},
+				},
+				"config_context_cluster": {
+					EnvVars: []string{"KUBE_CTX_CLUSTER"},
+				},
+				"token": {
+					EnvVars: []string{"KUBE_TOKEN"},
+				},
+				"proxy_url": {
+					EnvVars: []string{"KUBE_PROXY_URL"},
+				},
 			},
 		},
 	}
-
-	result := &Backend{Backend: s}
-	result.Backend.ConfigureFunc = result.configure
-	return result
 }
 
 type Backend struct {
-	*schema.Backend
+	backendbase.Base
 
 	// The fields below are set from configure
 	kubernetesSecretClient dynamic.ResourceInterface
@@ -234,68 +272,79 @@ func (b Backend) KubernetesLeaseClient() (coordinationv1.LeaseInterface, error) 
 	return b.kubernetesLeaseClient, nil
 }
 
-func (b *Backend) configure(ctx context.Context) error {
+func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 	if b.config != nil {
 		return nil
 	}
 
-	// Grab the resource data
-	data := schema.FromContextBackendConfig(ctx)
+	data := backendbase.NewSDKLikeData(configVal)
 
 	cfg, err := getInitialConfig(data)
 	if err != nil {
-		return err
+		return backendbase.ErrorAsDiagnostics(err)
 	}
 
 	// Overriding with static configuration
 	cfg.UserAgent = fmt.Sprintf("HashiCorp/1.0 Terraform/%s", version.String())
 
-	if v, ok := data.GetOk("host"); ok {
-		cfg.Host = v.(string)
+	if v := data.String("host"); v != "" {
+		cfg.Host = v
 	}
-	if v, ok := data.GetOk("username"); ok {
-		cfg.Username = v.(string)
+	if v := data.String("username"); v != "" {
+		cfg.Username = v
 	}
-	if v, ok := data.GetOk("password"); ok {
-		cfg.Password = v.(string)
+	if v := data.String("password"); v != "" {
+		cfg.Password = v
 	}
-	if v, ok := data.GetOk("insecure"); ok {
-		cfg.Insecure = v.(bool)
+	cfg.Insecure = data.Bool("insecure")
+	if v := data.String("cluster_ca_certificate"); v != "" {
+		cfg.CAData = bytes.NewBufferString(v).Bytes()
 	}
-	if v, ok := data.GetOk("cluster_ca_certificate"); ok {
-		cfg.CAData = bytes.NewBufferString(v.(string)).Bytes()
+	if v := data.String("client_certificate"); v != "" {
+		cfg.CertData = bytes.NewBufferString(v).Bytes()
 	}
-	if v, ok := data.GetOk("client_certificate"); ok {
-		cfg.CertData = bytes.NewBufferString(v.(string)).Bytes()
+	if v := data.String("client_key"); v != "" {
+		cfg.KeyData = bytes.NewBufferString(v).Bytes()
 	}
-	if v, ok := data.GetOk("client_key"); ok {
-		cfg.KeyData = bytes.NewBufferString(v.(string)).Bytes()
-	}
-	if v, ok := data.GetOk("token"); ok {
-		cfg.BearerToken = v.(string)
+	if v := data.String("token"); v != "" {
+		cfg.BearerToken = v
 	}
 
-	if v, ok := data.GetOk("labels"); ok {
+	if v := data.GetAttr("labels", cty.Map(cty.String)); !v.IsNull() {
 		labels := map[string]string{}
-		for k, vv := range v.(map[string]interface{}) {
-			labels[k] = vv.(string)
+		for it := v.ElementIterator(); it.Next(); {
+			kV, vV := it.Element()
+			if vV.IsNull() {
+				vV = cty.StringVal("")
+			}
+			labels[kV.AsString()] = vV.AsString()
 		}
 		b.labels = labels
 	}
 
-	ns := data.Get("namespace").(string)
+	ns := data.String("namespace")
 	b.namespace = ns
-	b.nameSuffix = data.Get("secret_suffix").(string)
+
+	b.nameSuffix = data.String("secret_suffix")
+	if hasNumericSuffix(b.nameSuffix, "-") {
+		// If the last segment is a number, it's considered invalid.
+		// The backend automatically appends its own numeric suffix when chunking large state files into multiple secrets.
+		// Allowing a user-defined numeric suffix could cause conflicts with this mechanism.
+		return backendbase.ErrorAsDiagnostics(
+			fmt.Errorf("secret_suffix must not end with '-<number>', got %q", b.nameSuffix),
+		)
+	}
+
 	b.config = cfg
 
 	return nil
 }
 
-func getInitialConfig(data *schema.ResourceData) (*restclient.Config, error) {
+func getInitialConfig(data backendbase.SDKLikeData) (*restclient.Config, error) {
 	var cfg *restclient.Config
 	var err error
 
-	inCluster := data.Get("in_cluster_config").(bool)
+	inCluster := data.Bool("in_cluster_config")
 	if inCluster {
 		cfg, err = restclient.InClusterConfig()
 		if err != nil {
@@ -314,16 +363,14 @@ func getInitialConfig(data *schema.ResourceData) (*restclient.Config, error) {
 	return cfg, err
 }
 
-func tryLoadingConfigFile(d *schema.ResourceData) (*restclient.Config, error) {
+func tryLoadingConfigFile(d backendbase.SDKLikeData) (*restclient.Config, error) {
 	loader := &clientcmd.ClientConfigLoadingRules{}
 
 	configPaths := []string{}
-	if v, ok := d.Get("config_path").(string); ok && v != "" {
+	if v := d.String("config_path"); v != "" {
 		configPaths = []string{v}
-	} else if v, ok := d.Get("config_paths").([]interface{}); ok && len(v) > 0 {
-		for _, p := range v {
-			configPaths = append(configPaths, p.(string))
-		}
+	} else if v := d.GetAttr("config_paths", cty.List(cty.String)); !v.IsNull() {
+		configPaths = append(configPaths, decodeListOfString(v)...)
 	} else if v := os.Getenv("KUBE_CONFIG_PATHS"); v != "" {
 		configPaths = filepath.SplitList(v)
 	}
@@ -348,46 +395,56 @@ func tryLoadingConfigFile(d *schema.ResourceData) (*restclient.Config, error) {
 	overrides := &clientcmd.ConfigOverrides{}
 	ctxSuffix := "; default context"
 
-	ctx, ctxOk := d.GetOk("config_context")
-	authInfo, authInfoOk := d.GetOk("config_context_auth_info")
-	cluster, clusterOk := d.GetOk("config_context_cluster")
-	if ctxOk || authInfoOk || clusterOk {
+	configCtx := d.String("config_context")
+	authInfo := d.String("config_context_auth_info")
+	cluster := d.String("config_context_cluster")
+	if configCtx != "" || authInfo != "" || cluster != "" {
 		ctxSuffix = "; overriden context"
-		if ctxOk {
-			overrides.CurrentContext = ctx.(string)
+		if configCtx != "" {
+			overrides.CurrentContext = configCtx
 			ctxSuffix += fmt.Sprintf("; config ctx: %s", overrides.CurrentContext)
 			log.Printf("[DEBUG] Using custom current context: %q", overrides.CurrentContext)
 		}
 
 		overrides.Context = clientcmdapi.Context{}
-		if authInfoOk {
-			overrides.Context.AuthInfo = authInfo.(string)
+		if authInfo != "" {
+			overrides.Context.AuthInfo = authInfo
 			ctxSuffix += fmt.Sprintf("; auth_info: %s", overrides.Context.AuthInfo)
 		}
-		if clusterOk {
-			overrides.Context.Cluster = cluster.(string)
+		if cluster != "" {
+			overrides.Context.Cluster = cluster
 			ctxSuffix += fmt.Sprintf("; cluster: %s", overrides.Context.Cluster)
 		}
 		log.Printf("[DEBUG] Using overidden context: %#v", overrides.Context)
 	}
 
-	if v, ok := d.GetOk("exec"); ok {
-		exec := &clientcmdapi.ExecConfig{}
-		if spec, ok := v.([]interface{})[0].(map[string]interface{}); ok {
-			exec.APIVersion = spec["api_version"].(string)
-			exec.Command = spec["command"].(string)
-			exec.Args = expandStringSlice(spec["args"].([]interface{}))
-			for kk, vv := range spec["env"].(map[string]interface{}) {
-				exec.Env = append(exec.Env, clientcmdapi.ExecEnvVar{Name: kk, Value: vv.(string)})
+	// exec is a nested block with nesting mode NestingSingle, so GetAttr
+	// will return a value of an object type that will be null if the block
+	// isn't present at all.
+	if v := d.GetAttr("exec", cty.DynamicPseudoType); !v.IsNull() {
+		spec := backendbase.NewSDKLikeData(v)
+		exec := &clientcmdapi.ExecConfig{
+			APIVersion: spec.String("api_version"),
+			Command:    spec.String("command"),
+			Args:       decodeListOfString(spec.GetAttr("args", cty.List(cty.String))),
+		}
+		if envMap := spec.GetAttr("env", cty.Map(cty.String)); !envMap.IsNull() {
+			for it := envMap.ElementIterator(); it.Next(); {
+				kV, vV := it.Element()
+				if vV.IsNull() {
+					vV = cty.StringVal("")
+				}
+				exec.Env = append(exec.Env, clientcmdapi.ExecEnvVar{
+					Name:  kV.AsString(),
+					Value: vV.AsString(),
+				})
 			}
-		} else {
-			return nil, fmt.Errorf("Failed to parse exec")
 		}
 		overrides.AuthInfo.Exec = exec
 	}
 
-	if v, ok := d.GetOk("proxy_url"); ok {
-		overrides.ClusterDefaults.ProxyURL = v.(string)
+	if v := d.String("proxy_url"); v != "" {
+		overrides.ClusterDefaults.ProxyURL = v
 	}
 
 	cc := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loader, overrides)
@@ -404,15 +461,31 @@ func tryLoadingConfigFile(d *schema.ResourceData) (*restclient.Config, error) {
 	return cfg, nil
 }
 
-func expandStringSlice(s []interface{}) []string {
-	result := make([]string, len(s), len(s))
-	for k, v := range s {
-		// Handle the Terraform parser bug which turns empty strings in lists to nil.
-		if v == nil {
-			result[k] = ""
+func decodeListOfString(v cty.Value) []string {
+	if v.IsNull() {
+		return nil
+	}
+	ret := make([]string, 0, v.LengthInt())
+	for it := v.ElementIterator(); it.Next(); {
+		_, vV := it.Element()
+		if vV.IsNull() {
+			ret = append(ret, "")
 		} else {
-			result[k] = v.(string)
+			ret = append(ret, vV.AsString())
 		}
 	}
-	return result
+	return ret
+}
+
+func hasNumericSuffix(value, substr string) bool {
+	// Find the last occurrence of '-' and get the part after it
+	if idx := strings.LastIndex(value, substr); idx != -1 {
+		lastPart := value[idx+1:]
+		// Try to convert the last part to an integer.
+		if _, err := strconv.Atoi(lastPart); err == nil {
+			return true
+		}
+	}
+	// Return false if no '-' is found or if the last part isn't numeric
+	return false
 }

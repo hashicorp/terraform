@@ -35,8 +35,8 @@ type ConfigTransformer struct {
 	ModeFilter bool
 	Mode       addrs.ResourceMode
 
-	// Do not apply this transformer.
-	skip bool
+	// some actions are skipped during the destroy process
+	destroy bool
 
 	// importTargets specifies a slice of addresses that will have state
 	// imported for them.
@@ -53,13 +53,13 @@ type ConfigTransformer struct {
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
-	if t.skip {
-		return nil
-	}
-
 	// If no configuration is available, we don't do anything
 	if t.Config == nil {
 		return nil
+	}
+
+	if err := t.validateImportTargets(); err != nil {
+		return err
 	}
 
 	// Start the transformation process
@@ -92,11 +92,19 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 	module := config.Module
 	log.Printf("[TRACE] ConfigTransformer: Starting for path: %v", path)
 
-	allResources := make([]*configs.Resource, 0, len(module.ManagedResources)+len(module.DataResources))
-	for _, r := range module.ManagedResources {
-		allResources = append(allResources, r)
+	var allResources []*configs.Resource
+	if !t.destroy {
+		for _, r := range module.ManagedResources {
+			allResources = append(allResources, r)
+		}
+		for _, r := range module.DataResources {
+			allResources = append(allResources, r)
+		}
 	}
-	for _, r := range module.DataResources {
+
+	// ephemeral resources act like temporary values and must be added to the
+	// graph even during destroy operations.
+	for _, r := range module.EphemeralResources {
 		allResources = append(allResources, r)
 	}
 
@@ -171,75 +179,55 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		g.Add(node)
 	}
 
-	// If any import targets were not claimed by resources and we are
-	// generating configuration, then let's add them into the graph now.
-
-	// TODO: use diagnostics to collect detailed errors for now, even though we
-	// can only return an error from here. This gives the user more immediate
-	// feedback, rather than waiting an unknown amount of time for the plan to
-	// fail.
-	var diags tfdiags.Diagnostics
-
+	// If any import targets were not claimed by resources we may be
+	// generating configuration. Add them to the graph for validation.
 	for _, i := range importTargets {
-		if path.IsRoot() {
-			// If we have a single instance import target in the root module, we
-			// can suggest config generation.
-			// We do need to make sure there are no dynamic expressions here
-			// and we can parse this at all.
-			var toDiags tfdiags.Diagnostics
-			traversal, hd := hcl.AbsTraversalForExpr(i.Config.To)
-			toDiags = toDiags.Append(hd)
-			to, td := addrs.ParseAbsResourceInstance(traversal)
-			toDiags = toDiags.Append(td)
-			canGenerate := !toDiags.HasErrors() && to.Resource.Key == addrs.NoKey
+		log.Printf("[DEBUG] ConfigTransformer: adding config generation node for %s", i.Config.ToResource)
 
-			if t.generateConfigPathForImportTargets != "" && canGenerate {
-				log.Printf("[DEBUG] ConfigTransformer: adding config generation node for %s", i.Config.ToResource)
-
-				// TODO: if config generation is ever supported for for_each
-				// resources, this will add multiple nodes for the same
-				// resource
-				abstract := &NodeAbstractResource{
-					Addr:               i.Config.ToResource,
-					importTargets:      []*ImportTarget{i},
-					generateConfigPath: t.generateConfigPathForImportTargets,
-				}
-				var node dag.Vertex = abstract
-				if f := t.Concrete; f != nil {
-					node = f(abstract)
-				}
-
-				g.Add(node)
-				continue
-			}
-
-			if t.generateConfigPathForImportTargets != "" && !canGenerate {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Cannot generate configuration",
-					Detail:   "The given import block is not compatible with config generation. The -generate-config-out option cannot be used with import blocks which use for_each, or resources which use for_each or count.",
-					Subject:  i.Config.To.Range().Ptr(),
-				})
-				continue
-			}
-
-			if canGenerate {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Configuration for import target does not exist",
-					Detail:   fmt.Sprintf("The configuration for the given import target %s does not exist. If you wish to automatically generate config for this resource, use the -generate-config-out option within terraform plan. Otherwise, make sure the target resource exists within your configuration. For example:\n\n  terraform plan -generate-config-out=generated.tf", to),
-					Subject:  i.Config.To.Range().Ptr(),
-				})
-				continue
-			}
+		// TODO: if config generation is ever supported for for_each
+		// resources, this will add multiple nodes for the same
+		// resource
+		abstract := &NodeAbstractResource{
+			Addr:               i.Config.ToResource,
+			importTargets:      []*ImportTarget{i},
+			generateConfigPath: t.generateConfigPathForImportTargets,
+		}
+		var node dag.Vertex = abstract
+		if f := t.Concrete; f != nil {
+			node = f(abstract)
 		}
 
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Configuration for import target does not exist",
-			Detail:   fmt.Sprintf("The configuration for the given import target %s does not exist. All target instances must have an associated configuration to be imported.", i.Config.ToResource),
-			Subject:  i.Config.To.Range().Ptr(),
-		})
+		g.Add(node)
+	}
+	return nil
+}
+
+// validateImportTargets ensures that the import target module exists in the
+// configuration. Individual resources will be check by the validation node.
+func (t *ConfigTransformer) validateImportTargets() error {
+	if t.destroy {
+		return nil
+	}
+	var diags tfdiags.Diagnostics
+
+	for _, i := range t.importTargets {
+		var toResource addrs.ConfigResource
+		switch {
+		case i.Config != nil:
+			toResource = i.Config.ToResource
+		default:
+			toResource = i.LegacyAddr.ConfigResource()
+		}
+
+		moduleCfg := t.Config.Root.Descendant(toResource.Module)
+		if moduleCfg == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Configuration for import target does not exist",
+				Detail:   fmt.Sprintf("The configuration for the given import target %s does not exist. All target instances must have an associated configuration to be imported.", i.Config.ToResource),
+				Subject:  i.Config.To.Range().Ptr(),
+			})
+		}
 	}
 
 	return diags.Err()

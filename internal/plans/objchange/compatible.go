@@ -38,11 +38,11 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 	}
 
 	if planned.IsNull() && !actual.IsNull() {
-		errs = append(errs, path.NewErrorf(fmt.Sprintf("%swas absent, but now present", atRoot)))
+		errs = append(errs, path.NewErrorf("%swas absent, but now present", atRoot))
 		return errs
 	}
 	if actual.IsNull() && !planned.IsNull() {
-		errs = append(errs, path.NewErrorf(fmt.Sprintf("%swas present, but now absent", atRoot)))
+		errs = append(errs, path.NewErrorf("%swas present, but now absent", atRoot))
 		return errs
 	}
 	if planned.IsNull() {
@@ -194,6 +194,18 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		}
 	}
 	return errs
+}
+
+// AssertValueCompatible matches the behavior of AssertObjectCompatible but
+// for a single value rather than a whole object. This is used by the stacks
+// package to compare before and after values of inputs.
+//
+// This function strips marks from its inputs, as they are not considered
+// relevant by the call site.
+func AssertValueCompatible(planned, actual cty.Value) []error {
+	planned, _ = planned.UnmarkDeep()
+	actual, _ = actual.UnmarkDeep()
+	return assertValueCompatible(planned, actual, nil)
 }
 
 func assertValueCompatible(planned, actual cty.Value, path cty.Path) []error {

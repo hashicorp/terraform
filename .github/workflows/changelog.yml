@@ -1,0 +1,194 @@
+# This workflow makes sure contributors don't forget to add a changelog entry or explicitly opt-out of it.
+#
+# Do not extend this workflow to include checking out the code (e.g. for building and testing purposes) while the pull_request_target trigger is used.
+# Instead, see use of workflow_run in https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/
+
+name: Changelog
+
+on:
+    # The pull_request_target trigger event allows PRs raised from forks to have write permissions and access secrets.
+    # We uses it in this workflow to enable writing comments to the PR.
+    pull_request_target:
+        types:
+            - opened
+            - ready_for_review
+            - reopened
+            - synchronize
+            - labeled
+            - unlabeled
+
+# This workflow runs for not-yet-reviewed external contributions.
+# Following a pull_request_target trigger the workflow would have write permissions,
+# so we intentionally restrict the permissions to only include write access on pull-requests.
+permissions:
+    contents: read
+    pull-requests: write
+
+jobs:
+    check-changelog-entry:
+        name: "Check Changelog Entry"
+        runs-on: ubuntu-latest
+        concurrency:
+            group: changelog-${{ github.head_ref }}
+            cancel-in-progress: true
+
+        steps:
+            - name: "Changed files"
+              uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+              id: changelog
+              with:
+                  filters: |
+                      changes:
+                          - '.changes/*/*.yaml'
+                      changelog:
+                        - 'CHANGELOG.md'
+                      version:
+                        - 'version/VERSION'
+                  list-files: json
+
+            - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+              with:
+                  sparse-checkout: |
+                      version/VERSION
+                      .changie.yaml
+                      .changes/
+                  sparse-checkout-cone-mode: false
+                  ref: ${{ github.ref }} # Ref refers to the target branch of this PR
+
+            - name: "Check for changelog entry"
+              uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+              with:
+                  script: |
+                      const fs = require("fs");
+                      async function createOrUpdateChangelogComment(commentDetails, deleteComment) {
+                          const commentStart = "## Changelog Warning"
+                          
+                          const body = commentStart + "\n\n" + commentDetails;
+                          const { number: issue_number } = context.issue;
+                          const { owner, repo } = context.repo;
+                          
+                          // List all comments
+                          const allComments = (await github.rest.issues.listComments({
+                              issue_number,
+                              owner,
+                              repo,
+                          })).data;
+
+                          const existingComment = allComments.find(c => c.body.startsWith(commentStart));
+                          const comment_id = existingComment?.id;
+                          
+                          if (deleteComment) {
+                              if (existingComment) {
+                                  await github.rest.issues.deleteComment({
+                                      owner,
+                                      repo,
+                                      comment_id,
+                                  });
+                              }
+                              return;
+                          }
+
+                          core.setFailed(commentDetails);
+
+                          if (existingComment) {
+                              await github.rest.issues.updateComment({
+                                  owner,
+                                  repo,
+                                  comment_id,
+                                  body,
+                              });
+                          } else {
+                              await github.rest.issues.createComment({
+                                  owner,
+                                  repo,
+                                  issue_number,
+                                  body,
+                              });
+                          }
+                      }
+
+                      const changesPresent = ${{steps.changelog.outputs.changes}};
+                      const changedChangesFiles = ${{steps.changelog.outputs.changes_files}};
+                      const changelogChangesPresent = ${{steps.changelog.outputs.changelog}};
+                      const versionChangesPresent = ${{steps.changelog.outputs.version}};
+
+                      const prLabels = await github.rest.issues.listLabelsOnIssue({
+                          issue_number: context.issue.number,
+                          owner: context.repo.owner,
+                          repo: context.repo.repo
+                      });
+                      const backportLabels = prLabels.data.filter(label => label.name.endsWith("-backport"));
+                      const backportVersions = backportLabels.map(label => label.name.split("-")[0]);
+
+                      const currentVersionFile = fs.readFileSync("./version/VERSION", "utf-8");
+                      const currentVersionParts = currentVersionFile.split(".");
+                      currentVersionParts.pop();
+                      const currentVersion = currentVersionParts.join(".");
+
+                      const allVersions = [currentVersion, ...backportVersions]
+                      allVersions.sort((a, b) => {
+                        const as = a.split(".").map(Number);
+                        const bs = b.split(".").map(Number);
+
+                        if (as[0] !== bs[0]) {
+                          return as[0] - bs[0];
+                        }
+                        
+                        if (as[1] !== bs[1]) {
+                          return as[1] - bs[1];
+                        }
+                      });
+
+                      const noChangelogNeededLabel = prLabels.data.find(label => label.name === 'no-changelog-needed');
+                      const dependenciesLabel = prLabels.data.find(label => label.name === 'dependencies');
+
+                      // We want to prohibit contributors from directly changing the CHANGELOG.md, it's 
+                      // generated so all changes will be lost during the release process.
+                      // Therefore we only allow the changelog to change together with the version.
+                      // In very rare cases where we generate changes in the changelog without changing the 
+                      // version we will just ignore this failing check.
+                      if (changelogChangesPresent && !versionChangesPresent) {
+                          await createOrUpdateChangelogComment("Please don't edit the CHANGELOG.md manually. We use changie to control the Changelog generation, please use `npx changie new` to create a new changelog entry.");
+                          return;
+                      }
+
+                      if (dependenciesLabel) {
+                          return;
+                      }
+
+                      if (noChangelogNeededLabel) {
+                          if (changesPresent) {
+                              await createOrUpdateChangelogComment("Please remove either the 'no-changelog-needed' label or the changelog entry from this PR.");
+                              return;
+                          }
+                          
+                          // Nothing to complain about, so delete any existing comment
+                          await createOrUpdateChangelogComment("", true);
+                          return;
+                      }
+
+                      // We only want to have a changelog entry for the oldest version this PR will
+                      // land in.
+                      const onlyExpectedChangeVersion = allVersions[0]
+                      const missingChangelogEntry = !changedChangesFiles.some(filePath => filePath.includes("/v"+onlyExpectedChangeVersion+"/"))
+                      const unexpectedChangelogEntry = changedChangesFiles.filter(filePath => !filePath.includes("/v"+onlyExpectedChangeVersion+"/"))
+
+
+                      if (missingChangelogEntry) {
+                          await createOrUpdateChangelogComment(`Currently this PR would target a v${onlyExpectedChangeVersion} release. Please add a changelog entry for in the .changes/v${onlyExpectedChangeVersion} folder, or discuss which release you'd like to target with your reviewer. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.`);
+                          return;
+                      }
+
+                      if (unexpectedChangelogEntry.length > 0) {
+                          await createOrUpdateChangelogComment(`Please remove the changelog entry for the following paths: ${unexpectedChangelogEntry.join(", ")}. If you believe this change does not need a changelog entry, please add the 'no-changelog-needed' label.`);
+                          return;
+                      }
+
+                      // Nothing to complain about, so delete any existing comment
+                      await createOrUpdateChangelogComment("", true);
+
+            - name: Validate changie fragment is valid
+              uses: miniscruff/changie-action@6dcc2533cac0495148ed4046c438487e4dceaa23 # v2.0.0
+              with:
+                  version: latest
+                  args: merge -u "." --dry-run

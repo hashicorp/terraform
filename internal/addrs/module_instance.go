@@ -30,7 +30,7 @@ var (
 )
 
 func ParseModuleInstance(traversal hcl.Traversal) (ModuleInstance, tfdiags.Diagnostics) {
-	mi, remain, diags := parseModuleInstancePrefix(traversal)
+	mi, remain, diags := parseModuleInstancePrefix(traversal, false)
 	if len(remain) != 0 {
 		if len(remain) == len(traversal) {
 			diags = diags.Append(&hcl.Diagnostic{
@@ -80,7 +80,7 @@ func ParseModuleInstanceStr(str string) (ModuleInstance, tfdiags.Diagnostics) {
 	return addr, diags
 }
 
-func parseModuleInstancePrefix(traversal hcl.Traversal) (ModuleInstance, hcl.Traversal, tfdiags.Diagnostics) {
+func parseModuleInstancePrefix(traversal hcl.Traversal, allowPartial bool) (ModuleInstance, hcl.Traversal, tfdiags.Diagnostics) {
 	remain := traversal
 	var mi ModuleInstance
 	var diags tfdiags.Diagnostics
@@ -141,7 +141,8 @@ LOOP:
 		}
 
 		if len(remain) > 0 {
-			if idx, ok := remain[0].(hcl.TraverseIndex); ok {
+			switch idx := remain[0].(type) {
+			case hcl.TraverseIndex:
 				remain = remain[1:]
 
 				switch idx.Key.Type() {
@@ -168,6 +169,12 @@ LOOP:
 						Detail:   "Invalid module key: must be either a string or an integer.",
 						Subject:  idx.SourceRange().Ptr(),
 					})
+				}
+
+			case hcl.TraverseSplat:
+				if allowPartial {
+					remain = remain[1:]
+					step.InstanceKey = WildcardKey
 				}
 			}
 		}

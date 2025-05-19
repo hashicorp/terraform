@@ -451,22 +451,13 @@ func TestInstancesMap(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			t.Run("unknown for_each supported", func(t *testing.T) {
-				got := instancesMap(test.Input, makeObj, true)
-				if got.unknown != test.Want.UnknownValue {
-					t.Errorf("wrong unknown value\ngot:  %#v\nwant: %#v", got.unknown, test.Want.UnknownValue)
-				}
-				if diff := cmp.Diff(test.Want.UnknownForEachSupported, got.insts, ctydebug.CmpOptions); diff != "" {
-					t.Errorf("wrong result\ninput: %#v\n%s", test.Input, diff)
-				}
-			})
-			t.Run("unknown for_each unsupported", func(t *testing.T) {
-				got := instancesMap(test.Input, makeObj, false)
-				assertFalse(t, got.unknown)
-				if diff := cmp.Diff(test.Want.UnknownForEachUnsupported, got.insts, ctydebug.CmpOptions); diff != "" {
-					t.Errorf("wrong result\ninput: %#v\n%s", test.Input, diff)
-				}
-			})
+			got := instancesMap(test.Input, makeObj)
+			if got.unknown != test.Want.UnknownValue {
+				t.Errorf("wrong unknown value\ngot:  %#v\nwant: %#v", got.unknown, test.Want.UnknownValue)
+			}
+			if diff := cmp.Diff(test.Want.UnknownForEachSupported, got.insts, ctydebug.CmpOptions); diff != "" {
+				t.Errorf("wrong result\ninput: %#v\n%s", test.Input, diff)
+			}
 		})
 	}
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // A consistent detail message for all "not a valid identifier" diagnostics.
@@ -163,8 +164,11 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid default value for variable",
-					Detail:   fmt.Sprintf("This default value is not compatible with the variable's type constraint: %s.", err),
-					Subject:  attr.Expr.Range().Ptr(),
+					Detail: fmt.Sprintf(
+						"This default value is not compatible with the variable's type constraint: %s.",
+						tfdiags.FormatError(err),
+					),
+					Subject: attr.Expr.Range().Ptr(),
 				})
 				val = cty.DynamicVal
 			}
@@ -399,7 +403,7 @@ func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostic
 	}
 
 	if attr, exists := content.Attributes["depends_on"]; exists {
-		deps, depsDiags := decodeDependsOn(attr)
+		deps, depsDiags := DecodeDependsOn(attr)
 		diags = append(diags, depsDiags...)
 		o.DependsOn = append(o.DependsOn, deps...)
 	}

@@ -210,3 +210,28 @@ func (co ModuleCallInstanceOutput) AbsOutputValue(caller ModuleInstance) AbsOutp
 	moduleAddr := co.Call.ModuleInstance(caller)
 	return moduleAddr.OutputValue(co.Name)
 }
+
+type AbsModuleCallOutput struct {
+	Call AbsModuleCall
+	Name string
+}
+
+func (c AbsModuleCall) Output(name string) AbsModuleCallOutput {
+	return AbsModuleCallOutput{
+		Call: c,
+		Name: name,
+	}
+}
+
+func (m AbsModuleCallOutput) ConfigOutputValue() ConfigOutputValue {
+	return ConfigOutputValue{
+		Module: m.Call.StaticModule(),
+		OutputValue: OutputValue{
+			Name: m.Name,
+		},
+	}
+}
+
+func (co AbsModuleCallOutput) String() string {
+	return fmt.Sprintf("%s.%s", co.Call.String(), co.Name)
+}

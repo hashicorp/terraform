@@ -41,7 +41,7 @@ func (e *Evaluator) StaticValidateReferences(refs []*addrs.Reference, modAddr ad
 }
 
 func (e *Evaluator) StaticValidateReference(ref *addrs.Reference, modAddr addrs.Module, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
-	modCfg := e.Config.Descendent(modAddr)
+	modCfg := e.Config.Descendant(modAddr)
 	if modCfg == nil {
 		// This is a bug in the caller rather than a problem with the
 		// reference, but rather than crashing out here in an unhelpful way
@@ -197,11 +197,15 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 	var diags tfdiags.Diagnostics
 
 	var modeAdjective string
+	modeArticleUpper := "A"
 	switch addr.Mode {
 	case addrs.ManagedResourceMode:
 		modeAdjective = "managed"
 	case addrs.DataResourceMode:
 		modeAdjective = "data"
+	case addrs.EphemeralResourceMode:
+		modeAdjective = "ephemeral"
+		modeArticleUpper = "An"
 	default:
 		// should never happen
 		modeAdjective = "<invalid-mode>"
@@ -223,8 +227,14 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Reference to undeclared resource`,
-			Detail:   fmt.Sprintf(`A %s resource %q %q has not been declared in %s.%s`, modeAdjective, addr.Type, addr.Name, moduleConfigDisplayAddr(modCfg.Path), suggestion),
-			Subject:  rng.ToHCL().Ptr(),
+			Detail: fmt.Sprintf(
+				`%s %s resource %q %q has not been declared in %s.%s`,
+				modeArticleUpper, modeAdjective,
+				addr.Type, addr.Name,
+				moduleConfigDisplayAddr(modCfg.Path),
+				suggestion,
+			),
+			Subject: rng.ToHCL().Ptr(),
 		})
 		return diags
 	}
@@ -239,7 +249,7 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 	}
 
 	providerFqn := modCfg.Module.ProviderForLocalConfig(cfg.ProviderConfigAddr())
-	schema, _, err := plugins.ResourceTypeSchema(providerFqn, addr.Mode, addr.Type)
+	schema, err := plugins.ResourceTypeSchema(providerFqn, addr.Mode, addr.Type)
 	if err != nil {
 		// Prior validation should've taken care of a schema lookup error,
 		// so we should never get here but we'll handle it here anyway for
@@ -252,15 +262,20 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 		})
 	}
 
-	if schema == nil {
+	if schema.Body == nil {
 		// Prior validation should've taken care of a resource block with an
 		// unsupported type, so we should never get here but we'll handle it
 		// here anyway for robustness.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Invalid resource type`,
-			Detail:   fmt.Sprintf(`A %s resource type %q is not supported by provider %q.`, modeAdjective, addr.Type, providerFqn.String()),
-			Subject:  rng.ToHCL().Ptr(),
+			Detail: fmt.Sprintf(
+				`%s %s resource type %q is not supported by provider %q.`,
+				modeArticleUpper, modeAdjective,
+				addr.Type,
+				providerFqn.String(),
+			),
+			Subject: rng.ToHCL().Ptr(),
 		})
 		return diags
 	}
@@ -283,7 +298,7 @@ func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource
 
 	// If we got this far then we'll try to validate the remaining traversal
 	// steps against our schema.
-	moreDiags := schema.StaticValidateTraversal(remain)
+	moreDiags := schema.Body.StaticValidateTraversal(remain)
 	diags = diags.Append(moreDiags)
 
 	return diags

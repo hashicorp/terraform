@@ -177,6 +177,10 @@ EOT_`,
 			cty.StringVal("a sensitive value").Mark(marks.Sensitive),
 			"(sensitive value)",
 		},
+		{
+			cty.StringVal("an ephemeral value").Mark(marks.Ephemeral),
+			"(ephemeral value)",
+		},
 	}
 
 	for _, test := range tests {

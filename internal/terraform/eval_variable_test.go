@@ -9,10 +9,12 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/namedvals"
@@ -1186,7 +1188,7 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
 
 			gotDiags := evalVariableValidations(
-				varAddr, ctx, varCfg.Validations, varCfg.DeclRange,
+				varAddr, ctx, varCfg.Validations, varCfg.DeclRange, false,
 			)
 
 			if ctx.ChecksState.ObjectCheckStatus(varAddr) != test.status {
@@ -1345,7 +1347,7 @@ variable "bar" {
 			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
 
 			gotDiags := evalVariableValidations(
-				varAddr, ctx, varCfg.Validations, varCfg.DeclRange,
+				varAddr, ctx, varCfg.Validations, varCfg.DeclRange, false,
 			)
 
 			if ctx.ChecksState.ObjectCheckStatus(varAddr) != test.status {
@@ -1373,4 +1375,58 @@ variable "bar" {
 			}
 		})
 	}
+}
+
+func TestEvalVariableValidation_unknownErrorMessage(t *testing.T) {
+	t.Run("known condition, unknown error_message", func(t *testing.T) {
+		rule := &configs.CheckRule{
+			Condition:    hcltest.MockExprLiteral(cty.False),
+			ErrorMessage: hcltest.MockExprLiteral(cty.UnknownVal(cty.String)),
+		}
+		hclCtx := &hcl.EvalContext{}
+		varAddr := addrs.AbsInputVariableInstance{
+			Module:   addrs.RootModuleInstance,
+			Variable: addrs.InputVariable{Name: "foo"},
+		}
+
+		// this should not produce any error when validationWalk is true
+		result, diags := evalVariableValidation(rule, hclCtx, hcl.Range{}, varAddr, 0, true)
+		if got, want := result.Status, checks.StatusUnknown; got != want {
+			t.Errorf("wrong result.Status\ngot:  %s\nwant: %s", got, want)
+		}
+		if diags.HasErrors() {
+			t.Fatal(diags.ErrWithWarnings())
+		}
+
+		// any other time this should result in an error
+		result, diags = evalVariableValidation(rule, hclCtx, hcl.Range{}, varAddr, 0, false)
+		if got, want := result.Status, checks.StatusError; got != want {
+			t.Errorf("wrong result.Status\ngot:  %s\nwant: %s", got, want)
+		}
+		if !diags.HasErrors() {
+			t.Fatalf("unexpected success; want error")
+		}
+		found := false
+		hasCorrectExtra := false
+		wantDesc := tfdiags.Description{
+			Summary: "Invalid error message",
+			Detail:  "Unsuitable value for error message: expression refers to values that won't be known until the apply phase.",
+		}
+		for _, diag := range diags {
+			gotDesc := diag.Description()
+			if diag.Severity() == tfdiags.Error && gotDesc.Summary == wantDesc.Summary && gotDesc.Detail == wantDesc.Detail {
+				found = true
+				hasCorrectExtra = tfdiags.DiagnosticCausedByUnknown(diag)
+				break
+			}
+		}
+		if !found {
+			t.Errorf("missing expected error diagnostic\nwant: %s: %s\ngot:  %s",
+				wantDesc.Summary, wantDesc.Detail,
+				diags.Err().Error(),
+			)
+		} else if !hasCorrectExtra {
+			t.Errorf("diagnostic is not marked as being 'caused by unknown'")
+		}
+	})
 }

@@ -7,6 +7,7 @@ package simple
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/zclconf/go-cty/cty"
@@ -22,7 +23,7 @@ type simple struct {
 
 func Provider() providers.Interface {
 	simpleResource := providers.Schema{
-		Block: &configschema.Block{
+		Body: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"id": {
 					Computed: true,
@@ -39,7 +40,7 @@ func Provider() providers.Interface {
 	return simple{
 		schema: providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
-				Block: nil,
+				Body: nil,
 			},
 			ResourceTypes: map[string]providers.Schema{
 				"simple_resource": simpleResource,
@@ -47,12 +48,15 @@ func Provider() providers.Interface {
 			DataSources: map[string]providers.Schema{
 				"simple_resource": simpleResource,
 			},
+			EphemeralResourceTypes: map[string]providers.Schema{
+				"simple_resource": simpleResource,
+			},
 			ServerCapabilities: providers.ServerCapabilities{
 				PlanDestroy:               true,
 				GetProviderSchemaOptional: true,
 			},
 			Functions: map[string]providers.FunctionDecl{
-				"noop": providers.FunctionDecl{
+				"noop": {
 					Parameters: []providers.FunctionParam{
 						{
 							Name:               "noop",
@@ -76,6 +80,25 @@ func (s simple) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return s.schema
 }
 
+func (s simple) GetResourceIdentitySchemas() providers.GetResourceIdentitySchemasResponse {
+	return providers.GetResourceIdentitySchemasResponse{
+		IdentityTypes: map[string]providers.IdentitySchema{
+			"simple_resource": {
+				Version: 0,
+				Body: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+					Nesting: configschema.NestingSingle,
+				},
+			},
+		},
+	}
+}
+
 func (s simple) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 	return resp
 }
@@ -88,11 +111,24 @@ func (s simple) ValidateDataResourceConfig(req providers.ValidateDataResourceCon
 	return resp
 }
 
+func (s simple) ValidateListResourceConfig(req providers.ValidateListResourceConfigRequest) (resp providers.ValidateListResourceConfigResponse) {
+	return resp
+}
+
 func (p simple) UpgradeResourceState(req providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
-	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
+	ty := p.schema.ResourceTypes[req.TypeName].Body.ImpliedType()
 	val, err := ctyjson.Unmarshal(req.RawStateJSON, ty)
 	resp.Diagnostics = resp.Diagnostics.Append(err)
 	resp.UpgradedState = val
+	return resp
+}
+
+func (p simple) UpgradeResourceIdentity(req providers.UpgradeResourceIdentityRequest) (resp providers.UpgradeResourceIdentityResponse) {
+	schema := p.GetResourceIdentitySchemas().IdentityTypes[req.TypeName].Body
+	ty := schema.ImpliedType()
+	val, err := ctyjson.Unmarshal(req.RawIdentityJSON, ty)
+	resp.Diagnostics = resp.Diagnostics.Append(err)
+	resp.UpgradedIdentity = val
 	return resp
 }
 
@@ -107,6 +143,7 @@ func (s simple) Stop() error {
 func (s simple) ReadResource(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
 	// just return the same state we received
 	resp.NewState = req.PriorState
+	resp.Identity = req.CurrentIdentity
 	return resp
 }
 
@@ -139,6 +176,7 @@ func (s simple) ApplyResourceChange(req providers.ApplyResourceChangeRequest) (r
 		}
 
 		resp.NewState = req.PlannedState
+		resp.NewIdentity = req.PlannedIdentity
 		return resp
 	}
 
@@ -168,6 +206,38 @@ func (s simple) ReadDataSource(req providers.ReadDataSourceRequest) (resp provid
 	m := req.Config.AsValueMap()
 	m["id"] = cty.StringVal("static_id")
 	resp.State = cty.ObjectVal(m)
+	return resp
+}
+
+func (p simple) ValidateEphemeralResourceConfig(req providers.ValidateEphemeralResourceConfigRequest) (resp providers.ValidateEphemeralResourceConfigResponse) {
+	return resp
+}
+
+func (s simple) OpenEphemeralResource(req providers.OpenEphemeralResourceRequest) (resp providers.OpenEphemeralResourceResponse) {
+	// we only have one type, so no need to check
+	m := req.Config.AsValueMap()
+	m["id"] = cty.StringVal("ephemeral secret")
+	resp.Result = cty.ObjectVal(m)
+	resp.Private = []byte("private data")
+	resp.RenewAt = time.Now().Add(time.Second)
+	return resp
+}
+
+func (s simple) RenewEphemeralResource(req providers.RenewEphemeralResourceRequest) (resp providers.RenewEphemeralResourceResponse) {
+	log.Printf("[DEBUG] renewing ephemeral resource")
+	if string(req.Private) != "private data" {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("invalid private data %q, cannot renew ephemeral resource", req.Private))
+	}
+	resp.Private = req.Private
+	resp.RenewAt = time.Now().Add(time.Second)
+	return resp
+}
+
+func (s simple) CloseEphemeralResource(req providers.CloseEphemeralResourceRequest) (resp providers.CloseEphemeralResourceResponse) {
+	log.Printf("[DEBUG] closing ephemeral resource")
+	if string(req.Private) != "private data" {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("invalid private data %q, cannot close ephemeral resource", req.Private))
+	}
 	return resp
 }
 

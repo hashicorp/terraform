@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"maps"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -293,9 +294,7 @@ func (m *Meta) StateOutPath() string {
 // Colorize returns the colorization structure for a command.
 func (m *Meta) Colorize() *colorstring.Colorize {
 	colors := make(map[string]string)
-	for k, v := range colorstring.DefaultColors {
-		colors[k] = v
-	}
+	maps.Copy(colors, colorstring.DefaultColors)
 	colors["purple"] = "38;5;57"
 
 	return &colorstring.Colorize{

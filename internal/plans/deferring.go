@@ -5,7 +5,6 @@ package plans
 
 import (
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // DeferredResourceInstanceChangeSrc tracks information about a resource that
@@ -19,8 +18,8 @@ type DeferredResourceInstanceChangeSrc struct {
 	ChangeSrc *ResourceInstanceChangeSrc
 }
 
-func (rcs *DeferredResourceInstanceChangeSrc) Decode(ty cty.Type) (*DeferredResourceInstanceChange, error) {
-	change, err := rcs.ChangeSrc.Decode(ty)
+func (rcs *DeferredResourceInstanceChangeSrc) Decode(schema providers.Schema) (*DeferredResourceInstanceChange, error) {
+	change, err := rcs.ChangeSrc.Decode(schema)
 	if err != nil {
 		return nil, err
 	}
@@ -42,8 +41,8 @@ type DeferredResourceInstanceChange struct {
 	Change *ResourceInstanceChange
 }
 
-func (rcs *DeferredResourceInstanceChange) Encode(ty cty.Type) (*DeferredResourceInstanceChangeSrc, error) {
-	change, err := rcs.Change.Encode(ty)
+func (rcs *DeferredResourceInstanceChange) Encode(schema providers.Schema) (*DeferredResourceInstanceChangeSrc, error) {
+	change, err := rcs.Change.Encode(schema)
 	if err != nil {
 		return nil, err
 	}

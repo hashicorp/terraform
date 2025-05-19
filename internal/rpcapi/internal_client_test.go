@@ -8,13 +8,14 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+
 	"github.com/hashicorp/terraform/internal/rpcapi"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/setup"
 )
 
 func TestInternalClientOpenClose(t *testing.T) {
 	ctx := context.Background()
-	client, err := rpcapi.NewInternalClient(ctx, &terraform1.ClientCapabilities{})
+	client, err := rpcapi.NewInternalClient(ctx, &setup.ClientCapabilities{})
 	if err != nil {
 		t.Error(err)
 	}

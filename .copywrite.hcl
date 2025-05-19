@@ -13,6 +13,7 @@ project {
     "**/*.pb.go",
     "**/*_string.go",
     "**/mock*.go",
+    ".changes/**",
     # these directories have their own copywrite config
     "docs/plugin-protocol/**",
     "internal/tfplugin*/**"

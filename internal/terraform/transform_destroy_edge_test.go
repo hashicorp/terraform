@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestDestroyEdgeTransformer_basic(t *testing.T) {
@@ -367,8 +368,8 @@ func TestPruneUnusedNodesTransformer_rootModuleOutputValues(t *testing.T) {
 			providerCfgAddr,
 		)
 	})
-	changes := plans.NewChanges()
-	changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+	changes := plans.NewChangesSrc()
+	changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
 		Addr:         resourceInstAddr,
 		PrevRunAddr:  resourceInstAddr,
 		ProviderAddr: providerCfgAddr,
@@ -400,7 +401,7 @@ func TestPruneUnusedNodesTransformer_rootModuleOutputValues(t *testing.T) {
 		},
 	}
 	graph, diags := builder.Build(addrs.RootModuleInstance)
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	// At this point, thanks to pruneUnusedNodesTransformer, we should still
 	// have the node for the output value, but the "test.a (expand)" node
@@ -487,7 +488,7 @@ func TestDestroyEdgeTransformer_noOp(t *testing.T) {
 	tf := &DestroyEdgeTransformer{
 		// We only need a minimal object to indicate GraphNodeCreator change is
 		// a NoOp here.
-		Changes: &plans.Changes{
+		Changes: &plans.ChangesSrc{
 			Resources: []*plans.ResourceInstanceChangeSrc{
 				{
 					Addr:      mustResourceInstanceAddr("test_object.B"),

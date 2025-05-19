@@ -4,7 +4,10 @@
 package stackstate
 
 import (
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -42,6 +45,33 @@ func (s *StateBuilder) AddResourceInstance(builder *ResourceInstanceBuilder) *St
 	return s
 }
 
+// AddComponentInstance adds a component instance to the state.
+func (s *StateBuilder) AddComponentInstance(builder *ComponentInstanceBuilder) *StateBuilder {
+	component := s.state.ensureComponentInstanceState(builder.addr)
+	component.outputValues = builder.outputValues
+	component.inputVariables = builder.inputVariables
+
+	for dep := range builder.dependencies.All() {
+		component.dependencies.Add(dep)
+	}
+	for dep := range builder.dependents.All() {
+		component.dependents.Add(dep)
+	}
+	return s
+}
+
+// AddOutput adds an output to the state.
+func (s *StateBuilder) AddOutput(name string, value cty.Value) *StateBuilder {
+	s.state.outputs[stackaddrs.OutputValue{Name: name}] = value
+	return s
+}
+
+// AddInput adds an input variable to the state.
+func (s *StateBuilder) AddInput(name string, value cty.Value) *StateBuilder {
+	s.state.inputs[stackaddrs.InputVariable{Name: name}] = value
+	return s
+}
+
 type ResourceInstanceBuilder struct {
 	addr         *stackaddrs.AbsResourceInstanceObject
 	src          *states.ResourceInstanceObjectSrc
@@ -64,5 +94,43 @@ func (b *ResourceInstanceBuilder) SetResourceInstanceObjectSrc(src states.Resour
 
 func (b *ResourceInstanceBuilder) SetProviderAddr(addr addrs.AbsProviderConfig) *ResourceInstanceBuilder {
 	b.providerAddr = &addr
+	return b
+}
+
+type ComponentInstanceBuilder struct {
+	addr           stackaddrs.AbsComponentInstance
+	dependencies   collections.Set[stackaddrs.AbsComponent]
+	dependents     collections.Set[stackaddrs.AbsComponent]
+	outputValues   map[addrs.OutputValue]cty.Value
+	inputVariables map[addrs.InputVariable]cty.Value
+}
+
+func NewComponentInstanceBuilder(instance stackaddrs.AbsComponentInstance) *ComponentInstanceBuilder {
+	return &ComponentInstanceBuilder{
+		addr:           instance,
+		dependencies:   collections.NewSet[stackaddrs.AbsComponent](),
+		dependents:     collections.NewSet[stackaddrs.AbsComponent](),
+		outputValues:   make(map[addrs.OutputValue]cty.Value),
+		inputVariables: make(map[addrs.InputVariable]cty.Value),
+	}
+}
+
+func (b *ComponentInstanceBuilder) AddDependency(addr stackaddrs.AbsComponent) *ComponentInstanceBuilder {
+	b.dependencies.Add(addr)
+	return b
+}
+
+func (b *ComponentInstanceBuilder) AddDependent(addr stackaddrs.AbsComponent) *ComponentInstanceBuilder {
+	b.dependents.Add(addr)
+	return b
+}
+
+func (b *ComponentInstanceBuilder) AddOutputValue(name string, value cty.Value) *ComponentInstanceBuilder {
+	b.outputValues[addrs.OutputValue{Name: name}] = value
+	return b
+}
+
+func (b *ComponentInstanceBuilder) AddInputVariable(name string, value cty.Value) *ComponentInstanceBuilder {
+	b.inputVariables[addrs.InputVariable{Name: name}] = value
 	return b
 }

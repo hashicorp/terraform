@@ -310,7 +310,7 @@ func (b *Cloud) costEstimate(stopCtx, cancelCtx context.Context, op *backendrun.
 			b.CLI.Output("\n------------------------------------------------------------------------")
 			return nil
 		case tfe.CostEstimateCanceled:
-			return fmt.Errorf(msgPrefix + " canceled.")
+			return fmt.Errorf("%s canceled.", msgPrefix)
 		default:
 			return fmt.Errorf("Unknown or unexpected cost estimate state: %s", ce.Status)
 		}
@@ -387,15 +387,15 @@ func (b *Cloud) checkPolicy(stopCtx, cancelCtx context.Context, op *backendrun.O
 			}
 			continue
 		case tfe.PolicyErrored:
-			return fmt.Errorf(msgPrefix + " errored.")
+			return fmt.Errorf("%s errored.", msgPrefix)
 		case tfe.PolicyHardFailed:
-			return fmt.Errorf(msgPrefix + " hard failed.")
+			return fmt.Errorf("%s hard failed.", msgPrefix)
 		case tfe.PolicySoftFailed:
 			runURL := fmt.Sprintf(runHeaderErr, b.Hostname, b.Organization, op.Workspace, r.ID)
 
 			if op.Type == backendrun.OperationTypePlan || op.UIOut == nil || op.UIIn == nil ||
 				!pc.Actions.IsOverridable || !pc.Permissions.CanOverride {
-				return fmt.Errorf(msgPrefix + " soft failed.\n" + runURL)
+				return fmt.Errorf("%s soft failed.\n%s", msgPrefix, runURL)
 			}
 
 			if op.AutoApprove {
@@ -412,9 +412,7 @@ func (b *Cloud) checkPolicy(stopCtx, cancelCtx context.Context, op *backendrun.O
 				}
 				err = b.confirm(stopCtx, op, opts, r, "override")
 				if err != nil && err != errRunOverridden {
-					return fmt.Errorf(
-						fmt.Sprintf("Failed to override: %s\n%s\n", err.Error(), runURL),
-					)
+					return fmt.Errorf("Failed to override: %w\n%s\n", err, runURL)
 				}
 
 				if err != errRunOverridden {
