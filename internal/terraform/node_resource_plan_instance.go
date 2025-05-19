@@ -83,7 +83,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	}
 
 	checkRuleSeverity := tfdiags.Error
-	if n.skipPlanChanges {
+	if n.skipPlanChanges || n.preDestroyRefresh {
 		checkRuleSeverity = tfdiags.Warning
 	}
 
@@ -127,6 +127,11 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	var change *plans.ResourceInstanceChange
 	var instanceRefreshState *states.ResourceInstanceObject
+
+	checkRuleSeverity := tfdiags.Error
+	if n.skipPlanChanges || n.preDestroyRefresh {
+		checkRuleSeverity = tfdiags.Warning
+	}
 
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
@@ -280,7 +285,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			addrs.ResourcePostcondition,
 			n.Config.Postconditions,
 			ctx, n.ResourceInstanceAddr(), repeatData,
-			tfdiags.Error,
+			checkRuleSeverity,
 		)
 		diags = diags.Append(checkDiags)
 	} else {
@@ -298,7 +303,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			addrs.ResourcePrecondition,
 			n.Config.Preconditions,
 			ctx, addr, repeatData,
-			tfdiags.Warning,
+			checkRuleSeverity,
 		)
 		diags = diags.Append(checkDiags)
 
@@ -321,7 +326,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			addrs.ResourcePostcondition,
 			n.Config.Postconditions,
 			ctx, addr, repeatData,
-			tfdiags.Warning,
+			checkRuleSeverity,
 		)
 		diags = diags.Append(checkDiags)
 	}

@@ -284,6 +284,7 @@ func (b *Local) localRunForPlanFile(op *backend.Operation, pf *planfile.Reader, 
 		))
 		return nil, snap, diags
 	}
+
 	if currentStateMeta != nil {
 		// If the caller sets this, we require that the stored prior state
 		// has the same metadata, which is an extra safety check that nothing

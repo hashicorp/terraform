@@ -1,0 +1,5 @@
+{
+  "description": "tests updating an attribute that forces the overall resource to be replaced",
+  "include_files": [],
+  "ignore_fields": {}
+}

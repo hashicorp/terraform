@@ -1784,3 +1784,106 @@ resource "test_object" "y" {
 	_, diags = ctx.Apply(plan, m)
 	assertNoErrors(t, diags)
 }
+
+// ensure all references from preconditions are tracked through plan and apply
+func TestContext2Apply_preconditionErrorMessageRef(t *testing.T) {
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "nested" {
+  source = "./mod"
+}
+
+output "nested_a" {
+  value = module.nested.a
+}
+`,
+
+		"mod/main.tf": `
+variable "boop" {
+  default = "boop"
+}
+
+variable "msg" {
+  default = "Incorrect boop."
+}
+
+output "a" {
+  value     = "x"
+
+  precondition {
+    condition     = var.boop == "boop"
+    error_message = var.msg
+  }
+}
+`,
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	assertNoErrors(t, diags)
+	_, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+}
+
+func TestContext2Apply_destroyNullModuleOutput(t *testing.T) {
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "null_module" {
+  source = "./mod"
+}
+
+locals {
+  module_output = module.null_module.null_module_test
+}
+
+output "test_root" {
+  value = module.null_module.test_output
+}
+
+output "root_module" {
+  value = local.module_output #fails
+}
+`,
+
+		"mod/main.tf": `
+output "test_output" {
+  value = "test"
+}
+
+output "null_module_test" {
+  value = null
+}
+`,
+	})
+
+	// verify plan and apply
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	assertNoErrors(t, diags)
+	state, diags := ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+
+	// now destroy
+	plan, diags = ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+	})
+	assertNoErrors(t, diags)
+	_, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+}

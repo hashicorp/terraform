@@ -1,0 +1,22 @@
+{
+  "format_version": "1.0",
+  "values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_set.set",
+          "mode": "managed",
+          "name": "set",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "schema_version": 0,
+          "sensitive_values": {},
+          "type": "tfcoremock_set",
+          "values": {
+            "id": "046952C9-B832-4106-82C0-C217F7C73E18",
+            "set": null
+          }
+        }
+      ]
+    }
+  }
+}

@@ -49,6 +49,11 @@ type PlanGraphBuilder struct {
 	// skipRefresh indicates that we should skip refreshing managed resources
 	skipRefresh bool
 
+	// preDestroyRefresh indicates that we are executing the refresh which
+	// happens immediately before a destroy plan, which happens to use the
+	// normal planing mode so skipPlanChanges cannot be set.
+	preDestroyRefresh bool
+
 	// skipPlanChanges indicates that we should skip the step of comparing
 	// prior state with configuration and generating planned changes to
 	// resource instances. (This is for the "refresh only" planning mode,
@@ -111,7 +116,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
 			Config:      b.Config,
-			RefreshOnly: b.skipPlanChanges,
+			RefreshOnly: b.skipPlanChanges || b.preDestroyRefresh,
 			PlanDestroy: b.Operation == walkPlanDestroy,
 
 			// NOTE: We currently treat anything built with the plan graph
@@ -214,6 +219,7 @@ func (b *PlanGraphBuilder) initPlan() {
 			NodeAbstractResource: a,
 			skipRefresh:          b.skipRefresh,
 			skipPlanChanges:      b.skipPlanChanges,
+			preDestroyRefresh:    b.preDestroyRefresh,
 			forceReplace:         b.ForceReplace,
 		}
 	}

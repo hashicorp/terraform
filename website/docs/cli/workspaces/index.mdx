@@ -20,7 +20,7 @@ Every [initialized working directory](/cli/init) starts with one workspace named
 
 Use the [`terraform workspace list`](/cli/commands/workspace/list), [`terraform workspace new`](/cli/commands/workspace/new), and [`terraform workspace delete`](/cli/commands/workspace/delete) commands to manage the available workspaces in the current working directory.
 
-Use [the `terraform workspace select` command](/cli/commands/workspace/select) to change the currently selected workspace. For a given working directory, you can only select one workspace can be at a time. Most Terraform commands only interact with the currently selected workspace. This includes [provisioning](/cli/run) and [state manipulation](/cli/state).
+Use [the `terraform workspace select` command](/cli/commands/workspace/select) to change the currently selected workspace. For a given working directory, you can only select one workspace at a time. Most Terraform commands only interact with the currently selected workspace. This includes [provisioning](/cli/run) and [state manipulation](/cli/state).
 
 When you provision infrastructure in each workspace, you usually need to manually specify different [input variables](/language/values/variables) to differentiate each collection. For example, you might deploy test infrastructure to a different region.
 

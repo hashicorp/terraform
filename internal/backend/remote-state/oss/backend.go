@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/endpoints"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,6 +17,7 @@ import (
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials"
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/endpoints"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/location"

@@ -353,6 +353,77 @@ func TestProposedNew(t *testing.T) {
 				}),
 			}),
 		},
+		"prior nested single to null": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"baz": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+				Attributes: map[string]*configschema.Attribute{
+					"bloop": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Required: true,
+								},
+								"bleep": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ObjectVal(map[string]cty.Value{
+					"bar": cty.StringVal("beep"),
+					"baz": cty.StringVal("boop"),
+				}),
+				"bloop": cty.ObjectVal(map[string]cty.Value{
+					"blop":  cty.StringVal("glub"),
+					"bleep": cty.NullVal(cty.String),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.Object(map[string]cty.Type{
+					"bar": cty.String,
+					"baz": cty.String,
+				})),
+				"bloop": cty.NullVal(cty.Object(map[string]cty.Type{
+					"blop":  cty.String,
+					"bleep": cty.String,
+				})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.Object(map[string]cty.Type{
+					"bar": cty.String,
+					"baz": cty.String,
+				})),
+				"bloop": cty.NullVal(cty.Object(map[string]cty.Type{
+					"blop":  cty.String,
+					"bleep": cty.String,
+				})),
+			}),
+		},
 		"prior nested list": {
 			&configschema.Block{
 				BlockTypes: map[string]*configschema.NestedBlock{

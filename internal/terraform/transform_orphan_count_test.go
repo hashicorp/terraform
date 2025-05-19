@@ -161,6 +161,66 @@ func TestOrphanResourceCountTransformer_oneIndex(t *testing.T) {
 	}
 }
 
+func TestOrphanResourceCountTransformer_deposed(t *testing.T) {
+	state := states.NewState()
+	root := state.RootModule()
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.web").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceDeposed(
+		mustResourceInstanceAddr("aws_instance.foo[2]").Resource,
+		states.NewDeposedKey(),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
+	g := Graph{Path: addrs.RootModuleInstance}
+
+	{
+		tf := &OrphanResourceInstanceCountTransformer{
+			Concrete: testOrphanResourceConcreteFunc,
+			Addr: addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "foo",
+			),
+			InstanceAddrs: []addrs.AbsResourceInstance{mustResourceInstanceAddr("aws_instance.foo[0]")},
+			State:         state,
+		}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformOrphanResourceCountDeposedStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 // When converting from a NoEach mode to an EachMap via a switch to for_each,
 // an edge is necessary to ensure that the map-key'd instances
 // are evaluated after the NoKey resource, because the final instance evaluated
@@ -233,6 +293,10 @@ aws_instance.foo[2] (orphan)
 `
 
 const testTransformOrphanResourceCountOneIndexStr = `
+aws_instance.foo[1] (orphan)
+`
+
+const testTransformOrphanResourceCountDeposedStr = `
 aws_instance.foo[1] (orphan)
 `
 

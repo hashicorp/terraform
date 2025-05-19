@@ -127,11 +127,7 @@ using lexical sorting.
 For sets of strings, Terraform sorts the elements by their value, using
 lexical sorting.
 
-For sets of other types, Terraform uses an arbitrary ordering that may change
-in future versions of Terraform. For that reason, we recommend converting the
-result of such an expression to itself be a set so that it's clear elsewhere
-in the configuration that the result is unordered. You can use
-[the `toset` function](/language/functions/toset)
+For sets of other types, Terraform uses an arbitrary ordering that may change in future versions. We recommend converting the expression result into a set to make it clear elsewhere in the configuration that the result is unordered. You can use [the `toset` function](/language/functions/toset)
 to concisely convert a `for` expression result to be of a set type.
 
 ```hcl

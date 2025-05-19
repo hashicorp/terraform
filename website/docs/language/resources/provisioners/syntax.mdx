@@ -235,8 +235,8 @@ fail, Terraform will error and rerun the provisioners again on the next
 provisioners to be safe to run multiple times.
 
 ```
-Destroy provisioners of this resource will not run if `create_before_destroy`
-is set to `true`. We may address this in the future, and this [GitHub issue](https://github.com/hashicorp/terraform/issues/13549) contains more details.
+Destroy provisioners of this resource do not run if `create_before_destroy`
+is set to `true`. This [GitHub issue](https://github.com/hashicorp/terraform/issues/13549) contains more details.
 ```
 
 Destroy-time provisioners can only run if they remain in the configuration
@@ -251,8 +251,7 @@ remove a resource with a destroy-time provisioner:
 * Remove the resource block entirely from configuration, along with its `provisioner` blocks.
 * Apply again, at which point no further action should be taken since the resources were already destroyed.
 
-This limitation may be addressed in future versions of Terraform. For now,
-destroy-time provisioners must be used sparingly and with care.
+Because of this limitation, you should use destroy-time provisioners sparingly and with care.
 
 ~> **NOTE:** A destroy-time provisioner within a resource that is tainted _will not_ run. This includes resources that are marked tainted from a failed creation-time provisioner or tainted manually using `terraform taint`.
 

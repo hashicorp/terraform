@@ -58,7 +58,7 @@ yum install terraform
 
 ## Supported Architectures
 
-The HashiCorp Yum/DNF server currently has packages only for the `x86_64`
+The HashiCorp Yum/DNF server has packages only for the `x86_64`
 architecture, which is also sometimes known as `amd64`.
 
 There are no official packages available for other architectures, such as
@@ -67,17 +67,18 @@ There are no official packages available for other architectures, such as
 
 ## Supported Distribution Releases
 
-The HashiCorp Yum server currently contains release repositories for the
+The HashiCorp Yum server contains release repositories for the
 following distribution releases:
 
-* AmazonLinux 2
-* Fedora 29
-* Fedora 30
-* Fedora 31
-* Fedora 32
+* AmazonLinux 2 and "latest"
 * Fedora 33
+* Fedora 34
+* Fedora 35
+* Fedora 36
+* Fedora 37
 * RHEL 7 (and CentOS 7)
 * RHEL 8 (and CentOS 8)
+* RHEL 9 (and CentOS 9)
 
 No repositories are available for other versions of these distributions or for
 any other RPM-based Linux distributions. If you add the repository using
@@ -95,8 +96,8 @@ more than one version at a time, and `yum install` or `dnf install` will
 default to selecting the latest version.
 
 It's often necessary to match your Terraform version with what a particular
-configuration is currently expecting. You can use the following command to
-see which versions are currently available in the repository index:
+configuration is currently expecting. Use the following command to
+retrieve the available versions in the repository index:
 
 ```bash
 yum --showduplicate list terraform

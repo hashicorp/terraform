@@ -1,4 +1,57 @@
-## 1.3.5 (Unreleased)
+## 1.3.11 (Unreleased)
+
+## 1.3.10 (September 13, 2023)
+
+BUG FIXES:
+
+* `terraform_remote_state`: fix incompatibility with states produced by Terraform 1.5 or later which include `check` block results. ([#33813](https://github.com/hashicorp/terraform/pull/33813))
+
+## 1.3.9 (February 15, 2023)
+
+BUG FIXES:
+
+* Fix crash when planning to remove already-deposed resource instances. ([#32663](https://github.com/hashicorp/terraform/issues/32663))
+
+## 1.3.8 (February 09, 2023)
+
+BUG FIXES:
+
+* Fixed a rare bug causing inaccurate `before_sensitive` / `after_sensitive` annotations in JSON plan output for deeply nested structures. This was only observed in the wild on the rancher/rancher2 provider, and resulted in glitched display in Terraform Cloud's structured plan log view. ([#32543](https://github.com/hashicorp/terraform/issues/32543))
+* A variable only referenced by an output precondition error_message may be missing during evaluation ([#32464](https://github.com/hashicorp/terraform/issues/32464))
+* Removing a NestingSingle block from configuration results in an invalid plan ([#32463](https://github.com/hashicorp/terraform/issues/32463))
+* Null module outputs could be dropped, causing evaluation errors when referring to those module attributes ([#32583](https://github.com/hashicorp/terraform/issues/32583))
+* Fix terraform crash when applying defaults into a collection with dynamic type constraint. ([#32454](https://github.com/hashicorp/terraform/issues/32454))
+* Updated to newer github.com/mitchellh/cli version, in turn bringing in updates for several indirect dependencies with known security issues. ([#32609](https://github.com/hashicorp/terraform/issues/32609))
+* Fix case where the first plan to use a new remote state could be applied twice, corrupting the state ([#32614](https://github.com/hashicorp/terraform/issues/32614))
+
+## 1.3.7 (January 04, 2023)
+
+BUG FIXES:
+
+* Fix exact version constraint parsing for modules using prerelease versions ([#32377](https://github.com/hashicorp/terraform/issues/32377))
+* Prevent panic when a provider returns a null block value during refresh which is used as configuration via `ignore_changes` ([#32428](https://github.com/hashicorp/terraform/issues/32428))
+
+## 1.3.6 (November 30, 2022)
+
+BUG FIXES:
+
+* Terraform could crash if an orphaned resource instance was deleted externally and had condition checks in the configuration ([#32246](https://github.com/hashicorp/terraform/issues/32246))
+* Module output changes were being removed and re-added to the stored plan, impacting performance with large numbers of outputs ([#32307](https://github.com/hashicorp/terraform/issues/32307))
+
+## 1.3.5 (November 17, 2022)
+
+BUG FIXES:
+
+* Prevent crash while serializing the plan for an empty destroy operation ([#32207](https://github.com/hashicorp/terraform/issues/32207))
+* Allow a destroy plan to refresh instances while taking into account that some may no longer exist ([#32208](https://github.com/hashicorp/terraform/issues/32208))
+* Fix Terraform creating objects that should not exist in variables that specify default attributes in optional objects. ([#32178](https://github.com/hashicorp/terraform/issues/32178))
+* Fix several Terraform crashes that are caused by HCL creating objects that should not exist in variables that specify default attributes in optional objects within collections. ([#32178](https://github.com/hashicorp/terraform/issues/32178))
+* Fix inconsistent behaviour in empty vs null collections. ([#32178](https://github.com/hashicorp/terraform/issues/32178))
+* Prevent file uploads from creating unneeded temporary files when the payload size is known ([#32206](https://github.com/hashicorp/terraform/issues/32206))
+* Nested attributes marked sensitive by schema no longer reveal sub-attributes in the plan diff ([#32004](https://github.com/hashicorp/terraform/issues/32004))
+* Nested attributes now more consistently display when they become unknown or null values in the plan diff ([#32004](https://github.com/hashicorp/terraform/issues/32004))
+* Sensitive values are now always displayed as `(sensitive value)` instead of sometimes as `(sensitive)` ([#32004](https://github.com/hashicorp/terraform/issues/32004))
+
 
 ## 1.3.4 (November 02, 2022)
 

@@ -37,6 +37,8 @@ type NodeAbstractResourceInstance struct {
 	storedProviderConfig addrs.AbsProviderConfig
 
 	Dependencies []addrs.ConfigResource
+
+	preDestroyRefresh bool
 }
 
 // NewNodeAbstractResourceInstance creates an abstract resource instance graph
@@ -682,6 +684,11 @@ func (n *NodeAbstractResourceInstance) plan(
 		return plan, state, keyData, diags.Append(err)
 	}
 
+	checkRuleSeverity := tfdiags.Error
+	if n.preDestroyRefresh {
+		checkRuleSeverity = tfdiags.Warning
+	}
+
 	if plannedChange != nil {
 		// If we already planned the action, we stick to that plan
 		createBeforeDestroy = plannedChange.Action == plans.CreateThenDelete
@@ -708,7 +715,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		addrs.ResourcePrecondition,
 		n.Config.Preconditions,
 		ctx, n.Addr, keyData,
-		tfdiags.Error,
+		checkRuleSeverity,
 	)
 	diags = diags.Append(checkDiags)
 	if diags.HasErrors() {

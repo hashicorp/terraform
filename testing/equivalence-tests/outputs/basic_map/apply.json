@@ -1,0 +1,78 @@
+[
+  {
+    "@level": "info",
+    "@message": "tfcoremock_map.map: Plan to create",
+    "@module": "terraform.ui",
+    "change": {
+      "action": "create",
+      "resource": {
+        "addr": "tfcoremock_map.map",
+        "implied_provider": "tfcoremock",
+        "module": "",
+        "resource": "tfcoremock_map.map",
+        "resource_key": null,
+        "resource_name": "map",
+        "resource_type": "tfcoremock_map"
+      }
+    },
+    "type": "planned_change"
+  },
+  {
+    "@level": "info",
+    "@message": "tfcoremock_map.map: Creating...",
+    "@module": "terraform.ui",
+    "hook": {
+      "action": "create",
+      "resource": {
+        "addr": "tfcoremock_map.map",
+        "implied_provider": "tfcoremock",
+        "module": "",
+        "resource": "tfcoremock_map.map",
+        "resource_key": null,
+        "resource_name": "map",
+        "resource_type": "tfcoremock_map"
+      }
+    },
+    "type": "apply_start"
+  },
+  {
+    "@level": "info",
+    "@message": "tfcoremock_map.map: Creation complete after 0s [id=50E1A46E-E64A-4C1F-881C-BA85A5440964]",
+    "@module": "terraform.ui",
+    "hook": {
+      "action": "create",
+      "elapsed_seconds": 0,
+      "id_key": "id",
+      "id_value": "50E1A46E-E64A-4C1F-881C-BA85A5440964",
+      "resource": {
+        "addr": "tfcoremock_map.map",
+        "implied_provider": "tfcoremock",
+        "module": "",
+        "resource": "tfcoremock_map.map",
+        "resource_key": null,
+        "resource_name": "map",
+        "resource_type": "tfcoremock_map"
+      }
+    },
+    "type": "apply_complete"
+  },
+  {
+    "@level": "info",
+    "@message": "Apply complete! Resources: 1 added, 0 changed, 0 destroyed.",
+    "@module": "terraform.ui",
+    "changes": {
+      "add": 1,
+      "change": 0,
+      "operation": "apply",
+      "remove": 0
+    },
+    "type": "change_summary"
+  },
+  {
+    "@level": "info",
+    "@message": "Outputs: 0",
+    "@module": "terraform.ui",
+    "outputs": {},
+    "type": "outputs"
+  }
+]

@@ -1,0 +1,6 @@
+{
+  "description": "tests the behaviour of an attribute within a map causing a resource to be replaced",
+  "include_files": [],
+  "ignore_fields": {}
+}
+

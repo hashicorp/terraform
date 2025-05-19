@@ -49,7 +49,7 @@ The JSON output format consists of the following objects and sub-objects:
 
 ## State Representation
 
-Because state does not currently have any significant metadata not covered by the common values representation ([described below](#values-representation)), the `<state-representation>` is straightforward:
+State does not have any significant metadata not included in the common [values representation](#values-representation), so the `<state-representation>` uses the following format:
 
 ```javascript
 {
@@ -60,8 +60,6 @@ Because state does not currently have any significant metadata not covered by th
   "terraform_version": "version.string"
 }
 ```
-
-The extra wrapping object here will allow for any extension we may need to add in future versions of this format.
 
 ## Plan Representation
 
@@ -614,7 +612,7 @@ A `<change-representation>` describes the change to the indicated object.
 
 ## Checks Representation
 
-~> **Warning:** The JSON representation of "checks" is currently experimental
+~> **Warning:** The JSON representation of checks is experimental
 and some details may change in future Terraform versions based on feedback,
 even in minor releases of Terraform CLI.
 
@@ -629,8 +627,7 @@ A `<checks-representation>` describes the current state of a checkable object in
       // "kind" specifies what kind of checkable object this is. Different
       // kinds of object will have different additional properties inside the
       // address object, but all kinds include both "kind" and "to_display".
-      // Currently the two valid kinds are "resource" and "output_value", but
-      // additional kinds may be added in future Terraform versions.
+      // The two valid kinds are "resource" and "output_value".
       "kind": "resource",
 
       // "to_display" contains an opaque string representation of the address

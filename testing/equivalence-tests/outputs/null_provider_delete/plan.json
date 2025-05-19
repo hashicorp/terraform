@@ -1,0 +1,61 @@
+{
+  "configuration": {
+    "provider_config": {
+      "null": {
+        "full_name": "registry.terraform.io/hashicorp/null",
+        "name": "null",
+        "version_constraint": "3.1.1"
+      }
+    },
+    "root_module": {}
+  },
+  "format_version": "1.1",
+  "planned_values": {
+    "root_module": {}
+  },
+  "prior_state": {
+    "format_version": "1.0",
+    "values": {
+      "root_module": {
+        "resources": [
+          {
+            "address": "null_resource.null_resource",
+            "mode": "managed",
+            "name": "null_resource",
+            "provider_name": "registry.terraform.io/hashicorp/null",
+            "schema_version": 0,
+            "sensitive_values": {},
+            "type": "null_resource",
+            "values": {
+              "id": "7115293105928418144",
+              "triggers": null
+            }
+          }
+        ]
+      }
+    }
+  },
+  "resource_changes": [
+    {
+      "action_reason": "delete_because_no_resource_config",
+      "address": "null_resource.null_resource",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "after": null,
+        "after_sensitive": false,
+        "after_unknown": {},
+        "before": {
+          "id": "7115293105928418144",
+          "triggers": null
+        },
+        "before_sensitive": {}
+      },
+      "mode": "managed",
+      "name": "null_resource",
+      "provider_name": "registry.terraform.io/hashicorp/null",
+      "type": "null_resource"
+    }
+  ]
+}

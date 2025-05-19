@@ -1,0 +1,235 @@
+name: Terraform Equivalence Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      terraform-version:
+        type: string
+        required: true
+        description: "terraform-version: The Terraform version to test (eg. v1.3.1, 1.3.2)."
+      build-run-id:
+        type: string
+        required: true
+        description: "build-run-id: The `Build Terraform CLI Packages` run to retrieve built Terraform binaries from."
+  workflow_run:
+    workflows: [Build Terraform CLI Packages]
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: write
+
+env:
+  terraform-equivalence-testing-version: v0.2.0
+  target-os: linux
+  target-arch: amd64
+
+jobs:
+  get-metadata:
+    name: "Determine Terraform version and other metadata"
+    runs-on: ubuntu-latest
+
+    outputs:
+      run-equivalence-tests: ${{ steps.metadata.outputs.run-equivalence-tests }}
+      terraform-version: ${{ steps.metadata.outputs.terraform-version }}
+      build-run-id: ${{ steps.metadata.outputs.build-run-id }}
+      target-branch: ${{ steps.metadata.outputs.target-branch }}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+
+      - id: metadata
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # Then we map all our outputs from the user supplied inputs.
+            RUN_EQUIVALENCE_TESTS=true
+            TERRAFORM_VERSION=${{ inputs.terraform-version }}
+            BUILD_RUN_ID=${{ inputs.build-run-id }}
+          else
+            # Quick sanity check, if the workflow_run that triggered this action
+            # failed then we shouldn't carry on.
+            if [[ "${{ github.event.workflow_run.conclusion }}" != "success" ]]; then
+              echo "::set-output name=run-equivalence-tests::false"
+              exit 0
+            fi
+          
+            # Otherwise, we have to pull our outputs from the workflow_run event 
+            # information.
+            TERRAFORM_VERSION=${{ github.event.workflow_run.head_branch }}
+          
+            if git show-ref -q --verify refs/tags/$TERRAFORM_VERSION; then
+              # Then our trigger was from a new tag being pushed, so we want to
+              # run the equivalence tests and we need to work some things out.
+              RUN_EQUIVALENCE_TESTS=true
+              BUILD_RUN_ID=${{ github.event.workflow_run.id }}
+            else
+              # Then our trigger wasn't from a new tag being pushed, this is
+              # easy as we just skip running the equivalence tests.
+              RUN_EQUIVALENCE_TESTS=false
+            fi
+          fi
+          
+          # One last thing to do is to work out which branch we want to operate
+          # against. This could be `main` for an alpha build, or a release 
+          # branch (eg. v1.1, v1.2, v1.3) for any other kind of build.
+          
+          # Trim the "v" prefix, if any.
+          VERSION="${TERRAFORM_VERSION#v}"
+          
+          # Split off the build metadata part, if any
+          # (we won't actually include it in our final version, and handle it only for
+          # compleness against semver syntax.)
+          IFS='+' read -ra VERSION BUILD_META <<< "$VERSION"
+
+          # Separate out the prerelease part, if any
+          IFS='-' read -r BASE_VERSION PRERELEASE <<< "$VERSION"
+          
+          # Separate out major, minor and patch versions.
+          IFS='.' read -r MAJOR_VERSION MINOR_VERSION PATCH_VERSION <<< "$BASE_VERSION"
+          
+          if [[ "$PRERELEASE" == *"alpha"* ]]; then
+            TARGET_BRANCH=main
+          else
+            TARGET_BRANCH=v${MAJOR_VERSION}.${MINOR_VERSION}
+          fi
+          
+          echo "::set-output name=target-branch::${TARGET_BRANCH}"
+          echo "::set-output name=terraform-version::${TERRAFORM_VERSION}"
+          echo "::set-output name=build-run-id::${BUILD_RUN_ID}"
+          echo "::set-output name=run-equivalence-tests::${RUN_EQUIVALENCE_TESTS}"
+
+  prepare-equivalence-tests:
+    name: "Prepare equivalence testing binary"
+    if: ${{ needs.get-metadata.outputs.run-equivalence-tests == 'true' }}
+    runs-on: ubuntu-latest
+    needs:
+      - get-metadata
+
+    steps:
+      - name: "Download terraform-equivalence-testing binary"
+        run: |
+          curl \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/hashicorp/terraform-equivalence-testing/releases" > releases.json
+          
+          VERSION="${{ env.terraform-equivalence-testing-version }}"
+          ASSET="terraform-equivalence-testing_${VERSION}_${{ env.target-os }}_${{ env.target-arch }}.zip"
+          ASSET_ID=$(jq -r --arg VERSION "$VERSION" --arg ASSET "$ASSET" '.[] | select(.name == $VERSION) | .assets[] | select(.name == $ASSET) | .id' releases.json)
+
+          curl -L \
+            -H "Accept: application/octet-stream" \
+            "https://api.github.com/repos/hashicorp/terraform-equivalence-testing/releases/assets/$ASSET_ID" > "$ASSET"
+
+      - name: "Unzip terraform-equivalence-testing binary"
+        run: |
+          ASSET="terraform-equivalence-testing_${{ env.terraform-equivalence-testing-version }}_${{ env.target-os }}_${{ env.target-arch }}.zip"
+          unzip -p "$ASSET" terraform-equivalence-testing > terraform-equivalence-testing
+
+      - name: "Upload terraform-equivalence-testing binary"
+        uses: actions/upload-artifact@v2
+        with:
+          name: terraform-equivalence-testing
+          path: terraform-equivalence-testing
+
+  prepare-terraform:
+    name: "Prepare Terraform binary"
+    if: ${{ needs.get-metadata.outputs.run-equivalence-tests == 'true' }}
+    runs-on: ubuntu-latest
+    needs:
+      - get-metadata
+
+    env:
+      terraform-version: ${{ needs.get-metadata.outputs.terraform-version }}
+      build-run-id: ${{ needs.get-metadata.outputs.build-run-id }}
+
+    steps:
+      - name: "Download terraform binary"
+        run: |
+          curl \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/hashicorp/terraform/actions/runs/${{ env.build-run-id }}/artifacts" > artifacts.json
+          
+          VERSION="${{ env.terraform-version }}" # The Terraform artifacts don't have the `v` prefix.
+          ARTIFACT="terraform_${VERSION#v}_${{ env.target-os }}_${{ env.target-arch }}.zip"
+          ARTIFACT_ID=$(jq -r --arg ARTIFACT "$ARTIFACT" '.artifacts | .[] | select(.name == $ARTIFACT) | .id' artifacts.json)
+          
+          curl -L \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/hashicorp/terraform/actions/artifacts/$ARTIFACT_ID/zip" > "$ARTIFACT.zip"
+
+      - name: "Unzip terraform binary"
+        run: |
+          VERSION="${{ env.terraform-version }}" # The Terraform artifacts don't have the `v` prefix.
+          ARTIFACT="terraform_${VERSION#v}_${{ env.target-os }}_${{ env.target-arch }}.zip"
+          
+          # We actually have nested zip files, as the Github API downloads the
+          # artifacts in a zip file and the Terraform build action embeds the
+          # terraform binary in a zip file also.
+          
+          unzip $ARTIFACT.zip
+          unzip $ARTIFACT
+
+      - name: "Upload terraform binary"
+        uses: actions/upload-artifact@v2
+        with:
+          name: terraform
+          path: terraform
+
+  run-equivalence-tests:
+    name: "Run equivalence tests"
+    if: ${{ needs.get-metadata.outputs.run-equivalence-tests == 'true' }}
+    runs-on: ubuntu-latest
+    needs:
+      - get-metadata
+      - prepare-terraform
+      - prepare-equivalence-tests
+
+    env:
+      target-branch: ${{ needs.get-metadata.outputs.target-branch }}
+      terraform-version: ${{ needs.get-metadata.outputs.terraform-version }}
+
+    steps:
+      - name: "Checkout repository at target branch ${{ env.target-branch }}"
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.target-branch }}
+
+      - name: "Download Terraform binary"
+        uses: actions/download-artifact@v2
+        with:
+          name: terraform
+          path: .
+
+      - name: "Download terraform-equivalence-testing binary"
+        uses: actions/download-artifact@v2
+        with:
+          name: terraform-equivalence-testing
+          path: .
+
+      - name: "Run and update equivalence tests"
+        run: |
+          chmod u+x ./terraform-equivalence-testing
+          chmod u+x ./terraform
+          
+          ./terraform-equivalence-testing update \
+            --tests=testing/equivalence-tests/tests \
+            --goldens=testing/equivalence-tests/outputs \
+            --binary=$(pwd)/terraform
+          
+          changed=$(git diff --quiet -- testing/equivalence-tests/outputs || echo true)
+          if [[ $changed == "true" ]]; then
+            echo "found changes, and pushing new golden files into branch ${{ env.target-branch }}."
+          
+            git config user.email "52939924+teamterraform@users.noreply.github.com"
+            git config user.name "The Terraform Team"
+          
+            git add ./testing/equivalence-tests/outputs
+            git commit -m"Automated equivalence test golden file update for release ${{ env.terraform-version }}."
+            git push
+          else
+            echo "found no changes, so not pushing any updates."
+          fi

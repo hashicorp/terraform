@@ -101,6 +101,14 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 				continue
 			}
 
+			if configV.IsNull() {
+				// Configuration cannot decode a block into a null value, but
+				// we could be dealing with a null returned by a legacy
+				// provider and inserted via ignore_changes. Fix the value in
+				// place so the length can still be compared.
+				configV = cty.ListValEmpty(configV.Type().ElementType())
+			}
+
 			plannedL := plannedV.LengthInt()
 			configL := configV.LengthInt()
 			if plannedL != configL {

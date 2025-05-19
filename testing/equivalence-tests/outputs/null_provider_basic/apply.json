@@ -1,0 +1,76 @@
+[
+  {
+    "@level": "info",
+    "@message": "null_resource.null_resource: Plan to create",
+    "@module": "terraform.ui",
+    "change": {
+      "action": "create",
+      "resource": {
+        "addr": "null_resource.null_resource",
+        "implied_provider": "null",
+        "module": "",
+        "resource": "null_resource.null_resource",
+        "resource_key": null,
+        "resource_name": "null_resource",
+        "resource_type": "null_resource"
+      }
+    },
+    "type": "planned_change"
+  },
+  {
+    "@level": "info",
+    "@message": "null_resource.null_resource: Creating...",
+    "@module": "terraform.ui",
+    "hook": {
+      "action": "create",
+      "resource": {
+        "addr": "null_resource.null_resource",
+        "implied_provider": "null",
+        "module": "",
+        "resource": "null_resource.null_resource",
+        "resource_key": null,
+        "resource_name": "null_resource",
+        "resource_type": "null_resource"
+      }
+    },
+    "type": "apply_start"
+  },
+  {
+    "@level": "info",
+    "@module": "terraform.ui",
+    "hook": {
+      "action": "create",
+      "elapsed_seconds": 0,
+      "id_key": "id",
+      "resource": {
+        "addr": "null_resource.null_resource",
+        "implied_provider": "null",
+        "module": "",
+        "resource": "null_resource.null_resource",
+        "resource_key": null,
+        "resource_name": "null_resource",
+        "resource_type": "null_resource"
+      }
+    },
+    "type": "apply_complete"
+  },
+  {
+    "@level": "info",
+    "@message": "Apply complete! Resources: 1 added, 0 changed, 0 destroyed.",
+    "@module": "terraform.ui",
+    "changes": {
+      "add": 1,
+      "change": 0,
+      "operation": "apply",
+      "remove": 0
+    },
+    "type": "change_summary"
+  },
+  {
+    "@level": "info",
+    "@message": "Outputs: 0",
+    "@module": "terraform.ui",
+    "outputs": {},
+    "type": "outputs"
+  }
+]

@@ -273,19 +273,21 @@ func (n *NodeApplyableOutput) ReferenceableAddrs() []addrs.Referenceable {
 }
 
 func referencesForOutput(c *configs.Output) []*addrs.Reference {
+	var refs []*addrs.Reference
+
 	impRefs, _ := lang.ReferencesInExpr(c.Expr)
 	expRefs, _ := lang.References(c.DependsOn)
-	l := len(impRefs) + len(expRefs)
-	if l == 0 {
-		return nil
-	}
-	refs := make([]*addrs.Reference, 0, l)
+
 	refs = append(refs, impRefs...)
 	refs = append(refs, expRefs...)
+
 	for _, check := range c.Preconditions {
-		checkRefs, _ := lang.ReferencesInExpr(check.Condition)
-		refs = append(refs, checkRefs...)
+		condRefs, _ := lang.ReferencesInExpr(check.Condition)
+		refs = append(refs, condRefs...)
+		errRefs, _ := lang.ReferencesInExpr(check.ErrorMessage)
+		refs = append(refs, errRefs...)
 	}
+
 	return refs
 }
 
@@ -399,7 +401,8 @@ If you do intend to export this data, annotate the output value as sensitive by 
 	// If we were able to evaluate a new value, we can update that in the
 	// refreshed state as well.
 	if state = ctx.RefreshState(); state != nil && val.IsWhollyKnown() {
-		n.setValue(state, changes, val)
+		// we only need to update the state, do not pass in the changes again
+		n.setValue(state, nil, val)
 	}
 
 	return diags
@@ -577,17 +580,20 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 		changes.AppendOutputChange(cs)     // add the new planned change
 	}
 
-	if val.IsKnown() && !val.IsNull() {
-		// The state itself doesn't represent unknown values, so we null them
-		// out here and then we'll save the real unknown value in the planned
-		// changeset below, if we have one on this graph walk.
-		log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
-		unmarkedVal, _ := val.UnmarkDeep()
-		stateVal := cty.UnknownAsNull(unmarkedVal)
-		state.SetOutputValue(n.Addr, stateVal, n.Config.Sensitive)
-	} else {
+	// Null outputs must be saved for modules so that they can still be
+	// evaluated. Null root outputs are removed entirely, which is always fine
+	// because they can't be referenced by anything else in the configuration.
+	if n.Addr.Module.IsRoot() && val.IsNull() {
 		log.Printf("[TRACE] setValue: Removing %s from state (it is now null)", n.Addr)
 		state.RemoveOutputValue(n.Addr)
+		return
 	}
 
+	// The state itself doesn't represent unknown values, so we null them
+	// out here and then we'll save the real unknown value in the planned
+	// changeset, if we have one on this graph walk.
+	log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
+	unmarkedVal, _ := val.UnmarkDeep()
+	stateVal := cty.UnknownAsNull(unmarkedVal)
+	state.SetOutputValue(n.Addr, stateVal, n.Config.Sensitive)
 }

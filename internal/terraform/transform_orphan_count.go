@@ -33,7 +33,13 @@ func (t *OrphanResourceInstanceCountTransformer) Transform(g *Graph) error {
 	// number of instances of a single resource ought to always be small in any
 	// reasonable Terraform configuration.
 Have:
-	for key := range rs.Instances {
+	for key, inst := range rs.Instances {
+		// Instances which have no current objects (only one or more
+		// deposed objects) will be taken care of separately
+		if inst.Current == nil {
+			continue
+		}
+
 		thisAddr := rs.Addr.Instance(key)
 		for _, wantAddr := range t.InstanceAddrs {
 			if wantAddr.Equal(thisAddr) {

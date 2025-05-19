@@ -1,0 +1,5 @@
+{
+  "description": "test deleting a file created by the local provider",
+  "include_files": [],
+  "ignore_fields": {}
+}

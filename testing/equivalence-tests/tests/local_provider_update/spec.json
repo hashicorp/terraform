@@ -1,0 +1,7 @@
+{
+  "description": "tests updating a file using the local provider",
+  "include_files": [
+    "output.json"
+  ],
+  "ignore_fields": {}
+}

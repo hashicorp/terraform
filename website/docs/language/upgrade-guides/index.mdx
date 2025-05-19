@@ -115,9 +115,9 @@ There are some other changes in Terraform v1.3 that we don't expect to have a gr
 * `terraform show -json` previously simplified the "unknown" status for all output values to be a single boolean value, even though an output value of a collection or structural type can potentially be only partially unknown.
 
     The JSON output now accurately describes partially-unknown output values in the same way as it describes partially-unknown values in resource attributes. Any consumer of the plan JSON format which was relying on output values always being either known or entirely unknown must be changed to support more complex situations in the `after_unknown` property of [the JSON Change Representation](https://www.terraform.io/internals/json-format#change-representation).
-* When making requests to HTTPS servers, Terraform will now reject invalid TLS handshakes that have duplicate extensions, as required by RFC 5246 section 7.4.1.4 and RFC 8446 section 4.2. This may cause new errors when interacting with existing buggy or misconfigured TLS servers, but should not affect correct servers.
+* When making requests to HTTPS servers, Terraform now rejects invalid TLS handshakes that have duplicate extensions, as required by RFC 5246 section 7.4.1.4 and RFC 8446 section 4.2. This action may cause new errors when interacting with existing buggy or misconfigured TLS servers, but should not affect correct servers.
 
-    If you see new HTTPS, TLS, or SSL-related error messages after upgrading to Terraform v1.2, that may mean that the server that Terraform was trying to access has an incorrect implementation of the relevant protocols and will need to be upgraded to a correct version for continued use with Terraform.
+    If you see new HTTPS, TLS, or SSL-related error messages after upgrading to Terraform v1.3, that may mean that the server that Terraform tried to access has an incorrect implementation of the relevant protocols and needs an upgrade to a correct version for continued use with Terraform.
 
     Similar problems can also arise on networks that use HTTPS-intercepting [middleboxes](https://en.wikipedia.org/wiki/Middlebox), such as deep packet inspection firewalls. In that case, the protocol implementation of the middlebox must also be correct in order for Terraform to successfully access HTTPS servers through it.
 

@@ -10,7 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/apparentlymart/go-versions/versions"
 	version "github.com/hashicorp/go-version"
+
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/earlyconfig"
@@ -387,9 +389,45 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *earlyc
 
 		// If we've found a pre-release version then we'll ignore it unless
 		// it was exactly requested.
-		if v.Prerelease() != "" && req.VersionConstraints.String() != v.String() {
-			log.Printf("[TRACE] ModuleInstaller: %s ignoring %s because it is a pre-release and was not requested exactly", key, v)
-			continue
+		//
+		// The prerelease checking will be handled by a different library for
+		// 2 reasons. First, this other library automatically includes the
+		// "prerelease versions must be exactly requested" behaviour that we are
+		// looking for. Second, this other library is used to handle all version
+		// constraints for the provider logic and this is the first step to
+		// making the module and provider version logic match.
+		if v.Prerelease() != "" {
+			// At this point all versions published by the module with
+			// prerelease metadata will be checked. Users may not have even
+			// requested this prerelease so don't print lots of unnecessary #
+			// warnings.
+			acceptableVersions, err := versions.MeetingConstraintsString(req.VersionConstraints.String())
+			if err != nil {
+				log.Printf("[WARN] ModuleInstaller: %s ignoring %s because the version constraints (%s) could not be parsed: %s", key, v, req.VersionConstraints.String(), err.Error())
+				continue
+			}
+
+			// Validate the version is also readable by the other versions
+			// library.
+			version, err := versions.ParseVersion(v.String())
+			if err != nil {
+				log.Printf("[WARN] ModuleInstaller: %s ignoring %s because the version (%s) reported by the module could not be parsed: %s", key, v, v.String(), err.Error())
+				continue
+			}
+
+			// Finally, check if the prerelease is acceptable to version. As
+			// highlighted previously, we go through all of this because the
+			// apparentlymart/go-versions library handles prerelease constraints
+			// in the apporach we want to.
+			if !acceptableVersions.Has(version) {
+				log.Printf("[TRACE] ModuleInstaller: %s ignoring %s because it is a pre-release and was not requested exactly", key, v)
+				continue
+			}
+
+			// If we reach here, it means this prerelease version was exactly
+			// requested according to the extra constraints of this library.
+			// We fall through and allow the other library to also validate it
+			// for consistency.
 		}
 
 		if latestVersion == nil || v.GreaterThan(latestVersion) {
