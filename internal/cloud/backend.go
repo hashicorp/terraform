@@ -1540,6 +1540,6 @@ is the primary and recommended strategy to use.  This option conflicts with "nam
 When configured, only the specified workspace can be used. This option conflicts with "tags"
 and with the TF_WORKSPACE environment variable.`
 
-	schemaDescriptionProject = `The name of an HCP Terraform or Terraform Enterpise project. Workspaces that need creating
+	schemaDescriptionProject = `The name of an HCP Terraform or Terraform Enterprise project. Workspaces that need creating
 will be created within this project.`
 )
