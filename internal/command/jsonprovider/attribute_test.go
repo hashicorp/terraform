@@ -28,11 +28,12 @@ func TestMarshalAttribute(t *testing.T) {
 			},
 		},
 		{ // collection types look a little odd.
-			&configschema.Attribute{Type: cty.Map(cty.String), Optional: true, Computed: true},
+			&configschema.Attribute{Type: cty.Map(cty.String), Optional: true, Computed: true, WriteOnly: true},
 			&Attribute{
 				AttributeType:   json.RawMessage(`["map","string"]`),
 				Optional:        true,
 				Computed:        true,
+				WriteOnly:       true,
 				DescriptionKind: "plain",
 			},
 		},
@@ -44,4 +45,34 @@ func TestMarshalAttribute(t *testing.T) {
 			t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, test.Want))
 		}
 	}
+}
+
+func TestMarshalIdentityAttribute(t *testing.T) {
+	tests := []struct {
+		Input *configschema.Attribute
+		Want  *IdentityAttribute
+	}{
+		{
+			&configschema.Attribute{Type: cty.String, Optional: true},
+			&IdentityAttribute{
+				IdentityType:      json.RawMessage(`"string"`),
+				OptionalForImport: true,
+			},
+		},
+		{ // collection types look a little odd.
+			&configschema.Attribute{Type: cty.List(cty.String), Required: true},
+			&IdentityAttribute{
+				IdentityType:      json.RawMessage(`["list","string"]`),
+				RequiredForImport: true,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		got := marshalIdentityAttribute(test.Input)
+		if !cmp.Equal(got, test.Want) {
+			t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, test.Want))
+		}
+	}
+
 }

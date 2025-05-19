@@ -26,7 +26,7 @@ type ApplyGraphBuilder struct {
 	Config *configs.Config
 
 	// Changes describes the changes that we need apply.
-	Changes *plans.Changes
+	Changes *plans.ChangesSrc
 
 	// DeferredChanges describes the changes that were deferred during the plan
 	// and should not be applied.
@@ -73,13 +73,18 @@ type ApplyGraphBuilder struct {
 	// Overrides provides the set of overrides supplied by the testing
 	// framework.
 	Overrides *mocking.Overrides
+
+	// SkipGraphValidation indicates whether the graph builder should skip
+	// validation of the graph.
+	SkipGraphValidation bool
 }
 
 // See GraphBuilder
 func (b *ApplyGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	return (&BasicGraphBuilder{
-		Steps: b.Steps(),
-		Name:  "ApplyGraphBuilder",
+		Steps:               b.Steps(),
+		Name:                "ApplyGraphBuilder",
+		SkipGraphValidation: b.SkipGraphValidation,
 	}).Build(path)
 }
 
@@ -194,6 +199,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Detect when create_before_destroy must be forced on for a particular
 		// node due to dependency edges, to avoid graph cycles during apply.
+		//
+		// FIXME: this should not need to be recalculated during apply.
+		// Currently however, the instance object which stores the planned
+		// information is lost for newly created instances because it contains
+		// no state value, and we end up recalculating CBD for all nodes.
 		&ForcedCBDTransformer{},
 
 		// Destruction ordering
@@ -215,6 +225,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
+
+		// Close any ephemeral resource instances.
+		&ephemeralResourceCloseTransformer{},
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},

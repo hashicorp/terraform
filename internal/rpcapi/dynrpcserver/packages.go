@@ -8,21 +8,21 @@ import (
 	"context"
 	"sync"
 
-	tf1 "github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	packages "github.com/hashicorp/terraform/internal/rpcapi/terraform1/packages"
 )
 
 type Packages struct {
-	impl tf1.PackagesServer
+	impl packages.PackagesServer
 	mu   sync.RWMutex
 }
 
-var _ tf1.PackagesServer = (*Packages)(nil)
+var _ packages.PackagesServer = (*Packages)(nil)
 
 func NewPackagesStub() *Packages {
 	return &Packages{}
 }
 
-func (s *Packages) FetchModulePackage(a0 context.Context, a1 *tf1.FetchModulePackage_Request) (*tf1.FetchModulePackage_Response, error) {
+func (s *Packages) FetchModulePackage(a0 context.Context, a1 *packages.FetchModulePackage_Request) (*packages.FetchModulePackage_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -30,7 +30,7 @@ func (s *Packages) FetchModulePackage(a0 context.Context, a1 *tf1.FetchModulePac
 	return impl.FetchModulePackage(a0, a1)
 }
 
-func (s *Packages) FetchProviderPackage(a0 context.Context, a1 *tf1.FetchProviderPackage_Request) (*tf1.FetchProviderPackage_Response, error) {
+func (s *Packages) FetchProviderPackage(a0 context.Context, a1 *packages.FetchProviderPackage_Request) (*packages.FetchProviderPackage_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func (s *Packages) FetchProviderPackage(a0 context.Context, a1 *tf1.FetchProvide
 	return impl.FetchProviderPackage(a0, a1)
 }
 
-func (s *Packages) ModulePackageSourceAddr(a0 context.Context, a1 *tf1.ModulePackageSourceAddr_Request) (*tf1.ModulePackageSourceAddr_Response, error) {
+func (s *Packages) ModulePackageSourceAddr(a0 context.Context, a1 *packages.ModulePackageSourceAddr_Request) (*packages.ModulePackageSourceAddr_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func (s *Packages) ModulePackageSourceAddr(a0 context.Context, a1 *tf1.ModulePac
 	return impl.ModulePackageSourceAddr(a0, a1)
 }
 
-func (s *Packages) ModulePackageVersions(a0 context.Context, a1 *tf1.ModulePackageVersions_Request) (*tf1.ModulePackageVersions_Response, error) {
+func (s *Packages) ModulePackageVersions(a0 context.Context, a1 *packages.ModulePackageVersions_Request) (*packages.ModulePackageVersions_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func (s *Packages) ModulePackageVersions(a0 context.Context, a1 *tf1.ModulePacka
 	return impl.ModulePackageVersions(a0, a1)
 }
 
-func (s *Packages) ProviderPackageVersions(a0 context.Context, a1 *tf1.ProviderPackageVersions_Request) (*tf1.ProviderPackageVersions_Response, error) {
+func (s *Packages) ProviderPackageVersions(a0 context.Context, a1 *packages.ProviderPackageVersions_Request) (*packages.ProviderPackageVersions_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -62,13 +62,13 @@ func (s *Packages) ProviderPackageVersions(a0 context.Context, a1 *tf1.ProviderP
 	return impl.ProviderPackageVersions(a0, a1)
 }
 
-func (s *Packages) ActivateRPCServer(impl tf1.PackagesServer) {
+func (s *Packages) ActivateRPCServer(impl packages.PackagesServer) {
 	s.mu.Lock()
 	s.impl = impl
 	s.mu.Unlock()
 }
 
-func (s *Packages) realRPCServer() (tf1.PackagesServer, error) {
+func (s *Packages) realRPCServer() (packages.PackagesServer, error) {
 	s.mu.RLock()
 	impl := s.impl
 	s.mu.RUnlock()

@@ -40,6 +40,8 @@ func detectGitHub(src string) (string, bool, error) {
 	}
 
 	if strings.HasPrefix(src, "github.com/") {
+		src, rawQuery, _ := strings.Cut(src, "?")
+
 		parts := strings.Split(src, "/")
 		if len(parts) < 3 {
 			return "", false, fmt.Errorf(
@@ -51,6 +53,7 @@ func detectGitHub(src string) (string, bool, error) {
 		if err != nil {
 			return "", true, fmt.Errorf("error parsing GitHub URL: %s", err)
 		}
+		url.RawQuery = rawQuery
 
 		if !strings.HasSuffix(url.Path, ".git") {
 			url.Path += ".git"

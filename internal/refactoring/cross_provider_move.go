@@ -10,7 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -99,23 +99,19 @@ func (m *crossTypeMover) prepareCrossTypeMove(stmt *MoveStatement, source, targe
 		})
 		return nil, diags
 	}
-
-	targetResourceSchema, targetResourceSchemaVersion := targetSchema.SchemaForResourceAddr(target.Resource)
-
+	targetResourceSchema := targetSchema.SchemaForResourceAddr(target.Resource)
 	return &crossTypeMove{
-		targetProvider:              targetProvider,
-		targetProviderAddr:          *targetProviderAddr,
-		targetResourceSchema:        targetResourceSchema,
-		targetResourceSchemaVersion: targetResourceSchemaVersion,
-		sourceProviderAddr:          sourceProviderAddr,
+		targetProvider:       targetProvider,
+		targetProviderAddr:   *targetProviderAddr,
+		targetResourceSchema: targetResourceSchema,
+		sourceProviderAddr:   sourceProviderAddr,
 	}, diags
 }
 
 type crossTypeMove struct {
-	targetProvider              providers.Interface
-	targetProviderAddr          addrs.AbsProviderConfig
-	targetResourceSchema        *configschema.Block
-	targetResourceSchemaVersion uint64
+	targetProvider       providers.Interface
+	targetProviderAddr   addrs.AbsProviderConfig
+	targetResourceSchema providers.Schema
 
 	sourceProviderAddr addrs.AbsProviderConfig
 }
@@ -132,9 +128,14 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 
 	var diags tfdiags.Diagnostics
 
-	// First, build the request.
-
+	var sourceIdentity []byte
 	src := state.ResourceInstance(source).Current
+	if src != nil {
+		sourceIdentity = src.IdentityJSON
+	}
+
+	// Build the request.
+
 	request := providers.MoveResourceStateRequest{
 		SourceProviderAddress: move.sourceProviderAddr.Provider.String(),
 		SourceTypeName:        source.Resource.Resource.Type,
@@ -142,15 +143,60 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 		SourceStateJSON:       src.AttrsJSON,
 		SourcePrivate:         src.Private,
 		TargetTypeName:        target.Resource.Resource.Type,
+		SourceIdentity:        sourceIdentity,
 	}
 
-	// Second, ask the provider to transform the value into the type expected by
+	// Ask the provider to transform the value into the type expected by
 	// the new resource type.
 
 	resp := move.targetProvider.MoveResourceState(request)
 	diags = diags.Append(resp.Diagnostics)
 	if resp.Diagnostics.HasErrors() {
 		return diags
+	}
+
+	// Providers are supposed to return null values for all write-only attributes
+	writeOnlyDiags := ephemeral.ValidateWriteOnlyAttributes(
+		"Provider returned invalid value",
+		func(path cty.Path) string {
+			return fmt.Sprintf(
+				"The provider %q returned a value for the write-only attribute \"%s%s\" during an across type move operation to %s. Write-only attributes cannot be read back from the provider. This is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				move.targetProviderAddr, target, tfdiags.FormatCtyPath(path), target,
+			)
+		},
+		resp.TargetState,
+		move.targetResourceSchema.Body,
+	)
+	diags = diags.Append(writeOnlyDiags)
+
+	if writeOnlyDiags.HasErrors() {
+		return diags
+	}
+
+	if !resp.TargetIdentity.IsNull() {
+		// Identities can not contain unknown values
+		if !resp.TargetIdentity.IsWhollyKnown() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced invalid identity",
+				fmt.Sprintf(
+					"Provider %q planned an identity with unknown values for the move from %s to %s. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					move.targetProviderAddr, source, target,
+				),
+			))
+		}
+
+		// Identities can not contain marks
+		if _, marks := resp.TargetIdentity.UnmarkDeep(); len(marks) > 0 {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced invalid identity",
+				fmt.Sprintf(
+					"Provider %q planned an identity with marks for  the move from %s to %s. \n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					move.targetProviderAddr, source, target,
+				),
+			))
+		}
 	}
 
 	if resp.TargetState == cty.NilVal {
@@ -180,9 +226,10 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 		Status:              src.Status,
 		Dependencies:        src.Dependencies,
 		CreateBeforeDestroy: src.CreateBeforeDestroy,
+		Identity:            resp.TargetIdentity,
 	}
 
-	data, err := newValue.Encode(move.targetResourceSchema.ImpliedType(), move.targetResourceSchemaVersion)
+	data, err := newValue.Encode(move.targetResourceSchema)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,

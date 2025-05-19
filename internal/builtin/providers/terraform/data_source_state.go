@@ -19,7 +19,7 @@ import (
 
 func dataSourceRemoteStateGetSchema() providers.Schema {
 	return providers.Schema{
-		Block: &configschema.Block{
+		Body: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"backend": {
 					Type:            cty.String,
@@ -239,7 +239,7 @@ func getBackend(cfg cty.Value) (backend.Backend, cty.Value, tfdiags.Diagnostics)
 		return nil, cty.NilVal, diags
 	}
 
-	// If this is the enhanced remote backend, we want to disable the version
+	// If this is the remote OperationsBackend, we want to disable the version
 	// check, because this is a read-only operation
 	if rb, ok := b.(*remote.Remote); ok {
 		rb.IgnoreVersionConflict()

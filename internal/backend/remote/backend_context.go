@@ -215,7 +215,7 @@ func stubAllVariables(vv map[string]backendrun.UnparsedVariableValue, decls map[
 	return ret
 }
 
-// remoteStoredVariableValue is a backend.UnparsedVariableValue implementation
+// remoteStoredVariableValue is a backendrun.UnparsedVariableValue implementation
 // that translates from the go-tfe representation of stored variables into
 // the Terraform Core backend representation of variables.
 type remoteStoredVariableValue struct {

@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestContext2Refresh(t *testing.T) {
@@ -43,8 +44,8 @@ func TestContext2Refresh(t *testing.T) {
 		},
 	})
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
-	ty := schema.ImpliedType()
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"]
+	ty := schema.Body.ImpliedType()
 	readState, err := hcl2shim.HCL2ValueFromFlatmap(map[string]string{"id": "foo", "foo": "baz"}, ty)
 	if err != nil {
 		t.Fatal(err)
@@ -64,12 +65,12 @@ func TestContext2Refresh(t *testing.T) {
 	}
 
 	mod := s.RootModule()
-	fromState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.Decode(ty)
+	fromState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.Decode(schema)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	newState, err := schema.CoerceValue(fromState.Value)
+	newState, err := schema.Body.CoerceValue(fromState.Value)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,9 +131,7 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 		},
 	})
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["test_instance"].Block
-	ty := schema.ImpliedType()
-
+	schema := p.GetProviderSchemaResponse.ResourceTypes["test_instance"]
 	s, diags := ctx.Refresh(m, startingState, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
@@ -143,7 +142,7 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 	}
 
 	mod := s.RootModule()
-	newState, err := mod.Resources["test_instance.foo"].Instances[addrs.NoKey].Current.Decode(ty)
+	newState, err := mod.Resources["test_instance.foo"].Instances[addrs.NoKey].Current.Decode(schema)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -516,7 +515,7 @@ func TestContext2Refresh_delete(t *testing.T) {
 	})
 
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
-		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block.ImpliedType()),
+		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body.ImpliedType()),
 	}
 
 	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
@@ -768,7 +767,7 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 	})
 
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
-		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block.ImpliedType()),
+		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Body.ImpliedType()),
 	}
 
 	state := states.NewState()
@@ -807,10 +806,8 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 		},
 	})
 
-	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
-	ty := schema.ImpliedType()
-
-	readStateVal, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"]
+	readStateVal, err := schema.Body.CoerceValue(cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("foo"),
 	}))
 	if err != nil {
@@ -831,7 +828,7 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 	}
 
 	mod := s.RootModule()
-	newState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.Decode(ty)
+	newState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.Decode(schema)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -889,11 +886,13 @@ func TestContext2Refresh_dataCount(t *testing.T) {
 func TestContext2Refresh_dataState(t *testing.T) {
 	m := testModule(t, "refresh-data-resource-basic")
 	state := states.NewState()
-	schema := &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"inputs": {
-				Type:     cty.Map(cty.String),
-				Optional: true,
+	schema := providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"inputs": {
+					Type:     cty.Map(cty.String),
+					Optional: true,
+				},
 			},
 		},
 	}
@@ -902,7 +901,7 @@ func TestContext2Refresh_dataState(t *testing.T) {
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{},
 		DataSources: map[string]*configschema.Block{
-			"null_data_source": schema,
+			"null_data_source": schema.Body,
 		},
 	})
 
@@ -934,7 +933,7 @@ func TestContext2Refresh_dataState(t *testing.T) {
 
 	mod := s.RootModule()
 
-	newState, err := mod.Resources["data.null_data_source.testing"].Instances[addrs.NoKey].Current.Decode(schema.ImpliedType())
+	newState, err := mod.Resources["data.null_data_source.testing"].Instances[addrs.NoKey].Current.Decode(schema)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1050,7 +1049,7 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 	c, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{},
 	})
-	assertNoDiagnostics(t, diags)
+	tfdiags.AssertNoDiagnostics(t, diags)
 
 	_, diags = c.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
 	if !diags.HasErrors() {
@@ -1065,22 +1064,24 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 func TestContext2Refresh_vars(t *testing.T) {
 	p := testProvider("aws")
 
-	schema := &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"ami": {
-				Type:     cty.String,
-				Optional: true,
-			},
-			"id": {
-				Type:     cty.String,
-				Computed: true,
+	schema := providers.Schema{
+		Body: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"ami": {
+					Type:     cty.String,
+					Optional: true,
+				},
+				"id": {
+					Type:     cty.String,
+					Computed: true,
+				},
 			},
 		},
 	}
 
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider:      &configschema.Block{},
-		ResourceTypes: map[string]*configschema.Block{"aws_instance": schema},
+		ResourceTypes: map[string]*configschema.Block{"aws_instance": schema.Body},
 	})
 
 	m := testModule(t, "refresh-vars")
@@ -1094,7 +1095,7 @@ func TestContext2Refresh_vars(t *testing.T) {
 		},
 	})
 
-	readStateVal, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+	readStateVal, err := schema.Body.CoerceValue(cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("foo"),
 	}))
 	if err != nil {
@@ -1122,7 +1123,7 @@ func TestContext2Refresh_vars(t *testing.T) {
 
 	mod := s.RootModule()
 
-	newState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.Decode(schema.ImpliedType())
+	newState, err := mod.Resources["aws_instance.web"].Instances[addrs.NoKey].Current.Decode(schema)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1688,5 +1689,100 @@ resource "test_resource" "foo" {
 	expected := `{"id":"foo","set_block":[]}`
 	if string(jsonState) != expected {
 		t.Fatalf("invalid state\nexpected: %s\ngot: %s\n", expected, jsonState)
+	}
+}
+
+func TestContext2Refresh_identityUpgradeJSON(t *testing.T) {
+	m := testModule(t, "refresh-schema-upgrade")
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_thing": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+		IdentityTypes: map[string]*configschema.Object{
+			"test_thing": {
+				Attributes: map[string]*configschema.Attribute{
+					"name": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+		IdentityTypeSchemaVersions: map[string]uint64{
+			"test_thing": 5,
+		},
+	})
+	p.UpgradeResourceIdentityResponse = &providers.UpgradeResourceIdentityResponse{
+		UpgradedIdentity: cty.ObjectVal(map[string]cty.Value{
+			"name": cty.StringVal("foo"),
+		}),
+	}
+
+	s := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_thing",
+				Name: "bar",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				Status:                states.ObjectReady,
+				SchemaVersion:         0,
+				AttrsJSON:             []byte(`{"id":"foo"}`),
+				IdentitySchemaVersion: 3,
+				IdentityJSON:          []byte(`{"id":"foo"}`),
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	state, diags := ctx.Refresh(m, s, &PlanOpts{Mode: plans.NormalMode})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	{
+		got := p.UpgradeResourceIdentityRequest
+		want := providers.UpgradeResourceIdentityRequest{
+			TypeName:        "test_thing",
+			Version:         3,
+			RawIdentityJSON: []byte(`{"id":"foo"}`),
+		}
+		if !cmp.Equal(got, want) {
+			t.Errorf("wrong identity upgrade request\n%s", cmp.Diff(want, got))
+		}
+	}
+
+	addr := mustResourceInstanceAddr("test_thing.bar")
+	res := state.ResourceInstance(addr)
+	if res == nil {
+		t.Fatalf("no resource in state for %s", addr)
+	}
+
+	expectedIdentity := `{"name":"foo"}`
+	if string(res.Current.IdentityJSON) != expectedIdentity {
+		t.Fatalf("identity not updated in state\nexpected: %s\ngot: %s", expectedIdentity, res.Current.IdentityJSON)
+	}
+	expectedVersion := uint64(5)
+	if res.Current.IdentitySchemaVersion != expectedVersion {
+		t.Fatalf("identity schema version not updated in state\nexpected: %d\ngot: %d", expectedVersion, res.Current.IdentitySchemaVersion)
 	}
 }

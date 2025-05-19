@@ -83,8 +83,8 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 
 	var r *tfe.Run
 	var err error
-
-	if cp, ok := op.PlanFile.Cloud(); ok {
+	cp, hasSavedPlanFile := op.PlanFile.Cloud()
+	if hasSavedPlanFile {
 		log.Printf("[TRACE] Loading saved cloud plan for apply")
 		// Check hostname first, for a more actionable error than a generic 404 later
 		if cp.Hostname != b.Hostname {
@@ -182,7 +182,9 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 	}
 
 	// Do the apply!
-	if !op.AutoApprove && err != errRunApproved {
+	// If we have a saved plan file, we proceed to apply the run without confirmation
+	// regardless of the value of AutoApprove.
+	if (!op.AutoApprove || hasSavedPlanFile) && err != errRunApproved {
 		if err = b.client.Runs.Apply(stopCtx, r.ID, tfe.RunApplyOptions{}); err != nil {
 			return r, b.generalError("Failed to approve the apply command", err)
 		}

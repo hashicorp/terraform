@@ -40,13 +40,8 @@ func testGraphHappensBefore(t *testing.T, g *Graph, A, B string) {
 	}
 
 	// Look at ancestors
-	deps, err := g.Ancestors(vertexB)
-	if err != nil {
-		t.Fatalf("Error: %s in graph:\n\n%s", err, g.String())
-	}
-
 	// Make sure B is in there
-	for _, v := range deps.List() {
+	for _, v := range g.Ancestors(vertexB) {
 		if dag.VertexName(v) == A {
 			// Success
 			return

@@ -29,6 +29,12 @@ const (
 	MessageRefreshStart      MessageType = "refresh_start"
 	MessageRefreshComplete   MessageType = "refresh_complete"
 
+	// Ephemeral operation messages
+	MessageEphemeralOpStart    MessageType = "ephemeral_op_start"
+	MessageEphemeralOpProgress MessageType = "ephemeral_op_progress"
+	MessageEphemeralOpComplete MessageType = "ephemeral_op_complete"
+	MessageEphemeralOpErrored  MessageType = "ephemeral_op_errored"
+
 	// Test messages
 	MessageTestAbstract  MessageType = "test_abstract"
 	MessageTestFile      MessageType = "test_file"

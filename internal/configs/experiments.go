@@ -207,29 +207,5 @@ func checkModuleExperiments(m *Module) hcl.Diagnostics {
 			}
 		}
 	*/
-
-	if !m.ActiveExperiments.Has(experiments.EphemeralValues) {
-		for _, oc := range m.Outputs {
-			if oc.EphemeralSet {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Ephemeral values are experimental",
-					Detail:   "This feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding ephemeral_values to the list of active experiments.",
-					Subject:  oc.DeclRange.Ptr(),
-				})
-			}
-		}
-		for _, vc := range m.Variables {
-			if vc.EphemeralSet {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Ephemeral values are experimental",
-					Detail:   "This feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding ephemeral_values to the list of active experiments.",
-					Subject:  vc.DeclRange.Ptr(),
-				})
-			}
-		}
-	}
-
 	return diags
 }

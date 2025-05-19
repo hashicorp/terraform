@@ -30,7 +30,7 @@ func (g *AcyclicGraph) DirectedGraph() Grapher {
 
 // Returns a Set that includes every Vertex yielded by walking down from the
 // provided starting Vertex v.
-func (g *AcyclicGraph) Ancestors(vs ...Vertex) (Set, error) {
+func (g *AcyclicGraph) Ancestors(vs ...Vertex) Set {
 	s := make(Set)
 	memoFunc := func(v Vertex, d int) error {
 		s.Add(v)
@@ -45,15 +45,65 @@ func (g *AcyclicGraph) Ancestors(vs ...Vertex) (Set, error) {
 	}
 
 	if err := g.DepthFirstWalk(start, memoFunc); err != nil {
-		return nil, err
+		return nil
 	}
 
-	return s, nil
+	return s
 }
 
-// Returns a Set that includes every Vertex yielded by walking up from the
-// provided starting Vertex v.
-func (g *AcyclicGraph) Descendents(vs ...Vertex) (Set, error) {
+// FirstAncestorsWith returns a Set that includes every Vertex yielded by
+// walking down from the provided starting Vertex v, and stopping each branch when
+// match returns true. This will return the set of all first ancestors
+// encountered which match some criteria.
+func (g *AcyclicGraph) FirstAncestorsWith(v Vertex, match func(Vertex) bool) Set {
+	s := make(Set)
+	searchFunc := func(v Vertex, d int) error {
+		if match(v) {
+			s.Add(v)
+			return errStopWalkBranch
+		}
+
+		return nil
+	}
+
+	start := make(Set)
+	for _, dep := range g.downEdgesNoCopy(v) {
+		start.Add(dep)
+	}
+
+	// our memoFunc doesn't return an error
+	g.DepthFirstWalk(start, searchFunc)
+
+	return s
+}
+
+// MatchAncestor returns true if the given match function returns true for any
+// descendants of the given Vertex.
+func (g *AcyclicGraph) MatchAncestor(v Vertex, match func(Vertex) bool) bool {
+	var ret bool
+	matchFunc := func(v Vertex, d int) error {
+		if match(v) {
+			ret = true
+			return errStopWalk
+		}
+
+		return nil
+	}
+
+	start := make(Set)
+	for _, dep := range g.downEdgesNoCopy(v) {
+		start.Add(dep)
+	}
+
+	// our memoFunc doesn't return an error
+	g.DepthFirstWalk(start, matchFunc)
+
+	return ret
+}
+
+// Descendants returns a Set that includes every Vertex yielded by walking up
+// from the provided starting Vertex v.
+func (g *AcyclicGraph) Descendants(v Vertex) Set {
 	s := make(Set)
 	memoFunc := func(v Vertex, d int) error {
 		s.Add(v)
@@ -61,17 +111,64 @@ func (g *AcyclicGraph) Descendents(vs ...Vertex) (Set, error) {
 	}
 
 	start := make(Set)
-	for _, v := range vs {
-		for _, dep := range g.upEdgesNoCopy(v) {
-			start.Add(dep)
+	for _, dep := range g.upEdgesNoCopy(v) {
+		start.Add(dep)
+	}
+
+	// our memoFunc doesn't return an error
+	g.ReverseDepthFirstWalk(start, memoFunc)
+
+	return s
+}
+
+// FirstDescendantsWith returns a Set that includes every Vertex yielded by
+// walking up from the provided starting Vertex v, and stopping each branch when
+// match returns true. This will return the set of all first descendants
+// encountered which match some criteria.
+func (g *AcyclicGraph) FirstDescendantsWith(v Vertex, match func(Vertex) bool) Set {
+	s := make(Set)
+	searchFunc := func(v Vertex, d int) error {
+		if match(v) {
+			s.Add(v)
+			return errStopWalkBranch
 		}
+
+		return nil
 	}
 
-	if err := g.ReverseDepthFirstWalk(start, memoFunc); err != nil {
-		return nil, err
+	start := make(Set)
+	for _, dep := range g.upEdgesNoCopy(v) {
+		start.Add(dep)
 	}
 
-	return s, nil
+	// our memoFunc doesn't return an error
+	g.ReverseDepthFirstWalk(start, searchFunc)
+
+	return s
+}
+
+// MatchDescendant returns true if the given match function returns true for any
+// descendants of the given Vertex.
+func (g *AcyclicGraph) MatchDescendant(v Vertex, match func(Vertex) bool) bool {
+	var ret bool
+	matchFunc := func(v Vertex, d int) error {
+		if match(v) {
+			ret = true
+			return errStopWalk
+		}
+
+		return nil
+	}
+
+	start := make(Set)
+	for _, dep := range g.upEdgesNoCopy(v) {
+		start.Add(dep)
+	}
+
+	// our memoFunc doesn't return an error
+	g.ReverseDepthFirstWalk(start, matchFunc)
+
+	return ret
 }
 
 // Root returns the root of the DAG, or an error.
@@ -269,6 +366,16 @@ const (
 	upOrder
 )
 
+var (
+	// stopWalkBranch halts the descent in the current branch of the walk
+	// without adding any more edges from the current vertex, and continues with
+	// the next vertex already added to the queue.
+	errStopWalkBranch = errors.New("stop walk branch")
+
+	// stopWalk halts the entire walk.
+	errStopWalk = errors.New("stop walk")
+)
+
 // DepthFirstWalk does a depth-first walk of the graph starting from
 // the vertices in start.
 func (g *AcyclicGraph) DepthFirstWalk(start Set, f DepthWalkFunc) error {
@@ -335,6 +442,12 @@ func (g *AcyclicGraph) walk(order walkType, test bool, start Set, f DepthWalkFun
 
 		// Visit the current node
 		if err := f(current.Vertex, current.Depth); err != nil {
+			switch err {
+			case errStopWalk:
+				return nil
+			case errStopWalkBranch:
+				continue
+			}
 			return err
 		}
 

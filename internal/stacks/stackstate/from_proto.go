@@ -6,109 +6,185 @@ package stackstate
 import (
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
-	"github.com/hashicorp/terraform/internal/states"
 )
 
-// LoadFromProto produces a [State] object by decoding a raw state map.
-//
-// This is the primary way to load a "prior state" provided by a caller
-// into memory so we can use it in the stack runtime.
-func LoadFromProto(msgs map[string]*anypb.Any) (*State, error) {
-	ret := NewState()
-	ret.inputRaw = msgs
-	for rawKey, rawMsg := range msgs {
-		key, err := statekeys.Parse(rawKey)
-		if err != nil {
-			// "invalid" here means that it was either not syntactically
-			// valid at all or was a recognized type but with the wrong
-			// syntax for that type.
-			// An unrecognized key type is NOT invalid; we handle that below.
-			return nil, fmt.Errorf("invalid tracking key %q in state: %w", rawKey, err)
-		}
-
-		if !statekeys.RecognizedType(key) {
-			err = handleUnrecognizedKey(key, ret)
-			if err != nil {
-				return nil, err
-			}
-			continue
-		}
-
-		if rawMsg == nil {
-			// This suggests a state mutation bug where a deleted object was
-			// written as a map entry without a value, as opposed to deleting
-			// the value. We tolerate this here just because otherwise it
-			// would be harder to recover once a state has been mutated
-			// incorrectly.
-			log.Panicf("[WARN] stackstate.LoadFromProto: key %s has no associated object; ignoring", rawKey)
-			continue
-		}
-
-		msg, err := anypb.UnmarshalNew(rawMsg, proto.UnmarshalOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("invalid raw value for raw state key %q: %w", rawKey, err)
-		}
-
-		err = handleProtoMsg(key, msg, ret)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return ret, nil
+// A helper for loading prior state snapshots in a streaming manner.
+type Loader struct {
+	ret *State
+	mu  sync.Mutex
 }
 
-// LoadFromDirectProto is a variation of the primary entry-point [LoadFromProto]
-// which accepts direct messages of the relevant types from the tfstackdata1
-// package, rather than the [anypb.Raw] representation thereof.
+// Constructs a new [Loader], with an initial empty state.
+func NewLoader() *Loader {
+	ret := NewState()
+	ret.inputRaw = make(map[string]*anypb.Any)
+	return &Loader{
+		ret: ret,
+	}
+}
+
+// AddRaw adds a single raw state object to the state being loaded.
+func (l *Loader) AddRaw(rawKey string, rawMsg *anypb.Any) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.ret == nil {
+		return fmt.Errorf("loader has been consumed")
+	}
+
+	if _, exists := l.ret.inputRaw[rawKey]; exists {
+		// This suggests a client bug because the recipient of state events
+		// from ApplyStackChanges is supposed to keep only the latest
+		// object associated with each distinct key.
+		return fmt.Errorf("duplicate raw state object key %q", rawKey)
+	}
+	l.ret.inputRaw[rawKey] = rawMsg
+
+	key, err := statekeys.Parse(rawKey)
+	if err != nil {
+		// "invalid" here means that it was either not syntactically
+		// valid at all or was a recognized type but with the wrong
+		// syntax for that type.
+		// An unrecognized key type is NOT invalid; we handle that below.
+		return fmt.Errorf("invalid tracking key %q in state: %w", rawKey, err)
+	}
+
+	if !statekeys.RecognizedType(key) {
+		err = handleUnrecognizedKey(key, l.ret)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if rawMsg == nil {
+		// This suggests a state mutation bug where a deleted object was
+		// written as a map entry without a value, as opposed to deleting
+		// the value. We tolerate this here just because otherwise it
+		// would be harder to recover once a state has been mutated
+		// incorrectly.
+		log.Panicf("[WARN] stackstate.Loader: key %s has no associated object; ignoring", rawKey)
+		return nil
+	}
+
+	msg, err := anypb.UnmarshalNew(rawMsg, proto.UnmarshalOptions{})
+	if err != nil {
+		return fmt.Errorf("invalid raw value for raw state key %q: %w", rawKey, err)
+	}
+
+	err = handleProtoMsg(key, msg, l.ret)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// AddDirectProto is like AddRaw but accepts direct messages of the relevant types
+// from the tfstackdata1 package, rather than the [anypb.Raw] representation
+// thereof.
 //
 // This is primarily for internal testing purposes, where it's typically more
 // convenient to write out a struct literal for one of the message types
 // directly rather than having to first serialize it to [anypb.Any] only for
 // it to be unserialized again promptly afterwards.
 //
-// Unlike [LoadFromProto], the state object produced by this function will not
-// have any record of the "raw state" it was created from, because this function
-// is bypassing the concept of raw state. [State.InputRaw] will therefore
-// return an empty map.
+// Unlike [Loader.AddRaw], the object added by this function will not have
+// a raw representation recorded in the "raw state" of the final result,
+// because this function is bypassing the concept of raw state. [State.InputRaw]
+// will therefore return a map where the given key is associated with a nil
+// message.
 //
-// Prefer to use [LoadFromProto] when processing user input. This function
-// cannot accept [anypb.Any] messages even though the Go compiler can't enforce
-// that at compile time.
-func LoadFromDirectProto(msgs map[string]protoreflect.ProtoMessage) (*State, error) {
-	ret := NewState()
-	ret.inputRaw = nil // this doesn't get populated by this entry point
-	for keyStr, msg := range msgs {
-		// The following should be equivalent to the similar loop in
-		// [LoadFromProto] except for skipping the parsing/unmarshalling
-		// steps since msg is already in its in-memory form.
-		key, err := statekeys.Parse(keyStr)
+// Prefer to use [Loader.AddRaw] when processing user input. This function
+// cannot accept [anypb.Any] messages even though the Go compiler can't
+// check that at compile time.
+func (l *Loader) AddDirectProto(keyStr string, msg protoreflect.ProtoMessage) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.ret == nil {
+		return fmt.Errorf("loader has been consumed")
+	}
+
+	if _, exists := l.ret.inputRaw[keyStr]; exists {
+		// This suggests a client bug because the recipient of state events
+		// from ApplyStackChanges is supposed to keep only the latest
+		// object associated with each distinct key.
+		return fmt.Errorf("duplicate raw state object key %q", keyStr)
+	}
+	l.ret.inputRaw[keyStr] = nil // this weird entrypoint does not provide raw state
+
+	// The following should be equivalent to the similar logic in
+	// [LoadFromProto] except for skipping the parsing/unmarshalling
+	// steps since msg is already in its in-memory form.
+	key, err := statekeys.Parse(keyStr)
+	if err != nil {
+		return fmt.Errorf("invalid tracking key %q: %w", keyStr, err)
+	}
+	if !statekeys.RecognizedType(key) {
+		err := handleUnrecognizedKey(key, l.ret)
 		if err != nil {
-			return nil, fmt.Errorf("invalid tracking key %q: %w", keyStr, err)
+			return err
 		}
-		if !statekeys.RecognizedType(key) {
-			err := handleUnrecognizedKey(key, ret)
-			if err != nil {
-				return nil, err
-			}
-			continue
-		}
-		err = handleProtoMsg(key, msg, ret)
+		return nil
+	}
+	err = handleProtoMsg(key, msg, l.ret)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// State consumes the loaded state, making the associated loader closed to
+// further additions.
+func (l *Loader) State() *State {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	ret := l.ret
+	l.ret = nil
+	return ret
+}
+
+// LoadFromProto produces a [State] object by decoding a raw state map.
+//
+// This is a helper wrapper around [Loader.AddRaw] for when the state was already
+// loaded into a single map.
+func LoadFromProto(msgs map[string]*anypb.Any) (*State, error) {
+	loader := NewLoader()
+	for rawKey, rawMsg := range msgs {
+		err := loader.AddRaw(rawKey, rawMsg)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return ret, nil
+	return loader.State(), nil
+}
+
+// LoadFromDirectProto is a variation of the primary entry-point [LoadFromProto]
+// which accepts direct messages of the relevant types from the tfstackdata1
+// package, rather than the [anypb.Raw] representation thereof.
+//
+// This is a helper wrapper around [Loader.AddDirectProto] for when the state
+// was already built into a single map.
+func LoadFromDirectProto(msgs map[string]protoreflect.ProtoMessage) (*State, error) {
+	loader := NewLoader()
+	for rawKey, rawMsg := range msgs {
+		err := loader.AddDirectProto(rawKey, rawMsg)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return loader.State(), nil
 }
 
 func handleUnrecognizedKey(key statekeys.Key, state *State) error {
@@ -167,6 +243,12 @@ func handleProtoMsg(key statekeys.Key, msg protoreflect.ProtoMessage, state *Sta
 	case statekeys.ResourceInstanceObject:
 		return handleResourceInstanceObjectMsg(key, msg, state)
 
+	case statekeys.Output:
+		return handleOutputMsg(key, msg, state)
+
+	case statekeys.Variable:
+		return handleVariableMsg(key, msg, state)
+
 	default:
 		// Should not get here: the above should be exhaustive for all
 		// possible key types.
@@ -174,15 +256,89 @@ func handleProtoMsg(key statekeys.Key, msg protoreflect.ProtoMessage, state *Sta
 	}
 }
 
+func handleVariableMsg(key statekeys.Variable, msg protoreflect.ProtoMessage, state *State) error {
+	switch msg := msg.(type) {
+	case *emptypb.Empty:
+		// for backwards compatibility reasons, ephemeral values used to be
+		// stored in state as empty messages. We'll upgrade these to null
+		// values with ephemeral marks.
+		state.addInputVariable(key.VariableAddr, cty.NullVal(cty.DynamicPseudoType))
+		return nil
+	case *tfstackdata1.DynamicValue:
+		value, err := tfstackdata1.DynamicValueFromTFStackData1(msg, cty.DynamicPseudoType)
+		if err != nil {
+			return fmt.Errorf("failed to decode %s: %w", key.VariableAddr, err)
+		}
+		state.addInputVariable(key.VariableAddr, value)
+		return nil
+	default:
+		return fmt.Errorf("unsupported message type %T for %s state", msg, key.VariableAddr)
+	}
+}
+
+func handleOutputMsg(key statekeys.Output, msg protoreflect.ProtoMessage, state *State) error {
+	outputState, ok := msg.(*tfstackdata1.DynamicValue)
+	if !ok {
+		return fmt.Errorf("unsupported message type %T for %s state", msg, key.OutputAddr)
+	}
+
+	value, err := tfstackdata1.DynamicValueFromTFStackData1(outputState, cty.DynamicPseudoType)
+	if err != nil {
+		return fmt.Errorf("failed to decode %s: %w", key.OutputAddr, err)
+	}
+
+	state.addOutputValue(key.OutputAddr, value)
+	return nil
+}
+
 func handleComponentInstanceMsg(key statekeys.ComponentInstance, msg protoreflect.ProtoMessage, state *State) error {
 	// For this particular object type all of the information is in the key,
 	// for now at least.
-	_, ok := msg.(*tfstackdata1.StateComponentInstanceV1)
+	componentState, ok := msg.(*tfstackdata1.StateComponentInstanceV1)
 	if !ok {
 		return fmt.Errorf("unsupported message type %T for %s state", msg, key.ComponentInstanceAddr)
 	}
 
-	state.ensureComponentInstanceState(key.ComponentInstanceAddr)
+	instance := state.ensureComponentInstanceState(key.ComponentInstanceAddr)
+
+	for _, addr := range componentState.DependencyAddrs {
+		stackaddr, diags := stackaddrs.ParseAbsComponentInstanceStr(addr)
+		if diags.HasErrors() {
+			return fmt.Errorf("invalid required component address %q for %s", addr, key.ComponentInstanceAddr)
+		}
+		instance.dependencies.Add(stackaddrs.AbsComponent{
+			Stack: stackaddr.Stack,
+			Item:  stackaddr.Item.Component,
+		})
+	}
+
+	for _, addr := range componentState.DependentAddrs {
+		stackaddr, diags := stackaddrs.ParseAbsComponentInstanceStr(addr)
+		if diags.HasErrors() {
+			return fmt.Errorf("invalid required component address %q for %s", addr, key.ComponentInstanceAddr)
+		}
+		instance.dependents.Add(stackaddrs.AbsComponent{
+			Stack: stackaddr.Stack,
+			Item:  stackaddr.Item.Component,
+		})
+	}
+
+	for name, output := range componentState.OutputValues {
+		value, err := tfstackdata1.DynamicValueFromTFStackData1(output, cty.DynamicPseudoType)
+		if err != nil {
+			return fmt.Errorf("decoding output value %q for %s: %w", name, key.ComponentInstanceAddr, err)
+		}
+		instance.outputValues[addrs.OutputValue{Name: name}] = value
+	}
+
+	for name, input := range componentState.InputVariables {
+		value, err := tfstackdata1.DynamicValueFromTFStackData1(input, cty.DynamicPseudoType)
+		if err != nil {
+			return fmt.Errorf("decoding input value %q for %s: %w", name, key.ComponentInstanceAddr, err)
+		}
+		instance.inputVariables[addrs.InputVariable{Name: name}] = value
+	}
+
 	return nil
 }
 
@@ -200,7 +356,7 @@ func handleResourceInstanceObjectMsg(key statekeys.ResourceInstanceObject, msg p
 		return fmt.Errorf("unsupported message type %T for state of %s", msg, fullAddr.String())
 	}
 
-	objSrc, err := DecodeProtoResourceInstanceObject(riMsg)
+	objSrc, err := tfstackdata1.DecodeProtoResourceInstanceObject(riMsg)
 	if err != nil {
 		return fmt.Errorf("invalid stored state object for %s: %w", fullAddr, err)
 	}
@@ -212,51 +368,4 @@ func handleResourceInstanceObjectMsg(key statekeys.ResourceInstanceObject, msg p
 
 	state.addResourceInstanceObject(fullAddr, objSrc, providerConfigAddr)
 	return nil
-}
-
-func DecodeProtoResourceInstanceObject(protoObj *tfstackdata1.StateResourceInstanceObjectV1) (*states.ResourceInstanceObjectSrc, error) {
-	objSrc := &states.ResourceInstanceObjectSrc{
-		SchemaVersion:       protoObj.SchemaVersion,
-		AttrsJSON:           protoObj.ValueJson,
-		CreateBeforeDestroy: protoObj.CreateBeforeDestroy,
-		Private:             protoObj.ProviderSpecificData,
-	}
-
-	switch protoObj.Status {
-	case tfstackdata1.StateResourceInstanceObjectV1_READY:
-		objSrc.Status = states.ObjectReady
-	case tfstackdata1.StateResourceInstanceObjectV1_DAMAGED:
-		objSrc.Status = states.ObjectTainted
-	default:
-		return nil, fmt.Errorf("unsupported status %s", protoObj.Status.String())
-	}
-
-	paths := make([]cty.Path, 0, len(protoObj.SensitivePaths))
-	for _, p := range protoObj.SensitivePaths {
-		path, err := planfile.PathFromProto(p)
-		if err != nil {
-			return nil, err
-		}
-		paths = append(paths, path)
-	}
-	objSrc.AttrSensitivePaths = paths
-
-	if len(protoObj.Dependencies) != 0 {
-		objSrc.Dependencies = make([]addrs.ConfigResource, len(protoObj.Dependencies))
-		for i, raw := range protoObj.Dependencies {
-			instAddr, diags := addrs.ParseAbsResourceInstanceStr(raw)
-			if diags.HasErrors() {
-				return nil, fmt.Errorf("invalid dependency %q", raw)
-			}
-			// We used the resource instance address parser here but we
-			// actually want the "config resource" subset of that syntax only.
-			configAddr := instAddr.ConfigResource()
-			if configAddr.String() != instAddr.String() {
-				return nil, fmt.Errorf("invalid dependency %q", raw)
-			}
-			objSrc.Dependencies[i] = configAddr
-		}
-	}
-
-	return objSrc, nil
 }

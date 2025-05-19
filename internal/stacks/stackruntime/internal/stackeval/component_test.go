@@ -26,8 +26,8 @@ import (
 // those so there is _some_ coverage of that in here.
 func TestComponentCheckInstances(t *testing.T) {
 	getComponent := func(ctx context.Context, main *Main) *Component {
-		mainStack := main.MainStack(ctx)
-		component := mainStack.Component(ctx, stackaddrs.Component{Name: "foo"})
+		mainStack := main.MainStack()
+		component := mainStack.Component(stackaddrs.Component{Name: "foo"})
 		if component == nil {
 			t.Fatal("component.foo does not exist, but it should exist")
 		}
@@ -238,8 +238,8 @@ func TestComponentCheckInstances(t *testing.T) {
 
 func TestComponentResultValue(t *testing.T) {
 	getComponent := func(ctx context.Context, t *testing.T, main *Main) *Component {
-		mainStack := main.MainStack(ctx)
-		component := mainStack.Component(ctx, stackaddrs.Component{Name: "foo"})
+		mainStack := main.MainStack()
+		component := mainStack.Component(stackaddrs.Component{Name: "foo"})
 		if component == nil {
 			t.Fatal("component.foo does not exist, but it should exist")
 		}
@@ -260,11 +260,11 @@ func TestComponentResultValue(t *testing.T) {
 		component := getComponent(ctx, t, main)
 		got := component.ResultValue(ctx, InspectPhase)
 		want := cty.ObjectVal(map[string]cty.Value{
-			// FIXME: This currently returns empty object because we
+			// FIXME: This currently returns an unknown value because we
 			// aren't tracking component output values in prior state.
 			// Once we fix that, we should see an output value called "test"
 			// here.
-			//"test": cty.StringVal("hello"),
+			"test": cty.DynamicVal,
 		})
 		if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
 			t.Fatalf("wrong result\n%s", diff)
@@ -308,16 +308,18 @@ func TestComponentResultValue(t *testing.T) {
 			got := component.ResultValue(ctx, InspectPhase)
 			want := cty.ObjectVal(map[string]cty.Value{
 				"a": cty.ObjectVal(map[string]cty.Value{
-					// FIXME: This currently returns empty object because we
+					// FIXME: This currently returns an unknown value because we
 					// aren't tracking component output values in prior state.
 					// Once we fix that, we should see an output value called "test"
 					// here.
+					"test": cty.DynamicVal,
 				}),
 				"b": cty.ObjectVal(map[string]cty.Value{
-					// FIXME: This currently returns empty object because we
+					// FIXME: This currently returns an unknown value because we
 					// aren't tracking component output values in prior state.
 					// Once we fix that, we should see an output value called "test"
 					// here.
+					"test": cty.DynamicVal,
 				}),
 			})
 			// FIXME: the cmp transformer ctydebug.CmpOptions seems to find

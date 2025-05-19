@@ -7,7 +7,7 @@ description: >-
 
 # The `terraform_remote_state` Data Source
 
-[backends]: /terraform/language/settings/backends/configuration
+[backends]: /terraform/language/backend
 
 The `terraform_remote_state` data source uses the latest state snapshot from a specified state backend to retrieve the root module output values
 from some other Terraform configuration.
@@ -153,7 +153,7 @@ The following arguments are supported:
 
   The `config` object can use any arguments that would be valid in the
   equivalent `terraform { backend "<TYPE>" { ... } }` block. See
-  [the documentation of your chosen backend](/terraform/language/settings/backends/configuration)
+  [the documentation of your chosen backend](/terraform/language/backend)
   for details.
 
   -> **Note:** If the backend configuration requires a nested block, specify

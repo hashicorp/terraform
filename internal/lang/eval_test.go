@@ -37,6 +37,9 @@ func TestScopeEvalContext(t *testing.T) {
 			"data.null_data_source.foo": cty.ObjectVal(map[string]cty.Value{
 				"attr": cty.StringVal("bar"),
 			}),
+			"ephemeral.null_secret.foo": cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.StringVal("ephemeral"),
+			}),
 			"null_resource.multi": cty.TupleVal([]cty.Value{
 				cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("multi0"),
@@ -315,6 +318,18 @@ func TestScopeEvalContext(t *testing.T) {
 					"null_data_source": cty.ObjectVal(map[string]cty.Value{
 						"foo": cty.ObjectVal(map[string]cty.Value{
 							"attr": cty.StringVal("bar"),
+						}),
+					}),
+				}),
+			},
+		},
+		{
+			Expr: `ephemeral.null_secret.foo`,
+			Want: map[string]cty.Value{
+				"ephemeral": cty.ObjectVal(map[string]cty.Value{
+					"null_secret": cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.ObjectVal(map[string]cty.Value{
+							"attr": cty.StringVal("ephemeral"),
 						}),
 					}),
 				}),

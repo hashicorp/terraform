@@ -170,13 +170,26 @@ func parseResourceInstanceUnderModule(moduleAddr ModuleInstance, allowPartial bo
 	var diags tfdiags.Diagnostics
 
 	mode := ManagedResourceMode
-	if remain.RootName() == "data" {
+	switch remain.RootName() {
+	case "data":
 		mode = DataResourceMode
 		remain = remain[1:]
-	} else if remain.RootName() == "resource" {
+	case "ephemeral":
+		mode = EphemeralResourceMode
+		remain = remain[1:]
+	case "resource":
 		// Starting a resource address with "resource" is optional, so we'll
 		// just ignore it.
 		remain = remain[1:]
+	case "count", "each", "local", "module", "path", "self", "terraform", "var", "template", "lazy", "arg":
+		// These are all reserved words that are not valid as resource types.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid address",
+			Detail:   fmt.Sprintf("The keyword %q is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with \"resource.\".", remain.RootName()),
+			Subject:  remain.SourceRange().Ptr(),
+		})
+		return AbsResourceInstance{}, diags
 	}
 
 	if len(remain) < 2 {
@@ -209,6 +222,13 @@ func parseResourceInstanceUnderModule(moduleAddr ModuleInstance, allowPartial bo
 				Severity: hcl.DiagError,
 				Summary:  "Invalid address",
 				Detail:   "A data source name is required.",
+				Subject:  remain[0].SourceRange().Ptr(),
+			})
+		case EphemeralResourceMode:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid address",
+				Detail:   "An ephemeral resource type name is required.",
 				Subject:  remain[0].SourceRange().Ptr(),
 			})
 		default:

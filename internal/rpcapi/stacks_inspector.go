@@ -14,10 +14,8 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime"
@@ -39,13 +37,13 @@ type stacksInspector struct {
 
 // InspectExpressionResult evaluates a given expression string in the
 // inspection environment represented by the receiver.
-func (i *stacksInspector) InspectExpressionResult(ctx context.Context, req *terraform1.InspectExpressionResult_Request) (*terraform1.InspectExpressionResult_Response, error) {
+func (i *stacksInspector) InspectExpressionResult(ctx context.Context, req *stacks.InspectExpressionResult_Request) (*stacks.InspectExpressionResult_Response, error) {
 	var diags tfdiags.Diagnostics
 
 	expr, hclDiags := hclsyntax.ParseExpression(req.ExpressionSrc, "<external expression>", hcl.InitialPos)
 	diags = diags.Append(hclDiags)
 	if diags.HasErrors() {
-		return &terraform1.InspectExpressionResult_Response{
+		return &stacks.InspectExpressionResult_Response{
 			Diagnostics: diagnosticsToProto(diags),
 		}, nil
 	}
@@ -69,23 +67,12 @@ func (i *stacksInspector) InspectExpressionResult(ctx context.Context, req *terr
 	diags = diags.Append(moreDiags)
 	if val == cty.NilVal {
 		// Too invalid to return any value at all, then.
-		return &terraform1.InspectExpressionResult_Response{
+		return &stacks.InspectExpressionResult_Response{
 			Diagnostics: diagnosticsToProto(diags),
 		}, nil
 	}
 
-	val, markses := val.UnmarkDeepWithPaths()
-	sensitivePaths, otherMarkses := marks.PathsWithMark(markses, marks.Sensitive)
-	if len(otherMarkses) != 0 {
-		// Any other marks should've been dealt with by the stacks runtime
-		// before getting here, since we only know how to preserve the sensitive
-		// marking.
-		return nil, fmt.Errorf(
-			"%s: unhandled value marks %#v (this is a bug in Terraform)",
-			tfdiags.FormatCtyPath(otherMarkses[0].Path), otherMarkses[0].Marks,
-		)
-	}
-	valRaw, err := plans.NewDynamicValue(val, cty.DynamicPseudoType)
+	result, err := stacks.ToDynamicValue(val, cty.DynamicPseudoType)
 	if err != nil {
 		// We might get here if the result was of a type we cannot send
 		// over the wire, such as a reference to a provider configuration.
@@ -94,13 +81,10 @@ func (i *stacksInspector) InspectExpressionResult(ctx context.Context, req *terr
 			"Result is not serializable",
 			fmt.Sprintf("Cannot return the result of the given expression: %s.", err),
 		))
-		return &terraform1.InspectExpressionResult_Response{
-			Diagnostics: diagnosticsToProto(diags),
-		}, nil
 	}
 
-	return &terraform1.InspectExpressionResult_Response{
-		Result:      terraform1.NewDynamicValue(valRaw, sensitivePaths),
+	return &stacks.InspectExpressionResult_Response{
+		Result:      result,
 		Diagnostics: diagnosticsToProto(diags),
 	}, nil
 }

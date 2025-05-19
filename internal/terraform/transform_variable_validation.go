@@ -53,6 +53,7 @@ var _ graphNodeValidatableVariable = (*nodeExpandModuleVariable)(nil)
 // with the new [nodeVariableValidation] nodes to prevent downstream nodes
 // from relying on unvalidated values.
 type variableValidationTransformer struct {
+	validateWalk bool
 }
 
 var _ GraphTransformer = (*variableValidationTransformer)(nil)
@@ -67,9 +68,10 @@ func (t *variableValidationTransformer) Transform(g *Graph) error {
 
 		configAddr, rules, defnRange := v.variableValidationRules()
 		newV := &nodeVariableValidation{
-			configAddr: configAddr,
-			rules:      rules,
-			defnRange:  defnRange,
+			configAddr:   configAddr,
+			rules:        rules,
+			defnRange:    defnRange,
+			validateWalk: t.validateWalk,
 		}
 
 		if len(rules) != 0 {

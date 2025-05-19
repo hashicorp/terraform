@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -21,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -32,14 +34,15 @@ type ContextGraphWalker struct {
 
 	// Configurable values
 	Context                 *Context
-	State                   *states.SyncState   // Used for safe concurrent access to state
-	RefreshState            *states.SyncState   // Used for safe concurrent access to state
-	PrevRunState            *states.SyncState   // Used for safe concurrent access to state
-	Changes                 *plans.ChangesSync  // Used for safe concurrent writes to changes
-	Checks                  *checks.State       // Used for safe concurrent writes of checkable objects and their check results
-	NamedValues             *namedvals.State    // Tracks evaluation of input variables, local values, and output values
-	InstanceExpander        *instances.Expander // Tracks our gradual expansion of module and resource instances
-	Deferrals               *deferring.Deferred // Tracks any deferred actions
+	State                   *states.SyncState    // Used for safe concurrent access to state
+	RefreshState            *states.SyncState    // Used for safe concurrent access to state
+	PrevRunState            *states.SyncState    // Used for safe concurrent access to state
+	Changes                 *plans.ChangesSync   // Used for safe concurrent writes to changes
+	Checks                  *checks.State        // Used for safe concurrent writes of checkable objects and their check results
+	NamedValues             *namedvals.State     // Tracks evaluation of input variables, local values, and output values
+	InstanceExpander        *instances.Expander  // Tracks our gradual expansion of module and resource instances
+	Deferrals               *deferring.Deferred  // Tracks any deferred actions
+	EphemeralResources      *ephemeral.Resources // Tracks active instances of ephemeral resources
 	Imports                 []configs.Import
 	MoveResults             refactoring.MoveResults // Read-only record of earlier processing of move statements
 	Operation               walkOperation
@@ -48,22 +51,25 @@ type ContextGraphWalker struct {
 	Config                  *configs.Config
 	PlanTimestamp           time.Time
 	Overrides               *mocking.Overrides
+	// Forget if set to true will cause the plan to forget all resources. This is
+	// only allowd in the context of a destroy plan.
+	Forget bool
 
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
 	NonFatalDiagnostics tfdiags.Diagnostics
 
-	once                sync.Once
-	contexts            collections.Map[evalContextScope, *BuiltinEvalContext]
-	contextLock         sync.Mutex
-	providerCache       map[string]providers.Interface
-	providerFuncCache   map[string]providers.Interface
-	providerFuncResults *providers.FunctionResults
-	providerSchemas     map[string]providers.ProviderSchema
-	providerLock        sync.Mutex
-	provisionerCache    map[string]provisioners.Interface
-	provisionerSchemas  map[string]*configschema.Block
-	provisionerLock     sync.Mutex
+	once               sync.Once
+	contexts           collections.Map[evalContextScope, *BuiltinEvalContext]
+	contextLock        sync.Mutex
+	providerCache      map[string]providers.Interface
+	providerFuncCache  map[string]providers.Interface
+	functionResults    *lang.FunctionResults
+	providerSchemas    map[string]providers.ProviderSchema
+	providerLock       sync.Mutex
+	provisionerCache   map[string]provisioners.Interface
+	provisionerSchemas map[string]*configschema.Block
+	provisionerLock    sync.Mutex
 }
 
 var _ GraphWalker = (*ContextGraphWalker)(nil)
@@ -95,29 +101,32 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 	// so that we can safely run multiple evaluations at once across
 	// different modules.
 	evaluator := &Evaluator{
-		Meta:          w.Context.meta,
-		Config:        w.Config,
-		Operation:     w.Operation,
-		State:         w.State,
-		Changes:       w.Changes,
-		Plugins:       w.Context.plugins,
-		Instances:     w.InstanceExpander,
-		NamedValues:   w.NamedValues,
-		Deferrals:     w.Deferrals,
-		PlanTimestamp: w.PlanTimestamp,
+		Meta:               w.Context.meta,
+		Config:             w.Config,
+		Operation:          w.Operation,
+		State:              w.State,
+		Changes:            w.Changes,
+		EphemeralResources: w.EphemeralResources,
+		Plugins:            w.Context.plugins,
+		Instances:          w.InstanceExpander,
+		NamedValues:        w.NamedValues,
+		Deferrals:          w.Deferrals,
+		PlanTimestamp:      w.PlanTimestamp,
+		FunctionResults:    w.functionResults,
 	}
 
 	ctx := &BuiltinEvalContext{
 		StopContext:             w.StopContext,
 		Hooks:                   w.Context.hooks,
 		InputValue:              w.Context.uiInput,
+		EphemeralResourcesValue: w.EphemeralResources,
 		InstanceExpanderValue:   w.InstanceExpander,
 		Plugins:                 w.Context.plugins,
 		ExternalProviderConfigs: w.ExternalProviderConfigs,
 		MoveResultsValue:        w.MoveResults,
 		ProviderCache:           w.providerCache,
 		ProviderFuncCache:       w.providerFuncCache,
-		ProviderFuncResults:     w.providerFuncResults,
+		FunctionResults:         w.functionResults,
 		ProviderInputConfig:     w.Context.providerInputConfig,
 		ProviderLock:            &w.providerLock,
 		ProvisionerCache:        w.provisionerCache,
@@ -131,6 +140,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		PrevRunStateValue:       w.PrevRunState,
 		Evaluator:               evaluator,
 		OverrideValues:          w.Overrides,
+		forget:                  w.Forget,
 	}
 
 	return ctx

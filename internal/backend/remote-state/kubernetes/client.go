@@ -26,6 +26,8 @@ import (
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 
+	"maps"
+
 	coordinationv1 "k8s.io/api/coordination/v1"
 	coordinationclientv1 "k8s.io/client-go/kubernetes/typed/coordination/v1"
 )
@@ -102,6 +104,8 @@ func (c *RemoteClient) getSecrets() ([]unstructured.Unstructured, error) {
 	for _, item := range res.Items {
 		name := item.GetName()
 		nameParts := strings.Split(name, "-")
+		// Because large Terraform state files are split into multiple secrets,
+		// we parse the index from the secret name.
 		index, err := strconv.Atoi(nameParts[len(nameParts)-1])
 		if err != nil {
 			index = 0
@@ -349,12 +353,7 @@ func (c *RemoteClient) getLabels() map[string]string {
 		tfstateWorkspaceKey:    c.workspace,
 		managedByKey:           "terraform",
 	}
-
-	if len(c.labels) != 0 {
-		for k, v := range c.labels {
-			l[k] = v
-		}
-	}
+	maps.Copy(l, c.labels)
 
 	return l
 }

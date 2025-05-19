@@ -1,0 +1,32 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+changesDir: .changes
+unreleasedDir: v1.13
+versionFooterPath: version_footer.tpl.md
+changelogPath: CHANGELOG.md
+versionExt: md
+versionFormat: '## {{.Version}} ({{.Time.Format "January 2, 2006"}})'
+kindFormat: "{{.Kind}}:"
+changeFormat: "* {{.Body}} {{- if .Custom.Issue }} ([#{{.Custom.Issue}}](https://github.com/hashicorp/terraform/issues/{{.Custom.Issue}})){{- end}}"
+custom:
+    - key: Issue
+      label: Issue/PR Number
+      type: int
+      minInt: 1
+kinds:
+    - label: NEW FEATURES
+    - label: ENHANCEMENTS
+    - label: BUG FIXES
+    - label: NOTES
+    - label: UPGRADE NOTES
+    - label: BREAKING CHANGES
+newlines:
+    afterChangelogHeader: 0
+    beforeKind: 1
+    afterKind: 1
+    afterChange: 1
+    afterVersion: 1
+    beforeChangelogVersion: 0
+    endOfVersion: 2
+envPrefix: CHANGIE_

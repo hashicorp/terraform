@@ -89,7 +89,7 @@ func TestParseApply_basicValid(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, diags := ParseApply(tc.args)
-			if len(diags) > 0 {
+			if len(diags) > 0 && diags.HasErrors() {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
 			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
@@ -123,7 +123,7 @@ func TestParseApply_json(t *testing.T) {
 			got, diags := ParseApply(tc.args)
 
 			if tc.wantSuccess {
-				if len(diags) > 0 {
+				if len(diags) > 0 && diags.HasErrors() {
 					t.Errorf("unexpected diags: %v", diags)
 				}
 			} else {
@@ -200,7 +200,7 @@ func TestParseApply_targets(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, diags := ParseApply(tc.args)
-			if len(diags) > 0 {
+			if len(diags) > 0 && diags.HasErrors() {
 				if tc.wantErr == "" {
 					t.Fatalf("unexpected diags: %v", diags)
 				} else if got := diags.Err().Error(); !strings.Contains(got, tc.wantErr) {
@@ -259,7 +259,7 @@ func TestParseApply_replace(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, diags := ParseApply(tc.args)
-			if len(diags) > 0 {
+			if len(diags) > 0 && diags.HasErrors() {
 				if tc.wantErr == "" {
 					t.Fatalf("unexpected diags: %v", diags)
 				} else if got := diags.Err().Error(); !strings.Contains(got, tc.wantErr) {
@@ -311,7 +311,7 @@ func TestParseApply_vars(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, diags := ParseApply(tc.args)
-			if len(diags) > 0 {
+			if len(diags) > 0 && diags.HasErrors() {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
 			if vars := got.Vars.All(); !cmp.Equal(vars, tc.want) {
@@ -366,7 +366,7 @@ func TestParseApplyDestroy_basicValid(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, diags := ParseApplyDestroy(tc.args)
-			if len(diags) > 0 {
+			if len(diags) > 0 && diags.HasErrors() {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
 			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {

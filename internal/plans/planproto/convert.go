@@ -75,6 +75,8 @@ func NewAction(action plans.Action) Action {
 		return Action_DELETE_THEN_CREATE
 	case plans.CreateThenDelete:
 		return Action_CREATE_THEN_DELETE
+	case plans.Forget:
+		return Action_FORGET
 	default:
 		// The above should be exhaustive for all possible actions
 		panic(fmt.Sprintf("unsupported change action %s", action))
@@ -97,7 +99,35 @@ func FromAction(protoAction Action) (plans.Action, error) {
 		return plans.DeleteThenCreate, nil
 	case Action_CREATE_THEN_DELETE:
 		return plans.CreateThenDelete, nil
+	case Action_FORGET:
+		return plans.Forget, nil
 	default:
 		return plans.NoOp, fmt.Errorf("unsupported action %s", protoAction)
+	}
+}
+
+func NewMode(mode plans.Mode) (Mode, error) {
+	switch mode {
+	case plans.NormalMode:
+		return Mode_NORMAL, nil
+	case plans.RefreshOnlyMode:
+		return Mode_REFRESH_ONLY, nil
+	case plans.DestroyMode:
+		return Mode_DESTROY, nil
+	default:
+		return Mode_NORMAL, fmt.Errorf("unsupported mode %s", mode)
+	}
+}
+
+func FromMode(protoMode Mode) (plans.Mode, error) {
+	switch protoMode {
+	case Mode_NORMAL:
+		return plans.NormalMode, nil
+	case Mode_REFRESH_ONLY:
+		return plans.RefreshOnlyMode, nil
+	case Mode_DESTROY:
+		return plans.DestroyMode, nil
+	default:
+		return plans.NormalMode, fmt.Errorf("unsupported mode %s", protoMode)
 	}
 }

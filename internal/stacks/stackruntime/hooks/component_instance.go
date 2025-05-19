@@ -5,7 +5,7 @@ package hooks
 
 import (
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
 
@@ -15,7 +15,7 @@ import (
 // types, and the others will be used only for one of plan or apply.
 type ComponentInstanceStatus rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=ComponentInstanceStatus component_instance.go
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=ComponentInstanceStatus component_instance.go
 
 const (
 	ComponentInstanceStatusInvalid ComponentInstanceStatus = 0
@@ -25,25 +25,28 @@ const (
 	ComponentInstanceApplying      ComponentInstanceStatus = 'a'
 	ComponentInstanceApplied       ComponentInstanceStatus = 'A'
 	ComponentInstanceErrored       ComponentInstanceStatus = 'E'
+	ComponentInstanceDeferred      ComponentInstanceStatus = 'D'
 )
 
 // TODO: move this into the rpcapi package somewhere
-func (s ComponentInstanceStatus) ForProtobuf() terraform1.StackChangeProgress_ComponentInstanceStatus_Status {
+func (s ComponentInstanceStatus) ForProtobuf() stacks.StackChangeProgress_ComponentInstanceStatus_Status {
 	switch s {
 	case ComponentInstancePending:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_PENDING
+		return stacks.StackChangeProgress_ComponentInstanceStatus_PENDING
 	case ComponentInstancePlanning:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_PLANNING
+		return stacks.StackChangeProgress_ComponentInstanceStatus_PLANNING
 	case ComponentInstancePlanned:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_PLANNED
+		return stacks.StackChangeProgress_ComponentInstanceStatus_PLANNED
 	case ComponentInstanceApplying:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_APPLYING
+		return stacks.StackChangeProgress_ComponentInstanceStatus_APPLYING
 	case ComponentInstanceApplied:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_APPLIED
+		return stacks.StackChangeProgress_ComponentInstanceStatus_APPLIED
 	case ComponentInstanceErrored:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_ERRORED
+		return stacks.StackChangeProgress_ComponentInstanceStatus_ERRORED
+	case ComponentInstanceDeferred:
+		return stacks.StackChangeProgress_ComponentInstanceStatus_DEFERRED
 	default:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_INVALID
+		return stacks.StackChangeProgress_ComponentInstanceStatus_INVALID
 	}
 }
 

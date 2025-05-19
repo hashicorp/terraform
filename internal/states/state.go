@@ -173,6 +173,14 @@ func (s *State) HasManagedResourceInstanceObjects() bool {
 	return false
 }
 
+// HasRootOutputValues returns true if there's at least one root output value in the receiving state.
+func (s *State) HasRootOutputValues() bool {
+	if s == nil {
+		return false
+	}
+	return len(s.RootOutputValues) > 0
+}
+
 // Resource returns the state for the resource with the given address, or nil
 // if no such resource is tracked in the state.
 func (s *State) Resource(addr addrs.AbsResource) *Resource {

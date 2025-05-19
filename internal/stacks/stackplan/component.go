@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/states"
@@ -24,6 +25,7 @@ import (
 // a single operation.
 type Component struct {
 	PlannedAction plans.Action
+	Mode          plans.Mode
 
 	// These fields echo the [plans.Plan.Applyable] and [plans.Plan.Complete]
 	// field respectively. See the docs for those fields for more information.
@@ -64,6 +66,16 @@ type Component struct {
 	// be destroyed.
 	Dependents collections.Set[stackaddrs.AbsComponent]
 
+	// PlannedFunctionResults is a shared table of results from calling
+	// provider functions. This is stored and loaded from during the planning
+	// stage to use during apply operations.
+	PlannedFunctionResults []lang.FunctionResultHash
+
+	// PlannedInputValues and PlannedInputValueMarks are the values that
+	// Terraform has planned to use for input variables in this component.
+	PlannedInputValues     map[addrs.InputVariable]plans.DynamicValue
+	PlannedInputValueMarks map[addrs.InputVariable][]cty.PathValueMarks
+
 	PlannedOutputValues map[addrs.OutputValue]cty.Value
 
 	PlannedChecks *states.CheckResults
@@ -84,20 +96,21 @@ type Component struct {
 // with the given previous run state, which should not happen if the caller
 // is using Terraform Core correctly.
 func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
-	changes := plans.NewChanges()
+	changes := &plans.ChangesSrc{}
 	plan := &plans.Plan{
-		Changes:   changes,
-		Timestamp: c.PlanTimestamp,
-		Applyable: c.PlanApplyable,
-		Complete:  c.PlanComplete,
-		Checks:    c.PlannedChecks,
+		UIMode:          c.Mode,
+		Changes:         changes,
+		Timestamp:       c.PlanTimestamp,
+		Applyable:       c.PlanApplyable,
+		Complete:        c.PlanComplete,
+		Checks:          c.PlannedChecks,
+		FunctionResults: c.PlannedFunctionResults,
 	}
 
-	sc := changes.SyncWrapper()
 	for _, elem := range c.ResourceInstancePlanned.Elems {
 		changeSrc := elem.Value
 		if changeSrc != nil {
-			sc.AppendResourceInstanceChange(changeSrc)
+			changes.Resources = append(changes.Resources, changeSrc)
 		}
 	}
 
@@ -116,6 +129,17 @@ func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 			ss.SetResourceInstanceDeposed(addr.ResourceInstance, addr.DeposedKey, stateSrc, providerConfigAddr)
 		}
 	}
+
+	variableValues := make(map[string]plans.DynamicValue, len(c.PlannedInputValues))
+	variableMarks := make(map[string][]cty.PathValueMarks, len(c.PlannedInputValueMarks))
+	for k, v := range c.PlannedInputValues {
+		variableValues[k.Name] = v
+	}
+	plan.VariableValues = variableValues
+	for k, v := range c.PlannedInputValueMarks {
+		variableMarks[k.Name] = v
+	}
+	plan.VariableMarks = variableMarks
 
 	plan.PriorState = priorState
 	plan.PrevRunState = priorState.DeepCopy() // This is just here to complete the data structure; we don't really do anything with it

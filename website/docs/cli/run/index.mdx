@@ -1,25 +1,28 @@
 ---
-page_title: Provisioning Infrastructure - Terraform CLI
-description: 'Learn about commands for core provisioning tasks: plan, apply, and destroy.'
+page_title: Terraform workflow for provisioning infrastructure
+description: Learn how to use the Terraform CLI to provision infrastructure.
 ---
 
-# Provisioning Infrastructure with Terraform
+# Terraform workflow for provisioning infrastructure 
 
-Terraform's primary function is to create, modify, and destroy infrastructure
+This topic provides overview information about the Terraform workflow for provisioning infrastructure using the Terraform CLI.
+
+## Workflows
+
+You can use Terraform to create, modify, and destroy infrastructure
 resources to match the desired state described in a
-[Terraform configuration](/terraform/language).
+[Terraform configuration](/terraform/language). The
+Terraform binary includes commands and subcommands for a wide variety of infrastructure lifecycle management
+actions, but the following commands provide basic provisioning tasks: 
 
-When people refer to "running Terraform," they generally mean performing these
-provisioning actions in order to affect real infrastructure objects. The
-Terraform binary has many other subcommands for a wide variety of administrative
-actions, but these basic provisioning tasks are the core of Terraform.
+- `terrafrom plan` 
+- `terraform apply`
+- `terraform destroy` 
 
-Terraform's provisioning workflow relies on three commands: `plan`, `apply`, and
-`destroy`. All of these commands require an
-[initialized](/terraform/cli/init) working directory, and all of them act
+All of these commands require an [initialized](/terraform/cli/init) working directory, and all of them act
 only upon the currently selected [workspace](/terraform/cli/workspaces).
 
-## Planning
+### Plan
 
 The `terraform plan` command evaluates a Terraform configuration to determine
 the desired state of all the resources it declares, then compares that desired
@@ -40,7 +43,7 @@ exact changes.
 
 For details, see [the `terraform plan` command](/terraform/cli/commands/plan).
 
-## Applying
+### Apply
 
 The `terraform apply` command performs a plan just like `terraform plan` does,
 but then actually carries out the planned changes to each resource using the
@@ -56,7 +59,7 @@ infrastructure has changed in the minutes since the original plan was created.
 
 For details, see [the `terraform apply` command](/terraform/cli/commands/apply).
 
-## Destroying
+### Destroy
 
 The `terraform destroy` command destroys all of the resources being managed by
 the current working directory and workspace, using state data to determine which

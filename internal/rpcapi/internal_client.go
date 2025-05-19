@@ -8,10 +8,14 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
+
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/dependencies"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/packages"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/setup"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 )
 
 // Client is a client for the RPC API.
@@ -24,7 +28,7 @@ type Client struct {
 	conn *grpc.ClientConn
 	// serverCaps should be from the result of the Setup.Handshake call
 	// previously made to the server that conn is connected to.
-	serverCaps *terraform1.ServerCapabilities
+	serverCaps *setup.ServerCapabilities
 
 	close func(context.Context) error
 }
@@ -39,7 +43,7 @@ type Client struct {
 //
 // Callers should call the Close method of the returned client once they are
 // done using it, or else they will leak goroutines.
-func NewInternalClient(ctx context.Context, clientCaps *terraform1.ClientCapabilities) (*Client, error) {
+func NewInternalClient(ctx context.Context, clientCaps *setup.ClientCapabilities) (*Client, error) {
 	fakeListener := bufconn.Listen(4 * 1024 * 1024 /* buffer size */)
 	srv := grpc.NewServer()
 	registerGRPCServices(srv, &serviceOpts{})
@@ -68,8 +72,8 @@ func NewInternalClient(ctx context.Context, clientCaps *terraform1.ClientCapabil
 	// immediately use the main services. (The caller would otherwise need
 	// to do this immediately on return anyway, or the result would be
 	// useless.)
-	setupClient := terraform1.NewSetupClient(clientConn)
-	setupResp, err := setupClient.Handshake(ctx, &terraform1.Handshake_Request{
+	setupClient := setup.NewSetupClient(clientConn)
+	setupResp, err := setupClient.Handshake(ctx, &setup.Handshake_Request{
 		Capabilities: clientCaps,
 	})
 	if err != nil {
@@ -108,21 +112,21 @@ func (c *Client) Close(ctx context.Context) error {
 // ServerCapabilities returns the server's response to capability negotiation.
 //
 // Callers must not modify anything reachable through the returned pointer.
-func (c *Client) ServerCapabilities() *terraform1.ServerCapabilities {
+func (c *Client) ServerCapabilities() *setup.ServerCapabilities {
 	return c.serverCaps
 }
 
 // Dependencies returns a client for the Dependencies service of the RPC API.
-func (c *Client) Dependencies() terraform1.DependenciesClient {
-	return terraform1.NewDependenciesClient(c.conn)
+func (c *Client) Dependencies() dependencies.DependenciesClient {
+	return dependencies.NewDependenciesClient(c.conn)
 }
 
 // Packages returns a client for the Packages service of the RPC API.
-func (c *Client) Packages() terraform1.PackagesClient {
-	return terraform1.NewPackagesClient(c.conn)
+func (c *Client) Packages() packages.PackagesClient {
+	return packages.NewPackagesClient(c.conn)
 }
 
 // Stacks returns a client for the Stacks service of the RPC API.
-func (c *Client) Stacks() terraform1.StacksClient {
-	return terraform1.NewStacksClient(c.conn)
+func (c *Client) Stacks() stacks.StacksClient {
+	return stacks.NewStacksClient(c.conn)
 }

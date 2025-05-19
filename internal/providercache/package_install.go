@@ -6,8 +6,7 @@ package providercache
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 
@@ -26,54 +25,42 @@ import (
 var unzip = getter.ZipDecompressor{}
 
 func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targetDir string, allowedHashes []getproviders.Hash) (*getproviders.PackageAuthenticationResult, error) {
-	url := meta.Location.String()
+	urlStr := meta.Location.String()
 
 	// When we're installing from an HTTP URL we expect the URL to refer to
 	// a zip file. We'll fetch that into a temporary file here and then
 	// delegate to installFromLocalArchive below to actually extract it.
-	// (We're not using go-getter here because its HTTP getter has a bunch
-	// of extraneous functionality we don't need or want, like indirection
-	// through X-Terraform-Get header, attempting partial fetches for
-	// files that already exist, etc.)
+	httpGetter := getter.HttpGetter{
+		Client:                httpclient.New(),
+		Netrc:                 true,
+		XTerraformGetDisabled: true,
+		DoNotCheckHeadFirst:   true,
+	}
 
-	httpClient := httpclient.New()
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	urlObj, err := url.Parse(urlStr)
 	if err != nil {
+		// We don't expect to get non-HTTP locations here because we're
+		// using the registry source, so this seems like a bug in the
+		// registry source.
 		return nil, fmt.Errorf("invalid provider download request: %s", err)
 	}
-	resp, err := httpClient.Do(req)
+	f, err := os.CreateTemp("", "terraform-provider")
+	if err != nil {
+		return nil, fmt.Errorf("failed to open temporary file to download from %s: %w", urlStr, err)
+	}
+	defer f.Close()
+	defer os.Remove(f.Name())
+
+	archiveFilename := f.Name()
+	err = httpGetter.GetFile(archiveFilename, urlObj)
 	if err != nil {
 		if ctx.Err() == context.Canceled {
 			// "context canceled" is not a user-friendly error message,
 			// so we'll return a more appropriate one here.
 			return nil, fmt.Errorf("provider download was interrupted")
 		}
-		return nil, fmt.Errorf("%s: %w", getproviders.HostFromRequest(req), err)
+		return nil, fmt.Errorf("%s: %w", urlObj.Host, err)
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unsuccessful request to %s: %s", url, resp.Status)
-	}
-
-	f, err := ioutil.TempFile("", "terraform-provider")
-	if err != nil {
-		return nil, fmt.Errorf("failed to open temporary file to download from %s: %w", url, err)
-	}
-	defer f.Close()
-	defer os.Remove(f.Name())
-
-	// We'll borrow go-getter's "cancelable copy" implementation here so that
-	// the download can potentially be interrupted partway through.
-	n, err := getter.Copy(ctx, f, resp.Body)
-	if err == nil && n < resp.ContentLength {
-		err = fmt.Errorf("incorrect response size: expected %d bytes, but got %d bytes", resp.ContentLength, n)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	archiveFilename := f.Name()
 	localLocation := getproviders.PackageLocalArchive(archiveFilename)
 
 	var authResult *getproviders.PackageAuthenticationResult
@@ -120,7 +107,7 @@ func installFromLocalArchive(ctx context.Context, meta getproviders.PackageMeta,
 			)
 		} else if !matches {
 			return authResult, fmt.Errorf(
-				"the current package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file; for more information: https://www.terraform.io/language/provider-checksum-verification",
+				"the current package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file; for more information: https://developer.hashicorp.com/terraform/language/files/dependency-lock#checksum-verification",
 				meta.Provider, meta.Version,
 			)
 		}
@@ -210,7 +197,7 @@ func installFromLocalDir(ctx context.Context, meta getproviders.PackageMeta, tar
 			)
 		} else if !matches {
 			return authResult, fmt.Errorf(
-				"the local package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms); for more information: https://www.terraform.io/language/provider-checksum-verification",
+				"the local package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms); for more information: https://developer.hashicorp.com/terraform/language/files/dependency-lock#checksum-verification",
 				meta.Provider, meta.Version,
 			)
 		}

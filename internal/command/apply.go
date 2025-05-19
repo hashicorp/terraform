@@ -65,7 +65,8 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	// Attempt to load the plan file, if specified
-	planFile, diags := c.LoadPlanFile(args.PlanPath)
+	planFile, loadPlanFileDiags := c.LoadPlanFile(args.PlanPath)
+	diags = diags.Append(loadPlanFileDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
@@ -273,20 +274,7 @@ func (c *ApplyCommand) OperationRequest(
 	opReq.Type = backendrun.OperationTypeApply
 	opReq.View = view.Operation()
 	opReq.StatePersistInterval = c.Meta.StatePersistInterval()
-
-	// EXPERIMENTAL: maybe enable deferred actions
-	if c.AllowExperimentalFeatures {
-		opReq.DeferralAllowed = args.DeferralAllowed
-	} else if args.DeferralAllowed {
-		// Belated flag parse error, since we don't know about experiments
-		// support at actual parse time.
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to parse command-line flags",
-			"The -allow-deferral flag is only valid in experimental builds of Terraform.",
-		))
-		return nil, diags
-	}
+	opReq.DeferralAllowed = args.DeferralAllowed
 
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()
@@ -378,12 +366,24 @@ Options:
   -parallelism=n         Limit the number of parallel resource operations.
                          Defaults to 10.
 
+  -replace=resource      Terraform will plan to replace this resource instance
+                         instead of doing an update or no-op action. 
+
   -state=path            Path to read and save state (unless state-out
                          is specified). Defaults to "terraform.tfstate".
 
   -state-out=path        Path to write state to that is different than
                          "-state". This can be used to preserve the old
                          state.
+                         
+  -var 'foo=bar'         Set a value for one of the input variables in the root
+                         module of the configuration. Use this option more than
+                         once to set more than one variable.
+
+  -var-file=filename     Load variable values from the given file, in addition
+                         to the default files terraform.tfvars and *.auto.tfvars.
+                         Use this option more than once to include more than one
+                         variables file.
 
   If you don't provide a saved plan file then this command will also accept
   all of the plan-customization options accepted by the terraform plan command.

@@ -6,10 +6,12 @@ package genconfig
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -71,14 +73,7 @@ func writeConfigAttributes(addr addrs.AbsResourceInstance, buf *strings.Builder,
 	}
 
 	// Get a list of sorted attribute names so the output will be consistent between runs.
-	keys := make([]string, 0, len(attrs))
-	for k := range attrs {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for i := range keys {
-		name := keys[i]
+	for _, name := range slices.Sorted(maps.Keys(attrs)) {
 		attrS := attrs[name]
 		if attrS.NestedType != nil {
 			diags = diags.Append(writeConfigNestedTypeAttribute(addr, buf, name, attrS, indent))
@@ -123,15 +118,8 @@ func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *stri
 		return diags
 	}
 
-	// Get a list of sorted attribute names so the output will be consistent between runs.
-	keys := make([]string, 0, len(attrs))
-	for k := range attrs {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for i := range keys {
-		name := keys[i]
+	// Sort attribute names so the output will be consistent between runs.
+	for _, name := range slices.Sorted(maps.Keys(attrs)) {
 		attrS := attrs[name]
 		if attrS.NestedType != nil {
 			writeConfigNestedTypeAttributeFromExisting(addr, buf, name, attrS, stateVal, indent)
@@ -168,8 +156,6 @@ func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *stri
 				// If the value is a string storing a JSON value we want to represent it in a terraform native way
 				// and encapsulate it in `jsonencode` as it is the idiomatic representation
 				if val.IsKnown() && !val.IsNull() && val.Type() == cty.String && json.Valid([]byte(val.AsString())) {
-					buf.WriteString("jsonencode(")
-
 					var ctyValue ctyjson.SimpleJSONValue
 					err := ctyValue.UnmarshalJSON([]byte(val.AsString()))
 					if err != nil {
@@ -182,27 +168,25 @@ func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *stri
 						continue
 					}
 
-					tok := hclwrite.TokensForValue(ctyValue.Value)
-					if _, err := tok.WriteTo(buf); err != nil {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagWarning,
-							Summary:  "Skipped part of config generation",
-							Detail:   fmt.Sprintf("Could not create attribute %s in %s when generating import configuration. The plan will likely report the missing attribute as being deleted.", name, addr),
-							Extra:    err,
-						})
-						continue
-					}
+					// Lone deserializable primitive types are valid json, but should be treated as strings
+					if ctyValue.Type().IsPrimitiveType() {
+						if d := writeTokens(val, buf); d != nil {
+							diags = diags.Append(d)
+							continue
+						}
+					} else {
+						buf.WriteString("jsonencode(")
 
-					buf.WriteString(")")
+						if d := writeTokens(ctyValue.Value, buf); d != nil {
+							diags = diags.Append(d)
+							continue
+						}
+
+						buf.WriteString(")")
+					}
 				} else {
-					tok := hclwrite.TokensForValue(val)
-					if _, err := tok.WriteTo(buf); err != nil {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagWarning,
-							Summary:  "Skipped part of config generation",
-							Detail:   fmt.Sprintf("Could not create attribute %s in %s when generating import configuration. The plan will likely report the missing attribute as being deleted.", name, addr),
-							Extra:    err,
-						})
+					if d := writeTokens(val, buf); d != nil {
+						diags = diags.Append(d)
 						continue
 					}
 				}
@@ -210,6 +194,20 @@ func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *stri
 
 			buf.WriteString("\n")
 		}
+	}
+	return diags
+}
+
+func writeTokens(val cty.Value, buf *strings.Builder) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	tok := hclwrite.TokensForValue(val)
+	if _, err := tok.WriteTo(buf); err != nil {
+		return diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Skipped part of config generation",
+			Detail:   "Could not create attribute in import configuration. The plan will likely report the missing attribute as being deleted.",
+			Extra:    err,
+		})
 	}
 	return diags
 }
@@ -222,14 +220,7 @@ func writeConfigBlocks(addr addrs.AbsResourceInstance, buf *strings.Builder, blo
 	}
 
 	// Get a list of sorted block names so the output will be consistent between runs.
-	names := make([]string, 0, len(blocks))
-	for k := range blocks {
-		names = append(names, k)
-	}
-	sort.Strings(names)
-
-	for i := range names {
-		name := names[i]
+	for _, name := range slices.Sorted(maps.Keys(blocks)) {
 		blockS := blocks[name]
 		diags = diags.Append(writeConfigNestedBlock(addr, buf, name, blockS, indent))
 	}
@@ -318,14 +309,8 @@ func writeConfigBlocksFromExisting(addr addrs.AbsResourceInstance, buf *strings.
 		return diags
 	}
 
-	// Get a list of sorted block names so the output will be consistent between runs.
-	names := make([]string, 0, len(blocks))
-	for k := range blocks {
-		names = append(names, k)
-	}
-	sort.Strings(names)
-
-	for _, name := range names {
+	// Sort block names so the output will be consistent between runs.
+	for _, name := range slices.Sorted(maps.Keys(blocks)) {
 		blockS := blocks[name]
 		// This shouldn't happen in real usage; state always has all values (set
 		// to null as needed), but it protects against panics in tests (and any
@@ -425,17 +410,12 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 		}
 
 		vals := attr.AsValueMap()
-		keys := make([]string, 0, len(vals))
-		for key := range vals {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
 
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s = {\n", name))
-		for _, key := range keys {
+		for _, key := range slices.Sorted(maps.Keys(vals)) {
 			buf.WriteString(strings.Repeat(" ", indent+2))
-			buf.WriteString(fmt.Sprintf("%s = {", key))
+			buf.WriteString(fmt.Sprintf("%s = {", hclEscapeString(key)))
 
 			// This entire value is marked
 			if vals[key].IsMarked() {
@@ -502,12 +482,7 @@ func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *str
 		}
 
 		vals := stateVal.AsValueMap()
-		keys := make([]string, 0, len(vals))
-		for key := range vals {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
-		for _, key := range keys {
+		for _, key := range slices.Sorted(maps.Keys(vals)) {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s %q {", name, key))
 			// This entire map element is marked
@@ -571,4 +546,22 @@ func ctyCollectionValues(val cty.Value) []cty.Value {
 	}
 
 	return ret
+}
+
+// hclEscapeString formats the input string into a format that is safe for
+// rendering within HCL.
+//
+// Note, this function doesn't actually do a very good job of this currently. We
+// need to expose some internal functions from HCL in a future version and call
+// them from here. For now, just use "%q" formatting.
+//
+// Note, the similar function in jsonformat/computed/renderers/map.go is doing
+// something similar.
+func hclEscapeString(str string) string {
+	// TODO: Replace this with more complete HCL logic instead of the simple
+	// go workaround.
+	if !hclsyntax.ValidIdentifier(str) {
+		return fmt.Sprintf("%q", str)
+	}
+	return str
 }
