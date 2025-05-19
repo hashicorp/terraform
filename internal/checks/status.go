@@ -13,7 +13,7 @@ import (
 // checkable object.
 type Status rune
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=Status
+//go:generate go tool golang.org/x/tools/cmd/stringer -type=Status
 
 const (
 	// StatusUnknown represents that there is not yet a conclusive result

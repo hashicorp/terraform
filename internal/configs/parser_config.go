@@ -48,18 +48,29 @@ func (p *Parser) LoadTestFile(path string) (*TestFile, hcl.Diagnostics) {
 	return test, diags
 }
 
-// LoadMockDataFile reads the file at the given path and parses it as a
-// Terraform mock data file.
-//
-// It references the same LoadHCLFile as LoadConfigFile, so inherits the same
-// syntax selection behaviours.
-func (p *Parser) LoadMockDataFile(path string) (*MockData, hcl.Diagnostics) {
+func (p *Parser) LoadQueryFile(path string) (*QueryFile, hcl.Diagnostics) {
 	body, diags := p.LoadHCLFile(path)
 	if body == nil {
 		return nil, diags
 	}
 
-	data, dataDiags := decodeMockDataBody(body, MockDataFileOverrideSource)
+	query, queryDiags := loadQueryFile(body)
+	diags = append(diags, queryDiags...)
+	return query, diags
+}
+
+// LoadMockDataFile reads the file at the given path and parses it as a
+// Terraform mock data file.
+//
+// It references the same LoadHCLFile as LoadConfigFile, so inherits the same
+// syntax selection behaviours.
+func (p *Parser) LoadMockDataFile(path string, useForPlanDefault bool) (*MockData, hcl.Diagnostics) {
+	body, diags := p.LoadHCLFile(path)
+	if body == nil {
+		return nil, diags
+	}
+
+	data, dataDiags := decodeMockDataBody(body, useForPlanDefault, MockDataFileOverrideSource)
 	diags = append(diags, dataDiags...)
 	return data, diags
 }
@@ -120,7 +131,9 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 				case "required_providers":
 					reqs, reqsDiags := decodeRequiredProvidersBlock(innerBlock)
 					diags = append(diags, reqsDiags...)
-					file.RequiredProviders = append(file.RequiredProviders, reqs)
+					if reqs != nil {
+						file.RequiredProviders = append(file.RequiredProviders, reqs)
+					}
 
 				case "provider_meta":
 					providerCfg, cfgDiags := decodeProviderMetaBlock(innerBlock)
@@ -180,7 +193,7 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 			}
 
 		case "resource":
-			cfg, cfgDiags := decodeResourceBlock(block, override)
+			cfg, cfgDiags := decodeResourceBlock(block, override, allowExperiments)
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.ManagedResources = append(file.ManagedResources, cfg)
@@ -191,6 +204,13 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.DataResources = append(file.DataResources, cfg)
+			}
+
+		case "ephemeral":
+			cfg, cfgDiags := decodeEphemeralBlock(block, override)
+			diags = append(diags, cfgDiags...)
+			if cfg != nil {
+				file.EphemeralResources = append(file.EphemeralResources, cfg)
 			}
 
 		case "moved":
@@ -219,6 +239,15 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.Checks = append(file.Checks, cfg)
+			}
+
+		case "action":
+			if allowExperiments {
+				cfg, cfgDiags := decodeActionBlock(block)
+				diags = append(diags, cfgDiags...)
+				if cfg != nil {
+					file.Actions = append(file.Actions, cfg)
+				}
 			}
 
 		default:
@@ -306,6 +335,14 @@ var configFileSchema = &hcl.BodySchema{
 		},
 		{
 			Type:       "data",
+			LabelNames: []string{"type", "name"},
+		},
+		{
+			Type:       "ephemeral",
+			LabelNames: []string{"type", "name"},
+		},
+		{
+			Type:       "action",
 			LabelNames: []string{"type", "name"},
 		},
 		{

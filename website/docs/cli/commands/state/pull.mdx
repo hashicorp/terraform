@@ -1,15 +1,12 @@
 ---
-page_title: 'Command: state pull'
+page_title: terraform state pull command reference
 description: >-
-  The `terraform state pull` command is used to manually download and output the
-  state from remote state.
+  The `terraform state pull` command downloads and outputs state information from a remote state or local state.
 ---
 
-# Command: state pull
+#  `terraform state pull` command
 
-The `terraform state pull` command is used to manually download and output
-the state from [remote state](/terraform/language/state/remote). This command also
-works with local state.
+The `terraform state pull` downloads and outputs state information from a [remote state](/terraform/language/state/remote) or local state.
 
 ## Usage
 
@@ -27,4 +24,4 @@ You cannot use this command to inspect the Terraform version of
 the remote state, as it will always be converted to the current Terraform
 version before output.
 
--> **Note:** Terraform state files must be in UTF-8 format without a byte order mark (BOM). For PowerShell on Windows, use `Set-Content` to automatically encode files in UTF-8 format. For example, run `terraform state pull | sc terraform.tfstate`.
+-> **Note:** Terraform state files must be in UTF-8 format without a byte order mark (BOM). For PowerShell on Windows, use `Set-Content` to automatically encode files in UTF-8 format. For example, run `terraform state pull | Set-Content terraform.tfstate`.

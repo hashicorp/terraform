@@ -162,9 +162,21 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		return nil, nil, diags
 	}
 
-	moreDiags = checkExternalProviders(config, opts.ExternalProviders)
+	moreDiags = checkExternalProviders(config, plan, nil, opts.ExternalProviders)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
+		return nil, nil, diags
+	}
+
+	schemas, schemaDiags := c.Schemas(config, plan.PriorState)
+	diags = diags.Append(schemaDiags)
+	if diags.HasErrors() {
+		return nil, nil, diags
+	}
+
+	changes, err := plan.Changes.Decode(schemas)
+	if err != nil {
+		diags = diags.Append(err)
 		return nil, nil, diags
 	}
 
@@ -172,7 +184,7 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 	walker, walkDiags := c.walk(graph, operation, &graphWalkOpts{
 		Config:                  config,
 		InputState:              workingState,
-		Changes:                 plan.Changes,
+		Changes:                 changes,
 		Overrides:               plan.Overrides,
 		ExternalProviderConfigs: opts.ExternalProviders,
 
@@ -186,7 +198,7 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		// We also want to propagate the timestamp from the plan file.
 		PlanTimeTimestamp: plan.Timestamp,
 
-		ProviderFuncResults: providers.NewFunctionResultsTable(plan.ProviderFunctionResults),
+		FunctionResults: lang.NewFunctionResultsTable(plan.FunctionResults),
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
@@ -241,7 +253,7 @@ Note that the -target option is not suitable for routine use, and is provided on
 
 func checkApplyTimeVariables(needed collections.Set[string], gotValues InputValues, config *configs.Config) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	for _, name := range needed.Elems() {
+	for name := range needed.All() {
 		if vv, exists := gotValues[name]; !exists || vv.Value == cty.NilVal || vv.Value.IsNull() {
 			// This error message assumes that the only possible reason for
 			// an apply-time variable is because the variable is ephemeral,
@@ -358,6 +370,7 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 		Operation:               operation,
 		ExternalReferences:      plan.ExternalReferences,
 		Overrides:               plan.Overrides,
+		SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

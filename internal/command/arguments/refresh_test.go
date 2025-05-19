@@ -42,7 +42,7 @@ func TestParseRefresh_basicValid(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, diags := ParseRefresh(tc.args)
-			if len(diags) > 0 {
+			if len(diags) > 0 && diags.HasErrors() {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
 			// Ignore the extended arguments for simplicity
@@ -117,7 +117,7 @@ func TestParseRefresh_targets(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, diags := ParseRefresh(tc.args)
-			if len(diags) > 0 {
+			if len(diags) > 0 && diags.HasErrors() {
 				if tc.wantErr == "" {
 					t.Fatalf("unexpected diags: %v", diags)
 				} else if got := diags.Err().Error(); !strings.Contains(got, tc.wantErr) {
@@ -169,7 +169,7 @@ func TestParseRefresh_vars(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, diags := ParseRefresh(tc.args)
-			if len(diags) > 0 {
+			if len(diags) > 0 && diags.HasErrors() {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
 			if vars := got.Vars.All(); !cmp.Equal(vars, tc.want) {

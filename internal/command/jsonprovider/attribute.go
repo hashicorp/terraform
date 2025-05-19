@@ -20,6 +20,7 @@ type Attribute struct {
 	Optional            bool            `json:"optional,omitempty"`
 	Computed            bool            `json:"computed,omitempty"`
 	Sensitive           bool            `json:"sensitive,omitempty"`
+	WriteOnly           bool            `json:"write_only,omitempty"`
 }
 
 type NestedType struct {
@@ -45,6 +46,7 @@ func marshalAttribute(attr *configschema.Attribute) *Attribute {
 		Computed:        attr.Computed,
 		Sensitive:       attr.Sensitive,
 		Deprecated:      attr.Deprecated,
+		WriteOnly:       attr.WriteOnly,
 	}
 
 	// we're not concerned about errors because at this point the schema has
@@ -64,6 +66,30 @@ func marshalAttribute(attr *configschema.Attribute) *Attribute {
 		}
 		nestedTy.Attributes = attrs
 		ret.AttributeNestedType = &nestedTy
+	}
+
+	return ret
+}
+
+type IdentityAttribute struct {
+	IdentityType      json.RawMessage `json:"type,omitempty"`
+	Description       string          `json:"description,omitempty"`
+	RequiredForImport bool            `json:"required_for_import,omitempty"`
+	OptionalForImport bool            `json:"optional_for_import,omitempty"`
+}
+
+func marshalIdentityAttribute(attr *configschema.Attribute) *IdentityAttribute {
+	ret := &IdentityAttribute{
+		Description:       attr.Description,
+		RequiredForImport: attr.Required,
+		OptionalForImport: attr.Optional,
+	}
+
+	// we're not concerned about errors because at this point the schema has
+	// already been checked and re-checked.
+	if attr.Type != cty.NilType {
+		attrTy, _ := attr.Type.MarshalJSON()
+		ret.IdentityType = attrTy
 	}
 
 	return ret

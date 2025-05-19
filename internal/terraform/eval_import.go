@@ -8,45 +8,39 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/gocty"
 )
 
-func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData instances.RepetitionData) (string, tfdiags.Diagnostics) {
+// evaluateImportIdExpression evaluates the given expression to determine the
+// import Id for a resource. It should evaluate to a non-empty string.
+//
+// The given expression must be non-nil or the function will panic.
+func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData instances.RepetitionData, allowUnknown bool) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// import blocks only exist in the root module, and must be evaluated in
 	// that context.
 	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
-
-	if expr == nil {
-		return "", diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid import id argument",
-			Detail:   "The import ID cannot be null.",
-			Subject:  expr.Range().Ptr(),
-		})
-	}
-
 	scope := ctx.EvaluationScope(nil, nil, keyData)
 	importIdVal, evalDiags := scope.EvalExpr(expr, cty.String)
 	diags = diags.Append(evalDiags)
 
 	if importIdVal.IsNull() {
-		return "", diags.Append(&hcl.Diagnostic{
+		return cty.NilVal, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid import id argument",
 			Detail:   "The import ID cannot be null.",
 			Subject:  expr.Range().Ptr(),
 		})
 	}
-
-	if !importIdVal.IsKnown() {
-		return "", diags.Append(&hcl.Diagnostic{
+	if !allowUnknown && !importIdVal.IsKnown() {
+		return cty.NilVal, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid import id argument",
 			Detail:   `The import block "id" argument depends on resource attributes that cannot be determined until apply, so Terraform cannot plan to import this resource.`, // FIXME and what should I do about that?
@@ -61,19 +55,17 @@ func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData in
 	// sent to the provider.
 	importIdVal, _ = importIdVal.Unmark()
 
-	var importId string
-	err := gocty.FromCtyValue(importIdVal, &importId)
-	if err != nil {
-		return "", diags.Append(&hcl.Diagnostic{
+	if importIdVal.Type() != cty.String {
+		return cty.NilVal, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid import id argument",
-			Detail:   fmt.Sprintf("The import ID value is unsuitable: %s.", err),
+			Detail:   "The import ID value is unsuitable: not a string.",
 			Subject:  expr.Range().Ptr(),
 		})
 	}
 
-	if importId == "" {
-		return "", diags.Append(&hcl.Diagnostic{
+	if importIdVal.IsKnown() && importIdVal.AsString() == "" {
+		return cty.NilVal, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid import id argument",
 			Detail:   "The import ID value evaluates to an empty string, please provide a non-empty value.",
@@ -81,7 +73,50 @@ func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData in
 		})
 	}
 
-	return importId, diags
+	return importIdVal, diags
+}
+
+// evaluateImportIdentityExpression evaluates the given expression to determine the
+// import identity for a resource. It uses the resource identity schema to validate
+// the structure of the object..
+//
+// The given expression must be non-nil or the function will panic.
+func evaluateImportIdentityExpression(expr hcl.Expression, identity *configschema.Object, ctx EvalContext, keyData instances.RepetitionData, allowUnknown bool) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// import blocks only exist in the root module, and must be evaluated in
+	// that context.
+	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
+	scope := ctx.EvaluationScope(nil, nil, keyData)
+	importIdentityVal, evalDiags := scope.EvalExpr(expr, identity.ConfigType())
+	if evalDiags.HasErrors() {
+		// TODO? Do we need to improve the error message?
+		return cty.NilVal, evalDiags
+	}
+
+	if importIdentityVal.IsNull() {
+		return cty.NilVal, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid import identity argument",
+			Detail:   "The import identity cannot be null.",
+			Subject:  expr.Range().Ptr(),
+		})
+	}
+	if !allowUnknown && !importIdentityVal.IsWhollyKnown() {
+		return cty.NilVal, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid import identity argument",
+			Detail:   `The import block "identity" argument depends on resource attributes that cannot be determined until apply, so Terraform cannot plan to import this resource.`, // FIXME and what should I do about that?
+			Subject:  expr.Range().Ptr(),
+			Extra:    diagnosticCausedByUnknown(true),
+		})
+	}
+
+	// Import data may have marks, which we can discard because the id is only
+	// sent to the provider.
+	importIdentityVal, _ = importIdentityVal.Unmark()
+
+	return importIdentityVal, diags
 }
 
 func evalImportToExpression(expr hcl.Expression, keyData instances.RepetitionData) (addrs.AbsResourceInstance, tfdiags.Diagnostics) {
@@ -114,6 +149,20 @@ func evalImportToExpression(expr hcl.Expression, keyData instances.RepetitionDat
 	}
 
 	return res, diags
+}
+
+func evalImportUnknownToExpression(expr hcl.Expression) (addrs.PartialExpandedResource, tfdiags.Diagnostics) {
+	var per addrs.PartialExpandedResource
+	var diags tfdiags.Diagnostics
+
+	traversal, diags := importToExprToTraversal(expr, instances.UnknownForEachRepetitionData(cty.DynamicPseudoType))
+	if diags.HasErrors() {
+		return per, diags
+	}
+
+	per, moreDiags := parseImportToPartialAddress(traversal)
+	diags = diags.Append(moreDiags)
+	return per, diags
 }
 
 // trggersExprToTraversal takes an hcl expression limited to the syntax allowed
@@ -205,4 +254,22 @@ func parseImportToKeyExpression(expr hcl.Expression, keyData instances.Repetitio
 	idx.Key = val
 	return idx, nil
 
+}
+
+func parseImportToPartialAddress(traversal hcl.Traversal) (addrs.PartialExpandedResource, tfdiags.Diagnostics) {
+	partial, rest, diags := addrs.ParsePartialExpandedResource(traversal)
+	if diags.HasErrors() {
+		return addrs.PartialExpandedResource{}, diags
+	}
+
+	if len(rest) > 0 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid import 'to' expression",
+			Detail:   "The import block 'to' argument does not resolve to a single resource instance.",
+			Subject:  traversal.SourceRange().Ptr(),
+		})
+	}
+
+	return partial, diags
 }

@@ -1,9 +1,9 @@
 ---
-page_title: The Core Terraform Workflow - Guides
-description: 'An overview of how individuals, teams, and organizations can use Terraform. '
+page_title: Overview of the core Terraform workflow
+description: Learn how to provision and manage infrastructure using the core Terraform workflow for individuals, teams, and organizations.
 ---
 
-# The Core Terraform Workflow
+# Core Terraform Workflow Overview
 
 The core Terraform workflow has three steps:
 
@@ -232,14 +232,21 @@ input variables and state while also bringing back a tight feedback loop for
 speculative plans for config authors. Terraform configuration can interact with
 HCP Terraform through the [CLI integration](/terraform/cli/cloud).
 
-```
+```hcl
 terraform {
   cloud {
     organization = "my-org"
     hostname = "app.terraform.io" # Optional; defaults to app.terraform.io
 
     workspaces {
-      tags = ["networking", "source:cli"]
+      tags = {
+        layer = "networking"
+        source = "cli"
+      }
+      
+      # For terraform versions below 1.10, you must specify key-only tags
+      # using a list of strings. Example:
+      # tags = ["networking", "source:cli"]
     }
   }
 }

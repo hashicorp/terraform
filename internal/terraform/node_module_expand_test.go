@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -43,7 +44,8 @@ func TestNodeCloseModuleExecute(t *testing.T) {
 		state := states.NewState()
 		state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
 		ctx := &MockEvalContext{
-			StateState: state.SyncWrapper(),
+			StateState:                  state.SyncWrapper(),
+			EphemeralResourcesResources: ephemeral.NewResources(),
 		}
 		node := nodeCloseModule{addrs.Module{"child"}}
 		diags := node.Execute(ctx, walkApply)
@@ -74,7 +76,8 @@ func TestNodeCloseModuleExecute(t *testing.T) {
 		state := states.NewState()
 		state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
 		ctx := &MockEvalContext{
-			StateState: state.SyncWrapper(),
+			StateState:                  state.SyncWrapper(),
+			EphemeralResourcesResources: ephemeral.NewResources(),
 		}
 		node := nodeCloseModule{addrs.Module{"child"}}
 

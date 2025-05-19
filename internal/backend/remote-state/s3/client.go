@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"time"
 
@@ -48,6 +49,8 @@ type RemoteClient struct {
 	kmsKeyID              string
 	ddbTable              string
 	skipS3Checksum        bool
+	lockFilePath          string
+	useLockFile           bool
 }
 
 var (
@@ -270,11 +273,13 @@ func (c *RemoteClient) Delete() error {
 	return nil
 }
 
+// Lock attempts to obtain a lock, returning the lock ID if successful.
 func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	ctx := context.TODO()
 	log := c.logger(operationLockerLock)
 
-	if c.ddbTable == "" {
+	// no file, no dynamodb
+	if !c.useLockFile && c.ddbTable == "" {
 		return "", nil
 	}
 
@@ -293,8 +298,108 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	ctx, baselog := baselogging.NewHcLogger(ctx, log)
 	ctx = baselogging.RegisterLogger(ctx, baselog)
 
-	log.Info("Locking remote state")
+	// file only, no dynamodb
+	if c.useLockFile && c.ddbTable == "" {
+		log.Info("Attempting to lock remote state (S3 Native only)...")
+		if err := c.lockWithFile(ctx, info, log); err != nil {
+			return "", err
+		}
 
+		log.Info("Locked remote state (S3 Native only)")
+		return info.ID, nil
+	}
+
+	// dynamodb only, no file
+	if !c.useLockFile && c.ddbTable != "" {
+		log.Info("Attempting to lock remote state (DynamoDB only)...")
+		if err := c.lockWithDynamoDB(ctx, info); err != nil {
+			return "", err
+		}
+
+		log.Info("Locked remote state (DynamoDB only)")
+		return info.ID, nil
+	}
+
+	// double locking: dynamodb + file (design decision: both must succeed)
+	log.Info("Attempting to lock remote state (S3 Native and DynamoDB)...")
+	if err := c.lockWithFile(ctx, info, log); err != nil {
+		return "", err
+	}
+
+	if err := c.lockWithDynamoDB(ctx, info); err != nil {
+		// Release the file lock if attempting to acquire the DynamoDB lock fails.
+		if unlockErr := c.unlockWithFile(ctx, info.ID, &statemgr.LockError{}, log); unlockErr != nil {
+			return "", fmt.Errorf("failed to clean up file lock after DynamoDB lock error: %v; original error: %w", unlockErr, err)
+		}
+
+		return "", err
+	}
+
+	log.Info("Locked remote state (S3 Native and DynamoDB)")
+	return info.ID, nil
+}
+
+// lockWithFile attempts to acquire a lock on the remote state by uploading a lock file to Amazon S3.
+//
+// This method is used when the S3 native locking mechanism is in use. It uploads a lock file (JSON)
+// to an S3 bucket to establish a lock on the state file. If the lock file does not already
+// exist, the operation will succeed, acquiring the lock. If the lock file already exists, the operation
+// will fail due to a conditional write, indicating that the lock is already held by another Terraform client.
+func (c *RemoteClient) lockWithFile(ctx context.Context, info *statemgr.LockInfo, log hclog.Logger) error {
+	lockFileJson, err := json.Marshal(info)
+	if err != nil {
+		return err
+	}
+
+	input := &s3.PutObjectInput{
+		ContentType: aws.String("application/json"),
+		Body:        bytes.NewReader(lockFileJson),
+		Bucket:      aws.String(c.bucketName),
+		Key:         aws.String(c.lockFilePath),
+		IfNoneMatch: aws.String("*"),
+	}
+	if !c.skipS3Checksum {
+		input.ChecksumAlgorithm = s3types.ChecksumAlgorithmSha256
+	}
+
+	if c.serverSideEncryption {
+		if c.kmsKeyID != "" {
+			input.SSEKMSKeyId = aws.String(c.kmsKeyID)
+			input.ServerSideEncryption = s3types.ServerSideEncryptionAwsKms
+		} else if c.customerEncryptionKey != nil {
+			input.SSECustomerKey = aws.String(base64.StdEncoding.EncodeToString(c.customerEncryptionKey))
+			input.SSECustomerAlgorithm = aws.String(string(s3EncryptionAlgorithm))
+			input.SSECustomerKeyMD5 = aws.String(c.getSSECustomerKeyMD5())
+		} else {
+			input.ServerSideEncryption = s3EncryptionAlgorithm
+		}
+	}
+
+	if c.acl != "" {
+		input.ACL = s3types.ObjectCannedACL(c.acl)
+	}
+
+	log.Debug("Uploading lock file")
+
+	uploader := manager.NewUploader(c.s3Client)
+	_, err = uploader.Upload(ctx, input)
+	if err != nil {
+		// Attempt to retrieve lock info from the file, and merge errors if it fails.
+		lockInfo, infoErr := c.getLockInfoWithFile(ctx)
+		if infoErr != nil {
+			err = errors.Join(err, infoErr)
+		}
+
+		return &statemgr.LockError{
+			Err:  err,
+			Info: lockInfo,
+		}
+	}
+
+	return nil
+}
+
+func (c *RemoteClient) lockWithDynamoDB(ctx context.Context, info *statemgr.LockInfo) error {
 	putParams := &dynamodb.PutItemInput{
 		Item: map[string]dynamodbtypes.AttributeValue{
 			"LockID": &dynamodbtypes.AttributeValueMemberS{
@@ -307,10 +412,11 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 		TableName:           aws.String(c.ddbTable),
 		ConditionExpression: aws.String("attribute_not_exists(LockID)"),
 	}
+
 	_, err := c.dynClient.PutItem(ctx, putParams)
 
 	if err != nil {
-		lockInfo, infoErr := c.getLockInfo(ctx)
+		lockInfo, infoErr := c.getLockInfoWithDynamoDB(ctx)
 		if infoErr != nil {
 			err = errors.Join(err, infoErr)
 		}
@@ -319,42 +425,147 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 			Err:  err,
 			Info: lockInfo,
 		}
-		return "", lockErr
+		return lockErr
 	}
 
-	return info.ID, nil
+	return nil
 }
 
+// Unlock releases a lock previously acquired by Lock.
 func (c *RemoteClient) Unlock(id string) error {
 	ctx := context.TODO()
 	log := c.logger(operationLockerUnlock)
 
-	log = logWithLockID(log, id)
-
-	ctx, baselog := baselogging.NewHcLogger(ctx, log)
-	ctx = baselogging.RegisterLogger(ctx, baselog)
-
-	if c.ddbTable == "" {
+	// no file, no dynamodb
+	if !c.useLockFile && c.ddbTable == "" {
 		return nil
 	}
 
+	log = logWithLockID(log, id)
+	ctx, baselog := baselogging.NewHcLogger(ctx, log)
+	ctx = baselogging.RegisterLogger(ctx, baselog)
+
 	lockErr := &statemgr.LockError{}
 
-	log.Info("Unlocking remote state")
+	// file only, no dynamodb
+	if c.useLockFile && c.ddbTable == "" {
+		log.Info("Attempting to unlock remote state (S3 Native only)...")
+		if err := c.unlockWithFile(ctx, id, lockErr, log); err != nil {
+			lockErr.Err = err
+			return lockErr
+		}
 
+		log.Info("Unlocked remote state (S3 Native only)")
+		return nil
+	}
+
+	// dynamodb only, no file
+	if !c.useLockFile && c.ddbTable != "" {
+		log.Info("Attempting to unlock remote state (DynamoDB only)...")
+		if err := c.unlockWithDynamoDB(ctx, id, lockErr); err != nil {
+			lockErr.Err = err
+			return lockErr
+		}
+
+		log.Info("Unlocked remote state (DynamoDB only)")
+		return nil
+	}
+
+	// Double unlocking: DynamoDB + file
+	log.Info("Attempting to unlock remote state (S3 Native and DynamoDB)...")
+
+	ferr := c.unlockWithFile(ctx, id, lockErr, log)
+	derr := c.unlockWithDynamoDB(ctx, id, lockErr)
+
+	if ferr != nil && derr != nil {
+		lockErr.Err = fmt.Errorf("failed to unlock both S3 and DynamoDB: S3 error: %v, DynamoDB error: %v", ferr, derr)
+		return lockErr
+	}
+
+	if ferr != nil {
+		lockErr.Err = fmt.Errorf("failed to unlock S3: %v", ferr)
+		return lockErr
+	}
+
+	if derr != nil {
+		lockErr.Err = fmt.Errorf("failed to unlock DynamoDB: %v", derr)
+		return lockErr
+	}
+
+	log.Info("Unlocked remote state (S3 Native and DynamoDB)")
+	return nil
+}
+
+// unlockWithFile attempts to unlock the remote state by deleting the lock file from Amazon S3.
+//
+// This method is used when the S3 native locking mechanism is in use, which uses a `.tflock` file
+// to manage state locking. The function deletes the lock file to release the lock, allowing other
+// Terraform clients to acquire the lock on the same state file.
+func (c *RemoteClient) unlockWithFile(ctx context.Context, id string, lockErr *statemgr.LockError, log hclog.Logger) error {
+	getInput := &s3.GetObjectInput{
+		Bucket: aws.String(c.bucketName),
+		Key:    aws.String(c.lockFilePath),
+	}
+
+	if c.serverSideEncryption && c.customerEncryptionKey != nil {
+		getInput.SSECustomerKey = aws.String(base64.StdEncoding.EncodeToString(c.customerEncryptionKey))
+		getInput.SSECustomerAlgorithm = aws.String(s3EncryptionAlgorithm)
+		getInput.SSECustomerKeyMD5 = aws.String(c.getSSECustomerKeyMD5())
+	}
+
+	getOutput, err := c.s3Client.GetObject(ctx, getInput)
+	if err != nil {
+		return fmt.Errorf("unable to retrieve file from S3 bucket '%s' with key '%s': %w", c.bucketName, c.lockFilePath, err)
+	}
+	defer func() {
+		if cerr := getOutput.Body.Close(); cerr != nil {
+			log.Warn(fmt.Sprintf("failed to close S3 object body: %v", cerr))
+		}
+	}()
+
+	data, err := io.ReadAll(getOutput.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read the body of the S3 object: %w", err)
+	}
+
+	lockInfo := &statemgr.LockInfo{}
+	if err := json.Unmarshal(data, lockInfo); err != nil {
+		return fmt.Errorf("failed to unmarshal JSON data into LockInfo struct: %w", err)
+	}
+	lockErr.Info = lockInfo
+
+	// Verify that the provided lock ID matches the lock ID of the retrieved lock file.
+	if lockInfo.ID != id {
+		return fmt.Errorf("lock ID '%s' does not match the existing lock ID '%s'", id, lockInfo.ID)
+	}
+
+	// Delete the lock file to release the lock.
+	_, err = c.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(c.bucketName),
+		Key:    aws.String(c.lockFilePath),
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to delete the lock file: %w", err)
+	}
+
+	log.Debug(fmt.Sprintf("Deleted lock file: '%q'", c.lockFilePath))
+
+	return nil
+}
+
+func (c *RemoteClient) unlockWithDynamoDB(ctx context.Context, id string, lockErr *statemgr.LockError) error {
 	// TODO: store the path and lock ID in separate fields, and have proper
 	// projection expression only delete the lock if both match, rather than
 	// checking the ID from the info field first.
-	lockInfo, err := c.getLockInfo(ctx)
+	lockInfo, err := c.getLockInfoWithDynamoDB(ctx)
 	if err != nil {
-		lockErr.Err = fmt.Errorf("failed to retrieve lock info for lock ID %q: %s", id, err)
-		return lockErr
+		return fmt.Errorf("failed to retrieve lock info for lock ID %q: %s", id, err)
 	}
 	lockErr.Info = lockInfo
 
 	if lockInfo.ID != id {
-		lockErr.Err = fmt.Errorf("lock ID %q does not match existing lock (%q)", id, lockInfo.ID)
-		return lockErr
+		return fmt.Errorf("lock ID %q does not match existing lock (%q)", id, lockInfo.ID)
 	}
 
 	params := &dynamodb.DeleteItemInput{
@@ -368,8 +579,7 @@ func (c *RemoteClient) Unlock(id string) error {
 	_, err = c.dynClient.DeleteItem(ctx, params)
 
 	if err != nil {
-		lockErr.Err = err
-		return lockErr
+		return err
 	}
 	return nil
 }
@@ -459,7 +669,36 @@ func (c *RemoteClient) deleteMD5(ctx context.Context) error {
 	return nil
 }
 
-func (c *RemoteClient) getLockInfo(ctx context.Context) (*statemgr.LockInfo, error) {
+// getLockInfoWithFile retrieves and parses a lock file from an S3 bucket.
+func (c *RemoteClient) getLockInfoWithFile(ctx context.Context) (*statemgr.LockInfo, error) {
+	// Attempt to retrieve the lock file from S3.
+	getOutput, err := c.s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(c.bucketName),
+		Key:    aws.String(c.lockFilePath),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve file from S3 bucket '%s' with key '%s': %w", c.bucketName, c.lockFilePath, err)
+	}
+	defer func() {
+		if cerr := getOutput.Body.Close(); cerr != nil {
+			log.Printf("failed to close S3 object body: %v", cerr)
+		}
+	}()
+
+	data, err := io.ReadAll(getOutput.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read the body of the S3 object: %w", err)
+	}
+
+	lockInfo := &statemgr.LockInfo{}
+	if err := json.Unmarshal(data, lockInfo); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal JSON data into LockInfo struct: %w", err)
+	}
+
+	return lockInfo, nil
+}
+
+func (c *RemoteClient) getLockInfoWithDynamoDB(ctx context.Context) (*statemgr.LockInfo, error) {
 	getParams := &dynamodb.GetItemInput{
 		Key: map[string]dynamodbtypes.AttributeValue{
 			"LockID": &dynamodbtypes.AttributeValueMemberS{

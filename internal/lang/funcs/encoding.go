@@ -21,15 +21,20 @@ import (
 var Base64DecodeFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
-			Name:        "str",
-			Type:        cty.String,
-			AllowMarked: true,
+			Name:         "str",
+			Type:         cty.String,
+			AllowMarked:  true,
+			AllowUnknown: true,
 		},
 	},
 	Type:         function.StaticReturnType(cty.String),
 	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		str, strMarks := args[0].Unmark()
+		if !str.IsKnown() {
+			return cty.UnknownVal(cty.String).WithMarks(strMarks), nil
+		}
+
 		s := str.AsString()
 		sDec, err := base64.StdEncoding.DecodeString(s)
 		if err != nil {

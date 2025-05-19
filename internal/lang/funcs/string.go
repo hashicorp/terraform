@@ -380,6 +380,14 @@ func makeRenderTemplateFunc(funcsCb func() (funcs map[string]function.Function, 
 		if diags.HasErrors() {
 			return cty.DynamicVal, diags
 		}
+		if val.IsNull() {
+			return cty.DynamicVal, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Template result is null",
+				Detail:   "The result of the template is null, which is not a valid result for a templatestring call.",
+				Subject:  expr.Range().Ptr(),
+			}
+		}
 		return val, nil
 	}
 }

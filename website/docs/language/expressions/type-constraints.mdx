@@ -89,12 +89,14 @@ The three kinds of collection type in the Terraform language are:
   compatibility with older configurations; for new code, we recommend using
   the full form.
 
-  Maps can be made with braces ({}) and colons (:) or equals signs (=):
-  { "foo": "bar", "bar": "baz" } OR { foo = "bar", bar = "baz" }. Quotes
-  may be omitted on keys, unless the key starts with a number, in which
-  case quotes are required. Commas are required between key/value pairs
-  for single line maps. A newline between key/value pairs is sufficient
-  in multi-line maps.
+  You can use the following characters to define maps: 
+      - `{}` 
+      - `:` 
+      - `=` 
+  For example, `{ "foo": "bar", "bar": "baz" }` and  `{ foo = "bar", bar = "baz" }` define the same map. 
+  You must place map keys in quotation marks when a key starts with a number, contains spaces, or contains special characters. Otherwise, you can omit them.
+  You must place commas between keys-value pairs in single-line maps. 
+  You can place key-value pairs in multi-line maps on new lines.
 
   -> **Note:** Although colons are valid delimiters between keys and values, `terraform fmt` ignores them. In contrast, `terraform fmt` attempts to vertically align equals signs.
   
@@ -224,7 +226,7 @@ contents. For example, it's okay to use a variable of type `any` if you use
 it only with `jsonencode` to pass the full value directly to a resource, as
 shown in the following example:
 
-```
+```hcl
 variable "settings" {
   type = any
 }

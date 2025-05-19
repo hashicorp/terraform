@@ -5,6 +5,7 @@ package promising
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 
@@ -15,6 +16,8 @@ import (
 // promise represents a result that will become available at some point
 // in the future, delivered by an asynchronous [Task].
 type promise struct {
+	name string
+
 	responsible atomic.Pointer[task]
 	result      atomic.Pointer[promiseResult]
 	traceSpan   trace.Span
@@ -63,6 +66,10 @@ type PromiseID struct {
 	promise *promise
 }
 
+func (id PromiseID) FriendlyName() string {
+	return id.promise.name
+}
+
 // NoPromise is the zero value of [PromiseID] and used to represent the absense
 // of a promise.
 var NoPromise PromiseID
@@ -74,15 +81,15 @@ var NoPromise PromiseID
 //
 // The caller should retain the resolver for its own use and pass the getter
 // to any other tasks that will consume the result of the promise.
-func NewPromise[T any](ctx context.Context) (PromiseResolver[T], PromiseGet[T]) {
+func NewPromise[T any](ctx context.Context, name string) (PromiseResolver[T], PromiseGet[T]) {
 	callerSpan := trace.SpanFromContext(ctx)
 	initialResponsible := mustTaskFromContext(ctx)
-	p := &promise{}
+	p := &promise{name: name}
 	p.responsible.Store(initialResponsible)
 	initialResponsible.responsible[p] = struct{}{}
 
 	ctx, span := tracer.Start(
-		ctx, "promise",
+		ctx, fmt.Sprintf("promise(%s)", name),
 		trace.WithNewRoot(),
 		trace.WithLinks(trace.Link{
 			SpanContext: trace.SpanContextFromContext(ctx),

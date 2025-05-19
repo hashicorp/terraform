@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
@@ -133,7 +134,7 @@ func TestParserLoadConfigDirWithTests(t *testing.T) {
 			}
 
 			parser := NewParser(nil)
-			mod, diags := parser.LoadConfigDirWithTests(directory, testDirectory)
+			mod, diags := parser.LoadConfigDir(directory, MatchTestFiles(testDirectory))
 			if len(diags) > 0 { // We don't want any warnings or errors.
 				t.Errorf("unexpected diagnostics")
 				for _, diag := range diags {
@@ -143,6 +144,82 @@ func TestParserLoadConfigDirWithTests(t *testing.T) {
 
 			if len(mod.Tests) != 2 {
 				t.Errorf("incorrect number of test files found: %d", len(mod.Tests))
+			}
+		})
+	}
+}
+
+func TestParserLoadConfigDirWithQueries(t *testing.T) {
+	tests := []struct {
+		name             string
+		directory        string
+		diagnostics      []string
+		listResources    int
+		managedResources int
+		allowExperiments bool
+	}{
+		{
+			name:             "simple",
+			directory:        "testdata/query-files/valid/simple",
+			listResources:    2,
+			allowExperiments: true,
+		},
+		{
+			name:             "mixed",
+			directory:        "testdata/query-files/valid/mixed",
+			listResources:    2,
+			managedResources: 1,
+			allowExperiments: true,
+		},
+		{
+			name:             "loading query lists with no-experiments",
+			directory:        "testdata/query-files/valid/mixed",
+			managedResources: 1,
+			listResources:    0,
+			allowExperiments: false,
+		},
+		{
+			name:      "no-provider",
+			directory: "testdata/query-files/invalid/no-provider",
+			diagnostics: []string{
+				"testdata/query-files/invalid/no-provider/main.tfquery.hcl:1,1-27: Missing \"provider\" attribute; You must specify a provider attribute when defining a list block.",
+			},
+			allowExperiments: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			parser := NewParser(nil)
+			parser.AllowLanguageExperiments(test.allowExperiments)
+			mod, diags := parser.LoadConfigDir(test.directory)
+			if len(test.diagnostics) > 0 {
+				if !diags.HasErrors() {
+					t.Errorf("expected errors, but found none")
+				}
+				if len(diags) != len(test.diagnostics) {
+					t.Fatalf("expected %d errors, but found %d", len(test.diagnostics), len(diags))
+				}
+				for i, diag := range diags {
+					if diag.Error() != test.diagnostics[i] {
+						t.Errorf("expected error to be %q, but found %q", test.diagnostics[i], diag.Error())
+					}
+				}
+			} else {
+				if len(diags) > 0 { // We don't want any warnings or errors.
+					t.Errorf("unexpected diagnostics")
+					for _, diag := range diags {
+						t.Logf("- %s", diag)
+					}
+				}
+			}
+
+			if len(mod.ListResources) != test.listResources {
+				t.Errorf("incorrect number of list blocks found: %d", len(mod.ListResources))
+			}
+
+			if len(mod.ManagedResources) != test.managedResources {
+				t.Errorf("incorrect number of managed blocks found: %d", len(mod.ManagedResources))
 			}
 		})
 	}
@@ -211,6 +288,10 @@ func TestParserLoadTestFiles_Invalid(t *testing.T) {
 			"invalid_resource_override_target.tftest.hcl:3,3-36: Invalid override target; You can only target resources from override_resource blocks, not data.aws_instance.target.",
 			"invalid_resource_override_target.tftest.hcl:8,3-24: Invalid override target; You can only target resources from override_resource blocks, not module.child.",
 		},
+		"duplicate_file_config": {
+			"duplicate_file_config.tftest.hcl:3,1-5: Multiple \"test\" blocks; This test file already has a \"test\" block defined at duplicate_file_config.tftest.hcl:1,1-5.",
+			"duplicate_file_config.tftest.hcl:5,1-5: Multiple \"test\" blocks; This test file already has a \"test\" block defined at duplicate_file_config.tftest.hcl:1,1-5.",
+		},
 	}
 
 	for name, expected := range tcs {
@@ -244,7 +325,7 @@ func TestParserLoadConfigDirWithTests_ReturnsWarnings(t *testing.T) {
 			t.Errorf("expected summary to be \"Test directory does not exist\" but was \"%s\"", diags[0].Summary)
 		}
 
-		if diags[0].Detail != "Requested test directory testdata/valid-modules/with-tests/not_real does not exist." {
+		if !strings.HasPrefix(diags[0].Detail, "Requested test directory testdata/valid-modules/with-tests/not_real does not exist.") {
 			t.Errorf("expected detail to be \"Requested test directory testdata/valid-modules/with-tests/not_real does not exist.\" but was \"%s\"", diags[0].Detail)
 		}
 	}
@@ -279,7 +360,7 @@ func TestParserLoadConfigDirFailure(t *testing.T) {
 			parser := NewParser(nil)
 			path := filepath.Join("testdata/invalid-modules", name)
 
-			_, diags := parser.LoadConfigDirWithTests(path, "tests")
+			_, diags := parser.LoadConfigDir(path, MatchTestFiles("tests"))
 			if !diags.HasErrors() {
 				t.Errorf("no errors; want at least one")
 				for _, diag := range diags {
@@ -321,7 +402,7 @@ func TestParserLoadConfigDirFailure(t *testing.T) {
 }
 
 func TestIsEmptyDir(t *testing.T) {
-	val, err := IsEmptyDir(filepath.Join("testdata", "valid-files"))
+	val, err := IsEmptyDir(filepath.Join("testdata", "valid-files"), "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -331,7 +412,7 @@ func TestIsEmptyDir(t *testing.T) {
 }
 
 func TestIsEmptyDir_noExist(t *testing.T) {
-	val, err := IsEmptyDir(filepath.Join("testdata", "nopenopenope"))
+	val, err := IsEmptyDir(filepath.Join("testdata", "nopenopenope"), "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -340,12 +421,35 @@ func TestIsEmptyDir_noExist(t *testing.T) {
 	}
 }
 
-func TestIsEmptyDir_noConfigs(t *testing.T) {
-	val, err := IsEmptyDir(filepath.Join("testdata", "dir-empty"))
+func TestIsEmptyDir_noConfigsAndTests(t *testing.T) {
+	val, err := IsEmptyDir(filepath.Join("testdata", "dir-empty"), "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if !val {
 		t.Fatal("should be empty")
+	}
+}
+
+func TestIsEmptyDir_noConfigsButHasTests(t *testing.T) {
+	// The top directory has no configs, but it contains test files
+	val, err := IsEmptyDir(filepath.Join("testdata", "only-test-files"), "tests")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if val {
+		t.Fatal("should not be empty")
+	}
+}
+
+func TestIsEmptyDir_nestedTestsOnly(t *testing.T) {
+	// The top directory has no configs and no test files, but the nested
+	// directory has test files
+	val, err := IsEmptyDir(filepath.Join("testdata", "only-nested-test-files"), "tests")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if val {
+		t.Fatal("should not be empty")
 	}
 }

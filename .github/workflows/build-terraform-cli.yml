@@ -38,8 +38,8 @@ jobs:
     runs-on: ${{ inputs.runson }}
     name: Terraform ${{ inputs.goos }} ${{ inputs.goarch }} v${{ inputs.product-version }}
     steps:
-      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
-      - uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version: ${{ inputs.go-version }}
       - name: Build Terraform
@@ -61,13 +61,13 @@ jobs:
             go build -ldflags "${{ inputs.ld-flags }}" -o "$BIN_PATH" -trimpath -buildvcs=false
             cp LICENSE "$TARGET_DIR/LICENSE.txt"
       - name: Copy license file to config_dir
-        if: ${{ matrix.goos == 'linux' }}
+        if: ${{ inputs.goos == 'linux' }}
         env:
           LICENSE_DIR: ".release/linux/package/usr/share/doc/${{ inputs.package-name }}"
         run: |
           mkdir -p "$LICENSE_DIR" && cp LICENSE "$LICENSE_DIR/LICENSE.txt"
       - if: ${{ inputs.goos == 'linux' }}
-        uses: hashicorp/actions-packaging-linux@0596d94121d44bd00463ac9d245efea64ee282d0 # v1.7
+        uses: hashicorp/actions-packaging-linux@8d55a640bb30b5508f16757ea908b274564792d4 # v1.9
         with:
           name: "terraform"
           description: "Terraform enables you to safely and predictably create, change, and improve infrastructure. It is a tool that codifies APIs into declarative configuration files that can be shared amongst team members, treated as code, edited, reviewed, and versioned."
@@ -86,13 +86,13 @@ jobs:
           echo "RPM_PACKAGE=$(basename out/*.rpm)" >> $GITHUB_ENV
           echo "DEB_PACKAGE=$(basename out/*.deb)" >> $GITHUB_ENV
       - if: ${{ inputs.goos == 'linux' }}
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ env.RPM_PACKAGE }}
           path: out/${{ env.RPM_PACKAGE }}
           if-no-files-found: error
       - if: ${{ inputs.goos == 'linux' }}
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ env.DEB_PACKAGE }}
           path: out/${{ env.DEB_PACKAGE }}

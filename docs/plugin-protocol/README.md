@@ -10,7 +10,7 @@ the SDK's API.
 ----
 
 **If you want to write a plugin for Terraform, please refer to
-[Extending Terraform](https://www.terraform.io/docs/extend/index.html) instead.**
+[Plugin development](https://developer.hashicorp.com/terraform/plugin) instead.**
 
 This documentation is for those who are developing _Terraform SDKs_, rather
 than those implementing plugins.
@@ -56,8 +56,7 @@ do not follow this strategy.
 
 The authoritative definition for each protocol version is in this directory
 as a Protocol Buffers (protobuf) service definition. The files follow the
-naming pattern `tfpluginX.Y.proto`, where X is the major version and Y
-is the minor version.
+naming pattern `tfpluginX.proto`, where X is the major version.
 
 ### Major and minor versioning
 
@@ -211,3 +210,22 @@ new file in this directory for each new minor version and consider all
 previously-tagged definitions as immutable. The outdated comments in those
 files are retained in order to keep the promise of immutability, even though
 it is now incorrect.
+
+## Updating the plugin protocol in Terraform core
+
+> Note: This section's audience is contributors to Terraform, not developers creating a new SDK.
+
+New features added to Terraform core often require an update to the plugin protocol. These changes are reflected in a new minor version of the plugin protocol.
+
+A new minor release of Terraform should only introduce one new minor release of the plugin-protocol. The minor release numbers of the plugin protocol and Terraform do not match, but they should have a one-to-one relationship.
+
+### Add updates to a new plugin protocol minor version
+
+1) Edit the `.proto` files for Protocol 5 and 6 in `docs/plugin-protocol/`.
+    * If this is the first bigger change after a Terraform release, you may want to increase the minor protocol version in the file header
+1) Commit your changes.
+1) Run `make protobuf`.
+    * This will use the symlinks in the `internal/tfplugin*` directories to access the latest minor versions' `.proto` files.
+    * You should see diffs in `internal/tfplugin5/tfplugin5.pb.go` and `internal/tfplugin6/tfplugin6.pb.go`.
+1) Run `make generate`.
+    * You should see diffs in `internal/plugin/mock_proto/mock.go` and `internal/plugin6/mock_proto/mock.go`.

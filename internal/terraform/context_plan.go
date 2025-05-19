@@ -131,6 +131,10 @@ type PlanOpts struct {
 	// This is here only to allow producing fixed results for tests. Don't
 	// use it for main code.
 	ForcePlanTimestamp *time.Time
+
+	// Forget if set to true will cause the plan to forget all resources. This is
+	// only allowd in the context of a destroy plan.
+	Forget bool
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -183,6 +187,9 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 
 	moreDiags := c.checkConfigDependencies(config)
 	diags = diags.Append(moreDiags)
+	moreDiags = c.checkStateDependencies(prevRunState)
+	diags = diags.Append(moreDiags)
+
 	// If required dependencies are not available then we'll bail early since
 	// otherwise we're likely to just see a bunch of other errors related to
 	// incompatibilities, which could be overwhelming for the user.
@@ -190,7 +197,7 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 		return nil, nil, diags
 	}
 
-	providerCfgDiags := checkExternalProviders(config, opts.ExternalProviders)
+	providerCfgDiags := checkExternalProviders(config, nil, prevRunState, opts.ExternalProviders)
 	diags = diags.Append(providerCfgDiags)
 	if providerCfgDiags.HasErrors() {
 		return nil, nil, diags
@@ -227,6 +234,14 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 			tfdiags.Error,
 			"Unsupported plan mode",
 			"Forcing resource instance replacement (with -replace=...) is allowed only in normal planning mode.",
+		))
+		return nil, nil, diags
+	}
+	if opts.Forget && opts.Mode != plans.DestroyMode {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unsupported plan mode",
+			"Forgetting all resources is only allowed in the context of a destroy plan. This is a bug in Terraform, please report it.",
 		))
 		return nil, nil, diags
 	}
@@ -366,6 +381,7 @@ func (c *Context) checkApplyGraph(plan *plans.Plan, config *configs.Config, opts
 		return nil
 	}
 	log.Println("[DEBUG] building apply graph to check for errors")
+
 	_, _, diags := c.applyGraph(plan, config, opts.ApplyOpts(), true)
 	return diags
 }
@@ -395,7 +411,6 @@ func SimplePlanOpts(mode plans.Mode, setVariables InputValues) *PlanOpts {
 
 func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-
 	if opts.Mode != plans.NormalMode {
 		panic(fmt.Sprintf("called Context.plan with %s", opts.Mode))
 	}
@@ -699,7 +714,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 
 	// Initialize the results table to validate provider function calls.
 	// Hold reference to this so we can store the table data in the plan file.
-	providerFuncResults := providers.NewFunctionResultsTable(nil)
+	funcResults := lang.NewFunctionResultsTable(nil)
 
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
 		Config:                     config,
@@ -711,7 +726,8 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		MoveResults:                moveResults,
 		Overrides:                  opts.Overrides,
 		PlanTimeTimestamp:          timestamp,
-		ProviderFuncResults:        providerFuncResults,
+		FunctionResults:            funcResults,
+		Forget:                     opts.Forget,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
@@ -771,19 +787,29 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 			fmt.Sprintf("If you apply this plan, Terraform will discard its tracking information for the following objects, but it will not delete them:\n%s\n\nAfter applying this plan, Terraform will no longer manage these objects. You will need to import them into Terraform to manage them again.", strings.Join(forgottenResources, "\n")),
 		))
 	}
+	schemas, schemaDiags := c.Schemas(config, prevRunState)
+	// We must finish building a plan object, and cannot return early here.
+	var changesSrc *plans.ChangesSrc
+	var err error
+	if !schemaDiags.HasErrors() {
+		changesSrc, err = changes.Encode(schemas)
+		if err != nil {
+			diags = diags.Append(err)
+		}
+	}
 
 	plan := &plans.Plan{
-		UIMode:                  opts.Mode,
-		Changes:                 changes,
-		DriftedResources:        driftedResources,
-		DeferredResources:       deferredResources,
-		PrevRunState:            prevRunState,
-		PriorState:              priorState,
-		ExternalReferences:      opts.ExternalReferences,
-		Overrides:               opts.Overrides,
-		Checks:                  states.NewCheckResults(walker.Checks),
-		Timestamp:               timestamp,
-		ProviderFunctionResults: providerFuncResults.GetHashes(),
+		UIMode:             opts.Mode,
+		Changes:            changesSrc,
+		DriftedResources:   driftedResources,
+		DeferredResources:  deferredResources,
+		PrevRunState:       prevRunState,
+		PriorState:         priorState,
+		ExternalReferences: opts.ExternalReferences,
+		Overrides:          opts.Overrides,
+		Checks:             states.NewCheckResults(walker.Checks),
+		Timestamp:          timestamp,
+		FunctionResults:    funcResults.GetHashes(),
 
 		// Other fields get populated by Context.Plan after we return
 	}
@@ -804,7 +830,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 			// In refresh-only mode we explicitly don't expect to propose any
 			// actions, but the plan is applyable if the state was changed
 			// in an interesting way by the refresh step.
-			plan.Applyable = !plan.PriorState.ManagedResourcesEqual(plan.PrevRunState)
+			plan.Applyable = !plan.PriorState.ManagedResourcesEqual(plan.PrevRunState) || !plan.PriorState.RootOutputValuesEqual(plan.PrevRunState)
 		} else {
 			// For other planning modes a plan is applyable if its "changes"
 			// are not considered empty (by whatever rules the plans package
@@ -838,13 +864,12 @@ func (c *Context) deferredResources(config *configs.Config, deferrals []*plans.D
 
 	for _, deferral := range deferrals {
 
-		schema, _ := schemas.ResourceTypeConfig(
+		schema := schemas.ResourceTypeConfig(
 			deferral.Change.ProviderAddr.Provider,
 			deferral.Change.Addr.Resource.Resource.Mode,
 			deferral.Change.Addr.Resource.Resource.Type)
 
-		ty := schema.ImpliedType()
-		deferralSrc, err := deferral.Encode(ty)
+		deferralSrc, err := deferral.Encode(schema)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -889,6 +914,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			forgetResources:         forgetResources,
 			forgetModules:           forgetModules,
 			GenerateConfigPath:      opts.GenerateConfigPath,
+			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
@@ -904,6 +930,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Operation:               walkPlan,
 			ExternalReferences:      opts.ExternalReferences,
 			Overrides:               opts.Overrides,
+			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
@@ -917,6 +944,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			skipRefresh:             opts.SkipRefresh,
 			Operation:               walkPlanDestroy,
 			Overrides:               opts.Overrides,
+			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags
 	default:
@@ -972,12 +1000,12 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 
 				newIS := newState.ResourceInstance(addr)
 
-				schema, _ := schemas.ResourceTypeConfig(
+				schema := schemas.ResourceTypeConfig(
 					provider,
 					addr.Resource.Resource.Mode,
 					addr.Resource.Resource.Type,
 				)
-				if schema == nil {
+				if schema.Body == nil {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Warning,
 						"Missing resource schema from provider",
@@ -985,9 +1013,8 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 					))
 					continue
 				}
-				ty := schema.ImpliedType()
 
-				oldObj, err := oldIS.Current.Decode(ty)
+				oldObj, err := oldIS.Current.Decode(schema)
 				if err != nil {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Warning,
@@ -999,7 +1026,7 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 
 				var newObj *states.ResourceInstanceObject
 				if newIS != nil && newIS.Current != nil {
-					newObj, err = newIS.Current.Decode(ty)
+					newObj, err = newIS.Current.Decode(schema)
 					if err != nil {
 						diags = diags.Append(tfdiags.Sourceless(
 							tfdiags.Warning,
@@ -1010,6 +1037,7 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 					}
 				}
 
+				ty := schema.Body.ImpliedType()
 				var oldVal, newVal cty.Value
 				oldVal = oldObj.Value
 				if newObj != nil {
@@ -1055,7 +1083,7 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 					},
 				}
 
-				changeSrc, err := change.Encode(ty)
+				changeSrc, err := change.Encode(schema)
 				if err != nil {
 					diags = diags.Append(err)
 					return nil, diags

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -21,7 +22,7 @@ import (
 // It will either return a non-empty message string or it'll return diagnostics
 // with either errors or warnings that explain why the given expression isn't
 // acceptable.
-func EvalCheckErrorMessage(expr hcl.Expression, hclCtx *hcl.EvalContext) (string, tfdiags.Diagnostics) {
+func EvalCheckErrorMessage(expr hcl.Expression, hclCtx *hcl.EvalContext, ruleAddr *addrs.CheckRule) (string, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	val, hclDiags := expr.Value(hclCtx)
@@ -68,6 +69,26 @@ You can correct this by removing references to sensitive values, or by carefully
 			Subject:     expr.Range().Ptr(),
 			Expression:  expr,
 			EvalContext: hclCtx,
+		})
+		return "", diags
+	}
+
+	if _, ephemeral := valMarks[marks.Ephemeral]; ephemeral {
+		var extra interface{}
+		if ruleAddr != nil {
+			extra = &addrs.CheckRuleDiagnosticExtra{
+				CheckRule: *ruleAddr,
+			}
+		}
+
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Error message refers to ephemeral values",
+			Detail: `The error expression used to explain this condition refers to ephemeral values, so Terraform will not display the resulting message.
+
+You can correct this by removing references to ephemeral values, or by using the ephemeralasnull() function on the references to not reveal ephemeral data.`,
+			Subject: expr.Range().Ptr(),
+			Extra:   extra,
 		})
 		return "", diags
 	}

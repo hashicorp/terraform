@@ -4,6 +4,8 @@
 package hcl
 
 import (
+	"sync"
+
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
@@ -25,7 +27,23 @@ type VariableCaches struct {
 	GlobalVariables map[string]backendrun.UnparsedVariableValue
 	FileVariables   map[string]hcl.Expression
 
-	caches map[string]*VariableCache
+	caches    map[string]*VariableCache
+	cacheLock sync.Mutex
+}
+
+func NewVariableCaches(opts ...func(*VariableCaches)) *VariableCaches {
+	ret := &VariableCaches{
+		GlobalVariables: make(map[string]backendrun.UnparsedVariableValue),
+		FileVariables:   make(map[string]hcl.Expression),
+		caches:          make(map[string]*VariableCache),
+		cacheLock:       sync.Mutex{},
+	}
+
+	for _, opt := range opts {
+		opt(ret)
+	}
+
+	return ret
 }
 
 // VariableCache contains the cache for a single run block. This cache contains
@@ -42,10 +60,8 @@ type VariableCache struct {
 // GetCache returns the cache for the named run. If the cache does not exist, it
 // is created and returned.
 func (caches *VariableCaches) GetCache(name string, config *configs.Config) *VariableCache {
-	if caches.caches == nil {
-		caches.caches = make(map[string]*VariableCache)
-	}
-
+	caches.cacheLock.Lock()
+	defer caches.cacheLock.Unlock()
 	cache, exists := caches.caches[name]
 	if !exists {
 		cache = &VariableCache{

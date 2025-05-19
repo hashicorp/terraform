@@ -26,8 +26,8 @@ If `condition` is `true` then the result is `true_val`. If `condition` is
 A common use of conditional expressions is to define defaults to replace
 invalid values:
 
-```
-var.a != "" ? var.a : "default-a"
+```hcl
+var.a == "" ? "default-a" : var.a
 ```
 
 If `var.a` is an empty string then the result is `"default-a"`, but otherwise

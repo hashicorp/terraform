@@ -5,88 +5,89 @@ description: >-
   providers, and Terraform itself. Learn version constraint syntax and behavior.
 ---
 
-# Version Constraints
+# Version constraints
 
-Anywhere that Terraform lets you specify a range of acceptable versions for
-something, it expects a specially formatted string known as a version
-constraint. Version constraints are used when configuring:
+This topic provides reference information about the version constraints syntax in Terraform configuration language. 
+
+## Introduction
+
+Terraform lets you specify a range of acceptable versions for
+components you define in the configuration. Terraform expects a specially-formatted string to constrain the versions of the component. You can specify version constraints when configuring the following components:
 
 - [Modules](/terraform/language/modules)
 - [Provider requirements](/terraform/language/providers/requirements)
-- [The `required_version` setting](/terraform/language/settings#specifying-a-required-terraform-version) in the `terraform` block.
+- [The `required_version` setting](/terraform/language/terraform#terraform-required_version) in the `terraform` block.
 
-## Version Constraint Syntax
+## Version constraint syntax
 
-Terraform's syntax for version constraints is very similar to the syntax used by
-other dependency management systems like Bundler and NPM.
+A version constraint is a [string literal](/terraform/language/expressions/strings)
+containing one or more conditions separated by commas. 
+
+Each condition consists of an operator and a version number.
+
+Version numbers are a series of numbers separated by periods, for example `1.2.0`. It is optional, but you can include a suffix to indicate a beta release. Refer to [Specify a pre-release version](#specify-a-pre-release-version) for additional information.
+
+Use the following syntax to specify version constraints:
+
+```hcl
+version = "<operator> <version>"
+```
+
+In the following example, Terraform installs a versions `1.2.0` and newer, as well as version older than `2.0.0`:
 
 ```hcl
 version = ">= 1.2.0, < 2.0.0"
 ```
 
-A version constraint is a [string literal](/terraform/language/expressions/strings)
-containing one or more conditions, which are separated by commas.
+## Operators
 
-Each condition consists of an operator and a version number.
+The following table describes the operators you can use to configure version constraints:
 
-Version numbers should be a series of numbers separated by periods (like
-`1.2.0`), optionally with a suffix to indicate a beta release.
+| Operator | Description |
+| --- | --- |
+| `=`, <br/>no operator | Allows only one exact version number. Cannot be combined with other conditions. |
+| `!=` | Excludes an exact version number. |
+| `>`,<br/> `>=`,<br/> `<`,<br/> `<=` | Compares to a specified version. Terraform allows versions that resolve to `true`. The `>` and `>=` operators request newer versions. The `<` and `<=` operators request older versions. |
+| `~>` | Allows only the right-most version component to increment. Examples: <ul><li>`~> 1.0.4`: Allows Terraform to install `1.0.5` and `1.0.10` but not `1.1.0`.</li><li>`~> 1.1`: Allows Terraform to install `1.2` and `1.10` but not `2.0`. </li></ul>|
 
-The following operators are valid:
+## Version constraint behavior
 
-- `=` (or no operator): Allows only one exact version number. Cannot be combined
-  with other conditions.
-
-- `!=`: Excludes an exact version number.
-
-- `>`, `>=`, `<`, `<=`: Comparisons against a specified version, allowing
-  versions for which the comparison is true. "Greater-than" requests newer
-  versions, and "less-than" requests older versions.
-
-- `~>`: Allows only the _rightmost_ version component to increment. This format is referred to as the _pessimistic constraint_ operator. For example,
-  to allow new patch releases within a specific minor release, use the full
-  version number: 
-  - `~> 1.0.4`: Allows Terraform to install `1.0.5` and `1.0.10` but not `1.1.0`. 
-  - `~> 1.1`: Allows Terraform to install `1.2` and `1.10` but not `2.0`. 
-
-## Version Constraint Behavior
-
-A version number that meets every applicable constraint is considered acceptable.
+Terraform uses versions that meet all applicable constraints.
 
 Terraform consults version constraints to determine whether it has acceptable
 versions of itself, any required provider plugins, and any required modules. For
-plugins and modules, it will use the newest installed version that meets the
+plugins and modules, Terraform uses the newest installed version that meets the
 applicable constraints.
 
-If Terraform doesn't have an acceptable version of a required plugin or module,
-it will attempt to download the newest version that meets the applicable
+When Terraform does not have an acceptable version of a required plugin or module,
+it attempts to download the newest version that meets the applicable
 constraints.
 
-If Terraform isn't able to obtain acceptable versions of external dependencies,
-or if it doesn't have an acceptable version of itself, it won't proceed with any
-plans, applies, or state manipulation actions.
+When Terraform is unable to obtain acceptable versions of external dependencies
+or if it does not have an acceptable version of itself, then it does not proceed with any
+`terraform plan`, `terraform apply`, or `terraform state` operations.
 
-Both the root module and any child module can constrain the acceptable versions
-of Terraform and any providers they use. Terraform considers these constraints
-equal, and will only proceed if all of them can be met.
+The root module and any child modules can constrain the Terraform version and any provider versions the modules use. Terraform considers these constraints
+equal, and only proceeds if all are met.
 
-A prerelease version is a version number that contains a suffix introduced by
-a dash, like `1.2.0-beta`. A prerelease version can be selected only by an
-_exact_ version constraint (the `=` operator or no operator). Prerelease
-versions do not match inexact operators such as `>=`, `~>`, etc.
+### Specify a pre-release version
 
-## Best Practices
+A pre-release version is a version number that contains a suffix introduced by
+a dash, for example `1.2.0-beta`. To configure Terraform to select a pre-release version, set the exact version number using the `=` operator. You can also omit the operator and specify the exact pre-release version. Terraform does not match pre-release versions on `>`, `>=`, `<`, `<=`, or `~>` operators.
 
-### Module Versions
+## Best practices
 
-- When depending on third-party modules, require specific versions to ensure
-  that updates only happen when convenient to you.
+We recommend implementing the following best practices when configuration version constraints. 
 
-- For modules maintained within your organization, specifying version ranges
-  may be appropriate if semantic versioning is used consistently or if there is
-  a well-defined release process that avoids unwanted updates.
+### Module versions
 
-### Terraform Core and Provider Versions
+- Require specific versions to ensure that updates only happen when convenient to you when your infrastructure depends on third-party modules.
+
+- Specify version ranges when your organization consistently uses semantic versioning for modules  it maintains. 
+
+- Specify version ranges when your organization follows a well-defined release process that avoids unwanted updates.
+
+### Terraform core and provider versions
 
 - Reusable modules should constrain only their minimum allowed versions of
   Terraform and providers, such as `>= 0.12.0`. This helps avoid known

@@ -17,7 +17,7 @@ Terraform, are global to an entire Terraform configuration and can be shared
 across module boundaries. Provider configurations can be defined only in a
 root Terraform module.
 
-Providers can be passed down to descendent modules in two ways: either
+Providers can be passed down to descendant modules in two ways: either
 _implicitly_ through inheritance, or _explicitly_ via the `providers` argument
 within a `module` block. These two options are discussed in more detail in the
 following sections.
@@ -182,10 +182,7 @@ The keys of the `providers` map are provider configuration names as expected by
 the child module, and the values are the names of corresponding configurations
 in the _current_ module.
 
-Once the `providers` argument is used in a `module` block, it overrides all of
-the default inheritance behavior, so it is necessary to enumerate mappings
-for _all_ of the required providers. This is to avoid confusion and surprises
-that may result when mixing both implicit and explicit provider passing.
+Modules implicitly inherit default providers. Setting a `providers` argument within a `module` block overrides the default inheritance behavior for that provider.
 
 Additional provider configurations (those with the `alias` argument set) are
 _never_ inherited automatically by child modules, and so must always be passed
@@ -334,7 +331,7 @@ provider "aws" {
 
 provider "google" {
   alias       = "usw1"
-  credentials = "${file("account.json")}"
+  credentials = file("account.json")
   project     = "my-project-id"
   region      = "us-west1"
   zone        = "us-west1-a"
@@ -342,7 +339,7 @@ provider "google" {
 
 provider "google" {
   alias       = "usw2"
-  credentials = "${file("account.json")}"
+  credentials = file("account.json")
   project     = "my-project-id"
   region      = "us-west2"
   zone        = "us-west2-a"

@@ -60,7 +60,7 @@ All other commands:
 Global options (use these before the subcommand, if any):
   -chdir=DIR    Switch to a different working directory before executing the
                 given subcommand.
-  -help         Show this help output, or the help for a specified subcommand.
+  -help         Show this help output or the help for a specified subcommand.
   -version      An alias for the "version" subcommand.
 `, listCommands(commands, PrimaryCommands, maxKeyLen), listCommands(commands, otherCommands, maxKeyLen))
 

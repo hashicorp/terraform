@@ -6,12 +6,14 @@ package terraform
 import (
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
@@ -43,7 +45,7 @@ func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
 		ProviderSchemaSchema: providers.ProviderSchema{
 			ResourceTypes: map[string]providers.Schema{
 				"test_instance": {
-					Block: &configschema.Block{
+					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"id": {
 								Type:     cty.String,
@@ -79,7 +81,7 @@ func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
 	}
 
 	change := ctx.Changes().GetResourceInstanceChange(absResource, deposedKey)
-	if got, want := change.ChangeSrc.Action, plans.Delete; got != want {
+	if got, want := change.Change.Action, plans.Delete; got != want {
 		t.Fatalf("wrong planned action\ngot:  %s\nwant: %s", got, want)
 	}
 }
@@ -101,7 +103,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 	schema := providers.ProviderSchema{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id": {
 							Type:     cty.String,
@@ -127,6 +129,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 		ProviderProvider:     p,
 		ProviderSchemaSchema: schema,
 		ChangesChanges:       plans.NewChanges().SyncWrapper(),
+		DeferralsState:       deferring.NewDeferred(false),
 	}
 
 	node := NodeDestroyDeposedResourceInstanceObject{

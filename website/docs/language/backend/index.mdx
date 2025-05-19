@@ -1,0 +1,226 @@
+---
+page_title: Backend block configuration overview
+description: >-
+  Use the `backend` block to control where Terraform stores state. Learn about the available state backends, the backend block, initializing backends, partial backend configuration, changing backend configuration, and unconfiguring a backend.
+---
+
+# Backend block configuration overview 
+
+This topic provides an overview of how to configure the `backend` block in your Terraform configuration. The `backend` defines where Terraform stores its [state](/terraform/language/state) data files.
+
+## Overview
+
+Terraform uses persisted state data to keep track of the resources it manages. You can either [integrate with HCP Terraform](/terraform/language/terraform#terraform-cloud) to store state data or define a `backend` block to store state in a remote object. This lets multiple people access the state data and work together on that collection of infrastructure resources.
+
+## Define a `backend` block
+
+Do not configure a backend when connecting your configuration to workspaces in HCP Terraform or Terraform Enterprise. These systems automatically manage state in the workspaces associated with your configuration. If your configuration includes a [`cloud` block](/terraform/language/terraform#terraform-cloud), it cannot include a `backend` block.
+
+To configure a backend, add a nested `backend` block within the top-level
+`terraform` block. The following example configures the `remote` backend.
+
+```hcl
+terraform {
+  backend "remote" {
+    organization = "example_corp"
+
+    workspaces {
+      name = "my-app-prod"
+    }
+  }
+}
+```
+
+There are some important limitations on backend configuration:
+
+- A configuration can only provide one backend block.
+- A backend block cannot refer to named values (like input variables, locals, or data source attributes).
+- You cannot reference values declared within backend blocks elsewhere in the configuration. Refer to [References to Resource Attributes](/terraform/language/expressions/references#references-to-resource-attributes) for more details.
+
+### Default backend
+
+Terraform uses a backend called [`local`](/terraform/language/backend/local) by default. The `local` backend type stores state as a local file on disk. 
+
+### Backend types
+
+Terraform ships with several built-in backend types. Some backends function as remote disks for state files, while others support locking the state during Terraform operations to prevent conflicts and inconsistencies. You cannot load additional backends as plugins.
+
+Specify the backend type as the `backend` block label. The following example instructs Terraform to use a remote backend:
+
+```hcl
+backend "remote" {
+  organization = "example_corp"
+  . . . 
+}
+```
+
+The specified backend must be available in the version of Terraform you are using.
+
+### Backend arguments
+
+The arguments in the `backend` block body are specific to the backend type. They specify where and how the backend stores configuration state. Some backend types allow you to configure additional behaviors. Refer to the documentation for your backend for additional information. 
+
+Some backends allow you to provide access credentials as part of the configuration, but we do not recommend including access credentials directly in the configuration. Instead, leave credential-related arguments unset and provide them using the credentials files or environment variables that are conventional for the target system.
+
+Refer to the page for each backend type for full details and that type's configuration arguments.
+
+### Credentials and sensitive data
+
+Backends store state in a remote service, which allows multiple people to access it. Accessing remote state generally requires access credentials, since state data contains extremely sensitive information.
+
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. This can leak sensitive credentials.
+
+Terraform writes the backend configuration in plain text in two separate files.
+- The `.terraform/terraform.tfstate` file contains the backend configuration for the current working directory.
+- All plan files capture the information in `.terraform/terraform.tfstate` at the time the plan was created. This helps ensure Terraform is applying the plan to correct set of infrastructure.
+
+When applying a plan that you previously saved to a file, Terraform uses the backend configuration stored in that file instead of the current backend settings. If that configuration contains time-limited credentials, they may expire before you finish applying the plan. Use environment variables to pass credentials when you need to use different values between the plan and apply steps.
+
+## Initialize the backend
+
+When you change a backend's configuration, you must run `terraform init` again
+to validate and configure the backend before you can perform any plans, applies,
+or state operations.
+
+After you initialize, Terraform creates a `.terraform/` directory locally. This directory contains the most recent backend configuration, including any authentication parameters you provided to the Terraform CLI. Do not check this directory into Git, as it may contain sensitive credentials for your remote backend.
+
+The local backend configuration is different and entirely separate from the `terraform.tfstate` file that contains [state data](/terraform/language/state) about your real-world infrastructure. Terraform stores the `terraform.tfstate` file in your remote backend.
+
+When you change backends, Terraform gives you the option to migrate
+your state to the new backend. This lets you adopt backends without losing
+any existing state.
+
+~> **Important:** Before migrating to a new backend, we strongly recommend manually backing up your state by copying your `terraform.tfstate` file
+to another location.
+
+## Partial configuration
+
+You do not need to specify every required argument in the backend configuration.
+Omitting certain arguments may be desirable if some arguments are provided
+automatically by an automation script running Terraform. When some or all of
+the arguments are omitted, we call this a _partial configuration_.
+
+With a partial configuration, the remaining configuration arguments must be
+provided as part of [the initialization process](/terraform/cli/init).
+
+There are several ways to supply the remaining arguments:
+
+- **File**: A configuration file may be specified via the `init` command line.
+  To specify a file, use the `-backend-config=PATH` option when running
+  `terraform init`. The partial configuration must have a `backend` block containing keys set to empty values. When you run the `terraform init -backend-config="<path-to-remaining-configuration>"` command, Terraform populates the keys in the partial `backend` configuration with matching key values from the specified configuration file. In the following example, the keys defined in the `backend` block of the `state.tf` configuration file are populated with values from the `state.config` configuration:  
+    ```
+    $ `terraform init -backend-config="./state.config"`
+    ```   
+
+  ```hcl
+  # state.tf
+  terraform {
+    backend "s3" {
+      bucket = "" 
+      key    = ""
+      region = ""
+      profile= ""
+    }
+  }
+  ```
+
+  ```hcl
+  # state.config
+  bucket = "your-bucket" 
+  key    = "your-state.tfstate"
+  region = "eu-central-1"
+  profile= "Your_Profile"
+  ```
+
+  When your configuration file contains secrets, you can store them in
+  a secure data store, such as [Vault](https://www.vaultproject.io/),
+  in which case it must be downloaded to the local disk before running Terraform.
+
+- **Command-line key/value pairs**: Key/value pairs can be specified via the
+  `init` command line. Note that many shells retain command-line flags in a
+  history file, so this isn't recommended for secrets. To specify a single
+  key/value pair, use the `-backend-config="KEY=VALUE"` option when running
+  `terraform init`.
+
+- **Interactively**: Terraform will interactively ask you for the required
+  values, unless interactive input is disabled. Terraform will not prompt for
+  optional values.
+
+If backend settings are provided in multiple locations, the top-level
+settings are merged such that any command-line options override the settings
+in the main configuration and then the command-line options are processed
+in order, with later options overriding values set by earlier options.
+
+The final, merged configuration is stored on disk in the `.terraform`
+directory, which should be ignored from version control. This means that
+sensitive information can be omitted from version control, but it will be
+present in plain text on local disk when running Terraform.
+
+When using partial configuration, Terraform requires at a minimum that
+an empty backend configuration is specified in one of the root Terraform
+configuration files, to specify the backend type. For example:
+
+```hcl
+terraform {
+  backend "consul" {}
+}
+```
+
+### File
+
+A backend configuration file has the contents of the `backend` block as
+top-level attributes, without the need to wrap it in another `terraform`
+or `backend` block:
+
+```hcl
+address = "demo.consul.io"
+path    = "example_app/terraform_state"
+scheme  = "https"
+```
+
+`*.backendname.tfbackend` (e.g. `config.consul.tfbackend`) is the recommended
+naming pattern. Terraform will not prevent you from using other names but following
+this convention will help your editor understand the content and likely provide
+better editing experience as a result.
+
+### Command-line key/value pairs
+
+The same settings can alternatively be specified on the command line as
+follows:
+
+```
+$ terraform init \
+    -backend-config="address=demo.consul.io" \
+    -backend-config="path=example_app/terraform_state" \
+    -backend-config="scheme=https"
+```
+
+The Consul backend also requires a Consul access token. Per the recommendation
+above of omitting credentials from the configuration and using other mechanisms,
+the Consul token would be provided by setting either the `CONSUL_HTTP_TOKEN`
+or `CONSUL_HTTP_AUTH` environment variables. See the documentation of your
+chosen backend to learn how to provide credentials to it outside of its main
+configuration.
+
+## Change configuration
+
+You can change your backend configuration at any time. You can change
+both the configuration itself as well as the type of backend (for example
+from "consul" to "s3").
+
+Terraform will automatically detect any changes in your configuration
+and request a [reinitialization](/terraform/cli/init). As part of
+the reinitialization process, Terraform will ask if you'd like to migrate
+your existing state to the new configuration. This allows you to easily
+switch from one backend to another.
+
+If you're using multiple [workspaces](/terraform/language/state/workspaces),
+Terraform can copy all workspaces to the destination. If Terraform detects
+you have multiple workspaces, it will ask if this is what you want to do.
+
+If you're just reconfiguring the same backend, Terraform will still ask if you
+want to migrate your state. You can respond "no" in this scenario.
+
+## Remove a backend configuration
+
+Remove the `backend` block from your configuration and [reinitialize](/terraform/cli/init) the directory when prompted. Terraform also prompts you to migrate the state to the default `local` backend. 

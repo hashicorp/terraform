@@ -77,6 +77,12 @@ func (b *Block) internalValidate(prefix string) error {
 					// properly hash them, and so can't support mixed types.
 					multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: NestingSet blocks may not contain attributes of cty.DynamicPseudoType", prefix, name))
 				}
+				if blockS.Block.ContainsWriteOnly() {
+					// This is not permitted because any marks within sets will
+					// be hoisted up the outer set value, so only the set itself
+					// can be WriteOnly.
+					multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: NestingSet blocks may not contain WriteOnly attributes", prefix, name))
+				}
 			}
 		case NestingMap:
 			if blockS.MinItems != 0 || blockS.MaxItems != 0 {
@@ -142,7 +148,13 @@ func (a *Attribute) internalValidate(name, prefix string) error {
 					// This is not permitted because the HCL (cty) set implementation
 					// needs to know the exact type of set elements in order to
 					// properly hash them, and so can't support mixed types.
-					err = errors.Join(err, fmt.Errorf("%s%s: NestingSet blocks may not contain attributes of cty.DynamicPseudoType", prefix, name))
+					err = errors.Join(err, fmt.Errorf("%s%s: NestingSet attributes may not contain attributes of cty.DynamicPseudoType", prefix, name))
+				}
+				if a.NestedType.ContainsWriteOnly() {
+					// This is not permitted because any marks within sets will
+					// be hoisted up the outer set value, so only the set itself
+					// can be WriteOnly.
+					err = errors.Join(err, fmt.Errorf("%s%s: NestingSet attributes may not contain WriteOnly attributes", prefix, name))
 				}
 			}
 		default:
@@ -155,6 +167,20 @@ func (a *Attribute) internalValidate(name, prefix string) error {
 			}
 			err = errors.Join(err, attrS.internalValidate(name, prefix))
 		}
+	}
+
+	return err
+}
+
+func (o *Object) InternalValidate() error {
+	var err error
+
+	for name, attrS := range o.Attributes {
+		if attrS == nil {
+			err = errors.Join(err, fmt.Errorf("%s: attribute schema is nil", name))
+			continue
+		}
+		err = errors.Join(err, attrS.internalValidate(name, ""))
 	}
 
 	return err

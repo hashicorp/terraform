@@ -377,7 +377,7 @@ func TestShow_planWithForceReplaceChange(t *testing.T) {
 		t.Fatal(err)
 	}
 	plan := testPlan(t)
-	plan.Changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+	plan.Changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
 		Addr: addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: "test_instance",
@@ -1015,7 +1015,7 @@ func TestShow_corruptStatefile(t *testing.T) {
 func showFixtureSchema() *providers.GetProviderSchemaResponse {
 	return &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"region": {Type: cty.String, Optional: true},
 				},
@@ -1023,7 +1023,7 @@ func showFixtureSchema() *providers.GetProviderSchemaResponse {
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":  {Type: cty.String, Optional: true, Computed: true},
 						"ami": {Type: cty.String, Optional: true},
@@ -1040,7 +1040,7 @@ func showFixtureSchema() *providers.GetProviderSchemaResponse {
 func showFixtureSensitiveSchema() *providers.GetProviderSchemaResponse {
 	return &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{
+			Body: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"region": {Type: cty.String, Optional: true},
 				},
@@ -1048,7 +1048,7 @@ func showFixtureSensitiveSchema() *providers.GetProviderSchemaResponse {
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":       {Type: cty.String, Optional: true, Computed: true},
 						"ami":      {Type: cty.String, Optional: true},
@@ -1179,7 +1179,7 @@ func showFixturePlanFile(t *testing.T, action plans.Action) string {
 		t.Fatal(err)
 	}
 	plan := testPlan(t)
-	plan.Changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+	plan.Changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
 		Addr: addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: "test_instance",

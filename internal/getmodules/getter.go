@@ -41,29 +41,41 @@ import (
 var goGetterNoDetectors = []getter.Detector{}
 
 var goGetterDecompressors = map[string]getter.Decompressor{
-	"bz2": new(getter.Bzip2Decompressor),
-	"gz":  new(getter.GzipDecompressor),
-	"xz":  new(getter.XzDecompressor),
-	"zip": new(getter.ZipDecompressor),
-
+	// Bzip2
+	"bz2":      new(getter.Bzip2Decompressor),
+	"tbz2":     new(getter.TarBzip2Decompressor),
 	"tar.bz2":  new(getter.TarBzip2Decompressor),
 	"tar.tbz2": new(getter.TarBzip2Decompressor),
 
+	// Gzip
+	"gz":     new(getter.GzipDecompressor),
 	"tar.gz": new(getter.TarGzipDecompressor),
 	"tgz":    new(getter.TarGzipDecompressor),
 
+	// Xz
+	"xz":     new(getter.XzDecompressor),
 	"tar.xz": new(getter.TarXzDecompressor),
 	"txz":    new(getter.TarXzDecompressor),
+
+	// Zip
+	"zip": new(getter.ZipDecompressor),
 }
 
 var goGetterGetters = map[string]getter.Getter{
-	"file":  new(getter.FileGetter),
-	"gcs":   new(getter.GCSGetter),
-	"git":   new(getter.GitGetter),
-	"hg":    new(getter.HgGetter),
-	"s3":    new(getter.S3Getter),
+	// Protocol-based getters
 	"http":  getterHTTPGetter,
 	"https": getterHTTPGetter,
+
+	// Cloud storage getters
+	"gcs": new(getter.GCSGetter),
+	"s3":  new(getter.S3Getter),
+
+	// Version control getters
+	"git": new(getter.GitGetter),
+	"hg":  new(getter.HgGetter),
+
+	// Local and file-based getters
+	"file": new(getter.FileGetter),
 }
 
 var getterHTTPClient = cleanhttp.DefaultClient()

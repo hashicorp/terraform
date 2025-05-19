@@ -54,6 +54,10 @@ type Hooks struct {
 	// expansion argument for a component, resulting in zero or more instances.
 	ComponentExpanded hooks.SingleFunc[*hooks.ComponentInstances]
 
+	// RemovedComponentExpanded is called when a plan operation evaluates the
+	// expansion argument for a removed block.
+	RemovedComponentExpanded hooks.SingleFunc[*hooks.RemovedComponentInstances]
+
 	// PendingComponentInstancePlan is called at the start of the plan
 	// operation, before evaluating the component instance's inputs and
 	// providers.
@@ -73,6 +77,10 @@ type Hooks struct {
 	// ErrorComponentInstancePlan is similar to [Hooks.EndComponentInstancePlan], but
 	// is called when the plan operation failed.
 	ErrorComponentInstancePlan hooks.MoreFunc[stackaddrs.AbsComponentInstance]
+
+	// DeferComponentInstancePlan is similar to [Hooks.EndComponentInstancePlan], but
+	// is called when the plan operation succeeded but signaled a deferral.
+	DeferComponentInstancePlan hooks.MoreFunc[stackaddrs.AbsComponentInstance]
 
 	// PendingComponentInstanceApply is called at the start of the apply
 	// operation.
@@ -115,6 +123,12 @@ type Hooks struct {
 	// called inside a tracing context established by
 	// [Hooks.BeginComponentInstancePlan].
 	ReportResourceInstancePlanned hooks.MoreFunc[*hooks.ResourceInstanceChange]
+
+	// ReportResourceInstanceDeferred is called after a component instance's
+	// plan results in a resource instance being deferred. It should be called
+	// inside a tracing context established by
+	// [Hooks.BeginComponentInstancePlan].
+	ReportResourceInstanceDeferred hooks.MoreFunc[*hooks.DeferredResourceInstanceChange]
 
 	// ReportComponentInstancePlanned is called after a component instance
 	// is planned. It should be called inside a tracing context established by
@@ -182,7 +196,7 @@ type hookSeq struct {
 // calls that are related to whatever multi-step operation this hook sequence
 // represents, so that the hook subscriber can use this mechanism to propagate
 // distributed tracing spans to downstream operations. Callers MUST also use
-// descendents of the resulting context for any subsequent calls to
+// descendants of the resulting context for any subsequent calls to
 // [runHookBegin] using the returned [hookSeq].
 func hookBegin[Msg any](ctx context.Context, cb hooks.BeginFunc[Msg], ctxCb hooks.ContextAttachFunc, msg Msg) (*hookSeq, context.Context) {
 	tracking := runHookBegin(ctx, cb, msg)

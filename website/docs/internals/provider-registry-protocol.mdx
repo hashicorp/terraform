@@ -1,18 +1,14 @@
 ---
-page_title: Provider Registry Protocol
+page_title: Provider registry protocol reference
 description: |-
-  The provider registry protocol is implemented by a host intending to be the
-  origin host for one or more Terraform providers, specifying which providers
-  are available and where to find their distribution packages.
+  Use the provider registry protocol to enable Terraform to discover metadata about available providers and locate their distribution packages.
 ---
 
-# Provider Registry Protocol
+# Provider Registry Protocol Reference
 
--> Third-party provider registries are supported only in Terraform CLI 0.13 and later. Prior versions do not support this protocol.
+This topic provides reference information about the provider registry protocol. The protocol allows the Terraform CLI to discover metadata about the providers available for installation and to locate the distribution packages for a selected provider.
 
-The provider registry protocol is what Terraform CLI uses to discover metadata
-about providers available for installation and to locate the distribution
-packages for a selected provider.
+## Introduction 
 
 The primary implementation of this protocol is the public
 [Terraform Registry](https://registry.terraform.io/) at `registry.terraform.io`.

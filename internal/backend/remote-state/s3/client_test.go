@@ -176,6 +176,83 @@ func TestForceUnlock(t *testing.T) {
 	}
 }
 
+func TestForceUnlock_withLockfile(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-force-%x", time.Now().Unix())
+	keyName := "testState"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+
+	// first test with default
+	s1, err := b1.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	info := statemgr.NewLockInfo()
+	info.Operation = "test"
+	info.Who = "clientA"
+
+	lockID, err := s1.Lock(info)
+	if err != nil {
+		t.Fatal("unable to get initial lock:", err)
+	}
+
+	// s1 is now locked, get the same state through s2 and unlock it
+	s2, err := b2.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal("failed to get default state to force unlock:", err)
+	}
+
+	if err := s2.Unlock(lockID); err != nil {
+		t.Fatal("failed to force-unlock default state")
+	}
+
+	// now try the same thing with a named state
+	// first test with default
+	s1, err = b1.StateMgr("test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	info = statemgr.NewLockInfo()
+	info.Operation = "test"
+	info.Who = "clientA"
+
+	lockID, err = s1.Lock(info)
+	if err != nil {
+		t.Fatal("unable to get initial lock:", err)
+	}
+
+	// s1 is now locked, get the same state through s2 and unlock it
+	s2, err = b2.StateMgr("test")
+	if err != nil {
+		t.Fatal("failed to get named state to force unlock:", err)
+	}
+
+	if err = s2.Unlock(lockID); err != nil {
+		t.Fatal("failed to force-unlock named state")
+	}
+}
+
 func TestRemoteClient_clientMD5(t *testing.T) {
 	testACC(t)
 
@@ -343,8 +420,9 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	}
 }
 
-func TestRemoteClientPutLargeUploadWithObjectLock(t *testing.T) {
+func TestRemoteClientPutLargeUploadWithObjectLock_Compliance(t *testing.T) {
 	testACC(t)
+	objectLockPreCheck(t)
 
 	ctx := context.TODO()
 
@@ -370,6 +448,86 @@ func TestRemoteClientPutLargeUploadWithObjectLock(t *testing.T) {
 
 	var state bytes.Buffer
 	dataW := io.LimitReader(neverEnding('x'), manager.DefaultUploadPartSize*2)
+	_, err = state.ReadFrom(dataW)
+	if err != nil {
+		t.Fatalf("writing dummy data: %s", err)
+	}
+
+	err = client.Put(state.Bytes())
+	if err != nil {
+		t.Fatalf("putting data: %s", err)
+	}
+}
+
+func TestRemoteClientLockFileWithObjectLock_Compliance(t *testing.T) {
+	testACC(t)
+	objectLockPreCheck(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "testState"
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"use_lockfile": true,
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region,
+		s3BucketWithVersioning,
+		s3BucketWithObjectLock(s3types.ObjectLockRetentionModeCompliance),
+	)
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
+
+	s1, err := b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := s1.(*remote.State).Client
+
+	var state bytes.Buffer
+	dataW := io.LimitReader(neverEnding('x'), manager.DefaultUploadPartSize)
+	_, err = state.ReadFrom(dataW)
+	if err != nil {
+		t.Fatalf("writing dummy data: %s", err)
+	}
+
+	err = client.Put(state.Bytes())
+	if err != nil {
+		t.Fatalf("putting data: %s", err)
+	}
+}
+
+func TestRemoteClientLockFileWithObjectLock_Governance(t *testing.T) {
+	testACC(t)
+	objectLockPreCheck(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "testState"
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"use_lockfile": true,
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region,
+		s3BucketWithVersioning,
+		s3BucketWithObjectLock(s3types.ObjectLockRetentionModeGovernance),
+	)
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
+
+	s1, err := b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := s1.(*remote.State).Client
+
+	var state bytes.Buffer
+	dataW := io.LimitReader(neverEnding('x'), manager.DefaultUploadPartSize)
 	_, err = state.ReadFrom(dataW)
 	if err != nil {
 		t.Fatalf("writing dummy data: %s", err)

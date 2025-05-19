@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 )
 
-func decodeDependsOn(attr *hcl.Attribute) ([]hcl.Traversal, hcl.Diagnostics) {
+func DecodeDependsOn(attr *hcl.Attribute) ([]hcl.Traversal, hcl.Diagnostics) {
 	var ret []hcl.Traversal
 	exprs, diags := hcl.ExprList(attr.Expr)
 

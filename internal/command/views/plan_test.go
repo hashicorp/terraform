@@ -67,14 +67,14 @@ func testPlan(t *testing.T) *plans.Plan {
 		t.Fatal(err)
 	}
 
-	changes := plans.NewChanges()
+	changes := plans.NewChangesSrc()
 	addr := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,
 		Type: "test_resource",
 		Name: "foo",
 	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+	changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
 		Addr:        addr,
 		PrevRunAddr: addr,
 		ProviderAddr: addrs.AbsProviderConfig{
@@ -117,7 +117,7 @@ func testPlanWithDatasource(t *testing.T) *plans.Plan {
 		t.Fatal(err)
 	}
 
-	plan.Changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+	plan.Changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
 		Addr:        addr,
 		PrevRunAddr: addr,
 		ProviderAddr: addrs.AbsProviderConfig{
@@ -157,11 +157,11 @@ func testProvider() *testing_provider.MockProvider {
 func testProviderSchema() *providers.GetProviderSchemaResponse {
 	return &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
-			Block: &configschema.Block{},
+			Body: &configschema.Block{},
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_resource": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":  {Type: cty.String, Computed: true},
 						"foo": {Type: cty.String, Optional: true},
@@ -171,7 +171,7 @@ func testProviderSchema() *providers.GetProviderSchemaResponse {
 		},
 		DataSources: map[string]providers.Schema{
 			"test_data_source": {
-				Block: &configschema.Block{
+				Body: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
 						"id":  {Type: cty.String, Required: true},
 						"bar": {Type: cty.String, Optional: true},

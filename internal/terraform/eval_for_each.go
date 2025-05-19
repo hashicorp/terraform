@@ -110,28 +110,46 @@ func (ev *forEachEvaluator) ResourceValue() (map[string]cty.Value, bool, tfdiags
 
 // ImportValue returns the for_each map for use within an import block,
 // enumerated as individual instances.RepetitionData values.
-func (ev *forEachEvaluator) ImportValues() ([]instances.RepetitionData, tfdiags.Diagnostics) {
+func (ev *forEachEvaluator) ImportValues() ([]instances.RepetitionData, bool, tfdiags.Diagnostics) {
 	var res []instances.RepetitionData
 	if ev.expr == nil {
-		return res, nil
+		return res, true, nil
 	}
 
 	forEachVal, diags := ev.Value()
 	if diags.HasErrors() {
-		return res, diags
+		return res, false, diags
 	}
 
 	// ensure our value is known for use in resource expansion
-	diags = diags.Append(ev.ensureKnownForImport(forEachVal))
-	if diags.HasErrors() {
-		return res, diags
+	unknownDiags := diags.Append(ev.ensureKnownForImport(forEachVal))
+	if unknownDiags.HasErrors() {
+		if !ev.allowUnknown {
+			diags = diags.Append(unknownDiags)
+		}
+		return res, false, diags
 	}
 
+	// ensure the value is not ephemeral
+	diags = diags.Append(ev.ensureNotEphemeral(forEachVal))
+
 	if forEachVal.IsNull() {
-		return res, diags
+		return res, true, diags
 	}
 
 	val, marks := forEachVal.Unmark()
+
+	if !val.CanIterateElements() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     "Invalid for_each argument",
+			Detail:      "The \"for_each\" expression must be a collection.",
+			Subject:     ev.expr.Range().Ptr(),
+			Expression:  ev.expr,
+			EvalContext: ev.hclCtx,
+		})
+		return res, false, diags
+	}
 
 	it := val.ElementIterator()
 	for it.Next() {
@@ -143,7 +161,7 @@ func (ev *forEachEvaluator) ImportValues() ([]instances.RepetitionData, tfdiags.
 
 	}
 
-	return res, diags
+	return res, true, diags
 }
 
 // Value returns the raw cty.Value evaluated from the given for_each expression
@@ -201,8 +219,8 @@ func (ev *forEachEvaluator) ensureKnownForImport(forEachVal cty.Value) tfdiags.D
 func (ev *forEachEvaluator) ensureKnownForResource(forEachVal cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	ty := forEachVal.Type()
-	const errInvalidUnknownDetailMap = "The \"for_each\" map includes keys derived from resource attributes that cannot be determined until apply, and so Terraform cannot determine the full set of keys that will identify the instances of this resource.\n\nWhen working with unknown values in for_each, it's better to define the map keys statically in your configuration and place apply-time results only in the map values.\n\nAlternatively, you could use the -target planning option to first apply only the resources that the for_each value depends on, and then apply a second time to fully converge."
-	const errInvalidUnknownDetailSet = "The \"for_each\" set includes values derived from resource attributes that cannot be determined until apply, and so Terraform cannot determine the full set of keys that will identify the instances of this resource.\n\nWhen working with unknown values in for_each, it's better to use a map value where the keys are defined statically in your configuration and where only the values contain apply-time results.\n\nAlternatively, you could use the -target planning option to first apply only the resources that the for_each value depends on, and then apply a second time to fully converge."
+	const errInvalidUnknownDetailMap = "The \"for_each\" map includes keys derived from resource attributes that cannot be determined until apply, and so Terraform cannot determine the full set of keys that will identify the instances of this resource.\n\nWhen working with unknown values in for_each, it's better to define the map keys statically in your configuration and place apply-time results only in the map values.\n\nAlternatively, you could either use the -target planning option or the -allow-deferrals planning option to first apply only the resources that the for_each value depends on, and then apply a second time to fully converge."
+	const errInvalidUnknownDetailSet = "The \"for_each\" set includes values derived from resource attributes that cannot be determined until apply, and so Terraform cannot determine the full set of keys that will identify the instances of this resource.\n\nWhen working with unknown values in for_each, it's better to use a map value where the keys are defined statically in your configuration and where only the values contain apply-time results.\n\nAlternatively, you could either use the -target planning option or the -allow-deferrals planning option to first apply only the resources that the for_each value depends on, and then apply a second time to fully converge."
 
 	if !forEachVal.IsKnown() {
 		var detailMsg string
@@ -239,6 +257,27 @@ func (ev *forEachEvaluator) ensureKnownForResource(forEachVal cty.Value) tfdiags
 	return diags
 }
 
+// ensureNotEphemeral makes sure no ephemeral values are used in the for_each expression.
+func (ev *forEachEvaluator) ensureNotEphemeral(forEachVal cty.Value) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	// Ephemeral values are not allowed because instance keys persist from
+	// plan to apply and between plan/apply rounds, whereas ephemeral values
+	// do not.
+	if forEachVal.HasMark(marks.Ephemeral) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     "Invalid for_each argument",
+			Detail:      `The given "for_each" value is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify a resource's instance keys.`,
+			Subject:     ev.expr.Range().Ptr(),
+			Expression:  ev.expr,
+			EvalContext: ev.hclCtx,
+			Extra:       DiagnosticCausedByEphemeral(true),
+		})
+	}
+
+	return diags
+}
+
 // ValidateResourceValue is used from validation walks to verify the validity
 // of the resource for_Each expression, while still allowing for unknown
 // values.
@@ -269,20 +308,8 @@ func (ev *forEachEvaluator) validateResource(forEachVal cty.Value) tfdiags.Diagn
 			Extra:       diagnosticCausedBySensitive(true),
 		})
 	}
-	// Ephemeral values are not allowed because instance keys persist from
-	// plan to apply and between plan/apply rounds, whereas ephemeral values
-	// do not.
-	if forEachVal.HasMark(marks.Ephemeral) {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity:    hcl.DiagError,
-			Summary:     "Invalid for_each argument",
-			Detail:      `The given "for_each" value is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify a resource's instance keys.`,
-			Subject:     ev.expr.Range().Ptr(),
-			Expression:  ev.expr,
-			EvalContext: ev.hclCtx,
-			Extra:       diagnosticCausedByEphemeral(true),
-		})
-	}
+
+	diags = diags.Append(ev.ensureNotEphemeral(forEachVal))
 
 	if diags.HasErrors() {
 		return diags

@@ -15,16 +15,21 @@ func _() {
 	_ = x[ComponentInstanceApplying-97]
 	_ = x[ComponentInstanceApplied-65]
 	_ = x[ComponentInstanceErrored-69]
+	_ = x[ComponentInstanceDeferred-68]
 }
 
 const (
 	_ComponentInstanceStatus_name_0 = "ComponentInstanceStatusInvalid"
 	_ComponentInstanceStatus_name_1 = "ComponentInstancePending"
 	_ComponentInstanceStatus_name_2 = "ComponentInstanceApplied"
-	_ComponentInstanceStatus_name_3 = "ComponentInstanceErrored"
+	_ComponentInstanceStatus_name_3 = "ComponentInstanceDeferredComponentInstanceErrored"
 	_ComponentInstanceStatus_name_4 = "ComponentInstancePlanned"
 	_ComponentInstanceStatus_name_5 = "ComponentInstanceApplying"
 	_ComponentInstanceStatus_name_6 = "ComponentInstancePlanning"
+)
+
+var (
+	_ComponentInstanceStatus_index_3 = [...]uint8{0, 25, 49}
 )
 
 func (i ComponentInstanceStatus) String() string {
@@ -35,8 +40,9 @@ func (i ComponentInstanceStatus) String() string {
 		return _ComponentInstanceStatus_name_1
 	case i == 65:
 		return _ComponentInstanceStatus_name_2
-	case i == 69:
-		return _ComponentInstanceStatus_name_3
+	case 68 <= i && i <= 69:
+		i -= 68
+		return _ComponentInstanceStatus_name_3[_ComponentInstanceStatus_index_3[i]:_ComponentInstanceStatus_index_3[i+1]]
 	case i == 80:
 		return _ComponentInstanceStatus_name_4
 	case i == 97:
