@@ -14,9 +14,9 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-// BackendState describes the physical storage format for the backend state
+// BackendConfigState describes the physical storage format for the backend state
 // in a working directory, and provides the lowest-level API for decoding it.
-type BackendState struct {
+type BackendConfigState struct {
 	Type      string          `json:"type"`   // Backend type
 	ConfigRaw json.RawMessage `json:"config"` // Backend raw config
 	Hash      uint64          `json:"hash"`   // Hash of portion of configuration from config files
@@ -26,7 +26,7 @@ type BackendState struct {
 //
 // In practice this typically means that the working directory is using the
 // implied local backend, but that decision is made by the caller.
-func (s *BackendState) Empty() bool {
+func (s *BackendConfigState) Empty() bool {
 	return s == nil || s.Type == ""
 }
 
@@ -35,7 +35,7 @@ func (s *BackendState) Empty() bool {
 //
 // An error is returned if the stored configuration does not conform to the
 // given schema, or is otherwise invalid.
-func (s *BackendState) Config(schema *configschema.Block) (cty.Value, error) {
+func (s *BackendConfigState) Config(schema *configschema.Block) (cty.Value, error) {
 	ty := schema.ImpliedType()
 	if s == nil {
 		return cty.NullVal(ty), nil
@@ -48,7 +48,7 @@ func (s *BackendState) Config(schema *configschema.Block) (cty.Value, error) {
 //
 // An error is returned if the given value does not conform to the implied
 // type of the schema.
-func (s *BackendState) SetConfig(val cty.Value, schema *configschema.Block) error {
+func (s *BackendConfigState) SetConfig(val cty.Value, schema *configschema.Block) error {
 	ty := schema.ImpliedType()
 	buf, err := ctyjson.Marshal(val, ty)
 	if err != nil {
@@ -64,7 +64,7 @@ func (s *BackendState) SetConfig(val cty.Value, schema *configschema.Block) erro
 //
 // The backend configuration schema is required in order to properly
 // encode the backend-specific configuration settings.
-func (s *BackendState) ForPlan(schema *configschema.Block, workspaceName string) (*plans.Backend, error) {
+func (s *BackendConfigState) ForPlan(schema *configschema.Block, workspaceName string) (*plans.Backend, error) {
 	if s == nil {
 		return nil, nil
 	}
@@ -76,11 +76,11 @@ func (s *BackendState) ForPlan(schema *configschema.Block, workspaceName string)
 	return plans.NewBackend(s.Type, configVal, schema, workspaceName)
 }
 
-func (s *BackendState) DeepCopy() *BackendState {
+func (s *BackendConfigState) DeepCopy() *BackendConfigState {
 	if s == nil {
 		return nil
 	}
-	ret := &BackendState{
+	ret := &BackendConfigState{
 		Type: s.Type,
 		Hash: s.Hash,
 	}

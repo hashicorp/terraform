@@ -30,7 +30,7 @@ type BackendStateFile struct {
 	// this state. This is used to track any changes in the `backend`
 	// block's configuration.
 	// Note: this also used to tracking changes in the `cloud` block
-	Backend *BackendState `json:"backend,omitempty"`
+	Backend *BackendConfigState `json:"backend,omitempty"`
 
 	// This is here just so we can sniff for the unlikely-but-possible
 	// situation that someone is trying to use modern Terraform with a
@@ -59,7 +59,7 @@ func NewBackendStateFile() *BackendStateFile {
 // of an unsupported format version.
 //
 // This does not immediately decode the embedded backend config, and so
-// it's possible that a subsequent call to [BackendState.Config] will
+// it's possible that a subsequent call to [BackendConfigState.Config] will
 // return further errors even if this call succeeds.
 func ParseBackendStateFile(src []byte) (*BackendStateFile, error) {
 	// To avoid any weird collisions with as-yet-unknown future versions of
