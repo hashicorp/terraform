@@ -59,7 +59,7 @@ The `resource` block supports the following arguments:
         - [`proxy_port`](#connection-arguments) &nbsp; string
         - [`proxy_user_name`](#connection-arguments) &nbsp; string
         - [`proxy_user_password`](#connection-arguments) &nbsp; string
-   - [`provisioner "<TYPE>" "<LABEL>"`](#provisioner) &nbsp; block
+   - [`provisioner "<TYPE>"`](#provisioner) &nbsp; block
       - [`source`](#source) &nbsp; string
       - [`destination`](#destination) &nbsp; string
       - [`content`](#content) &nbsp; string      
@@ -111,7 +111,7 @@ resource "<TYPE>" "<LABEL>" {
     host = <EXPRESSION>
     <DEFAULT_CONNECTION_SETTINGS>
   }
-  provisioner "<TYPE>" "<LABEL>" {
+  provisioner "<TYPE>" {
     source = "<PATH>"
     destination = "<PATH>"
     content = "<CONTENT TO COPY TO `destination`>"
@@ -597,7 +597,7 @@ The `provisioner` block defines actions to perform on the local machine or creat
 
 ```hcl
 resource {
-  provisioner "<TYPE>" "<LABEL>" {
+  provisioner "<TYPE>" {
     <arguments> 
   }
 }
@@ -719,6 +719,7 @@ Modern Windows systems support running an OpenSSH server, so we strongly recomme
 ### `command`
 
 The `command` argument specifies a command for a local executable to run. You can specify an absolute path or a relative path to the current working directory. 
+
 ```hcl
 resource {
   provisioner "local-exec" "<LABEL>" {
@@ -836,6 +837,70 @@ When `quiet` is set to `true`, Terraform prints `"Suppressed by quiet=true"` to 
 
 - Data type: Boolean.
 - Default: None.
+
+
+### `inline` 
+
+Specifies a list of command strings to execute on the remote resource.
+
+
+```hcl
+resource {
+  # ...
+  provisioner "remote-exec" {
+    inline = [ "<command>" ]
+  }
+}
+```
+The provisioner uses the remote resource's default shell unless you specify a shell as the first command, for example `#!/bin/bash`. You cannot add an `inline` argument in the same provisioner with `script` or `scripts`.
+
+#### Summary
+
+- Data type: List.
+- Default: None.
+
+### `script`
+
+Specifies the relative or absolute path to a script on the local machine to copy and execute on the remote resource.  
+
+
+```hcl
+resource {
+  # ...
+  provisioner "remote-exec" {
+    scripts = "<path-to-script>"
+  }
+}
+```
+
+You cannot add a `script` argument in the same provisioner with `inline` or `scripts`.
+
+#### Summary
+
+- Data type: String.
+- Default: None.
+
+### `scripts`
+
+Specifies a list of relative or absolute paths to script files on the local machine to copy and execute on the remote resource.  
+
+
+```hcl
+resource {
+  # ...
+  provisioner "remote-exec" {
+    scripts = [ "<path-to-script>" ]
+  }
+}
+```
+
+You cannot add a `scripts` argument in the same provisioner with `inline` or `script`.
+
+#### Summary
+
+- Data type: List.
+- Default: None.
+
 
 ## Examples
 
